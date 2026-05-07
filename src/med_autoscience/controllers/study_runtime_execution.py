@@ -1,24 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
 from typing import Any
 
 from med_autoscience import study_runtime_analysis_bundle as analysis_bundle_controller
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_backend import ManagedRuntimeBackend
-from med_autoscience.runtime_protocol import (
-    quest_state,
-    study_runtime as study_runtime_protocol,
-)
-from med_autoscience.study_completion import StudyCompletionState
+from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
-from .study_runtime_execution_parts.controller_authorization import (
-    adopt_controller_work_unit_evidence_for_current_authorization,
-    _relay_controller_decision_authorization_if_required,
-)
+from .study_runtime_execution_parts import action_family_dispatch as _action_family_dispatch
+from .study_runtime_execution_parts import receipt_materialization as _receipt_materialization
 from .study_runtime_execution_parts import runtime_events as _runtime_events
+from .study_runtime_execution_parts.controller_authorization import (
+    _relay_controller_decision_authorization_if_required,
+    adopt_controller_work_unit_evidence_for_current_authorization,
+)
 from .study_runtime_execution_parts.decision_relay import (
     _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD,
     _append_route_context_to_message,
@@ -29,7 +25,10 @@ from .study_runtime_execution_parts.decision_relay import (
     _should_force_restart_for_live_controller_reroute,
     _should_skip_redundant_resume_for_live_controller_reroute,
 )
-from .study_runtime_transport import _get_quest_session
+from .study_runtime_execution_parts.execution_types import (
+    StudyRuntimeExecutionContext,
+    StudyRuntimeExecutionOutcome,
+)
 from .study_runtime_status import (
     StudyCompletionSyncResult,
     StudyRuntimeAnalysisBundleResult,
@@ -43,6 +42,7 @@ from .study_runtime_status import (
     StudyRuntimeStatus,
     _LIVE_QUEST_STATUSES,
 )
+from .study_runtime_transport import _get_quest_session
 
 __all__ = [
     "StudyRuntimeExecutionContext",
@@ -68,164 +68,7 @@ def _router_module():
 
 
 def _should_run_startup_hydration_for_resume(*, status: StudyRuntimeStatus) -> bool:
-    return status.runtime_reentry_gate_result.require_startup_hydration
-
-
-@dataclass(frozen=True)
-class StudyRuntimeExecutionContext:
-    profile: WorkspaceProfile
-    study_id: str
-    study_root: Path
-    study_payload: dict[str, Any]
-    execution: dict[str, Any]
-    quest_id: str
-    runtime_context: study_runtime_protocol.StudyRuntimeContext
-    runtime_backend: ManagedRuntimeBackend
-    completion_state: StudyCompletionState
-    source: str
-
-    @property
-    def runtime_root(self) -> Path:
-        return self.runtime_context.runtime_root
-
-    @property
-    def quest_root(self) -> Path:
-        return self.runtime_context.quest_root
-
-    @property
-    def runtime_binding_path(self) -> Path:
-        return self.runtime_context.runtime_binding_path
-
-    @property
-    def launch_report_path(self) -> Path:
-        return self.runtime_context.launch_report_path
-
-    @property
-    def startup_payload_root(self) -> Path:
-        return self.runtime_context.startup_payload_root
-
-
-@dataclass
-class StudyRuntimeExecutionOutcome:
-    binding_last_action: StudyRuntimeBindingAction | None = None
-    startup_payload_path: Path | None = None
-    daemon_result: dict[str, Any] | None = None
-
-    def __post_init__(self) -> None:
-        self.binding_last_action = self._normalize_binding_last_action(self.binding_last_action)
-        if self.daemon_result is not None and not isinstance(self.daemon_result, dict):
-            raise TypeError("daemon_result must be dict or None")
-
-    def ensure_daemon_result(self) -> dict[str, Any]:
-        if self.daemon_result is None:
-            self.daemon_result = {}
-        elif not isinstance(self.daemon_result, dict):
-            raise TypeError("daemon_result must be dict or None")
-        return self.daemon_result
-
-    def record_daemon_step(
-        self,
-        step: StudyRuntimeDaemonStep | str,
-        payload: dict[str, Any],
-    ) -> None:
-        if not isinstance(payload, dict):
-            raise TypeError("daemon step payload must be dict")
-        resolved_step = self._normalize_daemon_step(step)
-        self.ensure_daemon_result()[resolved_step.value] = dict(payload)
-
-    def daemon_step(
-        self,
-        step: StudyRuntimeDaemonStep | str,
-    ) -> dict[str, Any]:
-        resolved_step = self._normalize_daemon_step(step)
-        daemon_result = self.daemon_result
-        if not isinstance(daemon_result, dict):
-            return {}
-        nested_payload = daemon_result.get(resolved_step.value)
-        if isinstance(nested_payload, dict):
-            return dict(nested_payload)
-        if resolved_step in {StudyRuntimeDaemonStep.RESUME, StudyRuntimeDaemonStep.PAUSE} and not any(
-            key in daemon_result for key in StudyRuntimeDaemonStep
-        ):
-            return dict(daemon_result)
-        return {}
-
-    def quest_status_for_step(
-        self,
-        step: StudyRuntimeDaemonStep | str,
-        *,
-        fallback: str,
-    ) -> str:
-        payload = self.daemon_step(step)
-        snapshot = payload.get("snapshot")
-        if isinstance(snapshot, dict):
-            status = str(snapshot.get("status") or "").strip()
-            if status:
-                return status
-        status = str(payload.get("status") or "").strip()
-        return status or fallback
-
-    def completion_snapshot_status(self, *, fallback: str) -> str:
-        completion_sync = self.daemon_step(StudyRuntimeDaemonStep.COMPLETION_SYNC)
-        try:
-            return StudyCompletionSyncResult.from_payload(completion_sync).snapshot_status_or(fallback)
-        except (TypeError, ValueError):
-            return fallback
-
-    def serialized_daemon_result(self) -> dict[str, Any] | None:
-        daemon_result = self.daemon_result
-        if daemon_result is None:
-            return None
-        if not isinstance(daemon_result, dict):
-            raise TypeError("daemon_result must be dict or None")
-        if self.binding_last_action == StudyRuntimeBindingAction.RESUME:
-            return self.daemon_step(StudyRuntimeDaemonStep.RESUME)
-        if self.binding_last_action == StudyRuntimeBindingAction.PAUSE:
-            return self.daemon_step(StudyRuntimeDaemonStep.PAUSE)
-        return dict(daemon_result)
-
-    def active_run_id(self) -> str | None:
-        daemon_result = self.daemon_result
-        if not isinstance(daemon_result, dict):
-            return None
-        for step in (StudyRuntimeDaemonStep.RESUME, StudyRuntimeDaemonStep.CREATE):
-            payload = self.daemon_step(step)
-            snapshot = payload.get("snapshot")
-            snapshot_run_id = str(snapshot.get("active_run_id") or "").strip() if isinstance(snapshot, dict) else ""
-            payload_run_id = str(payload.get("active_run_id") or "").strip()
-            if snapshot_run_id:
-                return snapshot_run_id
-            if payload_run_id:
-                return payload_run_id
-        return None
-
-    @staticmethod
-    def _normalize_binding_last_action(
-        value: StudyRuntimeBindingAction | str | None,
-    ) -> StudyRuntimeBindingAction | None:
-        if value is None or value == "":
-            return None
-        if isinstance(value, StudyRuntimeBindingAction):
-            return value
-        if not isinstance(value, str):
-            raise TypeError("binding_last_action must be str or None")
-        try:
-            return StudyRuntimeBindingAction(value)
-        except ValueError as exc:
-            raise ValueError(f"unknown study runtime binding action: {value}") from exc
-
-    @staticmethod
-    def _normalize_daemon_step(
-        value: StudyRuntimeDaemonStep | str,
-    ) -> StudyRuntimeDaemonStep:
-        if isinstance(value, StudyRuntimeDaemonStep):
-            return value
-        if not isinstance(value, str):
-            raise TypeError("daemon step must be str")
-        try:
-            return StudyRuntimeDaemonStep(value)
-        except ValueError as exc:
-            raise ValueError(f"unknown study runtime daemon step: {value}") from exc
+    return _action_family_dispatch._should_run_startup_hydration_for_resume(status=status)
 
 
 def _build_execution_context(
@@ -452,44 +295,7 @@ def _resume_postcondition_payload(
     status: StudyRuntimeStatus,
     resume_result: dict[str, Any],
 ) -> dict[str, Any]:
-    snapshot = dict(resume_result.get("snapshot") or {}) if isinstance(resume_result.get("snapshot"), dict) else {}
-    interaction_arbitration = status.extras.get("interaction_arbitration")
-    snapshot_status = str(snapshot.get("status") or resume_result.get("status") or "").strip() or None
-    active_run_id = str(snapshot.get("active_run_id") or resume_result.get("active_run_id") or "").strip() or None
-    scheduled = bool(resume_result.get("scheduled"))
-    started = bool(resume_result.get("started"))
-    queued = bool(resume_result.get("queued"))
-    has_runtime_launch_signals = any(key in resume_result for key in ("scheduled", "started", "queued"))
-    effective = (
-        active_run_id is not None
-        or started
-        or queued
-        or snapshot_status in {"running", "retrying"}
-        or (snapshot_status == "active" and not has_runtime_launch_signals)
-    )
-    failure_mode = None
-    if not effective:
-        failure_mode = "no_effect"
-        if has_runtime_launch_signals and snapshot_status == "active":
-            failure_mode = "no_live_run_started"
-        if isinstance(interaction_arbitration, dict):
-            action = str(interaction_arbitration.get("action") or "").strip()
-            if snapshot_status == "waiting_for_user" and action == StudyRuntimeDecision.RESUME.value:
-                failure_mode = "waiting_state_preserved"
-    payload = {
-        "effective": effective,
-        "failure_mode": failure_mode,
-        "snapshot_status": snapshot_status,
-        "active_run_id": active_run_id,
-        "scheduled": scheduled,
-        "started": started,
-        "queued": queued,
-    }
-    for key in ("blocked_reason", "terminal_reason", "terminal_source"):
-        value = str(resume_result.get(key) or "").strip()
-        if value:
-            payload[key] = value
-    return payload
+    return _action_family_dispatch._resume_postcondition_payload(status=status, resume_result=resume_result)
 
 
 def _apply_resume_postcondition(
@@ -497,17 +303,7 @@ def _apply_resume_postcondition(
     status: StudyRuntimeStatus,
     outcome: StudyRuntimeExecutionOutcome,
 ) -> bool:
-    resume_result = outcome.daemon_step(StudyRuntimeDaemonStep.RESUME)
-    payload = _resume_postcondition_payload(status=status, resume_result=resume_result)
-    status._record_dict_extra("resume_postcondition", payload)
-    if payload["effective"]:
-        return True
-    status.set_decision(
-        StudyRuntimeDecision.BLOCKED,
-        StudyRuntimeReason.RESUME_REQUEST_FAILED,
-    )
-    outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
-    return False
+    return _action_family_dispatch._apply_resume_postcondition(status=status, outcome=outcome)
 
 
 def _execute_create_runtime_decision(
@@ -515,125 +311,11 @@ def _execute_create_runtime_decision(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
-    router = _router_module()
-    planned_decision = status.decision
-    outcome = StudyRuntimeExecutionOutcome()
-    create_payload = router._build_context_create_payload(context)
-    startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
-        startup_contract=dict(create_payload.get("startup_contract") or {})
+    return _action_family_dispatch._execute_create_runtime_decision(
+        status=status,
+        context=context,
+        router_module=_router_module,
     )
-    status.record_startup_contract_validation(startup_contract_validation.to_dict())
-    if startup_contract_validation.status is not study_runtime_protocol.StartupContractValidationStatus.CLEAR:
-        status.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,
-        )
-    partial_quest_recovery = study_runtime_protocol.archive_invalid_partial_quest_root(
-        quest_root=context.quest_root,
-        runtime_root=context.runtime_root,
-        slug=router._timestamp_slug(),
-    )
-    if partial_quest_recovery is not None:
-        status.record_partial_quest_recovery(StudyRuntimePartialQuestRecoveryResult.from_payload(partial_quest_recovery))
-    create_payload["auto_start"] = False
-    if status.decision not in {StudyRuntimeDecision.CREATE_AND_START, StudyRuntimeDecision.CREATE_ONLY}:
-        return outcome
-    outcome.startup_payload_path = study_runtime_protocol.write_startup_payload(
-        startup_payload_root=context.startup_payload_root,
-        create_payload=create_payload,
-        slug=router._timestamp_slug(),
-    )
-    try:
-        create_result = router._create_quest(
-            runtime_root=context.runtime_root,
-            payload=create_payload,
-            runtime_backend=context.runtime_backend,
-        )
-    except RuntimeError as exc:
-        outcome.record_daemon_step(
-            StudyRuntimeDaemonStep.CREATE,
-            {
-                "ok": False,
-                "status": "unavailable",
-                "error": str(exc),
-            },
-        )
-        status.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.CREATE_REQUEST_FAILED,
-        )
-        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
-        return outcome
-    outcome.record_daemon_step(StudyRuntimeDaemonStep.CREATE, create_result)
-    status.update_quest_runtime(
-        quest_id=create_payload["quest_id"],
-        quest_root=context.quest_root,
-        quest_exists=True,
-        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.CREATE, fallback="created"),
-    )
-    if context.profile.enable_medical_overlay:
-        runtime_overlay_result = StudyRuntimeOverlayResult.from_payload(
-            router._prepare_runtime_overlay(
-                profile=context.profile,
-                quest_root=context.quest_root,
-            )
-        )
-        status.record_runtime_overlay(runtime_overlay_result)
-        if not runtime_overlay_result.audit.all_roots_ready:
-            status.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY,
-            )
-    if status.decision == StudyRuntimeDecision.BLOCKED:
-        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
-        return outcome
-    hydration_result, validation_result = router._run_startup_hydration(
-        quest_root=context.quest_root,
-        create_payload=create_payload,
-        study_root=context.study_root,
-        workspace_root=context.profile.workspace_root,
-    )
-    status.record_startup_hydration(hydration_result, validation_result)
-    if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
-        status.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
-        )
-        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
-        return outcome
-    if planned_decision == StudyRuntimeDecision.CREATE_AND_START:
-        try:
-            resume_result = router._resume_quest(
-                runtime_root=context.runtime_root,
-                quest_id=status.quest_id,
-                source=context.source,
-                runtime_backend=context.runtime_backend,
-            )
-        except RuntimeError as exc:
-            outcome.record_daemon_step(
-                StudyRuntimeDaemonStep.RESUME,
-                {
-                    "ok": False,
-                    "status": "unavailable",
-                    "error": str(exc),
-                },
-            )
-            status.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.RESUME_REQUEST_FAILED,
-            )
-            outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
-            return outcome
-        outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, resume_result)
-        status.update_quest_runtime(
-            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
-        )
-        if not _apply_resume_postcondition(status=status, outcome=outcome):
-            return outcome
-        outcome.binding_last_action = StudyRuntimeBindingAction.CREATE_AND_START
-    else:
-        outcome.binding_last_action = StudyRuntimeBindingAction.CREATE_ONLY
-    return outcome
 
 
 def _execute_resume_runtime_decision(
@@ -641,109 +323,11 @@ def _execute_resume_runtime_decision(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
-    router = _router_module()
-    outcome = StudyRuntimeExecutionOutcome()
-    if adopt_controller_work_unit_evidence_for_current_authorization(status=status, context=context) is not None:
-        status.set_decision(
-            StudyRuntimeDecision.NOOP,
-            StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,
-        )
-        outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
-        return outcome
-    create_payload = router._build_context_create_payload(context)
-    startup_context_sync = router._sync_existing_quest_startup_context(
-        runtime_root=context.runtime_root,
-        quest_id=status.quest_id,
-        create_payload=create_payload,
-        execution=context.execution,
-    )
-    status.record_startup_context_sync(startup_context_sync)
-    if _should_run_startup_hydration_for_resume(status=status):
-        hydration_result, validation_result = router._run_startup_hydration(
-            quest_root=context.quest_root,
-            create_payload=create_payload,
-            study_root=context.study_root,
-            workspace_root=context.profile.workspace_root,
-        )
-        status.record_startup_hydration(hydration_result, validation_result)
-        if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
-            status.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
-            )
-            outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
-            return outcome
-    _relay_controller_decision_authorization_if_required(status=status, context=context)
-    if "controller_work_unit_evidence_adoption" in status.extras:
-        status.set_decision(
-            StudyRuntimeDecision.NOOP,
-            StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,
-        )
-        outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
-        return outcome
-    force_live_controller_reroute_restart = _should_force_restart_for_live_controller_reroute(
+    return _action_family_dispatch._execute_resume_runtime_decision(
         status=status,
         context=context,
+        router_module=_router_module,
     )
-    if force_live_controller_reroute_restart:
-        same_fingerprint_auto_turn_count = int(
-            quest_state.load_runtime_state(context.quest_root).get("same_fingerprint_auto_turn_count") or 0
-        )
-        pause_result = router._pause_quest(
-            runtime_root=context.runtime_root,
-            quest_id=status.quest_id,
-            source=context.source,
-            runtime_backend=context.runtime_backend,
-        )
-        outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
-        status.update_quest_runtime(
-            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
-        )
-        status.extras["controller_reroute_restart"] = {
-            "forced": True,
-            "threshold": _LIVE_CONTROLLER_REROUTE_FORCE_RESTART_AUTO_TURN_THRESHOLD,
-            "fingerprint": _live_controller_reroute_fingerprint(status=status),
-            "same_fingerprint_auto_turn_count": same_fingerprint_auto_turn_count,
-        }
-        _mark_live_controller_reroute_restart(
-            status=status,
-            context=context,
-            same_fingerprint_auto_turn_count=same_fingerprint_auto_turn_count,
-        )
-    _relay_controller_owned_runtime_reply_if_required(status=status, context=context)
-    if _should_skip_redundant_resume_for_live_controller_reroute(status=status) and not force_live_controller_reroute_restart:
-        outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
-        return outcome
-    try:
-        resume_result = router._resume_quest(
-            runtime_root=context.runtime_root,
-            quest_id=status.quest_id,
-            source=context.source,
-            runtime_backend=context.runtime_backend,
-        )
-    except RuntimeError as exc:
-        outcome.record_daemon_step(
-            StudyRuntimeDaemonStep.RESUME,
-            {
-                "ok": False,
-                "status": "unavailable",
-                "error": str(exc),
-            },
-        )
-        status.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.RESUME_REQUEST_FAILED,
-        )
-        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
-        return outcome
-    outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, resume_result)
-    status.update_quest_runtime(
-        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
-    )
-    if not _apply_resume_postcondition(status=status, outcome=outcome):
-        return outcome
-    outcome.binding_last_action = StudyRuntimeBindingAction.RESUME
-    return outcome
 
 
 def _execute_blocked_refresh_runtime_decision(
@@ -751,39 +335,11 @@ def _execute_blocked_refresh_runtime_decision(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
-    router = _router_module()
-    outcome = StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.BLOCKED)
-    create_payload = router._build_context_create_payload(context)
-    startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
-        startup_contract=dict(create_payload.get("startup_contract") or {})
+    return _action_family_dispatch._execute_blocked_refresh_runtime_decision(
+        status=status,
+        context=context,
+        router_module=_router_module,
     )
-    status.record_startup_contract_validation(startup_contract_validation.to_dict())
-    if startup_contract_validation.status is not study_runtime_protocol.StartupContractValidationStatus.CLEAR:
-        status.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,
-        )
-        return outcome
-    startup_context_sync = router._sync_existing_quest_startup_context(
-        runtime_root=context.runtime_root,
-        quest_id=status.quest_id,
-        create_payload=create_payload,
-        execution=context.execution,
-    )
-    status.record_startup_context_sync(startup_context_sync)
-    hydration_result, validation_result = router._run_startup_hydration(
-        quest_root=context.quest_root,
-        create_payload=create_payload,
-        study_root=context.study_root,
-        workspace_root=context.profile.workspace_root,
-    )
-    status.record_startup_hydration(hydration_result, validation_result)
-    if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
-        status.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
-        )
-    return outcome
 
 
 def _execute_pause_runtime_decision(
@@ -791,62 +347,11 @@ def _execute_pause_runtime_decision(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
-    router = _router_module()
-    outcome = StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.PAUSE)
-    try:
-        pause_result = router._pause_quest(
-            runtime_root=context.runtime_root,
-            quest_id=status.quest_id,
-            source=context.source,
-            runtime_backend=context.runtime_backend,
-        )
-    except RuntimeError as exc:
-        postcondition = _runtime_events.pause_runtime_state_postcondition(
-            quest_root=context.quest_root,
-            error=str(exc),
-        )
-        status._record_dict_extra("pause_postcondition", postcondition)
-        pause_result = _runtime_events.pause_failure_result_from_postcondition(postcondition)
-        outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
-        if postcondition["effective"]:
-            status.update_quest_runtime(
-                quest_status=outcome.quest_status_for_step(
-                    StudyRuntimeDaemonStep.PAUSE,
-                    fallback=status.quest_status.value if status.quest_status is not None else "paused",
-                )
-            )
-            if status.reason is StudyRuntimeReason.HUMAN_TAKEOVER_REQUESTED:
-                user_pause_contract = _runtime_events.record_user_pause_contract_after_pause(
-                    quest_root=context.quest_root,
-                    source=context.source,
-                )
-                if user_pause_contract is not None:
-                    status._record_dict_extra("user_pause_contract", user_pause_contract)
-            return outcome
-        status.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.PAUSE_REQUEST_FAILED,
-        )
-        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
-        return outcome
-    outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
-    status.update_quest_runtime(
-        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
+    return _action_family_dispatch._execute_pause_runtime_decision(
+        status=status,
+        context=context,
+        router_module=_router_module,
     )
-    clearance = _runtime_events.clear_stale_platform_repair_redrive_after_pause(
-        quest_root=context.quest_root,
-        source=context.source,
-    )
-    if clearance is not None:
-        status._record_dict_extra("platform_repair_redrive_clearance", clearance)
-    if status.reason is StudyRuntimeReason.HUMAN_TAKEOVER_REQUESTED:
-        user_pause_contract = _runtime_events.record_user_pause_contract_after_pause(
-            quest_root=context.quest_root,
-            source=context.source,
-        )
-        if user_pause_contract is not None:
-            status._record_dict_extra("user_pause_contract", user_pause_contract)
-    return outcome
 
 
 def _execute_completion_runtime_decision(
@@ -854,39 +359,11 @@ def _execute_completion_runtime_decision(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
-    router = _router_module()
-    outcome = StudyRuntimeExecutionOutcome()
-    if status.decision == StudyRuntimeDecision.PAUSE_AND_COMPLETE:
-        pause_result = router._pause_quest(
-            runtime_root=context.runtime_root,
-            quest_id=status.quest_id,
-            source=context.source,
-            runtime_backend=context.runtime_backend,
-        )
-        outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
-        status.update_quest_runtime(
-            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
-        )
-    completion_sync = StudyCompletionSyncResult.from_payload(
-        router._sync_study_completion(
-            runtime_root=context.runtime_root,
-            quest_id=status.quest_id,
-            completion_state=context.completion_state,
-            source=context.source,
-            runtime_backend=context.runtime_backend,
-        )
+    return _action_family_dispatch._execute_completion_runtime_decision(
+        status=status,
+        context=context,
+        router_module=_router_module,
     )
-    outcome.record_daemon_step(StudyRuntimeDaemonStep.COMPLETION_SYNC, completion_sync.to_dict())
-    status.record_completion_sync(completion_sync)
-    status.update_quest_runtime(
-        quest_status=completion_sync.snapshot_status_or("completed"),
-    )
-    status.set_decision(
-        StudyRuntimeDecision.COMPLETED,
-        StudyRuntimeReason.STUDY_COMPLETION_SYNCED,
-    )
-    outcome.binding_last_action = StudyRuntimeBindingAction.COMPLETED
-    return outcome
 
 
 def _execute_runtime_decision(
@@ -894,40 +371,11 @@ def _execute_runtime_decision(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> StudyRuntimeExecutionOutcome:
-    router = _router_module()
-    if status.decision in {StudyRuntimeDecision.CREATE_AND_START, StudyRuntimeDecision.CREATE_ONLY}:
-        return router._execute_create_runtime_decision(status=status, context=context)
-    if status.decision == StudyRuntimeDecision.RESUME:
-        return router._execute_resume_runtime_decision(status=status, context=context)
-    if status.decision == StudyRuntimeDecision.RELAUNCH_STOPPED:
-        outcome = router._execute_resume_runtime_decision(status=status, context=context)
-        if outcome.binding_last_action is StudyRuntimeBindingAction.RESUME:
-            outcome.binding_last_action = StudyRuntimeBindingAction.RELAUNCH_STOPPED
-        return outcome
-    if status.should_refresh_startup_hydration_while_blocked():
-        return router._execute_blocked_refresh_runtime_decision(status=status, context=context)
-    if status.decision == StudyRuntimeDecision.PAUSE:
-        return router._execute_pause_runtime_decision(status=status, context=context)
-    if status.decision in {StudyRuntimeDecision.SYNC_COMPLETION, StudyRuntimeDecision.PAUSE_AND_COMPLETE}:
-        return router._execute_completion_runtime_decision(status=status, context=context)
-    if status.decision == StudyRuntimeDecision.COMPLETED:
-        return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.COMPLETED)
-    if status.decision == StudyRuntimeDecision.NOOP:
-        _relay_controller_decision_authorization_if_required(status=status, context=context)
-        return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.NOOP)
-    if status.decision == StudyRuntimeDecision.BLOCKED:
-        if adopt_controller_work_unit_evidence_for_current_authorization(status=status, context=context) is not None:
-            status.set_decision(
-                StudyRuntimeDecision.NOOP,
-                StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,
-            )
-            return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.NOOP)
-        return StudyRuntimeExecutionOutcome(
-            binding_last_action=StudyRuntimeBindingAction.BLOCKED if status.quest_exists else None
-        )
-    if status.decision == StudyRuntimeDecision.LIGHTWEIGHT:
-        return StudyRuntimeExecutionOutcome()
-    raise ValueError(f"unsupported study runtime decision: {status.decision}")
+    return _action_family_dispatch._execute_runtime_decision(
+        status=status,
+        context=context,
+        router_module=_router_module,
+    )
 
 
 def _record_autonomous_runtime_notice_if_required(
@@ -938,7 +386,7 @@ def _record_autonomous_runtime_notice_if_required(
     binding_last_action: StudyRuntimeBindingAction | None = None,
     active_run_id: str | None = None,
 ) -> None:
-    _runtime_events.record_autonomous_runtime_notice_if_required(
+    _receipt_materialization._record_autonomous_runtime_notice_if_required(
         status=status,
         runtime_root=runtime_root,
         launch_report_path=launch_report_path,
@@ -949,7 +397,7 @@ def _record_autonomous_runtime_notice_if_required(
 
 
 def _runtime_event_status_snapshot(status: StudyRuntimeStatus) -> dict[str, object]:
-    return _runtime_events.runtime_event_status_snapshot(status)
+    return _receipt_materialization._runtime_event_status_snapshot(status)
 
 
 def _record_transition_runtime_event(
@@ -958,7 +406,7 @@ def _record_transition_runtime_event(
     context: StudyRuntimeExecutionContext,
     outcome: StudyRuntimeExecutionOutcome,
 ) -> None:
-    _runtime_events.record_transition_runtime_event(
+    _receipt_materialization._record_transition_runtime_event(
         status=status,
         context=context,
         outcome=outcome,
@@ -972,10 +420,10 @@ def _maybe_emit_runtime_escalation_record(
     status: StudyRuntimeStatus,
     context: StudyRuntimeExecutionContext,
 ) -> None:
-    _runtime_events.maybe_emit_runtime_escalation_record(
+    _receipt_materialization._maybe_emit_runtime_escalation_record(
         status=status,
         context=context,
-        emitted_at=_router_module()._utc_now(),
+        router_module=_router_module,
     )
 
 
@@ -987,49 +435,12 @@ def _persist_runtime_artifacts(
     force: bool,
     source: str,
 ) -> None:
-    router = _router_module()
-    recorded_at = router._utc_now()
-    _record_transition_runtime_event(status=status, context=context, outcome=outcome)
-    _record_autonomous_runtime_notice_if_required(
+    _receipt_materialization._persist_runtime_artifacts(
         status=status,
-        runtime_root=context.runtime_root,
-        launch_report_path=context.launch_report_path,
-        binding_last_action=outcome.binding_last_action,
-        active_run_id=outcome.active_run_id(),
-    )
-    artifact_paths = router.study_runtime_protocol.persist_runtime_artifacts(
-        runtime_binding_path=context.runtime_binding_path,
-        launch_report_path=context.launch_report_path,
-        runtime_root=context.runtime_root,
-        study_id=context.study_id,
-        study_root=context.study_root,
-        quest_id=status.quest_id.strip() or None,
-        last_action=outcome.binding_last_action.value if outcome.binding_last_action is not None else None,
-        status=status.to_dict(),
-        source=source,
+        context=context,
+        outcome=outcome,
         force=force,
-        startup_payload_path=outcome.startup_payload_path,
-        daemon_result=outcome.serialized_daemon_result(),
-        recorded_at=recorded_at,
-    )
-    status.record_runtime_artifacts(
-        runtime_binding_path=artifact_paths.runtime_binding_path,
-        launch_report_path=artifact_paths.launch_report_path,
-        startup_payload_path=artifact_paths.startup_payload_path,
-    )
-    _maybe_emit_runtime_escalation_record(status=status, context=context)
-    if "runtime_escalation_ref" in status.extras:
-        router.study_runtime_protocol.write_launch_report(
-            launch_report_path=context.launch_report_path,
-            status=status.to_dict(),
-            source=source,
-            force=force,
-            startup_payload_path=outcome.startup_payload_path,
-            daemon_result=outcome.serialized_daemon_result(),
-            recorded_at=recorded_at,
-        )
-    _runtime_events.materialize_runtime_supervision(
-        study_root=context.study_root,
-        status_payload=status.to_dict(),
-        recorded_at=recorded_at,
+        source=source,
+        router_module=_router_module,
+        get_quest_session=_get_quest_session,
     )
