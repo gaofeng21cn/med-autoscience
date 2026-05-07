@@ -3,8 +3,11 @@ set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "${repo_root}"
+export PYTHONDONTWRITEBYTECODE=1
+export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider"
 
 run_sanity_checks() {
+  uv run python scripts/repo_hygiene_audit.py
   uv run python scripts/line_budget.py
 
   if git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\|\|\|\|\|\|\| )' -- .; then
@@ -21,7 +24,21 @@ run_sanity_checks() {
   done < <(git ls-files '*.py')
 
   if [[ "${#python_files[@]}" -gt 0 ]]; then
-    uv run python -m py_compile "${python_files[@]}"
+    uv run python - "${python_files[@]}" <<'PY'
+from __future__ import annotations
+
+import pathlib
+import py_compile
+import tempfile
+import sys
+
+
+with tempfile.TemporaryDirectory(prefix="mas-py-compile-") as temp_dir:
+    bytecode_dir = pathlib.Path(temp_dir)
+    for index, python_file in enumerate(sys.argv[1:]):
+        bytecode_path = bytecode_dir / f"{index}.pyc"
+        py_compile.compile(python_file, cfile=str(bytecode_path), doraise=True)
+PY
   fi
 }
 

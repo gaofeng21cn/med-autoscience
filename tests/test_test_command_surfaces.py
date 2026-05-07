@@ -343,13 +343,17 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
 
     assert 'repo_root="$(git rev-parse --show-toplevel)"' in verify_script
     assert 'cd "${repo_root}"' in verify_script
+    assert "export PYTHONDONTWRITEBYTECODE=1" in verify_script
+    assert 'export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider"' in verify_script
     assert "run_sanity_checks() {" in verify_script
+    assert "uv run python scripts/repo_hygiene_audit.py" in verify_script
     assert "git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\\|\\|\\|\\|\\|\\|\\| )' -- ." in verify_script
     assert "while IFS= read -r python_file; do" in verify_script
     assert "python_files+=(\"${python_file}\")" in verify_script
     assert "done < <(git ls-files '*.py')" in verify_script
     assert "mapfile" not in verify_script
-    assert 'uv run python -m py_compile "${python_files[@]}"' in verify_script
+    assert 'uv run python - "${python_files[@]}" <<\'PY\'' in verify_script
+    assert "py_compile.compile(python_file, cfile=str(bytecode_path), doraise=True)" in verify_script
     assert "run_sanity_checks" in verify_script
     assert 'if [[ -z "${lane}" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "smoke" ]]; then' in verify_script
@@ -407,10 +411,13 @@ def test_verify_script_writes_single_lane_summary(tmp_path: Path) -> None:
     fake_uv.write_text(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
+        "if [[ \"$1\" == \"run\" && \"$2\" == \"python\" && \"$3\" == \"scripts/repo_hygiene_audit.py\" ]]; then\n"
+        "  exit 0\n"
+        "fi\n"
         "if [[ \"$1\" == \"run\" && \"$2\" == \"python\" && \"$3\" == \"scripts/line_budget.py\" ]]; then\n"
         "  exit 0\n"
         "fi\n"
-        "if [[ \"$1\" == \"run\" && \"$2\" == \"python\" && \"$3\" == \"-m\" && \"$4\" == \"py_compile\" ]]; then\n"
+        "if [[ \"$1\" == \"run\" && \"$2\" == \"python\" && \"$3\" == \"-\" ]]; then\n"
         "  exit 0\n"
         "fi\n"
         "echo \"unexpected fake uv $*\" >&2\n"
