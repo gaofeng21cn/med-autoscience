@@ -20,6 +20,18 @@ It indexes the current lifecycle surfaces without moving historical records back
 
 Use [medical_display_active_board.md](./medical_display_active_board.md) for the current execution state.
 
-Use the audit guide, template catalog, and arsenal for current inventory. Historical exemplars, retired owner briefs, and exhausted intake ledgers are provenance only unless a real MAS paper demand reopens them through the active board.
+Use the audit guide, template catalog, and arsenal for current inventory. Use the template backlog as the inactive candidate pool, not as the execution board. Use visual audit and route references to review display quality or choose a figure route; they do not reopen backlog items by themselves.
+
+Active board, catalog, backlog, audit, and history have separate jobs:
+
+- The active board owns the next executable display round.
+- The catalog and arsenal describe what is currently available.
+- The backlog holds candidates until a real paper demand admits them.
+- The audit protocol and audit guide define review discipline and inventory checks.
+- History preserves retired briefs, exemplar intake, and exhausted exploration records.
+
+Historical exemplars, retired owner briefs, and exhausted intake ledgers are provenance only unless a real MAS paper demand reopens them through the active board.
 
 Use [medical_display_portfolio_consolidation.md](./medical_display_portfolio_consolidation.md) when you need the compact portfolio map for this subtree.
+
+This capability subtree keeps MAS domain ownership. OPL family lifecycle governance helps organize the docs, but MAS decides display capability truth through MAS papers, templates, audits, generated catalogs, and durable runtime / artifact surfaces.

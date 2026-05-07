@@ -20,6 +20,18 @@
 
 当前执行状态以 [medical_display_active_board.md](./medical_display_active_board.md) 为准。
 
-当前库存以 audit guide、template catalog 和 arsenal 为准。历史 exemplar、已退役 owner brief、已耗尽 intake ledger 只作为 provenance；只有真实 MAS paper demand 通过 active board 重新打开时，才进入新一轮执行。
+当前库存以 audit guide、template catalog 和 arsenal 为准。template backlog 是 inactive candidate pool，不是 execution board。visual audit 和 route references 用于审阅展示质量或选择 figure route；它们本身不重新打开 backlog 项。
+
+active board、catalog、backlog、audit 和 history 分工如下：
+
+- active board 负责下一轮可执行 display round。
+- catalog 和 arsenal 描述当前可用能力。
+- backlog 保存候选项，直到真实 paper demand 接纳它们。
+- audit protocol 和 audit guide 定义审阅纪律与库存检查。
+- history 保存已退役 brief、exemplar intake 和已耗尽探索记录。
+
+历史 exemplar、已退役 owner brief、已耗尽 intake ledger 只作为 provenance；只有真实 MAS paper demand 通过 active board 重新打开时，才进入新一轮执行。
 
 需要 medical-display 子树的压缩组合地图时，读取 [medical_display_portfolio_consolidation.md](./medical_display_portfolio_consolidation.md)。
+
+这个能力线子树保留 MAS domain ownership。OPL family lifecycle governance 只提供文档组织口径；医学展示能力真相仍由 MAS paper demand、模板、审计、生成 catalog，以及 durable runtime / artifact surfaces 决定。
