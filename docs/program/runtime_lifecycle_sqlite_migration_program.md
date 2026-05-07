@@ -1,6 +1,6 @@
 # Runtime Lifecycle SQLite Migration Program
 
-Status: `repo-level SQLite lineage/read-model/plain materializer/inventory/diagnostic/cutover surfaces landed; current workspace restore-proof storage migration applied; current-project active-path quest Git retired; workspace root Git full retirement is current execution lane`
+Status: `repo-level SQLite lineage/read-model/plain materializer/inventory/diagnostic/cutover surfaces landed; current workspace restore-proof storage migration applied; current-project active-path quest Git and workspace root Git retired`
 Date: `2026-05-07`
 Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 
@@ -43,18 +43,18 @@ closeout ledger 证明的是当轮 eligible payload 已完成 restore-proof comp
 
 | layer | status | evidence | remaining gate |
 | --- | --- | --- | --- |
-| repo / contract | `landed` | SQLite authority scope、quest Git daily lifecycle policy、workspace Git boundary guard、default MAS-first layout tests 已进入 `main`；新 workspace 默认写 `runtime/quests/`、`runtime/archives/`、`runtime/restore_index/`、`artifacts/runtime/`、`ops/mas/`；workspace 默认 no root Git / no quest Git，已有 root Git 进入 full retirement lane。 | 持续 guard：不得把 SQLite、`.ds`、quest `.git`、runtime archive、old MDS path 或 root Git 重新纳入默认 writer。 |
+| repo / contract | `landed` | SQLite authority scope、quest Git daily lifecycle policy、workspace Git boundary guard、default MAS-first layout tests 已进入 `main`；新 workspace 默认写 `runtime/quests/`、`runtime/archives/`、`runtime/restore_index/`、`artifacts/runtime/`、`ops/mas/`；workspace 默认 no root Git / no quest Git。 | 持续 guard：不得把 SQLite、`.ds`、quest `.git`、runtime archive、old MDS path 或 root Git 重新纳入默认 writer。 |
 | current workspace storage compaction | `landed for current eligible workspaces` | NF-PitNET、DM-CVD / DPCC、AS biologics、DPCC004、DM002、DM003 已有 restore proof、compat export、file-count delta；errors 为 `0`。 | 后续新增 live writer drift 走同一 fresh gate；blocked / future workspace 只能在 controller-authorized 窗口 cutover。 |
 | repo-level quest lifecycle replacement | `landed` | `runtime_lifecycle_store` 已登记 lineage/workspace allocation/runtime snapshot/snapshot file refs/revision diff/Canvas projection；`runtime lifecycle-read` 已支持 SQLite-only surfaces；`runtime quest-materialize` 已生成普通目录 manifest 且标记 `git_runtime_used=false`。 | 在真实 workspace cutover 前，仍只能声明 repo capability landed。 |
 | quest-level Git lifecycle cutover | `current projects verified` | Git-era 到 SQLite-era mapping、writer/read-model surface、plain materializer、quest Git inventory、默认 fallback retirement、legacy restore/import diagnostic、reader cutover 和 safe active-path cutover CLI 已落地。`runtime lifecycle-quest-git-cutover` 会在 apply 时把安全窗口内的 quest `.git` 写入 tar.gz archive、sha256 manifest、restore command 和 cutover latest record，然后移出 active path；active / unknown quest fail-closed 为 audit-only。NF-PitNET、AS biologics、HeRR 和 DM-CVD current active-path `.git` fresh scan 均为空。quest materializer 对预先存在的 quest `.git` fail-closed 为 `blocked/audit_only`。 | 持续 guard：新增 workspace 或重新打开旧 quest 时不得重新引入 quest-level `.git`；restore/import 只能走显式 diagnostic。 |
 
 因此，当前状态可写成“Git retired for current projects”：日常新 workspace 和 repo contract 已经不再以 Git 为 runtime lifecycle 目标；真实 eligible workspace 的 storage 层已完成 restore-proof 压缩；quest-level Git inventory / safe cutover / legacy diagnostic 的 repo surface 已落地；真实 current projects 的 active-path `.git` 已完成 Q5 ledger。后续论文项目应从一开始使用 MAS-only workspace，不再接触 quest-level Git 日常 lifecycle。
 
-### 2026-05-07 workspace root Git full retirement lane
+### 2026-05-07 workspace root Git full retirement closeout
 
-workspace root Git full retirement 现在是当前 execution lane，不再是后续候选清理项。目标不是把 workspace 变成不可审计目录，而是把 root Git 从默认 status source、runtime lifecycle source、workspace truth source 和 Agent status lookup 中完全退场。
+workspace root Git full retirement 已对 current workspaces 完成，不再是后续候选清理项。目标不是把 workspace 变成不可审计目录，而是把 root Git 从默认 status source、runtime lifecycle source、workspace truth source 和 Agent status lookup 中完全退场。
 
-当前 lane 的 restore-proof 顺序固定为：
+本轮落地的 restore-proof 顺序固定为：
 
 1. `inventory`：枚举 root `.git`、commits、dirty state、remotes、stashes、linked worktrees、locks、tracked/generated overlap、runtime/artifact/SQLite/archive path overlap，并写入 `artifacts/runtime/lifecycle_migration` ledger。
 2. `archive`：对可退役 root Git 写 restore bundle / refs manifest / sha256 / restore command；有提交或 dirty state 的 root Git 必须先完成 authority classification，不能静默删除历史。
@@ -62,6 +62,15 @@ workspace root Git full retirement 现在是当前 execution lane，不再是后
 4. `verify`：用 file authority、`artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 和 `runtime/restore_index` 证明状态读取和 runtime lifecycle 不再依赖 root Git。
 
 Agent 查状态或执行 runtime lifecycle 操作时，读取顺序固定为：文件 authority / canonical paper truth -> materialized macro state 与 owner route -> `artifacts/runtime/runtime_lifecycle.sqlite` -> `artifacts/runtime/lifecycle_migration` ledger -> `runtime/quests` manifest -> `runtime/restore_index`。不把 root Git、quest Git、Git log、Git diff 或 worktree list 当作默认状态面；legacy Git 只通过显式 restore/import diagnostic 读取。
+
+本轮真实 workspace root Git closeout：
+
+| workspace | root Git retirement status | restore proof |
+| --- | --- | --- |
+| NF-PitNET | `retired` | `artifacts/runtime/lifecycle_migration/workspace_root_git_retirement/latest.json`；archive sha256 `35a210df512ee034deca3ef6a39bfbfb167de8387d6becad1c5120359ddf5b78`。 |
+| DM-CVD / DPCC | `retired` | `artifacts/runtime/lifecycle_migration/workspace_root_git_retirement/latest.json`；archive sha256 `8b6aeeb0dcda363eaccbc5e73c6d83e2791550d6f70c37e732a9acb84461baa8`；1 个 root Git stash 已随 `.git` archive 和 manifest 保存。 |
+| AS biologics | `retired` | `artifacts/runtime/lifecycle_migration/workspace_root_git_retirement/latest.json`；archive sha256 `28e7f0fefc18bd170b7420559ecc37e5729b64ad5d010ca49311b93d76285404`。 |
+| HeRR | `already no root Git` | 无需写 root Git retirement manifest。 |
 
 ### Fast-track done criteria before new paper expansion
 
@@ -221,7 +230,7 @@ Git 继续承担 source control，不承担 runtime lifecycle database authority
 
 目标判断：SQLite 可以接管 MDS 目前借 Git 实现的 runtime lifecycle 语义，包括 research route lineage、workspace allocation、checkpoint/revision metadata、diff/read-model 和 Canvas projection。Git 仍然适合源码版本控制，但不应继续作为 quest runtime lifecycle 基础设施。
 
-当前事实：2026-05-07 fresh closeout 后，新 workspace 默认 no root Git / no quest Git；已有 root Git 进入本 program 的 full retirement lane，按 inventory / archive / remove / verify 处理。MDS quest-level Git 已完成 current-project active-path cutover：默认 runtime writer/read-model 不再依赖 `init_repo`、`checkpoint_repo`、`prepare_branch`、`activate_branch`、Git diff/log/revision reader 或 `.ds/worktrees`；显式 legacy restore/import diagnostic 保留为只读恢复入口。
+当前事实：2026-05-07 fresh closeout 后，新 workspace 默认 no root Git / no quest Git；current workspace 的 root Git 已按 inventory / archive / remove / verify 完成 full retirement。MDS quest-level Git 已完成 current-project active-path cutover：默认 runtime writer/read-model 不再依赖 `init_repo`、`checkpoint_repo`、`prepare_branch`、`activate_branch`、Git diff/log/revision reader 或 `.ds/worktrees`；显式 legacy restore/import diagnostic 保留为只读恢复入口。
 
 工程依据：
 
@@ -661,9 +670,8 @@ Repo 级验收：
 
 当前不再从 `L0` 重新开始；contract、DB-not-tracked guard、compatibility export、migration ledger、current eligible workspace restore-proof compaction 和 current-project quest Git retirement 已经进入 landed 口径。剩余工作包按 portfolio queue 执行：
 
-1. `workspace_root_git_full_retirement`：当前 execution lane。按 restore-proof inventory、archive、remove、verify 退役 workspace root Git；验证 Agent status 和 runtime lifecycle 操作只读文件 authority、SQLite runtime lifecycle、lifecycle migration ledger、`runtime/quests` manifest 和 restore index。
-2. `workspace_layout_demds`：真实 workspace 用户可见路径、profile/docs 和 quest 管理命名去 MDS/DS 化；旧路径只在 migration ledger、restore proof 或 maintainer diagnostic 中出现。
-3. `profile_entry_compat_retirement`：legacy restore/import 只能通过显式 diagnostic 入口读取 archive；默认 CLI/MCP/controller/product entry 不得回退到 MDS Git reader 或 MDS product entry。
-4. `no_history_physical_absorb`：按 MAS single-project absorb program 的 no-history import、provenance、author audit、parity proof 和 rollback surface 执行物理吸收。
+1. `workspace_layout_demds`：真实 workspace 用户可见路径、profile/docs 和 quest 管理命名去 MDS/DS 化；旧路径只在 migration ledger、restore proof 或 maintainer diagnostic 中出现。
+2. `profile_entry_compat_retirement`：legacy restore/import 只能通过显式 diagnostic 入口读取 archive；默认 CLI/MCP/controller/product entry 不得回退到 MDS Git reader 或 MDS product entry。
+3. `no_history_physical_absorb`：按 MAS single-project absorb program 的 no-history import、provenance、author audit、parity proof 和 rollback surface 执行物理吸收。
 
 compatibility reader 不再是默认迁移安全阀；只剩 archive restore/import diagnostic。
