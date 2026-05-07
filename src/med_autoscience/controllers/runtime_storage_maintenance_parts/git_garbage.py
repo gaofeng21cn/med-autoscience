@@ -244,7 +244,7 @@ def _workspace_root_git_retirement_eligibility(
     if remote_count:
         blockers.append("has_remotes")
     if stash_count:
-        blockers.append("has_stashes")
+        reasons.append("has_stashes_archived")
     if linked_worktree_count:
         blockers.append("has_linked_worktrees")
     return {
@@ -324,7 +324,7 @@ def _recommended_git_action(
     if bool(eligibility.get("eligible")):
         return "reinitialize_empty_workspace_git"
     if not git_exists:
-        return "initialize_workspace_git"
+        return "workspace_root_git_absent"
     if has_commits and object_store_bytes >= EMPTY_REPO_REINITIALIZE_OBJECT_THRESHOLD_BYTES:
         return "manual_git_gc_review"
     return "audit-only"
