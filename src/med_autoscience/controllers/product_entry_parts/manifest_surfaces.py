@@ -14,8 +14,10 @@ from .manifest_rendering import (
 )
 
 def _module_reexport(module) -> None:
-    for name, value in vars(module).items():
+    names = getattr(module, "__all__", None) or vars(module).keys()
+    for name in names:
         if not name.startswith("__") and name != "_module_reexport":
+            value = getattr(module, name)
             globals()[name] = value
 
 _module_reexport(_shared)

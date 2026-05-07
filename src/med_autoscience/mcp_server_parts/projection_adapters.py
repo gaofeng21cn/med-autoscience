@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 from med_autoscience.mcp_server_parts.study_progress_projection import (
     compact_open_auto_research_soak_for_mcp,
     compact_study_progress_projection,
@@ -14,15 +13,18 @@ from med_autoscience.mcp_server_parts.study_progress_projection import (
 from .tool_result_rendering import json_text, tool_text_result
 
 
-def serialize_study_runtime_result(result: dict[str, Any] | StudyRuntimeStatus) -> dict[str, Any]:
-    if isinstance(result, StudyRuntimeStatus):
-        return result.to_dict()
+def serialize_study_runtime_result(result: dict[str, Any] | Any) -> dict[str, Any]:
     if isinstance(result, dict):
         return dict(result)
+    to_dict = getattr(result, "to_dict", None)
+    if callable(to_dict):
+        payload = to_dict()
+        if isinstance(payload, dict):
+            return dict(payload)
     raise TypeError("study runtime controller result must be dict or StudyRuntimeStatus")
 
 
-def render_study_runtime_status_result(result: dict[str, Any] | StudyRuntimeStatus) -> dict[str, Any]:
+def render_study_runtime_status_result(result: dict[str, Any] | Any) -> dict[str, Any]:
     serialized = serialize_study_runtime_result(result)
     progress_projection = serialized.get("progress_projection")
     if isinstance(progress_projection, dict):
@@ -54,6 +56,6 @@ def render_open_auto_research_soak_result(
     )
 
 
-def render_serialized_study_runtime_result(result: dict[str, Any] | StudyRuntimeStatus) -> dict[str, Any]:
+def render_serialized_study_runtime_result(result: dict[str, Any] | Any) -> dict[str, Any]:
     serialized = serialize_study_runtime_result(result)
     return tool_text_result(json_text(serialized), structured=serialized)

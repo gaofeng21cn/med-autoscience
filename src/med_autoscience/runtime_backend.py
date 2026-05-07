@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 import inspect
+from importlib import import_module
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -95,6 +96,8 @@ class ManagedRuntimeBackend(Protocol):
 
 _REGISTERED_MANAGED_RUNTIME_BACKENDS: dict[str, ManagedRuntimeBackend] = {}
 _ENGINE_TO_BACKEND_ID: dict[str, str] = {}
+_LAZY_MANAGED_RUNTIME_BACKENDS: dict[str, Callable[[], ManagedRuntimeBackend]] = {}
+_LAZY_ENGINE_TO_BACKEND_ID: dict[str, str] = {}
 _BACKEND_CALLABLE_CONTRACT: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     "resolve_daemon_url": (("runtime_root",), ()),
     "create_quest": (("runtime_root", "payload"), ()),
@@ -186,8 +189,33 @@ def register_managed_runtime_backend(backend: ManagedRuntimeBackend) -> None:
     _ENGINE_TO_BACKEND_ID[engine_id] = backend_id
 
 
+def register_lazy_managed_runtime_backend(
+    *,
+    backend_id: str,
+    engine_id: str,
+    loader: Callable[[], ManagedRuntimeBackend],
+) -> None:
+    normalized_backend_id = _non_empty_text(backend_id)
+    normalized_engine_id = _non_empty_text(engine_id)
+    if normalized_backend_id is None or normalized_engine_id is None:
+        raise ValueError("lazy managed runtime backend metadata must be non-empty")
+    _LAZY_MANAGED_RUNTIME_BACKENDS[normalized_backend_id] = loader
+    _LAZY_ENGINE_TO_BACKEND_ID[normalized_engine_id] = normalized_backend_id
+
+
+def _load_lazy_backend(backend_id: str) -> ManagedRuntimeBackend | None:
+    loader = _LAZY_MANAGED_RUNTIME_BACKENDS.get(backend_id)
+    if loader is None:
+        return None
+    backend = loader()
+    register_managed_runtime_backend(backend)
+    _LAZY_MANAGED_RUNTIME_BACKENDS.pop(backend_id, None)
+    _LAZY_ENGINE_TO_BACKEND_ID.pop(str(getattr(backend, "ENGINE_ID", "")).strip(), None)
+    return _REGISTERED_MANAGED_RUNTIME_BACKENDS[backend_id]
+
+
 def registered_managed_runtime_backend_ids() -> tuple[str, ...]:
-    return tuple(sorted(_REGISTERED_MANAGED_RUNTIME_BACKENDS))
+    return tuple(sorted(set(_REGISTERED_MANAGED_RUNTIME_BACKENDS) | set(_LAZY_MANAGED_RUNTIME_BACKENDS)))
 
 
 def get_managed_runtime_backend(backend_id: str) -> ManagedRuntimeBackend:
@@ -197,6 +225,9 @@ def get_managed_runtime_backend(backend_id: str) -> ManagedRuntimeBackend:
     try:
         return _REGISTERED_MANAGED_RUNTIME_BACKENDS[normalized_backend_id]
     except KeyError as exc:
+        backend = _load_lazy_backend(normalized_backend_id)
+        if backend is not None:
+            return backend
         raise ValueError(f"unknown managed runtime backend: {normalized_backend_id}") from exc
 
 
@@ -204,7 +235,7 @@ def try_get_managed_runtime_backend(backend_id: str | None) -> ManagedRuntimeBac
     normalized_backend_id = _non_empty_text(backend_id)
     if normalized_backend_id is None:
         return None
-    return _REGISTERED_MANAGED_RUNTIME_BACKENDS.get(normalized_backend_id)
+    return _REGISTERED_MANAGED_RUNTIME_BACKENDS.get(normalized_backend_id) or _load_lazy_backend(normalized_backend_id)
 
 
 def explicit_runtime_backend_id(execution: Mapping[str, Any] | None) -> str | None:
@@ -222,7 +253,7 @@ def runtime_backend_id_from_execution(execution: Mapping[str, Any] | None) -> st
     engine_id = _non_empty_text(execution.get("engine"))
     if engine_id is None:
         return None
-    return _ENGINE_TO_BACKEND_ID.get(engine_id)
+    return _ENGINE_TO_BACKEND_ID.get(engine_id) or _LAZY_ENGINE_TO_BACKEND_ID.get(engine_id)
 
 
 def resolve_managed_runtime_backend(execution: Mapping[str, Any] | None) -> ManagedRuntimeBackend | None:
@@ -264,9 +295,13 @@ def controlled_research_backend_metadata_for_backend_id(backend_id: str) -> tupl
     return research_backend_id, research_engine_id
 
 
-from med_autoscience.runtime_transport import med_deepscientist as _med_deepscientist_backend
-from med_autoscience.runtime_transport import hermes as _hermes_backend
-
-
-register_managed_runtime_backend(_med_deepscientist_backend)
-register_managed_runtime_backend(_hermes_backend)
+register_lazy_managed_runtime_backend(
+    backend_id="med_deepscientist",
+    engine_id="med-deepscientist",
+    loader=lambda: import_module("med_autoscience.runtime_transport.med_deepscientist"),
+)
+register_lazy_managed_runtime_backend(
+    backend_id="hermes",
+    engine_id="hermes",
+    loader=lambda: import_module("med_autoscience.runtime_transport.hermes"),
+)

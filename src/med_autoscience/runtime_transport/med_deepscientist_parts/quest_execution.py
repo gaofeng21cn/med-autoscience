@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+from typing import NamedTuple
 
 from med_autoscience.runtime_transport.med_deepscientist_parts.quest_sessions import (
     GetQuestSession,
@@ -17,6 +18,20 @@ from med_autoscience.runtime_transport.med_deepscientist_parts.storage import _l
 InspectQuestLiveRuntime = Callable[..., dict[str, Any]]
 InspectQuestLiveBashSessions = Callable[..., dict[str, Any]]
 InferLocalRuntimeLiveness = Callable[..., dict[str, Any] | None]
+
+
+class _ExecutionProbeState(NamedTuple):
+    runtime_audit: dict[str, Any]
+    bash_session_audit: dict[str, Any]
+    runtime_audit_status: str
+    runtime_active_run_id: str | None
+    runtime_live_missing_active_run_id: bool
+    runtime_live: bool
+    bash_live: bool
+    runtime_known: bool
+    bash_known: bool
+    stale_progress: bool
+    liveness_guard_reason: str | None
 
 
 def _probe_error_message(*audits: dict[str, Any]) -> str | None:
@@ -244,16 +259,15 @@ def _combined_execution_payload(
     return payload
 
 
-def inspect_quest_live_execution(
+def _execution_probe_state(
     *,
     quest_id: str,
     inspect_quest_live_runtime_fn: InspectQuestLiveRuntime,
     inspect_quest_live_bash_sessions_fn: InspectQuestLiveBashSessions,
-    infer_local_runtime_liveness_fn: InferLocalRuntimeLiveness,
-    daemon_url: str | None = None,
-    runtime_root: Path | None = None,
+    daemon_url: str | None,
+    runtime_root: Path | None,
     timeout: int,
-) -> dict[str, Any]:
+) -> _ExecutionProbeState:
     runtime_audit = inspect_quest_live_runtime_fn(
         quest_id=quest_id,
         daemon_url=daemon_url,
@@ -268,45 +282,94 @@ def inspect_quest_live_execution(
     )
     runtime_audit_status = str(runtime_audit.get("status") or "").strip()
     runtime_active_run_id = str(runtime_audit.get("active_run_id") or "").strip() or None
-    runtime_live_missing_active_run_id = runtime_audit_status == "live" and runtime_active_run_id is None
-    runtime_live = runtime_audit_status == "live" and runtime_active_run_id is not None
-    bash_live = str(bash_session_audit.get("status") or "").strip() == "live"
-    runtime_known = runtime_audit_status in {"live", "none"}
-    bash_known = str(bash_session_audit.get("status") or "").strip() in {"live", "none"}
-    stale_progress = bool(runtime_audit.get("stale_progress"))
-    liveness_guard_reason = str(runtime_audit.get("liveness_guard_reason") or "").strip() or None
-    status, ok, guard_override = _combined_liveness_status(
-        runtime_live=runtime_live,
-        runtime_live_missing_active_run_id=runtime_live_missing_active_run_id,
-        bash_live=bash_live,
-        runtime_known=runtime_known,
-        bash_known=bash_known,
-        stale_progress=stale_progress,
+    bash_audit_status = str(bash_session_audit.get("status") or "").strip()
+    return _ExecutionProbeState(
+        runtime_audit=runtime_audit,
+        bash_session_audit=bash_session_audit,
+        runtime_audit_status=runtime_audit_status,
+        runtime_active_run_id=runtime_active_run_id,
+        runtime_live_missing_active_run_id=runtime_audit_status == "live" and runtime_active_run_id is None,
+        runtime_live=runtime_audit_status == "live" and runtime_active_run_id is not None,
+        bash_live=bash_audit_status == "live",
+        runtime_known=runtime_audit_status in {"live", "none"},
+        bash_known=bash_audit_status in {"live", "none"},
+        stale_progress=bool(runtime_audit.get("stale_progress")),
+        liveness_guard_reason=str(runtime_audit.get("liveness_guard_reason") or "").strip() or None,
     )
+
+
+def _local_runtime_liveness_for_unknown_probe(
+    *,
+    probe_state: _ExecutionProbeState,
+    infer_local_runtime_liveness_fn: InferLocalRuntimeLiveness,
+    runtime_root: Path | None,
+    quest_id: str,
+    status: str,
+    guard_override: str | None,
+) -> dict[str, Any] | None:
+    if status != "unknown" or probe_state.stale_progress or guard_override is not None:
+        return None
+    if probe_state.runtime_live or probe_state.bash_live or runtime_root is None:
+        return None
+    local_runtime_liveness = infer_local_runtime_liveness_fn(runtime_root=runtime_root, quest_id=quest_id)
+    if local_runtime_liveness is None:
+        return None
+    return _local_runtime_state_payload(
+        runtime_audit=probe_state.runtime_audit,
+        bash_session_audit=probe_state.bash_session_audit,
+        local_runtime_liveness=local_runtime_liveness,
+    )
+
+
+def inspect_quest_live_execution(
+    *,
+    quest_id: str,
+    inspect_quest_live_runtime_fn: InspectQuestLiveRuntime,
+    inspect_quest_live_bash_sessions_fn: InspectQuestLiveBashSessions,
+    infer_local_runtime_liveness_fn: InferLocalRuntimeLiveness,
+    daemon_url: str | None = None,
+    runtime_root: Path | None = None,
+    timeout: int,
+) -> dict[str, Any]:
+    probe_state = _execution_probe_state(
+        quest_id=quest_id,
+        inspect_quest_live_runtime_fn=inspect_quest_live_runtime_fn,
+        inspect_quest_live_bash_sessions_fn=inspect_quest_live_bash_sessions_fn,
+        daemon_url=daemon_url,
+        runtime_root=runtime_root,
+        timeout=timeout,
+    )
+    status, ok, guard_override = _combined_liveness_status(
+        runtime_live=probe_state.runtime_live,
+        runtime_live_missing_active_run_id=probe_state.runtime_live_missing_active_run_id,
+        bash_live=probe_state.bash_live,
+        runtime_known=probe_state.runtime_known,
+        bash_known=probe_state.bash_known,
+        stale_progress=probe_state.stale_progress,
+    )
+    liveness_guard_reason = probe_state.liveness_guard_reason
     if guard_override is not None:
         liveness_guard_reason = guard_override
-    if status == "unknown" and not stale_progress and guard_override is None and not (runtime_live or bash_live):
-        local_runtime_liveness = (
-            infer_local_runtime_liveness_fn(runtime_root=runtime_root, quest_id=quest_id)
-            if runtime_root is not None
-            else None
-        )
-        if local_runtime_liveness is not None:
-            return _local_runtime_state_payload(
-                runtime_audit=runtime_audit,
-                bash_session_audit=bash_session_audit,
-                local_runtime_liveness=local_runtime_liveness,
-            )
+    local_payload = _local_runtime_liveness_for_unknown_probe(
+        probe_state=probe_state,
+        infer_local_runtime_liveness_fn=infer_local_runtime_liveness_fn,
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        status=status,
+        guard_override=guard_override,
+    )
+    if local_payload is not None:
+        return local_payload
     return _combined_execution_payload(
         ok=ok,
         status=status,
-        runtime_active_run_id=runtime_active_run_id,
-        runtime_live=runtime_live,
-        bash_live=bash_live,
-        runtime_audit=runtime_audit,
-        bash_session_audit=bash_session_audit,
-        stale_progress=stale_progress,
-        runtime_live_missing_active_run_id=runtime_live_missing_active_run_id,
+        runtime_active_run_id=probe_state.runtime_active_run_id,
+        runtime_live=probe_state.runtime_live,
+        bash_live=probe_state.bash_live,
+        runtime_audit=probe_state.runtime_audit,
+        bash_session_audit=probe_state.bash_session_audit,
+        stale_progress=probe_state.stale_progress,
+        runtime_live_missing_active_run_id=probe_state.runtime_live_missing_active_run_id,
         liveness_guard_reason=liveness_guard_reason,
     )
 
@@ -323,6 +386,19 @@ def _infer_local_runtime_liveness(*, runtime_root: Path, quest_id: str) -> dict[
     active_run_id = str(runtime_state.get("active_run_id") or quest_data.get("active_run_id") or "").strip() or None
     if active_run_id or status == "running":
         return None
+    return _local_runtime_state_contract_payload(
+        status=status,
+        active_run_id=active_run_id,
+        runtime_state=runtime_state,
+    )
+
+
+def _local_runtime_state_contract_payload(
+    *,
+    status: str,
+    active_run_id: str | None,
+    runtime_state: dict[str, Any],
+) -> dict[str, Any]:
     return {
         "status": status or None,
         "active_run_id": active_run_id,

@@ -9,6 +9,31 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 
+
+def _evaluation_summary_module():
+    return import_module("med_autoscience.evaluation_summary")
+
+
+def stable_evaluation_summary_path(*, study_root):
+    return _evaluation_summary_module().stable_evaluation_summary_path(study_root=study_root)
+
+
+def stable_promotion_gate_path(*, study_root):
+    return _evaluation_summary_module().stable_promotion_gate_path(study_root=study_root)
+
+
+def materialize_evaluation_summary_artifacts(*, study_root, runtime_escalation_ref, publishability_gate_report_ref):
+    return _evaluation_summary_module().materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=runtime_escalation_ref,
+        publishability_gate_report_ref=publishability_gate_report_ref,
+    )
+
+
+def read_evaluation_summary(*, study_root, ref=None):
+    return _evaluation_summary_module().read_evaluation_summary(study_root=study_root, ref=ref)
+
+
 def _publication_eval_route_repair(publication_eval_payload: dict[str, Any] | None) -> dict[str, Any] | None:
     actions = (publication_eval_payload or {}).get("recommended_actions") or []
     candidates: list[tuple[int, int, dict[str, Any]]] = []

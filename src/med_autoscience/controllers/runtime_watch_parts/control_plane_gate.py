@@ -5,9 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import runtime_watch_work_units
-from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
-    _controller_decision_latest_matches_outer_loop_request,
-)
 
 
 CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY = (
@@ -154,6 +151,7 @@ def apply_control_plane_dispatch_block(
     serialize_no_op_suppression: Callable[..., dict[str, Any] | None],
     attach_no_op_suppression_to_quest_report: Callable[..., None],
     default_recorded_at: str,
+    controller_decision_matches: Callable[..., bool] | None = None,
 ) -> dict[str, Any] | None:
     control_plane_block = control_plane_dispatch_block(
         status_payload=status_payload,
@@ -169,7 +167,7 @@ def apply_control_plane_dispatch_block(
             work_unit_dispatch_key=runtime_watch_work_units.dispatch_key(tick_request),
         ),
     }
-    if profile is not None and not _controller_decision_latest_matches_outer_loop_request(
+    if profile is not None and controller_decision_matches is not None and not controller_decision_matches(
         study_root=study_root,
         status_payload=status_payload,
         tick_request=tick_request,

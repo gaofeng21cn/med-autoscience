@@ -2,11 +2,19 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from typing import Callable
 
-from med_autoscience.controllers import gate_clearing_batch, quality_repair_batch, study_runtime_router
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionControllerAction
+
+
+EnsureStudyRuntime = Callable[..., dict[str, Any]]
+RuntimeExecutionPayload = Callable[..., dict[str, Any]]
+RuntimeBackendForExecution = Callable[..., Any]
+DefaultRuntimeBackend = Callable[[], Any]
+RunGateClearingBatch = Callable[..., dict[str, Any]]
+RunQualityRepairBatch = Callable[..., dict[str, Any]]
 
 
 def execute_controller_action(
@@ -17,9 +25,16 @@ def execute_controller_action(
     study_root: Path,
     quest_id: str,
     source: str,
+    ensure_study_runtime_fn: EnsureStudyRuntime,
+    execution_payload_fn: RuntimeExecutionPayload,
+    load_yaml_dict_fn: Callable[[Path], dict[str, Any]],
+    managed_runtime_backend_for_execution_fn: RuntimeBackendForExecution,
+    default_managed_runtime_backend_fn: DefaultRuntimeBackend,
+    run_gate_clearing_batch_fn: RunGateClearingBatch,
+    run_quality_repair_batch_fn: RunQualityRepairBatch,
 ) -> dict[str, Any]:
     if action.action_type is StudyDecisionActionType.ENSURE_STUDY_RUNTIME:
-        result = study_runtime_router.ensure_study_runtime(
+        result = ensure_study_runtime_fn(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
@@ -27,7 +42,7 @@ def execute_controller_action(
             source=source,
         )
     elif action.action_type is StudyDecisionActionType.ENSURE_STUDY_RUNTIME_RELAUNCH_STOPPED:
-        result = study_runtime_router.ensure_study_runtime(
+        result = ensure_study_runtime_fn(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
@@ -36,8 +51,8 @@ def execute_controller_action(
             source=source,
         )
     elif action.action_type in {StudyDecisionActionType.PAUSE_RUNTIME, StudyDecisionActionType.STOP_RUNTIME}:
-        execution = study_runtime_router._execution_payload(
-            study_runtime_router._load_yaml_dict(study_root / "study.yaml"),
+        execution = execution_payload_fn(
+            load_yaml_dict_fn(study_root / "study.yaml"),
             profile=profile,
         )
         runtime_context = study_runtime_protocol.resolve_study_runtime_context(
@@ -47,12 +62,12 @@ def execute_controller_action(
             quest_id=quest_id,
         )
         managed_runtime_backend = (
-            study_runtime_router._managed_runtime_backend_for_execution(
+            managed_runtime_backend_for_execution_fn(
                 execution,
                 profile=profile,
                 runtime_root=runtime_context.runtime_root,
             )
-            or study_runtime_router._default_managed_runtime_backend()
+            or default_managed_runtime_backend_fn()
         )
         if action.action_type is StudyDecisionActionType.PAUSE_RUNTIME:
             result = managed_runtime_backend.pause_quest(
@@ -67,7 +82,7 @@ def execute_controller_action(
                 source=source,
             )
     elif action.action_type is StudyDecisionActionType.RUN_GATE_CLEARING_BATCH:
-        result = gate_clearing_batch.run_gate_clearing_batch(
+        result = run_gate_clearing_batch_fn(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
@@ -75,7 +90,7 @@ def execute_controller_action(
             source=source,
         )
     elif action.action_type is StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH:
-        result = quality_repair_batch.run_quality_repair_batch(
+        result = run_quality_repair_batch_fn(
             profile=profile,
             study_id=study_id,
             study_root=study_root,

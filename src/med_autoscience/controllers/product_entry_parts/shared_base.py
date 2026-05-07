@@ -15,7 +15,6 @@ from med_autoscience.controllers import (
     study_runtime_router,
 )
 from med_autoscience.controllers.study_runtime_resolution import _execution_payload, _resolve_study
-from med_autoscience.evaluation_summary import build_same_line_route_truth
 from med_autoscience.domain_entry_contract import (
     PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
     PRODUCT_FRONTDESK_SCHEMA_REF,

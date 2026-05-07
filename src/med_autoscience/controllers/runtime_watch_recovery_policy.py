@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.control_plane_facts import resolve_control_plane_facts
-from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -22,10 +21,15 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
-def _status_payload(value: dict[str, Any] | StudyRuntimeStatus) -> dict[str, Any]:
+def _status_payload(value: dict[str, Any] | Any) -> dict[str, Any]:
     if isinstance(value, dict):
         return dict(value)
-    return value.to_dict()
+    to_dict = getattr(value, "to_dict", None)
+    if callable(to_dict):
+        payload = to_dict()
+        if isinstance(payload, dict):
+            return dict(payload)
+    raise TypeError("runtime watch status payload must be dict or expose to_dict()")
 
 
 def _mapping_value(payload: dict[str, Any], key: str) -> dict[str, Any]:
@@ -132,7 +136,7 @@ def _flapping_circuit_breaker_report(*, study_root: Path) -> dict[str, Any] | No
 def hold_for_flapping_circuit_breaker(
     *,
     study_root: Path,
-    status_payload: dict[str, Any] | StudyRuntimeStatus,
+    status_payload: dict[str, Any] | Any,
 ) -> dict[str, Any] | None:
     flapping_report = _flapping_circuit_breaker_report(study_root=study_root)
     if flapping_report is None:

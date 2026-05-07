@@ -4,23 +4,15 @@ import hashlib
 import json
 from collections.abc import Mapping
 from datetime import datetime, timezone
+from importlib import import_module
 from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import (
     control_plane_facts,
     runtime_supervision,
-    study_runtime_router,
 )
-from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
-from med_autoscience.study_decision_record import (
-    StudyDecisionCharterRef,
-    StudyDecisionControllerAction,
-    StudyDecisionPublicationEvalRef,
-    StudyDecisionRecord,
-)
 
 
 _HARD_AUTO_RECOVERY_QUEST_STATUSES = frozenset({"active", "running", "waiting_for_user", "stopped"})
@@ -47,12 +39,14 @@ def utc_now() -> str:
 
 
 def _serialize_managed_study_action(
-    action_payload: dict[str, Any] | StudyRuntimeStatus,
+    action_payload: dict[str, Any] | Any,
 ) -> dict[str, Any]:
     payload = _managed_study_status_payload(action_payload)
     terminal_authorization = _terminal_controller_work_unit_projection(payload)
     if terminal_authorization is not None:
         return terminal_authorization
+    StudyRuntimeStatus = import_module("med_autoscience.controllers.study_runtime_status").StudyRuntimeStatus
+
     action = (
         action_payload
         if isinstance(action_payload, StudyRuntimeStatus)
@@ -105,8 +99,10 @@ def _terminal_controller_work_unit_projection(payload: Mapping[str, Any]) -> dic
 
 
 def _managed_study_status_payload(
-    action_payload: dict[str, Any] | StudyRuntimeStatus,
+    action_payload: dict[str, Any] | Any,
 ) -> dict[str, Any]:
+    StudyRuntimeStatus = import_module("med_autoscience.controllers.study_runtime_status").StudyRuntimeStatus
+
     if isinstance(action_payload, StudyRuntimeStatus):
         return action_payload.to_dict()
     return dict(action_payload)
@@ -269,7 +265,7 @@ def _refresh_managed_study_status_after_ensure(
 ) -> dict[str, Any]:
     if not _should_refresh_managed_study_status_after_ensure(status_payload):
         return status_payload
-    refreshed = study_runtime_router.study_runtime_status(
+    refreshed = import_module("med_autoscience.controllers.study_runtime_router").study_runtime_status(
         profile=profile,
         study_root=study_root,
     )
@@ -408,7 +404,7 @@ def _write_outer_loop_wakeup_audit(*, study_root: Path, audit: Mapping[str, Any]
     _write_json_object(_runtime_watch_wakeup_latest_path(Path(study_root).expanduser().resolve()), audit)
 
 
-def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | StudyRuntimeStatus) -> bool:
+def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | Any) -> bool:
     payload = _managed_study_status_payload(action_payload)
     decision = _non_empty_text(payload.get("decision"))
     if decision == "resume":
@@ -422,8 +418,8 @@ def _should_hard_auto_recover_managed_study(action_payload: dict[str, Any] | Stu
 
 def _serialize_managed_study_auto_recovery(
     *,
-    preflight_payload: dict[str, Any] | StudyRuntimeStatus,
-    applied_payload: dict[str, Any] | StudyRuntimeStatus,
+    preflight_payload: dict[str, Any] | Any,
+    applied_payload: dict[str, Any] | Any,
     source: str,
 ) -> dict[str, Any]:
     preflight = _serialize_managed_study_action(preflight_payload)
@@ -444,65 +440,12 @@ def _controller_decision_latest_matches_outer_loop_request(
     status_payload: Mapping[str, Any],
     tick_request: Mapping[str, Any],
 ) -> bool:
-    latest_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
-    payload = _read_json_object(latest_path)
-    if payload is None:
-        return False
-    record = StudyDecisionRecord.from_payload(payload)
-    desired_charter_ref = StudyDecisionCharterRef.from_payload(dict(tick_request.get("charter_ref") or {})).to_dict()
-    desired_publication_eval_ref = StudyDecisionPublicationEvalRef.from_payload(
-        dict(tick_request.get("publication_eval_ref") or {})
-    ).to_dict()
-    desired_controller_actions = tuple(
-        StudyDecisionControllerAction.from_payload(action).to_dict()
-        for action in (tick_request.get("controller_actions") or [])
-        if isinstance(action, dict)
+    decision_match = import_module("med_autoscience.controllers.runtime_watch_parts.decision_match")
+    return decision_match.controller_decision_latest_matches_outer_loop_request(
+        study_root=study_root,
+        status_payload=status_payload,
+        tick_request=tick_request,
     )
-    desired_runtime_escalation_payload = status_payload.get("runtime_escalation_ref")
-    desired_runtime_escalation_ref = (
-        RuntimeEscalationRecordRef.from_payload(dict(desired_runtime_escalation_payload)).to_dict()
-        if isinstance(desired_runtime_escalation_payload, dict)
-        else None
-    )
-    if record.decision_type.value != _non_empty_text(tick_request.get("decision_type")):
-        return False
-    if record.requires_human_confirmation is not bool(tick_request.get("requires_human_confirmation")):
-        return False
-    if record.reason != (_non_empty_text(tick_request.get("reason")) or ""):
-        return False
-    if record.route_target != _non_empty_text(tick_request.get("route_target")):
-        return False
-    if record.route_key_question != _non_empty_text(tick_request.get("route_key_question")):
-        return False
-    if record.route_rationale != _non_empty_text(tick_request.get("route_rationale")):
-        return False
-    if record.source_route_key_question != _non_empty_text(tick_request.get("source_route_key_question")):
-        return False
-    if record.work_unit_fingerprint != _non_empty_text(tick_request.get("work_unit_fingerprint")):
-        return False
-    desired_next_work_unit = (
-        dict(tick_request.get("next_work_unit"))
-        if isinstance(tick_request.get("next_work_unit"), dict)
-        else None
-    )
-    if record.next_work_unit != desired_next_work_unit:
-        return False
-    desired_blocking_work_units = tuple(
-        dict(unit)
-        for unit in (tick_request.get("blocking_work_units") or [])
-        if isinstance(unit, dict)
-    )
-    if tuple(dict(unit) for unit in record.blocking_work_units) != desired_blocking_work_units:
-        return False
-    if record.charter_ref.to_dict() != desired_charter_ref:
-        return False
-    if record.publication_eval_ref.to_dict() != desired_publication_eval_ref:
-        return False
-    if tuple(action.to_dict() for action in record.controller_actions) != desired_controller_actions:
-        return False
-    if desired_runtime_escalation_ref is None:
-        return True
-    return record.runtime_escalation_ref.to_dict() == desired_runtime_escalation_ref
 
 
 def _quest_report_requests_managed_study_reroute(report: Mapping[str, Any] | None) -> bool:

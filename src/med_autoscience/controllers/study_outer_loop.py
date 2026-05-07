@@ -291,6 +291,13 @@ def _execute_controller_action(
         study_root=study_root,
         quest_id=quest_id,
         source=source,
+        ensure_study_runtime_fn=study_runtime_router.ensure_study_runtime,
+        execution_payload_fn=study_runtime_router._execution_payload,
+        load_yaml_dict_fn=study_runtime_router._load_yaml_dict,
+        managed_runtime_backend_for_execution_fn=study_runtime_router._managed_runtime_backend_for_execution,
+        default_managed_runtime_backend_fn=study_runtime_router._default_managed_runtime_backend,
+        run_gate_clearing_batch_fn=gate_clearing_batch.run_gate_clearing_batch,
+        run_quality_repair_batch_fn=quality_repair_batch.run_quality_repair_batch,
     )
 
 

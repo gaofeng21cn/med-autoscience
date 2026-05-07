@@ -786,6 +786,8 @@ def build_study_progress_projection(
         supervision_health_status=supervision_health_status,
         refs=refs,
     )
+
+
 def read_study_progress(
     *,
     profile: WorkspaceProfile,

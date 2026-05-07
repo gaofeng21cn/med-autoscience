@@ -25,13 +25,6 @@ from med_autoscience.controllers.study_runtime_resolution import _resolve_study
 from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
     compact_study_macro_state_from_payload,
 )
-from med_autoscience.evaluation_summary import (
-    build_same_line_route_truth,
-    materialize_evaluation_summary_artifacts,
-    read_evaluation_summary,
-    stable_evaluation_summary_path,
-    stable_promotion_gate_path,
-)
 from med_autoscience.human_gate_policy import controller_human_gate_allowed
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_status_summary import (
@@ -53,6 +46,52 @@ def _controller_override(name: str, default: Any) -> Any:
     if controller_module is None:
         return default
     return getattr(controller_module, name, default)
+
+
+def _build_same_line_route_truth(*, quality_closure_truth: Mapping[str, Any], quality_execution_lane: Mapping[str, Any]):
+    evaluation_summary = import_module("med_autoscience.evaluation_summary")
+    build_truth = _controller_override("build_same_line_route_truth", evaluation_summary.build_same_line_route_truth)
+    return build_truth(
+        quality_closure_truth=quality_closure_truth,
+        quality_execution_lane=quality_execution_lane,
+    )
+
+
+def stable_evaluation_summary_path(*, study_root: Path) -> Path:
+    return import_module("med_autoscience.evaluation_summary").stable_evaluation_summary_path(study_root=study_root)
+
+
+def stable_promotion_gate_path(*, study_root: Path) -> Path:
+    return import_module("med_autoscience.evaluation_summary").stable_promotion_gate_path(study_root=study_root)
+
+
+def materialize_evaluation_summary_artifacts(
+    *,
+    study_root: Path,
+    runtime_escalation_ref: str | Path | dict[str, Any],
+    publishability_gate_report_ref: str | Path,
+) -> dict[str, dict[str, str]]:
+    materialize = _controller_override(
+        "materialize_evaluation_summary_artifacts",
+        import_module("med_autoscience.evaluation_summary").materialize_evaluation_summary_artifacts,
+    )
+    return materialize(
+        study_root=study_root,
+        runtime_escalation_ref=runtime_escalation_ref,
+        publishability_gate_report_ref=publishability_gate_report_ref,
+    )
+
+
+def read_evaluation_summary(
+    *,
+    study_root: Path,
+    ref: str | Path | None = None,
+) -> dict[str, Any]:
+    read_summary = _controller_override(
+        "read_evaluation_summary",
+        import_module("med_autoscience.evaluation_summary").read_evaluation_summary,
+    )
+    return read_summary(study_root=study_root, ref=ref)
 
 
 SCHEMA_VERSION = 1
@@ -634,7 +673,7 @@ def _normalized_same_line_route_truth_payload(payload: Mapping[str, Any]) -> dic
     fallback_truth = _mapping_copy(eval_hygiene_surface.get("same_line_route_truth"))
     if fallback_truth:
         return fallback_truth
-    derived_truth = build_same_line_route_truth(
+    derived_truth = _build_same_line_route_truth(
         quality_closure_truth=_mapping_copy(payload.get("quality_closure_truth")),
         quality_execution_lane=_normalized_quality_execution_lane_payload(payload) or {},
     )
@@ -655,7 +694,7 @@ def _normalize_study_progress_payload(payload: Mapping[str, Any]) -> dict[str, A
             ) or None
             eval_hygiene_surface["same_line_route_truth"] = _mapping_copy(
                 eval_hygiene_surface.get("same_line_route_truth")
-            ) or build_same_line_route_truth(
+            ) or _build_same_line_route_truth(
                 quality_closure_truth=_mapping_copy(eval_hygiene_surface.get("quality_closure_truth")),
                 quality_execution_lane=_mapping_copy(eval_hygiene_surface.get("quality_execution_lane")),
             ) or None

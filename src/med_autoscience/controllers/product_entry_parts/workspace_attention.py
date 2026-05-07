@@ -1,8 +1,19 @@
 from __future__ import annotations
 
+from importlib import import_module
 from typing import Any, Mapping
 
 from .shared import *  # noqa: F403
+
+
+def build_same_line_route_truth(*, quality_closure_truth: Mapping[str, Any], quality_execution_lane: Mapping[str, Any]):
+    product_entry_module = sys.modules.get("med_autoscience.controllers.product_entry")  # noqa: F405
+    default = import_module("med_autoscience.evaluation_summary").build_same_line_route_truth
+    build_truth = getattr(product_entry_module, "build_same_line_route_truth", default) if product_entry_module else default
+    return build_truth(
+        quality_closure_truth=quality_closure_truth,
+        quality_execution_lane=quality_execution_lane,
+    )
 
 def _attention_item(
     *,

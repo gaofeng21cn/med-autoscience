@@ -11,8 +11,10 @@ from . import manifest_surfaces as _manifest_surfaces
 from med_autoscience.study_task_intake import task_intake_overrides_auto_manual_finish
 
 def _module_reexport(module) -> None:
-    for name, value in vars(module).items():
+    names = getattr(module, "__all__", None) or vars(module).keys()
+    for name in names:
         if not name.startswith("__") and name != "_module_reexport":
+            value = getattr(module, name)
             globals()[name] = value
 
 _module_reexport(_shared)

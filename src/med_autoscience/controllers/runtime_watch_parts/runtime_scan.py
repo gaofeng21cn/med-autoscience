@@ -14,7 +14,6 @@ from med_autoscience.controllers import (
     runtime_watch_work_units,
     study_cycle_profiler,
     study_outer_loop,
-    study_runtime_router,
 )
 from med_autoscience.controllers.runtime_watch_outer_loop_policy import (
     outer_loop_request_requires_fresh_controller_execution,
@@ -68,6 +67,12 @@ _MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE = "runtime_watch_controller_reroute"
 _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE = "runtime_watch_outer_loop_wakeup"
 _NO_OP_SUPPRESSION_SUMMARY = "同一 blocker fingerprint 已执行过同一 controller work unit；继续空转不会增加论文证据。"
 _WORK_UNIT_REDRIVE_EXHAUSTED_SUMMARY = "同一 controller work unit 已达到有界 redrive 上限，需 MAS/MDS 平台修复后再继续。"
+
+
+def _runtime_router():
+    from med_autoscience.controllers import study_runtime_router
+
+    return study_runtime_router
 
 
 def utc_now() -> str:
@@ -252,7 +257,7 @@ def run_watch_for_runtime(
             quest_root = status_payload.get("quest_root")
             quest_report = report_by_quest_root.get(str(Path(str(quest_root)).expanduser().resolve())) if quest_root else None
             if _quest_report_requests_managed_study_reroute(quest_report):
-                rerouted_payload = study_runtime_router.ensure_study_runtime(
+                rerouted_payload = _runtime_router().ensure_study_runtime(
                     profile=profile,
                     study_root=study_root,
                     source=_MANAGED_STUDY_CONTROLLER_REROUTE_SOURCE,
@@ -435,11 +440,12 @@ def run_watch_for_runtime(
                         serialize_no_op_suppression=_serialize_no_op_suppression,
                         attach_no_op_suppression_to_quest_report=_attach_no_op_suppression_to_quest_report,
                         default_recorded_at=utc_now(),
+                        controller_decision_matches=_controller_decision_latest_matches_outer_loop_request,
                     )
                     if blocked_wakeup_audit is not None:
                         wakeup_audit = blocked_wakeup_audit
                     else:
-                        outer_loop_result = study_runtime_router.study_outer_loop_tick(
+                        outer_loop_result = _runtime_router().study_outer_loop_tick(
                             profile=profile,
                             source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
                             **runtime_watch_work_units.strip_context(tick_request),
@@ -485,7 +491,7 @@ def run_watch_for_runtime(
                             default_recorded_at=utc_now(),
                         )
                         status_payload = _managed_study_status_payload(
-                            study_runtime_router.study_runtime_status(
+                            _runtime_router().study_runtime_status(
                                 profile=profile,
                                 study_root=study_root,
                             )
@@ -599,11 +605,12 @@ def run_watch_for_runtime(
                         serialize_no_op_suppression=_serialize_no_op_suppression,
                         attach_no_op_suppression_to_quest_report=_attach_no_op_suppression_to_quest_report,
                         default_recorded_at=utc_now(),
+                        controller_decision_matches=_controller_decision_latest_matches_outer_loop_request,
                     )
                     if blocked_wakeup_audit is not None:
                         wakeup_audit = blocked_wakeup_audit
                     else:
-                        outer_loop_result = study_runtime_router.study_outer_loop_tick(
+                        outer_loop_result = _runtime_router().study_outer_loop_tick(
                             profile=profile,
                             source=_MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
                             **runtime_watch_work_units.strip_context(tick_request),
@@ -649,7 +656,7 @@ def run_watch_for_runtime(
                             default_recorded_at=utc_now(),
                         )
                         status_payload = _managed_study_status_payload(
-                            study_runtime_router.study_runtime_status(
+                            _runtime_router().study_runtime_status(
                                 profile=profile,
                                 study_root=study_root,
                             )

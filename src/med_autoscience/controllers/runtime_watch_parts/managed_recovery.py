@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers import runtime_watch_recovery_policy, study_runtime_router
+from med_autoscience.controllers import runtime_watch_recovery_policy
 from med_autoscience.controllers.runtime_watch_parts.control_plane_gate import runtime_recovery_blocked_by_control_plane
 from med_autoscience.controllers.runtime_watch_parts.gate_specificity import _study_requests_gate_specificity_terminal
 from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
@@ -16,6 +16,12 @@ from med_autoscience.profiles import WorkspaceProfile
 
 MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "runtime_watch_auto_recovery"
 RECOVERY_DECISIONS = {"create_and_start", "resume", "relaunch_stopped"}
+
+
+def _runtime_router():
+    from importlib import import_module
+
+    return import_module("med_autoscience.controllers.study_runtime_router")
 
 
 def recovery_failure_payload(
@@ -46,7 +52,7 @@ def _managed_study_roots(profile: WorkspaceProfile) -> list[Path]:
 
 def _runtime_status_payload(*, profile: WorkspaceProfile, study_root: Path) -> dict[str, Any]:
     return _managed_study_status_payload(
-        study_runtime_router.study_runtime_status(
+        _runtime_router().study_runtime_status(
             profile=profile,
             study_root=study_root,
         )
@@ -75,7 +81,7 @@ def _apply_managed_study_status(
     if _study_requests_gate_specificity_terminal(study_root=study_root):
         return _runtime_status_payload(profile=profile, study_root=study_root)
     try:
-        action_payload = study_runtime_router.ensure_study_runtime(
+        action_payload = _runtime_router().ensure_study_runtime(
             profile=profile,
             study_root=study_root,
             source="runtime_watch",
@@ -131,7 +137,7 @@ def _auto_recovery_action_payload(
             "reason": "resume_request_failed",
             "control_plane_runtime_recovery_block": control_plane_recovery_block,
         }, False
-    action_payload = study_runtime_router.ensure_study_runtime(
+    action_payload = _runtime_router().ensure_study_runtime(
         profile=profile,
         study_root=study_root,
         source=MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
@@ -152,7 +158,7 @@ def _read_or_auto_recover_managed_study(
     recovery_holds: list[dict[str, Any]],
     runtime_recovery_payloads: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
-    action_payload = study_runtime_router.study_runtime_status(
+    action_payload = _runtime_router().study_runtime_status(
         profile=profile,
         study_root=study_root,
     )

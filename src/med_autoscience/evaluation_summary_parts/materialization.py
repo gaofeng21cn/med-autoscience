@@ -153,7 +153,22 @@ from .materialization_normalizers import _normalized_evaluation_summary, _normal
 
 
 from .materialization_io import (  # noqa: E402
-    materialize_evaluation_summary_artifacts,
+    materialize_evaluation_summary_artifacts as _materialize_evaluation_summary_artifacts,
     read_evaluation_summary,
     read_promotion_gate,
 )
+
+
+def materialize_evaluation_summary_artifacts(
+    *,
+    study_root: Path,
+    runtime_escalation_ref: str | Path | dict[str, Any],
+    publishability_gate_report_ref: str | Path,
+) -> dict[str, dict[str, str]]:
+    return _materialize_evaluation_summary_artifacts(
+        study_root=study_root,
+        runtime_escalation_ref=runtime_escalation_ref,
+        publishability_gate_report_ref=publishability_gate_report_ref,
+        publication_eval_reader=read_publication_eval_latest,
+        study_charter_reader=read_study_charter,
+    )
