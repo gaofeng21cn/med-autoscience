@@ -32,17 +32,19 @@ def _repo_root() -> Path:
 
 
 def _load_contract(module_name: str) -> dict[str, object]:
-    path = _repo_root() / "modules" / module_name / "module_contract.yaml"
+    path = _repo_root() / "contracts" / "modules" / module_name / "module_contract.yaml"
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 def test_monorepo_scaffold_layout_contains_exact_module_directories() -> None:
-    modules_root = _repo_root() / "modules"
+    modules_root = _repo_root() / "contracts" / "modules"
 
     assert {path.name for path in modules_root.iterdir() if path.is_dir()} == EXPECTED_MODULE_DIRS
     for module_name in EXPECTED_MODULE_DIRS:
         files = {path.name for path in (modules_root / module_name).iterdir() if path.is_file()}
         assert files == {"module_contract.yaml"}
+    for module_name in EXPECTED_MODULE_DIRS:
+        assert not (_repo_root() / "modules" / module_name / "module_contract.yaml").exists()
 
 
 def test_monorepo_scaffold_layout_contains_exact_test_files() -> None:

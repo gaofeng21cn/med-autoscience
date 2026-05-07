@@ -200,6 +200,34 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
+        category_id="root_governance_contract_surface",
+        exact_paths=(
+            "contracts/README.md",
+            "tests/controller_charter/test_controller_charter_module_contract.py",
+            "tests/eval_hygiene/test_eval_hygiene_module_contract.py",
+            "tests/integration/test_monorepo_scaffold_boundaries.py",
+            "tests/runtime/test_runtime_module_contract.py",
+            "tests/test_opl_family_contract_adoption.py",
+            "tests/test_test_command_surfaces.py",
+        ),
+        prefix_paths=(
+            "contracts/modules/",
+            "contracts/opl-gateway/",
+            "contracts/schemas/",
+        ),
+        commands=(
+            (
+                "uv run pytest "
+                "tests/controller_charter/test_controller_charter_module_contract.py "
+                "tests/runtime/test_runtime_module_contract.py "
+                "tests/eval_hygiene/test_eval_hygiene_module_contract.py "
+                "tests/integration/test_monorepo_scaffold_boundaries.py -q"
+            ),
+            "uv run pytest tests/test_opl_family_contract_adoption.py -q",
+            "uv run pytest tests/test_test_command_surfaces.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
         category_id="family_shared_surface",
         exact_paths=(
             "Makefile",
@@ -324,6 +352,15 @@ _DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
         family_id="capability_docs",
         exact_paths=(),
         prefix_paths=("docs/capabilities/",),
+    ),
+    PreflightCoveragePathFamily(
+        family_id="contract_root",
+        exact_paths=("contracts/README.md",),
+        prefix_paths=(
+            "contracts/modules/",
+            "contracts/opl-gateway/",
+            "contracts/schemas/",
+        ),
     ),
     PreflightCoveragePathFamily(
         family_id="workflow_config",

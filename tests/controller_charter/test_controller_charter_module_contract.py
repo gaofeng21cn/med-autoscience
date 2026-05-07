@@ -6,7 +6,13 @@ import yaml
 
 
 def _load_contract() -> dict[str, object]:
-    path = Path(__file__).resolve().parents[2] / "modules" / "controller_charter" / "module_contract.yaml"
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "contracts"
+        / "modules"
+        / "controller_charter"
+        / "module_contract.yaml"
+    )
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 

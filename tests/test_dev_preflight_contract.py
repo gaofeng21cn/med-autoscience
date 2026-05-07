@@ -510,6 +510,25 @@ def test_classify_changed_files_matches_family_shared_surface() -> None:
     assert result.unclassified_changes == ()
 
 
+def test_classify_changed_files_matches_root_governance_contract_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "contracts/README.md",
+            "contracts/modules/runtime/module_contract.yaml",
+            "contracts/opl-gateway/family-contract-adoption.json",
+            "contracts/schemas/v1/product-entry-manifest.schema.json",
+            "tests/runtime/test_runtime_module_contract.py",
+            "tests/test_opl_family_contract_adoption.py",
+            "tests/test_test_command_surfaces.py",
+        ]
+    )
+
+    assert result.matched_categories == ("root_governance_contract_surface",)
+    assert result.unclassified_changes == ()
+
+
 def test_classify_changed_verify_script_as_family_shared_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
@@ -586,6 +605,24 @@ def test_plan_commands_for_family_shared_surface_use_focused_family_lane() -> No
     commands = module.plan_commands_for_categories(("family_shared_surface",))
 
     assert commands == ["make test-family"]
+
+
+def test_plan_commands_for_root_governance_contract_surface_use_focused_contract_lanes() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    commands = module.plan_commands_for_categories(("root_governance_contract_surface",))
+
+    assert commands == [
+        (
+            "uv run pytest "
+            "tests/controller_charter/test_controller_charter_module_contract.py "
+            "tests/runtime/test_runtime_module_contract.py "
+            "tests/eval_hygiene/test_eval_hygiene_module_contract.py "
+            "tests/integration/test_monorepo_scaffold_boundaries.py -q"
+        ),
+        "uv run pytest tests/test_opl_family_contract_adoption.py -q",
+        "uv run pytest tests/test_test_command_surfaces.py -q",
+    ]
 
 
 def test_plan_commands_for_control_plane_surface_use_focused_lane() -> None:

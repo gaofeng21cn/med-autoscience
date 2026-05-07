@@ -38,6 +38,7 @@
 
 - `docs/project.md`、`docs/architecture.md`、`docs/invariants.md`、`docs/decisions.md`、`docs/status.md` 是核心骨架。
 - 文档按 `capabilities/`、`program/`、`runtime/`、`references/`、`history/omx/` 分类收口，不得平铺堆放。
+- `contracts/` 是机器可读 contract root；模块边界 contract 归入 `contracts/modules/`，叙述性说明留在 `docs/`。
 - 对外文档必须提供中英双语镜像；内部技术与规划文档默认中文。
 
 ## 验证

@@ -67,7 +67,7 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 ## 首先应读的文件
 
 - `bootstrap/README.md`
-- `controllers/README.md`
+- `docs/runtime/controllers.md`
 - `docs/references/codex_plugin.md`
 
 ## 典型任务

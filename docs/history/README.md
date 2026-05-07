@@ -39,6 +39,7 @@ Current truth belongs in:
 
 - [Capability history archive](./capabilities/README.md)
 - [Program history archive](./program/README.md)
+- [Legacy runtime boundary](./runtime/legacy_runtime_boundary.md)
 - [OMX historical archive](./omx/README.md)
 - [Superpowers process draft archive](./superpowers/README.md)
 

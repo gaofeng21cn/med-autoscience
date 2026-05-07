@@ -158,7 +158,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - 运行句柄与持久表面合同：[`runtime_handle_and_durable_surface_contract.md`](./runtime_handle_and_durable_surface_contract.md)
 - managed study runtime 状态机与执行 contract：[`study_runtime_orchestration.md`](./study_runtime_orchestration.md)
 - 上游 intake 与 fork 升级流程：[`upstream_intake.md`](../references/med-deepscientist/upstream_intake.md)
-- 控制器与内部能力：[`controllers/README.md`](../../controllers/README.md)
+- 控制器与内部能力：[`controllers.md`](./controllers.md)
 - 数据资产策略：[`policies/data_asset_management.md`](../policies/data_asset_management.md)
 - 默认研究场景：[`policies/study_archetypes.md`](../policies/study_archetypes.md)
 - 研究路线偏置：[`policies/research_route_bias_policy.md`](../policies/research_route_bias_policy.md)

@@ -19,7 +19,7 @@
 - Modify: `src/med_autoscience/profiles.py`
 - Modify: `src/med_autoscience/doctor.py`
 - Modify: `profiles/workspace.profile.template.toml`
-- Modify: `controllers/README.md`
+- Modify: `docs/runtime/controllers.md`
 - Modify: `bootstrap/README.md`
 - Create: `tests/test_study_delivery_sync.py`
 - Modify: `tests/test_submission_minimal.py`
@@ -80,7 +80,7 @@ Expected: 断言失败
 **Files:**
 - Modify: `src/med_autoscience/cli.py`
 - Modify: `src/med_autoscience/controllers/__init__.py`
-- Modify: `controllers/README.md`
+- Modify: `docs/runtime/controllers.md`
 - Modify: `bootstrap/README.md`
 - Modify: `tests/test_cli.py`
 
