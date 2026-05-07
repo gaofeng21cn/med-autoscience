@@ -195,6 +195,14 @@ publication gate 与 AI reviewer 的 currentness 使用 work-unit fingerprint，
 - 对 `bundle_stage_blocked` 的 specificity gate，AI reviewer eval 还必须携带完整 `claim/figure/table/metric/source_path` specificity targets；否则 publication gate 必须刷新 mechanical projection，补齐当前阻断目标，并重新要求 AI reviewer workflow。
 - mechanical projection 只能具体化 blocker 和 owner handoff，不能关闭 AI reviewer 质量判断；AI reviewer output 也不能用缺 target 的旧记录阻止 publication gate 更新当前 blocker targets。
 
+controller work-unit evidence adoption 采用同一条 AI-first 边界：
+
+- adoption 只识别客观、受控、可归属的 evidence，例如 owner-authorized output、controller work-unit fingerprint、artifact checksum、restore proof、runtime event、runtime supervision tick、worker liveness 和 freshness/currentness proof。
+- adoption 不判断医学叙事质量、科学结论质量、publishability 或 submission readiness；这些判断仍由 AI reviewer workflow、publication gate 与 MAS study truth surface 持有。
+- `cold_archive`、`report_history`、runtime report store 和 lifecycle restore proof 只能作为 restore/report evidence source；它们可以证明历史报告、运行事件或 artifact 可恢复，但不能替代 `publication_eval/latest.json`、`controller_decisions/latest.json`、`study_charter`、`evidence_ledger`、`review_ledger` 或当前 paper/package authority。
+- 若受控 worker 已经完成同一 work unit，supervisor 必须进入 gate recheck、owner route 前进或下一 owner handoff；不得因为 stale queue、fresh timestamp、archived report 或 report replay 重复派发同一 work unit。
+- repo-side fix landed、archive proof verified、report history 可读取，只能说明平台或证据面已有修复证据；它不等同于具体 study 已恢复、live worker 已存在、论文质量已放行或 `current_package` / `submission_minimal` 已成为当前 authority。
+
 runtime repair 与 publication gate 的 owner routing 使用 controller terminal 证据，而不是泛化的 gate blocker：
 
 - `gate_specificity.required=true` 本身不足以阻止 runtime relaunch；异常 stopped、paused/resume 无 live worker、active/running 但无 live worker、retry budget exhausted 仍必须进入 runtime platform repair。
@@ -202,6 +210,13 @@ runtime repair 与 publication gate 的 owner routing 使用 controller terminal
 - 若 latest task intake 明确是 reviewer revision 或 submission refresh，用户显式唤醒可以释放 delivered-package parking；`runtime_platform_repair` source 不能借同一个 intake 自动释放该停驻。
 - 只有 resume/postcondition 或 runtime status 明确给出 `gate_needs_specificity` / `needs_specificity` / `publication_gate_specificity_required`，并且来源是 controller work-unit authorization 时，supervisor 才把 no-live-worker relaunch 转交给 publication gate。
 - 若 stale specificity terminal 已被带完整 targets 的 publication eval 证明满足，platform repair 可以清掉旧 terminal，并把队列推进到下一 owner；已 applied 的 runtime repair 不应继续留在当次 action queue。
+
+前台兼容性核对必须把 project / study / runtime owner 分开：
+
+- NF-PitNET 003 不属于 DM002/DM003 runtime 风险核对的目标，不因 DM lifecycle 或 evidence adoption 文档更新触碰其 paper、current package、submission minimal 或 runtime-owned surface。
+- DM002 / DM003 是否 live、是否 no-live-worker、是否 stale、是否需要人工介入，必须 fresh 读取 `study_runtime_status`、`study_progress`、`runtime_supervision/latest.json`、`publication_eval/latest.json` 与 `controller_decisions/latest.json`；不能用 repo commit、lifecycle migration ledger、cold archive 或 report history 代替当前 truth。
+- 如果存在 live managed runtime，或 `study_runtime_status.execution_owner_guard.supervisor_only=true`，前台只能进入 supervisor-only 监管态；不得直接写 runtime-owned surface，也不得修改 DM workspace 的论文正文、`current_package` 或 `submission_minimal`。
+- 如果当前 truth 是 `quest_status=active` 但 `active_run_id=null` / no live session / retry budget exhausted，前台只能报告 live 兼容风险并等待 controller/runtime owner 决策；不得把 repo 修复完成表述为 study 已恢复。
 
 第二层 Developer Supervisor Mode 的时间策略固定为：
 

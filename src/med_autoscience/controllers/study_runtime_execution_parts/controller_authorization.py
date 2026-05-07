@@ -14,6 +14,7 @@ from ..study_runtime_status import (
     StudyRuntimeStatus,
     _LIVE_QUEST_STATUSES,
 )
+from .work_unit_evidence_adoption import adopt_controller_work_unit_evidence_if_present
 
 
 _CONTROLLER_DECISION_RUNTIME_AUTHORIZATION_ACTIONS = {
@@ -803,6 +804,24 @@ def _relay_controller_decision_authorization_if_required(
     ):
         _write_runtime_state(quest_root=context.quest_root, runtime_state=runtime_state)
     active_run_id = _active_run_id_from_status_or_state(status=status, runtime_state=runtime_state)
+    identity = _controller_decision_authorization_identity(authorization_context)
+    evidence_adoption = adopt_controller_work_unit_evidence_if_present(
+        study_root=context.study_root,
+        quest_root=context.quest_root,
+        authorization_context=authorization_context,
+        identity=identity,
+        active_run_id=active_run_id,
+        source=context.source,
+    )
+    if evidence_adoption is not None:
+        lifecycle = control_intent.lifecycle_state(study_root=context.study_root, identity=identity)
+        status.extras["controller_work_unit_evidence_adoption"] = evidence_adoption
+        status.extras["controller_decision_authorization_deduped"] = {
+            "control_intent_key": authorization_context.get("control_intent_key"),
+            "source": "controller_work_unit_evidence_adoption",
+            "lifecycle": lifecycle,
+        }
+        return None
     if _runtime_state_awaits_artifact_delta_or_gate_replay(
         runtime_state=runtime_state,
         authorization_context=authorization_context,
@@ -810,7 +829,6 @@ def _relay_controller_decision_authorization_if_required(
         status=status,
         authorization_context=authorization_context,
     ):
-        identity = _controller_decision_authorization_identity(authorization_context)
         control_intent.append_skipped_duplicate_if_needed(
             study_root=context.study_root,
             identity=identity,
