@@ -21,6 +21,8 @@ Owner: `MedAutoScience`
 
 2026-05-08 校准：近期模块化与边界重构没有改变 portfolio 队列。当前事实是：Runtime Control、Progress Projection、quest Git retirement、workspace root Git retirement 和 architecture fitness wave 都已经进入 landed/guard 口径；下一步不再重开 Git 退役或全仓结构治理大计划。队列首项应直接收口医生/Agent 可见 workspace layout，特别是静态 profile template、doctor/show-profile 输出、bootstrap/quickstart/agent-runtime 文档与旧 MDS/DS path 的显示边界。`profiles/workspace.profile.template.toml` 仍暴露旧 `ops/med-deepscientist` 默认路径，`med_deepscientist_*` profile 字段仍是兼容 hub；这些是 `workspace_layout_de_mds_ds` 与 `profile_entry_compat_retirement` 的首要落点，不是新的并行 program board。
 
+2026-05-08 hub role hardening closeout：中心 hub 风险已从“建议”转为 architecture fitness guard。Runtime Supervisor、Product Cockpit、MCP Adapter 与 Display Validation 的本轮收口只改变内部角色边界，不改变 CLI/MCP/controller payload 或 live study artifact。`module_boundary_audit` / `architecture_owner_boundary` 现在要求 hub 声明 `authority`、`read_model`、`adapter` 或 `materializer`；read-model / adapter hub 如果声明 authority、控制 runtime/publication 或写 runtime/study truth，会被 blocking。该 hardening 是横向 guard，不改变 next execution queue。
+
 ## Next Execution Queue
 
 后续 Agent 默认按下面队列自动取下一项；只有遇到真实 blocker、外部 active owner 冲突或用户改口时才暂停说明。
@@ -42,6 +44,7 @@ Owner: `MedAutoScience`
 - 不新增机械编号 `part_*` / `chunk_*` / `split_*` 文件。
 - 不新增 `exec(compile(...))` 拼接加载。
 - 不让 `study-progress`、workspace cockpit、product-entry、MCP 或 OPL handoff 自行解释用户状态、runtime next action 或 publication readiness。
+- 新增或修改中心 hub 时必须声明角色：authority 持有裁决，read-model 只投影，adapter 只验证/调用/渲染，materializer 只执行受控写入；非 authority hub 的 authority drift 是 blocking。
 - 触碰 near-limit part、高 churn hub 或 nested `_parts` 时，优先按自然 owner 子域拆 importable module，并补 focused public-surface / subdomain tests。
 - `scripts/verify.sh structure` 的 Sentrux `quality_signal` 不需要每次提高，但不得无解释退化；DSM `above_diagonal` 必须保持 `0`。
 
