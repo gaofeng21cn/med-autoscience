@@ -14,7 +14,7 @@
     "single_project_boundary",
     "domain_entry_contract",
     "gateway_interaction_contract",
-    "frontdesk_surface",
+    "entry_status_surface",
     "operator_loop_surface"
   ],
   "properties": {
@@ -120,7 +120,7 @@
             "type": "string",
             "enum": [
               "workspace-cockpit",
-              "product-frontdesk",
+              "product-entry-status",
               "product-preflight",
               "product-start",
               "product-entry-manifest",

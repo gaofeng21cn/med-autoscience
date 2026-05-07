@@ -160,7 +160,7 @@ def test_operations_dashboard_summary_projects_shared_user_and_maintainer_read_m
     assert summary["surface"] == "ai_first_operations_dashboard_summary"
     assert summary["read_model"] == "ai_first_operations_dashboard_read_model"
     assert summary["contract"]["shared_read_model_consumers"] == [
-        "product_frontdesk",
+        "product_entry_status",
         "workspace_cockpit",
         "study_progress",
     ]

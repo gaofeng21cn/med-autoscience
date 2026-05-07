@@ -386,6 +386,38 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                 "current_stage_summary": "Hermes-hosted 托管监管存在缺口。",
                 "current_blockers": ["Hermes-hosted 托管监管存在缺口。"],
                 "next_system_action": "先恢复 supervisor loop，再继续托管推进。",
+                "study_macro_state": {
+                    "surface": "study_macro_state",
+                    "schema_version": 1,
+                    "study_id": "001-risk",
+                    "writer_state": "queued",
+                    "user_next": "repair",
+                    "reason": "runtime",
+                    "details": {"package_delivered": False},
+                    "conditions": [],
+                },
+                "user_visible_projection": {
+                    "surface": "study_progress_user_visible_projection",
+                    "schema_version": 2,
+                    "authority": "truth_projection",
+                    "projection_only": True,
+                    "study_id": "001-risk",
+                    "state": "queued/repair/runtime",
+                    "writer_state": "queued",
+                    "user_next": "repair",
+                    "reason": "runtime",
+                    "package_delivered": False,
+                    "actual_write_active": False,
+                    "user_action_required": False,
+                    "state_label": "质量修复/复审中",
+                    "state_summary": "Hermes-hosted 托管监管存在缺口。",
+                    "current_stage": "queued",
+                    "current_stage_summary": "Hermes-hosted 托管监管存在缺口。",
+                    "current_blockers": ["Hermes-hosted 托管监管存在缺口。"],
+                    "next_system_action": "先恢复 supervisor loop，再继续托管推进。",
+                    "evidence": {"latest_events": [], "refs": {}},
+                    "conditions": [],
+                },
                 "intervention_lane": {
                     "lane_id": "workspace_supervision_gap",
                     "title": "优先恢复 Hermes-hosted 托管监管",
@@ -476,9 +508,41 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         return {
             "study_id": resolved_study_id,
             "current_stage": "publication_supervision",
-            "current_stage_summary": "论文可发表性监管。",
-            "current_blockers": ["图表推进陷入重复打磨循环，当前 run 应被拉回主线。"],
-            "next_system_action": "先停止当前 figure-polish loop，再回到主线。",
+                "current_stage_summary": "论文可发表性监管。",
+                "current_blockers": ["图表推进陷入重复打磨循环，当前 run 应被拉回主线。"],
+                "next_system_action": "先停止当前 figure-polish loop，再回到主线。",
+                "study_macro_state": {
+                    "surface": "study_macro_state",
+                    "schema_version": 1,
+                    "study_id": "002-risk",
+                    "writer_state": "live",
+                    "user_next": "watch",
+                    "reason": "runtime",
+                    "details": {"active_run_id": "run-002", "package_delivered": False},
+                    "conditions": [],
+                },
+                "user_visible_projection": {
+                    "surface": "study_progress_user_visible_projection",
+                    "schema_version": 2,
+                    "authority": "truth_projection",
+                    "projection_only": True,
+                    "study_id": "002-risk",
+                    "state": "live/watch/runtime",
+                    "writer_state": "live",
+                    "user_next": "watch",
+                    "reason": "runtime",
+                    "package_delivered": False,
+                    "actual_write_active": True,
+                    "user_action_required": False,
+                    "state_label": "自动运行中",
+                    "state_summary": "论文可发表性监管。",
+                    "current_stage": "live",
+                    "current_stage_summary": "论文可发表性监管。",
+                    "current_blockers": ["图表推进陷入重复打磨循环，当前 run 应被拉回主线。"],
+                    "next_system_action": "先停止当前 figure-polish loop，再回到主线。",
+                    "evidence": {"latest_events": [], "refs": {}},
+                    "conditions": [],
+                },
             "intervention_lane": {
                 "lane_id": "quality_floor_blocker",
                 "title": "优先收口质量硬阻塞",
@@ -617,9 +681,9 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "submit-study-task" in payload["user_loop"]["submit_task_template"]
     assert "study-progress" in payload["user_loop"]["watch_progress_template"]
     assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
-    assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_frontdesk"
+    assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_entry_status"
     assert payload["phase2_user_product_loop"]["recommended_command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["phase2_user_product_loop"]["single_path"][1]["step_id"] == "inspect_workspace_inbox"
     assert payload["phase2_user_product_loop"]["single_path"][4]["command"].endswith(
@@ -628,8 +692,8 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["phase2_user_product_loop"]["operator_questions"] == [
         {
             "question": "用户现在怎么启动 MAS？",
-            "answer_surface_kind": "product_frontdesk",
-            "command": "uv run python -m med_autoscience.cli product-frontdesk --profile " + str(profile_ref.resolve()),
+            "answer_surface_kind": "product_entry_status",
+            "command": "uv run python -m med_autoscience.cli product-entry-status --profile " + str(profile_ref.resolve()),
         },
         {
             "question": "用户怎么给 study 下任务？",
@@ -744,6 +808,38 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
             "current_stage_summary": f"{resolved_study_id} stage",
             "current_blockers": [],
             "next_system_action": f"{resolved_study_id} next",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": resolved_study_id,
+                "writer_state": "queued",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"package_delivered": False},
+                "conditions": [],
+            },
+            "user_visible_projection": {
+                "surface": "study_progress_user_visible_projection",
+                "schema_version": 2,
+                "authority": "truth_projection",
+                "projection_only": True,
+                "study_id": resolved_study_id,
+                "state": "queued/watch/runtime",
+                "writer_state": "queued",
+                "user_next": "watch",
+                "reason": "runtime",
+                "package_delivered": False,
+                "actual_write_active": False,
+                "user_action_required": False,
+                "state_label": "系统排队处理中",
+                "state_summary": f"{resolved_study_id} stage",
+                "current_stage": "queued",
+                "current_stage_summary": f"{resolved_study_id} stage",
+                "current_blockers": [],
+                "next_system_action": f"{resolved_study_id} next",
+                "evidence": {"latest_events": [], "refs": {}},
+                "conditions": [],
+            },
             "recommended_command": (
                 "uv run python -m med_autoscience.cli study-progress --profile "
                 + str(profile_ref.resolve())

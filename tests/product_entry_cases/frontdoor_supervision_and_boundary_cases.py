@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from . import shared as _shared
 from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
-from . import cockpit_status_and_frontdesk_focus as _cockpit_status_and_frontdesk_focus
+from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry_status_focus
 from . import manifest_launch_and_task_intake as _manifest_launch_and_task_intake
 from . import repo_shell_and_handoff_templates as _repo_shell_and_handoff_templates
 
@@ -13,11 +13,11 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
-_module_reexport(_cockpit_status_and_frontdesk_focus)
+_module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_manifest_launch_and_task_intake)
 _module_reexport(_repo_shell_and_handoff_templates)
 
-def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(monkeypatch, tmp_path: Path) -> None:
+def test_build_product_entry_status_projects_frontdoor_over_current_workspace_loop(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile_ref = tmp_path / "profile.local.toml"
     profile = make_profile(tmp_path)
@@ -63,29 +63,29 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
         },
     )
 
-    payload = module.build_product_frontdesk(
+    payload = module.build_product_entry_status(
         profile=profile,
         profile_ref=profile_ref,
     )
 
-    assert payload["surface_kind"] == "product_frontdesk"
+    assert payload["surface_kind"] == "product_entry_status"
     assert payload["recommended_action"] == "inspect_or_prepare_research_loop"
     assert payload["target_domain_id"] == "med-autoscience"
-    assert payload["schema_ref"] == "contracts/schemas/v1/product-frontdesk.schema.json"
+    assert payload["schema_ref"] == "contracts/schemas/v1/product-entry-status.schema.json"
     assert payload["domain_entry_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
     assert payload["gateway_interaction_contract"]["frontdoor_owner"] == "opl_gateway_or_domain_gui"
     assert payload["gateway_interaction_contract"]["user_interaction_mode"] == "natural_language_frontdoor"
     assert payload["gateway_interaction_contract"]["user_commands_required"] is False
-    assert payload["frontdesk_surface"]["shell_key"] == "product_frontdesk"
-    assert payload["frontdesk_surface"]["command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+    assert payload["entry_status_surface"]["shell_key"] == "product_entry_status"
+    assert payload["entry_status_surface"]["command"].endswith(
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
     assert payload["operator_loop_actions"]["open_loop"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
-    assert payload["entry_surfaces"]["frontdesk"]["command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+    assert payload["entry_surfaces"]["entry_status"]["command"].endswith(
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["entry_surfaces"]["cockpit"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
@@ -93,8 +93,8 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
     assert payload["entry_surfaces"]["direct_entry_builder"]["command"].endswith(
         "build-product-entry --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --entry-mode direct"
     )
-    assert payload["summary"]["frontdesk_command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+    assert payload["summary"]["entry_status_command"].endswith(
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["summary"]["recommended_command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
@@ -115,7 +115,7 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
         "doctor --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_preflight"]["recommended_start_command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_preflight"]["blocking_check_ids"] == []
     assert [check["check_id"] for check in payload["product_entry_preflight"]["checks"]] == [
@@ -129,15 +129,15 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
         "workspace_supervision_contract_ready",
     ]
     assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["phase2_user_product_loop"]["recommended_command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["phase2_user_product_loop"]["single_path"][2]["surface_kind"] == "study_task_intake"
     assert payload["phase2_user_product_loop"]["proof_surfaces"][1]["surface_kind"] == "workspace_cockpit"
     assert payload["operator_brief"] == {
-        "surface_kind": "product_frontdesk_operator_brief",
+        "surface_kind": "product_entry_status_operator_brief",
         "verdict": "ready_for_task",
         "summary": "当前 workspace 已 ready，下一步先给目标 study 下任务，再启动研究。",
         "should_intervene_now": False,
@@ -174,7 +174,7 @@ def test_build_product_frontdesk_projects_frontdoor_over_current_workspace_loop(
         "runtime",
         "eval_hygiene",
     ]
-    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
+    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_entry_status"
     assert payload["product_entry_quickstart"]["steps"][2]["step_id"] == "continue_study"
     assert payload["product_entry_quickstart"]["steps"][2]["requires"] == ["study_id"]
     assert payload["product_entry_start"]["surface_kind"] == "product_entry_start"
@@ -310,7 +310,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
         "runtime-supervision-status --profile " + str(profile_ref.resolve())
     )
 
-def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner_drift(
+def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_owner_drift(
     monkeypatch, tmp_path: Path
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
@@ -358,13 +358,13 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
         },
     )
 
-    payload = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
+    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     assert payload["product_entry_preflight"]["ready_to_try_now"] is False
     assert "workspace_supervision_contract_ready" in payload["product_entry_preflight"]["blocking_check_ids"]
     assert payload["operator_brief"]["verdict"] == "preflight_blocked"
     assert "legacy workspace-local runtime supervision service" in payload["product_entry_preflight"]["summary"]
-    assert payload["product_entry_start"]["recommended_mode_id"] == "open_frontdesk"
+    assert payload["product_entry_start"]["recommended_mode_id"] == "open_entry_status"
     assert payload["product_entry_start"]["modes"][1]["mode_id"] == "submit_task"
     assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]
     assert payload["product_entry_start"]["resume_surface"]["surface_kind"] == "launch_study"
@@ -383,7 +383,7 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert payload["family_orchestration"]["action_graph"]["human_gates"][0]["legacy_gate_id"] == (
         "study_physician_decision_gate"
     )
-    assert payload["product_entry_manifest"]["frontdesk_surface"]["shell_key"] == "product_frontdesk"
+    assert payload["product_entry_manifest"]["entry_status_surface"]["shell_key"] == "product_entry_status"
     assert payload["product_entry_manifest"]["manifest_version"] == 2
     assert payload["product_entry_manifest"]["product_entry_readiness"] == payload["product_entry_readiness"]
     assert payload["product_entry_manifest"]["product_entry_preflight"] == payload["product_entry_preflight"]
@@ -398,7 +398,7 @@ def test_build_product_frontdesk_preflight_blocks_on_workspace_supervision_owner
     assert payload["product_entry_manifest"]["skill_catalog"] == payload["skill_catalog"]
     assert payload["product_entry_manifest"]["automation"] == payload["automation"]
 
-    markdown = module.render_product_frontdesk_markdown(payload)
+    markdown = module.render_product_entry_status_markdown(payload)
     assert "Now" in markdown
     assert "Single-Project Boundary" in markdown
     assert "Capability Owner Boundary" in markdown

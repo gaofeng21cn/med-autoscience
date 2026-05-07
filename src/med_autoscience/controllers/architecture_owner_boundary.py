@@ -90,7 +90,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "canonical_surfaces": [
             "study_progress",
             "workspace-cockpit",
-            "product-frontdesk",
+            "product-entry-status",
             "product-entry manifest",
             "MCP surfaces",
         ],
@@ -145,7 +145,7 @@ DUPLICATION_RISK_CLASSES: tuple[dict[str, Any], ...] = (
     {
         "risk_id": "entry_projection_as_authority",
         "current_risk": "controlled_by_contract",
-        "trigger": "study_progress, workspace-cockpit, product-frontdesk, MCP, or product-entry starts deciding next action independently",
+        "trigger": "study_progress, workspace-cockpit, product-entry-status, MCP, or product-entry starts deciding next action independently",
         "required_guard": "projection surfaces must consume StudyTruthKernel, RuntimeHealthKernel, publication_eval, and controller_decisions",
         "repair_lane": "keep entrypoints thin and add reducer-backed projection tests",
     },
@@ -182,7 +182,7 @@ REPAIR_PROGRAM = (
     {
         "step_id": "guard_projection_surfaces",
         "status": "active",
-        "description": "Keep study_progress, workspace-cockpit, product-frontdesk, product-entry, and MCP as thin projections.",
+        "description": "Keep study_progress, workspace-cockpit, product-entry-status, product-entry, and MCP as thin projections.",
         "verification": "meta tests plus reducer-backed entry-surface tests",
     },
     {

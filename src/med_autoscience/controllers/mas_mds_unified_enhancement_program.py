@@ -96,7 +96,7 @@ PROGRAM_LANES = (
         "primary_outputs": (
             "single PI-readable next-action payload",
             "study-progress source projection",
-            "workspace-cockpit and product-frontdesk consumer projection",
+            "workspace-cockpit and product-entry-status consumer projection",
         ),
         "authority_boundary": "does not independently calculate canonical next action from file state, provider state, or MDS oracle",
     },
@@ -253,7 +253,7 @@ PARALLEL_WORKTREE_LANDING = (
     {
         "branch": "codex/mas-pi-action-projection",
         "lane_id": "L2_pi_action_projection",
-        "scope": "single PI action payload shared by frontdesk, cockpit, and progress projections",
+        "scope": "single PI action payload shared by entry_status, cockpit, and progress projections",
         "absorb_order": 2,
     },
     {

@@ -457,26 +457,40 @@ def test_workspace_profile_cycles_command_dispatches_profiler(monkeypatch, tmp_p
     assert called["profile"].name == "nfpitnet"
     assert called["since"] == "2026-04-25T00:00:00Z"
     assert json.loads(captured.out)["profile_name"] == "nfpitnet"
-def test_product_frontdesk_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_product_entry_status_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     called: dict[str, object] = {}
 
-    def fake_build_product_frontdesk(*, profile, profile_ref) -> dict:
+    def fake_build_product_entry_status(*, profile, profile_ref) -> dict:
         called["profile"] = profile
         called["profile_ref"] = profile_ref
-        return {"surface_kind": "product_frontdesk", "summary": {"frontdesk_command": "uv run python -m med_autoscience.cli product-frontdesk"}}
+        return {"surface_kind": "product_entry_status", "summary": {"entry_status_command": "uv run python -m med_autoscience.cli product-entry-status"}}
 
-    monkeypatch.setattr(cli.product_entry, "build_product_frontdesk", fake_build_product_frontdesk)
+    monkeypatch.setattr(cli.product_entry, "build_product_entry_status", fake_build_product_entry_status)
 
-    exit_code = cli.main(["product", "frontdesk", "--profile", str(profile_path), "--format", "json"])
+    exit_code = cli.main(["product", "entry_status", "--profile", str(profile_path), "--format", "json"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
     assert called["profile"].name == "nfpitnet"
     assert called["profile_ref"] == Path(profile_path)
-    assert json.loads(captured.out)["surface_kind"] == "product_frontdesk"
+    assert json.loads(captured.out)["surface_kind"] == "product_entry_status"
+
+
+def test_retired_product_entry_status_name_fails_closed(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["product-" + "front" + "desk", "--profile", "profile.local.toml", "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert "invalid choice" in captured.err
+    assert "product-entry-status" in captured.err
+
+
 def test_product_preflight_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
@@ -506,7 +520,7 @@ def test_product_start_command_dispatches_product_entry_controller(monkeypatch, 
     def fake_build_product_entry_start(*, profile, profile_ref) -> dict:
         called["profile"] = profile
         called["profile_ref"] = profile_ref
-        return {"surface_kind": "product_entry_start", "recommended_mode_id": "open_frontdesk"}
+        return {"surface_kind": "product_entry_start", "recommended_mode_id": "open_entry_status"}
 
     monkeypatch.setattr(cli.product_entry, "build_product_entry_start", fake_build_product_entry_start)
 

@@ -29,6 +29,9 @@ from med_autoscience.controllers.pi_action_projection import (
 from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
     compact_study_macro_state_from_payload,
 )
+from med_autoscience.controllers.study_progress_parts.user_visible_projection import (
+    build_user_visible_projection,
+)
 from med_autoscience.controllers.delivery_visibility_projection import (
     compact_delivery_inspection_projection,
 )
@@ -51,7 +54,15 @@ _module_reexport(_state_and_study_items)
 
 def _user_visible_progress_projection(progress_payload: Mapping[str, Any]) -> dict[str, Any]:
     projection = progress_payload.get("user_visible_projection")
-    return dict(projection) if isinstance(projection, Mapping) else {}
+    if (
+        isinstance(projection, Mapping)
+        and projection.get("schema_version") == 2
+        and _non_empty_text(projection.get("writer_state")) is not None
+        and _non_empty_text(projection.get("user_next")) is not None
+        and _non_empty_text(projection.get("reason")) is not None
+    ):
+        return dict(projection)
+    return build_user_visible_projection(progress_payload)
 
 
 def _user_visible_field(
@@ -60,9 +71,8 @@ def _user_visible_field(
     progress_payload: Mapping[str, Any],
     key: str,
 ) -> Any:
-    if key in user_visible_projection:
-        return user_visible_projection.get(key)
-    return progress_payload.get(key)
+    del progress_payload
+    return user_visible_projection.get(key)
 
 
 def _user_visible_list(
@@ -110,7 +120,11 @@ def _study_item(
     task_intake = dict(progress_payload.get("task_intake") or {})
     progress_freshness = dict(progress_payload.get("progress_freshness") or {})
     intervention_lane = dict(progress_payload.get("intervention_lane") or {})
-    user_visible_projection = _user_visible_progress_projection(progress_payload)
+    study_macro_state = compact_study_macro_state_from_payload(progress_payload)
+    progress_payload_for_user_view = dict(progress_payload)
+    if study_macro_state is not None:
+        progress_payload_for_user_view["study_macro_state"] = study_macro_state
+    user_visible_projection = _user_visible_progress_projection(progress_payload_for_user_view)
     operator_verdict = dict(progress_payload.get("operator_verdict") or {})
     operator_status_card = dict(progress_payload.get("operator_status_card") or {})
     auto_runtime_parked = dict(progress_payload.get("auto_runtime_parked") or {})
@@ -154,7 +168,6 @@ def _study_item(
     )
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
-    study_macro_state = compact_study_macro_state_from_payload(progress_payload)
     runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
     control_plane_snapshot = _control_plane_snapshot_summary(progress_payload.get("control_plane_snapshot"))
     research_runtime_control_projection = dict(progress_payload.get("research_runtime_control_projection") or {})
@@ -174,6 +187,51 @@ def _study_item(
         "control_plane_snapshot": control_plane_snapshot,
         "status_narration_contract": progress_payload.get("status_narration_contract"),
         "user_visible_projection": user_visible_projection or None,
+        "state": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="state",
+        ),
+        "writer_state": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="writer_state",
+        ),
+        "user_next": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="user_next",
+        ),
+        "reason": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="reason",
+        ),
+        "package_delivered": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="package_delivered",
+        ),
+        "actual_write_active": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="actual_write_active",
+        ),
+        "user_action_required": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="user_action_required",
+        ),
+        "state_label": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="state_label",
+        ),
+        "state_summary": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="state_summary",
+        ),
         "current_stage": _user_visible_field(
             user_visible_projection=user_visible_projection,
             progress_payload=progress_payload,

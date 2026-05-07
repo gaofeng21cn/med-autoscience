@@ -15,16 +15,16 @@ AGGREGATE_ENTRYPOINT_COLLECTION_COUNT_FLOOR = 139
 NESTED_STRUCTURE_PARENT_NAMES = {"cases", "modules", "parts"}
 
 AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
-    "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py": {
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_ai_first_operations.py",
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_autonomy_runtime_control.py",
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_cross_study_completion.py",
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_gate_clearing_followthrough.py",
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_medical_paper_ops_health.py",
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_medical_paper_readiness.py",
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_medical_paper_readiness_v2_actions.py",
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_quality_lane.py",
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_status_cards.py",
+    "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": {
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_ai_first_operations.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_autonomy_runtime_control.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_cross_study_completion.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_gate_clearing_followthrough.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_ops_health.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_readiness.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_readiness_v2_actions.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_quality_lane.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py",
     },
     "tests/test_runtime_watch.py": {
         "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
@@ -41,8 +41,8 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
 }
 
 NESTED_CASE_REEXPORT_SURFACES = {
-    "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py": (
-        AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py"]
+    "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": (
+        AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES["tests/product_entry_cases/cockpit_status_and_entry_status_focus.py"]
     ),
     "tests/test_runtime_watch_cases/runtime_status_cases.py": {
         "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
@@ -68,7 +68,7 @@ AGGREGATE_ENTRYPOINT_REEXPORT_SURFACES = {
 }
 
 REPRESENTATIVE_NESTED_CASES = {
-    "tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_status_cards.py": (
+    "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py": (
         "test_workspace_cockpit_markdown_prefers_human_facing_labels"
     ),
     "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_runtime_activity_projection.py": (
@@ -261,7 +261,7 @@ def _aggregate_collection_failure_message(
 
 def test_nested_case_collection_ignore_globs_are_declared() -> None:
     assert set(tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS) == {
-        "product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_*.py",
+        "product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_*.py",
         "test_runtime_watch_cases/*_cases_cases/test_*.py",
     }
     assert tests_conftest.collect_ignore_glob == list(
@@ -370,23 +370,23 @@ def test_nested_case_modules_are_not_default_collection_surfaces() -> None:
 
 def test_aggregate_collection_surfaces_still_collect_nested_cases() -> None:
     collected_ids = _collectable_test_ids(
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
         "tests/test_runtime_watch.py",
     )
     collected_output = "\n".join(collected_ids)
 
     for test_name in REPRESENTATIVE_NESTED_CASES.values():
         assert f"::{test_name}" in collected_output
-    assert "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py::" in collected_output
+    assert "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py::" in collected_output
     assert "tests/test_runtime_watch.py::" in collected_output
-    assert "cockpit_status_and_frontdesk_focus_cases/test_" not in collected_output
+    assert "cockpit_status_and_entry_status_focus_cases/test_" not in collected_output
     assert "_cases_cases/test_" not in collected_output
 
 
 def test_representative_nested_case_modules_only_collect_through_aggregate_entrypoints() -> None:
     direct_result = _collect_only(*REPRESENTATIVE_NESTED_CASES)
     aggregate_collected_ids = _collectable_test_ids(
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
         "tests/test_runtime_watch.py",
     )
     aggregate_output = "\n".join(aggregate_collected_ids)
@@ -400,7 +400,7 @@ def test_representative_nested_case_modules_only_collect_through_aggregate_entry
 
 def test_aggregate_collection_surfaces_keep_collection_count_above_known_coverage_floor() -> None:
     collected_lines = _collectable_test_ids(
-        "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py",
         "tests/test_runtime_watch.py",
     )
 

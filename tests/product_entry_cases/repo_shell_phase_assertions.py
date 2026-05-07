@@ -280,8 +280,8 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
     )
-    assert payload["product_entry_shell"]["product_frontdesk"]["command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+    assert payload["product_entry_shell"]["product_entry_status"]["command"].endswith(
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_shell"]["submit_study_task"]["command"].endswith(
         "submit-study-task --profile " + str(profile_ref.resolve()) + " --study-id <study_id> --task-intent '<task_intent>'"
@@ -314,24 +314,24 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
 
 def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, profile_ref) -> None:
     assert [node["node_id"] for node in payload["family_orchestration"]["action_graph"]["nodes"]] == [
-        "step:open_frontdesk",
+        "step:open_entry_status",
         "step:submit_task",
         "step:continue_study",
         "step:inspect_progress",
     ]
     assert payload["family_orchestration"]["action_graph"]["edges"] == [
         {
-            "from": "step:open_frontdesk",
+            "from": "step:open_entry_status",
             "to": "step:submit_task",
             "on": "new_task",
         },
         {
-            "from": "step:open_frontdesk",
+            "from": "step:open_entry_status",
             "to": "step:continue_study",
             "on": "resume_study",
         },
         {
-            "from": "step:open_frontdesk",
+            "from": "step:open_entry_status",
             "to": "step:inspect_progress",
             "on": "inspect_status",
         },
@@ -347,7 +347,7 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
         },
     ]
     assert payload["family_orchestration"]["action_graph"]["entry_nodes"] == [
-        "step:open_frontdesk",
+        "step:open_entry_status",
     ]
     assert payload["family_orchestration"]["action_graph"]["exit_nodes"] == [
         "step:continue_study",
@@ -395,16 +395,16 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
         "publication_release_gate",
     ]
     assert payload["product_entry_start"]["surface_kind"] == "product_entry_start"
-    assert payload["product_entry_start"]["recommended_mode_id"] == "open_frontdesk"
+    assert payload["product_entry_start"]["recommended_mode_id"] == "open_entry_status"
     assert [mode["mode_id"] for mode in payload["product_entry_start"]["modes"]] == [
-        "open_frontdesk",
+        "open_entry_status",
         "submit_task",
         "continue_study",
     ]
 
 def _assert_phase5_platform_target(*, module, payload, profile, profile_ref) -> None:
     assert payload["product_entry_start"]["modes"][0]["command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]
     assert payload["product_entry_start"]["modes"][2]["surface_kind"] == "launch_study"

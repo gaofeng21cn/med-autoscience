@@ -37,7 +37,7 @@ def _ready_report() -> SimpleNamespace:
     )
 
 
-def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashboard(
+def test_workspace_cockpit_and_entry_status_surface_portable_supervisor_queue_dashboard(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -159,7 +159,7 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
             "target_domain_id": "med-autoscience",
             "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
             "summary": {
-                "frontdesk_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                "entry_status_command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
                 "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
                 "operator_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
             },
@@ -213,10 +213,10 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
             },
         },
     )
-    monkeypatch.setattr(module, "_validate_product_frontdesk_contract", lambda payload: None)
+    monkeypatch.setattr(module, "_validate_product_entry_status_contract", lambda payload: None)
     monkeypatch.setattr(
         module,
-        "_build_shared_family_product_frontdesk_from_manifest",
+        "_build_shared_family_product_entry_status_from_manifest",
         lambda **kwargs: {
             **dict(kwargs.get("product_entry_manifest") or {}),
             **dict(kwargs.get("extra_payload") or {}),
@@ -226,9 +226,9 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
     )
 
     cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
-    frontdesk = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
+    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
     cockpit_markdown = module.render_workspace_cockpit_markdown(cockpit)
-    frontdesk_markdown = module.render_product_frontdesk_markdown(frontdesk)
+    entry_status_markdown = module.render_product_entry_status_markdown(entry_status)
 
     dashboard = cockpit["portable_supervisor_queue_dashboard"]
     assert dashboard["surface_kind"] == "portable_supervisor_queue_dashboard"
@@ -250,10 +250,10 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
     assert dashboard["studies"][0]["action_queue"][0]["action_type"] == "publication_gate_specificity_required"
     assert dashboard["studies"][0]["queue_slo"]["developer_supervisor_attention_required_count"] == 1
     assert dashboard["studies"][0]["action_queue"][0]["owner_pickup"]["state"] == "overdue"
-    assert frontdesk["workspace_portable_supervisor_queue_dashboard"]["studies"][0]["why_not_applied"] == [
+    assert entry_status["workspace_portable_supervisor_queue_dashboard"]["studies"][0]["why_not_applied"] == [
         "runtime_recovery_retry_budget_exhausted"
     ]
-    assert frontdesk["workspace_portable_supervisor_queue_dashboard"]["supervisor_mode"]["mode"] == "developer_apply_safe"
+    assert entry_status["workspace_portable_supervisor_queue_dashboard"]["supervisor_mode"]["mode"] == "developer_apply_safe"
     assert "Portable Supervisor Queue" in cockpit_markdown
     assert "developer supervisor mode: `developer_apply_safe`" in cockpit_markdown
     assert "Codex App heartbeat is an outer developer supervisor signal" in cockpit_markdown
@@ -261,8 +261,8 @@ def test_workspace_cockpit_and_frontdesk_surface_portable_supervisor_queue_dashb
     assert "owner_pickup `overdue`" in cockpit_markdown
     assert "developer_supervisor_attention_required `True`" in cockpit_markdown
     assert "runtime_recovery_not_authorized" in cockpit_markdown
-    assert "Portable Supervisor Queue" in frontdesk_markdown
-    assert "developer supervisor mode: `developer_apply_safe`" in frontdesk_markdown
-    assert "Codex App heartbeat is an outer developer supervisor signal" in frontdesk_markdown
-    assert "owner_pickup `overdue`" in frontdesk_markdown
-    assert "runtime_recovery_retry_budget_exhausted" in frontdesk_markdown
+    assert "Portable Supervisor Queue" in entry_status_markdown
+    assert "developer supervisor mode: `developer_apply_safe`" in entry_status_markdown
+    assert "Codex App heartbeat is an outer developer supervisor signal" in entry_status_markdown
+    assert "owner_pickup `overdue`" in entry_status_markdown
+    assert "runtime_recovery_retry_budget_exhausted" in entry_status_markdown

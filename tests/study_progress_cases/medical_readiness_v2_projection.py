@@ -167,13 +167,34 @@ def test_mcp_progress_projection_uses_canonical_user_visible_projection() -> Non
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
     payload = {
         **_progress_payload(),
+        "study_macro_state": {
+            "surface": "study_macro_state",
+            "schema_version": 1,
+            "study_id": "003-dpcc",
+            "writer_state": "queued",
+            "user_next": "repair",
+            "reason": "quality",
+            "details": {"package_delivered": False, "paper_stage": "canonical_paper_stage"},
+            "conditions": [],
+        },
         "user_visible_projection": {
             "surface": "study_progress_user_visible_projection",
+            "schema_version": 2,
             "authority": "truth_projection",
             "projection_only": True,
             "study_id": "003-dpcc",
             "quest_id": "quest-003",
-            "current_stage": "canonical_user_stage",
+            "state": "queued/repair/quality",
+            "writer_state": "queued",
+            "user_next": "repair",
+            "reason": "quality",
+            "package_delivered": False,
+            "actual_write_active": False,
+            "user_action_required": False,
+            "state_label": "质量修复/复审中",
+            "state_summary": "质量修复/复审中；质量、artifact 或 runtime 有明确修复 owner。",
+            "current_stage": "queued",
+            "current_stage_label": "质量修复/复审中",
             "current_stage_summary": "canonical user summary",
             "paper_stage": "canonical_paper_stage",
             "paper_stage_summary": "canonical paper summary",
@@ -205,7 +226,9 @@ def test_mcp_progress_projection_uses_canonical_user_visible_projection() -> Non
     compact = module.compact_study_progress_projection(payload)
     markdown = module.render_mcp_study_progress_markdown(payload)
 
-    assert compact["current_stage"] == "canonical_user_stage"
+    assert compact["writer_state"] == "queued"
+    assert compact["state_label"] == "质量修复/复审中"
+    assert compact["current_stage"] == "queued"
     assert compact["current_stage_summary"] == "canonical user summary"
     assert compact["paper_stage"] == "canonical_paper_stage"
     assert compact["paper_stage_summary"] == "canonical paper summary"
@@ -213,7 +236,8 @@ def test_mcp_progress_projection_uses_canonical_user_visible_projection() -> Non
     assert compact["next_system_action"] == "canonical next action"
     assert compact["latest_events"][0]["summary"] == "controller evidence"
     assert compact["user_visible_projection"]["authority"] == "truth_projection"
-    assert "- 当前阶段: `canonical_user_stage`" in markdown
+    assert "- 用户可见状态: 质量修复/复审中" in markdown
+    assert "- writer_state: `queued`" in markdown
     assert "- 下一步: canonical next action" in markdown
     assert "- canonical blocker" in markdown
 

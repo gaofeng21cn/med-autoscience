@@ -40,7 +40,7 @@ def build_unified_enhancement_program_projection() -> dict[str, Any]:
         "authority_surfaces": list(authority_boundaries.get("authority_truth_surfaces") or []),
         "summary": (
             "把自动科研、文件管理和控制面增强建议收敛成 5 条 MAS-owned program lane，"
-            "避免 frontdesk、cockpit、progress、delivery、observability 和 controller 各自重复解释下一步。"
+            "避免 entry_status、cockpit、progress、delivery、observability 和 controller 各自重复解释下一步。"
         ),
         "lanes": [_project_lane(lane) for lane in board.get("lanes") or [] if isinstance(lane, Mapping)],
         "recommendation_rollup": [

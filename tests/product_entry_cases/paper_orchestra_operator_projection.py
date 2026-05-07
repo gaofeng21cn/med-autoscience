@@ -125,8 +125,8 @@ def test_product_entry_surfaces_paper_orchestra_operator_projection_without_runt
     )
 
     cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
-    frontdesk = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
-    markdown = module.render_product_frontdesk_markdown(frontdesk)
+    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    markdown = module.render_product_entry_status_markdown(entry_status)
 
     workspace_projection = cockpit["paper_orchestra_operator_projection"]
     assert workspace_projection["surface_kind"] == "workspace_paper_orchestra_operator_projection"
@@ -139,7 +139,7 @@ def test_product_entry_surfaces_paper_orchestra_operator_projection_without_runt
         "blocking_gate_count": 1,
     }
     assert workspace_projection["study_projections"][0]["next_owner"]["owner"] == "MAS Quality OS"
-    assert frontdesk["workspace_paper_orchestra_operator_projection"] == workspace_projection
+    assert entry_status["workspace_paper_orchestra_operator_projection"] == workspace_projection
     assert "论文写作 DAG" in markdown
     assert "可并行 section 2" in markdown
     assert "阻塞 gate 1" in markdown

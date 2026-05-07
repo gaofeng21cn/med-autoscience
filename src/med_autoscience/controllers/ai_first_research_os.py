@@ -67,7 +67,7 @@ OPERATING_LAYERS: tuple[dict[str, Any], ...] = (
             "doctor",
             "study-progress",
             "workspace-cockpit",
-            "product-frontdesk",
+            "product-entry-status",
         ),
         "purpose": "operator-visible quality, runtime, artifact, and drift status without becoming authority",
     },

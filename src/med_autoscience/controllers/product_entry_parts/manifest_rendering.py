@@ -144,7 +144,7 @@ def _workspace_delivery_inspection_payload(payload: Mapping[str, Any]) -> dict[s
     return dict(payload.get("workspace_delivery_inspection") or {})
 
 
-def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
+def render_product_entry_status_markdown(payload: dict[str, Any]) -> str:
     entry_surfaces = dict(payload.get("entry_surfaces") or {})
     gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
     phase2_user_product_loop = dict(payload.get("phase2_user_product_loop") or {})
@@ -172,13 +172,13 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         payload.get("workspace_portable_supervisor_queue_dashboard") or {}
     )
     lines = [
-        "# Product Frontdesk",
+        "# Product Entry Status",
         "",
         f"- 目标域: `{payload.get('target_domain_id')}`",
         f"- 契约引用: `{payload.get('schema_ref') or 'none'}`",
         f"- 前台归属: `{gateway_interaction_contract.get('frontdoor_owner') or 'none'}`",
         f"- 交互模式: `{gateway_interaction_contract.get('user_interaction_mode') or 'none'}`",
-        f"- 前台入口命令: `{(payload.get('summary') or {}).get('frontdesk_command') or 'none'}`",
+        f"- 前台入口命令: `{(payload.get('summary') or {}).get('entry_status_command') or 'none'}`",
         f"- 推荐继续命令: `{(payload.get('summary') or {}).get('recommended_command') or 'none'}`",
         f"- 当前 loop 命令: `{(payload.get('summary') or {}).get('operator_loop_command') or 'none'}`",
         "",
@@ -198,7 +198,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
         if operator_brief.get("next_confirmation_signal"):
             lines.append(f"- 下一确认信号: {operator_brief.get('next_confirmation_signal')}")
     else:
-        lines.append("- 当前还没有 frontdesk operator brief。")
+        lines.append("- 当前还没有 entry_status operator brief。")
     lines.extend([""] + _render_single_project_boundary_markdown_lines(single_project_boundary) + [""])
     lines.extend(_render_capability_owner_boundary_markdown_lines(capability_owner_boundary) + [""])
     lines.extend([
@@ -311,7 +311,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
                 f"下一步 `{next_action.get('summary') or 'none'}`"
             )
     lines.extend(
-        _medical_paper_research_loop_frontdesk_lines(
+        _medical_paper_research_loop_entry_status_lines(
             payload.get("workspace_medical_paper_research_loop")
         )
     )
@@ -447,7 +447,7 @@ def render_product_frontdesk_markdown(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _medical_paper_research_loop_frontdesk_lines(state: object) -> list[str]:
+def _medical_paper_research_loop_entry_status_lines(state: object) -> list[str]:
     research_loop = dict(state or {}) if isinstance(state, Mapping) else {}
     if not research_loop:
         return []

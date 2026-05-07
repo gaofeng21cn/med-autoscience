@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from tests.product_entry_cases.cockpit_status_and_frontdesk_focus_cases.test_medical_paper_readiness import (
+from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness import (
     _base_progress_payload,
     _ready_doctor_report,
     _ready_mainline_status,
@@ -150,7 +150,7 @@ def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None
     assert "`001-risk` ops health: `blocked`" in markdown
 
 
-def test_product_frontdesk_projects_workspace_v5_ops_health(monkeypatch, tmp_path) -> None:
+def test_product_entry_status_projects_workspace_v5_ops_health(monkeypatch, tmp_path) -> None:
     import importlib
 
     module = importlib.import_module("med_autoscience.controllers.product_entry")
@@ -166,8 +166,8 @@ def test_product_frontdesk_projects_workspace_v5_ops_health(monkeypatch, tmp_pat
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
-    payload = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
-    markdown = module.render_product_frontdesk_markdown(payload)
+    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    markdown = module.render_product_entry_status_markdown(payload)
 
     ops_health = payload["workspace_medical_paper_ops_health"]
     assert ops_health["surface"] == "workspace_medical_paper_ops_health"

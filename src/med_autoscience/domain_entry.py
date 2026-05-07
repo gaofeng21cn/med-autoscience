@@ -81,7 +81,7 @@ def _dispatch_profile_command(
 ) -> dict[str, Any]:
     handlers = {
         "workspace-cockpit": lambda: product_entry.read_workspace_cockpit(profile=profile, profile_ref=profile_ref),
-        "product-frontdesk": lambda: product_entry.build_product_frontdesk(profile=profile, profile_ref=profile_ref),
+        "product-entry-status": lambda: product_entry.build_product_entry_status(profile=profile, profile_ref=profile_ref),
         "product-preflight": lambda: product_entry.build_product_entry_preflight(profile=profile, profile_ref=profile_ref),
         "product-start": lambda: product_entry.build_product_entry_start(profile=profile, profile_ref=profile_ref),
         "product-entry-manifest": lambda: product_entry.build_product_entry_manifest(

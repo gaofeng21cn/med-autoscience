@@ -5,3 +5,4 @@ from .study_progress_parts.publication_runtime import *
 from .study_progress_parts.progression import *
 from .study_progress_parts.operator_view import *
 from .study_progress_parts.projection import *
+from .study_progress_parts.user_visible_projection import *

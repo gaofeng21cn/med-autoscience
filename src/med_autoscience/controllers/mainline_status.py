@@ -110,7 +110,7 @@ def _capability_owner_boundary() -> dict[str, Any]:
             {
                 "capability_id": "research_entry",
                 "owner": "MedAutoScience",
-                "truth_surface": "product-frontdesk / workspace-cockpit",
+                "truth_surface": "product-entry-status / workspace-cockpit",
                 "summary": "正式研究入口与 direct / OPL handoff 语义归 MAS。",
             },
             {
@@ -364,7 +364,7 @@ def _platform_target() -> dict[str, Any]:
 
 def build_phase2_user_product_loop_lane(
     *,
-    frontdesk_command: str,
+    entry_status_command: str,
     workspace_cockpit_command: str,
     submit_task_command: str,
     launch_study_command: str,
@@ -374,14 +374,14 @@ def build_phase2_user_product_loop_lane(
     return {
         "surface_kind": "phase2_user_product_loop_lane",
         "summary": "把启动 MAS、给 study 下任务、续跑、持续看进度、处理恢复建议和人工 gate 收成同一条用户回路。",
-        "recommended_step_id": "open_frontdesk",
-        "recommended_command": frontdesk_command,
+        "recommended_step_id": "open_entry_status",
+        "recommended_command": entry_status_command,
         "single_path": [
             {
-                "step_id": "open_frontdesk",
+                "step_id": "open_entry_status",
                 "title": "先打开 MAS 前台",
-                "surface_kind": "product_frontdesk",
-                "command": frontdesk_command,
+                "surface_kind": "product_entry_status",
+                "command": entry_status_command,
             },
             {
                 "step_id": "inspect_workspace_inbox",
@@ -417,8 +417,8 @@ def build_phase2_user_product_loop_lane(
         "operator_questions": [
             {
                 "question": "用户现在怎么启动 MAS？",
-                "answer_surface_kind": "product_frontdesk",
-                "command": frontdesk_command,
+                "answer_surface_kind": "product_entry_status",
+                "command": entry_status_command,
             },
             {
                 "question": "用户怎么给 study 下任务？",
@@ -433,8 +433,8 @@ def build_phase2_user_product_loop_lane(
         ],
         "proof_surfaces": [
             {
-                "surface_kind": "product_frontdesk",
-                "command": frontdesk_command,
+                "surface_kind": "product_entry_status",
+                "command": entry_status_command,
             },
             {
                 "surface_kind": "workspace_cockpit",
@@ -458,7 +458,7 @@ def build_phase2_user_product_loop_lane(
 
 def _phase2_user_product_loop() -> dict[str, Any]:
     return build_phase2_user_product_loop_lane(
-        frontdesk_command="uv run python -m med_autoscience.cli product-frontdesk --profile <profile>",
+        entry_status_command="uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
         workspace_cockpit_command="uv run python -m med_autoscience.cli workspace-cockpit --profile <profile>",
         submit_task_command=(
             "uv run python -m med_autoscience.cli submit-study-task --profile <profile> "

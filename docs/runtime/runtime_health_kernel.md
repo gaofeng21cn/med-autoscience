@@ -2,7 +2,7 @@
 
 ## 目标
 
-`RuntimeHealthKernel` 是 MAS 针对 `(study_id, quest_id)` 的唯一运行健康 reducer。它把 runtime state、daemon probe、worker heartbeat、session probe、supervisor tick、launch/recover/relaunch attempt、stale progress 与 escalation 事件归并为一个 `RuntimeHealthSnapshot`，供 `study_runtime_status`、`study_progress`、`runtime_watch`、workspace cockpit、product frontdesk 和 MCP compact projection 消费。
+`RuntimeHealthKernel` 是 MAS 针对 `(study_id, quest_id)` 的唯一运行健康 reducer。它把 runtime state、daemon probe、worker heartbeat、session probe、supervisor tick、launch/recover/relaunch attempt、stale progress 与 escalation 事件归并为一个 `RuntimeHealthSnapshot`，供 `study_runtime_status`、`study_progress`、`runtime_watch`、workspace cockpit、product entry status 和 MCP compact projection 消费。
 
 该合同采用四条工程原则：
 

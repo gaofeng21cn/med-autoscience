@@ -211,7 +211,7 @@ PARALLEL_LANDING_LANES = (
     {
         "branch": "codex/mas-product-truth-projection",
         "absorbs_into": "P2_observability_and_profiling",
-        "purpose": "frontdesk/status projection of autonomy, quality, next route, and human gate",
+        "purpose": "entry_status/status projection of autonomy, quality, next route, and human gate",
         "absorb_order": 5,
     },
 )

@@ -4,14 +4,14 @@ from __future__ import annotations
 def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile, profile_ref) -> None:
         assert payload["product_entry_preflight"] == {
             "surface_kind": "product_entry_preflight",
-            "summary": "当前 product-entry 前置检查已通过，可以先复核 doctor 输出，再进入 research frontdesk。",
+            "summary": "当前 product-entry 前置检查已通过，可以先复核 doctor 输出，再进入 research entry_status。",
             "ready_to_try_now": True,
             "recommended_check_command": (
                 "uv run python -m med_autoscience.cli doctor --profile "
                 + str(profile_ref.resolve())
             ),
             "recommended_start_command": (
-                "uv run python -m med_autoscience.cli product-frontdesk --profile "
+                "uv run python -m med_autoscience.cli product-entry-status --profile "
                 + str(profile_ref.resolve())
             ),
             "blocking_check_ids": [],

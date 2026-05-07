@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from . import shared as _shared
 from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
-from . import cockpit_status_and_frontdesk_focus as _cockpit_status_and_frontdesk_focus
+from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry_status_focus
 from . import manifest_launch_and_task_intake as _manifest_launch_and_task_intake
 
 def _module_reexport(module) -> None:
@@ -12,7 +12,7 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
-_module_reexport(_cockpit_status_and_frontdesk_focus)
+_module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_manifest_launch_and_task_intake)
 
 from .repo_shell_runtime_assertions import assert_manifest_runtime_and_continuity

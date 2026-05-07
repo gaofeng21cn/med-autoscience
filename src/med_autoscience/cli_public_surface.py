@@ -85,7 +85,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("product", "governance-report"): "control-plane-governance-report",
     ("product", "backfill-apply"): "control-plane-backfill-apply",
     ("product", "safe-cache-cleanup-apply"): "control-plane-safe-cache-cleanup-apply",
-    ("product", "frontdesk"): "product-frontdesk",
+    ("product", "entry_status"): "product-entry-status",
     ("product", "preflight"): "product-preflight",
     ("product", "start"): "product-start",
     ("product", "manifest"): "product-entry-manifest",
@@ -105,7 +105,7 @@ GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "runtime": "runtime watch、Hermes supervision、overlay、analysis bundle 与 storage maintenance。",
     "study": "study runtime、progress、launch 与 delivery sync。",
     "publication": "投稿包、display surface、journal/target 与 publication gate。",
-    "product": "frontdesk、preflight、start、manifest、build-entry 与 governance surfaces。",
+    "product": "entry_status、preflight、start、manifest、build-entry 与 governance surfaces。",
 }
 GROUPED_SUBCOMMANDS: dict[str, tuple[str, ...]] = {
     group: tuple(subcommand for candidate_group, subcommand in GROUPED_COMMAND_ALIASES if candidate_group == group)

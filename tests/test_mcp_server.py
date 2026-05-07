@@ -182,7 +182,7 @@ def test_mcp_server_can_call_ensure_study_runtime_tool(monkeypatch, tmp_path: Pa
     monkeypatch.setattr(
         module.study_runtime_router,
         "ensure_study_runtime",
-        lambda *, profile, study_id, study_root, entry_mode, allow_stopped_relaunch, force, source: {
+        lambda *, profile, study_id, study_root, entry_mode, allow_stopped_relaunch, force, source, explicit_user_wakeup: {
             "decision": "create_and_start",
             "study_id": study_id,
             "quest_id": study_id,
@@ -320,6 +320,40 @@ def test_mcp_server_study_runtime_status_prefers_progress_projection_markdown_wh
                 "current_blockers": ["缺少最小投稿包导出。"],
                 "latest_events": [],
                 "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
+                "study_macro_state": {
+                    "surface": "study_macro_state",
+                    "schema_version": 1,
+                    "study_id": "001-risk",
+                    "writer_state": "live",
+                    "user_next": "watch",
+                    "reason": "runtime",
+                    "details": {"active_run_id": "run-001", "package_delivered": False},
+                    "conditions": [],
+                },
+                "user_visible_projection": {
+                    "surface": "study_progress_user_visible_projection",
+                    "schema_version": 2,
+                    "authority": "truth_projection",
+                    "projection_only": True,
+                    "study_id": "001-risk",
+                    "state": "live/watch/runtime",
+                    "writer_state": "live",
+                    "user_next": "watch",
+                    "reason": "runtime",
+                    "package_delivered": False,
+                    "actual_write_active": True,
+                    "user_action_required": False,
+                    "state_label": "自动运行中",
+                    "state_summary": "当前已有论文包雏形，但真正的硬阻塞仍在论文可发表性面。",
+                    "current_stage": "live",
+                    "current_stage_summary": "当前已有论文包雏形，但真正的硬阻塞仍在论文可发表性面。",
+                    "paper_stage": "publishability_gate_blocked",
+                    "paper_stage_summary": "当前关键路径是补齐论文证据与叙事，而不是抢跑打包。",
+                    "current_blockers": ["缺少最小投稿包导出。"],
+                    "next_system_action": "先补齐论文证据与叙事，再回到发表门控复核。",
+                    "evidence": {"latest_events": [], "refs": {}},
+                    "conditions": [],
+                },
                 "auto_runtime_parked": {
                     "surface_kind": "auto_runtime_parked",
                     "parked": False,
@@ -381,6 +415,38 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
             "current_stage": "managed_runtime_active",
             "current_stage_summary": "托管运行时正在自动推进研究。",
             "current_blockers": [f"blocker-{index}" for index in range(20)],
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-001", "package_delivered": False},
+                "conditions": [],
+            },
+            "user_visible_projection": {
+                "surface": "study_progress_user_visible_projection",
+                "schema_version": 2,
+                "authority": "truth_projection",
+                "projection_only": True,
+                "study_id": "001-risk",
+                "state": "live/watch/runtime",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "package_delivered": False,
+                "actual_write_active": True,
+                "user_action_required": False,
+                "state_label": "自动运行中",
+                "state_summary": "托管运行时正在自动推进研究。",
+                "current_stage": "live",
+                "current_stage_summary": "托管运行时正在自动推进研究。",
+                "current_blockers": [f"blocker-{index}" for index in range(20)],
+                "next_system_action": "观察自动运行推进。",
+                "evidence": {"latest_events": [], "refs": {}},
+                "conditions": [],
+            },
             "task_intake": {
                 "study_id": "001-risk",
                 "task_intent": "reviewer revision",
@@ -412,7 +478,8 @@ def test_mcp_server_can_call_study_progress_tool(monkeypatch, tmp_path: Path) ->
     assert result["isError"] is False
     assert captured["sync_runtime_summary"] is False
     assert result["structuredContent"]["study_id"] == "001-risk"
-    assert result["structuredContent"]["current_stage"] == "managed_runtime_active"
+    assert result["structuredContent"]["current_stage"] == "live"
+    assert result["structuredContent"]["state_label"] == "自动运行中"
     assert result["structuredContent"]["mcp_projection"]["compacted"] is True
     assert result["structuredContent"]["current_blockers"][-1] == "blocker-11"
     assert len(result["structuredContent"]["task_intake"]["constraints"]) == 8

@@ -217,7 +217,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - 人话进度投影：`study progress --profile <profile> --study-id <study_id>`
 - Hermes-hosted supervision tick：`runtime watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
 - Hermes-hosted supervision job 安装入口：`ops/medautoscience/bin/install-watch-runtime-service`
-- frontdesk / manifest companion：`product-frontdesk --profile <profile>`、`product-entry-manifest --profile <profile>`，它们是单一 MAS app skill 下的内部 command contract，并在 integration layer 暴露机器可读 companion；当前会显式导出 `product_entry_guardrails`、`phase3_clearance_lane`、`phase4_backend_deconstruction` 与 `phase5_platform_target`
+- entry_status / manifest companion：`product-entry-status --profile <profile>`、`product-entry-manifest --profile <profile>`，它们是单一 MAS app skill 下的内部 command contract，并在 integration layer 暴露机器可读 companion；当前会显式导出 `product_entry_guardrails`、`phase3_clearance_lane`、`phase4_backend_deconstruction` 与 `phase5_platform_target`
 
 低层兼容入口仍然保留：
 
@@ -239,12 +239,12 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - 只要 `execution_owner_guard.supervisor_only = true`，前台就必须切到 supervisor-only，不再继续直接写 runtime-owned surface
 - `workspace-cockpit` 应直接投影 repo 主线快照、workspace 级 readiness、latest task intake、watch-runtime service 在线态、stale / missing progress signal 聚合，以及按优先级排好的 workspace attention queue
 - `workspace-cockpit` 还应直接给出当前真实 user loop：至少包括 mainline-status、submit-study-task、launch-study、study-progress、watch 这组命令模板，避免用户再自己拼“怎么启动 / 怎么下任务 / 怎么持续看进度”
-- `product-frontdesk` / `product-entry-manifest` 应显式带出 `product_entry_guardrails`：至少覆盖 `workspace supervision gap`、`study progress gap`、`human decision gate`、`publication / quality blocker` 四类 guardrail，并把 `inspect_workspace_inbox -> refresh_supervision -> inspect_study_progress -> continue_or_relaunch` 收成标准恢复回路
-- `product-frontdesk` / `product-entry-manifest` 还应显式带出 `single_project_boundary`：至少回答 `MAS owner modules`、`MDS retained roles`、`post_gate_only` 与 `not_now`，避免调用方只读前台时丢失单项目 owner boundary
-- `product-frontdesk` / `workspace-cockpit` 还应显式带出 `autonomy_soak_status`、`same_line_route_truth` 与 `quality_review_followthrough` 的人话投影；当同一论文线已经收窄到写作、有限补充分析或 finalize 收口时，前台要直接回答“当前仍在同一条线做什么”“当前关键问题是什么”“下一次确认看什么”
-- `product-frontdesk` / `product-entry-manifest` 还应显式带出 `phase3_clearance_lane`：至少覆盖 `external_runtime_contract`、`supervisor_service`、`study_recovery_proof` 三类 clearance target，并把 doctor / hermes-runtime-check / watch / launch-study / study-progress 的组合回路收成标准模板
-- `product-frontdesk` / `product-entry-manifest` 也应显式带出 `phase4_backend_deconstruction`：至少回答 substrate target、backend retained now、current backend chain、optional executor proof lane 与 promotion rule，避免在 Phase 4/5 讨论里重新把 truth 写散
-- `product-frontdesk` / `product-entry-manifest` 也应显式带出 `phase5_platform_target` 的 monorepo readiness sequence，让用户和顶层 caller 都能直接看到“当前做到哪一步、还差哪几步”，而不是把 monorepo 只当成口头终局
+- `product-entry-status` / `product-entry-manifest` 应显式带出 `product_entry_guardrails`：至少覆盖 `workspace supervision gap`、`study progress gap`、`human decision gate`、`publication / quality blocker` 四类 guardrail，并把 `inspect_workspace_inbox -> refresh_supervision -> inspect_study_progress -> continue_or_relaunch` 收成标准恢复回路
+- `product-entry-status` / `product-entry-manifest` 还应显式带出 `single_project_boundary`：至少回答 `MAS owner modules`、`MDS retained roles`、`post_gate_only` 与 `not_now`，避免调用方只读前台时丢失单项目 owner boundary
+- `product-entry-status` / `workspace-cockpit` 还应显式带出 `autonomy_soak_status`、`same_line_route_truth` 与 `quality_review_followthrough` 的人话投影；当同一论文线已经收窄到写作、有限补充分析或 finalize 收口时，前台要直接回答“当前仍在同一条线做什么”“当前关键问题是什么”“下一次确认看什么”
+- `product-entry-status` / `product-entry-manifest` 还应显式带出 `phase3_clearance_lane`：至少覆盖 `external_runtime_contract`、`supervisor_service`、`study_recovery_proof` 三类 clearance target，并把 doctor / hermes-runtime-check / watch / launch-study / study-progress 的组合回路收成标准模板
+- `product-entry-status` / `product-entry-manifest` 也应显式带出 `phase4_backend_deconstruction`：至少回答 substrate target、backend retained now、current backend chain、optional executor proof lane 与 promotion rule，避免在 Phase 4/5 讨论里重新把 truth 写散
+- `product-entry-status` / `product-entry-manifest` 也应显式带出 `phase5_platform_target` 的 monorepo readiness sequence，让用户和顶层 caller 都能直接看到“当前做到哪一步、还差哪几步”，而不是把 monorepo 只当成口头终局
 - `launch-study` 应在返回监督入口的同时，把当前 latest task intake 与 progress freshness 一并投影给用户
 - `study-runtime-status` 负责结构化真相；`study-progress` 负责用户可直接读的阶段摘要、当前任务摘要、progress freshness、当前阻塞和下一步，并继续把 `runtime_watch` 已发现的 figure-loop / 质量守卫 blocker 投影到用户面
 - `study-progress` 现在还应显式导出 `intervention_lane`：至少要把 `workspace_supervision_gap`、`runtime_recovery_required`、`human_decision_gate`、`study_progress_gap`、`quality_floor_blocker` 这几类前台干预语义稳定结构化，避免 `workspace-cockpit` 继续靠松散启发式猜当前问题属于哪一类
@@ -252,8 +252,8 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
   - `recommended_command` = 当前最该执行的一条命令
   - `recommended_commands` = 当前恢复/监管合同里的有序命令列表
   - `recovery_contract` = `lane_id / action_mode / recommended_step_id / steps` 这组结构化恢复合同
-- `workspace-cockpit` / `launch-study` / `product-frontdesk` 对齐消费 `study-progress.recovery_contract` 与 `recommended_command`，而不是各自再猜一遍当前应该 refresh supervision、launch study 还是仅保持人工判断
-- `workspace-cockpit` / `product-frontdesk` 对齐消费 `study-progress.intervention_lane`：恢复异常应比普通 blocker 更靠前，质量硬阻塞不能继续被压平到泛化的 `study_blocked`
+- `workspace-cockpit` / `launch-study` / `product-entry-status` 对齐消费 `study-progress.recovery_contract` 与 `recommended_command`，而不是各自再猜一遍当前应该 refresh supervision、launch study 还是仅保持人工判断
+- `workspace-cockpit` / `product-entry-status` 对齐消费 `study-progress.intervention_lane`：恢复异常应比普通 blocker 更靠前，质量硬阻塞不能继续被压平到泛化的 `study_blocked`
 - `build-product-entry` 的 `return_surface_contract` 还应显式带出 `single_project_boundary` 与 `study_progress_projection_contract`，至少告诉外部 caller：当前 owner boundary 是什么，以及 `study-progress` 里哪几个字段分别对应 `autonomy_soak_status`、`quality_execution_lane`、`same_line_route_truth`、`quality_review_followthrough`
 - `watch` 或 `install-watch-runtime-service` 负责持续刷新 supervisor tick；没有它们，`study-progress` 必须诚实降回 `managed_runtime_supervision_gap`
 - 如果 `study.yaml` 显式声明 `manual_finish` 且 `compatibility_guard_only = true`，`study-progress` 应把该 study 投影成 `manual_finishing`，表达“当前以人工收尾 + 兼容保护为主”，而不是继续误报成默认应自动续跑的活跃 runtime blocker

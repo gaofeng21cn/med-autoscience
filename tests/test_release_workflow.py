@@ -172,7 +172,7 @@ def test_ci_runs_medical_paper_ops_contract_guard_without_touching_live_workspac
     forbidden_live_workspace_fragments = (
         "/Users/gaofeng/workspace/Yang/",
         "workspace-cockpit --profile",
-        "product-frontdesk --profile",
+        "product-entry-status --profile",
         "study-progress --profile",
         "runtime watch",
         "ensure-study-runtime",
@@ -201,7 +201,7 @@ def test_ci_boundary_guards_mas_repo_only_contract_regression() -> None:
         "provider live refresh",
         "live literature refresh",
         "workspace-cockpit --profile",
-        "product-frontdesk --profile",
+        "product-entry-status --profile",
         "study-progress --profile",
         "ensure-study-runtime",
         "runtime watch",

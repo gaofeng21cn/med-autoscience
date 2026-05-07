@@ -23,6 +23,9 @@ from med_autoscience.controllers.pi_action_projection import compact_pi_action_p
 from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
     compact_study_macro_state_from_payload,
 )
+from med_autoscience.controllers.study_progress_parts.user_visible_projection import (
+    build_user_visible_projection,
+)
 from med_autoscience.mcp_server_parts.open_auto_research_projection import (
     compact_open_auto_research_projection,
     compact_open_auto_research_soak_for_mcp,
@@ -301,6 +304,16 @@ def _compact_user_visible_projection(value: Any) -> dict[str, Any] | None:
             "answer_focus",
             "study_id",
             "quest_id",
+            "state",
+            "writer_state",
+            "user_next",
+            "reason",
+            "conflict_reason",
+            "package_delivered",
+            "actual_write_active",
+            "user_action_required",
+            "state_label",
+            "state_summary",
             "current_stage",
             "current_stage_label",
             "current_stage_summary",
@@ -311,6 +324,7 @@ def _compact_user_visible_projection(value: Any) -> dict[str, Any] | None:
             "next_step",
             "needs_user_decision",
             "needs_physician_decision",
+            "study_macro_state",
             "conditions",
         ),
     )
@@ -334,18 +348,45 @@ def _compact_user_visible_projection(value: Any) -> dict[str, Any] | None:
         "latest_events": _compact_events(evidence.get("latest_events")),
         "refs": dict(evidence.get("refs") or {}) if isinstance(evidence.get("refs"), dict) else {},
     }
+    evidence_refs = value.get("evidence_refs")
+    if isinstance(evidence_refs, dict):
+        compact["evidence_refs"] = dict(evidence_refs)
     return compact
+
+
+def _current_user_visible_projection(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    if value.get("schema_version") != 2:
+        return None
+    for key in ("writer_state", "user_next", "reason", "state_label", "state_summary"):
+        if key not in value:
+            return None
+    return value
 
 
 def _apply_user_visible_projection(compact: dict[str, Any], user_visible: dict[str, Any]) -> None:
     for key in (
         "study_id",
         "quest_id",
+        "state",
+        "writer_state",
+        "user_next",
+        "reason",
+        "conflict_reason",
+        "package_delivered",
+        "actual_write_active",
+        "user_action_required",
+        "state_label",
+        "state_summary",
         "current_stage",
+        "current_stage_label",
         "current_stage_summary",
+        "status_summary",
         "paper_stage",
         "paper_stage_summary",
         "next_system_action",
+        "next_step",
         "needs_user_decision",
         "needs_physician_decision",
     ):
@@ -389,10 +430,19 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "progress_freshness",
         "recommended_command",
     )
-    compact = {key: payload[key] for key in compact_keys if key in payload}
+    source_payload = dict(payload)
+    study_macro_state = compact_study_macro_state_from_payload(source_payload)
+    if study_macro_state is not None:
+        source_payload["study_macro_state"] = study_macro_state
+    user_visible_source = _current_user_visible_projection(source_payload.get("user_visible_projection"))
+    if user_visible_source is None:
+        user_visible_source = build_user_visible_projection(source_payload)
+        source_payload["user_visible_projection"] = user_visible_source
+
+    compact = {key: source_payload[key] for key in compact_keys if key in source_payload}
     compact["current_blockers"] = _compact_string_list(payload.get("current_blockers"), limit=12)
     compact["latest_events"] = _compact_events(payload.get("latest_events"))
-    user_visible_projection = _compact_user_visible_projection(payload.get("user_visible_projection"))
+    user_visible_projection = _compact_user_visible_projection(user_visible_source)
 
     for key, keys in {
         "intervention_lane": (
@@ -493,12 +543,12 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
             "runtime_state_path",
         ),
     }.items():
-        item = _compact_record(payload.get(key), keys)
+        item = _compact_record(source_payload.get(key), keys)
         if item is not None:
             compact[key] = item
 
     for key in ("recommended_commands", "refs"):
-        value = payload.get(key)
+        value = source_payload.get(key)
         if isinstance(value, list):
             compact[key] = value[:5]
         elif isinstance(value, dict):
@@ -517,10 +567,9 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         "runtime_health_snapshot": _compact_runtime_health_snapshot,
         "control_plane_snapshot": _compact_control_plane_snapshot,
     }.items():
-        item = builder(payload.get(key))
+        item = builder(source_payload.get(key))
         if item is not None:
             compact[key] = item
-    study_macro_state = compact_study_macro_state_from_payload(payload)
     if study_macro_state is not None:
         compact["study_macro_state"] = study_macro_state
     ai_repair_lifecycle = _compact_record(
@@ -639,13 +688,18 @@ def _render_mcp_progress_identity(compact: dict[str, Any]) -> list[str]:
 def _render_mcp_progress_stage(compact: dict[str, Any]) -> list[str]:
     current_stage = compact.get("current_stage") or "unknown"
     paper_stage = compact.get("paper_stage") or "unknown"
+    state_label = str(compact.get("state_label") or "").strip()
     lines = [
-        f"- 当前阶段: `{current_stage}`",
+        f"- 用户可见状态: {state_label or current_stage}",
+        f"- writer_state: `{compact.get('writer_state') or current_stage}`",
+        f"- actual_write_active: `{compact.get('actual_write_active')}`",
+        f"- package_delivered: `{compact.get('package_delivered')}`",
+        f"- user_next: `{compact.get('user_next') or 'unknown'}`",
         f"- 论文阶段: `{paper_stage}`",
     ]
-    stage_summary = str(compact.get("current_stage_summary") or "").strip()
+    stage_summary = str(compact.get("state_summary") or compact.get("current_stage_summary") or "").strip()
     if stage_summary:
-        lines.append(f"- 阶段摘要: {stage_summary}")
+        lines.append(f"- 状态摘要: {stage_summary}")
     paper_summary = str(compact.get("paper_stage_summary") or "").strip()
     if paper_summary:
         lines.append(f"- 论文摘要: {paper_summary}")

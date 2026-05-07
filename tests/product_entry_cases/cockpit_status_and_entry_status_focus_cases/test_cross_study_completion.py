@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tests.product_entry_cases import shared as _shared
 from tests.product_entry_cases import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
-from tests.product_entry_cases import frontdesk_focus_cases as _frontdesk_focus_cases
+from tests.product_entry_cases import entry_status_focus_cases as _entry_status_focus_cases
 
 
 def _module_reexport(module) -> None:
@@ -13,7 +13,7 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
-_module_reexport(_frontdesk_focus_cases)
+_module_reexport(_entry_status_focus_cases)
 
 
 def test_workspace_cockpit_projects_ai_first_cross_study_completion_runtime_state(

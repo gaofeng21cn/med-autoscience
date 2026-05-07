@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from tests.product_entry_cases import shared as _shared
 from tests.product_entry_cases import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
-from tests.product_entry_cases import frontdesk_focus_cases as _frontdesk_focus_cases
+from tests.product_entry_cases import entry_status_focus_cases as _entry_status_focus_cases
 
 
 def _module_reexport(module) -> None:
@@ -13,7 +13,7 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
-_module_reexport(_frontdesk_focus_cases)
+_module_reexport(_entry_status_focus_cases)
 
 
 def _ready_doctor_report() -> SimpleNamespace:
@@ -198,12 +198,33 @@ def test_workspace_cockpit_uses_canonical_user_visible_progress_projection(
         "current_stage_summary": "legacy summary",
         "current_blockers": ["legacy blocker"],
         "next_system_action": "legacy action",
+        "study_macro_state": {
+            "surface": "study_macro_state",
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "writer_state": "parked",
+            "user_next": "submit_info",
+            "reason": "external_info",
+            "details": {"package_delivered": True, "missing_external_info": ["authors"]},
+            "conditions": [],
+        },
         "user_visible_projection": {
             "surface": "study_progress_user_visible_projection",
+            "schema_version": 2,
             "authority": "truth_projection",
             "projection_only": True,
             "study_id": "001-risk",
-            "current_stage": "canonical_stage",
+            "state": "parked/submit_info/external_info",
+            "writer_state": "parked",
+            "user_next": "submit_info",
+            "reason": "external_info",
+            "package_delivered": True,
+            "actual_write_active": False,
+            "user_action_required": True,
+            "state_label": "投稿包已交付，等待外部投稿信息",
+            "state_summary": "投稿包已交付，系统已自动停驻并释放运行资源；等待补齐外部投稿信息。",
+            "current_stage": "parked",
+            "current_stage_label": "投稿包已交付，等待外部投稿信息",
             "current_stage_summary": "canonical summary",
             "current_blockers": ["canonical blocker"],
             "next_system_action": "canonical action",
@@ -220,7 +241,12 @@ def test_workspace_cockpit_uses_canonical_user_visible_progress_projection(
     payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
     study = payload["studies"][0]
 
-    assert study["current_stage"] == "canonical_stage"
+    assert study["writer_state"] == "parked"
+    assert study["user_next"] == "submit_info"
+    assert study["package_delivered"] is True
+    assert study["actual_write_active"] is False
+    assert study["state_label"] == "投稿包已交付，等待外部投稿信息"
+    assert study["current_stage"] == "parked"
     assert study["current_stage_summary"] == "canonical summary"
     assert study["current_blockers"] == ["canonical blocker"]
     assert study["next_system_action"] == "canonical action"

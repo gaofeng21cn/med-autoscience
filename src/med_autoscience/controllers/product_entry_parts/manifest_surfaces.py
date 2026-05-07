@@ -9,7 +9,7 @@ from .manifest_rendering import (
     render_product_entry_manifest_markdown,
     render_product_entry_preflight_markdown,
     render_product_entry_start_markdown,
-    render_product_frontdesk_markdown,
+    render_product_entry_status_markdown,
     render_skill_catalog_markdown,
 )
 
@@ -186,10 +186,10 @@ def build_product_entry_manifest(
     )
 
     product_entry_shell = _build_shared_product_entry_shell_catalog({
-        "product_frontdesk": {
-            "command": f"{prefix} product-frontdesk --profile {profile_arg}",
-            "purpose": "当前 research product frontdesk，先暴露当前 frontdoor、workspace inbox 与 shared handoff 入口。",
-            "surface_kind": PRODUCT_FRONTDESK_KIND,
+        "product_entry_status": {
+            "command": f"{prefix} product-entry-status --profile {profile_arg}",
+            "purpose": "当前 research product entry status，先暴露当前 frontdoor、workspace inbox 与 shared handoff 入口。",
+            "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
         },
         "workspace_cockpit": {
             "command": _json_surface_command(f"{prefix} workspace-cockpit --profile {profile_arg}"),
@@ -270,10 +270,10 @@ def build_product_entry_manifest(
         graph_version="2026-04-13",
         nodes=[
             {
-                "node_id": "step:open_frontdesk",
+                "node_id": "step:open_entry_status",
                 "node_kind": "operator_step",
-                "title": "Open research frontdesk",
-                "surface_kind": PRODUCT_FRONTDESK_KIND,
+                "title": "Open research entry_status",
+                "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
             },
             {
                 "node_id": "step:submit_task",
@@ -299,17 +299,17 @@ def build_product_entry_manifest(
         ],
         edges=[
             {
-                "from": "step:open_frontdesk",
+                "from": "step:open_entry_status",
                 "to": "step:submit_task",
                 "on": "new_task",
             },
             {
-                "from": "step:open_frontdesk",
+                "from": "step:open_entry_status",
                 "to": "step:continue_study",
                 "on": "resume_study",
             },
             {
-                "from": "step:open_frontdesk",
+                "from": "step:open_entry_status",
                 "to": "step:inspect_progress",
                 "on": "inspect_status",
             },
@@ -324,7 +324,7 @@ def build_product_entry_manifest(
                 "on": "progress_refresh",
             },
         ],
-        entry_nodes=["step:open_frontdesk"],
+        entry_nodes=["step:open_entry_status"],
         exit_nodes=["step:continue_study", "step:inspect_progress"],
         human_gates=[
             {
@@ -388,17 +388,17 @@ def build_product_entry_manifest(
     phase5_platform_target = _build_phase5_platform_target()
     product_entry_quickstart = _build_shared_product_entry_quickstart(
         summary=(
-            "先从 product frontdesk 进入当前 research frontdoor，"
+            "先从 product entry status 进入当前 research frontdoor，"
             "需要新任务时先写 durable study task intake，再继续某个 study 或读取进度。"
         ),
-        recommended_step_id="open_frontdesk",
+        recommended_step_id="open_entry_status",
         steps=[
             {
-                "step_id": "open_frontdesk",
-                "title": "启动 MAS 前台",
-                "command": product_entry_shell["product_frontdesk"]["command"],
-                "surface_kind": PRODUCT_FRONTDESK_KIND,
-                "summary": product_entry_shell["product_frontdesk"]["purpose"],
+                "step_id": "open_entry_status",
+                "title": "打开 MAS 入口状态",
+                "command": product_entry_shell["product_entry_status"]["command"],
+                "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
+                "summary": product_entry_shell["product_entry_status"]["purpose"],
                 "requires": [],
             },
             {
@@ -439,7 +439,7 @@ def build_product_entry_manifest(
             mainline_snapshot.get("current_stage_summary")
             or mainline_snapshot.get("current_program_phase_summary")
         ),
-        frontdoor_command=product_entry_shell["product_frontdesk"]["command"],
+        frontdoor_command=product_entry_shell["product_entry_status"]["command"],
         recommended_command=product_entry_shell["workspace_cockpit"]["command"],
         operator_loop_command=product_entry_shell["workspace_cockpit"]["command"],
         progress_surface={
@@ -456,22 +456,22 @@ def build_product_entry_manifest(
         remaining_gaps_count=len(list(mainline_payload.get("remaining_gaps") or [])),
         human_gate_ids=list(product_entry_quickstart["human_gate_ids"]),
     )
-    product_entry_overview["frontdesk_command"] = product_entry_overview["frontdoor_command"]
+    product_entry_overview["entry_status_command"] = product_entry_overview["frontdoor_command"]
     product_entry_readiness = _build_shared_product_entry_readiness(
         verdict="runtime_ready_not_standalone_product",
         usable_now=True,
         good_to_use_now=False,
         fully_automatic=False,
         summary=(
-            "当前可以作为 research frontdesk / CLI 主线使用，并通过稳定的 runtime 回路持续推进研究；"
-            "但还不是成熟的独立医学产品前台。"
+            "当前可以作为 research entry_status / CLI 主线使用，并通过稳定的 runtime 回路持续推进研究；"
+            "但还不是成熟的独立医学产品入口。"
         ),
-        recommended_start_surface=PRODUCT_FRONTDESK_KIND,
-        recommended_start_command=product_entry_shell["product_frontdesk"]["command"],
+        recommended_start_surface=PRODUCT_ENTRY_STATUS_KIND,
+        recommended_start_command=product_entry_shell["product_entry_status"]["command"],
         recommended_loop_surface="workspace_cockpit",
         recommended_loop_command=product_entry_shell["workspace_cockpit"]["command"],
         blocking_gaps=[
-            "独立医学前台 / hosted product entry 仍未 landed。",
+            "独立医学产品入口 / hosted product entry 仍未 landed。",
             "更多 workspace / host 的真实 clearance 与 study-local blocker 收口仍在继续。",
         ],
     )
@@ -491,10 +491,10 @@ def build_product_entry_manifest(
         "runtime_root": str(profile.runtime_root),
         "hermes_home_root": str(profile.hermes_home_root),
     }
-    frontdesk_surface = _build_shared_product_entry_shell_linked_surface(
-        shell_key="product_frontdesk",
-        shell_surface=product_entry_shell["product_frontdesk"],
-        summary=product_entry_shell["product_frontdesk"]["purpose"],
+    entry_status_surface = _build_shared_product_entry_shell_linked_surface(
+        shell_key="product_entry_status",
+        shell_surface=product_entry_shell["product_entry_status"],
+        summary=product_entry_shell["product_entry_status"]["purpose"],
     )
     operator_loop_surface = _build_shared_product_entry_shell_linked_surface(
         shell_key="workspace_cockpit",
@@ -593,7 +593,7 @@ def build_product_entry_manifest(
         managed_runtime_contract=managed_runtime_contract,
         repo_mainline=repo_mainline,
         product_entry_status=product_entry_status,
-        frontdoor_surface=frontdesk_surface,
+        frontdoor_surface=entry_status_surface,
         operator_loop_surface=operator_loop_surface,
         operator_loop_actions=operator_loop_actions,
         recommended_shell="workspace_cockpit",
@@ -663,11 +663,11 @@ def build_product_entry_manifest(
         },
     )
     if isinstance(payload.get("frontdoor_surface"), dict):
-        payload["frontdesk_surface"] = dict(payload["frontdoor_surface"])
+        payload["entry_status_surface"] = dict(payload["frontdoor_surface"])
     if isinstance(payload.get("product_entry_overview"), dict):
         product_entry_overview_payload = dict(payload["product_entry_overview"])
         if product_entry_overview_payload.get("frontdoor_command") is not None:
-            product_entry_overview_payload["frontdesk_command"] = product_entry_overview_payload["frontdoor_command"]
+            product_entry_overview_payload["entry_status_command"] = product_entry_overview_payload["frontdoor_command"]
         payload["product_entry_overview"] = product_entry_overview_payload
     validate_product_entry_manifest_contract(payload)
     return payload
@@ -702,20 +702,20 @@ def _workspace_delivery_inspection_manifest(workspace_cockpit: Mapping[str, Any]
     return dict(workspace_cockpit.get("delivery_inspection_state") or {})
 
 
-def build_product_frontdesk(
+def build_product_entry_status(
     *,
     profile: WorkspaceProfile,
     profile_ref: str | Path | None = None,
 ) -> dict[str, Any]:
     build_product_entry_manifest_fn = _controller_override("build_product_entry_manifest", build_product_entry_manifest)
     read_workspace_cockpit_fn = _controller_override("read_workspace_cockpit", read_workspace_cockpit)
-    build_family_product_frontdesk_from_manifest = _controller_override(
-        "_build_shared_family_product_frontdesk_from_manifest",
-        _build_shared_family_product_frontdesk_from_manifest,
+    build_family_product_entry_status_from_manifest = _controller_override(
+        "_build_shared_family_product_entry_status_from_manifest",
+        _build_shared_family_product_entry_status_from_manifest,
     )
-    validate_product_frontdesk_contract = _controller_override(
-        "_validate_product_frontdesk_contract",
-        _validate_product_frontdesk_contract,
+    validate_product_entry_status_contract = _controller_override(
+        "_validate_product_entry_status_contract",
+        _validate_product_entry_status_contract,
     )
     manifest = _with_shared_frontdoor_aliases(
         build_product_entry_manifest_fn(
@@ -737,15 +737,15 @@ def build_product_frontdesk(
     top_attention_status_card = dict(top_attention.get("operator_status_card") or {})
     single_project_boundary = _validate_single_project_boundary(
         _single_project_boundary_payload(manifest.get("single_project_boundary")),
-        context="product_frontdesk.source.single_project_boundary",
+        context="product_entry_status.source.single_project_boundary",
     )
     capability_owner_boundary = _validate_capability_owner_boundary(
         _capability_owner_boundary_payload(manifest.get("capability_owner_boundary")),
-        context="product_frontdesk.source.capability_owner_boundary",
+        context="product_entry_status.source.capability_owner_boundary",
     )
     if not bool(product_entry_preflight.get("ready_to_try_now")):
         operator_brief = {
-            "surface_kind": "product_frontdesk_operator_brief",
+            "surface_kind": "product_entry_status_operator_brief",
             "verdict": "preflight_blocked",
             "summary": _non_empty_text(product_entry_preflight.get("summary"))
             or "当前还没有通过前置检查，先不要直接进入研究主线。",
@@ -757,7 +757,7 @@ def build_product_frontdesk(
         }
     elif _non_empty_text(workspace_operator_brief.get("verdict")) == "attention_required":
         operator_brief = {
-            "surface_kind": "product_frontdesk_operator_brief",
+            "surface_kind": "product_entry_status_operator_brief",
             "verdict": "attention_required",
             "summary": _operator_status_summary(top_attention_status_card)
             or _non_empty_text((top_attention.get("quality_repair_followthrough") or {}).get("summary"))
@@ -786,7 +786,7 @@ def build_product_frontdesk(
             operator_brief["next_confirmation_signal"] = next_confirmation_signal
     elif _non_empty_text(workspace_operator_brief.get("verdict")) == "ready_for_task":
         operator_brief = {
-            "surface_kind": "product_frontdesk_operator_brief",
+            "surface_kind": "product_entry_status_operator_brief",
             "verdict": "ready_for_task",
             "summary": "当前 workspace 已 ready，下一步先给目标 study 下任务，再启动研究。",
             "should_intervene_now": False,
@@ -800,7 +800,7 @@ def build_product_frontdesk(
         }
     else:
         operator_brief = {
-            "surface_kind": "product_frontdesk_operator_brief",
+            "surface_kind": "product_entry_status_operator_brief",
             "verdict": "monitor_only",
             "summary": _non_empty_text(workspace_operator_brief.get("summary"))
             or "当前先进入 workspace cockpit，持续看进度、告警和恢复建议。",
@@ -816,11 +816,11 @@ def build_product_frontdesk(
         if current_focus is not None:
             operator_brief["current_focus"] = current_focus
 
-    payload = build_family_product_frontdesk_from_manifest(
+    payload = build_family_product_entry_status_from_manifest(
         recommended_action="inspect_or_prepare_research_loop",
         product_entry_manifest=manifest,
         shell_aliases={
-            "frontdesk": "product_frontdesk",
+            "entry_status": "product_entry_status",
             "cockpit": "workspace_cockpit",
             "submit_task": "submit_study_task",
             "launch_study": "launch_study",
@@ -828,9 +828,9 @@ def build_product_frontdesk(
             "mainline_status": "mainline_status",
             "mainline_phase": "mainline_phase",
         },
-        schema_ref=PRODUCT_FRONTDESK_SCHEMA_REF,
+        schema_ref=PRODUCT_ENTRY_STATUS_SCHEMA_REF,
         notes=[
-            "This frontdesk surface is a controller-owned front door over the current research product-entry shell.",
+            "This entry_status surface is a controller-owned front door over the current research product-entry shell.",
             "It does not claim that a mature standalone medical frontend is already landed.",
             "It does not include the display / paper-figure asset line.",
         ],
@@ -898,15 +898,15 @@ def build_product_frontdesk(
             "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
         },
     )
-    payload["surface_kind"] = PRODUCT_FRONTDESK_KIND
+    payload["surface_kind"] = PRODUCT_ENTRY_STATUS_KIND
     if isinstance(payload.get("frontdoor_surface"), dict):
-        payload["frontdesk_surface"] = dict(payload["frontdoor_surface"])
+        payload["entry_status_surface"] = dict(payload["frontdoor_surface"])
     if isinstance(payload.get("summary"), dict):
         summary = dict(payload["summary"])
         if summary.get("frontdoor_command") is not None:
-            summary["frontdesk_command"] = summary["frontdoor_command"]
+            summary["entry_status_command"] = summary["frontdoor_command"]
         payload["summary"] = summary
-    validate_product_frontdesk_contract(payload)
+    validate_product_entry_status_contract(payload)
     return payload
 
 

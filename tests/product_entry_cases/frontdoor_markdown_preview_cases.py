@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from . import shared as _shared
 from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
-from . import cockpit_status_and_frontdesk_focus as _cockpit_status_and_frontdesk_focus
+from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry_status_focus
 from . import manifest_launch_and_task_intake as _manifest_launch_and_task_intake
 from . import repo_shell_and_handoff_templates as _repo_shell_and_handoff_templates
 
@@ -13,14 +13,14 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
-_module_reexport(_cockpit_status_and_frontdesk_focus)
+_module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_manifest_launch_and_task_intake)
 _module_reexport(_repo_shell_and_handoff_templates)
 
-def test_render_product_frontdesk_markdown_shows_autonomy_contract_preview() -> None:
+def test_render_product_entry_status_markdown_shows_autonomy_contract_preview() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
-    markdown = module.render_product_frontdesk_markdown(
+    markdown = module.render_product_entry_status_markdown(
         {
             "workspace_preview": None,
             "workspace_attention_queue_preview": [
@@ -64,10 +64,10 @@ def test_render_product_frontdesk_markdown_shows_autonomy_contract_preview() -> 
     assert "post_gate_target" in markdown
     assert "summary:" not in markdown
 
-def test_render_product_frontdesk_markdown_shows_quality_closure_preview() -> None:
+def test_render_product_entry_status_markdown_shows_quality_closure_preview() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
-    markdown = module.render_product_frontdesk_markdown(
+    markdown = module.render_product_entry_status_markdown(
         {
             "workspace_preview": None,
             "workspace_attention_queue_preview": [
@@ -90,10 +90,10 @@ def test_render_product_frontdesk_markdown_shows_quality_closure_preview() -> No
 
     assert "质量闭环: 核心科学质量已经闭环；剩余工作收口在定稿与投稿包收尾，同一论文线可以继续自动推进。" in markdown
 
-def test_render_product_frontdesk_markdown_shows_quality_execution_lane_preview() -> None:
+def test_render_product_entry_status_markdown_shows_quality_execution_lane_preview() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
-    markdown = module.render_product_frontdesk_markdown(
+    markdown = module.render_product_entry_status_markdown(
         {
             "workspace_preview": None,
             "workspace_attention_queue_preview": [
@@ -121,10 +121,10 @@ def test_render_product_frontdesk_markdown_shows_quality_execution_lane_preview(
 
     assert "质量执行线: 当前质量执行线聚焦 claim-evidence 修复；先进入 analysis-campaign，回答“哪一轮最小补充分析足以恢复当前 claim-evidence 支撑？”。" in markdown
 
-def test_render_product_frontdesk_markdown_shows_same_line_route_truth_preview() -> None:
+def test_render_product_entry_status_markdown_shows_same_line_route_truth_preview() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
-    markdown = module.render_product_frontdesk_markdown(
+    markdown = module.render_product_entry_status_markdown(
         {
             "workspace_preview": None,
             "workspace_attention_queue_preview": [
@@ -147,10 +147,10 @@ def test_render_product_frontdesk_markdown_shows_same_line_route_truth_preview()
 
     assert "同线路由: 当前同线路由已经收窄到定稿与投稿包收尾；先回到定稿与投稿收尾，完成当前最小投稿包收口。" in markdown
 
-def test_render_product_frontdesk_markdown_shows_autonomy_soak_and_quality_followthrough_preview() -> None:
+def test_render_product_entry_status_markdown_shows_autonomy_soak_and_quality_followthrough_preview() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
-    markdown = module.render_product_frontdesk_markdown(
+    markdown = module.render_product_entry_status_markdown(
         {
             "workspace_preview": None,
             "workspace_attention_queue_preview": [
@@ -188,10 +188,10 @@ def test_render_product_frontdesk_markdown_shows_autonomy_soak_and_quality_follo
         in markdown
     )
 
-def test_render_product_frontdesk_markdown_shows_gate_clearing_followthrough_preview() -> None:
+def test_render_product_entry_status_markdown_shows_gate_clearing_followthrough_preview() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
-    markdown = module.render_product_frontdesk_markdown(
+    markdown = module.render_product_entry_status_markdown(
         {
             "workspace_preview": None,
             "workspace_attention_queue_preview": [
@@ -219,10 +219,10 @@ def test_render_product_frontdesk_markdown_shows_gate_clearing_followthrough_pre
         in markdown
     )
 
-def test_render_product_frontdesk_markdown_shows_quality_repair_followthrough_preview() -> None:
+def test_render_product_entry_status_markdown_shows_quality_repair_followthrough_preview() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
-    markdown = module.render_product_frontdesk_markdown(
+    markdown = module.render_product_entry_status_markdown(
         {
             "workspace_preview": None,
             "workspace_attention_queue_preview": [

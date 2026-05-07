@@ -12,7 +12,7 @@ description: Use when Codex should operate MedAutoScience through its stable run
 - `MedAutoScience` 面向 Codex 的单一 domain app skill
 - 叠加在现有 Python package、CLI、controller、overlay 与 workspace profile 之上
 - 不替代 `medautosci` CLI、controller contract，也不替代非 Codex 集成
-- skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`product-frontdesk` 等命令是这个 app skill 的内部 command contract
+- skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`product-entry-status` 等命令是这个 app skill 的内部 command contract
 - `OPL` handoff、product-entry manifest 和其他机器可读桥接属于集成层，不是这个 skill 的前台主语
 
 ## 核心规则
@@ -40,7 +40,7 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 
 - 用户点名 `MAS` / `Med Auto Science`，或任务属于医学研究 workspace、study runtime、论文、证据包、分析包、publication gate、submission/finalization 等 MAS 覆盖范围时，必须通过 MAS product-entry、controller、overlay 或 study runtime surface 推进。
 - 不得用 ad-hoc Python/R 脚本、通用文档/PDF/Office skill、直接编辑 manuscript、直接搬运 artifact、手写状态文件或 prompt-only 研究链来替代 MAS 的 controller/runtime。
-- 任何研究产物写入前，必须先读取 product frontdesk/preflight/start 或 study progress/runtime status，确认 `study_id`、workspace、current stage、human gate 与 durable surface。
+- 任何研究产物写入前，必须先读取 product entry status/preflight/start 或 study progress/runtime status，确认 `study_id`、workspace、current stage、human gate 与 durable surface。
 - 如果某个所需能力在 MAS surface 中缺失，应回到 repo 层补最小 callable/controller surface 并验证，而不是在单个 study workspace 旁路实现。
 - 只有用户明确要求“探索 MAS 之外的替代技术路线”或“只做离线草稿、不进入 MAS runtime”时，才可以使用通用工具；回复中必须标明该路线不更新 MAS truth surface。
 

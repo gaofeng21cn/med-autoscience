@@ -72,7 +72,7 @@ test-control-plane:
 	PYTHONPATH=src uv run pytest -q $(CONTROL_PLANE_TESTS)
 
 test-medical-paper-ops:
-	PYTHONPATH=src uv run pytest -q tests/test_medical_paper_ops_health.py tests/study_progress_cases/medical_paper_ops_health_projection.py tests/product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_medical_paper_ops_health.py
+	PYTHONPATH=src uv run pytest -q tests/test_medical_paper_ops_health.py tests/study_progress_cases/medical_paper_ops_health_projection.py tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_ops_health.py
 
 test-structure:
 	uv run python scripts/line_budget.py

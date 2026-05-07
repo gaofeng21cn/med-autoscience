@@ -8,7 +8,7 @@ import pytest
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def test_domain_entry_dispatches_product_frontdesk(monkeypatch, tmp_path: Path) -> None:
+def test_domain_entry_dispatches_product_entry_status(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.domain_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
@@ -16,23 +16,23 @@ def test_domain_entry_dispatches_product_frontdesk(monkeypatch, tmp_path: Path) 
     monkeypatch.setattr(module, "load_profile", lambda ref: profile)
     monkeypatch.setattr(
         module.product_entry,
-        "build_product_frontdesk",
+        "build_product_entry_status",
         lambda *, profile, profile_ref=None: {
-            "surface_kind": "product_frontdesk",
+            "surface_kind": "product_entry_status",
             "target_domain_id": "med-autoscience",
         },
     )
 
     payload = module.MedAutoScienceDomainEntry().dispatch(
         {
-            "command": "product-frontdesk",
+            "command": "product-entry-status",
             "profile_ref": str(profile_ref),
         }
     )
 
     assert payload == {
-        "command": "product-frontdesk",
-        "surface_kind": "product_frontdesk",
+        "command": "product-entry-status",
+        "surface_kind": "product_entry_status",
         "target_domain_id": "med-autoscience",
     }
 
@@ -289,7 +289,7 @@ def test_domain_entry_contract_exports_domain_agent_entry_spec_v1() -> None:
     assert spec["codex_entry_strategy"] == "domain_agent_entry"
     assert spec["artifact_conventions"] == "paper_and_submission_package"
     assert spec["progress_conventions"] == "study_runtime_narration"
-    assert spec["entry_command"] == "product-frontdesk"
+    assert spec["entry_command"] == "product-entry-status"
     assert spec["manifest_command"] == "product-entry-manifest"
 
 

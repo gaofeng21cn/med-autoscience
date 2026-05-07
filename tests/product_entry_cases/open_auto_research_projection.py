@@ -144,8 +144,8 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
     )
 
     cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
-    frontdesk = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
-    markdown = module.render_product_frontdesk_markdown(frontdesk)
+    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+    markdown = module.render_product_entry_status_markdown(entry_status)
 
     workspace_projection = cockpit["open_auto_research_projection"]
     assert workspace_projection["surface_kind"] == "workspace_open_auto_research_projection"
@@ -163,16 +163,16 @@ def test_product_entry_surfaces_workspace_open_auto_research_projection(
         "inspect_trajectory",
         "refine_candidate_path",
     ]
-    frontdesk_projection = frontdesk["workspace_open_auto_research_projection"]
-    assert frontdesk_projection["surface_kind"] == "workspace_open_auto_research_projection"
-    assert frontdesk_projection["read_model"] == "open_auto_research_projection_read_only_status_surface"
-    assert frontdesk_projection["authority"] == "observability_only"
-    assert "capabilities" not in frontdesk_projection["study_projections"][0]
-    guard = frontdesk_projection["study_projections"][0]["delivery_journal_usability_guard"]
+    entry_status_projection = entry_status["workspace_open_auto_research_projection"]
+    assert entry_status_projection["surface_kind"] == "workspace_open_auto_research_projection"
+    assert entry_status_projection["read_model"] == "open_auto_research_projection_read_only_status_surface"
+    assert entry_status_projection["authority"] == "observability_only"
+    assert "capabilities" not in entry_status_projection["study_projections"][0]
+    guard = entry_status_projection["study_projections"][0]["delivery_journal_usability_guard"]
     assert guard["submission_ready_authorized"] is False
     assert guard["can_authorize_publication_quality"] is False
     assert guard["next_required_action"]["action_id"] == "return_to_ai_reviewer_workflow"
-    assert [item["action_id"] for item in frontdesk_projection["study_projections"][0]["actions"]] == [
+    assert [item["action_id"] for item in entry_status_projection["study_projections"][0]["actions"]] == [
         "run_literature_evidence_graph",
         "review_rubric_gaps",
         "inspect_trajectory",

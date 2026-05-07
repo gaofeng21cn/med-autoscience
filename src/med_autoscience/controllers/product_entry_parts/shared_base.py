@@ -14,7 +14,7 @@ from med_autoscience.controllers import (
 from med_autoscience.controllers.study_runtime_resolution import _execution_payload, _resolve_study
 from med_autoscience.domain_entry_contract import (
     PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
-    PRODUCT_FRONTDESK_SCHEMA_REF,
+    PRODUCT_ENTRY_STATUS_SCHEMA_REF,
     SERVICE_SAFE_ENTRY_ADAPTER,
     build_domain_entry_contract as _build_domain_entry_contract,
     build_gateway_interaction_contract as _build_gateway_interaction_contract,
@@ -46,7 +46,7 @@ from opl_harness_shared.family_entry_contracts import (
     validate_gateway_interaction_contract as _validate_shared_gateway_interaction_contract,
 )
 from opl_harness_shared.product_entry_companions import (
-    build_family_product_frontdoor_from_manifest as _build_shared_family_product_frontdesk_from_manifest,
+    build_family_product_frontdoor_from_manifest as _build_shared_family_product_entry_status_from_manifest,
     build_family_product_entry_manifest as _build_shared_family_product_entry_manifest,
     build_operator_loop_action_catalog as _build_shared_operator_loop_action_catalog,
     build_product_entry_start as _build_shared_product_entry_start,
@@ -57,7 +57,7 @@ from opl_harness_shared.product_entry_companions import (
     build_product_entry_shell_catalog as _build_shared_product_entry_shell_catalog,
     build_product_entry_shell_linked_surface as _build_shared_product_entry_shell_linked_surface,
     collect_family_human_gate_ids as _collect_family_human_gate_ids,
-    validate_family_product_frontdoor as _validate_shared_family_product_frontdesk,
+    validate_family_product_frontdoor as _validate_shared_family_product_entry_status,
     validate_family_product_entry_manifest as _validate_shared_family_product_entry_manifest,
 )
 from opl_harness_shared.product_entry_program_companions import (
@@ -139,7 +139,7 @@ def _controller_override(name: str, default: Any) -> Any:
 SCHEMA_VERSION = 1
 PRODUCT_ENTRY_KIND = "med_autoscience_product_entry"
 PRODUCT_ENTRY_MANIFEST_KIND = "med_autoscience_product_entry_manifest"
-PRODUCT_FRONTDESK_KIND = "product_frontdesk"
+PRODUCT_ENTRY_STATUS_KIND = "product_entry_status"
 TARGET_DOMAIN_ID = "med-autoscience"
 SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
 _LIVE_TASK_INTAKE_RUNTIME_STATUSES = frozenset({"running", "active", "waiting_for_user"})
@@ -182,19 +182,19 @@ def _validate_surface_kind_mapping(
 def _with_shared_frontdoor_aliases(payload: Mapping[str, Any]) -> dict[str, Any]:
     normalized = dict(payload)
     if "frontdoor_surface" not in normalized and isinstance(
-        normalized.get("frontdesk_surface"),
+        normalized.get("entry_status_surface"),
         Mapping,
     ):
-        normalized["frontdoor_surface"] = dict(normalized["frontdesk_surface"])
+        normalized["frontdoor_surface"] = dict(normalized["entry_status_surface"])
 
     overview = normalized.get("product_entry_overview")
     if isinstance(overview, Mapping):
         normalized_overview = dict(overview)
         if (
             "frontdoor_command" not in normalized_overview
-            and normalized_overview.get("frontdesk_command") is not None
+            and normalized_overview.get("entry_status_command") is not None
         ):
-            normalized_overview["frontdoor_command"] = normalized_overview["frontdesk_command"]
+            normalized_overview["frontdoor_command"] = normalized_overview["entry_status_command"]
         normalized["product_entry_overview"] = normalized_overview
     return normalized
 
@@ -215,20 +215,20 @@ def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> Non
     )
 
 
-def _validate_product_frontdesk_contract(payload: Mapping[str, Any]) -> None:
+def _validate_product_entry_status_contract(payload: Mapping[str, Any]) -> None:
     shared_payload = _with_shared_frontdoor_aliases(payload)
     shared_payload["surface_kind"] = "product_frontdoor"
-    _validate_shared_family_product_frontdesk(
+    _validate_shared_family_product_entry_status(
         shared_payload,
         require_contract_bundle=True,
     )
     _validate_single_project_boundary(
         payload.get("single_project_boundary"),
-        context="product_frontdesk.single_project_boundary",
+        context="product_entry_status.single_project_boundary",
     )
     _validate_capability_owner_boundary(
         payload.get("capability_owner_boundary"),
-        context="product_frontdesk.capability_owner_boundary",
+        context="product_entry_status.capability_owner_boundary",
     )
 
 
@@ -429,7 +429,7 @@ def _build_product_entry_preflight(
     profile_ref: str | Path | None = None,
 ) -> dict[str, Any]:
     doctor_command = f"{_command_prefix(profile_ref)} doctor --profile {_profile_arg(profile_ref)}"
-    start_command = f"{_command_prefix(profile_ref)} product-frontdesk --profile {_profile_arg(profile_ref)}"
+    start_command = f"{_command_prefix(profile_ref)} product-entry-status --profile {_profile_arg(profile_ref)}"
     workspace_supervision_contract = _doctor_workspace_supervision_contract(doctor_report)
     checks = [
         _build_shared_program_check(
@@ -521,10 +521,10 @@ def _build_product_entry_preflight(
         None,
     )
     summary = (
-        "当前 product-entry 前置检查已通过，可以先复核 doctor 输出，再进入 research frontdesk。"
+        "当前 product-entry 前置检查已通过，可以先复核 doctor 输出，再进入 research entry_status。"
         if ready_to_try_now
         else first_blocking_summary
-        or "当前仍有 blocking preflight check；请先修复 workspace/runtime/overlay/backend/runtime/supervision contract 再进入 research frontdesk。"
+        or "当前仍有 blocking preflight check；请先修复 workspace/runtime/overlay/backend/runtime/supervision contract 再进入 research entry_status。"
     )
     build_preflight = _controller_override("_build_shared_product_entry_preflight", _build_shared_product_entry_preflight)
     return build_preflight(

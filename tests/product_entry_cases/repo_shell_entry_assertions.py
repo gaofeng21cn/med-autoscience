@@ -90,17 +90,17 @@ def _assert_entry_contract_surfaces(*, module, payload, profile, profile_ref) ->
     assert payload["domain_entry_contract"]["product_entry_builder_command"] == "build-product-entry"
     assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["agent_id"] == "mas"
     assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["default_engine"] == "codex"
-    assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["entry_command"] == "product-frontdesk"
+    assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["entry_command"] == "product-entry-status"
     assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["manifest_command"] == "product-entry-manifest"
     assert payload["gateway_interaction_contract"]["frontdoor_owner"] == "opl_gateway_or_domain_gui"
     assert payload["gateway_interaction_contract"]["user_interaction_mode"] == "natural_language_frontdoor"
     assert payload["gateway_interaction_contract"]["command_surfaces_for_agent_consumption_only"] is True
-    assert payload["frontdesk_surface"]["shell_key"] == "product_frontdesk"
-    assert payload["frontdesk_surface"]["command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+    assert payload["entry_status_surface"]["shell_key"] == "product_entry_status"
+    assert payload["entry_status_surface"]["command"].endswith(
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
-    assert payload["frontdesk_surface"]["surface_kind"] == "product_frontdesk"
-    assert "research product frontdesk" in payload["frontdesk_surface"]["summary"]
+    assert payload["entry_status_surface"]["surface_kind"] == "product_entry_status"
+    assert "research product entry status" in payload["entry_status_surface"]["summary"]
     assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
     assert payload["operator_loop_surface"]["command"] == payload["recommended_command"]
     assert payload["operator_loop_surface"]["surface_kind"] == "workspace_cockpit"
@@ -115,15 +115,15 @@ def _assert_entry_contract_surfaces(*, module, payload, profile, profile_ref) ->
 
 def _assert_mainline_boundary_surface(*, module, payload, profile, profile_ref) -> None:
     assert payload["product_entry_quickstart"]["surface_kind"] == "product_entry_quickstart"
-    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_frontdesk"
+    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_entry_status"
     assert [step["step_id"] for step in payload["product_entry_quickstart"]["steps"]] == [
-        "open_frontdesk",
+        "open_entry_status",
         "submit_task",
         "continue_study",
         "inspect_progress",
     ]
     assert payload["product_entry_quickstart"]["steps"][0]["command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_quickstart"]["steps"][1]["requires"] == ["study_id", "task_intent"]
     assert payload["product_entry_quickstart"]["steps"][2]["command"].endswith(
@@ -209,13 +209,13 @@ def _assert_automation_surface(*, module, payload, profile, profile_ref) -> None
     assert payload["skill_catalog"]["supported_commands"] == payload["domain_entry_contract"]["supported_commands"]
     assert payload["skill_catalog"]["command_contracts"] == payload["domain_entry_contract"]["command_contracts"]
     assert [item["skill_id"] for item in payload["skill_catalog"]["skills"]] == ["mas"]
-    assert payload["skill_catalog"]["skills"][0]["target_surface_kind"] == "product_frontdesk"
+    assert payload["skill_catalog"]["skills"][0]["target_surface_kind"] == "product_entry_status"
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["skill_semantics"] == "domain_app"
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["skill_entry"] == "mas"
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["recommended_shell"] == "workspace_cockpit"
-    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["entry_shell_key"] == "product_frontdesk"
+    assert payload["skill_catalog"]["skills"][0]["domain_projection"]["entry_shell_key"] == "product_entry_status"
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["entry_command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["supporting_shell_keys"] == [
         "workspace_cockpit",
@@ -295,8 +295,8 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
     ]
     assert payload["product_entry_overview"]["surface_kind"] == "product_entry_overview"
     assert payload["product_entry_overview"]["summary"] == payload["product_entry_status"]["summary"]
-    assert payload["product_entry_overview"]["frontdesk_command"].endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+    assert payload["product_entry_overview"]["entry_status_command"].endswith(
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["product_entry_overview"]["recommended_command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"
@@ -326,7 +326,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
         "session_locator_field": "study_id",
         "checkpoint_locator_field": "controller_decision_path",
     }
-    assert payload["product_entry_overview"]["recommended_step_id"] == "open_frontdesk"
+    assert payload["product_entry_overview"]["recommended_step_id"] == "open_entry_status"
     assert payload["product_entry_overview"]["next_focus"] == [
         "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
     ]
@@ -350,12 +350,12 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
         "good_to_use_now": False,
         "fully_automatic": False,
         "summary": (
-            "当前可以作为 research frontdesk / CLI 主线使用，并通过稳定的 runtime 回路持续推进研究；"
-            "但还不是成熟的独立医学产品前台。"
+            "当前可以作为 research entry_status / CLI 主线使用，并通过稳定的 runtime 回路持续推进研究；"
+            "但还不是成熟的独立医学产品入口。"
         ),
-        "recommended_start_surface": "product_frontdesk",
+        "recommended_start_surface": "product_entry_status",
         "recommended_start_command": (
-            "uv run python -m med_autoscience.cli product-frontdesk --profile "
+            "uv run python -m med_autoscience.cli product-entry-status --profile "
             + str(profile_ref.resolve())
         ),
         "recommended_loop_surface": "workspace_cockpit",
@@ -365,25 +365,25 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
             + " --format json"
         ),
         "blocking_gaps": [
-            "独立医学前台 / hosted product entry 仍未 landed。",
+            "独立医学产品入口 / hosted product entry 仍未 landed。",
             "更多 workspace / host 的真实 clearance 与 study-local blocker 收口仍在继续。",
         ],
     }
     assert _phase2_loop_without_guarded_fields(payload["phase2_user_product_loop"]) == {
         "surface_kind": "phase2_user_product_loop_lane",
         "summary": "把启动 MAS、给 study 下任务、续跑、持续看进度、处理恢复建议和人工 gate 收成同一条用户回路。",
-        "recommended_step_id": "open_frontdesk",
+        "recommended_step_id": "open_entry_status",
         "recommended_command": (
-            "uv run python -m med_autoscience.cli product-frontdesk --profile "
+            "uv run python -m med_autoscience.cli product-entry-status --profile "
             + str(profile_ref.resolve())
         ),
         "single_path": [
             {
-                "step_id": "open_frontdesk",
+                "step_id": "open_entry_status",
                 "title": "先打开 MAS 前台",
-                "surface_kind": "product_frontdesk",
+                "surface_kind": "product_entry_status",
                 "command": (
-                    "uv run python -m med_autoscience.cli product-frontdesk --profile "
+                    "uv run python -m med_autoscience.cli product-entry-status --profile "
                     + str(profile_ref.resolve())
                 ),
             },
@@ -441,9 +441,9 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
         "operator_questions": [
             {
                 "question": "用户现在怎么启动 MAS？",
-                "answer_surface_kind": "product_frontdesk",
+                "answer_surface_kind": "product_entry_status",
                 "command": (
-                    "uv run python -m med_autoscience.cli product-frontdesk --profile "
+                    "uv run python -m med_autoscience.cli product-entry-status --profile "
                     + str(profile_ref.resolve())
                 ),
             },
@@ -468,9 +468,9 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
         ],
         "proof_surfaces": [
             {
-                "surface_kind": "product_frontdesk",
+                "surface_kind": "product_entry_status",
                 "command": (
-                    "uv run python -m med_autoscience.cli product-frontdesk --profile "
+                    "uv run python -m med_autoscience.cli product-entry-status --profile "
                     + str(profile_ref.resolve())
                 ),
             },

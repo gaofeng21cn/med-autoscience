@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from tests.product_entry_cases.cockpit_status_and_frontdesk_focus_cases.test_medical_paper_readiness import (
+from tests.product_entry_cases.cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness import (
     _base_progress_payload,
     _ready_doctor_report,
     _ready_mainline_status,
@@ -283,7 +283,7 @@ def test_workspace_cockpit_exposes_long_horizon_paper_operations_action_cards(
     assert v4_operations["authority_contract"]["can_authorize_quality"] is False
 
 
-def test_product_frontdesk_promotes_v2_action_cards_to_workflow_steps(
+def test_product_entry_status_promotes_v2_action_cards_to_workflow_steps(
     monkeypatch,
     tmp_path,
 ) -> None:
@@ -304,7 +304,7 @@ def test_product_frontdesk_promotes_v2_action_cards_to_workflow_steps(
         lambda **kwargs: {**_base_progress_payload(study_id="001-risk"), "medical_paper_readiness": readiness},
     )
 
-    payload = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
+    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
     workflow_steps = payload["phase2_user_product_loop"]["workflow_steps"]
 
     assert [step["step_id"] for step in workflow_steps] == [

@@ -4,9 +4,9 @@ import argparse
 
 
 def register_product_entry_parsers(subparsers: argparse._SubParsersAction) -> None:
-    product_frontdesk_parser = subparsers.add_parser("product-frontdesk")
-    product_frontdesk_parser.add_argument("--profile", required=True)
-    product_frontdesk_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    product_entry_status_parser = subparsers.add_parser("product-entry-status")
+    product_entry_status_parser.add_argument("--profile", required=True)
+    product_entry_status_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
 
     product_preflight_parser = subparsers.add_parser("product-preflight")
     product_preflight_parser.add_argument("--profile", required=True)

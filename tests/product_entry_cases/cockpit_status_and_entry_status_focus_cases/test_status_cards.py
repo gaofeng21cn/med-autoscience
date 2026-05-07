@@ -10,9 +10,9 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
-from tests.product_entry_cases import frontdesk_focus_cases as _frontdesk_focus_cases
+from tests.product_entry_cases import entry_status_focus_cases as _entry_status_focus_cases
 
-_module_reexport(_frontdesk_focus_cases)
+_module_reexport(_entry_status_focus_cases)
 
 def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
@@ -72,9 +72,9 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
             "open_workspace_cockpit": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
         },
         "phase2_user_product_loop": {
-            "summary": "先打开 frontdesk，再看 workspace inbox。",
-            "recommended_step_id": "open_frontdesk",
-            "recommended_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+            "summary": "先打开 entry_status，再看 workspace inbox。",
+            "recommended_step_id": "open_entry_status",
+            "recommended_command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
             "operator_questions": [],
         },
         "commands": {

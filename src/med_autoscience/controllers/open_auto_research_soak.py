@@ -552,7 +552,7 @@ def _entry_projection_results(projection: Mapping[str, Any]) -> dict[str, Any]:
     }
     return {
         "study_progress": dict(compact),
-        "product_frontdesk": dict(compact),
+        "product_entry_status": dict(compact),
         "workspace_cockpit": dict(compact),
         "mcp_compact": dict(compact),
     }

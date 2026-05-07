@@ -16,7 +16,7 @@ _WORKSPACE_STATUS_LABELS = {
 }
 
 _START_MODE_LABELS = {
-    "open_frontdesk": "打开 MAS 前台",
+    "open_entry_status": "打开 MAS 入口状态",
     "submit_task": "给 study 下 durable 任务",
     "continue_study": "启动或续跑 study",
 }
@@ -33,7 +33,7 @@ _RUNTIME_DECISION_LABELS = {
 }
 
 _SURFACE_KIND_LABELS = {
-    "product_frontdesk": "MAS 前台",
+    "product_entry_status": "MAS 入口状态",
     "workspace_cockpit": "workspace cockpit",
     "study_task_intake": "study 任务入口",
     "launch_study": "启动或续跑 study",

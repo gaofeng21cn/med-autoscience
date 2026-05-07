@@ -116,7 +116,7 @@ def build_control_plane_product_entry_mode_schema() -> dict[str, Any]:
     return {
         "type": "string",
         "enum": [
-            "product_frontdesk",
+            "product_entry_status",
             "product_preflight",
             "product_start",
             "product_entry_manifest",
@@ -129,7 +129,7 @@ def build_control_plane_product_entry_mode_schema() -> dict[str, Any]:
 def product_entry_description_modes_text() -> str:
     return ", ".join(
         [
-            "product_frontdesk",
+            "product_entry_status",
             "product_preflight",
             "product_start",
             "product_entry_manifest",

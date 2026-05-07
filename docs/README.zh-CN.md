@@ -26,7 +26,7 @@
 - 默认用户最关心的是研究问题、工作区语境、人话进度和文件交付。
 - `CLI`、`MCP`、`controller` 属于操作与自动化入口。
 - 稳定可调用面通过单一 MAS app skill 对外承接，包含本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract。
-- `product-frontdesk`、`workspace-cockpit`、`study-progress` 与 product-entry manifest 继续是单一 app skill 之下的内部 command/projection contract，不是独立公开产品入口。
+- `product-entry-status`、`workspace-cockpit`、`study-progress` 与 product-entry manifest 继续是单一 app skill 之下的内部 command/projection contract，不是独立公开产品入口。
 - `OPL` 集成、product-entry manifest 和其他机器可读桥接面都属于集成或参考层。
 - `OPL Runtime Manager` 是目标形态中的 family-level 薄运行管理层，位于外部 `Hermes-Agent` substrate 之上；它可以消费 MAS task registration、runtime-control projection、status/artifact locator 与 wakeup/approval 边界，但不持有 MAS study truth。
 - `Hermes-Agent` 只保留在显式可选 hosted runtime 或 reference-layer 语境中，不改写默认 capability contract。

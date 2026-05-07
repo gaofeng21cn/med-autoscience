@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from . import shared as _shared
 from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
-from . import cockpit_status_and_frontdesk_focus as _cockpit_status_and_frontdesk_focus
+from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry_status_focus
 from . import manifest_launch_and_task_intake as _manifest_launch_and_task_intake
 from . import repo_shell_and_handoff_templates as _repo_shell_and_handoff_templates
 
@@ -13,7 +13,7 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
-_module_reexport(_cockpit_status_and_frontdesk_focus)
+_module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_manifest_launch_and_task_intake)
 _module_reexport(_repo_shell_and_handoff_templates)
 
@@ -44,7 +44,7 @@ def test_build_product_entry_preflight_uses_shared_builder(monkeypatch, tmp_path
     assert len(captured["checks"]) == 8
     assert str(captured["recommended_check_command"]).endswith("doctor --profile " + str(profile_ref.resolve()))
     assert str(captured["recommended_start_command"]).endswith(
-        "product-frontdesk --profile " + str(profile_ref.resolve())
+        "product-entry-status --profile " + str(profile_ref.resolve())
     )
 
 def test_build_product_entry_guardrails_uses_shared_builder(monkeypatch, tmp_path: Path) -> None:
@@ -172,7 +172,7 @@ def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestra
     assert payload["family_orchestration"]["action_graph"]["graph_id"] == "mas_workspace_frontdoor_study_runtime_graph"
     assert captured["graph_kind"] == "study_runtime_orchestration"
     assert [node["node_id"] for node in captured["nodes"]] == [
-        "step:open_frontdesk",
+        "step:open_entry_status",
         "step:submit_task",
         "step:continue_study",
         "step:inspect_progress",
@@ -184,7 +184,7 @@ def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestra
         "task_written",
         "progress_refresh",
     ]
-    assert captured["entry_nodes"] == ["step:open_frontdesk"]
+    assert captured["entry_nodes"] == ["step:open_entry_status"]
     assert captured["exit_nodes"] == ["step:continue_study", "step:inspect_progress"]
     assert captured["checkpoint_nodes"] == [
         "step:submit_task",

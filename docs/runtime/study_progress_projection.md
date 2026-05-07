@@ -5,8 +5,8 @@
 核心结论：
 
 - `study_progress` 是 `controller-owned progress projection`
-- 前台进度来自 `MAS` durable surface
-- 前台判断围绕同一条 study authority 展开
+- 用户可见状态只从 `study_macro_state` 派生
+- 前台判断围绕同一条 study authority 展开，不再各入口自行拼装 runtime / publication / controller 细节
 
 ## 1. 目标
 
@@ -75,6 +75,8 @@
 
 `study_progress` 至少输出：
 
+- `study_macro_state`
+- `user_visible_projection`
 - `current_stage`
 - `current_stage_summary`
 - `paper_stage`
@@ -89,7 +91,6 @@
 - `quality_closure_truth`
 - `quality_review_followthrough`
 - `research_runtime_control_projection`
-- `user_visible_projection`
 - `current_blockers`
 - `next_system_action`
 - `needs_physician_decision`
@@ -99,7 +100,9 @@
 
 其中：
 
-- `current_stage` 表示当前整体研究推进阶段
+- `study_macro_state` 是用户宏观状态唯一源，短枚举固定为 `writer_state/user_next/reason`
+- `user_visible_projection` 是从 `study_macro_state` 派生的人类可见状态读模型；CLI markdown、MCP compact projection、workspace cockpit、attention queue 和 product-entry-status 都只能消费它
+- `current_stage` / `current_stage_summary` / `current_blockers` / `next_system_action` 保留为从 `user_visible_projection` 派生的展示字段，不再作为入口自行解释状态的来源
 - `task_intake` 表示当前 latest durable study task intake 摘要
 - `paper_stage` 表示论文主线当前建议推进阶段
 - `progress_freshness` 表示“最近有没有明确研究推进信号”，用于尽早暴露卡住、没进度或空转
@@ -107,8 +110,7 @@
 - `autonomy_soak_status` 用于表达最近一次已被 durable surface 记录的自治续跑 / outer-loop dispatch，至少要能回答“系统自动转去了哪条线、关键问题是什么、下一次确认看什么、证据引用在哪里”
 - `autonomy_contract.restore_point` 是恢复点与 human gate 的前台真相；调用方应读取其中的 `human_gate_required` 与 `summary`，不要从泛化 blocker 推断恢复许可
 - `quality_closure_truth` / `quality_review_followthrough` 分别表达质量闭环裁决与复评后的跟进状态，用于和 `autonomy_soak_status` 一起解释“系统是否仍在同线自动收口”
-- `research_runtime_control_projection` 是给 `workspace-cockpit`、`product-frontdesk`、`build-product-entry` 和上层 gateway 消费的控制投影；它必须把 `restore_point_surface`、`artifact_pickup_surface.pickup_refs`、`command_templates` 与 `research_gate_surface` 固定到同一条 `study-progress` 字段路径上
-- `user_visible_projection` 是给 CLI markdown、MCP compact projection、workspace cockpit、attention queue 和 product frontdesk 消费的人类可见读模型；它只回答当前阶段、阻塞、下一步和证据，不重新解释 runtime truth 或 publication authority
+- `research_runtime_control_projection` 是给 `workspace-cockpit`、`product-entry-status`、`build-product-entry` 和上层 gateway 消费的控制投影；它必须把 `restore_point_surface`、`artifact_pickup_surface.pickup_refs`、`command_templates` 与 `research_gate_surface` 固定到同一条 `study-progress` 字段路径上
 - `needs_physician_decision` 只在触达正式人类 gate 边界时为 true
 - `physician_decision_summary` 必须说明触达的是初始方向锁定、重大转向、止损、外部凭据/秘密、投稿客观信息或最终投稿前审计中的哪一类
 - `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path`
@@ -128,25 +130,46 @@
 
 ## 4.1 用户可见读模型
 
-`user_visible_projection` 固定为 `study_progress_user_visible_projection`。它的定位是 truth projection，不是高位 orchestrator。它由 `study_progress` assembly 层从已经解析好的 authority payload 生成，入口层只消费，不再自己从低层 surface 拼接当前阶段、阻塞、下一步或证据。
+`user_visible_projection` 固定为 `study_progress_user_visible_projection`，当前 schema version 为 `2`。它的定位是 truth projection，不是高位 orchestrator。它由 `study_progress` assembly/read-model 层从 `study_macro_state` 生成，入口层只消费，不再自己从低层 surface 拼接当前阶段、阻塞、下一步或证据。
 
 该读模型至少包含：
 
+- `writer_state`
+- `user_next`
+- `reason`
+- `package_delivered`
+- `actual_write_active`
+- `user_action_required`
+- `state_label`
+- `state_summary`
 - `current_stage` / `current_stage_summary`
 - `paper_stage` / `paper_stage_summary`
 - `current_blockers`
 - `next_system_action`
-- `needs_user_decision`
+- `needs_user_decision` / `needs_physician_decision`，均从 `user_action_required` 派生
 - `supervision`
 - `evidence.latest_events`
 - `evidence.refs`
+- `evidence_refs`
+- `study_macro_state`
 - `conditions`
+
+用户可见状态固定为一组短标签：
+
+- `自动运行中`：`writer_state=live`，存在实际 writer / active run。
+- `系统排队处理中`：`writer_state=queued`，当前无实际写入，但 MAS 已有明确 owner/action。
+- `投稿包已交付，自动停驻`：`package_delivered=true`，系统已释放运行资源。
+- `投稿包已交付，等待外部投稿信息`：`package_delivered=true`、`writer_state=parked`、`user_next=submit_info`、`reason=external_info`。
+- `用户暂停/手动停驻`：当前无实际写入，需要显式恢复或新方案。
+- `质量修复/复审中`：质量、artifact 或 runtime 有明确修复 owner。
+- `止损/终止`：当前论文线不再自动推进，需新计划或明确重开。
 
 入口层规则：
 
-- MCP compact / markdown 优先读取 `user_visible_projection`，仅在旧 payload 缺失该字段时回退到 legacy top-level 字段。
-- `workspace-cockpit` 的 study item、workspace alerts 和后续 product-frontdesk preview 优先消费 `user_visible_projection`。
-- `user_visible_projection.conditions` 只表达 projection 状态，例如 `stage_known`、`blocked`、`next_action_known`、`evidence_available`、`human_decision_required`、`runtime_supervised`；不得作为 runtime write gate 或 publication quality authority。
+- MCP compact / markdown、CLI markdown、`workspace-cockpit`、workspace alerts 和 product-entry-status preview 必须读取 schema v2 `user_visible_projection`。
+- 缺少 v2 `user_visible_projection` 时，入口只允许通过 assembly/read-model 层用 `study_macro_state` 生成；缺 `study_macro_state` 或发现 writer 冲突时必须 fail-closed 为 `inspect/conflict`，提示重新生成 canonical projection。
+- 入口不得回退到 legacy top-level `current_stage/current_blockers/next_system_action` 作为用户状态来源。
+- `user_visible_projection.conditions` 只表达 projection 状态，例如 `macro_state_known`、`package_delivered`、`actual_write_active`、`blocked`、`next_action_known`、`evidence_available`、`user_action_required`、`runtime_supervised`；不得作为 runtime write gate 或 publication quality authority。
 - `evidence.refs` 只保存可审计引用路径；任何质量关闭、投稿授权、runtime 写操作仍回到 `publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status` 和对应 controller surface。
 
 这个形态借鉴两个成熟工程模式：

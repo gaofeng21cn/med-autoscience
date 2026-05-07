@@ -13,7 +13,7 @@ Date: `2026-05-04`
 
 | risk_id | 风险 | 必须保持的 owner |
 | --- | --- | --- |
-| `entry_projection_as_authority` | `study_progress`、`workspace-cockpit`、`product-frontdesk`、MCP、product-entry manifest 自己解释下一步 | `StudyTruthKernel`、`RuntimeHealthKernel`、`publication_eval/latest.json`、`controller_decisions/latest.json` |
+| `entry_projection_as_authority` | `study_progress`、`workspace-cockpit`、`product-entry-status`、MCP、product-entry manifest 自己解释下一步 | `StudyTruthKernel`、`RuntimeHealthKernel`、`publication_eval/latest.json`、`controller_decisions/latest.json` |
 | `mds_oracle_as_quality_owner` | MDS `paper_contract_health`、coverage、prompt stage wording 或 artifact state 被读成医学质量 ready | MAS AI reviewer-backed `publication_eval/latest.json` 与 Quality OS |
 | `observability_as_control` | rubric score、trajectory replay、feedback analytics、OAR projection 直接驱动 finalize/submission | MAS controller decision 与 publication authority |
 | `runtime_status_double_parse` | 多个 controller 局部解析 live worker、active run、recovery action | RuntimeHealthKernel 与 control-plane fact resolver |
@@ -43,7 +43,7 @@ Date: `2026-05-04`
    - 验证：`tests/test_architecture_owner_boundary.py`。
 
 2. `guard_projection_surfaces`
-   - `study_progress`、`workspace-cockpit`、`product-frontdesk`、product-entry、MCP 只能消费 truth，不做第二判断。
+   - `study_progress`、`workspace-cockpit`、`product-entry-status`、product-entry、MCP 只能消费 truth，不做第二判断。
    - 后续新增 projection 必须声明 consumed authority surface。
 
 3. `strangle_mds_authority_residue`

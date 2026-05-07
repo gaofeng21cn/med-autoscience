@@ -202,7 +202,7 @@ repo 吸收必须采用 `no-history import`。
 - 不生成 `.ds`、`ops/med-deepscientist` 或 MDS-first path。
 - 不默认初始化 workspace root Git；root Git 不接管 runtime、quest、delivery 或 publication truth。维护者若通过 legacy restore diagnostic 临时恢复 root Git，必须重新走 restore-proof retirement 或明确留在外部 maintenance audit，不得让它回到默认状态面。
 - Agent 查状态、做 lifecycle 操作或恢复 runtime 时，不读取 root Git / quest Git 作为默认状态面；优先使用 file authority、`study_macro_state` / `owner_route`、`artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 和 `runtime/restore_index`。
-- `study-progress`、`runtime_watch`、`product-frontdesk`、MCP 都只暴露 MAS layout，并按 file authority -> macro state / owner route -> SQLite runtime authority -> compatibility reader 的顺序读取。
+- `study-progress`、`runtime_watch`、`product-entry-status`、MCP 都只暴露 MAS layout，并按 file authority -> macro state / owner route -> SQLite runtime authority -> compatibility reader 的顺序读取。
 - `init_workspace` dry-run 和 apply 都应体现上述目录；`watch-runtime` 默认指向 `${WORKSPACE_ROOT}/runtime/quests`，workspace-level Git 默认忽略 `runtime/quests/`、`runtime/archives/**`、`runtime/restore_index/**` 和 `artifacts/runtime/`。
 - `runtime quest-materialize --workspace-root <workspace> --quest-id <quest> --node-id <node>` 是 repo-level plain quest materializer 入口；apply 只创建 `runtime/quests/<quest_id>` 普通目录和 `artifacts/runtime/materialization_manifest.json`，manifest 必须记录 `git_runtime_used=false`、`quest_git_active_path_retired=true`，旧 `ops/med-deepscientist/runtime/quests/<quest_id>` 只能作为 read-only legacy source。
 - 如果 active quest root 已存在 `.git`，quest materializer 必须 fail-closed 为 `blocked/audit_only`，直到维护者通过 legacy diagnostic / restore proof 处理；不得把既有 Git repo 接回 active lifecycle。

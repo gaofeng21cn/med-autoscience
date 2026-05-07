@@ -120,7 +120,7 @@
 - supervision status shape
 - hosted runtime owner invariants
 - domain supervision 不得越过 runtime 的 fail-closed 规则
-- 单一 MAS app skill 下的 product/frontdesk/cockpit 内部 command contract 术语
+- 单一 MAS app skill 下的 product/entry_status/cockpit 内部 command contract 术语
 
 第二批再考虑抽离的内容：
 
@@ -145,5 +145,5 @@
 
 - 长期在线 owner 只认 `Hermes-Agent`
 - domain repo 自己不再默认安装第二个 host-level 常驻 supervision service
-- domain repo 的 product/frontdesk/cockpit 文案能明确说清三层分工
+- domain repo 的 product/entry_status/cockpit 文案能明确说清三层分工
 - runtime blocked / paused / stale / completion request 等问题会先回到 domain supervision，而不是直接让 executor 或用户硬猜

@@ -30,7 +30,7 @@ def _delivery_inspection(study_id: str = "001-risk") -> dict[str, object]:
     }
 
 
-def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_frontdesk(
+def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -108,7 +108,7 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_frontdesk(
     )
 
     cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
-    frontdesk = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
+    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     cockpit_state = cockpit["delivery_inspection_state"]
     assert cockpit_state["authority"] == "observability_projection_only"
@@ -123,13 +123,13 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_frontdesk(
         "legacy layout 会在下一次 authorized sync 升级"
     )
 
-    frontdesk_state = frontdesk["workspace_delivery_inspection"]
-    assert frontdesk_state["counts"]["legacy_layout_pending_sync"] == 1
-    assert frontdesk_state["studies"][0]["source_labels"]["current_package"] == "human-facing mirror"
+    entry_status_state = entry_status["workspace_delivery_inspection"]
+    assert entry_status_state["counts"]["legacy_layout_pending_sync"] == 1
+    assert entry_status_state["studies"][0]["source_labels"]["current_package"] == "human-facing mirror"
 
     cockpit_markdown = module.render_workspace_cockpit_markdown(cockpit)
-    frontdesk_markdown = module.render_product_frontdesk_markdown(frontdesk)
-    for markdown in (cockpit_markdown, frontdesk_markdown):
+    entry_status_markdown = module.render_product_entry_status_markdown(entry_status)
+    for markdown in (cockpit_markdown, entry_status_markdown):
         assert "submission_minimal = controller-authorized source" in markdown
         assert "current_package = human-facing mirror" in markdown
         assert "legacy layout 会在下一次 authorized sync 升级" in markdown

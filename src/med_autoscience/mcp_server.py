@@ -504,11 +504,11 @@ def _call_workspace_cockpit(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(product_entry.render_workspace_cockpit_markdown(result), structured=result)
 
 
-def _call_product_frontdesk(arguments: dict[str, Any]) -> dict[str, Any]:
+def _call_product_entry_status(arguments: dict[str, Any]) -> dict[str, Any]:
     profile_path = Path(_require_string(arguments, "profile_path"))
     profile = load_profile(str(profile_path))
-    result = product_entry.build_product_frontdesk(profile=profile, profile_ref=profile_path)
-    return _tool_text_result(product_entry.render_product_frontdesk_markdown(result), structured=result)
+    result = product_entry.build_product_entry_status(profile=profile, profile_ref=profile_path)
+    return _tool_text_result(product_entry.render_product_entry_status_markdown(result), structured=result)
 
 
 def _call_product_preflight(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -764,8 +764,8 @@ def _call_publication_status(arguments: dict[str, Any]) -> dict[str, Any]:
 
 def _call_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
     mode = _require_string(arguments, "mode")
-    if mode == "product_frontdesk":
-        return _call_product_frontdesk(arguments)
+    if mode == "product_entry_status":
+        return _call_product_entry_status(arguments)
     if mode == "product_preflight":
         return _call_product_preflight(arguments)
     if mode == "product_start":

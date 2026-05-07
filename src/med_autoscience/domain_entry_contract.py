@@ -25,7 +25,7 @@ SERVICE_SAFE_ENTRY_ADAPTER = "MedAutoScienceDomainEntry"
 SERVICE_SAFE_ENTRY_SURFACE_KIND = "med_autoscience_service_safe_domain_entry"
 PRODUCT_ENTRY_BUILDER_COMMAND = "build-product-entry"
 PRODUCT_ENTRY_MANIFEST_SCHEMA_REF = "contracts/schemas/v1/product-entry-manifest.schema.json"
-PRODUCT_FRONTDESK_SCHEMA_REF = "contracts/schemas/v1/product-frontdesk.schema.json"
+PRODUCT_ENTRY_STATUS_SCHEMA_REF = "contracts/schemas/v1/product-entry-status.schema.json"
 SUPPORTED_PRODUCT_ENTRY_MODES = ("direct", "opl-handoff")
 
 
@@ -37,7 +37,7 @@ class DomainEntryCommandSpec:
 
 SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     "workspace-cockpit": DomainEntryCommandSpec(("profile_ref",)),
-    "product-frontdesk": DomainEntryCommandSpec(("profile_ref",)),
+    "product-entry-status": DomainEntryCommandSpec(("profile_ref",)),
     "product-preflight": DomainEntryCommandSpec(("profile_ref",)),
     "product-start": DomainEntryCommandSpec(("profile_ref",)),
     "product-entry-manifest": DomainEntryCommandSpec(("profile_ref",)),
@@ -110,7 +110,7 @@ def build_domain_entry_contract() -> dict[str, Any]:
             codex_entry_strategy="domain_agent_entry",
             artifact_conventions="paper_and_submission_package",
             progress_conventions="study_runtime_narration",
-            entry_command="product-frontdesk",
+            entry_command="product-entry-status",
             manifest_command="product-entry-manifest",
         ),
         **build_domain_entry_command_catalog(),

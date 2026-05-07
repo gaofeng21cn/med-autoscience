@@ -3,12 +3,19 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from .shared import _mapping_copy, _non_empty_text, _status_narration_human_view
+from .shared import _mapping_copy, _non_empty_text
 
 USER_VISIBLE_PROJECTION_SURFACE = "study_progress_user_visible_projection"
 USER_VISIBLE_PROJECTION_READ_MODEL = "study_progress_user_visible_read_model"
 
-_ANSWER_FOCUS = ("current_stage", "current_blockers", "next_step", "evidence")
+_ANSWER_FOCUS = (
+    "writer_state",
+    "package_delivered",
+    "actual_write_active",
+    "user_next",
+    "user_action_required",
+    "evidence",
+)
 _EVIDENCE_REF_KEYS = (
     "publication_eval_path",
     "controller_decision_path",
@@ -24,48 +31,118 @@ _EVIDENCE_REF_KEYS = (
     "details_projection_path",
 )
 
+_ACTIVE_TOP_LEVEL_STAGES = frozenset(
+    {
+        "managed_runtime_active",
+    }
+)
+
+_QUALITY_REPAIR_LABEL = "质量修复/复审中"
+
 
 def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
-    human_view = _status_narration_human_view(payload)
-    current_stage = _non_empty_text(human_view.get("current_stage")) or _non_empty_text(payload.get("current_stage"))
-    current_stage_summary = (
-        _non_empty_text(payload.get("current_stage_summary"))
-        or _non_empty_text(human_view.get("latest_update"))
-        or _non_empty_text(human_view.get("status_summary"))
-    )
-    next_system_action = _non_empty_text(payload.get("next_system_action")) or _non_empty_text(
-        human_view.get("next_step")
-    )
-    current_blockers = _normalized_texts(payload.get("current_blockers") or human_view.get("current_blockers"))
+    macro_state = _macro_state(payload)
     evidence = _evidence_projection(payload)
+    if macro_state is None:
+        return _conflict_projection(
+            payload,
+            reason="missing_macro_state",
+            message="缺少 canonical study_macro_state；需要重新生成 canonical progress projection。",
+            evidence=evidence,
+        )
+    if _top_level_writer_conflicts(payload, macro_state):
+        return _conflict_projection(
+            payload,
+            reason="macro_state_conflict",
+            message="旧 top-level writer 字段与 study_macro_state 冲突；需要重新生成 canonical progress projection。",
+            evidence=evidence,
+            macro_state=macro_state,
+        )
+
+    writer_state = _non_empty_text(macro_state.get("writer_state")) or "conflict"
+    user_next = _non_empty_text(macro_state.get("user_next")) or "inspect"
+    reason = _non_empty_text(macro_state.get("reason")) or "truth_conflict"
+    details = _mapping_copy(macro_state.get("details"))
+    package_delivered = bool(details.get("package_delivered"))
+    actual_write_active = _actual_write_active(writer_state=writer_state, macro_state=macro_state, payload=payload)
+    user_action_required = _user_action_required(
+        user_next=user_next,
+        reason=reason,
+        package_delivered=package_delivered,
+    )
+    state_label = _state_label(
+        writer_state=writer_state,
+        user_next=user_next,
+        reason=reason,
+        package_delivered=package_delivered,
+    )
+    current_blockers = _current_blockers(
+        writer_state=writer_state,
+        user_next=user_next,
+        reason=reason,
+        details=details,
+        package_delivered=package_delivered,
+    )
+    state_summary = _state_summary(
+        state_label=state_label,
+        writer_state=writer_state,
+        user_next=user_next,
+        reason=reason,
+        package_delivered=package_delivered,
+        actual_write_active=actual_write_active,
+        user_action_required=user_action_required,
+        current_blockers=current_blockers,
+    )
+    next_step = _next_step(
+        writer_state=writer_state,
+        user_next=user_next,
+        reason=reason,
+        package_delivered=package_delivered,
+        details=details,
+    )
+
     return {
         "surface": USER_VISIBLE_PROJECTION_SURFACE,
         "read_model": USER_VISIBLE_PROJECTION_READ_MODEL,
-        "schema_version": 1,
+        "schema_version": 2,
         "authority": "truth_projection",
         "projection_only": True,
         "answer_focus": list(_ANSWER_FOCUS),
         "study_id": _non_empty_text(payload.get("study_id")),
         "quest_id": _non_empty_text(payload.get("quest_id")),
-        "current_stage": current_stage,
-        "current_stage_label": _non_empty_text(human_view.get("current_stage_label")),
-        "current_stage_summary": current_stage_summary,
-        "status_summary": _non_empty_text(human_view.get("status_summary")),
-        "paper_stage": _non_empty_text(payload.get("paper_stage")),
-        "paper_stage_summary": _non_empty_text(payload.get("paper_stage_summary")),
+        "state": _state_key(writer_state=writer_state, user_next=user_next, reason=reason),
+        "writer_state": writer_state,
+        "user_next": user_next,
+        "reason": reason,
+        "package_delivered": package_delivered,
+        "actual_write_active": actual_write_active,
+        "user_action_required": user_action_required,
+        "state_label": state_label,
+        "state_summary": state_summary,
+        "current_stage": writer_state,
+        "current_stage_label": state_label,
+        "current_stage_summary": state_summary,
+        "status_summary": state_summary,
+        "paper_stage": _non_empty_text(details.get("paper_stage")) or _non_empty_text(payload.get("paper_stage")),
+        "paper_stage_summary": state_summary,
         "current_blockers": current_blockers,
-        "next_system_action": next_system_action,
-        "next_step": next_system_action,
-        "needs_user_decision": bool(payload.get("needs_user_decision")),
-        "needs_physician_decision": bool(payload.get("needs_physician_decision")),
+        "next_system_action": next_step,
+        "next_step": next_step,
+        "needs_user_decision": user_action_required,
+        "needs_physician_decision": user_action_required,
+        "study_macro_state": dict(macro_state),
         "supervision": _supervision_projection(payload),
         "evidence": evidence,
+        "evidence_refs": dict(evidence["refs"]),
         "conditions": _projection_conditions(
-            current_stage=current_stage,
-            current_stage_summary=current_stage_summary,
+            writer_state=writer_state,
+            user_next=user_next,
+            reason=reason,
+            package_delivered=package_delivered,
+            actual_write_active=actual_write_active,
+            user_action_required=user_action_required,
             current_blockers=current_blockers,
-            next_system_action=next_system_action,
-            needs_user_decision=bool(payload.get("needs_user_decision")),
+            next_step=next_step,
             supervision=_mapping_copy(payload.get("supervision")),
             evidence=evidence,
         ),
@@ -81,6 +158,219 @@ def _normalized_texts(value: object) -> list[str]:
         if text is not None and text not in items:
             items.append(text)
     return items
+
+
+def _macro_state(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    macro_state = payload.get("study_macro_state")
+    if not isinstance(macro_state, Mapping):
+        return None
+    writer_state = _non_empty_text(macro_state.get("writer_state"))
+    user_next = _non_empty_text(macro_state.get("user_next"))
+    reason = _non_empty_text(macro_state.get("reason"))
+    if writer_state is None or user_next is None or reason is None:
+        return None
+    return dict(macro_state)
+
+
+def _top_level_writer_conflicts(payload: Mapping[str, Any], macro_state: Mapping[str, Any]) -> bool:
+    writer_state = _non_empty_text(macro_state.get("writer_state"))
+    if writer_state == "conflict":
+        return True
+    active_run_id = (
+        _non_empty_text(payload.get("active_run_id"))
+        or _non_empty_text(_mapping_copy(payload.get("supervision")).get("active_run_id"))
+    )
+    if active_run_id and writer_state != "live":
+        return True
+    top_level_stage = _non_empty_text(payload.get("current_stage"))
+    if top_level_stage in _ACTIVE_TOP_LEVEL_STAGES and writer_state not in {"live", "queued"}:
+        return True
+    return False
+
+
+def _conflict_projection(
+    payload: Mapping[str, Any],
+    *,
+    reason: str,
+    message: str,
+    evidence: dict[str, Any],
+    macro_state: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    state_summary = f"状态需要检查；{message}"
+    return {
+        "surface": USER_VISIBLE_PROJECTION_SURFACE,
+        "read_model": USER_VISIBLE_PROJECTION_READ_MODEL,
+        "schema_version": 2,
+        "authority": "truth_projection",
+        "projection_only": True,
+        "answer_focus": list(_ANSWER_FOCUS),
+        "study_id": _non_empty_text(payload.get("study_id")),
+        "quest_id": _non_empty_text(payload.get("quest_id")),
+        "state": "inspect/conflict",
+        "writer_state": "conflict",
+        "user_next": "inspect",
+        "reason": "truth_conflict",
+        "conflict_reason": reason,
+        "package_delivered": False,
+        "actual_write_active": False,
+        "user_action_required": False,
+        "state_label": "状态需要检查",
+        "state_summary": state_summary,
+        "current_stage": "inspect/conflict",
+        "current_stage_label": "状态需要检查",
+        "current_stage_summary": state_summary,
+        "status_summary": state_summary,
+        "paper_stage": None,
+        "paper_stage_summary": state_summary,
+        "current_blockers": [message],
+        "next_system_action": "重新生成 canonical progress projection。",
+        "next_step": "重新生成 canonical progress projection。",
+        "needs_user_decision": False,
+        "needs_physician_decision": False,
+        "study_macro_state": dict(macro_state) if macro_state is not None else None,
+        "supervision": _supervision_projection(payload),
+        "evidence": evidence,
+        "evidence_refs": dict(evidence["refs"]),
+        "conditions": [
+            _condition("macro_state_available", bool(macro_state), reason, message),
+            _condition("state_conflict", True, reason, message),
+        ],
+    }
+
+
+def _actual_write_active(*, writer_state: str, macro_state: Mapping[str, Any], payload: Mapping[str, Any]) -> bool:
+    if writer_state != "live":
+        return False
+    return bool(
+        _non_empty_text(_mapping_copy(macro_state.get("details")).get("active_run_id"))
+        or _non_empty_text(payload.get("active_run_id"))
+        or _non_empty_text(_mapping_copy(payload.get("supervision")).get("active_run_id"))
+        or writer_state == "live"
+    )
+
+
+def _user_action_required(*, user_next: str, reason: str, package_delivered: bool) -> bool:
+    if user_next in {"submit_info", "revise"}:
+        return True
+    if reason in {"user_stop", "stop_loss"}:
+        return True
+    return bool(package_delivered and user_next == "submit_info")
+
+
+def _state_key(*, writer_state: str, user_next: str, reason: str) -> str:
+    if writer_state == "conflict" or user_next == "inspect" and reason == "truth_conflict":
+        return "inspect/conflict"
+    return f"{writer_state}/{user_next}/{reason}"
+
+
+def _state_label(*, writer_state: str, user_next: str, reason: str, package_delivered: bool) -> str:
+    if writer_state == "conflict" or reason == "truth_conflict":
+        return "状态需要检查"
+    if writer_state == "live":
+        return "自动运行中"
+    if user_next == "submit_info" and reason == "external_info" and package_delivered:
+        return "投稿包已交付，等待外部投稿信息"
+    if package_delivered and writer_state == "parked":
+        return "投稿包已交付，自动停驻"
+    if reason == "user_stop":
+        return "用户暂停/手动停驻"
+    if reason == "stop_loss":
+        return "止损/终止"
+    if reason == "quality" or user_next in {"repair", "revise"}:
+        return _QUALITY_REPAIR_LABEL
+    if writer_state == "queued":
+        return "系统排队处理中"
+    return "用户暂停/手动停驻" if writer_state == "parked" else "状态需要检查"
+
+
+def _state_summary(
+    *,
+    state_label: str,
+    writer_state: str,
+    user_next: str,
+    reason: str,
+    package_delivered: bool,
+    actual_write_active: bool,
+    user_action_required: bool,
+    current_blockers: list[str],
+) -> str:
+    if state_label == "自动运行中":
+        return "自动运行中；系统有实际 writer/run 正在推进。"
+    if state_label == "系统排队处理中":
+        return "系统排队处理中；当前没有实际写入，但 MAS 已有明确 owner/action。"
+    if state_label == "投稿包已交付，等待外部投稿信息":
+        return "投稿包已交付，系统已自动停驻并释放运行资源；等待补齐外部投稿信息。"
+    if state_label == "投稿包已交付，自动停驻":
+        return "投稿包已交付，系统已自动停驻并释放运行资源。"
+    if state_label == "用户暂停/手动停驻":
+        return "用户暂停/手动停驻；当前没有实际写入，需显式恢复或给出新方案。"
+    if state_label == _QUALITY_REPAIR_LABEL:
+        return "质量修复/复审中；质量、artifact 或 runtime 有明确修复 owner。"
+    if state_label == "止损/终止":
+        return "止损/终止；当前论文线不再自动推进，需新计划或明确重开。"
+    if current_blockers:
+        return f"{state_label}；{current_blockers[0]}"
+    write_text = "有实际写入" if actual_write_active else "没有实际写入"
+    delivered_text = "投稿包已交付" if package_delivered else "投稿包未交付"
+    user_text = "需要用户动作" if user_action_required else "当前不需要用户补东西"
+    return f"{state_label}；{write_text}，{delivered_text}，{user_text}（{writer_state}/{user_next}/{reason}）。"
+
+
+def _current_blockers(
+    *,
+    writer_state: str,
+    user_next: str,
+    reason: str,
+    details: Mapping[str, Any],
+    package_delivered: bool,
+) -> list[str]:
+    if writer_state == "live":
+        return []
+    if writer_state == "conflict" or reason == "truth_conflict":
+        return ["study_macro_state 显示状态冲突，需要重新生成 canonical projection。"]
+    if user_next == "submit_info" and reason == "external_info":
+        missing = _normalized_texts(details.get("missing_external_info"))
+        if missing:
+            return [f"缺少外部投稿信息: {', '.join(missing)}"]
+        return ["缺少外部投稿信息。"]
+    if reason == "user_stop":
+        return ["用户暂停或手动停驻，需显式恢复或新方案。"]
+    if reason == "stop_loss":
+        return ["当前论文线已止损/终止，需新计划或明确重开。"]
+    if reason == "quality" or user_next in {"repair", "revise"}:
+        return ["质量、artifact 或 runtime 修复 owner 已接管。"]
+    if writer_state == "queued":
+        return ["系统已有明确 owner/action，等待处理。"]
+    if package_delivered:
+        return []
+    return ["状态需要检查。"]
+
+
+def _next_step(
+    *,
+    writer_state: str,
+    user_next: str,
+    reason: str,
+    package_delivered: bool,
+    details: Mapping[str, Any],
+) -> str:
+    if writer_state == "live":
+        return "观察自动运行推进。"
+    if writer_state == "queued":
+        return "等待 MAS 已登记的 owner/action 处理。"
+    if user_next == "submit_info" and reason == "external_info":
+        missing = _normalized_texts(details.get("missing_external_info"))
+        suffix = f": {', '.join(missing)}" if missing else ""
+        return f"补齐外部投稿信息{suffix}。"
+    if package_delivered:
+        return "投稿包已交付；系统保持自动停驻。"
+    if reason == "user_stop":
+        return "等待用户显式恢复或给出新方案。"
+    if reason == "stop_loss":
+        return "等待新计划或明确重开。"
+    if reason == "quality" or user_next in {"repair", "revise"}:
+        return "等待质量修复/复审 owner 完成处理。"
+    return "检查并重新生成 canonical progress projection。"
 
 
 def _evidence_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -108,20 +398,35 @@ def _supervision_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 def _projection_conditions(
     *,
-    current_stage: str | None,
-    current_stage_summary: str | None,
+    writer_state: str,
+    user_next: str,
+    reason: str,
+    package_delivered: bool,
+    actual_write_active: bool,
+    user_action_required: bool,
     current_blockers: list[str],
-    next_system_action: str | None,
-    needs_user_decision: bool,
+    next_step: str,
     supervision: dict[str, Any],
     evidence: dict[str, Any],
 ) -> list[dict[str, str]]:
     return [
         _condition(
-            "stage_known",
-            bool(current_stage),
-            "stage_present" if current_stage else "stage_missing",
-            current_stage_summary or current_stage,
+            "macro_state_known",
+            True,
+            f"{writer_state}/{user_next}/{reason}",
+            "用户可见状态来自 study_macro_state。",
+        ),
+        _condition(
+            "package_delivered",
+            package_delivered,
+            "package_delivered" if package_delivered else "package_not_delivered",
+            "投稿包已交付。" if package_delivered else "投稿包未交付。",
+        ),
+        _condition(
+            "actual_write_active",
+            actual_write_active,
+            "writer_active" if actual_write_active else "writer_inactive",
+            "系统有实际 writer/run 正在写入。" if actual_write_active else "当前没有实际写入。",
         ),
         _condition(
             "blocked",
@@ -131,9 +436,9 @@ def _projection_conditions(
         ),
         _condition(
             "next_action_known",
-            bool(next_system_action),
-            "next_action_present" if next_system_action else "next_action_missing",
-            next_system_action,
+            bool(next_step),
+            "next_action_present" if next_step else "next_action_missing",
+            next_step,
         ),
         _condition(
             "evidence_available",
@@ -142,10 +447,10 @@ def _projection_conditions(
             "关键证据引用可用。" if evidence.get("latest_events") or evidence.get("refs") else "缺少关键证据引用。",
         ),
         _condition(
-            "human_decision_required",
-            needs_user_decision,
-            "user_gate_present" if needs_user_decision else "user_gate_absent",
-            "当前需要用户判断。" if needs_user_decision else "当前不需要用户判断。",
+            "user_action_required",
+            user_action_required,
+            "user_action_present" if user_action_required else "user_action_absent",
+            "当前需要用户补充或决策。" if user_action_required else "当前不需要用户补东西。",
         ),
         _condition(
             "runtime_supervised",

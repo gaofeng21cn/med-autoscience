@@ -389,7 +389,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
     assert dashboard["surface"] == "ai_first_operations_dashboard_summary"
     assert dashboard["read_model"] == "ai_first_operations_dashboard_read_model"
     assert dashboard["contract"]["shared_read_model_consumers"] == [
-        "product_frontdesk",
+        "product_entry_status",
         "workspace_cockpit",
         "study_progress",
     ]

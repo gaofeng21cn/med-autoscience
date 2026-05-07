@@ -39,7 +39,7 @@
   },
   "operator_projection": {
     "source_surfaces": [
-      "product-frontdesk",
+      "product-entry-status",
       "workspace-cockpit",
       "study-progress",
       "build-product-entry.return_surface_contract"

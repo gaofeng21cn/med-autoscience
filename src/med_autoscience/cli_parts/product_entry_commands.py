@@ -8,7 +8,7 @@ from typing import Any, Callable
 
 PRODUCT_ENTRY_CLI_COMMANDS = frozenset(
     {
-        "product-frontdesk",
+        "product-entry-status",
         "product-preflight",
         "product-start",
         "product-entry-manifest",
@@ -46,12 +46,12 @@ def handle_product_entry_command(
     profile = load_profile(args.profile)
     profile_ref = Path(args.profile)
 
-    if args.command == "product-frontdesk":
-        result = product_entry.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
+    if args.command == "product-entry-status":
+        result = product_entry.build_product_entry_status(profile=profile, profile_ref=profile_ref)
         return _emit_product_entry_result(
             result,
             args=args,
-            markdown_renderer=product_entry.render_product_frontdesk_markdown,
+            markdown_renderer=product_entry.render_product_entry_status_markdown,
         )
 
     if args.command == "product-preflight":

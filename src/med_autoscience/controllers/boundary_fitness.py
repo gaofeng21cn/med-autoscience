@@ -20,7 +20,7 @@ DEFAULT_BASELINE = {
     "src/med_autoscience/controllers/study_runtime_execution.py": 1346,
     "src/med_autoscience/controllers/mainline_status.py": 1301,
     "src/med_autoscience/controllers/product_entry_parts/workspace_surfaces.py": 1292,
-    "tests/product_entry_cases/cockpit_status_and_frontdesk_focus.py": 1289,
+    "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": 1289,
     "tests/product_entry_cases/repo_shell_and_handoff_templates.py": 1265,
     "src/med_autoscience/controllers/workspace_init.py": 1186,
     "tests/product_entry_cases/frontdoor_preflight_and_task_submission.py": 1180,
@@ -124,7 +124,7 @@ PROGRAM_BOUNDARIES = (
     {
         "boundary_id": "product_entry_surface",
         "owner": "MAS",
-        "path_markers": ("product_entry", "frontdesk", "cockpit"),
+        "path_markers": ("product_entry", "entry_status", "cockpit"),
         "recommended_split_direction": (
             "Split by public entry contract, cockpit projection, workspace surfaces, and handoff templates."
         ),

@@ -14,7 +14,7 @@ from tests.control_plane_route_helpers import writable_route_context
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 NESTED_CASE_COLLECTION_IGNORE_GLOBS = (
-    "product_entry_cases/cockpit_status_and_frontdesk_focus_cases/test_*.py",
+    "product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_*.py",
     "test_runtime_watch_cases/*_cases_cases/test_*.py",
 )
 

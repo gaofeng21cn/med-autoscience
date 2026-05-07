@@ -94,7 +94,7 @@ def _build_phase2_user_product_loop(
     prefix = _command_prefix(profile_ref)
     profile_arg = _profile_arg(profile_ref)
     lane = mainline_status.build_phase2_user_product_loop_lane(
-        frontdesk_command=f"{prefix} product-frontdesk --profile {profile_arg}",
+        entry_status_command=f"{prefix} product-entry-status --profile {profile_arg}",
         workspace_cockpit_command=_json_surface_command(
             f"{prefix} workspace-cockpit --profile {profile_arg}"
         ),
@@ -285,17 +285,17 @@ def _build_product_entry_start(
 ) -> dict[str, Any]:
     return _build_shared_product_entry_start(
         summary=(
-            "先从 MAS research frontdesk 进入当前 workspace frontdoor；"
+            "先从 MAS research entry_status 进入当前 workspace frontdoor；"
             "需要新任务时先写 durable study task intake，已有 study 时直接恢复研究运行。"
         ),
-        recommended_mode_id="open_frontdesk",
+        recommended_mode_id="open_entry_status",
         modes=[
             {
-                "mode_id": "open_frontdesk",
-                "title": "启动 MAS 前台",
-                "command": product_entry_shell["product_frontdesk"]["command"],
-                "surface_kind": PRODUCT_FRONTDESK_KIND,
-                "summary": product_entry_shell["product_frontdesk"]["purpose"],
+                "mode_id": "open_entry_status",
+                "title": "打开 MAS 入口状态",
+                "command": product_entry_shell["product_entry_status"]["command"],
+                "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
+                "summary": product_entry_shell["product_entry_status"]["purpose"],
                 "requires": [],
             },
             {
@@ -831,8 +831,8 @@ def _build_opl_runtime_manager_registration(
         "runtime_owner": str(runtime.get("runtime_owner") or ""),
         "executor_owner": str(runtime.get("executor_owner") or ""),
         "domain_entry_surface": {
-            "surface_kind": PRODUCT_FRONTDESK_KIND,
-            "command": command_catalog["product_frontdesk"],
+            "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
+            "command": command_catalog["product_entry_status"],
             "manifest_command": command_catalog["workspace_cockpit"],
         },
         "registration_surface": {
@@ -919,7 +919,7 @@ def _build_skill_catalog_surface(
 ) -> dict[str, Any]:
     summary = _non_empty_text(product_entry_status.get("summary")) or "MAS product entry skill catalog."
     command_catalog = {
-        "product_frontdesk": str((product_entry_shell.get("product_frontdesk") or {}).get("command") or ""),
+        "product_entry_status": str((product_entry_shell.get("product_entry_status") or {}).get("command") or ""),
         "workspace_cockpit": str((product_entry_shell.get("workspace_cockpit") or {}).get("command") or ""),
         "submit_study_task": str((product_entry_shell.get("submit_study_task") or {}).get("command") or ""),
         "launch_study": str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
@@ -944,9 +944,9 @@ def _build_skill_catalog_surface(
             title="Med Auto Science",
             owner=TARGET_DOMAIN_ID,
             distribution_mode="repo_tracked",
-            surface_kind=PRODUCT_FRONTDESK_KIND,
+            surface_kind=PRODUCT_ENTRY_STATUS_KIND,
             description="作为单一 domain app skill 启动 MAS，并通过既有 workspace/controller contracts 驱动完整医学研究工作流。",
-            command=command_catalog["product_frontdesk"],
+            command=command_catalog["product_entry_status"],
             readiness="landed",
             tags=["domain-app", "medical-research", "study"],
             domain_projection={
@@ -954,8 +954,8 @@ def _build_skill_catalog_surface(
                 "skill_entry": "mas",
                 "recommended_shell": "workspace_cockpit",
                 "skill_semantics": "domain_app",
-                "entry_shell_key": "product_frontdesk",
-                "entry_command": command_catalog["product_frontdesk"],
+                "entry_shell_key": "product_entry_status",
+                "entry_command": command_catalog["product_entry_status"],
                 "supporting_shell_keys": [
                     "workspace_cockpit",
                     "submit_study_task",

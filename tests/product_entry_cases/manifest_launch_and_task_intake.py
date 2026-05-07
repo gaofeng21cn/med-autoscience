@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from . import shared as _shared
 from . import attention_queue_and_cockpit_base as _attention_queue_and_cockpit_base
-from . import cockpit_status_and_frontdesk_focus as _cockpit_status_and_frontdesk_focus
+from . import cockpit_status_and_entry_status_focus as _cockpit_status_and_entry_status_focus
 
 def _module_reexport(module) -> None:
     for name, value in vars(module).items():
@@ -11,7 +11,7 @@ def _module_reexport(module) -> None:
 
 _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
-_module_reexport(_cockpit_status_and_frontdesk_focus)
+_module_reexport(_cockpit_status_and_entry_status_focus)
 
 def test_build_product_entry_manifest_passes_contract_bundle_via_named_shared_kwargs(
     monkeypatch,
@@ -49,7 +49,7 @@ def test_build_product_entry_manifest_passes_contract_bundle_via_named_shared_kw
     assert "domain_entry_contract" not in captured["extra_payload"]
     assert "gateway_interaction_contract" not in captured["extra_payload"]
 
-def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_projection(
+def test_build_product_entry_status_leaves_contract_bundle_to_shared_manifest_projection(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -68,9 +68,9 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
             "internal_surface": "controller",
         },
         "product_entry_shell": {
-            "product_frontdesk": {
-                "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
-                "surface_kind": "product_frontdesk",
+            "product_entry_status": {
+                "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
+                "surface_kind": "product_entry_status",
             },
             "workspace_cockpit": {
                 "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
@@ -115,14 +115,14 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
             "summary": "preflight ready",
             "ready_to_try_now": True,
             "recommended_check_command": "uv run python -m med_autoscience.cli doctor",
-            "recommended_start_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+            "recommended_start_command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
             "blocking_check_ids": [],
             "checks": [],
         },
         "product_entry_quickstart": {
             "surface_kind": "product_entry_quickstart",
-            "recommended_step_id": "open_frontdesk",
-            "summary": "open frontdesk first",
+            "recommended_step_id": "open_entry_status",
+            "summary": "open entry_status first",
             "steps": [],
             "resume_contract": {
                 "surface_kind": "workspace_cockpit",
@@ -178,26 +178,26 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
         },
     )
 
-    def _fake_build_family_product_frontdesk_from_manifest(**kwargs: object) -> dict[str, object]:
+    def _fake_build_family_product_entry_status_from_manifest(**kwargs: object) -> dict[str, object]:
         captured.update(kwargs)
         return {
-            "surface_kind": "product_frontdesk",
+            "surface_kind": "product_entry_status",
             "target_domain_id": "med-autoscience",
         }
 
     monkeypatch.setattr(
         module,
-        "_build_shared_family_product_frontdesk_from_manifest",
-        _fake_build_family_product_frontdesk_from_manifest,
+        "_build_shared_family_product_entry_status_from_manifest",
+        _fake_build_family_product_entry_status_from_manifest,
     )
-    monkeypatch.setattr(module, "_validate_product_frontdesk_contract", lambda payload: None)
+    monkeypatch.setattr(module, "_validate_product_entry_status_contract", lambda payload: None)
 
-    payload = module.build_product_frontdesk(profile=profile, profile_ref=profile_ref)
+    payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
-    assert payload["surface_kind"] == "product_frontdesk"
-    assert captured["schema_ref"] == module.PRODUCT_FRONTDESK_SCHEMA_REF
+    assert payload["surface_kind"] == "product_entry_status"
+    assert captured["schema_ref"] == module.PRODUCT_ENTRY_STATUS_SCHEMA_REF
     assert captured["shell_aliases"] == {
-        "frontdesk": "product_frontdesk",
+        "entry_status": "product_entry_status",
         "cockpit": "workspace_cockpit",
         "submit_task": "submit_study_task",
         "launch_study": "launch_study",
@@ -215,20 +215,20 @@ def test_build_product_frontdesk_leaves_contract_bundle_to_shared_manifest_proje
     assert "gateway_interaction_contract" not in captured["extra_payload"]
 
 
-def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None:
+def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
 
-    markdown = module.render_product_frontdesk_markdown(
+    markdown = module.render_product_entry_status_markdown(
         {
             "target_domain_id": "med-autoscience",
-            "schema_ref": "product_frontdesk.schema.json",
+            "schema_ref": "product_entry_status.schema.json",
             "recommended_action": "inspect_or_prepare_research_loop",
             "gateway_interaction_contract": {
                 "frontdoor_owner": "opl_gateway_or_domain_gui",
                 "user_interaction_mode": "natural_language_frontdoor",
             },
             "summary": {
-                "frontdesk_command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                "entry_status_command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
                 "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
                 "operator_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
             },
@@ -247,14 +247,14 @@ def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None
             "product_entry_quickstart": {
                 "steps": [
                     {
-                        "step_id": "open_frontdesk",
-                        "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml",
+                        "step_id": "open_entry_status",
+                        "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
                         "summary": "先打开前台入口。",
                     }
                 ]
             },
             "product_entry_overview": {
-                "summary": "当前 frontdesk 已对齐 workspace truth。",
+                "summary": "当前 entry_status 已对齐 workspace truth。",
                 "progress_surface": {
                     "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"
                 },
@@ -263,7 +263,7 @@ def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None
                 },
             },
             "product_entry_start": {
-                "summary": "先进入 frontdesk，再按需要恢复当前研究 loop。",
+                "summary": "先进入 entry_status，再按需要恢复当前研究 loop。",
                 "resume_surface": {
                     "command": "uv run python -m med_autoscience.cli launch-study --profile profile.local.toml --study-id 001-risk"
                 },
@@ -367,8 +367,8 @@ def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None
             },
             "phase5_platform_target": {},
             "entry_surfaces": {
-                "frontdesk": {
-                    "command": "uv run python -m med_autoscience.cli product-frontdesk --profile profile.local.toml"
+                "entry_status": {
+                    "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml"
                 }
             },
         }
@@ -394,7 +394,7 @@ def test_render_product_frontdesk_markdown_prefers_human_facing_labels() -> None
     assert "token_count" not in markdown
     assert "/tmp/internal.log" not in markdown
     assert "recommended_action" not in markdown
-    assert "frontdesk_command" not in markdown
+    assert "entry_status_command" not in markdown
     assert "recommended_command" not in markdown
     assert "operator_loop_command" not in markdown
     assert "verdict:" not in markdown
@@ -949,7 +949,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "codex_entry_strategy": "domain_agent_entry",
         "artifact_conventions": "paper_and_submission_package",
         "progress_conventions": "study_runtime_narration",
-        "entry_command": "product-frontdesk",
+        "entry_command": "product-entry-status",
         "manifest_command": "product-entry-manifest",
     }
     assert payload["return_surface_contract"]["gateway_interaction_contract"] == {
