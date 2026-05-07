@@ -77,6 +77,44 @@ def test_audit_detects_mechanical_split_residue_without_flagging_semantic_parts(
     assert "numbered part/chunk/split files" in report.mechanical_split_findings[0].recommendation
 
 
+def test_audit_reports_boundary_governance_advisories_without_blocking(tmp_path: Path) -> None:
+    module = _boundary_fitness_module()
+    nested_path = Path(
+        "src/med_autoscience/controllers/product_entry_parts/workspace_surfaces_parts/cockpit_markdown.py"
+    )
+    shared_base_path = Path("src/med_autoscience/controllers/product_entry_parts/shared_base.py")
+    near_limit_path = Path("src/med_autoscience/controllers/study_progress_parts/projection.py")
+    exec_compile_path = Path("src/med_autoscience/controllers/study_runtime_decision.py")
+    _write_python_lines(tmp_path / nested_path, 3)
+    _write_python_lines(tmp_path / shared_base_path, module.SHARED_BASE_BUCKET_LINE_LIMIT)
+    _write_python_lines(tmp_path / near_limit_path, module.PART_NEAR_LINE_LIMIT)
+    (tmp_path / exec_compile_path).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / exec_compile_path).write_text(
+        "from pathlib import Path\n"
+        "for _chunk_path in (Path(__file__),):\n"
+        "    exec(compile(_chunk_path.read_text(encoding=\"utf-8\"), str(_chunk_path), \"exec\"), globals())\n",
+        encoding="utf-8",
+    )
+
+    report = module.audit_boundary_fitness(
+        tmp_path,
+        tracked_files=(
+            nested_path.as_posix(),
+            shared_base_path.as_posix(),
+            near_limit_path.as_posix(),
+            exec_compile_path.as_posix(),
+        ),
+        baseline={},
+    )
+
+    advisory_by_kind = {finding.kind: finding for finding in report.advisory_findings}
+    assert advisory_by_kind["nested_parts_directory"].path == nested_path.as_posix()
+    assert advisory_by_kind["shared_base_bucket"].line_count == module.SHARED_BASE_BUCKET_LINE_LIMIT
+    assert advisory_by_kind["part_near_line_limit"].line_count == module.PART_NEAR_LINE_LIMIT
+    assert advisory_by_kind["exec_compile_concatenation"].path == exec_compile_path.as_posix()
+    assert report.blocking_findings == ()
+
+
 def test_current_repo_boundary_guard_has_no_blocking_findings() -> None:
     module = _boundary_fitness_module()
     repo_root = Path(__file__).resolve().parents[1]

@@ -96,6 +96,14 @@ Runtime lifecycle 小文件治理和 quest Git 退役的执行入口固定为 [R
 
 当前状态一致性合同已经收敛为一条执行链：`StudyTruthKernel/RuntimeHealthKernel -> study_macro_state -> owner_route -> consumer latest -> executor -> rescan`。`study_macro_state` 只给出短枚举用户状态，细节进入 `details`；`owner_route` 持有当前可执行 owner、allowed action 和 idempotency key；consumer 和 executor 都只能传播或执行这张票据。Artifact lifecycle 属 Artifact OS / maintainability，只能生成 retention plan、terminal lifecycle dry-run、checksum 与 restore-proof gate，不能改写 study truth 或论文 authority。
 
+## Boundary Governance 与自然边界
+
+全仓 `_parts` 目录已经成为当前结构治理的主要观察面。它们只能表达自然职责边界：controller 薄入口、read-model/projection、runtime lifecycle、publication gate、artifact lifecycle、display contract、CLI parser/command、test case family 等；不能把文件按行数、顺序号或临时拼接方式机械切开。`boundary_fitness` 因此把 hard blocking 与 advisory governance 分开：机械 `part/chunk/split` 编号仍是阻断；nested `_parts`、膨胀的 `shared_base.py`、接近 1000 行的单个 part、`exec(compile(...))` 拼接加载先作为 advisory 报告，服务后续自然边界拆分计划。
+
+这组治理信号不改变 public contract：现有 `CLI`、`MCP`、controller callable surface、product-entry payload、manifest/schema、import facade 与测试聚合入口都应保持兼容。后续 lane 若处理 advisory，只能在对应 owner 边界内把内部实现迁到更清晰的 importable module、case module 或 shared helper family；不得借结构治理改写 study truth、publication truth、runtime truth、artifact authority 或用户可见 next action。
+
+live artifacts 不属于本治理面的写集。`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status`、`runtime_watch`、`current_package`、submission package、runtime lifecycle SQLite、restore archives 与真实 workspace 产物都继续由 stable runtime / controller / canonical artifact flow 持有。Boundary governance 只报告 repo-tracked source/test/docs 的维护风险，不触碰或重生成 live study artifact。
+
 ## 当前架构明确保留的边界
 
 - `Med Auto Science` 负责研究工作线，并保持唯一入口与 owner 身份。

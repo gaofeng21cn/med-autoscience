@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import re
 import subprocess
 from collections.abc import Mapping, Sequence
@@ -9,6 +10,8 @@ from pathlib import Path, PurePosixPath
 
 PREFERRED_LINE_LIMIT = 1000
 CLEAR_VIOLATION_LINE_LIMIT = 1500
+PART_NEAR_LINE_LIMIT = 900
+SHARED_BASE_BUCKET_LINE_LIMIT = 800
 DEFAULT_BASELINE = {
     "src/med_autoscience/controllers/runtime_watch.py": 1499,
     "src/med_autoscience/cli.py": 1475,
@@ -86,6 +89,10 @@ class BoundaryFitnessReport:
     def mechanical_split_findings(self) -> tuple[BoundaryFinding, ...]:
         return tuple(finding for finding in self.findings if finding.kind == "mechanical_split_residue")
 
+    @property
+    def advisory_findings(self) -> tuple[BoundaryFinding, ...]:
+        return tuple(finding for finding in self.findings if finding.severity == "advisory")
+
 
 PROGRAM_BOUNDARIES = (
     {
@@ -154,6 +161,14 @@ def audit_boundary_fitness(
                     baseline=locked_baseline.get(normalized_path),
                 )
             )
+        if has_nested_parts_directory(normalized_path):
+            findings.append(_nested_parts_finding(normalized_path))
+        if is_shared_base_bucket(normalized_path) and line_count >= SHARED_BASE_BUCKET_LINE_LIMIT:
+            findings.append(_shared_base_bucket_finding(normalized_path, line_count))
+        if is_part_module(normalized_path) and PART_NEAR_LINE_LIMIT <= line_count <= PREFERRED_LINE_LIMIT:
+            findings.append(_part_near_limit_finding(normalized_path, line_count))
+        if uses_exec_compile_concatenation(absolute_path):
+            findings.append(_exec_compile_concatenation_finding(normalized_path))
 
     for relative_path in sorted(locked_baseline):
         if not (root / relative_path).exists():
@@ -232,6 +247,39 @@ def has_mechanical_split_name(relative_path: str) -> bool:
         name = PurePosixPath(part).stem if index == len(path.parts) - 1 else part
         if MECHANICAL_SPLIT_NAME.fullmatch(name):
             return True
+    return False
+
+
+def has_nested_parts_directory(relative_path: str) -> bool:
+    path = PurePosixPath(_normalize_relative_path(relative_path))
+    return sum(1 for part in path.parts[:-1] if part.endswith("_parts")) > 1
+
+
+def is_part_module(relative_path: str) -> bool:
+    path = PurePosixPath(_normalize_relative_path(relative_path))
+    return any(part.endswith("_parts") for part in path.parts[:-1])
+
+
+def is_shared_base_bucket(relative_path: str) -> bool:
+    path = PurePosixPath(_normalize_relative_path(relative_path))
+    return path.name == "shared_base.py"
+
+
+def uses_exec_compile_concatenation(path: Path) -> bool:
+    try:
+        source = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return False
+    try:
+        tree = ast.parse(source, filename=str(path))
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name) or node.func.id != "exec":
+            continue
+        if node.args and isinstance(node.args[0], ast.Call) and isinstance(node.args[0].func, ast.Name):
+            if node.args[0].func.id == "compile":
+                return True
     return False
 
 
@@ -314,6 +362,60 @@ def _mechanical_split_finding(relative_path: str) -> BoundaryFinding:
         message="tracked code uses mechanical part/chunk/split numbering",
         recommendation=(
             "Rename or split by a natural responsibility boundary instead of numbered part/chunk/split files."
+        ),
+    )
+
+
+def _nested_parts_finding(relative_path: str) -> BoundaryFinding:
+    return BoundaryFinding(
+        path=relative_path,
+        kind="nested_parts_directory",
+        severity="advisory",
+        message="tracked code lives under nested *_parts directories",
+        recommendation=(
+            "Review whether the inner parts directory reflects a durable sub-boundary or should be promoted to a "
+            "first-level natural responsibility boundary."
+        ),
+    )
+
+
+def _shared_base_bucket_finding(relative_path: str, line_count: int) -> BoundaryFinding:
+    return BoundaryFinding(
+        path=relative_path,
+        kind="shared_base_bucket",
+        severity="advisory",
+        line_count=line_count,
+        limit=SHARED_BASE_BUCKET_LINE_LIMIT,
+        message=f"shared_base.py has grown to {line_count} lines",
+        recommendation=(
+            "Split common fixtures/helpers by stable responsibility before shared_base.py becomes a second facade."
+        ),
+    )
+
+
+def _part_near_limit_finding(relative_path: str, line_count: int) -> BoundaryFinding:
+    return BoundaryFinding(
+        path=relative_path,
+        kind="part_near_line_limit",
+        severity="advisory",
+        line_count=line_count,
+        limit=PREFERRED_LINE_LIMIT,
+        message=f"part module is approaching the preferred {PREFERRED_LINE_LIMIT}-line boundary",
+        recommendation=(
+            "Plan the next split by natural responsibility while keeping the public entrypoint and imports stable."
+        ),
+    )
+
+
+def _exec_compile_concatenation_finding(relative_path: str) -> BoundaryFinding:
+    return BoundaryFinding(
+        path=relative_path,
+        kind="exec_compile_concatenation",
+        severity="advisory",
+        message="tracked code loads split modules through exec(compile(...)) concatenation",
+        recommendation=(
+            "Prefer importable modules with explicit public exports; keep this pattern as a migration signal until "
+            "the facade can be replaced without changing the public contract."
         ),
     )
 
