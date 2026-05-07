@@ -1,7 +1,7 @@
 # Runtime Lifecycle SQLite Migration Program
 
-Status: `repo-level SQLite lineage/read-model/plain materializer/inventory/diagnostic/cutover surfaces landed; current workspace restore-proof storage migration applied; real active-path quest Git cutover partially gated and pending workspace apply`
-Date: `2026-05-06`
+Status: `repo-level SQLite lineage/read-model/plain materializer/inventory/diagnostic/cutover surfaces landed; current workspace restore-proof storage migration applied; current-project active-path quest Git retired`
+Date: `2026-05-07`
 Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 
 ## 2026-05-05 restore-proof closeout
@@ -46,9 +46,9 @@ closeout ledger 证明的是当轮 eligible payload 已完成 restore-proof comp
 | repo / contract | `landed` | SQLite authority scope、quest Git daily lifecycle policy、workspace Git boundary guard、default MAS-first layout tests 已进入 `main`；新 workspace 默认写 `runtime/quests/`、`runtime/archives/`、`runtime/restore_index/`、`artifacts/runtime/`、`ops/mas/`。 | 持续 guard：不得把 SQLite、`.ds`、quest `.git`、runtime archive 或 old MDS path 重新纳入默认 writer。 |
 | current workspace storage compaction | `landed for current eligible workspaces` | NF-PitNET、DM-CVD / DPCC、AS biologics、DPCC004、DM002、DM003 已有 restore proof、compat export、file-count delta；errors 为 `0`。 | 后续新增 live writer drift 走同一 fresh gate；blocked / future workspace 只能在 controller-authorized 窗口 cutover。 |
 | repo-level quest lifecycle replacement | `landed` | `runtime_lifecycle_store` 已登记 lineage/workspace allocation/runtime snapshot/snapshot file refs/revision diff/Canvas projection；`runtime lifecycle-read` 已支持 SQLite-only surfaces；`runtime quest-materialize` 已生成普通目录 manifest 且标记 `git_runtime_used=false`。 | 在真实 workspace cutover 前，仍只能声明 repo capability landed。 |
-| quest-level Git lifecycle cutover | `repo surface landed; workspace apply pending` | Git-era 到 SQLite-era mapping、writer/read-model surface、plain materializer、quest Git inventory、默认 fallback retirement、legacy restore/import diagnostic、reader cutover 和 safe active-path cutover CLI 已落地。`runtime lifecycle-quest-git-cutover` 会在 apply 时把安全窗口内的 quest `.git` 写入 tar.gz archive、sha256 manifest、restore command 和 cutover latest record，然后移出 active path；active / unknown quest fail-closed 为 audit-only。 | 对真实 workspace 跑 Q5 cutover ledger；只有所有 current project 的 active-path `.git` 都 retired 或有明确 skipped reason 后，才能把 `quest_git_retired_for_current_projects=true` 写进 `docs/status.md`。 |
+| quest-level Git lifecycle cutover | `current projects verified` | Git-era 到 SQLite-era mapping、writer/read-model surface、plain materializer、quest Git inventory、默认 fallback retirement、legacy restore/import diagnostic、reader cutover 和 safe active-path cutover CLI 已落地。`runtime lifecycle-quest-git-cutover` 会在 apply 时把安全窗口内的 quest `.git` 写入 tar.gz archive、sha256 manifest、restore command 和 cutover latest record，然后移出 active path；active / unknown quest fail-closed 为 audit-only。NF-PitNET、AS biologics、HeRR 和 DM-CVD current active-path `.git` fresh scan 均为空。 | 持续 guard：新增 workspace 或重新打开旧 quest 时不得重新引入 quest-level `.git`；restore/import 只能走显式 diagnostic。 |
 
-因此，当前状态不是“Git 已全部退役”，而是“日常新 workspace 和 repo contract 已经不再以 Git 为 runtime lifecycle 目标；真实 eligible workspace 的 storage 层已完成 restore-proof 压缩；quest-level Git inventory / safe cutover / legacy diagnostic 的 repo surface 已落地；真实 current projects 的 active-path `.git` 仍需逐 workspace 完成 Q5 ledger”。这条线应作为 MAS 吸收 MDS 的 fast-track 优先完成，方便后续论文项目从一开始就使用 MAS-only workspace。
+因此，当前状态可写成“Git retired for current projects”：日常新 workspace 和 repo contract 已经不再以 Git 为 runtime lifecycle 目标；真实 eligible workspace 的 storage 层已完成 restore-proof 压缩；quest-level Git inventory / safe cutover / legacy diagnostic 的 repo surface 已落地；真实 current projects 的 active-path `.git` 已完成 Q5 ledger。后续论文项目应从一开始使用 MAS-only workspace，不再接触 quest-level Git 日常 lifecycle。
 
 ### Fast-track done criteria before new paper expansion
 
@@ -57,21 +57,21 @@ closeout ledger 证明的是当轮 eligible payload 已完成 restore-proof comp
 - 新 quest smoke：从 task intake 到 route lineage、workspace allocation、snapshot、diff / Canvas projection，全程不调用 `git init`、`git branch`、`git worktree add` 或 Git diff/log 作为 runtime writer/read-model 前置条件；repo-level CLI smoke 已覆盖 `runtime quest-materialize --mode dry_run` 和 `runtime lifecycle-read --surface lineage_route`。
 - 旧 workspace cutover ledger：每个 registry-discovered workspace 有 Git-era inventory、SQLite import、restore-proof archive、compat export、projection equivalence 和 `quest_git_active_path_retired=true` 或明确 skipped reason；repo CLI 已提供 `runtime lifecycle-quest-git-inventory` 与 `runtime lifecycle-quest-git-cutover`。
 - active path 清理：quest `.git`、`.ds/worktrees` 和 `ops/med-deepscientist/runtime/quests/` 不再作为 active runtime status source；残留 archive 只由 restore/import diagnostic 读取。
-- compatibility retirement：默认 CLI/MCP/controller/product entry 不再走 MDS Git compatibility fallback；保留入口必须显式命名为 legacy restore/import diagnostic，并 fail-closed 到只读。当前 repo 已完成默认 lifecycle read fallback retirement 与 legacy reader cutover；真实 workspace Q5 完成前仍保留显式诊断入口。
+- compatibility retirement：默认 CLI/MCP/controller/product entry 不再走 MDS Git compatibility fallback；保留入口必须显式命名为 legacy restore/import diagnostic，并 fail-closed 到只读。当前 repo 已完成默认 lifecycle read fallback retirement 与 legacy reader cutover；current projects Q5/Q6 ledger 已验证，只保留显式诊断入口。
 - doctor-facing layout：实际 workspace 和 README/progress projection 不再向医生展示 MDS/DS 路径；旧路径只在 migration ledger、restore proof 或 maintainer diagnostic 中出现。
 
-### 2026-05-06 real workspace quest Git cutover ledger
+### 2026-05-06 / 2026-05-07 real workspace quest Git cutover ledger
 
 本轮已把 Q5 从纯 planning / dry-run 推进到 safe apply。执行入口是 `runtime lifecycle-quest-git-cutover --mode apply`；该入口只处理 `paused/parked/stopped/completed/failed/cancelled` 且 `active_run_id=null`、`worker_running=false` 的 quest `.git`，对 `active/running/live/unknown` fail-closed 为 audit-only。随后用 `runtime lifecycle-ledger --mode verify --write` 写入 workspace ledger；migration ledger 会读取最新 cutover record，并把 archive manifest、sha256、restore command 与 remaining skipped paths 纳入 `git_lifecycle_cutover`。
 
 | workspace | apply result | verify ledger | remaining gate |
 | --- | --- | --- | --- |
-| DM-CVD / DPCC | `3/5` retired；DM001、DM001 reentry、DPCC004 已 archive/remove | `runtime-lifecycle-20260506-quest-git-cutover-dm-cvd.json`，`git_lifecycle_cutover.status=pending` | DM002 与 DM003 仍是 `active/null-run`，保留 active-path `.git` 并记录 skipped。 |
+| DM-CVD / DPCC | 2026-05-06 `3/5` retired；2026-05-07 追加 DM002、DM003，最终 `5/5` retired | `runtime-lifecycle-20260507-quest-git-cutover-dm-cvd-final-ledger`，`git_lifecycle_cutover.status=verified`；Q6 ledger `runtime-lifecycle-20260507-quest-git-cutover-dm-cvd-q6-retirement`，`compatibility_retirement.allowed=true` | none for current active-path quest Git；DM002/DM003 因本次手动暂停进入 explicit wakeup contract，后续论文执行需正式 wakeup / task intake。 |
 | NF-PitNET | `3/3` retired | `runtime-lifecycle-20260506-quest-git-cutover-nf-pitnet.json`，`git_lifecycle_cutover.status=verified` | none for current active-path quest Git. |
 | AS biologics | `1/1` retired | `runtime-lifecycle-20260506-quest-git-cutover-as-biologics.json`，`git_lifecycle_cutover.status=verified` | none for current active-path quest Git. |
 | HeRR | `0/0` targets | `runtime-lifecycle-20260506-quest-git-cutover-herr.json`，`git_lifecycle_cutover.status=verified` | none. |
 
-因此 current project 口径仍不是 fully retired：NF-PitNET、AS biologics 和 HeRR 已 verified；DM-CVD 仍有两个 active/null-run quest `.git` 等待 stopped/paused controller/operator gate。
+因此 current project 口径已经完成 active-path quest Git retirement：NF-PitNET、AS biologics、HeRR 和 DM-CVD 均 verified；显式 legacy restore/import diagnostic 保留为只读恢复入口，不再是默认 compatibility fallback。
 
 ## 结论
 
@@ -245,10 +245,10 @@ Git 退役后的 runtime 对应关系：
 | `Q2_workspace_materializer` | `codex/mds-sqlite-workspace-materializer` | MDS workspace allocation / runtime storage / restore tests | Repo-level plain quest materializer 与 CLI 已落地：普通目录 + manifest 替代 Git linked worktree；真实 workspace apply/cutover 仍需 controller-authorized ledger。 |
 | `Q3_canvas_and_reader_projection` | `codex/mds-sqlite-canvas-reader` | MDS diff/canvas/read APIs、MAS cockpit/read surfaces | Repo-level `runtime lifecycle-read` 已支持 SQLite-only lineage/allocation/snapshot/diff/Canvas projection 且不 Git fallback；legacy Canvas/branch/revision 调用点仍需逐个删除隐式 Git reader。 |
 | `Q4_project_git_to_sqlite_migrator` | landed via `codex/quest-git-inventory-cutover` plus prior SQLite lanes | migration CLI、fixture tests、real workspace ledger | Repo-level inventory and migration ledger integration 已落地；现有 quest `.git` 可被 inventory 自动纳入 skipped/audit-only，blocked active path 会阻止 verified cutover。真实 workspace import/projection equivalence 仍需在 Q5 ledger 中按项目写入。 |
-| `Q5_current_workspace_cutover` | `codex/current-quest-git-retirement` | 真实 workspace migration ledger；不改 paper truth | Repo-level safe cutover CLI 已落地：eligible quest `.git` 生成 tar.gz archive、sha256 manifest、restore command、cutover latest 后移出 active path；live/unknown workspace 只写 skipped reason。真实 NF-PitNET、DM-CVD/DPCC、AS biologics apply 仍需 fresh gate。 |
-| `Q6_compat_layer_retirement` | landed at repo-default level; final project flag pending | MDS compatibility adapter、tests、docs/status | 默认 lifecycle fallback 已删除，legacy reader 默认不扫 `.ds/worktrees`，保留只读 legacy restore/import diagnostic。只有 current projects Q5 verified 后，才能删除剩余 stale Git compatibility docs/tests 并把 `quest_git_retired_for_current_projects=true` 写入 status。 |
+| `Q5_current_workspace_cutover` | landed for current projects | 真实 workspace migration ledger；不改 paper truth | Repo-level safe cutover CLI 已落地；NF-PitNET、DM-CVD/DPCC、AS biologics 和 HeRR current active-path quest `.git` 已 archive/remove 或 verified zero-target。 |
+| `Q6_compat_layer_retirement` | landed for default runtime path; explicit diagnostic retained | MDS compatibility adapter、tests、docs/status | 默认 lifecycle fallback 已删除，legacy reader 默认不扫 `.ds/worktrees`，保留只读 legacy restore/import diagnostic；`quest_git_retired_for_current_projects=true` 已进入 current status 口径。 |
 
-吸收策略：`Q0-Q4` 与 repo-default `Q6` 已吸收；`Q5` 只写真实 workspace ledger 和 archive，不改医学/论文 truth。current projects 全部 cutover verified 前，不把项目级 Git 退役写成完成项。
+吸收策略：`Q0-Q6` 对 current projects 已吸收；`Q5` 只写真实 workspace ledger 和 archive，不改医学/论文 truth。后续新增或重开 workspace 进入同一 gate，不再恢复 quest-level Git 日常 lifecycle。
 
 迁移算法：
 
@@ -648,8 +648,8 @@ Repo 级验收：
 
 当前不再从 `L0` 重新开始；contract、DB-not-tracked guard、compatibility export、migration ledger、current eligible workspace restore-proof compaction 已经进入 landed 口径。剩余工作包按 quest Git 退役 fast-track 排序：
 
-1. `Q5_current_workspace_cutover`：在 NF-PitNET、DM-CVD/DPCC、AS biologics 和 registry-discovered workspace 中先跑 `runtime lifecycle-quest-git-inventory`，再对 safe gate 通过的 quest 跑 `runtime lifecycle-quest-git-cutover --mode apply`，把 quest `.git` 移出 active runtime path 并写 cutover ledger；blocked/live/unknown workspace 只写 skipped reason。
-2. `Q5_verify_ledger`：用 `runtime lifecycle-ledger --mode verify` 把 quest Git cutover status、archive manifest、restore proof 和 compatibility export 记录到 workspace ledger；不得 patch paper/current_package/publication/controller truth。
-3. `Q6_project_flag_closeout`：只有所有 current projects 的 Q5 ledger verified 后，才更新 `docs/status.md` 为 `quest_git_retired_for_current_projects=true`，并清理剩余 stale Git compatibility docs/tests；显式 legacy restore/import diagnostic 继续保留。
+1. `post_cutover_guard`：新增或重开 workspace 时先跑 `runtime lifecycle-quest-git-inventory`，确认 active path 没有 quest `.git`；若有，必须通过同一 safe cutover ledger 处理。
+2. `diagnostic_only_restore`：legacy restore/import 只能通过显式 diagnostic 入口读取 archive；默认 CLI/MCP/controller/product entry 不得回退到 MDS Git reader。
+3. `workspace_layout_demds`：下一轮去 MDS/DS 化应集中在真实 workspace 用户可见路径、profile/docs 和 quest 管理命名，不再阻塞 quest-level Git retirement。
 
-这组工作完成后，本 program 的目标状态才可写成“Git retired for current projects”。在此之前，只能说 repo-side contract 和 current eligible storage compaction 已完成，compatibility reader 仍是迁移安全阀。
+这组工作完成后，本 program 的当前项目口径可写成“Git retired for current projects”。compatibility reader 不再是默认迁移安全阀；只剩 archive restore/import diagnostic。
