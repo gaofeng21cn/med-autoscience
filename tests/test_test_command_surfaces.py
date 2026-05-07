@@ -346,13 +346,14 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert "export PYTHONDONTWRITEBYTECODE=1" in verify_script
     assert 'export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider"' in verify_script
     assert "run_sanity_checks() {" in verify_script
-    assert "uv run python scripts/repo_hygiene_audit.py" in verify_script
+    assert "python scripts/repo_hygiene_audit.py" in verify_script
+    assert 'PYTHONPATH="${repo_root}/src${PYTHONPATH:+:${PYTHONPATH}}" python scripts/line_budget.py' in verify_script
     assert "git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\\|\\|\\|\\|\\|\\|\\| )' -- ." in verify_script
     assert "while IFS= read -r python_file; do" in verify_script
     assert "python_files+=(\"${python_file}\")" in verify_script
     assert "done < <(git ls-files '*.py')" in verify_script
     assert "mapfile" not in verify_script
-    assert 'uv run python - "${python_files[@]}" <<\'PY\'' in verify_script
+    assert 'python - "${python_files[@]}" <<\'PY\'' in verify_script
     assert "py_compile.compile(python_file, cfile=str(bytecode_path), doraise=True)" in verify_script
     assert "run_sanity_checks" in verify_script
     assert 'if [[ -z "${lane}" ]]; then' in verify_script
@@ -407,24 +408,24 @@ def test_verify_script_writes_single_lane_summary(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     fake_make.chmod(0o755)
-    fake_uv = fake_bin / "uv"
-    fake_uv.write_text(
+    fake_python = fake_bin / "python"
+    fake_python.write_text(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
-        "if [[ \"$1\" == \"run\" && \"$2\" == \"python\" && \"$3\" == \"scripts/repo_hygiene_audit.py\" ]]; then\n"
+        "if [[ \"$1\" == \"scripts/repo_hygiene_audit.py\" ]]; then\n"
         "  exit 0\n"
         "fi\n"
-        "if [[ \"$1\" == \"run\" && \"$2\" == \"python\" && \"$3\" == \"scripts/line_budget.py\" ]]; then\n"
+        "if [[ \"$1\" == \"scripts/line_budget.py\" ]]; then\n"
         "  exit 0\n"
         "fi\n"
-        "if [[ \"$1\" == \"run\" && \"$2\" == \"python\" && \"$3\" == \"-\" ]]; then\n"
+        "if [[ \"$1\" == \"-\" ]]; then\n"
         "  exit 0\n"
         "fi\n"
-        "echo \"unexpected fake uv $*\" >&2\n"
+        "echo \"unexpected fake python $*\" >&2\n"
         "exit 2\n",
         encoding="utf-8",
     )
-    fake_uv.chmod(0o755)
+    fake_python.chmod(0o755)
     summary_path = tmp_path / "summary" / "smoke.json"
     env = os.environ.copy()
     env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"

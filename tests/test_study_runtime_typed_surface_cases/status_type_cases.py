@@ -12,13 +12,16 @@ def test_study_runtime_types_reexports_status_and_execution_surfaces_from_split_
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
     execution_surface = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    execution_types = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.execution_types"
+    )
 
     assert typed_surface.StudyRuntimeStatus is status_surface.StudyRuntimeStatus
     assert typed_surface.StudyRuntimeExecutionContext is execution_surface.StudyRuntimeExecutionContext
     assert typed_surface.StudyRuntimeExecutionOutcome is execution_surface.StudyRuntimeExecutionOutcome
     assert typed_surface.StudyRuntimeStatus.__module__ == status_surface.__name__
-    assert typed_surface.StudyRuntimeExecutionContext.__module__ == execution_surface.__name__
-    assert typed_surface.StudyRuntimeExecutionOutcome.__module__ == execution_surface.__name__
+    assert typed_surface.StudyRuntimeExecutionContext.__module__ == execution_types.__name__
+    assert typed_surface.StudyRuntimeExecutionOutcome.__module__ == execution_types.__name__
 def test_study_runtime_types_reexports_publication_supervisor_surface() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
@@ -48,6 +51,9 @@ def test_study_runtime_router_reexports_typed_surface_from_study_runtime_types()
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.study_runtime_status")
     execution_surface = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    execution_types = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.execution_types"
+    )
 
     assert router.StudyRuntimeDecision is typed_surface.StudyRuntimeDecision
     assert router.StudyRuntimeReason is typed_surface.StudyRuntimeReason
@@ -71,14 +77,17 @@ def test_study_runtime_router_reexports_typed_surface_from_study_runtime_types()
     assert router.StudyRuntimeExecutionContext is typed_surface.StudyRuntimeExecutionContext
     assert router.StudyRuntimeExecutionOutcome is typed_surface.StudyRuntimeExecutionOutcome
     assert router.StudyRuntimeStatus.__module__ == status_surface.__name__
-    assert router.StudyRuntimeExecutionContext.__module__ == execution_surface.__name__
-    assert router.StudyRuntimeExecutionOutcome.__module__ == execution_surface.__name__
+    assert router.StudyRuntimeExecutionContext.__module__ == execution_types.__name__
+    assert router.StudyRuntimeExecutionOutcome.__module__ == execution_types.__name__
     assert router.study_runtime_status.__module__ == router.__name__
     assert router.ensure_study_runtime.__module__ == router.__name__
 def test_study_runtime_types_reexports_status_and_execution_modules() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_module = importlib.import_module("med_autoscience.controllers.study_runtime_status")
     execution_module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    execution_types = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.execution_types"
+    )
 
     assert typed_surface.StudyRuntimeStatus is status_module.StudyRuntimeStatus
     assert typed_surface.StudyRuntimeDecision is status_module.StudyRuntimeDecision
@@ -86,7 +95,7 @@ def test_study_runtime_types_reexports_status_and_execution_modules() -> None:
     assert typed_surface.StudyRuntimeExecutionContext is execution_module.StudyRuntimeExecutionContext
     assert typed_surface.StudyRuntimeExecutionOutcome is execution_module.StudyRuntimeExecutionOutcome
     assert typed_surface.StudyRuntimeStatus.__module__ == status_module.__name__
-    assert typed_surface.StudyRuntimeExecutionOutcome.__module__ == execution_module.__name__
+    assert typed_surface.StudyRuntimeExecutionOutcome.__module__ == execution_types.__name__
 def test_study_runtime_reason_drops_legacy_med_deepscientist_only_owner_label() -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
 

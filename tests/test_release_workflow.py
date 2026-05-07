@@ -116,9 +116,21 @@ def test_ci_and_advisory_workflows_split_system_dependencies_by_lane() -> None:
 def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
+    uv_no_project_jobs = [
+        _workflow_job(ci_workflow, "quick-checks"),
+        _workflow_job(advisory_workflow, "regression"),
+        _workflow_job(advisory_workflow, "meta-contracts"),
+        _workflow_job(advisory_workflow, "family-shared"),
+        _workflow_job(advisory_workflow, "submission-surface"),
+        _workflow_job(advisory_workflow, "display-surface"),
+    ]
 
     assert "uv sync --frozen --group dev" in ci_workflow
     assert "uv sync --frozen --group dev" in advisory_workflow
+    for workflow_job in uv_no_project_jobs:
+        assert "uv sync --frozen --group dev --no-install-project" in workflow_job
+        assert "PYTHONPATH: src" in workflow_job
+        assert 'UV_NO_SYNC: "1"' in workflow_job
     assert "enable-cache: true" in ci_workflow
     assert "enable-cache: true" in advisory_workflow
     assert ci_workflow.count("cache-dependency-glob: |") == 1

@@ -49,7 +49,7 @@ class PreflightCoverageAudit:
 GENERIC_PYTHON_REGRESSION_CATEGORY = "generic_python_regression_surface"
 DOCUMENTATION_REVIEW_CATEGORY = "documentation_review_only"
 
-_DOC_ONLY_PREFIX_PATHS = ("docs/",)
+_DOC_ONLY_PREFIX_PATHS = ("docs/", "bootstrap/")
 _DOC_ONLY_ROOT_FILE_PATTERNS = ("README*.md",)
 
 
@@ -129,6 +129,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/controllers/study_runtime_router.py",
             "src/med_autoscience/controllers/study_runtime_startup.py",
             "src/med_autoscience/controllers/study_runtime_status.py",
+            "profiles/workspace.profile.template.toml",
             "src/med_autoscience/profiles.py",
             "src/med_autoscience/runtime_transport/hermes.py",
             "src/med_autoscience/runtime_transport/med_deepscientist.py",

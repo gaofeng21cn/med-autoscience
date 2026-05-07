@@ -76,7 +76,7 @@ def test_preflight_contract_report_lists_categories_and_planned_commands() -> No
     doc_review = categories[module.DOCUMENTATION_REVIEW_CATEGORY]
     assert doc_review["category"] == module.DOCUMENTATION_REVIEW_CATEGORY
     assert doc_review["exact_paths"] == []
-    assert doc_review["prefix_paths"] == ["docs/"]
+    assert doc_review["prefix_paths"] == ["docs/", "bootstrap/"]
     assert doc_review["root_file_patterns"] == ["README*.md"]
     assert doc_review["owner_surface"] == {
         "exact_paths": doc_review["exact_paths"],
@@ -220,6 +220,7 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "docs/runtime/example-runtime-contract.md",
             "src/med_autoscience/profiles.py",
             "src/med_autoscience/runtime_backend.py",
+            "profiles/workspace.profile.template.toml",
             "src/med_autoscience/controllers/study_outer_loop.py",
             "src/med_autoscience/controllers/study_runtime_execution.py",
             "src/med_autoscience/controllers/study_runtime_decision.py",
@@ -442,6 +443,7 @@ def test_classify_changed_files_routes_public_docs_to_review_only() -> None:
         [
             "README.md",
             "README.zh-CN.md",
+            "bootstrap/README.md",
             "docs/example.md",
             "docs/references/example-reference.md",
         ]

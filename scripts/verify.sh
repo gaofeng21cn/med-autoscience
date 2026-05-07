@@ -7,8 +7,8 @@ export PYTHONDONTWRITEBYTECODE=1
 export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider"
 
 run_sanity_checks() {
-  uv run python scripts/repo_hygiene_audit.py
-  uv run python scripts/line_budget.py
+  python scripts/repo_hygiene_audit.py
+  PYTHONPATH="${repo_root}/src${PYTHONPATH:+:${PYTHONPATH}}" python scripts/line_budget.py
 
   if git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\|\|\|\|\|\|\| )' -- .; then
     echo "verify.sh: unresolved merge conflict markers detected" >&2
@@ -24,7 +24,7 @@ run_sanity_checks() {
   done < <(git ls-files '*.py')
 
   if [[ "${#python_files[@]}" -gt 0 ]]; then
-    uv run python - "${python_files[@]}" <<'PY'
+    python - "${python_files[@]}" <<'PY'
 from __future__ import annotations
 
 import pathlib

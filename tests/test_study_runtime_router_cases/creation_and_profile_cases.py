@@ -248,8 +248,11 @@ def test_study_runtime_status_refreshes_stale_launch_report_for_stopped_quest(
         "launch_report_active_run_id": None,
         "launch_report_runtime_liveness_status": None,
         "launch_report_supervisor_tick_status": None,
+        "launch_report_stale": False,
         "aligned": False,
         "mismatch_reason": "launch_report_quest_status_mismatch",
+        "stale_launch_report_active_run_id": None,
+        "stale_launch_report_runtime_liveness_status": None,
         "status_sync_applied": True,
     }
     refreshed_launch_report = json.loads(

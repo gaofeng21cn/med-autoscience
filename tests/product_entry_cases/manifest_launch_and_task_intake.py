@@ -405,12 +405,15 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
 
 def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
+    launch_surface = importlib.import_module(
+        "med_autoscience.controllers.product_entry_parts.workspace_cockpit.launch_surface"
+    )
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
 
     monkeypatch.setattr(
-        module.study_runtime_router,
+        launch_surface.study_runtime_router,
         "ensure_study_runtime",
         lambda **kwargs: {
             "study_id": "001-risk",
@@ -420,7 +423,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
         },
     )
     monkeypatch.setattr(
-        module.study_progress,
+        launch_surface.study_progress,
         "build_study_progress_projection",
         lambda **kwargs: {
             "study_id": "001-risk",
@@ -483,7 +486,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
         },
     )
     monkeypatch.setattr(
-        module.study_progress,
+        launch_surface.study_progress,
         "read_study_progress",
         lambda **kwargs: (_ for _ in ()).throw(AssertionError("launch_study should reuse the runtime status payload")),
     )

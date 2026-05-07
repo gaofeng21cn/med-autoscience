@@ -14,6 +14,9 @@ jobs:
   quick-checks:
     runs-on: macOS-latest
     name: Run change-aware CI preflight and build
+    env:
+      PYTHONPATH: src
+      UV_NO_SYNC: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -34,7 +37,7 @@ jobs:
             pyproject.toml
 
       - name: Install dependencies
-        run: uv sync --frozen --group dev
+        run: uv sync --frozen --group dev --no-install-project
 
       - name: Run change-aware CI preflight
         run: scripts/verify.sh ci-preflight "${{ github.event.before }}"

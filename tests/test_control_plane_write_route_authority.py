@@ -27,7 +27,7 @@ WRITE_ROUTE_SURFACES = (
         "delivery_sync",
     ),
     (
-        REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync_parts/delivery_descriptions.py",
+        REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync_parts/submission_delivery_descriptions.py",
         "materialize_submission_delivery_stale_notice",
         "submission_notice_materialize",
     ),
@@ -51,6 +51,10 @@ LOWER_LEVEL_DELIVERY_HELPERS = {
     "sync_journal_specific_delivery",
     "sync_promoted_journal_delivery",
 }
+LOWER_LEVEL_DELIVERY_HELPER_SURFACES = (
+    REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync_parts/delivery_stage_sync.py",
+    REPO_ROOT / "src/med_autoscience/controllers/study_delivery_sync_parts/promoted_journal_delivery.py",
+)
 
 MUTATING_ENTRY_PREFIXES = ("create_", "materialize_", "replay_", "sync_")
 
@@ -578,6 +582,7 @@ def test_new_public_mutating_delivery_entries_must_be_explicitly_registered() ->
     for path in {
         *(path for path, _function_name, _route_action in WRITE_ROUTE_SURFACES),
         *(path for path, _function_name in ROUTE_CONTEXT_REPLAY_SURFACES),
+        *LOWER_LEVEL_DELIVERY_HELPER_SURFACES,
     }:
         actual_public_entries.update(_public_mutating_entry_names(path))
 

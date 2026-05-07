@@ -15,6 +15,8 @@ jobs:
     name: Run regression advisory tests
     continue-on-error: true
     env:
+      PYTHONPATH: src
+      UV_NO_SYNC: "1"
       MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/regression.json
     steps:
       - name: Checkout repository
@@ -34,7 +36,7 @@ jobs:
             pyproject.toml
 
       - name: Install dependencies
-        run: uv sync --frozen --group dev
+        run: uv sync --frozen --group dev --no-install-project
 
       - name: Run regression tests
         run: scripts/verify.sh regression
@@ -59,6 +61,8 @@ jobs:
     name: Run meta advisory tests
     continue-on-error: true
     env:
+      PYTHONPATH: src
+      UV_NO_SYNC: "1"
       MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/meta.json
     steps:
       - name: Checkout repository
@@ -78,7 +82,7 @@ jobs:
             pyproject.toml
 
       - name: Install dependencies
-        run: uv sync --frozen --group dev
+        run: uv sync --frozen --group dev --no-install-project
 
       - name: Run meta tests
         run: scripts/verify.sh meta
@@ -103,6 +107,8 @@ jobs:
     name: Run family shared advisory tests
     continue-on-error: true
     env:
+      PYTHONPATH: src
+      UV_NO_SYNC: "1"
       MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/family.json
     steps:
       - name: Checkout repository
@@ -122,7 +128,7 @@ jobs:
             pyproject.toml
 
       - name: Install dependencies
-        run: uv sync --frozen --group dev
+        run: uv sync --frozen --group dev --no-install-project
 
       - name: Run family shared tests
         run: scripts/verify.sh family
@@ -147,6 +153,8 @@ jobs:
     name: Run submission-heavy advisory tests
     continue-on-error: true
     env:
+      PYTHONPATH: src
+      UV_NO_SYNC: "1"
       MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/submission.json
     steps:
       - name: Checkout repository
@@ -176,7 +184,7 @@ jobs:
           /Library/TeX/texbin/xelatex --version | head -n 1
 
       - name: Install dependencies
-        run: uv sync --frozen --group dev
+        run: uv sync --frozen --group dev --no-install-project
 
       - name: Run submission tests
         run: scripts/verify.sh submission
@@ -201,6 +209,8 @@ jobs:
     name: Run display-heavy advisory tests
     continue-on-error: true
     env:
+      PYTHONPATH: src
+      UV_NO_SYNC: "1"
       MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/display.json
     steps:
       - name: Checkout repository
@@ -233,7 +243,7 @@ jobs:
           /Library/TeX/texbin/xelatex --version | head -n 1
 
       - name: Install dependencies
-        run: uv sync --frozen --group dev
+        run: uv sync --frozen --group dev --no-install-project
 
       - name: Ensure study runtime analysis bundle
         run: |
