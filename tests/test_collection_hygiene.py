@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import subprocess
 import sys
 import fnmatch
@@ -13,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 AGGREGATE_ENTRYPOINT_COLLECTION_COUNT_FLOOR = 139
 NESTED_STRUCTURE_PARENT_NAMES = {"cases", "modules", "parts"}
+TEST_LANE_MANIFEST_PATH = REPO_ROOT / "contracts" / "test-lane-manifest.json"
 
 AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": {
@@ -115,6 +117,10 @@ def _current_nested_case_module_paths() -> set[str]:
 
 def _read(relative_path: str) -> str:
     return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def _test_lane_manifest() -> dict[str, object]:
+    return json.loads(TEST_LANE_MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
 def _is_nested_structure_module_path(relative_path: Path) -> bool:
@@ -267,6 +273,28 @@ def test_nested_case_collection_ignore_globs_are_declared() -> None:
     assert tests_conftest.collect_ignore_glob == list(
         tests_conftest.NESTED_CASE_COLLECTION_IGNORE_GLOBS
     )
+
+
+def test_test_lane_manifest_declares_known_overlap_policy() -> None:
+    manifest = _test_lane_manifest()
+
+    assert manifest["schema_version"] == 1
+    assert manifest["focused_lanes"]["control-plane"] == {
+        "kind": "focused_owner_surface_gate",
+        "overlap_policy": "allowed_with_regression",
+    }
+    assert manifest["lanes"]["smoke"]["overlap_policy"] == "entry_contract_only"
+
+
+def test_family_files_are_not_meta_owned() -> None:
+    family_files = {
+        "tests/test_dev_preflight.py",
+        "tests/test_dev_preflight_contract.py",
+        "tests/test_editable_shared_bootstrap.py",
+        "tests/test_family_shared_release.py",
+    }
+
+    assert family_files.isdisjoint(tests_conftest.META_FILES)
 
 
 def test_nested_structure_modules_are_explicitly_classified() -> None:

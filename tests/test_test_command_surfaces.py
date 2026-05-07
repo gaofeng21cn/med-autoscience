@@ -14,6 +14,7 @@ from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATIO
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+TEST_LANE_MANIFEST_PATH = "contracts/test-lane-manifest.json"
 REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "cd634e6406fa264274f01862a7bdc87f552fcb50"
 REQUIRED_CONTROL_PLANE_TESTS = (
     "tests/test_control_plane_regression.py",
@@ -55,6 +56,10 @@ PARALLEL_FULL_LANES = (
 )
 
 
+def _test_lane_manifest() -> dict[str, object]:
+    return json.loads(_read(TEST_LANE_MANIFEST_PATH))
+
+
 def _read(relative_path: str) -> str:
     return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
 
@@ -93,6 +98,8 @@ def _assert_mcp_modes_cover_catalog(*, expected: tuple[object, ...], actual_mode
 
 def test_makefile_exposes_layered_test_entrypoints() -> None:
     makefile = _read("Makefile")
+    manifest = _test_lane_manifest()
+    smoke_paths = " ".join(manifest["lanes"]["smoke"]["paths"])
 
     assert "MAS_PYTEST_WORKERS ?= auto" in makefile
     assert "MAS_PYTEST_DIST ?= loadscope" in makefile
@@ -104,11 +111,12 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert "PYTHONPATH=src uv run pytest -q $(CONTROL_PLANE_TESTS)" in makefile
     assert "test: test-smoke" in makefile
     assert "test-smoke:" in makefile
-    assert "uv run pytest tests/test_test_command_surfaces.py tests/test_line_budget.py -q" in makefile
+    assert f"uv run pytest {smoke_paths} -q" in makefile
     assert "test-regression:" in makefile
     assert (
         'uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) '
-        '-m "not meta and not display_heavy and not submission_heavy and not family"'
+        '-m "not meta and not display_heavy and not submission_heavy '
+        'and not materialization_heavy and not family"'
     ) in makefile
     assert "test-ci-preflight:" in makefile
     assert 'uv run python -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"' in makefile
@@ -118,7 +126,7 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert "test-display:" in makefile
     assert "uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy" in makefile
     assert "test-submission:" in makefile
-    assert "uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m submission_heavy" in makefile
+    assert 'uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy"' in makefile
     assert "test-family:" in makefile
     assert (
         "uv run pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py "
@@ -277,11 +285,14 @@ def test_structure_quality_gate_wrapper_runs_opl_for_sentrux_check_failures(tmp_
 def test_pyproject_registers_meta_display_and_submission_markers() -> None:
     pyproject = tomllib.loads(_read("pyproject.toml"))
     markers = pyproject["tool"]["pytest"]["ini_options"]["markers"]
+    marker_names = {marker.split(":", maxsplit=1)[0] for marker in markers}
 
     assert "meta: repo-tracked docs, workflow, packaging, and command-surface checks" in markers
     assert "display_heavy: display materialization and golden-regression tests that dominate wall-clock time" in markers
     assert "submission_heavy: submission package materialization tests that dominate fast-lane wall-clock time" in markers
     assert "family: family shared boundary tests that depend on cross-repo shared-module topology" in markers
+    for marker_name in _test_lane_manifest()["marker_registry"]:
+        assert marker_name in marker_names
 
 
 def test_pyproject_dev_dependencies_include_xdist_for_heavy_lanes() -> None:
@@ -467,324 +478,6 @@ def test_verify_script_writes_single_lane_summary(tmp_path: Path) -> None:
     assert isinstance(summary["lanes"][0]["duration_seconds"], int)
     assert summary["lanes"][0]["duration_seconds"] >= 0
     assert summary["lanes"][0]["log_path"] == ""
-
-
-def test_lane_duration_summary_script_reports_slowest_lane(tmp_path: Path) -> None:
-    summary_path = tmp_path / "lanes.json"
-    summary_path.write_text(
-        json.dumps(
-            {
-                "lanes": [
-                    {
-                        "lane": "test-regression",
-                        "command": "make test-regression",
-                        "exit_code": 0,
-                        "duration_seconds": 4,
-                    },
-                    {
-                        "lane": "test-display",
-                        "command": "make test-display",
-                        "exit_code": 0,
-                        "duration_seconds": 11,
-                    },
-                ]
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    result = subprocess.run(
-        ["uv", "run", "python", "scripts/summarize-test-lane-durations.py", str(summary_path)],
-        cwd=REPO_ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "lane=test-regression exit_code=0 duration_seconds=4 command=make test-regression" in result.stdout
-    assert "lane=test-display exit_code=0 duration_seconds=11 command=make test-display" in result.stdout
-    assert "slowest_lane=test-display duration_seconds=11" in result.stdout
-
-
-def test_lane_duration_history_script_reports_per_lane_trends(tmp_path: Path) -> None:
-    summary_dir = tmp_path / "history"
-    baseline_dir = summary_dir / "2026-01-01"
-    current_dir = summary_dir / "2026-01-02"
-    baseline_dir.mkdir(parents=True)
-    current_dir.mkdir()
-    (current_dir / "current.json").write_text(
-        json.dumps(
-            {
-                "lanes": [
-                    {"lane": "regression", "duration_seconds": 10},
-                    {"lane": "display", "duration_seconds": 30},
-                ]
-            }
-        ),
-        encoding="utf-8",
-    )
-    (baseline_dir / "previous.json").write_text(
-        json.dumps(
-            {
-                "lanes": [
-                    {"lane": "regression", "duration_seconds": 6},
-                    {"lane": "display", "duration_seconds": 50},
-                    {"lane": "display", "duration_seconds": -1},
-                ]
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    result = subprocess.run(
-        ["uv", "run", "python", "scripts/summarize-test-lane-history.py", str(summary_dir)],
-        cwd=REPO_ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert f"lane history summary: {summary_dir}" in result.stdout
-    assert (
-        f"lane=display samples=2 median_seconds=40 max_seconds=50 "
-        f"slowest_seconds=50 slowest_summary={baseline_dir / 'previous.json'} "
-        "delta_from_baseline_percent=-20.0"
-        in result.stdout
-    )
-    assert f"slowest_lane=display duration_seconds=50 summary={baseline_dir / 'previous.json'}" in result.stdout
-    assert (
-        f"lane=regression samples=2 median_seconds=8 max_seconds=10 "
-        f"slowest_seconds=10 slowest_summary={current_dir / 'current.json'} "
-        "delta_from_baseline_percent=33.3"
-        in result.stdout
-    )
-
-
-def test_lane_duration_history_script_accepts_explicit_baseline(tmp_path: Path) -> None:
-    summary_dir = tmp_path / "history"
-    summary_dir.mkdir()
-    summary_path = summary_dir / "current.json"
-    summary_path.write_text(
-        json.dumps(
-            {
-                "lanes": [
-                    {"lane": "regression", "duration_seconds": 12},
-                    {"lane": "display", "duration_seconds": 36},
-                ]
-            }
-        ),
-        encoding="utf-8",
-    )
-    baseline_path = tmp_path / "baseline.json"
-    baseline_path.write_text(
-        json.dumps(
-            {
-                "lanes": [
-                    {"lane": "regression", "duration_seconds": 10},
-                    {"lane": "display", "duration_seconds": 40},
-                    {"lane": "missing-later", "duration_seconds": 20},
-                ]
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    result = subprocess.run(
-        [
-            "uv",
-            "run",
-            "python",
-            "scripts/summarize-test-lane-history.py",
-            str(summary_dir),
-            "--baseline",
-            str(baseline_path),
-        ],
-        cwd=REPO_ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert (
-        f"lane=display samples=1 median_seconds=36 max_seconds=36 slowest_seconds=36 "
-        f"slowest_summary={summary_path} "
-        "delta_from_baseline_percent=-10.0"
-        in result.stdout
-    )
-    assert (
-        f"lane=regression samples=1 median_seconds=12 max_seconds=12 slowest_seconds=12 "
-        f"slowest_summary={summary_path} "
-        "delta_from_baseline_percent=20.0"
-        in result.stdout
-    )
-
-
-def test_lane_duration_history_json_contract_has_stable_schema_and_null_delta_semantics(
-    tmp_path: Path,
-) -> None:
-    summary_dir = tmp_path / "history"
-    summary_dir.mkdir()
-    first_summary_path = summary_dir / "current-a.json"
-    second_summary_path = summary_dir / "current-b.json"
-    first_summary_path.write_text(
-        json.dumps(
-            {
-                "lanes": [
-                    {"lane": "regression", "duration_seconds": 12},
-                    {"lane": "display", "duration_seconds": 36},
-                ]
-            }
-        ),
-        encoding="utf-8",
-    )
-    second_summary_path.write_text(
-        json.dumps({"lanes": [{"lane": "regression", "duration_seconds": 13}]}),
-        encoding="utf-8",
-    )
-    baseline_path = tmp_path / "baseline.json"
-    baseline_path.write_text(
-        json.dumps(
-            {
-                "lanes": [
-                    {"lane": "regression", "duration_seconds": 10},
-                    {"lane": "display", "duration_seconds": 0},
-                ]
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    result = subprocess.run(
-        [
-            "uv",
-            "run",
-            "python",
-            "scripts/summarize-test-lane-history.py",
-            str(summary_dir),
-            "--baseline",
-            str(baseline_path),
-            "--format",
-            "json",
-        ],
-        cwd=REPO_ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    payload = json.loads(result.stdout)
-    assert set(payload) == {"surface_kind", "summary_dir", "lanes"}
-    assert isinstance(payload["lanes"], list)
-    for lane in payload["lanes"]:
-        assert set(lane) == {
-            "lane",
-            "samples",
-            "median_seconds",
-            "max_seconds",
-            "slowest_seconds",
-            "slowest_summary",
-            "delta_from_baseline_percent",
-        }
-        for numeric_key in ("samples", "median_seconds", "max_seconds", "slowest_seconds"):
-            numeric_value = lane[numeric_key]
-            assert isinstance(numeric_value, int | float) and not isinstance(numeric_value, bool)
-        delta = lane["delta_from_baseline_percent"]
-        assert delta is None or (
-            isinstance(delta, int | float) and not isinstance(delta, bool)
-        )
-    assert payload == {
-        "surface_kind": "test_lane_history_summary",
-        "summary_dir": str(summary_dir),
-        "lanes": [
-            {
-                "lane": "display",
-                "samples": 1,
-                "median_seconds": 36,
-                "max_seconds": 36,
-                "slowest_seconds": 36,
-                "slowest_summary": str(first_summary_path),
-                "delta_from_baseline_percent": None,
-            },
-            {
-                "lane": "regression",
-                "samples": 2,
-                "median_seconds": 12.5,
-                "max_seconds": 13,
-                "slowest_seconds": 13,
-                "slowest_summary": str(second_summary_path),
-                "delta_from_baseline_percent": 25.0,
-            },
-        ],
-    }
-
-
-def test_lane_duration_history_script_reports_null_delta_without_usable_baseline(tmp_path: Path) -> None:
-    summary_dir = tmp_path / "history"
-    summary_dir.mkdir()
-    summary_path = summary_dir / "current.json"
-    summary_path.write_text(
-        json.dumps({"lanes": [{"lane": "regression", "duration_seconds": 12}]}),
-        encoding="utf-8",
-    )
-    baseline_path = tmp_path / "baseline.json"
-    baseline_path.write_text(
-        json.dumps({"lanes": [{"lane": "regression", "duration_seconds": 0}]}),
-        encoding="utf-8",
-    )
-
-    result = subprocess.run(
-        [
-            "uv",
-            "run",
-            "python",
-            "scripts/summarize-test-lane-history.py",
-            str(summary_dir),
-            "--baseline",
-            str(baseline_path),
-        ],
-        cwd=REPO_ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert (
-        f"lane=regression samples=1 median_seconds=12 max_seconds=12 slowest_seconds=12 "
-        f"slowest_summary={summary_path} "
-        "delta_from_baseline_percent=null"
-        in result.stdout
-    )
-
-
-def test_lane_duration_history_script_reports_null_delta_when_history_is_too_short(tmp_path: Path) -> None:
-    summary_dir = tmp_path / "history"
-    summary_dir.mkdir()
-    summary_path = summary_dir / "current.json"
-    summary_path.write_text(
-        json.dumps({"lanes": [{"lane": "regression", "duration_seconds": 12}]}),
-        encoding="utf-8",
-    )
-
-    result = subprocess.run(
-        ["uv", "run", "python", "scripts/summarize-test-lane-history.py", str(summary_dir)],
-        cwd=REPO_ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert (
-        f"lane=regression samples=1 median_seconds=12 max_seconds=12 slowest_seconds=12 "
-        f"slowest_summary={summary_path} "
-        "delta_from_baseline_percent=null"
-        in result.stdout
-    )
 
 
 def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:

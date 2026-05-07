@@ -18,6 +18,7 @@
 - [MAS 单项目质量与自治主线](./mas_single_project_quality_and_autonomy_mainline.md)
 - [AI-first research OS architecture](./ai_first_research_os_architecture.md)
 - [MAS 模块化评估 2026-05-07](./mas_modularity_assessment_2026_05_07.md)
+- [MAS 测试 lane 治理 2026-05-08](./test_lane_governance_2026_05_08.md)
 - [项目修复优先级图](./project_repair_priority_map.md)
 - [Series doc governance checklist](./series-doc-governance-checklist.md)
 

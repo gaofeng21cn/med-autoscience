@@ -61,4 +61,8 @@ markers = [
   "display_heavy: display materialization and golden-regression tests that dominate wall-clock time",
   "submission_heavy: submission package materialization tests that dominate fast-lane wall-clock time",
   "family: family shared boundary tests that depend on cross-repo shared-module topology",
+  "contract: stable command, schema, and owner-surface contracts that protect public behavior",
+  "integration: cross-entry or cross-module integration tests that are broader than unit contracts",
+  "materialization_heavy: artifact/package materialization tests that should stay out of default regression",
+  "soak_or_golden: long-running soak, golden-regression, or fixture-oracle tests",
 ]

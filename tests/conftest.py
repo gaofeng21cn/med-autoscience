@@ -30,8 +30,6 @@ META_FILES = {
     "tests/test_codex_plugin_installer.py",
     "tests/test_codex_plugin_installer_script.py",
     "tests/test_codex_plugin_scaffold.py",
-    "tests/test_dev_preflight.py",
-    "tests/test_dev_preflight_contract.py",
     "tests/test_med_deepscientist_repo_manifest.py",
     "tests/test_python_environment_contract.py",
     "tests/test_release_installer.py",
@@ -54,8 +52,19 @@ DISPLAY_HEAVY_FILES = {
 }
 
 FAMILY_FILES = {
+    "tests/test_dev_preflight.py",
+    "tests/test_dev_preflight_contract.py",
     "tests/test_editable_shared_bootstrap.py",
     "tests/test_family_shared_release.py",
+}
+
+MATERIALIZATION_HEAVY_FILES = {
+    "tests/test_fast_lane_executor.py",
+    "tests/test_gate_clearing_batch.py",
+    "tests/test_journal_package_controller.py",
+    "tests/test_publication_gate.py",
+    "tests/test_quality_repair_batch.py",
+    "tests/test_study_delivery_sync.py",
 }
 
 WRITE_ROUTE_LEGACY_DEFAULT_FILES = {
@@ -118,6 +127,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             item.add_marker(pytest.mark.display_heavy)
         if relative_path in FAMILY_FILES:
             item.add_marker(pytest.mark.family)
+        if relative_path in MATERIALIZATION_HEAVY_FILES:
+            item.add_marker(pytest.mark.materialization_heavy)
         if relative_path in WRITE_ROUTE_LEGACY_DEFAULT_FILES or relative_path.startswith(
             WRITE_ROUTE_LEGACY_DEFAULT_PREFIXES
         ):

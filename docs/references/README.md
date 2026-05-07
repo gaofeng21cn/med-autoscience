@@ -21,6 +21,7 @@ starts from the core docs:
 - [MAS single-project quality and autonomy mainline](./mas_single_project_quality_and_autonomy_mainline.md)
 - [AI-first research OS architecture](./ai_first_research_os_architecture.md)
 - [MAS modularity assessment 2026-05-07](./mas_modularity_assessment_2026_05_07.md)
+- [MAS test lane governance 2026-05-08](./test_lane_governance_2026_05_08.md)
 - [Project repair priority map](./project_repair_priority_map.md)
 - [Series doc governance checklist](./series-doc-governance-checklist.md)
 

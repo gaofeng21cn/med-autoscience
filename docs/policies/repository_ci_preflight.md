@@ -9,7 +9,7 @@
 - 提交前如果想提前发现高频问题，应优先运行本地 preflight
 - `regression`、`display`、`submission`、`family` 与 `meta` lane 迁入 `macOS Advisory`，支持手动触发和每日定时触发
 - `macOS Advisory` 的 `display-heavy` lane 继续承担 analysis bundle ready 的重型远端回归提示，并显式准备 `BasicTeX`、`graphviz`、`R`、`pkg-config` 与 `libxml2` 支撑 PDF 导出和 R 包编译
-- `macOS Advisory` 的 `submission-heavy` lane 承担 submission-facing DOCX/PDF 产物和投稿包相关回归，并显式准备 `pandoc` 与 `BasicTeX`
+- `macOS Advisory` 的 `submission-heavy` lane 承担 submission-facing DOCX/PDF 产物、投稿包和其他 materialization-heavy 相关回归，并显式准备 `pandoc` 与 `BasicTeX`
 - `macOS Advisory` 的 `family` lane 承担 OPL shared boundary / family shared modules 的跨仓合同提示
 - `macOS Advisory` 的 `meta` lane 承担 repo-tracked contract、docs、workflow 与入口面一致性提示
 - `macOS Advisory` 为重 lane 预留 `MAS_TEST_LANE_SUMMARY_PATH`，并以非阻塞 run log 摘要、artifact 上传 lane summary 和只读 history summary 观察 duration drift、相对基线百分比变化与失败前后的耗时变化
@@ -20,8 +20,8 @@
 
 `smoke`、`regression`、`ci-preflight` 与 `structure` 的职责分开：
 
-- `smoke`：本地默认入口，即不带参数的 `scripts/verify.sh`。它负责快速确认当前 checkout 的基础 sanity 与 fast tests，适合提交前和小改动自检。`line budget` 是有意保留在 smoke 前置 sanity 里的 sanity gate，用来及时发现测试或源码文件继续膨胀；这不改变默认 smoke 的 fast-test 行为。
-- `regression`：显式回归入口，即 `scripts/verify.sh regression`。它负责比 smoke 更宽的行为回归，默认由 advisory/nightly 承接，避免把高漂移或高耗时回归压到每次 push。
+- `smoke`：本地默认入口，即不带参数的 `scripts/verify.sh`。它负责快速确认当前 checkout 的基础 sanity 与最小入口合同，适合提交前和小改动自检。`line budget` 是有意保留在 smoke 前置 sanity 里的 sanity gate，用来及时发现测试或源码文件继续膨胀；smoke 的 pytest 部分保持在 `contracts/test-lane-manifest.json` 声明的最小、无 repo-root 写入入口面内。
+- `regression`：显式回归入口，即 `scripts/verify.sh regression`。它负责比 smoke 更宽的行为回归，默认由 advisory/nightly 承接，避免把高漂移或高耗时回归压到每次 push。默认 regression 明确排除 `meta`、`display_heavy`、`submission_heavy`、`materialization_heavy` 与 `family`，这些面由各自 lane 承担。
 - `ci-preflight`：push CI 入口，即 `scripts/verify.sh ci-preflight <base-ref>`。它负责基于 base ref 展开 checked-in preflight contract，只检查本次变更实际触达的高风险面，并与 build 一起保护主线。
 - `structure`：显式结构入口，即 `scripts/verify.sh structure`。structure lane 继续承担 line budget 与 Sentrux 的结构检查职责；smoke 中的 line budget 只作为轻量 sanity gate，不取代 structure lane。
 
@@ -39,6 +39,18 @@
 
 重 lane 慢测试画像使用只读入口 `scripts/profile-heavy-test-lanes.py --print-only` 生成可复现的
 `pytest --durations` 命令；实际 profiling 由维护者显式运行，不进入 push CI。
+
+## Test Lane Manifest
+
+`contracts/test-lane-manifest.json` 是测试 lane 的机器可读说明面。它不替代 `Makefile` 或 `scripts/verify.sh` 的执行入口，但用于防止 lane 语义在 `Makefile`、`tests/conftest.py`、pytest marker 和文档之间漂移。
+
+维护规则：
+
+- 新增 marker 必须同时进入 `pyproject.toml` 和 manifest 的 `marker_registry`。
+- smoke lane 只能列最小入口测试文件；不得把 subprocess-heavy、fake binary、repo-root 临时写入或完整命令面测试放回 smoke。
+- `control-plane` 是 focused owner-surface gate，允许与 regression 重叠；它不是 `full` 的互斥分区。
+- materialization-heavy 测试默认不进入 regression；submission lane 负责 `submission_heavy or materialization_heavy`。
+- 删除或归档历史单点回归前，必须能指出 lower-level contract、golden fixture、owner surface 或 manifest guard 已覆盖同一失败模式。
 
 ## 何时运行
 

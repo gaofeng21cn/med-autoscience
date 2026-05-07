@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "lanes": {
+    "smoke": {
+      "kind": "minimal_entry_contract",
+      "paths": [
+        "tests/test_smoke_entrypoints.py",
+        "tests/test_line_budget.py"
+      ],
+      "overlap_policy": "entry_contract_only"
+    },
+    "submission": {
+      "kind": "artifact_materialization_gate",
+      "markers": [
+        "submission_heavy",
+        "materialization_heavy"
+      ],
+      "overlap_policy": "excluded_from_default_regression"
+    }
+  },
+  "marker_registry": [
+    "meta",
+    "display_heavy",
+    "submission_heavy",
+    "family",
+    "contract",
+    "integration",
+    "materialization_heavy",
+    "soak_or_golden"
+  ],
+  "focused_lanes": {
+    "control-plane": {
+      "kind": "focused_owner_surface_gate",
+      "overlap_policy": "allowed_with_regression"
+    }
+  }
+}
