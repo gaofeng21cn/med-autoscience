@@ -5,7 +5,7 @@ from typing import Any
 from med_autoscience.controllers.product_entry_parts.paper_orchestra_operator import (
     render_paper_orchestra_operator_projection_lines,
 )
-from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts.cockpit_markdown_sections import (
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown_sections import (
     append_ai_first_cross_study_completion,
     append_ai_first_operations_state,
     append_attention_queue,

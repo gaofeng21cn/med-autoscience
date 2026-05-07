@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts.cockpit_markdown_ai import (
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown_ai import (
     append_ai_first_cross_study_completion,
     append_ai_first_operations_state,
 )
-from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts.cockpit_markdown_header import (
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown_header import (
     append_workspace_cockpit_header,
     append_workspace_supervision_sections,
 )
-from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts.cockpit_markdown_medical import (
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown_medical import (
     append_delivery_inspection_state,
     append_medical_paper_ops_health_state,
     append_medical_paper_readiness_state,
     append_medical_paper_research_loop_state,
     append_medical_paper_v4_operations_state,
 )
-from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts.cockpit_markdown_queue import (
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown_queue import (
     append_attention_queue,
     append_commands,
     append_phase2_user_loop,
@@ -23,7 +23,7 @@ from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts.co
     append_user_loop,
     append_workspace_alerts,
 )
-from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts.cockpit_markdown_studies import (
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown_studies import (
     append_studies,
 )
 

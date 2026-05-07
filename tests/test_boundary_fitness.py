@@ -80,7 +80,7 @@ def test_audit_detects_mechanical_split_residue_without_flagging_semantic_parts(
 def test_audit_reports_boundary_governance_advisories_without_blocking(tmp_path: Path) -> None:
     module = _boundary_fitness_module()
     nested_path = Path(
-        "src/med_autoscience/controllers/product_entry_parts/workspace_surfaces_parts/cockpit_markdown.py"
+        "src/med_autoscience/controllers/study_runtime_decision_parts/runtime_events_parts/human_gates.py"
     )
     shared_base_path = Path("src/med_autoscience/controllers/product_entry_parts/shared_base.py")
     near_limit_path = Path("src/med_autoscience/controllers/study_progress_parts/projection.py")

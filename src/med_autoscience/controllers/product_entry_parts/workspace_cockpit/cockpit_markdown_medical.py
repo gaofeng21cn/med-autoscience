@@ -7,7 +7,7 @@ from med_autoscience.controllers.delivery_visibility_projection import (
     render_delivery_inspection_markdown_lines,
 )
 from med_autoscience.controllers.medical_paper_research_loop import research_loop_markdown_lines
-from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts.cockpit_markdown_common import (
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown_common import (
     readiness_action_card_label,
 )
 

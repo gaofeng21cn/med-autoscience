@@ -14,10 +14,10 @@ from med_autoscience.controllers.product_entry_parts.shared_base import (
     _same_line_route_truth_preview,
 )
 from med_autoscience.controllers.product_entry_parts.shared_labels import _operator_verdict_label
-from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts.cockpit_markdown_common import (
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown_common import (
     readiness_action_card_label,
 )
-from med_autoscience.controllers.product_entry_parts.workspace_surfaces_parts.cockpit_markdown_medical import (
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_markdown_medical import (
     active_item_delivery_inspection_lines,
     active_item_research_loop_lines,
 )

@@ -4,10 +4,10 @@ from importlib import import_module as _import_module
 
 
 _LAZY_MODULES = (
-    ".workspace_surfaces_parts.state_and_study_items",
-    ".workspace_surfaces_parts.cockpit_payload",
-    ".workspace_surfaces_parts.cockpit_markdown",
-    ".workspace_surfaces_parts.launch_surface",
+    ".workspace_cockpit.state_and_study_items",
+    ".workspace_cockpit.cockpit_payload",
+    ".workspace_cockpit.cockpit_markdown",
+    ".workspace_cockpit.launch_surface",
 )
 
 
