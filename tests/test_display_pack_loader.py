@@ -148,39 +148,27 @@ def test_load_enabled_local_display_packs_reads_packaged_default_config(
     install_root.mkdir()
     monkeypatch.setattr(display_pack_loader, "_DEFAULT_REPO_ROOT", install_root)
     manifests = load_enabled_local_display_packs(install_root)
+    template_records = load_enabled_local_display_pack_template_records(install_root)
+    renderer_source = (
+        packaged_root
+        / "display-packs"
+        / CORE_PACK_ID
+        / "src"
+        / "fenggaolab_org_medical_display_core"
+        / "evidence_figures"
+        / "python_registry.py"
+    )
 
     assert [item.pack_id for item in manifests] == [CORE_PACK_ID]
     assert manifests[0].version == "0.1.0"
+    assert template_records
+    assert renderer_source.is_file()
 
 
-def test_packaged_default_display_pack_repo_matches_source_tree() -> None:
+def test_source_tree_does_not_keep_packaged_display_pack_projection() -> None:
     packaged_root = REPO_ROOT / "src" / "med_autoscience" / "resources" / "display_pack_repo"
-    source_roots = (REPO_ROOT / "config", REPO_ROOT / "display-packs")
-    packaged_roots = (packaged_root / "config", packaged_root / "display-packs")
 
-    def _tracked_resource_files(root: Path) -> list[Path]:
-        return sorted(
-            path
-            for path in root.rglob("*")
-            if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
-        )
-
-    source_files = sorted(
-        path.relative_to(root).as_posix()
-        for root in source_roots
-        for path in _tracked_resource_files(root)
-    )
-    packaged_files = sorted(
-        path.relative_to(root).as_posix()
-        for root in packaged_roots
-        for path in _tracked_resource_files(root)
-    )
-
-    assert packaged_files == source_files
-    for source_root, packaged_root_item in zip(source_roots, packaged_roots, strict=True):
-        for source_path in _tracked_resource_files(source_root):
-            relative_path = source_path.relative_to(source_root)
-            assert (packaged_root_item / relative_path).read_bytes() == source_path.read_bytes()
+    assert not packaged_root.exists()
 
 
 def test_load_enabled_local_display_pack_templates_reads_enabled_pack_templates(tmp_path: Path) -> None:
