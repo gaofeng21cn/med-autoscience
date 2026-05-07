@@ -15,6 +15,7 @@ from med_autoscience.profiles import WorkspaceProfile
 
 
 MANAGED_STUDY_AUTO_RECOVERY_SOURCE = "runtime_watch_auto_recovery"
+RECOVERY_DECISIONS = {"create_and_start", "resume", "relaunch_stopped"}
 
 
 def recovery_failure_payload(
@@ -35,6 +36,147 @@ def recovery_failure_payload(
     return payload
 
 
+def _managed_study_roots(profile: WorkspaceProfile) -> list[Path]:
+    return [
+        study_root
+        for study_root in sorted(profile.studies_root.iterdir())
+        if study_root.is_dir() and (study_root / "study.yaml").exists()
+    ]
+
+
+def _runtime_status_payload(*, profile: WorkspaceProfile, study_root: Path) -> dict[str, Any]:
+    return _managed_study_status_payload(
+        study_runtime_router.study_runtime_status(
+            profile=profile,
+            study_root=study_root,
+        )
+    )
+
+
+def _record_requested_runtime_recovery(
+    *,
+    runtime_recovery_payloads: dict[str, dict[str, Any]],
+    study_root: Path,
+    action_payload: dict[str, Any],
+) -> None:
+    action_status_payload = _managed_study_status_payload(action_payload)
+    if str(action_status_payload.get("decision") or "").strip() in RECOVERY_DECISIONS:
+        study_root_key = str(Path(study_root).expanduser().resolve())
+        runtime_recovery_payloads[study_root_key] = action_status_payload
+
+
+def _apply_managed_study_status(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+    auto_recoveries: list[dict[str, Any]],
+    runtime_recovery_payloads: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    if _study_requests_gate_specificity_terminal(study_root=study_root):
+        return _runtime_status_payload(profile=profile, study_root=study_root)
+    try:
+        action_payload = study_runtime_router.ensure_study_runtime(
+            profile=profile,
+            study_root=study_root,
+            source="runtime_watch",
+        )
+        _record_requested_runtime_recovery(
+            runtime_recovery_payloads=runtime_recovery_payloads,
+            study_root=study_root,
+            action_payload=action_payload,
+        )
+        return action_payload
+    except Exception as exc:
+        preflight_payload = _runtime_status_payload(profile=profile, study_root=study_root)
+        action_payload = recovery_failure_payload(
+            preflight_payload=preflight_payload,
+            error=exc,
+        )
+        auto_recoveries.append(
+            _serialize_managed_study_auto_recovery(
+                preflight_payload=preflight_payload,
+                applied_payload=action_payload,
+                source="runtime_watch",
+            )
+        )
+        return action_payload
+
+
+def _auto_recovery_action_payload(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+    preflight_payload: dict[str, Any],
+    recovery_holds: list[dict[str, Any]],
+    runtime_recovery_payloads: dict[str, dict[str, Any]],
+) -> tuple[dict[str, Any], bool]:
+    recovery_hold = runtime_watch_recovery_policy.hold_for_flapping_circuit_breaker(
+        study_root=study_root,
+        status_payload=preflight_payload,
+    )
+    control_plane_recovery_block = runtime_recovery_blocked_by_control_plane(
+        _managed_study_status_payload(preflight_payload)
+    )
+    if recovery_hold is not None:
+        runtime_watch_recovery_policy.write_recovery_probe(
+            study_root=study_root,
+            recovery_hold=recovery_hold,
+        )
+        recovery_holds.append(recovery_hold)
+        return preflight_payload, False
+    if control_plane_recovery_block is not None:
+        return {
+            **_managed_study_status_payload(preflight_payload),
+            "decision": "blocked",
+            "reason": "resume_request_failed",
+            "control_plane_runtime_recovery_block": control_plane_recovery_block,
+        }, False
+    action_payload = study_runtime_router.ensure_study_runtime(
+        profile=profile,
+        study_root=study_root,
+        source=MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
+    )
+    _record_requested_runtime_recovery(
+        runtime_recovery_payloads=runtime_recovery_payloads,
+        study_root=study_root,
+        action_payload=action_payload,
+    )
+    return action_payload, True
+
+
+def _read_or_auto_recover_managed_study(
+    *,
+    profile: WorkspaceProfile,
+    study_root: Path,
+    auto_recoveries: list[dict[str, Any]],
+    recovery_holds: list[dict[str, Any]],
+    runtime_recovery_payloads: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    action_payload = study_runtime_router.study_runtime_status(
+        profile=profile,
+        study_root=study_root,
+    )
+    if not _should_hard_auto_recover_managed_study(action_payload):
+        return action_payload
+    preflight_payload = action_payload
+    action_payload, recovery_applied = _auto_recovery_action_payload(
+        profile=profile,
+        study_root=study_root,
+        preflight_payload=preflight_payload,
+        recovery_holds=recovery_holds,
+        runtime_recovery_payloads=runtime_recovery_payloads,
+    )
+    if recovery_applied:
+        auto_recoveries.append(
+            _serialize_managed_study_auto_recovery(
+                preflight_payload=preflight_payload,
+                applied_payload=action_payload,
+                source=MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
+            )
+        )
+    return action_payload
+
+
 def managed_study_initial_statuses(
     *,
     profile: WorkspaceProfile | None,
@@ -49,101 +191,22 @@ def managed_study_initial_statuses(
     if profile is None:
         raise ValueError("profile is required when ensure_study_runtimes is enabled")
     managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
-    for study_root in sorted(profile.studies_root.iterdir()):
-        study_root_key = str(Path(study_root).expanduser().resolve())
-        if not study_root.is_dir():
-            continue
-        if not (study_root / "study.yaml").exists():
-            continue
+    for study_root in _managed_study_roots(profile):
         if apply:
-            if _study_requests_gate_specificity_terminal(study_root=study_root):
-                preflight_payload = _managed_study_status_payload(
-                    study_runtime_router.study_runtime_status(
-                        profile=profile,
-                        study_root=study_root,
-                    )
-                )
-                action_payload = preflight_payload
-                managed_study_statuses.append((study_root, _managed_study_status_payload(action_payload)))
-                continue
-            try:
-                action_payload = study_runtime_router.ensure_study_runtime(
-                    profile=profile,
-                    study_root=study_root,
-                    source="runtime_watch",
-                )
-                action_status_payload = _managed_study_status_payload(action_payload)
-                if str(action_status_payload.get("decision") or "").strip() in {
-                    "create_and_start",
-                    "resume",
-                    "relaunch_stopped",
-                }:
-                    runtime_recovery_payloads[study_root_key] = action_status_payload
-            except Exception as exc:
-                preflight_payload = _managed_study_status_payload(
-                    study_runtime_router.study_runtime_status(
-                        profile=profile,
-                        study_root=study_root,
-                    )
-                )
-                action_payload = recovery_failure_payload(
-                    preflight_payload=preflight_payload,
-                    error=exc,
-                )
-                auto_recoveries.append(
-                    _serialize_managed_study_auto_recovery(
-                        preflight_payload=preflight_payload,
-                        applied_payload=action_payload,
-                        source="runtime_watch",
-                    )
-                )
-        else:
-            action_payload = study_runtime_router.study_runtime_status(
+            action_payload = _apply_managed_study_status(
                 profile=profile,
                 study_root=study_root,
+                auto_recoveries=auto_recoveries,
+                runtime_recovery_payloads=runtime_recovery_payloads,
             )
-            if _should_hard_auto_recover_managed_study(action_payload):
-                preflight_payload = action_payload
-                recovery_hold = runtime_watch_recovery_policy.hold_for_flapping_circuit_breaker(
-                    study_root=study_root,
-                    status_payload=preflight_payload,
-                )
-                control_plane_recovery_block = runtime_recovery_blocked_by_control_plane(
-                    _managed_study_status_payload(preflight_payload)
-                )
-                if recovery_hold is not None:
-                    runtime_watch_recovery_policy.write_recovery_probe(
-                        study_root=study_root,
-                        recovery_hold=recovery_hold,
-                    )
-                    recovery_holds.append(recovery_hold)
-                elif control_plane_recovery_block is not None:
-                    action_payload = {
-                        **_managed_study_status_payload(preflight_payload),
-                        "decision": "blocked",
-                        "reason": "resume_request_failed",
-                        "control_plane_runtime_recovery_block": control_plane_recovery_block,
-                    }
-                else:
-                    action_payload = study_runtime_router.ensure_study_runtime(
-                        profile=profile,
-                        study_root=study_root,
-                        source=MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
-                    )
-                    action_status_payload = _managed_study_status_payload(action_payload)
-                    if str(action_status_payload.get("decision") or "").strip() in {
-                        "create_and_start",
-                        "resume",
-                        "relaunch_stopped",
-                    }:
-                        runtime_recovery_payloads[study_root_key] = action_status_payload
-                    auto_recoveries.append(
-                        _serialize_managed_study_auto_recovery(
-                            preflight_payload=preflight_payload,
-                            applied_payload=action_payload,
-                            source=MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
-                        )
-                    )
+        else:
+            action_payload = _read_or_auto_recover_managed_study(
+                profile=profile,
+                study_root=study_root,
+                auto_recoveries=auto_recoveries,
+                recovery_holds=recovery_holds,
+                runtime_recovery_payloads=runtime_recovery_payloads,
+            )
         managed_study_statuses.append((study_root, _managed_study_status_payload(action_payload)))
     return managed_study_statuses
 

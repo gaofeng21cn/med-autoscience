@@ -6,6 +6,164 @@ from typing import Any, Callable
 from med_autoscience.profiles import WorkspaceProfile
 
 
+def _append_repair_paper_live_paths_unit(
+    *,
+    repair_units: list[Any],
+    repair_unit_cls: type,
+    profile: WorkspaceProfile,
+    quest_id: str,
+    paper_root: Path,
+    current_workspace_root: Path,
+    repair_paper_live_paths: Callable[..., dict[str, Any]],
+) -> None:
+    repair_units.append(
+        repair_unit_cls(
+            unit_id="repair_paper_live_paths",
+            label="Repair runtime-owned paper live paths before publication-surface replay",
+            parallel_safe=True,
+            run=lambda: repair_paper_live_paths(
+                profile=profile,
+                quest_id=quest_id,
+                workspace_root=paper_root.parent,
+                current_workspace_root=current_workspace_root,
+            ),
+        )
+    )
+
+
+def _append_workspace_display_script_unit(
+    *,
+    repair_units: list[Any],
+    repair_unit_cls: type,
+    paper_root: Path,
+    depends_on: tuple[str, ...] = (),
+    label: str,
+    run_workspace_display_repair_script: Callable[..., dict[str, Any]],
+) -> None:
+    repair_units.append(
+        repair_unit_cls(
+            unit_id="workspace_display_repair_script",
+            label=label,
+            parallel_safe=True,
+            depends_on=depends_on,
+            run=lambda: run_workspace_display_repair_script(paper_root=paper_root),
+        )
+    )
+
+
+def _append_display_materialization_units(
+    *,
+    repair_units: list[Any],
+    repair_unit_cls: type,
+    profile: WorkspaceProfile,
+    study_root: Path,
+    paper_root: Path,
+    existing_dependency_ids: Callable[..., tuple[str, ...]],
+    materialize_display_surface: Callable[..., dict[str, Any]],
+    publication_shell_surface_needs_sync: Callable[..., bool],
+    time_to_event_direct_migration_display_inputs_need_refresh: Callable[..., bool],
+    legacy_time_to_event_grouped_payloads_need_normalization: Callable[..., bool],
+    time_to_event_risk_group_surface_present: Callable[..., bool],
+    normalize_legacy_time_to_event_grouped_payloads: Callable[..., dict[str, Any]],
+    gate_clearing_batch_transportability: Any,
+    publication_shell_sync: Any,
+    time_to_event_direct_migration: Any,
+) -> None:
+    if gate_clearing_batch_transportability.transportability_reporting_surface_needs_sync(
+        study_root=study_root,
+        paper_root=paper_root,
+        profile=profile,
+    ):
+        repair_units.append(
+            repair_unit_cls(
+                unit_id="sync_transportability_reporting_surface",
+                label="Sync transportability reporting display contract before surface materialization",
+                parallel_safe=True,
+                depends_on=existing_dependency_ids(repair_units, "repair_paper_live_paths"),
+                run=lambda: gate_clearing_batch_transportability.sync_transportability_reporting_surface(
+                    study_root=study_root,
+                    paper_root=paper_root,
+                    profile=profile,
+                ),
+            )
+        )
+    if time_to_event_direct_migration_display_inputs_need_refresh(paper_root=paper_root):
+        repair_units.append(
+            repair_unit_cls(
+                unit_id="time_to_event_direct_migration",
+                label="Refresh canonical time-to-event direct-migration display inputs before surface materialization",
+                parallel_safe=True,
+                depends_on=existing_dependency_ids(repair_units, "repair_paper_live_paths"),
+                run=lambda: time_to_event_direct_migration.run_time_to_event_direct_migration(
+                    study_root=study_root,
+                    paper_root=paper_root,
+                ),
+            )
+        )
+    if _time_to_event_grouped_payloads_need_normalization(
+        paper_root=paper_root,
+        repair_units=repair_units,
+        legacy_time_to_event_grouped_payloads_need_normalization=legacy_time_to_event_grouped_payloads_need_normalization,
+        time_to_event_risk_group_surface_present=time_to_event_risk_group_surface_present,
+    ):
+        repair_units.append(
+            repair_unit_cls(
+                unit_id="normalize_legacy_time_to_event_grouped_payloads",
+                label="Normalize legacy time-to-event grouped display payload templates before surface materialization",
+                parallel_safe=True,
+                depends_on=existing_dependency_ids(
+                    repair_units,
+                    "repair_paper_live_paths",
+                    "sync_transportability_reporting_surface",
+                    "time_to_event_direct_migration",
+                ),
+                run=lambda: normalize_legacy_time_to_event_grouped_payloads(paper_root=paper_root),
+            )
+        )
+    if publication_shell_surface_needs_sync(study_root=study_root, paper_root=paper_root):
+        repair_units.append(
+            repair_unit_cls(
+                unit_id="sync_publication_shell_surface",
+                label="Sync publication shell table inputs before surface materialization",
+                parallel_safe=True,
+                depends_on=existing_dependency_ids(repair_units, "repair_paper_live_paths"),
+                run=lambda: publication_shell_sync.run_publication_shell_sync(
+                    study_root=study_root,
+                    paper_root=paper_root,
+                ),
+            )
+        )
+    repair_units.append(
+        repair_unit_cls(
+            unit_id="materialize_display_surface",
+            label="Refresh display catalogs and generated paper-facing exports",
+            parallel_safe=True,
+            depends_on=existing_dependency_ids(
+                repair_units,
+                "repair_paper_live_paths",
+                "sync_transportability_reporting_surface",
+                "time_to_event_direct_migration",
+                "normalize_legacy_time_to_event_grouped_payloads",
+                "sync_publication_shell_surface",
+            ),
+            run=lambda: materialize_display_surface(paper_root=paper_root),
+        )
+    )
+
+
+def _time_to_event_grouped_payloads_need_normalization(
+    *,
+    paper_root: Path,
+    repair_units: list[Any],
+    legacy_time_to_event_grouped_payloads_need_normalization: Callable[..., bool],
+    time_to_event_risk_group_surface_present: Callable[..., bool],
+) -> bool:
+    return legacy_time_to_event_grouped_payloads_need_normalization(paper_root=paper_root) or (
+        time_to_event_risk_group_surface_present(paper_root=paper_root)
+        and any(unit.unit_id == "sync_transportability_reporting_surface" for unit in repair_units)
+    )
+
+
 def build_gate_clearing_repair_units(
     *,
     repair_unit_cls: type,
@@ -70,116 +228,53 @@ def build_gate_clearing_repair_units(
             submission_minimal_repair_gate_blockers=gate_clearing_batch_submission.SUBMISSION_MINIMAL_REPAIR_GATE_BLOCKERS,
         )
     ):
-        repair_units.append(
-            repair_unit_cls(
-                unit_id="repair_paper_live_paths",
-                label="Repair runtime-owned paper live paths before publication-surface replay",
-                parallel_safe=True,
-                run=lambda: repair_paper_live_paths(
-                    profile=profile,
-                    quest_id=quest_id,
-                    workspace_root=paper_root.parent,
-                    current_workspace_root=current_workspace_root,
-                ),
-            )
+        _append_repair_paper_live_paths_unit(
+            repair_units=repair_units,
+            repair_unit_cls=repair_unit_cls,
+            profile=profile,
+            quest_id=quest_id,
+            paper_root=paper_root,
+            current_workspace_root=current_workspace_root,
+            repair_paper_live_paths=repair_paper_live_paths,
         )
         if display_repair_script_path.exists():
-            repair_units.append(
-                repair_unit_cls(
-                    unit_id="workspace_display_repair_script",
-                    label="Run the workspace-authored display repair script before gate replay",
-                    parallel_safe=True,
-                    depends_on=existing_dependency_ids(repair_units, "repair_paper_live_paths"),
-                    run=lambda: run_workspace_display_repair_script(paper_root=paper_root),
-                )
+            _append_workspace_display_script_unit(
+                repair_units=repair_units,
+                repair_unit_cls=repair_unit_cls,
+                paper_root=paper_root,
+                depends_on=existing_dependency_ids(repair_units, "repair_paper_live_paths"),
+                label="Run the workspace-authored display repair script before gate replay",
+                run_workspace_display_repair_script=run_workspace_display_repair_script,
             )
         else:
-            if gate_clearing_batch_transportability.transportability_reporting_surface_needs_sync(
+            _append_display_materialization_units(
+                repair_units=repair_units,
+                repair_unit_cls=repair_unit_cls,
+                profile=profile,
                 study_root=study_root,
                 paper_root=paper_root,
-                profile=profile,
-            ):
-                repair_units.append(
-                    repair_unit_cls(
-                        unit_id="sync_transportability_reporting_surface",
-                        label="Sync transportability reporting display contract before surface materialization",
-                        parallel_safe=True,
-                        depends_on=existing_dependency_ids(repair_units, "repair_paper_live_paths"),
-                        run=lambda: gate_clearing_batch_transportability.sync_transportability_reporting_surface(
-                            study_root=study_root,
-                            paper_root=paper_root,
-                            profile=profile,
-                        ),
-                    )
-                )
-            if time_to_event_direct_migration_display_inputs_need_refresh(paper_root=paper_root):
-                repair_units.append(
-                    repair_unit_cls(
-                        unit_id="time_to_event_direct_migration",
-                        label="Refresh canonical time-to-event direct-migration display inputs before surface materialization",
-                        parallel_safe=True,
-                        depends_on=existing_dependency_ids(repair_units, "repair_paper_live_paths"),
-                        run=lambda: time_to_event_direct_migration.run_time_to_event_direct_migration(
-                            study_root=study_root,
-                            paper_root=paper_root,
-                        ),
-                    )
-                )
-            if legacy_time_to_event_grouped_payloads_need_normalization(paper_root=paper_root) or (
-                time_to_event_risk_group_surface_present(paper_root=paper_root)
-                and any(unit.unit_id == "sync_transportability_reporting_surface" for unit in repair_units)
-            ):
-                repair_units.append(
-                    repair_unit_cls(
-                        unit_id="normalize_legacy_time_to_event_grouped_payloads",
-                        label="Normalize legacy time-to-event grouped display payload templates before surface materialization",
-                        parallel_safe=True,
-                        depends_on=existing_dependency_ids(
-                            repair_units,
-                            "repair_paper_live_paths",
-                            "sync_transportability_reporting_surface",
-                            "time_to_event_direct_migration",
-                        ),
-                        run=lambda: normalize_legacy_time_to_event_grouped_payloads(paper_root=paper_root),
-                    )
-                )
-            if publication_shell_surface_needs_sync(study_root=study_root, paper_root=paper_root):
-                repair_units.append(
-                    repair_unit_cls(
-                        unit_id="sync_publication_shell_surface",
-                        label="Sync publication shell table inputs before surface materialization",
-                        parallel_safe=True,
-                        depends_on=existing_dependency_ids(repair_units, "repair_paper_live_paths"),
-                        run=lambda: publication_shell_sync.run_publication_shell_sync(
-                            study_root=study_root,
-                            paper_root=paper_root,
-                        ),
-                    )
-                )
-            repair_units.append(
-                repair_unit_cls(
-                    unit_id="materialize_display_surface",
-                    label="Refresh display catalogs and generated paper-facing exports",
-                    parallel_safe=True,
-                    depends_on=existing_dependency_ids(
-                        repair_units,
-                        "repair_paper_live_paths",
-                        "sync_transportability_reporting_surface",
-                        "time_to_event_direct_migration",
-                        "normalize_legacy_time_to_event_grouped_payloads",
-                        "sync_publication_shell_surface",
-                    ),
-                    run=lambda: materialize_display_surface(paper_root=paper_root),
-                )
+                existing_dependency_ids=existing_dependency_ids,
+                materialize_display_surface=materialize_display_surface,
+                publication_shell_surface_needs_sync=publication_shell_surface_needs_sync,
+                time_to_event_direct_migration_display_inputs_need_refresh=(
+                    time_to_event_direct_migration_display_inputs_need_refresh
+                ),
+                legacy_time_to_event_grouped_payloads_need_normalization=(
+                    legacy_time_to_event_grouped_payloads_need_normalization
+                ),
+                time_to_event_risk_group_surface_present=time_to_event_risk_group_surface_present,
+                normalize_legacy_time_to_event_grouped_payloads=normalize_legacy_time_to_event_grouped_payloads,
+                gate_clearing_batch_transportability=gate_clearing_batch_transportability,
+                publication_shell_sync=publication_shell_sync,
+                time_to_event_direct_migration=time_to_event_direct_migration,
             )
     elif not authority_settle_delivery_redrive_requested and bundle_stage_repair and display_repair_script_path.exists():
-        repair_units.append(
-            repair_unit_cls(
-                unit_id="workspace_display_repair_script",
-                label="Run the workspace-authored display repair script before bundle-stage gate replay",
-                parallel_safe=True,
-                run=lambda: run_workspace_display_repair_script(paper_root=paper_root),
-            )
+        _append_workspace_display_script_unit(
+            repair_units=repair_units,
+            repair_unit_cls=repair_unit_cls,
+            paper_root=paper_root,
+            label="Run the workspace-authored display repair script before bundle-stage gate replay",
+            run_workspace_display_repair_script=run_workspace_display_repair_script,
         )
     if direct_submission_delivery_sync_requested:
         repair_units.append(

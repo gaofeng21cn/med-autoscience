@@ -104,6 +104,8 @@ Runtime lifecycle 小文件治理和 quest Git 退役的执行入口固定为 [R
 
 live artifacts 不属于本治理面的写集。`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status`、`runtime_watch`、`current_package`、submission package、runtime lifecycle SQLite、restore archives 与真实 workspace 产物都继续由 stable runtime / controller / canonical artifact flow 持有。Boundary governance 只报告 repo-tracked source/test/docs 的维护风险，不触碰或重生成 live study artifact。
 
+2026-05-07 的全仓 `_parts` 收口已经把第一批 advisory 转为自然子域。`study_progress_parts` 拆成 projection inputs、status context、eval surface 和 payload assembly；`product_entry_parts/workspace_surfaces.py` 变成显式 import facade；publication/delivery 侧按 gate state/report、surface scan/reporting、package build/export、delivery staging/sync 与 quality materialization 切分；runtime/control 侧按 runtime tick、managed recovery、supervisor scan action family、gate-clearing context/repair plan 和 outer-loop action execution 切分；runtime model/transport 侧按 publication decision、runtime event relay、status read model、quest session/watchdog/execution 切分；display/MCP 侧按 domain registry、validation、contract family、layout helper、projection adapter 与 tool-result rendering 切分。这些边界是当前允许继续演进的 owner 子域，不能再回退成 `shared_base` 大桶或临时拼接模块。
+
 ## 当前架构明确保留的边界
 
 - `Med Auto Science` 负责研究工作线，并保持唯一入口与 owner 身份。

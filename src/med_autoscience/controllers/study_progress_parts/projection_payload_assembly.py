@@ -19,6 +19,62 @@ from .parked_projection import parked_progress_fields
 from .shared import SCHEMA_VERSION, _non_empty_text
 
 
+def _progress_payload_identity_fields(
+    *,
+    generated_at: str,
+    study_id: str,
+    study_root: Path,
+    quest_id: str | None,
+    quest_root: Path | None,
+    study_truth_snapshot: dict[str, Any],
+    runtime_health_snapshot: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": generated_at,
+        "truth_epoch": _non_empty_text(study_truth_snapshot.get("truth_epoch")),
+        "runtime_health_epoch": _non_empty_text(runtime_health_snapshot.get("runtime_health_epoch")),
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root) if quest_root is not None else None,
+    }
+
+
+def _runtime_decision_fields(status: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "runtime_decision": _non_empty_text(status.get("decision")),
+        "runtime_reason": _non_empty_text(status.get("reason")),
+    }
+
+
+def _progress_supervision_fields(
+    *,
+    autonomous_runtime_notice: dict[str, Any],
+    current_active_run_id: str | None,
+    supervision_health_status: str | None,
+    supervisor_tick_audit: dict[str, Any],
+    refs: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
+        "quest_session_api_url": _non_empty_text(autonomous_runtime_notice.get("quest_session_api_url")),
+        "active_run_id": current_active_run_id,
+        "health_status": supervision_health_status,
+        "supervisor_tick_status": _non_empty_text(supervisor_tick_audit.get("status")),
+        "supervisor_tick_required": bool(supervisor_tick_audit.get("required")),
+        "supervisor_tick_summary": _non_empty_text(supervisor_tick_audit.get("summary")),
+        "supervisor_tick_latest_recorded_at": _non_empty_text(supervisor_tick_audit.get("latest_recorded_at")),
+        "launch_report_path": refs["launch_report_path"],
+    }
+
+
+def _last_meaningful_progress_at(autonomy_slo_status: dict[str, Any] | None) -> str | None:
+    if autonomy_slo_status is None:
+        return None
+    return _non_empty_text(autonomy_slo_status.get("last_meaningful_progress_at"))
+
+
 def assemble_study_progress_payload(
     *,
     generated_at: str,
@@ -95,14 +151,15 @@ def assemble_study_progress_payload(
     refs: dict[str, Any],
 ) -> dict[str, Any]:
     payload = {
-        "schema_version": SCHEMA_VERSION,
-        "generated_at": generated_at,
-        "truth_epoch": _non_empty_text(study_truth_snapshot.get("truth_epoch")),
-        "runtime_health_epoch": _non_empty_text(runtime_health_snapshot.get("runtime_health_epoch")),
-        "study_id": study_id,
-        "study_root": str(study_root),
-        "quest_id": quest_id,
-        "quest_root": str(quest_root) if quest_root is not None else None,
+        **_progress_payload_identity_fields(
+            generated_at=generated_at,
+            study_id=study_id,
+            study_root=study_root,
+            quest_id=quest_id,
+            quest_root=quest_root,
+            study_truth_snapshot=study_truth_snapshot,
+            runtime_health_snapshot=runtime_health_snapshot,
+        ),
         "current_stage": current_stage,
         "current_stage_summary": current_stage_summary,
         "paper_stage": paper_stage,
@@ -125,8 +182,7 @@ def assemble_study_progress_payload(
         "needs_user_decision": needs_physician_decision,
         "physician_decision_summary": physician_decision_summary,
         "user_decision_summary": physician_decision_summary,
-        "runtime_decision": _non_empty_text(status.get("decision")),
-        "runtime_reason": _non_empty_text(status.get("reason")),
+        **_runtime_decision_fields(status),
         "continuation_state": continuation_state or None,
         "family_checkpoint_lineage": family_checkpoint_lineage or None,
         "interaction_arbitration": interaction_arbitration or None,
@@ -169,22 +225,14 @@ def assemble_study_progress_payload(
         "ai_doctor_state": ai_doctor_state,
         "repair_recommendation": repair_recommendation or None,
         "ai_repair_lifecycle": ai_repair_lifecycle,
-        "last_meaningful_progress_at": (
-            _non_empty_text((autonomy_slo_status or {}).get("last_meaningful_progress_at"))
-            if autonomy_slo_status is not None
-            else None
+        "last_meaningful_progress_at": _last_meaningful_progress_at(autonomy_slo_status),
+        "supervision": _progress_supervision_fields(
+            autonomous_runtime_notice=autonomous_runtime_notice,
+            current_active_run_id=current_active_run_id,
+            supervision_health_status=supervision_health_status,
+            supervisor_tick_audit=supervisor_tick_audit,
+            refs=refs,
         ),
-        "supervision": {
-            "browser_url": _non_empty_text(autonomous_runtime_notice.get("browser_url")),
-            "quest_session_api_url": _non_empty_text(autonomous_runtime_notice.get("quest_session_api_url")),
-            "active_run_id": current_active_run_id,
-            "health_status": supervision_health_status,
-            "supervisor_tick_status": _non_empty_text(supervisor_tick_audit.get("status")),
-            "supervisor_tick_required": bool(supervisor_tick_audit.get("required")),
-            "supervisor_tick_summary": _non_empty_text(supervisor_tick_audit.get("summary")),
-            "supervisor_tick_latest_recorded_at": _non_empty_text(supervisor_tick_audit.get("latest_recorded_at")),
-            "launch_report_path": refs["launch_report_path"],
-        },
         "refs": refs,
     }
     payload["study_macro_state"] = compact_study_macro_state_from_payload(payload)
