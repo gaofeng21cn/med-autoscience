@@ -80,7 +80,9 @@ uv run python -m med_autoscience.cli init-workspace \
 
 如果你想先让 Agent 看计划，再决定是否创建，可以先加 `--dry-run`。
 
-这个命令会生成下面这套最小骨架：
+这个命令默认不初始化 workspace 根目录 Git，也不创建 quest-level Git。CLI 语义按显式 opt-in 收口：只有维护者明确传入 `--with-git` 时，才创建 workspace 级 root Git；MCP `init_workspace` 同样按 no root Git 处理。workspace 级 Git 只用于维护/审计轻量 scaffold、contracts、portfolio registry 和 source contract，不是 runtime、quest 或投稿产物的 active truth。
+
+这个命令会生成下面这套 MAS-first 最小骨架：
 
 ```text
 <workspace>/
@@ -90,26 +92,24 @@ uv run python -m med_autoscience.cli init-workspace \
 ├── portfolio/
 │   └── data_assets/
 ├── refs/
+├── artifacts/
+│   └── runtime/
+├── runtime/
+│   ├── quests/
+│   ├── archives/
+│   └── restore_index/
 └── ops/
-    ├── medautoscience/
-    │   ├── bin/
-    │   ├── profiles/
-    │   ├── config.env
-    │   └── README.md
-    └── med-deepscientist/
+    ├── mas/
+    └── medautoscience/
         ├── bin/
+        ├── profiles/
         ├── config.env
-        ├── runtime/
-        ├── startup_briefs/
-        └── startup_payloads/
+        └── README.md
 ```
 
-默认情况下，`init-workspace` 也会在 workspace 根目录初始化一个轻量 Git 仓库，并写入根级 `.gitignore`。
-这个外层 Git 只用于让 Codex / MAS 快速识别 workspace scaffold、contracts、portfolio registry 和轻量 study truth。
-`ops/med-deepscientist/runtime/quests/`、study-local `artifacts/`、`manuscript/current_package/`、submission packages 和 paper build exports 会被外层 `.gitignore` 明确排除；每个 quest 仍由 `MedDeepScientist` 在 quest 根目录维护自己的 Git 仓库和 worktree。
-如果确实要保持旧行为，可在 CLI 使用 `--no-git`。
+旧 workspace 中的 `ops/med-deepscientist/runtime/quests/`、quest-local `.ds/`、`.ds/worktrees/` 和 quest `.git` 只作为 legacy diagnostic / restore / enrichment / reference surface 被识别；新 quest active path 不再由 MDS Git 或 Git worktree 维护。quest materializer 应在 repo-level guard 中阻断既有 quest `.git` 回流：materialize 出来的 active quest root 必须是普通目录，manifest 记录 `git_runtime_used=false` 与 `quest_git_active_path_retired=true`。
 
-这个 Git 仓库不是论文审计仓库，也不应提交 generated artifacts、PDF/DOCX/ZIP 投稿包或 runtime ledgers。
+workspace root Git 如果通过 `--with-git` 显式创建，也不是论文审计仓库，不应提交 generated artifacts、PDF/DOCX/ZIP 投稿包、runtime ledgers、SQLite sidecar、archive payload 或 quest runtime 目录。已有有提交或 dirty 的 root Git 进入 maintenance-only：MAS 可以审计、补 `.gitignore`、清理 stale temp objects，但不自动删除或重写历史。
 如果旧 workspace 已经因为误 `git add` 产生很大的 `.git/objects`，先运行：
 
 ```bash
@@ -122,7 +122,7 @@ ops/medautoscience/bin/storage-audit --git-only
 ops/medautoscience/bin/storage-audit --git-only --apply
 ```
 
-只有当报告显示外层 Git 没有 commits、remotes、stashes、linked worktrees 和 locks，且确实需要释放空仓 object store 时，才显式运行：
+只有当报告显示外层 Git 没有 commits、remotes、stashes、linked worktrees 和 locks，且确实需要释放空仓 object store 时，才把空 root Git 标为未来 safe cleanup 候选。相关 cleanup 必须由后续显式维护入口执行；不要把“候选”写成已经删除。历史命令形态如下，仅用于维护者诊断：
 
 ```bash
 ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-workspace-git
@@ -158,7 +158,7 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 
 1. 建立病种级 workspace 骨架
 2. 放入原始数据、数据说明、变量定义、终点定义和参考资料
-3. 编辑 `ops/medautoscience/config.env` 与 `ops/med-deepscientist/config.env`
+3. 编辑 `ops/medautoscience/config.env`；旧 workspace 如仍保留 controlled backend 诊断入口，再维护 `ops/med-deepscientist/config.env`
 4. 审阅生成的 `ops/medautoscience/profiles/*.local.toml`
 5. 运行 `ops/medautoscience/bin/show-profile`
 6. 运行 `ops/medautoscience/bin/bootstrap`
@@ -169,9 +169,9 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 
 - `MedAutoScience` 是正式研究入口，单一 MAS app skill 负责承接其稳定 callable surface
 - `Hermes` 是默认 outer runtime substrate owner
-- `MedDeepScientist` 是 controlled research backend
+- `MedDeepScientist` 是 controlled research backend / oracle / legacy diagnostic reference
 - 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
-- `ops/med-deepscientist/bin/*` 只用于启动、查看、停止 runtime，不用于研究治理
+- 旧 `ops/med-deepscientist/bin/*` 只用于 legacy runtime 运维、诊断和恢复，不用于新研究治理或新 quest materialization
 - `OPL` handoff、product-entry manifest 与其他机器可读桥接只保留在集成或参考层
 
 ## 常见误区
