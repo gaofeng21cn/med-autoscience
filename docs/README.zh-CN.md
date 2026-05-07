@@ -39,8 +39,8 @@
 - 初稿质量作为写作前运行关注点处理：MAS 应生成医学期刊可读的 manuscript-native prose，而不是 controller notes、figure/table anchor scaffold 或正文里的行政占位。
 - 产物证明采用 canonical-source-first：manuscript、figures、tables 和 package 都应能从 canonical source 重建后再作为交付证据。
 - 真实论文 soak 仍是 AI-first 线的主要证据缺口；文档应明确这个缺口，不把目标层能力写成已经全部证明的当前事实。
-- Workspace Git/storage 边界已经进入当前维护合同：root Git 显式 opt-in 且只作为 maintenance-only 边界，generated/runtime artifacts 明确排除，storage-audit repair 按实际 apply strategy 报告释放量。
-- Runtime lifecycle 历史与索引进入 SQLite sidecar 方向；SQLite 负责 report/state/storage audit 的索引、历史、摘要与游标，authority surface、restore metadata 和论文交付产物继续保持文件形态。
+- Workspace Git/storage 边界已经进入当前维护合同：新 workspace 默认 no root Git / no quest Git，generated/runtime artifacts 明确排除，已有 root Git 通过 restore-proof lifecycle retirement 退出默认状态面。
+- Runtime lifecycle 历史与索引由 `artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 与 `runtime/restore_index` 承接；查状态和做 lifecycle 操作时读这些 surface 与文件 authority，不查 Git 历史。
 - 历史迁移术语和旧命名继续留在参考层或历史层。
 
 ## 技术工作集
