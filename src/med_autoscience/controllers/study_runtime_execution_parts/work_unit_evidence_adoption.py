@@ -201,6 +201,20 @@ def _existing_artifact_written_payload(
     return None
 
 
+def existing_controller_work_unit_evidence_adoption(
+    *,
+    study_root: Path,
+    identity: control_intent.ControlIntentIdentity,
+) -> dict[str, Any] | None:
+    existing_payload = _existing_artifact_written_payload(study_root=study_root, identity=identity)
+    if existing_payload is None:
+        return None
+    return {
+        **existing_payload,
+        "already_recorded": True,
+    }
+
+
 def record_controller_work_unit_evidence_adoption(
     *,
     status: Any,
@@ -249,12 +263,9 @@ def adopt_controller_work_unit_evidence_if_present(
 ) -> dict[str, Any] | None:
     if not _authorization_matches_analysis_repair(authorization_context):
         return None
-    existing_payload = _existing_artifact_written_payload(study_root=study_root, identity=identity)
+    existing_payload = existing_controller_work_unit_evidence_adoption(study_root=study_root, identity=identity)
     if existing_payload is not None:
-        return {
-            **existing_payload,
-            "already_recorded": True,
-        }
+        return existing_payload
     if not _has_prior_delivery_or_duplicate(study_root=study_root, identity=identity):
         return None
     for report_path in _report_candidates(quest_root):
