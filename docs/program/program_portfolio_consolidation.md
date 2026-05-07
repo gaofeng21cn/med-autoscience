@@ -17,6 +17,8 @@ Owner: `MedAutoScience`
 
 因此，Git 退役和 MAS 吸收 MDS 不作为两条互相竞争的改造线推进。技术实现可以分 lane 并行，但必须在同一个 authority contract、同一个 cutover gate 和同一个 closeout ledger 下吸收。SQLite runtime authority 接管的是 MDS Git-era 的 runtime lifecycle、lineage、workspace allocation、checkpoint metadata、diff / Canvas read model、restore index 和 runtime lifecycle ledger；MAS single-project absorb 接管的是产品入口、owner 边界、代码归属、真实 workspace layout 和 compatibility retirement。
 
+2026-05-07 补充：Runtime Control 和 Progress Projection 已经从待讨论的大 lane 进入主线 contract。`owner_route -> consumer latest -> executor dispatch -> rescan` 是 runtime/control 的固定执行链；`study_macro_state -> user_visible_projection` 是用户可见 progress 的固定读模型。后续 program 不再把这两条作为独立大重构入口反复打开；新功能、MDS 吸收、workspace layout、profile/entry compatibility retirement 或 no-history physical absorb 都必须消费这两条 contract，不能重建第二套用户状态、runtime action 或 publication readiness 判断。
+
 ## Next Execution Queue
 
 后续 Agent 默认按下面队列自动取下一项；只有遇到真实 blocker、外部 active owner 冲突或用户改口时才暂停说明。
@@ -28,6 +30,20 @@ Owner: `MedAutoScience`
 | `3` | `no_history_physical_absorb` | `mas_single_project_mds_absorb_program.md` | 按 no-history import、author audit、provenance、parity proof 和 rollback surface 吸收可保留 MDS 能力。 |
 
 本文是队列 authority。实现 lane 可以并行拆分，但吸收顺序仍按上表 gate；不能绕过 portfolio 直接新建另一套 program board。
+
+## Architecture Fitness Budget
+
+模块化治理现在是横向 fitness budget，不是新的 active program board。当前评估见 [MAS Modularity Assessment 2026-05-07](../references/mas_modularity_assessment_2026_05_07.md)：MAS 依赖方向已经干净，Sentrux `above_diagonal=0`，boundary fitness 没有 blocking finding；但 `product_entry`、`study_progress`、`runtime/control`、MCP/display 这些高扇入 projection/entry/read-model 仍是维护热点。
+
+因此，后续队列执行时统一遵守：
+
+- 不新增机械编号 `part_*` / `chunk_*` / `split_*` 文件。
+- 不新增 `exec(compile(...))` 拼接加载。
+- 不让 `study-progress`、workspace cockpit、product-entry、MCP 或 OPL handoff 自行解释用户状态、runtime next action 或 publication readiness。
+- 触碰 near-limit part、高 churn hub 或 nested `_parts` 时，优先按自然 owner 子域拆 importable module，并补 focused public-surface / subdomain tests。
+- `scripts/verify.sh structure` 的 Sentrux `quality_signal` 不需要每次提高，但不得无解释退化；DSM `above_diagonal` 必须保持 `0`。
+
+这条 budget 只约束 repo-tracked source/test/docs 维护，不修改 live study artifact，也不抢占下面的 `A1-A4` 主序列。
 
 ## 推进模型
 
