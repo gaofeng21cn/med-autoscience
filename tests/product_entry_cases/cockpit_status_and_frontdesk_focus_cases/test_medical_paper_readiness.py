@@ -184,6 +184,49 @@ def test_workspace_cockpit_passes_through_medical_paper_readiness_from_study_pro
     assert "补齐可审计文献 scout、检索日期、anchor papers、guideline 和近邻文献。" in markdown
 
 
+def test_workspace_cockpit_uses_canonical_user_visible_progress_projection(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+    progress_payload = {
+        **_base_progress_payload(study_id="001-risk"),
+        "current_stage": "legacy_stage",
+        "current_stage_summary": "legacy summary",
+        "current_blockers": ["legacy blocker"],
+        "next_system_action": "legacy action",
+        "user_visible_projection": {
+            "surface": "study_progress_user_visible_projection",
+            "authority": "truth_projection",
+            "projection_only": True,
+            "study_id": "001-risk",
+            "current_stage": "canonical_stage",
+            "current_stage_summary": "canonical summary",
+            "current_blockers": ["canonical blocker"],
+            "next_system_action": "canonical action",
+            "evidence": {"latest_events": [], "refs": {}},
+            "conditions": [],
+        },
+    }
+
+    monkeypatch.setattr(module, "build_doctor_report", lambda profile: _ready_doctor_report())
+    monkeypatch.setattr(module, "_inspect_workspace_supervision", lambda profile: _ready_supervision())
+    monkeypatch.setattr(module.mainline_status, "read_mainline_status", _ready_mainline_status)
+    monkeypatch.setattr(module.study_progress, "read_study_progress", lambda **kwargs: progress_payload)
+
+    payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+    study = payload["studies"][0]
+
+    assert study["current_stage"] == "canonical_stage"
+    assert study["current_stage_summary"] == "canonical summary"
+    assert study["current_blockers"] == ["canonical blocker"]
+    assert study["next_system_action"] == "canonical action"
+    assert payload["workspace_alerts"] == ["canonical blocker"]
+
+
 def test_workspace_cockpit_builds_medical_paper_readiness_projection_when_progress_lacks_it(
     monkeypatch,
     tmp_path: Path,

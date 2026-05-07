@@ -89,6 +89,7 @@
 - `quality_closure_truth`
 - `quality_review_followthrough`
 - `research_runtime_control_projection`
+- `user_visible_projection`
 - `current_blockers`
 - `next_system_action`
 - `needs_physician_decision`
@@ -107,6 +108,7 @@
 - `autonomy_contract.restore_point` 是恢复点与 human gate 的前台真相；调用方应读取其中的 `human_gate_required` 与 `summary`，不要从泛化 blocker 推断恢复许可
 - `quality_closure_truth` / `quality_review_followthrough` 分别表达质量闭环裁决与复评后的跟进状态，用于和 `autonomy_soak_status` 一起解释“系统是否仍在同线自动收口”
 - `research_runtime_control_projection` 是给 `workspace-cockpit`、`product-frontdesk`、`build-product-entry` 和上层 gateway 消费的控制投影；它必须把 `restore_point_surface`、`artifact_pickup_surface.pickup_refs`、`command_templates` 与 `research_gate_surface` 固定到同一条 `study-progress` 字段路径上
+- `user_visible_projection` 是给 CLI markdown、MCP compact projection、workspace cockpit、attention queue 和 product frontdesk 消费的人类可见读模型；它只回答当前阶段、阻塞、下一步和证据，不重新解释 runtime truth 或 publication authority
 - `needs_physician_decision` 只在触达正式人类 gate 边界时为 true
 - `physician_decision_summary` 必须说明触达的是初始方向锁定、重大转向、止损、外部凭据/秘密、投稿客观信息或最终投稿前审计中的哪一类
 - `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path`
@@ -123,6 +125,34 @@
 7. 医生/PI gate（仅在触达正式边界时出现）
 8. 最近进展
 9. 监督入口
+
+## 4.1 用户可见读模型
+
+`user_visible_projection` 固定为 `study_progress_user_visible_projection`。它的定位是 truth projection，不是高位 orchestrator。它由 `study_progress` assembly 层从已经解析好的 authority payload 生成，入口层只消费，不再自己从低层 surface 拼接当前阶段、阻塞、下一步或证据。
+
+该读模型至少包含：
+
+- `current_stage` / `current_stage_summary`
+- `paper_stage` / `paper_stage_summary`
+- `current_blockers`
+- `next_system_action`
+- `needs_user_decision`
+- `supervision`
+- `evidence.latest_events`
+- `evidence.refs`
+- `conditions`
+
+入口层规则：
+
+- MCP compact / markdown 优先读取 `user_visible_projection`，仅在旧 payload 缺失该字段时回退到 legacy top-level 字段。
+- `workspace-cockpit` 的 study item、workspace alerts 和后续 product-frontdesk preview 优先消费 `user_visible_projection`。
+- `user_visible_projection.conditions` 只表达 projection 状态，例如 `stage_known`、`blocked`、`next_action_known`、`evidence_available`、`human_decision_required`、`runtime_supervised`；不得作为 runtime write gate 或 publication quality authority。
+- `evidence.refs` 只保存可审计引用路径；任何质量关闭、投稿授权、runtime 写操作仍回到 `publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status` 和对应 controller surface。
+
+这个形态借鉴两个成熟工程模式：
+
+- Kubernetes 的 object `spec/status` 分层：controller 观察真实世界并把当前状态写入 status，用户入口读取 status，而不是每个入口重新推断实际状态。
+- CQRS / materialized view：写模型持有 authority，读模型面向查询和展示优化，读模型可以由权威事件/状态重建。
 
 ## 5. 人话约束
 

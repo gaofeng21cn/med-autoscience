@@ -287,6 +287,77 @@ def _compact_readiness_missing_surface(item: dict[str, Any]) -> dict[str, Any] |
     return compact_missing_surface_with_action_truth(item)
 
 
+def _compact_user_visible_projection(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    compact = _compact_record(
+        value,
+        (
+            "surface",
+            "read_model",
+            "schema_version",
+            "authority",
+            "projection_only",
+            "answer_focus",
+            "study_id",
+            "quest_id",
+            "current_stage",
+            "current_stage_label",
+            "current_stage_summary",
+            "status_summary",
+            "paper_stage",
+            "paper_stage_summary",
+            "next_system_action",
+            "next_step",
+            "needs_user_decision",
+            "needs_physician_decision",
+            "conditions",
+        ),
+    )
+    if compact is None:
+        return None
+    compact["current_blockers"] = _compact_string_list(value.get("current_blockers"), limit=12)
+    supervision = _compact_record(
+        value.get("supervision"),
+        (
+            "browser_url",
+            "quest_session_api_url",
+            "active_run_id",
+            "health_status",
+            "supervisor_tick_status",
+        ),
+    )
+    if supervision is not None:
+        compact["supervision"] = supervision
+    evidence = value.get("evidence") if isinstance(value.get("evidence"), dict) else {}
+    compact["evidence"] = {
+        "latest_events": _compact_events(evidence.get("latest_events")),
+        "refs": dict(evidence.get("refs") or {}) if isinstance(evidence.get("refs"), dict) else {},
+    }
+    return compact
+
+
+def _apply_user_visible_projection(compact: dict[str, Any], user_visible: dict[str, Any]) -> None:
+    for key in (
+        "study_id",
+        "quest_id",
+        "current_stage",
+        "current_stage_summary",
+        "paper_stage",
+        "paper_stage_summary",
+        "next_system_action",
+        "needs_user_decision",
+        "needs_physician_decision",
+    ):
+        if key in user_visible:
+            compact[key] = user_visible[key]
+    compact["current_blockers"] = _compact_string_list(user_visible.get("current_blockers"), limit=12)
+    evidence = user_visible.get("evidence") if isinstance(user_visible.get("evidence"), dict) else {}
+    latest_events = _compact_events(evidence.get("latest_events"))
+    if latest_events:
+        compact["latest_events"] = latest_events
+
+
 def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]:
     compact_keys = (
         "schema_version",
@@ -321,6 +392,7 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
     compact = {key: payload[key] for key in compact_keys if key in payload}
     compact["current_blockers"] = _compact_string_list(payload.get("current_blockers"), limit=12)
     compact["latest_events"] = _compact_events(payload.get("latest_events"))
+    user_visible_projection = _compact_user_visible_projection(payload.get("user_visible_projection"))
 
     for key, keys in {
         "intervention_lane": (
@@ -467,6 +539,10 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
     )
     if ai_repair_lifecycle is not None:
         compact["ai_repair_lifecycle"] = ai_repair_lifecycle
+
+    if user_visible_projection is not None:
+        compact["user_visible_projection"] = user_visible_projection
+        _apply_user_visible_projection(compact, user_visible_projection)
 
     compact["mcp_projection"] = {
         "surface_kind": "mcp_compacted_study_progress_projection",
@@ -828,6 +904,18 @@ def _mcp_readiness_surface_durable_ref(item: dict[str, Any]) -> str:
 
 def _render_mcp_progress_refs(compact: dict[str, Any]) -> list[str]:
     refs = compact.get("refs") if isinstance(compact.get("refs"), dict) else {}
+    user_visible_projection = (
+        compact.get("user_visible_projection")
+        if isinstance(compact.get("user_visible_projection"), dict)
+        else {}
+    )
+    evidence = (
+        user_visible_projection.get("evidence")
+        if isinstance(user_visible_projection.get("evidence"), dict)
+        else {}
+    )
+    user_refs = evidence.get("refs") if isinstance(evidence.get("refs"), dict) else {}
+    refs = {**refs, **user_refs}
     if not refs:
         return []
     lines = ["", "## 关键引用"]

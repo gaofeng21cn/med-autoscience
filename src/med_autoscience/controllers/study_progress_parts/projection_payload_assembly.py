@@ -13,6 +13,7 @@ from .ai_first_runtime_projection import attach_ai_first_runtime_projection
 from .macro_state_projection import compact_study_macro_state_from_payload
 from .parked_projection import parked_progress_fields
 from .shared import SCHEMA_VERSION, _non_empty_text
+from .user_visible_projection import build_user_visible_projection
 
 
 def _progress_payload_identity_fields(
@@ -402,6 +403,7 @@ def assemble_study_progress_payload(
     }
     payload["study_macro_state"] = compact_study_macro_state_from_payload(payload)
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
+    payload["user_visible_projection"] = build_user_visible_projection(payload)
     return attach_ai_first_runtime_projection(
         payload,
         study_root=study_root,

@@ -163,6 +163,61 @@ def test_compact_mcp_progress_projection_preserves_v2_readiness_surface_details(
     assert set(missing) == {"literature_provider_runtime"}
 
 
+def test_mcp_progress_projection_uses_canonical_user_visible_projection() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    payload = {
+        **_progress_payload(),
+        "user_visible_projection": {
+            "surface": "study_progress_user_visible_projection",
+            "authority": "truth_projection",
+            "projection_only": True,
+            "study_id": "003-dpcc",
+            "quest_id": "quest-003",
+            "current_stage": "canonical_user_stage",
+            "current_stage_summary": "canonical user summary",
+            "paper_stage": "canonical_paper_stage",
+            "paper_stage_summary": "canonical paper summary",
+            "current_blockers": ["canonical blocker"],
+            "next_system_action": "canonical next action",
+            "evidence": {
+                "latest_events": [
+                    {
+                        "timestamp": "2026-05-04T01:00:00+00:00",
+                        "category": "controller_decision",
+                        "title": "Controller decision",
+                        "summary": "controller evidence",
+                        "source": "controller",
+                    }
+                ],
+                "refs": {"controller_decision_path": "controller/latest.json"},
+            },
+            "conditions": [
+                {
+                    "type": "stage_known",
+                    "status": "true",
+                    "reason": "stage_present",
+                    "message": "canonical user summary",
+                }
+            ],
+        },
+    }
+
+    compact = module.compact_study_progress_projection(payload)
+    markdown = module.render_mcp_study_progress_markdown(payload)
+
+    assert compact["current_stage"] == "canonical_user_stage"
+    assert compact["current_stage_summary"] == "canonical user summary"
+    assert compact["paper_stage"] == "canonical_paper_stage"
+    assert compact["paper_stage_summary"] == "canonical paper summary"
+    assert compact["current_blockers"] == ["canonical blocker"]
+    assert compact["next_system_action"] == "canonical next action"
+    assert compact["latest_events"][0]["summary"] == "controller evidence"
+    assert compact["user_visible_projection"]["authority"] == "truth_projection"
+    assert "- 当前阶段: `canonical_user_stage`" in markdown
+    assert "- 下一步: canonical next action" in markdown
+    assert "- canonical blocker" in markdown
+
+
 def test_mcp_study_progress_markdown_renders_v2_readiness_action_semantics() -> None:
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
 

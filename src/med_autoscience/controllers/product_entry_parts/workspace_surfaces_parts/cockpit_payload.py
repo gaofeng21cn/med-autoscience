@@ -49,6 +49,36 @@ _module_reexport(_shared)
 _module_reexport(_state_and_study_items)
 
 
+def _user_visible_progress_projection(progress_payload: Mapping[str, Any]) -> dict[str, Any]:
+    projection = progress_payload.get("user_visible_projection")
+    return dict(projection) if isinstance(projection, Mapping) else {}
+
+
+def _user_visible_field(
+    *,
+    user_visible_projection: Mapping[str, Any],
+    progress_payload: Mapping[str, Any],
+    key: str,
+) -> Any:
+    if key in user_visible_projection:
+        return user_visible_projection.get(key)
+    return progress_payload.get(key)
+
+
+def _user_visible_list(
+    *,
+    user_visible_projection: Mapping[str, Any],
+    progress_payload: Mapping[str, Any],
+    key: str,
+) -> list[Any]:
+    value = _user_visible_field(
+        user_visible_projection=user_visible_projection,
+        progress_payload=progress_payload,
+        key=key,
+    )
+    return list(value or []) if isinstance(value, list) else []
+
+
 def _study_item(
     *,
     progress_payload: dict[str, Any],
@@ -80,6 +110,7 @@ def _study_item(
     task_intake = dict(progress_payload.get("task_intake") or {})
     progress_freshness = dict(progress_payload.get("progress_freshness") or {})
     intervention_lane = dict(progress_payload.get("intervention_lane") or {})
+    user_visible_projection = _user_visible_progress_projection(progress_payload)
     operator_verdict = dict(progress_payload.get("operator_verdict") or {})
     operator_status_card = dict(progress_payload.get("operator_status_card") or {})
     auto_runtime_parked = dict(progress_payload.get("auto_runtime_parked") or {})
@@ -141,10 +172,28 @@ def _study_item(
         or _non_empty_text((runtime_health_snapshot or {}).get("runtime_health_epoch")),
         "runtime_health_snapshot": runtime_health_snapshot,
         "control_plane_snapshot": control_plane_snapshot,
-        "current_stage": progress_payload.get("current_stage"),
-        "current_stage_summary": progress_payload.get("current_stage_summary"),
-        "current_blockers": list(progress_payload.get("current_blockers") or []),
-        "next_system_action": progress_payload.get("next_system_action"),
+        "status_narration_contract": progress_payload.get("status_narration_contract"),
+        "user_visible_projection": user_visible_projection or None,
+        "current_stage": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="current_stage",
+        ),
+        "current_stage_summary": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="current_stage_summary",
+        ),
+        "current_blockers": _user_visible_list(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="current_blockers",
+        ),
+        "next_system_action": _user_visible_field(
+            user_visible_projection=user_visible_projection,
+            progress_payload=progress_payload,
+            key="next_system_action",
+        ),
         "intervention_lane": intervention_lane or None,
         "operator_verdict": operator_verdict or None,
         "operator_status_card": operator_status_card or None,
