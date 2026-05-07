@@ -7,6 +7,7 @@ __all__ = [
     "display_pack_surface_sync",
     "display_surface_materialization",
     "med_deepscientist_upgrade_check",
+    "mds_retained_capability_absorb",
     "external_research",
     "figure_loop_guard",
     "journal_package",
