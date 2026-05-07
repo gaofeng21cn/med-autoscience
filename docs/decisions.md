@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-07：Controller work-unit evidence adoption 只识别受控证据，不改变 AI-first 质量 owner
+
+- 决策：controller work-unit evidence adoption 固定为 objective evidence / freshness / currentness 的识别与路由机制，不成为论文质量、投稿 readiness 或 AI reviewer judgement 的替代 owner。`cold_archive`、`report_history`、runtime report store 和 restore proof 只能作为 restore / report evidence source；它们可以证明某个受控 work unit、artifact 或 runtime event 曾经发生，也可以参与 currentness/freshness 判断，但不能直接关闭 `publication_eval/latest.json`、`controller_decisions/latest.json`、AI reviewer workflow 或 submission-facing quality gate。若 worker 已完成受控 work unit，supervisor 的下一步是 gate recheck、owner route 前进或转交下一 owner，不得重复派发同一 work unit。
+- 理由：DM002/DM003 的 fresh 只读状态显示，两条线当前都需要从 `study_runtime_status`、`study_progress`、`runtime_supervision/latest.json`、`publication_eval/latest.json` 与 `controller_decisions/latest.json` 判断是否 live、是否 stale、是否需要人工介入；repo 修复或 lifecycle/archive proof 成立不等同于 study 已恢复。机械脚本若把 archived report、history replay 或 fresh timestamp 当成质量 authority，会重新制造“同一 work unit 被反复执行”或“旧包被误读为当前包”的风险。
+- 影响：runtime supervisor、consumer 和 execute-dispatch 只能采用带 stable work-unit fingerprint、owner、required output surface 与 freshness/currentness proof 的 evidence。NF-PitNET 003 不因本次 DM002/DM003 风险核对被触碰；DM002/DM003 必须用 fresh runtime truth surfaces 判断 live managed runtime、stale supervision、no-live-worker 和 publication gate blocker。前台检测到 live managed runtime 或 `execution_owner_guard.supervisor_only=true` 时进入 supervisor-only；若只是 repo-side fix landed、archive proof verified 或 report history 可恢复，仍只能表述为平台/证据面状态，不能宣称 study 已恢复或论文包已放行。
+
 ## 2026-05-06：宏观状态、owner route 与文件生命周期进入同一 current-truth 合同
 
 - 决策：MAS 用户宏观状态固定为 `writer_state/user_next/reason` 三段短枚举，materialized surface 是 `artifacts/runtime/study_macro_state/latest.json`；`owner_route` 固定为 `scan -> consume -> execute-dispatch -> rescan` 的唯一执行票据。request handoff、default executor dispatch 和 executor 都必须校验 route、allowed action 与 idempotency key。终局止损文件生命周期采用 `terminal_study_file_lifecycle_plan` dry-run surface，只有不可重开 `stop_loss` 才能标记 runtime history 精简候选，物理 apply 仍要求 manifest、sha256 与 restore proof。
