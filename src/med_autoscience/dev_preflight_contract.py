@@ -49,42 +49,8 @@ class PreflightCoverageAudit:
 GENERIC_PYTHON_REGRESSION_CATEGORY = "generic_python_regression_surface"
 DOCUMENTATION_REVIEW_CATEGORY = "documentation_review_only"
 
-_DOC_ONLY_EXACT_PATHS = (
-    "README.md",
-    "README.zh-CN.md",
-    "docs/README.md",
-    "docs/README.zh-CN.md",
-    "docs/architecture.md",
-    "docs/decisions.md",
-    "docs/invariants.md",
-    "docs/project.md",
-    "docs/references/series-doc-governance-checklist.md",
-    "docs/status.md",
-    "docs/references/domain-harness-os-positioning.md",
-    "docs/references/disease_workspace_quickstart.md",
-    "docs/references/workspace_architecture.md",
-    "docs/runtime/agent_runtime_interface.md",
-    "docs/runtime/runtime_backend_interface_contract.md",
-    "docs/runtime/runtime_core_convergence_and_controlled_cutover.md",
-    "docs/runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md",
-    "docs/runtime/runtime_handle_and_durable_surface_contract.md",
-    "docs/runtime/runtime_boundary.md",
-    "docs/program/external_runtime_dependency_gate.md",
-    "docs/history/program/hermes_backend_activation_package.md",
-    "docs/history/program/hermes_backend_continuation_board.md",
-    "docs/history/program/integration_harness_activation_package.md",
-    "docs/program/manual_runtime_stabilization_checklist.md",
-    "docs/program/mas_mds_unified_enhancement_program.md",
-    "docs/program/med_deepscientist_deconstruction_map.md",
-    "docs/program/merge_and_cutover_gates.md",
-    "docs/program/plan_completion_ledger.md",
-    "docs/program/repository_ci_preflight.md",
-    "docs/history/program/research_foundry_medical_execution_map.md",
-    "docs/history/program/research_foundry_medical_mainline.md",
-    "docs/program/runtime_lifecycle_sqlite_migration_program.md",
-    "docs/program/upstream_intake.md",
-    "docs/references/research_foundry_medical_phase_ladder.md",
-)
+_DOC_ONLY_PREFIX_PATHS = ("docs/",)
+_DOC_ONLY_ROOT_FILE_PATTERNS = ("README*.md",)
 
 
 _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
@@ -409,15 +375,9 @@ def is_generic_python_change(path: str) -> bool:
 
 def is_documentation_review_only_change(path: str) -> bool:
     normalized_path = _normalize_changed_file(path)
-    return (
-        normalized_path in _DOC_ONLY_EXACT_PATHS
-        or normalized_path.startswith("docs/program/")
-        or normalized_path.startswith("docs/runtime/")
-        or normalized_path.startswith("docs/policies/")
-        or normalized_path.startswith("docs/references/")
-        or normalized_path.startswith("docs/capabilities/")
-        or normalized_path.startswith("docs/history/")
-    ) and normalized_path.endswith(".md")
+    if "/" not in normalized_path and normalized_path.startswith("README") and normalized_path.endswith(".md"):
+        return True
+    return normalized_path.startswith(_DOC_ONLY_PREFIX_PATHS) and normalized_path.endswith(".md")
 
 
 def _explicit_categories_for_path(normalized_path: str) -> tuple[str, ...]:
@@ -660,25 +620,12 @@ def build_preflight_contract_report() -> dict[str, object]:
         {
             "category": DOCUMENTATION_REVIEW_CATEGORY,
             "category_id": DOCUMENTATION_REVIEW_CATEGORY,
-            "exact_paths": list(_DOC_ONLY_EXACT_PATHS),
-            "prefix_paths": [
-                "docs/program/",
-                "docs/runtime/",
-                "docs/policies/",
-                "docs/references/",
-                "docs/capabilities/",
-                "docs/history/",
-            ],
+            "exact_paths": [],
+            "prefix_paths": list(_DOC_ONLY_PREFIX_PATHS),
+            "root_file_patterns": list(_DOC_ONLY_ROOT_FILE_PATTERNS),
             "owner_surface": _owner_surface(
-                exact_paths=_DOC_ONLY_EXACT_PATHS,
-                prefix_paths=(
-                    "docs/program/",
-                    "docs/runtime/",
-                    "docs/policies/",
-                    "docs/references/",
-                    "docs/capabilities/",
-                    "docs/history/",
-                ),
+                exact_paths=(),
+                prefix_paths=_DOC_ONLY_PREFIX_PATHS,
             ),
             "fail_policy": "documentation_review_only_no_pytest",
             "commands": documentation_commands,

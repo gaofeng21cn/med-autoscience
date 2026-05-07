@@ -75,8 +75,9 @@ def test_preflight_contract_report_lists_categories_and_planned_commands() -> No
     }
     doc_review = categories[module.DOCUMENTATION_REVIEW_CATEGORY]
     assert doc_review["category"] == module.DOCUMENTATION_REVIEW_CATEGORY
-    assert "README.md" in doc_review["exact_paths"]
-    assert "docs/program/" in doc_review["prefix_paths"]
+    assert doc_review["exact_paths"] == []
+    assert doc_review["prefix_paths"] == ["docs/"]
+    assert doc_review["root_file_patterns"] == ["README*.md"]
     assert doc_review["owner_surface"] == {
         "exact_paths": doc_review["exact_paths"],
         "prefix_paths": doc_review["prefix_paths"],
@@ -215,10 +216,8 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
 
     result = module.classify_changed_files(
         [
-            "docs/references/domain-harness-os-positioning.md",
-            "docs/runtime/runtime_backend_interface_contract.md",
-            "docs/runtime/runtime_handle_and_durable_surface_contract.md",
-            "docs/runtime/runtime_supervision_loop.md",
+            "docs/references/example-runtime-note.md",
+            "docs/runtime/example-runtime-contract.md",
             "src/med_autoscience/profiles.py",
             "src/med_autoscience/runtime_backend.py",
             "src/med_autoscience/controllers/study_outer_loop.py",
@@ -246,7 +245,7 @@ def test_classify_changed_files_routes_display_docs_to_review_only() -> None:
 
     result = module.classify_changed_files(
         [
-            "docs/capabilities/medical-display/medical_display_audit_guide.md",
+            "docs/capabilities/example-capability-guide.md",
         ]
     )
 
@@ -426,10 +425,8 @@ def test_classify_changed_files_matches_external_runtime_dependency_surface() ->
 
     result = module.classify_changed_files(
         [
-            "docs/program/external_runtime_dependency_gate.md",
-            "docs/program/manual_runtime_stabilization_checklist.md",
-            "docs/references/workspace_architecture.md",
-            "docs/references/disease_workspace_quickstart.md",
+            "docs/program/example-runtime-gate.md",
+            "docs/references/example-workspace-note.md",
             "src/med_autoscience/workspace_contracts.py",
         ]
     )
@@ -445,14 +442,8 @@ def test_classify_changed_files_routes_public_docs_to_review_only() -> None:
         [
             "README.md",
             "README.zh-CN.md",
-            "docs/README.md",
-            "docs/README.zh-CN.md",
-            "docs/project.md",
-            "docs/architecture.md",
-            "docs/invariants.md",
-            "docs/status.md",
-            "docs/decisions.md",
-            "docs/references/series-doc-governance-checklist.md",
+            "docs/example.md",
+            "docs/references/example-reference.md",
         ]
     )
 
@@ -480,12 +471,9 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
 
     result = module.classify_changed_files(
         [
-            "docs/history/program/hermes_backend_continuation_board.md",
-            "docs/history/program/hermes_backend_activation_package.md",
-            "docs/program/med_deepscientist_deconstruction_map.md",
-            "docs/history/program/integration_harness_activation_package.md",
-            "docs/history/program/research_foundry_medical_mainline.md",
-            "docs/references/research_foundry_medical_phase_ladder.md",
+            "docs/history/program/example-history-board.md",
+            "docs/program/example-backend-map.md",
+            "docs/references/example-phase-ladder.md",
             "scripts/prepare-sentrux-gitstats-clone.sh",
             "scripts/run-parallel-test-lanes.sh",
             "src/med_autoscience/controllers/workspace_init.py",
