@@ -32,6 +32,20 @@ def test_supervisor_scan_clears_stale_ai_reviewer_lifecycle_after_reviewer_eval_
         "recommended_actions": [],
     }
     _write_json(publication_eval_path, ai_reviewer_eval)
+    lifecycle_path = study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json"
+    _write_json(
+        lifecycle_path,
+        {
+            "surface": "ai_repair_lifecycle",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": "quest-dm",
+            "state": "blocked",
+            "blocked_reason": "ai_reviewer_assessment_required",
+            "next_owner": "ai_reviewer",
+            "external_supervisor_required": False,
+        },
+    )
 
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -85,7 +99,6 @@ def test_supervisor_scan_clears_stale_ai_reviewer_lifecycle_after_reviewer_eval_
         profile=profile,
         study_ids=(study_id,),
         apply_safe_actions=True,
-        persist_surfaces=False,
     )
 
     study = result["studies"][0]
@@ -103,6 +116,7 @@ def test_supervisor_scan_clears_stale_ai_reviewer_lifecycle_after_reviewer_eval_
     assert study["external_supervisor_required"] is False
     assert study["owner_route"]["owner_reason"] is None
     assert study["owner_route"]["allowed_actions"] == []
+    assert not lifecycle_path.exists()
 
 
 def test_supervisor_scan_clears_stale_runtime_relaunch_lifecycle_after_live_worker_observed(
@@ -125,6 +139,20 @@ def test_supervisor_scan_clears_stale_runtime_relaunch_lifecycle_after_live_work
         "recommended_actions": [],
     }
     _write_json(publication_eval_path, ai_reviewer_eval)
+    lifecycle_path = study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json"
+    _write_json(
+        lifecycle_path,
+        {
+            "surface": "ai_repair_lifecycle",
+            "schema_version": 1,
+            "study_id": study_id,
+            "quest_id": study_id,
+            "state": "blocked",
+            "blocked_reason": "runtime_relaunch_no_live_run_started",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+        },
+    )
 
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -189,7 +217,6 @@ def test_supervisor_scan_clears_stale_runtime_relaunch_lifecycle_after_live_work
         profile=profile,
         study_ids=(study_id,),
         apply_safe_actions=True,
-        persist_surfaces=False,
     )
 
     study = result["studies"][0]
@@ -201,3 +228,4 @@ def test_supervisor_scan_clears_stale_runtime_relaunch_lifecycle_after_live_work
     assert study["external_supervisor_required"] is False
     assert study["owner_route"]["next_owner"] is None
     assert study["owner_route"]["allowed_actions"] == []
+    assert not lifecycle_path.exists()

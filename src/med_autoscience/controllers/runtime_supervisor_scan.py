@@ -106,6 +106,29 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
+def _repair_lifecycle_path(study_root: Path) -> Path:
+    return study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json"
+
+
+def _clear_resolved_repair_lifecycle(
+    *,
+    study_root: Path,
+    previous_lifecycle: Mapping[str, Any],
+    current_lifecycle: Mapping[str, Any],
+    developer_mode: DeveloperSupervisorMode,
+    persist_surfaces: bool,
+) -> bool:
+    if not persist_surfaces or not developer_mode.safe_actions_enabled:
+        return False
+    if not previous_lifecycle or current_lifecycle:
+        return False
+    try:
+        _repair_lifecycle_path(study_root).unlink()
+    except FileNotFoundError:
+        return False
+    return True
+
+
 def _read_last_json_line(path: Path) -> dict[str, Any] | None:
     try:
         lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -437,6 +460,7 @@ def _study_projection(
     apply_safe_actions: bool,
     apply_runtime_platform_repair: bool,
     developer_mode: DeveloperSupervisorMode,
+    persist_surfaces: bool,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
     status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
@@ -529,7 +553,8 @@ def _study_projection(
         )
     if developer_mode.mode == "external_observe":
         actions = []
-    lifecycle = _mapping(progress_payload.get("ai_repair_lifecycle"))
+    initial_lifecycle = _mapping(progress_payload.get("ai_repair_lifecycle"))
+    lifecycle = initial_lifecycle
     lifecycle = _mapping(_maybe_blocked_lifecycle_from_scan(
         developer_mode=developer_mode,
         lifecycle=lifecycle,
@@ -649,6 +674,13 @@ def _study_projection(
             publication_eval_payload=publication_eval_payload,
             actions=actions,
         )
+    _clear_resolved_repair_lifecycle(
+        study_root=study_root,
+        previous_lifecycle=initial_lifecycle,
+        current_lifecycle=lifecycle,
+        developer_mode=developer_mode,
+        persist_surfaces=persist_surfaces,
+    )
     supervision = _mapping(progress_payload.get("supervision"))
     return {
         "study_id": study_id,
@@ -718,6 +750,7 @@ def supervisor_scan(
             apply_safe_actions=apply_safe_actions,
             apply_runtime_platform_repair=apply_runtime_platform_repair,
             developer_mode=developer_mode,
+            persist_surfaces=persist_surfaces,
         )
         for study_id in resolved_study_ids
     ]
