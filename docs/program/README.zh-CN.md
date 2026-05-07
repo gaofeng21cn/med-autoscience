@@ -12,6 +12,8 @@
 
 - 稳定操作规则：`docs/policies/`
 - MDS 学习、parity、ledger 和技术参考：`docs/references/`
-- 已退役 board、closeout、intake snapshot 和已落地 program 记录：`docs/history/program/`
+- 已退役 board、closeout、周期性支持线 dated intake snapshot 和已落地 program 记录：`docs/history/program/`
+
+DeepScientist latest-update learning 这类 learning/intake 工作仍由对应 reference policy/protocol 触发。`docs/history/program/` 里的 dated 文件是单轮快照，不表示 recurring lane 已退役。
 
 新增 program board 前，必须先通过 `program_portfolio_consolidation.md` 映射到当前 portfolio。

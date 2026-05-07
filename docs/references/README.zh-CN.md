@@ -11,4 +11,6 @@
 - [真实 study relaunch 验证](./real_study_relaunch_verification.md)
 - [MedDeepScientist references](./med-deepscientist/README.md)
 
+`med-deepscientist/` 包含 DeepScientist recurring learning 的 active policy/protocol。dated intake 记录保存在 `docs/history/program/`，作为已完成轮次的快照。
+
 当前执行队列以 [Program portfolio consolidation](../program/program_portfolio_consolidation.md) 为准。

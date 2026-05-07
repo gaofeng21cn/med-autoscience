@@ -11,4 +11,6 @@ Current groups:
 - [Real-study relaunch verification](./real_study_relaunch_verification.md)
 - [MedDeepScientist references](./med-deepscientist/README.md)
 
+`med-deepscientist/` includes the active policy/protocol for recurring DeepScientist learning. Dated intake records are stored under `docs/history/program/` as completed-round snapshots.
+
 Use [Program portfolio consolidation](../program/program_portfolio_consolidation.md) for the active execution queue.

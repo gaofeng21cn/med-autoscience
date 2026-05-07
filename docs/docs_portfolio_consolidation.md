@@ -61,8 +61,8 @@ Supporting material lives outside `docs/program/`:
 | --- | --- |
 | stable operating rules and gates | `docs/policies/` |
 | MDS parity, completion ledger, quality/autonomy narrative, repair references | `docs/references/` |
-| MedDeepScientist learning and upstream intake references | `docs/references/med-deepscientist/` |
-| retired boards, closeouts, intake snapshots, activation packages | `docs/history/program/` |
+| MedDeepScientist recurring learning and upstream intake references | `docs/references/med-deepscientist/` |
+| retired boards, closeouts, dated recurring intake snapshots, activation packages | `docs/history/program/` |
 
 ## Active Capability Set
 
@@ -79,8 +79,8 @@ This consolidation already moved these tracked files from `docs/program/` to `do
 | archived family | files |
 | --- | --- |
 | AI-first closeout | `ai_first_operationalization_closeout.md`, `ai_first_usable_closeout_projection.md`, `ai_first_closeout_handoff_governance.md` |
-| DeepScientist intake snapshots | `deepscientist_learning_intake_2026_04_25.md`, `deepscientist_learning_intake_2026_04_28.md`, `deepscientist_learning_intake_2026_04_30.md`, `deepscientist_learning_intake_2026_05_05.md` |
-| external / open research intakes | `external_agent_orchestration_learning_intake_2026_04_30.md`, `paper_orchestra_learning_intake_2026_05_02.md`, `open_auto_research_learning_intake_2026_05_04.md` |
+| DeepScientist dated recurring-lane snapshots | `deepscientist_learning_intake_2026_04_25.md`, `deepscientist_learning_intake_2026_04_28.md`, `deepscientist_learning_intake_2026_04_30.md`, `deepscientist_learning_intake_2026_05_05.md` |
+| external / open research dated recurring-lane snapshots | `external_agent_orchestration_learning_intake_2026_04_30.md`, `paper_orchestra_learning_intake_2026_05_02.md`, `open_auto_research_learning_intake_2026_05_04.md` |
 | superseded plans | `open_harness_os_freeze_plan.md`, `journal_package_builtins_upgrade_plan.md`, `research_foundry_medical_mainline.md`, `research_foundry_medical_execution_map.md` |
 | activation / cutover boards | `integration_harness_activation_package.md`, `hermes_backend_activation_package.md`, `hermes_backend_continuation_board.md`, `upstream_hermes_agent_fast_cutover_board.md` |
 | retired MAS/MDS boards | `mas_mds_autonomy_operating_system_program.md`, `mas_mds_unified_enhancement_program.md` |
@@ -93,7 +93,7 @@ Current support relocations:
 | --- | --- |
 | `docs/policies/` | `external_runtime_dependency_gate.md`, `mainline_integration_and_cleanup.md`, `manual_runtime_stabilization_checklist.md`, `mas_mds_owner_boundary_contract.md`, `merge_and_cutover_gates.md`, `repository_ci_preflight.md` |
 | `docs/references/` | `mas_single_project_quality_and_autonomy_mainline.md`, `mds_capability_parity_matrix.md`, `plan_completion_ledger.md`, `project_repair_priority_map.md`, `real_study_relaunch_verification.md` |
-| `docs/references/med-deepscientist/` | DeepScientist learning, method, provenance, deconstruction, and upstream intake references |
+| `docs/references/med-deepscientist/` | DeepScientist recurring learning, method, provenance, deconstruction, and upstream intake references |
 
 If business code or behavior tests still reference a narrative docs path, treat that as a migration bug: retire the machine path dependency first, replace it with a stable ref or durable surface, then archive the narrative file when links are reviewed. Docs tooling may still classify `docs/` paths as documentation-only without reading Markdown prose as truth.
 
@@ -112,7 +112,7 @@ The next cleanup waves should be explicit and small:
 ## Archive Rule
 
 1. Active truth stays in root/core, runtime, policies, and active program docs.
-2. Historical closeout, intake, activation package, old roadmap, and process draft move to `history/`.
+2. Historical closeout, dated recurring intake snapshot, activation package, old roadmap, and process draft move to `history/`; the recurring lane owner remains in `status` / `references`.
 3. Before moving a file, search inbound links with `rg` and update links or leave the file in place.
 4. Code and tests must not treat `docs/**` files as machine-readable authority, quality truth, runtime truth, policy truth, or regression oracle. Business/runtime surfaces should use stable ids such as `program:*`, `policy:*`, `runtime:*`, `core:*`, or durable JSON/schema surfaces.
 5. Narrow exceptions are allowed only for docs tooling: classifying changed `docs/` paths as documentation-only, generating a tracked docs asset, or rendering a human-readable link. These exceptions must not inspect Markdown prose as behavior truth.

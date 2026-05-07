@@ -1,8 +1,10 @@
 # MAS/MDS Unified Enhancement Program
 
-Status: `active integration program`
+Status: `historical enhancement board absorbed by current portfolio`
 Date: `2026-05-04`
 Owner: `MedAutoScience`
+
+Archive note: this record preserves the older L1-L5 enhancement grouping. Current execution owner and queue live in [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md), [MAS Single-Project MDS Absorb Program](../../program/mas_single_project_mds_absorb_program.md), and [Runtime Lifecycle SQLite Migration Program](../../program/runtime_lifecycle_sqlite_migration_program.md).
 
 ## 结论
 

@@ -72,7 +72,20 @@ Owner: `MedAutoScience`
 | `../references/project_repair_priority_map.md` | repair triage reference | 维护优先级参考，不作为独立 program board。 |
 | `../policies/manual_runtime_stabilization_checklist.md` | manual ops checklist | 外部/runtime 稳定化清单。 |
 | `../references/real_study_relaunch_verification.md` | real workspace verification reference | 真实 study relaunch 验证参考。 |
-| `../references/med-deepscientist/` | MDS learning and upstream intake references | MDS 被吸收后仍保留的 upstream learning、deconstruction、method、provenance 与 intake 支撑材料。 |
+| `../references/med-deepscientist/` | MDS learning and upstream intake references | MDS 被吸收后仍保留的 recurring upstream learning、deconstruction、method、provenance 与 intake 支撑材料。 |
+
+## Recurring Support Lanes
+
+这些 lane 不是 `docs/program/` 的并行总控入口，也不是已退役事项。它们属于按触发执行的长期支持能力：入口、policy 或 protocol 留在 `docs/status.md` / `docs/references/`，每次执行后的 dated record 留在 `docs/history/program/`。
+
+| recurring lane | active owner | dated records | handling rule |
+| --- | --- | --- | --- |
+| DeepScientist latest-update learning | `docs/status.md`、`../references/med-deepscientist/deepscientist_continuous_learning_policy.md`、`../references/med-deepscientist/deepscientist_latest_update_learning_protocol.md` | `../history/program/deepscientist_learning_intake_YYYY_MM_DD.md` | 用户触发“学习 DeepScientist 最新更新”时继续执行 fresh upstream audit、decision matrix、落地、验证、吸收和清理；dated intake 只是单轮快照。 |
+| external agent orchestration learning | `docs/status.md`、`../history/program/external_agent_orchestration_learning_intake_2026_04_30.md` 的 `Continued Learning Saturation Protocol` | 后续同族 intake snapshot | 继续只吸收可加强 MAS 自治、handoff、observability、retry/reconciliation 与 reviewer gate 的 contract/template；外部 owner、generic persona、marketing/product lifecycle 维持 watch/reject。 |
+| PaperOrchestra / adjacent writing-system learning | `docs/status.md`、`../history/program/paper_orchestra_learning_intake_2026_05_02.md` 的 `Continued Learning Saturation Protocol` | 后续同族 intake snapshot | 作为写作/评审/论文工作流相邻学习面保留；不能替代 MAS publication authority 或 medical quality gate。 |
+| open auto research learning | `docs/status.md`、`../history/program/open_auto_research_learning_intake_2026_05_04.md` 的 `Continued Learning Saturation Protocol` | 后续同族 intake snapshot | 继续按 adopt/watch/reject 选择性吸收 read-model、rubric、trajectory、candidate-path 等方法；外部框架和自动论文生成器不升格为 MAS truth。 |
+
+因此，`history/program` 里的 `*_learning_intake_YYYY_MM_DD.md` 应理解为 recurring lane 的 dated snapshot。它们不作为 active backlog 重复追踪，但对应 support lane 仍可被用户或维护者触发。
 
 ## Landed Or Historical Reference
 
@@ -84,13 +97,13 @@ Owner: `MedAutoScience`
 | `../history/program/ai_first_operationalization_closeout.md` | landed closeout | AI-first repo-level closeout 记录，后续只读。 |
 | `../history/program/ai_first_usable_closeout_projection.md` | landed closeout | usable closeout projection 已落地，后续由 ledger 与 active surfaces 接续。 |
 | `../history/program/ai_first_closeout_handoff_governance.md` | landed closeout / support | handoff governance 已落地，可作为 closeout policy 参考。 |
-| `../history/program/external_agent_orchestration_learning_intake_2026_04_30.md` | historical intake | 外部 orchestration 学习快照，已归入 autonomy board。 |
-| `../history/program/open_auto_research_learning_intake_2026_05_04.md` | historical intake | OAR lesson 已吸收为 repo-level read model，真实 soak 另由 active lanes 管理。 |
-| `../history/program/paper_orchestra_learning_intake_2026_05_02.md` | historical intake | PaperOrchestra lesson intake，后续只作为学习参考。 |
-| `../history/program/deepscientist_learning_intake_2026_04_25.md` | historical intake | 旧 DeepScientist intake。 |
-| `../history/program/deepscientist_learning_intake_2026_04_28.md` | historical intake | 旧 DeepScientist intake。 |
-| `../history/program/deepscientist_learning_intake_2026_04_30.md` | historical intake | 旧 DeepScientist intake。 |
-| `../history/program/deepscientist_learning_intake_2026_05_05.md` | latest intake record | 当前最新 intake 记录，仍由 learning protocol 引用，但不是独立 program。 |
+| `../history/program/external_agent_orchestration_learning_intake_2026_04_30.md` | dated recurring-lane snapshot | 外部 orchestration 学习快照；support lane 仍可按 saturation protocol 继续触发。 |
+| `../history/program/open_auto_research_learning_intake_2026_05_04.md` | dated recurring-lane snapshot | OAR lesson 已吸收为 repo-level read model；同族 open auto research 学习仍可按触发继续执行。 |
+| `../history/program/paper_orchestra_learning_intake_2026_05_02.md` | dated recurring-lane snapshot | PaperOrchestra lesson intake；相邻写作系统学习仍可作为 support lane 继续触发。 |
+| `../history/program/deepscientist_learning_intake_2026_04_25.md` | dated recurring-lane snapshot | DeepScientist 单轮 intake 快照；长期 learning lane 仍由 policy/protocol 触发。 |
+| `../history/program/deepscientist_learning_intake_2026_04_28.md` | dated recurring-lane snapshot | DeepScientist 单轮 intake 快照；长期 learning lane 仍由 policy/protocol 触发。 |
+| `../history/program/deepscientist_learning_intake_2026_04_30.md` | dated recurring-lane snapshot | DeepScientist 单轮 intake 快照；长期 learning lane 仍由 policy/protocol 触发。 |
+| `../history/program/deepscientist_learning_intake_2026_05_05.md` | latest dated recurring-lane snapshot | 当前最新 DeepScientist intake 记录，仍由 learning protocol 引用，但不是独立 program board。 |
 | `../history/program/research_foundry_medical_mainline.md` | superseded narrative / reference | Research Foundry / Harness OS 叙述已被当前 MAS/MDS autonomy 与 single-project docs 收口；保留为历史架构脉络。 |
 | `../history/program/research_foundry_medical_execution_map.md` | superseded execution map / reference | 同上，作为旧 phase ladder 入口保留。 |
 | `../history/program/open_harness_os_freeze_plan.md` | historical architecture freeze | Harness OS freeze 计划不再作为当前 MAS/MDS 执行板。 |
@@ -121,7 +134,7 @@ Owner: `MedAutoScience`
 
 历史归档必须后置于链接审计，不能在当前 active planning 里直接移动文件。归档时遵守：
 
-1. 先在本文把文件标成 `historical_reference`、`landed_closeout` 或 `superseded`.
+1. 先在本文把文件标成 `historical_reference`、`landed_closeout`、`superseded` 或 `dated_recurring_lane_snapshot`.
 2. 用 `rg` 查所有 inbound links，更新到新路径或保留 stub。
 3. 只移动叙述性历史材料，不移动 active contracts、ledgers、policies 或 runtime docs。
 4. 代码和测试不得把 `docs/**` 当成机器 truth、policy truth、runtime truth 或 regression oracle；如需引用 program / policy / runtime 概念，使用稳定 id 或 durable surface。
@@ -137,5 +150,5 @@ Owner: `MedAutoScience`
 - 新的 runtime lifecycle / quest Git / MDS absorb 工作都进入同一个 `A1-A4` 主序列。
 - `runtime_lifecycle_sqlite_migration_program.md` 明确作为 `mas_single_project_mds_absorb_program.md` 的 runtime persistence 子计划执行。
 - current-project quest Git 和 workspace root Git retirement 不再作为未完成 active backlog 重复规划；next execution queue 固定为 workspace layout 去 MDS/DS 化、profile/entry compatibility retirement、MDS physical no-history absorb。
-- 已落地 closeout、learning intake、activation package 不再被当作 active backlog。
+- 已落地 closeout、activation package 不再被当作 active backlog；dated learning intake 不再被当作 active backlog，但其 recurring support lane 仍按对应 policy/protocol 可触发。
 - `../references/plan_completion_ledger.md` 继续区分 repo capability landed、真实 workspace cutover completed、compatibility retirement completed。

@@ -1,8 +1,10 @@
 # MAS/MDS Autonomy Operating System Program
 
-Status: `active program board`  
-Owner: `MedAutoScience`  
+Status: `historical board absorbed by program_portfolio_consolidation`
+Owner: `MedAutoScience`
 Scope: long-running autonomy, medical-paper quality, MAS single-project evolution, quality-preserving acceleration, natural-boundary maintainability
+
+Archive note: this record preserves the older autonomy OS board and lane vocabulary. Current program governance lives in [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md); do not treat this file as an active owner board.
 
 ## Target State
 
@@ -35,7 +37,7 @@ The current enhancement backlog is consolidated in [MAS/MDS Unified Enhancement 
 - `L4_delivery_and_legacy_upgrade_visibility` strengthens `P2_observability_and_profiling` and `P4_quality_preserving_fast_lane` as read-only delivery visibility.
 - `L5_natural_boundary_and_audit_compaction` strengthens `P6_natural_boundary_refactor`; audit compaction remains blocked until restore/index/provenance contracts exist.
 
-Program portfolio governance is consolidated in [Program Portfolio Consolidation](./program_portfolio_consolidation.md). That document classifies active boards, execution programs, support contracts, ledgers, historical intakes, and archive candidates. New MAS/MDS long-line work should map to that portfolio before creating a new program document.
+Program portfolio governance is consolidated in [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md). That document classifies active boards, execution programs, support contracts, ledgers, dated recurring-lane snapshots, and archive candidates. New MAS/MDS long-line work should map to that portfolio before creating a new program document.
 
 The board is deliberately stricter than a prose roadmap: every lane has an owner, primary surfaces, and an acceptance gate. The program is not release-ready until every lane is completed or absorbed and none are blocked.
 
