@@ -454,7 +454,7 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
 
 
 def test_owner_route_fallback_source_fingerprint_tracks_action_payload_targets() -> None:
-    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan_parts.owner_route")
+    module = importlib.import_module("med_autoscience.runtime_control.owner_route")
     base = {
         "action_type": "publication_gate_specificity_required",
         "owner": "publication_gate",
@@ -494,7 +494,7 @@ def test_owner_route_fallback_source_fingerprint_tracks_action_payload_targets()
 
 
 def test_owner_route_requires_explicit_allowed_action_for_dispatch_execution() -> None:
-    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan_parts.owner_route")
+    module = importlib.import_module("med_autoscience.runtime_control.owner_route")
     action = {
         "action_type": "return_to_ai_reviewer_workflow",
         "owner": "ai_reviewer",
@@ -511,6 +511,32 @@ def test_owner_route_requires_explicit_allowed_action_for_dispatch_execution() -
         action=action,
         owner_route={**route, "allowed_actions": ["return_to_ai_reviewer_workflow"]},
     ) is True
+
+
+def test_owner_route_legacy_scan_part_reexports_shared_contract() -> None:
+    shared = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    legacy = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan_parts.owner_route")
+
+    assert legacy.ROUTED_ACTION_TYPES is shared.ROUTED_ACTION_TYPES
+    assert legacy.build_owner_route is shared.build_owner_route
+    assert legacy.decorate_actions is shared.decorate_actions
+    assert legacy.route_and_decorate_actions is shared.route_and_decorate_actions
+    assert legacy.owner_route_matches is shared.owner_route_matches
+    assert legacy.route_allows_action is shared.route_allows_action
+
+
+def test_owner_route_scan_consumer_and_executor_share_contract_import() -> None:
+    shared = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    modules = [
+        importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan"),
+        importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer"),
+        importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor"),
+    ]
+
+    for module in modules:
+        assert module.owner_route_part.build_owner_route is shared.build_owner_route
+        assert module.owner_route_part.owner_route_matches is shared.owner_route_matches
+        assert module.owner_route_part.route_allows_action is shared.route_allows_action
 
 
 def test_supervisor_scan_routes_incomplete_completion_contract_to_completion_evidence_owner(

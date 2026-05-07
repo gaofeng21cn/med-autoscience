@@ -17,7 +17,6 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import completion
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
 from med_autoscience.controllers.runtime_supervisor_scan_parts import publication_gate_actions
-from med_autoscience.controllers.runtime_supervisor_scan_parts import owner_route as owner_route_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
@@ -25,6 +24,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import status_pro
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_parking
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import workspace_daemon
+from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
     resolve_developer_supervisor_mode,

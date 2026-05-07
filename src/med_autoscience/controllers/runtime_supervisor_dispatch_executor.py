@@ -8,10 +8,10 @@ from typing import Any
 
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_control import owner_route as owner_route_part
 
 from . import ai_reviewer_publication_eval_workflow, gate_clearing_batch, publication_gate, quest_hydration, study_runtime_router
 from .runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
-from .runtime_supervisor_scan_parts import owner_route as owner_route_part
 from .supervisor_action_request_lifecycle import stable_ai_reviewer_request_path
 from .runtime_supervisor_consumer import (
     CONSUMER_LATEST_RELATIVE_PATH,

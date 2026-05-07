@@ -11,9 +11,9 @@ from med_autoscience.controllers.runtime_ai_repair_policy import (
     two_layer_ai_repair_policy_payload,
 )
 from med_autoscience.controllers.runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
-from med_autoscience.controllers.runtime_supervisor_scan_parts import owner_route as owner_route_part
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_control import owner_route as owner_route_part
 
 
 SCHEMA_VERSION = 1
