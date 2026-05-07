@@ -125,6 +125,13 @@ def why_not_applied(
             and runtime_facts.worker_running(status)
         ):
             return None
+        if (
+            text == "runtime_recovery_not_authorized"
+            and lifecycle.get("projection_only") is True
+            and runtime_facts.active_run_id(status, progress) is not None
+            and runtime_facts.worker_running(status)
+        ):
+            return None
         return text
     return None
 

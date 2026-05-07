@@ -31,6 +31,19 @@ def runtime_relaunch_lifecycle_resolved(
     return runtime_facts.active_run_id(status, progress) is not None and runtime_facts.worker_running(status)
 
 
+def projection_only_runtime_recovery_lifecycle_resolved(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    lifecycle: Mapping[str, Any],
+) -> bool:
+    if lifecycle.get("projection_only") is not True:
+        return False
+    if _text(lifecycle.get("blocked_reason")) != "runtime_recovery_not_authorized":
+        return False
+    return runtime_facts.active_run_id(status, progress) is not None and runtime_facts.worker_running(status)
+
+
 def projection_block_state(
     *,
     status: Mapping[str, Any],
@@ -108,6 +121,7 @@ def _text(value: object) -> str | None:
 __all__ = [
     "ai_reviewer_lifecycle_resolved",
     "runtime_relaunch_lifecycle_resolved",
+    "projection_only_runtime_recovery_lifecycle_resolved",
     "next_owner_for_blocked_reason",
     "projection_block_state",
     "remove_action_type",

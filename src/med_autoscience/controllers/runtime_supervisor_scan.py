@@ -596,6 +596,12 @@ def _study_projection(
         lifecycle=lifecycle,
     ):
         lifecycle = {}
+    if block_state_part.projection_only_runtime_recovery_lifecycle_resolved(
+        status=status_payload,
+        progress=progress_payload,
+        lifecycle=lifecycle,
+    ):
+        lifecycle = {}
     if (
         runtime_platform_repair_apply is not None
         and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied"
