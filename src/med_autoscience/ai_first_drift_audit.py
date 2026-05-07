@@ -261,7 +261,7 @@ MAS_AI_FIRST_RULES: tuple[DriftRule, ...] = (
         check_id="supervisor_owner_route_contract_guards_discover_execute_rescan",
         category="owner_route_drift",
         root_key="mas_repo_root",
-        relative_path="src/med_autoscience/controllers/runtime_supervisor_scan_parts/owner_route.py",
+        relative_path="src/med_autoscience/runtime_control/owner_route.py",
         summary="Supervisor discover/consume/execute must carry one epoch/fingerprint owner route contract.",
         required_markers=(
             '"surface": "runtime_supervisor_owner_route"',
