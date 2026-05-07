@@ -195,7 +195,7 @@ def workspace_git_plan(*, workspace_root: Path, initialize_git: bool, dry_run: b
     already_initialized = (workspace_root / ".git").exists()
     return _workspace_git_payload(
         workspace_root=workspace_root,
-        enabled=initialize_git,
+        enabled=bool(initialize_git or already_initialized),
         initialized=False,
         already_initialized=already_initialized,
         would_initialize=bool(initialize_git and dry_run and not already_initialized),
@@ -222,14 +222,6 @@ def _run_git(git_bin: str, args: list[str], *, workspace_root: Path) -> subproce
 
 def ensure_workspace_git(*, workspace_root: Path, initialize_git: bool) -> dict[str, object]:
     already_initialized = (workspace_root / ".git").exists()
-    if not initialize_git:
-        return _workspace_git_payload(
-            workspace_root=workspace_root,
-            enabled=False,
-            initialized=False,
-            already_initialized=already_initialized,
-            would_initialize=False,
-        )
     if already_initialized:
         configure_existing_workspace_git(workspace_root=workspace_root)
         return _workspace_git_payload(
@@ -237,6 +229,14 @@ def ensure_workspace_git(*, workspace_root: Path, initialize_git: bool) -> dict[
             enabled=True,
             initialized=False,
             already_initialized=True,
+            would_initialize=False,
+        )
+    if not initialize_git:
+        return _workspace_git_payload(
+            workspace_root=workspace_root,
+            enabled=False,
+            initialized=False,
+            already_initialized=False,
             would_initialize=False,
         )
     git_bin = shutil.which("git") or "git"

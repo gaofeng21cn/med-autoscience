@@ -427,7 +427,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     init_workspace_parser.add_argument("--hermes-home-root")
     init_workspace_parser.add_argument("--dry-run", action="store_true")
     init_workspace_parser.add_argument("--force", action="store_true")
-    init_workspace_parser.add_argument("--no-git", action="store_true")
+    init_workspace_parser.add_argument("--with-git", action="store_true")
 
     backend_upgrade_check_parser = subparsers.add_parser("backend-upgrade-check")
     backend_upgrade_check_parser.add_argument("--profile", required=True)

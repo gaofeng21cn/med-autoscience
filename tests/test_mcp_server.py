@@ -745,7 +745,6 @@ def test_mcp_server_can_call_init_workspace_tool(monkeypatch) -> None:
             "default_citation_style": "Vancouver",
             "dry_run": True,
             "force": True,
-            "initialize_git": False,
         },
     )
 

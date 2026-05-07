@@ -969,7 +969,7 @@ def main(argv: list[str] | None = None) -> int:
             default_citation_style=str(args.default_citation_style),
             hermes_agent_repo_root=Path(args.hermes_agent_repo_root) if args.hermes_agent_repo_root else None,
             hermes_home_root=Path(args.hermes_home_root) if args.hermes_home_root else None,
-            initialize_git=not bool(args.no_git),
+            initialize_git=bool(args.with_git),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
