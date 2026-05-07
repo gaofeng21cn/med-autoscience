@@ -12,6 +12,7 @@ from .test_cli_cases.public_entry_commands import *  # noqa: F403,F401
 from .test_cli_cases.runtime_supervisor_scan_command import *  # noqa: F403,F401
 from .test_cli_cases.runtime_supervisor_consume_command import *  # noqa: F403,F401
 from .test_cli_cases.runtime_and_quality_commands import *  # noqa: F403,F401
+from .test_cli_cases.data_asset_payload_commands import *  # noqa: F403,F401
 from .test_cli_cases.pause_runtime_command import *  # noqa: F403,F401
 from .test_cli_cases.truth_reconcile_command import *  # noqa: F403,F401
 from .test_cli_cases.mainline_projection_commands import *  # noqa: F403,F401

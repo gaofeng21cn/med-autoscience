@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 
-def test_retired_frontdesk_name_is_absent_from_active_tracked_surfaces() -> None:
+def test_retired_entry_status_name_is_absent_from_active_tracked_surfaces() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     forbidden_terms = ("front" + "desk", "product-" + "front" + "desk", "product_" + "front" + "desk")
     allowed_prefixes = (

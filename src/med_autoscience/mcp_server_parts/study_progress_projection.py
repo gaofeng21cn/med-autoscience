@@ -35,6 +35,7 @@ from med_autoscience.mcp_server_parts.portable_supervisor_projection import (
     compact_portable_supervisor_dashboard,
     render_mcp_progress_portable_supervisor_dashboard,
 )
+from med_autoscience.mcp_server_parts.study_progress_markdown_sections import render_mcp_progress_stage
 
 
 def _compact_string_list(value: Any, *, limit: int = 12) -> list[str]:
@@ -685,27 +686,6 @@ def _render_mcp_progress_identity(compact: dict[str, Any]) -> list[str]:
     return lines
 
 
-def _render_mcp_progress_stage(compact: dict[str, Any]) -> list[str]:
-    current_stage = compact.get("current_stage") or "unknown"
-    paper_stage = compact.get("paper_stage") or "unknown"
-    state_label = str(compact.get("state_label") or "").strip()
-    lines = [
-        f"- 用户可见状态: {state_label or current_stage}",
-        f"- writer_state: `{compact.get('writer_state') or current_stage}`",
-        f"- actual_write_active: `{compact.get('actual_write_active')}`",
-        f"- package_delivered: `{compact.get('package_delivered')}`",
-        f"- user_next: `{compact.get('user_next') or 'unknown'}`",
-        f"- 论文阶段: `{paper_stage}`",
-    ]
-    stage_summary = str(compact.get("state_summary") or compact.get("current_stage_summary") or "").strip()
-    if stage_summary:
-        lines.append(f"- 状态摘要: {stage_summary}")
-    paper_summary = str(compact.get("paper_stage_summary") or "").strip()
-    if paper_summary:
-        lines.append(f"- 论文摘要: {paper_summary}")
-    return lines
-
-
 def _render_mcp_progress_supervision(compact: dict[str, Any]) -> list[str]:
     supervision = compact.get("supervision") if isinstance(compact.get("supervision"), dict) else {}
     active_run_id = str((supervision or {}).get("active_run_id") or "").strip()
@@ -991,7 +971,7 @@ def render_mcp_study_progress_markdown(payload: dict[str, Any]) -> str:
     compact = compact_study_progress_projection(payload)
     lines: list[str] = []
     lines.extend(_render_mcp_progress_identity(compact))
-    lines.extend(_render_mcp_progress_stage(compact))
+    lines.extend(render_mcp_progress_stage(compact))
     lines.extend(_render_mcp_progress_supervision(compact))
     lines.extend(_render_mcp_progress_runtime_state(compact))
     lines.extend(_render_mcp_progress_operator_and_action(compact))
