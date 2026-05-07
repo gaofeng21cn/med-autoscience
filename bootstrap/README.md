@@ -25,14 +25,16 @@
 
 - 仓库已 clone 到本机任意工作目录
 - Python：`>= 3.12`
-- 本机已具备可用的 `MedDeepScientist`（仓库名 `med-deepscientist`）与 `Codex` 环境
+- 本机已具备可用的 `Codex` 环境；旧 workspace 维护或 backend audit 仍可能需要外部共享的 `MedDeepScientist`（仓库名 `med-deepscientist`）
 - 已存在一个病种级医学研究 workspace，里面至少有：
   - `datasets/`
   - `contracts/`
   - `studies/`
   - `portfolio/`
   - `ops/medautoscience/`
-  - `ops/med-deepscientist/runtime/`
+  - `runtime/`
+  - `artifacts/runtime/`
+  - 旧 workspace 维护场景可额外保留 `ops/med-deepscientist/runtime/` 作为 diagnostic / restore reference
   - 若要启用 finalize 的浅路径正式交付 contract，还需要 `ops/medautoscience/bin/sync-delivery`
 
 ## 新病种 workspace 的最小骨架
@@ -47,25 +49,27 @@
 ├── portfolio/
 │   └── data_assets/
 ├── refs/
+├── artifacts/
+│   └── runtime/
+├── runtime/
+│   ├── quests/
+│   ├── archives/
+│   └── restore_index/
 └── ops/
-    ├── medautoscience/
-    │   ├── bin/
-    │   ├── profiles/
-    │   ├── config.env
-    │   └── README.md
-    └── med-deepscientist/
+    ├── mas/
+    └── medautoscience/
         ├── bin/
+        ├── profiles/
         ├── config.env
-        ├── runtime/
-        ├── startup_briefs/
-        └── startup_payloads/
+        └── README.md
 ```
 
 这里需要注意：
 
 - 这是病种级顶层目录，不是某一篇论文自己的目录
 - 可以先有空的 `studies/`，并不要求创建 profile 时就已经有首个 study
-- 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；默认应复用外部共享的 `med-deepscientist`
+- 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；旧 `med-deepscientist` 只作为外部共享 backend / oracle / diagnostic reference
+- `init-workspace` / MCP 默认不创建 workspace root Git；只有维护者显式选择 CLI `--with-git` 时，root Git 才作为 workspace 级 maintenance-only 边界初始化
 
 现在更推荐直接用 CLI 初始化，而不是手工逐层创建：
 
@@ -198,7 +202,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli startup-data-readiness --workspace
 PYTHONPATH=src python3 -m med_autoscience.cli apply-data-asset-update --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE --payload-file /tmp/data_update.json
 PYTHONPATH=src python3 -m med_autoscience.cli diff-private-release --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE --family-id master --from-version v2026-03-28 --to-version v2026-04-10
 PYTHONPATH=src python3 -m med_autoscience.cli tooluniverse-status --workspace-root /ABS/PATH/TO/MEDICAL-WORKSPACE
-PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /ABS/PATH/TO/MEDICAL-WORKSPACE/ops/med-deepscientist/runtime/quests/<study-id>
+PYTHONPATH=src python3 -m med_autoscience.cli data-asset-gate --quest-root /ABS/PATH/TO/MEDICAL-WORKSPACE/runtime/quests/<quest-id>
 ```
 
 如果只想单独检查或重覆写 overlay，也可以直接运行：
@@ -228,7 +232,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-upgrade --profile p
 1. 运行 `init-workspace` 创建病种级 workspace 骨架
    如果 Agent 已经接入 MCP，优先用 `init_workspace`
 2. 放入原始数据、数据说明、变量定义、终点定义与已有参考资料
-3. 编辑 `ops/medautoscience/config.env` 与 `ops/med-deepscientist/config.env`
+3. 编辑 `ops/medautoscience/config.env`；旧 workspace 如仍需 backend diagnostic，再维护 `ops/med-deepscientist/config.env`
 4. 检查生成的 `profiles/*.local.toml`
 5. 运行 `ops/medautoscience/bin/show-profile`
 6. 运行 `ops/medautoscience/bin/bootstrap`

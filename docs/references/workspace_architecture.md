@@ -23,7 +23,7 @@
 - 疾病 workspace 本身轻巧、可读、可长期维护
 - 项目专属状态保留在 workspace 内
 - 程序本体与重依赖不在每个疾病 workspace 内重复存放
-- workspace 根目录默认有自己的轻量 Git 边界，方便 Codex / MAS 快速查看 scaffold、contracts、portfolio registry 与轻量 study truth
+- workspace 根目录默认不创建 Git；workspace 级 Git 是显式 opt-in / maintenance-only 边界，用于 Codex / MAS 审计 scaffold、contracts、portfolio registry 与轻量 source contract
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
 - `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，上游 `Hermes-Agent` 继续作为目标 outer runtime substrate owner，`MedDeepScientist`（仓库名 `med-deepscientist`）继续作为当前 controlled research backend
 
@@ -78,18 +78,16 @@
 - 原始数据、清洗数据、数据字典、终点定义、纳排标准
 - `studies/`、`portfolio/`、`refs/`
 - startup brief、startup payload、研究策略文档
-- `MedDeepScientist` quest 仓库、日志、记忆、配置等运行状态
+- legacy `MedDeepScientist` quest archive、日志、记忆、配置等运行诊断状态
 - workspace-scope overlay 与 quest-scope overlay 写入的本地 `.codex/skills/`
 
-workspace 根目录的外层 Git 不接管 `MedDeepScientist` quest 仓库。
-标准 scaffold 会在根级 `.gitignore` 排除 `ops/med-deepscientist/runtime/quests/`、study-local `artifacts/`、`manuscript/current_package/`、submission package、paper build/export 目录和重运行态目录；进入具体 quest 后，`git` 命令应命中 quest 自己的内层 `.git`。
-外层 Git 的目标是让 Codex / MAS 快速读取 scaffold、contracts、portfolio registry、study skeleton、analysis/tests/notes 和轻量 paper source truth。
-它不接管 generated artifacts、PDF/DOCX/ZIP、current package projection、runtime ledgers 或投稿导出物；这些 surface 由 MAS/MDS controller、publication gate 和 durable artifact registry 负责。
+workspace 根目录的外层 Git 默认不存在；只有显式 `--with-git` 或维护者手工 opt-in 后才存在。即便存在，它也不接管 quest runtime、legacy `MedDeepScientist` quest archive、generated artifacts、PDF/DOCX/ZIP、current package projection、runtime ledgers 或投稿导出物；这些 surface 由 MAS controller、publication gate、runtime lifecycle SQLite authority、restore index 和 durable artifact registry 负责。
+标准 scaffold 会排除 `runtime/quests/`、`runtime/archives/`、`runtime/restore_index/`、`artifacts/runtime/`、study-local `artifacts/`、`manuscript/current_package/`、submission package、paper build/export 目录和重运行态目录。旧 `ops/med-deepscientist/runtime/quests/`、quest `.git` 与 `.ds/worktrees/` 只作为 legacy restore/import diagnostic 或 enrichment reference；active quest path 不再要求也不允许回流为 Git 仓库。
+quest materializer 的 repo-level guard 必须阻断既有 quest `.git` 回流：新 materialization 只生成普通目录与 manifest，manifest 明确 `git_runtime_used=false`、`quest_git_active_path_retired=true`。
 
 已有 workspace 如果出现外层 Git object store 膨胀，应通过 `medautosci runtime storage-audit --profile <profile> --git-only` 读取 Git health。
 `--git-only --apply` 只合并新版 `.gitignore`、写入 MAS Git config 并清理 stale temp objects。
-只有无 commits、无 remotes、无 stashes、无 linked worktrees、无 locks 的空外层仓库，才允许在显式传入 `--reinitialize-empty-workspace-git` 时重建 `.git`。
-有 commits 的 workspace 不由 MAS 自动重写 Git 历史。
+有 commits 或 dirty state 的 workspace root Git 只进入 maintenance/audit，不由 MAS 自动删除或重写历史。无 commits、无 remotes、无 stashes、无 linked worktrees、无 locks 的空 root Git 可以登记为未来 safe cleanup 候选；候选不等于已经执行 cleanup。
 
 ### 2. 程序本体与重依赖不进入疾病 workspace
 
@@ -299,11 +297,11 @@ wrapper 不应继续硬编码：
 - `workspace_root`
   - 当前疾病 workspace 根目录
 - `runtime_root`
-  - 当前 workspace 中 managed runtime quests 根目录；在 external `Hermes` runtime truth 未清除前，通常仍是 `ops/med-deepscientist/runtime/quests`
+  - 当前 workspace 中 managed runtime quests 根目录；新 workspace 默认是 `runtime/quests`，旧 `ops/med-deepscientist/runtime/quests` 只作为 legacy diagnostic / restore reference
 - `managed_runtime_backend_id`
   - 当前默认固定为 `hermes`
 - `med_deepscientist_runtime_root`
-  - 当前 workspace 中 `MedDeepScientist` 项目状态根目录
+  - 旧 workspace 中 `MedDeepScientist` 项目状态根目录；新 workspace 不把它作为默认 active runtime root
 - `med_deepscientist_repo_root`
   - 外部共享 `MedDeepScientist` 源码仓库；它对应 controlled research backend，而不是默认 outer substrate owner
 
@@ -329,11 +327,12 @@ wrapper 不应继续硬编码：
   - `portfolio/`
   - `datasets/` 或等价数据入口
   - `ops/medautoscience/`
-  - `ops/med-deepscientist/`
-- 当前 controller 仍默认若干固定拓扑：
+  - 旧 workspace 可存在 `ops/med-deepscientist/` 作为 legacy diagnostic / behavior-equivalence reference
+- 当前 controller 仍识别若干固定拓扑：
   - `studies/<study-id>/...`
   - `portfolio/data_assets/...`
-  - `ops/med-deepscientist/runtime/...`
+  - `runtime/...`
+  - legacy diagnostic: `ops/med-deepscientist/runtime/...`
 
 这也意味着当前实现默认承认下面的基数关系：
 
@@ -351,7 +350,7 @@ wrapper 不应继续硬编码：
 
 - `med_autoscience.runtime_protocol.topology`
   - 管理 `paper_root -> worktree_root -> quest_root -> study_root` 的关系
-  - 当前受管布局仍明确要求 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper`
+  - 新布局以 `runtime/quests/<quest_id>` 普通目录、SQLite runtime authority 和 manifest 为默认；旧 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper` 只作为 legacy reader/enrichment/reference 输入
 - `med_autoscience.runtime_protocol.quest_state`
   - 管理 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl`
 - `med_autoscience.runtime_protocol.paper_artifacts`
@@ -419,7 +418,7 @@ wrapper 不应继续做：
 标准启动顺序应为：
 
 1. 创建新的疾病 workspace 骨架
-2. 确认外层 workspace Git 已初始化，且 `ops/med-deepscientist/runtime/quests/` 被根级 `.gitignore` 排除
+2. 默认不初始化外层 workspace Git；如维护者明确需要 root Git，使用显式 opt-in，并确认 runtime/generated/archive 目录被排除
 3. 放入原始数据、数据说明、变量定义、终点定义、已有参考文献与研究设想
 4. 配置 workspace profile
 5. 显式指向外部共享的 `MedAutoScience` repo

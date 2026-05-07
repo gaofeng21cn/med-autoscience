@@ -52,20 +52,21 @@
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
 - `studies/<study_id>/artifacts/controller_decisions/latest.json`
 - `studies/<study_id>/artifacts/controller/controller_confirmation_summary.json`
-- `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+- `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+- legacy diagnostic reference: `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
 - `runtime_watch` 最新 report
 
 允许吸收但不赋予 authority 的 enrichment surface：
 
-- `quest_root/.ds/projections/details.v1.json`
-- `quest_root/.ds/bash_exec/summary.json`
+- legacy enrichment: `quest_root/.ds/projections/details.v1.json`
+- legacy enrichment: `quest_root/.ds/bash_exec/summary.json`
 
 这里的关键约束是：
 
 - canonical truth 仍来自 durable surface
 - `study_runtime_status` 内的 `interaction_arbitration` 与 `continuation_state` 属于正式 typed status surface，可直接用于前台判断“这是用户阻塞，还是 MAS 已经仲裁为自动继续”
-- `details` projection 与 `bash_exec` summary 只用于补充“最近完成了什么”“论文建议推进到哪一步”
-- `.ds/codex_history` 原始事件流保留给审计和调试场景
+- legacy `details` projection 与 `bash_exec` summary 只用于补充“最近完成了什么”“论文建议推进到哪一步”，不得作为 active quest lifecycle 或 publication authority
+- `.ds/codex_history` 原始事件流只保留给审计和调试场景；新 quest 不依赖 `.ds`、MDS Git 或 `.ds/worktrees` 维护前台进度
 - 只要 `runtime_supervision/latest.json` 报告 `recovering / degraded / escalated`，前台就必须优先展示 runtime health，论文阶段在展示顺序上后置
 - 只要 `study_runtime_status.supervisor_tick_audit` 报告 `missing / stale / invalid`，前台就必须明确表述“MAS 外环监管心跳异常”，并停止使用“持续托管监管”口径
 - 即使宿主机尚无 external `Hermes` runtime，前台的人话进度也固定来自这些 `MAS` durable surface；外部 runtime substrate 的状态按实际已验证接入情况描述
