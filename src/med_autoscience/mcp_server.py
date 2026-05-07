@@ -36,14 +36,14 @@ from med_autoscience.controllers import (
 from med_autoscience.doctor import build_doctor_report, overlay_request_from_profile, render_doctor_report, render_profile
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile
-from med_autoscience.controllers.study_runtime_types import StudyRuntimeStatus
-from med_autoscience.mcp_server_parts.study_progress_projection import (
-    compact_open_auto_research_soak_for_mcp,
-    compact_study_progress_projection,
-    compact_study_runtime_result_for_mcp,
-    render_mcp_open_auto_research_soak_markdown,
-    render_mcp_study_progress_markdown,
+from med_autoscience.mcp_server_parts.projection_adapters import (
+    render_open_auto_research_soak_result,
+    render_serialized_study_runtime_result,
+    render_study_progress_result,
+    render_study_runtime_status_result,
+    serialize_study_runtime_result,
 )
+from med_autoscience.mcp_server_parts.tool_result_rendering import json_text, tool_text_result
 
 
 PROTOCOL_VERSION = "2025-03-26"
@@ -58,30 +58,15 @@ _STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION = (
 
 
 def _tool_text_result(text: str, *, structured: dict[str, Any] | None = None, is_error: bool = False) -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "content": [
-            {
-                "type": "text",
-                "text": text,
-            }
-        ],
-        "isError": is_error,
-    }
-    if structured is not None:
-        result["structuredContent"] = structured
-    return result
+    return tool_text_result(text, structured=structured, is_error=is_error)
 
 
 def _json_text(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, ensure_ascii=False, indent=2)
+    return json_text(payload)
 
 
-def _serialize_study_runtime_result(result: dict[str, Any] | StudyRuntimeStatus) -> dict[str, Any]:
-    if isinstance(result, StudyRuntimeStatus):
-        return result.to_dict()
-    if isinstance(result, dict):
-        return dict(result)
-    raise TypeError("study runtime controller result must be dict or StudyRuntimeStatus")
+def _serialize_study_runtime_result(result: dict[str, Any]) -> dict[str, Any]:
+    return serialize_study_runtime_result(result)
 
 
 def _require_string(arguments: dict[str, Any], key: str) -> str:
@@ -429,14 +414,7 @@ def _call_study_runtime_status(arguments: dict[str, Any]) -> dict[str, Any]:
         entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
         sync_runtime_summary=False,
     )
-    serialized = _serialize_study_runtime_result(result)
-    progress_projection = serialized.get("progress_projection")
-    if isinstance(progress_projection, dict):
-        return _tool_text_result(
-            render_mcp_study_progress_markdown(progress_projection),
-            structured=compact_study_runtime_result_for_mcp(serialized),
-        )
-    return _tool_text_result(_json_text(serialized), structured=serialized)
+    return render_study_runtime_status_result(result)
 
 
 def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -448,10 +426,7 @@ def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
         entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
         sync_runtime_summary=False,
     )
-    return _tool_text_result(
-        render_mcp_study_progress_markdown(result),
-        structured=compact_study_progress_projection(result),
-    )
+    return render_study_progress_result(result)
 
 
 def _call_open_auto_research_soak(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -463,12 +438,9 @@ def _call_open_auto_research_soak(arguments: dict[str, Any]) -> dict[str, Any]:
         entry_mode=arguments.get("entry_mode") if isinstance(arguments.get("entry_mode"), str) else None,
         allow_controller_writes=_optional_bool(arguments, "allow_controller_writes"),
     )
-    return _tool_text_result(
-        render_mcp_open_auto_research_soak_markdown(result),
-        structured=compact_open_auto_research_soak_for_mcp(
-            result,
-            allow_controller_writes=_optional_bool(arguments, "allow_controller_writes"),
-        ),
+    return render_open_auto_research_soak_result(
+        result,
+        allow_controller_writes=_optional_bool(arguments, "allow_controller_writes"),
     )
 
 
@@ -483,8 +455,7 @@ def _call_ensure_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
         force=_optional_bool(arguments, "force"),
         source="mcp",
     )
-    serialized = _serialize_study_runtime_result(result)
-    return _tool_text_result(_json_text(serialized), structured=serialized)
+    return render_serialized_study_runtime_result(result)
 
 
 def _call_init_workspace(arguments: dict[str, Any]) -> dict[str, Any]:

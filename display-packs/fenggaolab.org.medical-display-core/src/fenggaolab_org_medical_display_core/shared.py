@@ -10,11 +10,14 @@ from .shared_parts.common import (
     dump_json,
     load_json,
 )
-from .shared_parts.flow_layout import (
+from .shared_parts.layout import (
     _FlowNodeSpec,
     _FlowTextLine,
     _GraphvizLayout,
     _GraphvizNodeBox,
+    _build_python_shap_layout_sidecar,
+    _build_submission_graphical_abstract_arrow_lane_spec,
+    _choose_shared_submission_graphical_abstract_arrow_lane,
     _flow_box_to_normalized,
     _flow_font_path,
     _flow_font_properties,
@@ -39,9 +42,4 @@ from .shared_parts.rendering import (
     _centered_offsets,
     _prepare_python_illustration_output_paths,
     _prepare_python_render_output_paths,
-)
-from .shared_parts.shap_layout import _build_python_shap_layout_sidecar
-from .shared_parts.submission_arrows import (
-    _build_submission_graphical_abstract_arrow_lane_spec,
-    _choose_shared_submission_graphical_abstract_arrow_lane,
 )
