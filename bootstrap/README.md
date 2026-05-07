@@ -112,8 +112,8 @@ python3 --version
 - `runtime_root`
 - `studies_root`
 - `portfolio_root`
-- `med_deepscientist_runtime_root`
-- `med_deepscientist_repo_root`
+- `med_deepscientist_runtime_root`：兼容字段；新 workspace 指向 MAS runtime home，仅作为 legacy diagnostic / backend audit alias
+- `med_deepscientist_repo_root`：可为空；只在需要 controlled backend audit / parity oracle 时配置
 - `default_publication_profile`
 - `default_citation_style`
 - `enable_medical_overlay`
@@ -149,10 +149,9 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor --profile profiles/my-disea
 - `runtime_exists: true`
 - `studies_exists: true`
 - `portfolio_exists: true`
-- `med_deepscientist_runtime_exists: true`
+- `legacy_diagnostic_runtime_exists: true`
 
-如果同时配置了 `med_deepscientist_repo_root`，`doctor` 和 `show-profile` 也会把它显示出来，方便 Agent 在升级前核对源码仓库位置。
-这个路径默认应指向本机的 `MedDeepScientist` checkout，而不是某个病种 workspace 里的临时副本。
+如果同时配置了 `med_deepscientist_repo_root`，`doctor` 和 `show-profile` 会把它显示为 `controlled_backend_audit_repo_root`，方便 Agent 在 backend-upgrade audit 前核对源码仓库位置。新 workspace 默认不要求配置这个路径。
 
 ### 5. 显示 profile
 
@@ -263,7 +262,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-upgrade --profile p
 - AI 可以在 runtime 中区分 data hard block 与 public-data advisory，避免因为扩展机会本身中断主实验
 - AI 可以通过 CLI 调用关键 controller 与 `sync-study-delivery`，并且当 finalized paper bundle 已经形成 `submission_minimal` 时，finalize stage 的 overlay skill 会自动调度 `study_delivery_sync(stage="finalize")`，把论文交付、总结与 proofing 材料同步到 `studies/<study-id>/…/final`，使正式交付流程完全在平台内闭环
 
-需要明确的是，当前 Phase 1 只完成 state contract（runtime contract）、launcher contract 与 behavior equivalence gate 的审计；`med_deepscientist_repo_root` 仅在 `backend-upgrade-check` 的 `repo_check` 中用作审计路径，实际执行仍可能来自 workspace 内的 `site-packages` overlay 或 legacy 补丁。为了控制何时可以把执行移动到外部 repo，workspace 需要在 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 保留一个稳定 artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready`（布尔）与 `critical_overrides`（记录 site-packages/launcher 补丁）。只要 `phase_25_ready=false`，`backend-upgrade-check` 就会返回 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，在 `repo_check` 和 `overlay_check` 里直接跳过后续检查，因此不能据此宣称已经完成外部执行切换；`critical_overrides` 之所以存在，是为了让 site-packages overlay 级别的补丁有明确的迁移或替换步骤，再经过 Phase 2/2.5 逐步清理。
+需要明确的是，当前 Phase 1 只完成 state contract（runtime contract）、launcher contract 与 behavior equivalence gate 的审计；`med_deepscientist_repo_root` 仅在 `backend-upgrade-check` 的 `repo_check` 中用作 controlled backend audit 路径，默认可为空。实际执行仍可能来自 workspace 内的 `site-packages` overlay 或 legacy 补丁。为了控制何时可以把执行移动到外部 repo，新 workspace 的 gate artifact 位于 `ops/mas/behavior_equivalence_gate.yaml`；旧 workspace 的 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic 输入。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready`（布尔）与 `critical_overrides`（记录 site-packages/launcher 补丁）。只要 `phase_25_ready=false`，`backend-upgrade-check` 就会返回 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，在 `repo_check` 和 `overlay_check` 里直接跳过后续检查，因此不能据此宣称已经完成外部执行切换；`critical_overrides` 之所以存在，是为了让 site-packages overlay 级别的补丁有明确的迁移或替换步骤，再经过 Phase 2/2.5 逐步清理。
 
 后续会继续补：
 

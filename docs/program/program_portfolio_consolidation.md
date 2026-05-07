@@ -19,7 +19,7 @@ Owner: `MedAutoScience`
 
 2026-05-07 补充：Runtime Control 和 Progress Projection 已经从待讨论的大 lane 进入主线 contract。`owner_route -> consumer latest -> executor dispatch -> rescan` 是 runtime/control 的固定执行链；`study_macro_state -> user_visible_projection` 是用户可见 progress 的固定读模型。后续 program 不再把这两条作为独立大重构入口反复打开；新功能、MDS 吸收、workspace layout、profile/entry compatibility retirement 或 no-history physical absorb 都必须消费这两条 contract，不能重建第二套用户状态、runtime action 或 publication readiness 判断。
 
-2026-05-08 校准：近期模块化与边界重构没有改变 portfolio 队列。当前事实是：Runtime Control、Progress Projection、quest Git retirement、workspace root Git retirement 和 architecture fitness wave 都已经进入 landed/guard 口径；下一步不再重开 Git 退役或全仓结构治理大计划。队列首项应直接收口医生/Agent 可见 workspace layout，特别是静态 profile template、doctor/show-profile 输出、bootstrap/quickstart/agent-runtime 文档与旧 MDS/DS path 的显示边界。`profiles/workspace.profile.template.toml` 仍暴露旧 `ops/med-deepscientist` 默认路径，`med_deepscientist_*` profile 字段仍是兼容 hub；这些是 `workspace_layout_de_mds_ds` 与 `profile_entry_compat_retirement` 的首要落点，不是新的并行 program board。
+2026-05-08 校准：近期模块化与边界重构没有改变 portfolio 队列。当前事实是：Runtime Control、Progress Projection、quest Git retirement、workspace root Git retirement 和 architecture fitness wave 都已经进入 landed/guard 口径；下一步不再重开 Git 退役或全仓结构治理大计划。首个 `workspace_layout_de_mds_ds` lane 已把静态 profile template、doctor/show-profile 输出、bootstrap/quickstart/agent-runtime 文档与旧 MDS/DS path 的显示边界收口到 MAS-owned layout：`runtime/quests`、`runtime/` 与 `ops/mas` 是默认可见路径，`med_deepscientist_*` 只保留为 legacy diagnostic / backend-audit alias。下一队列固定为 `profile_entry_compat_retirement`，继续退役默认 MDS product entry、默认 legacy reader/fallback 与 profile 字段兼容直出。
 
 2026-05-08 hub role hardening closeout：中心 hub 风险已从“建议”转为 architecture fitness guard。Runtime Supervisor、Product Cockpit、MCP Adapter 与 Display Validation 的本轮收口只改变内部角色边界，不改变 CLI/MCP/controller payload 或 live study artifact。`module_boundary_audit` / `architecture_owner_boundary` 现在要求 hub 声明 `authority`、`read_model`、`adapter` 或 `materializer`；read-model / adapter hub 如果声明 authority、控制 runtime/publication 或写 runtime/study truth，会被 blocking。该 hardening 是横向 guard，不改变 next execution queue。
 
@@ -29,7 +29,7 @@ Owner: `MedAutoScience`
 
 | order | execution lane | owner doc | required closeout |
 | --- | --- | --- | --- |
-| `1` | `workspace_layout_de_mds_ds` | `mas_single_project_mds_absorb_program.md` | 用户/医生可见 workspace layout、static profile template、doctor/show-profile 输出、bootstrap/quickstart/agent-runtime 文档和 quest 管理命名去 MDS/DS 化；旧路径仅保留为 migration ledger、restore proof 或 maintainer diagnostic。 |
+| `1` | `workspace_layout_de_mds_ds` | `mas_single_project_mds_absorb_program.md` | `landed`: 用户/医生可见 workspace layout、static profile template、doctor/show-profile 输出、bootstrap/quickstart/agent-runtime 文档和 quest 管理命名已去 MDS/DS 化；旧路径仅保留为 migration ledger、restore proof 或 maintainer diagnostic。 |
 | `2` | `profile_entry_compat_retirement` | `mas_single_project_mds_absorb_program.md` | 退役 profile 字段兼容、MDS product entry、默认 legacy reader/fallback；先引入 MAS-native / backend-neutral profile surface，旧 `med_deepscientist_*` 只作为显式 legacy diagnostic alias 并 fail-closed。 |
 | `3` | `no_history_physical_absorb` | `mas_single_project_mds_absorb_program.md` | 按 no-history import、author audit、provenance、parity proof 和 rollback surface 吸收可保留 MDS 能力。 |
 
@@ -59,11 +59,11 @@ Owner: `MedAutoScience`
 | `A0_program_portfolio_freeze` | 固定 active / support / historical 分类，停止新建重复 program board。 | 本文 | 可单独落地。 |
 | `A1_authority_contract` | 固定 MAS owner matrix、SQLite runtime authority schema、MDS oracle-only 规则。 | `../policies/mas_mds_owner_boundary_contract.md`、`runtime_lifecycle_sqlite_migration_program.md` | `Q0` 必须先完成，其他 lane 只能读合同。 |
 | `A2_repo_capability_absorb` | 把 MDS Git-era branch/worktree/checkpoint/diff/canvas 语义迁入 SQLite lineage/materializer/projection。 | `mas_single_project_mds_absorb_program.md`、`runtime_lifecycle_sqlite_migration_program.md` | `Q1/Q2/Q3` 可按 disjoint write set 并行。 |
-| `A3_workspace_cutover` | 当前 NF-PitNET、DM-CVD / DPCC、AS biologics、HeRR 等 workspace 进入 SQLite-backed runtime layout，quest `.git` 和 workspace root Git 退为 restore diagnostic archive；new workspace no root Git / no quest Git。 | `runtime_lifecycle_sqlite_migration_program.md` | current-project active-path quest Git 与 workspace root Git 已 verified；下一步是用户可见 layout、profile template 和入口文档去 MDS/DS 化。 |
+| `A3_workspace_cutover` | 当前 NF-PitNET、DM-CVD / DPCC、AS biologics、HeRR 等 workspace 进入 SQLite-backed runtime layout，quest `.git` 和 workspace root Git 退为 restore diagnostic archive；new workspace no root Git / no quest Git。 | `runtime_lifecycle_sqlite_migration_program.md` | current-project active-path quest Git、workspace root Git、用户可见 layout、profile template 和入口文档已进入 verified/landed 口径。 |
 | `A4_entry_and_compat_retirement` | MDS product entry、默认 Git writer、Git worktree writer、隐式 Git diff/log reader 退役；root Git 不再是可选 workspace 维护模式，只允许作为外部/旧 workspace 的显式 restore diagnostic 被处理。 | `mas_single_project_mds_absorb_program.md` | quest Git default path 已完成；MDS product entry / physical absorb 仍需 parity 和 no-history import gate。 |
 | `A5_archive_cleanup` | 已落地 closeout、intake 和 activation package 移入 history/reference 或保持只读参考。 | 本文 | 只做链接保全后的文档移动，不改变 runtime。 |
 
-关键顺序是 `A1 -> A2 -> A3 -> A4`。当前 quest Git 和 workspace root Git 相关的 `A2-A4` 已对 current projects 完成到 verified / default-retired；下一步固定为 workspace 用户可见 layout 去 MDS/DS 化，然后依次处理 profile/entry compatibility retirement 和 no-history physical absorb。如果把 SQLite 当成 paper truth，会破坏 MAS publication authority。
+关键顺序是 `A1 -> A2 -> A3 -> A4`。当前 quest Git、workspace root Git 和 workspace 用户可见 layout 已对 current projects / new scaffold 完成到 verified / default-retired / landed；下一步固定为 profile/entry compatibility retirement，然后处理 no-history physical absorb。如果把 SQLite 当成 paper truth，会破坏 MAS publication authority。
 
 ## Active Portfolio
 
@@ -170,6 +170,6 @@ Owner: `MedAutoScience`
 - 后续 Agent 能先读本文决定该更新落在哪个 active owner doc。
 - 新的 runtime lifecycle / quest Git / MDS absorb 工作都进入同一个 `A1-A4` 主序列。
 - `runtime_lifecycle_sqlite_migration_program.md` 明确作为 `mas_single_project_mds_absorb_program.md` 的 runtime persistence 子计划执行。
-- current-project quest Git 和 workspace root Git retirement 不再作为未完成 active backlog 重复规划；next execution queue 固定为 workspace layout 去 MDS/DS 化、profile/entry compatibility retirement、MDS physical no-history absorb。
+- current-project quest Git、workspace root Git retirement 和 workspace layout 去 MDS/DS 化不再作为未完成 active backlog 重复规划；next execution queue 固定为 profile/entry compatibility retirement、MDS physical no-history absorb。
 - 已落地 closeout、activation package 不再被当作 active backlog；dated learning intake 不再被当作 active backlog，但其 recurring support lane 仍按对应 policy/protocol 可触发。
 - `../references/plan_completion_ledger.md` 继续区分 repo capability landed、真实 workspace cutover completed、compatibility retirement completed。

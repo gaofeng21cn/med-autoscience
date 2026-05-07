@@ -2,7 +2,7 @@
 
 这份指南写给要新建疾病项目 workspace 的 Agent 或技术同事。
 
-目标不是复制一个旧项目，而是用最小骨架快速建立一个病种级研究 workspace，并接入外部共享的 `MedAutoScience` 与 legacy diagnostic 所需的 controlled backend。
+目标不是复制一个旧项目，而是用最小骨架快速建立一个病种级研究 workspace，并接入 `MedAutoScience`。controlled backend / oracle 只在 legacy diagnostic、backend audit 或 parity proof 需要时配置。
 
 ## 先记住一句话
 
@@ -164,7 +164,7 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 
 1. 建立病种级 workspace 骨架
 2. 放入原始数据、数据说明、变量定义、终点定义和参考资料
-3. 编辑 `ops/medautoscience/config.env`；旧 workspace 如仍保留 controlled backend 诊断入口，再维护 `ops/med-deepscientist/config.env`
+3. 编辑 `ops/medautoscience/config.env`；旧 workspace 如仍保留 controlled backend 诊断入口，再只读核对旧 `ops/med-deepscientist/config.env`
 4. 审阅生成的 `ops/medautoscience/profiles/*.local.toml`
 5. 运行 `ops/medautoscience/bin/show-profile`
 6. 运行 `ops/medautoscience/bin/bootstrap`
@@ -184,7 +184,7 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 ## 常见误区
 
 - 不要复制整个 legacy workspace 当模板
-- 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；统一使用外部共享的 `med-deepscientist`
+- 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；只有 backend audit / parity oracle 需要时才配置外部 controlled backend checkout
 - 不要把单篇论文目录当成 workspace 顶层
 - 不要在每个 study 下各自维护一份未经登记的数据真相源
 

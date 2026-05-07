@@ -228,7 +228,7 @@ def _render_workspace_profile_entries(
             "med_deepscientist_runtime_root",
             f"med_deepscientist_runtime_root = {_quote_toml_string(layout.runtime_root)}",
         ),
-        ("med_deepscientist_repo_root", 'med_deepscientist_repo_root = "/ABS/PATH/TO/med-deepscientist"'),
+        ("med_deepscientist_repo_root", 'med_deepscientist_repo_root = ""'),
     ]
     if hermes_agent_repo_root is not None:
         entries.append(

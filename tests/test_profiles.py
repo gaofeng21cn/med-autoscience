@@ -10,10 +10,10 @@ STALE_NFPITNET_ALIAS_WORKSPACE_ROOT = Path("/Users/gaofeng/workspace/Yang/无功
 PROFILE_LINES = [
     'name = "nfpitnet"',
     f'workspace_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT}"',
-    f'runtime_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
+    f'runtime_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "runtime" / "quests"}"',
     f'studies_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "studies"}"',
     f'portfolio_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "portfolio"}"',
-    f'med_deepscientist_runtime_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "ops" / "med-deepscientist" / "runtime"}"',
+    f'med_deepscientist_runtime_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "runtime"}"',
     'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
     'hermes_agent_repo_root = "/Users/gaofeng/workspace/_external/hermes-agent"',
     'hermes_home_root = "~/.hermes"',
@@ -95,10 +95,10 @@ def test_load_profile_rejects_nfpitnet_stale_local_alias_scaffold(tmp_path: Path
     stale_lines = [
         'name = "nfpitnet"',
         f'workspace_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT}"',
-        f'runtime_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
+        f'runtime_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT / "runtime" / "quests"}"',
         f'studies_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT / "studies"}"',
         f'portfolio_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT / "portfolio"}"',
-        f'med_deepscientist_runtime_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT / "ops" / "med-deepscientist" / "runtime"}"',
+        f'med_deepscientist_runtime_root = "{STALE_NFPITNET_ALIAS_WORKSPACE_ROOT / "runtime"}"',
         'default_publication_profile = "general_medical_journal"',
         'default_citation_style = "AMA"',
     ]
@@ -117,10 +117,10 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
             [
                 'name = "minimal"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
             ]
@@ -195,6 +195,12 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["portfolio_root"] == str(profile.portfolio_root)
     assert contract["med_deepscientist_runtime_root"] == str(profile.med_deepscientist_runtime_root)
     assert contract["med_deepscientist_repo_root"] == str(profile.med_deepscientist_repo_root)
+    legacy_diagnostic = contract["legacy_diagnostic"]
+    assert legacy_diagnostic["runtime_root"] == str(profile.med_deepscientist_runtime_root)
+    assert legacy_diagnostic["controlled_backend_repo_root"] == str(profile.med_deepscientist_repo_root)
+    assert legacy_diagnostic["field_compatibility"] == (
+        "med_deepscientist_* profile fields are legacy diagnostic/backend-audit aliases"
+    )
     assert contract["hermes_agent_repo_root"] == str(profile.hermes_agent_repo_root)
     assert contract["hermes_home_root"] == str(profile.hermes_home_root)
     assert contract["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
@@ -224,6 +230,24 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert archetype["preferred_study_archetypes"] == list(profile.preferred_study_archetypes)
 
 
+def test_render_profile_labels_backend_paths_as_diagnostics(tmp_path: Path) -> None:
+    profile_path = tmp_path / "nfpitnet.local.toml"
+    write_full_profile(profile_path)
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    doctor = importlib.import_module("med_autoscience.doctor")
+    profile = profiles.load_profile(profile_path)
+
+    rendered = doctor.render_profile(profile)
+
+    assert "runtime_quests_root: " in rendered
+    assert "mas_runtime_home: " in rendered
+    assert "legacy_diagnostic_runtime_root: " in rendered
+    assert "controlled_backend_audit_repo_root: " in rendered
+    assert "med_deepscientist_runtime_root: " not in rendered
+    assert "med_deepscientist_repo_root: " not in rendered
+
+
 def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Path) -> None:
     profile_dir = tmp_path / "profiles"
     profile_dir.mkdir()
@@ -233,10 +257,10 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
             [
                 'name = "relative"',
                 'workspace_root = "../workspace"',
-                'runtime_root = "../workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "../workspace/runtime/quests"',
                 'studies_root = "../workspace/studies"',
                 'portfolio_root = "../workspace/portfolio"',
-                'med_deepscientist_runtime_root = "../workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "../workspace/runtime"',
                 'med_deepscientist_repo_root = "../../med-deepscientist"',
                 'hermes_agent_repo_root = "../../_external/hermes-agent"',
                 'hermes_home_root = "../../.hermes-home"',
@@ -252,8 +276,8 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
     profile = profiles.load_profile(profile_path)
 
     assert profile.workspace_root == (profile_dir / "../workspace").resolve()
-    assert profile.runtime_root == (profile_dir / "../workspace/ops/med-deepscientist/runtime/quests").resolve()
-    assert profile.med_deepscientist_runtime_root == (profile_dir / "../workspace/ops/med-deepscientist/runtime").resolve()
+    assert profile.runtime_root == (profile_dir / "../workspace/runtime/quests").resolve()
+    assert profile.med_deepscientist_runtime_root == (profile_dir / "../workspace/runtime").resolve()
     assert profile.med_deepscientist_repo_root == (profile_dir / "../../med-deepscientist").resolve()
     assert profile.hermes_agent_repo_root == (profile_dir / "../../_external/hermes-agent").resolve()
     assert profile.hermes_home_root == (profile_dir / "../../.hermes-home").resolve()
@@ -266,10 +290,10 @@ def test_load_profile_rejects_invalid_boolean_shape(tmp_path: Path) -> None:
             [
                 'name = "invalid-bool"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'enable_medical_overlay = "false"',
@@ -291,10 +315,10 @@ def test_load_profile_rejects_invalid_list_shape(tmp_path: Path) -> None:
             [
                 'name = "invalid-list"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'medical_overlay_skills = "write"',
@@ -316,10 +340,10 @@ def test_load_profile_rejects_invalid_default_submission_targets_shape(tmp_path:
             [
                 'name = "invalid-targets"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'default_submission_targets = ["frontiers_family_harvard"]',
@@ -341,10 +365,10 @@ def test_load_profile_treats_empty_med_deepscientist_repo_root_as_unconfigured(t
             [
                 'name = "empty-ds-repo"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'med_deepscientist_repo_root = ""',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
@@ -367,10 +391,10 @@ def test_load_profile_rejects_blank_medical_overlay_scope(tmp_path: Path) -> Non
             [
                 'name = "blank-strings"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'medical_overlay_scope = "   "',
@@ -392,10 +416,10 @@ def test_load_profile_rejects_blank_research_route_bias_policy(tmp_path: Path) -
             [
                 'name = "blank-policy"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'research_route_bias_policy = "   "',
@@ -417,10 +441,10 @@ def test_load_profile_rejects_invalid_medical_overlay_bootstrap_mode(tmp_path: P
             [
                 'name = "invalid-bootstrap-mode"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'medical_overlay_bootstrap_mode = "rebuild_everything"',
@@ -442,10 +466,10 @@ def test_load_profile_rejects_invalid_legacy_code_execution_policy(tmp_path: Pat
             [
                 'name = "invalid-legacy-policy"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'legacy_code_execution_policy = "always_yes"',
@@ -467,10 +491,10 @@ def test_load_profile_rejects_invalid_developer_supervisor_mode(tmp_path: Path) 
             [
                 'name = "invalid-dev-supervisor"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/ops/med-deepscientist/runtime"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 'developer_supervisor_mode = "developer_supervisor"',

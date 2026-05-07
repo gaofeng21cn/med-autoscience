@@ -423,7 +423,7 @@ quest 级 `data-asset-gate` 采用双层信号：
 Agent 在真正推进研究前，应先确认 workspace 已正确接入。最短路径是：
 
 1. 阅读并准备 [`bootstrap/README.md`](../bootstrap/README.md) 中的 profile 和 workspace 要求
-2. 用 `doctor` 检查 `workspace_root`、`runtime_root`、`studies_root`、`portfolio_root`、`med_deepscientist_runtime_root`
+2. 用 `doctor` 检查 `workspace_root`、`runtime_quests_root`、`mas_runtime_home`、`studies_root`、`portfolio_root`、`legacy_diagnostic_runtime_root`
 3. 用 `bootstrap` 初始化 overlay 和数据资产层
 
 典型命令如下：
@@ -520,8 +520,8 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-upgrade --profile p
 Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析提升为自己的协议层，而不是继续散落在 controller 或 adapter 里。
 
 - `med_autoscience.runtime_protocol.layout`
-  - 负责 workspace 内 `ops/med-deepscientist/`、runtime root、quests root、startup brief / payload root、behavior gate 等 project-local runtime 路径契约
-  - `study_runtime_router`、`workspace_contracts`、`workspace_init` 等 controller / scaffold 代码应统一经由这层派生路径，而不是散落硬编码 `ops/med-deepscientist/...`
+  - 负责 workspace 内 MAS-owned `runtime/`、`runtime/quests/`、`ops/mas/`、startup brief / payload root、behavior gate 等 project-local runtime 路径契约
+  - `study_runtime_router`、`workspace_contracts`、`workspace_init` 等 controller / scaffold 代码应统一经由这层派生路径，而不是散落硬编码 legacy `ops/med-deepscientist/...`
 - `med_autoscience.runtime_protocol.topology`
   - 负责 `paper_root`、`worktree_root`、`quest_root`、`study_root` 之间的关系解析
   - 新 workspace 显式承认的受管布局是 `runtime/quests/<quest_id>` 普通目录、study-local paper/manuscript authority 与 runtime lifecycle SQLite sidecar；旧 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper` 只作为 legacy diagnostic / restore reference
@@ -594,8 +594,8 @@ Phase 3 开始，transport 面也开始显式收口：
 - 只为兼容历史命名而保留的多层转发
   - `adapters/deepscientist/*` 已经从正式主链删除；后续不要重新引入第二套 protocol / transport 真相
 - 没有必要长期保留的 `DeepScientist` 品牌耦合命名
-  - 对外 profile、transport 与 workspace 路径已经统一收口到 `med_deepscientist_*`、`med_deepscientist` 与 `ops/med-deepscientist/*`
-  - 剩余 legacy 命名只允许停留在上游比较语境或 runtime 兼容名里
+  - 对外 profile 和 workspace 默认显示已经收口到 MAS-owned `runtime/quests`、`runtime/` 与 `ops/mas`
+  - 剩余 `med_deepscientist_*` 字段和 `ops/med-deepscientist/*` 路径只允许作为 legacy diagnostic、backend audit、parity oracle 或 restore/import 兼容名
 
 ## 审计与人类复核
 

@@ -307,6 +307,13 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         "portfolio_root": str(profile.portfolio_root),
         "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
         "med_deepscientist_repo_root": str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None,
+        "legacy_diagnostic": {
+            "runtime_root": str(profile.med_deepscientist_runtime_root),
+            "controlled_backend_repo_root": (
+                str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None
+            ),
+            "field_compatibility": "med_deepscientist_* profile fields are legacy diagnostic/backend-audit aliases",
+        },
         "hermes_agent_repo_root": str(profile.hermes_agent_repo_root) if profile.hermes_agent_repo_root else None,
         "hermes_home_root": str(profile.hermes_home_root),
         "managed_runtime_backend_id": profile.managed_runtime_backend_id,

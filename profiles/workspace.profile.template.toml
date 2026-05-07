@@ -4,8 +4,8 @@ name = "my-disease-workspace"
 # 病种 workspace 根目录。
 workspace_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE"
 
-# 当前 workspace 下 med-deepscientist quests 的根目录。
-runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/med-deepscientist/runtime/quests"
+# MAS-owned runtime quest 根目录；新 workspace 默认使用普通目录，不使用 quest Git。
+runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/runtime/quests"
 
 # 当前 workspace 的多 study 根目录。
 studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"
@@ -13,11 +13,12 @@ studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"
 # 当前 workspace 的病种级 portfolio 根目录。
 portfolio_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/portfolio"
 
-# 当前 workspace 的 project-local med-deepscientist 状态根目录。
-med_deepscientist_runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/ops/med-deepscientist/runtime"
+# legacy diagnostic / backend audit runtime home。新 workspace 默认指向 MAS runtime home；
+# 旧 ops/med-deepscientist 路径只通过显式 restore/import diagnostic 读取。
+med_deepscientist_runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/runtime"
 
-# 外部共享 med-deepscientist 源码仓库（仓库名 med-deepscientist），而不是 workspace 内再 clone 一份。
-med_deepscientist_repo_root = "/ABS/PATH/TO/med-deepscientist"
+# 可选 controlled backend / oracle 源码仓库；仅用于 backend-upgrade audit 或 parity oracle。
+med_deepscientist_repo_root = ""
 
 # 外部 Hermes-Agent 源码仓库；只用于 outer runtime substrate 审计与后续真实 adapter cutover。
 hermes_agent_repo_root = "/ABS/PATH/TO/hermes-agent"

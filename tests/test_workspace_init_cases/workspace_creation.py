@@ -76,6 +76,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert f'workspace_root = "{workspace_root}"' in profile_text
     assert f'runtime_root = "{workspace_root / "runtime" / "quests"}"' in profile_text
     assert f'med_deepscientist_runtime_root = "{workspace_root / "runtime"}"' in profile_text
+    assert 'med_deepscientist_repo_root = ""' in profile_text
     assert 'default_startup_anchor_policy = "scout_first_for_continue_existing_state"' in profile_text
     assert 'legacy_code_execution_policy = "forbid_without_user_approval"' in profile_text
     assert 'public_data_discovery_policy = "required_for_scout_route_selection"' in profile_text
