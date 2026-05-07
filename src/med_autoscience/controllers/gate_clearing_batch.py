@@ -28,9 +28,11 @@ from med_autoscience.controllers import gate_clearing_batch_transportability
 from med_autoscience.controllers import gate_clearing_batch_authority_redrive
 from med_autoscience.controllers import publication_shell_sync
 from med_autoscience.controllers.gate_clearing_batch_parts import display_refresh
+from med_autoscience.controllers.gate_clearing_batch_parts import batch_context
 from med_autoscience.controllers.gate_clearing_batch_parts import execution_helpers
 from med_autoscience.controllers.gate_clearing_batch_parts import io_utils
 from med_autoscience.controllers.gate_clearing_batch_parts import path_selection
+from med_autoscience.controllers.gate_clearing_batch_parts import repair_plan
 from med_autoscience.controllers.gate_clearing_batch_parts import runtime_paths
 from med_autoscience.controllers.gate_clearing_batch_parts import scientific_anchor
 from med_autoscience.controllers.gate_clearing_batch_parts import startup_freshness
@@ -501,20 +503,34 @@ def run_gate_clearing_batch(
     control_plane_route_context: dict[str, Any] | None = None,
     route_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    resolved_route_context = control_plane_route_context or route_context
-    resolved_study_root = Path(study_root).expanduser().resolve()
-    quest_root = _quest_root(profile, quest_id=quest_id)
-    gate_state = publication_gate.build_gate_state(quest_root)
-    gate_report = publication_gate.build_gate_report(gate_state)
-    publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
-    latest_batch = _latest_batch_record(study_root=resolved_study_root)
-    current_eval_id = str(publication_eval_payload.get("eval_id") or "").strip()
-    controller_decision_work_unit = gate_clearing_batch_currentness.controller_decision_publication_work_unit(
-        study_root=resolved_study_root,
+    context = batch_context.build_gate_clearing_batch_context(
+        profile=profile,
         study_id=study_id,
+        study_root=study_root,
         quest_id=quest_id,
-        source_eval_id=current_eval_id,
+        control_plane_route_context=control_plane_route_context,
+        route_context=route_context,
+        quest_root_for_profile=_quest_root,
+        publication_gate_controller=publication_gate,
+        read_publication_eval_latest_fn=read_publication_eval_latest,
+        latest_batch_record=_latest_batch_record,
+        latest_batch_closed_for_eval=_latest_batch_closed_for_eval,
+        current_workspace_root_fn=_current_workspace_root,
+        eligible_mapping_payload=_eligible_mapping_payload,
+        gate_blockers_fn=_gate_blockers,
+        submission_controller=gate_clearing_batch_submission,
+        authority_redrive_controller=gate_clearing_batch_authority_redrive,
+        study_delivery_sync_controller=study_delivery_sync,
+        currentness_controller=gate_clearing_batch_currentness,
     )
+    resolved_route_context = context.resolved_route_context
+    resolved_study_root = context.resolved_study_root
+    quest_root = context.quest_root
+    gate_report = context.gate_report
+    publication_eval_payload = context.publication_eval_payload
+    latest_batch = context.latest_batch
+    current_eval_id = context.current_eval_id
+    controller_decision_work_unit = context.controller_decision_work_unit
     if _latest_batch_closed_for_eval(latest_batch, current_eval_id):
         return {
             "ok": True,
@@ -523,7 +539,7 @@ def run_gate_clearing_batch(
             "latest_record_path": str(stable_gate_clearing_batch_path(study_root=resolved_study_root)),
         }
 
-    paper_root = gate_state.paper_root
+    paper_root = context.paper_root
     if paper_root is None:
         return {
             "ok": False,
@@ -531,43 +547,19 @@ def run_gate_clearing_batch(
             "source_eval_id": current_eval_id,
         }
 
-    current_workspace_root = _current_workspace_root(
-        quest_root=quest_root,
-        default=paper_root.parent,
-    )
-    mapping_path, mapping_payload = _eligible_mapping_payload(
-        quest_root=quest_root,
-        study_root=resolved_study_root,
-    )
-    gate_blockers = _gate_blockers(gate_report)
-    bundle_stage_repair = gate_clearing_batch_submission.bundle_stage_repair_requested(gate_report=gate_report)
-    study_delivery_status = gate_clearing_batch_submission.study_delivery_status(gate_report)
-    submission_minimal_refresh_requested = gate_clearing_batch_submission.submission_minimal_refresh_requested(
-        gate_report=gate_report
-    )
-    direct_submission_delivery_sync_requested = (
-        bundle_stage_repair
-        and not submission_minimal_refresh_requested
-        and gate_clearing_batch_submission.direct_submission_delivery_sync_requested(gate_report=gate_report)
-        and study_delivery_sync.can_sync_study_delivery(paper_root=paper_root)
-    )
-    authority_settle_delivery_redrive_requested = (
-        gate_clearing_batch_authority_redrive.previous_delivery_sync_awaited_authority_settle(latest_batch)
-        and study_delivery_status.startswith("stale")
-        and study_delivery_sync.can_sync_study_delivery(paper_root=paper_root)
-    )
-    if authority_settle_delivery_redrive_requested:
-        direct_submission_delivery_sync_requested = True
-        submission_minimal_refresh_requested = False
-
-    work_unit_selection = gate_clearing_batch_currentness.publication_work_unit_selection(
-        publication_eval_payload=publication_eval_payload,
-        latest_batch=latest_batch,
-        gate_report=gate_report,
-        authority_settle_delivery_redrive_requested=authority_settle_delivery_redrive_requested,
-        direct_submission_delivery_sync_requested=direct_submission_delivery_sync_requested,
-        controller_decision_work_unit=controller_decision_work_unit,
-    )
+    current_workspace_root = context.current_workspace_root
+    if current_workspace_root is None:
+        raise ValueError("gate-clearing batch context requires current_workspace_root when paper_root is available")
+    mapping_payload = context.mapping_payload
+    gate_blockers = context.gate_blockers
+    bundle_stage_repair = context.bundle_stage_repair
+    study_delivery_status = context.study_delivery_status
+    submission_minimal_refresh_requested = context.submission_minimal_refresh_requested
+    direct_submission_delivery_sync_requested = context.direct_submission_delivery_sync_requested
+    authority_settle_delivery_redrive_requested = context.authority_settle_delivery_redrive_requested
+    work_unit_selection = context.work_unit_selection
+    if work_unit_selection is None:
+        raise ValueError("gate-clearing batch context requires work_unit_selection when paper_root is available")
     explicit_next_work_unit = work_unit_selection["explicit_next_work_unit"]
     current_publication_work_unit_payload = work_unit_selection["current_publication_work_unit_payload"]
     selected_publication_work_unit = work_unit_selection["selected_publication_work_unit"]
@@ -620,207 +612,46 @@ def run_gate_clearing_batch(
             work_unit_currentness=work_unit_currentness,
         )
 
-    repair_units: list[GateClearingRepairUnit] = []
-    if mapping_payload:
-        repair_units.append(
-            GateClearingRepairUnit(
-                unit_id="freeze_scientific_anchor_fields",
-                label="Freeze scientific-anchor fields from the latest bounded-analysis output",
-                parallel_safe=True,
-                run=lambda: _freeze_scientific_anchor_fields(
-                    study_root=resolved_study_root,
-                    study_id=study_id,
-                    profile=profile,
-                    mapping_path=mapping_path,
-                ),
-            )
-        )
-    gate_blockers = {
-        str(item or "").strip()
-        for item in (gate_report.get("blockers") or [])
-        if str(item or "").strip()
-    }
-    display_repair_script_path = paper_root / "build" / "generate_display_exports.py"
-    if (
-        not authority_settle_delivery_redrive_requested
-        and medical_surface_display_repair_requested(
-            gate_report,
-            submission_minimal_repair_gate_blockers=gate_clearing_batch_submission.SUBMISSION_MINIMAL_REPAIR_GATE_BLOCKERS,
-        )
-    ):
-        repair_units.append(
-            GateClearingRepairUnit(
-                unit_id="repair_paper_live_paths",
-                label="Repair runtime-owned paper live paths before publication-surface replay",
-                parallel_safe=True,
-                run=lambda: _repair_paper_live_paths(
-                    profile=profile,
-                    quest_id=quest_id,
-                    workspace_root=paper_root.parent,
-                    current_workspace_root=current_workspace_root,
-                ),
-            )
-        )
-        if display_repair_script_path.exists():
-            repair_units.append(
-                GateClearingRepairUnit(
-                    unit_id="workspace_display_repair_script",
-                    label="Run the workspace-authored display repair script before gate replay",
-                    parallel_safe=True,
-                    depends_on=_existing_dependency_ids(repair_units, "repair_paper_live_paths"),
-                    run=lambda: _run_workspace_display_repair_script(paper_root=paper_root),
-                )
-            )
-        else:
-            if gate_clearing_batch_transportability.transportability_reporting_surface_needs_sync(
-                study_root=resolved_study_root,
-                paper_root=paper_root,
-                profile=profile,
-            ):
-                repair_units.append(
-                    GateClearingRepairUnit(
-                        unit_id="sync_transportability_reporting_surface",
-                        label="Sync transportability reporting display contract before surface materialization",
-                        parallel_safe=True,
-                        depends_on=_existing_dependency_ids(repair_units, "repair_paper_live_paths"),
-                        run=lambda: gate_clearing_batch_transportability.sync_transportability_reporting_surface(
-                            study_root=resolved_study_root,
-                            paper_root=paper_root,
-                            profile=profile,
-                        ),
-                    )
-                )
-            if _time_to_event_direct_migration_display_inputs_need_refresh(paper_root=paper_root):
-                repair_units.append(
-                    GateClearingRepairUnit(
-                        unit_id="time_to_event_direct_migration",
-                        label="Refresh canonical time-to-event direct-migration display inputs before surface materialization",
-                        parallel_safe=True,
-                        depends_on=_existing_dependency_ids(repair_units, "repair_paper_live_paths"),
-                        run=lambda: time_to_event_direct_migration.run_time_to_event_direct_migration(
-                            study_root=resolved_study_root,
-                            paper_root=paper_root,
-                        ),
-                    )
-                )
-            if (
-                _legacy_time_to_event_grouped_payloads_need_normalization(paper_root=paper_root)
-                or (
-                    _time_to_event_risk_group_surface_present(paper_root=paper_root)
-                    and any(
-                        unit.unit_id == "sync_transportability_reporting_surface"
-                        for unit in repair_units
-                    )
-                )
-            ):
-                repair_units.append(
-                    GateClearingRepairUnit(
-                        unit_id="normalize_legacy_time_to_event_grouped_payloads",
-                        label=(
-                            "Normalize legacy time-to-event grouped display payload templates "
-                            "before surface materialization"
-                        ),
-                        parallel_safe=True,
-                        depends_on=_existing_dependency_ids(
-                            repair_units,
-                            "repair_paper_live_paths",
-                            "sync_transportability_reporting_surface",
-                            "time_to_event_direct_migration",
-                        ),
-                        run=lambda: _normalize_legacy_time_to_event_grouped_payloads(paper_root=paper_root),
-                    )
-                )
-            if _publication_shell_surface_needs_sync(
-                study_root=resolved_study_root,
-                paper_root=paper_root,
-            ):
-                repair_units.append(
-                    GateClearingRepairUnit(
-                        unit_id="sync_publication_shell_surface",
-                        label="Sync publication shell table inputs before surface materialization",
-                        parallel_safe=True,
-                        depends_on=_existing_dependency_ids(
-                            repair_units,
-                            "repair_paper_live_paths",
-                        ),
-                        run=lambda: publication_shell_sync.run_publication_shell_sync(
-                            study_root=resolved_study_root,
-                            paper_root=paper_root,
-                        ),
-                    )
-                )
-            repair_units.append(
-                GateClearingRepairUnit(
-                    unit_id="materialize_display_surface",
-                    label="Refresh display catalogs and generated paper-facing exports",
-                    parallel_safe=True,
-                    depends_on=_existing_dependency_ids(
-                        repair_units,
-                        "repair_paper_live_paths",
-                        "sync_transportability_reporting_surface",
-                        "time_to_event_direct_migration",
-                        "normalize_legacy_time_to_event_grouped_payloads",
-                        "sync_publication_shell_surface",
-                    ),
-                    run=lambda: _materialize_display_surface(paper_root=paper_root),
-                )
-            )
-    elif not authority_settle_delivery_redrive_requested and bundle_stage_repair and display_repair_script_path.exists():
-        repair_units.append(
-            GateClearingRepairUnit(
-                unit_id="workspace_display_repair_script",
-                label="Run the workspace-authored display repair script before bundle-stage gate replay",
-                parallel_safe=True,
-                run=lambda: _run_workspace_display_repair_script(paper_root=paper_root),
-            )
-        )
-    if direct_submission_delivery_sync_requested:
-        repair_units.append(
-            GateClearingRepairUnit(
-                unit_id="sync_submission_minimal_delivery",
-                label="Refresh the study-owned submission-minimal delivery mirror before gate replay",
-                parallel_safe=True,
-                depends_on=_existing_dependency_ids(
-                    repair_units,
-                    "repair_paper_live_paths",
-                    "workspace_display_repair_script",
-                    "materialize_display_surface",
-                ),
-                run=lambda: gate_clearing_batch_submission.sync_submission_minimal_delivery_after_settle(
-                    paper_root=paper_root,
-                    profile=profile,
-                    sync_submission_minimal_delivery=_route_bound(
-                        function=_sync_submission_minimal_delivery,
-                        control_plane_route_context=resolved_route_context,
-                    ),
-                    path_fingerprints=_path_fingerprints,
-                    settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
-                ),
-            )
-        )
-    if bundle_stage_repair and submission_minimal_refresh_requested:
-        submission_refresh_dependencies = (
-            ()
-            if (
-                selected_work_unit_id == "submission_minimal_refresh"
-                and controller_decision_work_unit_id == "submission_minimal_refresh"
-            )
-            else _existing_dependency_ids(
-                repair_units,
-                "repair_paper_live_paths",
-                "workspace_display_repair_script",
-                "materialize_display_surface",
-            )
-        )
-        repair_units.append(
-            GateClearingRepairUnit(
-                unit_id="create_submission_minimal_package",
-                label="Regenerate submission-minimal assets before gate replay",
-                parallel_safe=False,
-                depends_on=submission_refresh_dependencies,
-                run=lambda: _route_call(_create_submission_minimal_package, paper_root=paper_root, profile=profile, control_plane_route_context=resolved_route_context),
-            )
-        )
+    repair_units = repair_plan.build_gate_clearing_repair_units(
+        repair_unit_cls=GateClearingRepairUnit,
+        profile=profile,
+        study_id=study_id,
+        study_root=resolved_study_root,
+        quest_id=quest_id,
+        paper_root=paper_root,
+        current_workspace_root=current_workspace_root,
+        mapping_path=context.mapping_path,
+        mapping_payload=mapping_payload,
+        gate_report=gate_report,
+        authority_settle_delivery_redrive_requested=authority_settle_delivery_redrive_requested,
+        bundle_stage_repair=bundle_stage_repair,
+        direct_submission_delivery_sync_requested=direct_submission_delivery_sync_requested,
+        submission_minimal_refresh_requested=submission_minimal_refresh_requested,
+        selected_work_unit_id=selected_work_unit_id,
+        controller_decision_work_unit_id=controller_decision_work_unit_id,
+        resolved_route_context=resolved_route_context,
+        existing_dependency_ids=_existing_dependency_ids,
+        freeze_scientific_anchor_fields=_freeze_scientific_anchor_fields,
+        repair_paper_live_paths=_repair_paper_live_paths,
+        run_workspace_display_repair_script=_run_workspace_display_repair_script,
+        materialize_display_surface=_materialize_display_surface,
+        publication_shell_surface_needs_sync=_publication_shell_surface_needs_sync,
+        time_to_event_direct_migration_display_inputs_need_refresh=_time_to_event_direct_migration_display_inputs_need_refresh,
+        legacy_time_to_event_grouped_payloads_need_normalization=_legacy_time_to_event_grouped_payloads_need_normalization,
+        time_to_event_risk_group_surface_present=_time_to_event_risk_group_surface_present,
+        normalize_legacy_time_to_event_grouped_payloads=_normalize_legacy_time_to_event_grouped_payloads,
+        sync_submission_minimal_delivery=_sync_submission_minimal_delivery,
+        create_submission_minimal_package=_create_submission_minimal_package,
+        route_bound=_route_bound,
+        route_call=_route_call,
+        path_fingerprints=_path_fingerprints,
+        medical_surface_display_repair_requested=medical_surface_display_repair_requested,
+        gate_clearing_batch_submission=gate_clearing_batch_submission,
+        gate_clearing_batch_transportability=gate_clearing_batch_transportability,
+        publication_shell_sync=publication_shell_sync,
+        time_to_event_direct_migration=time_to_event_direct_migration,
+        current_package_authority_settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+    )
     repair_units = filter_repair_units_for_publication_work_unit(
         repair_units,
         next_work_unit=selected_publication_work_unit,

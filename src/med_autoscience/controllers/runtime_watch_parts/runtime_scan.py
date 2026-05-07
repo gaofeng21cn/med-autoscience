@@ -11,7 +11,6 @@ from med_autoscience.controllers import (
     runtime_supervision,
     runtime_watch_alerts,
     runtime_watch_outer_loop_dispatch,
-    runtime_watch_recovery_policy,
     runtime_watch_work_units,
     study_cycle_profiler,
     study_outer_loop,
@@ -28,12 +27,10 @@ from med_autoscience.controllers.runtime_watch_parts.autonomy_repair import (
 from med_autoscience.controllers.runtime_watch_parts.control_plane_gate import (
     CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY,
     apply_control_plane_dispatch_block,
-    runtime_recovery_blocked_by_control_plane,
 )
 from med_autoscience.controllers.runtime_watch_parts.gate_specificity import (
     _materialize_specificity_controller_state,
     _specificity_terminal_status_payload,
-    _study_requests_gate_specificity_terminal,
 )
 from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
     _build_outer_loop_wakeup_audit,
@@ -46,12 +43,12 @@ from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import (
     _refresh_managed_study_status_after_ensure,
     _serialize_managed_study_action,
     _serialize_managed_study_auto_recovery,
-    _should_hard_auto_recover_managed_study,
     _write_outer_loop_wakeup_audit,
 )
+from med_autoscience.controllers.runtime_watch_parts import managed_recovery
+from med_autoscience.controllers.runtime_watch_parts import report_aggregation
 from med_autoscience.controllers.runtime_watch_parts.reporting import (
     _attach_family_companion_to_quest_report,
-    _attach_family_companion_to_runtime_report,
     _write_latest_watch_alias,
     render_watch_markdown,
     write_watch_report,
@@ -82,17 +79,10 @@ def _managed_study_recovery_failure_payload(
     preflight_payload: Mapping[str, Any],
     error: Exception,
 ) -> dict[str, Any]:
-    payload = dict(preflight_payload)
-    preflight_decision = str(payload.get("decision") or "").strip()
-    failure_reason = (
-        "create_request_failed"
-        if preflight_decision == "create_and_start"
-        else "resume_request_failed"
+    return managed_recovery.recovery_failure_payload(
+        preflight_payload=preflight_payload,
+        error=error,
     )
-    payload["decision"] = "blocked"
-    payload["reason"] = failure_reason
-    payload["runtime_execution_error"] = str(error)
-    return payload
 
 
 def _serialize_no_op_suppression(
@@ -241,121 +231,20 @@ def run_watch_for_runtime(
     managed_study_autonomy_slo_statuses: list[dict[str, Any]] = []
     managed_study_autonomy_repair_actions: list[dict[str, Any]] = []
     managed_study_runtime_recovery_payloads: dict[str, dict[str, Any]] = {}
-    if ensure_study_runtimes:
-        if profile is None:
-            raise ValueError("profile is required when ensure_study_runtimes is enabled")
-        for study_root in sorted(profile.studies_root.iterdir()):
-            study_root_key = str(Path(study_root).expanduser().resolve())
-            if not study_root.is_dir():
-                continue
-            if not (study_root / "study.yaml").exists():
-                continue
-            if apply:
-                if _study_requests_gate_specificity_terminal(study_root=study_root):
-                    preflight_payload = _managed_study_status_payload(
-                        study_runtime_router.study_runtime_status(
-                            profile=profile,
-                            study_root=study_root,
-                        )
-                    )
-                    action_payload = preflight_payload
-                    managed_study_statuses.append((study_root, _managed_study_status_payload(action_payload)))
-                    continue
-                try:
-                    action_payload = study_runtime_router.ensure_study_runtime(
-                        profile=profile,
-                        study_root=study_root,
-                        source="runtime_watch",
-                    )
-                    action_status_payload = _managed_study_status_payload(action_payload)
-                    if _non_empty_text(action_status_payload.get("decision")) in {
-                        "create_and_start",
-                        "resume",
-                        "relaunch_stopped",
-                    }:
-                        managed_study_runtime_recovery_payloads[study_root_key] = action_status_payload
-                except Exception as exc:
-                    preflight_payload = _managed_study_status_payload(
-                        study_runtime_router.study_runtime_status(
-                            profile=profile,
-                            study_root=study_root,
-                        )
-                    )
-                    action_payload = _managed_study_recovery_failure_payload(
-                        preflight_payload=preflight_payload,
-                        error=exc,
-                    )
-                    managed_study_auto_recoveries.append(
-                        _serialize_managed_study_auto_recovery(
-                            preflight_payload=preflight_payload,
-                            applied_payload=action_payload,
-                            source="runtime_watch",
-                        )
-                    )
-            else:
-                action_payload = study_runtime_router.study_runtime_status(
-                    profile=profile,
-                    study_root=study_root,
-                )
-                if _should_hard_auto_recover_managed_study(action_payload):
-                    preflight_payload = action_payload
-                    recovery_hold = runtime_watch_recovery_policy.hold_for_flapping_circuit_breaker(
-                        study_root=study_root,
-                        status_payload=preflight_payload,
-                    )
-                    control_plane_recovery_block = runtime_recovery_blocked_by_control_plane(
-                        _managed_study_status_payload(preflight_payload)
-                    )
-                    if recovery_hold is not None:
-                        runtime_watch_recovery_policy.write_recovery_probe(
-                            study_root=study_root,
-                            recovery_hold=recovery_hold,
-                        )
-                        managed_study_recovery_holds.append(recovery_hold)
-                    elif control_plane_recovery_block is not None:
-                        action_payload = {
-                            **_managed_study_status_payload(preflight_payload),
-                            "decision": "blocked",
-                            "reason": "resume_request_failed",
-                            "control_plane_runtime_recovery_block": control_plane_recovery_block,
-                        }
-                    else:
-                        action_payload = study_runtime_router.ensure_study_runtime(
-                            profile=profile,
-                            study_root=study_root,
-                            source=_MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
-                        )
-                        action_status_payload = _managed_study_status_payload(action_payload)
-                        if _non_empty_text(action_status_payload.get("decision")) in {
-                            "create_and_start",
-                            "resume",
-                            "relaunch_stopped",
-                        }:
-                            managed_study_runtime_recovery_payloads[study_root_key] = action_status_payload
-                        managed_study_auto_recoveries.append(
-                            _serialize_managed_study_auto_recovery(
-                                preflight_payload=preflight_payload,
-                                applied_payload=action_payload,
-                                source=_MANAGED_STUDY_AUTO_RECOVERY_SOURCE,
-                            )
-                        )
-            managed_study_statuses.append((study_root, _managed_study_status_payload(action_payload)))
-    scanned: list[str] = []
-    reports: list[dict[str, Any]] = []
-    for quest_root in quest_state.iter_active_quests(runtime_root):
-        scanned.append(quest_root.name)
-        reports.append(
-            run_watch_for_quest_fn(
-                quest_root=quest_root,
-                controller_runners=controller_runners,
-                apply=apply,
-            )
-        )
-    report_by_quest_root = {
-        str(Path(str(report.get("quest_root") or "")).expanduser().resolve()): report
-        for report in reports
-        if str(report.get("quest_root") or "").strip()
-    }
+    managed_study_statuses = managed_recovery.managed_study_initial_statuses(
+        profile=profile,
+        apply=apply,
+        ensure_study_runtimes=ensure_study_runtimes,
+        auto_recoveries=managed_study_auto_recoveries,
+        recovery_holds=managed_study_recovery_holds,
+        runtime_recovery_payloads=managed_study_runtime_recovery_payloads,
+    )
+    scanned, reports, report_by_quest_root = report_aggregation.scan_active_quest_reports(
+        runtime_root=runtime_root,
+        controller_runners=controller_runners,
+        apply=apply,
+        run_watch_for_quest_fn=run_watch_for_quest_fn,
+    )
     if apply and ensure_study_runtimes and profile is not None:
         rerouted_managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
         for study_root, status_payload in managed_study_statuses:
@@ -835,25 +724,21 @@ def run_watch_for_runtime(
         )
         for managed_study_root, status_payload in managed_study_statuses
     ]
-    runtime_report = {
-        "schema_version": 1,
-        "scanned_at": utc_now(),
-        "runtime_root": str(runtime_root),
-        "scanned_quests": scanned,
-        "managed_study_actions": managed_study_actions,
-        "managed_study_auto_recoveries": managed_study_auto_recoveries,
-        "managed_study_recovery_holds": managed_study_recovery_holds,
-        "managed_study_outer_loop_dispatches": managed_study_outer_loop_dispatches,
-        "managed_study_outer_loop_wakeup_audits": managed_study_outer_loop_wakeup_audits,
-        "managed_study_no_op_suppressions": managed_study_no_op_suppressions,
-        "managed_study_supervision": managed_study_supervision,
-        "managed_study_alert_deliveries": managed_study_alert_deliveries,
-        "managed_study_autonomy_slo_statuses": managed_study_autonomy_slo_statuses,
-        "managed_study_autonomy_repair_actions": managed_study_autonomy_repair_actions,
-        "reports": reports,
-    }
-    _attach_family_companion_to_runtime_report(runtime_report, runtime_root=Path(runtime_root).expanduser().resolve())
-    return runtime_report
+    return report_aggregation.build_runtime_report(
+        runtime_root=runtime_root,
+        scanned=scanned,
+        reports=reports,
+        managed_study_actions=managed_study_actions,
+        managed_study_auto_recoveries=managed_study_auto_recoveries,
+        managed_study_recovery_holds=managed_study_recovery_holds,
+        managed_study_outer_loop_dispatches=managed_study_outer_loop_dispatches,
+        managed_study_outer_loop_wakeup_audits=managed_study_outer_loop_wakeup_audits,
+        managed_study_no_op_suppressions=managed_study_no_op_suppressions,
+        managed_study_supervision=managed_study_supervision,
+        managed_study_alert_deliveries=managed_study_alert_deliveries,
+        managed_study_autonomy_slo_statuses=managed_study_autonomy_slo_statuses,
+        managed_study_autonomy_repair_actions=managed_study_autonomy_repair_actions,
+    )
 
 
 __all__ = [

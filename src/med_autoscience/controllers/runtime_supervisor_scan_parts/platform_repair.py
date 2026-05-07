@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
+from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_current_controller
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
@@ -205,11 +206,9 @@ def _resume_result_worker_running(resume_result: Mapping[str, Any]) -> bool:
 def _controller_authorization_points_to_upstream_work_unit(
     controller_authorization: Mapping[str, Any] | None,
 ) -> bool:
-    authorization = _mapping(controller_authorization)
-    if not authorization:
-        return False
-    work_unit_id = _text(authorization.get("work_unit_id")) or _text(_mapping(authorization.get("next_work_unit")).get("unit_id"))
-    return work_unit_id is not None and work_unit_id not in DOWNSTREAM_PACKAGE_FRESHNESS_WORK_UNIT_IDS
+    return platform_current_controller.controller_authorization_points_to_upstream_work_unit(
+        controller_authorization
+    )
 
 
 def _runtime_relaunch_postcondition_failure(
@@ -374,56 +373,11 @@ def _publication_gate_ready_for_specificity_redrive(quest_root: str | None) -> d
 
 
 def _controller_action_types(payload: Mapping[str, Any]) -> set[str]:
-    actions = payload.get("controller_actions")
-    if not isinstance(actions, list):
-        return set()
-    action_types: set[str] = set()
-    for action in actions:
-        if isinstance(action, Mapping):
-            text = _text(action.get("action_type"))
-            if text is not None:
-                action_types.add(text)
-        elif (text := _text(action)) is not None:
-            action_types.add(text)
-    return action_types
+    return platform_current_controller.controller_action_types(payload)
 
 
 def _mapping_has_actionable_controller_target(payload: Mapping[str, Any]) -> bool:
-    actionable_keys = {
-        "claim_id",
-        "claim_ref",
-        "figure_id",
-        "figure_ref",
-        "table_id",
-        "table_ref",
-        "metric_id",
-        "metric_ref",
-        "citation_id",
-        "citation_ref",
-        "evidence_row_id",
-        "evidence_row_ref",
-        "package_artifact",
-        "artifact_path",
-        "source_path",
-    }
-    if any(_text(payload.get(key)) for key in actionable_keys):
-        return True
-    for key in (
-        "blocking_artifact_refs",
-        "blocker_details",
-        "gate_blocker_details",
-        "specificity_targets",
-        "work_unit_targets",
-        "gaps",
-    ):
-        value = payload.get(key)
-        if isinstance(value, Mapping) and _mapping_has_actionable_controller_target(value):
-            return True
-        if isinstance(value, list):
-            for item in value:
-                if isinstance(item, Mapping) and _mapping_has_actionable_controller_target(item):
-                    return True
-    return False
+    return platform_current_controller.mapping_has_actionable_controller_target(payload)
 
 
 def _publication_action_for_work_unit(
@@ -431,19 +385,10 @@ def _publication_action_for_work_unit(
     publication_eval_payload: Mapping[str, Any],
     work_unit_fingerprint: str | None,
 ) -> dict[str, Any] | None:
-    if work_unit_fingerprint is None:
-        return None
-    actions = publication_eval_payload.get("recommended_actions")
-    if not isinstance(actions, list):
-        return None
-    for action in actions:
-        if not isinstance(action, Mapping):
-            continue
-        next_work_unit = _mapping(action.get("next_work_unit"))
-        action_fingerprint = _text(action.get("work_unit_fingerprint")) or _text(next_work_unit.get("fingerprint"))
-        if action_fingerprint == work_unit_fingerprint and _mapping_has_actionable_controller_target(action):
-            return dict(action)
-    return None
+    return platform_current_controller.publication_action_for_work_unit(
+        publication_eval_payload=publication_eval_payload,
+        work_unit_fingerprint=work_unit_fingerprint,
+    )
 
 
 def _current_controller_authorization_payload(
@@ -451,45 +396,11 @@ def _current_controller_authorization_payload(
     study_root: Path,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    route = current_truth_owner.current_controller_runtime_route(
+    return platform_current_controller.current_controller_authorization_payload(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
+        read_json_object=_read_json_object,
     )
-    if route is None:
-        return None
-    decision = _read_json_object(Path(str(route["decision_path"])))
-    if decision is None:
-        return None
-    work_unit = _mapping(decision.get("next_work_unit"))
-    work_unit_fingerprint = _text(route.get("work_unit_fingerprint"))
-    publication_action = _publication_action_for_work_unit(
-        publication_eval_payload=publication_eval_payload,
-        work_unit_fingerprint=work_unit_fingerprint,
-    )
-    if publication_action is None:
-        return None
-    authorization: dict[str, Any] = {
-        "decision_id": _text(decision.get("decision_id")),
-        "route_target": _text(decision.get("route_target")),
-        "work_unit_id": _text(work_unit.get("unit_id")),
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "next_work_unit": dict(work_unit),
-        "controller_actions": sorted(_controller_action_types(decision)),
-        "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
-        "authorized_at": _utc_now(),
-    }
-    for key in (
-        "specificity_targets",
-        "work_unit_targets",
-        "blocking_artifact_refs",
-        "blocker_details",
-        "gate_blocker_details",
-        "gaps",
-        "source_path",
-    ):
-        if key in publication_action:
-            authorization[key] = publication_action[key]
-    return authorization
 
 
 def _write_current_controller_authorization(
@@ -500,60 +411,16 @@ def _write_current_controller_authorization(
     quest_id: str | None,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    authorization = _current_controller_authorization_payload(
+    return platform_current_controller.write_current_controller_authorization(
+        runtime_state_path=runtime_state_path,
         study_root=study_root,
+        study_id=study_id,
+        quest_id=quest_id,
         publication_eval_payload=publication_eval_payload,
+        read_json_object=_read_json_object,
+        write_json=_write_json,
+        append_json_line=_append_json_line,
     )
-    if authorization is None:
-        return None
-    runtime_state = _read_json_object(runtime_state_path)
-    if runtime_state is None:
-        return {"written": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
-    if int(runtime_state.get("pending_user_message_count") or 0) > 0:
-        return {"written": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path)}
-    runtime_state["quest_id"] = _text(runtime_state.get("quest_id")) or quest_id
-    runtime_state["active_run_id"] = None
-    runtime_state["worker_running"] = False
-    runtime_state["continuation_policy"] = "auto"
-    runtime_state["continuation_anchor"] = "decision"
-    runtime_state["continuation_reason"] = "controller_work_unit_pending"
-    runtime_state["continuation_updated_at"] = _utc_now()
-    runtime_state["same_fingerprint_auto_turn_count"] = 0
-    runtime_state["last_controller_decision_authorization"] = authorization
-    for key in ("retry_state", "last_stage_fingerprint", "last_stage_fingerprint_at"):
-        runtime_state.pop(key, None)
-    runtime_state["last_runtime_platform_repair"] = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
-        "clear_reason": "current_controller_authorization",
-        "applied_at": _utc_now(),
-        "paper_package_mutation_allowed": False,
-        "quality_gate_relaxation_allowed": False,
-    }
-    _write_json(runtime_state_path, runtime_state)
-    _append_json_line(
-        runtime_state_path.parent / "events.jsonl",
-        {
-            "event_id": f"mas-runtime-platform-repair::{study_id}::{_utc_now()}",
-            "type": "mas.current_controller_authorization",
-            "study_id": study_id,
-            "quest_id": quest_id,
-            "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
-            "work_unit_id": authorization.get("work_unit_id"),
-            "work_unit_fingerprint": authorization.get("work_unit_fingerprint"),
-            "paper_package_mutation_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "created_at": _utc_now(),
-        },
-    )
-    return {
-        "written": True,
-        "path": str(runtime_state_path),
-        "decision_id": authorization.get("decision_id"),
-        "work_unit_id": authorization.get("work_unit_id"),
-        "work_unit_fingerprint": authorization.get("work_unit_fingerprint"),
-    }
 
 
 def _controller_decision_supersedes_specificity(
