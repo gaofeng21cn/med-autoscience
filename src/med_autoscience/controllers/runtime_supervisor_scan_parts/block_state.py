@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
+from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 
 
@@ -35,7 +36,9 @@ def projection_block_state(
     if completion_state is not None:
         return completion_state
     blocked_reason = _text(lifecycle.get("blocked_reason"))
-    if why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions):
+    if why_not_applied == evidence_adoption.RECHECK_REASON or (
+        why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions)
+    ):
         blocked_reason = why_not_applied
     next_owner = next_owner_for_blocked_reason(blocked_reason) if blocked_reason else _text(lifecycle.get("next_owner"))
     external_supervisor_required = bool(
@@ -61,6 +64,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
     if blocked_reason == "study_completion_contract_not_ready":
         return "completion_evidence"
     if blocked_reason == "publication_gate_specificity_required":
+        return "publication_gate"
+    if blocked_reason == evidence_adoption.RECHECK_REASON:
         return "publication_gate"
     if blocked_reason == "current_package_freshness_required":
         return "artifact_os"

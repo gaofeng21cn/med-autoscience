@@ -16,6 +16,7 @@ def resolve_why_not_applied(
         top_action_reason = _text(actions[0].get("reason")) or _text(actions[0].get("action_type"))
         if top_action_reason in {
             "publication_gate_specificity_required",
+            "publication_gate_recheck_required",
             "current_package_freshness_required",
             "display_surface_materialization_failed",
             "ai_reviewer_assessment_required",

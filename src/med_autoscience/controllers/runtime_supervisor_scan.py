@@ -12,9 +12,11 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_speci
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers.runtime_supervisor_scan_parts import action_decorators
 from med_autoscience.controllers.runtime_supervisor_scan_parts import artifact_freshness
+from med_autoscience.controllers.runtime_supervisor_scan_parts import ai_reviewer
 from med_autoscience.controllers.runtime_supervisor_scan_parts import block_state as block_state_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
+from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
 from med_autoscience.controllers.runtime_supervisor_scan_parts import publication_gate_actions
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
@@ -240,25 +242,6 @@ def _publication_gate_specificity_required(
     )
 
 
-def _ai_reviewer_assessment(
-    status: Mapping[str, Any],
-    progress: Mapping[str, Any],
-    publication_eval: Mapping[str, Any],
-) -> dict[str, Any]:
-    provenance = _mapping(publication_eval.get("assessment_provenance"))
-    owner = _text(provenance.get("owner"))
-    reasons = set(_blocking_reasons(status, progress))
-    required = bool(provenance.get("ai_reviewer_required")) or "publication_eval.ai_reviewer_required" in reasons
-    present = owner == "ai_reviewer"
-    missing = not present and (required or bool(progress.get("quality_review_loop")))
-    return {
-        "present": present,
-        "owner": owner,
-        "required": required,
-        "missing": missing,
-    }
-
-
 def _supervisor_only(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
     if _mapping(status.get("execution_owner_guard")).get("supervisor_only") is True:
         return True
@@ -354,6 +337,8 @@ def _why_not_applied(
     gate_specificity: Mapping[str, Any],
     ai_reviewer_assessment: Mapping[str, Any],
 ) -> str | None:
+    if reason := evidence_adoption.why_not_applied(status):
+        return reason
     if completion_evidence.completed_current_truth(status, progress):
         return None
     if parked_truth.current_truth(status, progress):
@@ -392,21 +377,6 @@ def _artifact_delta(progress: Mapping[str, Any]) -> dict[str, Any]:
 
 def _gate_specificity_status(gate_specificity: Mapping[str, Any]) -> dict[str, Any]:
     return gate_specificity_part.gate_specificity_status(gate_specificity)
-
-
-def _ai_reviewer_status(ai_reviewer_assessment: Mapping[str, Any]) -> dict[str, Any]:
-    if ai_reviewer_assessment.get("present") is True:
-        status = "present"
-    elif ai_reviewer_assessment.get("missing") is True:
-        status = "trace_missing"
-    else:
-        status = "not_required"
-    return {
-        "status": status,
-        "owner": _text(ai_reviewer_assessment.get("owner")),
-        "trace_complete": ai_reviewer_assessment.get("present") is True,
-        "blocked_reason": "ai_reviewer_assessment_required" if ai_reviewer_assessment.get("missing") is True else None,
-    }
 
 
 def _repair_action_payload(*, study_root: Path) -> dict[str, Any] | None:
@@ -623,8 +593,11 @@ def _apply_runtime_platform_repair_projection(
         publication_eval_payload=publication_eval_payload,
         developer_mode=developer_mode,
         enabled=apply_runtime_platform_repair,
-        repair_required=not submission_milestone_parked
-        and _runtime_platform_repair_required(status_payload, progress_payload, gate_specificity=gate_specificity),
+        repair_required=evidence_adoption.platform_repair_required(
+            status=status_payload,
+            submission_milestone_parked=submission_milestone_parked,
+            base_required=_runtime_platform_repair_required(status_payload, progress_payload, gate_specificity=gate_specificity),
+        ),
     )
     if apply_result is None:
         return None, None
@@ -703,10 +676,11 @@ def _study_projection(
         progress_payload,
         publication_eval_payload,
     )
-    ai_reviewer_assessment = _ai_reviewer_assessment(
-        status_payload,
-        progress_payload,
-        publication_eval_payload,
+    ai_reviewer_assessment = ai_reviewer.assessment(
+        status=status_payload,
+        progress=progress_payload,
+        publication_eval=publication_eval_payload,
+        blocking_reasons=_blocking_reasons(status_payload, progress_payload),
     )
     actions = _action_queue(
         status_payload,
@@ -771,6 +745,7 @@ def _study_projection(
     )
     if platform_lifecycle is not None:
         lifecycle = _mapping(platform_lifecycle)
+    lifecycle = evidence_adoption.resolved_lifecycle(status_payload, lifecycle)
     if (
         runtime_platform_repair_apply is not None
         and _text(runtime_platform_repair_apply.get("dispatch_status")) == "applied"
@@ -866,7 +841,7 @@ def _study_projection(
         "artifact_delta": _artifact_delta(progress_payload),
         "gate_specificity": _gate_specificity_status(gate_specificity),
         "ai_reviewer_assessment": ai_reviewer_assessment,
-        "ai_reviewer_status": _ai_reviewer_status(ai_reviewer_assessment),
+        "ai_reviewer_status": ai_reviewer.status(ai_reviewer_assessment),
         "ai_repair_lifecycle": lifecycle or None,
         "action_queue": actions,
         "submission_milestone_parked_refresh": submission_milestone_parked_refresh,
