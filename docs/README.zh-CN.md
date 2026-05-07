@@ -55,6 +55,20 @@
 - [关键决策](./decisions.md)
 - [文档组合治理](./docs_portfolio_consolidation.md)
 
+## 生命周期地图
+
+`docs/` 按文档生命周期组合管理：
+
+- `docs/` 根目录：公开技术入口和当前核心真相。
+- `docs/runtime/`：runtime 合同、控制面、read model 和仍活跃的实施计划。
+- `docs/policies/`：稳定内部规则和边界合同。
+- `docs/program/`：当前开发计划层和执行队列。
+- `docs/capabilities/`：当前能力族文档。
+- `docs/references/`：支撑参考、定位、parity、ledger 和周期性学习 protocol。
+- `docs/history/`：dated snapshot、provenance、已覆盖旧计划和退役 board。
+
+每一层都应有本地索引或 portfolio 入口。文档如果不再有 active owner，应先更新 inbound links，再移入对应历史层，而不是留在默认阅读路径里。
+
 ## 默认公开入口
 
 - [仓库首页](../README.zh-CN.md)
@@ -66,6 +80,7 @@
 
 ### Runtime 合同与控制面
 
+- [Runtime 目录索引](runtime/README.md)
 - [Agent 运行接口](runtime/agent_runtime_interface.md)
 - [Agent 入口模式](runtime/agent_entry_modes.md)
 - [运行句柄与持久表面合同](runtime/runtime_handle_and_durable_surface_contract.md)
@@ -90,6 +105,7 @@
 ### 能力线文档
 
 - [能力线文档索引](capabilities/README.zh-CN.md)
+- [医学展示目录索引](capabilities/medical-display/README.zh-CN.md)
 - [医学展示平台主线](capabilities/medical-display/medical_display_platform_mainline.md)
 - [医学展示文档组合治理](capabilities/medical-display/medical_display_portfolio_consolidation.md)
 - [医学展示 active board](capabilities/medical-display/medical_display_active_board.md)
@@ -123,6 +139,7 @@
 
 ### 参考资料
 
+- [References 目录索引](references/README.zh-CN.md)
 - [Domain Harness OS 定位](references/domain-harness-os-positioning.md)
 - [Research Foundry 定位](references/research_foundry_positioning.md)
 - [Research Foundry 与 Med Auto Science 的仓库拆分边界](references/repo_split_between_research_foundry_and_med_autoscience.md)
@@ -153,6 +170,7 @@
 - 运行时、推进记录、能力线和规则文档可以技术化，但公开首页继续围绕研究工作区、进度和文件组织。
 - 历史材料继续可读，当前默认用户路径继续聚焦研究问题、工作区推进和论文交付。
 - 文档负责把当前行为、运行方向和证据缺口讲清楚；不要用测试或 preflight contract 约束文档措辞。
+- 新增文档前，先在 [文档组合治理](./docs_portfolio_consolidation.md) 里判断生命周期状态：active truth、active execution plan、active contract、recurring support lane、support reference、dated snapshot、superseded/retired 或 local process draft。
 
 ## 治理说明
 

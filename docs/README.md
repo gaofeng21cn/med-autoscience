@@ -55,6 +55,20 @@ Read these first before changing repo state:
 - [Decisions](./decisions.md)
 - [Documentation portfolio consolidation](./docs_portfolio_consolidation.md)
 
+## Lifecycle Map
+
+The docs tree is managed as a lifecycle portfolio:
+
+- `docs/` root: public technical entry and current core truth.
+- `docs/runtime/`: runtime contracts, control surfaces, read models, and active implementation plans.
+- `docs/policies/`: stable internal rules and boundary contracts.
+- `docs/program/`: active development-plan layer and execution queue.
+- `docs/capabilities/`: active capability-family documentation.
+- `docs/references/`: support references, positioning, parity, ledgers, and recurring learning protocols.
+- `docs/history/`: dated snapshots, provenance, superseded plans, and retired boards.
+
+Each layer has a local index or portfolio entry. If a document no longer has an active owner, update inbound links and move it to the matching history layer instead of leaving it in the default reading path.
+
 ## Default Public Surface
 
 - [Repository home](../README.md)
@@ -66,6 +80,7 @@ Public-facing material should stay mirrored in English and Chinese.
 
 ### Runtime contracts and control surface
 
+- [Runtime directory index](runtime/README.md)
 - [Agent runtime interface](runtime/agent_runtime_interface.md)
 - [Agent entry modes](runtime/agent_entry_modes.md)
 - [Runtime handle and durable surface contract](runtime/runtime_handle_and_durable_surface_contract.md)
@@ -90,6 +105,7 @@ Public-facing material should stay mirrored in English and Chinese.
 ### Capability docs
 
 - [Capability docs index](capabilities/README.md)
+- [Medical display directory index](capabilities/medical-display/README.md)
 - [Medical display platform mainline](capabilities/medical-display/medical_display_platform_mainline.md)
 - [Medical display portfolio consolidation](capabilities/medical-display/medical_display_portfolio_consolidation.md)
 - [Medical display active board](capabilities/medical-display/medical_display_active_board.md)
@@ -123,6 +139,7 @@ Public-facing material should stay mirrored in English and Chinese.
 
 ### References
 
+- [References directory index](references/README.md)
 - [Domain Harness OS positioning](references/domain-harness-os-positioning.md)
 - [Research Foundry positioning](references/research_foundry_positioning.md)
 - [Repo split between Research Foundry and Med Auto Science](references/repo_split_between_research_foundry_and_med_autoscience.md)
@@ -153,6 +170,7 @@ Public-facing material should stay mirrored in English and Chinese.
 - Keep runtime, program, capability, and policy material technical and repo-tracked without letting it take over the public home page.
 - Keep historical material readable while keeping the active user path focused on research workspaces, progress, and files.
 - Documentation should keep current behavior, operating direction, and evidence gaps readable for humans. Do not use tests or preflight contracts to police wording.
+- Before creating a new document, decide its lifecycle state in [Documentation portfolio consolidation](./docs_portfolio_consolidation.md): active truth, active execution plan, active contract, recurring support lane, support reference, dated snapshot, superseded/retired, or local process draft.
 
 ## Governance
 
