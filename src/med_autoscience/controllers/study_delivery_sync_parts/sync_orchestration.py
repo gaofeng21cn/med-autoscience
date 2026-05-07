@@ -53,8 +53,8 @@ from .staging_and_sources import (
 from .staging_and_sources import (
     build_authority_source_relative_root,
     build_current_package_readme,
-    sync_current_package_projection,
 )
+from .current_package_projection import sync_current_package_projection
 from med_autoscience.controllers.submission_package_layout import (
     audit_path,
     build_submission_delivery_signature_block,
