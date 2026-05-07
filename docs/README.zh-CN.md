@@ -42,6 +42,7 @@
 - Workspace Git/storage 边界已经进入当前维护合同：新 workspace 默认 no root Git / no quest Git，generated/runtime artifacts 明确排除，已有 root Git 通过 restore-proof lifecycle retirement 退出默认状态面。
 - Runtime lifecycle 历史与索引由 `artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 与 `runtime/restore_index` 承接；查状态和做 lifecycle 操作时读这些 surface 与文件 authority，不查 Git 历史。
 - 历史迁移术语和旧命名继续留在参考层或历史层。
+- `README*` 与 `docs/**` 是人读面。脚本、测试、runtime status 和 contracts 应使用 machine-readable contract、schema、source path 或 `human_doc:*` 语义 ID，不应把 prose 文档路径钉成稳定接口。
 
 ## 技术工作集
 

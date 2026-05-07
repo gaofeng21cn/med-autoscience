@@ -42,6 +42,7 @@ This guide is for readers who need product boundary, operator entry surfaces, ru
 - Workspace Git/storage boundaries are now part of the maintained workspace contract: new workspaces are no-root-Git / no-quest-Git by default, generated/runtime artifacts stay excluded, and existing root Git exits through restore-proof lifecycle retirement.
 - Runtime lifecycle history and indexing are carried by `artifacts/runtime/runtime_lifecycle.sqlite`, `artifacts/runtime/lifecycle_migration` ledgers, `runtime/quests` manifests, and `runtime/restore_index`; status and lifecycle operations should read these surfaces plus file authority, not Git history.
 - Historical migration terms and older naming stay in reference or history layers.
+- Treat `README*` and `docs/**` as human-readable surfaces. Scripts, tests, runtime status, and contracts should use machine-readable contracts, schemas, source paths, or `human_doc:*` semantic IDs instead of pinning prose documentation paths.
 
 ## Technical Working Set
 
