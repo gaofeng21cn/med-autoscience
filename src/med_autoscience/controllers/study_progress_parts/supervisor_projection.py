@@ -19,6 +19,16 @@ def read_ai_repair_lifecycle(*, study_root: Path) -> dict[str, Any] | None:
         return None
 
 
+def current_status_suppresses_ai_repair_lifecycle(status_payload: Mapping[str, Any]) -> bool:
+    reason = _non_empty_text(status_payload.get("reason"))
+    next_route = _mapping_copy(status_payload.get("controller_work_unit_next_route"))
+    return (
+        reason == "controller_work_unit_evidence_adopted"
+        and _non_empty_text(next_route.get("owner")) == "publication_gate"
+        and next_route.get("runtime_relaunch_required") is False
+    )
+
+
 def _projection_string_items(value: object) -> set[str]:
     if isinstance(value, str):
         text = value.strip()

@@ -23,6 +23,7 @@ from .parked_projection import (
 from .markdown_projection import render_study_progress_markdown
 from .supervisor_projection import (
     build_readonly_ai_repair_lifecycle_projection as _build_readonly_ai_repair_lifecycle_projection,
+    current_status_suppresses_ai_repair_lifecycle as _current_status_suppresses_ai_repair_lifecycle,
     portable_supervisor_study_projection as _portable_supervisor_study_projection,
     read_ai_repair_lifecycle as _read_ai_repair_lifecycle,
 )
@@ -433,11 +434,15 @@ def build_study_progress_projection(
         }
     )
     repair_recommendation = _mapping_copy((autonomy_slo_status or {}).get("repair_recommendation"))
-    ai_repair_lifecycle = _read_ai_repair_lifecycle(
-        study_root=resolved_study_root
-    ) or _build_readonly_ai_repair_lifecycle_projection(
-        study_root=resolved_study_root,
-        status_payload=status,
+    ai_repair_lifecycle = (
+        None
+        if _current_status_suppresses_ai_repair_lifecycle(status)
+        else _read_ai_repair_lifecycle(
+            study_root=resolved_study_root
+        ) or _build_readonly_ai_repair_lifecycle_projection(
+            study_root=resolved_study_root,
+            status_payload=status,
+        )
     )
     portable_supervisor_dashboard = _portable_supervisor_study_projection(
         profile=profile,
