@@ -49,6 +49,7 @@ from .runtime_result_types import (
     StudyRuntimeProgressProjection,
     StudyCompletionSyncResult,
 )
+from .read_model import resolved_active_run_id, status_to_dict
 
 
 
@@ -132,51 +133,10 @@ class StudyRuntimeStatus(MutableMapping[str, Any]):
         )
 
     def to_dict(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "schema_version": self.schema_version,
-            "study_id": self.study_id,
-            "study_root": self.study_root,
-            "entry_mode": self.entry_mode,
-            "execution": self.execution,
-            "quest_id": self.quest_id,
-            "quest_root": self.quest_root,
-            "quest_exists": self.quest_exists,
-            "quest_status": self.quest_status.value if self.quest_status is not None else None,
-            "runtime_binding_path": self.runtime_binding_path,
-            "runtime_binding_exists": self.runtime_binding_exists,
-            "workspace_contracts": self.workspace_contracts,
-            "startup_data_readiness": self.startup_data_readiness,
-            "startup_boundary_gate": self.startup_boundary_gate,
-            "runtime_reentry_gate": self.runtime_reentry_gate,
-            "study_completion_contract": self.study_completion_state.to_dict(),
-            "controller_first_policy_summary": self.controller_first_policy_summary,
-            "automation_ready_summary": self.automation_ready_summary,
-        }
-        if self.decision is not None:
-            payload["decision"] = self.decision.value
-        if self.reason is not None:
-            payload["reason"] = self.reason.value
-        payload.update(self.extras)
-        if "active_run_id" not in payload:
-            active_run_id = self._resolved_active_run_id()
-            if active_run_id is not None:
-                payload["active_run_id"] = active_run_id
-        return payload
+        return status_to_dict(self)
 
     def _resolved_active_run_id(self) -> str | None:
-        for payload in (
-            self.extras.get("runtime_liveness_audit"),
-            (self.extras.get("runtime_liveness_audit") or {}).get("runtime_audit")
-            if isinstance(self.extras.get("runtime_liveness_audit"), dict)
-            else None,
-            self.extras.get("autonomous_runtime_notice"),
-            self.extras.get("execution_owner_guard"),
-        ):
-            if isinstance(payload, dict):
-                active_run_id = str(payload.get("active_run_id") or "").strip()
-                if active_run_id:
-                    return active_run_id
-        return None
+        return resolved_active_run_id(extras=self.extras)
 
     @staticmethod
     def _normalize_decision_field(value: Any) -> StudyRuntimeDecision | None:

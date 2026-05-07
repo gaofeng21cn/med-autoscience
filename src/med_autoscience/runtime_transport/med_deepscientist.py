@@ -50,20 +50,24 @@ from med_autoscience.runtime_transport.med_deepscientist_parts.quest_contracts i
     _normalize_stable_startup_context_result,
     _normalize_startup_contract_for_stable_transport as _normalize_startup_contract_for_stable_transport_impl,
 )
-from med_autoscience.runtime_transport.med_deepscientist_parts.quest_liveness import (
-    ACTIVE_BASH_SESSION_STATUSES,
-    STALE_PROGRESS_SILENCE_SECONDS as _STALE_PROGRESS_SILENCE_SECONDS,
+from med_autoscience.runtime_transport.med_deepscientist_parts.quest_execution import (
     _infer_local_runtime_liveness as _infer_local_runtime_liveness_impl,
+    inspect_quest_live_execution as _inspect_quest_live_execution_impl,
+    inspect_quest_live_runtime as _inspect_quest_live_runtime_impl,
+)
+from med_autoscience.runtime_transport.med_deepscientist_parts.quest_sessions import (
+    ACTIVE_BASH_SESSION_STATUSES,
+    get_quest_session as _get_quest_session_impl,
+    inspect_quest_live_bash_sessions as _inspect_quest_live_bash_sessions_impl,
+    list_quest_bash_sessions as _list_quest_bash_sessions_impl,
+)
+from med_autoscience.runtime_transport.med_deepscientist_parts.quest_watchdogs import (
+    STALE_PROGRESS_SILENCE_SECONDS as _STALE_PROGRESS_SILENCE_SECONDS,
     _interaction_watchdog_payload,
     _missing_first_progress_watchdog,
     _nonnegative_int,
     _seconds_since_iso_timestamp,
     _stale_progress_watchdog,
-    get_quest_session as _get_quest_session_impl,
-    inspect_quest_live_bash_sessions as _inspect_quest_live_bash_sessions_impl,
-    inspect_quest_live_execution as _inspect_quest_live_execution_impl,
-    inspect_quest_live_runtime as _inspect_quest_live_runtime_impl,
-    list_quest_bash_sessions as _list_quest_bash_sessions_impl,
 )
 from med_autoscience.runtime_transport.med_deepscientist_parts.quest_operations import (
     artifact_complete_quest as _artifact_complete_quest_impl,
