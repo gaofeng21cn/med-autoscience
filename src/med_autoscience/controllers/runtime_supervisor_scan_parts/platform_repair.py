@@ -317,6 +317,35 @@ def _apply_current_controller_runtime_redrive(
         publication_eval_payload=publication_eval_payload,
     )
     if authorization is not None and authorization.get("written") is not True:
+        if _text(authorization.get("reason")) == "pending_user_messages_present":
+            pending_resume = _mark_existing_pending_user_message_redrive(
+                runtime_state_path=runtime_state_path,
+                study_id=study_id,
+                quest_id=quest_id,
+            )
+            if pending_resume.get("marked") is not True:
+                return {
+                    **dict(base),
+                    "dispatch_status": "blocked",
+                    "reason": _text(pending_resume.get("reason")) or "existing_pending_user_message_redrive_not_marked",
+                    "repair_kind": repair_kind,
+                    "current_controller_authorization": authorization,
+                    "existing_pending_user_message_resume": pending_resume,
+                }
+            apply_result = _apply_abnormal_stopped_runtime_repair(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                base=base,
+                repair_kind=repair_kind,
+                controller_authorization=None,
+            )
+            return {
+                **apply_result,
+                "current_controller_authorization": authorization,
+                "current_controller_authorization_written": False,
+                "existing_pending_user_message_resume": pending_resume,
+            }
         return {
             **dict(base),
             "dispatch_status": "blocked",
@@ -559,6 +588,57 @@ def _clear_stale_controller_runtime_state(
         },
     )
     return {"cleared": True, "cleared_keys": cleared_keys, "path": str(runtime_state_path)}
+
+
+def _mark_existing_pending_user_message_redrive(
+    *,
+    runtime_state_path: Path,
+    study_id: str,
+    quest_id: str | None,
+) -> dict[str, Any]:
+    runtime_state = _read_json_object(runtime_state_path)
+    if runtime_state is None:
+        return {"marked": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
+    pending_count = int(runtime_state.get("pending_user_message_count") or 0)
+    if pending_count <= 0:
+        return {"marked": False, "reason": "pending_user_messages_missing", "path": str(runtime_state_path)}
+    runtime_state["quest_id"] = _text(runtime_state.get("quest_id")) or quest_id
+    runtime_state["active_run_id"] = None
+    runtime_state["worker_running"] = False
+    runtime_state["continuation_policy"] = "auto"
+    runtime_state["continuation_anchor"] = "user_message_queue"
+    runtime_state["continuation_reason"] = "runtime_platform_repair_resume_existing_pending_user_message"
+    runtime_state["continuation_updated_at"] = _utc_now()
+    runtime_state["same_fingerprint_auto_turn_count"] = 0
+    for key in ("retry_state", "last_stage_fingerprint", "last_stage_fingerprint_at"):
+        runtime_state.pop(key, None)
+    runtime_state["last_runtime_platform_repair"] = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
+        "clear_reason": "existing_pending_user_message_redrive",
+        "pending_user_message_count": pending_count,
+        "applied_at": _utc_now(),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+    }
+    _write_json(runtime_state_path, runtime_state)
+    _append_json_line(
+        runtime_state_path.parent / "events.jsonl",
+        {
+            "event_id": f"mas-runtime-platform-repair::{study_id}::{_utc_now()}",
+            "type": "mas.runtime_platform_repair",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
+            "clear_reason": "existing_pending_user_message_redrive",
+            "pending_user_message_count": pending_count,
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "created_at": _utc_now(),
+        },
+    )
+    return {"marked": True, "pending_user_message_count": pending_count, "path": str(runtime_state_path)}
 
 
 def _clear_stale_specificity_runtime_state(
