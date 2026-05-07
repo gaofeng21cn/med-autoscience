@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
+
 
 def parse_json_object_from_cli_stdout(stdout: str) -> dict[str, Any]:
     text = (stdout or "").strip()
@@ -55,3 +57,31 @@ def run_workspace_display_repair_script(*, paper_root: Path) -> dict[str, Any]:
         "stdout": completed.stdout,
         "stderr": completed.stderr,
     }
+
+
+def repair_paper_live_paths(
+    *,
+    profile: Any,
+    quest_id: str,
+    workspace_root: Path,
+    current_workspace_root: Path,
+) -> dict[str, Any]:
+    launcher = med_deepscientist_transport._read_config_env_value(
+        path=profile.med_deepscientist_runtime_root.parent / "config.env",
+        key="MED_DEEPSCIENTIST_LAUNCHER",
+    )
+    command = [
+        launcher,
+        "--home",
+        str(profile.managed_runtime_home),
+        "repair",
+        "paper-live-paths",
+        "--quest-id",
+        quest_id,
+        "--workspace-root",
+        str(workspace_root),
+        "--current-workspace-root",
+        str(current_workspace_root),
+    ]
+    completed = subprocess.run(command, check=True, capture_output=True, text=True)
+    return parse_json_object_from_cli_stdout(completed.stdout or "")

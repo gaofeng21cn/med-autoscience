@@ -1,17 +1,11 @@
 from __future__ import annotations
 
-import json
 from importlib import import_module
-import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
-import yaml
-
 from med_autoscience.publication_eval_latest import read_publication_eval_latest
-from med_autoscience.profiles import WorkspaceProfile, load_profile
-from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
-from med_autoscience.study_charter import materialize_study_charter
+from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.gate_clearing_batch_blockers import (
     medical_surface_display_repair_requested,
     repairable_medical_surface,
@@ -31,11 +25,16 @@ from med_autoscience.controllers import gate_clearing_batch_replay_closure
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import gate_clearing_batch_transportability
-from med_autoscience.controllers import gate_clearing_batch_time_to_event_grouped
 from med_autoscience.controllers import gate_clearing_batch_authority_redrive
 from med_autoscience.controllers import publication_shell_sync
+from med_autoscience.controllers.gate_clearing_batch_parts import display_refresh
 from med_autoscience.controllers.gate_clearing_batch_parts import execution_helpers
+from med_autoscience.controllers.gate_clearing_batch_parts import io_utils
+from med_autoscience.controllers.gate_clearing_batch_parts import path_selection
+from med_autoscience.controllers.gate_clearing_batch_parts import runtime_paths
+from med_autoscience.controllers.gate_clearing_batch_parts import scientific_anchor
 from med_autoscience.controllers.gate_clearing_batch_parts import startup_freshness
+from med_autoscience.controllers.gate_clearing_batch_parts import submission_delivery
 from med_autoscience.controllers.gate_clearing_batch_execution import GateClearingRepairUnit
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     filter_repair_units_for_publication_work_unit,
@@ -44,7 +43,6 @@ from med_autoscience.controllers.control_plane_route_context_call import call_wi
 from med_autoscience.controllers.gate_clearing_batch_write_routes import route_bound_call as _route_bound
 from med_autoscience.controllers.gate_clearing_batch_write_routes import create_submission_minimal_package_with_route
 from med_autoscience.controllers.gate_clearing_batch_write_routes import sync_submission_minimal_delivery_with_route
-from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID
 
 
 SCHEMA_VERSION = 1
@@ -90,56 +88,16 @@ def stable_gate_clearing_batch_path(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / STABLE_GATE_CLEARING_BATCH_RELATIVE_PATH
 
 
-def _read_json(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    payload = json.loads(path.read_text(encoding="utf-8")) or {}
-    if not isinstance(payload, dict):
-        return {}
-    return payload
-
-
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+_read_json = io_utils.read_json
+_write_json = io_utils.write_json
 
 
 _clock_snapshot = publication_work_unit_lifecycle.clock_snapshot
 
 
-def _read_yaml(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    if not isinstance(payload, dict):
-        return {}
-    return payload
-
-
-def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
-    path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
-
-
-def _parse_json_object_from_cli_stdout(stdout: str) -> dict[str, Any]:
-    return execution_helpers.parse_json_object_from_cli_stdout(stdout)
-
-
-def _non_empty_text(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    text = value.strip()
-    return text or None
-
-
-def _string_list(value: object) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    items: list[str] = []
-    for item in value:
-        text = str(item or "").strip()
-        if text:
-            items.append(text)
-    return items
+_parse_json_object_from_cli_stdout = execution_helpers.parse_json_object_from_cli_stdout
+_non_empty_text = io_utils.non_empty_text
+_string_list = io_utils.string_list
 
 
 def _unit_blocking_artifact_refs(unit_results: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -156,47 +114,13 @@ def _unit_blocking_artifact_refs(unit_results: list[dict[str, Any]]) -> list[dic
     return refs
 
 
-def _quest_root(profile: WorkspaceProfile, *, quest_id: str) -> Path:
-    return profile.med_deepscientist_runtime_root / "quests" / quest_id
+_quest_root = runtime_paths.quest_root
 
 
-def resolve_profile_for_study_root(study_root: Path) -> WorkspaceProfile | None:
-    resolved_study_root = Path(study_root).expanduser().resolve()
-    workspace_root = resolved_study_root.parent.parent
-    config_env_path = workspace_root / "ops" / "medautoscience" / "config.env"
-    profile_path: Path | None = None
-    if config_env_path.exists():
-        configured = med_deepscientist_transport._read_optional_config_env_value(
-            path=config_env_path,
-            key="MED_AUTOSCIENCE_PROFILE",
-        )
-        if configured is not None:
-            profile_path = Path(configured).expanduser().resolve()
-    if profile_path is None:
-        candidates = sorted((workspace_root / "ops" / "medautoscience" / "profiles").glob("*.local.toml"))
-        if len(candidates) == 1:
-            profile_path = candidates[0].resolve()
-    if profile_path is None or not profile_path.exists():
-        return None
-    return load_profile(profile_path)
+resolve_profile_for_study_root = runtime_paths.resolve_profile_for_study_root
 
 
-def _latest_scientific_anchor_mapping_path(*, quest_root: Path) -> Path | None:
-    worktrees_root = quest_root / ".ds" / "worktrees"
-    candidates = sorted(
-        worktrees_root.glob("analysis-*/experiments/analysis/*/*/outputs/scientific_anchor_mapping.json"),
-        key=lambda path: path.stat().st_mtime if path.exists() else 0.0,
-        reverse=True,
-    )
-    return candidates[0] if candidates else None
-
-
-def _current_workspace_root(*, quest_root: Path, default: Path) -> Path:
-    research_state = _read_json(quest_root / ".ds" / "research_state.json")
-    raw = _non_empty_text(research_state.get("current_workspace_root"))
-    if raw is None:
-        return default
-    return Path(raw).expanduser().resolve()
+_current_workspace_root = runtime_paths.current_workspace_root
 
 
 def _candidate_values_include_root(
@@ -205,19 +129,12 @@ def _candidate_values_include_root(
     candidate_values: list[object],
     root: Path,
 ) -> bool:
-    root_resolved = root.resolve()
-    for candidate in candidate_values:
-        if not isinstance(candidate, str):
-            continue
-        normalized = candidate.strip()
-        if not normalized:
-            continue
-        try:
-            submission_minimal.resolve_relpath(workspace_root, normalized).resolve().relative_to(root_resolved)
-        except ValueError:
-            continue
-        return True
-    return False
+    return path_selection.candidate_values_include_root(
+        workspace_root=workspace_root,
+        candidate_values=candidate_values,
+        root=root,
+        submission_minimal_controller=submission_minimal,
+    )
 
 
 def _catalog_asset_fingerprints(
@@ -400,23 +317,7 @@ def _gate_blockers(gate_report: dict[str, Any]) -> set[str]:
 
 
 def _eligible_mapping_payload(*, quest_root: Path, study_root: Path) -> tuple[Path | None, dict[str, Any]]:
-    mapping_path = _latest_scientific_anchor_mapping_path(quest_root=quest_root)
-    if mapping_path is None:
-        return None, {}
-    stable_charter_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller" / "study_charter.json"
-    stable_charter = _read_json(stable_charter_path)
-    if _string_list(stable_charter.get("scientific_followup_questions")) and _string_list(
-        stable_charter.get("explanation_targets")
-    ):
-        return mapping_path, {}
-    payload = _read_json(mapping_path)
-    if not payload:
-        return mapping_path, {}
-    proposed_questions = _string_list(payload.get("proposed_scientific_followup_questions"))
-    proposed_targets = _string_list(payload.get("proposed_explanation_targets"))
-    if not proposed_questions or not proposed_targets:
-        return mapping_path, {}
-    return mapping_path, payload
+    return scientific_anchor.eligible_mapping_payload(quest_root=quest_root, study_root=study_root)
 
 
 def build_gate_clearing_batch_recommended_action(
@@ -539,38 +440,13 @@ def _freeze_scientific_anchor_fields(
     profile: WorkspaceProfile,
     mapping_path: Path,
 ) -> dict[str, Any]:
-    study_yaml_path = Path(study_root).expanduser().resolve() / "study.yaml"
-    study_payload = _read_yaml(study_yaml_path)
-    mapping_payload = _read_json(mapping_path)
-    proposed_questions = _string_list(mapping_payload.get("proposed_scientific_followup_questions"))
-    proposed_targets = _string_list(mapping_payload.get("proposed_explanation_targets"))
-    clinician_target = _non_empty_text(mapping_payload.get("clinician_facing_interpretation_target"))
-    if clinician_target is not None and clinician_target not in proposed_targets:
-        proposed_targets.append(clinician_target)
-    if not proposed_questions or not proposed_targets:
-        return {
-            "status": "skipped",
-            "reason": "scientific anchor mapping did not expose non-empty proposed targets",
-            "mapping_path": str(mapping_path),
-        }
-    study_payload["scientific_followup_questions"] = proposed_questions
-    study_payload["explanation_targets"] = proposed_targets
-    _write_yaml(study_yaml_path, study_payload)
-    charter_ref = materialize_study_charter(
+    return scientific_anchor.freeze_scientific_anchor_fields(
         study_root=study_root,
         study_id=study_id,
-        study_payload=study_payload,
-        execution=study_runtime_router._execution_payload(study_payload, profile=profile),
-        required_first_anchor=_non_empty_text((study_payload.get("execution") or {}).get("required_first_anchor")),
+        profile=profile,
+        mapping_path=mapping_path,
+        study_runtime_router_controller=study_runtime_router,
     )
-    return {
-        "status": "updated",
-        "mapping_path": str(mapping_path),
-        "study_yaml_path": str(study_yaml_path),
-        "charter_ref": charter_ref,
-        "scientific_followup_question_count": len(proposed_questions),
-        "explanation_target_count": len(proposed_targets),
-    }
 
 
 def _repair_paper_live_paths(
@@ -580,25 +456,12 @@ def _repair_paper_live_paths(
     workspace_root: Path,
     current_workspace_root: Path,
 ) -> dict[str, Any]:
-    launcher = med_deepscientist_transport._read_config_env_value(
-        path=profile.med_deepscientist_runtime_root.parent / "config.env",
-        key="MED_DEEPSCIENTIST_LAUNCHER",
+    return execution_helpers.repair_paper_live_paths(
+        profile=profile,
+        quest_id=quest_id,
+        workspace_root=workspace_root,
+        current_workspace_root=current_workspace_root,
     )
-    command = [
-        launcher,
-        "--home",
-        str(profile.managed_runtime_home),
-        "repair",
-        "paper-live-paths",
-        "--quest-id",
-        quest_id,
-        "--workspace-root",
-        str(workspace_root),
-        "--current-workspace-root",
-        str(current_workspace_root),
-    ]
-    completed = subprocess.run(command, check=True, capture_output=True, text=True)
-    return _parse_json_object_from_cli_stdout(completed.stdout or "")
 
 
 def _materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
@@ -606,192 +469,42 @@ def _materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
 
 
 def _publication_shell_surface_needs_sync(*, study_root: Path, paper_root: Path) -> bool:
-    try:
-        publication_shell_sync._resolve_cohort_flow_source_payload(
-            study_root=study_root,
-            paper_root=paper_root,
-        )
-        publication_shell_sync._resolve_table1_source_path(
-            study_root=study_root,
-            paper_root=paper_root,
-        )
-        registry_payload = _read_json(Path(paper_root) / "display_registry.json")
-        publication_shell_sync._require_binding(
-            registry_payload=registry_payload,
-            requirement_key="cohort_flow_figure",
-        )
-        publication_shell_sync._require_binding(
-            registry_payload=registry_payload,
-            requirement_key="table1_baseline_characteristics",
-        )
-    except (FileNotFoundError, ValueError, json.JSONDecodeError):
-        return False
-    payload = _read_json(Path(paper_root) / "baseline_characteristics_schema.json")
-    groups = payload.get("groups")
-    variables = payload.get("variables")
-    if not isinstance(groups, list) or not groups:
-        return True
-    if not isinstance(variables, list) or not variables:
-        return True
-    return any(not isinstance(item, dict) for item in variables)
+    return display_refresh.publication_shell_surface_needs_sync(study_root=study_root, paper_root=paper_root)
 
 
 def _legacy_time_to_event_grouped_payload_normalization_candidates(
     *,
     paper_root: Path,
 ) -> tuple[Path, list[str], str | None, str | None]:
-    payload_path = Path(paper_root) / INPUT_FILENAME_BY_SCHEMA_ID["time_to_event_grouped_inputs_v1"]
-    registry_payload = _read_json(Path(paper_root) / "display_registry.json")
-    payload = _read_json(payload_path)
-    displays = payload.get("displays")
-    registry_items = registry_payload.get("displays")
-    if not isinstance(displays, list) or not isinstance(registry_items, list):
-        return payload_path, [], None, None
-
-    risk_summary_display_ids = {
-        str(item.get("display_id") or "").strip()
-        for item in registry_items
-        if isinstance(item, dict)
-        and str(item.get("requirement_key") or "").strip() == "time_to_event_risk_group_summary"
-        and str(item.get("display_id") or "").strip()
-    }
-    if not risk_summary_display_ids:
-        return payload_path, [], None, None
-
-    expected_template_id = display_surface_materialization.display_registry.get_evidence_figure_spec(
-        "time_to_event_risk_group_summary"
-    ).template_id
-    legacy_template_id = display_surface_materialization.display_registry.get_evidence_figure_spec(
-        "cumulative_incidence_grouped"
-    ).template_id
-    candidate_display_ids: list[str] = []
-    for display in displays:
-        if not isinstance(display, dict):
-            continue
-        display_id = str(display.get("display_id") or "").strip()
-        if display_id not in risk_summary_display_ids:
-            continue
-        if str(display.get("template_id") or "").strip() != expected_template_id:
-            continue
-        if isinstance(display.get("risk_group_summaries"), list) and display.get("risk_group_summaries"):
-            continue
-        groups = display.get("groups")
-        if not isinstance(groups, list) or not groups:
-            continue
-        candidate_display_ids.append(display_id)
-
-    return payload_path, candidate_display_ids, expected_template_id, legacy_template_id
+    return display_refresh.legacy_time_to_event_grouped_payload_normalization_candidates(
+        paper_root=paper_root,
+        display_surface_materialization_controller=display_surface_materialization,
+    )
 
 
 def _normalize_legacy_time_to_event_grouped_payloads(*, paper_root: Path) -> dict[str, Any]:
-    payload_path, candidate_display_ids, expected_template_id, legacy_template_id = (
-        _legacy_time_to_event_grouped_payload_normalization_candidates(paper_root=paper_root)
+    return display_refresh.normalize_legacy_time_to_event_grouped_payloads(
+        paper_root=paper_root,
+        display_surface_materialization_controller=display_surface_materialization,
     )
-    if expected_template_id is None or legacy_template_id is None:
-        return {
-            "status": "current",
-            "reason": "time-to-event grouped payload or display registry has no normalization candidates",
-            "payload_path": str(payload_path),
-        }
-
-    if not candidate_display_ids:
-        return {
-            "status": "current",
-            "payload_path": str(payload_path),
-            "checked_display_ids": [],
-        }
-
-    payload = _read_json(payload_path)
-    displays = payload.get("displays")
-    if not isinstance(displays, list):
-        return {
-            "status": "current",
-            "reason": "time-to-event grouped payload is not readable",
-            "payload_path": str(payload_path),
-        }
-    updated_display_ids: list[str] = []
-    candidate_display_id_set = set(candidate_display_ids)
-    for display in displays:
-        if not isinstance(display, dict):
-            continue
-        display_id = str(display.get("display_id") or "").strip()
-        if display_id not in candidate_display_id_set:
-            continue
-        display["legacy_requested_template_id"] = expected_template_id
-        display["template_id"] = legacy_template_id
-        updated_display_ids.append(display_id)
-
-    _write_json(payload_path, payload)
-    return {
-        "status": "updated",
-        "payload_path": str(payload_path),
-        "updated_payload_paths": [str(payload_path)],
-        "updated_display_ids": updated_display_ids,
-        "legacy_requested_template_id": expected_template_id,
-        "normalized_template_id": legacy_template_id,
-    }
 
 
 def _legacy_time_to_event_grouped_payloads_need_normalization(*, paper_root: Path) -> bool:
-    _, candidate_display_ids, _, _ = _legacy_time_to_event_grouped_payload_normalization_candidates(
-        paper_root=paper_root
+    return display_refresh.legacy_time_to_event_grouped_payloads_need_normalization(
+        paper_root=paper_root,
+        display_surface_materialization_controller=display_surface_materialization,
     )
-    return bool(candidate_display_ids)
 
 
 def _time_to_event_risk_group_surface_present(*, paper_root: Path) -> bool:
-    return gate_clearing_batch_time_to_event_grouped.time_to_event_risk_group_surface_present(
-        paper_root=paper_root,
-        read_json=_read_json,
-    )
-
-
-def _display_registry_item_for_requirement(
-    *,
-    paper_root: Path,
-    requirement_key: str,
-) -> dict[str, Any] | None:
-    registry_payload = _read_json(Path(paper_root) / "display_registry.json")
-    displays = registry_payload.get("displays")
-    if not isinstance(displays, list):
-        return None
-    for item in displays:
-        if not isinstance(item, dict):
-            continue
-        if str(item.get("requirement_key") or "").strip() == requirement_key:
-            return item
-    return None
+    return display_refresh.time_to_event_risk_group_surface_present(paper_root=paper_root)
 
 
 def _time_to_event_direct_migration_display_inputs_need_refresh(*, paper_root: Path) -> bool:
-    item = _display_registry_item_for_requirement(
+    return display_refresh.time_to_event_direct_migration_display_inputs_need_refresh(
         paper_root=paper_root,
-        requirement_key="multicenter_generalizability_overview",
+        display_surface_materialization_controller=display_surface_materialization,
     )
-    if item is None:
-        return False
-    display_id = _non_empty_text(item.get("display_id"))
-    if display_id is None:
-        return True
-    spec = display_surface_materialization.display_registry.get_evidence_figure_spec(
-        "multicenter_generalizability_overview"
-    )
-    try:
-        _, payload = display_surface_materialization._load_evidence_display_payload(
-            paper_root=paper_root,
-            spec=spec,
-            display_id=display_id,
-        )
-    except (FileNotFoundError, ValueError, json.JSONDecodeError):
-        if _legacy_direct_migration_feature_shift_payload_present(
-            paper_root=paper_root,
-            input_schema_id=spec.input_schema_id,
-            display_id=display_id,
-        ):
-            return False
-        return True
-    source_paths = _string_list(payload.get("source_paths"))
-    return any("ops/med-the research workflow" in item for item in source_paths)
 
 
 def _legacy_direct_migration_feature_shift_payload_present(
@@ -800,11 +513,10 @@ def _legacy_direct_migration_feature_shift_payload_present(
     input_schema_id: str,
     display_id: str,
 ) -> bool:
-    return gate_clearing_batch_transportability.legacy_direct_migration_feature_shift_payload_present(
+    return display_refresh.legacy_direct_migration_feature_shift_payload_present(
         paper_root=paper_root,
         input_schema_id=input_schema_id,
         display_id=display_id,
-        input_filename_by_schema_id=INPUT_FILENAME_BY_SCHEMA_ID,
     )
 
 
@@ -1178,96 +890,20 @@ def run_gate_clearing_batch(
         gate_report=gate_report,
         profile=profile,
     )
-    create_submission_unit_result = next(
-        (
-            item
-            for item in unit_results
-            if _non_empty_text(item.get("unit_id")) == "create_submission_minimal_package"
+    submission_delivery.append_delivery_sync_after_submission_refresh(
+        unit_results=unit_results,
+        execution_summary=execution_summary,
+        study_delivery_status=study_delivery_status,
+        paper_root=paper_root,
+        profile=profile,
+        sync_submission_minimal_delivery=_route_bound(
+            function=_sync_submission_minimal_delivery,
+            control_plane_route_context=resolved_route_context,
         ),
-        None,
+        path_fingerprints=_path_fingerprints,
+        settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
+        clock_snapshot=_clock_snapshot,
     )
-    submission_minimal_refreshed = create_submission_unit_result is not None and not _unit_status_blocks_dependents(
-        _non_empty_text(create_submission_unit_result.get("status"))
-    )
-    if submission_minimal_refreshed and study_delivery_status.startswith("stale"):
-        embedded_delivery_sync = _reuse_embedded_submission_delivery_sync(
-            create_submission_result=create_submission_unit_result.get("result")
-            if isinstance(create_submission_unit_result, dict)
-            else None,
-        )
-        if embedded_delivery_sync is not None:
-            authority_settled, authority_fingerprints = (
-                gate_clearing_batch_submission.current_package_authority_settled(
-                    paper_root=paper_root,
-                    path_fingerprints=_path_fingerprints,
-                    settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
-                )
-            )
-            if authority_settled:
-                embedded_delivery_sync["authority_fingerprints"] = authority_fingerprints
-                embedded_delivery_sync["settle_window_ns"] = CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS
-                embedded_delivery_sync.update(
-                    publication_work_unit_lifecycle.instant_timing(clock=_clock_snapshot)
-                )
-                unit_results.append(embedded_delivery_sync)
-            else:
-                retry_metadata = gate_clearing_batch_submission.authority_not_settled_retry_metadata(
-                    authority_fingerprints=authority_fingerprints,
-                    settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
-                )
-                unit_results.append(
-                    publication_work_unit_lifecycle.authority_not_settled_sync_unit_item(
-                        authority_fingerprints=authority_fingerprints,
-                        settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
-                        retry_metadata=retry_metadata,
-                        timing=publication_work_unit_lifecycle.instant_timing(clock=_clock_snapshot),
-                        depends_on=["create_submission_minimal_package"],
-                    )
-                )
-            execution_summary["sequential_unit_count"] += 1
-        else:
-            started_ns, started_at = _clock_snapshot()
-            try:
-                result = gate_clearing_batch_submission.sync_submission_minimal_delivery_after_settle(
-                    paper_root=paper_root,
-                    profile=profile,
-                    sync_submission_minimal_delivery=_route_bound(
-                        function=_sync_submission_minimal_delivery,
-                        control_plane_route_context=resolved_route_context,
-                    ),
-                    path_fingerprints=_path_fingerprints,
-                    settle_window_ns=CURRENT_PACKAGE_AUTHORITY_SETTLE_WINDOW_NS,
-                )
-                finished_ns, finished_at = _clock_snapshot()
-                timing = {
-                    "started_at": started_at,
-                    "finished_at": finished_at,
-                    "duration_seconds": publication_work_unit_lifecycle.duration_seconds(started_ns, finished_ns),
-                }
-                unit_results.append(
-                    publication_work_unit_lifecycle.submission_delivery_sync_unit_item(
-                        result=result,
-                        timing=timing,
-                        depends_on=["create_submission_minimal_package"],
-                    )
-                )
-                execution_summary["sequential_unit_count"] += 1
-            except Exception as exc:
-                finished_ns, finished_at = _clock_snapshot()
-                unit_results.append(
-                    {
-                        "unit_id": "sync_submission_minimal_delivery",
-                        "label": "Refresh the study-owned submission-minimal delivery mirror before gate replay",
-                        "parallel_safe": False,
-                        "status": "failed",
-                        "error": str(exc),
-                        "depends_on": ["create_submission_minimal_package"],
-                        "started_at": started_at,
-                        "finished_at": finished_at,
-                        "duration_seconds": publication_work_unit_lifecycle.duration_seconds(started_ns, finished_ns),
-                    }
-                )
-                execution_summary["sequential_unit_count"] += 1
 
     gate_replay, gate_replay_timing = publication_work_unit_lifecycle.timed_step(
         clock=_clock_snapshot,
