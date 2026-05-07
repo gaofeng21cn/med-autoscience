@@ -8,14 +8,16 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
-from ...shared import (
-    _apply_publication_axes_style,
-    _build_python_shap_layout_sidecar,
-    _centered_offsets,
-    _prepare_python_render_output_paths,
+from ...shared_parts.common import (
     _read_bool_override,
     dump_json,
 )
+from ...shared_parts.rendering import (
+    _apply_publication_axes_style,
+    _centered_offsets,
+    _prepare_python_render_output_paths,
+)
+from ...shared_parts.shap_layout import _build_python_shap_layout_sidecar
 
 def _render_python_shap_summary_beeswarm(
     *,

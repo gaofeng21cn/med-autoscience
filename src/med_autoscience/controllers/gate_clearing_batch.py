@@ -191,48 +191,14 @@ def _repair_unit_fingerprint(
     )
 
 
-def _latest_unit_result(latest_batch: dict[str, Any], *, unit_id: str) -> dict[str, Any] | None:
-    return gate_clearing_batch_execution.latest_unit_result(latest_batch, unit_id=unit_id)
-
-
-def _latest_unit_status(latest_batch: dict[str, Any], *, unit_id: str) -> str | None:
-    return gate_clearing_batch_execution.latest_unit_status(latest_batch, unit_id=unit_id)
-
-
-def _unit_status_is_success(status: str | None) -> bool:
-    return gate_clearing_batch_execution.unit_status_is_success(status)
-
-
-def _latest_unit_success_status(latest_batch: dict[str, Any], *, unit_id: str) -> str | None:
-    return gate_clearing_batch_execution.latest_unit_success_status(latest_batch, unit_id=unit_id)
-
-
-def _latest_unit_fingerprint(latest_batch: dict[str, Any], *, unit_id: str) -> str | None:
-    return gate_clearing_batch_execution.latest_unit_fingerprint(latest_batch, unit_id=unit_id)
-
-
-def _can_skip_repair_unit(
-    latest_batch: dict[str, Any],
-    *,
-    unit_id: str,
-    unit_fingerprint: str | None,
-) -> bool:
-    return gate_clearing_batch_execution.can_skip_repair_unit(
-        latest_batch,
-        unit_id=unit_id,
-        unit_fingerprint=unit_fingerprint,
-    )
-
-
-def _unit_status_blocks_dependents(status: str | None) -> bool:
-    return gate_clearing_batch_execution.unit_status_blocks_dependents(status)
-
-
-def _existing_dependency_ids(
-    repair_units: list[GateClearingRepairUnit],
-    *candidate_unit_ids: str,
-) -> tuple[str, ...]:
-    return gate_clearing_batch_execution.existing_dependency_ids(repair_units, *candidate_unit_ids)
+_latest_unit_result = gate_clearing_batch_execution.latest_unit_result
+_latest_unit_status = gate_clearing_batch_execution.latest_unit_status
+_unit_status_is_success = gate_clearing_batch_execution.unit_status_is_success
+_latest_unit_success_status = gate_clearing_batch_execution.latest_unit_success_status
+_latest_unit_fingerprint = gate_clearing_batch_execution.latest_unit_fingerprint
+_can_skip_repair_unit = gate_clearing_batch_execution.can_skip_repair_unit
+_unit_status_blocks_dependents = gate_clearing_batch_execution.unit_status_blocks_dependents
+_existing_dependency_ids = gate_clearing_batch_execution.existing_dependency_ids
 
 
 def _run_repair_unit(
@@ -273,13 +239,7 @@ def _execute_repair_units(
     )
 
 
-def _reuse_embedded_submission_delivery_sync(
-    *,
-    create_submission_result: dict[str, Any] | None,
-) -> dict[str, Any] | None:
-    return gate_clearing_batch_execution.reuse_embedded_submission_delivery_sync(
-        create_submission_result=create_submission_result,
-    )
+_reuse_embedded_submission_delivery_sync = gate_clearing_batch_execution.reuse_embedded_submission_delivery_sync
 
 
 def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:

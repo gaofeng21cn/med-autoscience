@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from typing import Any
 
-from ..shared import _require_namespaced_registry_id
+from ..shared_parts.common import _require_namespaced_registry_id
 
 _R_EVIDENCE_RENDERER_SOURCE = r"""
 suppressPackageStartupMessages({

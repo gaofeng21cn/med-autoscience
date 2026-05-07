@@ -8,11 +8,11 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
-from ....shared import (
+from ....shared_parts.flow_layout import _wrap_figure_title_to_width
+from ....shared_parts.geometry import _data_point_to_figure_xy
+from ....shared_parts.rendering import (
     _apply_publication_axes_style,
-    _data_point_to_figure_xy,
     _prepare_python_render_output_paths,
-    _wrap_figure_title_to_width,
 )
 from ._layout import _write_layout_and_outputs
 from ._prepare import _prepare_render_state

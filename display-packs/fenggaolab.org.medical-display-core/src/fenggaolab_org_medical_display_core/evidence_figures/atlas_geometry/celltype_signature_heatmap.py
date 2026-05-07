@@ -8,14 +8,18 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
-from ...shared import (
-    _apply_publication_axes_style,
-    _bbox_to_layout_box,
-    _data_point_to_figure_xy,
-    _prepare_python_render_output_paths,
+from ...shared_parts.common import (
     _read_bool_override,
     _require_non_empty_string,
     dump_json,
+)
+from ...shared_parts.geometry import (
+    _bbox_to_layout_box,
+    _data_point_to_figure_xy,
+)
+from ...shared_parts.rendering import (
+    _apply_publication_axes_style,
+    _prepare_python_render_output_paths,
 )
 
 def _render_python_celltype_signature_heatmap(

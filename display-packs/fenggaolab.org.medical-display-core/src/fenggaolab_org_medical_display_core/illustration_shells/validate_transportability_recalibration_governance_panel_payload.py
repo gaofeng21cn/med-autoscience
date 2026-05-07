@@ -9,9 +9,9 @@ from med_autoscience import display_registry
 
 matplotlib.use("Agg")
 
-from ..shared import (
-    _require_numeric_value,
+from ..shared_parts.common import (
     _require_non_empty_string,
+    _require_numeric_value,
 )
 
 

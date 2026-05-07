@@ -6,7 +6,8 @@ from typing import Any, Callable
 from matplotlib.figure import Figure
 from matplotlib import pyplot as plt
 
-from ...shared import _FlowNodeSpec, dump_json
+from ...shared_parts.common import dump_json
+from ...shared_parts.flow_layout import _FlowNodeSpec
 
 
 def _write_multi_panel_outputs(

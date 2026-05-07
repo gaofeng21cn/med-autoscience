@@ -7,7 +7,8 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
-from ....shared import _apply_publication_axes_style, _wrap_figure_title_to_width
+from ....shared_parts.flow_layout import _wrap_figure_title_to_width
+from ....shared_parts.rendering import _apply_publication_axes_style
 
 
 def _build_genomic_alteration_consequence_figure(

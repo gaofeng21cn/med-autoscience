@@ -6,13 +6,13 @@ from typing import Any
 
 from matplotlib import pyplot as plt
 
-from ....shared import (
+from ....shared_parts.common import dump_json
+from ....shared_parts.geometry import (
     _bbox_to_layout_box,
     _data_box_to_layout_box,
     _data_point_to_figure_xy,
-    _prepare_python_render_output_paths,
-    dump_json,
 )
+from ....shared_parts.rendering import _prepare_python_render_output_paths
 from ._draw import _build_shap_signed_importance_local_support_domain_figure
 from ._prepare import _prepare_shap_signed_importance_local_support_domain_data
 

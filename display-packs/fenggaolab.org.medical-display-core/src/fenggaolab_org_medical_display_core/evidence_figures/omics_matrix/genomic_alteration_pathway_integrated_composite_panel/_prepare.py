@@ -5,7 +5,10 @@ from typing import Any
 
 import matplotlib
 
-from ....shared import _read_bool_override, _require_non_empty_string
+from ....shared_parts.common import (
+    _read_bool_override,
+    _require_non_empty_string,
+)
 
 
 def _prepare_render_state(*, template_id: str, display_payload: dict[str, Any]) -> dict[str, Any]:

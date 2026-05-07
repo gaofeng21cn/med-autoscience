@@ -4,7 +4,10 @@ from typing import Any
 
 import matplotlib
 
-from ....shared import _read_bool_override, _require_non_empty_string
+from ....shared_parts.common import (
+    _read_bool_override,
+    _require_non_empty_string,
+)
 
 
 def _prepare_shap_signed_importance_local_support_domain_data(

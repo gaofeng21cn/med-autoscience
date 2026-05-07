@@ -9,16 +9,18 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-from ..shared import (
-    _bbox_to_layout_box,
-    _build_submission_graphical_abstract_arrow_lane_spec,
-    _choose_shared_submission_graphical_abstract_arrow_lane,
+from ..shared_parts.common import dump_json
+from ..shared_parts.flow_layout import (
     _flow_box_to_normalized,
     _measure_flow_text_width_pt,
-    _prepare_python_illustration_output_paths,
     _wrap_figure_title_to_width,
     _wrap_flow_text_to_width,
-    dump_json,
+)
+from ..shared_parts.geometry import _bbox_to_layout_box
+from ..shared_parts.rendering import _prepare_python_illustration_output_paths
+from ..shared_parts.submission_arrows import (
+    _build_submission_graphical_abstract_arrow_lane_spec,
+    _choose_shared_submission_graphical_abstract_arrow_lane,
 )
 
 

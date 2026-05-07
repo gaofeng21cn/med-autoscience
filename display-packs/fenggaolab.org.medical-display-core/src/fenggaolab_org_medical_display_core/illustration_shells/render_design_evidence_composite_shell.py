@@ -9,13 +9,13 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-from ..shared import (
-    _bbox_to_layout_box,
+from ..shared_parts.common import dump_json
+from ..shared_parts.flow_layout import (
     _flow_box_to_normalized,
     _measure_flow_text_width_pt,
     _wrap_flow_text_to_width,
-    dump_json,
 )
+from ..shared_parts.geometry import _bbox_to_layout_box
 
 
 _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES: dict[str, str] = {

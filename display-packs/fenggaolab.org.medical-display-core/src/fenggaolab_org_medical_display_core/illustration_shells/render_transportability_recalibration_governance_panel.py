@@ -10,11 +10,9 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyBboxPatch
 
-from ..shared import (
-    _bbox_to_layout_box,
-    _prepare_python_illustration_output_paths,
-    dump_json,
-)
+from ..shared_parts.common import dump_json
+from ..shared_parts.geometry import _bbox_to_layout_box
+from ..shared_parts.rendering import _prepare_python_illustration_output_paths
 
 
 _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES: dict[str, str] = {

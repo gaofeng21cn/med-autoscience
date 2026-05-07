@@ -6,7 +6,12 @@ from typing import Any, Callable
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
-from ...shared import _flow_box_to_normalized, _flow_union_box, _wrap_flow_text_to_width, dump_json
+from ...shared_parts.common import dump_json
+from ...shared_parts.flow_layout import (
+    _flow_box_to_normalized,
+    _flow_union_box,
+    _wrap_flow_text_to_width,
+)
 
 
 def _render_single_panel_cards(

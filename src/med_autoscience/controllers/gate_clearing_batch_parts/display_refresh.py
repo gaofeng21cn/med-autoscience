@@ -47,6 +47,77 @@ def publication_shell_surface_needs_sync(*, study_root: Path, paper_root: Path) 
     return any(not isinstance(item, dict) for item in variables)
 
 
+def _registry_display_ids_for_requirement(
+    *,
+    registry_items: object,
+    requirement_key: str,
+) -> set[str]:
+    if not isinstance(registry_items, list):
+        return set()
+    display_ids: set[str] = set()
+    for item in registry_items:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("requirement_key") or "").strip() != requirement_key:
+            continue
+        display_id = str(item.get("display_id") or "").strip()
+        if display_id:
+            display_ids.add(display_id)
+    return display_ids
+
+
+def _time_to_event_grouped_template_ids(
+    *,
+    display_surface_materialization_controller: Any,
+) -> tuple[str, str]:
+    expected_template_id = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
+        "time_to_event_risk_group_summary"
+    ).template_id
+    legacy_template_id = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
+        "cumulative_incidence_grouped"
+    ).template_id
+    return expected_template_id, legacy_template_id
+
+
+def _is_legacy_time_to_event_grouped_normalization_candidate(
+    *,
+    display: object,
+    risk_summary_display_ids: set[str],
+    expected_template_id: str,
+) -> str | None:
+    if not isinstance(display, dict):
+        return None
+    display_id = str(display.get("display_id") or "").strip()
+    if display_id not in risk_summary_display_ids:
+        return None
+    if str(display.get("template_id") or "").strip() != expected_template_id:
+        return None
+    if isinstance(display.get("risk_group_summaries"), list) and display.get("risk_group_summaries"):
+        return None
+    groups = display.get("groups")
+    if not isinstance(groups, list) or not groups:
+        return None
+    return display_id
+
+
+def _legacy_time_to_event_grouped_normalization_candidate_ids(
+    *,
+    displays: list[object],
+    risk_summary_display_ids: set[str],
+    expected_template_id: str,
+) -> list[str]:
+    candidate_display_ids: list[str] = []
+    for display in displays:
+        display_id = _is_legacy_time_to_event_grouped_normalization_candidate(
+            display=display,
+            risk_summary_display_ids=risk_summary_display_ids,
+            expected_template_id=expected_template_id,
+        )
+        if display_id is not None:
+            candidate_display_ids.append(display_id)
+    return candidate_display_ids
+
+
 def legacy_time_to_event_grouped_payload_normalization_candidates(
     *,
     paper_root: Path,
@@ -60,37 +131,21 @@ def legacy_time_to_event_grouped_payload_normalization_candidates(
     if not isinstance(displays, list) or not isinstance(registry_items, list):
         return payload_path, [], None, None
 
-    risk_summary_display_ids = {
-        str(item.get("display_id") or "").strip()
-        for item in registry_items
-        if isinstance(item, dict)
-        and str(item.get("requirement_key") or "").strip() == "time_to_event_risk_group_summary"
-        and str(item.get("display_id") or "").strip()
-    }
+    risk_summary_display_ids = _registry_display_ids_for_requirement(
+        registry_items=registry_items,
+        requirement_key="time_to_event_risk_group_summary",
+    )
     if not risk_summary_display_ids:
         return payload_path, [], None, None
 
-    expected_template_id = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
-        "time_to_event_risk_group_summary"
-    ).template_id
-    legacy_template_id = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
-        "cumulative_incidence_grouped"
-    ).template_id
-    candidate_display_ids: list[str] = []
-    for display in displays:
-        if not isinstance(display, dict):
-            continue
-        display_id = str(display.get("display_id") or "").strip()
-        if display_id not in risk_summary_display_ids:
-            continue
-        if str(display.get("template_id") or "").strip() != expected_template_id:
-            continue
-        if isinstance(display.get("risk_group_summaries"), list) and display.get("risk_group_summaries"):
-            continue
-        groups = display.get("groups")
-        if not isinstance(groups, list) or not groups:
-            continue
-        candidate_display_ids.append(display_id)
+    expected_template_id, legacy_template_id = _time_to_event_grouped_template_ids(
+        display_surface_materialization_controller=display_surface_materialization_controller,
+    )
+    candidate_display_ids = _legacy_time_to_event_grouped_normalization_candidate_ids(
+        displays=displays,
+        risk_summary_display_ids=risk_summary_display_ids,
+        expected_template_id=expected_template_id,
+    )
 
     return payload_path, candidate_display_ids, expected_template_id, legacy_template_id
 

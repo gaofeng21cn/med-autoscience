@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from ...shared import _FlowNodeSpec, _FlowTextLine, _wrap_flow_text_to_width
+from ...shared_parts.flow_layout import (
+    _FlowNodeSpec,
+    _FlowTextLine,
+    _wrap_flow_text_to_width,
+)
 
 
 def _cohort_flow_block_colors(

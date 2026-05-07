@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from ....shared import _read_bool_override, _require_non_empty_string
+from ....shared_parts.common import (
+    _read_bool_override,
+    _require_non_empty_string,
+)
 
 
 def _prepare_genomic_alteration_consequence_data(

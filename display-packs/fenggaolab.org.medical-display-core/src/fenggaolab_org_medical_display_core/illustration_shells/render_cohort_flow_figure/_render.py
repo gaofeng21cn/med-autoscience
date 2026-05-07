@@ -9,14 +9,14 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-from ...shared import (
+from ...shared_parts.common import _require_non_empty_string
+from ...shared_parts.flow_layout import (
     _FlowNodeSpec,
     _GraphvizNodeBox,
     _flow_box_to_normalized,
     _flow_html_label_for_node,
     _flow_union_box,
     _measure_flow_text_width_pt,
-    _require_non_empty_string,
     _run_graphviz_layout,
 )
 

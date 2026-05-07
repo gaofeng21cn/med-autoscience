@@ -9,15 +9,19 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
-from ...shared import (
-    _apply_publication_axes_style,
-    _bbox_to_layout_box,
-    _data_box_to_layout_box,
-    _prepare_python_render_output_paths,
+from ...shared_parts.common import (
     _read_bool_override,
     _require_non_empty_string,
-    _wrap_figure_title_to_width,
     dump_json,
+)
+from ...shared_parts.flow_layout import _wrap_figure_title_to_width
+from ...shared_parts.geometry import (
+    _bbox_to_layout_box,
+    _data_box_to_layout_box,
+)
+from ...shared_parts.rendering import (
+    _apply_publication_axes_style,
+    _prepare_python_render_output_paths,
 )
 
 def _render_python_shap_grouped_decision_path_panel(

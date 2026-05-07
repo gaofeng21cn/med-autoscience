@@ -4,7 +4,7 @@ import csv
 from pathlib import Path
 from typing import Any
 
-from .shared import (
+from .shared_parts.common import (
     _format_percent_1dp,
     _require_namespaced_registry_id,
     _require_non_empty_string,

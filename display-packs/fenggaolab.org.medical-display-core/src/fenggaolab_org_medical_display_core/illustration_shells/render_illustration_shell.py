@@ -7,9 +7,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 
-from ..shared import (
-    _require_namespaced_registry_id,
-)
+from ..shared_parts.common import _require_namespaced_registry_id
 from .render_baseline_missingness_qc_panel import _render_baseline_missingness_qc_panel
 from .render_center_coverage_batch_transportability_panel import _render_center_coverage_batch_transportability_panel
 from .render_cohort_flow_figure import _render_cohort_flow_figure

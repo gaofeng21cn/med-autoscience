@@ -8,9 +8,7 @@ from med_autoscience import display_registry
 
 matplotlib.use("Agg")
 
-from ..shared import (
-    _require_non_empty_string,
-)
+from ..shared_parts.common import _require_non_empty_string
 
 
 _COHORT_FLOW_DESIGN_PANEL_ROLE_ALIASES: dict[str, str] = {

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ..shared import _require_namespaced_registry_id
+from ..shared_parts.common import _require_namespaced_registry_id
 from .atlas_geometry import (
     _render_python_atlas_spatial_bridge_panel,
     _render_python_atlas_spatial_trajectory_context_support_panel,

@@ -5,11 +5,11 @@ from typing import Any
 
 from matplotlib import pyplot as plt
 
-from ....shared import (
+from ....shared_parts.common import dump_json
+from ....shared_parts.geometry import (
     _bbox_to_layout_box,
     _data_box_to_layout_box,
     _data_point_to_figure_xy,
-    dump_json,
 )
 
 
