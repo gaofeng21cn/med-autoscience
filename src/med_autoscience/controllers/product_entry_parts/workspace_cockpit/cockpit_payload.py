@@ -23,9 +23,6 @@ from med_autoscience.controllers.pi_action_projection import (
 from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
     compact_study_macro_state_from_payload,
 )
-from med_autoscience.controllers.study_progress_parts.user_visible_projection import (
-    build_user_visible_projection,
-)
 from med_autoscience.controllers.delivery_visibility_projection import (
     compact_delivery_inspection_projection,
 )
@@ -33,6 +30,23 @@ from med_autoscience.controllers.delivery_visibility_projection import (
 from med_autoscience.controllers.product_entry_parts import shared as _shared
 from med_autoscience.controllers.product_entry_parts.workspace_cockpit import (
     state_and_study_items as _state_and_study_items,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.command_assembly import (
+    study_commands,
+    user_loop_commands,
+    workspace_commands,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.attention_hub import (
+    attention_queue as build_attention_queue,
+    operator_brief as build_operator_brief,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.health_cards import (
+    workspace_health_cards,
+)
+from med_autoscience.controllers.product_entry_parts.workspace_cockpit.progress_projection import (
+    study_progress_user_visible_projection,
+    user_visible_field,
+    user_visible_list,
 )
 
 
@@ -46,63 +60,13 @@ _module_reexport(_shared)
 _module_reexport(_state_and_study_items)
 
 
-def _user_visible_progress_projection(progress_payload: Mapping[str, Any]) -> dict[str, Any]:
-    projection = progress_payload.get("user_visible_projection")
-    if (
-        isinstance(projection, Mapping)
-        and projection.get("schema_version") == 2
-        and _non_empty_text(projection.get("writer_state")) is not None
-        and _non_empty_text(projection.get("user_next")) is not None
-        and _non_empty_text(projection.get("reason")) is not None
-    ):
-        return dict(projection)
-    return build_user_visible_projection(progress_payload)
-
-
-def _user_visible_field(
-    *,
-    user_visible_projection: Mapping[str, Any],
-    progress_payload: Mapping[str, Any],
-    key: str,
-) -> Any:
-    del progress_payload
-    return user_visible_projection.get(key)
-
-
-def _user_visible_list(
-    *,
-    user_visible_projection: Mapping[str, Any],
-    progress_payload: Mapping[str, Any],
-    key: str,
-) -> list[Any]:
-    value = _user_visible_field(
-        user_visible_projection=user_visible_projection,
-        progress_payload=progress_payload,
-        key=key,
-    )
-    return list(value or []) if isinstance(value, list) else []
-
-
 def _study_item(
     *,
     progress_payload: dict[str, Any],
     profile_ref: str | Path | None,
 ) -> dict[str, Any]:
     study_id = str(progress_payload.get("study_id") or "").strip()
-    commands = {
-        "launch": (
-            f"{_command_prefix(profile_ref)} launch-study --profile {_profile_arg(profile_ref)} "
-            f"{_study_selector(study_id=study_id)}"
-        ),
-        "progress": (
-            f"{_command_prefix(profile_ref)} study-progress --profile {_profile_arg(profile_ref)} "
-            f"{_study_selector(study_id=study_id)}"
-        ),
-        "status": (
-            f"{_command_prefix(profile_ref)} study-runtime-status --profile {_profile_arg(profile_ref)} "
-            f"{_study_selector(study_id=study_id)}"
-        ),
-    }
+    commands = study_commands(profile_ref=profile_ref, study_id=study_id)
     supervision = dict(progress_payload.get("supervision") or {})
     monitoring = {
         "browser_url": _non_empty_text(supervision.get("browser_url")),
@@ -115,10 +79,7 @@ def _study_item(
     progress_freshness = dict(progress_payload.get("progress_freshness") or {})
     intervention_lane = dict(progress_payload.get("intervention_lane") or {})
     study_macro_state = compact_study_macro_state_from_payload(progress_payload)
-    progress_payload_for_user_view = dict(progress_payload)
-    if study_macro_state is not None:
-        progress_payload_for_user_view["study_macro_state"] = study_macro_state
-    user_visible_projection = _user_visible_progress_projection(progress_payload_for_user_view)
+    user_visible_projection = study_progress_user_visible_projection(progress_payload)
     operator_verdict = dict(progress_payload.get("operator_verdict") or {})
     operator_status_card = dict(progress_payload.get("operator_status_card") or {})
     auto_runtime_parked = dict(progress_payload.get("auto_runtime_parked") or {})
@@ -181,69 +142,56 @@ def _study_item(
         "control_plane_snapshot": control_plane_snapshot,
         "status_narration_contract": progress_payload.get("status_narration_contract"),
         "user_visible_projection": user_visible_projection or None,
-        "state": _user_visible_field(
+        "state": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="state",
         ),
-        "writer_state": _user_visible_field(
+        "writer_state": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="writer_state",
         ),
-        "user_next": _user_visible_field(
+        "user_next": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="user_next",
         ),
-        "reason": _user_visible_field(
+        "reason": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="reason",
         ),
-        "package_delivered": _user_visible_field(
+        "package_delivered": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="package_delivered",
         ),
-        "actual_write_active": _user_visible_field(
+        "actual_write_active": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="actual_write_active",
         ),
-        "user_action_required": _user_visible_field(
+        "user_action_required": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="user_action_required",
         ),
-        "state_label": _user_visible_field(
+        "state_label": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="state_label",
         ),
-        "state_summary": _user_visible_field(
+        "state_summary": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="state_summary",
         ),
-        "current_stage": _user_visible_field(
+        "current_stage": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="current_stage",
         ),
-        "current_stage_summary": _user_visible_field(
+        "current_stage_summary": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="current_stage_summary",
         ),
-        "current_blockers": _user_visible_list(
+        "current_blockers": user_visible_list(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="current_blockers",
         ),
-        "next_system_action": _user_visible_field(
+        "next_system_action": user_visible_field(
             user_visible_projection=user_visible_projection,
-            progress_payload=progress_payload,
             key="next_system_action",
         ),
         "intervention_lane": intervention_lane or None,
@@ -436,7 +384,13 @@ def read_workspace_cockpit(
                     if alert not in workspace_alerts:
                         workspace_alerts.append(alert)
     service = inspect_workspace_supervision(profile)
-    workspace_supervision = _workspace_supervision_summary(studies=studies, service=service)
+    health_cards = workspace_health_cards(
+        profile=profile,
+        study_roots=study_roots,
+        studies=studies,
+        service=service,
+    )
+    workspace_supervision = health_cards["workspace_supervision"]
     if (
         (not bool(service.get("loaded")) or bool(service.get("drift_reasons")))
         and service.get("summary") not in workspace_alerts
@@ -450,43 +404,15 @@ def read_workspace_cockpit(
     else:
         workspace_status = "ready"
     mainline_snapshot = _mainline_snapshot()
-    commands = {
-        "mainline_status": f"{_command_prefix(profile_ref)} mainline-status",
-        "doctor": f"{_command_prefix(profile_ref)} doctor --profile {_profile_arg(profile_ref)}",
-        "bootstrap": f"{_command_prefix(profile_ref)} bootstrap --profile {_profile_arg(profile_ref)}",
-        "supervisor_tick": (
-            f"{_command_prefix(profile_ref)} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply"
-        ),
-        "service_install": f"{_command_prefix(profile_ref)} runtime-ensure-supervision --profile {_profile_arg(profile_ref)}",
-        "service_status": f"{_command_prefix(profile_ref)} runtime-supervision-status --profile {_profile_arg(profile_ref)}",
-    }
-    attention_queue = _attention_queue(
+    commands = workspace_commands(profile=profile, profile_ref=profile_ref)
+    attention_queue = build_attention_queue(
         workspace_status=workspace_status,
         workspace_supervision=workspace_supervision,
         studies=studies,
         commands=commands,
     )
-    medical_paper_readiness_state = _workspace_medical_paper_readiness_state(studies=studies)
-    medical_paper_v4_operations_state = workspace_v4_operations_state(studies=studies)
-    medical_paper_ops_health_state = workspace_medical_paper_ops_health(studies=studies)
-    medical_paper_research_loop_state = workspace_medical_paper_research_loop(studies=studies)
-    ai_first_operations_state = _workspace_ai_first_operations_state(studies=studies)
-    ai_first_cross_study_completion_projection = _workspace_ai_first_cross_study_completion_projection(
-        study_roots=study_roots,
-        studies=studies,
-    )
-    paper_orchestra_operator_projection = build_workspace_paper_orchestra_operator_projection(studies=studies)
-    open_auto_research_state = open_auto_research_projection.build_workspace_open_auto_research_projection(
-        studies=studies,
-    )
-    portable_supervisor_queue_dashboard = _workspace_portable_supervisor_queue_dashboard(
-        profile=profile,
-        studies=studies,
-    )
-    delivery_inspection_state = _workspace_delivery_inspection_state(studies=studies)
-    user_loop = _user_loop(profile=profile, profile_ref=profile_ref)
-    operator_brief = _workspace_operator_brief(
+    user_loop = user_loop_commands(profile=profile, profile_ref=profile_ref)
+    operator_brief = build_operator_brief(
         workspace_status=workspace_status,
         workspace_alerts=workspace_alerts,
         attention_queue=attention_queue,
@@ -507,16 +433,18 @@ def read_workspace_cockpit(
         "mainline_snapshot": mainline_snapshot,
         "workspace_alerts": workspace_alerts,
         "workspace_supervision": workspace_supervision,
-        "medical_paper_readiness_state": medical_paper_readiness_state,
-        "medical_paper_v4_operations_state": medical_paper_v4_operations_state,
-        "medical_paper_ops_health_state": medical_paper_ops_health_state,
-        "medical_paper_research_loop_state": medical_paper_research_loop_state,
-        "ai_first_operations_state": ai_first_operations_state,
-        "ai_first_cross_study_completion_projection": ai_first_cross_study_completion_projection,
-        "paper_orchestra_operator_projection": paper_orchestra_operator_projection,
-        "open_auto_research_projection": open_auto_research_state,
-        "portable_supervisor_queue_dashboard": portable_supervisor_queue_dashboard,
-        "delivery_inspection_state": delivery_inspection_state,
+        "medical_paper_readiness_state": health_cards["medical_paper_readiness_state"],
+        "medical_paper_v4_operations_state": health_cards["medical_paper_v4_operations_state"],
+        "medical_paper_ops_health_state": health_cards["medical_paper_ops_health_state"],
+        "medical_paper_research_loop_state": health_cards["medical_paper_research_loop_state"],
+        "ai_first_operations_state": health_cards["ai_first_operations_state"],
+        "ai_first_cross_study_completion_projection": health_cards[
+            "ai_first_cross_study_completion_projection"
+        ],
+        "paper_orchestra_operator_projection": health_cards["paper_orchestra_operator_projection"],
+        "open_auto_research_projection": health_cards["open_auto_research_projection"],
+        "portable_supervisor_queue_dashboard": health_cards["portable_supervisor_queue_dashboard"],
+        "delivery_inspection_state": health_cards["delivery_inspection_state"],
         "attention_queue": attention_queue,
         "operator_brief": operator_brief,
         "user_loop": user_loop,

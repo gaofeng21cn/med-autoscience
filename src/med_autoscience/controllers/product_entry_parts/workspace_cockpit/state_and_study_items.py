@@ -555,23 +555,3 @@ def _mainline_snapshot() -> dict[str, Any]:
         "capability_owner_boundary": capability_owner_boundary,
     }
 
-
-def _user_loop(*, profile: WorkspaceProfile, profile_ref: str | Path | None) -> dict[str, str]:
-    profile_arg = _profile_arg(profile_ref)
-    prefix = _command_prefix(profile_ref)
-    return {
-        "mainline_status": f"{prefix} mainline-status",
-        "phase_status_current": f"{prefix} mainline-phase --phase current",
-        "phase_status_next": f"{prefix} mainline-phase --phase next",
-        "open_workspace_cockpit": f"{prefix} workspace-cockpit --profile {profile_arg}",
-        "submit_task_template": (
-            f"{prefix} submit-study-task --profile {profile_arg} --study-id <study_id> "
-            "--task-intent '<task_intent>'"
-        ),
-        "launch_study_template": f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
-        "watch_progress_template": f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>",
-        "refresh_supervision": (
-            f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {profile_arg} --ensure-study-runtimes --apply"
-        ),
-    }
