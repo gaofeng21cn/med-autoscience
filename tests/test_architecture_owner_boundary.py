@@ -22,18 +22,24 @@ def test_architecture_owner_boundary_report_confirms_and_guards_duplicate_author
     by_layer = {layer["layer_id"]: layer for layer in report["owner_layers"]}
     assert by_layer["mas_core"]["owner"] == "MedAutoScience"
     assert by_layer["mas_core"]["role"] == "authority"
+    assert by_layer["mas_core"]["hub_role"] == "authority"
     assert "study_truth" in by_layer["mas_core"]["authority_surfaces"]
     assert by_layer["quality_os"]["owner"] == "MedAutoScience"
+    assert by_layer["quality_os"]["hub_role"] == "authority"
     assert "publication_readiness" in by_layer["quality_os"]["authority_surfaces"]
     assert by_layer["runtime_os"]["owner"] == "MedAutoScience"
+    assert by_layer["runtime_os"]["hub_role"] == "authority"
     assert "runtime_health" in by_layer["runtime_os"]["authority_surfaces"]
     assert by_layer["entry_projection"]["role"] == "projection"
+    assert by_layer["entry_projection"]["hub_role"] == "read_model"
     assert by_layer["entry_projection"]["authority_surfaces"] == []
     assert by_layer["entry_projection"]["may_replace_authority"] is False
     assert by_layer["observability_os"]["role"] == "observability"
+    assert by_layer["observability_os"]["hub_role"] == "read_model"
     assert by_layer["observability_os"]["authority_surfaces"] == []
     assert by_layer["mds_backend"]["owner"] == "MedDeepScientist"
     assert by_layer["mds_backend"]["role"] == "controlled_backend"
+    assert by_layer["mds_backend"]["hub_role"] == "adapter"
     assert by_layer["mds_backend"]["authority_surfaces"] == []
     assert "publication_readiness" in by_layer["mds_backend"]["forbidden_authority_surfaces"]
     assert "canonical_runtime_action" in by_layer["mds_backend"]["forbidden_authority_surfaces"]
@@ -70,7 +76,10 @@ def test_architecture_owner_boundary_validation_fails_closed_on_owner_drift() ->
         "big_bang_rewrite_unblocked",
         "projection_layer_claims_authority",
         "projection_layer_can_replace_authority",
+        "non_authority_hub_claims_authority",
+        "non_authority_hub_can_replace_authority",
         "mds_claims_mas_authority",
         "mds_can_replace_authority",
+        "authority_hub_missing_authority_surface",
         "mas_authority_layer_missing_authority",
     }

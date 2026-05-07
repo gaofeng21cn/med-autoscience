@@ -20,6 +20,8 @@ MAS_AUTHORITY_SURFACES = frozenset(
 )
 
 PROJECTION_ONLY_ROLES = frozenset({"projection", "observability", "entrypoint", "adapter"})
+HUB_ROLE_CATEGORIES = frozenset({"authority", "read_model", "adapter", "materializer"})
+NON_AUTHORITY_HUB_ROLES = frozenset({"read_model", "adapter"})
 MDS_ALLOWED_ROLES = frozenset({"controlled_backend", "behavior_oracle", "upstream_intake_buffer"})
 MDS_FORBIDDEN_AUTHORITY_SURFACES = MAS_AUTHORITY_SURFACES | frozenset(
     {
@@ -35,6 +37,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "layer_id": "mas_core",
         "owner": "MedAutoScience",
         "role": "authority",
+        "hub_role": "authority",
         "authority_surfaces": [
             "study_truth",
             "user_visible_next_action",
@@ -52,6 +55,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "layer_id": "quality_os",
         "owner": "MedAutoScience",
         "role": "authority",
+        "hub_role": "authority",
         "authority_surfaces": [
             "scientific_quality",
             "medical_writing_quality",
@@ -70,6 +74,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "layer_id": "runtime_os",
         "owner": "MedAutoScience",
         "role": "authority",
+        "hub_role": "authority",
         "authority_surfaces": [
             "runtime_health",
             "canonical_runtime_action",
@@ -86,6 +91,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "layer_id": "entry_projection",
         "owner": "MedAutoScience",
         "role": "projection",
+        "hub_role": "read_model",
         "authority_surfaces": [],
         "canonical_surfaces": [
             "study_progress",
@@ -105,6 +111,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "layer_id": "observability_os",
         "owner": "MedAutoScience",
         "role": "observability",
+        "hub_role": "read_model",
         "authority_surfaces": [],
         "canonical_surfaces": [
             "ai_first_feedback",
@@ -123,6 +130,7 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
         "layer_id": "mds_backend",
         "owner": "MedDeepScientist",
         "role": "controlled_backend",
+        "hub_role": "adapter",
         "authority_surfaces": [],
         "canonical_surfaces": [
             "daemon API",
@@ -239,6 +247,7 @@ def build_architecture_owner_boundary_report() -> dict[str, Any]:
                 "without hard owner rules they can drift into parallel authority"
             ),
             "recommended_strategy": "owner_matrix_plus_strangler_refactor_plus_architecture_fitness_functions",
+            "hub_role_guard_strategy": "authority_read_model_adapter_materializer_roles_with_blocking_non_authority_drift",
             "big_bang_rewrite_allowed": False,
         },
         "owner_layers": [dict(layer) for layer in OWNER_LAYERS],
@@ -303,6 +312,7 @@ def _validate_owner_layer(layer: Mapping[str, Any], issues: list[dict[str, Any]]
     layer_id = _text(layer.get("layer_id"))
     owner = _text(layer.get("owner"))
     role = _text(layer.get("role"))
+    hub_role = _text(layer.get("hub_role"))
     authority_surfaces = set(_strings(layer.get("authority_surfaces")))
 
     if not layer_id:
@@ -311,11 +321,20 @@ def _validate_owner_layer(layer: Mapping[str, Any], issues: list[dict[str, Any]]
         issues.append({"code": "layer_missing_owner", "layer_id": layer_id})
     if not _strings(layer.get("canonical_surfaces")):
         issues.append({"code": "layer_missing_canonical_surfaces", "layer_id": layer_id})
+    if hub_role not in HUB_ROLE_CATEGORIES:
+        issues.append({"code": "hub_role_missing_or_unknown", "layer_id": layer_id, "hub_role": hub_role})
 
     if role in PROJECTION_ONLY_ROLES and authority_surfaces:
         issues.append({"code": "projection_layer_claims_authority", "layer_id": layer_id})
     if role in PROJECTION_ONLY_ROLES and layer.get("may_replace_authority") is not False:
         issues.append({"code": "projection_layer_can_replace_authority", "layer_id": layer_id})
+    if hub_role in NON_AUTHORITY_HUB_ROLES:
+        if authority_surfaces:
+            issues.append({"code": "non_authority_hub_claims_authority", "layer_id": layer_id})
+        if layer.get("may_replace_authority") is not False:
+            issues.append({"code": "non_authority_hub_can_replace_authority", "layer_id": layer_id})
+    if hub_role == "authority" and not authority_surfaces:
+        issues.append({"code": "authority_hub_missing_authority_surface", "layer_id": layer_id})
 
     if owner == "MedDeepScientist":
         if role not in MDS_ALLOWED_ROLES:

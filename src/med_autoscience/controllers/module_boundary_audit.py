@@ -16,6 +16,8 @@ GROUP_IDS = (
     "mds_backend_oracle",
     "maintainability",
 )
+HUB_ROLE_CATEGORIES = frozenset({"authority", "read_model", "adapter", "materializer"})
+NON_AUTHORITY_HUB_ROLES = frozenset({"read_model", "adapter"})
 
 AUTHORITY_SURFACES = frozenset(
     {
@@ -89,6 +91,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         ],
         "allowed_dependencies": ["quality_os", "runtime_os", "artifact_delivery", "observability_os"],
         "forbidden_dependencies": ["product_entry_projection", "mds_backend_oracle"],
+        "hub_role": "authority",
         "writable_authority_surfaces": [
             "study_truth",
             "user_visible_next_action",
@@ -111,6 +114,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         ],
         "allowed_dependencies": ["mas_core", "artifact_delivery", "observability_os"],
         "forbidden_dependencies": ["product_entry_projection", "mds_backend_oracle"],
+        "hub_role": "authority",
         "writable_authority_surfaces": [
             "quality_truth",
             "scientific_quality",
@@ -136,6 +140,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         ],
         "allowed_dependencies": ["mas_core", "quality_os", "artifact_delivery", "observability_os"],
         "forbidden_dependencies": ["product_entry_projection", "mds_backend_oracle"],
+        "hub_role": "authority",
         "writable_authority_surfaces": [
             "runtime_health",
             "canonical_runtime_action",
@@ -160,6 +165,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         ],
         "allowed_dependencies": ["mas_core", "quality_os", "runtime_os"],
         "forbidden_dependencies": ["product_entry_projection", "observability_os", "mds_backend_oracle"],
+        "hub_role": "materializer",
         "writable_authority_surfaces": ["artifact_authority"],
         "projection_only": False,
         "may_control_runtime": False,
@@ -179,6 +185,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         ],
         "allowed_dependencies": ["mas_core", "quality_os", "runtime_os", "artifact_delivery", "observability_os"],
         "forbidden_dependencies": ["mds_backend_oracle"],
+        "hub_role": "read_model",
         "writable_authority_surfaces": [],
         "projection_only": True,
         "may_control_runtime": False,
@@ -200,6 +207,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         ],
         "allowed_dependencies": ["mas_core", "quality_os", "runtime_os", "artifact_delivery"],
         "forbidden_dependencies": ["product_entry_projection", "mds_backend_oracle"],
+        "hub_role": "read_model",
         "writable_authority_surfaces": [],
         "projection_only": True,
         "may_control_runtime": False,
@@ -218,6 +226,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         ],
         "allowed_dependencies": ["runtime_os", "artifact_delivery", "observability_os"],
         "forbidden_dependencies": ["product_entry_projection"],
+        "hub_role": "adapter",
         "writable_authority_surfaces": [],
         "projection_only": True,
         "may_control_runtime": False,
@@ -238,6 +247,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         ],
         "allowed_dependencies": ["mas_core", "quality_os", "runtime_os", "artifact_delivery", "observability_os"],
         "forbidden_dependencies": ["product_entry_projection", "mds_backend_oracle"],
+        "hub_role": "adapter",
         "writable_authority_surfaces": [],
         "projection_only": True,
         "may_control_runtime": False,
@@ -314,6 +324,9 @@ def build_module_boundary_audit_report() -> dict[str, Any]:
             "high_aggregation_low_coupling_acceptance": {
                 "all_repo_targets_grouped": True,
                 "cross_group_dependencies_must_be_declared": True,
+                "hub_roles_must_be_declared": True,
+                "read_models_and_adapters_are_non_authority": True,
+                "materializers_are_explicitly_scoped": True,
                 "projection_authority_claims_allowed": False,
                 "observability_direct_control_allowed": False,
                 "mds_mas_authority_claims_allowed": False,
@@ -357,6 +370,13 @@ def validate_module_boundary_audit_report(report: Mapping[str, Any]) -> dict[str
     for key in ("all_repo_targets_grouped", "cross_group_dependencies_must_be_declared"):
         if acceptance.get(key) is not True:
             issues.append({"code": "acceptance_flag_not_enforced", "flag": key})
+    for key in (
+        "hub_roles_must_be_declared",
+        "read_models_and_adapters_are_non_authority",
+        "materializers_are_explicitly_scoped",
+    ):
+        if acceptance.get(key) is not True:
+            issues.append({"code": "hub_role_acceptance_flag_not_enforced", "flag": key})
 
     return {
         "surface": "mas_mds_module_boundary_audit_validation",
@@ -376,6 +396,7 @@ def _validate_group(
     writable = set(_strings(group.get("writable_authority_surfaces")))
     allowed_dependencies = set(_strings(group.get("allowed_dependencies")))
     forbidden_dependencies = set(_strings(group.get("forbidden_dependencies")))
+    hub_role = _text(group.get("hub_role"))
 
     if not group_id:
         issues.append({"code": "group_missing_id"})
@@ -383,6 +404,8 @@ def _validate_group(
         issues.append({"code": "group_missing_repo_targets", "group_id": group_id})
     if not _text(group.get("owner")):
         issues.append({"code": "group_missing_owner", "group_id": group_id})
+    if hub_role not in HUB_ROLE_CATEGORIES:
+        issues.append({"code": "hub_role_missing_or_unknown", "group_id": group_id, "hub_role": hub_role})
     if allowed_dependencies & forbidden_dependencies:
         issues.append(
             {
@@ -394,6 +417,32 @@ def _validate_group(
     for dependency in allowed_dependencies | forbidden_dependencies:
         if dependency not in by_group:
             issues.append({"code": "unknown_dependency_group", "group_id": group_id, "dependency": dependency})
+
+    if hub_role in NON_AUTHORITY_HUB_ROLES:
+        if writable:
+            issues.append(
+                {
+                    "code": "non_authority_hub_claims_authority",
+                    "group_id": group_id,
+                    "hub_role": hub_role,
+                    "authority_surfaces": sorted(writable),
+                }
+            )
+        if group.get("may_control_runtime") is not False or group.get("may_authorize_publication") is not False:
+            issues.append({"code": "non_authority_hub_controls_runtime_or_publication", "group_id": group_id})
+        if group.get("may_be_study_truth") is not False:
+            issues.append({"code": "non_authority_hub_can_be_study_truth", "group_id": group_id})
+        if group.get("modifies_runtime_or_study_truth") is not False:
+            issues.append({"code": "non_authority_hub_modifies_truth", "group_id": group_id})
+    if hub_role == "materializer":
+        if not writable:
+            issues.append({"code": "materializer_missing_authority_scope", "group_id": group_id})
+        if group.get("may_control_runtime") is not False:
+            issues.append({"code": "materializer_controls_runtime", "group_id": group_id})
+        if group.get("may_be_study_truth") is not False:
+            issues.append({"code": "materializer_becomes_study_truth", "group_id": group_id})
+    if hub_role == "authority" and not writable:
+        issues.append({"code": "authority_hub_missing_authority_surface", "group_id": group_id})
 
     if group_id in PROJECTION_GROUPS and writable:
         issues.append(
