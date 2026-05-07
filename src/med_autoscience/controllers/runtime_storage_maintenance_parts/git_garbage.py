@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import hashlib
+import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import tarfile
 import time
 from typing import Any, Mapping
 
@@ -21,6 +24,7 @@ def audit_git_storage(
     older_than_seconds: int = GIT_TEMP_GARBAGE_MIN_AGE_SECONDS,
     apply: bool = False,
     reinitialize_empty_workspace_git: bool = False,
+    retire_workspace_root_git: bool = False,
 ) -> dict[str, Any]:
     git_root = workspace_root / ".git"
     health_before = _git_health(workspace_root=workspace_root)
@@ -47,8 +51,14 @@ def audit_git_storage(
             workspace_root=workspace_root,
             eligibility=health_before["reinitialize_eligibility"],
         )
+    workspace_root_git_retirement_result = None
+    if apply and retire_workspace_root_git:
+        workspace_root_git_retirement_result = _retire_workspace_root_git(
+            workspace_root=workspace_root,
+            health=health_before,
+        )
     health_after = _git_health(workspace_root=workspace_root)
-    health = health_after if empty_repo_reinitialize_result else health_before
+    health = health_after if empty_repo_reinitialize_result or workspace_root_git_retirement_result else health_before
     return {
         "category": "git",
         "path": str(git_root),
@@ -67,6 +77,7 @@ def audit_git_storage(
         "apply_result": apply_result,
         "hardening_result": hardening_result,
         "empty_repo_reinitialize_result": empty_repo_reinitialize_result,
+        "workspace_root_git_retirement_result": workspace_root_git_retirement_result,
     }
 
 
@@ -99,6 +110,27 @@ def _directory_size_bytes(path: Path) -> int:
     return total
 
 
+def _utc_run_id() -> str:
+    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _run_git_command(
     args: list[str],
     *,
@@ -121,6 +153,16 @@ def _run_git_command(
         message = result.stderr.strip() or result.stdout.strip() or f"{command} failed"
         raise RuntimeError(message)
     return result
+
+
+def _git_output(args: list[str], *, workspace_root: Path) -> dict[str, Any]:
+    result = _run_git_command(args, workspace_root=workspace_root)
+    return {
+        "args": ["git", *args],
+        "returncode": result.returncode,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+    }
 
 
 def _git_health(*, workspace_root: Path) -> dict[str, Any]:
@@ -169,6 +211,47 @@ def _git_health(*, workspace_root: Path) -> dict[str, Any]:
             eligibility=eligibility,
         ),
         "reinitialize_eligibility": eligibility,
+        "workspace_root_git_retirement_eligibility": _workspace_root_git_retirement_eligibility(
+            git_root=git_root,
+            git_exists=git_exists,
+            lock_paths=lock_paths,
+            remote_count=remote_count,
+            stash_count=stash_count,
+            linked_worktree_count=linked_worktree_count,
+        ),
+    }
+
+
+def _workspace_root_git_retirement_eligibility(
+    *,
+    git_root: Path,
+    git_exists: bool,
+    lock_paths: list[Path],
+    remote_count: int,
+    stash_count: int,
+    linked_worktree_count: int,
+) -> dict[str, Any]:
+    blockers: list[str] = []
+    reasons: list[str] = []
+    if not git_exists:
+        reasons.append("workspace_root_git_already_absent")
+    elif not git_root.is_dir():
+        blockers.append("git_root_not_directory")
+    else:
+        reasons.append("workspace_root_git_present")
+    if lock_paths:
+        blockers.append("git_lock_present")
+    if remote_count:
+        blockers.append("has_remotes")
+    if stash_count:
+        blockers.append("has_stashes")
+    if linked_worktree_count:
+        blockers.append("has_linked_worktrees")
+    return {
+        "eligible": git_exists and not blockers,
+        "already_absent": not git_exists,
+        "blockers": blockers,
+        "reasons": reasons,
     }
 
 
@@ -279,6 +362,112 @@ def _reinitialize_empty_workspace_git(
         "after_bytes": after_bytes,
         "released_bytes": max(0, before_bytes - after_bytes),
         "blockers": [],
+    }
+
+
+def _retire_workspace_root_git(
+    *,
+    workspace_root: Path,
+    health: Mapping[str, Any],
+) -> dict[str, Any]:
+    git_root = workspace_root / ".git"
+    eligibility = _mapping(health.get("workspace_root_git_retirement_eligibility"))
+    if bool(eligibility.get("already_absent")):
+        return {
+            "status": "already_retired",
+            "blockers": [],
+            "git_dir": str(git_root),
+        }
+    if not bool(eligibility.get("eligible")):
+        return {
+            "status": "blocked_not_eligible",
+            "blockers": list(eligibility.get("blockers") or []),
+            "reasons": list(eligibility.get("reasons") or []),
+            "git_dir": str(git_root),
+        }
+
+    run_id = _utc_run_id()
+    archive_root = workspace_root / "artifacts" / "runtime" / "lifecycle_migration" / "workspace_root_git_retirement" / run_id
+    archive_path = archive_root / "workspace_root_git.tar.gz"
+    manifest_path = archive_root / "manifest.json"
+    latest_path = archive_root.parent / "latest.json"
+    before_bytes = _directory_size_bytes(git_root)
+    before = {
+        "health": dict(health),
+        "git_status_short_branch": _git_output(["status", "--short", "--branch"], workspace_root=workspace_root),
+        "git_rev_list_count_head": _git_output(["rev-list", "--count", "HEAD"], workspace_root=workspace_root),
+        "git_log_oneline_decorate": _git_output(["log", "--oneline", "--decorate", "-20"], workspace_root=workspace_root),
+        "git_remote_verbose": _git_output(["remote", "-v"], workspace_root=workspace_root),
+        "git_stash_list": _git_output(["stash", "list"], workspace_root=workspace_root),
+        "git_worktree_list_porcelain": _git_output(["worktree", "list", "--porcelain"], workspace_root=workspace_root),
+    }
+    archive_root.mkdir(parents=True, exist_ok=True)
+    try:
+        with tarfile.open(archive_path, "w:gz") as tar:
+            tar.add(git_root, arcname=".git")
+        archive_sha256 = _sha256_file(archive_path)
+        shutil.rmtree(git_root)
+    except (OSError, tarfile.TarError) as exc:
+        return {
+            "status": "failed",
+            "error": str(exc),
+            "blockers": ["workspace_root_git_retirement_failed"],
+            "git_dir": str(git_root),
+            "archive_path": str(archive_path),
+            "before_bytes": before_bytes,
+            "after_bytes": _directory_size_bytes(git_root),
+        }
+
+    after_health = _git_health(workspace_root=workspace_root)
+    manifest = {
+        "surface_kind": "workspace_root_git_retirement_manifest",
+        "schema_version": 1,
+        "run_id": run_id,
+        "recorded_at": datetime.now(UTC).replace(microsecond=0).isoformat(),
+        "workspace_root": str(workspace_root),
+        "git_dir": str(git_root),
+        "status": "retired",
+        "before": before,
+        "after": {"health": after_health},
+        "archive": {
+            "path": str(archive_path),
+            "sha256": archive_sha256,
+            "bytes": _directory_size_bytes(archive_path),
+        },
+        "restore_command": (
+            f"tar -xzf {archive_path} -C {workspace_root} "
+            f"&& test -d {git_root}"
+        ),
+        "authority_note": "Root Git is archived for restore only; runtime lifecycle uses SQLite, lifecycle ledgers, quest manifests, and restore indexes.",
+    }
+    _write_json(manifest_path, manifest)
+    latest_payload = {
+        "surface_kind": "workspace_root_git_retirement_latest",
+        "schema_version": 1,
+        "run_id": run_id,
+        "recorded_at": manifest["recorded_at"],
+        "workspace_root": str(workspace_root),
+        "status": "retired",
+        "manifest_path": str(manifest_path),
+        "archive_path": str(archive_path),
+        "archive_sha256": archive_sha256,
+        "restore_command": manifest["restore_command"],
+    }
+    _write_json(latest_path, latest_payload)
+    return {
+        "status": "retired",
+        "blockers": [],
+        "run_id": run_id,
+        "git_dir": str(git_root),
+        "manifest_path": str(manifest_path),
+        "latest_path": str(latest_path),
+        "archive_path": str(archive_path),
+        "archive_sha256": archive_sha256,
+        "restore_command": manifest["restore_command"],
+        "before_bytes": before_bytes,
+        "after_bytes": _directory_size_bytes(git_root),
+        "released_bytes": before_bytes,
+        "verified_git_absent": not git_root.exists(),
     }
 
 

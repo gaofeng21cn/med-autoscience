@@ -27,6 +27,7 @@ def register_runtime_storage_parsers(subparsers: argparse._SubParsersAction) -> 
     audit_parser.add_argument("--git-only", action="store_true")
     audit_parser.add_argument("--apply", action="store_true")
     audit_parser.add_argument("--reinitialize-empty-workspace-git", action="store_true")
+    audit_parser.add_argument("--retire-workspace-root-git", action="store_true")
     _add_storage_cleanup_options(audit_parser)
 
 
@@ -68,6 +69,14 @@ def handle_runtime_storage_command(
             _command_error(args, parser, "--git-only cannot be combined with --study-id or --all-studies")
         if bool(args.reinitialize_empty_workspace_git) and (not bool(args.git_only) or not bool(args.apply)):
             _command_error(args, parser, "--reinitialize-empty-workspace-git requires --git-only --apply")
+        if bool(args.retire_workspace_root_git) and (not bool(args.git_only) or not bool(args.apply)):
+            _command_error(args, parser, "--retire-workspace-root-git requires --git-only --apply")
+        if bool(args.reinitialize_empty_workspace_git) and bool(args.retire_workspace_root_git):
+            _command_error(
+                args,
+                parser,
+                "--reinitialize-empty-workspace-git cannot be combined with --retire-workspace-root-git",
+            )
         if bool(args.restore_proof_compaction) and bool(args.git_only):
             _command_error(args, parser, "--restore-proof-compaction cannot be combined with --git-only")
         if bool(args.include_parked_controller_stop) and not bool(args.restore_proof_compaction):
@@ -84,6 +93,7 @@ def handle_runtime_storage_command(
             apply=bool(args.apply),
             git_only=bool(args.git_only),
             reinitialize_empty_workspace_git=bool(args.reinitialize_empty_workspace_git),
+            retire_workspace_root_git=bool(args.retire_workspace_root_git),
             **_storage_cleanup_options_from_args(args),
         )
         _print_json(result)

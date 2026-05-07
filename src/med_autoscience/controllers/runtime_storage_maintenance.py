@@ -289,12 +289,14 @@ def _git_storage_audit(
     older_than_seconds: int = git_garbage.GIT_TEMP_GARBAGE_MIN_AGE_SECONDS,
     apply: bool = False,
     reinitialize_empty_workspace_git: bool = False,
+    retire_workspace_root_git: bool = False,
 ) -> dict[str, Any]:
     return git_garbage.audit_git_storage(
         workspace_root,
         older_than_seconds=older_than_seconds,
         apply=apply,
         reinitialize_empty_workspace_git=reinitialize_empty_workspace_git,
+        retire_workspace_root_git=retire_workspace_root_git,
     )
 
 
@@ -488,7 +490,9 @@ def _deleted_bytes_from_apply_result(report: Mapping[str, Any]) -> int:
     reinitialized_bytes = (
         int(reinitialize_result.get("released_bytes") or 0) if isinstance(reinitialize_result, Mapping) else 0
     )
-    return deleted_bytes + reinitialized_bytes
+    retirement_result = report.get("workspace_root_git_retirement_result")
+    retired_bytes = int(retirement_result.get("released_bytes") or 0) if isinstance(retirement_result, Mapping) else 0
+    return deleted_bytes + reinitialized_bytes + retired_bytes
 
 
 def audit_workspace_storage(
@@ -514,6 +518,7 @@ def audit_workspace_storage(
     include_operator_confirmed_parked_active: bool = False,
     restore_proof_buckets: Iterable[str] | None = None,
     reinitialize_empty_workspace_git: bool = False,
+    retire_workspace_root_git: bool = False,
 ) -> dict[str, Any]:
     recorded_at = _utc_now()
     workspace_root = profile.workspace_root.expanduser().resolve()
@@ -664,6 +669,7 @@ def audit_workspace_storage(
         older_than_seconds=older_than_seconds,
         apply=apply,
         reinitialize_empty_workspace_git=reinitialize_empty_workspace_git,
+        retire_workspace_root_git=retire_workspace_root_git,
     )
     git_report["actual_release_bytes"] = _deleted_bytes_from_apply_result(git_report)
     cache_report = (
@@ -701,6 +707,7 @@ def audit_workspace_storage(
             "restore_proof_buckets": list(selected_restore_proof_buckets),
             "git_only": git_only,
             "reinitialize_empty_workspace_git": reinitialize_empty_workspace_git,
+            "retire_workspace_root_git": retire_workspace_root_git,
         },
         "summary": {
             "study_count": len(study_reports),
