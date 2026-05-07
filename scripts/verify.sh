@@ -42,6 +42,15 @@ PY
   fi
 }
 
+cleanup_project_entrypoint_artifacts() {
+  rm -rf "${repo_root}/src/med_autoscience.egg-info"
+}
+
+install_project_entrypoints() {
+  trap cleanup_project_entrypoint_artifacts EXIT
+  uv pip install --editable . --no-deps
+}
+
 lane="${1:-}"
 
 run_sanity_checks
@@ -116,6 +125,7 @@ if [[ "${lane}" == "smoke" ]]; then
 fi
 
 if [[ "${lane}" == "regression" ]]; then
+  install_project_entrypoints
   run_with_optional_summary "regression" "make test-regression" make test-regression
   exit 0
 fi
@@ -126,11 +136,13 @@ if [[ "${lane}" == "ci-preflight" ]]; then
     echo "Usage: scripts/verify.sh ci-preflight <base-ref>" >&2
     exit 2
   fi
+  install_project_entrypoints
   BASE_REF="${base_ref}" run_with_optional_summary "ci-preflight" "BASE_REF=${base_ref} make test-ci-preflight" make test-ci-preflight
   exit 0
 fi
 
 if [[ "${lane}" == "fast" ]]; then
+  install_project_entrypoints
   run_with_optional_summary "fast" "make test-regression" make test-regression
   exit 0
 fi
@@ -161,11 +173,13 @@ if [[ "${lane}" == "structure" ]]; then
 fi
 
 if [[ "${lane}" == "full" ]]; then
+  install_project_entrypoints
   run_with_optional_summary "full" "make test-full" make test-full
   exit 0
 fi
 
 if [[ "${lane}" == "control-plane" ]]; then
+  install_project_entrypoints
   run_with_optional_summary "control-plane" "make test-control-plane" make test-control-plane
   exit 0
 fi

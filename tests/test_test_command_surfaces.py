@@ -355,6 +355,11 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert "mapfile" not in verify_script
     assert 'python - "${python_files[@]}" <<\'PY\'' in verify_script
     assert "py_compile.compile(python_file, cfile=str(bytecode_path), doraise=True)" in verify_script
+    assert "cleanup_project_entrypoint_artifacts() {" in verify_script
+    assert 'rm -rf "${repo_root}/src/med_autoscience.egg-info"' in verify_script
+    assert "install_project_entrypoints() {" in verify_script
+    assert "trap cleanup_project_entrypoint_artifacts EXIT" in verify_script
+    assert "uv pip install --editable . --no-deps" in verify_script
     assert "run_sanity_checks" in verify_script
     assert 'if [[ -z "${lane}" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "smoke" ]]; then' in verify_script
@@ -383,6 +388,12 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert "make test-structure" in verify_script
     assert "make test-control-plane" in verify_script
     assert "make test-full" in verify_script
+    for lane in ("regression", "ci-preflight", "fast", "full", "control-plane"):
+        lane_block = verify_script.split(f'if [[ "${{lane}}" == "{lane}" ]]; then', maxsplit=1)[1].split(
+            "\nfi",
+            maxsplit=1,
+        )[0]
+        assert "install_project_entrypoints" in lane_block
 
 
 def test_verify_script_runs_sanity_checks_before_default_dispatch() -> None:
@@ -395,6 +406,14 @@ def test_verify_script_runs_sanity_checks_before_default_dispatch() -> None:
     assert verify_script.index("run_sanity_checks\n\njson_escape() {") < verify_script.index(
         'run_with_optional_summary "smoke" "make test-smoke" make test-smoke'
     )
+    for command in (
+        'install_project_entrypoints\n  run_with_optional_summary "regression"',
+        'install_project_entrypoints\n  BASE_REF="${base_ref}" run_with_optional_summary "ci-preflight"',
+        'install_project_entrypoints\n  run_with_optional_summary "fast"',
+        'install_project_entrypoints\n  run_with_optional_summary "full"',
+        'install_project_entrypoints\n  run_with_optional_summary "control-plane"',
+    ):
+        assert verify_script.index("run_sanity_checks\n\njson_escape() {") < verify_script.index(command)
 
 
 def test_verify_script_writes_single_lane_summary(tmp_path: Path) -> None:

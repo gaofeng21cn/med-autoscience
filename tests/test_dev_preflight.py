@@ -300,6 +300,7 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     assert "test-control-plane:" in makefile
     assert (
         'if [[ "${lane}" == "control-plane" ]]; then\n'
+        "  install_project_entrypoints\n"
         '  run_with_optional_summary "control-plane" "make test-control-plane" make test-control-plane\n'
         "  exit 0\n"
         "fi\n"
