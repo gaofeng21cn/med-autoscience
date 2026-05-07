@@ -24,7 +24,7 @@
 - 关键身份：`program_id`、`study_id`、`quest_id`、`active_run_id`
 - durable surface：`study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`runtime_escalation_record.json`、`controller_decisions/latest.json`
 
-## 文档骨架（核心五件套）
+## 文档分层与生命周期治理
 
 以下五份是 docs 的稳定核心，保持在 `docs/` 根目录：
 
@@ -34,17 +34,19 @@
 - `docs/decisions.md`
 - `docs/status.md`
 
-## 文档分类
-
 - `README*` 与 `docs/README*` 是默认对外与默认入口文档。
+- `docs/docs_portfolio_consolidation.md` 是当前文档组合治理入口；维护者应先读核心五件套，再按该文件判断新增、更新、归档或 tombstone。
+- 每份长期文档都必须能说明 `owner`、`purpose`、`state`、`machine boundary`；缺少任一信号时，先补入口或归位，再继续扩写。
 - 对外文档保持中英双语；内部技术、规划、备忘文档默认中文，除非明确提升到双语公开面。
 - `docs/capabilities/`：能力族/专题面（如 medical display）。
 - `docs/program/`：tranche、freeze、hardening、cleanup、intake 等程序阶段材料。
-- `docs/runtime/`：接口、控制面、合同/控制语义。
+- `docs/runtime/`：runtime contracts、control surfaces、read models、implementation plans 与待归档 history candidates；完成或退役的实现计划应迁入 `docs/history/runtime/`。
 - `docs/references/`：背景、定位、审计与非活跃参考。
 - `docs/history/`：历史归档，仅作历史参考入口。
 - `docs/policies/`：稳定内部规则，默认中文维护。
 - `docs/history/superpowers/`：存量 repo-tracked 历史设计材料归档；新增本地 AI/Superpowers 过程草稿默认保持未跟踪。
+- `README*`、`docs/**` 与参考文档是人读面。代码、测试、contracts、dashboard 或 runtime 不得把 prose path、Markdown 章节或文案当成稳定机器接口；确需关联人读材料时，使用 durable JSON/schema/source surface 或 `human_doc:*` / `program:*` / `policy:*` / `runtime:*` 语义 ID。
+- MAS 的 study、publication、runtime 与 display 真相优先归属 stable runtime / controller / contract / generated artifact surface；文档只做解释、导航、治理与 provenance，不制造第二真相源。
 
 ## 本地工具状态
 
