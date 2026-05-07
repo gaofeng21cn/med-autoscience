@@ -224,4 +224,4 @@ PYTHONPATH=src pytest -q
 
 对应治理视角请看：
 
-- [`med-autoscience/docs/program/upstream_intake.md`](../../med-autoscience/docs/program/upstream_intake.md)
+- [`Program Portfolio Consolidation`](../../program/program_portfolio_consolidation.md)

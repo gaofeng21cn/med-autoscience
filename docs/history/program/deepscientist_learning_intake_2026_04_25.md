@@ -38,7 +38,7 @@
 
 本轮落地必须满足：
 
-- `docs/program/deepscientist_continuous_learning_policy.md` 固定长期学习政策。
+- `docs/references/med-deepscientist/deepscientist_continuous_learning_policy.md` 固定长期学习政策。
 - runtime 文档明确 takeover / resume / mailbox semantics。
 - stage 模板文档明确医学研究阶段 packet 的 durable outputs。
 - meta 测试锁住政策入口与本轮 intake 记录，避免后续学习主线漂移。

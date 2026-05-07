@@ -24,7 +24,7 @@ Owner: `MedAutoScience`
 | `docs/` root | public technical entry and core truth | 只保留 README、core five 和 docs portfolio governance。 |
 | `docs/runtime/` | runtime contracts and implementation-facing control surfaces | 当前可执行合同、schema、control surface 和 still-active implementation plan 留在这里。已完成 implementation plan 后续迁入 history。 |
 | `docs/policies/` | stable internal rules | 保持稳定规则，不放一次性计划或 closeout。 |
-| `docs/program/` | active board / execution program / contract / ledger / operation policy | 由 `program_portfolio_consolidation.md` 管理；历史 intake / closeout / activation package 迁入 `history/program/`。 |
+| `docs/program/` | active development-plan layer | 只保留 portfolio entry、MAS absorb execution plan、runtime/Git/SQLite subplan；policy、reference、ledger 和 historical records 放到对应目录。 |
 | `docs/capabilities/` | capability-family docs | 每个 capability family 应有自己的 active board 和 portfolio map；historical exemplar/intake 迁入 `history/capabilities/`。 |
 | `docs/references/` | background, positioning, integration reference | 只放仍有解释价值的 reference，不承载 active execution gate。 |
 | `docs/history/` | archived historical records | 只读材料、旧 program、old process plans、完成包和 historical specs。 |
@@ -50,14 +50,19 @@ The active `docs/program/` set is intentionally small:
 
 | role | files |
 | --- | --- |
-| master board | `mas_mds_autonomy_operating_system_program.md` |
-| execution programs | `mas_single_project_mds_absorb_program.md`, `runtime_lifecycle_sqlite_migration_program.md`, `mas_mds_unified_enhancement_program.md` |
-| active contract / matrix | `mas_mds_owner_boundary_refactor_plan.md`, `mds_capability_parity_matrix.md` |
-| mainline narrative | `mas_single_project_quality_and_autonomy_mainline.md` |
-| ledger / operation policy | `plan_completion_ledger.md`, `mainline_integration_and_cleanup.md`, `repository_ci_preflight.md`, `merge_and_cutover_gates.md`, `external_runtime_dependency_gate.md` |
-| MDS learning / support | `deepscientist_continuous_learning_policy.md`, `deepscientist_latest_update_learning_protocol.md`, `med_deepscientist_*`, `upstream_intake.md` |
+| directory index | `README.md`, `README.zh-CN.md` |
+| portfolio entry and execution queue | `program_portfolio_consolidation.md` |
+| execution program | `mas_single_project_mds_absorb_program.md` |
+| runtime / Git / SQLite subprogram | `runtime_lifecycle_sqlite_migration_program.md` |
 
-Historical program records live in `docs/history/program/`.
+Supporting material lives outside `docs/program/`:
+
+| support class | directory |
+| --- | --- |
+| stable operating rules and gates | `docs/policies/` |
+| MDS parity, completion ledger, quality/autonomy narrative, repair references | `docs/references/` |
+| MedDeepScientist learning and upstream intake references | `docs/references/med-deepscientist/` |
+| retired boards, closeouts, intake snapshots, activation packages | `docs/history/program/` |
 
 ## Active Capability Set
 
@@ -78,10 +83,19 @@ This consolidation already moved these tracked files from `docs/program/` to `do
 | external / open research intakes | `external_agent_orchestration_learning_intake_2026_04_30.md`, `paper_orchestra_learning_intake_2026_05_02.md`, `open_auto_research_learning_intake_2026_05_04.md` |
 | superseded plans | `open_harness_os_freeze_plan.md`, `journal_package_builtins_upgrade_plan.md`, `research_foundry_medical_mainline.md`, `research_foundry_medical_execution_map.md` |
 | activation / cutover boards | `integration_harness_activation_package.md`, `hermes_backend_activation_package.md`, `hermes_backend_continuation_board.md`, `upstream_hermes_agent_fast_cutover_board.md` |
+| retired MAS/MDS boards | `mas_mds_autonomy_operating_system_program.md`, `mas_mds_unified_enhancement_program.md` |
 | capability history | `docs/history/capabilities/medical-display/medical_display_arsenal_history.md`, `medical_display_family_baseline_program.md`, `medical_display_g_pathway_integrated_composite_owner_brief.md`, `paperplothub_exemplar_intake.md`, `paperplothub_exemplar_exhaustion_ledger.md` |
 | process drafts | `docs/history/superpowers/plans/`, `docs/history/superpowers/specs/` |
 
-If code or behavior tests still reference a narrative docs path, treat that as a migration bug: retire the machine path dependency first, replace it with a stable ref or durable surface, then archive the narrative file when links are reviewed.
+Current support relocations:
+
+| target layer | files |
+| --- | --- |
+| `docs/policies/` | `external_runtime_dependency_gate.md`, `mainline_integration_and_cleanup.md`, `manual_runtime_stabilization_checklist.md`, `mas_mds_owner_boundary_contract.md`, `merge_and_cutover_gates.md`, `repository_ci_preflight.md` |
+| `docs/references/` | `mas_single_project_quality_and_autonomy_mainline.md`, `mds_capability_parity_matrix.md`, `plan_completion_ledger.md`, `project_repair_priority_map.md`, `real_study_relaunch_verification.md` |
+| `docs/references/med-deepscientist/` | DeepScientist learning, method, provenance, deconstruction, and upstream intake references |
+
+If business code or behavior tests still reference a narrative docs path, treat that as a migration bug: retire the machine path dependency first, replace it with a stable ref or durable surface, then archive the narrative file when links are reviewed. Docs tooling may still classify `docs/` paths as documentation-only without reading Markdown prose as truth.
 
 ## Future Consolidation Candidates
 
@@ -89,7 +103,7 @@ The next cleanup waves should be explicit and small:
 
 | area | candidate action | blocker |
 | --- | --- | --- |
-| `docs/program/` remaining historical boards | move remaining intake / closeout files to history | update inbound links and any code/test refs first |
+| `docs/program/` future board requests | admit only through `program/program_portfolio_consolidation.md` | reject duplicate boards when an existing active owner doc is sufficient |
 | `docs/runtime/` implementation plans | move landed implementation plans to `history/runtime/` | verify corresponding runtime contract is active and implementation is landed |
 | `docs/capabilities/medical-display/` | continue through `medical_display_portfolio_consolidation.md` | preserve active display platform and audit contracts |
 | `docs/references/` positioning docs | merge superseded positioning docs into fewer reference entries | avoid losing historical naming rationale |

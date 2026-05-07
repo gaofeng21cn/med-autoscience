@@ -24,10 +24,10 @@
 
 每轮开始前必须读：
 
-- `MAS`: `docs/program/deepscientist_continuous_learning_policy.md`
-- `MAS`: `docs/program/med_deepscientist_continuous_learning_plan.md`
-- `MAS`: `docs/program/med_deepscientist_method_learning_disciplines.md`
-- `MAS`: `docs/program/med_deepscientist_upstream_source_provenance.md`
+- `MAS`: `docs/references/med-deepscientist/deepscientist_continuous_learning_policy.md`
+- `MAS`: `docs/references/med-deepscientist/med_deepscientist_continuous_learning_plan.md`
+- `MAS`: `docs/references/med-deepscientist/med_deepscientist_method_learning_disciplines.md`
+- `MAS`: `docs/references/med-deepscientist/med_deepscientist_upstream_source_provenance.md`
 - `MDS`: `docs/upstream_intake.md`
 - `MDS`: `docs/status.md`
 
@@ -82,7 +82,7 @@ git log --reverse --oneline main..upstream/main
 声称落地前至少要有：
 
 - MDS focused pytest 或 `scripts/verify.sh` 对应切片。
-- MAS 对应 meta tests；涉及 runtime/docs contract 时至少跑相关 tests，必要时跑 `make test-meta`。
+- MAS 对应 contract / template / runtime 行为验证；纯叙述性 docs 只做人工 review、`git diff --check` 和必要的链接 spot-check，不用 pytest 固定 Markdown 措辞、标题或锚点。
 - `git diff --check`。
 - 最终 root checkout 状态核对。
 
@@ -92,7 +92,7 @@ git log --reverse --oneline main..upstream/main
 
 每轮必须留下 repo-tracked intake record：
 
-- `MAS`: `docs/program/deepscientist_learning_intake_YYYY_MM_DD.md`
+- `MAS`: `docs/history/program/deepscientist_learning_intake_YYYY_MM_DD.md`
 - `MDS`: 如果吸收代码 slice，同时更新 `docs/upstream_intake_round_YYYY_MM_DD.md` 或对应 fork audit surface。
 
 记录必须说明没有吸收的内容，尤其是 provider / UI / marketing 变化为什么不进入主线。

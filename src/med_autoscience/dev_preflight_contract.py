@@ -306,6 +306,26 @@ _DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
         prefix_paths=("docs/program/",),
     ),
     PreflightCoveragePathFamily(
+        family_id="policy_docs",
+        exact_paths=(),
+        prefix_paths=("docs/policies/",),
+    ),
+    PreflightCoveragePathFamily(
+        family_id="reference_docs",
+        exact_paths=(),
+        prefix_paths=("docs/references/",),
+    ),
+    PreflightCoveragePathFamily(
+        family_id="history_docs",
+        exact_paths=(),
+        prefix_paths=("docs/history/",),
+    ),
+    PreflightCoveragePathFamily(
+        family_id="capability_docs",
+        exact_paths=(),
+        prefix_paths=("docs/capabilities/",),
+    ),
+    PreflightCoveragePathFamily(
         family_id="workflow_config",
         exact_paths=(
             "Makefile",

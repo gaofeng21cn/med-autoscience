@@ -99,16 +99,18 @@
 
 ### 项目推进与维护记录
 
-- [MAS/MDS 自治操作系统 program](program/mas_mds_autonomy_operating_system_program.md)
+- [Program 目录索引](program/README.zh-CN.md)
 - [Program portfolio consolidation](program/program_portfolio_consolidation.md)
-- [MAS/MDS 统一增强 program](program/mas_mds_unified_enhancement_program.md)
 - [Runtime lifecycle SQLite 迁移 program](program/runtime_lifecycle_sqlite_migration_program.md)
 - [MAS 单项目 MDS 吸收 program](program/mas_single_project_mds_absorb_program.md)
-- [MAS 单项目质量与自治主线](program/mas_single_project_quality_and_autonomy_mainline.md)
-- [MedDeepScientist 解构地图](program/med_deepscientist_deconstruction_map.md)
-- [外部运行时依赖门禁](program/external_runtime_dependency_gate.md)
-- [Merge And Cutover Gates](program/merge_and_cutover_gates.md)
-- [项目修复优先级地图](program/project_repair_priority_map.md)
+- [Plan completion ledger](references/plan_completion_ledger.md)
+- [MDS capability parity matrix](references/mds_capability_parity_matrix.md)
+- [MAS 单项目质量与自治主线](references/mas_single_project_quality_and_autonomy_mainline.md)
+- [MedDeepScientist 解构地图](references/med-deepscientist/med_deepscientist_deconstruction_map.md)
+- [外部运行时依赖门禁](policies/external_runtime_dependency_gate.md)
+- [Merge And Cutover Gates](policies/merge_and_cutover_gates.md)
+- [MAS/MDS owner boundary contract](policies/mas_mds_owner_boundary_contract.md)
+- [项目修复优先级地图](references/project_repair_priority_map.md)
 - [课题进度投影](runtime/study_progress_projection.md)
 - [Program 历史归档](history/program/README.zh-CN.md)
 

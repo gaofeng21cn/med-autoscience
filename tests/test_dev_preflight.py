@@ -206,7 +206,7 @@ def test_run_preflight_executes_external_runtime_dependency_commands(monkeypatch
     monkeypatch.setattr(module.subprocess, "run", fake_run)
 
     result = module.run_preflight(
-        changed_files=["docs/program/external_runtime_dependency_gate.md"],
+        changed_files=["docs/policies/external_runtime_dependency_gate.md"],
         repo_root=tmp_path,
     )
 

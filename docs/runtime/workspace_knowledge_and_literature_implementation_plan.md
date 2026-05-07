@@ -19,7 +19,7 @@
 
 **Files:**
 - Modify: `./workspace_knowledge_and_literature_contract.md`
-- Modify: `../program/project_repair_priority_map.md`
+- Modify: `../references/project_repair_priority_map.md`
 - Test: `../../tests/test_workspace_literature.py`
 - Test: `../../tests/test_study_runtime_router.py`
 

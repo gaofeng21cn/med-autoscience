@@ -84,7 +84,7 @@
 - absorption decision：`adopt_contract`、`adopt_template`、`adopt_code_slice`、`watch_only`、`reject`。
 - 验证方式。
 
-推荐入口：`docs/program/deepscientist_learning_intake_YYYY_MM_DD.md`。
+推荐入口：`docs/history/program/deepscientist_learning_intake_YYYY_MM_DD.md`。
 
 ## 禁止事项
 

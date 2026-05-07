@@ -95,8 +95,8 @@
 - `docs/architecture.md`
 - `docs/runtime/runtime_backend_interface_contract.md`
 - `docs/runtime/runtime_handle_and_durable_surface_contract.md`
-- `docs/program/merge_and_cutover_gates.md`
-- `docs/program/external_runtime_dependency_gate.md`
+- `docs/policies/merge_and_cutover_gates.md`
+- `docs/policies/external_runtime_dependency_gate.md`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`
 - `make test-meta`

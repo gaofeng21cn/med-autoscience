@@ -5,10 +5,9 @@ This directory contains retired program records, learning intake snapshots, clos
 Current program governance lives in:
 
 - [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md)
-- [MAS/MDS Autonomy Operating System Program](../../program/mas_mds_autonomy_operating_system_program.md)
 - [MAS Single-Project MDS Absorb Program](../../program/mas_single_project_mds_absorb_program.md)
 - [Runtime Lifecycle SQLite Migration Program](../../program/runtime_lifecycle_sqlite_migration_program.md)
-- [Plan Completion Ledger](../../program/plan_completion_ledger.md)
+- [Plan Completion Ledger](../../references/plan_completion_ledger.md)
 
 Archived records:
 
@@ -24,6 +23,8 @@ Archived records:
 - [Hermes backend continuation board](./hermes_backend_continuation_board.md)
 - [Integration harness activation package](./integration_harness_activation_package.md)
 - [Journal package builtins upgrade plan](./journal_package_builtins_upgrade_plan.md)
+- [MAS/MDS autonomy operating system program](./mas_mds_autonomy_operating_system_program.md)
+- [MAS/MDS unified enhancement program](./mas_mds_unified_enhancement_program.md)
 - [Open auto research learning intake 2026-05-04](./open_auto_research_learning_intake_2026_05_04.md)
 - [Open Harness OS freeze plan](./open_harness_os_freeze_plan.md)
 - [PaperOrchestra learning intake 2026-05-02](./paper_orchestra_learning_intake_2026_05_02.md)
