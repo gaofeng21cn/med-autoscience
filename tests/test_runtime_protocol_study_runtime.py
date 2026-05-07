@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -28,6 +30,31 @@ def make_profile(tmp_path: Path):
         preferred_study_archetypes=("clinical_classifier",),
         default_submission_targets=(),
     )
+
+
+def test_runtime_protocol_facade_import_does_not_load_controller_modules() -> None:
+    script = (
+        "import sys\n"
+        "import med_autoscience.runtime_protocol\n"
+        "loaded = sorted(name for name in sys.modules if name.startswith('med_autoscience.controllers'))\n"
+        "if loaded:\n"
+        "    raise SystemExit('\\n'.join(loaded))\n"
+    )
+
+    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, check=False)
+
+    assert result.returncode == 0, result.stderr or result.stdout
+
+
+def test_runtime_protocol_sources_do_not_import_controller_modules() -> None:
+    protocol_root = Path(__file__).resolve().parents[1] / "src" / "med_autoscience" / "runtime_protocol"
+    offenders = sorted(
+        path.relative_to(protocol_root).as_posix()
+        for path in protocol_root.rglob("*.py")
+        if "med_autoscience.controllers" in path.read_text(encoding="utf-8")
+    )
+
+    assert offenders == []
 
 
 def test_resolve_study_runtime_paths_derives_binding_launch_and_runtime_roots(tmp_path: Path) -> None:
@@ -473,8 +500,8 @@ def test_build_hydration_payload_includes_workspace_literature_and_study_referen
     workspace_registry_path = workspace_root / "portfolio" / "research_memory" / "literature" / "registry.jsonl"
 
     monkeypatch.setattr(
-        module.study_reference_context,
-        "build_study_reference_context",
+        module,
+        "_build_study_reference_context",
         lambda *, study_root, workspace_root, startup_contract: {
             "schema_version": 1,
             "study_root": str(study_root),
@@ -515,7 +542,7 @@ def test_build_hydration_payload_includes_workspace_literature_and_study_referen
         },
     )
     monkeypatch.setattr(
-        module.workspace_literature_controller,
+        module,
         "workspace_literature_status",
         lambda *, workspace_root: {
             "workspace_literature_exists": True,
