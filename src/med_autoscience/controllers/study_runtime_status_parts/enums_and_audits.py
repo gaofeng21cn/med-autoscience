@@ -96,6 +96,7 @@ class StudyRuntimeReason(StrEnum):
     STARTUP_BOUNDARY_NOT_READY_FOR_RUNNING_QUEST = "startup_boundary_not_ready_for_running_quest"
     RUNTIME_REENTRY_NOT_READY_FOR_RUNNING_QUEST = "runtime_reentry_not_ready_for_running_quest"
     QUEST_ALREADY_RUNNING = "quest_already_running"
+    CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED = "controller_work_unit_evidence_adopted"
     STARTUP_BOUNDARY_NOT_READY_FOR_RESUME = "startup_boundary_not_ready_for_resume"
     RUNTIME_REENTRY_NOT_READY_FOR_RESUME = "runtime_reentry_not_ready_for_resume"
     QUEST_MARKED_RUNNING_BUT_NO_LIVE_SESSION = "quest_marked_running_but_no_live_session"

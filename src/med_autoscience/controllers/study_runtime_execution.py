@@ -15,6 +15,7 @@ from med_autoscience.runtime_protocol import (
 from med_autoscience.study_completion import StudyCompletionState
 
 from .study_runtime_execution_parts.controller_authorization import (
+    adopt_controller_work_unit_evidence_for_current_authorization,
     _relay_controller_decision_authorization_if_required,
 )
 from .study_runtime_execution_parts import runtime_events as _runtime_events
@@ -642,6 +643,13 @@ def _execute_resume_runtime_decision(
 ) -> StudyRuntimeExecutionOutcome:
     router = _router_module()
     outcome = StudyRuntimeExecutionOutcome()
+    if adopt_controller_work_unit_evidence_for_current_authorization(status=status, context=context) is not None:
+        status.set_decision(
+            StudyRuntimeDecision.NOOP,
+            StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,
+        )
+        outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
+        return outcome
     create_payload = router._build_context_create_payload(context)
     startup_context_sync = router._sync_existing_quest_startup_context(
         runtime_root=context.runtime_root,
@@ -666,6 +674,13 @@ def _execute_resume_runtime_decision(
             outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
             return outcome
     _relay_controller_decision_authorization_if_required(status=status, context=context)
+    if "controller_work_unit_evidence_adoption" in status.extras:
+        status.set_decision(
+            StudyRuntimeDecision.NOOP,
+            StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,
+        )
+        outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
+        return outcome
     force_live_controller_reroute_restart = _should_force_restart_for_live_controller_reroute(
         status=status,
         context=context,
@@ -901,6 +916,12 @@ def _execute_runtime_decision(
         _relay_controller_decision_authorization_if_required(status=status, context=context)
         return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.NOOP)
     if status.decision == StudyRuntimeDecision.BLOCKED:
+        if adopt_controller_work_unit_evidence_for_current_authorization(status=status, context=context) is not None:
+            status.set_decision(
+                StudyRuntimeDecision.NOOP,
+                StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,
+            )
+            return StudyRuntimeExecutionOutcome(binding_last_action=StudyRuntimeBindingAction.NOOP)
         return StudyRuntimeExecutionOutcome(
             binding_last_action=StudyRuntimeBindingAction.BLOCKED if status.quest_exists else None
         )

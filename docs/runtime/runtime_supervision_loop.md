@@ -200,6 +200,7 @@ controller work-unit evidence adoption 采用同一条 AI-first 边界：
 - adoption 只识别客观、受控、可归属的 evidence，例如 owner-authorized output、controller work-unit fingerprint、artifact checksum、restore proof、runtime event、runtime supervision tick、worker liveness 和 freshness/currentness proof。
 - adoption 不判断医学叙事质量、科学结论质量、publishability 或 submission readiness；这些判断仍由 AI reviewer workflow、publication gate 与 MAS study truth surface 持有。
 - `cold_archive`、`report_history`、runtime report store 和 lifecycle restore proof 只能作为 restore/report evidence source；它们可以证明历史报告、运行事件或 artifact 可恢复，但不能替代 `publication_eval/latest.json`、`controller_decisions/latest.json`、`study_charter`、`evidence_ledger`、`review_ledger` 或当前 paper/package authority。
+- 当当前 controller work unit 的受控证据被采纳后，runtime status 使用 `controller_work_unit_evidence_adopted` 表示本轮不再 relaunch 同一个 work unit；下一 owner 是 publication gate / controller recheck，且不得把该状态解释为 write、finalize、submission package 或 publishability 放行。
 - 若受控 worker 已经完成同一 work unit，supervisor 必须进入 gate recheck、owner route 前进或下一 owner handoff；不得因为 stale queue、fresh timestamp、archived report 或 report replay 重复派发同一 work unit。
 - repo-side fix landed、archive proof verified、report history 可读取，只能说明平台或证据面已有修复证据；它不等同于具体 study 已恢复、live worker 已存在、论文质量已放行或 `current_package` / `submission_minimal` 已成为当前 authority。
 

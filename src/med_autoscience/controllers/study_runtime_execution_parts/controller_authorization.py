@@ -9,12 +9,8 @@ from med_autoscience.controllers import control_intent
 from med_autoscience.runtime_protocol import quest_state, user_message
 from med_autoscience.study_decision_record import StudyDecisionRecord
 
-from ..study_runtime_status import (
-    StudyRuntimeDecision,
-    StudyRuntimeStatus,
-    _LIVE_QUEST_STATUSES,
-)
-from .work_unit_evidence_adoption import adopt_controller_work_unit_evidence_if_present
+from ..study_runtime_status import StudyRuntimeDecision, StudyRuntimeStatus, _LIVE_QUEST_STATUSES
+from .work_unit_evidence_adoption import adopt_controller_work_unit_evidence_if_present, record_controller_work_unit_evidence_adoption
 
 
 _CONTROLLER_DECISION_RUNTIME_AUTHORIZATION_ACTIONS = {
@@ -814,13 +810,10 @@ def _relay_controller_decision_authorization_if_required(
         source=context.source,
     )
     if evidence_adoption is not None:
-        lifecycle = control_intent.lifecycle_state(study_root=context.study_root, identity=identity)
-        status.extras["controller_work_unit_evidence_adoption"] = evidence_adoption
-        status.extras["controller_decision_authorization_deduped"] = {
-            "control_intent_key": authorization_context.get("control_intent_key"),
-            "source": "controller_work_unit_evidence_adoption",
-            "lifecycle": lifecycle,
-        }
+        record_controller_work_unit_evidence_adoption(
+            status=status, study_root=context.study_root, identity=identity,
+            authorization_context=authorization_context, evidence_adoption=evidence_adoption,
+        )
         return None
     if _runtime_state_awaits_artifact_delta_or_gate_replay(
         runtime_state=runtime_state,
@@ -972,3 +965,34 @@ def _relay_controller_decision_authorization_if_required(
     )
     status.extras["controller_decision_authorization_relay"] = relay
     return relay
+
+
+def adopt_controller_work_unit_evidence_for_current_authorization(
+    *,
+    status: StudyRuntimeStatus,
+    context: Any,
+) -> dict[str, Any] | None:
+    authorization_context = _load_controller_decision_authorization_context(study_root=context.study_root)
+    if not _controller_decision_authorizes_runtime(authorization_context):
+        return None
+    assert authorization_context is not None
+    runtime_state = quest_state.load_runtime_state(context.quest_root)
+    if int(runtime_state.get("pending_user_message_count") or 0) > 0:
+        return None
+    active_run_id = _active_run_id_from_status_or_state(status=status, runtime_state=runtime_state)
+    identity = _controller_decision_authorization_identity(authorization_context)
+    evidence_adoption = adopt_controller_work_unit_evidence_if_present(
+        study_root=context.study_root,
+        quest_root=context.quest_root,
+        authorization_context=authorization_context,
+        identity=identity,
+        active_run_id=active_run_id,
+        source=context.source,
+    )
+    if evidence_adoption is None:
+        return None
+    record_controller_work_unit_evidence_adoption(
+        status=status, study_root=context.study_root, identity=identity,
+        authorization_context=authorization_context, evidence_adoption=evidence_adoption,
+    )
+    return evidence_adoption
