@@ -13,6 +13,9 @@ from med_autoscience.controllers import study_runtime_router
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.profiles import WorkspaceProfile
+from .platform_repair_lifecycle import (
+    write_runtime_platform_repair_lifecycle as _write_runtime_platform_repair_lifecycle,
+)
 
 
 SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES = [
@@ -705,54 +708,15 @@ def write_runtime_platform_repair_lifecycle(
     quest_id: str | None,
     apply_result: Mapping[str, Any],
 ) -> dict[str, Any]:
-    dispatch_status = _text(apply_result.get("dispatch_status")) or "blocked"
-    state = "applied" if dispatch_status == "applied" else "blocked"
-    repair_kind = _text(apply_result.get("repair_kind")) or "stale_specificity_terminal_gate_redrive"
-    blocked_reason = None if state == "applied" else _text(apply_result.get("reason"))
-    next_owner = (
-        current_truth_owner.next_owner_for_reason(blocked_reason)
-        or (
-        "publication_gate"
-        if blocked_reason == "publication_gate_specificity_required"
-        else "artifact_os"
-        if blocked_reason == "current_package_freshness_required"
-        else "external_supervisor"
-        )
+    return _write_runtime_platform_repair_lifecycle(
+        study_root=study_root,
+        supervision_latest_relative_path=supervision_latest_relative_path,
+        study_id=study_id,
+        quest_id=quest_id,
+        apply_result=apply_result,
+        allowed_write_surfaces=RUNTIME_PLATFORM_REPAIR_ALLOWED_WRITE_SURFACES,
+        forbidden_actions=SUPERVISION_FORBIDDEN_ACTIONS,
     )
-    payload = {
-        "surface": "ai_repair_lifecycle",
-        "schema_version": 1,
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "state": state,
-        "authority": "observability_only" if next_owner in {"publication_gate", "artifact_os"} else "external_supervisor",
-        "allowed_write_surfaces": list(RUNTIME_PLATFORM_REPAIR_ALLOWED_WRITE_SURFACES),
-        "forbidden_actions": list(SUPERVISION_FORBIDDEN_ACTIONS),
-        "top_action": {
-            "action_type": "runtime_platform_repair",
-            "repair_kind": repair_kind,
-            "owner": "mas_controller",
-            "auto_apply_allowed": True,
-            "paper_package_mutation_allowed": False,
-            "manual_study_patch_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "medical_claim_authoring_allowed": False,
-        },
-        "auto_apply_allowed": True,
-        "last_apply_attempt_at": _utc_now(),
-        "applied_at": _utc_now() if state == "applied" else None,
-        "blocked_reason": blocked_reason,
-        "next_owner": None if state == "applied" else next_owner,
-        "external_supervisor_required": state != "applied" and next_owner == "external_supervisor",
-        "quality_gate_relaxation_allowed": False,
-        "dispatch_status": dispatch_status,
-        "last_apply_attempt": dict(apply_result),
-        "refs": {
-            "supervision_scan": str(study_root / supervision_latest_relative_path),
-        },
-    }
-    _write_json(study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json", payload)
-    return payload
 
 
 def apply_runtime_platform_repair(
