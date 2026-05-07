@@ -11,13 +11,13 @@ def _assert_manifest_runtime_identity(*, module, payload, profile, profile_ref) 
 
 def _assert_managed_runtime_contract(*, module, payload, profile, profile_ref) -> None:
     assert payload["runtime"]["domain_owner"] == "med-autoscience"
-    assert payload["runtime"]["executor_owner"] == "med_deepscientist"
+    assert payload["runtime"]["executor_owner"] == "controlled_research_backend"
     assert payload["runtime"]["runtime_substrate"] == "external_hermes_agent_target"
     assert payload["managed_runtime_contract"] == {
         "shared_contract_ref": "contracts/opl-gateway/managed-runtime-three-layer-contract.json",
         "runtime_owner": "upstream_hermes_agent",
         "domain_owner": "med-autoscience",
-        "executor_owner": "med_deepscientist",
+        "executor_owner": "controlled_research_backend",
         "supervision_status_surface": {
             "surface_kind": "study_progress",
             "owner": "med-autoscience",
@@ -41,7 +41,7 @@ def _assert_managed_runtime_contract(*, module, payload, profile, profile_ref) -
     assert payload["runtime_inventory"]["domain_owner"] == "med-autoscience"
 
 def _assert_runtime_inventory(*, module, payload, profile, profile_ref) -> None:
-    assert payload["runtime_inventory"]["executor_owner"] == "med_deepscientist"
+    assert payload["runtime_inventory"]["executor_owner"] == "controlled_research_backend"
     assert payload["runtime_inventory"]["substrate"] == "external_hermes_agent_target"
     assert payload["runtime_inventory"]["availability"] == "ready"
     assert payload["runtime_inventory"]["health_status"] == "healthy"
@@ -73,7 +73,7 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
         "study_session_owner": {
             "runtime_owner": "upstream_hermes_agent",
             "study_owner": "med-autoscience",
-            "executor_owner": "med_deepscientist",
+            "executor_owner": "controlled_research_backend",
         },
         "session_lineage_surface": {
             "surface_kind": "study_progress",

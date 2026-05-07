@@ -369,7 +369,7 @@ def build_product_entry_manifest(
     )
     managed_runtime_contract = _build_managed_runtime_contract(
         domain_owner=TARGET_DOMAIN_ID,
-        executor_owner="med_deepscientist",
+        executor_owner=CONTROLLED_BACKEND_EXECUTOR_OWNER,
         supervision_status_surface="study_progress",
         attention_queue_surface="workspace_cockpit",
         recovery_contract_surface="study_runtime_status",
@@ -377,7 +377,7 @@ def build_product_entry_manifest(
     runtime = {
         "runtime_owner": "upstream_hermes_agent",
         "domain_owner": TARGET_DOMAIN_ID,
-        "executor_owner": "med_deepscientist",
+        "executor_owner": CONTROLLED_BACKEND_EXECUTOR_OWNER,
         "runtime_substrate": "external_hermes_agent_target",
         "managed_runtime_backend_id": profile.managed_runtime_backend_id,
         "runtime_root": str(profile.runtime_root),

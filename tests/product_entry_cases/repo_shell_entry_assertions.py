@@ -235,7 +235,7 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
         "surface_kind": "skill_runtime_continuity",
         "runtime_owner": "upstream_hermes_agent",
         "domain_owner": "med-autoscience",
-        "executor_owner": "med_deepscientist",
+        "executor_owner": "controlled_research_backend",
         "session_locator_field": "study_id",
         "session_surface_ref": "/session_continuity",
         "progress_surface_ref": "/progress_projection/progress_surface",

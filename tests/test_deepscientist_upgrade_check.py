@@ -83,6 +83,8 @@ def test_run_upgrade_check_reports_upgrade_available(monkeypatch, tmp_path: Path
 
     result = module.run_upgrade_check(profile, refresh=True)
 
+    assert result["surface_kind"] == "controlled_backend_upgrade_diagnostic"
+    assert result["read_only"] is True
     assert result["decision"] == "upgrade_available"
     assert result["repo_check"]["behind_count"] == 2
     assert result["repo_check"]["upstream_update_available"] is True
@@ -137,7 +139,7 @@ def test_run_upgrade_check_blocks_dirty_repo(monkeypatch, tmp_path: Path) -> Non
     result = module.run_upgrade_check(profile, refresh=False)
 
     assert result["decision"] == "blocked_dirty_repo"
-    assert "clean_or_commit_med_deepscientist_repo_before_upgrade" in result["recommended_actions"]
+    assert "clean_or_commit_controlled_backend_repo_before_audit" in result["recommended_actions"]
 
 
 def test_run_upgrade_check_requests_branch_review_when_not_on_main(monkeypatch, tmp_path: Path) -> None:
@@ -347,7 +349,7 @@ def test_run_upgrade_check_blocks_when_repo_root_missing(monkeypatch, tmp_path: 
     result = module.run_upgrade_check(profile, refresh=False)
 
     assert result["decision"] == "blocked_repo_not_configured"
-    assert "configure_med_deepscientist_repo_root_in_profile" in result["recommended_actions"]
+    assert "configure_controlled_backend_repo_root_for_audit" in result["recommended_actions"]
 
 
 def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_path: Path) -> None:
@@ -391,6 +393,8 @@ def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_
 
     result = module.run_upgrade_check(profile, refresh=False)
 
+    assert result["surface_kind"] == "controlled_backend_upgrade_diagnostic"
+    assert result["read_only"] is True
     assert result["decision"] == "blocked_behavior_equivalence_gate"
     assert "complete_phase_25_behavior_equivalence_gate" in result["recommended_actions"]
 

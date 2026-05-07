@@ -15,11 +15,11 @@ def write_profile(path: Path) -> None:
             [
                 'name = "nfpitnet"',
                 'workspace_root = "/Users/gaofeng/workspace/Yang/NF-PitNET"',
-                'runtime_root = "/Users/gaofeng/workspace/Yang/NF-PitNET/ops/med-deepscientist/runtime/quests"',
+                'runtime_root = "/Users/gaofeng/workspace/Yang/NF-PitNET/runtime/quests"',
                 'studies_root = "/Users/gaofeng/workspace/Yang/NF-PitNET/studies"',
                 'portfolio_root = "/Users/gaofeng/workspace/Yang/NF-PitNET/portfolio"',
-                'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/NF-PitNET/ops/med-deepscientist/runtime"',
-                'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
+                'med_deepscientist_runtime_root = "/Users/gaofeng/workspace/Yang/NF-PitNET/runtime"',
+                'med_deepscientist_repo_root = ""',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 "enable_medical_overlay = true",
@@ -159,6 +159,17 @@ def test_mcp_server_doctor_tool_describes_backend_upgrade_surface() -> None:
 
     assert "backend_upgrade" in description
     assert "med_deepscientist_upgrade" not in description
+
+
+def test_mcp_server_rejects_legacy_med_deepscientist_upgrade_mode(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.mcp_server")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    result = module.call_tool("doctor_audit", {"mode": "med_deepscientist_upgrade", "profile_path": str(profile_path)})
+
+    assert result["isError"] is True
+    assert "Unsupported doctor_audit mode: med_deepscientist_upgrade" in result["content"][0]["text"]
 
 
 def test_mcp_server_can_call_doctor_report_tool(tmp_path: Path) -> None:

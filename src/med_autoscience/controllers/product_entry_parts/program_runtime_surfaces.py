@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .shared_base import TARGET_DOMAIN_ID
+from .shared_base import CONTROLLED_BACKEND_EXECUTOR_OWNER, TARGET_DOMAIN_ID
 
 
 def _build_research_runtime_control_projection(
@@ -17,7 +17,7 @@ def _build_research_runtime_control_projection(
         "study_session_owner": {
             "runtime_owner": "upstream_hermes_agent",
             "study_owner": TARGET_DOMAIN_ID,
-            "executor_owner": "med_deepscientist",
+            "executor_owner": CONTROLLED_BACKEND_EXECUTOR_OWNER,
         },
         "session_lineage_surface": {
             "surface_kind": "study_progress",
@@ -106,5 +106,3 @@ def _build_research_runtime_control_projection(
             "human_gate_required_field": "autonomy_contract.restore_point.human_gate_required",
         },
     }
-
-

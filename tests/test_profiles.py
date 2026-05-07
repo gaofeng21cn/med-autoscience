@@ -191,16 +191,21 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["name"] == profile.name
     assert contract["workspace_root"] == str(profile.workspace_root)
     assert contract["runtime_root"] == str(profile.runtime_root)
+    assert contract["managed_runtime_home"] == str(profile.managed_runtime_home)
+    assert contract["managed_runtime_quests_root"] == str(profile.managed_runtime_quests_root)
     assert contract["studies_root"] == str(profile.studies_root)
     assert contract["portfolio_root"] == str(profile.portfolio_root)
-    assert contract["med_deepscientist_runtime_root"] == str(profile.med_deepscientist_runtime_root)
-    assert contract["med_deepscientist_repo_root"] == str(profile.med_deepscientist_repo_root)
+    assert "med_deepscientist_runtime_root" not in contract
+    assert "med_deepscientist_repo_root" not in contract
     legacy_diagnostic = contract["legacy_diagnostic"]
     assert legacy_diagnostic["runtime_root"] == str(profile.med_deepscientist_runtime_root)
+    assert legacy_diagnostic["med_deepscientist_runtime_root"] == str(profile.med_deepscientist_runtime_root)
     assert legacy_diagnostic["controlled_backend_repo_root"] == str(profile.med_deepscientist_repo_root)
+    assert legacy_diagnostic["med_deepscientist_repo_root"] == str(profile.med_deepscientist_repo_root)
     assert legacy_diagnostic["field_compatibility"] == (
-        "med_deepscientist_* profile fields are legacy diagnostic/backend-audit aliases"
+        "legacy diagnostic/backend-audit profile aliases are exposed only under legacy_diagnostic"
     )
+    assert legacy_diagnostic["read_only"] is True
     assert contract["hermes_agent_repo_root"] == str(profile.hermes_agent_repo_root)
     assert contract["hermes_home_root"] == str(profile.hermes_home_root)
     assert contract["managed_runtime_backend_id"] == profile.managed_runtime_backend_id

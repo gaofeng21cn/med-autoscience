@@ -448,7 +448,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-upgrade --profile p
 这个检查会统一汇总：
 
 - `repo_check`
-  - `med_deepscientist_repo_root` 是否已配置
+  - `legacy_diagnostic.controlled_backend_repo_root` 是否已配置
   - 目标目录是否存在、是否是 Git repo
   - 当前 branch、`HEAD`、comparison ref
   - 相对 comparison ref 的 `ahead_count / behind_count`
@@ -461,7 +461,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-upgrade --profile p
     - `upstream_remote_name`
     - `upstream_ref`
 - `workspace_check`
-  - 当前 workspace / runtime / MedDeepScientist runtime contract 是否仍然完整
+  - 当前 workspace / managed runtime / controlled backend audit contract 是否仍然完整
 - `overlay_check`
   - 医学 overlay 是否仍然全部处于 `overlay_applied`
 
@@ -499,7 +499,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-upgrade --profile p
 
 ## Phase 1 gate 与真实执行
 
-当前所谓 Phase 1 已经允许把 `med_deepscientist_repo_root` 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。当前主链已经把 `adapters/deepscientist/*` 退出正式运行面，但这仍不等于 external `Hermes` runtime truth 已经到位。`med_deepscientist_repo_root` 现阶段主要仍服务于 `backend-upgrade-check` 这类审计与升级流程；如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/med-deepscientist/behavior_equivalence_gate.yaml` 仍是关键 gate artifact，`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
+当前所谓 Phase 1 已经允许把 profile 的 legacy diagnostic backend repo root 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。当前主链已经把 `adapters/deepscientist/*` 退出正式运行面，但这仍不等于 external `Hermes` runtime truth 已经到位。`med_deepscientist_repo_root` 仍作为 TOML 输入兼容字段保留，但 `doctor profile --format json` 只会在 `legacy_diagnostic.read_only` 下暴露它；现阶段它主要服务于 `backend-upgrade-check` 这类审计与升级流程，不是默认 workspace truth 或 product entry。如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork 并暴露 manifest 元数据。与此同时，`ops/mas/behavior_equivalence_gate.yaml` 是新 workspace 的关键 gate artifact；旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference 读取。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
 
 当前 P2 repo-side continuation 已把 `Hermes` 切成默认 outer runtime substrate owner。它的意义是让 controller / transport / durable surface 真正只认 backend contract，并把 `MedDeepScientist` 收口成 controlled research backend；它不等于 external runtime gate 已解除，也不等于 physical migration 已开始。
 
@@ -513,7 +513,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-upgrade --profile p
 - 它已经可以检测掉线、请求恢复、写出 supervision / escalation / progress surface，并把 external runtime readiness 纳入 create / pause / resume / stop / watch 的正式控制路径
 - 但它还不能单独替代 `MedDeepScientist` engine 自身；如果 backend contract 整体不可达，当前 repo-side `Hermes` 仍只能 fail-closed 地检测、升级和报告，而不能诚实声称“独立 Hermes host 已自动接管执行”
 
-只要 `phase_25_ready=false`，`backend-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以在 Phase 2/3 把 `med_deepscientist_repo_root` 视作真正的执行真相来源。
+只要 `phase_25_ready=false`，`backend-upgrade-check` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以把 legacy diagnostic backend repo root 视作受控 backend audit / parity oracle 的有效输入；它仍不重新成为 profile JSON 顶层 truth、MCP legacy mode 或默认 product-entry executor owner。
 
 ## Runtime Protocol Surface
 

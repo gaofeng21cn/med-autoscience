@@ -58,7 +58,7 @@ def test_study_runtime_status_keeps_delivered_human_review_milestone_parked_befo
             "runtime_contract": {"ready": True},
             "launcher_contract": {
                 "ready": False,
-                "issues": ["launcher_contract.med_deepscientist_launcher_not_placeholder"],
+                "issues": ["launcher_contract.controlled_backend_launcher_not_placeholder"],
             },
             "behavior_gate": {"ready": True, "phase_25_ready": True},
         },

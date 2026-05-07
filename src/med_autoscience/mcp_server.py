@@ -462,7 +462,6 @@ def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
             "profile": _call_show_profile,
             "overlay_status": _call_overlay_status,
             "backend_upgrade": _call_backend_upgrade_check,
-            "med_deepscientist_upgrade": _call_backend_upgrade_check,
             "hermes_runtime": hermes_runtime_handler,
         },
     )

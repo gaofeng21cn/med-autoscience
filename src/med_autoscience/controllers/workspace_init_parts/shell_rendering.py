@@ -325,6 +325,7 @@ def _render_med_deepscientist_shared() -> str:
         "import os\n\n"
         'payload = json.loads(os.environ["CONTRACT_JSON"])\n'
         'profile = payload["profile"]\n'
+        'legacy_diagnostic = profile["legacy_diagnostic"]\n'
         'contracts = payload["contracts"]\n'
         'runtime_contract = contracts["runtime_contract"]\n'
         'launcher_contract = contracts["launcher_contract"]\n'
@@ -332,10 +333,10 @@ def _render_med_deepscientist_shared() -> str:
         "pairs = {\n"
         '    "workspace_root": profile["workspace_root"],\n'
         '    "runtime_root": profile["runtime_root"],\n'
-        '    "med_deepscientist_runtime_root": profile["med_deepscientist_runtime_root"],\n'
-        '    "med_deepscientist_repo_root": profile.get("med_deepscientist_repo_root") or "",\n'
-        '    "runtime_root_matches_med_deepscientist_runtime": str(\n'
-        '        bool(runtime_contract.get("checks", {}).get("runtime_root_matches_med_deepscientist_runtime"))\n'
+        '    "legacy_diagnostic_runtime_root": legacy_diagnostic["runtime_root"],\n'
+        '    "controlled_backend_repo_root": legacy_diagnostic.get("controlled_backend_repo_root") or "",\n'
+        '    "managed_runtime_quests_root_matches_layout": str(\n'
+        '        bool(runtime_contract.get("checks", {}).get("managed_runtime_quests_root_matches_layout"))\n'
         '    ).lower(),\n'
         '    "runtime_contract_ready": str(bool(runtime_contract.get("ready"))).lower(),\n'
         '    "launcher_contract_ready": str(bool(launcher_contract.get("ready"))).lower(),\n'
@@ -349,16 +350,16 @@ def _render_med_deepscientist_shared() -> str:
         '    case "${key}" in\n'
         '      workspace_root) MED_DEEPSCIENTIST_WORKSPACE_ROOT="${value}" ;;\n'
         '      runtime_root) MED_DEEPSCIENTIST_RUNTIME_ROOT="${value}" ;;\n'
-        '      med_deepscientist_runtime_root) MED_DEEPSCIENTIST_HOME="${value}" ;;\n'
-        '      med_deepscientist_repo_root) MED_DEEPSCIENTIST_REPO_ROOT_AUDIT="${value}" ;;\n'
-        '      runtime_root_matches_med_deepscientist_runtime) RUNTIME_ROOT_MATCHES_MED_DEEPSCIENTIST_RUNTIME="${value}" ;;\n'
+        '      legacy_diagnostic_runtime_root) MED_DEEPSCIENTIST_HOME="${value}" ;;\n'
+        '      controlled_backend_repo_root) MED_DEEPSCIENTIST_REPO_ROOT_AUDIT="${value}" ;;\n'
+        '      managed_runtime_quests_root_matches_layout) RUNTIME_ROOT_MATCHES_MANAGED_RUNTIME_LAYOUT="${value}" ;;\n'
         '      runtime_contract_ready) MED_DEEPSCIENTIST_RUNTIME_CONTRACT_READY="${value}" ;;\n'
         '      launcher_contract_ready) MED_DEEPSCIENTIST_LAUNCHER_CONTRACT_READY="${value}" ;;\n'
         '      phase_25_ready) MED_DEEPSCIENTIST_PHASE_25_READY="${value}" ;;\n'
         "    esac\n"
         '  done <<< "${contract_lines}"\n\n'
-        '  if [[ "${RUNTIME_ROOT_MATCHES_MED_DEEPSCIENTIST_RUNTIME:-false}" != "true" ]]; then\n'
-        '    echo "runtime_root does not match med_deepscientist_runtime_root/quests for profile ${PROFILE_PATH}" >&2\n'
+        '  if [[ "${RUNTIME_ROOT_MATCHES_MANAGED_RUNTIME_LAYOUT:-false}" != "true" ]]; then\n'
+        '    echo "runtime_root does not match managed runtime layout for profile ${PROFILE_PATH}" >&2\n'
         "    exit 1\n"
         "  fi\n\n"
         '  if [[ -z "${MED_DEEPSCIENTIST_HOME:-}" ]]; then\n'
@@ -374,14 +375,16 @@ def _render_med_deepscientist_shared() -> str:
         "import os\n\n"
         'payload = json.loads(os.environ["CONTRACT_JSON"])\n'
         'profile = payload["profile"]\n'
+        'legacy_diagnostic = profile["legacy_diagnostic"]\n'
         'contracts = payload["contracts"]\n\n'
         "print(\n"
         "    json.dumps(\n"
         "        {\n"
         '            "workspace_root": profile["workspace_root"],\n'
         '            "runtime_root": profile["runtime_root"],\n'
-        '            "med_deepscientist_runtime_root": profile["med_deepscientist_runtime_root"],\n'
-        '            "med_deepscientist_repo_root": profile.get("med_deepscientist_repo_root"),\n'
+        '            "legacy_diagnostic_runtime_root": legacy_diagnostic["runtime_root"],\n'
+        '            "controlled_backend_audit_repo_root": legacy_diagnostic.get("controlled_backend_repo_root"),\n'
+        '            "legacy_diagnostic_read_only": bool(legacy_diagnostic.get("read_only")),\n'
         '            "launcher": os.environ["LAUNCHER_PATH"],\n'
         '            "runtime_contract_ready": contracts["runtime_contract"]["ready"],\n'
         '            "launcher_contract_ready": contracts["launcher_contract"]["ready"],\n'

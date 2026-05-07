@@ -792,7 +792,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "study_session_owner": {
             "runtime_owner": "upstream_hermes_agent",
             "study_owner": "med-autoscience",
-            "executor_owner": "med_deepscientist",
+            "executor_owner": "controlled_research_backend",
         },
         "session_lineage_surface": {
             "surface_kind": "study_progress",

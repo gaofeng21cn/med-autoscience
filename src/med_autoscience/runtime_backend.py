@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 DEFAULT_MANAGED_RUNTIME_BACKEND_ID = "hermes"
+CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER = "controlled_research_backend"
 
 
 class ManagedRuntimeBackend(Protocol):

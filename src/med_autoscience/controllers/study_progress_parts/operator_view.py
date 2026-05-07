@@ -423,7 +423,7 @@ def _research_runtime_control_projection(
         "study_session_owner": {
             "runtime_owner": "upstream_hermes_agent",
             "study_owner": "med-autoscience",
-            "executor_owner": "med_deepscientist",
+            "executor_owner": CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER,
         },
         "session_lineage_surface": {
             "surface_kind": "study_progress",

@@ -303,16 +303,23 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         "name": profile.name,
         "workspace_root": str(profile.workspace_root),
         "runtime_root": str(profile.runtime_root),
+        "managed_runtime_home": str(profile.managed_runtime_home),
+        "managed_runtime_quests_root": str(profile.managed_runtime_quests_root),
         "studies_root": str(profile.studies_root),
         "portfolio_root": str(profile.portfolio_root),
-        "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
-        "med_deepscientist_repo_root": str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None,
         "legacy_diagnostic": {
             "runtime_root": str(profile.med_deepscientist_runtime_root),
+            "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
             "controlled_backend_repo_root": (
                 str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None
             ),
-            "field_compatibility": "med_deepscientist_* profile fields are legacy diagnostic/backend-audit aliases",
+            "med_deepscientist_repo_root": (
+                str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None
+            ),
+            "field_compatibility": (
+                "legacy diagnostic/backend-audit profile aliases are exposed only under legacy_diagnostic"
+            ),
+            "read_only": True,
         },
         "hermes_agent_repo_root": str(profile.hermes_agent_repo_root) if profile.hermes_agent_repo_root else None,
         "hermes_home_root": str(profile.hermes_home_root),

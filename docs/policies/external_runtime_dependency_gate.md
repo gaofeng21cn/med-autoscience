@@ -117,7 +117,7 @@ repo-side 能检查的是：
 
 repo-side 能检查的是：
 
-- profile 是否配置了 `med_deepscientist_repo_root`
+- profile 是否在 `legacy_diagnostic.read_only` 下配置了 controlled backend repo root
 - repo 根目录是否存在 `MEDICAL_FORK_MANIFEST.json`
 - manifest 是否可解析
 - comparison ref 是否能指向受控 fork 的 `upstream/main`

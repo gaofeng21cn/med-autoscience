@@ -27,6 +27,7 @@ from med_autoscience.controllers.study_progress_parts.macro_state_projection imp
 )
 from med_autoscience.human_gate_policy import controller_human_gate_allowed
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.runtime_backend import CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER
 from med_autoscience.runtime_status_summary import (
     build_runtime_status_summary,
     materialize_runtime_status_summary,
@@ -273,7 +274,7 @@ def _normalized_research_runtime_control_projection_payload(payload: Mapping[str
         "study_session_owner": {
             "runtime_owner": "upstream_hermes_agent",
             "study_owner": "med-autoscience",
-            "executor_owner": "med_deepscientist",
+            "executor_owner": CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER,
         },
         "session_lineage_surface": {
             "surface_kind": "study_progress",

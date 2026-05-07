@@ -219,15 +219,15 @@ def _determine_decision(
         return "blocked_launcher_contract_not_ready", actions
 
     if not repo_check["configured"]:
-        actions.append("configure_med_deepscientist_repo_root_in_profile")
+        actions.append("configure_controlled_backend_repo_root_for_audit")
         return "blocked_repo_not_configured", actions
 
     if not repo_check["repo_exists"]:
-        actions.append("ensure_med_deepscientist_repo_root_exists_locally")
+        actions.append("ensure_controlled_backend_repo_root_exists_locally")
         return "blocked_repo_missing", actions
 
     if not repo_check["is_git_repo"]:
-        actions.append("point_profile_to_a_valid_med_deepscientist_git_repo")
+        actions.append("point_legacy_diagnostic_to_valid_controlled_backend_git_repo")
         return "blocked_not_git_repo", actions
 
     if repo_check["refresh_attempted"] and not repo_check["refresh_succeeded"]:
@@ -235,7 +235,7 @@ def _determine_decision(
         return "blocked_refresh_failed", actions
 
     if repo_check["working_tree_clean"] is False:
-        actions.append("clean_or_commit_med_deepscientist_repo_before_upgrade")
+        actions.append("clean_or_commit_controlled_backend_repo_before_audit")
         return "blocked_dirty_repo", actions
 
     if is_controlled_fork and not comparison_ref_resolved:
@@ -275,6 +275,8 @@ def run_upgrade_check(profile: WorkspaceProfile, *, refresh: bool = False) -> di
     phase_25_ready = bool(behavior_gate.get("phase_25_ready")) if isinstance(behavior_gate, dict) else True
     if not phase_25_ready:
         return {
+            "surface_kind": "controlled_backend_upgrade_diagnostic",
+            "read_only": True,
             "profile": profile.name,
             "decision": "blocked_behavior_equivalence_gate",
             "recommended_actions": ["complete_phase_25_behavior_equivalence_gate"],
@@ -298,6 +300,8 @@ def run_upgrade_check(profile: WorkspaceProfile, *, refresh: bool = False) -> di
         overlay_check=overlay_check,
     )
     return {
+        "surface_kind": "controlled_backend_upgrade_diagnostic",
+        "read_only": True,
         "profile": profile.name,
         "decision": decision,
         "recommended_actions": recommended_actions,

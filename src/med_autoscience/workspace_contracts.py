@@ -65,12 +65,12 @@ def _inspect_launcher_path(config_env_path: Path) -> dict[str, object]:
 
     return {
         "checks": {
-            "med_deepscientist_launcher_config_parseable": config_parseable,
-            "med_deepscientist_launcher_configured": configured,
-            "med_deepscientist_launcher_absolute": absolute,
-            "med_deepscientist_launcher_not_placeholder": not_placeholder,
-            "med_deepscientist_launcher_exists": exists,
-            "med_deepscientist_launcher_executable": executable,
+            "controlled_backend_launcher_config_parseable": config_parseable,
+            "controlled_backend_launcher_configured": configured,
+            "controlled_backend_launcher_absolute": absolute,
+            "controlled_backend_launcher_not_placeholder": not_placeholder,
+            "controlled_backend_launcher_exists": exists,
+            "controlled_backend_launcher_executable": executable,
         },
         "configured_launcher_value": launcher_value,
         "resolved_launcher_path": resolved_launcher_path,
@@ -191,29 +191,35 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     layout = build_workspace_runtime_layout_for_profile(profile)
     runtime_root_expected = layout.quests_root
     runtime_checks: dict[str, bool] = {
-        "runtime_root_matches_med_deepscientist_runtime": profile.runtime_root == runtime_root_expected,
-        "runtime_root_exists": profile.runtime_root.exists(),
-        "med_deepscientist_runtime_root_exists": profile.med_deepscientist_runtime_root.exists(),
+        "managed_runtime_quests_root_matches_layout": profile.managed_runtime_quests_root == runtime_root_expected,
+        "managed_runtime_quests_root_exists": profile.managed_runtime_quests_root.exists(),
+        "managed_runtime_home_exists": profile.managed_runtime_home.exists(),
     }
     runtime_contract = {
         "ready": all(runtime_checks.values()),
         "checks": runtime_checks,
         "issues": _collect_check_issues(runtime_checks, prefix="runtime_contract"),
         "runtime_root": str(profile.runtime_root),
-        "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
+        "managed_runtime_home": str(profile.managed_runtime_home),
+        "managed_runtime_quests_root": str(profile.managed_runtime_quests_root),
         "runtime_root_expected": str(runtime_root_expected),
+        "legacy_diagnostic": {
+            "read_only": True,
+            "runtime_root_matches_med_deepscientist_runtime": profile.runtime_root == runtime_root_expected,
+            "med_deepscientist_runtime_root_exists": profile.med_deepscientist_runtime_root.exists(),
+            "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
+        },
     }
 
     medautoscience_config_env = profile.workspace_root / "ops" / "medautoscience" / "config.env"
-    med_deepscientist_config_env = layout.config_env_path
-    med_deepscientist_bin_dir = layout.bin_root
+    controlled_backend_config_env = layout.config_env_path
+    controlled_backend_bin_dir = layout.bin_root
     manifest_info = inspect_med_deepscientist_repo_manifest(profile.med_deepscientist_repo_root)
-    launcher_path_info = _inspect_launcher_path(med_deepscientist_config_env)
+    launcher_path_info = _inspect_launcher_path(controlled_backend_config_env)
     launcher_checks: dict[str, bool] = {
         "medautoscience_config_env_exists": medautoscience_config_env.is_file(),
-        "med_deepscientist_config_env_exists": med_deepscientist_config_env.is_file(),
-        "med_deepscientist_bin_dir_exists": med_deepscientist_bin_dir.is_dir(),
-        "med_deepscientist_repo_root_configured": profile.med_deepscientist_repo_root is not None,
+        "controlled_backend_config_env_exists": controlled_backend_config_env.is_file(),
+        "controlled_backend_bin_dir_exists": controlled_backend_bin_dir.is_dir(),
     }
     launcher_checks.update(launcher_path_info["checks"])
     manifest_checks: dict[str, bool] = {
@@ -223,19 +229,28 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     launcher_issues = _collect_check_issues(launcher_checks, prefix="launcher_contract")
     config_error = launcher_path_info["config_error"]
     if isinstance(config_error, str) and config_error.strip():
-        launcher_issues.append(f"launcher_contract.med_deepscientist_launcher_config_error:{config_error}")
+        launcher_issues.append(f"launcher_contract.controlled_backend_launcher_config_error:{config_error}")
     launcher_contract = {
         "ready": all(launcher_checks.values()),
         "checks": launcher_checks,
         "issues": launcher_issues,
         "medautoscience_config_env": str(medautoscience_config_env),
-        "med_deepscientist_config_env": str(med_deepscientist_config_env),
-        "med_deepscientist_bin_dir": str(med_deepscientist_bin_dir),
-        "med_deepscientist_repo_root": str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None,
+        "controlled_backend_config_env": str(controlled_backend_config_env),
+        "controlled_backend_bin_dir": str(controlled_backend_bin_dir),
+        "controlled_backend_repo_root": str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None,
+        "controlled_backend_repo_root_configured_for_audit": profile.med_deepscientist_repo_root is not None,
         "configured_launcher_value": launcher_path_info["configured_launcher_value"],
         "resolved_launcher_path": launcher_path_info["resolved_launcher_path"],
         "repo_manifest": manifest_info,
         "manifest_checks": manifest_checks,
+        "legacy_diagnostic": {
+            "read_only": True,
+            "med_deepscientist_config_env": str(controlled_backend_config_env),
+            "med_deepscientist_bin_dir": str(controlled_backend_bin_dir),
+            "med_deepscientist_repo_root": (
+                str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None
+            ),
+        },
     }
 
     behavior_gate = inspect_behavior_equivalence_gate(layout.behavior_gate_path)

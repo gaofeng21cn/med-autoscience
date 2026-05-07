@@ -107,6 +107,9 @@ def test_show_profile_json_exports_machine_readable_contract(tmp_path: Path, cap
     payload = json.loads(captured.out)
     assert payload["name"] == "nfpitnet"
     assert payload["workspace_root"] == "/Users/gaofeng/workspace/Yang/NF-PitNET"
+    assert "med_deepscientist_runtime_root" not in payload
+    assert "med_deepscientist_repo_root" not in payload
+    assert payload["legacy_diagnostic"]["read_only"] is True
     assert payload["publication"]["default_publication_profile"] == "general_medical_journal"
     assert payload["publication"]["default_citation_style"] == "AMA"
     assert payload["publication"]["default_submission_targets"][0]["publication_profile"] == "frontiers_family_harvard"

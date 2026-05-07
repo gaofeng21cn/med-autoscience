@@ -8,7 +8,7 @@ Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 
 近期 MAS 模块化治理、Runtime Control 和 Progress Projection 收口没有改变本 program 的职责。当前 Git/runtime 子计划已经进入 guard/diagnostic 维护口径：current projects 的 quest `.git` 和 workspace root Git 都已退为 restore diagnostic archive，新 workspace 默认 no root Git / no quest Git。后续不再把 root Git 写成可选 workspace 维护模式；如果外部或旧 workspace 再出现 root `.git`，处理方式是显式 inventory / archive / remove / verify diagnostic，而不是 opt-in source-control mode。
 
-因此，本文剩余工作只服务 portfolio 下一队列：为 `workspace_layout_de_mds_ds` 提供 Git/runtime 事实边界，为 `profile_entry_compat_retirement` 保留只读 legacy restore/import diagnostic，为 `no_history_physical_absorb` 提供 provenance、author audit 和 parity proof 输入。不得把新增 live writer drift、profile 文案、MDS product entry 或 no-history import gate 误写成 SQLite/runtime 子计划未完成。
+因此，本文剩余工作只服务 portfolio 下一队列：`workspace_layout_de_mds_ds` 和 `profile_entry_compat_retirement` 已消费本文提供的 Git/runtime 事实边界与只读 legacy restore/import diagnostic；后续只为 `no_history_physical_absorb` 提供 provenance、author audit 和 parity proof 输入。不得把新增 live writer drift、profile 文案、MDS product entry 或 no-history import gate 误写成 SQLite/runtime 子计划未完成。
 
 ## 2026-05-05 restore-proof closeout
 
@@ -677,7 +677,7 @@ Repo 级验收：
 当前不再从 `L0` 重新开始；contract、DB-not-tracked guard、compatibility export、migration ledger、current eligible workspace restore-proof compaction 和 current-project quest Git retirement 已经进入 landed 口径。剩余工作包按 portfolio queue 执行：
 
 1. `workspace_layout_demds`：真实 workspace 用户可见路径、profile/docs 和 quest 管理命名去 MDS/DS 化；旧路径只在 migration ledger、restore proof 或 maintainer diagnostic 中出现。
-2. `profile_entry_compat_retirement`：legacy restore/import 只能通过显式 diagnostic 入口读取 archive；默认 CLI/MCP/controller/product entry 不得回退到 MDS Git reader 或 MDS product entry。
+2. `profile_entry_compat_retirement`：已落地为默认 CLI/MCP/controller/product entry 不回退到 MDS Git reader 或 MDS product entry；legacy restore/import 只能通过显式 diagnostic 入口读取 archive。
 3. `no_history_physical_absorb`：按 MAS single-project absorb program 的 no-history import、provenance、author audit、parity proof 和 rollback surface 执行物理吸收。
 
 compatibility reader 不再是默认迁移安全阀；只剩 archive restore/import diagnostic。

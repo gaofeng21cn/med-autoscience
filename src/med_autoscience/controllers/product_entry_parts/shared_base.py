@@ -141,6 +141,7 @@ PRODUCT_ENTRY_KIND = "med_autoscience_product_entry"
 PRODUCT_ENTRY_MANIFEST_KIND = "med_autoscience_product_entry_manifest"
 PRODUCT_ENTRY_STATUS_KIND = "product_entry_status"
 TARGET_DOMAIN_ID = "med-autoscience"
+CONTROLLED_BACKEND_EXECUTOR_OWNER = runtime_backend_contract.CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER
 SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
 _LIVE_TASK_INTAKE_RUNTIME_STATUSES = frozenset({"running", "active", "waiting_for_user"})
 _ATTENTION_PRIORITIES = {
