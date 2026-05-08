@@ -185,6 +185,8 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     tmp_path: Path,
 ) -> None:
     migration = importlib.import_module("med_autoscience.controllers.workspace_monolith_migration")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_contracts = importlib.import_module("med_autoscience.workspace_contracts")
     profile_path, workspace_root = _build_fixture(tmp_path)
     alpha_paper = workspace_root / "studies" / "010-alpha-dynamic" / "paper" / "current_package" / "manuscript.md"
     live_binding = workspace_root / "studies" / "011-live-dynamic" / "runtime_binding.yaml"
@@ -234,6 +236,20 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert migrated_runtime_state["legacy_diagnostic"]["old_quest_root"].endswith(
         "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
     )
+    mas_bin_root = workspace_root / "ops" / "mas" / "bin"
+    behavior_gate = workspace_root / "ops" / "mas" / "behavior_equivalence_gate.yaml"
+    assert mas_bin_root.is_dir()
+    assert (mas_bin_root / "_shared.sh").is_file()
+    assert (mas_bin_root / "status").is_file()
+    assert (mas_bin_root / "stop").is_file()
+    assert behavior_gate.read_text(encoding="utf-8") == (
+        "schema_version: v1\nphase_25_ready: true\ncritical_overrides: []\n"
+    )
+    contracts = workspace_contracts.inspect_workspace_contracts(profiles.load_profile(profile_path))
+    assert contracts["runtime_contract"]["ready"] is True
+    assert contracts["launcher_contract"]["ready"] is True
+    assert contracts["behavior_gate"]["ready"] is True
+    assert contracts["overall_ready"] is True
 
     assert live_binding.read_text(encoding="utf-8") == live_binding_before
     assert alpha_paper.read_text(encoding="utf-8") == alpha_paper_before

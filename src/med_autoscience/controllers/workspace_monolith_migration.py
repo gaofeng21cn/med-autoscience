@@ -9,6 +9,14 @@ from typing import Any, Mapping
 import yaml
 
 from med_autoscience.controllers import workspace_entry_rendering as workspace_entry_rendering_controller
+from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
+    _render_behavior_equivalence_gate,
+    _render_mas_runtime_bridge_forward,
+    _render_mas_runtime_bridge_shared,
+    _render_mas_runtime_bridge_show_config,
+    _render_mas_runtime_bridge_stop_script,
+    _render_progress_portal_start_web_script,
+)
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 from med_autoscience.runtime_backend import DEFAULT_MANAGED_RUNTIME_BACKEND_ID, engine_id_for_backend_id
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
@@ -311,6 +319,42 @@ def _write_runtime_configs(*, profile: WorkspaceProfile, profile_path: Path) -> 
         workspace_entry_rendering_controller.render_mas_runtime_bridge_config(),
         encoding="utf-8",
     )
+    mas_example_path = workspace_root / "ops" / "mas" / "config.env.example"
+    mas_example_path.write_text(
+        workspace_entry_rendering_controller.render_mas_runtime_bridge_config(),
+        encoding="utf-8",
+    )
+    mas_readme_path = workspace_root / "ops" / "mas" / "README.md"
+    mas_readme_path.write_text(
+        workspace_entry_rendering_controller.render_mas_runtime_bridge_readme(),
+        encoding="utf-8",
+    )
+    behavior_gate_path = workspace_root / "ops" / "mas" / "behavior_equivalence_gate.yaml"
+    behavior_gate_path.write_text(_render_behavior_equivalence_gate(), encoding="utf-8")
+    _write_executable(
+        workspace_root / "ops" / "mas" / "bin" / "_shared.sh",
+        _render_mas_runtime_bridge_shared(),
+    )
+    _write_executable(
+        workspace_root / "ops" / "mas" / "bin" / "doctor",
+        _render_mas_runtime_bridge_forward("doctor report"),
+    )
+    _write_executable(
+        workspace_root / "ops" / "mas" / "bin" / "show-config",
+        _render_mas_runtime_bridge_show_config(),
+    )
+    _write_executable(
+        workspace_root / "ops" / "mas" / "bin" / "start-web",
+        _render_progress_portal_start_web_script(),
+    )
+    _write_executable(
+        workspace_root / "ops" / "mas" / "bin" / "status",
+        _render_mas_runtime_bridge_forward("workspace cockpit", command_suffix=" --format json"),
+    )
+    _write_executable(
+        workspace_root / "ops" / "mas" / "bin" / "stop",
+        _render_mas_runtime_bridge_stop_script(),
+    )
 
 
 def _relative_or_absolute(path: Path, workspace_root: Path) -> Path:
@@ -403,6 +447,12 @@ def _write_migration_report(*, report: dict[str, Any], workspace_root: Path) -> 
     report["latest_path"] = str(latest_path)
     _write_json(history_path, report)
     _write_json(latest_path, report)
+
+
+def _write_executable(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    path.chmod(0o755)
 
 
 def _discover_studies(studies_root: Path) -> dict[str, dict[str, Any]]:
