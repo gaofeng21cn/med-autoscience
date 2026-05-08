@@ -153,16 +153,16 @@ def test_live_console_html_renders_static_shell_without_legacy_webui_assets() ->
     html = module.render_live_console_html(payload)
 
     assert "<!doctype html>" in html
-    assert "READ ONLY" in html
+    assert "只读" in html
     assert 'href="../progress/index.html"' in html
-    assert "返回 Progress Portal" in html
-    assert "workspace/study/run" in html
-    assert "generated_at local" in html
-    assert "状态 timeline" in html
-    assert "Terminal stream" in html
-    assert "Log stream" in html
-    assert "Artifact refs" in html
-    assert "Event refs" in html
+    assert "返回进度入口" in html
+    assert "论文运行表" in html
+    assert "本机时间" in html
+    assert "运行时间线" in html
+    assert "终端输出" in html
+    assert "日志输出" in html
+    assert "产物来源" in html
+    assert "事件来源" in html
     assert "002-dm-china-us-mortality-attribution" in html
     assert "003-dpcc-primary-care-phenotype-treatment-gap" in html
     assert "mas-run-dm002" in html
@@ -175,17 +175,95 @@ def test_live_console_html_renders_static_shell_without_legacy_webui_assets() ->
     assert "MDS WebUI" not in html
 
 
+def test_live_console_no_live_run_renders_meaningful_empty_state() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console_ui")
+    snapshot = {
+        "workspace": {
+            "profile_name": "dm-cvd",
+            "workspace_root": "/workspace/DM-CVD",
+            "workspace_status": "attention_required",
+        },
+        "studies": [
+            {
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "state_label": "自动运行中",
+                "current_stage": "analysis-campaign",
+                "active_run_id": None,
+                "runtime_health_status": "escalated",
+                "supervisor_tick_status": "stale",
+                "worker_running": False,
+                "blocking_reasons": [
+                    "quest_marked_running_but_no_live_session",
+                    "runtime_recovery_retry_budget_exhausted",
+                ],
+                "canonical_runtime_action": "external_supervisor_required",
+                "next_action_summary": "需要外层 supervisor 处理 no-live-session。",
+                "allowed_controller_actions": ["read_runtime_status", "manual_runtime_review"],
+                "runs": [],
+                "timeline": [],
+                "terminal_sources": [
+                    {
+                        "label": "terminal",
+                        "source_ref": "/workspace/runtime/quests/002/.ds/bash_exec/summary.json",
+                        "status": "missing",
+                        "tail": [],
+                    }
+                ],
+                "log_sources": [
+                    {
+                        "label": "worker log",
+                        "source_ref": "/workspace/runtime/quests/002/logs/worker.log",
+                        "status": "missing",
+                        "tail": [],
+                    }
+                ],
+                "artifact_refs": ["/workspace/studies/002/artifacts/runtime/health/latest.json"],
+                "event_refs": ["/workspace/studies/002/artifacts/runtime/runtime_supervision/latest.json"],
+            }
+        ],
+        "controller_action_intents": [
+            {
+                "intent": "request_reconcile",
+                "authority": "controller_required",
+                "executes_directly": False,
+                "command": "medautosci runtime supervisor-reconcile --profile <profile>",
+            }
+        ],
+    }
+
+    payload = module.build_live_console_ui_payload(
+        live_console_snapshot=snapshot,
+        generated_at="2026-05-08T01:06:00+00:00",
+    )
+    html = module.render_live_console_html(payload)
+
+    assert payload["empty_state"]["reason"] == "no_live_run"
+    assert payload["empty_state"]["study_blockers"][0]["study_id"] == "002-dm-china-us-mortality-attribution"
+    assert "当前没有 live run" in html
+    assert "标记运行但没有 live session" in html
+    assert "runtime 恢复重试预算耗尽" in html
+    assert "需要外层 supervisor" in html
+    assert "medautosci runtime supervisor-reconcile --profile &lt;profile&gt;" in html
+    assert "No stream tail supplied." not in html
+    assert ">unknown<" not in html
+    assert ">none<" not in html
+    assert "source</h3>" not in html
+    assert "study.status" not in html
+    assert "runtime.health" not in html
+    assert "最后可见时间" in html
+
+
 def test_live_console_static_shell_is_mas_authored_and_read_only() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
 
     html = module.render_live_console_static_shell()
 
     assert "<!doctype html>" in html
-    assert "MAS Live Console" in html
-    assert "Read-only" in html
-    assert "Progress Portal" in html
-    assert "Terminal / Log Stream" in html
-    assert "Controller Action Intent" in html
+    assert "MAS 运行控制台" in html
+    assert "只读" in html
+    assert "返回进度入口" in html
+    assert "终端 / 日志来源" in html
+    assert "控制器动作意图" in html
     assert "artifacts/runtime/live_console/session_read_model/latest.json" in html
     assert "medautosci runtime live-console --profile &lt;profile&gt; --serve" in html
     assert "DeepScientist" not in html

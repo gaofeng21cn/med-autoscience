@@ -149,7 +149,7 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
     assert payload["delivery"]["summary"] == "current package 尚未生成。"
     assert payload["live_console"] == {
         "available": True,
-        "label": "Live Console",
+        "label": "运行控制台",
         "html_ref": "ops/mas/live-console/index.html",
         "session_read_model_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
         "serve_command": "medautosci runtime live-console --profile <profile> --serve",
@@ -173,7 +173,7 @@ def test_progress_portal_payload_can_disable_live_console_link_with_reason() -> 
 
     assert payload["live_console"]["available"] is False
     assert payload["live_console"]["disabled_reason"] == "runtime live console read model is not installed"
-    assert "Live Console unavailable" in html
+    assert "运行控制台不可用" in html
     assert "runtime live console read model is not installed" in html
     assert "terminal/log stream" not in html
 
@@ -200,9 +200,23 @@ def test_progress_portal_profile_without_study_selector_projects_workspace_overv
     )
 
     assert payload["study"]["scope"] == "workspace"
-    assert payload["study"]["study_id"] == "002-dm-china-us-mortality-attribution"
-    assert payload["study"]["state_label"] == "Workspace overview"
-    assert payload["workspace"]["studies"][1]["selected"] is True
+    assert payload["study"]["study_id"] == "workspace-overview"
+    assert payload["study"]["state_label"] == "工作区概览"
+    assert all(item["selected"] is False for item in payload["workspace"]["studies"])
+    assert payload["section_explanations"][0]["source"] == "workspace_cockpit"
+    assert {
+        item["current_output"]
+        for item in payload["section_explanations"]
+    } >= {"工作区概要", "论文线概览", "工作区告警", "诊断与修复建议", "数据来源"}
+    html = module.render_progress_portal_html(payload)
+    assert "页面条目说明" in html
+    assert "<dt>当前论文线</dt><dd>工作区总览</dd>" in html
+    assert "workspace_cockpit.studies" in html
+    assert "section_explanations" not in html
+    assert "publication evaluation projection 缺失" not in html
+    assert "current package projection 缺失" not in html
+    assert "质量投影缺失" not in html
+    assert "交付投影缺失" not in html
 
 
 def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppresses_legacy_alert_noise() -> None:
@@ -270,14 +284,19 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
     )
 
     workspace = payload["workspace"]
-    assert workspace["workspace_alerts"] == [
-        "live worker 已超过 meaningful artifact delta 活动窗口，必须先恢复产物增量或写出平台修复终态。"
-    ]
+    assert workspace["workspace_alerts"] == ["进度信号：有记录，但 worker 或 artifact delta 不满足继续推进证据。"]
+    assert workspace["workspace_alert_items"][0]["source"] == "workspace_cockpit.progress_freshness"
+    assert workspace["workspace_alert_items"][0]["purpose"]
+    assert workspace["workspace_alert_items"][0]["current_output"] == "进度信号：有记录，但 worker 或 artifact delta 不满足继续推进证据。"
+    assert workspace["workspace_alert_items"][0]["expected"]
     assert workspace["diagnostics"]["suppressed_alerts"] == [
         "Hermes-hosted runtime supervision 尚未注册。",
-        "状态需要检查。",
         "用户暂停或手动停驻，需显式恢复或新方案。",
     ]
+    assert workspace["diagnostics"]["suppressed_alert_items"][0]["source"] == "workspace_supervision.service.summary"
+    assert workspace["diagnostics"]["suppressed_alert_items"][0]["recommended_command"] == (
+        "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile <profile> --manager hermes --write-install-proof"
+    )
     studies = workspace["studies"]
     assert [item["study_id"] for item in studies] == [
         "001-dm-cvd-mortality-risk",
@@ -354,7 +373,43 @@ def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_work
     assert "003-dpcc-primary-care-phenotype-treatment-gap" in html
     assert "mas-run-002" in html
     assert "mas-run-003" in html
-    assert "Hermes-hosted runtime supervision 尚未注册。" not in html
+    assert "诊断与修复建议" in html
+    assert "Hermes-hosted runtime supervision 尚未注册。" in html
+    assert "runtime-ensure-supervision" in html
+    assert ">none<" not in html
+    assert "not_required" not in html
+    assert "来源" in html
+    assert "用途" in html
+    assert "当前输出" in html
+    assert "期望输出" in html
+
+
+def test_progress_portal_hides_low_information_generic_status_diagnostic_when_study_rows_exist() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        cockpit_payload={
+            "workspace_alerts": ["状态需要检查。"],
+            "studies": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "monitoring": {"health_status": "escalated"},
+                    "progress_freshness": {"status": "not_required"},
+                }
+            ],
+        },
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    html = module.render_progress_portal_html(payload)
+
+    assert payload["workspace"]["diagnostics"]["suppressed_alert_items"] == []
+    assert "状态需要检查。" not in html
+    assert "无需自动推进" in html
+    assert "not_required" not in html
+    assert "无 live run" in html
+    assert ">none<" not in html
 
 
 def test_progress_portal_html_header_is_workspace_scoped_and_shows_explicit_local_time() -> None:
@@ -372,10 +427,10 @@ def test_progress_portal_html_header_is_workspace_scoped_and_shows_explicit_loca
 
     assert "<h1>diabetes</h1>" in html
     assert "<h1>003-dpcc-primary-care-phenotype-treatment-gap</h1>" not in html
-    assert "<dt>selected study</dt><dd>003-dpcc-primary-care-phenotype-treatment-gap</dd>" in html
-    assert "<dt>generated_at local</dt><dd>2026-05-08 09:05:00 +08:00" in html
+    assert "<dt>当前论文线</dt><dd>003-dpcc-primary-care-phenotype-treatment-gap</dd>" in html
+    assert "<dt>本机时间</dt><dd>2026-05-08 09:05:00 +08:00" in html
     assert "Asia/Shanghai" in html
-    assert "<dt>generated_at UTC</dt><dd>2026-05-08T01:05:00+00:00</dd>" in html
+    assert "<dt>UTC 时间</dt><dd>2026-05-08T01:05:00+00:00</dd>" in html
 
 
 def test_progress_portal_default_local_time_uses_iana_timezone_from_env(monkeypatch) -> None:
@@ -552,9 +607,9 @@ def test_progress_portal_html_is_single_file_mas_view_without_default_mds_produc
 
     assert html.startswith("<!doctype html>")
     assert "Med Auto Science" in html
-    assert "generated_at" in html
-    assert "freshness" in html
-    assert "source refs" in html
+    assert "UTC 时间" in html
+    assert "进度新鲜度" in html
+    assert "数据来源" in html
     assert "stale" in html
     assert "subgroup sensitivity table 尚未刷新" in html
     assert "<link " not in html
@@ -587,7 +642,7 @@ def test_progress_portal_html_source_refs_are_bounded_and_do_not_render_legacy_m
     assert "/workspace/studies/001-risk/artifacts/controller_decisions/latest.json" in html
     assert "med-deepscientist" not in html
     assert "not/a/selected/source/ref" not in html
-    assert "source refs (4/46)" in html
+    assert "数据来源 (4/46)" in html
 
 
 def test_progress_portal_payload_source_refs_filter_legacy_runtime_paths() -> None:

@@ -36,6 +36,14 @@ The UI displays:
 
 When no study is selected, the profile-level read model keeps `selected_study_id=null`; it must not default to `001`.
 
+主 UI 标签默认中文，英文技术值只保留在 source ref、status code、command 或 payload field value 中。页面顶部必须显示本机时间和 UTC 时间；运行表、时间线、终端输出、日志输出、产物来源、事件来源、控制器动作意图都使用中文标题。
+
+When no live run exists, the read model and UI must render an explicit no-live-run state instead of an empty console. The UI should say 当前没有 live run, show whether each study has `active_run_id=null` / `worker_running=false`, list available blocker/action fields such as `blocking_reasons`, `canonical_runtime_action`, `allowed_controller_actions`, `next_action_summary`, and keep terminal/log `missing` source refs visible as evidence. Empty state copy must not be only `none`, `unknown`, `No stream tail supplied`, or other generic placeholders.
+
+The UI must localize timeline topics and common status values in visible labels. `study.status`, `runtime.health`, `terminal.tail`, `log.tail`, `none`, `unknown`, and raw `source` labels are payload/internal values; the rendered shell should show 论文线状态、运行健康、终端尾部、日志尾部、无 live run、未提供、终端摘要或 worker 日志. Raw codes can remain in JSON payloads, command examples, and source refs for auditability.
+
+When terminal/log files are missing, the console should explain that absence as runtime evidence. A missing terminal tail for a no-live-run study is not a page failure; it is one more proof that the worker/run is not observable from the MAS live-console read model.
+
 ## Authority Boundary
 
 The UI is read-only. It can show action intent for pause / resume / relaunch / reconcile, but UI 不直接执行 apply.

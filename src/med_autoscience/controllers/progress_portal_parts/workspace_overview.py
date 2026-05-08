@@ -4,6 +4,8 @@ from collections.abc import Iterable, Mapping
 from html import escape
 from typing import Any
 
+from .status_display import display_text, status_chip, status_label
+
 
 _LEGACY_OR_GENERIC_WORKSPACE_ALERTS = frozenset(
     {
@@ -17,6 +19,7 @@ _PARKED_STUDY_WORKSPACE_ALERTS = frozenset(
         "当前阶段以人工判断或收尾为主，不要求系统继续产出新的自动推进信号。",
     }
 )
+_LOW_INFORMATION_GENERIC_ALERTS = frozenset({"状态需要检查。"})
 
 
 def dedupe_texts(values: Iterable[object]) -> list[str]:
@@ -40,19 +43,34 @@ def unique_text(value: str, *, seen: Iterable[str]) -> str:
     return "" if text in set(seen) else text
 
 
-def workspace_alert_projection(value: object, *, workspace_studies: list[dict[str, Any]]) -> dict[str, list[str]]:
-    visible: list[str] = []
-    suppressed: list[str] = []
+def workspace_alert_projection(value: object, *, workspace_studies: list[dict[str, Any]]) -> dict[str, list[Any]]:
+    visible: list[dict[str, str | None]] = []
+    suppressed: list[dict[str, str | None]] = []
     has_active_study = any(_workspace_study_is_active(item) for item in workspace_studies)
     for text in dedupe_texts(_string_list(value)):
+        item = _alert_item(text)
         if text in _LEGACY_OR_GENERIC_WORKSPACE_ALERTS:
-            suppressed.append(text)
+            suppressed.append(item)
             continue
         if has_active_study and _is_parked_study_alert(text):
-            suppressed.append(text)
+            suppressed.append(item)
             continue
-        visible.append(text)
-    return {"visible": visible, "suppressed": suppressed}
+        if not any(_same_alert_family(item, existing) for existing in visible):
+            visible.append(item)
+    return {
+        "visible": [str(item["current_output"]) for item in visible],
+        "suppressed": [
+            str(item["current_output"])
+            for item in suppressed
+            if item.get("diagnostic_visibility") != "hide_when_specific_study_rows_exist"
+        ],
+        "visible_items": visible,
+        "suppressed_items": [
+            item
+            for item in suppressed
+            if item.get("diagnostic_visibility") != "hide_when_specific_study_rows_exist"
+        ],
+    }
 
 
 def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> list[dict[str, Any]]:
@@ -98,7 +116,11 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
                 "selected": study_id == selected_study_id,
                 "state_label": _non_empty_text(item.get("state_label"))
                 or _non_empty_text(user_visible.get("state_label"))
-                or "状态投影缺失",
+                or _state_label_from_health(
+                    health_status=health_status,
+                    worker_running=worker_liveness.get("worker_running") if "worker_running" in worker_liveness else None,
+                    active_run_id=active_run_id,
+                ),
                 "state_summary": _non_empty_text(item.get("state_summary"))
                 or _non_empty_text(user_visible.get("state_summary")),
                 "current_stage": _non_empty_text(item.get("current_stage"))
@@ -120,21 +142,6 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
 
 
 def selected_workspace_study_id(cockpit: Mapping[str, Any]) -> str | None:
-    studies = cockpit.get("studies")
-    if not isinstance(studies, list):
-        return None
-    for item in studies:
-        if not isinstance(item, Mapping):
-            continue
-        if _workspace_study_has_active_signal(item):
-            study_id = _non_empty_text(item.get("study_id"))
-            if study_id is not None:
-                return study_id
-    for item in studies:
-        if isinstance(item, Mapping):
-            study_id = _non_empty_text(item.get("study_id"))
-            if study_id is not None:
-                return study_id
     return None
 
 
@@ -142,29 +149,67 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
     if not studies:
         return ""
     rows = []
+    headers = ("论文线", "状态", "active_run_id", "运行健康", "监管心跳", "进度新鲜度", "论文阶段", "焦点/下一步")
     for item in studies:
         selected_class = " selected" if bool(item.get("selected")) else ""
+        values = (
+            escape(display_text(item.get("study_id"), fallback="未知论文线", preserve_known_token=False)),
+            escape(display_text(item.get("state_label"), fallback="状态投影缺失", preserve_known_token=False)),
+            escape(display_text(item.get("active_run_id"), fallback="无 live run", preserve_known_token=False)),
+            status_chip(item.get("runtime_health_status") or "unknown"),
+            status_chip(item.get("supervisor_tick_status") or "unknown"),
+            status_chip(item.get("progress_freshness_status") or "unknown"),
+            escape(display_text(item.get("paper_stage") or item.get("current_stage"), fallback="未提供")),
+            escape(display_text(item.get("operator_focus") or item.get("next_system_action"), fallback="未提供", preserve_known_token=False)),
+        )
         rows.append(
             "<tr"
-            f' class="study-row{selected_class}">'
-            f"<td>{escape(str(item.get('study_id') or 'unknown-study'))}</td>"
-            f"<td>{escape(str(item.get('state_label') or '状态投影缺失'))}</td>"
-            f"<td>{escape(str(item.get('active_run_id') or 'none'))}</td>"
-            f"<td>{escape(str(item.get('runtime_health_status') or 'unknown'))}</td>"
-            f"<td>{escape(str(item.get('supervisor_tick_status') or 'unknown'))}</td>"
-            f"<td>{escape(str(item.get('progress_freshness_status') or 'unknown'))}</td>"
-            f"<td>{escape(str(item.get('paper_stage') or item.get('current_stage') or 'unknown'))}</td>"
-            f"<td>{escape(str(item.get('operator_focus') or item.get('next_system_action') or 'none'))}</td>"
-            "</tr>"
+            + f' class="study-row{selected_class}">'
+            + "".join(f'<td data-label="{escape(label)}">{value}</td>' for label, value in zip(headers, values, strict=True))
+            + "</tr>"
         )
     return (
         '<section class="panel wide study-overview">'
         "<h2>论文线概览</h2>"
-        '<div class="table-wrap"><table>'
+        '<div class="table-wrap"><table class="responsive-table">'
         "<thead><tr>"
-        "<th>study_id</th><th>状态</th><th>active_run_id</th><th>runtime health</th>"
-        "<th>supervisor</th><th>freshness</th><th>paper/current stage</th><th>焦点/下一步</th>"
+        "<th>论文线</th><th>状态</th><th>active_run_id</th><th>运行健康</th>"
+        "<th>监管心跳</th><th>进度新鲜度</th><th>论文阶段</th><th>焦点/下一步</th>"
         "</tr></thead>"
+        "<tbody>"
+        + "".join(rows)
+        + "</tbody></table></div></section>"
+    )
+
+
+def render_workspace_alerts_section(title: str, items: list[dict[str, str | None]], *, empty_text: str) -> str:
+    if not items:
+        return (
+            '<section class="panel wide">'
+            f"<h2>{escape(title)}</h2>"
+            f"<p>{escape(empty_text)}</p>"
+            "</section>"
+        )
+    rows = []
+    headers = ("当前输出", "来源", "用途", "期望输出", "修复/查看命令")
+    for item in items:
+        values = (
+            escape(str(item.get("current_output") or "")),
+            escape(str(item.get("source") or "")),
+            escape(str(item.get("purpose") or "")),
+            escape(str(item.get("expected") or "")),
+            escape(str(item.get("recommended_command") or "")),
+        )
+        rows.append(
+            "<tr>"
+            + "".join(f'<td data-label="{escape(label)}">{value}</td>' for label, value in zip(headers, values, strict=True))
+            + "</tr>"
+        )
+    return (
+        '<section class="panel wide">'
+        f"<h2>{escape(title)}</h2>"
+        '<div class="table-wrap"><table class="responsive-table">'
+        "<thead><tr><th>当前输出</th><th>来源</th><th>用途</th><th>期望输出</th><th>修复/查看命令</th></tr></thead>"
         "<tbody>"
         + "".join(rows)
         + "</tbody></table></div></section>"
@@ -197,6 +242,70 @@ def _is_parked_study_alert(text: str) -> bool:
     if text in _PARKED_STUDY_WORKSPACE_ALERTS:
         return True
     return any(text.startswith(prefix) for prefix in _PARKED_STUDY_WORKSPACE_ALERTS)
+
+
+def _alert_item(text: str) -> dict[str, str | None]:
+    source = "workspace_cockpit.workspace_alerts"
+    purpose = "提示 workspace 级运行、进度或质量异常。"
+    expected = "具体 study 行应给出 owner、运行健康、进度 freshness 和下一步。"
+    recommended_command: str | None = None
+    if text == "Hermes-hosted runtime supervision 尚未注册。":
+        source = "workspace_supervision.service.summary"
+        purpose = "说明 workspace 级定时监管 job 尚未安装或未注册。"
+        expected = "Hermes gateway cron 应注册并按计划触发 runtime supervision tick。"
+        recommended_command = "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile <profile> --manager hermes --write-install-proof"
+    elif text == "状态需要检查。":
+        source = "workspace_cockpit.generic_status"
+        purpose = "旧版泛化告警；当前已有具体 study 行时不再作为主诊断展示。"
+        expected = "由具体 study 行和 runtime health blocker 取代泛化状态。"
+    elif "medical overlay" in text:
+        source = "product_entry_preflight.medical_overlay_ready"
+        purpose = "提示医学论文运行前置能力尚未全部 ready。"
+        expected = "doctor/product-entry preflight 应通过或给出具体 medical overlay blocker。"
+        recommended_command = "uv run python -m med_autoscience.cli doctor --profile <profile>"
+    elif "meaningful artifact delta" in text or "worker liveness" in text or "12 小时" in text:
+        source = "workspace_cockpit.progress_freshness"
+        purpose = "提示监管心跳不能单独证明论文实际推进。"
+        text = "进度信号：有记录，但 worker 或 artifact delta 不满足继续推进证据。"
+        expected = "worker liveness 或 meaningful artifact delta 应恢复为 fresh，或给出稳定 blocked_reason。"
+        recommended_command = "uv run python -m med_autoscience.cli runtime supervisor-reconcile --profile <profile>"
+    elif _is_parked_study_alert(text):
+        source = "workspace_cockpit.inactive_study_projection"
+        purpose = "说明 parked/manual-hold study 不应被自动唤醒。"
+        expected = "只有用户显式唤醒或新 task intake 才恢复运行。"
+    return {
+        "source": source,
+        "purpose": purpose,
+        "current_output": text,
+        "expected": _localize_status_words(expected),
+        "recommended_command": recommended_command,
+        "diagnostic_visibility": "hide_when_specific_study_rows_exist"
+        if text in _LOW_INFORMATION_GENERIC_ALERTS
+        else "show",
+    }
+
+
+def _state_label_from_health(*, health_status: str | None, worker_running: object, active_run_id: str | None) -> str:
+    if worker_running is True and active_run_id:
+        return "运行中"
+    if health_status == "escalated":
+        return "需要外层 supervisor"
+    if health_status in {"parked", "awaiting_explicit_resume", "await_explicit_resume"}:
+        return "等待显式恢复"
+    if active_run_id:
+        return "有 run 投影但 worker 未确认"
+    return "无 live run"
+
+
+def _localize_status_words(value: str) -> str:
+    result = value
+    for token in ("fresh", "blocked_reason"):
+        result = result.replace(token, status_label(token))
+    return result
+
+
+def _same_alert_family(left: Mapping[str, str | None], right: Mapping[str, str | None]) -> bool:
+    return left.get("source") == right.get("source") and left.get("current_output") == right.get("current_output")
 
 
 def _string_list(value: object) -> list[str]:

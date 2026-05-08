@@ -14,7 +14,7 @@ def live_console_projection(*, disabled_reason: str | None = None) -> dict[str, 
     reason = disabled_reason.strip() if isinstance(disabled_reason, str) and disabled_reason.strip() else None
     return {
         "available": reason is None,
-        "label": "Live Console",
+        "label": "运行控制台",
         "html_ref": LIVE_CONSOLE_HTML_REF,
         "session_read_model_ref": LIVE_CONSOLE_SESSION_READ_MODEL_REF,
         "serve_command": LIVE_CONSOLE_SERVE_COMMAND,
@@ -26,19 +26,19 @@ def live_console_projection(*, disabled_reason: str | None = None) -> dict[str, 
 def render_live_console_portal_link(live_console: Mapping[str, Any]) -> str:
     if not live_console:
         return ""
-    label = _non_empty_text(live_console.get("label")) or "Live Console"
+    label = _non_empty_text(live_console.get("label")) or "运行控制台"
     serve_command = _non_empty_text(live_console.get("serve_command")) or LIVE_CONSOLE_SERVE_COMMAND
     if bool(live_console.get("available")):
         return (
             '<div class="live-console-link">'
-            '<a href="../live-console/index.html">Live Console</a>'
+            '<a href="../live-console/index.html">运行控制台</a>'
             f"<span>{escape(serve_command)}</span>"
             "</div>"
         )
-    reason = _non_empty_text(live_console.get("disabled_reason")) or "Live Console is not available."
+    reason = _non_empty_text(live_console.get("disabled_reason")) or "运行控制台不可用。"
     return (
         '<div class="live-console-link disabled">'
-        f"<strong>{escape(label)} unavailable</strong>"
+        f"<strong>{escape(label)}不可用</strong>"
         f"<span>{escape(reason)}</span>"
         "</div>"
     )
@@ -53,7 +53,7 @@ def render_live_console_static_shell() -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MAS Live Console</title>
+<title>MAS 运行控制台</title>
 <style>
 :root {{ color-scheme: light; --ink:#172026; --muted:#5b6770; --line:#d9e0e6; --panel:#ffffff; --bg:#f5f7f9; --accent:#0f766e; --soft:#e9f5f3; --warn:#8a5a00; --code:#101820; }}
 * {{ box-sizing: border-box; }}
@@ -91,40 +91,40 @@ li {{ margin: 6px 0; overflow-wrap: anywhere; }}
 <header>
   <div>
     <div class="brand">Med Auto Science</div>
-    <h1>MAS Live Console</h1>
-    <p class="subtle">MAS-authored read-only view for workspace, study, run, terminal, log, and artifact observation.</p>
+    <h1>MAS 运行控制台</h1>
+    <p class="subtle">只读查看 workspace、study、run、终端尾部、日志尾部和产物引用；运行变更必须回到 MAS controller。</p>
   </div>
   <div class="top-actions">
-    <span class="badge">Read-only</span>
-    <a href="../progress/index.html">Progress Portal</a>
+    <span class="badge">只读</span>
+    <a href="../progress/index.html">返回进度入口</a>
   </div>
 </header>
 <main>
   <section class="stack" aria-labelledby="workspace-study-run-heading">
-    <h2 id="workspace-study-run-heading">Workspace / Study / Run</h2>
-    <div class="item"><strong>progress portal</strong><span>ops/mas/progress/index.html</span></div>
-    <div class="item"><strong>read model</strong><span>{escape(model_ref)}</span></div>
-    <div class="item"><strong>serve command</strong><span><code>{serve_command}</code></span></div>
+    <h2 id="workspace-study-run-heading">工作区 / 论文线 / 运行</h2>
+    <div class="item"><strong>进度入口</strong><span>ops/mas/progress/index.html</span></div>
+    <div class="item"><strong>读取模型</strong><span>{escape(model_ref)}</span></div>
+    <div class="item"><strong>刷新命令</strong><span><code>{serve_command}</code></span></div>
     <div id="run-list" class="stack"></div>
   </section>
   <section class="stack" aria-labelledby="timeline-heading">
-    <h2 id="timeline-heading">Timeline</h2>
+    <h2 id="timeline-heading">运行时间线</h2>
     <div id="timeline" class="timeline"></div>
-    <h2>Artifact Refs</h2>
+    <h2>产物来源</h2>
     <ul id="artifact-refs"></ul>
   </section>
   <section class="stack" aria-labelledby="stream-heading">
-    <h2 id="stream-heading">Terminal / Log Stream</h2>
-    <div id="stream" class="stream">Waiting for {escape(model_ref)}.
-Start the read-only local service with:
+    <h2 id="stream-heading">终端 / 日志来源</h2>
+    <div id="stream" class="stream">等待读取 {escape(model_ref)}。
+启动只读本地服务：
 {serve_command}</div>
     <div class="intent">
-      <h2>Controller Action Intent</h2>
-      <p class="subtle">This shell shows intent only. Runtime changes still require MAS controller-owned commands.</p>
+      <h2>控制器动作意图</h2>
+      <p class="subtle">这里只展示动作意图；暂停、恢复、重启或 reconcile 仍必须由 MAS controller-owned 命令执行。</p>
       <dl>
-        <div><dt>inspect progress</dt><dd><code>medautosci workspace progress-portal --profile &lt;profile&gt;</code></dd></div>
-        <div><dt>open runtime console</dt><dd><code>{serve_command}</code></dd></div>
-        <div><dt>request reconcile</dt><dd><code>controller-required runtime reconcile intent</code></dd></div>
+        <div><dt>查看进度</dt><dd><code>medautosci workspace progress-portal --profile &lt;profile&gt;</code></dd></div>
+        <div><dt>刷新控制台</dt><dd><code>{serve_command}</code></dd></div>
+        <div><dt>请求 reconcile</dt><dd><code>controller-required runtime reconcile intent</code></dd></div>
       </dl>
     </div>
   </section>
@@ -189,7 +189,7 @@ const render = (payload) => {{
     const wrapper = document.createElement("div");
     wrapper.className = "item";
     appendText(wrapper, "strong", "status");
-    appendText(wrapper, "span", "No live console session read model has been generated yet.");
+    appendText(wrapper, "span", "尚未生成 live-console session read model。");
     runList.appendChild(wrapper);
   }}
   const events = list(payload?.timeline || payload?.latest_events || payload?.events);
@@ -198,20 +198,20 @@ const render = (payload) => {{
   if (events.length) {{
     events.forEach((event) => appendEventItem(timeline, event, payload));
   }} else {{
-    appendEventItem(timeline, {{ summary: "No timeline events loaded." }}, payload);
+    appendEventItem(timeline, {{ summary: "尚未加载运行时间线事件。" }}, payload);
   }}
-  renderList("artifact-refs", list(payload?.source_refs), "No artifact refs loaded.");
+  renderList("artifact-refs", list(payload?.source_refs), "尚未加载产物来源。");
   const terminalSources = list(payload?.stream_sources).filter((item) => item.topic === "terminal.tail");
   const logSources = list(payload?.stream_sources).filter((item) => item.topic === "log.tail");
   const streamLines = [
-    `read_model: ${{MODEL_LABEL}}`,
-    `workspace: ${{text(payload?.workspace?.workspace_root || payload?.workspace_root)}}`,
-    `selected_study_id: ${{text(payload?.selected_study_id, "none")}}`,
+    `读取模型: ${{MODEL_LABEL}}`,
+    `工作区: ${{text(payload?.workspace?.workspace_root || payload?.workspace_root)}}`,
+    `当前论文线: ${{text(payload?.selected_study_id, "none")}}`,
     "",
-    "terminal sources:",
+    "终端来源:",
     ...(terminalSources.length ? terminalSources.map((item) => `  - ${{text(item.source_ref || item.ref || item)}}`) : ["  - none"]),
     "",
-    "log sources:",
+    "日志来源:",
     ...(logSources.length ? logSources.map((item) => `  - ${{text(item.source_ref || item.ref || item)}}`) : ["  - none"]),
   ];
   document.getElementById("stream").textContent = streamLines.join("\\n");

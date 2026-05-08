@@ -15,6 +15,8 @@ from med_autoscience.controllers.progress_portal_parts import (
     condition_badge,
     condition_section,
     dedupe_texts,
+    display_source_refs,
+    display_text,
     event_section,
     gate_text,
     list_html,
@@ -22,14 +24,23 @@ from med_autoscience.controllers.progress_portal_parts import (
     live_console_projection,
     local_time_projection,
     portal_css,
+    progress_section_explanations,
     refresh_meta,
     render_live_console_portal_link,
+    render_section_explanations_section,
+    render_workspace_alerts_section,
     render_workspace_studies_section,
     runtime_continuity_section,
     section,
     selected_workspace_study_id,
+    source_refs as collect_source_refs,
+    status_chip,
     unique_text,
     workspace_alert_projection,
+    workspace_delivery_paragraphs,
+    workspace_next_step_paragraphs,
+    workspace_quality_paragraphs,
+    workspace_status_paragraphs,
     workspace_studies,
 )
 from med_autoscience.controllers.runtime_continuity_projection import runtime_continuity_projection
@@ -118,7 +129,7 @@ def build_progress_portal_payload(
         cockpit.get("workspace_alerts"),
         workspace_studies=workspace_study_rows,
     )
-    source_refs = _source_refs(progress, cockpit, runtime, package)
+    source_refs = collect_source_refs(progress, cockpit, runtime, package)
     source_payloads = {
         "progress": _source_payload_summary(progress),
         "cockpit": _source_payload_summary(cockpit),
@@ -127,6 +138,11 @@ def build_progress_portal_payload(
     }
     runtime_continuity = _runtime_continuity(progress, runtime)
     live_console = live_console_projection(disabled_reason=live_console_disabled_reason)
+    has_workspace_studies = bool(workspace_study_rows)
+    has_workspace_alerts = bool(workspace_alerts["visible_items"])
+    has_diagnostics = bool(workspace_alerts["suppressed_items"])
+    has_latest_events = bool(latest_events)
+    has_source_refs = bool(source_refs)
     conditions = _conditions(
         study_id=resolved_study_id,
         progress=progress,
@@ -157,9 +173,11 @@ def build_progress_portal_payload(
             "workspace_root": str(resolved_workspace_root),
             "workspace_status": _non_empty_text(cockpit.get("workspace_status")),
             "workspace_alerts": workspace_alerts["visible"],
+            "workspace_alert_items": workspace_alerts["visible_items"],
             "studies": workspace_study_rows,
             "diagnostics": {
                 "suppressed_alerts": workspace_alerts["suppressed"],
+                "suppressed_alert_items": workspace_alerts["suppressed_items"],
                 "suppressed_alert_policy": "legacy_runtime_or_inactive_study_noise",
             },
         },
@@ -169,7 +187,7 @@ def build_progress_portal_payload(
             "state_label": _field(
                 user_visible,
                 "state_label",
-                "Workspace overview" if workspace_overview_mode else "状态投影缺失",
+                "工作区概览" if workspace_overview_mode else "状态投影缺失",
             ),
             "state_summary": _field(
                 user_visible,
@@ -198,6 +216,15 @@ def build_progress_portal_payload(
         "delivery": delivery,
         "live_console": live_console,
         "conditions": conditions,
+        "section_explanations": progress_section_explanations(
+            workspace_overview_mode=workspace_overview_mode,
+            has_workspace_studies=has_workspace_studies,
+            has_workspace_alerts=has_workspace_alerts,
+            has_diagnostics=has_diagnostics,
+            has_latest_events=has_latest_events,
+            has_source_refs=has_source_refs,
+            live_console_available=bool(live_console.get("available")),
+        ),
         "source_refs": source_refs,
         "source_payloads": source_payloads,
         "opl_handoff": _opl_handoff_projection(
@@ -227,9 +254,11 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
     delivery = _mapping(payload.get("delivery"))
     live_console = _mapping(payload.get("live_console"))
     conditions = _mapping(payload.get("conditions"))
+    workspace_diagnostics = _mapping(workspace.get("diagnostics"))
     runtime_continuity = _mapping(study.get("runtime_continuity"))
+    section_explanations = _mapping_list(payload.get("section_explanations"))
     latest_events = [dict(item) for item in payload.get("latest_events") or [] if isinstance(item, Mapping)]
-    source_refs = _display_source_refs(payload.get("source_refs"))
+    source_refs = display_source_refs(payload.get("source_refs"))
     workspace_studies = [
         dict(item)
         for item in workspace.get("studies") or []
@@ -247,6 +276,8 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
     condition_badge_label = condition_badge(conditions)
     blockers = _string_list(study.get("current_blockers"))
     workspace_alerts = _string_list(workspace.get("workspace_alerts"))
+    workspace_alert_items = _mapping_list(workspace.get("workspace_alert_items"))
+    suppressed_alert_items = _mapping_list(workspace_diagnostics.get("suppressed_alert_items"))
     current_status_paragraphs = dedupe_texts(
         [
             str(study.get("state_summary") or "当前缺少状态摘要。"),
@@ -262,6 +293,21 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             str(quality.get("summary") or "质量投影缺失。"),
         ]
     )
+    workspace_overview_mode = str(study.get("scope") or "") == "workspace"
+    if workspace_overview_mode:
+        current_status_paragraphs = workspace_status_paragraphs(workspace_studies)
+        next_step_paragraphs = workspace_next_step_paragraphs(workspace_studies)
+        paper_paragraphs = workspace_quality_paragraphs(workspace_studies)
+        delivery_paragraphs = workspace_delivery_paragraphs(workspace_studies)
+    else:
+        next_step_paragraphs = [
+            str(study.get("next_system_action") or "等待 MAS 重新生成下一步投影。"),
+            gate_text(study),
+        ]
+        delivery_paragraphs = [
+            str(delivery.get("summary") or "交付投影缺失。"),
+            display_text(delivery.get("status"), fallback="交付状态未提供"),
+        ]
     return "\n".join(
         [
             "<!doctype html>",
@@ -282,12 +328,12 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             f"<h1>{escape(workspace_title)}</h1>",
             f'<p class="state">{escape(state_label)}</p>',
             '<dl class="meta">',
-            f"<div><dt>generated_at local</dt><dd>{escape(generated_at_local_label)}</dd></div>",
-            f"<div><dt>generated_at UTC</dt><dd>{escape(generated_at)}</dd></div>",
-            f"<div><dt>freshness</dt><dd>{escape(str(freshness.get('status') or 'unknown'))}</dd></div>",
-            f"<div><dt>workspace</dt><dd>{escape(str(workspace.get('profile_name') or 'unknown'))}</dd></div>",
-            f"<div><dt>selected study</dt><dd>{escape(selected_study_id)}</dd></div>",
-            f"<div><dt>conditions</dt><dd>{escape(condition_badge_label)}</dd></div>",
+            f"<div><dt>本机时间</dt><dd>{escape(generated_at_local_label)}</dd></div>",
+            f"<div><dt>UTC 时间</dt><dd>{escape(generated_at)}</dd></div>",
+            f"<div><dt>进度新鲜度</dt><dd>{status_chip(freshness.get('status') or 'unknown')}</dd></div>",
+            f"<div><dt>工作区</dt><dd>{escape(str(workspace.get('profile_name') or 'unknown'))}</dd></div>",
+            f"<div><dt>当前论文线</dt><dd>{escape('工作区总览' if workspace_overview_mode else selected_study_id)}</dd></div>",
+            f"<div><dt>状态缺口</dt><dd>{escape(condition_badge_label)}</dd></div>",
             "</dl>",
             render_live_console_portal_link(live_console),
             "</header>",
@@ -299,10 +345,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             ),
             section(
                 "下一步",
-                [
-                    str(study.get("next_system_action") or "等待 MAS 重新生成下一步投影。"),
-                    gate_text(study),
-                ],
+                next_step_paragraphs,
             ),
             runtime_continuity_section(runtime_continuity),
             section(
@@ -311,19 +354,26 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             ),
             section(
                 "文件与交付",
-                [
-                    str(delivery.get("summary") or "交付投影缺失。"),
-                    str(delivery.get("status") or "unknown"),
-                ],
+                delivery_paragraphs,
             ),
             "</section>",
-            list_section("当前阻塞", blockers, empty_text="当前没有投影出的阻塞项。"),
-            list_section("Workspace Alerts", workspace_alerts, empty_text="当前没有 workspace alert。"),
+            list_section("当前阻塞", [display_text(item, fallback='未提供') for item in blockers], empty_text="当前没有投影出的阻塞项。"),
+            render_workspace_alerts_section(
+                "工作区告警",
+                workspace_alert_items,
+                empty_text="当前没有 workspace 级告警。",
+            ),
+            render_workspace_alerts_section(
+                "诊断与修复建议",
+                suppressed_alert_items,
+                empty_text="当前没有被降级的旧/泛化诊断。",
+            ),
             event_section(latest_events),
             condition_section(conditions),
+            render_section_explanations_section(section_explanations),
             '<details class="refs">',
-            f"<summary>source refs ({len(source_refs)}/{len(_string_list(payload.get('source_refs')))})</summary>",
-            list_html(source_refs, empty_text="No source refs were available."),
+            f"<summary>数据来源 ({len(source_refs)}/{len(_string_list(payload.get('source_refs')))})</summary>",
+            list_html(source_refs, empty_text="当前没有可展示的数据来源。"),
             "</details>",
             "</main>",
             "</body>",
@@ -594,6 +644,12 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
+def _mapping_list(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
 def _valid_user_visible_projection(value: object) -> dict[str, Any]:
     projection = _mapping(value)
     if projection.get("schema_version") != 2:
@@ -627,7 +683,7 @@ def _freshness(value: object) -> dict[str, Any]:
     status = _non_empty_text(freshness.get("status")) or "missing"
     return {
         "status": status,
-        "summary": _non_empty_text(freshness.get("summary")) or "progress freshness surface is missing.",
+        "summary": _non_empty_text(freshness.get("summary")) or "进度新鲜度 surface 缺失。",
         "latest_event_at": _non_empty_text(freshness.get("latest_event_at")),
     }
 
@@ -665,7 +721,7 @@ def _quality_summary(publication_eval: object) -> dict[str, Any]:
             )
     return {
         "status": _non_empty_text(verdict.get("overall_verdict")) or ("missing" if not payload else "unknown"),
-        "summary": _non_empty_text(verdict.get("summary")) or "publication evaluation projection is missing.",
+        "summary": _non_empty_text(verdict.get("summary")) or "publication evaluation projection 缺失。",
         "checks": checks,
     }
 
@@ -680,7 +736,7 @@ def _delivery_summary(
     if package and (package_study_id is None or package_study_id == study_id):
         return {
             "status": _non_empty_text(package.get("status")) or "unknown",
-            "summary": _non_empty_text(package.get("summary")) or "package projection is available.",
+            "summary": _non_empty_text(package.get("summary")) or "package projection 已存在。",
             "refs": _string_list(package.get("refs")),
         }
     delivery = _mapping(progress.get("delivery_inspection"))
@@ -688,12 +744,12 @@ def _delivery_summary(
     if current_package:
         return {
             "status": _non_empty_text(current_package.get("status")) or "unknown",
-            "summary": _non_empty_text(current_package.get("summary")) or "current package projection is available.",
+            "summary": _non_empty_text(current_package.get("summary")) or "current package projection 已存在。",
             "refs": _string_list(current_package.get("refs")),
         }
     return {
         "status": "missing",
-        "summary": "current package projection is missing.",
+        "summary": "current package projection 缺失。",
         "refs": [],
     }
 
@@ -741,63 +797,6 @@ def _outer_supervision_slo(value: object) -> dict[str, Any]:
 
 def _runtime_continuity(progress: Mapping[str, Any], runtime: Mapping[str, Any]) -> dict[str, Any]:
     return runtime_continuity_projection(progress, runtime)
-
-
-def _source_refs(*payloads: Mapping[str, Any]) -> list[str]:
-    refs: list[str] = []
-    for payload in payloads:
-        refs.extend(_refs_from(payload))
-    return sorted(dict.fromkeys(ref for ref in refs if _source_ref_allowed(ref)))
-
-
-def _source_ref_allowed(ref: str) -> bool:
-    blocked_tokens = (
-        "/ops/med-deepscientist/",
-        "med-deepscientist",
-        ".ds/worktrees",
-    )
-    return not any(token in ref for token in blocked_tokens)
-
-
-def _refs_from(value: object) -> list[str]:
-    refs: list[str] = []
-    if isinstance(value, str):
-        if _looks_like_ref(value):
-            refs.append(value)
-        return refs
-    if isinstance(value, Mapping):
-        for key, item in value.items():
-            if str(key).endswith("refs") or str(key) in {"refs", "evidence_refs", "source_refs"}:
-                refs.extend(_refs_from_ref_field(item))
-            elif str(key).endswith("ref") or str(key).endswith("path"):
-                refs.extend(_refs_from_ref_field(item))
-            elif isinstance(item, (Mapping, list, tuple)):
-                refs.extend(_refs_from(item))
-        return refs
-    if isinstance(value, list | tuple):
-        for item in value:
-            refs.extend(_refs_from(item))
-    return refs
-
-
-def _refs_from_ref_field(value: object) -> list[str]:
-    if isinstance(value, str) and value.strip():
-        return [value.strip()]
-    if isinstance(value, Mapping):
-        result: list[str] = []
-        for item in value.values():
-            result.extend(_refs_from_ref_field(item))
-        return result
-    if isinstance(value, list | tuple):
-        result: list[str] = []
-        for item in value:
-            result.extend(_refs_from_ref_field(item))
-        return result
-    return []
-
-
-def _looks_like_ref(value: str) -> bool:
-    return "/" in value or value.endswith(".json") or value.endswith(".yaml")
 
 
 def _conditions(
@@ -873,34 +872,6 @@ def _source_payload_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         "status": _non_empty_text(payload.get("status")),
         "surface_kind": _non_empty_text(payload.get("surface_kind")),
     }
-
-
-def _display_source_refs(value: object) -> list[str]:
-    refs = _string_list(value)
-    priority_tokens = (
-        "/artifacts/runtime/health/",
-        "/artifacts/runtime/runtime_supervision/",
-        "/artifacts/controller_decisions/",
-        "/artifacts/publication_eval/",
-        "/artifacts/truth/",
-        "/artifacts/runtime/progress_portal/",
-        "/artifacts/supervision/hourly/",
-        "/runtime/quests/",
-    )
-    blocked_tokens = (
-        "/ops/med-deepscientist/",
-        "med-deepscientist",
-        ".ds/worktrees",
-    )
-    selected: list[str] = []
-    for ref in refs:
-        if any(token in ref for token in blocked_tokens):
-            continue
-        if any(token in ref for token in priority_tokens):
-            selected.append(ref)
-        if len(selected) >= 24:
-            break
-    return selected
 
 
 def _opl_handoff_projection(

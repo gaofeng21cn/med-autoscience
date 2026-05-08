@@ -225,12 +225,95 @@ def test_live_console_profile_session_read_model_does_not_default_select_first_s
 
     assert payload["surface_kind"] == "mas_live_console_session_read_model"
     assert payload["selected_study_id"] is None
+    assert payload["empty_state"]["reason"] == "no_live_run"
+    assert payload["empty_state"]["study_count"] == 3
+    assert all(study["runtime_observation_status"] == "no_live_run" for study in payload["studies"])
     assert {study["study_id"] for study in payload["studies"]} == {
         "001-dm-cvd-mortality-risk",
         "002-dm-china-us-mortality-attribution",
         "003-dpcc-primary-care-phenotype-treatment-gap",
     }
     assert all(study["selected"] is False for study in payload["studies"])
+
+
+def test_live_console_session_read_model_uses_workspace_cockpit_labels_when_study_progress_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = profile.studies_root / study_id
+    _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
+    _write_json(
+        profile.workspace_root / "artifacts" / "runtime" / "workspace_cockpit" / "latest.json",
+        {
+            "workspace_status": "blocked",
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "state_label": "自动运行中",
+                    "current_stage": "live",
+                    "paper_stage": "analysis-campaign",
+                    "next_system_action": "观察自动运行推进。",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "health" / "latest.json",
+        {
+            "study_id": study_id,
+            "attempt_state": "escalated",
+            "blocking_reasons": [
+                "quest_marked_running_but_no_live_session",
+                "runtime_recovery_retry_budget_exhausted",
+            ],
+            "canonical_runtime_action": "external_supervisor_required",
+            "worker_liveness_state": {"worker_running": False, "active_run_id": None},
+            "supervisor_state": {"status": "stale"},
+        },
+    )
+
+    payload = module.build_live_console_session_read_model(profile, generated_at="2026-05-08T02:05:00+00:00")
+    study = payload["studies"][0]
+
+    assert study["state_label"] == "自动运行中"
+    assert study["current_stage"] == "live"
+    assert study["paper_stage"] == "analysis-campaign"
+    assert study["next_action_summary"] == "观察自动运行推进。"
+    assert study["runtime_observation_status"] == "no_live_run"
+    assert study["blocking_reasons"] == [
+        "quest_marked_running_but_no_live_session",
+        "runtime_recovery_retry_budget_exhausted",
+    ]
+
+
+def test_live_console_session_read_model_derives_readable_state_from_health_when_progress_missing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = profile.studies_root / study_id
+    _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
+    _write_json(
+        study_root / "artifacts" / "runtime" / "health" / "latest.json",
+        {
+            "study_id": study_id,
+            "attempt_state": "escalated",
+            "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            "canonical_runtime_action": "external_supervisor_required",
+            "worker_liveness_state": {"worker_running": None, "active_run_id": None},
+            "supervisor_state": {"status": "fresh"},
+        },
+    )
+
+    payload = module.build_live_console_session_read_model(profile, generated_at="2026-05-08T02:05:00+00:00")
+    study = payload["studies"][0]
+
+    assert study["state_label"] == "需要外层 supervisor"
+    assert study["current_stage"] == "runtime_repair_required"
+    assert study["runtime_health_status"] == "escalated"
+    assert study["supervisor_tick_status"] == "fresh"
+    assert study["runtime_observation_status"] == "no_live_run"
 
 
 def test_live_console_session_read_model_distinguishes_dm002_and_dpcc003(tmp_path: Path) -> None:
@@ -341,7 +424,7 @@ def test_live_console_profile_snapshot_materializes_current_ui_payload_and_html(
     assert "003-dpcc-primary-care-phenotype-treatment-gap" in html
     assert "run-dm002-live" in html
     assert "http://127.0.0.1:4812/events" in html
-    assert "generated_at local" in html
+    assert "本机时间" in html
     assert "med-deepscientist" not in html.lower()
 
 

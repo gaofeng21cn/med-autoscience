@@ -27,6 +27,8 @@ Contract ID: `live-console-parity`
 
 2026-05-08 user-view parity 校准：旧 MDS WebUI 的用户路径是 per-project/per-quest workspace；当前 MAS Portal 默认是 per-workspace fixed entry，虽然能列出多条 `study_id`，但多论文 workspace 仍容易混读。Progress Portal 的体验等价尚未完成，后续应优先落地 study-scoped Portal IA、per-study deep link、单篇论文 Path/Stage/Runtime/Conversation/Terminal/Artifacts 视图。详细 gap review 见 [MDS WebUI User Parity Gap Review](../references/mds_webui_user_parity_gap_review.md)。
 
+2026-05-08 UI polish 更新：Live Console 的可用性标准提升为“空状态也必须有信息”。当 DM002/DPCC003 等 study 没有 live run 时，页面仍要列出每条 study 的 runtime health、blocker、canonical runtime action、terminal/log missing source refs 和 controller action intent。`none`、`unknown`、`source`、`study.status`、`runtime.health` 等内部值不得直接作为主 UI 文案；它们只允许作为 payload 或 source-ref 审计值保留。
+
 ## 设计边界
 
 - 不导入旧 MDS WebUI 代码、git history、assets、package lock 或 contributor footprint。
@@ -77,7 +79,7 @@ MAS-authored static UI shell：
   - 明确只读 badge 与 controller action deep links。
 - Progress Portal header 增加 live console link；Console header 增加返回 Progress Portal link。
 - 当前落地边界：`runtime_live_console_ui` 只提供静态 shell renderer 和 payload normalization；workspace/study/run、timeline、terminal/log tail、artifact/event refs 均来自传入 snapshot，不制造新的 runtime truth。
- - 后续 Portal UX parity：Portal 应从 workspace overview 进一步拆出 per-study/per-paper detail，使旧 MDS per-quest 工作台语义以 MAS-owned clean-room IA 保留下来。
+- 后续 Portal UX parity：Portal 应从 workspace overview 进一步拆出 per-study/per-paper detail，使旧 MDS per-quest 工作台语义以 MAS-owned clean-room IA 保留下来。
 
 ### Layer 4: Controller Action Links
 
@@ -152,7 +154,11 @@ Live Console 只能写 MAS-owned read-model/display artifacts，例如 `artifact
 - 验收：
   - Portal H1 是 workspace；
   - 时间显示本机时区；
+  - Portal / Live Console 主 UI 标签使用中文，英文只保留在技术值、命令或 source ref 中；
+  - workspace alerts 显示来源、用途、当前输出、期望输出和可用修复命令；
+  - workspace overview 不把单篇 publication/package 缺失 fallback 渲染成 workspace 级阻塞；
   - Live Console 能分辨 DM002/DPCC003；
+  - 没有 live run 时明确显示 no-live-run 空状态、blocker/action intent 和 terminal/log missing source refs；
   - terminal/log stream 可读；
   - controller action 不被 UI 直接执行；
   - 页面不出现旧 MDS product identity。

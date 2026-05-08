@@ -263,8 +263,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     live_console_html_text = live_console_html.read_text(encoding="utf-8")
     assert "MedAutoScience Progress Portal" in progress_portal_html_text
     assert "progress-portal" in progress_portal_html_text
-    assert "Live Console" in progress_portal_html_text
-    assert "MAS Live Console" in live_console_html_text
+    assert "运行控制台" in progress_portal_html_text
+    assert "MAS 运行控制台" in live_console_html_text
     assert "runtime live-console" in live_console_html_text
     assert "DeepScientist" not in progress_portal_html_text
     assert "DeepScientist" not in live_console_html_text

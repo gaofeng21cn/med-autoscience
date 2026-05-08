@@ -88,6 +88,24 @@ Portal 首屏必须回答这些问题：
 - 从 Portal 进入 Live Console 时应携带 study scope；profile-level Live Console 只作为维护者总览。
 - 当前实现若只能生成 workspace overview，应显式显示这是概览页，并提供下一步 per-study deep link / refresh 计划。
 
+Portal 主 UI 标签默认使用中文。顶部必须同时显示本机时区时间和 UTC `generated_at`；本机时间要带 IANA timezone，例如 `Asia/Shanghai`，避免跨时区排障时把 stale / fresh 误判成时钟问题。
+
+workspace overview 模式是多论文线入口，不是某一篇论文的详情页。该模式必须把 `workspace.studies` 作为首屏主体，显示每条 study 的 `study_id`、运行健康、监管心跳、进度新鲜度、论文阶段和下一步；不得把缺少单篇 `publication_eval` 或 `current_package` 的 fallback 文案渲染成 workspace 级问题。单篇质量门禁和交付包结论只在具体 study 视图中展示。
+
+workspace alerts 必须保留解释层。每条可见告警或降级诊断都要说明：
+
+- 来源：例如 `workspace_cockpit.workspace_alerts`、`workspace_supervision.service.summary`、`product_entry_preflight.medical_overlay_ready`。
+- 用途：这条信息用来提醒运行、进度、质量还是诊断缺口。
+- 当前输出：原始 read-model 当前给出的文本或状态。
+- 期望输出：恢复后应该看到的具体状态或更具体 blocker。
+- 修复/查看命令：如果已有受控 CLI，例如 `runtime-ensure-supervision` 或 `doctor --profile`，应显示命令；没有命令时保持为空。
+
+`Hermes-hosted runtime supervision 尚未注册。` 是真实 workspace supervision blocker 时，应显示在“诊断与修复建议”里，并指向 `runtime-ensure-supervision`；`状态需要检查。` 这类泛化旧文案应标为低信息诊断，由具体 study 行和 runtime health blocker 取代。
+
+如果 `runtime-supervision-status --profile <profile>` 显示 `status=loaded`、`job_exists=true`、`script_exists=true` 且最近一次运行成功，Portal 不应继续把 “Hermes-hosted runtime supervision 尚未注册。” 当作当前问题展示。若这条文案仍从旧 `workspace_cockpit.workspace_alerts` 传入，只能落入诊断表并携带来源/修复命令；若现场 supervision 已在线且具体 study 行已经给出 runtime health blocker，`状态需要检查。` 应完全隐藏，避免医生/PI 把低信息历史诊断误认为待处理任务。
+
+当前 UI 采用简洁的 operational dashboard 形态：状态用 chip/tag 呈现，表格负责多 study 区分，告警表负责来源/用途/期望/命令。设计参考原则来自 `awesome-design-md` / GetDesign.md 一类 design-context-first 方法，以及 Material / Carbon / Atlassian 的状态 chip、tag、lozenge 和 data-table 模式：少装饰、强对齐、可扫描、状态含义不只靠颜色表达。
+
 ## 数据与 Authority 边界
 
 Portal 的输入来自现有 MAS surface：

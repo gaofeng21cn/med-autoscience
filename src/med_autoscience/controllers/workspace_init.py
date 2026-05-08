@@ -173,7 +173,7 @@ def _render_progress_portal_placeholder() -> str:
         "  <main>\n"
         "    <h1>MedAutoScience Progress Portal</h1>\n"
         "    <p>进度快照尚未生成。运行 <code>ops/medautoscience/bin/progress-portal</code> 刷新此入口。</p>\n"
-        '    <p><a href="../live-console/index.html">Live Console</a> 提供只读 runtime console shell。</p>\n'
+        '    <p><a href="../live-console/index.html">运行控制台</a> 提供只读 runtime console shell。</p>\n'
         "  </main>\n"
         "</body>\n"
         "</html>\n"
