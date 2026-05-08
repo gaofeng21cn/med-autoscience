@@ -52,16 +52,21 @@ def test_inspect_workspace_contracts_reports_missing_items(tmp_path: Path) -> No
     assert result["runtime_contract"]["legacy_diagnostic"]["med_deepscientist_runtime_root_exists"] is False
     assert result["runtime_contract"]["ready"] is False
 
+    assert result["launcher_contract"]["surface_kind"] == "backend_audit_contract"
+    assert result["launcher_contract"]["retained_entry"] == "backend_audit"
+    assert result["launcher_contract"]["read_only"] is True
+    assert result["launcher_contract"]["default_runner_allowed"] is False
+    assert result["launcher_contract"]["default_webui_allowed"] is False
     assert result["launcher_contract"]["checks"]["medautoscience_config_env_exists"] is False
     assert result["launcher_contract"]["checks"]["controlled_backend_config_env_exists"] is False
     assert result["launcher_contract"]["checks"]["controlled_backend_bin_dir_exists"] is False
     assert result["launcher_contract"]["controlled_backend_repo_root_configured_for_audit"] is True
-    assert result["launcher_contract"]["checks"]["controlled_backend_launcher_configured"] is False
-    assert result["launcher_contract"]["checks"]["controlled_backend_launcher_absolute"] is False
-    assert result["launcher_contract"]["checks"]["controlled_backend_launcher_exists"] is False
-    assert result["launcher_contract"]["checks"]["controlled_backend_launcher_executable"] is False
+    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_configured"] is False
+    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_absolute"] is False
+    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_exists"] is False
+    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_executable"] is False
     assert result["launcher_contract"]["legacy_diagnostic"]["read_only"] is True
-    assert result["launcher_contract"]["ready"] is False
+    assert result["launcher_contract"]["ready"] is True
 
     assert result["behavior_gate"]["checks"]["gate_file_exists"] is False
     assert result["behavior_gate"]["phase_25_ready"] is False
@@ -105,7 +110,8 @@ def test_inspect_workspace_contracts_accepts_phase_25_ready_gate(tmp_path: Path)
     result = module.inspect_workspace_contracts(profile)
 
     assert result["runtime_contract"]["ready"] is True
-    assert result["launcher_contract"]["ready"] is True
+    assert result["launcher_contract"]["ready"] is False
+    assert "launcher_contract.default_mds_runner_configured" in result["launcher_contract"]["issues"]
     assert result["launcher_contract"]["resolved_launcher_path"] == str(launcher_path)
     assert result["behavior_gate"]["checks"]["schema_version_present"] is True
     assert result["behavior_gate"]["checks"]["phase_25_ready_is_bool"] is True
@@ -166,7 +172,8 @@ def test_inspect_workspace_contracts_accepts_mas_first_runtime_bridge(tmp_path: 
     result = module.inspect_workspace_contracts(profile)
 
     assert result["runtime_contract"]["ready"] is True
-    assert result["launcher_contract"]["ready"] is True
+    assert result["launcher_contract"]["ready"] is False
+    assert "launcher_contract.default_mds_runner_configured" in result["launcher_contract"]["issues"]
     assert result["launcher_contract"]["controlled_backend_config_env"] == str(runtime_bridge_root / "config.env")
     assert result["launcher_contract"]["controlled_backend_bin_dir"] == str(runtime_bridge_root / "bin")
     assert result["launcher_contract"]["legacy_diagnostic"]["med_deepscientist_config_env"] == str(
@@ -252,11 +259,11 @@ def test_inspect_workspace_contracts_rejects_placeholder_launcher_path(tmp_path:
 
     assert result["launcher_contract"]["ready"] is False
     assert result["launcher_contract"]["resolved_launcher_path"] == "/ABS/PATH/TO/ds"
-    assert result["launcher_contract"]["checks"]["controlled_backend_launcher_configured"] is True
-    assert result["launcher_contract"]["checks"]["controlled_backend_launcher_absolute"] is True
-    assert result["launcher_contract"]["checks"]["controlled_backend_launcher_exists"] is False
-    assert result["launcher_contract"]["checks"]["controlled_backend_launcher_executable"] is False
-    assert "launcher_contract.controlled_backend_launcher_exists" in result["launcher_contract"]["issues"]
+    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_configured"] is True
+    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_absolute"] is True
+    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_exists"] is False
+    assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_executable"] is False
+    assert "launcher_contract.default_mds_runner_configured" in result["launcher_contract"]["issues"]
 
 
 def test_doctor_report_renders_auditable_contract_sections(tmp_path: Path) -> None:

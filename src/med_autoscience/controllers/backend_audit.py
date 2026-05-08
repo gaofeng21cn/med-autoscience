@@ -160,7 +160,6 @@ def _overlay_summary(profile: WorkspaceProfile) -> dict[str, Any]:
         },
     }
 
-
 def _workspace_summary(profile: WorkspaceProfile) -> dict[str, Any]:
     doctor_report = build_doctor_report(profile)
     runtime_contract: dict[str, object]
@@ -257,23 +256,23 @@ def _determine_decision(
         return "blocked_controlled_fork_upstream_tracking_missing", actions
 
     if current_branch != "main":
-        actions.append("review_local_branch_before_upgrade")
+        actions.append("review_local_branch_before_backend_audit")
         if upstream_update_available:
-            actions.append("pull_origin_main_then_reapply_medical_overlay")
+            actions.append("review_backend_audit_delta_as_oracle_fixture")
         return "needs_branch_review", actions
 
     if ahead_count > 0 and not is_controlled_fork:
-        actions.append("review_local_branch_before_upgrade")
+        actions.append("review_local_branch_before_backend_audit")
         if upstream_update_available:
-            actions.append("pull_origin_main_then_reapply_medical_overlay")
+            actions.append("review_backend_audit_delta_as_oracle_fixture")
         return "needs_branch_review", actions
 
     if upstream_update_available:
         if is_controlled_fork:
             actions.append("run_controlled_fork_intake_workflow")
         else:
-            actions.append("pull_origin_main_then_reapply_medical_overlay")
-        return "upgrade_available", actions
+            actions.append("review_backend_audit_delta_as_oracle_fixture")
+        return "audit_delta_available", actions
 
     if overlay_check["enabled"] and not overlay_check["all_targets_ready"]:
         actions.append("reapply_medical_overlay")
@@ -283,13 +282,14 @@ def _determine_decision(
     return "up_to_date", actions
 
 
-def run_upgrade_check(profile: WorkspaceProfile, *, refresh: bool = False) -> dict[str, Any]:
+def run_backend_audit(profile: WorkspaceProfile, *, refresh: bool = False) -> dict[str, Any]:
     workspace_check = _workspace_summary(profile)
     behavior_gate = workspace_check.get("behavior_gate")
     phase_25_ready = bool(behavior_gate.get("phase_25_ready")) if isinstance(behavior_gate, dict) else True
     if not phase_25_ready:
         return {
-            "surface_kind": "controlled_backend_upgrade_diagnostic",
+            "surface_kind": "backend_audit",
+            "retained_entry": "backend_audit",
             "read_only": True,
             "external_runtime_optional": EXTERNAL_RUNTIME_OPTIONAL,
             "profile": profile.name,
@@ -315,7 +315,8 @@ def run_upgrade_check(profile: WorkspaceProfile, *, refresh: bool = False) -> di
         overlay_check=overlay_check,
     )
     return {
-        "surface_kind": "controlled_backend_upgrade_diagnostic",
+        "surface_kind": "backend_audit",
+        "retained_entry": "backend_audit",
         "read_only": True,
         "external_runtime_optional": EXTERNAL_RUNTIME_OPTIONAL,
         "profile": profile.name,

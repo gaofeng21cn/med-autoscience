@@ -18,7 +18,7 @@ from med_autoscience.controllers import (
     control_plane_migration_audit,
     continuous_soak_summary,
     data_assets,
-    med_deepscientist_upgrade_check,
+    backend_audit,
     external_research,
     hermes_runtime_check,
     medical_literature_audit,
@@ -193,9 +193,9 @@ def _call_startup_data_readiness(arguments: dict[str, Any]) -> dict[str, Any]:
     return _tool_text_result(_json_text(result), structured=result)
 
 
-def _call_backend_upgrade_check(arguments: dict[str, Any]) -> dict[str, Any]:
+def _call_backend_audit(arguments: dict[str, Any]) -> dict[str, Any]:
     profile = load_profile(_require_string(arguments, "profile_path"))
-    result = med_deepscientist_upgrade_check.run_upgrade_check(profile, refresh=_optional_bool(arguments, "refresh"))
+    result = backend_audit.run_backend_audit(profile, refresh=_optional_bool(arguments, "refresh"))
     return _tool_text_result(_json_text(result), structured=result)
 
 
@@ -461,7 +461,7 @@ def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
             "report": _call_doctor_report,
             "profile": _call_show_profile,
             "overlay_status": _call_overlay_status,
-            "backend_upgrade": _call_backend_upgrade_check,
+            "backend_audit": _call_backend_audit,
             "hermes_runtime": hermes_runtime_handler,
         },
     )

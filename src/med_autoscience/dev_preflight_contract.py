@@ -162,13 +162,13 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="external_runtime_dependency_surface",
         exact_paths=(
-            "src/med_autoscience/controllers/med_deepscientist_upgrade_check.py",
+            "src/med_autoscience/controllers/backend_audit.py",
             "src/med_autoscience/controllers/hermes_runtime_check.py",
             "src/med_autoscience/doctor.py",
             "src/med_autoscience/hermes_runtime_contract.py",
             "src/med_autoscience/med_deepscientist_repo_manifest.py",
             "src/med_autoscience/workspace_contracts.py",
-            "tests/test_deepscientist_upgrade_check.py",
+            "tests/test_backend_audit.py",
             "tests/test_hermes_runtime_check.py",
             "tests/test_hermes_runtime_contract.py",
             "tests/test_med_deepscientist_repo_manifest.py",
@@ -178,7 +178,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         commands=(
             "uv run pytest tests/test_med_deepscientist_repo_manifest.py -q",
             "uv run pytest tests/test_workspace_contracts.py -q",
-            "uv run pytest tests/test_deepscientist_upgrade_check.py -q",
+            "uv run pytest tests/test_backend_audit.py -q",
             "uv run pytest tests/test_hermes_runtime_contract.py -q",
             "uv run pytest tests/test_hermes_runtime_check.py -q",
         ),

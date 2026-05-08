@@ -38,7 +38,7 @@ def build_tool_registry(
             name="doctor_audit",
             description=(
                 "Run doctor-side MedAutoScience audits through one task tool: "
-                "report, profile, overlay_status, backend_upgrade, or hermes_runtime."
+                "report, profile, overlay_status, backend_audit, or hermes_runtime."
             ),
             input_schema={
                 "type": "object",

@@ -12,7 +12,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("doctor", "sync-entry-assets"): "sync-agent-entry-assets",
     ("doctor", "preflight"): "preflight-changes",
     ("doctor", "preflight-contract-report"): "preflight-contract-report",
-    ("doctor", "backend-upgrade"): "backend-upgrade-check",
+    ("doctor", "backend-audit"): "backend-audit",
     ("doctor", "hermes-runtime"): "hermes-runtime-check",
     ("workspace", "bootstrap"): "bootstrap",
     ("workspace", "init"): "init-workspace",
