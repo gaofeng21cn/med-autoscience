@@ -66,6 +66,7 @@ hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime
 hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
 runtime_supervisor_consumer = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_consumer"))
 runtime_supervisor_dispatch_executor = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_dispatch_executor"))
+runtime_supervisor_reconcile = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_reconcile"))
 runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_scan"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
 runtime_lifecycle_read_model = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model"))
@@ -379,6 +380,17 @@ def main(argv: list[str] | None = None) -> int:
             profile=profile,
             study_ids=tuple(args.studies or ()),
             action_types=tuple(args.action_types or ()),
+            mode=args.mode,
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "runtime-supervisor-reconcile":
+        profile = load_profile(args.profile)
+        result = runtime_supervisor_reconcile.supervisor_reconcile(
+            profile=profile,
+            study_ids=tuple(args.studies or ()),
             mode=args.mode,
             apply=bool(args.apply),
         )

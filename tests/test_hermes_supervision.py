@@ -409,6 +409,9 @@ def test_ensure_supervision_returns_portable_scheduler_install_instructions(tmp_
     supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
     supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_scan.chmod(0o755)
+    supervisor_reconcile = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-reconcile"
+    supervisor_reconcile.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_reconcile.chmod(0o755)
     supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
     supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_consume.chmod(0o755)
@@ -458,6 +461,9 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
     supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
     supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_scan.chmod(0o755)
+    supervisor_reconcile = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-reconcile"
+    supervisor_reconcile.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+    supervisor_reconcile.chmod(0o755)
     supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
     supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_consume.chmod(0o755)
@@ -482,6 +488,7 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
         'status = "ACTIVE"\n'
         'prompt = """developer_apply_safe\n'
         "mode=developer_apply_safe\n"
+        "supervisor-reconcile --mode developer_apply_safe --apply\n"
         "supervisor-scan --apply-safe-actions\n"
         "--developer-supervisor-mode developer_apply_safe\n"
         "supervisor-consume --mode developer_apply_safe --apply\n"
@@ -518,6 +525,12 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
     assert result["install_proof"]["status"] == "ready"
     assert result["install_proof"]["status_check_commands"] == [
         [
+            str(supervisor_reconcile),
+            "--mode",
+            "developer_apply_safe",
+            "--apply",
+        ],
+        [
             str(supervisor_scan),
             "--apply-safe-actions",
             "--developer-supervisor-mode",
@@ -535,7 +548,6 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
             "developer_apply_safe",
             "--apply",
         ],
-        [str(supervisor_scan), "--status"],
     ]
     assert result["status_check_commands"] == result["install_proof"]["status_check_commands"]
     assert result["expected_artifacts"] == result["install_proof"]["expected_artifacts"]
@@ -611,7 +623,8 @@ def test_ensure_supervision_projects_codex_app_heartbeat_as_compat_owner(
     automation_path.parent.mkdir(parents=True, exist_ok=True)
     automation_path.write_text(
         'status = "ACTIVE"\n'
-        'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
+        'prompt = "developer_apply_safe mode=developer_apply_safe '
+        'supervisor-reconcile --mode developer_apply_safe --apply supervisor-scan --apply-safe-actions '
         '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
         'supervisor-execute-dispatch --mode developer_apply_safe --apply '
         'workspace_dynamic_active_studies new MAS tasks active_run_id worker_running worktree '
@@ -640,7 +653,8 @@ def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
     automation_path.write_text(
         '[[automations]]\n'
         'status = "ACTIVE"\n'
-        'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
+        'prompt = "developer_apply_safe mode=developer_apply_safe '
+        'supervisor-reconcile --mode developer_apply_safe --apply supervisor-scan --apply-safe-actions '
         '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
         'supervisor-execute-dispatch --mode developer_apply_safe --apply '
         'workspace_dynamic_active_studies new MAS tasks active_run_id worker_running worktree '
@@ -679,6 +693,7 @@ def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path
     assert result["status"] == "incomplete"
     assert result["active"] is True
     assert result["missing_prompt_tokens"] == [
+        "supervisor-reconcile --mode developer_apply_safe --apply",
         "supervisor-consume --mode developer_apply_safe --apply",
         "supervisor-execute-dispatch --mode developer_apply_safe --apply",
         "workspace_dynamic_active_studies",
@@ -711,6 +726,7 @@ def test_codex_app_automation_prompt_check_rejects_study_allowlist_only_prompt(t
     assert result["scope_policy"] == "workspace_dynamic_active_studies"
     assert result["new_task_auto_enrollment_required"] is True
     assert result["missing_prompt_tokens"] == [
+        "supervisor-reconcile --mode developer_apply_safe --apply",
         "workspace_dynamic_active_studies",
         "new MAS tasks",
         "active_run_id",
@@ -798,7 +814,7 @@ def test_ensure_supervision_docker_manager_is_container_agnostic_fail_closed(
     assert result["templates"] == {}
     assert result["install_proof"]["status"] == "unsupported_container_scheduler"
     assert "docker run" not in "\n".join(result["install_commands"])
-    assert "medautosci runtime supervisor-scan" in result["install_commands"][0]
+    assert "medautosci runtime supervisor-reconcile" in result["install_commands"][0]
 
 
 def test_remove_supervision_removes_jobs_and_script(monkeypatch, tmp_path: Path) -> None:

@@ -9,6 +9,7 @@ from typing import Any
 CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS = (
     "developer_apply_safe",
     "mode=developer_apply_safe",
+    "supervisor-reconcile --mode developer_apply_safe --apply",
     "supervisor-scan --apply-safe-actions",
     "--developer-supervisor-mode developer_apply_safe",
     "supervisor-consume --mode developer_apply_safe --apply",

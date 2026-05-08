@@ -51,6 +51,8 @@ _DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS = (
     "developer_apply_safe",
 )
 _DEVELOPER_SUPERVISOR_SAFE_ACTION_TEXT = " ".join(_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS)
+_DEVELOPER_SUPERVISOR_RECONCILE_ARGS = ("--mode", "developer_apply_safe", "--apply")
+_DEVELOPER_SUPERVISOR_RECONCILE_TEXT = " ".join(_DEVELOPER_SUPERVISOR_RECONCILE_ARGS)
 
 
 def _utc_now() -> str:
@@ -109,6 +111,10 @@ def _workspace_supervisor_scan_entry_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
 
 
+def _workspace_supervisor_reconcile_entry_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-reconcile"
+
+
 def _workspace_supervisor_consume_entry_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
 
@@ -154,6 +160,7 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     unsupported_manager = manager == "docker"
     developer_mode_enabled = bool(github_user.get("matches_expected")) and not unsupported_manager
     supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
+    supervisor_reconcile = _workspace_supervisor_reconcile_entry_path(profile)
     supervisor_consume = _workspace_supervisor_consume_entry_path(profile)
     supervisor_execute_dispatch = _workspace_supervisor_execute_dispatch_entry_path(profile)
     if manager == "codex_app":
@@ -163,16 +170,18 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     else:
         scheduler_owner = f"{manager}_scheduler"
     expected_artifacts = [
+        str(profile.workspace_root / "artifacts" / "supervision" / "reconcile" / "latest.json"),
+        str(profile.workspace_root / "artifacts" / "supervision" / "reconcile" / "history.jsonl"),
         str(profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"),
         str(profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json"),
         str(profile.workspace_root / "artifacts" / "supervision" / "consumer" / "history.jsonl"),
         str(profile.studies_root / "<study_id>" / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json"),
     ]
     status_check_commands = [
+        [str(supervisor_reconcile), *_DEVELOPER_SUPERVISOR_RECONCILE_ARGS],
         [str(supervisor_scan), *_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS],
         [str(supervisor_consume), "--mode", "developer_apply_safe", "--apply"],
         [str(supervisor_execute_dispatch), "--mode", "developer_apply_safe", "--apply"],
-        [str(supervisor_scan), "--status"],
     ]
     return {
         "mode": "developer_apply_safe" if developer_mode_enabled else "external_observe",
@@ -256,6 +265,7 @@ def _portable_supervisor_instruction(
     write_install_proof: bool = False,
 ) -> dict[str, Any]:
     supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
+    supervisor_reconcile = _workspace_supervisor_reconcile_entry_path(profile)
     supervisor_consume = _workspace_supervisor_consume_entry_path(profile)
     supervisor_execute_dispatch = _workspace_supervisor_execute_dispatch_entry_path(profile)
     templates = _portable_supervisor_templates(profile)
@@ -287,7 +297,7 @@ def _portable_supervisor_instruction(
         result_templates = {}
         install_commands = [
             "Run this MAS CLI entry from the container image or scheduler owned by OPL, Hermes, or the deployment platform: "
-            f"<container-entry> medautosci runtime supervisor-scan --profile <profile> {_DEVELOPER_SUPERVISOR_SAFE_ACTION_TEXT}"
+            f"<container-entry> medautosci runtime supervisor-reconcile --profile <profile> {_DEVELOPER_SUPERVISOR_RECONCILE_TEXT}"
         ]
     elif manager_key == "launchd":
         result_templates = {"instructions": str(templates["launchd_instructions"])}
@@ -338,6 +348,11 @@ def _portable_supervisor_instruction(
             "exists": supervisor_scan.is_file(),
             "executable": supervisor_scan.is_file() and os.access(supervisor_scan, os.X_OK),
         },
+        "supervisor_reconcile_entry": {
+            "path": str(supervisor_reconcile),
+            "exists": supervisor_reconcile.is_file(),
+            "executable": supervisor_reconcile.is_file() and os.access(supervisor_reconcile, os.X_OK),
+        },
         "supervisor_consume_entry": {
             "path": str(supervisor_consume),
             "exists": supervisor_consume.is_file(),
@@ -349,8 +364,8 @@ def _portable_supervisor_instruction(
             "executable": supervisor_execute_dispatch.is_file() and os.access(supervisor_execute_dispatch, os.X_OK),
         },
         "command": [
-            str(supervisor_scan),
-            *_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS,
+            str(supervisor_reconcile),
+            *_DEVELOPER_SUPERVISOR_RECONCILE_ARGS,
         ],
         "templates": result_templates,
         "install_commands": install_commands,
@@ -363,7 +378,7 @@ def _portable_supervisor_instruction(
         "codex_app_automation_prompt": developer_supervisor_mode["codex_app_automation_prompt"],
         "codex_app_heartbeat_required": False,
         "host_service_claim": host_service_claim,
-        "container_policy": "MAS does not own a Docker image or Kubernetes CronJob; external OPL, Hermes, or deployment schedulers may call the MAS CLI entry.",
+        "container_policy": "MAS does not own a Docker image or Kubernetes CronJob; external OPL, Hermes, or deployment schedulers may call the MAS reconcile CLI entry.",
     }
 
 

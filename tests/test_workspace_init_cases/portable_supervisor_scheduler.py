@@ -23,9 +23,10 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
     service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
     uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
+    supervisor_reconcile = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-reconcile"
     supervisor_execute_dispatch = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch"
 
-    for path in (runner, install_service, service_status, uninstall_service, supervisor_execute_dispatch):
+    for path in (runner, install_service, service_status, uninstall_service, supervisor_reconcile, supervisor_execute_dispatch):
         assert path.is_file()
         assert os.access(path, os.X_OK)
 
@@ -33,15 +34,16 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     assert 'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-3600}"' in runner_text
     assert 'SUPERVISOR_SCAN_INTERVAL_SECONDS="${SUPERVISOR_SCAN_INTERVAL_SECONDS:-3600}"' in runner_text
     assert 'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"' in runner_text
-    assert 'SUPERVISOR_SCAN_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-scan"' in runner_text
-    assert 'SUPERVISOR_CONSUME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-consume"' in runner_text
-    assert (
-        'SUPERVISOR_EXECUTE_DISPATCH_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-execute-dispatch"'
-        in runner_text
-    )
-    assert f'"${{SUPERVISOR_SCAN_SCRIPT}}" {DEVELOPER_SUPERVISOR_MODE_ARGS} "$@"' in runner_text
-    assert '"${SUPERVISOR_CONSUME_SCRIPT}" --mode developer_apply_safe --apply "$@"' in runner_text
-    assert '"${SUPERVISOR_EXECUTE_DISPATCH_SCRIPT}" --mode developer_apply_safe --apply "$@"' in runner_text
+    assert 'SUPERVISOR_RECONCILE_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-reconcile"' in runner_text
+    assert f'exec "${{SUPERVISOR_RECONCILE_SCRIPT}}" --mode developer_apply_safe --apply "$@"' in runner_text
+    assert "SUPERVISOR_CONSUME_SCRIPT=" not in runner_text
+    assert "SUPERVISOR_EXECUTE_DISPATCH_SCRIPT=" not in runner_text
+
+    supervisor_reconcile_text = supervisor_reconcile.read_text(encoding="utf-8")
+    assert "run_medautosci runtime supervisor-reconcile" in supervisor_reconcile_text
+    assert '--profile "${PROFILE_PATH}"' in supervisor_reconcile_text
+    assert "--mode developer_apply_safe" in supervisor_reconcile_text
+    assert "--apply" in supervisor_reconcile_text
 
     supervisor_scan = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
     assert supervisor_scan.is_file()
@@ -113,9 +115,12 @@ def test_init_workspace_renders_portable_supervisor_scheduler_templates(tmp_path
 
     assert f"WorkingDirectory={workspace_root}" in systemd_service_text
     assert f"ExecStart={workspace_root}/ops/medautoscience/bin/watch-runtime-service-runner" in systemd_service_text
+    assert "supervisor reconcile" in systemd_service_text.lower()
     assert "OnCalendar=hourly" in systemd_timer_text
     assert f"{workspace_root}/ops/medautoscience/bin/watch-runtime-service-runner" in cron_text
+    assert "reconcile" in cron_text
     assert "launchd" in launchd_text
+    assert "supervisor reconcile" in launchd_text.lower()
     assert "install-watch-runtime-service --manager launchd" in launchd_text
     assert "Codex App heartbeat" not in "\n".join(
         path.read_text(encoding="utf-8")

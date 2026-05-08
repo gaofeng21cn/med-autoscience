@@ -6,6 +6,7 @@ from pathlib import Path
 DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
 DEVELOPER_SUPERVISOR_CONSUME_ARGS = "--mode developer_apply_safe --apply"
 DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS = "--mode developer_apply_safe --apply"
+DEVELOPER_SUPERVISOR_RECONCILE_ARGS = "--mode developer_apply_safe --apply"
 
 
 def _render_behavior_equivalence_gate() -> str:
@@ -155,28 +156,16 @@ def _render_watch_runtime_service_runner() -> str:
         'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-3600}"\n'
         'SUPERVISOR_SCAN_INTERVAL_SECONDS="${SUPERVISOR_SCAN_INTERVAL_SECONDS:-3600}"\n'
         'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"\n\n'
-        'SUPERVISOR_SCAN_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-scan"\n\n'
-        'SUPERVISOR_CONSUME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-consume"\n\n'
-        'SUPERVISOR_EXECUTE_DISPATCH_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-execute-dispatch"\n\n'
+        'SUPERVISOR_RECONCILE_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-reconcile"\n\n'
         'if [[ ! -x "${WATCH_RUNTIME_SCRIPT}" ]]; then\n'
         '  echo "watch-runtime entry is missing or not executable: ${WATCH_RUNTIME_SCRIPT}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
-        'if [[ ! -x "${SUPERVISOR_SCAN_SCRIPT}" ]]; then\n'
-        '  echo "supervisor-scan entry is missing or not executable: ${SUPERVISOR_SCAN_SCRIPT}" >&2\n'
+        'if [[ ! -x "${SUPERVISOR_RECONCILE_SCRIPT}" ]]; then\n'
+        '  echo "supervisor-reconcile entry is missing or not executable: ${SUPERVISOR_RECONCILE_SCRIPT}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
-        'if [[ ! -x "${SUPERVISOR_CONSUME_SCRIPT}" ]]; then\n'
-        '  echo "supervisor-consume entry is missing or not executable: ${SUPERVISOR_CONSUME_SCRIPT}" >&2\n'
-        "  exit 1\n"
-        "fi\n\n"
-        'if [[ ! -x "${SUPERVISOR_EXECUTE_DISPATCH_SCRIPT}" ]]; then\n'
-        '  echo "supervisor-execute-dispatch entry is missing or not executable: ${SUPERVISOR_EXECUTE_DISPATCH_SCRIPT}" >&2\n'
-        "  exit 1\n"
-        "fi\n\n"
-        f'"${{SUPERVISOR_SCAN_SCRIPT}}" {DEVELOPER_SUPERVISOR_MODE_ARGS} "$@"\n'
-        f'"${{SUPERVISOR_CONSUME_SCRIPT}}" {DEVELOPER_SUPERVISOR_CONSUME_ARGS} "$@"\n'
-        f'exec "${{SUPERVISOR_EXECUTE_DISPATCH_SCRIPT}}" {DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS} "$@"\n'
+        f'exec "${{SUPERVISOR_RECONCILE_SCRIPT}}" {DEVELOPER_SUPERVISOR_RECONCILE_ARGS} "$@"\n'
     )
 
 
@@ -215,11 +204,23 @@ def _render_supervisor_execute_dispatch_script() -> str:
     )
 
 
+def _render_supervisor_reconcile_script() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+        'run_medautosci runtime supervisor-reconcile \\\n'
+        '  --profile "${PROFILE_PATH}" \\\n'
+        f"  {DEVELOPER_SUPERVISOR_RECONCILE_ARGS} \\\n"
+        '  "$@"\n'
+    )
+
+
 def _render_supervisor_systemd_service(*, workspace_root: Path) -> str:
     supervisor_runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
     return (
         "[Unit]\n"
-        "Description=MedAutoScience portable supervisor scan and consume\n\n"
+        "Description=MedAutoScience portable supervisor reconcile\n\n"
         "[Service]\n"
         "Type=oneshot\n"
         f"WorkingDirectory={workspace_root}\n"
@@ -241,13 +242,13 @@ def _render_supervisor_systemd_timer() -> str:
 
 def _render_supervisor_cron_template(*, workspace_root: Path) -> str:
     supervisor_runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
-    return f"0 * * * * {supervisor_runner}\n"
+    return f"# Runs supervisor reconcile one-shot; scan/consume/execute-dispatch remain debug entries.\n0 * * * * {supervisor_runner}\n"
 
 
 def _render_supervisor_launchd_instructions() -> str:
     return (
         "# launchd Compatibility\n\n"
-        "macOS launchd remains a compatibility scheduler for the portable supervisor scan.\n\n"
+        "macOS launchd remains a compatibility scheduler for the portable supervisor reconcile one-shot.\n\n"
         "Install instructions:\n\n"
         "```bash\n"
         "ops/medautoscience/bin/install-watch-runtime-service --manager launchd\n"

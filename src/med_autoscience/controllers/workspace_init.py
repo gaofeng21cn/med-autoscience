@@ -33,6 +33,7 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_supervisor_consume_script,
     _render_supervisor_execute_dispatch_script,
     _render_supervisor_launchd_instructions,
+    _render_supervisor_reconcile_script,
     _render_supervisor_scan_script,
     _render_supervisor_systemd_service,
     _render_supervisor_systemd_timer,
@@ -400,6 +401,9 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
     if suffix == ("ops", "medautoscience", "bin", "supervisor-scan"):
         if "runtime supervisor-scan" not in existing_content:
             return "legacy_supervisor_scan_entry"
+    if suffix == ("ops", "medautoscience", "bin", "supervisor-reconcile"):
+        if "runtime supervisor-reconcile" not in existing_content or "--mode developer_apply_safe" not in existing_content:
+            return "legacy_supervisor_reconcile_entry"
     if suffix == ("ops", "medautoscience", "bin", "supervisor-consume"):
         if "runtime supervisor-consume" not in existing_content or "--mode developer_apply_safe" not in existing_content:
             return "legacy_supervisor_consume_entry"
@@ -676,6 +680,11 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan",
             content=_render_supervisor_scan_script(),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-reconcile",
+            content=_render_supervisor_reconcile_script(),
             executable=True,
         ),
         RenderedFile(
