@@ -41,10 +41,10 @@
 
 当前操作路径继续由 `product-entry-status`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口组成。
 其中 `study-progress` 是 restore point、autonomy soak、quality closure、artifact pickup、human gate 与 `study_macro_state -> user_visible_projection` 的源头投影；`workspace-cockpit` 负责把同一条 `research_runtime_control_projection` 和同一套用户可见状态放进 study item、attention queue 与 operator brief；`product-entry-status` 只消费这些 projection，不另建第二套运行解释。
-`MAS Progress Portal` 是这组投影面向用户的固定可视化入口目标：默认生成 `ops/mas/progress/index.html` 静态快照，后续可由本地只读服务实时刷新。Portal 只消费 `study-progress`、`workspace-cockpit` 和 durable truth refs，不写 study truth、publication truth、runtime authority 或 artifact authority。
+`MAS Progress Portal` 是这组投影面向用户的 implementation-ready 固定可视化入口：默认生成 `ops/mas/progress/index.html` 静态快照，后续可由本地只读服务实时刷新。Portal 由 MAS 持有 domain-owned payload / HTML，只消费 `study-progress`、`workspace-cockpit` 和 durable truth refs，不写 study truth、publication truth、runtime authority 或 artifact authority。
 它们描述的是当前可执行的操作面。
 `OPL` 调用、`product-entry manifest`、`handoff envelope` 和其他机器可读载荷继续属于集成接口和参考层。
-当 OPL 需要长期托管、跨域唤醒或统一状态面时，`OPL Runtime Manager` 只能消费这些现有 MAS projection，并把结果索引为 family-level runtime status；它不能在 OPL 侧生成新的 study truth、publication judgment 或 evidence ledger。
+当 OPL App 需要统一进度看板、长期托管、跨域唤醒或统一状态面时，`OPL Runtime Manager` 只能消费 MAS progress portal payload refs、HTML refs 和现有 MAS projection，并把结果索引为 family-level dashboard / runtime status；它不能在 OPL 侧生成新的 study truth、publication judgment 或 evidence ledger。最佳集成形态见 [Progress Portal OPL App Integration](./references/progress_portal_opl_app_integration.md)。
 
 ## 当前运行时责任分层
 

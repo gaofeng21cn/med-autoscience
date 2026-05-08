@@ -1,0 +1,76 @@
+# Progress Portal OPL App Integration
+
+Status: `support reference`
+Owner: `MedAutoScience Product Projection + OPL integration boundary`
+
+## 入口结论
+
+MAS Progress Portal 与 OPL App 进度看板服务同一个用户目的：让医生、PI 和维护者快速知道研究线当前在哪里、下一步是什么、哪里需要人工判断、文件在哪里。最佳集成形态是 owner-preserving projection：
+
+- `MAS` 持有 domain-owned progress portal payload 和 workspace-local HTML。
+- `OPL App` 持有 family-level dashboard、workspace/session/progress/artifact 聚合视图。
+- OPL 只消费 MAS read-model / payload refs，不重新解释 study truth。
+
+这让本地 MAS workspace 有固定入口，也让 OPL App 可以在一个看板里显示多个 domain / workspace 的进度，而不制造第二套医学研究状态机。
+
+## MAS 侧职责
+
+MAS 负责生成和维护：
+
+```text
+artifacts/runtime/progress_portal/latest.json
+ops/mas/progress/index.html
+```
+
+`latest.json` 是展示 payload，不是 study truth。`index.html` 是 per-workspace fixed entrance，不依赖 OPL App 才能打开。payload 应包含 `generated_at`、freshness、source refs、study/workspace identity、user-visible state、next action、blockers、quality/publication projection、delivery/artifact locators 和 stale/missing/conflict 状态。
+
+MAS payload 的输入只能来自 MAS durable surfaces，例如 `study_macro_state/latest.json`、`study_progress.user_visible_projection`、`workspace-cockpit`、`study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、delivery/package projection 和 runtime lifecycle read model。
+
+## OPL App 侧职责
+
+OPL App / OPL Runtime Manager 可以消费 MAS 暴露的 refs：
+
+- portal payload path
+- portal HTML path
+- freshness and generated time
+- source refs
+- study/workspace identifiers
+- user-facing state labels
+- attention, blocker, running/recent and artifact locator fields
+
+OPL App 的最优 UI 不是复制 MAS Portal 的全部页面，而是在 family-level dashboard 中展示跨 workspace 的进度条目、attention queue、running/recent items 和交付物入口；用户需要深看 MAS 医学研究线时，直接打开 `ops/mas/progress/index.html`。
+
+## 禁止升级的边界
+
+OPL App、OPL Runtime Manager、native helper、state indexer 或 dashboard 不得：
+
+- 生成新的 MAS study truth。
+- 生成 publication readiness、submission readiness、quality verdict 或 medical claim judgment。
+- 重算 `study_macro_state`、`owner_route`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。
+- 把 stale/missing/conflict payload 隐藏成 ready 状态。
+- 把旧 MDS WebUI、OPL state cache 或 Markdown 文档当成 MAS progress authority。
+
+OPL native helper 可以加速索引、freshness 检查、artifact path discovery 和 source ref 汇总；这些输出仍是 observability / projection，不是 authority。
+
+## 集成合同
+
+MAS implementation lane 应把 handoff payload 固定成 OPL 可消费的 reference bundle：
+
+```text
+progress_portal:
+  payload_ref: artifacts/runtime/progress_portal/latest.json
+  html_ref: ops/mas/progress/index.html
+  owner: mas
+  role: domain_owned_progress_projection
+  authority: display_artifact_only
+```
+
+OPL App 可以把该 bundle 映射到 family dashboard，但 dashboard 上的所有状态都应保留 MAS source refs 和 freshness。用户点击详情时，进入 MAS workspace-local Portal，而不是进入 OPL 自己维护的研究状态页面。
+
+## 验收口径
+
+- 新 MAS workspace 有固定可打开入口 `ops/mas/progress/index.html`。
+- MAS payload 与 `study-progress`、`workspace-cockpit` 和 runtime/publication durable refs 一致。
+- OPL App 能读取 payload/html refs 并展示 family-level progress item。
+- OPL dashboard 显示 freshness、source refs 和 stale/missing/conflict，不把缺口改写成 ready。
+- OPL 集成不写 MAS study truth、publication truth、runtime authority、evidence/review ledger 或 artifact authority。

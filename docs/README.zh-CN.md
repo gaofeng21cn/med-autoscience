@@ -29,6 +29,7 @@
 - `product-entry-status`、`workspace-cockpit`、`study-progress` 与 product-entry manifest 继续是单一 app skill 之下的内部 command/projection contract，不是独立公开产品入口。
 - `OPL` 集成、product-entry manifest 和其他机器可读桥接面都属于集成或参考层。
 - `OPL Runtime Manager` 是目标形态中的 family-level 薄运行管理层，位于外部 `Hermes-Agent` substrate 之上；它可以消费 MAS task registration、runtime-control projection、status/artifact locator 与 wakeup/approval 边界，但不持有 MAS study truth。
+- `MAS Progress Portal` 已进入 implementation-ready，作为 MAS-owned progress payload 与 workspace-local HTML 入口落在 `ops/mas/progress/index.html`。接入 OPL App 时应由 family-level dashboard 消费 MAS payload/read-model refs 并深链到本地 Portal，不能重新解释 MAS study truth。
 - `Hermes-Agent` 只保留在显式可选 hosted runtime 或 reference-layer 语境中，不改写默认 capability contract。
 - `MedDeepScientist` 在迁移期继续是受控后端、行为等价 oracle 和 upstream intake buffer；MAS 继续是唯一 research / publication owner。
 - MAS standalone GitHub Release / 独立 installer 不是当前用户安装通道；分发叙事应指向当前 OPL 管理模块路径，或未来 OPL Packages/GHCR module 坐标。
@@ -135,6 +136,7 @@
 ### 集成参考
 
 - [轻量产品入口与 OPL 交接](references/lightweight_product_entry_and_opl_handoff.md)
+- [Progress Portal OPL App Integration](references/progress_portal_opl_app_integration.md)
 - [病种 workspace 快速起步](references/disease_workspace_quickstart.md)
 - [工作区架构](references/workspace_architecture.md)
 

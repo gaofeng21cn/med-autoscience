@@ -29,6 +29,7 @@ This guide is for readers who need product boundary, operator entry surfaces, ru
 - `product-entry-status`, `workspace-cockpit`, `study-progress`, and product-entry manifests remain internal command/projection contracts below the single app skill, not separate public entry products.
 - `OPL` integration, the product-entry manifest, and other machine-readable bridge surfaces belong to the integration and reference layers.
 - `OPL Runtime Manager` is the target family-level thin manager over the external `Hermes-Agent` substrate; it may consume MAS task registration, runtime-control projection, status/artifact locators, and wakeup/approval boundaries, but it does not own MAS study truth.
+- `MAS Progress Portal` is implementation-ready as the MAS-owned progress payload and workspace-local HTML entrance at `ops/mas/progress/index.html`. OPL App integration should consume MAS payload/read-model refs in a family-level dashboard and deep-link to the local Portal; it must not reinterpret MAS study truth.
 - Hosted runtime carriers such as `Hermes-Agent` stay in explicit optional or reference-layer positions; they do not redefine the default MAS capability contract.
 - `MedDeepScientist` remains the controlled backend, behavior oracle, and upstream intake buffer during migration; MAS remains the only research and publication owner.
 - MAS standalone GitHub Releases / installers are not the active user-installation channel; distribution wording should point to the current OPL-managed module path or future OPL Packages/GHCR module coordinates.
@@ -135,6 +136,7 @@ Public-facing material should stay mirrored in English and Chinese.
 ### Integration References
 
 - [Lightweight product entry and OPL handoff](references/lightweight_product_entry_and_opl_handoff.md)
+- [Progress Portal OPL App Integration](references/progress_portal_opl_app_integration.md)
 - [Disease workspace quickstart](references/disease_workspace_quickstart.md)
 - [Workspace architecture](references/workspace_architecture.md)
 

@@ -1,17 +1,19 @@
 # MAS Progress Portal
 
-Status: `planned runtime read-model surface`
+Status: `implementation-ready runtime read-model surface`
 Owner: `MedAutoScience Product Projection + Runtime OS`
 
 ## 入口结论
 
-`MAS Progress Portal` 是面向医生、PI 和研究团队的固定进度入口。目标不是复制旧 MDS WebUI，而是给用户一个稳定位置：
+`MAS Progress Portal` 是面向医生、PI 和研究团队的固定进度入口。开发合同已经从 planning 进入 implementation-ready：下一步实现应直接落成 MAS-owned payload 和 HTML materializer，不再重新比较旧 WebUI、OPL App 或独立前端路线。目标不是复制旧 MDS WebUI，而是给每个 MAS workspace 一个稳定位置：
 
 ```text
 ops/mas/progress/index.html
 ```
 
 用户应能直接打开这个入口，看到当前课题做到了哪里、系统下一步准备做什么、为什么卡住、是否需要医生/PI 判断、交付文件在哪里。Portal 只消费 MAS 现有 truth / read-model surface，不创建第二套状态系统。
+
+这个入口是 per-workspace fixed entrance。无论未来从 Codex、浏览器、OPL App 还是 OPL Runtime Manager 打开，页面和 payload 的 domain owner 都保持为 MAS。
 
 ## 形态决策
 
@@ -30,6 +32,18 @@ Progress Portal 采用双层形态：
    - 实时体验应显示“最近刷新时间”和“下一次刷新/监听状态”，让用户知道页面是否仍在更新。
 
 因此，Portal 不是二选一的静态网页或动态网站。默认必须有稳定静态入口；实时体验作为同一 read-model 的本地只读增强层实现。
+
+## OPL App 集成结论
+
+同一目的集成到 OPL App 进度看板的最优形态是分层消费，而不是把 MAS Portal 搬进 OPL 重新解释：
+
+- `MAS` 负责 domain-owned progress portal payload 和 HTML，生成 `artifacts/runtime/progress_portal/latest.json` 与 `ops/mas/progress/index.html`。
+- 本地 MAS Portal 是每个 workspace 的固定入口，适合医生、PI 或维护者直接打开查看同一条研究线。
+- `OPL App` / `OPL Runtime Manager` 只消费 MAS read-model / payload refs，把它们汇总到 family-level dashboard、attention queue、running/recent item 和 artifact locator。
+- OPL 展示层可以打开或深链到 `ops/mas/progress/index.html`，也可以读取 `latest.json` 做跨 workspace 概览；它不能把 payload 文案升级成 OPL-owned readiness、submission-ready、publication verdict、quality verdict 或新的 study truth。
+- OPL native helper 或 state indexer 只能加速文件发现、freshness、artifact index 和 source ref 汇总；它不能重算 MAS 的 study 状态、publication judgment、evidence ledger 或 controller next action。
+
+详细评估记录见 [Progress Portal OPL App Integration](../references/progress_portal_opl_app_integration.md)。
 
 ## 用户体验合同
 
@@ -112,9 +126,9 @@ ops/mas/progress/index.html
 - 默认医生视图不得展示 MDS/DS 路径作为 workspace truth。
 - 不把上游 WebUI 历史、contributor footprint 或 product semantics 导入 MAS main。
 
-## 计划中的开发入口
+## Implementation-Ready 开发入口
 
-后续实现应使用独立 lane，例如 `codex/mas-progress-portal`，并保持写集聚焦：
+后续实现应使用独立 lane，例如 `codex/mas-progress-portal`，并保持写集聚焦。该 lane 的目标是实现现有合同，不新增 OPL-owned truth 或重写 workspace runtime：
 
 - `src/med_autoscience/controllers/progress_portal.py` 或自然子模块。
 - `src/med_autoscience/cli_parts/` 中的 workspace command。
@@ -132,6 +146,13 @@ medautosci workspace progress-portal --profile <profile> --serve
 
 `--serve` 不应是默认必需路径；默认命令应能生成可打开的静态快照。
 
+实现时的最小合同：
+
+- payload builder 从现有 MAS durable surfaces 组装 read-model，不从 Markdown 文档、OPL state cache 或旧 MDS WebUI 路径推导状态。
+- HTML materializer 只渲染 payload，并把 stale/missing/conflict 显示成可见状态。
+- workspace init 只需要提供固定入口位置和可刷新路径；不能把 OPL App、长期服务进程或外部 runtime substrate 变成 Portal 的必需依赖。
+- OPL handoff 只暴露 payload refs、HTML path、freshness、source refs 和 artifact locators，供 family dashboard 消费。
+
 ## 验收标准
 
 - 新 workspace 有明确固定入口：`ops/mas/progress/index.html`。
@@ -141,4 +162,3 @@ medautosci workspace progress-portal --profile <profile> --serve
 - stale/missing/conflict 有明确可见状态。
 - 本地实时服务可刷新页面，但停止服务后静态快照仍可打开。
 - MCP/CLI/controller payload shape 不因 Portal 改动而破坏。
-
