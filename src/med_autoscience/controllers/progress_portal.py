@@ -14,6 +14,7 @@ import webbrowser
 from med_autoscience.controllers.progress_portal_parts import (
     dedupe_texts,
     local_time_projection,
+    render_runtime_continuity_section,
     render_workspace_studies_section,
     unique_text,
     workspace_alert_projection,
@@ -262,7 +263,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
                     _gate_text(study),
                 ],
             ),
-            _runtime_continuity_section(runtime_continuity),
+            render_runtime_continuity_section(runtime_continuity),
             _section(
                 "论文与质量",
                 paper_paragraphs,
@@ -906,29 +907,6 @@ def _gate_text(study: Mapping[str, Any]) -> str:
     if bool(study.get("needs_physician_decision")):
         return "需要医生/PI 确认后继续。"
     return "当前没有投影出的医生/PI gate。"
-
-
-def _runtime_continuity_section(runtime_continuity: Mapping[str, Any]) -> str:
-    session = _mapping(runtime_continuity.get("runtime_session"))
-    intent = _mapping(runtime_continuity.get("recovery_intent"))
-    items = []
-    if session:
-        items.append(f"worker: {session.get('worker_state') or 'unknown'}")
-        if session.get("active_run_id"):
-            items.append(f"active run: {session.get('active_run_id')}")
-        elif session.get("last_known_run_id"):
-            items.append(f"last known run: {session.get('last_known_run_id')}")
-        if session.get("last_seen_at"):
-            items.append(f"last seen: {session.get('last_seen_at')}")
-        if session.get("freshness_state"):
-            items.append(f"freshness: {session.get('freshness_state')}")
-    if intent:
-        items.append(f"recovery action: {intent.get('current_action') or 'unknown'}")
-        if intent.get("next_owner"):
-            items.append(f"next owner: {intent.get('next_owner')}")
-        if intent.get("next_eligible_tick"):
-            items.append(f"next eligible tick: {intent.get('next_eligible_tick')}")
-    return _list_section("Runtime Continuity", items, empty_text="当前没有 runtime session / recovery intent 投影。")
 
 
 def _section(title: str, paragraphs: list[str]) -> str:

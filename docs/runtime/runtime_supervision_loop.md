@@ -90,6 +90,14 @@ medautosci runtime supervisor-scan \
 
 该入口写出 workspace-level `artifacts/supervision/hourly/latest.json`，只消费 MAS durable truth surfaces：`study_runtime_status`、`study_progress`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json` 与 AI repair lifecycle。它的职责是形成 `action_queue`、`why_not_applied`、owner-visible request packet 与 `external_supervisor_required`，而不是直接修改 paper/current_package。
 
+2026-05-08 Runtime Continuity closeout 又把旧 MDS daemon 退役后最关键的两类用户可见行为补齐为 MAS-owned surface：
+
+- `runtime_session` read model：从 `study_runtime_status/runtime_liveness_audit`、SQLite runtime lifecycle store、owner_route/dispatch receipts 和显式 legacy diagnostic fixture 依序投影 `active_run_id`、`last_known_run_id`、`worker_state`、`worker_running`、`last_seen_at`、event cursor、stdout ref 与 freshness。它只读，不写 runtime truth。
+- `recovery_intent` ledger：supervisor scan 在每个 study projection 中写出 `runtime_recovery_intent`，记录恢复原因、next owner、retry budget、dedupe fingerprint、last attempt/result、next eligible tick 与 `current_action`。允许动作固定为 `await_next_tick`、`safe_reconcile_ready`、`recovering`、`parked`、`human_gate_required`、`escalated`。
+- `runtime_reconcile_trigger` projection：`study-progress`、workspace cockpit、product-entry status 和 Progress Portal 可以显示“是否可请求一次 safe reconcile dry-run”。该投影本身不执行 reconcile、不写 runtime、不写 paper/current_package、不写 publication gate；页面刷新只会生成幂等推荐命令和 blocked reasons。
+
+safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、manual parked、`quest_status=parked`、completed、human gate、publication gate missing、retry exhausted 都不得进入可请求状态。真正恢复仍必须走 `RuntimeHealthKernel -> owner_route -> executor -> rescan` 闭环。
+
 MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 policy：
 
 - `executor_kind = codex_cli_default`

@@ -74,6 +74,10 @@ Portal 的输入来自现有 MAS surface：
 
 - `study_macro_state/latest.json`
 - `study_progress.user_visible_projection`
+- `study_progress.runtime_session`
+- `study_progress.recovery_intent`
+- `study_progress.runtime_reconcile_trigger`
+- `study.runtime_continuity`
 - `workspace-cockpit`
 - `study_runtime_status`
 - `runtime_watch`
@@ -82,6 +86,8 @@ Portal 的输入来自现有 MAS surface：
 - `controller_decisions/latest.json`
 - delivery / package currentness projection
 - `artifacts/runtime/runtime_lifecycle.sqlite` 里的 runtime lifecycle read model
+
+Runtime continuity 在 Portal 中只负责解释运行连续性，不负责执行动作。页面可以显示 worker state、last known run、last seen、freshness、recovery action、next owner、next eligible tick，以及 safe reconcile 是否 requestable；它不能直接重启 worker，不能修改 `current_package`，不能写 `publication_eval/latest.json` 或 `controller_decisions/latest.json`。
 
 Portal 只能生成 read-model payload 和展示文件，例如：
 
@@ -126,6 +132,8 @@ ops/mas/progress/index.html
 - 适合后续接入 Codex App、OPL Runtime Manager 或浏览器自动打开，但这些集成不能成为 Portal 的 authority。
 
 实时服务的价值是让用户看到页面持续更新，减少“是不是还在跑”的不确定感；工程上它只是 read-model refresh loop。
+
+如果 read-model 给出 `runtime_reconcile_trigger.safe_to_request=true`，实时服务或页面刷新只能展示推荐命令或调用现有 controller/supervisor safe surface；重复刷新必须依赖 dedupe fingerprint，不能制造重复 relaunch。已 parked、completed、human gate、publication gate missing 或 retry exhausted 的 study 必须显示 blocked reason，而不是提示恢复。
 
 ## 旧 MDS WebUI 关系
 

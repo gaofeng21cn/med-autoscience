@@ -8,6 +8,8 @@ Date: `2026-05-08`
 
 MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/quality/status/progress/cockpit/OPL handoff 不要求外部 `med-deepscientist` repo、daemon、runtime root 或 WebUI。
 
+2026-05-08 Runtime Continuity closeout 补齐了 daemon 退役后最影响用户信任的两类行为：durable session/worker tracking 和 crash-recovery intent。MAS 现在用 `runtime_session` read model 投影 worker/last seen/run/freshness，用 `recovery_intent` ledger 记录恢复原因、next owner、retry budget 与 current action，用 `runtime_reconcile_trigger` 给读入口展示一次 safe reconcile 的幂等推荐。这些能力仍是 scheduler-bound / controller-owned，不表示 MAS 变成 resident MDS daemon。
+
 这不等于旧 MDS resident daemon 的行为被 1:1 复刻。正确完成口径是：
 
 - `default_independence`: landed
@@ -61,6 +63,17 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 | artifact interaction handoff | `partially_equivalent` | daemon artifact interactions | Artifact OS locator / package handoff / controller refs | package discovery covered; interactive artifact mutation retired |
 | daemon lifecycle controls | `not_equivalent_retired` | start/stop/restart MDS daemon | register/remove Hermes cron supervision | no MAS-native MDS daemon control path is needed |
 | workspace-local host service | `not_equivalent_retired` | historical MAS launchd/systemd/cron bridge | retired cleanup evidence; canonical owner is Hermes gateway cron | old host services should be removed, not kept as active option |
+
+## Runtime Continuity Completion
+
+本轮 landed surface 固定为：
+
+- `runtime_session_read_model`：只读投影 `study_id`、`quest_id`、`active_run_id`、`last_known_run_id`、`worker_state`、`worker_running`、`runtime_liveness_status`、`started_at`、`last_seen_at`、`last_event_cursor`、`last_stdout_ref`、freshness 与 evidence refs。
+- `runtime_recovery_intent`：supervisor-owned ledger，记录恢复原因、next owner、retry budget、dedupe fingerprint、last attempt/result、next eligible tick 与 `current_action`。
+- `runtime_reconcile_trigger_projection`：读入口只展示 safe reconcile 推荐与 blocked reasons；它不执行 reconcile，不写 runtime truth。
+- `mas_runtime_continuity_projection`：投影到 `study-progress`、workspace cockpit、product-entry status、Progress Portal、MCP compact projection 和 OPL handoff。
+
+这组 surface 的完成口径是“用户能看清有没有 worker、上次看到什么时候、为什么没继续、下一次怎么恢复”。它不复刻 MDS in-memory session API，也不复刻 WebSocket terminal。质量、投稿、交付授权继续由 MAS quality/publication/artifact owner surface 持有。
 
 ## 旧 Workspace-Local Service Policy
 

@@ -20,6 +20,15 @@
 
 普通 `study_runtime_status` / `study_progress` read 只生成 shadow snapshot，不写 `artifacts/runtime/health/latest.json`。只有显式 reconcile、`runtime watch --apply` 或 controller tick 可以刷新 materialized snapshot。
 
+`runtime_session` 是 RuntimeHealthKernel 之后的只读会话/worker read model。它的职责是把“有没有 worker、上次看到什么时候、最近 run 是谁、当前 freshness 如何”投影给用户入口；它不判断 scientific quality，不授权 publication/submission readiness，也不替代 materialized health snapshot。来源优先级固定为：
+
+1. `study_runtime_status` / `runtime_liveness_audit`
+2. `artifacts/runtime/runtime_lifecycle.sqlite` 的 runtime lifecycle store
+3. `owner_route` / dispatch receipts
+4. explicit legacy diagnostic fixture
+
+只有 `runtime_liveness_status=live` 且 `worker_running=true` 时，`active_run_id` 才保留为 active；否则旧 run 只能降级为 `last_known_run_id`。
+
 显式 `source_signature` 是 runtime health 的幂等键。同一 `(study_id, quest_id, event_type, source_signature)` 重放只能返回 existing event，不得再次追加并消耗 retry budget。没有显式 source signature 的 recover/launch attempt 仍按真实新尝试追加，继续消耗 retry budget。
 
 显式 reconcile 入口：
@@ -29,6 +38,8 @@ uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile
 ```
 
 该入口先读取当前 `study_runtime_status`，再把 status payload 归一化为 runtime health events 并刷新 `artifacts/runtime/health/latest.json`。
+
+`recovery_intent` 是 controller/supervisor 侧的恢复意图 ledger，不是 health reducer 本身。它只在新鲜 `owner_route` 允许 runtime repair 时投影 `safe_reconcile_ready`；否则记录 fail-closed 原因，例如 parked、completed、human gate、publication gate missing 或 retry exhausted。`runtime_reconcile_trigger` 只能把该 intent 转成幂等的一次性 safe reconcile 推荐命令；用户刷新 Portal 不会直接 relaunch worker。
 
 ## Dominance Rules
 

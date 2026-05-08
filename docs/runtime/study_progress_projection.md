@@ -86,6 +86,10 @@
 - `runtime_reason`
 - `task_intake`
 - `progress_freshness`
+- `runtime_session`
+- `recovery_intent`
+- `runtime_reconcile_trigger`
+- `runtime_continuity`
 - `latest_events`
 - `autonomy_soak_status`
 - `autonomy_contract.restore_point`
@@ -107,6 +111,10 @@
 - `task_intake` 表示当前 latest durable study task intake 摘要
 - `paper_stage` 表示论文主线当前建议推进阶段
 - `progress_freshness` 表示“最近有没有明确研究推进信号”，用于尽早暴露卡住、没进度或空转
+- `runtime_session` 表示最新 worker/session 可见性，包括 `active_run_id`、`last_known_run_id`、`worker_state`、`last_seen_at`、freshness 与 evidence refs；它是 read model，不是 runtime authority
+- `recovery_intent` 表示 MAS supervisor 对当前恢复动作的 durable intent，包括 `current_action`、next owner、retry budget、dedupe fingerprint、last attempt/result 和 next eligible tick；它不授权 paper/package/publication 写入
+- `runtime_reconcile_trigger` 表示读入口是否可以安全请求一次 controller-owned reconcile dry-run；它只返回推荐命令、去重 fingerprint 和 blocked reasons，不直接执行 relaunch/redrive
+- `runtime_continuity` 是给 Portal、workspace cockpit、product-entry、MCP 与 OPL handoff 的 compact projection，用来显示 last seen、current action、next recovery step 与 why not running；它不重新解释 study truth
 - `latest_events` 必须带明确时间戳
 - `autonomy_soak_status` 用于表达最近一次已被 durable surface 记录的自治续跑 / outer-loop dispatch，至少要能回答“系统自动转去了哪条线、关键问题是什么、下一次确认看什么、证据引用在哪里”
 - `autonomy_contract.restore_point` 是恢复点与 human gate 的前台真相；调用方应读取其中的 `human_gate_required` 与 `summary`，不要从泛化 blocker 推断恢复许可
@@ -116,6 +124,7 @@
 - `physician_decision_summary` 必须说明触达的是初始方向锁定、重大转向、止损、外部凭据/秘密、投稿客观信息或最终投稿前审计中的哪一类
 - `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path`
 - `supervision` 应同步暴露 `supervisor_tick_status`，用于前台解释当前是否仍有新鲜的 MAS 外环监管
+- `runtime_continuity` 和 `runtime_reconcile_trigger` 的 authority flags 必须保持 `quality_ready_authorized=false`、`publication_ready_authorized=false`、`submission_ready_authorized=false`
 
 前台 markdown / 线程回报的固定口径至少保持下面顺序：
 

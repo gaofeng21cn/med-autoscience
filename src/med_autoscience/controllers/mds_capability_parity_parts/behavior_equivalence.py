@@ -89,13 +89,13 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
             "live_session_api": True,
         },
         "mas_behavior": {
-            "session_store": "durable runtime state/read model",
+            "session_store": "durable runtime state and runtime_session read model",
             "worker_threads": False,
             "live_session_api": False,
         },
         "behavior_difference": "MAS observes worker state through durable state and ticks; it does not expose the MDS in-memory session store.",
         "default_user_impact": "Live/no-live truth is fail-closed and durable, but fine-grained in-memory session continuity is retired.",
-        "mas_contract": "runtime_liveness_audit, active_run_id, worker_running and runtime supervision determine live status.",
+        "mas_contract": "runtime_liveness_audit, active_run_id, worker_running, runtime_session and runtime supervision determine live status.",
         "recommended_operator_action": "use_mas_with_latency_awareness",
     },
     {
@@ -107,12 +107,12 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
             "worker_restart": "daemon-managed worker thread scheduling",
         },
         "mas_behavior": {
-            "startup_resume": "runtime watch/ensure-study-runtime on scheduler tick",
+            "startup_resume": "recovery_intent plus runtime watch/ensure-study-runtime on scheduler tick",
             "worker_restart": "MAS controller-authorized recovery action",
         },
         "behavior_difference": "MDS resumes at daemon startup; MAS resumes when Hermes invokes the next MAS tick or an operator runs watch explicitly.",
         "default_user_impact": "Recovery is independent of MDS checkout but has scheduler-bound latency.",
-        "mas_contract": "runtime_watch and study_runtime_router reconcile active-but-not-running state and escalate fail-closed.",
+        "mas_contract": "recovery_intent records the controller-owned recovery reason and safe_reconcile readiness; runtime_watch and study_runtime_router reconcile active-but-not-running state and escalate fail-closed.",
         "recommended_operator_action": "use_mas_with_latency_awareness",
     },
     {
@@ -260,6 +260,73 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
     },
 )
 
+RUNTIME_CONTINUITY_COMPLETION = {
+    "surface": "mas_runtime_continuity_completion",
+    "status": "landed",
+    "owner": "MedAutoScience Runtime OS",
+    "external_mds_repo_required": False,
+    "mds_daemon_required": False,
+    "active_scheduler": "hermes_gateway_cron",
+    "default_tick_interval_seconds": 300,
+    "runtime_session_read_model": {
+        "surface_kind": "runtime_session_read_model",
+        "role": "read_model",
+        "read_only": True,
+        "source_priority": [
+            "study_runtime_status/runtime_liveness_audit",
+            "runtime_lifecycle_store",
+            "owner_route/dispatch_receipts",
+            "legacy_diagnostic_fixture",
+        ],
+        "writes_authority_surface": False,
+    },
+    "recovery_intent_ledger": {
+        "surface": "runtime_recovery_intent",
+        "role": "controller_authorized_recovery_projection",
+        "allowed_current_actions": [
+            "await_next_tick",
+            "safe_reconcile_ready",
+            "recovering",
+            "parked",
+            "human_gate_required",
+            "escalated",
+        ],
+        "writes_publication_truth": False,
+        "writes_paper_package": False,
+    },
+    "safe_reconcile_trigger": {
+        "surface_kind": "runtime_reconcile_trigger_projection",
+        "role": "read_model_request_projection",
+        "executes_reconcile": False,
+        "writes_runtime": False,
+        "dedupe_required": True,
+        "blocked_current_truth": [
+            "stale_owner_route",
+            "manual_parked",
+            "parked",
+            "completed",
+            "human_gate_required",
+            "publication_gate_missing",
+            "retry_exhausted",
+        ],
+    },
+    "user_surface_projection": {
+        "surfaces": [
+            "study_progress",
+            "workspace_cockpit",
+            "product_entry_status",
+            "progress_portal",
+            "mcp_study_progress",
+            "opl_handoff",
+        ],
+        "role": "read_model_projection",
+        "reinterprets_study_truth": False,
+    },
+    "quality_ready_authorized": False,
+    "publication_ready_authorized": False,
+    "submission_ready_authorized": False,
+}
+
 
 def _list(value: object) -> list[object]:
     return value if isinstance(value, list) else []
@@ -308,6 +375,7 @@ def build_mds_behavior_equivalence_matrix() -> dict[str, Any]:
         "allowed_equivalence_classes": list(ALLOWED_BEHAVIOR_EQUIVALENCE_CLASSES),
         "allowed_operator_actions": list(ALLOWED_BEHAVIOR_OPERATOR_ACTIONS),
         "behavior_surfaces": surfaces,
+        "runtime_continuity_completion": copy.deepcopy(RUNTIME_CONTINUITY_COMPLETION),
         "summary": _behavior_equivalence_summary(surfaces),
     }
 
@@ -320,6 +388,7 @@ def validate_mds_behavior_equivalence_matrix(matrix: Mapping[str, Any]) -> dict[
     _validate_behavior_matrix_claims(matrix, issues)
     _validate_behavior_matrix_allowed_values(matrix, issues)
     _validate_behavior_matrix_surfaces(matrix, issues)
+    _validate_runtime_continuity_completion(matrix.get("runtime_continuity_completion"), issues)
     return {
         "surface": "mds_behavior_equivalence_matrix_validation",
         "schema_version": SCHEMA_VERSION,
@@ -440,3 +509,49 @@ def _validate_behavior_surface_authority(
         issues.append({"code": "behavior_surface_quality_authority_allowed", "surface_id": surface_id})
     if surface.get("publication_ready_authority_allowed") is not False:
         issues.append({"code": "behavior_surface_publication_ready_authority_allowed", "surface_id": surface_id})
+
+
+def _validate_runtime_continuity_completion(value: object, issues: list[dict[str, Any]]) -> None:
+    if not isinstance(value, Mapping):
+        issues.append({"code": "runtime_continuity_completion_missing"})
+        return
+    if _text(value.get("surface")) != "mas_runtime_continuity_completion":
+        issues.append({"code": "runtime_continuity_completion_wrong_surface"})
+    if _text(value.get("status")) != "landed":
+        issues.append({"code": "runtime_continuity_completion_not_landed"})
+    if value.get("external_mds_repo_required") is not False:
+        issues.append({"code": "runtime_continuity_external_mds_dependency"})
+    if value.get("mds_daemon_required") is not False:
+        issues.append({"code": "runtime_continuity_mds_daemon_dependency"})
+    if _text(value.get("active_scheduler")) != "hermes_gateway_cron":
+        issues.append({"code": "runtime_continuity_active_scheduler_drift"})
+    if int(value.get("default_tick_interval_seconds") or 0) != 300:
+        issues.append({"code": "runtime_continuity_tick_interval_drift"})
+    session = value.get("runtime_session_read_model")
+    if not isinstance(session, Mapping):
+        issues.append({"code": "runtime_continuity_session_read_model_missing"})
+    else:
+        if _text(session.get("role")) != "read_model" or session.get("read_only") is not True:
+            issues.append({"code": "runtime_continuity_session_role_drift"})
+        if session.get("writes_authority_surface") is not False:
+            issues.append({"code": "runtime_continuity_session_authority_write"})
+    trigger = value.get("safe_reconcile_trigger")
+    if not isinstance(trigger, Mapping):
+        issues.append({"code": "runtime_continuity_safe_trigger_missing"})
+    else:
+        if trigger.get("executes_reconcile") is not False:
+            issues.append({"code": "runtime_continuity_safe_trigger_executes_reconcile"})
+        if trigger.get("writes_runtime") is not False:
+            issues.append({"code": "runtime_continuity_safe_trigger_writes_runtime"})
+    user_projection = value.get("user_surface_projection")
+    if not isinstance(user_projection, Mapping):
+        issues.append({"code": "runtime_continuity_user_projection_missing"})
+    elif user_projection.get("reinterprets_study_truth") is not False:
+        issues.append({"code": "runtime_continuity_user_projection_reinterprets_truth"})
+    for field in (
+        "quality_ready_authorized",
+        "publication_ready_authorized",
+        "submission_ready_authorized",
+    ):
+        if value.get(field) is not False:
+            issues.append({"code": f"runtime_continuity_{field}", "field": field})

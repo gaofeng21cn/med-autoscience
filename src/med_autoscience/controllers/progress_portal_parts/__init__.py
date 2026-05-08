@@ -14,11 +14,13 @@ from .workspace_overview import (
     workspace_alert_projection,
     workspace_studies,
 )
+from .runtime_continuity import render_runtime_continuity_section
 
 __all__ = [
     "dedupe_texts",
     "local_time_projection",
     "localtime_symlink_target",
+    "render_runtime_continuity_section",
     "render_workspace_studies_section",
     "system_timezone_name",
     "timezone_name_from_localtime_target",

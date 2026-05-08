@@ -12,6 +12,8 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 
 2026-05-08 Runtime Turn Lifecycle correction 把旧 MDS daemon 的连续科研主循环落成 MAS-owned runtime surface：`runtime_core_daemon` 和 `worker_runner_lifecycle` 现在归类为 `mas_owned`。`runtime_watch` / supervisor / Hermes cron 只负责 reconcile、wakeup、redrive 和 stale recovery；真正的连续执行由 `schedule_turn`、`complete_turn_and_normalize`、runner monitor、delayed auto-continue timer、worker lease、turn receipt 和 user message queue 决定。
 
+2026-05-08 Runtime Continuity closeout 在 behavior matrix 中追加 `runtime_continuity_completion` 合同：`runtime_session` 只读投影 worker/session/freshness，`recovery_intent` 记录 controller-owned recovery intent，`runtime_reconcile_trigger` 只输出 safe reconcile 推荐和 blocked reasons，`runtime_continuity` 投到 progress/cockpit/product-entry/Portal/MCP/OPL。该合同明确 `external_mds_repo_required=false`、`mds_daemon_required=false`，并固定 `quality_ready_authorized=false`、`publication_ready_authorized=false`、`submission_ready_authorized=false`。
+
 ## Capability Matrix
 
 | Capability | Classification | MDS role | MAS owner | Parity proof | Medical quality authority |
@@ -62,6 +64,8 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | artifact interaction handoff | `partially_equivalent` | Use Artifact OS locator and handoff refs. |
 | daemon lifecycle controls | `not_equivalent_retired` | Use Hermes cron supervision controls. |
 | workspace-local host service | `not_equivalent_retired` | Clean retired service evidence; do not install. |
+
+`runtime_continuity_completion` 是上述两行的 landed refinement：行为目标覆盖用户可见 session tracking 和 crash recovery intent，但仍保留 scheduler-bound timing 差异，不宣称 resident daemon equivalence。
 
 ## Parity Proof Requirements
 

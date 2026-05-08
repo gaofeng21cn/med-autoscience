@@ -52,6 +52,14 @@ EXPECTED_BEHAVIOR_SURFACE_IDS = [
     "system_update_daemon_lifecycle_controls",
     "workspace_local_host_service",
 ]
+EXPECTED_RUNTIME_CONTINUITY_USER_SURFACES = [
+    "study_progress",
+    "workspace_cockpit",
+    "product_entry_status",
+    "progress_portal",
+    "mcp_study_progress",
+    "opl_handoff",
+]
 
 EXPECTED_SUPERSEDE_PROOF_IDS = [
     "artifact_inventory",
@@ -247,9 +255,36 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert by_surface["daemon_residency"]["behavior_difference"] == "MAS default supervision is scheduled ticks, not a resident HTTP/WebSocket daemon."
     assert by_surface["supervision_cadence"]["mas_behavior"]["interval_seconds"] == 300
     assert by_surface["supervision_cadence"]["mas_behavior"]["max_ticks"] == 1
+    assert by_surface["live_worker_session_tracking"]["mas_behavior"]["session_store"] == "durable runtime state and runtime_session read model"
+    assert "runtime_session" in by_surface["live_worker_session_tracking"]["mas_contract"]
+    assert "recovery_intent" in by_surface["crash_recovery_auto_resume"]["mas_contract"]
     assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "not_equivalent_retired"
     assert by_surface["connector_channel_background_delivery"]["equivalence_class"] == "not_equivalent_retired"
     assert by_surface["workspace_local_host_service"]["equivalence_class"] == "not_equivalent_retired"
+    continuity = matrix["runtime_continuity_completion"]
+    assert continuity["status"] == "landed"
+    assert continuity["external_mds_repo_required"] is False
+    assert continuity["mds_daemon_required"] is False
+    assert continuity["active_scheduler"] == "hermes_gateway_cron"
+    assert continuity["runtime_session_read_model"]["role"] == "read_model"
+    assert continuity["runtime_session_read_model"]["read_only"] is True
+    assert continuity["runtime_session_read_model"]["writes_authority_surface"] is False
+    assert continuity["recovery_intent_ledger"]["allowed_current_actions"] == [
+        "await_next_tick",
+        "safe_reconcile_ready",
+        "recovering",
+        "parked",
+        "human_gate_required",
+        "escalated",
+    ]
+    assert continuity["safe_reconcile_trigger"]["executes_reconcile"] is False
+    assert continuity["safe_reconcile_trigger"]["writes_runtime"] is False
+    assert "parked" in continuity["safe_reconcile_trigger"]["blocked_current_truth"]
+    assert continuity["user_surface_projection"]["surfaces"] == EXPECTED_RUNTIME_CONTINUITY_USER_SURFACES
+    assert continuity["user_surface_projection"]["reinterprets_study_truth"] is False
+    assert continuity["quality_ready_authorized"] is False
+    assert continuity["publication_ready_authorized"] is False
+    assert continuity["submission_ready_authorized"] is False
     for item in matrix["behavior_surfaces"]:
         assert item["mas_default_requires_external_mds"] is False
         assert item["requires_mds_daemon_for_default_operation"] is False
@@ -276,6 +311,11 @@ def test_mds_behavior_equivalence_validation_blocks_overclaim_and_legacy_runtime
     matrix["behavior_surfaces"][0]["requires_mds_daemon_for_default_operation"] = True
     matrix["behavior_surfaces"][1]["quality_authority_allowed"] = True
     matrix["behavior_surfaces"][2]["publication_ready_authority_allowed"] = True
+    matrix["runtime_continuity_completion"]["mds_daemon_required"] = True
+    matrix["runtime_continuity_completion"]["runtime_session_read_model"]["writes_authority_surface"] = True
+    matrix["runtime_continuity_completion"]["safe_reconcile_trigger"]["executes_reconcile"] = True
+    matrix["runtime_continuity_completion"]["user_surface_projection"]["reinterprets_study_truth"] = True
+    matrix["runtime_continuity_completion"]["quality_ready_authorized"] = True
 
     validation = module.validate_mds_behavior_equivalence_matrix(matrix)
 
@@ -287,6 +327,11 @@ def test_mds_behavior_equivalence_validation_blocks_overclaim_and_legacy_runtime
         "behavior_surface_requires_mds_daemon_for_default_operation",
         "behavior_surface_quality_authority_allowed",
         "behavior_surface_publication_ready_authority_allowed",
+        "runtime_continuity_mds_daemon_dependency",
+        "runtime_continuity_session_authority_write",
+        "runtime_continuity_safe_trigger_executes_reconcile",
+        "runtime_continuity_user_projection_reinterprets_truth",
+        "runtime_continuity_quality_ready_authorized",
     }
 
 
