@@ -2,7 +2,7 @@
 
 这份政策把 `MAS` 持续学习上游 `DeepScientist` 的方式规范下来。
 
-它处理的是长期 owner 问题：即使 `MedDeepScientist` 未来被 `MAS` 完全吸收，`MAS` 仍然应持续观察、学习和选择性吸收 `DeepScientist` 的研究 workspace 方法论。
+它处理的是长期 owner 问题：`MAS` 已经完成 functional monolith closeout 后，仍然应持续观察、学习和选择性吸收 upstream `DeepScientist` 的研究 workspace 方法论。
 
 ## 核心原则
 
@@ -31,7 +31,7 @@
 ## Owner 边界
 
 - `DeepScientist` 是持续学习对象和通用研究 workspace 方法来源。
-- `MedDeepScientist` 是当前迁移期 backend、behavior oracle、upstream intake buffer 和 parity companion。
+- `MedDeepScientist` 是历史 source archive、legacy diagnostic、parity fixture 和 provenance reference；它不是默认学习落点、默认 backend 或默认 runtime owner。
 - `MAS` 是医学研究 owner，负责把上游 lesson 翻译成医学研究合同、质量账本、runtime governance、用户可见进度和投稿交付表面。
 
 因此，任何吸收都必须落成 `MAS` 自己的 owner truth：
@@ -39,7 +39,7 @@
 - 文档必须写清楚 lesson 映射到哪个 MAS owner 面。
 - contract 必须使用 MAS 的 study / publication / controller 术语。
 - 测试必须验证 MAS 表达，而不是只证明 upstream 有这个功能。
-- MDS 被进一步吸收后，本政策仍继续生效，只是 intake buffer 从 fork checkout 转为 source-watch / parity fixture / upstream-reading workflow。
+- source watch、parity fixture 和 upstream-reading workflow 只能提供输入；真正的 landing repo 和 authority surface 是 `med-autoscience`。
 
 ## Intake 节奏
 
@@ -63,7 +63,7 @@
 - 变化能被切成边界清晰的小 slice。
 - slice 不要求 MAS 追随 upstream UI / provider / product 面。
 - slice 可以通过 MAS 自己的 contract 或测试验证。
-- slice 不把 MDS 重新抬升为医学质量 authority。
+- slice 不把外部 MDS、upstream prompt 或 source mirror 重新抬升为 runtime、医学质量、publication readiness 或用户进度 authority。
 
 ## 当前固定学习面
 
@@ -93,4 +93,4 @@
 - 不把 provider / UI / marketing 变化升级成 MAS behavior、contract 或 packet。
 - 不让上游 prompt 或 workflow 直接覆盖 MAS 医学研究合同。
 - 不用 memory 替代 study-level durable truth。
-- 不用 MDS fork 现状限制 MAS 的长期学习面。
+- 不用 MDS fork 现状限制 MAS 的长期学习面，也不把 MDS fork 的维护需求变成 MAS 默认学习路线。
