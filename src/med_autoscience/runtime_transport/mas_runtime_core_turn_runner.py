@@ -74,6 +74,7 @@ class CodexExecTurnRunner:
                 [*command, prompt_path.read_text(encoding="utf-8")],
                 cwd=str(quest_root),
                 text=True,
+                stdin=subprocess.DEVNULL,
                 stdout=stdout_handle,
                 stderr=stderr_handle,
                 start_new_session=True,

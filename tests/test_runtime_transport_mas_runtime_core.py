@@ -432,6 +432,7 @@ def test_codex_exec_runner_allows_mas_owned_non_git_quest_runtime(monkeypatch, t
     def fake_popen(args, **kwargs):
         seen["args"] = list(args)
         seen["cwd"] = kwargs.get("cwd")
+        seen["stdin"] = kwargs.get("stdin")
         return StartedProcess()
 
     monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
@@ -450,6 +451,7 @@ def test_codex_exec_runner_allows_mas_owned_non_git_quest_runtime(monkeypatch, t
     assert result["command"] == ["codex", "exec", "--json", "--skip-git-repo-check"]
     assert seen["args"][:4] == ["codex", "exec", "--json", "--skip-git-repo-check"]
     assert seen["cwd"] == str(quest_root)
+    assert seen["stdin"] is subprocess.DEVNULL
 
 
 def test_mas_runtime_core_live_execution_reads_local_runtime_state(tmp_path: Path) -> None:
