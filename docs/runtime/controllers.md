@@ -18,7 +18,7 @@
 4. runtime watch controller
 5. study delivery sync
 6. data assets controller
-7. MedDeepScientist upstream upgrade check
+7. backend audit
 8. managed study runtime orchestration
 9. runtime storage maintenance
 
@@ -31,7 +31,7 @@
 - `src/med_autoscience/controllers/study_delivery_sync.py`
 - `src/med_autoscience/controllers/data_assets.py`
 - `src/med_autoscience/controllers/data_asset_updates.py`
-- `src/med_autoscience/controllers/med_deepscientist_upgrade_check.py`
+- `src/med_autoscience/controllers/backend_audit.py`
 - `src/med_autoscience/controllers/study_runtime_router.py`
 - `src/med_autoscience/controllers/study_runtime_types.py`
 - `src/med_autoscience/controllers/runtime_storage_maintenance.py`
@@ -64,7 +64,7 @@
 
 对于 `MedDeepScientist` 运行时升级，当前 controller 采取的是“先审计、后升级”的策略：
 
-- `med_deepscientist_upgrade_check`
+- `backend_audit`
   - 不直接执行升级
   - 先统一检查 repo 配置、Git 状态、workspace contract 和医学 overlay 状态
   - 输出机器可读 decision，供 Agent 判断是否进入真实升级流程

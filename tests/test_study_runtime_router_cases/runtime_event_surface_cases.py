@@ -598,7 +598,7 @@ def test_study_runtime_status_prefers_executor_kind_for_family_source_surface(
     study_root = profile.workspace_root / "studies" / "001-risk"
     _write_execution_overrides(
         study_root,
-        executor="codex_cli_autonomous",
+        executor="codex_cli",
         executor_kind="hermes_agent",
     )
     quest_root = profile.runtime_root / "001-risk"

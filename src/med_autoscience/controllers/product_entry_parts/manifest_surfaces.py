@@ -563,8 +563,8 @@ def build_product_entry_manifest(
                 ],
                 "optional_executor_proofs": [
                     {
-                        "executor_kind": "legacy_oracle_backend_audit",
-                        "entrypoint": "explicit MedDeepScientist backend audit / parity oracle intake only",
+                        "executor_kind": "hermes_agent",
+                        "entrypoint": "explicit Hermes-Agent proof lane for historical provenance / parity intake only",
                         "requires_full_agent_loop": True,
                         "default_model": "inherit_local_hermes_default",
                         "default_reasoning_effort": "inherit_local_hermes_default",
