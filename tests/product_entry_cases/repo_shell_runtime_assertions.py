@@ -177,6 +177,42 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
     assert payload["artifact_inventory"]["surface_kind"] == "artifact_inventory"
     assert payload["artifact_inventory"]["summary"]["deliverable_files_count"] == 0
 
+def _assert_family_persistence_lifecycle_owner_route(*, module, payload, profile, profile_ref) -> None:
+    policy = payload["persistence_policy"]
+    assert policy["surface_kind"] == "family_persistence_policy"
+    assert policy["target_domain_id"] == "med-autoscience"
+    assert {entry["storage_role"] for entry in policy["authority_surfaces"]} == {"file_authority"}
+    assert "publication_eval_latest" in {entry["surface_id"] for entry in policy["authority_surfaces"]}
+    assert policy["sidecar_indexes"][0]["storage_role"] == "sqlite_sidecar_index"
+    assert policy["sidecar_indexes"][0]["ref"]["ref"] == "artifacts/runtime/runtime_lifecycle.sqlite"
+    assert policy["projection_caches"][0]["storage_role"] == "projection_cache"
+    assert policy["legacy_diagnostics"][0]["storage_role"] == "legacy_diagnostic_only"
+
+    ledger = payload["lifecycle_ledger"]
+    assert ledger["surface_kind"] == "family_lifecycle_ledger"
+    assert ledger["target_domain_id"] == "med-autoscience"
+    assert ledger["phase"] == "verify"
+    assert ledger["actions"][0]["manifest_ref"]["ref"] == (
+        "/opl_family_persistence_lifecycle_owner_route_adoption/refs/sqlite_sidecar"
+    )
+    assert ledger["actions"][0]["sha256"] == "0" * 64
+    assert ledger["actions"][0]["restore_ref"]["ref"] == "/session_continuity/restore_surface"
+
+    owner_route = payload["owner_route"]
+    assert owner_route["surface_kind"] == "family_owner_route"
+    assert owner_route["target_domain_id"] == "med-autoscience"
+    assert owner_route["next_owner"] == "med-autoscience"
+    assert owner_route["allowed_actions"] == [
+        "workspace-cockpit",
+        "submit-study-task",
+        "launch-study",
+        "study-progress",
+    ]
+    assert owner_route["idempotency_key"] == "med-autoscience:product-entry-manifest:manifest-projection"
+    assert "/opl_family_persistence_lifecycle_owner_route_adoption" in {
+        entry["ref"] for entry in owner_route["projection_refs"]
+    }
+
 def assert_manifest_runtime_and_continuity(*, module, payload, profile, profile_ref) -> None:
     _assert_manifest_runtime_identity(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
     _assert_managed_runtime_contract(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
@@ -184,3 +220,4 @@ def assert_manifest_runtime_and_continuity(*, module, payload, profile, profile_
     _assert_session_and_progress_projection(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
     _assert_research_runtime_control_projection(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
     _assert_artifact_inventory_summary(module=module, payload=payload, profile=profile, profile_ref=profile_ref)
+    _assert_family_persistence_lifecycle_owner_route(module=module, payload=payload, profile=profile, profile_ref=profile_ref)

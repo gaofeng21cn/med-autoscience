@@ -454,6 +454,22 @@ def build_product_entry_manifest(
     opl_family_persistence_lifecycle_owner_route_adoption = build_product_entry_adoption_projection(
         workspace_root=profile.workspace_root,
     )
+    persistence_policy = _build_family_persistence_policy_surface(
+        adoption=opl_family_persistence_lifecycle_owner_route_adoption,
+        progress_projection=progress_projection,
+        artifact_inventory=artifact_inventory,
+    )
+    lifecycle_ledger = _build_family_lifecycle_ledger_surface(
+        adoption=opl_family_persistence_lifecycle_owner_route_adoption,
+        session_continuity=session_continuity,
+    )
+    owner_route = _build_family_owner_route_surface(
+        adoption=opl_family_persistence_lifecycle_owner_route_adoption,
+        family_orchestration=family_orchestration,
+        product_entry_shell=product_entry_shell,
+        progress_projection=progress_projection,
+        artifact_inventory=artifact_inventory,
+    )
     skill_catalog = _build_skill_catalog_surface(
         runtime=runtime,
         family_orchestration=family_orchestration,
@@ -497,6 +513,9 @@ def build_product_entry_manifest(
         shared_handoff=shared_handoff,
         runtime_inventory=runtime_inventory,
         task_lifecycle=task_lifecycle,
+        persistence_policy=persistence_policy,
+        lifecycle_ledger=lifecycle_ledger,
+        owner_route=owner_route,
         session_continuity=session_continuity,
         progress_projection=progress_projection,
         artifact_inventory=artifact_inventory,

@@ -45,6 +45,9 @@ def test_build_product_entry_manifest_passes_contract_bundle_via_named_shared_kw
     assert captured["session_continuity"]["surface_kind"] == "session_continuity"
     assert captured["progress_projection"]["surface_kind"] == "progress_projection"
     assert captured["artifact_inventory"]["surface_kind"] == "artifact_inventory"
+    assert captured["persistence_policy"]["surface_kind"] == "family_persistence_policy"
+    assert captured["lifecycle_ledger"]["surface_kind"] == "family_lifecycle_ledger"
+    assert captured["owner_route"]["surface_kind"] == "family_owner_route"
     assert "schema_ref" not in captured["extra_payload"]
     assert "domain_entry_contract" not in captured["extra_payload"]
     assert "gateway_interaction_contract" not in captured["extra_payload"]
