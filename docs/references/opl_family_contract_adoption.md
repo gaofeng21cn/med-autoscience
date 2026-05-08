@@ -33,9 +33,23 @@
 
 `MAS` 通过 `product-entry-status`、`workspace-cockpit`、`study-progress` 与 `build-product-entry.return_surface_contract` 映射 `opl_family_product_operator_projection.v1`。这些投影必须保留 source refs、freshness、owner split、next surface ref、human gate reason、autonomy_slo、ai_doctor_state 和 repair_recommendation。
 
+## Monolith And Companion Retirement Projection
+
+`MAS` 已完成 no-history physical absorb 与 default-runtime-retirement closeout。OPL family contract adoption 读取的是 MAS-owned projections 和 retained capability surfaces，不要求外部 `med-deepscientist` checkout 作为默认运行依赖。
+
+MDS / DeepScientist 相关引用只能作为以下显式 refs 暴露：
+
+- backend audit target
+- legacy restore/import diagnostic
+- upstream intake source
+- parity oracle fixture
+
+任何未来继续吸收 MDS / DeepScientist 能力的 lane 都必须先记录 source ref/hash、snapshot checksum、license refs、capability classification、MAS owner、authority boundary、tests、parity proof 与 no-history contributor audit。
+
 ## Boundaries
 
 - `OPL` 只消费 MAS projection，不持有 study truth。
 - `OPL` 不关闭 `publication_eval/latest.json`。
 - `OPL` 不替代 evidence ledger、review ledger 或 medical reviewer judgment。
 - `Hermes-Agent`、Symphony scheduler、Linear 或外部 issue tracker 都不是 MAS 必需入口。
+- 外部 `med-deepscientist` checkout 也不是 MAS 默认 operation 依赖；只保留 MAS 显式声明的 diagnostic / intake / oracle refs。

@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-08：MAS monolith closeout 取代外部 MDS 默认运行依赖
+
+- 决策：`med-autoscience` 是唯一日常 repo、唯一研究入口和默认 operation owner。外部 `med-deepscientist` checkout 不再是 MAS 默认 study/status/progress/cockpit operation 的运行必需依赖；保留的 MDS / DeepScientist 价值只能作为显式 backend audit、legacy restore/import diagnostic、upstream intake 或 parity oracle 出现。
+- 理由：no-history physical absorb 已把 source provenance、author guard、capability parity fixtures、retained capability absorb 与 default-runtime-retirement 落到 repo-level guard；继续把 MDS 写成默认 backend 会重新制造第二 owner 和安装依赖漂移。
+- 影响：未来从 MDS / DeepScientist 学习或引入能力，必须记录 source ref/hash、snapshot checksum、license refs、capability classification、MAS owner、authority boundary、tests、parity proof 与 no-history contributor audit。`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status`、`runtime_watch`、paper/manuscript/current_package 与 artifact rebuild proof 不得被 MDS 写回或授权。
+
 ## 2026-05-07：Controller work-unit evidence adoption 只识别受控证据，不改变 AI-first 质量 owner
 
 - 决策：controller work-unit evidence adoption 固定为 objective evidence / freshness / currentness 的识别与路由机制，不成为论文质量、投稿 readiness 或 AI reviewer judgement 的替代 owner。`cold_archive`、`report_history`、runtime report store 和 restore proof 只能作为 restore / report evidence source；它们可以证明某个受控 work unit、artifact 或 runtime event 曾经发生，也可以参与 currentness/freshness 判断，但不能直接关闭 `publication_eval/latest.json`、`controller_decisions/latest.json`、AI reviewer workflow 或 submission-facing quality gate。若 worker 已完成受控 work unit，supervisor 的下一步是 gate recheck、owner route 前进或转交下一 owner，不得重复派发同一 work unit。
@@ -28,7 +34,7 @@
 
 ## 2026-05-02：MAS AI-first Research OS 成为长线目标架构
 
-- 决策：长线目标固定为 `MAS AI-first Research OS`。MAS 作为唯一 research / quality / publication / artifact / user-visible truth owner；MDS 收敛为 replaceable backend、behavior oracle 与 upstream intake buffer。机械系统只负责 evidence、status、completeness、blocker、projection 与 replay；AI reviewer workflow 持有科学质量、医学写作质量、publishability 与 submission-facing readiness。
+- 决策：长线目标固定为 `MAS AI-first Research OS`。MAS 作为唯一 research / quality / publication / artifact / user-visible truth owner；MDS 已收敛为显式 backend audit、legacy diagnostic、upstream intake 与 parity oracle companion。机械系统只负责 evidence、status、completeness、blocker、projection 与 replay；AI reviewer workflow 持有科学质量、医学写作质量、publishability 与 submission-facing readiness。
 - Authority anchor：AI reviewer artifacts 持有科学质量；机械系统只负责 evidence、status、completeness、blocker、projection 与 replay。
 - 理由：近期论文修复证明，机械 gate 先给 ready、下游再补救会把质量风险推迟到最贵的阶段。AI-first 的真实落点应前移到 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 与真实论文 soak，而不是在文档层增加措辞约束。
 - 影响：新增架构、质量、运行、产物、观测或 MDS 吸收能力时，必须回到 [MAS AI-first Research OS Architecture](./references/ai_first_research_os_architecture.md) 的 owner / authority / proof 口径；MDS no-history absorb 只允许在 parity proof、owner cutover、rollback surface 与质量不降级证明成立后以 MAS-authored snapshot 落地。当前 no-history absorb 已关闭为 repo-level guard/parity/default-dependency-retirement；更大的 runtime core ingest、controlled cutover 或平台结构调整仍需独立 gate。本决策不新增文档 wording gate，不修改测试或 preflight contract。
@@ -49,7 +55,7 @@
 
 - 决策：portable supervisor scan 可以生成外层可消费的 request packet，但 `publication_gate_specificity_required` 的 owner 固定为 `publication_gate`，`return_to_ai_reviewer_workflow` 的 owner 固定为 `ai_reviewer`，supervisor consumer 只写 owner handoff task、consumer packet 和 default executor dispatch。第三步 `runtime-supervisor-execute-dispatch` 只能在 prompt contract 与 forbidden surfaces 完整时调用 owner-authorized repo surface，或写明 blocked reason。对 stopped submission/finalize milestone，supervisor 只能刷新 controller-owned parked decision、确认或停止 runtime 资源，并把 repair lifecycle 写成 `state=parked` / `authority=controller_stop`。
 - 理由：近期 supervisor parking 与 request queue 修复证明，如果外层 scan/consumer 直接推断 publication quality、AI reviewer judgement 或 paper package 状态，会重新制造第二 owner。外层工程代理需要的是清晰的 request owner、required output surface 和 forbidden surface，而不是替代 MAS quality/publication authority。
-- 影响：`runtime-supervisor-consume`、`artifacts/supervision/consumer/*` 与 `artifacts/supervision/requests/*` 都是 handoff/request/dispatch surface；它们不得修改 `paper/current_package` 或 `manuscript/current_package`，不得放宽 quality/publication gate。`runtime-supervisor-execute-dispatch` 可以调用 `publication_gate` owner surface 物化 gate-owned `publication_eval/latest.json`，但不能合成 AI reviewer judgement；AI reviewer output 仍必须来自结构化 reviewer workflow。submission milestone parking 不授权人工 patch；后续稿件反馈仍必须走 durable revision intake 与 MAS/MDS relaunch/resume。
+- 影响：`runtime-supervisor-consume`、`artifacts/supervision/consumer/*` 与 `artifacts/supervision/requests/*` 都是 handoff/request/dispatch surface；它们不得修改 `paper/current_package` 或 `manuscript/current_package`，不得放宽 quality/publication gate。`runtime-supervisor-execute-dispatch` 可以调用 `publication_gate` owner surface 物化 gate-owned `publication_eval/latest.json`，但不能合成 AI reviewer judgement；AI reviewer output 仍必须来自结构化 reviewer workflow。submission milestone parking 不授权人工 patch；后续稿件反馈仍必须走 durable revision intake 与 MAS-controlled relaunch/resume。
 
 ## 2026-05-05：Supervisor scan 采用 current truth owner-route reconcile 合同
 
@@ -68,7 +74,7 @@
 
 - 决策：已达投稿包、submission-ready 或 finalize 里程碑后，如果收到用户、导师或审稿层面的稿件反馈，必须把该反馈作为同一 study 的 `reviewer_revision` reactivation intake 处理。`stopped` 状态和 `current_package` 存在只说明旧里程碑曾经成立，不能授权 Codex 前台直接修改 `manuscript/current_package/` 后宣称完成。
 - 理由：003 / 004 类 manuscript revision 暴露出重复误判风险：Agent 容易把“quest 已停车”误读成“当前包可人工小修”。这会绕开 MAS/MDS 的 study truth、claim-evidence、review ledger 和 package regeneration 链路。
-- 影响：`submit-study-task` 对非 live reviewer revision 要返回 reactivation guidance；workspace AGENTS、agent-entry templates、MDS write/finalize overlay 和 invariants 都必须显式要求先 durable intake，再 MAS/MDS relaunch/resume，最后从 canonical paper authority 重新生成 `current_package`。
+- 影响：`submit-study-task` 对非 live reviewer revision 要返回 reactivation guidance；workspace AGENTS、agent-entry templates、legacy write/finalize overlays 和 invariants 都必须显式要求先 durable intake，再 MAS-controlled relaunch/resume，最后从 canonical paper authority 重新生成 `current_package`。
 
 ## 2026-04-26：初稿质量升级扫描进入 study charter 与 reviewer-first route-back
 
@@ -102,7 +108,7 @@
 
 ## 2026-04-11：冻结 runtime backend interface
 
-- 决策：`MedAutoScience` controller 只通过 `runtime backend interface contract` 访问 managed runtime backend，不再把 `med-deepscientist` 具体实现名作为 controller 判定真相。
+- 决策：`MedAutoScience` controller 只通过 `runtime backend interface contract` 访问 managed runtime backend，不把 `med-deepscientist` 具体实现名作为 controller 判定真相，也不把外部 MDS checkout 当成默认 operation dependency。
 - 理由：为 Hermes 等新 backend 接入提供稳定 contract，先完成 backend abstraction，再进入 controlled cutover。
 - 影响：`runtime_binding.yaml` 增加 backend-generic 字段；显式声明但未注册的 backend 必须 fail-closed 阻断。
 
@@ -115,20 +121,20 @@
 ## 2026-04-11：当前仓内的 `Hermes` 只代表 repo-side seam，不代表上游集成已落地
 
 - 决策：仓内保留的 `Hermes` 命名，只能表示 repo-side outer-runtime seam / shim / contract owner，不得写成“上游 `Hermes-Agent` 已成为当前 runtime owner”。
-- 理由：当前真实长时执行仍通过受控 `MedDeepScientist` backend 完成；文档与命名必须诚实反映这一点。
-- 影响：后续所有 runtime 文档都必须把“目标中的上游 `Hermes-Agent`”与“当前仓内的 repo-side seam”拆开表述；display / paper-facing asset packaging 独立线继续排除在当前 tranche 外。
+- 理由：迁移期曾经通过受控 `MedDeepScientist` backend 承接长时执行，但当前 no-history physical absorb 已关闭外部 MDS 默认依赖；文档与命名必须诚实反映这条 closeout。
+- 影响：后续所有 runtime 文档都必须把“目标中的上游 `Hermes-Agent`”“MAS-owned default operation surface”和“显式可选 MDS diagnostic / intake / oracle refs”拆开表述；display / paper-facing asset packaging 独立线继续排除在当前 tranche 外。
 
 ## 2026-04-12：固定 runtime substrate 与 research executor 分层
 
-- 决策：`Hermes-Agent` 在这条主线里优先承担 runtime substrate / orchestration owner，而不是立刻替代 `MedDeepScientist` 内部所有研究执行脑。
+- 决策：`Hermes-Agent` 在这条主线里优先承担 runtime substrate / orchestration owner，而不是替代 MAS-owned research owner surface 或把外部 MDS repo 重新变成默认执行脑。
 - 理由：当前真正高风险的不是“没有统一执行脑”，而是“没有统一长期在线 runtime substrate”。若在外层 runtime ownership 尚未稳定前，就强制把 backend 内部的 `Codex + skills` 执行生态整体替掉，最容易出现功能降级。
-- 影响：后续解构 `MedDeepScientist` 时，必须按 executor route 逐类迁移，并用显式 contract + proof 决定是否替换；不允许把“接入 Hermes”偷换成“已完成单步执行器替换”。
+- 影响：后续继续学习 `MedDeepScientist` / DeepScientist 时，必须按 source provenance、executor route、owner boundary、contract 与 parity proof 决定是否吸收；不允许把“接入 Hermes”偷换成“已完成研究执行 owner 替换”。
 
 ## 2026-04-20：方向锁定后的质量与自治默认收口到 MAS
 
 - 决策：方向锁定之后，普通科研推进、论文质量判断、reviewer concern 排序、证据充分性判断与 `bounded_analysis` 一类有限补充分析推进，默认由 `MAS` 自主完成；human gate 收口到重大边界与最终投稿前审计。
 - 理由：长时间自治和医学论文质量需要同一 owner、同一 study truth 和同一审计边界，`MAS` 已经持有 study authority、workspace authority、证据推进与人工接手点，适合承担默认裁决权。
-- 影响：后续 program、status、runtime 与 eval 文档都要按这个 owner 边界写作；`MDS` 继续承担迁移期 research backend、行为等价 oracle 与上游 intake buffer。
+- 影响：后续 program、status、runtime 与 eval 文档都要按这个 owner 边界写作；`MDS` 只保留显式 backend audit、legacy diagnostic、行为等价 oracle 与上游 intake buffer。
 
 ## 2026-04-20：study charter 承载质量总合同
 

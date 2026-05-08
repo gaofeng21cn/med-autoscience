@@ -67,7 +67,7 @@
 - 它负责课题接收、工作区语境、证据推进、进度投影和面向论文的交付。
 - `OPL` 只负责 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不把 MAS 改写成内部模块。
 - 目标形态中的 `OPL Runtime Manager` 可以在外部 `Hermes-Agent` substrate 之上索引 MAS task/runtime/artifact projection，但 MAS 继续持有 study truth 与 publication judgment。
-- `MedDeepScientist` 在迁移期继续作为 backend / oracle / intake buffer，不是第二产品 owner。
+- `MedDeepScientist` 不再是 MAS 默认运行依赖；只保留为显式可选的 backend audit target、legacy restore/import diagnostic、上游 intake source 和 parity oracle。
 - MAS 当前不提供面向用户安装的 standalone GitHub Release 或独立 installer 叙事；OPL 管理模块安装当前走 git checkout / sibling repo 路径，后续可消费 OPL Packages/GHCR-backed module 坐标。
 - 临床问题界定、结论采用和投稿决策由研究者与课题负责人把关。
 - 期刊投稿和外部系统交互由人工监督完成。

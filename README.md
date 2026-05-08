@@ -67,7 +67,7 @@ You can start with prompts like:
 - It owns study intake, workspace context, evidence progression, progress reporting, and manuscript-facing delivery.
 - `OPL` stays at family-level session/runtime/projection orchestration and shared modules/contracts/indexes; it does not redefine MAS as an internal module.
 - The target `OPL Runtime Manager` may index MAS task/runtime/artifact projections over an external `Hermes-Agent` substrate, but MAS remains the owner of study truth and publication judgment.
-- `MedDeepScientist` remains a backend/oracle/intake buffer during migration; it is not a second product owner.
+- `MedDeepScientist` is no longer a default MAS runtime dependency; it remains only as an explicit optional backend audit target, legacy restore/import diagnostic, upstream intake source, and parity oracle.
 - User-installable MAS standalone GitHub Release or installer stories are not the current distribution contract; OPL-managed module installation currently uses git checkout / sibling repo paths and may later consume OPL Packages/GHCR-backed module coordinates.
 - Clinical framing, claim acceptance, and submission decisions stay with researchers and PIs.
 - Journal submission and external system interaction stay under human supervision.
