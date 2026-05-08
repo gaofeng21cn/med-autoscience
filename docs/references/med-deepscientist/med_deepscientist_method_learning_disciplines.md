@@ -14,9 +14,9 @@
 这份学习纪律建立在当前固定边界之上：
 
 - `MAS` 是唯一研究入口、study / workspace authority owner、医学论文质量 owner、长时间自治 owner。
-- `MDS` 当前角色收敛为 controlled research backend、行为等价 oracle、上游 intake buffer。
+- `MDS` 当前角色收敛为 frozen source archive、historical fixture、explicit legacy diagnostic 和 provenance / parity reference。
 - 学习目标是把高价值研究行为沉淀为 `MAS` 自己的合同、文档、测试与 durable surface。
-- 学习动作服务 `MAS` 主线，不服务独立 `MDS` 日常运维面的继续膨胀。
+- 学习动作服务 `MAS` 主线，不服务独立 `MDS` 日常运维面的继续膨胀，也不把外部 `MDS` repo 重新变成默认学习落点。
 
 ## 2. 这轮最值得持续学习的五类优化
 
@@ -69,7 +69,7 @@
 - 从真实研究行为里抽象可复用纪律
 - 把纪律翻译成 `MAS` 的合同和验证口径
 - 在真实 study 上证明这些纪律带来更强的质量与自治
-- 继续保留 `MDS` 作为 oracle 和 intake buffer，直到等价 proof 过线
+- 继续保留 `MDS` 作为 historical source / parity fixture / legacy diagnostic，直到对应 MAS owner surface 不再需要外部对照
 
 ## 3. 为什么这些优化对 MAS 有价值
 
@@ -118,9 +118,9 @@
 
 继续留在 `MDS` 的内容主要有三类：
 
-- 提高 oracle 置信度的对照能力
-- 提高 upstream intake 审计质量的能力
-- 为旧 quest / workspace / artifact 提供迁移期参考面的能力
+- 提高 historical source / provenance 置信度的对照能力
+- 提高 parity / replay / fixture 审计质量的能力
+- 为旧 quest / workspace / artifact 提供显式 legacy diagnostic 参考面的能力
 
 ### 4.4 学习动作也要受验证约束
 
@@ -136,16 +136,16 @@
 | interrupt / resume / replan 治理 | `runtime` | supervision loop、outer-loop decision、controller decision record | runtime tests、真实恢复场景 |
 | 持续学习 program | `controller_charter` + `runtime` + `eval_hygiene` | `docs/program/`、intake / parity / oracle gate、长期主线 status | docs、merge gate、parity proof |
 
-## 6. 当前还应留给 MDS 的迁移期职责
+## 6. 当前还应留给 MDS 的历史职责
 
-在当前阶段，下面这些内容继续适合留在 `MDS` 迁移期 companion 面：
+在当前阶段，下面这些内容继续适合留在 `MDS` 历史/legacy companion 面：
 
-1. controlled research backend 的真实执行生态
-2. behavior oracle 与 parity replay
-3. upstream intake buffer 与差异审计
+1. frozen source archive 与 provenance reference
+2. historical fixture、behavior oracle 与 parity replay
+3. legacy restore/import/backend-audit diagnostic
 4. 旧 quest / workspace / artifact 的兼容读取参考面
 
-这四类职责为 `MAS` 持续学习提供稳定参照，也保证学习动作有真实对照线。
+这四类职责为 `MAS` 持续学习提供稳定参照，也保证学习动作有真实对照线；它们不构成默认 runtime、默认 WebUI、默认 diagnostic 或默认学习落点。
 
 ## 7. 什么时候可以说 MAS 学会了一项方法论
 
@@ -155,6 +155,6 @@
 2. 对应 repo-tracked 文档已经把边界、入口、语义和目标说清楚。
 3. 至少有一条测试或 meta verification 在守住这项能力的 contract。
 4. 至少有一类真实 study 或真实维护场景证明它改善了质量或自治。
-5. `MDS` 仍可作为对照线说明等价性、兼容性或尚未吸收的剩余部分。
+5. `MDS` 仍可作为 historical source / fixture / diagnostic 对照线说明等价性、兼容性或尚未吸收的剩余部分。
 
 满足这五条之后，`MAS` 学到的是长期可维护的方法论资产。

@@ -31,7 +31,7 @@
 - `OPL Runtime Manager` 是目标形态中的 family-level 薄运行管理层，位于外部 `Hermes-Agent` substrate 之上；它可以消费 MAS task registration、runtime-control projection、status/artifact locator 与 wakeup/approval 边界，但不持有 MAS study truth。
 - `MAS Progress Portal` 已进入 implementation-ready，作为 MAS-owned progress payload 与 workspace-local HTML 入口落在 `ops/mas/progress/index.html`。接入 OPL App 时应由 family-level dashboard 消费 MAS payload/read-model refs 并深链到本地 Portal，不能重新解释 MAS study truth。
 - `Hermes-Agent` 只保留在显式可选 hosted runtime 或 reference-layer 语境中，不改写默认 capability contract。
-- `MedDeepScientist` 在迁移期继续是受控后端、行为等价 oracle 和 upstream intake buffer；MAS 继续是唯一 research / publication owner。
+- `MedDeepScientist` 现在只保留为 frozen source archive、historical fixture、explicit legacy diagnostic 与 provenance/parity reference；MAS 是唯一 research、runtime、progress、quality 和 publication owner。
 - MAS standalone GitHub Release / 独立 installer 不是当前用户安装通道；分发叙事应指向当前 OPL 管理模块路径，或未来 OPL Packages/GHCR module 坐标。
 - AI-first 是当前可运行质量线的方向，落在 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 和真实论文 soak 上，不通过测试或 preflight contract 约束文档措辞。
 - `StudyTruthKernel` 与 `RuntimeHealthKernel` 是当前 study truth 与 runtime health 的 read-model reducer；普通读取只生成 shadow projection，materialized snapshot 必须由显式 reconcile、controller tick 或 runtime watch apply 写入。

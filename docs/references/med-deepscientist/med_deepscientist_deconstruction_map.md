@@ -2,16 +2,16 @@
 
 这份文档冻结两件事：
 
-1. `MedDeepScientist` 在迁移期继续承担什么角色
+1. `MedDeepScientist` 现在还保留哪些价值
 2. 新的优化任务为什么默认进入 `MedAutoScience`
 
-当前主线目标已经明确为单项目收敛：研究入口、研究治理、医学论文质量提升、长时间自治能力提升，默认都应服务 `MedAutoScience` 这一条主线；`MedDeepScientist` 继续保留为迁移期 companion，职责集中在 oracle / intake / parity / legacy support。
+当前主线目标已经明确为单项目收敛：研究入口、研究治理、医学论文质量提升、长时间自治能力提升，默认都应服务 `MedAutoScience` 这一条主线；`MedDeepScientist` 不再是默认运行面，而是历史 source archive、parity fixture、legacy diagnostic 和 provenance reference 的组合体。
 
 ## 当前固定边界
 
 - `MedAutoScience`：唯一研究入口、study / workspace authority owner、医学论文质量 owner、长时间自治 owner、repo-tracked operator surface owner
 - 上游 `Hermes-Agent`：目标外层 managed runtime substrate owner；当前仓内通过 repo-side seam / adapter 暴露 substrate-facing contract
-- `MedDeepScientist`：迁移期 controlled research backend，只保留 oracle / intake / parity / inner execution 相关角色
+- `MedDeepScientist`：历史 source archive、parity fixture、legacy diagnostic、provenance reference；只在显式 legacy audit / source-watch / parity 场景下出现
 - 旧 `Codex-default host-agent runtime`：迁移期对照面与 regression oracle
 - display / paper-facing asset packaging：明确排除在本线之外
 
@@ -30,31 +30,30 @@
 | 医学论文质量提升 | `MedAutoScience` | 研究设计、evidence contract、publication gate、reviewer-facing quality bar 都属于医学研究主线 authority |
 | 长时间全自动驾驶提升 | `MedAutoScience` | runtime watch、human gate、decision record、progress projection、recovery governance 都属于 outer-loop owner |
 | repo-tracked operator docs / mainline docs / control-plane wording | `MedAutoScience` | 这些文档定义日常开发与运维入口，必须和目标主线一致 |
-| 迁移期行为等价对照 | `MedDeepScientist` | 这是 oracle / parity lane，本质上服务 cutover proof |
-| 上游能力 intake、兼容比较、迁移缓冲 | `MedDeepScientist` | 这是 intake buffer，本质上服务审计式吸收 |
-| 旧 quest / workspace / artifact 兼容读取 | `MedDeepScientist` 与 `MedAutoScience` 协作 | `MedDeepScientist` 保留 reference truth，`MedAutoScience` 负责最终 reader 入口 |
+| 历史行为等价对照 | `MedDeepScientist` | 这是 historical parity lane，本质上服务 cutover proof 和 regression oracle |
+| 上游能力 intake、兼容比较、迁移缓冲 | `MedAutoScience` 主导，`MedDeepScientist` 只在显式 legacy audit 时提供 source reference | 这是 MAS 侧 intake lane，本质上服务审计式吸收 |
+| 旧 quest / workspace / artifact 兼容读取 | `MedAutoScience` 负责最终 reader 入口，`MedDeepScientist` 只提供 legacy source/reference | `MedDeepScientist` 不再是默认 reader 入口 |
 
-默认规则是：凡是会成为未来日常开发、运维、质量治理、自治治理的一部分，都先落到 `MedAutoScience`；凡是只服务迁移期对照、上游 intake、行为等价 proof 的内容，才继续留在 `MedDeepScientist`。
+默认规则是：凡是会成为未来日常开发、运维、质量治理、自治治理的一部分，都先落到 `MedAutoScience`；凡是只服务历史对照、上游 intake、行为等价 proof 的内容，才保留 `MedDeepScientist` 侧的 source/reference 价值。
 
 ## 2. MedDeepScientist 的长期收敛角色
 
 `MedDeepScientist` 的长期方向收敛为下面三类角色：
 
-1. `behavior oracle`
-   - 为 `MedAutoScience` 提供行为等价对照、golden trace replay、真实研究回归参考
-2. `upstream intake buffer`
-   - 承接上游能力 intake、差异审计、兼容比较，再决定哪些能力值得被 `MedAutoScience` 吸收
-3. `parity / legacy companion`
-   - 在 controlled cutover 完成前，继续为旧 quest、旧 workspace、旧 artifact、迁移期 recovery proof 提供参考面
+1. `historical source archive`
+   - 为 `MedAutoScience` 提供可追溯 upstream source、snapshot hash、provenance 和 license reference
+2. `parity / legacy fixture`
+   - 提供历史行为等价对照、golden trace replay、旧路径兼容测试
+3. `legacy diagnostic surface`
+   - 只在显式 restore/import/backend-audit 场景下被打开，不参与默认运行治理
 
-这意味着 `MedDeepScientist` 在迁移后期仍然可能存在，它的主要职责集中在：
+这意味着 `MedDeepScientist` 仍然可能存在，但它的主要职责已经缩到：
 
-- 继续提供行为等价对照
-- 继续承担上游 intake 与兼容比较
-- 继续为旧 quest / workspace / artifact 提供迁移期参考面
-- 继续服务 controlled cutover 前的 parity 证明
+- 继续提供历史 source 与 provenance
+- 继续承担 parity / legacy fixture
+- 继续为旧 quest / workspace / artifact 提供显式诊断入口
 
-只有当 `MedAutoScience` 在某项能力上已经具备明确 owner、repo-tracked contract、测试 proof、真实 study proof 时，该能力才允许从 `MedDeepScientist` 升级为 `MedAutoScience` owned。这里表达的是受控迁移顺序，不代表当前已经物理迁移完成。
+只有当 `MedAutoScience` 在某项能力上已经具备明确 owner、repo-tracked contract、测试 proof、真实 study proof 时，该能力才允许在 `MedAutoScience` 侧吸收或重写。这里表达的是 owner 归属，不代表 `MedDeepScientist` 还承担默认运行职责。
 
 ## 3. 更适合放在 MedAutoScience 主线的投入
 
@@ -71,8 +70,8 @@
 
 仍然值得留在 `MedDeepScientist` 的投入，只有三类：
 
-1. 提高 oracle 置信度的投入
-2. 提高 intake / parity / replay 质量的投入
+1. 提高 historical source / provenance 置信度的投入
+2. 提高 parity / replay / legacy fixture 质量的投入
 3. 为旧研究状态提供更稳的读取、对照、迁移参考的投入
 
 ## 4. 能力吸收时的判断标准
@@ -84,8 +83,8 @@
 3. 是否已经有 parity proof、回归 proof、真实 study proof
 4. 吸收后是否形成更轻的双面维护和更清晰的 owner 结构
 
-只要前两项成立，默认路线就是吸收到 `MedAutoScience`。
-只要第三项和第四项还没成立，`MedDeepScientist` 就继续保留迁移期 oracle / intake / parity 角色。
+只要前两项成立，默认路线就是在 `MedAutoScience` 侧吸收或重写。
+只要第三项和第四项还没成立，`MedDeepScientist` 就继续保留 historical source / parity fixture / legacy diagnostic 角色。
 
 ## 5. 当前 enforcement surface
 
@@ -101,13 +100,13 @@
 - `tests/test_study_runtime_router.py`
 - `make test-meta`
 
-`merge_and_cutover_gates` 负责定义什么时候某个 tranche 可以吸收、什么时候运行面可以继续 cutover；这份文档负责定义新任务的默认主体和 `MedDeepScientist` 的迁移期角色。两者一起使用，才能保持“目标主线明确”和“迁移顺序受控”同时成立。
+`merge_and_cutover_gates` 负责定义什么时候某个 tranche 可以吸收、什么时候运行面可以继续 cutover；这份文档负责定义新任务的默认主体和 `MedDeepScientist` 的历史/legacy 角色。两者一起使用，才能保持“目标主线明确”和“历史边界诚实”同时成立。
 
-## 6. 当前仍需诚实保留的迁移期语义
+## 6. 当前仍需诚实保留的历史语义
 
-当前迁移期的稳定判断如下：
+当前稳定判断如下：
 
-1. `MedDeepScientist` 不再是 MAS 默认 operation 的必需 checkout，但外部参考仓仍保留为 optional oracle / intake / audit / legacy diagnostic surface
+1. `MedDeepScientist` 不再是 MAS 默认 operation 的必需 checkout，外部参考仓只保留为 optional source archive / parity fixture / legacy diagnostic surface
 2. `MedAutoScience` 已经是默认优化主体
-3. `MedDeepScientist` 仍然需要保留 oracle / intake / parity / legacy companion 角色
-4. MDS no-history absorb 已以 MAS-authored snapshot guard/parity/default-dependency-retirement 落地；runtime core ingest、controlled cutover 和更大平台迁移仍需继续经过独立 gate 与真实 study proof
+3. `MedDeepScientist` 仍然需要保留 source / parity / legacy diagnostic 角色
+4. no-history absorb、default-dependency retirement 和 functional monolith closeout 已落地；未来若再从外部 source 吸收新的 runtime core、UI、diagnostic 或 learning surface，仍需独立 gate 与真实 study proof

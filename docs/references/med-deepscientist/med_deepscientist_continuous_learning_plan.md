@@ -7,13 +7,13 @@
 1. 当前最值得吸收什么
 2. 为什么这些主题值得排在前面
 3. 这些主题分别落到 `MAS` 的哪个 owner 面
-4. 即使未来 `MDS` 进一步被吸收，这条学习主线还要持续关注什么
+4. functional monolith closeout 之后，这条学习主线还要持续关注什么
 
 ## 0. 长期政策入口
 
-持续学习上游 `DeepScientist` 的长期规则固定在 [DeepScientist Continuous Learning Policy](./deepscientist_continuous_learning_policy.md)。本计划负责当前阶段排序；政策文档负责说明即使 `MDS` 被 `MAS` 完全吸收后，学习主线如何继续。
+持续学习上游 `DeepScientist` 的长期规则固定在 [DeepScientist Continuous Learning Policy](./deepscientist_continuous_learning_policy.md)。本计划负责当前阶段排序；政策文档负责说明 functional monolith closeout 后，学习主线如何继续。
 
-维护者触发“学习一下 `DeepScientist` 的最新更新”这类周期性学习任务时，执行入口固定为 [DeepScientist Latest-Update Learning Protocol](./deepscientist_latest_update_learning_protocol.md)。它把这句话解释为 fresh upstream audit、decision matrix、并行 worktree 落地、验证、吸收回 `main` 和清理的完整流程。
+维护者触发“学习一下 `DeepScientist` 的最新更新”这类周期性学习任务时，执行入口固定为 [DeepScientist Latest-Update Learning Protocol](./deepscientist_latest_update_learning_protocol.md)。它把这句话解释为 MAS 直接面向 upstream `DeepScientist` 的 fresh upstream audit、decision matrix、并行 worktree 落地、验证、吸收回 `med-autoscience/main` 和清理的完整流程。
 
 ## 1. 当前判断
 
@@ -24,7 +24,7 @@
 1. 研究合同如何前置冻结
 2. 研究全过程如何用 ledger 和 durable surface 持续解释
 3. 长时间自治如何把 interrupt / resume / replan / decision record 组织成正式治理链
-4. 持续学习本身如何受 oracle、intake、parity proof 约束
+4. 持续学习本身如何受 provenance、parity proof、no-history contributor audit 和 MAS owner boundary 约束
 
 ## 2. 为什么这四类主题排在最前
 
@@ -48,7 +48,7 @@
 
 - 把“持续学习 `DeepScientist` 方法论”收成 `MAS` program 文档主线。
 - 把 lesson 映射到 `controller_charter`、`runtime`、`eval_hygiene` 三块 owner。
-- 把 `MDS` 的 oracle / intake / parity 角色写成长期可持续解释面。
+- 把 `MDS` 的 frozen source / fixture / legacy diagnostic / provenance 角色写成长期可持续解释面。
 
 当前入口：
 
@@ -78,17 +78,17 @@
 
 这些主题排在前面，是因为长期自治的价值取决于治理质量，而治理质量取决于可见性、恢复语义和 decision record。
 
-### Phase D：保留 MDS 作为学习与对照基础设施
+### Phase D：保留 MDS 作为历史 source 与对照基础设施
 
-当前阶段继续保留 `MDS` 的三类角色：
+当前阶段继续保留 `MDS` 的三类非默认角色：
 
-1. behavior oracle
-2. upstream intake buffer
-3. parity / legacy companion
+1. frozen source archive / provenance reference
+2. historical fixture / parity oracle
+3. explicit legacy restore/import/backend-audit diagnostic
 
-这一步的重点是让 `MAS` 的学习主线始终有对照、有缓冲、有兼容面。
+这一步的重点是让 `MAS` 的学习主线始终有可追溯 source、有对照、有兼容审计面，同时不把外部 `MDS` 重新变成默认运行、默认诊断或默认学习落点。
 
-## 4. 后续即使 MDS 被进一步吸收，也要持续学习的方向
+## 4. Functional monolith closeout 后仍要持续学习的方向
 
 ## 4.1 研究方向锁定后的自主裁决能力
 
@@ -104,7 +104,7 @@
 
 ## 4.2 study 级长期记忆与恢复治理
 
-未来即使 `MDS` 被进一步吸收，`MAS` 仍要持续学习如何把长期研究过程做成稳定的 study memory：
+functional monolith closeout 后，`MAS` 仍要持续学习如何把长期研究过程做成稳定的 study memory：
 
 - 研究合同记忆
 - 决策记忆
@@ -127,7 +127,7 @@
 
 ## 4.4 上游方法论 intake
 
-即使未来 `MDS` 被进一步吸收，上游 `DeepScientist` 线仍可能继续产生值得借鉴的方法论。届时依然应该保持：
+上游 `DeepScientist` 线仍可能继续产生值得借鉴的方法论。后续依然应该保持：
 
 - 先审计价值，再决定是否 intake
 - 先映射 owner，再考虑是否吸收实现
@@ -137,7 +137,7 @@
 
 这条学习 program 的固定输入源应保持为四类：
 
-1. 上游 `DeepScientist` / `MDS` 的高价值方法论演进
+1. 上游 `DeepScientist` 的高价值方法论演进，以及 `MDS` frozen source/provenance 中仍有审计价值的历史对照
 2. `MAS` 真实 study 的成功和失败证据
 3. `MAS` 真实 runtime / controller / ledger 运维事件
 4. 论文写作、审稿、投稿阶段暴露出来的系统性缺口
@@ -160,7 +160,7 @@
 
 1. 持续把 lesson 写成 `MAS` 自己的 owner truth。
 2. 把论文质量和长时间自治两条主线分别压成可验证 contract。
-3. 保持 `MDS` 作为 behavior oracle 与 intake buffer，直到关键能力完成等价 proof。
+3. 保持 `MDS` frozen source / fixture / diagnostic 的 provenance 价值，但默认直接从 upstream `DeepScientist` 学方法、直接在 `MAS` 落地。
 4. 让真实 study、真实运维事件、真实投稿反馈持续回流到这条 learning program。
 
 这条 program 的目标是让 `MAS` 长期拥有独立、可验证、可持续进化的研究方法论主线。

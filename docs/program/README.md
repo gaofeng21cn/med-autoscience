@@ -14,6 +14,6 @@ Supporting material lives outside this directory:
 - MDS learning, parity, ledgers, and technical references: `docs/references/`
 - Retired boards, closeouts, dated recurring intake snapshots, and landed program records: `docs/history/program/`
 
-Learning/intake work such as DeepScientist latest-update learning remains triggerable through its reference policy/protocol. The dated files in `docs/history/program/` are past snapshots, not a signal that the recurring lane has been retired.
+Learning/intake work such as DeepScientist latest-update learning remains triggerable through its reference policy/protocol and is now executed by `MAS` directly against upstream DeepScientist. The dated files in `docs/history/program/` are past snapshots, not a signal that the recurring lane has been retired.
 
 Do not add a new program board here until it is mapped through `program_portfolio_consolidation.md`.

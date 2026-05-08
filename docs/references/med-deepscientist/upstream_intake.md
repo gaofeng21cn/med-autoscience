@@ -1,29 +1,29 @@
-# Upstream Intake Guide
+# Legacy MedDeepScientist Fork Intake Guide
 
-这份文档定义 `med-deepscientist` 如何吸收 `DeepScientist` 上游更新，以及 `MedAutoScience` 如何对这类吸收做兼容审计。
+这份文档定义旧 `med-deepscientist` fork 在显式 legacy maintenance 场景下如何吸收 `DeepScientist` 上游更新，以及 `MedAutoScience` 如何对这类吸收做兼容审计。
 
-它的目标不是“尽快同步 upstream”，而是把 upstream 变化收口成一条受控、可验证、可回滚的 intake 流程。
+当前默认学习入口已经迁移到 `MAS` 直接学习 upstream `DeepScientist`：见 [DeepScientist Latest-Update Learning Protocol](./deepscientist_latest_update_learning_protocol.md)。本文只适用于用户明确要求维护外部 `med-deepscientist` checkout、刷新 legacy source archive、补 parity fixture 或执行 backend/restore/import diagnostic 的情况。
 
-更高优先级的主线工作不是 intake 本身，而是把 `MedAutoScience -> Hermes -> MedDeepScientist` 的 runtime protocol、compatibility contract 和 adapter 退出路径收紧。
+它的目标不是“尽快同步 upstream”，而是把 legacy fork 变化收口成一条受控、可验证、可回滚的审计流程。普通 DeepScientist learning 不再以进入 `med-deepscientist/main` 为完成目标。
 
 ## 一句话版本
 
-上游更新只能先进入 intake worktree，经过双层验证与 manifest 审计后，才允许进入 `med-deepscientist/main`。
+只有显式 legacy fork maintenance 才允许把上游更新先进入 `med-deepscientist` intake worktree；经过双层验证与 manifest 审计后，才允许进入 `med-deepscientist/main`。
 
 看到 upstream 多一个 commit，不意味着要立刻逐个研究它干了什么。
 
 ## 为什么不能直接跟上游同步
 
-`med-deepscientist` 的价值不只是“有一份 fork”，而是：
+`med-deepscientist` 的 legacy 价值不只是“有一份 fork”，而是：
 
-- 稳定执行真相
-- 保留 `MedAutoScience` 当前依赖的 daemon API / quest / worktree 契约
+- 保留 historical source、provenance、license 和 no-history import 依据
+- 为旧 daemon API / quest / worktree 契约提供 parity fixture 或 legacy diagnostic
 - 明确拒绝 prompt 广告、未审 workflow 变化和不受控依赖漂移
 
 因此，上游更新必须先回答三个问题：
 
 1. 这是不是我们真的需要的变化？
-2. 这会不会破坏当前 `MedAutoScience` 的协议假设？
+2. 这会不会破坏当前 `MedAutoScience` 的 owner boundary、protocol assumption 或 no-history contributor rule？
 3. 这次吸收是否留下了清晰的审计痕迹？
 
 ## Intake 原则
@@ -33,18 +33,17 @@
 - 优先以 commit / PR 为单位做受控 `cherry-pick`
 - 每次 intake 都必须在独立 worktree 中完成
 - 每次 intake 都必须更新 fork 审计记录
-- intake 是周期性、按价值触发的维护动作，不是持续主线
+- intake 是显式触发、按价值执行的 legacy 维护动作，不是 MAS 持续学习主线
 - 默认不逐 commit 跟踪 upstream；只有出现明确价值的变更集合时才发起 intake
 
 ## 主线优先级
 
 在当前阶段，工程优先级应按以下顺序理解：
 
-1. 维持 `Hermes` 作为默认 outer runtime substrate owner 的 repo-side contract 稳定
-2. 把 `MedDeepScientist` 收口为 controlled research backend，而不是默认 authority truth
-3. 收口 `runtime_protocol` / `runtime_transport` / controller 对 runtime 的契约
-4. 去掉不必要的 adapter 与隐式 layout 依赖
-5. 只在合适时机做有明确收益的 upstream intake
+1. 维持 `MAS` 作为唯一 study / quality / runtime / artifact / progress owner
+2. 让 `MedDeepScientist` 只保留 historical source、parity fixture、legacy diagnostic 和 provenance 角色
+3. 不把 legacy fork maintenance 写成默认 runtime、默认 WebUI、默认 diagnostic 或默认学习路线
+4. 只在显式 legacy 需求出现时做有明确收益的 fork intake
 
 ## Remote 命名
 
@@ -219,8 +218,7 @@ PYTHONPATH=src pytest -q
 
 ## 与 `MedAutoScience` 的对应关系
 
-`med-deepscientist` 只负责受控吸收上游变化；
-是否允许进入真实运行面，仍由 `MedAutoScience` 侧的升级检查、协议层与行为 gate 决定。
+`med-deepscientist` 只负责显式 legacy 场景下的受控吸收上游变化；是否允许进入真实运行面，仍由 `MedAutoScience` 侧的 owner boundary、协议层、source provenance、parity proof 与 no-history contributor audit 决定。
 
 对应治理视角请看：
 
