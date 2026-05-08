@@ -35,6 +35,15 @@ EXPECTED_REMAINING_SURFACE_IDS = [
     "upstream_source_archive",
 ]
 
+EXPECTED_SUPERSEDE_PROOF_IDS = [
+    "artifact_inventory",
+    "package_locator",
+    "paper_contract_health",
+    "manuscript_coverage",
+    "prompt_stage_discipline",
+    "memory_and_lesson_store",
+]
+
 
 def _complete_proof_bundle_from_matrix(matrix: dict[str, object]) -> dict[str, object]:
     capabilities = []
@@ -50,7 +59,10 @@ def _complete_proof_bundle_from_matrix(matrix: dict[str, object]) -> dict[str, o
                 "classification": capability["classification"],
                 "quality_authority_allowed": False,
                 "publication_ready_authority_allowed": False,
+                "quality_ready_authority_allowed": False,
+                "submission_ready_authority_allowed": False,
                 "proof_ref": f"proof-bundles/mds-capability-parity/{capability['capability_id']}.json",
+                "supersede_proofs": capability["supersede_proofs"],
             }
         )
     return {
@@ -73,6 +85,7 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
     assert matrix["allowed_capability_classifications"] == EXPECTED_CLASSIFICATIONS
     assert [capability["capability_id"] for capability in matrix["capabilities"]] == EXPECTED_CAPABILITY_IDS
     assert matrix["capability_ids"] == EXPECTED_CAPABILITY_IDS
+    assert matrix["supersede_proof_ids"] == EXPECTED_SUPERSEDE_PROOF_IDS
     assert [fixture["capability_id"] for fixture in matrix["retained_capability_oracle_fixtures"]] == EXPECTED_CAPABILITY_IDS
     assert [surface["surface_id"] for surface in matrix["remaining_surface_inventory"]] == EXPECTED_REMAINING_SURFACE_IDS
     assert matrix["parity_summary"] == {
@@ -90,8 +103,10 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
     for capability in matrix["capabilities"]:
         assert capability["mds_authority_role"] in {"backend", "behavior_oracle", "mechanical_oracle"}
         assert capability["can_authorize_medical_quality"] is False
+        assert capability["quality_ready_authority_allowed"] is False
         assert capability["quality_authority_allowed"] is False
         assert capability["publication_ready_authority_allowed"] is False
+        assert capability["submission_ready_authority_allowed"] is False
         assert capability["classification"] in EXPECTED_CLASSIFICATIONS
         assert capability["mas_owner_surface"]
         assert capability["oracle_fixture_ref"]
@@ -108,7 +123,17 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
             "classification": capability["classification"],
             "quality_authority_allowed": False,
             "publication_ready_authority_allowed": False,
+            "quality_ready_authority_allowed": False,
+            "submission_ready_authority_allowed": False,
         }
+        for proof in capability["supersede_proofs"]:
+            assert proof["proof_id"] in EXPECTED_SUPERSEDE_PROOF_IDS
+            assert proof["mas_owned"] is True
+            assert proof["mds_mechanical_signal_role"] == "evidence_only"
+            assert proof["mechanical_signal_can_only"].startswith("request_")
+            assert proof["quality_ready_authorized"] is False
+            assert proof["publication_ready_authorized"] is False
+            assert proof["submission_ready_authorized"] is False
         assert capability["required_parity_proof"]
         assert set(capability["parity_proof"]) == {"proof_kind", "mas_contract", "mds_oracle", "acceptance"}
         assert capability["parity_proof"]["mas_contract"]
@@ -125,6 +150,9 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
         assert cutover_readiness["quality_gate_not_relaxed"] is True
         assert cutover_readiness["rollback_surface"]
         assert cutover_readiness["old_mds_authority_surface_status"] in {"marked_oracle", "retired"}
+        assert cutover_readiness["quality_ready_authority_allowed"] is False
+        assert cutover_readiness["publication_ready_authority_allowed"] is False
+        assert cutover_readiness["submission_ready_authority_allowed"] is False
 
 
 def test_mds_remaining_surface_inventory_classifies_functional_monolith_surfaces_without_upstream_history() -> None:
@@ -199,8 +227,15 @@ def test_mds_capability_cutover_gate_blocks_owner_switch_until_proofs_complete()
         assert capability["rollback_surface"]
         assert capability["old_mds_authority_surface_status"] in {"marked_oracle", "retired"}
         assert capability["can_authorize_medical_quality"] is False
+        assert capability["quality_ready_authority_allowed"] is False
         assert capability["quality_authority_allowed"] is False
         assert capability["publication_ready_authority_allowed"] is False
+        assert capability["submission_ready_authority_allowed"] is False
+        for proof in capability["supersede_proofs"]:
+            assert proof["mechanical_signal_can_only"].startswith("request_")
+            assert proof["quality_ready_authorized"] is False
+            assert proof["publication_ready_authorized"] is False
+            assert proof["submission_ready_authorized"] is False
 
 
 def test_mds_capability_cutover_gate_allows_owner_switch_with_complete_proof_bundle() -> None:
@@ -221,8 +256,10 @@ def test_mds_capability_cutover_gate_allows_owner_switch_with_complete_proof_bun
     for capability in gate["capabilities"]:
         assert capability["owner_switch_allowed"] is True
         assert capability["parity_status"] == "passed"
+        assert capability["quality_ready_authority_allowed"] is False
         assert capability["quality_authority_allowed"] is False
         assert capability["publication_ready_authority_allowed"] is False
+        assert capability["submission_ready_authority_allowed"] is False
 
 
 def test_mds_capability_parity_validation_blocks_quality_authority_drift() -> None:
@@ -234,6 +271,11 @@ def test_mds_capability_parity_validation_blocks_quality_authority_drift() -> No
     matrix["capabilities"][3]["oracle_fixture_ref"] = ""
     matrix["capabilities"][4]["quality_authority_allowed"] = True
     matrix["capabilities"][5]["publication_ready_authority_allowed"] = True
+    matrix["capabilities"][0]["quality_ready_authority_allowed"] = True
+    matrix["capabilities"][1]["submission_ready_authority_allowed"] = True
+    matrix["capabilities"][2]["supersede_proofs"][0]["quality_ready_authorized"] = True
+    matrix["capabilities"][3]["supersede_proofs"][0]["publication_ready_authorized"] = True
+    matrix["capabilities"][4]["supersede_proofs"][0]["submission_ready_authorized"] = True
     matrix["capabilities"][0]["rollback_surface"] = ""
     matrix["capabilities"][1]["provenance_ref"] = ""
 
@@ -245,8 +287,11 @@ def test_mds_capability_parity_validation_blocks_quality_authority_drift() -> No
         "capability_missing_parity_proof",
         "capability_incomplete_parity_proof_detail",
         "capability_missing_oracle_fixture_ref",
+        "capability_quality_ready_authority_allowed",
         "capability_quality_authority_allowed",
         "capability_publication_ready_authority_allowed",
+        "capability_submission_ready_authority_allowed",
+        "capability_supersede_proof_ready_authority_drift",
         "capability_missing_rollback_surface",
         "capability_missing_provenance_ref",
     }
@@ -261,6 +306,8 @@ def test_mds_capability_proof_bundle_validation_fails_closed_on_missing_fixture_
     proof_bundle["capabilities"][2]["publication_ready_authority_allowed"] = True
     proof_bundle["capabilities"][3]["rollback_surface"] = ""
     proof_bundle["capabilities"][4]["provenance_ref"] = ""
+    proof_bundle["capabilities"][5]["submission_ready_authority_allowed"] = True
+    proof_bundle["capabilities"][1]["supersede_proofs"][0]["submission_ready_authorized"] = True
 
     validation = module.validate_mds_capability_proof_bundle(proof_bundle, matrix)
 
@@ -269,6 +316,8 @@ def test_mds_capability_proof_bundle_validation_fails_closed_on_missing_fixture_
         "proof_bundle_missing_oracle_fixture_ref",
         "proof_bundle_quality_authority_allowed",
         "proof_bundle_publication_ready_authority_allowed",
+        "proof_bundle_submission_ready_authority_allowed",
+        "proof_bundle_supersede_proof_ready_authority_drift",
         "proof_bundle_missing_rollback_surface",
         "proof_bundle_missing_provenance_ref",
     }

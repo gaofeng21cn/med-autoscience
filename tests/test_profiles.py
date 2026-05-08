@@ -545,5 +545,5 @@ def test_load_profile_rejects_med_deepscientist_as_default_managed_backend(tmp_p
     )
 
     profiles = importlib.import_module("med_autoscience.profiles")
-    with pytest.raises(TypeError, match="managed_runtime_backend_id"):
+    with pytest.raises(TypeError, match="frozen source provenance"):
         profiles.load_profile(profile_path)

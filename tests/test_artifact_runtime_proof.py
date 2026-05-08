@@ -222,6 +222,56 @@ def test_authority_states_proof_cannot_authorize_scientific_quality(tmp_path: Pa
     }
 
 
+def test_mds_locator_signal_cannot_authorize_submission_ready_even_when_artifact_proof_is_current(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_runtime_proof")
+    study_root, paper_root, source_root, signature, relative_paths = _canonical_study(tmp_path)
+    _write_manifest(
+        study_root,
+        source_signature=signature,
+        source_root=source_root,
+        paper_root=paper_root,
+        relative_paths=relative_paths,
+    )
+
+    proof = module.build_artifact_runtime_proof(
+        study_root,
+        mds_mechanical_signals={
+            "package_locator": {"status": "pass", "current_package_found": True},
+            "artifact_inventory": {"status": "pass", "artifact_count": 3},
+        },
+    )
+
+    assert proof["rebuild_status"] == "current"
+    assert proof["mds_mechanical_signal_contract"] == {
+        "role": "evidence_only",
+        "mechanical_signal_can_only": "request_package_review",
+        "quality_ready_authorized": False,
+        "publication_ready_authorized": False,
+        "submission_ready_authorized": False,
+    }
+    assert proof["mds_mechanical_requests"] == [
+        {
+            "signal_id": "artifact_inventory",
+            "request_kind": "package_review",
+            "status": "pass",
+            "quality_ready_authorized": False,
+            "publication_ready_authorized": False,
+            "submission_ready_authorized": False,
+        },
+        {
+            "signal_id": "package_locator",
+            "request_kind": "package_review",
+            "status": "pass",
+            "quality_ready_authorized": False,
+            "publication_ready_authorized": False,
+            "submission_ready_authorized": False,
+        },
+    ]
+    assert proof["authority"]["derived_artifact_can_authorize_submission"] is False
+
+
 def test_submission_hygiene_truth_aggregates_submission_qc_publication_gates_and_artifact_proof(
     tmp_path: Path,
 ) -> None:

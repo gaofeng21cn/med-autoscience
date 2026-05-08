@@ -31,6 +31,7 @@ def build_artifact_lifecycle_inventory(
     quest_root: Path | None = None,
     paths: Sequence[Path],
     runtime_status: Mapping[str, Any] | None = None,
+    mds_mechanical_signals: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = _resolve_path(study_root)
     resolved_quest_root = _resolve_path(quest_root) if quest_root is not None else None
@@ -43,6 +44,7 @@ def build_artifact_lifecycle_inventory(
         )
         for path in paths
     ]
+    mds_requests = _mds_mechanical_requests(mds_mechanical_signals)
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": "artifact_lifecycle_inventory",
@@ -50,10 +52,14 @@ def build_artifact_lifecycle_inventory(
         "quest_root": str(resolved_quest_root) if resolved_quest_root is not None else None,
         "roles": list(ARTIFACT_ROLES),
         "artifacts": artifacts,
+        "mds_mechanical_signal_contract": _mds_mechanical_signal_contract(),
+        "mds_mechanical_requests": mds_requests,
         "summary": {
             "total_files_count": len(artifacts),
             "role_counts": {role: sum(1 for item in artifacts if item["role"] == role) for role in ARTIFACT_ROLES},
             "delivery_package_layout_status_counts": _delivery_package_layout_status_counts(artifacts),
+            "mds_signal_request_count": len(mds_requests),
+            "ready_authorization_count": 0,
         },
     }
 
@@ -226,6 +232,38 @@ def evaluate_archive_cleanup_readiness(
         "checksum": checksum,
         "rehydrate_verification_status": rehydrate_status,
     }
+
+
+def _mds_mechanical_signal_contract() -> dict[str, Any]:
+    return {
+        "role": "evidence_only",
+        "mechanical_signal_can_only": "request_artifact_or_package_review",
+        "quality_ready_authorized": False,
+        "publication_ready_authorized": False,
+        "submission_ready_authorized": False,
+    }
+
+
+def _mds_mechanical_requests(signals: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(signals, Mapping):
+        return []
+    requests: list[dict[str, Any]] = []
+    for signal_id in sorted(str(key) for key in signals):
+        payload = signals.get(signal_id)
+        status = ""
+        if isinstance(payload, Mapping):
+            status = str(payload.get("status") or "").strip()
+        requests.append(
+            {
+                "signal_id": signal_id,
+                "request_kind": "artifact_or_package_review",
+                "status": status or "observed",
+                "quality_ready_authorized": False,
+                "publication_ready_authorized": False,
+                "submission_ready_authorized": False,
+            }
+        )
+    return requests
 
 
 def _discover_registry_paths(

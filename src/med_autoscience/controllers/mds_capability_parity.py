@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from typing import Any, Mapping
 
 
@@ -19,6 +20,69 @@ CUTOVER_REQUIRED_GATES: tuple[str, ...] = (
     "old_mds_authority_surface_retired_or_marked_oracle",
 )
 PROVENANCE_REF = "docs/references/med-deepscientist/source_provenance.json"
+
+
+def _supersede_proof(
+    *,
+    proof_id: str,
+    mas_owner_surface: str,
+    mechanical_signal_can_only: str,
+) -> dict[str, Any]:
+    return {
+        "proof_id": proof_id,
+        "mas_owned": True,
+        "mas_owner_surface": mas_owner_surface,
+        "mds_mechanical_signal_role": "evidence_only",
+        "mechanical_signal_can_only": mechanical_signal_can_only,
+        "quality_ready_authorized": False,
+        "publication_ready_authorized": False,
+        "submission_ready_authorized": False,
+    }
+
+
+SUPERSEDE_PROOFS_BY_CAPABILITY: dict[str, tuple[dict[str, Any], ...]] = {
+    "runtime_execution": (),
+    "artifact_inventory": (
+        _supersede_proof(
+            proof_id="artifact_inventory",
+            mas_owner_surface="Artifact OS artifact inventory projection",
+            mechanical_signal_can_only="request_artifact_review",
+        ),
+        _supersede_proof(
+            proof_id="package_locator",
+            mas_owner_surface="Artifact OS package locator and artifact_runtime_proof",
+            mechanical_signal_can_only="request_package_review",
+        ),
+    ),
+    "paper_contract_health": (
+        _supersede_proof(
+            proof_id="paper_contract_health",
+            mas_owner_surface="Quality OS publication_eval/latest.json",
+            mechanical_signal_can_only="request_paper_health_review",
+        ),
+    ),
+    "manuscript_coverage": (
+        _supersede_proof(
+            proof_id="manuscript_coverage",
+            mas_owner_surface="Quality OS AI reviewer coverage request",
+            mechanical_signal_can_only="request_coverage_review",
+        ),
+    ),
+    "prompt_stage_discipline": (
+        _supersede_proof(
+            proof_id="prompt_stage_discipline",
+            mas_owner_surface="Quality OS controller stage discipline",
+            mechanical_signal_can_only="request_stage_review",
+        ),
+    ),
+    "memory_and_lesson_store": (
+        _supersede_proof(
+            proof_id="memory_and_lesson_store",
+            mas_owner_surface="Evaluation OS incident learning store",
+            mechanical_signal_can_only="request_lesson_review",
+        ),
+    ),
+}
 
 CAPABILITIES: tuple[dict[str, Any], ...] = (
     {
@@ -277,8 +341,30 @@ def _text(value: object) -> str:
     return str(value or "").strip()
 
 
+def _supersede_proofs_for_capability(capability_id: str) -> list[dict[str, Any]]:
+    return [copy.deepcopy(proof) for proof in SUPERSEDE_PROOFS_BY_CAPABILITY.get(capability_id, ())]
+
+
+def _supersede_proof_ids(capabilities: list[Mapping[str, Any]]) -> list[str]:
+    proof_ids: list[str] = []
+    for capability in capabilities:
+        for proof in _list(capability.get("supersede_proofs")):
+            if not isinstance(proof, Mapping):
+                continue
+            proof_id = _text(proof.get("proof_id"))
+            if proof_id and proof_id not in proof_ids:
+                proof_ids.append(proof_id)
+    return proof_ids
+
+
 def _capability_with_cutover_readiness(capability: Mapping[str, Any]) -> dict[str, Any]:
     capability_projection = dict(capability)
+    capability_id = _text(capability.get("capability_id"))
+    capability_projection["quality_ready_authority_allowed"] = False
+    capability_projection["quality_authority_allowed"] = False
+    capability_projection["publication_ready_authority_allowed"] = False
+    capability_projection["submission_ready_authority_allowed"] = False
+    capability_projection["supersede_proofs"] = _supersede_proofs_for_capability(capability_id)
     parity_proof = capability.get("parity_proof")
     proof = parity_proof if isinstance(parity_proof, Mapping) else {}
     capability_projection["cutover_readiness"] = {
@@ -292,6 +378,9 @@ def _capability_with_cutover_readiness(capability: Mapping[str, Any]) -> dict[st
         "quality_gate_not_relaxed": True,
         "rollback_surface": _text(capability.get("rollback_surface")),
         "old_mds_authority_surface_status": _text(capability.get("old_mds_authority_surface_status")),
+        "quality_ready_authority_allowed": False,
+        "publication_ready_authority_allowed": False,
+        "submission_ready_authority_allowed": False,
     }
     return capability_projection
 
@@ -309,10 +398,15 @@ def _build_cutover_capabilities(matrix: Mapping[str, Any]) -> list[dict[str, Any
         capability_projection["capability_id"] = _text(capability.get("capability_id"))
         capability_projection["title"] = _text(capability.get("title"))
         capability_projection["can_authorize_medical_quality"] = False
+        capability_projection["quality_ready_authority_allowed"] = False
         capability_projection["quality_authority_allowed"] = False
         capability_projection["publication_ready_authority_allowed"] = False
+        capability_projection["submission_ready_authority_allowed"] = False
         capability_projection["classification"] = _text(capability.get("classification"))
         capability_projection["parity_status"] = _text(capability.get("parity_status")) or "oracle_fixture_defined"
+        capability_projection["supersede_proofs"] = _supersede_proofs_for_capability(
+            _text(capability.get("capability_id"))
+        )
         cutover_capabilities.append(capability_projection)
     return cutover_capabilities
 
@@ -326,8 +420,10 @@ def _oracle_fixture_projection(capability: Mapping[str, Any]) -> dict[str, Any]:
         "rollback_surface": _text(capability.get("rollback_surface")),
         "provenance_ref": _text(capability.get("provenance_ref")),
         "classification": _text(capability.get("classification")),
+        "quality_ready_authority_allowed": False,
         "quality_authority_allowed": False,
         "publication_ready_authority_allowed": False,
+        "submission_ready_authority_allowed": False,
     }
 
 
@@ -381,6 +477,7 @@ def build_mds_capability_parity_matrix() -> dict[str, Any]:
         "retained_capability_oracle_fixtures": oracle_fixtures,
         "remaining_surface_inventory": remaining_surface_inventory["remaining_surfaces"],
         "capability_ids": [str(capability["capability_id"]) for capability in capabilities],
+        "supersede_proof_ids": _supersede_proof_ids(capabilities),
         "parity_summary": {
             "capability_count": len(capabilities),
             "proof_count": sum(1 for capability in capabilities if capability.get("parity_proof")),
@@ -462,10 +559,20 @@ def validate_mds_capability_parity_matrix(matrix: Mapping[str, Any]) -> dict[str
         capability_id = _text(capability.get("capability_id"))
         if capability.get("can_authorize_medical_quality") is not False:
             issues.append({"code": "mds_quality_authority_drift", "capability_id": capability_id})
+        if capability.get("quality_ready_authority_allowed") is not False:
+            issues.append({"code": "capability_quality_ready_authority_allowed", "capability_id": capability_id})
         if capability.get("quality_authority_allowed") is not False:
             issues.append({"code": "capability_quality_authority_allowed", "capability_id": capability_id})
         if capability.get("publication_ready_authority_allowed") is not False:
             issues.append({"code": "capability_publication_ready_authority_allowed", "capability_id": capability_id})
+        if capability.get("submission_ready_authority_allowed") is not False:
+            issues.append({"code": "capability_submission_ready_authority_allowed", "capability_id": capability_id})
+        _validate_supersede_proofs(
+            capability.get("supersede_proofs"),
+            issues,
+            issue_prefix="capability",
+            capability_id=capability_id,
+        )
         if not _text(capability.get("oracle_fixture_ref")):
             issues.append({"code": "capability_missing_oracle_fixture_ref", "capability_id": capability_id})
         if not _text(capability.get("rollback_surface")):
@@ -618,6 +725,14 @@ def validate_mds_capability_proof_bundle(
             issues.append({"code": "proof_bundle_quality_authority_allowed", "capability_id": capability_id})
         if capability.get("publication_ready_authority_allowed") is not False:
             issues.append({"code": "proof_bundle_publication_ready_authority_allowed", "capability_id": capability_id})
+        if capability.get("submission_ready_authority_allowed") is not False:
+            issues.append({"code": "proof_bundle_submission_ready_authority_allowed", "capability_id": capability_id})
+        _validate_supersede_proofs(
+            capability.get("supersede_proofs"),
+            issues,
+            issue_prefix="proof_bundle",
+            capability_id=capability_id,
+        )
         if not _text(capability.get("rollback_surface")):
             issues.append({"code": "proof_bundle_missing_rollback_surface", "capability_id": capability_id})
         if not _text(capability.get("provenance_ref")):
@@ -636,6 +751,42 @@ def validate_mds_capability_proof_bundle(
         "issue_count": len(issues),
         "issues": issues,
     }
+
+
+def _validate_supersede_proofs(
+    proofs: object,
+    issues: list[dict[str, Any]],
+    *,
+    issue_prefix: str,
+    capability_id: str,
+) -> None:
+    proof_list = _list(proofs)
+    if not proof_list and capability_id != "runtime_execution":
+        issues.append({"code": f"{issue_prefix}_missing_supersede_proof", "capability_id": capability_id})
+        return
+    for proof in proof_list:
+        if not isinstance(proof, Mapping):
+            issues.append({"code": f"{issue_prefix}_invalid_supersede_proof", "capability_id": capability_id})
+            continue
+        if proof.get("mas_owned") is not True:
+            issues.append({"code": f"{issue_prefix}_supersede_proof_owner_drift", "capability_id": capability_id})
+        if _text(proof.get("mds_mechanical_signal_role")) != "evidence_only":
+            issues.append({"code": f"{issue_prefix}_supersede_proof_signal_role_drift", "capability_id": capability_id})
+        if not _text(proof.get("mechanical_signal_can_only")).startswith("request_"):
+            issues.append({"code": f"{issue_prefix}_supersede_proof_signal_role_drift", "capability_id": capability_id})
+        for field in (
+            "quality_ready_authorized",
+            "publication_ready_authorized",
+            "submission_ready_authorized",
+        ):
+            if proof.get(field) is not False:
+                issues.append(
+                    {
+                        "code": f"{issue_prefix}_supersede_proof_ready_authority_drift",
+                        "capability_id": capability_id,
+                        "field": field,
+                    }
+                )
 
 
 def _proof_bundle_capabilities_by_id(proof_bundle: Mapping[str, Any] | None) -> dict[str, Mapping[str, Any]]:
