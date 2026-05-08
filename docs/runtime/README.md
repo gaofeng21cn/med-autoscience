@@ -54,6 +54,7 @@ MAS 保留 domain-owned runtime truth：OPL family 文档生命周期只提供�
 | [runtime_health_kernel.md](runtime_health_kernel.md) | Runtime health reducer contract；保持 active read-model contract。 |
 | [study_macro_state_and_owner_route.md](study_macro_state_and_owner_route.md) | 用户宏观状态与 executable owner route；保持 active read-model / routing contract。 |
 | [study_progress_projection.md](study_progress_projection.md) | Physician-friendly progress projection；作为 projection contract 保持 active。 |
+| [progress_portal.md](progress_portal.md) | MAS-native fixed progress entrance：静态快照 + 可选本地只读实时服务；作为 planned read-model surface 保持 active。 |
 | [progress_projection_history_contract.md](progress_projection_history_contract.md) | Progress lazy-history / detail-load contract；作为 projection contract 保持 active。 |
 | [artifact_inventory_projection.md](artifact_inventory_projection.md) | Artifact inventory projection 字段和展示规则；作为 projection contract 保持 active。 |
 | [ai_first_observability.md](ai_first_observability.md) | AI-first operator / user observability signals；作为 observability projection 保持 active。 |

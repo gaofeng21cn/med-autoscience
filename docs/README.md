@@ -94,6 +94,7 @@ Public-facing material should stay mirrored in English and Chinese.
 - [Study truth kernel](runtime/study_truth_kernel.md)
 - [Runtime health kernel](runtime/runtime_health_kernel.md)
 - [Study macro state and owner route](runtime/study_macro_state_and_owner_route.md)
+- [MAS Progress Portal](runtime/progress_portal.md)
 - [Artifact retention operations contract](runtime/artifact_retention_operations_contract.md)
 - [Artifact inventory projection](runtime/artifact_inventory_projection.md)
 - [Canonical artifact contract](runtime/canonical_artifact_contract.md)
