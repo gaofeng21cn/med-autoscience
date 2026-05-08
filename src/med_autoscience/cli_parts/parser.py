@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 from med_autoscience.cli_public_surface import GROUPED_COMMAND_PROGS
+from med_autoscience.cli_parts.live_console_commands import register_live_console_parsers
 from med_autoscience.cli_parts.product_entry_parsers import register_product_entry_parsers
 from med_autoscience.cli_parts.runtime_lifecycle_commands import register_runtime_lifecycle_parsers
 from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_storage_parsers
@@ -148,6 +149,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
 
     register_runtime_lifecycle_parsers(subparsers)
     register_runtime_storage_parsers(subparsers)
+    register_live_console_parsers(subparsers)
 
     init_data_assets_parser = subparsers.add_parser("init-data-assets")
     init_data_assets_parser.add_argument("--workspace-root", required=True)
