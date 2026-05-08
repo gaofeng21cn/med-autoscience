@@ -150,3 +150,25 @@ def test_live_console_stream_events_are_read_only_and_ordered() -> None:
     }
     assert all(event["read_only"] is True for event in events)
     assert all(event["source_ref"] for event in events)
+
+
+def test_runtime_live_console_controller_exposes_cli_snapshot_alias() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+
+    snapshot = module.read_live_console_snapshot(
+        profile_name="dm-cvd",
+        workspace_root="/workspace",
+        study_id="002",
+        study_runtime_status={
+            "study_id": "002",
+            "quest_id": "quest-002",
+            "runtime_liveness_status": "live",
+            "worker_running": True,
+            "active_run_id": "run-002",
+        },
+        generated_at="2026-05-08T02:05:00+00:00",
+    )
+
+    assert snapshot["surface_kind"] == "mas_live_console_read_model"
+    assert snapshot["study"]["study_id"] == "002"
+    assert snapshot["session"]["active_run_id"] == "run-002"

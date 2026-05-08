@@ -11,6 +11,12 @@ def build_live_console_read_model(**kwargs: Any) -> dict[str, Any]:
     return runtime_live_console_read_model.build_live_console_read_model(**kwargs)
 
 
+def read_live_console_snapshot(**kwargs: Any) -> dict[str, Any]:
+    snapshot = build_live_console_read_model(**kwargs)
+    snapshot["events"] = build_live_console_stream_events(snapshot)
+    return snapshot
+
+
 def materialize_live_console_read_model(
     *,
     workspace_root: str | Path,
@@ -31,5 +37,6 @@ def build_live_console_stream_events(read_model: Mapping[str, Any]) -> list[dict
 __all__ = [
     "build_live_console_read_model",
     "build_live_console_stream_events",
+    "read_live_console_snapshot",
     "materialize_live_console_read_model",
 ]
