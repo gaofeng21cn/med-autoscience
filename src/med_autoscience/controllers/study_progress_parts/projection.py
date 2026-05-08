@@ -8,6 +8,7 @@ from med_autoscience.controllers import (
     medical_paper_ops_health,
     medical_paper_readiness,
     open_auto_research_projection,
+    runtime_reconcile_trigger,
     study_truth_kernel,
 )
 from .delivery_inspection import (
@@ -427,6 +428,11 @@ def build_study_progress_projection(
         status=status,
         study_root=resolved_study_root,
     )
+    runtime_reconcile_trigger_projection = runtime_reconcile_trigger.build_runtime_reconcile_trigger_projection(
+        status_payload=status,
+        profile_ref=str(profile_ref) if profile_ref is not None else None,
+        study_id=resolved_study_id,
+    )
     ai_doctor_state = (
         _mapping_copy((autonomy_slo_status or {}).get("ai_doctor_request"))
         or {
@@ -786,6 +792,7 @@ def build_study_progress_projection(
         control_plane_snapshot=control_plane_snapshot,
         module_surfaces=module_surfaces,
         runtime_efficiency=runtime_efficiency,
+        runtime_reconcile_trigger=runtime_reconcile_trigger_projection,
         autonomy_slo_status=autonomy_slo_status,
         ai_doctor_state=ai_doctor_state,
         repair_recommendation=repair_recommendation,

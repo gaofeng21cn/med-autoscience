@@ -84,6 +84,7 @@ def build_progress_portal_payload(
     latest_events = _latest_events(user_visible, progress)
     quality = _quality_summary(progress.get("publication_eval"))
     delivery = _delivery_summary(progress, package, study_id=resolved_study_id)
+    runtime_reconcile_trigger = _runtime_reconcile_trigger(progress.get("runtime_reconcile_trigger"))
     workspace_study_rows = workspace_studies(cockpit, selected_study_id=resolved_study_id)
     workspace_alerts = workspace_alert_projection(
         cockpit.get("workspace_alerts"),
@@ -105,6 +106,7 @@ def build_progress_portal_payload(
         package=package,
         freshness=freshness,
         delivery=delivery,
+        runtime_reconcile_trigger=runtime_reconcile_trigger,
         source_refs=source_refs,
     )
     payload = {
@@ -142,6 +144,7 @@ def build_progress_portal_payload(
                 user_visible.get("needs_physician_decision") or user_visible.get("needs_user_decision")
             ),
             "supervision": _supervision(progress, runtime),
+            "runtime_reconcile_trigger": runtime_reconcile_trigger or None,
         },
         "freshness": freshness,
         "latest_events": latest_events,
@@ -641,6 +644,23 @@ def _supervision(progress: Mapping[str, Any], runtime: Mapping[str, Any]) -> dic
     }
 
 
+def _runtime_reconcile_trigger(value: object) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    projection = dict(value)
+    if projection.get("surface_kind") != "runtime_reconcile_trigger_projection":
+        return {}
+    projection.setdefault(
+        "authority_flags",
+        {
+            "quality_ready_authorized": False,
+            "publication_ready_authorized": False,
+            "submission_ready_authorized": False,
+        },
+    )
+    return projection
+
+
 def _source_refs(*payloads: Mapping[str, Any]) -> list[str]:
     refs: list[str] = []
     for payload in payloads:
@@ -699,6 +719,7 @@ def _conditions(
     package: Mapping[str, Any],
     freshness: Mapping[str, Any],
     delivery: Mapping[str, Any],
+    runtime_reconcile_trigger: Mapping[str, Any],
     source_refs: list[str],
 ) -> dict[str, list[str]]:
     missing: list[str] = []
@@ -712,6 +733,8 @@ def _conditions(
         missing.append("progress_freshness")
     if freshness.get("status") == "stale":
         stale.append("progress_freshness")
+    if runtime_reconcile_trigger.get("safe_to_request") is True:
+        stale.append("runtime_reconcile_requestable")
     if delivery.get("status") == "missing":
         missing.append("current_package")
     tick_status = _non_empty_text(_mapping(runtime.get("supervisor_tick_audit")).get("status"))

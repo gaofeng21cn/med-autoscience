@@ -147,6 +147,7 @@ _LIVE_TASK_INTAKE_RUNTIME_STATUSES = frozenset({"running", "active", "waiting_fo
 _ATTENTION_PRIORITIES = {
     "workspace_supervisor_service_not_loaded": 0,
     "study_runtime_recovery_required": 1,
+    "study_runtime_reconcile_requestable": 1,
     "study_waiting_user_decision": 2, "study_needs_physician_decision": 2,
     "study_supervision_gap": 3,
     "study_quality_floor_blocker": 4,

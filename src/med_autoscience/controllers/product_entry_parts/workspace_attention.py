@@ -37,6 +37,7 @@ def _attention_item(
     research_runtime_control_projection: dict[str, Any] | None = None,
     study_truth_snapshot: dict[str, Any] | None = None,
     medical_paper_readiness: dict[str, Any] | None = None,
+    runtime_reconcile_trigger: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "priority": _ATTENTION_PRIORITIES.get(code, 999),
@@ -60,6 +61,7 @@ def _attention_item(
         "research_runtime_control_projection": dict(research_runtime_control_projection or {}) or None,
         "study_truth_snapshot": dict(study_truth_snapshot or {}) or None,
         "medical_paper_readiness": dict(medical_paper_readiness or {}) or None,
+        "runtime_reconcile_trigger": dict(runtime_reconcile_trigger or {}) or None,
     }
 
 
@@ -369,6 +371,7 @@ def _attention_queue(
         gate_clearing_followthrough = dict(item.get("gate_clearing_followthrough") or {})
         autonomy_soak_status = dict(item.get("autonomy_soak_status") or {})
         research_runtime_control_projection = dict(item.get("research_runtime_control_projection") or {})
+        runtime_reconcile_trigger = dict(item.get("runtime_reconcile_trigger") or {})
         study_truth_snapshot = dict(item.get("study_truth_snapshot") or {})
         medical_paper_readiness_surface = dict(item.get("medical_paper_readiness") or {})
         readiness_status = _non_empty_text(medical_paper_readiness_surface.get("overall_status"))
@@ -452,6 +455,34 @@ def _attention_queue(
                     autonomy_soak_status=autonomy_soak_status,
                     research_runtime_control_projection=research_runtime_control_projection,
                     study_truth_snapshot=study_truth_snapshot,
+                )
+            )
+            continue
+        if runtime_reconcile_trigger.get("safe_to_request") is True:
+            reconcile_command = _non_empty_text(runtime_reconcile_trigger.get("recommended_command"))
+            queue.append(
+                _attention_item(
+                    code="study_runtime_reconcile_requestable",
+                    title=f"{study_id} 可以请求一次 safe runtime reconcile",
+                    summary=_non_empty_text(runtime_reconcile_trigger.get("summary"))
+                    or "runtime/session 信号已陈旧，当前可先请求 controller-owned one-shot reconcile dry-run。",
+                    recommended_step_id="request_runtime_reconcile",
+                    recommended_command=reconcile_command or preferred_command or progress_command,
+                    scope="study",
+                    study_id=study_id,
+                    operator_status_card=operator_status_card,
+                    autonomy_contract=autonomy_contract,
+                    quality_closure_truth=quality_closure_truth,
+                    quality_execution_lane=quality_execution_lane,
+                    same_line_route_truth=same_line_route_truth,
+                    same_line_route_surface=same_line_route_surface,
+                    quality_repair_followthrough=quality_repair_followthrough,
+                    quality_review_followthrough=quality_review_followthrough,
+                    gate_clearing_followthrough=gate_clearing_followthrough,
+                    autonomy_soak_status=autonomy_soak_status,
+                    research_runtime_control_projection=research_runtime_control_projection,
+                    study_truth_snapshot=study_truth_snapshot,
+                    runtime_reconcile_trigger=runtime_reconcile_trigger,
                 )
             )
             continue

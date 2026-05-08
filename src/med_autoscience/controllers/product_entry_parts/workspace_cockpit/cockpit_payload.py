@@ -126,6 +126,7 @@ def _study_item(
     runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
     control_plane_snapshot = _control_plane_snapshot_summary(progress_payload.get("control_plane_snapshot"))
     research_runtime_control_projection = dict(progress_payload.get("research_runtime_control_projection") or {})
+    runtime_reconcile_trigger = dict(progress_payload.get("runtime_reconcile_trigger") or {})
     gate_surface = dict(research_runtime_control_projection.get("research_gate_surface") or {})
     if gate_surface.get("approval_gate_field") == "needs_user_decision":
         gate_surface.setdefault("legacy_approval_gate_field", "needs_physician_decision")
@@ -235,6 +236,7 @@ def _study_item(
         "pi_action_projection": pi_action_projection,
         "medical_paper_readiness": medical_paper_readiness_surface or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
+        "runtime_reconcile_trigger": runtime_reconcile_trigger or None,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "needs_user_decision": bool(progress_payload.get("needs_user_decision")),
