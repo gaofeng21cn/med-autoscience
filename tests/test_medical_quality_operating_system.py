@@ -266,6 +266,39 @@ def test_quality_os_materializes_default_runtime_quality_flow_contract() -> None
     }
 
 
+def test_quality_os_mds_mechanical_signals_can_only_request_review() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.medical_quality_operating_system"
+    )
+
+    runtime_contract = module.build_quality_os_runtime_materialization_contract()
+
+    assert runtime_contract["mds_mechanical_signal_contract"] == {
+        "surface": "mds_quality_supersede_signal_contract",
+        "role": "evidence_only",
+        "allowed_signal_ids": [
+            "paper_contract_health",
+            "manuscript_coverage",
+            "prompt_stage_discipline",
+            "memory_and_lesson_store",
+        ],
+        "mechanical_signal_can_only": [
+            "request_paper_health_review",
+            "request_coverage_review",
+            "request_stage_review",
+            "request_lesson_review",
+        ],
+        "quality_ready_authorized": False,
+        "publication_ready_authorized": False,
+        "submission_ready_authorized": False,
+    }
+    for request in runtime_contract["mds_mechanical_signal_requests"]:
+        assert request["request_kind"].startswith("request_")
+        assert request["quality_ready_authorized"] is False
+        assert request["publication_ready_authorized"] is False
+        assert request["submission_ready_authorized"] is False
+
+
 def test_quality_os_explains_automated_medical_paper_chain_without_lowering_authority() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.medical_quality_operating_system"

@@ -142,6 +142,48 @@ def test_study_artifact_registry_discovers_surfaces_and_blocks_generated_authori
         ]
 
 
+def test_artifact_inventory_projects_mds_package_locator_signal_as_request_only(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_inventory")
+    study_root = tmp_path / "studies" / "001-risk"
+    current_package_docx = _write(study_root / "manuscript" / "current_package" / "manuscript.docx")
+    current_package_zip = _write(study_root / "manuscript" / "current_package.zip", "zip\n")
+
+    inventory = module.build_artifact_lifecycle_inventory(
+        study_root=study_root,
+        paths=(current_package_docx, current_package_zip),
+        mds_mechanical_signals={
+            "package_locator": {
+                "status": "pass",
+                "current_package_found": True,
+                "requested_ready_state": "submission_ready",
+            }
+        },
+    )
+
+    assert inventory["mds_mechanical_signal_contract"] == {
+        "role": "evidence_only",
+        "mechanical_signal_can_only": "request_artifact_or_package_review",
+        "quality_ready_authorized": False,
+        "publication_ready_authorized": False,
+        "submission_ready_authorized": False,
+    }
+    assert inventory["summary"]["mds_signal_request_count"] == 1
+    assert inventory["summary"]["ready_authorization_count"] == 0
+    assert inventory["mds_mechanical_requests"] == [
+        {
+            "signal_id": "package_locator",
+            "request_kind": "artifact_or_package_review",
+            "status": "pass",
+            "quality_ready_authorized": False,
+            "publication_ready_authorized": False,
+            "submission_ready_authorized": False,
+        }
+    ]
+    for artifact in inventory["artifacts"]:
+        assert artifact["quality_authority_allowed"] is False
+        assert artifact["dispatch_authority_allowed"] is False
+
+
 def test_delivery_authority_sync_blocks_generated_surfaces_as_edit_or_quality_authority(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.artifact_lifecycle_inventory")
     study_root = tmp_path / "studies" / "001-risk"

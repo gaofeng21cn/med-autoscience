@@ -528,6 +528,47 @@ def _bounded_analysis_decision_contract() -> dict[str, Any]:
     }
 
 
+def _mds_quality_supersede_signal_contract() -> dict[str, Any]:
+    return {
+        "surface": "mds_quality_supersede_signal_contract",
+        "role": "evidence_only",
+        "allowed_signal_ids": [
+            "paper_contract_health",
+            "manuscript_coverage",
+            "prompt_stage_discipline",
+            "memory_and_lesson_store",
+        ],
+        "mechanical_signal_can_only": [
+            "request_paper_health_review",
+            "request_coverage_review",
+            "request_stage_review",
+            "request_lesson_review",
+        ],
+        "quality_ready_authorized": False,
+        "publication_ready_authorized": False,
+        "submission_ready_authorized": False,
+    }
+
+
+def _mds_quality_supersede_requests() -> list[dict[str, Any]]:
+    request_by_signal = {
+        "paper_contract_health": "request_paper_health_review",
+        "manuscript_coverage": "request_coverage_review",
+        "prompt_stage_discipline": "request_stage_review",
+        "memory_and_lesson_store": "request_lesson_review",
+    }
+    return [
+        {
+            "signal_id": signal_id,
+            "request_kind": request_kind,
+            "quality_ready_authorized": False,
+            "publication_ready_authorized": False,
+            "submission_ready_authorized": False,
+        }
+        for signal_id, request_kind in request_by_signal.items()
+    ]
+
+
 def build_quality_os_runtime_materialization_contract() -> dict[str, Any]:
     return {
         "surface": "quality_os_runtime_materialization_contract",
@@ -549,6 +590,8 @@ def build_quality_os_runtime_materialization_contract() -> dict[str, Any]:
             ],
             "mechanical_projection_can_authorize_ready": False,
         },
+        "mds_mechanical_signal_contract": _mds_quality_supersede_signal_contract(),
+        "mds_mechanical_signal_requests": _mds_quality_supersede_requests(),
         "default_flow": {
             "write": {
                 "required_before": "first_full_draft",

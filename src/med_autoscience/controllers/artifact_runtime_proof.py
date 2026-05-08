@@ -49,12 +49,45 @@ def _authority() -> dict[str, Any]:
     }
 
 
+def _mds_mechanical_signal_contract() -> dict[str, Any]:
+    return {
+        "role": "evidence_only",
+        "mechanical_signal_can_only": "request_package_review",
+        "quality_ready_authorized": False,
+        "publication_ready_authorized": False,
+        "submission_ready_authorized": False,
+    }
+
+
+def _mds_mechanical_requests(signals: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(signals, Mapping):
+        return []
+    requests: list[dict[str, Any]] = []
+    for signal_id in sorted(str(key) for key in signals):
+        payload = signals.get(signal_id)
+        status = ""
+        if isinstance(payload, Mapping):
+            status = str(payload.get("status") or "").strip()
+        requests.append(
+            {
+                "signal_id": signal_id,
+                "request_kind": "package_review",
+                "status": status or "observed",
+                "quality_ready_authorized": False,
+                "publication_ready_authorized": False,
+                "submission_ready_authorized": False,
+            }
+        )
+    return requests
+
+
 def _blocked_proof(
     *,
     study_root: Path,
     manifest_path: Path,
     blockers: list[dict[str, Any]],
     refs: dict[str, Any] | None = None,
+    mds_mechanical_signals: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "surface": SURFACE,
@@ -68,6 +101,8 @@ def _blocked_proof(
             **(refs or {}),
         },
         "authority": _authority(),
+        "mds_mechanical_signal_contract": _mds_mechanical_signal_contract(),
+        "mds_mechanical_requests": _mds_mechanical_requests(mds_mechanical_signals),
     }
 
 
@@ -632,7 +667,11 @@ def _append_source_signature_blockers(
         )
 
 
-def build_artifact_runtime_proof(study_root: str | Path) -> dict[str, Any]:
+def build_artifact_runtime_proof(
+    study_root: str | Path,
+    *,
+    mds_mechanical_signals: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     manifest_path = resolved_study_root / "manuscript" / "delivery_manifest.json"
     manifest_payload, blocked_manifest = _read_delivery_manifest(
@@ -682,6 +721,7 @@ def build_artifact_runtime_proof(study_root: str | Path) -> dict[str, Any]:
             manifest_path=manifest_path,
             blockers=blockers,
             refs=refs,
+            mds_mechanical_signals=mds_mechanical_signals,
         )
 
     source_refs = _canonical_source_ref_texts(manifest)
@@ -705,6 +745,7 @@ def build_artifact_runtime_proof(study_root: str | Path) -> dict[str, Any]:
             manifest_path=manifest_path,
             blockers=blockers,
             refs=refs,
+            mds_mechanical_signals=mds_mechanical_signals,
         )
 
     return {
@@ -719,4 +760,6 @@ def build_artifact_runtime_proof(study_root: str | Path) -> dict[str, Any]:
             **refs,
         },
         "authority": _authority(),
+        "mds_mechanical_signal_contract": _mds_mechanical_signal_contract(),
+        "mds_mechanical_requests": _mds_mechanical_requests(mds_mechanical_signals),
     }
