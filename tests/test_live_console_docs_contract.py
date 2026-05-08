@@ -16,6 +16,7 @@ CONTRACT_DOCS = (
     "docs/runtime/live_console_ui_contract.md",
     "docs/references/mds_behavior_equivalence_gap_matrix.md",
     "docs/references/mds_webui_cleanroom_behavior_spec.md",
+    "docs/references/mds_webui_user_parity_gap_review.md",
 )
 FORBIDDEN_AUTHORITY_SURFACES = (
     "paper/current_package",
@@ -76,6 +77,7 @@ def test_live_console_parity_docs_expose_staged_contract_metadata() -> None:
     portal_doc = _read(CONTRACT_DOCS[1])
     ui_doc = _read(CONTRACT_DOCS[2])
     gap_matrix = _read(CONTRACT_DOCS[3])
+    user_gap_review = _read(CONTRACT_DOCS[5])
 
     assert "Contract ID: `live-console-parity`" in contract_doc
     assert "Status: `landed" in contract_doc
@@ -88,6 +90,9 @@ def test_live_console_parity_docs_expose_staged_contract_metadata() -> None:
     assert "Live Console Integration Boundary" in portal_doc
     assert "Live Console UI Contract" in ui_doc
     assert "Live Console Parity" in gap_matrix
+    assert "Status: `active UX parity reference`" in user_gap_review
+    assert "per-study/per-paper page" in user_gap_review
+    assert "interactive parity candidate" in user_gap_review
 
 
 def test_live_console_parity_docs_keep_paper_and_package_authority_forbidden() -> None:

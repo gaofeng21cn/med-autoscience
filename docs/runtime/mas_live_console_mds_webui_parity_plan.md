@@ -15,7 +15,7 @@ Contract ID: `live-console-parity`
 - runtime supervision、worker log、artifact delta、recent events 可读；
 - 明确区分 read-only 观察、controller-authorized action、historical fixture / explicit archive import reference。
 
-`live-console-parity` 已作为 focused lane 进入 `contracts/test-lane-manifest.json` 的 `focused_lanes.live-console-parity`。完成口径是 read-only purpose equivalence：MAS 提供 workspace overview、profile-level session snapshot、loopback SSE service shell、static Live Console HTML、Progress Portal deep link、clean-room oracle 和 forbidden authority writes。它不声明旧 MDS resident daemon、old React bundle 或 WebSocket terminal attach 被 1:1 复刻。
+`live-console-parity` 已作为 focused lane 进入 `contracts/test-lane-manifest.json` 的 `focused_lanes.live-console-parity`。完成口径是 read-only purpose equivalence：MAS 提供 workspace overview、profile-level session snapshot、loopback SSE service shell、static Live Console HTML、Progress Portal deep link、clean-room oracle 和 forbidden authority writes。它不声明旧 MDS resident daemon、old React bundle 或 WebSocket terminal attach 被 1:1 复刻。WebSocket terminal attach、terminal input/resize/detach 与 UI-issued runtime control 也不应写成 abandoned / retired；它们是后续 interactive parity candidate，落地前必须补安全、owner、幂等和审计 gate。
 
 ## 当前事实
 
@@ -24,6 +24,8 @@ Contract ID: `live-console-parity`
 旧 MDS WebUI 的用户价值不止是进度摘要，还包括 resident WebUI / WebSocket 的低延迟观察能力：状态、terminal stream、日志流、session/run 细节。MAS 的落点是 Progress Portal + Live Console 分工：Portal 做默认进度入口，Live Console 做 read-only runtime observation。
 
 2026-05-08 `live-console-parity` 更新：MAS 现在有 profile-level Live Console session read model、`runtime live-console --snapshot`、loopback `--serve`、`runtime_live_console_ui` helper 和 `ops/mas/live-console/index.html` shell。该 helper 只消费已经形成的 live-console snapshot/read-model payload，不读取、解释或改写 runtime stream/core read model，也不依赖旧 MDS bundle、旧 WebUI 代码或 CDN。Portal 集成边界保持为 thin link/ref：Progress Portal 可以暴露 Live Console entrypoint，Live Console header 可以返回 Progress Portal，但 Portal 会话不拥有 live-console 状态解释。
+
+2026-05-08 user-view parity 校准：旧 MDS WebUI 的用户路径是 per-project/per-quest workspace；当前 MAS Portal 默认是 per-workspace fixed entry，虽然能列出多条 `study_id`，但多论文 workspace 仍容易混读。Progress Portal 的体验等价尚未完成，后续应优先落地 study-scoped Portal IA、per-study deep link、单篇论文 Path/Stage/Runtime/Conversation/Terminal/Artifacts 视图。详细 gap review 见 [MDS WebUI User Parity Gap Review](../references/mds_webui_user_parity_gap_review.md)。
 
 ## 设计边界
 
@@ -50,7 +52,7 @@ MAS stream bridge：
 
 - `medautosci runtime live-console --profile <profile> --serve`
 - 本地绑定 `127.0.0.1`。
-- 使用 Server-Sent Events / snapshot 语义；不复刻旧 MDS WebSocket attach。
+- 当前 landed scope 使用 Server-Sent Events / snapshot 语义；不声称已复刻旧 MDS WebSocket attach。交互式 attach/control 属后续 gated parity lane。
 - stream topics：
   - `workspace.status`
   - `study.status`
@@ -75,6 +77,7 @@ MAS-authored static UI shell：
   - 明确只读 badge 与 controller action deep links。
 - Progress Portal header 增加 live console link；Console header 增加返回 Progress Portal link。
 - 当前落地边界：`runtime_live_console_ui` 只提供静态 shell renderer 和 payload normalization；workspace/study/run、timeline、terminal/log tail、artifact/event refs 均来自传入 snapshot，不制造新的 runtime truth。
+ - 后续 Portal UX parity：Portal 应从 workspace overview 进一步拆出 per-study/per-paper detail，使旧 MDS per-quest 工作台语义以 MAS-owned clean-room IA 保留下来。
 
 ### Layer 4: Controller Action Links
 

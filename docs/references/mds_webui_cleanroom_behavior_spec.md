@@ -8,12 +8,18 @@ Related contract: `live-console-parity`
 
 This file records observable behavior that MAS Live Console preserves from the old MDS WebUI class of tools. It is not source code, not a UI asset list, and not a package import plan.
 
-The retained behavior is limited to read-only runtime observation:
+The already landed retained behavior is limited to read-only runtime observation:
 
 - workspace status is visible in one stable place;
 - multiple study lines are distinguishable by `study_id`;
 - active run identity, worker state, runtime health, supervision freshness, terminal tail, log tail, recent events, and artifact delta have source refs;
 - controller actions are shown as intent or command refs only.
+
+User-facing UX behavior that is still a parity target is tracked separately in
+[MDS WebUI User Parity Gap Review](./mds_webui_user_parity_gap_review.md).
+That review treats old project/quest-scoped navigation, stage/file workspace,
+executor conversation, and interactive terminal/control as clean-room behavior
+targets. Those targets are not licensed code or identity imports.
 
 ## Clean-Room Rules
 

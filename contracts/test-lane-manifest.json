@@ -81,7 +81,8 @@
         "docs/runtime/progress_portal.md",
         "docs/runtime/live_console_ui_contract.md",
         "docs/references/mds_behavior_equivalence_gap_matrix.md",
-        "docs/references/mds_webui_cleanroom_behavior_spec.md"
+        "docs/references/mds_webui_cleanroom_behavior_spec.md",
+        "docs/references/mds_webui_user_parity_gap_review.md"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "read_only_streaming_parity_contract",

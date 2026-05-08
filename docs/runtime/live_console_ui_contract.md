@@ -8,7 +8,9 @@ Related contract: `live-console-parity`
 
 MAS Live Console is the MAS-authored replacement for the useful observation class of the old MDS WebUI. It gives operators one local place to inspect workspace, study, run, terminal tail, log tail, runtime health, supervision freshness, event refs, and artifact refs.
 
-It is not a resident daemon control plane, not a WebSocket terminal attach, and not an imported MDS WebUI module.
+The current landed scope is read-only observation. Resident WebSocket terminal attach, terminal input/resize/detach, and UI-issued runtime control are not implemented in this scope; they remain future parity candidates that require explicit safety, owner, idempotency, and audit gates before becoming default MAS behavior. The old MDS WebUI module, bundle, product identity, Git history, and contributor metadata are not imported.
+
+User-view parity gaps for per-paper navigation, executor conversation, and interactive terminal/control are tracked in [MDS WebUI User Parity Gap Review](../references/mds_webui_user_parity_gap_review.md).
 
 ## Stable Entry
 

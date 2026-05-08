@@ -14,7 +14,9 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 
 2026-05-08 Runtime Continuity closeout 在 behavior matrix 中追加 `runtime_continuity_completion` 合同：`runtime_session` 只读投影 worker/session/freshness，`recovery_intent` 记录 controller-owned recovery intent，`runtime_reconcile_trigger` 只输出 safe reconcile 推荐和 blocked reasons，`runtime_continuity` 投到 progress/cockpit/product-entry/Portal/MCP/OPL。该合同明确 `external_mds_repo_required=false`、`mds_daemon_required=false`，并固定 `quality_ready_authorized=false`、`publication_ready_authorized=false`、`submission_ready_authorized=false`。
 
-2026-05-08 Live Console parity closeout 把旧 MDS WebUI 中有价值的观察类能力落成 MAS-authored read-only surface：Progress Portal 继续做默认进度入口，Live Console 提供 profile-level session read model、snapshot / loopback SSE stream、terminal/log tail refs 和 `ops/mas/live-console/index.html` 静态 shell。该 closeout 是 `purpose_equivalent_with_different_timing`，不恢复旧 MDS resident WebSocket terminal attach、daemon control plane、旧 React bundle 或 contributor history。
+2026-05-08 Live Console parity closeout 把旧 MDS WebUI 中有价值的观察类能力落成 MAS-authored read-only surface：Progress Portal 继续做默认进度入口，Live Console 提供 profile-level session read model、snapshot / loopback SSE stream、terminal/log tail refs 和 `ops/mas/live-console/index.html` 静态 shell。该 closeout 是 `purpose_equivalent_with_different_timing`，没有在当前 landed scope 中实现旧 MDS resident WebSocket terminal attach、terminal input/resize/detach 或 UI-issued runtime control；这些交互能力不是 abandoned / retired，而是后续 interactive parity candidate。旧 React bundle、产品身份、commit history 和 contributor metadata 仍不得导入 MAS。
+
+2026-05-08 user-view WebUI parity review 进一步校准 `progress_visibility`：当前 MAS 有固定 Progress Portal、study rows、study-progress 和 cockpit，但默认 UX 仍偏 workspace overview，多篇论文会混在同一页解释。旧 MDS WebUI 的 per-project/per-quest 信息架构应作为 clean-room UX oracle；后续 P0 是 per-study/per-paper Portal drilldown、deep link 和单篇论文 detail view。详见 [MDS WebUI User Parity Gap Review](./mds_webui_user_parity_gap_review.md)。
 
 ## Capability Matrix
 
@@ -57,8 +59,8 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | live worker/session tracking | `purpose_equivalent_with_different_timing` | Use durable liveness/read-model state. |
 | crash recovery and auto-resume | `purpose_equivalent_with_different_timing` | Use MAS tick or explicit watch/ensure runtime. |
 | queued user messages/mailbox | `partially_equivalent` | Use durable task intake and controller handoff. |
-| progress visibility | `behavior_equivalent` | Use MAS Progress Portal / study-progress / cockpit. |
-| WebUI/WebSocket/terminal streaming | `purpose_equivalent_with_different_timing` | Use MAS Progress Portal plus read-only MAS Live Console; old resident WebSocket attach remains retired. |
+| progress visibility | `partially_equivalent` | Use MAS Progress Portal / study-progress / cockpit; continue P0 per-study/per-paper Portal UX parity. |
+| WebUI/WebSocket/terminal streaming | `purpose_equivalent_with_different_timing` | Use MAS Progress Portal plus read-only MAS Live Console; interactive terminal attach/control remains a future gated parity lane. |
 | connector/channel background delivery | `not_equivalent_retired` | Retired from default MAS operation. |
 | MCP surface | `purpose_equivalent_with_different_timing` | Use MAS MCP adapter to owner surfaces. |
 | GitOps state management | `not_equivalent_retired` | Use SQLite lifecycle and restore proof. |

@@ -244,9 +244,9 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert [item["surface_id"] for item in matrix["behavior_surfaces"]] == EXPECTED_BEHAVIOR_SURFACE_IDS
     assert matrix["summary"] == {
         "surface_count": 17,
-        "behavior_equivalent": 3,
+        "behavior_equivalent": 2,
         "purpose_equivalent_with_different_timing": 6,
-        "partially_equivalent": 3,
+        "partially_equivalent": 4,
         "not_equivalent_retired": 4,
         "historical_fixture_only": 1,
         "fully_equivalent_to_mds_daemon": False,
@@ -265,9 +265,15 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert "runtime_session" in by_surface["live_worker_session_tracking"]["mas_contract"]
     assert by_surface["queued_user_messages_mailbox"]["mas_behavior"]["runtime_turn_user_queue"] is True
     assert "recovery_intent" in by_surface["crash_recovery_auto_resume"]["mas_contract"]
+    assert by_surface["progress_visibility"]["equivalence_class"] == "partially_equivalent"
+    assert by_surface["progress_visibility"]["mas_behavior"]["primary_scope"] == "workspace_overview_with_study_rows"
+    assert "study-scoped Portal view" in by_surface["progress_visibility"]["mas_contract"]
     assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "purpose_equivalent_with_different_timing"
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["live_console"] == (
         "MAS-authored read-only session/run/terminal/log observation shell"
+    )
+    assert by_surface["webui_websocket_terminal_streaming"]["future_parity_candidate"] == (
+        "interactive_terminal_attach_and_authorized_ui_control"
     )
     assert "live-console-parity" in by_surface["webui_websocket_terminal_streaming"]["mas_contract"]
     assert by_surface["connector_channel_background_delivery"]["equivalence_class"] == "not_equivalent_retired"
