@@ -1,6 +1,6 @@
 # MAS Single-Project MDS Absorb Program
 
-Status: `long-line execution program; workspace layout, quest/root Git retirement, profile/entry retirement and repo-level no-history physical absorb closeout landed; functional monolith completion not landed`
+Status: `long-line execution program; workspace layout, quest/root Git retirement, profile/entry retirement, repo-level no-history physical absorb and functional monolith completion landed; future upstream source intake remains triggerable`
 Date: `2026-05-08`
 Owner: `MedAutoScience`
 

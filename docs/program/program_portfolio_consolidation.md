@@ -176,6 +176,6 @@ Owner: `MedAutoScience`
 - 新的 runtime lifecycle / quest Git / MDS absorb 工作都进入同一个 `A1-A4` 主序列。
 - `runtime_lifecycle_sqlite_migration_program.md` 明确作为 `mas_single_project_mds_absorb_program.md` 的 runtime persistence 子计划执行。
 - current-project quest Git、workspace root Git retirement、workspace layout 去 MDS/DS 化、profile/entry compatibility retirement 和 no-history physical absorb repo-level closeout 不再作为未完成 active backlog 重复规划。
-- functional monolith completion 明确保留为未完成队列项，且必须区分“默认入口/依赖已退役”和“所有 MDS 功能已被 MAS-owned 模块吸收”。
+- functional monolith completion 已进入 landed 口径；后续不得把默认入口/依赖退役、MDS 功能重新组织吸收或旧 WebUI/default daemon 迁移重开成 active backlog，只保留 future upstream source intake review、explicit legacy diagnostic 和 optional hosted frontend packaging。
 - 已落地 closeout、activation package 不再被当作 active backlog；dated learning intake 不再被当作 active backlog，但其 recurring support lane 仍按对应 policy/protocol 可触发。
 - `../references/plan_completion_ledger.md` 继续区分 repo capability landed、真实 workspace cutover completed、compatibility retirement completed、no-history absorb landed 与 recurring upstream learning support。

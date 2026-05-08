@@ -1,8 +1,8 @@
 # MedDeepScientist References
 
-These files preserve MDS learning, deconstruction, upstream intake, provenance, and migration-period reference material.
+These files preserve MDS learning, deconstruction, upstream intake, provenance, and historical/migration-period reference material.
 
-DeepScientist latest-update learning is a recurring support lane. The policy and protocol below are the active owner surfaces; dated intake records live in `docs/history/program/` as snapshots of completed rounds.
+DeepScientist latest-update learning is now driven directly by `MAS` against upstream. The policy and protocol below are the active owner surfaces; `MDS` only appears as an explicit legacy diagnostic, source archive, parity fixture, or provenance audit surface. Dated intake records live in `docs/history/program/` as snapshots of completed rounds.
 
 - [DeepScientist continuous learning policy](./deepscientist_continuous_learning_policy.md)
 - [DeepScientist latest-update learning protocol](./deepscientist_latest_update_learning_protocol.md)
@@ -12,4 +12,4 @@ DeepScientist latest-update learning is a recurring support lane. The policy and
 - [MedDeepScientist upstream source provenance](./med_deepscientist_upstream_source_provenance.md)
 - [Upstream intake guide](./upstream_intake.md)
 
-These are references, not independent program boards. Current execution is governed by [Program portfolio consolidation](../../program/program_portfolio_consolidation.md).
+These are references, not independent program boards. Current execution is governed by [Program portfolio consolidation](../../program/program_portfolio_consolidation.md), and the learning entry point is [DeepScientist latest-update learning protocol](./deepscientist_latest_update_learning_protocol.md).
