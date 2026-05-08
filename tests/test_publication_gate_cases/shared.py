@@ -130,52 +130,14 @@ def make_quest(
         },
     )
     if include_submission_authority_inputs:
-        write_text(
-            worktree_root / "paper" / "build" / "review_manuscript.md",
-            "# Review Manuscript\n\nCurrent authority draft.\n",
-        )
-        write_text(
-            worktree_root / "paper" / "references.bib",
-            "@article{ref1,title={Ref}}\n",
-        )
-    if paper_line_state is not None:
-        dump_json(
-            worktree_root / "paper" / "paper_line_state.json",
-            paper_line_state,
-        )
-    if figure_catalog is not None:
-        dump_json(
-            worktree_root / "paper" / "figures" / "figure_catalog.json",
-            figure_catalog,
-        )
-    elif include_submission_authority_inputs:
-        dump_json(
-            worktree_root / "paper" / "figures" / "figure_catalog.json",
-            {
-                "schema_version": 1,
-                "figures": [
-                    {
-                        "figure_id": f"F{index}",
-                        "paper_role": "main_text",
-                        "manuscript_status": "locked_main_text_evidence",
-                    }
-                    for index in range(1, 5)
-                ],
-            },
-        )
-    if table_catalog is not None:
-        dump_json(
-            worktree_root / "paper" / "tables" / "table_catalog.json",
-            table_catalog,
-        )
-    elif include_submission_authority_inputs:
-        dump_json(
-            worktree_root / "paper" / "tables" / "table_catalog.json",
-            {
-                "schema_version": 1,
-                "tables": [],
-            },
-        )
+        _write_submission_authority_text_inputs(worktree_root)
+    _write_optional_paper_authority_inputs(
+        worktree_root=worktree_root,
+        include_submission_authority_inputs=include_submission_authority_inputs,
+        paper_line_state=paper_line_state,
+        figure_catalog=figure_catalog,
+        table_catalog=table_catalog,
+    )
     if submission_checklist is not None:
         dump_json(
             worktree_root / "paper" / "review" / "submission_checklist.json",
@@ -236,6 +198,82 @@ def make_quest(
     return quest_root
 
 
+def _write_submission_authority_text_inputs(worktree_root: Path) -> None:
+    write_text(
+        worktree_root / "paper" / "build" / "review_manuscript.md",
+        "# Review Manuscript\n\nCurrent authority draft.\n",
+    )
+    write_text(
+        worktree_root / "paper" / "references.bib",
+        "@article{ref1,title={Ref}}\n",
+    )
+
+
+def _write_optional_paper_authority_inputs(
+    *,
+    worktree_root: Path,
+    include_submission_authority_inputs: bool,
+    paper_line_state: dict[str, object] | None,
+    figure_catalog: dict[str, object] | None,
+    table_catalog: dict[str, object] | None,
+) -> None:
+    if paper_line_state is not None:
+        dump_json(worktree_root / "paper" / "paper_line_state.json", paper_line_state)
+    _write_figure_catalog(
+        worktree_root=worktree_root,
+        include_submission_authority_inputs=include_submission_authority_inputs,
+        figure_catalog=figure_catalog,
+    )
+    _write_table_catalog(
+        worktree_root=worktree_root,
+        include_submission_authority_inputs=include_submission_authority_inputs,
+        table_catalog=table_catalog,
+    )
+
+
+def _write_figure_catalog(
+    *,
+    worktree_root: Path,
+    include_submission_authority_inputs: bool,
+    figure_catalog: dict[str, object] | None,
+) -> None:
+    if figure_catalog is not None:
+        dump_json(worktree_root / "paper" / "figures" / "figure_catalog.json", figure_catalog)
+    elif include_submission_authority_inputs:
+        dump_json(
+            worktree_root / "paper" / "figures" / "figure_catalog.json",
+            {
+                "schema_version": 1,
+                "figures": [
+                    {
+                        "figure_id": f"F{index}",
+                        "paper_role": "main_text",
+                        "manuscript_status": "locked_main_text_evidence",
+                    }
+                    for index in range(1, 5)
+                ],
+            },
+        )
+
+
+def _write_table_catalog(
+    *,
+    worktree_root: Path,
+    include_submission_authority_inputs: bool,
+    table_catalog: dict[str, object] | None,
+) -> None:
+    if table_catalog is not None:
+        dump_json(worktree_root / "paper" / "tables" / "table_catalog.json", table_catalog)
+    elif include_submission_authority_inputs:
+        dump_json(
+            worktree_root / "paper" / "tables" / "table_catalog.json",
+            {
+                "schema_version": 1,
+                "tables": [],
+            },
+        )
+
+
 def write_primary_target(paper_root: Path) -> None:
     dump_json(
         paper_root / "submission_targets.resolved.json",
@@ -274,7 +312,6 @@ def write_journal_requirements_snapshot(study_root: Path) -> None:
         study_root / "paper" / "journal_requirements" / "rheumatology-international" / "requirements.md",
         "# Requirements\n",
     )
-
 
 
 

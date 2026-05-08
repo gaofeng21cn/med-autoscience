@@ -39,22 +39,19 @@ def build_outer_supervision_slo_projection(
     blocked_reasons = _blocked_reasons(supervision)
     missing_reasons = _missing_reasons(supervision=supervision, latest_event_at=latest_event_at)
     age_seconds = _age_seconds(generated, latest_event_at)
-    if blocked_reasons:
-        state = "blocked"
-    elif missing_reasons:
-        state = "missing"
-    elif age_seconds is None:
-        state = "missing"
-        missing_reasons.append("outer_supervision_event_missing")
-    elif age_seconds <= fresh_after_seconds:
-        state = "fresh"
-    elif age_seconds <= stale_after_seconds:
-        state = "due"
-    else:
-        state = "stale"
-    recommended_command = None
-    if state in {"due", "stale", "missing"} and not blocked_reasons:
-        recommended_command = supervisor_reconcile_command(profile_ref=profile_ref, study_id=study_id)
+    state, missing_reasons = _slo_state(
+        age_seconds=age_seconds,
+        fresh_after_seconds=fresh_after_seconds,
+        stale_after_seconds=stale_after_seconds,
+        blocked_reasons=blocked_reasons,
+        missing_reasons=missing_reasons,
+    )
+    recommended_command = _recommended_reconcile_command(
+        state=state,
+        blocked_reasons=blocked_reasons,
+        profile_ref=profile_ref,
+        study_id=study_id,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
@@ -88,6 +85,39 @@ def build_outer_supervision_slo_projection(
             "workspace_local_service_restore": False,
         },
     }
+
+
+def _slo_state(
+    *,
+    age_seconds: int | None,
+    fresh_after_seconds: int,
+    stale_after_seconds: int,
+    blocked_reasons: list[str],
+    missing_reasons: list[str],
+) -> tuple[str, list[str]]:
+    if blocked_reasons:
+        return "blocked", missing_reasons
+    if missing_reasons:
+        return "missing", missing_reasons
+    if age_seconds is None:
+        return "missing", [*missing_reasons, "outer_supervision_event_missing"]
+    if age_seconds <= fresh_after_seconds:
+        return "fresh", missing_reasons
+    if age_seconds <= stale_after_seconds:
+        return "due", missing_reasons
+    return "stale", missing_reasons
+
+
+def _recommended_reconcile_command(
+    *,
+    state: str,
+    blocked_reasons: list[str],
+    profile_ref: str | Path | None,
+    study_id: str | None,
+) -> str | None:
+    if blocked_reasons or state not in {"due", "stale", "missing"}:
+        return None
+    return supervisor_reconcile_command(profile_ref=profile_ref, study_id=study_id)
 
 
 def supervisor_reconcile_command(*, profile_ref: str | Path | None, study_id: str | None = None) -> str:
