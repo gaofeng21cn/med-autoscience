@@ -9,6 +9,11 @@ from pathlib import Path
 _SHARED_HELPER_MODULE_NAME = "opl_harness_shared.editable_consumer_launcher"
 _SHARED_HELPER_MODULE_FILE = "editable_consumer_launcher.py"
 _SHARED_PACKAGE_NAME = "opl_harness_shared"
+_REQUIRED_SHARED_MODULE_EXPORTS = {
+    "opl_harness_shared.product_entry_program_companions": (
+        "build_backend_deconstruction_lane",
+    ),
+}
 
 
 def _module_spec(module_name: str):
@@ -71,6 +76,14 @@ def _prepend_path(candidate_root: Path) -> bool:
     return True
 
 
+def _path_is_relative_to(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
 def _prefer_existing_package_path(candidate_root: Path) -> None:
     package = sys.modules.get(_SHARED_PACKAGE_NAME)
     if package is None or not hasattr(package, "__path__"):
@@ -78,6 +91,33 @@ def _prefer_existing_package_path(candidate_root: Path) -> None:
     package_root = str(candidate_root / _SHARED_PACKAGE_NAME)
     existing = [entry for entry in package.__path__ if entry != package_root]
     package.__path__[:] = [package_root, *existing]
+
+
+def _drop_shared_root(candidate_root: Path, added_paths: list[Path]) -> None:
+    candidate_root_str = str(candidate_root)
+    sys.path[:] = [entry for entry in sys.path if entry != candidate_root_str]
+    added_paths[:] = [entry for entry in added_paths if entry != candidate_root]
+    package_root = candidate_root / _SHARED_PACKAGE_NAME
+    package = sys.modules.get(_SHARED_PACKAGE_NAME)
+    if package is not None and hasattr(package, "__path__"):
+        package.__path__[:] = [
+            entry
+            for entry in package.__path__
+            if not _path_is_relative_to(Path(entry), package_root)
+        ]
+    for module_name, imported_module in list(sys.modules.items()):
+        if module_name != _SHARED_PACKAGE_NAME and not module_name.startswith(f"{_SHARED_PACKAGE_NAME}."):
+            continue
+        module_file = getattr(imported_module, "__file__", None)
+        if module_file and _path_is_relative_to(Path(module_file), package_root):
+            sys.modules.pop(module_name, None)
+    importlib.invalidate_caches()
+
+
+def _drop_unready_sibling_shared_roots(added_paths: list[Path]) -> None:
+    for shared_src_root in _candidate_shared_src_roots():
+        if shared_src_root.exists() and not _shared_contract_ready(shared_src_root):
+            _drop_shared_root(shared_src_root, added_paths)
 
 
 def _load_shared_helper_module_from_path(helper_path: Path):
@@ -92,11 +132,46 @@ def _load_shared_helper_module_from_path(helper_path: Path):
     return module
 
 
+def _shared_module_path(shared_src_root: Path, module_name: str) -> Path:
+    return shared_src_root.joinpath(*module_name.split(".")).with_suffix(".py")
+
+
+def _load_shared_module_from_path(shared_src_root: Path, module_name: str):
+    module_path = _shared_module_path(shared_src_root, module_name)
+    if not module_path.exists():
+        return None
+    spec = importlib.util.spec_from_file_location(
+        f"{module_name}_editable_contract_check_{abs(hash(module_path))}",
+        module_path,
+    )
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _shared_contract_ready(shared_src_root: Path) -> bool:
+    for module_name, required_exports in _REQUIRED_SHARED_MODULE_EXPORTS.items():
+        try:
+            module = _load_shared_module_from_path(shared_src_root, module_name)
+        except Exception:
+            return False
+        if module is None:
+            return False
+        for export_name in required_exports:
+            if not hasattr(module, export_name):
+                return False
+    return True
+
+
 def _load_sibling_shared_helper(added_paths: list[Path]):
     for helper_path in _candidate_shared_helper_module_paths():
         if not helper_path.exists():
             continue
         shared_src_root = helper_path.parent.parent
+        if not _shared_contract_ready(shared_src_root):
+            continue
         inserted = _prepend_path(shared_src_root)
         _prefer_existing_package_path(shared_src_root)
         if inserted:
@@ -134,6 +209,10 @@ def ensure_editable_dependency_paths() -> tuple[Path, ...]:
             shared_package_name=_SHARED_PACKAGE_NAME,
         )
     )
+    delegated_paths = list(delegated_added_paths)
+    _drop_unready_sibling_shared_roots(delegated_paths)
+    _drop_unready_sibling_shared_roots(added_paths)
+    delegated_added_paths = tuple(delegated_paths)
     if delegated_added_paths:
         return delegated_added_paths
     return tuple(added_paths)

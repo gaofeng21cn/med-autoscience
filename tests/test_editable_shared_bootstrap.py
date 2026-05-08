@@ -13,6 +13,14 @@ from med_autoscience import editable_shared_bootstrap as module
 pytestmark = pytest.mark.family
 
 
+def _write_required_program_companion_contract(package_root: Path) -> None:
+    (package_root / "product_entry_program_companions.py").write_text(
+        "def build_backend_deconstruction_lane(**kwargs):\n"
+        "    return dict(kwargs)\n",
+        encoding="utf-8",
+    )
+
+
 def test_bootstrap_adds_repo_venv_site_packages_when_shared_helper_imports_from_site_packages(
     monkeypatch,
     tmp_path: Path,
@@ -65,6 +73,7 @@ def test_bootstrap_delegates_to_shared_helper_when_sibling_owner_is_present(monk
         / "editable_consumer_launcher.py"
     )
     helper_path.parent.mkdir(parents=True)
+    _write_required_program_companion_contract(helper_path.parent)
     helper_path.write_text(
         "from pathlib import Path\n"
         "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
@@ -125,6 +134,7 @@ def test_bootstrap_prefers_sibling_owner_helper_over_importable_site_packages(mo
         / "editable_consumer_launcher.py"
     )
     helper_path.parent.mkdir(parents=True)
+    _write_required_program_companion_contract(helper_path.parent)
     helper_path.write_text(
         "from pathlib import Path\n"
         "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
@@ -147,6 +157,83 @@ def test_bootstrap_prefers_sibling_owner_helper_over_importable_site_packages(mo
     assert (fake_repo_root / "preferred-sibling-helper.txt").read_text(encoding="utf-8") == "opl_harness_shared"
 
 
+def test_bootstrap_ignores_sibling_owner_when_required_shared_contract_is_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    fake_repo_root = tmp_path / "med-autoscience"
+    fake_repo_root.mkdir()
+    sibling_src = tmp_path / "one-person-lab" / "python" / "opl-harness-shared" / "src"
+    sibling_package = sibling_src / "opl_harness_shared"
+    sibling_package.mkdir(parents=True)
+    (sibling_package / "__init__.py").write_text("", encoding="utf-8")
+    (sibling_package / "editable_consumer_launcher.py").write_text(
+        "from pathlib import Path\n"
+        "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
+        "    marker = Path(repo_root) / 'stale-sibling-helper-called.txt'\n"
+        "    marker.write_text(shared_package_name, encoding='utf-8')\n"
+        "    return ()\n",
+        encoding="utf-8",
+    )
+    (sibling_package / "product_entry_program_companions.py").write_text(
+        "def build_clearance_lane(**kwargs):\n"
+        "    return dict(kwargs)\n",
+        encoding="utf-8",
+    )
+    fake_site_packages = fake_repo_root / ".venv" / "lib" / "python3.12" / "site-packages"
+    site_package = fake_site_packages / "opl_harness_shared"
+    site_package.mkdir(parents=True)
+    (site_package / "__init__.py").write_text("", encoding="utf-8")
+    (site_package / "editable_consumer_launcher.py").write_text(
+        "from pathlib import Path\n"
+        "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
+        "    marker = Path(repo_root) / 'site-helper-called.txt'\n"
+        "    marker.write_text(shared_package_name, encoding='utf-8')\n"
+        "    return ()\n",
+        encoding="utf-8",
+    )
+    (site_package / "product_entry_program_companions.py").write_text(
+        "def build_clearance_lane(**kwargs):\n"
+        "    return dict(kwargs)\n"
+        "def build_backend_deconstruction_lane(**kwargs):\n"
+        "    return dict(kwargs)\n",
+        encoding="utf-8",
+    )
+    original_sys_path = list(sys.path)
+    original_modules = {
+        name: sys.modules.pop(name, None)
+        for name in (
+            "opl_harness_shared",
+            "opl_harness_shared.editable_consumer_launcher",
+            "opl_harness_shared.product_entry_program_companions",
+        )
+    }
+    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
+    monkeypatch.setattr(
+        module,
+        "_candidate_shared_helper_module_paths",
+        lambda: (sibling_package / "editable_consumer_launcher.py",),
+    )
+    monkeypatch.setattr(module, "_candidate_repo_site_packages_roots", lambda: (fake_site_packages,))
+
+    try:
+        added = module.ensure_editable_dependency_paths()
+        imported = importlib.import_module("opl_harness_shared.product_entry_program_companions")
+        imported_path = Path(imported.__file__).resolve()
+    finally:
+        sys.path[:] = original_sys_path
+        for module_name, original_module in original_modules.items():
+            if original_module is None:
+                sys.modules.pop(module_name, None)
+            else:
+                sys.modules[module_name] = original_module
+
+    assert added == (fake_site_packages,)
+    assert not (fake_repo_root / "stale-sibling-helper-called.txt").exists()
+    assert (fake_repo_root / "site-helper-called.txt").read_text(encoding="utf-8") == "opl_harness_shared"
+    assert imported_path == (site_package / "product_entry_program_companions.py").resolve()
+
+
 def test_bootstrap_detects_workspace_sibling_owner_from_nested_worktree_layout(
     monkeypatch,
     tmp_path: Path,
@@ -163,6 +250,7 @@ def test_bootstrap_detects_workspace_sibling_owner_from_nested_worktree_layout(
         / "editable_consumer_launcher.py"
     )
     helper_path.parent.mkdir(parents=True)
+    _write_required_program_companion_contract(helper_path.parent)
     helper_path.write_text(
         "from pathlib import Path\n"
         "def ensure_repo_editable_dependency_paths(*, repo_root, shared_package_name='opl_harness_shared'):\n"
@@ -230,6 +318,7 @@ def test_bootstrap_makes_required_shared_entrypoints_importable_from_sibling_own
         "SOURCE = 'product_entry_companions'\n",
         encoding="utf-8",
     )
+    _write_required_program_companion_contract(package_root)
     original_sys_path = list(sys.path)
     original_modules = {
         name: sys.modules.pop(name, None)
