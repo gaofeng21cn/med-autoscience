@@ -116,38 +116,36 @@ class _BackendStub:
         return {"runtime_root": str(runtime_root), "quest_id": quest_id, "payload": payload}
 
 
-def test_default_managed_runtime_backend_registry_exposes_med_deepscientist_and_hermes() -> None:
+def test_default_managed_runtime_backend_registry_exposes_mas_runtime_core_without_runnable_mds() -> None:
     module = importlib.import_module("med_autoscience.runtime_backend")
 
     backend = module.get_managed_runtime_backend(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
     hermes_backend = module.get_managed_runtime_backend("hermes")
 
-    assert backend.BACKEND_ID == "hermes"
-    assert backend.ENGINE_ID == "hermes"
-    assert "med_deepscientist" in module.registered_managed_runtime_backend_ids()
+    assert module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID == "mas_runtime_core"
+    assert backend.BACKEND_ID == "mas_runtime_core"
+    assert backend.ENGINE_ID == "mas-runtime-core"
+    assert "med_deepscientist" not in module.registered_managed_runtime_backend_ids()
     assert hermes_backend.BACKEND_ID == "hermes"
     assert hermes_backend.ENGINE_ID == "hermes"
     assert "hermes" in module.registered_managed_runtime_backend_ids()
-    assert module.controlled_research_backend_metadata_for_backend_id("hermes") == (
-        "med_deepscientist",
-        "med-deepscientist",
+    assert module.controlled_research_backend_metadata_for_backend_id(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID) == (
+        "mas_runtime_core",
+        "mas-runtime-core",
     )
 
 
-def test_default_runtime_backend_contract_makes_external_mds_optional_for_default_operation() -> None:
+def test_default_runtime_backend_contract_makes_external_mds_archive_only() -> None:
     module = importlib.import_module("med_autoscience.runtime_backend")
 
     contract = module.runtime_backend_default_operation_contract(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
 
-    assert contract["runtime_backend_id"] == "hermes"
-    assert contract["runtime_engine_id"] == "hermes"
+    assert contract["runtime_backend_id"] == "mas_runtime_core"
+    assert contract["runtime_engine_id"] == "mas-runtime-core"
     assert contract["external_mds_required_for_default_operation"] is False
-    assert contract["external_mds_allowed_uses"] == [
-        "explicit_backend_audit",
-        "legacy_restore_import_diagnostic",
-        "upstream_intake",
-        "parity_oracle",
-    ]
+    assert contract["external_mds_runnable_dependency"] is False
+    assert contract["external_mds_retained_role"] == "frozen_source_archive_or_historical_fixture"
+    assert contract["external_mds_allowed_uses"] == ["source_provenance_ref", "historical_fixture_ref"]
 
 
 def test_runtime_backend_resolves_registered_backend_from_engine_and_explicit_backend_id() -> None:

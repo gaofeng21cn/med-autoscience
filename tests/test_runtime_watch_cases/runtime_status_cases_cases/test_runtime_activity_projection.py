@@ -38,7 +38,9 @@ def test_watch_runtime_projects_live_worker_stale_artifact_delta_as_recovering(
         "quest_root": str(quest_root),
         "quest_status": "running",
         "execution": {
-            "engine": "med-deepscientist",
+            "engine": "mas-runtime-core",
+                "runtime_backend_id": "mas_runtime_core",
+                "runtime_engine_id": "mas-runtime-core",
             "auto_entry": "on_managed_research_intent",
             "quest_id": "quest-001",
             "auto_resume": True,

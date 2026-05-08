@@ -176,9 +176,8 @@ def resolve_runtime_alert_runtime_root(
     supervision_report: Mapping[str, Any],
     backend: Any | None,
 ) -> Path | None:
-    backend_id = _non_empty_text(getattr(backend, "BACKEND_ID", None))
-    if backend_id == "med_deepscientist" and profile is not None:
-        return Path(profile.med_deepscientist_runtime_root).expanduser().resolve()
+    if profile is not None:
+        return Path(profile.managed_runtime_home).expanduser().resolve()
     return _candidate_path(supervision_report.get("runtime_root"))
 
 
