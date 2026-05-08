@@ -125,6 +125,8 @@ def _completed_current_truth(status: Mapping[str, Any], progress: Mapping[str, A
 def _parked_current_truth(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
     if _has_live_worker(status, progress):
         return False
+    if _text(status.get("quest_status")) in {"waiting_for_user", "parked"}:
+        return True
     macro_state = _mapping(status.get("study_macro_state")) or _mapping(progress.get("study_macro_state"))
     if _text(macro_state.get("writer_state")) == "parked" and _text(macro_state.get("reason")) in {
         "external_info",

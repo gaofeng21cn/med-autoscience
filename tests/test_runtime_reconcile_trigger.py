@@ -64,9 +64,10 @@ def test_duplicate_reconcile_fingerprint_is_not_requestable() -> None:
     assert "duplicate_reconcile_request" in duplicate["blocked_reasons"]
 
 
-def test_human_gate_completed_and_retry_exhausted_fail_closed() -> None:
+def test_human_gate_parked_completed_and_retry_exhausted_fail_closed() -> None:
     cases = [
         _base_status(needs_user_decision=True),
+        _base_status(quest_status="parked"),
         _base_status(quest_status="completed", study_completion_contract={"ready": True, "status": "resolved"}),
         _base_status(
             runtime_health_snapshot={
