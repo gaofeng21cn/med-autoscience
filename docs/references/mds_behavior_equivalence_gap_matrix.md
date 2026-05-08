@@ -2,7 +2,7 @@
 
 Status: `active behavior-audit reference`
 Owner: `MedAutoScience Runtime OS`
-Date: `2026-05-08`
+Date: `2026-05-09`
 Related contract: `live-console-parity`
 
 ## 结论
@@ -23,6 +23,16 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 - `default_tick_interval_seconds`: `300`
 - `default_tick_max_ticks`: `1`
 - `default_tick_command`: `ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1`
+
+2026-05-09 fresh assessment：当前差异不再是“MAS 还依赖 MDS 才能跑”，而是“MAS 选择了 durable / scheduler-bound / read-only-first 的 monolith 实现，和旧 MDS resident daemon + WebUI 的交互体验并不完全相同”。按机器矩阵复核，17 个行为面中：
+
+- `2` 个已达到 `behavior_equivalent`：turn completion continuation、quest create/resume/pause/stop。
+- `6` 个是 `purpose_equivalent_with_different_timing`：daemon residency、supervision cadence、live worker/session tracking、crash recovery、WebUI/terminal observation、MCP surface。
+- `4` 个是 `partially_equivalent`：queued user messages/mailbox、progress visibility、memory/lesson store、artifact interaction handoff。
+- `4` 个是 `not_equivalent_retired`：connector/channel background delivery、GitOps state management、MDS daemon lifecycle controls、workspace-local host service。
+- `1` 个是 `historical_fixture_only`：team/multi-agent coordination。
+
+这意味着对医生/PI 的日常影响主要集中在 3 件事：多论文 workspace 的 Portal 还不够像单篇论文工作台；Live Console 仍是只读观察，不是交互式 terminal/control；outer supervision 的 crash/stale recovery 仍受 300 秒外环 tick 影响。已退役的 connector、GitOps、daemon control、workspace-local service 不应作为“能力缺口”重开，除非未来有新的产品需求和 MAS owner / audit / safety proof。
 
 旧 MDS daemon 的关键事实是 resident `ThreadingHTTPServer` + WebSocket + session store + background connector / worker / recovery loop。MAS 当前拆成两层：内层 turn lifecycle kernel 已承担 runner 返回后的连续科研主循环；外层 Hermes gateway cron 仍承担 drift detection、stale recovery、read-model refresh 与 supervision tick。二者在“日常研究推进、turn-to-turn continuation、恢复投影和进度查看”上已经解决主要运行目的问题；在 resident process、低延迟交互、WebSocket terminal attach、connector background delivery 和 in-memory session continuity 上仍不完全等价。WebSocket terminal attach / UI-issued runtime control 不是当前 read-only closeout 的 landed scope，也不应写成 abandoned；它们属于后续 interactive parity candidate，需要单独 safety / owner / audit gate。
 
@@ -121,6 +131,21 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 - `interactive console`: 独立 Live Console UI shell、profile-level session read model、snapshot / loopback SSE stream 和 clean-room contract 已作为 `live-console-parity` landed。它是 read-only purpose equivalence，不是旧 MDS resident WebSocket terminal attach 的 1:1 复刻；terminal attach/input/resize/detach 与 UI-issued runtime control 是后续 interactive parity candidate。
 - `connector background delivery`: 旧 MDS 的 QQ/Slack/Discord/Telegram/Weixin/WhatsApp/Feishu background delivery 仍不属于 MAS 默认 monolith；当前只保留 durable handoff refs。
 - `in-memory session API`: MAS 选择 durable read model 与 receipt，不恢复旧 MDS in-memory session store。
+
+## 2026-05-09 Remaining Semantic Gaps
+
+下表只列仍可能影响用户感知或未来能力选择的差异；已明确退役且无默认产品价值的能力不进入 active implementation backlog。
+
+| gap | current impact | why it is acceptable now | recommended improvement |
+| --- | --- | --- | --- |
+| Portal per-study/per-paper IA | 多论文 workspace 里，用户能看到 study rows，但还需要在 workspace overview 中自行定位单篇论文；这会削弱“看这里就知道这篇论文到哪了”的可信感。 | 默认进度入口、source refs、freshness、artifact locator 和 OPL handoff 已由 MAS 持有；不会回落到 MDS WebUI。 | P0：实现 study-scoped Portal shell、per-study deep link、单篇论文 Overview / Path / Runtime / Conversation / Terminal / Artifacts。 |
+| Live Console interactive terminal/control | 当前能看 session/run、terminal/log tail、SSE/snapshot 和 action intent；不能在 UI 里 attach terminal、输入命令、resize/detach 或直接 stop/resume/reconcile apply。 | read-only observation 已覆盖旧 WebUI 的“看状态/日志/终端尾部”目的；直接控制会触碰 runtime owner、authorization、idempotency 和审计边界。 | P1/P2：先做 authorized UI action lane（pause/resume/reconcile/stop intent apply），再单独评估 interactive terminal attach。 |
+| outer supervision stale/crash latency | 正常 turn-to-turn continuation 不等 cron；但 worker crash、stale recovery、drift detection 和部分 read-model refresh 仍可能等到 300 秒 Hermes tick，或由 operator 触发 one-shot dry-run/reconcile。 | 这比旧 resident daemon 更可审计、fail-closed，且 `outer_supervision_slo` 已把 fresh/due/stale/blocked 和推荐命令投影给用户。 | P1：对真实 workspace 继续收集 SLO evidence，必要时用安全 one-shot reconcile 或更短受控 scheduler cadence，而不是恢复 resident MDS daemon。 |
+| queued mailbox / conversation view | 运行中追加 user message 已有 queue；但用户还缺一个像旧 WebUI chat pane 那样的 executor conversation/timeline 视图。 | durable task intake、owner_route 和 runtime receipts 已能驱动研究，不依赖 chat connector。 | P1：从 turn receipts、user queue、tool/action refs 生成 conversation read model，并挂到 per-study Portal。 |
+| artifact interactive mutation | package locator、artifact refs、current package discovery 已由 Artifact OS 持有；旧 MDS interactive artifact API 没有默认保留。 | MAS 选择 canonical-source-first，避免 UI 或 legacy artifact API 绕过 paper/package authority。 | P2：仅在 Artifact OS authority 下增加 file browser / pickup / rebuild proof view；不恢复任意 mutation API。 |
+| memory/lesson service | MAS 有 incident learning、portfolio/research memory 和 calibration evidence，但不复刻 MDS autonomous memory service。 | 经验/记忆不能直接授权质量、投稿或 route。 | P2：把高价值 lessons 继续导入 Evaluation OS / research memory，保持 evidence-only。 |
+
+后续完善顺序建议固定为：`portal-study-scoped-ia` -> `runtime-conversation-read-model` / `live-console-study-scope-polish` -> `authorized-ui-control` -> `interactive-terminal-attach-design`。这条顺序能提高用户可信度，同时不让 UI、connector 或旧 daemon 重新成为 runtime owner。
 
 ## 旧 Workspace-Local Service Policy
 
