@@ -245,6 +245,10 @@ def _apply_migration(
     )
     _write_runtime_configs(profile=profile, profile_path=profile_path)
     for item in report["migrated"]:
+        _write_migrated_quest_snapshot(
+            item=item,
+            recorded_at=str(report["recorded_at"]),
+        )
         _write_runtime_binding_for_item(
             item=item,
             target_runtime_home=target_runtime_home,
@@ -352,6 +356,40 @@ def _write_runtime_binding_for_item(
         "last_source": "medautosci runtime workspace-monolith-migrate",
     }
     _write_yaml(binding_path, payload)
+
+
+def _write_migrated_quest_snapshot(*, item: Mapping[str, Any], recorded_at: str) -> None:
+    old_quest_root = Path(str(item["old_quest_root"]))
+    new_quest_root = Path(str(item["new_quest_root"]))
+    previous_quest = _read_yaml_mapping(old_quest_root / "quest.yaml")
+    previous_runtime_state = _read_json_mapping(old_quest_root / ".ds" / "runtime_state.json")
+    quest_id = str(item["quest_id"])
+    study_id = str(item["study_id"])
+    status = _runtime_status(previous_runtime_state)
+    quest_payload = {
+        **previous_quest,
+        "quest_id": quest_id,
+        "study_id": study_id,
+    }
+    runtime_state = {
+        **previous_runtime_state,
+        "quest_id": quest_id,
+        "study_id": study_id,
+        "status": status,
+        "active_run_id": None,
+        "worker_running": False,
+        "last_action": "workspace_monolith_migrate",
+        "last_action_at": recorded_at,
+        "last_source": "medautosci runtime workspace-monolith-migrate",
+        "auto_wakeup": False,
+        "legacy_diagnostic": {
+            "old_quest_root": str(old_quest_root),
+            "restore_provenance_ref": "artifacts/runtime/monolith_migration/latest.json",
+            "read_only": True,
+        },
+    }
+    _write_yaml(new_quest_root / "quest.yaml", quest_payload)
+    _write_json(new_quest_root / ".ds" / "runtime_state.json", runtime_state)
 
 
 def _write_migration_report(*, report: dict[str, Any], workspace_root: Path) -> None:

@@ -220,6 +220,20 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert alpha_binding["legacy_diagnostic"]["old_quest_root"].endswith(
         "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
     )
+    migrated_quest_root = workspace_root / "runtime" / "quests" / "quest-alpha-dynamic"
+    migrated_quest = yaml.safe_load((migrated_quest_root / "quest.yaml").read_text(encoding="utf-8"))
+    migrated_runtime_state = json.loads((migrated_quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert migrated_quest == {
+        "quest_id": "quest-alpha-dynamic",
+        "study_id": "010-alpha-dynamic",
+    }
+    assert migrated_runtime_state["status"] == "completed"
+    assert migrated_runtime_state["active_run_id"] is None
+    assert migrated_runtime_state["worker_running"] is False
+    assert migrated_runtime_state["legacy_diagnostic"]["read_only"] is True
+    assert migrated_runtime_state["legacy_diagnostic"]["old_quest_root"].endswith(
+        "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
+    )
 
     assert live_binding.read_text(encoding="utf-8") == live_binding_before
     assert alpha_paper.read_text(encoding="utf-8") == alpha_paper_before
