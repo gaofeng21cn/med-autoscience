@@ -41,6 +41,7 @@
 
 当前操作路径继续由 `product-entry-status`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口组成。
 其中 `study-progress` 是 restore point、autonomy soak、quality closure、artifact pickup、human gate 与 `study_macro_state -> user_visible_projection` 的源头投影；`workspace-cockpit` 负责把同一条 `research_runtime_control_projection` 和同一套用户可见状态放进 study item、attention queue 与 operator brief；`product-entry-status` 只消费这些 projection，不另建第二套运行解释。
+`family_action_catalog` 是这些 callable action 的 MAS-owned metadata 单一声明面；CLI、MCP tool descriptor、single app skill command projection 与 product-entry manifest 中的 action metadata 都从它派生。`OPL` 只读取该 catalog 做 family-level discovery/export/parity，不执行 MAS action，也不拥有 study truth、runtime controller truth、AI reviewer judgement、publication gate 或 artifact authority。
 `MAS Progress Portal` 是这组投影面向用户的 landed 固定可视化入口：默认生成 `ops/mas/progress/index.html` 静态快照，也可由本地只读服务实时刷新。Portal 由 MAS 持有 domain-owned payload / HTML，只消费 `study-progress`、`workspace-cockpit` 和 durable truth refs，不写 study truth、publication truth、runtime authority 或 artifact authority。它统一用户进度查看入口；functional monolith completion 的完成口径是 capability supersede / rewrite / retire，不是 MDS 函数级 1:1 搬迁。当前 Portal 的用户体验仍是部分等价：旧 MDS WebUI 以 project/quest 为主工作台，MAS Portal 仍偏 workspace overview + study rows；per-study/per-paper drilldown 是后续 UX parity 的 P0。
 它们描述的是当前可执行的操作面。
 `OPL` 调用、`product-entry manifest`、`handoff envelope` 和其他机器可读载荷继续属于集成接口和参考层。
