@@ -261,8 +261,8 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
         ],
         optional_executor_proofs=[
             {
-                "executor_kind": "hermes_native_proof",
-                "entrypoint": "MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation",
+                "executor_kind": "hermes_agent",
+                "entrypoint": "Hermes-Agent controlled runtime adapter",
                 "default_model": "inherit_local_hermes_default",
                 "default_reasoning_effort": "inherit_local_hermes_default",
             }

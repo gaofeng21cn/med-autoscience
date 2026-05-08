@@ -385,7 +385,7 @@ def build_product_entry_manifest(
         "runtime_root": str(profile.runtime_root),
         "hermes_home_root": str(profile.hermes_home_root),
     }
-    entry_status_surface = _build_shared_product_entry_shell_linked_surface(
+    product_entry_surface = _build_shared_product_entry_shell_linked_surface(
         shell_key="product_entry_status",
         shell_surface=product_entry_shell["product_entry_status"],
         summary=product_entry_shell["product_entry_status"]["purpose"],
@@ -506,7 +506,7 @@ def build_product_entry_manifest(
         managed_runtime_contract=managed_runtime_contract,
         repo_mainline=repo_mainline,
         product_entry_status=product_entry_status,
-        product_entry_surface=entry_status_surface,
+        product_entry_surface=product_entry_surface,
         operator_loop_surface=operator_loop_surface,
         operator_loop_actions=operator_loop_actions,
         recommended_shell="workspace_cockpit",
@@ -731,7 +731,6 @@ def build_product_entry_status(
         "runtime": dict(manifest.get("runtime") or {}),
         "product_entry_status": dict(manifest.get("product_entry_status") or {}),
         "product_entry_surface": dict(manifest.get("product_entry_surface") or {}),
-        "entry_status_surface": dict(manifest.get("entry_status_surface") or {}),
         "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
         "operator_loop_actions": dict(manifest.get("operator_loop_actions") or {}),
         "product_entry_start": dict(manifest.get("product_entry_start") or {}),

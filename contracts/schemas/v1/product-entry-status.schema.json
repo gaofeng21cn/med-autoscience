@@ -13,7 +13,6 @@
     "domain_entry_contract",
     "user_interaction_contract",
     "product_entry_surface",
-    "entry_status_surface",
     "operator_loop_surface",
     "product_entry_manifest"
   ],

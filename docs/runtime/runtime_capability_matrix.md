@@ -22,9 +22,9 @@
 
 ## 后端分类
 
-- `codex_default_host_agent_runtime`：默认本机 Codex path，承担 MAS 直接运行语义。
+- `codex_cli`：默认本机 Codex path，承担 MAS 直接运行语义。
 - `med_deepscientist_backend`：迁移期 research backend、behavior oracle、upstream intake buffer。
-- `hermes_optional_hosted_runtime`：可选 hosted runtime target / reference layer。
+- `hermes_agent`：可选 Hermes-Agent runtime target / reference layer。
 
 ## Doctor 规则
 

@@ -76,8 +76,8 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
     assert payload["user_interaction_contract"]["entry_owner"] == "opl_product_entry_or_domain_gui"
     assert payload["user_interaction_contract"]["user_interaction_mode"] == "natural_language_entry"
     assert payload["user_interaction_contract"]["user_commands_required"] is False
-    assert payload["entry_status_surface"]["shell_key"] == "product_entry_status"
-    assert payload["entry_status_surface"]["command"].endswith(
+    assert payload["product_entry_surface"]["shell_key"] == "product_entry_status"
+    assert payload["product_entry_surface"]["command"].endswith(
         "product-entry-status --profile " + str(profile_ref.resolve())
     )
     assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
@@ -384,7 +384,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     assert payload["family_orchestration"]["action_graph"]["human_gates"][0]["legacy_gate_id"] == (
         "study_physician_decision_gate"
     )
-    assert payload["product_entry_manifest"]["entry_status_surface"]["shell_key"] == "product_entry_status"
+    assert payload["product_entry_manifest"]["product_entry_surface"]["shell_key"] == "product_entry_status"
     assert payload["product_entry_manifest"]["manifest_version"] == 2
     assert payload["product_entry_manifest"]["product_entry_readiness"] == payload["product_entry_readiness"]
     assert payload["product_entry_manifest"]["product_entry_preflight"] == payload["product_entry_preflight"]

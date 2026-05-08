@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-READ_MODEL_NAME = "delivery_legacy_visibility_read_model"
+READ_MODEL_NAME = "delivery_visibility_read_model"
 WRITE_AUTHORITY = "controller_authorized_delivery_sync_apply_only"
 DOCTOR_README_STRUCTURE = [
     {
@@ -176,7 +176,7 @@ def _backfill_blockers(
     return blockers
 
 
-def build_delivery_legacy_visibility_read_model(value: object) -> dict[str, Any] | None:
+def build_delivery_visibility_read_model(value: object) -> dict[str, Any] | None:
     inspection = _mapping(value)
     if not inspection:
         return None
@@ -190,7 +190,7 @@ def build_delivery_legacy_visibility_read_model(value: object) -> dict[str, Any]
     next_sync_command = _text(inspection.get("next_sync_command"))
     backfill_status = "clear" if not blockers else "blocked"
     return {
-        "surface": "delivery_legacy_visibility",
+        "surface": "delivery_visibility",
         "surface_kind": READ_MODEL_NAME,
         "schema_version": 1,
         "read_model": READ_MODEL_NAME,
@@ -223,7 +223,7 @@ def build_delivery_legacy_visibility_read_model(value: object) -> dict[str, Any]
     }
 
 
-def inspect_delivery_legacy_visibility(
+def inspect_delivery_visibility(
     *,
     profile: Any,
     profile_ref: str | Path | None = None,
@@ -240,13 +240,13 @@ def inspect_delivery_legacy_visibility(
         study_root=study_root,
         publication_profile=publication_profile,
     )
-    return build_delivery_legacy_visibility_read_model(inspection)
+    return build_delivery_visibility_read_model(inspection)
 
 
 __all__ = [
     "DOCTOR_README_STRUCTURE",
     "READ_MODEL_NAME",
     "WRITE_AUTHORITY",
-    "build_delivery_legacy_visibility_read_model",
-    "inspect_delivery_legacy_visibility",
+    "build_delivery_visibility_read_model",
+    "inspect_delivery_visibility",
 ]

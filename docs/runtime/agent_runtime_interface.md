@@ -46,7 +46,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - 默认 model / reasoning：继承本机 Codex 默认（`inherit_local_codex_default`）。
 - `chat-only executor` 明确 forbidden（`chat_completion_only_executor_forbidden = true`）。
 - `Hermes-Agent` 备选执行路线当前状态是 `experimental`，只有 full agent loop 才满足 guardrail（`hermes_agent_requires_full_agent_loop = true`）。
-- 当前 manifest 也会显式导出一个 opt-in proof lane：`executor_kind = hermes_native_proof` 时，底层 pass-through 到 `MedDeepScientist HermesNativeProofRunner -> run_agent.AIAgent.run_conversation`；它不是默认执行器，只是与默认 Codex lane 并挂的可选 proof adapter。
+- 当前 manifest 只暴露两个 public executor backend：默认 `codex_cli` 与可选 `hermes_agent`。`hermes_agent` 仍必须满足 full agent loop guardrail，不能作为 chat-only executor 或旧 proof alias 使用。
 
 ## 当前主线与 monorepo 长线的关系
 

@@ -96,12 +96,12 @@ def _assert_entry_contract_surfaces(*, module, payload, profile, profile_ref) ->
     assert payload["user_interaction_contract"]["entry_owner"] == "opl_product_entry_or_domain_gui"
     assert payload["user_interaction_contract"]["user_interaction_mode"] == "natural_language_entry"
     assert payload["user_interaction_contract"]["command_surfaces_for_agent_consumption_only"] is True
-    assert payload["entry_status_surface"]["shell_key"] == "product_entry_status"
-    assert payload["entry_status_surface"]["command"].endswith(
+    assert payload["product_entry_surface"]["shell_key"] == "product_entry_status"
+    assert payload["product_entry_surface"]["command"].endswith(
         "product-entry-status --profile " + str(profile_ref.resolve())
     )
-    assert payload["entry_status_surface"]["surface_kind"] == "product_entry_status"
-    assert "research product entry status" in payload["entry_status_surface"]["summary"]
+    assert payload["product_entry_surface"]["surface_kind"] == "product_entry_status"
+    assert "research product entry status" in payload["product_entry_surface"]["summary"]
     assert payload["operator_loop_surface"]["shell_key"] == "workspace_cockpit"
     assert payload["operator_loop_surface"]["command"] == payload["recommended_command"]
     assert payload["operator_loop_surface"]["surface_kind"] == "workspace_cockpit"

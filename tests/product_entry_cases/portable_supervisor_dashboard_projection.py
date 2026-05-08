@@ -37,7 +37,7 @@ def _ready_report() -> SimpleNamespace:
     )
 
 
-def test_workspace_cockpit_and_entry_status_surface_portable_supervisor_queue_dashboard(
+def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_dashboard(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
