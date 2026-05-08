@@ -65,7 +65,7 @@
 | 独立医学论文质量治理面 | `MedAutoScience` | 研究设计、claim gate、publication hygiene 需要和 study authority 同源 |
 | 独立长时间自治治理面 | `MedAutoScience` | 恢复、接管、升级、停机、人工决策都属于 outer-loop owner |
 | 独立 progress / watch / status 汇报面 | `MedAutoScience` | 用户和维护者需要一套统一可见性真相 |
-| 独立长期主线文档与 onboarding | `MedAutoScience` | 文档入口需要直接描述目标主线，并持续保留迁移期 companion 说明 |
+| 独立长期主线文档与 onboarding | `MedAutoScience` | 文档入口需要直接描述目标主线，并仅保留 historical source / fixture / diagnostic 说明 |
 | 独立 feature polish 只为维持日常使用舒适度 | `MedAutoScience` | 这类投入会产生重复维护与再次迁移成本 |
 
 仍然值得留在 `MedDeepScientist` 的投入，只有三类：

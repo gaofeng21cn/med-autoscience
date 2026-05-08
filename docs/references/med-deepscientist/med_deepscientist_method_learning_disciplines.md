@@ -7,7 +7,7 @@
 1. 这轮演进里最值得长期学习的优化是什么
 2. 这些优化为什么对 `MAS` 的“长时间自治 + 高质量医学论文”主线有价值
 3. `MAS` 应该按什么纪律去学，而不是把学习动作做成零散 intake
-4. 哪些能力已经适合进入 `MAS` owner 面，哪些继续留在 `MDS` 迁移期 companion 面
+4. 哪些能力已经适合进入 `MAS` owner 面，哪些只继续保留为 `MDS` historical source / fixture / diagnostic
 
 ## 1. 当前前提
 
