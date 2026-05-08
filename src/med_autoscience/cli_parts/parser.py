@@ -134,6 +134,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_supervisor_refresh_controller_decisions_apply.add_argument("--dry-run", action="store_true")
     runtime_supervisor_refresh_controller_decisions_apply.add_argument("--apply", action="store_true")
 
+    workspace_monolith_migrate_parser = subparsers.add_parser("workspace-monolith-migrate")
+    workspace_monolith_migrate_parser.add_argument("--profile", required=True)
+    workspace_monolith_migrate_mode = workspace_monolith_migrate_parser.add_mutually_exclusive_group(required=True)
+    workspace_monolith_migrate_mode.add_argument("--dry-run", action="store_true")
+    workspace_monolith_migrate_mode.add_argument("--apply", action="store_true")
+
     study_state_matrix_parser = subparsers.add_parser("study-state-matrix")
     study_state_matrix_parser.add_argument("--profile", required=True)
     study_state_matrix_parser.add_argument("--studies", nargs="+")

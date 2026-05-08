@@ -68,6 +68,7 @@ runtime_supervisor_consumer = _LazyModuleProxy(lambda: _load_controller("runtime
 runtime_supervisor_dispatch_executor = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_dispatch_executor"))
 runtime_supervisor_reconcile = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_reconcile"))
 runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_scan"))
+workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
 runtime_lifecycle_read_model = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model"))
 runtime_lifecycle_migration = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration"))
@@ -609,6 +610,14 @@ def main(argv: list[str] | None = None) -> int:
             apply_safe_actions=bool(args.apply_safe_actions),
             apply_runtime_platform_repair=bool(args.apply_runtime_platform_repair),
             developer_supervisor_mode=args.developer_supervisor_mode,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "workspace-monolith-migrate":
+        result = workspace_monolith_migration.run_workspace_monolith_migration(
+            profile_path=Path(args.profile),
+            apply=bool(args.apply),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
