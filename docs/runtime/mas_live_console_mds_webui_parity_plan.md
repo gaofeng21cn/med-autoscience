@@ -20,6 +20,8 @@ Date: `2026-05-08`
 
 旧 MDS WebUI 的用户价值不止是进度摘要，还包括 resident WebUI / WebSocket 的低延迟观察能力：状态、terminal stream、日志流、session/run 细节。这个能力在 MAS 中当前没有等价默认入口，不能继续用“Progress Portal 已替代旧 WebUI”一笔带过。
 
+2026-05-08 Lane D/E thin shell 更新：MAS 现在有独立 `runtime_live_console_ui` helper，用于生成 `ops/mas/live-console/index.html` 所需 payload 与 HTML。该 helper 只消费已经形成的 live-console snapshot/read-model payload，不读取、解释或改写 runtime stream/core read model，也不依赖旧 MDS bundle、旧 WebUI 代码或 CDN。Portal 集成边界保持为 thin link/ref：Progress Portal 可以暴露 Live Console entrypoint，Live Console header 可以返回 Progress Portal，但 Portal 会话不拥有 live-console 状态解释。
+
 ## 设计边界
 
 - 不导入旧 MDS WebUI 代码、git history、assets、package lock 或 contributor footprint。
@@ -69,6 +71,7 @@ Date: `2026-05-08`
   - 底部 artifact/event refs；
   - 明确只读 badge 与 controller action deep links。
 - Progress Portal header 增加 live console link；Console header 增加返回 Progress Portal link。
+- 当前落地边界：`runtime_live_console_ui` 只提供静态 shell renderer 和 payload normalization；workspace/study/run、timeline、terminal/log tail、artifact/event refs 均来自传入 snapshot，不制造新的 runtime truth。
 
 ### Layer 4: Controller Action Links
 
@@ -106,12 +109,14 @@ Console 只生成 action intent link，不直接执行：
 - 无构建链、无远程 CDN、无旧 MDS bundle。
 - 支持 workspace/study/run 切换、日志 tail、terminal tail、event timeline。
 - 验收：Playwright 打开本地服务能看到 DM002/DPCC003 两条 live run 和 terminal/log 区。
+- 代码边界：UI shell 可以有独立 payload helper / HTML renderer；不得调用或修改 stream server、runtime core read model、Portal controller action 或旧 MDS assets。
 
 ### Lane E: Portal Integration
 
 - Progress Portal payload/HTML 加 `live_console` refs。
 - `hosted_package.json` 增加 live console entrypoint，但 authority 仍为 read-only。
 - docs/status/runtime/progress_portal 更新：Portal 是 progress page，Live Console 是 MDS WebUI streaming capability replacement。
+- Thin-link 边界：Portal 只拥有入口发现、返回链接和 hosted package ref；Live Console 的 workspace/study/run、timeline、terminal/log 和 refs 解释权归 live-console snapshot/read model，不归 Portal 会话。
 
 ### Lane F: Real Workspace Soak
 
