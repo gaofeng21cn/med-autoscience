@@ -147,6 +147,7 @@ class StudyRuntimeQuestStatus(StrEnum):
     RETRYING = "retrying"
     ACTIVE = "active"
     COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class StudyRuntimeBindingAction(StrEnum):

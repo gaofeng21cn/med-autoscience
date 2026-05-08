@@ -278,6 +278,19 @@ def test_study_runtime_status_accepts_retrying_live_quest_state() -> None:
     assert status.quest_status is module.StudyRuntimeQuestStatus.RETRYING
     assert status.quest_status in module._LIVE_QUEST_STATUSES
     assert status.to_dict()["quest_status"] == "retrying"
+
+
+def test_study_runtime_status_accepts_failed_non_live_quest_state() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    payload = make_status_payload(quest_status="failed")
+
+    status = module.StudyRuntimeStatus.from_payload(payload)
+
+    assert status.quest_status is module.StudyRuntimeQuestStatus.FAILED
+    assert status.quest_status not in module._LIVE_QUEST_STATUSES
+    assert status.to_dict()["quest_status"] == "failed"
+
+
 def test_study_runtime_status_core_key_assignment_uses_typed_normalization() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     status = module.StudyRuntimeStatus.from_payload(make_status_payload())
