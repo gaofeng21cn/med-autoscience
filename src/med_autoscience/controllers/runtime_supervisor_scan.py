@@ -82,6 +82,15 @@ def resolve_supervisor_scan_study_ids(profile: WorkspaceProfile) -> tuple[str, .
     return tuple(study_ids)
 
 
+def _validate_supervisor_scan_study_ids(profile: WorkspaceProfile, study_ids: tuple[str, ...]) -> None:
+    available_study_ids = set(resolve_supervisor_scan_study_ids(profile))
+    for study_id in study_ids:
+        if study_id in available_study_ids:
+            continue
+        known = ", ".join(sorted(available_study_ids)) or "<none>"
+        raise ValueError(f"Unknown supervisor study_id: {study_id}; known study_ids: {known}")
+
+
 def _latest_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / SUPERVISION_LATEST_RELATIVE_PATH
 
@@ -762,6 +771,7 @@ def supervisor_scan(
     persist_surfaces: bool = True,
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
+    _validate_supervisor_scan_study_ids(profile, resolved_study_ids)
     generated_at = _utc_now()
     developer_mode = resolve_developer_supervisor_mode(
         profile=profile,

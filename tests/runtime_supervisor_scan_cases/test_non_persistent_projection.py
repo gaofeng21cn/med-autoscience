@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
@@ -84,3 +86,27 @@ def test_supervisor_scan_can_project_without_overwriting_workspace_latest(
     assert result["studies"][0]["study_id"] == study_id
     assert latest_path.read_text(encoding="utf-8") == before
     assert not (profile.workspace_root / "artifacts" / "supervision" / "hourly" / "history.jsonl").exists()
+
+
+def test_supervisor_scan_rejects_unknown_study_id_before_reading_status(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "001-dm-cvd-mortality-risk", quest_id="quest-dm001")
+    write_study(profile.workspace_root, "002-dm-china-us-mortality-attribution", quest_id="quest-dm002")
+
+    def fail_if_called(**_: object) -> dict[str, object]:
+        raise AssertionError("unknown study ids must be rejected before runtime status is read")
+
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", fail_if_called)
+    monkeypatch.setattr(module.study_progress, "read_study_progress", fail_if_called)
+
+    with pytest.raises(ValueError, match="Unknown supervisor study_id: DM002"):
+        module.supervisor_scan(
+            profile=profile,
+            study_ids=("DM002",),
+            apply_safe_actions=True,
+            persist_surfaces=False,
+        )
