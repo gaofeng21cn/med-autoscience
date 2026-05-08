@@ -13,6 +13,7 @@ PLUGIN_ICON_SOURCE_PATH = PLUGIN_ROOT / "assets" / "icon.svg"
 PLUGIN_SKILL_UI_METADATA_PATH = PLUGIN_ROOT / "skills" / "mas" / "agents" / "openai.yaml"
 MARKETPLACE_PATH = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
 MCP_SERVER_PATH = REPO_ROOT / "src" / "med_autoscience" / "mcp_server.py"
+ACTION_CATALOG_PATH = REPO_ROOT / "src" / "med_autoscience" / "action_catalog.py"
 
 
 def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
@@ -59,8 +60,10 @@ def test_mas_skill_ui_metadata_tracks_plugin_display_contract() -> None:
 
 
 def test_product_entry_tool_blocks_ad_hoc_execution_without_contract() -> None:
+    action_catalog_text = ACTION_CATALOG_PATH.read_text(encoding="utf-8")
     mcp_server_text = MCP_SERVER_PATH.read_text(encoding="utf-8")
 
-    assert "If the needed MAS contract is missing" in mcp_server_text
-    assert "close the contract gap through a controller-authorized/CLI/MCP/product-entry surface" in mcp_server_text
-    assert "do not perform ad-hoc execution" in mcp_server_text
+    assert "PRODUCT_ENTRY_CONTRACT_GAP_TEXT" in mcp_server_text
+    assert "If the needed MAS contract is missing" in action_catalog_text
+    assert "close the contract gap through a controller-authorized/CLI/MCP/product-entry surface" in action_catalog_text
+    assert "do not perform ad-hoc execution" in action_catalog_text

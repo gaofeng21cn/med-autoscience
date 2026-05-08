@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import __version__
+from med_autoscience.action_catalog import (
+    PRODUCT_ENTRY_CONTRACT_GAP_TEXT,
+    action_catalog_metadata_by_mcp_tool,
+    build_mas_action_catalog,
+)
 from med_autoscience.control_plane_command_catalog import (
     CONTROL_PLANE_OPERATION_COMMANDS_BY_MCP_MODE,
     build_control_plane_product_entry_mode_schema,
@@ -61,13 +66,13 @@ from med_autoscience.mcp_server_parts.tool_registry import build_tool_registry, 
 
 PROTOCOL_VERSION = "2025-03-26"
 SERVER_NAME = "med-autoscience"
-_PRODUCT_ENTRY_CONTRACT_GAP_TEXT = (
-    "If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution."
-)
+_PRODUCT_ENTRY_CONTRACT_GAP_TEXT = PRODUCT_ENTRY_CONTRACT_GAP_TEXT
+ACTION_CATALOG = build_mas_action_catalog()
 TOOL_REGISTRY = build_tool_registry(
     product_entry_mode_schema=build_control_plane_product_entry_mode_schema(),
     product_entry_modes_text=product_entry_description_modes_text(),
     product_entry_contract_gap_text=_PRODUCT_ENTRY_CONTRACT_GAP_TEXT,
+    action_catalog_metadata_by_tool=action_catalog_metadata_by_mcp_tool(ACTION_CATALOG),
 )
 
 

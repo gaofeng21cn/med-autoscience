@@ -818,15 +818,11 @@ def _build_skill_catalog_surface(
     domain_entry_contract: Mapping[str, Any],
     product_entry_shell: Mapping[str, Any],
     skill_catalog_command: str,
+    action_catalog: Mapping[str, Any],
 ) -> dict[str, Any]:
     summary = _non_empty_text(product_entry_status.get("summary")) or "MAS product entry skill catalog."
-    command_catalog = {
-        "product_entry_status": str((product_entry_shell.get("product_entry_status") or {}).get("command") or ""),
-        "workspace_cockpit": str((product_entry_shell.get("workspace_cockpit") or {}).get("command") or ""),
-        "submit_study_task": str((product_entry_shell.get("submit_study_task") or {}).get("command") or ""),
-        "launch_study": str((product_entry_shell.get("launch_study") or {}).get("command") or ""),
-        "study_progress": str((product_entry_shell.get("study_progress") or {}).get("command") or ""),
-    }
+    command_catalog = _action_catalog_command_map(action_catalog)
+    skill_action_projection = _project_mas_action_catalog("skill", action_catalog)
     runtime_continuity = _build_skill_runtime_continuity_envelope(
         runtime=runtime,
         family_orchestration=family_orchestration,
@@ -865,6 +861,7 @@ def _build_skill_catalog_surface(
                     "study_progress",
                 ],
                 "shell_commands": command_catalog,
+                "action_catalog_projection": skill_action_projection,
                 "runtime_continuity": runtime_continuity,
                 "opl_runtime_manager_registration": opl_runtime_manager_registration,
             },
@@ -879,7 +876,7 @@ def _build_skill_catalog_surface(
             for item in (domain_entry_contract.get("command_contracts") or [])
             if isinstance(item, Mapping)
         ],
-    )
+    ) | {"action_catalog": dict(action_catalog)}
 
 
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

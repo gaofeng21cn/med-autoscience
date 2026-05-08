@@ -76,49 +76,11 @@ def build_product_entry_manifest(
     study_runtime_status_command = _json_surface_command(
         f"{prefix} study-runtime-status --profile {profile_arg} --study-id <study_id>"
     )
+    action_catalog = _build_mas_action_catalog(profile_ref=profile_ref)
 
-    product_entry_shell = _build_shared_product_entry_shell_catalog({
-        "product_entry_status": {
-            "command": f"{prefix} product-entry-status --profile {profile_arg}",
-            "purpose": "当前 research product entry status，先暴露当前 product entry、workspace inbox 与 shared handoff 入口。",
-            "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
-        },
-        "workspace_cockpit": {
-            "command": _json_surface_command(f"{prefix} workspace-cockpit --profile {profile_arg}"),
-            "purpose": "当前 workspace 级用户 inbox，聚合 attention queue、监督在线态与研究入口回路。",
-            "surface_kind": "workspace_cockpit",
-        },
-        "submit_study_task": {
-            "command": (
-                f"{prefix} submit-study-task --profile {profile_arg} "
-                "--study-id <study_id> --task-intent '<task_intent>'"
-            ),
-            "purpose": "先把用户任务写成 durable study task intake，再启动研究执行。",
-            "surface_kind": "study_task_intake",
-        },
-        "launch_study": {
-            "command": f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>",
-            "purpose": "创建或恢复 study runtime，并进入当前研究主线。",
-            "surface_kind": "launch_study",
-        },
-        "study_progress": {
-            "command": _json_surface_command(
-                f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
-            ),
-            "purpose": "持续读取当前 study 的阶段摘要、阻塞、监督 freshness 与下一步。",
-            "surface_kind": "study_progress",
-        },
-        "mainline_status": {
-            "command": f"{prefix} mainline-status",
-            "purpose": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",
-            "surface_kind": "mainline_status",
-        },
-        "mainline_phase": {
-            "command": f"{prefix} mainline-phase --phase <current|next|phase_id>",
-            "purpose": "查看某一阶段当前可用入口、退出条件与关键文档。",
-            "surface_kind": "mainline_phase",
-        },
-    })
+    product_entry_shell = _build_shared_product_entry_shell_catalog(
+        _product_entry_shell_from_action_catalog(action_catalog)
+    )
     shared_handoff = _build_shared_handoff(
         direct_entry_builder_command=(
             f"{prefix} build-product-entry --profile {profile_arg} "
@@ -481,6 +443,7 @@ def build_product_entry_manifest(
         product_entry_status=product_entry_status,
         domain_entry_contract=domain_entry_contract,
         product_entry_shell=product_entry_shell, skill_catalog_command=_json_surface_command(f"{prefix} skill-catalog --profile {profile_arg}"),
+        action_catalog=action_catalog,
     )
     automation = _build_automation_surface(
         profile=profile,
@@ -540,6 +503,7 @@ def build_product_entry_manifest(
         ],
         extra_payload={
             "schema_version": SCHEMA_VERSION,
+            "family_action_catalog": action_catalog,
             "single_project_boundary": single_project_boundary,
             "capability_owner_boundary": capability_owner_boundary,
             "executor_defaults": {
@@ -782,6 +746,7 @@ def build_product_entry_status(
         "runtime_inventory": dict(manifest.get("runtime_inventory") or {}),
         "task_lifecycle": dict(manifest.get("task_lifecycle") or {}),
         "skill_catalog": dict(manifest.get("skill_catalog") or {}),
+        "family_action_catalog": dict(manifest.get("family_action_catalog") or {}),
         "automation": dict(manifest.get("automation") or {}),
         "phase2_user_product_loop": dict(manifest.get("phase2_user_product_loop") or {}),
         "product_entry_guardrails": dict(manifest.get("product_entry_guardrails") or {}),
