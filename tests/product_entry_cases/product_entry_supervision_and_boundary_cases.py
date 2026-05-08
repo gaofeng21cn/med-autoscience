@@ -200,10 +200,10 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
             workspace_supervision_contract={
-                "status": "legacy_only",
+                "status": "retired_legacy_service_present",
                 "loaded": False,
-                "summary": "检测到 legacy workspace-local runtime supervision service 仍在运行，当前 canonical Hermes supervision 尚未接管。",
-                "drift_reasons": ["legacy_service_loaded"],
+                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 Hermes gateway cron；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 Hermes cron tick。",
+                "drift_reasons": ["retired_legacy_service_loaded"],
             },
         ),
     )
@@ -212,11 +212,13 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
         "_inspect_workspace_supervision",
         lambda profile: {
             "manager": "launchd",
-            "status": "legacy_only",
+            "status": "retired_legacy_service_present",
             "loaded": False,
-            "summary": "检测到 legacy workspace-local runtime supervision service 仍在运行，当前 canonical Hermes supervision 尚未接管。",
-            "drift_reasons": ["legacy_service_loaded"],
+            "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 Hermes gateway cron；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 Hermes cron tick。",
+            "drift_reasons": ["retired_legacy_service_loaded"],
             "legacy_service": {"loaded": True, "service_exists": True},
+            "legacy_service_role": "retired_cleanup_evidence",
+            "retired_legacy_cleanup_required": True,
         },
     )
     monkeypatch.setattr(
@@ -305,10 +307,10 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
     payload = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
 
     assert payload["workspace_status"] == "blocked"
-    assert payload["workspace_supervision"]["service"]["status"] == "legacy_only"
+    assert payload["workspace_supervision"]["service"]["status"] == "retired_legacy_service_present"
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
     assert payload["attention_queue"][0]["recommended_command"].endswith(
-        "runtime-supervision-status --profile " + str(profile_ref.resolve())
+        "runtime-ensure-supervision --profile " + str(profile_ref.resolve())
     )
 
 def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_owner_drift(
@@ -330,10 +332,10 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
             medical_overlay_ready=True,
             external_runtime_contract={"ready": True},
             workspace_supervision_contract={
-                "status": "legacy_only",
+                "status": "retired_legacy_service_present",
                 "loaded": False,
-                "summary": "检测到 legacy workspace-local runtime supervision service 仍在运行，当前 canonical Hermes supervision 尚未接管。",
-                "drift_reasons": ["legacy_service_loaded"],
+                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 Hermes gateway cron；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 Hermes cron tick。",
+                "drift_reasons": ["retired_legacy_service_loaded"],
             },
         ),
     )
@@ -364,7 +366,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     assert payload["product_entry_preflight"]["ready_to_try_now"] is False
     assert "workspace_supervision_contract_ready" in payload["product_entry_preflight"]["blocking_check_ids"]
     assert payload["operator_brief"]["verdict"] == "preflight_blocked"
-    assert "legacy workspace-local runtime supervision service" in payload["product_entry_preflight"]["summary"]
+    assert "已退役的 workspace-local runtime supervision service" in payload["product_entry_preflight"]["summary"]
     assert payload["product_entry_start"]["recommended_mode_id"] == "open_product_entry"
     assert payload["product_entry_start"]["modes"][1]["mode_id"] == "submit_task"
     assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]

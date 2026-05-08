@@ -123,7 +123,7 @@
 
 1. 守住已经完成的 `P0 runtime native truth`
 2. 守住已经完成的 `P1 workspace knowledge / literature canonical contract`
-3. 把剩余工作集中到 `P2 controlled cutover -> physical monorepo migration`
+3. 把剩余工作集中到 MAS Runtime OS owner contract、Hermes gateway cron scheduler contract 和 behavior-equivalence guard；不要重开旧 `P2 controlled cutover -> physical monorepo migration` 作为 active plan
 
 对应正式文档：
 

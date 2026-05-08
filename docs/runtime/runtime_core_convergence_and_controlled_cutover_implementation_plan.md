@@ -1,8 +1,10 @@
 # Runtime Core Convergence And Controlled Cutover Implementation Plan
 
-**Goal:** 在 `P0` 与 `P1` 已完成的前提下，完成 `P2 controlled cutover -> physical monorepo migration` 中当前仍可在 repo 内推进的 gate、Hermes backend continuation，以及后续 physical migration readiness plan。
+**Status:** `historical closeout reference`
 
-**Architecture:** 保持 quest-owned native runtime truth、study-owned supervision truth、workspace canonical knowledge truth 三层 owner 不变。`P2` 只处理 parity gate、模块边界、删除条件与 physical migration，不重新打开 `P0` / `P1`。
+**Goal:** 本文件记录旧 `P2 controlled cutover -> physical monorepo migration` 的历史执行计划。当前默认运行 closeout 已由 MAS Runtime OS + Hermes gateway cron + behavior-equivalence matrix 接管；不得把本文作为重开 Hermes/MDS backend migration 或 workspace-local service 的 active plan。
+
+**Architecture:** 当前 active architecture 以 `runtime_core_convergence_and_controlled_cutover.md`、`runtime_supervision_loop.md` 和 `mds_behavior_equivalence_gap_matrix.md` 为准。
 
 ---
 
@@ -14,7 +16,9 @@
 - [x] MAS 已停止覆盖 quest-owned `runtime_events/latest.json`
 - [x] workspace canonical literature / study reference context / quest materialization-only 已落地
 
-## 当前 P2 任务
+## 历史 P2 任务
+
+以下清单保留为历史记录；当前不得作为 active checklist 执行。
 
 ### Task 1: 冻结 Hermes continuation truth
 
@@ -26,9 +30,9 @@
 - Test: `../../tests/test_runtime_protocol_study_runtime.py`
 - Test: `../../tests/test_study_runtime_router.py`
 
-- [ ] 把 `Hermes` backend continuation 写成当前 repo-side 允许继续推进的 P2 子位置
-- [ ] 写清目标、边界、验证、promotion invariants、excluded scope、真实 blocker
-- [ ] 明确它不替代 external blocker package
+- [historical] 把 `Hermes` backend continuation 写成当前 repo-side 允许继续推进的 P2 子位置
+- [historical] 写清目标、边界、验证、promotion invariants、excluded scope、真实 blocker
+- [historical] 明确它不替代 external blocker package
 
 ### Task 2: 收紧 runtime backend registry 并接入 Hermes adapter
 
@@ -40,9 +44,9 @@
 - Test: `../../tests/test_runtime_transport_hermes.py`
 - Test: `../../tests/test_runtime_protocol_study_runtime.py`
 
-- [ ] registry fail-closed 校验 `BACKEND_ID` / `ENGINE_ID` / callable contract
-- [ ] `Hermes` backend 显式注册
-- [ ] `runtime_binding.yaml` 对 `Hermes` 继续写出 backend-generic durable fields
+- [historical] registry fail-closed 校验 `BACKEND_ID` / `ENGINE_ID` / callable contract
+- [historical] `Hermes` backend 显式注册
+- [historical] `runtime_binding.yaml` 对 `Hermes` 继续写出 backend-generic durable fields
 
 ### Task 3: 对齐 blocker / cutover / preflight wording
 
@@ -55,9 +59,9 @@
 - Test: `../../tests/test_dev_preflight_contract.py`
 - Review: integration-harness Markdown wording by human/Agent documentation review only; do not add pytest wording anchors.
 
-- [ ] 明确 repo-side `Hermes` continuation 与 broader cutover blocker 的关系
-- [ ] 保证新增 docs / tests / transport file 不会在 preflight 中被误判为 unclassified
-- [ ] 保持 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 只用于 broader cutover / physical migration blocker
+- [historical] 明确 repo-side `Hermes` continuation 与 broader cutover blocker 的关系
+- [historical] 保证新增 docs / tests / transport file 不会在 preflight 中被误判为 unclassified
+- [historical] 保持 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 只用于 broader cutover / physical migration blocker
 
 ### Task 4: 为 physical migration 保持 readiness，而不是越权执行
 
@@ -65,6 +69,6 @@
 - Modify: cutover runbook / parity plan / monorepo topology truth（仅在 gate 需要时）
 - Test: runtime native truth + workspace canonical truth + outer-loop contract
 
-- [ ] 覆盖 runtime truth / knowledge truth / cutover gate 三条主线
-- [ ] 保证 physical migration 前 contract 与测试都是 green
-- [ ] 仅在 external runtime / workspace / human gate 全绿后进入 physical monorepo migration
+- [historical] 覆盖 runtime truth / knowledge truth / cutover gate 三条主线
+- [historical] 保证 physical migration 前 contract 与测试都是 green
+- [historical] 仅在 external runtime / workspace / human gate 全绿后进入 physical monorepo migration

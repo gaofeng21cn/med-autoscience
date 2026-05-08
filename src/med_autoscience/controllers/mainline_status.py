@@ -600,7 +600,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
             ),
             _build_shared_product_entry_program_step(
                 step_id="supervisor_service",
-                title="确认 workspace 常驻监管在线",
+                title="确认 workspace 定时监管在线",
                 surface_kind="workspace_supervisor_service",
                 command=supervisor_service_command,
             ),
@@ -1027,21 +1027,41 @@ def read_mainline_phase_status(selector: str = "current") -> dict[str, Any]:
     phase_ladder = [dict(item) for item in payload.get("phase_ladder") or [] if isinstance(item, dict)]
     if not phase_ladder:
         raise ValueError("mainline phase ladder is empty")
-    current_phase_id = str(((payload.get("current_program_phase") or {}).get("id")) or "").strip()
+    selected_phase = _select_mainline_phase(
+        phase_ladder=phase_ladder,
+        current_phase_id=str(((payload.get("current_program_phase") or {}).get("id")) or "").strip(),
+        selector=selector,
+    )
 
-    selected_phase: dict[str, Any] | None = None
+    return _mainline_phase_status_payload(payload=payload, selected_phase=selected_phase)
+
+
+def _select_mainline_phase(
+    *,
+    phase_ladder: list[dict[str, Any]],
+    current_phase_id: str,
+    selector: str,
+) -> dict[str, Any]:
     normalized_selector = str(selector or "current").strip() or "current"
     if normalized_selector == "current":
         selected_phase = next((item for item in phase_ladder if item.get("id") == current_phase_id), None)
     elif normalized_selector == "next":
-        current_index = next((index for index, item in enumerate(phase_ladder) if item.get("id") == current_phase_id), -1)
-        if 0 <= current_index < len(phase_ladder) - 1:
-            selected_phase = phase_ladder[current_index + 1]
+        selected_phase = _next_mainline_phase(phase_ladder=phase_ladder, current_phase_id=current_phase_id)
     else:
         selected_phase = next((item for item in phase_ladder if item.get("id") == normalized_selector), None)
     if selected_phase is None:
         raise ValueError(f"unknown mainline phase selector: {normalized_selector}")
+    return selected_phase
 
+
+def _next_mainline_phase(*, phase_ladder: list[dict[str, Any]], current_phase_id: str) -> dict[str, Any] | None:
+    current_index = next((index for index, item in enumerate(phase_ladder) if item.get("id") == current_phase_id), -1)
+    if 0 <= current_index < len(phase_ladder) - 1:
+        return phase_ladder[current_index + 1]
+    return None
+
+
+def _mainline_phase_status_payload(*, payload: dict[str, Any], selected_phase: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": payload.get("schema_version"),
         "generated_at": payload.get("generated_at"),

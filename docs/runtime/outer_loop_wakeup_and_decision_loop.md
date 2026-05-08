@@ -37,7 +37,7 @@
 1. `MedDeepScientist` 自己判断整条研究线是否要改题、停题、换故事
 2. `MedAutoScience` 理论上拥有 study-level authority，但实际上没有被正式唤醒的路径
 
-第一种会让 runtime 越权。  
+第一种会让 runtime 越权。
 第二种会让 “outer loop controller” 只停留在概念层。
 
 因此必须明确：
@@ -122,7 +122,7 @@ runtime_escalation_ref:
 
 ### 3. outer loop 在 controller tick 中被唤醒
 
-`MedAutoScience` 当前不是常驻 runtime。  
+`MedAutoScience` 当前不是常驻 runtime。
 它应通过显式 tick 被唤醒，例如：
 
 - `study_runtime_status(...)`
@@ -362,7 +362,7 @@ reason: "..."
 
 ## 与 automation 的关系
 
-future automation 不应直接替代 outer-loop authority。  
+future automation 不应直接替代 outer-loop authority。
 它更适合承担：
 
 - 周期触发 `runtime_watch`
@@ -379,7 +379,7 @@ future automation 不应直接替代 outer-loop authority。
 
 这套设计里最关键的边界是：
 
-- `MedDeepScientist` 可以自主发现“本地已做不下去”
+- `MAS Runtime OS` 可以发现 runtime 不可继续推进
 - 但不能自主宣布“整条研究线改题”
 - `MedAutoScience` 不需要常驻 daemon
 - 但必须拥有稳定的 wakeup tick 和 decision artifact
@@ -396,5 +396,5 @@ future automation 不应直接替代 outer-loop authority。
 
 今后统一按下面这条口径理解：
 
-`MedDeepScientist` 是常驻 inner runtime；`MedAutoScience` 是 tick-driven outer controller。  
-两者通过 `study_charter -> startup projection -> runtime_escalation_record -> publication_eval -> study_decision_record` 这条 durable artifact loop 对接，而不是通过隐式回调耦合成一个大运行体。
+`MAS Runtime OS` 是默认 runtime/backend owner；`Hermes gateway cron` 是默认 wakeup owner；`MedAutoScience` 是 tick-driven controller。
+它们通过 `study_charter -> startup projection -> runtime_escalation_record -> publication_eval -> study_decision_record` 这条 durable artifact loop 对接，而不是通过隐式回调耦合成一个常驻大运行体。旧 MDS resident daemon 只作为 historical fixture / explicit diagnostic reference，不是当前默认执行形态。

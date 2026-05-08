@@ -29,16 +29,11 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_medautosci_shared,
     _render_progress_portal_start_web_script,
     _render_profile_optional_forward_script,
-    _render_supervisor_cron_template,
     _render_supervisor_consume_script,
     _render_supervisor_execute_dispatch_script,
-    _render_supervisor_launchd_instructions,
     _render_supervisor_reconcile_script,
     _render_supervisor_scan_script,
-    _render_supervisor_systemd_service,
-    _render_supervisor_systemd_timer,
     _render_watch_runtime_script,
-    _render_watch_runtime_service_runner,
 )
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
@@ -348,6 +343,21 @@ def _payload_has_legacy_diagnostic_runtime(payload: dict[str, object]) -> bool:
 
 def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -> str | None:
     suffix = path.parts[-4:]
+    for detector in (
+        _legacy_mas_bridge_entry_reason,
+        _legacy_medautoscience_shared_entry_reason,
+        _legacy_watch_runtime_entry_reason,
+        _legacy_watch_runtime_service_entry_reason,
+        _legacy_supervisor_entry_reason,
+        _legacy_workspace_command_entry_reason,
+    ):
+        reason = detector(path=path, suffix=suffix, existing_content=existing_content)
+        if reason is not None:
+            return reason
+    return None
+
+
+def _legacy_mas_bridge_entry_reason(*, path: Path, suffix: tuple[str, ...], existing_content: str) -> str | None:
     if len(path.parts) >= 3 and path.parts[-3:] == ("ops", "mas", "config.env"):
         if "MED_DEEPSCIENTIST_LAUNCHER" in existing_content:
             return "legacy_mds_launcher_bridge_config"
@@ -360,6 +370,16 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
         if "run_med_deepscientist_launcher" in existing_content:
             return "legacy_mds_launcher_bridge_forward"
         return None
+    return None
+
+
+def _legacy_medautoscience_shared_entry_reason(
+    *,
+    path: Path,
+    suffix: tuple[str, ...],
+    existing_content: str,
+) -> str | None:
+    _ = path
     if suffix == ("ops", "medautoscience", "bin", "_shared.sh"):
         if "python3 -m med_autoscience.cli" in existing_content:
             return "legacy_python_entry"
@@ -379,6 +399,16 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
         if looks_like_managed_shared and "MED_AUTOSCIENCE_NODE_BIN" not in existing_content:
             return "legacy_node_entry"
         return None
+    return None
+
+
+def _legacy_watch_runtime_entry_reason(
+    *,
+    path: Path,
+    suffix: tuple[str, ...],
+    existing_content: str,
+) -> str | None:
+    _ = path
     if suffix == ("ops", "medautoscience", "bin", "watch-runtime"):
         looks_like_managed_watch = (
             'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"' in existing_content
@@ -395,81 +425,176 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
                 or "--loop" not in existing_content
             ):
                 return "legacy_watch_runtime_entry"
-    if suffix == ("ops", "medautoscience", "bin", "install-watch-runtime-service"):
-        if "runtime ensure-supervision" not in existing_content or "--manager cron" not in existing_content:
-            return "legacy_watch_runtime_service_install"
-    if suffix == ("ops", "medautoscience", "bin", "supervisor-scan"):
-        if "runtime supervisor-scan" not in existing_content:
-            return "legacy_supervisor_scan_entry"
-    if suffix == ("ops", "medautoscience", "bin", "supervisor-reconcile"):
-        if "runtime supervisor-reconcile" not in existing_content or "--mode developer_apply_safe" not in existing_content:
-            return "legacy_supervisor_reconcile_entry"
-    if suffix == ("ops", "medautoscience", "bin", "supervisor-consume"):
-        if "runtime supervisor-consume" not in existing_content or "--mode developer_apply_safe" not in existing_content:
-            return "legacy_supervisor_consume_entry"
-    if suffix == ("ops", "medautoscience", "bin", "supervisor-execute-dispatch"):
-        if (
-            "runtime supervisor-execute-dispatch" not in existing_content
-            or "--mode developer_apply_safe" not in existing_content
-        ):
-            return "legacy_supervisor_execute_dispatch_entry"
-    if suffix == ("ops", "medautoscience", "bin", "watch-runtime-service-status"):
-        if "runtime supervision-status" not in existing_content:
-            return "legacy_watch_runtime_service_status"
-    if suffix == ("ops", "medautoscience", "bin", "uninstall-watch-runtime-service"):
-        if "runtime remove-supervision" not in existing_content:
-            return "legacy_watch_runtime_service_uninstall"
-    if suffix == ("ops", "medautoscience", "bin", "bootstrap"):
-        if "workspace bootstrap" not in existing_content and "run_medautosci bootstrap" in existing_content:
-            return "legacy_workspace_bootstrap_entry"
-    if suffix == ("ops", "medautoscience", "bin", "show-profile"):
-        if "doctor profile" not in existing_content and "run_medautosci show-profile" in existing_content:
-            return "legacy_show_profile_entry"
-    if suffix == ("ops", "medautoscience", "bin", "enter-study"):
-        if "study ensure-runtime" not in existing_content and "run_medautosci ensure-study-runtime" in existing_content:
-            return "legacy_enter_study_entry"
-    if suffix == ("ops", "medautoscience", "bin", "publication-gate"):
-        if "publication gate" not in existing_content and "run_medautosci publication-gate" in existing_content:
-            return "legacy_publication_gate_entry"
-    if suffix == ("ops", "medautoscience", "bin", "medical-surface"):
-        if "publication surface" not in existing_content and "run_medautosci medical-publication-surface" in existing_content:
-            return "legacy_publication_surface_entry"
-    if suffix == ("ops", "medautoscience", "bin", "figure-loop-guard"):
-        if "publication figure-loop-guard" not in existing_content and "run_medautosci figure-loop-guard" in existing_content:
-            return "legacy_figure_loop_guard_entry"
-    if suffix == ("ops", "medautoscience", "bin", "resolve-submission-targets"):
-        if "publication resolve-targets" not in existing_content and "run_medautosci resolve-submission-targets" in existing_content:
-            return "legacy_resolve_submission_targets_entry"
-    if suffix == ("ops", "medautoscience", "bin", "resolve-journal-shortlist"):
-        if "publication resolve-journal-shortlist" not in existing_content and "run_medautosci resolve-journal-shortlist" in existing_content:
-            return "legacy_resolve_journal_shortlist_entry"
-    if suffix == ("ops", "medautoscience", "bin", "init-portfolio-memory"):
-        if "data init-memory" not in existing_content and "run_medautosci init-portfolio-memory" in existing_content:
-            return "legacy_init_portfolio_memory_entry"
-    if suffix == ("ops", "medautoscience", "bin", "portfolio-memory-status"):
-        if "data memory-status" not in existing_content and "run_medautosci portfolio-memory-status" in existing_content:
-            return "legacy_portfolio_memory_status_entry"
-    if suffix == ("ops", "medautoscience", "bin", "init-workspace-literature"):
-        if "data init-literature" not in existing_content and "run_medautosci init-workspace-literature" in existing_content:
-            return "legacy_init_workspace_literature_entry"
-    if suffix == ("ops", "medautoscience", "bin", "workspace-literature-status"):
-        if "data literature-status" not in existing_content and "run_medautosci workspace-literature-status" in existing_content:
-            return "legacy_workspace_literature_status_entry"
-    if suffix == ("ops", "medautoscience", "bin", "prepare-external-research"):
-        if (
-            "data prepare-external-research" not in existing_content
-            and "run_medautosci prepare-external-research" in existing_content
-        ):
-            return "legacy_prepare_external_research_entry"
-    if suffix == ("ops", "medautoscience", "bin", "external-research-status"):
-        if "data external-research-status" not in existing_content and "run_medautosci external-research-status" in existing_content:
-            return "legacy_external_research_status_entry"
-    if suffix == ("ops", "medautoscience", "bin", "export-submission"):
-        if "publication export-targets" not in existing_content and "run_medautosci export-submission-targets" in existing_content:
-            return "legacy_export_submission_targets_entry"
-    if suffix == ("ops", "medautoscience", "bin", "sync-delivery"):
-        if "study delivery-sync" not in existing_content and "run_medautosci sync-study-delivery" in existing_content:
-            return "legacy_sync_study_delivery_entry"
+    return None
+
+
+def _legacy_watch_runtime_service_entry_reason(
+    *,
+    path: Path,
+    suffix: tuple[str, ...],
+    existing_content: str,
+) -> str | None:
+    _ = path
+    service_specs = (
+        (
+            ("ops", "medautoscience", "bin", "install-watch-runtime-service"),
+            (
+                "runtime ensure-supervision",
+                "Retired diagnostic managers:",
+                "retired workspace-local service manager",
+            ),
+            "legacy_watch_runtime_service_install",
+        ),
+        (
+            ("ops", "medautoscience", "bin", "watch-runtime-service-status"),
+            ("runtime supervision-status",),
+            "legacy_watch_runtime_service_status",
+        ),
+        (
+            ("ops", "medautoscience", "bin", "uninstall-watch-runtime-service"),
+            ("runtime remove-supervision",),
+            "legacy_watch_runtime_service_uninstall",
+        ),
+    )
+    return _legacy_entry_reason_from_required_tokens(
+        suffix=suffix,
+        existing_content=existing_content,
+        specs=service_specs,
+    )
+
+
+def _legacy_supervisor_entry_reason(
+    *,
+    path: Path,
+    suffix: tuple[str, ...],
+    existing_content: str,
+) -> str | None:
+    _ = path
+    supervisor_specs = (
+        (
+            ("ops", "medautoscience", "bin", "supervisor-scan"),
+            ("runtime supervisor-scan",),
+            "legacy_supervisor_scan_entry",
+        ),
+        (
+            ("ops", "medautoscience", "bin", "supervisor-reconcile"),
+            ("runtime supervisor-reconcile", "--mode developer_apply_safe"),
+            "legacy_supervisor_reconcile_entry",
+        ),
+        (
+            ("ops", "medautoscience", "bin", "supervisor-consume"),
+            ("runtime supervisor-consume", "--mode developer_apply_safe"),
+            "legacy_supervisor_consume_entry",
+        ),
+        (
+            ("ops", "medautoscience", "bin", "supervisor-execute-dispatch"),
+            ("runtime supervisor-execute-dispatch", "--mode developer_apply_safe"),
+            "legacy_supervisor_execute_dispatch_entry",
+        ),
+    )
+    return _legacy_entry_reason_from_required_tokens(
+        suffix=suffix,
+        existing_content=existing_content,
+        specs=supervisor_specs,
+    )
+
+
+def _legacy_workspace_command_entry_reason(
+    *,
+    path: Path,
+    suffix: tuple[str, ...],
+    existing_content: str,
+) -> str | None:
+    _ = path
+    command_specs = (
+        ("bootstrap", "workspace bootstrap", "run_medautosci bootstrap", "legacy_workspace_bootstrap_entry"),
+        ("show-profile", "doctor profile", "run_medautosci show-profile", "legacy_show_profile_entry"),
+        ("enter-study", "study ensure-runtime", "run_medautosci ensure-study-runtime", "legacy_enter_study_entry"),
+        ("publication-gate", "publication gate", "run_medautosci publication-gate", "legacy_publication_gate_entry"),
+        (
+            "medical-surface",
+            "publication surface",
+            "run_medautosci medical-publication-surface",
+            "legacy_publication_surface_entry",
+        ),
+        (
+            "figure-loop-guard",
+            "publication figure-loop-guard",
+            "run_medautosci figure-loop-guard",
+            "legacy_figure_loop_guard_entry",
+        ),
+        (
+            "resolve-submission-targets",
+            "publication resolve-targets",
+            "run_medautosci resolve-submission-targets",
+            "legacy_resolve_submission_targets_entry",
+        ),
+        (
+            "resolve-journal-shortlist",
+            "publication resolve-journal-shortlist",
+            "run_medautosci resolve-journal-shortlist",
+            "legacy_resolve_journal_shortlist_entry",
+        ),
+        (
+            "init-portfolio-memory",
+            "data init-memory",
+            "run_medautosci init-portfolio-memory",
+            "legacy_init_portfolio_memory_entry",
+        ),
+        (
+            "portfolio-memory-status",
+            "data memory-status",
+            "run_medautosci portfolio-memory-status",
+            "legacy_portfolio_memory_status_entry",
+        ),
+        (
+            "init-workspace-literature",
+            "data init-literature",
+            "run_medautosci init-workspace-literature",
+            "legacy_init_workspace_literature_entry",
+        ),
+        (
+            "workspace-literature-status",
+            "data literature-status",
+            "run_medautosci workspace-literature-status",
+            "legacy_workspace_literature_status_entry",
+        ),
+        (
+            "prepare-external-research",
+            "data prepare-external-research",
+            "run_medautosci prepare-external-research",
+            "legacy_prepare_external_research_entry",
+        ),
+        (
+            "external-research-status",
+            "data external-research-status",
+            "run_medautosci external-research-status",
+            "legacy_external_research_status_entry",
+        ),
+        (
+            "export-submission",
+            "publication export-targets",
+            "run_medautosci export-submission-targets",
+            "legacy_export_submission_targets_entry",
+        ),
+        ("sync-delivery", "study delivery-sync", "run_medautosci sync-study-delivery", "legacy_sync_study_delivery_entry"),
+    )
+    for command_name, required_token, legacy_token, reason in command_specs:
+        command_suffix = ("ops", "medautoscience", "bin", command_name)
+        if suffix == command_suffix and required_token not in existing_content and legacy_token in existing_content:
+            return reason
+    return None
+
+
+def _legacy_entry_reason_from_required_tokens(
+    *,
+    suffix: tuple[str, ...],
+    existing_content: str,
+    specs: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...],
+) -> str | None:
+    for expected_suffix, required_tokens, reason in specs:
+        if suffix == expected_suffix and any(token not in existing_content for token in required_tokens):
+            return reason
     return None
 
 
@@ -713,11 +838,6 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner",
-            content=_render_watch_runtime_service_runner(),
-            executable=True,
-        ),
-        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service",
             content=_render_install_watch_runtime_service_script(),
             executable=True,
@@ -731,32 +851,6 @@ def _rendered_files(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service",
             content=_render_forward_script("runtime remove-supervision", with_profile=True),
             executable=True,
-        ),
-        RenderedFile(
-            path=workspace_root
-            / "ops"
-            / "medautoscience"
-            / "supervisor"
-            / "systemd"
-            / "medautoscience-supervisor-scan.service",
-            content=_render_supervisor_systemd_service(workspace_root=workspace_root),
-        ),
-        RenderedFile(
-            path=workspace_root
-            / "ops"
-            / "medautoscience"
-            / "supervisor"
-            / "systemd"
-            / "medautoscience-supervisor-scan.timer",
-            content=_render_supervisor_systemd_timer(),
-        ),
-        RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "supervisor" / "cron" / "supervisor-scan.cron",
-            content=_render_supervisor_cron_template(workspace_root=workspace_root),
-        ),
-        RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "supervisor" / "launchd" / "README.md",
-            content=_render_supervisor_launchd_instructions(),
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "publication-gate",

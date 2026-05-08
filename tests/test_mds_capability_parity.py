@@ -34,6 +34,24 @@ EXPECTED_REMAINING_SURFACE_IDS = [
     "team_multiagent_coordination",
     "upstream_source_archive",
 ]
+EXPECTED_BEHAVIOR_SURFACE_IDS = [
+    "daemon_residency",
+    "supervision_cadence",
+    "quest_create_resume_pause_stop",
+    "live_worker_session_tracking",
+    "crash_recovery_auto_resume",
+    "queued_user_messages_mailbox",
+    "progress_visibility",
+    "webui_websocket_terminal_streaming",
+    "connector_channel_background_delivery",
+    "mcp_surface",
+    "gitops_state_management",
+    "memory_lesson_store",
+    "team_multiagent_coordination",
+    "artifact_interaction_handoff",
+    "system_update_daemon_lifecycle_controls",
+    "workspace_local_host_service",
+]
 
 EXPECTED_SUPERSEDE_PROOF_IDS = [
     "artifact_inventory",
@@ -93,9 +111,11 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
         "proof_count": 6,
         "oracle_fixture_count": 6,
         "remaining_surface_count": 10,
+        "behavior_surface_count": 16,
         "quality_owner": "MedAutoScience",
         "mds_role": "frozen_source_archive_or_historical_fixture_only",
         "medical_quality_authority": "blocked_for_mds",
+        "fully_equivalent_to_mds_daemon": False,
     }
     fixtures_by_capability = {
         fixture["capability_id"]: fixture for fixture in matrix["retained_capability_oracle_fixtures"]
@@ -191,6 +211,78 @@ def test_mds_remaining_surface_inventory_classifies_functional_monolith_surfaces
         assert surface["publication_ready_authority_allowed"] is False
 
     assert module.validate_mds_remaining_surface_inventory(inventory)["ok"] is True
+
+
+def test_mds_behavior_equivalence_matrix_separates_default_independence_from_daemon_equivalence() -> None:
+    module = importlib.import_module("med_autoscience.controllers.mds_capability_parity")
+
+    matrix = module.build_mds_behavior_equivalence_matrix()
+
+    assert matrix["surface"] == "mds_behavior_equivalence_matrix"
+    assert matrix["owner"] == "MedAutoScience"
+    assert matrix["default_operation_requires_external_mds"] is False
+    assert matrix["default_supervision_owner"] == "hermes_gateway_cron"
+    assert matrix["default_tick_interval_seconds"] == 300
+    assert matrix["default_tick_max_ticks"] == 1
+    assert matrix["mas_default_runtime_is_resident_daemon"] is False
+    assert matrix["mds_daemon_was_resident_http_websocket_server"] is True
+    assert matrix["completion_claim"] == "default_independence_not_full_behavior_equivalence"
+    assert [item["surface_id"] for item in matrix["behavior_surfaces"]] == EXPECTED_BEHAVIOR_SURFACE_IDS
+    assert matrix["summary"] == {
+        "surface_count": 16,
+        "behavior_equivalent": 2,
+        "purpose_equivalent_with_different_timing": 5,
+        "partially_equivalent": 3,
+        "not_equivalent_retired": 5,
+        "historical_fixture_only": 1,
+        "fully_equivalent_to_mds_daemon": False,
+    }
+    by_surface = {item["surface_id"]: item for item in matrix["behavior_surfaces"]}
+    assert by_surface["daemon_residency"]["equivalence_class"] == "purpose_equivalent_with_different_timing"
+    assert by_surface["daemon_residency"]["behavior_difference"] == "MAS default supervision is scheduled ticks, not a resident HTTP/WebSocket daemon."
+    assert by_surface["supervision_cadence"]["mas_behavior"]["interval_seconds"] == 300
+    assert by_surface["supervision_cadence"]["mas_behavior"]["max_ticks"] == 1
+    assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "not_equivalent_retired"
+    assert by_surface["connector_channel_background_delivery"]["equivalence_class"] == "not_equivalent_retired"
+    assert by_surface["workspace_local_host_service"]["equivalence_class"] == "not_equivalent_retired"
+    for item in matrix["behavior_surfaces"]:
+        assert item["mas_default_requires_external_mds"] is False
+        assert item["requires_mds_daemon_for_default_operation"] is False
+        assert item["quality_authority_allowed"] is False
+        assert item["publication_ready_authority_allowed"] is False
+        assert item["recommended_operator_action"] in {
+            "use_mas_default",
+            "use_mas_with_latency_awareness",
+            "use_progress_portal",
+            "use_explicit_legacy_diagnostic_only",
+            "retired_no_active_replacement",
+            "use_historical_fixture_only",
+        }
+    assert module.validate_mds_behavior_equivalence_matrix(matrix)["ok"] is True
+
+
+def test_mds_behavior_equivalence_validation_blocks_overclaim_and_legacy_runtime_dependency() -> None:
+    module = importlib.import_module("med_autoscience.controllers.mds_capability_parity")
+
+    matrix = module.build_mds_behavior_equivalence_matrix()
+    matrix["default_operation_requires_external_mds"] = True
+    matrix["mas_default_runtime_is_resident_daemon"] = True
+    matrix["behavior_surfaces"][0]["equivalence_class"] = "behavior_equivalent"
+    matrix["behavior_surfaces"][0]["requires_mds_daemon_for_default_operation"] = True
+    matrix["behavior_surfaces"][1]["quality_authority_allowed"] = True
+    matrix["behavior_surfaces"][2]["publication_ready_authority_allowed"] = True
+
+    validation = module.validate_mds_behavior_equivalence_matrix(matrix)
+
+    assert validation["ok"] is False
+    assert {issue["code"] for issue in validation["issues"]} >= {
+        "behavior_matrix_external_mds_default_dependency",
+        "behavior_matrix_resident_daemon_overclaim",
+        "daemon_residency_overclaimed_as_behavior_equivalent",
+        "behavior_surface_requires_mds_daemon_for_default_operation",
+        "behavior_surface_quality_authority_allowed",
+        "behavior_surface_publication_ready_authority_allowed",
+    }
 
 
 def test_mds_capability_cutover_gate_records_functional_monolith_landed_without_quality_authority() -> None:

@@ -62,7 +62,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_ensure_supervision_parser.add_argument("--no-trigger-now", action="store_true")
     runtime_ensure_supervision_parser.add_argument(
         "--manager",
-        choices=("hermes", "systemd", "cron", "launchd"),
+        choices=("hermes", "systemd", "cron", "launchd", "docker"),
         default="hermes",
     )
     runtime_ensure_supervision_parser.add_argument("--write-install-proof", action="store_true")

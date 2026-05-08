@@ -99,11 +99,11 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "status": "pass",
                     "blocking": True,
                     "summary": "workspace supervision owner 已收敛到 canonical Hermes supervision。",
-                    "command": (
-                        "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
-                        + str(profile_ref.resolve())
-                    ),
-                },
+                "command": (
+                    "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile "
+                    + str(profile_ref.resolve())
+                ),
+            },
             ],
         }
 

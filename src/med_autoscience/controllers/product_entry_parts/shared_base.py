@@ -530,7 +530,7 @@ def _build_product_entry_preflight(
                 else _non_empty_text(workspace_supervision_contract.get("summary"))
                 or "workspace supervision owner 仍未收敛到 canonical Hermes supervision。"
             ),
-            command=f"{_command_prefix(profile_ref)} runtime-supervision-status --profile {_profile_arg(profile_ref)}",
+            command=f"{_command_prefix(profile_ref)} runtime-ensure-supervision --profile {_profile_arg(profile_ref)}",
         ),
     ]
     blocking_check_ids = [

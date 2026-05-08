@@ -3,6 +3,13 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping
 
+from med_autoscience.controllers.mds_capability_parity_parts.behavior_equivalence import (
+    ALLOWED_BEHAVIOR_EQUIVALENCE_CLASSES,
+    ALLOWED_BEHAVIOR_OPERATOR_ACTIONS,
+    build_mds_behavior_equivalence_matrix,
+    validate_mds_behavior_equivalence_matrix,
+)
+
 
 SCHEMA_VERSION = 1
 ALLOWED_CAPABILITY_CLASSIFICATIONS: tuple[str, ...] = (
@@ -331,7 +338,6 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
     },
 )
 
-
 def _list(value: object) -> list[object]:
     return value if isinstance(value, list) else []
 
@@ -464,11 +470,11 @@ def build_mds_remaining_surface_inventory() -> dict[str, Any]:
         "classification_summary": _remaining_surface_summary(surfaces),
     }
 
-
 def build_mds_capability_parity_matrix() -> dict[str, Any]:
     capabilities = [_capability_with_cutover_readiness(capability) for capability in CAPABILITIES]
     oracle_fixtures = [_oracle_fixture_projection(capability) for capability in capabilities]
     remaining_surface_inventory = build_mds_remaining_surface_inventory()
+    behavior_equivalence_matrix = build_mds_behavior_equivalence_matrix()
     return {
         "surface": "mds_capability_parity_matrix",
         "schema_version": SCHEMA_VERSION,
@@ -480,6 +486,7 @@ def build_mds_capability_parity_matrix() -> dict[str, Any]:
         "capabilities": capabilities,
         "retained_capability_oracle_fixtures": oracle_fixtures,
         "remaining_surface_inventory": remaining_surface_inventory["remaining_surfaces"],
+        "behavior_equivalence_inventory": behavior_equivalence_matrix["behavior_surfaces"],
         "capability_ids": [str(capability["capability_id"]) for capability in capabilities],
         "supersede_proof_ids": _supersede_proof_ids(capabilities),
         "parity_summary": {
@@ -487,9 +494,11 @@ def build_mds_capability_parity_matrix() -> dict[str, Any]:
             "proof_count": sum(1 for capability in capabilities if capability.get("parity_proof")),
             "oracle_fixture_count": len(oracle_fixtures),
             "remaining_surface_count": len(remaining_surface_inventory["remaining_surfaces"]),
+            "behavior_surface_count": len(behavior_equivalence_matrix["behavior_surfaces"]),
             "quality_owner": "MedAutoScience",
             "mds_role": MDS_FINAL_ROLE,
             "medical_quality_authority": "blocked_for_mds",
+            "fully_equivalent_to_mds_daemon": False,
         },
         "cutover_gates": [
             *CUTOVER_REQUIRED_GATES,
@@ -539,12 +548,33 @@ def build_mds_capability_cutover_gate(proof_bundle: Mapping[str, Any] | None = N
 
 def validate_mds_capability_parity_matrix(matrix: Mapping[str, Any]) -> dict[str, Any]:
     issues: list[dict[str, Any]] = []
+    _validate_capability_parity_header(matrix, issues)
+    _append_remaining_inventory_issues(matrix, issues)
+    _append_behavior_equivalence_issues(matrix, issues)
+    for capability in _list(matrix.get("capabilities")):
+        if not isinstance(capability, Mapping):
+            issues.append({"code": "invalid_capability"})
+            continue
+        _validate_capability_parity_capability(capability, issues)
+    return {
+        "surface": "mds_capability_parity_matrix_validation",
+        "schema_version": SCHEMA_VERSION,
+        "ok": not issues,
+        "issue_count": len(issues),
+        "issues": issues,
+    }
+
+
+def _validate_capability_parity_header(matrix: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
     if _text(matrix.get("mds_role")) != MDS_FINAL_ROLE:
         issues.append({"code": "mds_role_not_frozen_archive_or_fixture"})
     if _text(matrix.get("mds_quality_authority")) != "none":
         issues.append({"code": "mds_quality_authority_drift"})
     if _text(matrix.get("mas_owner")) != "MedAutoScience":
         issues.append({"code": "mas_owner_drift"})
+
+
+def _append_remaining_inventory_issues(matrix: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
     remaining_inventory_validation = validate_mds_remaining_surface_inventory(
         {
             "surface": "mds_remaining_surface_inventory",
@@ -561,86 +591,143 @@ def validate_mds_capability_parity_matrix(matrix: Mapping[str, Any]) -> dict[str
     for issue in _list(remaining_inventory_validation.get("issues")):
         if isinstance(issue, Mapping):
             issues.append(dict(issue))
-    for capability in _list(matrix.get("capabilities")):
-        if not isinstance(capability, Mapping):
-            issues.append({"code": "invalid_capability"})
-            continue
-        capability_id = _text(capability.get("capability_id"))
-        if capability.get("can_authorize_medical_quality") is not False:
-            issues.append({"code": "mds_quality_authority_drift", "capability_id": capability_id})
-        if capability.get("quality_ready_authority_allowed") is not False:
-            issues.append({"code": "capability_quality_ready_authority_allowed", "capability_id": capability_id})
-        if capability.get("quality_authority_allowed") is not False:
-            issues.append({"code": "capability_quality_authority_allowed", "capability_id": capability_id})
-        if capability.get("publication_ready_authority_allowed") is not False:
-            issues.append({"code": "capability_publication_ready_authority_allowed", "capability_id": capability_id})
-        if capability.get("submission_ready_authority_allowed") is not False:
-            issues.append({"code": "capability_submission_ready_authority_allowed", "capability_id": capability_id})
-        _validate_supersede_proofs(
-            capability.get("supersede_proofs"),
-            issues,
-            issue_prefix="capability",
-            capability_id=capability_id,
+
+
+def _append_behavior_equivalence_issues(matrix: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
+    behavior_validation = validate_mds_behavior_equivalence_matrix(
+        {
+            "surface": "mds_behavior_equivalence_matrix",
+            "schema_version": SCHEMA_VERSION,
+            "owner": "MedAutoScience",
+            "mds_final_role": MDS_FINAL_ROLE,
+            "default_operation_requires_external_mds": False,
+            "default_diagnostic_requires_external_mds": False,
+            "default_supervision_owner": "hermes_gateway_cron",
+            "default_tick_interval_seconds": 300,
+            "default_tick_max_ticks": 1,
+            "mas_default_runtime_is_resident_daemon": False,
+            "mds_daemon_was_resident_http_websocket_server": True,
+            "completion_claim": "default_independence_not_full_behavior_equivalence",
+            "allowed_equivalence_classes": list(ALLOWED_BEHAVIOR_EQUIVALENCE_CLASSES),
+            "allowed_operator_actions": list(ALLOWED_BEHAVIOR_OPERATOR_ACTIONS),
+            "behavior_surfaces": _list(matrix.get("behavior_equivalence_inventory")),
+        }
+    )
+    for issue in _list(behavior_validation.get("issues")):
+        if isinstance(issue, Mapping):
+            issues.append(dict(issue))
+
+
+def _validate_capability_parity_capability(capability: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
+    capability_id = _text(capability.get("capability_id"))
+    _validate_capability_authority_fields(capability, capability_id, issues)
+    _validate_capability_required_refs(capability, capability_id, issues)
+    _validate_capability_parity_proof(capability, capability_id, issues)
+    _validate_capability_cutover_readiness(capability, capability_id, issues)
+
+
+def _validate_capability_authority_fields(
+    capability: Mapping[str, Any],
+    capability_id: str,
+    issues: list[dict[str, Any]],
+) -> None:
+    if capability.get("can_authorize_medical_quality") is not False:
+        issues.append({"code": "mds_quality_authority_drift", "capability_id": capability_id})
+    if capability.get("quality_ready_authority_allowed") is not False:
+        issues.append({"code": "capability_quality_ready_authority_allowed", "capability_id": capability_id})
+    if capability.get("quality_authority_allowed") is not False:
+        issues.append({"code": "capability_quality_authority_allowed", "capability_id": capability_id})
+    if capability.get("publication_ready_authority_allowed") is not False:
+        issues.append({"code": "capability_publication_ready_authority_allowed", "capability_id": capability_id})
+    if capability.get("submission_ready_authority_allowed") is not False:
+        issues.append({"code": "capability_submission_ready_authority_allowed", "capability_id": capability_id})
+    _validate_supersede_proofs(
+        capability.get("supersede_proofs"),
+        issues,
+        issue_prefix="capability",
+        capability_id=capability_id,
+    )
+
+
+def _validate_capability_required_refs(
+    capability: Mapping[str, Any],
+    capability_id: str,
+    issues: list[dict[str, Any]],
+) -> None:
+    if not _text(capability.get("oracle_fixture_ref")):
+        issues.append({"code": "capability_missing_oracle_fixture_ref", "capability_id": capability_id})
+    if not _text(capability.get("rollback_surface")):
+        issues.append({"code": "capability_missing_rollback_surface", "capability_id": capability_id})
+    if not _text(capability.get("provenance_ref")):
+        issues.append({"code": "capability_missing_provenance_ref", "capability_id": capability_id})
+    if not _text(capability.get("required_parity_proof")):
+        issues.append({"code": "capability_missing_parity_proof", "capability_id": capability_id})
+    if _text(capability.get("classification")) not in ALLOWED_CAPABILITY_CLASSIFICATIONS:
+        issues.append(
+            {
+                "code": "invalid_capability_classification",
+                "capability_id": capability_id,
+                "classification": _text(capability.get("classification")),
+            }
         )
-        if not _text(capability.get("oracle_fixture_ref")):
-            issues.append({"code": "capability_missing_oracle_fixture_ref", "capability_id": capability_id})
-        if not _text(capability.get("rollback_surface")):
-            issues.append({"code": "capability_missing_rollback_surface", "capability_id": capability_id})
-        if not _text(capability.get("provenance_ref")):
-            issues.append({"code": "capability_missing_provenance_ref", "capability_id": capability_id})
-        if not _text(capability.get("required_parity_proof")):
-            issues.append({"code": "capability_missing_parity_proof", "capability_id": capability_id})
-        if _text(capability.get("classification")) not in ALLOWED_CAPABILITY_CLASSIFICATIONS:
+
+
+def _validate_capability_parity_proof(
+    capability: Mapping[str, Any],
+    capability_id: str,
+    issues: list[dict[str, Any]],
+) -> None:
+    parity_proof = capability.get("parity_proof")
+    if not isinstance(parity_proof, Mapping):
+        issues.append({"code": "capability_missing_parity_proof_detail", "capability_id": capability_id})
+        return
+    for field in ("proof_kind", "mas_contract", "mds_oracle", "acceptance"):
+        if not _text(parity_proof.get(field)):
             issues.append(
                 {
-                    "code": "invalid_capability_classification",
+                    "code": "capability_incomplete_parity_proof_detail",
                     "capability_id": capability_id,
-                    "classification": _text(capability.get("classification")),
+                    "field": field,
                 }
             )
-        parity_proof = capability.get("parity_proof")
-        if not isinstance(parity_proof, Mapping):
-            issues.append({"code": "capability_missing_parity_proof_detail", "capability_id": capability_id})
-            continue
-        for field in ("proof_kind", "mas_contract", "mds_oracle", "acceptance"):
-            if not _text(parity_proof.get(field)):
-                issues.append(
-                    {
-                        "code": "capability_incomplete_parity_proof_detail",
-                        "capability_id": capability_id,
-                        "field": field,
-                    }
-                )
-        cutover_readiness = capability.get("cutover_readiness")
-        if not isinstance(cutover_readiness, Mapping):
-            issues.append({"code": "capability_missing_cutover_readiness", "capability_id": capability_id})
-            continue
-        if _text(cutover_readiness.get("cutover_status")) != MDS_CUTOVER_STATUS:
-            issues.append({"code": "capability_cutover_status_drift", "capability_id": capability_id})
-        if cutover_readiness.get("owner_switch_allowed") is not True:
-            issues.append({"code": "capability_owner_switch_not_landed", "capability_id": capability_id})
-        if list(cutover_readiness.get("required_gates") or []) != list(CUTOVER_REQUIRED_GATES):
-            issues.append({"code": "capability_required_cutover_gates_drift", "capability_id": capability_id})
-        for field in ("mas_side_contract", "mds_oracle_fixture", "rollback_surface"):
-            if not _text(cutover_readiness.get(field)):
-                issues.append(
-                    {
-                        "code": "capability_incomplete_cutover_readiness",
-                        "capability_id": capability_id,
-                        "field": field,
-                    }
-                )
-        if cutover_readiness.get("quality_gate_not_relaxed") is not True:
-            issues.append({"code": "quality_gate_relaxation_drift", "capability_id": capability_id})
-        if _text(cutover_readiness.get("old_mds_authority_surface_status")) not in {"marked_oracle", "retired"}:
-            issues.append({"code": "old_mds_authority_surface_not_retired_or_oracle", "capability_id": capability_id})
-    return {
-        "surface": "mds_capability_parity_matrix_validation",
-        "schema_version": SCHEMA_VERSION,
-        "ok": not issues,
-        "issue_count": len(issues),
-        "issues": issues,
-    }
+
+
+def _validate_capability_cutover_readiness(
+    capability: Mapping[str, Any],
+    capability_id: str,
+    issues: list[dict[str, Any]],
+) -> None:
+    cutover_readiness = capability.get("cutover_readiness")
+    if not isinstance(cutover_readiness, Mapping):
+        issues.append({"code": "capability_missing_cutover_readiness", "capability_id": capability_id})
+        return
+    if _text(cutover_readiness.get("cutover_status")) != MDS_CUTOVER_STATUS:
+        issues.append({"code": "capability_cutover_status_drift", "capability_id": capability_id})
+    if cutover_readiness.get("owner_switch_allowed") is not True:
+        issues.append({"code": "capability_owner_switch_not_landed", "capability_id": capability_id})
+    if list(cutover_readiness.get("required_gates") or []) != list(CUTOVER_REQUIRED_GATES):
+        issues.append({"code": "capability_required_cutover_gates_drift", "capability_id": capability_id})
+    _validate_capability_cutover_refs(cutover_readiness, capability_id, issues)
+    if cutover_readiness.get("quality_gate_not_relaxed") is not True:
+        issues.append({"code": "quality_gate_relaxation_drift", "capability_id": capability_id})
+    if _text(cutover_readiness.get("old_mds_authority_surface_status")) not in {"marked_oracle", "retired"}:
+        issues.append({"code": "old_mds_authority_surface_not_retired_or_oracle", "capability_id": capability_id})
+
+
+def _validate_capability_cutover_refs(
+    cutover_readiness: Mapping[str, Any],
+    capability_id: str,
+    issues: list[dict[str, Any]],
+) -> None:
+    for field in ("mas_side_contract", "mds_oracle_fixture", "rollback_surface"):
+        if not _text(cutover_readiness.get(field)):
+            issues.append(
+                {
+                    "code": "capability_incomplete_cutover_readiness",
+                    "capability_id": capability_id,
+                    "field": field,
+                }
+            )
 
 
 def validate_mds_remaining_surface_inventory(inventory: Mapping[str, Any]) -> dict[str, Any]:
@@ -706,7 +793,6 @@ def _validate_remaining_surface(surface: Mapping[str, Any], issues: list[dict[st
     if surface.get("publication_ready_authority_allowed") is not False:
         issues.append({"code": "remaining_surface_publication_ready_authority_allowed", "surface_id": surface_id})
 
-
 def validate_mds_capability_proof_bundle(
     proof_bundle: Mapping[str, Any] | None,
     matrix: Mapping[str, Any] | None = None,
@@ -728,33 +814,9 @@ def validate_mds_capability_proof_bundle(
         if not isinstance(capability, Mapping):
             issues.append({"code": "invalid_proof_bundle_capability"})
             continue
-        capability_id = _text(capability.get("capability_id"))
-        observed_ids.add(capability_id)
-        if not _text(capability.get("oracle_fixture_ref")):
-            issues.append({"code": "proof_bundle_missing_oracle_fixture_ref", "capability_id": capability_id})
-        if capability.get("quality_authority_allowed") is not False:
-            issues.append({"code": "proof_bundle_quality_authority_allowed", "capability_id": capability_id})
-        if capability.get("publication_ready_authority_allowed") is not False:
-            issues.append({"code": "proof_bundle_publication_ready_authority_allowed", "capability_id": capability_id})
-        if capability.get("submission_ready_authority_allowed") is not False:
-            issues.append({"code": "proof_bundle_submission_ready_authority_allowed", "capability_id": capability_id})
-        _validate_supersede_proofs(
-            capability.get("supersede_proofs"),
-            issues,
-            issue_prefix="proof_bundle",
-            capability_id=capability_id,
-        )
-        if not _text(capability.get("rollback_surface")):
-            issues.append({"code": "proof_bundle_missing_rollback_surface", "capability_id": capability_id})
-        if not _text(capability.get("provenance_ref")):
-            issues.append({"code": "proof_bundle_missing_provenance_ref", "capability_id": capability_id})
-        if not _text(capability.get("proof_ref")):
-            issues.append({"code": "proof_bundle_missing_proof_ref", "capability_id": capability_id})
-        if _text(capability.get("parity_status")) != "passed":
-            issues.append({"code": "proof_bundle_parity_not_passed", "capability_id": capability_id})
-    missing_ids = sorted(expected_ids - observed_ids)
-    for capability_id in missing_ids:
-        issues.append({"code": "proof_bundle_missing_capability", "capability_id": capability_id})
+        observed_ids.add(_text(capability.get("capability_id")))
+        _validate_proof_bundle_capability(capability, issues)
+    _append_missing_proof_bundle_capabilities(expected_ids, observed_ids, issues)
     return {
         "surface": "mds_capability_proof_bundle_validation",
         "schema_version": SCHEMA_VERSION,
@@ -762,6 +824,38 @@ def validate_mds_capability_proof_bundle(
         "issue_count": len(issues),
         "issues": issues,
     }
+
+
+def _validate_proof_bundle_capability(capability: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
+    capability_id = _text(capability.get("capability_id"))
+    if not _text(capability.get("oracle_fixture_ref")):
+        issues.append({"code": "proof_bundle_missing_oracle_fixture_ref", "capability_id": capability_id})
+    if capability.get("quality_authority_allowed") is not False:
+        issues.append({"code": "proof_bundle_quality_authority_allowed", "capability_id": capability_id})
+    if capability.get("publication_ready_authority_allowed") is not False:
+        issues.append({"code": "proof_bundle_publication_ready_authority_allowed", "capability_id": capability_id})
+    if capability.get("submission_ready_authority_allowed") is not False:
+        issues.append({"code": "proof_bundle_submission_ready_authority_allowed", "capability_id": capability_id})
+    _validate_supersede_proofs(
+        capability.get("supersede_proofs"),
+        issues,
+        issue_prefix="proof_bundle",
+        capability_id=capability_id,
+    )
+    for field in ("rollback_surface", "provenance_ref", "proof_ref"):
+        if not _text(capability.get(field)):
+            issues.append({"code": f"proof_bundle_missing_{field}", "capability_id": capability_id})
+    if _text(capability.get("parity_status")) != "passed":
+        issues.append({"code": "proof_bundle_parity_not_passed", "capability_id": capability_id})
+
+
+def _append_missing_proof_bundle_capabilities(
+    expected_ids: set[str],
+    observed_ids: set[str],
+    issues: list[dict[str, Any]],
+) -> None:
+    for capability_id in sorted(expected_ids - observed_ids):
+        issues.append({"code": "proof_bundle_missing_capability", "capability_id": capability_id})
 
 
 def _validate_supersede_proofs(

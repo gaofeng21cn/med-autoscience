@@ -8,6 +8,8 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 
 2026-05-08 functional monolith inventory 追加机器可读分类，固定在 `med_autoscience.controllers.mds_capability_parity` 与 `docs/references/med-deepscientist/source_provenance.json`。允许分类只有 `mas_owned`、`rewrite_in_mas`、`fixture_only`、`retire`、`external_source_archive_only`；旧 `absorb` / `oracle` / `compat` 不再是 machine-readable cutover contract 值。
 
+2026-05-08 behavior equivalence audit 追加 `mds_behavior_equivalence_matrix`。该矩阵明确区分 `default_independence` 与 `full_mds_daemon_behavior_equivalence`：MAS 默认 operation 不依赖外部 MDS repo / daemon / WebUI，但默认监管是 `Hermes gateway cron` 每 300 秒调用一次 `watch-runtime --max-ticks 1`，不是 MDS resident HTTP/WebSocket daemon 的完整行为复刻。详细差异见 [MDS Behavior Equivalence Gap Matrix](./mds_behavior_equivalence_gap_matrix.md)。
+
 ## Capability Matrix
 
 | Capability | Classification | MDS role | MAS owner | Parity proof | Medical quality authority |
@@ -35,6 +37,29 @@ The functional monolith inventory is machine-readable as `mds_remaining_surface_
 | skills and overlay templates | `fixture_only` | MAS app skill | historical fixture only |
 | team and multi-agent coordination | `fixture_only` | Controller | historical oracle fixture only |
 | upstream source archive | `external_source_archive_only` | Governance | external source archive only |
+
+## Behavior Equivalence Matrix
+
+The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It classifies workflow behavior rather than functions, and it intentionally blocks overclaiming MAS as fully equivalent to the MDS resident daemon.
+
+| Surface | Equivalence class | MAS default action |
+| --- | --- | --- |
+| daemon residency | `purpose_equivalent_with_different_timing` | Use MAS with scheduler-latency awareness. |
+| supervision cadence | `purpose_equivalent_with_different_timing` | Use 300s Hermes gateway cron one-shot tick. |
+| quest create/resume/pause/stop | `behavior_equivalent` | Use MAS Runtime OS. |
+| live worker/session tracking | `purpose_equivalent_with_different_timing` | Use durable liveness/read-model state. |
+| crash recovery and auto-resume | `purpose_equivalent_with_different_timing` | Use MAS tick or explicit watch/ensure runtime. |
+| queued user messages/mailbox | `partially_equivalent` | Use durable task intake and controller handoff. |
+| progress visibility | `behavior_equivalent` | Use MAS Progress Portal / study-progress / cockpit. |
+| WebUI/WebSocket/terminal streaming | `not_equivalent_retired` | Retired from default MAS operation. |
+| connector/channel background delivery | `not_equivalent_retired` | Retired from default MAS operation. |
+| MCP surface | `purpose_equivalent_with_different_timing` | Use MAS MCP adapter to owner surfaces. |
+| GitOps state management | `not_equivalent_retired` | Use SQLite lifecycle and restore proof. |
+| memory and lesson store | `partially_equivalent` | Use MAS memory / incident-learning read models. |
+| team and multi-agent coordination | `historical_fixture_only` | Keep as historical fixture/reference. |
+| artifact interaction handoff | `partially_equivalent` | Use Artifact OS locator and handoff refs. |
+| daemon lifecycle controls | `not_equivalent_retired` | Use Hermes cron supervision controls. |
+| workspace-local host service | `not_equivalent_retired` | Clean retired service evidence; do not install. |
 
 ## Parity Proof Requirements
 

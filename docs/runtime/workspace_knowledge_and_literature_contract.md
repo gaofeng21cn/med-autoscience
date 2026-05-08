@@ -96,7 +96,7 @@ quest 只持有 runtime local materialization。
 
 - `P1 workspace canonical literature / knowledge truth` 已完成
 - 研究记忆与文献资产已经按 workspace-first 统一管理
-- 当前剩余工作不在 knowledge plane owner 本身，而在 `P2 controlled cutover -> physical monorepo migration`
+- 当前剩余工作不在 knowledge plane owner 本身；runtime default closeout 已由 MAS Runtime OS、Hermes gateway cron 和 behavior-equivalence matrix 承接
 
 所以，这条 contract 当前的重点不是“继续上提 literature”，而是：
 

@@ -39,12 +39,13 @@
 
 ## 4) 当前默认 runtime 形态
 
-当前 repo-tracked 默认 runtime 形态不是继续深化旧 `Codex-default host-agent runtime`，而是：
+当前 repo-tracked 默认 runtime 形态已经收敛为 MAS-owned runtime + Hermes gateway cron one-shot supervision：
 
 - `MedAutoScience` = 唯一研究入口与 domain-agent entry
-- `Hermes` = 默认 outer runtime substrate owner
-- `MedDeepScientist` = controlled research backend
-- 旧 `Codex-default host-agent runtime` = 只保留为迁移期对照面与 regression oracle
+- `MAS Runtime OS` = 默认 controller-facing runtime owner / substrate
+- `Hermes gateway cron` = 默认 supervision scheduler owner，每 300 秒调用一次 MAS one-shot tick
+- `MedDeepScientist` = frozen source archive、historical fixture、explicit legacy diagnostic / provenance reference
+- 旧 `Codex-default host-agent runtime` = 本机外部 caller / 历史对照面，不是默认 MAS runtime owner
 
 在该形态下：
 
@@ -53,9 +54,9 @@
   - `supported_protocol_layer = MCP`
   - `internal_controller_surface = controller`
 - 当前 repo-tracked 产品主线按 `Auto-only` 理解；future `Human-in-the-loop` 产品应作为 sibling 或 upper-layer product 复用同一 substrate
-- 运行推进通过 `Hermes -> MedDeepScientist` 的受控 surface 完成
+- 运行推进通过 `Hermes gateway cron -> MAS Runtime OS` 的受控 tick 完成
 - `Med Auto Science` 作为 `Domain Harness OS`，负责控制面、合同面和审计面
-- `MedDeepScientist` 作为执行面，不被表述为系统本体
+- `MedDeepScientist` 不作为执行面或系统本体
 
 ## 5) 当前 execution handle contract
 
@@ -66,9 +67,9 @@
 - `study_id`
   - 医学 study 的持久聚合根身份
 - `quest_id`
-  - 受控 `MedDeepScientist` managed quest 的正式运行句柄
+  - MAS managed quest 的正式运行句柄
 - `active_run_id`
-  - 当前 live daemon run 的细粒度执行句柄
+  - 当前 MAS runtime run / supervision tick / execution receipt 的细粒度执行句柄
 
 这四者不能互相替代，尤其不能把 `active_run_id` 或 `quest_id` 倒灌成上层 study / control-plane 身份。
 
@@ -80,7 +81,7 @@
 - `study_runtime_status`
 - `runtime_watch`
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
-- `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+- `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
 - `studies/<study_id>/artifacts/controller_decisions/latest.json`
 - `studies/<study_id>/artifacts/runtime/last_launch_report.json`
 

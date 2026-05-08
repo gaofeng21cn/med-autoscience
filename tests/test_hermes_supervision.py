@@ -228,7 +228,7 @@ def test_hermes_cli_command_prefers_managed_python_when_available(monkeypatch, t
     ]
 
 
-def test_read_supervision_status_reports_legacy_only_when_workspace_local_service_still_loaded(
+def test_read_supervision_status_blocks_on_retired_workspace_local_service_when_loaded(
     monkeypatch, tmp_path: Path
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
@@ -259,11 +259,165 @@ def test_read_supervision_status_reports_legacy_only_when_workspace_local_servic
 
     result = module.read_supervision_status(profile=profile)
 
-    assert result["status"] == "legacy_only"
+    assert result["status"] == "retired_legacy_service_present"
     assert result["loaded"] is False
-    assert "legacy_service_loaded" in result["drift_reasons"]
+    assert "retired_legacy_service_loaded" in result["drift_reasons"]
     assert result["legacy_service"]["loaded"] is True
-    assert "legacy workspace-local runtime supervision service" in result["summary"]
+    assert result["legacy_service_role"] == "retired_cleanup_evidence"
+    assert result["retired_legacy_cleanup_required"] is True
+    assert "已退役的 workspace-local runtime supervision service" in result["summary"]
+
+
+def test_read_supervision_status_keeps_hermes_blocked_until_retired_legacy_service_is_cleaned(
+    monkeypatch, tmp_path: Path
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    script_path = module._script_path(profile)
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+    script_path.write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+    jobs_path = profile.hermes_home_root / "cron" / "jobs.json"
+    jobs_path.parent.mkdir(parents=True, exist_ok=True)
+    jobs_path.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "job-legacy-conflict",
+                    "name": module._job_name(profile),
+                    "prompt": module._SILENT_PROMPT,
+                    "deliver": "local",
+                    "script": module._script_relpath(profile),
+                    "schedule": {"kind": "interval", "minutes": 5},
+                    "schedule_display": "every 5m",
+                    "enabled": True,
+                    "state": "scheduled",
+                    "next_run_at": "2026-04-17T12:00:00+08:00",
+                    "created_at": "2026-04-17T11:55:00+08:00",
+                }
+            ],
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        module,
+        "inspect_hermes_runtime_contract",
+        lambda **_: {
+            "ready": True,
+            "issues": [],
+            "gateway_service_manager": "launchd",
+            "gateway_service_label": "ai.hermes.gateway",
+            "gateway_service_loaded": True,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_read_legacy_service_status",
+        lambda profile: {
+            "manager": "launchd",
+            "service_label": "ai.medautoscience.diabetes.watch-runtime",
+            "service_file": str(tmp_path / "Library" / "LaunchAgents" / "legacy.plist"),
+            "service_exists": True,
+            "loaded": False,
+        },
+    )
+
+    result = module.read_supervision_status(profile=profile)
+
+    assert result["status"] == "retired_legacy_service_present"
+    assert result["loaded"] is False
+    assert result["job_id"] == "job-legacy-conflict"
+    assert "retired_legacy_service_present" in result["drift_reasons"]
+    assert result["retired_legacy_cleanup_required"] is True
+
+
+def test_ensure_supervision_removes_retired_legacy_service_before_reporting_loaded(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    jobs_path = profile.hermes_home_root / "cron" / "jobs.json"
+    legacy_exists = {"value": True}
+    commands: list[list[str]] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_hermes_runtime_contract",
+        lambda **_: {
+            "ready": True,
+            "issues": [],
+            "gateway_service_manager": "launchd",
+            "gateway_service_label": "ai.hermes.gateway",
+            "gateway_service_loaded": True,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_read_legacy_service_status",
+        lambda profile: {
+            "manager": "launchd",
+            "service_label": "ai.medautoscience.diabetes.watch-runtime",
+            "service_file": str(tmp_path / "Library" / "LaunchAgents" / "legacy.plist"),
+            "service_exists": legacy_exists["value"],
+            "loaded": legacy_exists["value"],
+        },
+    )
+
+    def fake_remove_legacy_service(profile) -> dict[str, object]:
+        legacy_exists["value"] = False
+        return {
+            "before": {"service_exists": True, "loaded": True},
+            "unloaded": True,
+            "removed_service_file": True,
+            "command_outputs": [],
+        }
+
+    def fake_run_command(*, command: list[str]) -> tuple[int, str]:
+        commands.append(command)
+        if _command_contains(command, "cron", "create"):
+            jobs_path.parent.mkdir(parents=True, exist_ok=True)
+            jobs_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "id": "job-created",
+                            "name": module._job_name(profile),
+                            "prompt": module._SILENT_PROMPT,
+                            "deliver": "local",
+                            "script": module._script_relpath(profile),
+                            "schedule": {"kind": "interval", "minutes": 5},
+                            "schedule_display": "every 5m",
+                            "enabled": True,
+                            "state": "scheduled",
+                            "next_run_at": "2026-04-17T12:10:00+08:00",
+                            "created_at": "2026-04-17T12:00:00+08:00",
+                        }
+                    ],
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            return 0, "Created job: job-created"
+        return 0, "ok"
+
+    monkeypatch.setattr(module, "_remove_legacy_service", fake_remove_legacy_service)
+    monkeypatch.setattr(module, "_run_command", fake_run_command)
+
+    result = module.ensure_supervision(profile=profile, trigger_now=False)
+
+    assert result["legacy_removal"]["before"]["loaded"] is True
+    assert result["legacy_removal"]["unloaded"] is True
+    assert result["legacy_removal"]["removed_service_file"] is True
+    assert result["after"]["status"] == "loaded"
+    assert result["after"]["loaded"] is True
+    assert result["after"]["retired_legacy_cleanup_required"] is False
+    assert any(_command_contains(command, "cron", "create") for command in commands)
 
 
 def test_ensure_supervision_creates_job_and_triggers_run(monkeypatch, tmp_path: Path) -> None:
@@ -402,7 +556,7 @@ def test_ensure_supervision_repairs_legacy_watch_runtime_entry_before_triggering
     assert any(_command_contains(command, "cron", "run") for command in commands)
 
 
-def test_ensure_supervision_returns_portable_scheduler_install_instructions(tmp_path: Path) -> None:
+def test_ensure_supervision_fails_closed_for_retired_workspace_local_service_manager(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
     profile = make_profile(tmp_path)
     supervisor_scan = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
@@ -415,43 +569,32 @@ def test_ensure_supervision_returns_portable_scheduler_install_instructions(tmp_
     supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
     supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_consume.chmod(0o755)
-    service_template = (
-        profile.workspace_root
-        / "ops"
-        / "medautoscience"
-        / "supervisor"
-        / "systemd"
-        / "medautoscience-supervisor-scan.service"
-    )
-    timer_template = service_template.with_suffix(".timer")
-    service_template.parent.mkdir(parents=True, exist_ok=True)
-    service_template.write_text("[Service]\n", encoding="utf-8")
-    timer_template.write_text("[Timer]\n", encoding="utf-8")
-
     result = module.ensure_supervision(profile=profile, manager="systemd", trigger_now=False)
 
-    assert result["action"] == "portable_scheduler_instruction"
+    assert result["action"] == "retired_workspace_local_service_manager"
     assert result["manager"] == "systemd"
     assert result["installed"] is False
-    assert result["codex_app_heartbeat_required"] is False
+    assert result["status"] == "retired_fail_closed"
+    assert result["canonical_owner"] == "hermes_gateway_cron"
+    assert result["install_commands"] == []
+    assert result["templates"] == {}
+    assert result["write_install_proof_supported"] is False
+    assert result["recommended_command"] == [
+        "medautosci",
+        "runtime-ensure-supervision",
+        "--profile",
+        str(profile.workspace_root / "ops" / "medautoscience" / "profiles"),
+    ]
+    assert result["retired_reason"] == "workspace_local_host_services_are_no_longer_active_mas_runtime_owners"
     assert result["supervisor_scan_entry"]["exists"] is True
     assert result["supervisor_scan_entry"]["executable"] is True
     assert result["supervisor_scan_entry"]["path"] == str(supervisor_scan)
     assert result["supervisor_consume_entry"]["exists"] is True
     assert result["supervisor_consume_entry"]["executable"] is True
     assert result["supervisor_consume_entry"]["path"] == str(supervisor_consume)
-    assert result["templates"]["service"] == str(service_template)
-    assert result["templates"]["timer"] == str(timer_template)
-    assert result["install_commands"] == [
-        f"mkdir -p {Path.home() / '.config' / 'systemd' / 'user'}",
-        f"cp {service_template} {Path.home() / '.config' / 'systemd' / 'user' / service_template.name}",
-        f"cp {timer_template} {Path.home() / '.config' / 'systemd' / 'user' / timer_template.name}",
-        "systemctl --user daemon-reload",
-        f"systemctl --user enable --now {timer_template.name}",
-    ]
 
 
-def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable_manager(
+def test_ensure_supervision_retired_manager_keeps_developer_supervisor_diagnostic_read_only(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -470,18 +613,6 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
     supervisor_execute_dispatch = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch"
     supervisor_execute_dispatch.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_execute_dispatch.chmod(0o755)
-    service_template = (
-        profile.workspace_root
-        / "ops"
-        / "medautoscience"
-        / "supervisor"
-        / "systemd"
-        / "medautoscience-supervisor-scan.service"
-    )
-    timer_template = service_template.with_suffix(".timer")
-    service_template.parent.mkdir(parents=True, exist_ok=True)
-    service_template.write_text("[Service]\n", encoding="utf-8")
-    timer_template.write_text("[Timer]\n", encoding="utf-8")
     automation_path = tmp_path / "home" / ".codex" / "automations" / "mas" / "automation.toml"
     automation_path.parent.mkdir(parents=True, exist_ok=True)
     automation_path.write_text(
@@ -509,20 +640,23 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
 
     result = module.ensure_supervision(profile=profile, manager="systemd", trigger_now=False)
 
+    assert result["action"] == "retired_workspace_local_service_manager"
     assert result["mode"] == "developer_apply_safe"
     assert result["requested_mode"] == "developer_apply_safe"
     assert result["mode_source"] == "github_user_gate"
     assert result["developer_mode_enabled"] is True
     assert result["safe_actions_enabled"] is True
     assert result["repo_level_repair_authority"] is True
-    assert result["scheduler_owner"] == "systemd_scheduler"
+    assert result["scheduler_owner"] == "retired_systemd_scheduler"
     assert result["github_user"]["login"] == "gaofeng21cn"
     assert result["github_user"]["matches_expected"] is True
     assert result["github_user_gate"]["allowed"] is True
     assert result["codex_app_heartbeat_required"] is False
     assert result["codex_app_automation_prompt"]["active"] is True
     assert result["codex_app_automation_prompt"]["missing_prompt_tokens"] == []
-    assert result["install_proof"]["status"] == "ready"
+    assert result["install_proof"]["status"] == "retired_fail_closed"
+    assert result["install_proof"]["installed"] is False
+    assert result["install_proof"]["host_service_claim"] == "retired_not_installed_by_mas"
     assert result["install_proof"]["status_check_commands"] == [
         [
             str(supervisor_reconcile),
@@ -555,7 +689,7 @@ def test_ensure_supervision_returns_developer_supervisor_mode_proof_for_portable
     assert result["freshness"]["max_expected_artifact_age_seconds"] == 600
 
 
-def test_ensure_supervision_writes_portable_install_proof_when_explicitly_requested(
+def test_ensure_supervision_does_not_write_install_proof_for_retired_manager(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -568,17 +702,6 @@ def test_ensure_supervision_writes_portable_install_proof_when_explicitly_reques
     supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
     supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_consume.chmod(0o755)
-    cron_template = (
-        profile.workspace_root
-        / "ops"
-        / "medautoscience"
-        / "supervisor"
-        / "cron"
-        / "supervisor-scan.cron"
-    )
-    cron_template.parent.mkdir(parents=True, exist_ok=True)
-    cron_template.write_text("* * * * * supervisor-scan\n", encoding="utf-8")
-
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
 
     result = module.ensure_supervision(
@@ -589,57 +712,14 @@ def test_ensure_supervision_writes_portable_install_proof_when_explicitly_reques
     )
 
     proof_path = profile.workspace_root / "artifacts" / "supervision" / "install_proof" / "latest.json"
-    proof = json.loads(proof_path.read_text(encoding="utf-8"))
-    assert result["install_proof_path"] == str(proof_path)
+    assert result["action"] == "retired_workspace_local_service_manager"
+    assert result["install_proof_path"] is None
     assert result["install_proof"]["artifact_path"] == str(proof_path)
-    assert proof["manager"] == "cron"
-    assert proof["scheduler_owner"] == "cron_scheduler"
-    assert proof["install_commands"] == result["install_commands"]
-    assert proof["status_check_commands"] == result["status_check_commands"]
-    assert proof["expected_artifacts"] == result["expected_artifacts"]
-    assert proof["artifact_path"] == str(proof_path)
-    assert proof["last_scan_time"] is not None
-    assert proof["freshness"]["max_expected_artifact_age_seconds"] == 600
-    assert proof["safe_action_mode"] == "developer_apply_safe"
-    assert proof["github_gate"]["allowed"] is True
-    assert proof["host_service_claim"] == "not_installed_by_mas"
-    assert proof["status"] != "installed"
-
-
-def test_ensure_supervision_projects_codex_app_heartbeat_as_compat_owner(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
-    profile = make_profile(tmp_path)
-    supervisor_scan = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"
-    supervisor_scan.parent.mkdir(parents=True, exist_ok=True)
-    supervisor_scan.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
-    supervisor_scan.chmod(0o755)
-    supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
-    supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
-    supervisor_consume.chmod(0o755)
-    automation_path = tmp_path / "home" / ".codex" / "automations" / "mas" / "automation.toml"
-    automation_path.parent.mkdir(parents=True, exist_ok=True)
-    automation_path.write_text(
-        'status = "ACTIVE"\n'
-        'prompt = "developer_apply_safe mode=developer_apply_safe '
-        'supervisor-reconcile --mode developer_apply_safe --apply supervisor-scan --apply-safe-actions '
-        '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
-        'supervisor-execute-dispatch --mode developer_apply_safe --apply '
-        'workspace_dynamic_active_studies new MAS tasks active_run_id worker_running worktree '
-        'action_queue why_not_applied"\n',
-        encoding="utf-8",
-    )
-
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    monkeypatch.setattr(module, "_codex_app_automation_path", lambda: automation_path)
-
-    result = module.ensure_supervision(profile=profile, manager="codex_app", trigger_now=False)
-
-    assert result["manager"] == "codex_app"
-    assert result["scheduler_owner"] == "codex_app_compat"
-    assert result["install_proof"]["scheduler_owner"] == "codex_app_compat"
+    assert proof_path.exists() is False
+    assert result["install_proof"]["manager"] == "cron"
+    assert result["install_proof"]["scheduler_owner"] == "retired_cron_scheduler"
+    assert result["install_proof"]["install_commands"] == []
+    assert result["install_proof"]["status"] == "retired_fail_closed"
 
 
 def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
@@ -668,13 +748,14 @@ def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
     result = module.ensure_supervision(profile=profile, manager="cron", trigger_now=False)
 
     assert result["mode"] == "external_observe"
+    assert result["action"] == "retired_workspace_local_service_manager"
     assert result["developer_mode_enabled"] is False
     assert result["safe_actions_enabled"] is False
     assert result["repo_level_repair_authority"] is False
     assert result["github_user"]["login"] == "someone-else"
     assert result["github_user"]["matches_expected"] is False
     assert result["github_user_gate"]["allowed"] is False
-    assert result["install_proof"]["status"] == "developer_mode_disabled"
+    assert result["install_proof"]["status"] == "retired_fail_closed"
     assert result["codex_app_heartbeat_required"] is False
 
 
@@ -735,7 +816,7 @@ def test_codex_app_automation_prompt_check_rejects_study_allowlist_only_prompt(t
     ]
 
 
-def test_ensure_supervision_returns_cron_and_launchd_scheduler_surfaces(
+def test_ensure_supervision_returns_retired_for_cron_and_launchd_scheduler_surfaces(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -748,13 +829,6 @@ def test_ensure_supervision_returns_cron_and_launchd_scheduler_surfaces(
     supervisor_consume = profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"
     supervisor_consume.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
     supervisor_consume.chmod(0o755)
-    templates_root = profile.workspace_root / "ops" / "medautoscience" / "supervisor"
-    for path in (
-        templates_root / "cron" / "supervisor-scan.cron",
-        templates_root / "launchd" / "README.md",
-    ):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("template\n", encoding="utf-8")
     monkeypatch.setattr(
         module,
         "_github_user_login_check",
@@ -769,20 +843,19 @@ def test_ensure_supervision_returns_cron_and_launchd_scheduler_surfaces(
     cron_result = module.ensure_supervision(profile=profile, manager="cron", trigger_now=False)
     launchd_result = module.ensure_supervision(profile=profile, manager="launchd", trigger_now=False)
 
-    assert cron_result["templates"]["crontab"] == str(templates_root / "cron" / "supervisor-scan.cron")
-    assert any("crontab" in command for command in cron_result["install_commands"])
-    assert launchd_result["templates"]["instructions"] == str(templates_root / "launchd" / "README.md")
-    assert launchd_result["install_commands"] == [
-        f"{profile.workspace_root}/ops/medautoscience/bin/install-watch-runtime-service --manager launchd"
-    ]
     for result in (cron_result, launchd_result):
+        assert result["action"] == "retired_workspace_local_service_manager"
+        assert result["status"] == "retired_fail_closed"
+        assert result["canonical_owner"] == "hermes_gateway_cron"
+        assert result["templates"] == {}
+        assert result["install_commands"] == []
         assert result["installed"] is False
         assert result["supervisor_scan_entry"]["exists"] is True
         assert result["supervisor_consume_entry"]["exists"] is True
         assert result["codex_app_heartbeat_required"] is False
 
 
-def test_ensure_supervision_docker_manager_is_container_agnostic_fail_closed(
+def test_ensure_supervision_docker_manager_is_retired_fail_closed(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -807,14 +880,15 @@ def test_ensure_supervision_docker_manager_is_container_agnostic_fail_closed(
     result = module.ensure_supervision(profile=profile, manager="docker", trigger_now=False)
 
     assert result["manager"] == "docker"
+    assert result["action"] == "retired_workspace_local_service_manager"
     assert result["mode"] == "external_observe"
-    assert result["mode_source"] == "unsupported_container_scheduler"
-    assert result["scheduler_owner"] == "external_container_scheduler"
+    assert result["mode_source"] == "retired_workspace_local_service_manager"
+    assert result["scheduler_owner"] == "retired_docker_scheduler"
     assert result["safe_actions_enabled"] is False
     assert result["templates"] == {}
-    assert result["install_proof"]["status"] == "unsupported_container_scheduler"
+    assert result["install_proof"]["status"] == "retired_fail_closed"
     assert "docker run" not in "\n".join(result["install_commands"])
-    assert "medautosci runtime supervisor-reconcile" in result["install_commands"][0]
+    assert result["install_commands"] == []
 
 
 def test_remove_supervision_removes_jobs_and_script(monkeypatch, tmp_path: Path) -> None:

@@ -73,7 +73,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
             {
                 "step_id": "supervisor_service",
-                "title": "确认 workspace 常驻监管在线",
+                "title": "确认 workspace 定时监管在线",
                 "surface_kind": "workspace_supervisor_service",
                 "command": (
                     "uv run python -m med_autoscience.cli runtime-supervision-status --profile "

@@ -197,17 +197,20 @@
 
 `MedAutoScience` 继续保持下面的运行形态：
 
-- 保持 `MedDeepScientist` 作为常驻 inner runtime
-- 保持 `MedAutoScience` 作为 tick-driven outer controller
+- `MAS Runtime OS` 持有默认 runtime state、event、recovery 与 quest lifecycle
+- `Hermes gateway cron` 每 `300` 秒调用一次 MAS one-shot supervision tick
+- `MedAutoScience` 作为 tick-driven controller / read-model owner
 - 新增 `study_progress` 作为只读 progress/watch/report projection
 
 前台想要“持续有进度”，可以通过：
 
 - CLI 轮询 `study-progress`
 - MCP 调用 `study_progress`
-- future automation / heartbeat 周期调用
+- Hermes gateway cron / future automation 周期调用
 
 来持续刷新前台时间线。控制面仍由现有 runtime/control surface 承担，前台只读投影负责解释当前状态和人类 gate 边界。
+
+这不是旧 MDS resident daemon 的 1:1 行为复刻。默认 MAS 监管是 scheduler-bound one-shot tick；它能满足日常进度与恢复投影，但不会提供 MDS WebSocket terminal streaming、connector background threads 或 in-memory session store。行为差异见 [MDS Behavior Equivalence Gap Matrix](../references/mds_behavior_equivalence_gap_matrix.md)。
 
 ## 7. MAS Progress Portal 入口
 

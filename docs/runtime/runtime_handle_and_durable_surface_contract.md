@@ -10,8 +10,9 @@
 
 - 当前 repo-tracked 主线拓扑固定为：
   - `MedAutoScience` = 唯一研究入口、research gateway、study / workspace authority owner
-  - `Hermes` = 默认 outer runtime substrate owner
-  - `MedDeepScientist` = controlled research backend
+  - `Hermes gateway cron` = 默认 supervision scheduler owner
+  - `MAS Runtime OS` = 默认 runtime/backend owner
+  - `MedDeepScientist` = frozen source archive、historical fixture、explicit legacy diagnostic / backend audit reference
 - 旧 `Codex-default host-agent runtime` 只保留为迁移期对照面与 regression oracle，不再是长期产品方向。
 - 当前 formal-entry matrix：
   - `default_formal_entry = CLI`
@@ -19,7 +20,7 @@
   - `internal_controller_surface = controller`
 - 当前仓库产品主线继续按 `Auto-only` 理解。
 - future `Human-in-the-loop`：作为 compatible sibling 或 upper-layer product，复用同一 substrate，而不是把本仓改成同仓双模。
-- external `Hermes` runtime repo / workspace / daemon truth 仍未进入当前仓内；当前 repo-side 只冻结 controller-facing outer substrate contract。
+- optional external `Hermes` runtime repo / workspace / daemon truth 必须显式接入；当前默认 repo-side contract 以 MAS Runtime OS + Hermes gateway cron one-shot tick 为准。
 
 ## 2. Execution Handle Contract
 
@@ -51,25 +52,25 @@
 
 ### `quest_id`
 
-- 角色：当前“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”绑定到 controlled research backend 后的正式 managed execution handle
+- 角色：MAS Runtime OS 下的正式 managed execution handle
 - 典型落点：
   - `runtime_binding.yaml`
   - `study_runtime_status`
   - `runtime_watch`
-  - `ops/med-deepscientist/runtime/quests/<quest_id>/`
+  - `runtime/quests/<quest_id>/`
 - 边界：
   - 它是 study 绑定到受控 runtime 后的正式 handle
   - pause / resume / stop / startup-context sync 等 transport 都围绕它执行
-  - 当前 quest-local durable state 仍落在 `MedDeepScientist` runtime root，但 authority truth 不再由 backend 品牌名隐式决定
+  - 当前 quest-local durable state 默认落在 MAS-owned `runtime/quests/<quest_id>/`
   - 它不能被 `study_id`、`program_id` 或 `active_run_id` 取代
 
 ### `active_run_id`
 
-- 角色：当前 live daemon run 的细粒度执行句柄
+- 角色：当前 live execution 的细粒度执行句柄
 - 典型落点：
   - `runtime_liveness_audit.active_run_id`
   - `bash_session_audit` / `runtime_audit`
-  - `quest.yaml` / daemon session snapshots
+  - `quest.yaml` / runtime session snapshots
 - 边界：
   - 只有 quest 处于 live execution 时才有意义
   - 它描述的是 quest 内部当前活跃 run，而不是上层 managed quest 身份
@@ -95,10 +96,10 @@
   - 必须回显 `study_id`、`quest_id`、`runtime_backend_id`、`research_backend_id`、decision / reason、runtime gate 摘要
 - `runtime_watch`
   - quest 侧 watch / intervention 表面
-  - 当前默认仍落在 `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/runtime_watch/`
+  - 当前默认落在 `runtime/quests/<quest_id>/artifacts/reports/runtime_watch/`
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
   - study 侧 publication verdict latest surface
-- `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+- `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
   - quest 侧 escalation record surface
 - `studies/<study_id>/artifacts/controller_decisions/latest.json`
   - study 侧 outer-loop / controller decision latest surface
@@ -124,8 +125,9 @@
 
 这条链路里：
 
-- `Hermes` 负责 outer substrate binding 与 backend-generic contract，不负责伪造 study judgment truth
-- `MedDeepScientist` 不拥有上层 judgment truth
+- `Hermes gateway cron` 只负责 wakeup，不负责伪造 study judgment truth
+- `MAS Runtime OS` 负责默认 runtime/backend contract
+- `MedDeepScientist` 不拥有上层 judgment truth 或默认 runtime truth
 - study-owned artifact 与 quest-owned artifact 不能混写
 - 当 runtime 不可达或 contract 不满足时，必须 fail-closed，而不是本地写旁路冒充成功
 - 不允许 hidden fallback、silent downgrade、synthetic truth rewrite
@@ -137,7 +139,7 @@
   - execution handle contract
   - durable surface contract
   - gate semantics
-  - `Hermes -> MedDeepScientist` 当前主线拓扑
+  - `MAS Runtime OS + Hermes gateway cron` 当前主线拓扑
 - 本地未跟踪 handoff scratch 只负责：
   - 机器私有 continuation note
   - 临时观察记录

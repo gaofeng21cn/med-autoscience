@@ -11,7 +11,7 @@
 - `runtime_backend_id = mas_runtime_core`
 - `runtime_engine_id = mas-runtime-core`
 
-当前 controlled research backend 是：
+当前 research backend identity 是：
 
 - `research_backend_id = mas_runtime_core`
 - `research_engine_id = mas-runtime-core`

@@ -646,13 +646,13 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         "focus_study_id": None,
         "recommended_step_id": "inspect_supervision_service",
         "recommended_command": (
-            "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
+            "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile "
             + str(profile_ref.resolve())
         ),
     }
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
     assert payload["attention_queue"][0]["recommended_command"].endswith(
-        "runtime-supervision-status --profile " + str(profile_ref.resolve())
+        "runtime-ensure-supervision --profile " + str(profile_ref.resolve())
     )
     assert any(
         item["study_id"] == "001-risk"

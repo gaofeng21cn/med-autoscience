@@ -2,6 +2,8 @@
 
 这份维护者参考把 `Med Auto Science` 从“当前主线已成立”走到“更完整理想形态”的 5 个阶段固定下来。
 
+当前状态说明（2026-05-08）：本文是 historical / positioning reference。`functional_monolith_completion` 和 `mds_behavior_equivalence_audit` 已把默认运行口径收敛为 MAS Runtime OS + Hermes gateway cron；外部 `MedDeepScientist` 不再是默认 backend，只保留 source archive / historical fixture / explicit legacy diagnostic / provenance reference。本文中早期“controlled research backend”表述不得作为当前 execution plan 使用。
+
 它解决三个问题：
 
 1. 理想形态到底是什么
@@ -20,8 +22,8 @@
 - `OPL`：family-level federation / gateway language
 - `Research Foundry`：通用 `Research Ops` framework
 - `Med Auto Science`：medical domain gateway + `Domain Harness OS`
-- upstream `Hermes-Agent`：长期在线 outer runtime substrate owner
-- `MedDeepScientist`：先作为 controlled research backend，之后再逐步解构
+- `Hermes gateway cron` / future hosted scheduler：长期唤醒与调度 owner
+- `MedDeepScientist`：source archive、historical fixture、explicit legacy diagnostic / provenance reference
 
 面向用户时，理想形态必须至少成立下面这件事：
 
@@ -31,13 +33,13 @@
 
 ### Phase 1. Mainline Established
 
-目标：
+历史目标：
 
-- 先让 `MedAutoScience -> Hermes-Agent target substrate -> controlled MedDeepScientist backend` 这条主线诚实成立
-- 拿到 external runtime truth、repo-side real adapter、真实 study recovery/progress proof
-- 把当前 blocker 收口成真实外部 gate / study gate / human gate
+- 曾用于让 `MedAutoScience -> Hermes target substrate -> MDS backend` 这条迁移链路诚实成立
+- 当前已被 MAS Runtime OS + Hermes gateway cron closeout 取代
+- 后续 blocker 不得重新写成外部 MDS backend 默认依赖
 
-完成标志：
+当前完成标志：
 
 - F1-F3 证据链成立
 - F4 blocker closeout 不再主要是 repo-side seam 问题
@@ -45,8 +47,8 @@
 
 当前状态：
 
-- 当前就在这一阶段尾声
-- 重点是继续收口 active study blocker，并把用户入口继续收成稳定产品回路
+- 该阶段已 superseded by `functional_monolith_completion=landed`
+- 重点转为守住 behavior-equivalence matrix 和真实 paper autonomy evidence，而不是重开 MDS backend cutover
 
 ### Phase 2. User Product Loop
 

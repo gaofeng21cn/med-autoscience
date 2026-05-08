@@ -15,12 +15,13 @@
 当前 repo-tracked 运行拓扑固定为：
 
 - `MedAutoScience` = 唯一研究入口与 research gateway
-- `Hermes` = 默认 outer runtime substrate owner
-- `MedDeepScientist` = controlled research backend
+- `Hermes gateway cron` = 默认 outer supervision scheduler owner
+- `MAS Runtime OS` = 默认 runtime/backend state、event、recovery 与 quest lifecycle owner
+- `MedDeepScientist` = frozen source archive、historical fixture、explicit legacy diagnostic / backend audit reference
 - 旧 `Codex-default host-agent runtime` = 只保留为迁移期对照面与 regression oracle，不再是长期产品方向
 - display / paper-facing asset packaging 独立线 = 明确排除在本 runtime / gateway / architecture tranche 之外
 
-Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Agent` 目标 + repo-side outer-runtime seam + optional hosted target”的 owner 语义；它不是 MAS study truth owner，也不是仓内已经落地的独立 external runtime workspace truth。study truth 继续由 `MedAutoScience` 的 study-owned surfaces、controller decisions 与 publication gate 持有。
+Current reading note：本文件里的 `Hermes` 默认读作 `Hermes gateway cron` 对 MAS one-shot tick 的托管 owner；它不是 MAS study truth owner。study truth 继续由 `MedAutoScience` 的 study-owned surfaces、controller decisions 与 publication gate 持有。
 
 当前 formal-entry matrix 继续固定为：
 
@@ -40,50 +41,25 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 以下口径以 `src/med_autoscience/controllers/product_entry.py::build_product_entry_manifest` 及 `tests/test_product_entry.py` 的断言为准：
 
 - `MedAutoScience` 自己不直接打模型。
-- 当前底层链路固定为：`med_autoscience.runtime_transport.hermes -> med_autoscience.runtime_transport.med_deepscientist -> MedDeepScientist CodexRunner -> codex exec autonomous agent loop`。
+- 当前默认 runtime backend 固定为 MAS-owned `mas_runtime_core` / Runtime OS；外部 `med-deepscientist` repo、daemon、runtime root 或 WebUI 不参与默认 operation。
 - family 默认执行器正式名称：`Codex CLI`。
 - family 默认执行模式：`autonomous`。
 - 默认 model / reasoning：继承本机 Codex 默认（`inherit_local_codex_default`）。
 - `chat-only executor` 明确 forbidden（`chat_completion_only_executor_forbidden = true`）。
-- `Hermes-Agent` 备选执行路线当前状态是 `experimental`，只有 full agent loop 才满足 guardrail（`hermes_agent_requires_full_agent_loop = true`）。
-- 当前 manifest 只暴露两个 public executor backend：默认 `codex_cli` 与可选 `hermes_agent`。`hermes_agent` 仍必须满足 full agent loop guardrail，不能作为 chat-only executor 或旧 proof alias 使用。
+- `Hermes-Agent` 备选执行路线只有在显式 hosted/runtime target 接入时才可用，且必须满足 full agent loop guardrail（`hermes_agent_requires_full_agent_loop = true`）。
+- 当前 manifest 的默认执行路径不得把 `MedDeepScientist` 重新暴露为 public executor backend；显式 MDS 相关入口只能是 legacy diagnostic / backend audit / historical fixture。
 
 ## 当前主线与 monorepo 长线的关系
 
 当前这条 repo-tracked 主线，优先级应按下面顺序理解：
 
-- 保持 `MedAutoScience -> Hermes -> MedDeepScientist` runtime topology 稳定
+- 保持 MAS Runtime OS / `mas_runtime_core` 为默认 runtime/backend owner
 - 保持 execution handle、durable surface 与 fail-closed gate semantics 不漂移
 - 继续把 `runtime backend interface` 收紧到 controller / outer-loop / transport / durable surface 全链只认 backend contract
-- 把 `MedDeepScientist` 明确收口为 controlled research backend，而不是 hidden authority truth
-- 在 external runtime gate 清除前，以手工测试驱动 repo-side 稳定化，而不是伪造更大的 cutover tranche
+- 把 `MedDeepScientist` 明确收口为 frozen archive、historical fixture 和 explicit diagnostic reference，而不是 hidden authority truth
+- 不用“functional monolith landed”覆盖真实行为差异；MDS resident daemon、WebSocket terminal streaming、connector background threads 等差异必须通过 behavior equivalence matrix 公开
 
-这不等于 monorepo 目标取消。
-
-`monorepo / runtime core ingest / controlled cutover` 仍然是 `MedAutoScience` 的明确长线，目标仍是把系统按三块主模块收进同一 repo：
-
-- `controller_charter`
-- `runtime`
-- `eval_hygiene`
-
-但这条长线当前继续放在四仓统一 family shared modules tranche 之后。
-当前允许推进的是 family shared modules / shared boundary refactor；external runtime gate、对象边界、报告边界与 `controller_charter / runtime / eval_hygiene` 防火墙继续约束 `physical migration`、`cross-repo refactor`、`monorepo absorb`、`runtime core ingest` 与 scaffold cutover。
-
-当前 repo-tracked contract 已把这条 monorepo 长线继续压成 5 步 readiness sequence：
-
-1. `freeze_gateway_runtime_truth`
-2. `stabilize_user_product_loop`
-3. `clear_multi_workspace_host_gate`
-4. `freeze_backend_deconstruction_boundary`
-5. `physical_monorepo_absorb`
-
-当前真实进度不是“已经在做 physical absorb”，而是：
-
-- 已完成：`freeze_gateway_runtime_truth`
-- 当前步骤：`stabilize_user_product_loop`
-- 后续剩余：`clear_multi_workspace_host_gate`、`freeze_backend_deconstruction_boundary`、`physical_monorepo_absorb`
-
-因此 monorepo 现在的 honest 读法是：顺序已经冻结、当前步骤已经可见，但 `physical absorb` 仍是严格 post-gate 工作。
+monolith 的 honest 读法是：默认 operation、默认诊断、进度可视化和 artifact/quality/status/progress/cockpit 入口已经不依赖外部 MDS repo；这不等于 MDS daemon/WebUI/connector 行为被函数级或 resident-process 级 1:1 复刻。
 
 当前 `stabilize_user_product_loop` 这一步里，已经落地一条 controller-owned same-line continuation step：
 
@@ -105,10 +81,10 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
   - study 聚合根身份
   - 对应 `studies/<study_id>/`
 - `quest_id`
-  - 当前“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”绑定到 controlled research backend 后的正式运行句柄
+  - MAS Runtime OS 下的正式运行句柄
   - 新 workspace 对应 `runtime/quests/<quest_id>/` 普通目录；旧 `ops/med-deepscientist/runtime/quests/<quest_id>/` 只作为 legacy diagnostic / restore reference
 - `active_run_id`
-  - 当前 live daemon run 的细粒度执行句柄
+  - 当前 live execution 的细粒度执行句柄
   - 只在 live execution / runtime audit 场景里出现
 
 当前 canonical durable surface 至少包括：
@@ -117,7 +93,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - `study_runtime_status`
 - `runtime_watch`
 - `studies/<study_id>/artifacts/publication_eval/latest.json`
-- `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+- `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
 - `studies/<study_id>/artifacts/controller_decisions/latest.json`
 - `studies/<study_id>/artifacts/controller/gate_clearing_batch/latest.json`
 - `studies/<study_id>/artifacts/runtime/last_launch_report.json`
@@ -131,7 +107,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 
 - `runtime_binding.yaml` 必须同时写出 `runtime_backend_id`、`runtime_engine_id`、`research_backend_id`、`research_engine_id`
 - `publication_eval` 必须继续落在 study-owned latest surface，而不是回写到 runtime 临时目录
-- `runtime_escalation_record` 与 `runtime_watch` 继续是 quest-owned runtime artifact
+- `runtime_escalation_record` 与 `runtime_watch` 继续是 quest-owned runtime artifact；旧 `ops/med-deepscientist/...` 只作为 legacy diagnostic reference
 - `controller_decisions/latest.json` 是 study-owned outer-loop / controller decision surface
 - `artifacts/controller/gate_clearing_batch/latest.json` 是 study-owned same-line continuation execution record：它只记录一次 controller-owned batch repair 与 gate replay，不替代 `controller_decisions/latest.json` 作为 authority decision surface
 - `artifacts/runtime/health/latest.json` 是 study-owned runtime health snapshot：它持有 `canonical_runtime_action`、worker liveness、retry budget 与 escalation 判断，不替代 `StudyTruthKernel.canonical_next_action`
@@ -149,7 +125,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - `main` 合并门与现网切换门：[`merge_and_cutover_gates.md`](../policies/merge_and_cutover_gates.md)
 - `Hermes` repo-side continuation：[`../history/program/hermes_backend_continuation_board.md`](../history/program/hermes_backend_continuation_board.md)
 - `Hermes` repo-side activation package：[`../history/program/hermes_backend_activation_package.md`](../history/program/hermes_backend_activation_package.md)
-- external `Hermes-Agent` runtime proof / readiness：先跑 `doctor`，再跑 `hermes-runtime-check`
+- external `Hermes-Agent` runtime proof / readiness：只在显式 hosted target 接入时先跑 `doctor`，再跑 `hermes-runtime-check`
 - `MedDeepScientist` 解构地图：[`../references/med-deepscientist/med_deepscientist_deconstruction_map.md`](../references/med-deepscientist/med_deepscientist_deconstruction_map.md)
 - external runtime blocker package：[`../policies/external_runtime_dependency_gate.md`](../policies/external_runtime_dependency_gate.md)
 - external gate 未清除前的手工测试与 repo-side 稳定化清单：[`manual_runtime_stabilization_checklist.md`](../policies/manual_runtime_stabilization_checklist.md)
@@ -193,16 +169,16 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 
 ## 唯一研究入口
 
-在当前架构里，`MedAutoScience` 是唯一研究入口和 `Research Ops Gateway`，`Hermes` 是默认 outer runtime substrate owner，`MedDeepScientist`（仓库名 `med-deepscientist`）是 controlled research backend；`DeepScientist` 只在上游比较、兼容审计和历史命名里单独出现。
+在当前架构里，`MedAutoScience` 是唯一研究入口和 `Research Ops Gateway`，`Hermes gateway cron` 是默认 outer supervision scheduler owner，`MAS Runtime OS` 是默认 runtime/backend owner；`MedDeepScientist`（仓库名 `med-deepscientist`）只在 frozen source archive、historical fixture、显式兼容审计和上游 intake 里出现。`DeepScientist` 只在上游比较、兼容审计和历史命名里单独出现。
 
 这里的默认 owner 口径只冻结 repo-side substrate contract 与可选 hosted target 方向，不授权 Agent 把 external `Hermes` repo / daemon / workspace surface 当作研究入口或 study truth。
 
 因此：
 
-- Agent 不应直接调用 external `Hermes` daemon / repo / workspace surface 发起研究流程
+- Agent 不应直接调用 external `Hermes` daemon / repo / workspace surface 发起研究流程，除非当前 profile 显式进入 hosted target 诊断
 - Agent 不应直接调用 `MedDeepScientist` daemon HTTP API 发起 quest
 - Agent 不应把 `MedDeepScientist` UI / CLI 当成研究入口
-- `ops/med-deepscientist/bin/*` 只用于 runtime 运维，不用于研究治理
+- `ops/med-deepscientist/bin/*` 只可作为 legacy diagnostic / restore reference，不用于研究治理
 - 所有正式研究推进都应经由 `doctor`、`workspace bootstrap`、`runtime overlay-status`、`study ensure-runtime` 和受管 route
 
 ## 当前用户可见的启动与进度入口
@@ -215,8 +191,8 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - 写入 durable study task intake：`submit-study-task --profile <profile> --study-id <study_id> --task-intent "<intent>"`
 - 正式启动或续跑：`launch-study --profile <profile> --study-id <study_id>`
 - 人话进度投影：`study progress --profile <profile> --study-id <study_id>`
-- Hermes-hosted supervision tick：`runtime watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply`
-- Hermes-hosted supervision job 安装入口：`ops/medautoscience/bin/install-watch-runtime-service`
+- Hermes gateway cron supervision tick：`ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1`
+- Hermes gateway cron 注册/刷新入口：`runtime-ensure-supervision --profile <profile>`
 - entry_status / manifest companion：`product-entry-status --profile <profile>`、`product-entry-manifest --profile <profile>`，它们是单一 MAS app skill 下的内部 command contract，并在 integration layer 暴露机器可读 companion；当前会显式导出 `product_entry_guardrails`、`phase3_clearance_lane`、`phase4_backend_deconstruction` 与 `phase5_platform_target`
 
 低层兼容入口仍然保留：
@@ -227,7 +203,7 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 
 如果 workspace 来自较早的骨架版本，应先重跑一次 `init-workspace`。当前 controller 会在不加 `--force` 的前提下，自动升级 `_shared.sh`、`watch-runtime`、`install-watch-runtime-service` 这些 service-critical managed entry scripts。新 workspace 默认 no root Git / no quest Git；current workspaces 的 root Git 已完成 restore-proof full retirement。未来接入外部或旧 workspace 时若发现 root `.git`，只走显式 inventory / archive / remove / verify diagnostic，不属于普通 bootstrap 成功条件，也不得重新成为 Agent 状态面。
 对于 legacy workspace，`init-workspace` 现在还会优先跟随 `ops/medautoscience/config.env` 中真实生效的 `MED_AUTOSCIENCE_PROFILE`；如果需要把 active profile 原位补齐到 Hermes-era contract，可显式传入 `--hermes-agent-repo-root` 与 `--hermes-home-root`，避免只在旁边生成一个不被当前 workspace 实际消费的 `.local.toml`。
-同一条升级路径现在也会修掉两种更隐蔽的 legacy host-service 漂移：如果 `_shared.sh` 仍停在“直接调用裸 `uv`”而不是显式消费 `MED_AUTOSCIENCE_UV_BIN`，launchd 在最小 PATH 下会直接 `exit 127`；如果 controlled backend launcher 仍依赖 `#!/usr/bin/env node` 而宿主最小 `PATH` 看不到 `node`，launchd 也会把它误报成 runtime 恢复失败。`init-workspace` 现在会识别并原位升级这些入口，把检测到的 `MED_AUTOSCIENCE_NODE_BIN` 合并进 workspace `config.env`，并让 service 显式持有 `MED_AUTOSCIENCE_UV_BIN / MED_AUTOSCIENCE_RSCRIPT_BIN / MED_AUTOSCIENCE_NODE_BIN`。
+同一条升级路径会把旧 workspace-local host-service 漂移识别为 retired cleanup evidence。旧 launchd/systemd/cron/docker service 不再作为 active runtime option 保留；`runtime-ensure-supervision` 负责清理旧 service evidence 并注册/刷新 Hermes gateway cron。
 
 前台 contract 要求：
 
@@ -255,12 +231,10 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 - `workspace-cockpit` / `launch-study` / `product-entry-status` 对齐消费 `study-progress.recovery_contract` 与 `recommended_command`，而不是各自再猜一遍当前应该 refresh supervision、launch study 还是仅保持人工判断
 - `workspace-cockpit` / `product-entry-status` 对齐消费 `study-progress.intervention_lane`：恢复异常应比普通 blocker 更靠前，质量硬阻塞不能继续被压平到泛化的 `study_blocked`
 - `build-product-entry` 的 `return_surface_contract` 还应显式带出 `single_project_boundary` 与 `study_progress_projection_contract`，至少告诉外部 caller：当前 owner boundary 是什么，以及 `study-progress` 里哪几个字段分别对应 `autonomy_soak_status`、`quality_execution_lane`、`same_line_route_truth`、`quality_review_followthrough`
-- `watch` 或 `install-watch-runtime-service` 负责持续刷新 supervisor tick；没有它们，`study-progress` 必须诚实降回 `managed_runtime_supervision_gap`
+- Hermes gateway cron 或显式 `watch-runtime --interval-seconds 300 --max-ticks 1` 负责持续刷新 supervisor tick；没有新鲜 tick，`study-progress` 必须诚实降回 `managed_runtime_supervision_gap`
 - 如果 `study.yaml` 显式声明 `manual_finish` 且 `compatibility_guard_only = true`，`study-progress` 应把该 study 投影成 `manual_finishing`，表达“当前以人工收尾 + 兼容保护为主”，而不是继续误报成默认应自动续跑的活跃 runtime blocker
 
-`2026-04-12` 在真实 study `002-dm-china-us-mortality-attribution` 上已经验证过这套入口：`ensure-study-runtime` 把 quest 拉回 live managed runtime，`study-runtime-status` 暴露了 `browser_url = http://127.0.0.1:20999` 与 `active_run_id = run-b5ed4887`，而 `watch --apply --ensure-study-runtimes` 与短周期 `watch --loop` 则连续刷新了 `runtime_watch/latest.json`、`runtime_supervision/latest.json` 和 `study-progress`。
-同日又在真实 workspace `dm-cvd-mortality-risk` 上验证了产品态常驻路径：对 legacy workspace 重跑 `init-workspace` 后，controller 安全升级了 `_shared.sh`、`watch-runtime` 与 `install-watch-runtime-service`；随后 launchd `watch-runtime` service 成功常驻在线，`001-dm-cvd-mortality-risk` 先从 `managed_runtime_supervision_gap` 恢复到诚实的 `runtime_blocked`，随后在写入 `study.yaml.manual_finish` 后进一步投影成 `manual_finishing`；`002-dm-china-us-mortality-attribution` 则回到 `publication_supervision`，两者的 `supervisor_tick_audit.status` 都恢复为 `fresh`。
-同日也在真实 workspace `NF-PitNET` 上验证了 legacy workspace compatibility lane：active `nfpitnet.workspace.toml` 已被原位补齐 Hermes binding；随后又通过修正 bare-`uv` `_shared.sh`、补齐 `MED_AUTOSCIENCE_NODE_BIN`、重新安装 `watch-runtime` launchd service，清掉了 `exit 127` 与 `env: node: No such file or directory` 这两类 host-service 漂移。短周期 `watch --apply --ensure-study-runtimes --loop` 之后，`002` 已回到“completion contract 已就绪、只剩 publication gate”的诚实 blocker，`003` 不再是 launcher contract 失败，而是前移到 publication gate / 用户最终元数据决策，`004` 则重新回到 live managed runtime，并暴露 `browser_url = http://127.0.0.1:21001` 与 `active_run_id = run-bc987174`。针对 `003` 这种 `quest_parked_on_unchanged_finalize_state` 且只剩外部元数据确认的 finalize 停车态，当前 `study-progress` 也已能把它直接投影成“等待医生或 PI 判断”，而不是继续把用户-facing next step 埋在 generic recovering wording 里。
+历史上真实 workspace 曾使用 workspace-local launchd service 验证监管刷新；该路径现在只作为历史/debug 事实保留。当前 active contract 以 Hermes gateway cron one-shot tick 为准，旧 launchd/systemd/cron/docker service 出现时应被清理，不再作为“产品态常驻路径”或替代 scheduler 推荐给 Agent。
 
 ## 运行层分工
 
@@ -277,8 +251,9 @@ Current reading note：本文件里的 `Hermes` 默认读作“外部 `Hermes-Ag
 它的含义不是把判断继续藏在 inner runtime 里，而是：
 
 - `MedAutoScience` outer-loop 负责研究治理、journal / reporting / publication judgment
-- `Hermes` 负责 outer runtime substrate、managed runtime handle、control semantics 和 durable runtime contract
-- `MedDeepScientist` 负责当前仍保留在 backend 内的 inner research execution
+- `Hermes gateway cron` 负责调用 MAS one-shot tick
+- `MAS Runtime OS` 负责默认 runtime state、event、recovery 与 quest lifecycle
+- `MedDeepScientist` 仅提供 frozen source / historical fixture / explicit diagnostic reference
 
 这条分工不改变 domain truth owner：study framing、数据准备度、publication gate 与 completion sync 仍由 `MedAutoScience` 持有；`Hermes` 只承接 outer runtime substrate contract，不把 repo-side seam 升格成独立 study authority。
 
@@ -439,7 +414,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-audit --profile pro
 
 ## Controlled Backend Audit
 
-当 Agent 发现 `MedDeepScientist` 所跟踪的 upstream `DeepScientist` 有新提交，或者准备把本机运行时纳入新的 intake 版本参考时，不应直接原地升级。推荐先执行：
+当 Agent 发现 upstream `DeepScientist` 有新提交，或者准备把本机 frozen source / historical fixture / backend-audit reference 切到新的 intake 版本时，不应直接原地升级。推荐先执行：
 
 ```bash
 PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-audit --profile profiles/my-study.local.toml --refresh
@@ -501,19 +476,18 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-audit --profile pro
 
 当前所谓 Phase 1 已经允许把 profile 的 historical backend repo root 指向一个受控的 sibling fork，例如本地 checkout 或 GitHub repo `med-deepscientist`；它对外的产品名是 `MedDeepScientist`。当前主链已经把 `adapters/deepscientist/*` 退出正式运行面，但这仍不等于 external `Hermes` runtime truth 已经到位。`med_deepscientist_repo_root` 仍作为 TOML 输入兼容字段保留，但 `doctor profile --format json` 只会在 `legacy_diagnostic.read_only` 下暴露它；现阶段它主要服务于 `backend-audit` 这类审计与 provenance/parity intake 流程，不是默认 workspace truth 或 product entry。如果 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json`，系统会把它识别为受控 fork并暴露 manifest 元数据。与此同时，`ops/mas/behavior_equivalence_gate.yaml` 是新 workspace 的关键 gate artifact；旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference 读取。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 依赖其中的 `schema_version`、`phase_25_ready` 与 `critical_overrides`，后者通常指向 site-packages 级别的本地改动。
 
-当前 P2 repo-side continuation 已把 `Hermes` 切成默认 outer runtime substrate owner。它的意义是让 controller / transport / durable surface 真正只认 backend contract，并把 `MedDeepScientist` 收口成 controlled research backend；它不等于 external runtime gate 已解除，也不等于 physical migration 已开始。
+当前 closeout 已把 MAS Runtime OS / `mas_runtime_core` 切成默认 runtime/backend owner。`Hermes gateway cron` 的意义是按固定间隔调用 MAS one-shot tick；它不把 external Hermes repo、external MDS repo 或旧 MDS daemon 重新变成默认 runtime truth。
 
 ### 当前 `Hermes` 名义与宿主安装的关系
 
-`med_autoscience.runtime_transport.hermes` 当前已经是 repo-side real adapter，而不是 consumer-only outer substrate seam。也就是说：
+`med_autoscience.runtime_transport.hermes` 当前只能按 explicit hosted/runtime target 或 compatibility reference 理解。默认 MAS operation 走 `mas_runtime_core`，也就是说：
 
-- 本仓可以合法写出 `runtime_backend_id = hermes`，是因为这里已经有真实 adapter：它会先把 runtime root 绑定到 explicit external `Hermes` repo / home 证据，再对 runtime readiness 做 fail-closed 校验
-- 这里冻结的是 outer substrate contract owner，不是宣称本机已经多出一个独立安装的 Hermes daemon
-- 当前这层 adapter 的真实作用，是让 controller / outer-loop / durable surface 经由 backend contract 去监管受控 research backend
-- 它已经可以检测掉线、请求恢复、写出 supervision / escalation / progress surface，并把 external runtime readiness 纳入 create / pause / resume / stop / watch 的正式控制路径
-- 但它还不能单独替代 `MedDeepScientist` engine 自身；如果 backend contract 整体不可达，当前 repo-side `Hermes` 仍只能 fail-closed 地检测、升级和报告，而不能诚实声称“独立 Hermes host 已自动接管执行”
+- 本仓默认写出 `runtime_backend_id = mas_runtime_core` / `runtime_engine_id = mas-runtime-core`
+- `Hermes gateway cron` 只负责 wakeup，不持有 study truth、runtime authority 或 publication authority
+- optional hosted Hermes target 必须通过 runtime backend contract、readiness proof 和 fail-closed gate 显式接入
+- `runtime_transport/med_deepscientist.py` 只能服务 explicit legacy diagnostic / historical fixture / backend audit，不参与默认 watch/status/execute/recovery
 
-只要 `phase_25_ready=false`，`backend-audit` 就会在 `workspace_check.behavior_gate` 里产生 `blocked_behavior_equivalence_gate` / `behavior_gate.phase_25_ready_false`，同时 `repo_check` 和 `overlay_check` 会被 `blocked_by_behavior_equivalence_gate` 的 skip 逻辑挡住，因此不能据此宣称“已经完成 execution truth 切换”。受控 fork manifest 只能说明 repo 身份已开始受控，不能替代 Phase 2.5 行为等价门。只有当 `behavior_equivalence_gate.yaml` 把 `phase_25_ready` 设为 `true`、`critical_overrides` 清单里的 site-packages 补丁已经被正式迁移，并且 gate 通过后，才可以把 historical backend repo root 视作受控 backend audit / parity oracle 的有效输入；它仍不重新成为 profile JSON 顶层 truth、MCP legacy mode 或默认 product-entry executor owner。
+`behavior_equivalence_gate.yaml` 现在是 workspace 兼容和历史迁移 gate，不是声明 “MDS daemon 行为已经完全等价” 的口径。行为等价事实以 `mds_behavior_equivalence_matrix` 为准：MAS 默认运行不要求 MDS daemon，也不提供旧 MDS WebSocket terminal streaming / connector background delivery；这些差异必须显式展示，不能被 functional-monolith status 覆盖。
 
 ## Runtime Protocol Surface
 
@@ -538,15 +512,18 @@ Phase 2 开始，`MedAutoScience` 明确把 runtime 布局与 quest 状态解析
 
 Phase 3 开始，transport 面也开始显式收口：
 
+- `med_autoscience.runtime_transport.mas_runtime_core`
+  - 负责默认 MAS-owned backend contract
+  - 负责本地 runtime state、event、session/liveness projection、quest lifecycle control 和 artifact handoff
 - `med_autoscience.runtime_transport.hermes`
-  - 负责 controller-facing outer substrate transport seam
-  - 负责暴露 backend-generic callable contract，并显式声明当前 controlled research backend metadata
+  - 只负责 optional hosted/runtime target 或 compatibility reference
+  - 不作为默认 operation dependency
 - `med_autoscience.runtime_transport.med_deepscientist`
-  - 负责当前 research backend 的 daemon URL 解析、quest create / pause / resume / control 这类 engine-specific HTTP transport
+  - 只负责 explicit legacy diagnostic / historical fixture / backend audit 场景下的 daemon URL 解析和旧行为对照
   - 允许优先读取 `<runtime_root>/runtime/daemon.json` 中的 live URL，并在缺失时回退到 `<runtime_root>/config/config.yaml`
   - 不负责 quest state、artifact topology 或 user message queue 这些协议真相
 
-这一步仍不等于 external `Hermes` runtime transport 已经完全到位；当前正式主链只是把 repo-side outer substrate 与 controlled research backend transport 的边界显式命名出来。production code 只允许依赖 `runtime_protocol` / `runtime_transport`，不再回退到 `adapters/deepscientist/*`。
+production code 只允许依赖 `runtime_protocol` / `runtime_transport` 的 backend contract；不得因为旧 diagnostic transport 存在就恢复 MDS 默认 runtime dependency。
 
 对于单个 study 的 runtime 编排，`study_runtime_router` 的稳定入口、typed surface 归属、decision 执行边界与 side-effect 约束，另见 [`study_runtime_orchestration.md`](./study_runtime_orchestration.md)。
 
@@ -566,18 +543,18 @@ Phase 3 开始，transport 面也开始显式收口：
    - 这是 filesystem-facing truth
 4. `runtime_transport`
   - 只负责 substrate / backend transport
-  - 当前由 `hermes` outer substrate seam 与 `med_deepscientist` backend transport 共同组成
+  - 默认由 `mas_runtime_core` 持有；`hermes` 和 `med_deepscientist` 只服务显式 hosted/diagnostic/reference 场景
   - 这是 process/network-facing truth
 5. `engine`
-  - 当前 research backend 是受控 fork `med-deepscientist`
-  - 负责真正长时运行、状态机推进、daemon、UI 与 quest 执行
+  - 当前默认 engine 是 MAS-owned runtime core
+  - 旧 MDS daemon / UI / connector / team 行为只作为 historical fixture 或 explicit diagnostic reference
 
 对应关系应是单向的：
 
 - `policy -> controller`
 - `controller -> runtime_protocol`
 - `controller -> runtime_transport`
-- `runtime_transport -> engine`
+- `runtime_transport -> engine/reference`
 
 `controller` 不应反向依赖 adapter，也不应直接触碰 engine 私有实现细节。
 

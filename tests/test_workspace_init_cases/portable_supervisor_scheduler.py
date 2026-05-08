@@ -19,25 +19,16 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
         force=False,
     )
 
-    runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
     install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
     service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
     uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
     supervisor_reconcile = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-reconcile"
     supervisor_execute_dispatch = workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch"
 
-    for path in (runner, install_service, service_status, uninstall_service, supervisor_reconcile, supervisor_execute_dispatch):
+    for path in (install_service, service_status, uninstall_service, supervisor_reconcile, supervisor_execute_dispatch):
         assert path.is_file()
         assert os.access(path, os.X_OK)
-
-    runner_text = runner.read_text(encoding="utf-8")
-    assert 'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-3600}"' in runner_text
-    assert 'SUPERVISOR_SCAN_INTERVAL_SECONDS="${SUPERVISOR_SCAN_INTERVAL_SECONDS:-3600}"' in runner_text
-    assert 'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"' in runner_text
-    assert 'SUPERVISOR_RECONCILE_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-reconcile"' in runner_text
-    assert f'exec "${{SUPERVISOR_RECONCILE_SCRIPT}}" --mode developer_apply_safe --apply "$@"' in runner_text
-    assert "SUPERVISOR_CONSUME_SCRIPT=" not in runner_text
-    assert "SUPERVISOR_EXECUTE_DISPATCH_SCRIPT=" not in runner_text
+    assert not (workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner").exists()
 
     supervisor_reconcile_text = supervisor_reconcile.read_text(encoding="utf-8")
     assert "run_medautosci runtime supervisor-reconcile" in supervisor_reconcile_text
@@ -69,9 +60,13 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
 
     install_text = install_service.read_text(encoding="utf-8")
     assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
+    assert "register/refresh Hermes gateway cron" in install_text
+    assert "clean retired workspace-local host services" in install_text
+    assert "Retired diagnostic managers:" in install_text
     assert "--manager systemd" in install_text
     assert "--manager cron" in install_text
-    assert "--manager docker" not in install_text
+    assert "--manager launchd" in install_text
+    assert "--manager docker" in install_text
 
     status_text = service_status.read_text(encoding="utf-8")
     assert 'run_medautosci runtime supervision-status --profile "${PROFILE_PATH}" "$@"' in status_text
@@ -80,7 +75,7 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     assert 'run_medautosci runtime remove-supervision --profile "${PROFILE_PATH}" "$@"' in uninstall_text
 
 
-def test_init_workspace_renders_portable_supervisor_scheduler_templates(tmp_path: Path) -> None:
+def test_init_workspace_does_not_render_workspace_local_scheduler_templates(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "supervisor-template-workspace"
 
@@ -92,37 +87,10 @@ def test_init_workspace_renders_portable_supervisor_scheduler_templates(tmp_path
     )
 
     templates_root = workspace_root / "ops" / "medautoscience" / "supervisor"
-    systemd_service = templates_root / "systemd" / "medautoscience-supervisor-scan.service"
-    systemd_timer = templates_root / "systemd" / "medautoscience-supervisor-scan.timer"
-    cron_template = templates_root / "cron" / "supervisor-scan.cron"
-    launchd_instructions = templates_root / "launchd" / "README.md"
-
-    for path in (
-        systemd_service,
-        systemd_timer,
-        cron_template,
-        launchd_instructions,
-    ):
-        assert path.is_file()
-
+    assert not templates_root.exists()
+    assert not (workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner").exists()
+    assert not (templates_root / "systemd").exists()
+    assert not (templates_root / "cron").exists()
+    assert not (templates_root / "launchd").exists()
     assert not (templates_root / "docker").exists()
     assert not (templates_root / "kubernetes").exists()
-
-    systemd_service_text = systemd_service.read_text(encoding="utf-8")
-    systemd_timer_text = systemd_timer.read_text(encoding="utf-8")
-    cron_text = cron_template.read_text(encoding="utf-8")
-    launchd_text = launchd_instructions.read_text(encoding="utf-8")
-
-    assert f"WorkingDirectory={workspace_root}" in systemd_service_text
-    assert f"ExecStart={workspace_root}/ops/medautoscience/bin/watch-runtime-service-runner" in systemd_service_text
-    assert "supervisor reconcile" in systemd_service_text.lower()
-    assert "OnCalendar=hourly" in systemd_timer_text
-    assert f"{workspace_root}/ops/medautoscience/bin/watch-runtime-service-runner" in cron_text
-    assert "reconcile" in cron_text
-    assert "launchd" in launchd_text
-    assert "supervisor reconcile" in launchd_text.lower()
-    assert "install-watch-runtime-service --manager launchd" in launchd_text
-    assert "Codex App heartbeat" not in "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in (systemd_service, systemd_timer, cron_template)
-    )

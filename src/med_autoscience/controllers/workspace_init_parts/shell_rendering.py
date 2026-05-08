@@ -148,27 +148,6 @@ def _render_watch_runtime_script(*, workspace_root: Path, runtime_quests_root: P
     )
 
 
-def _render_watch_runtime_service_runner() -> str:
-    return (
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'WATCH_RUNTIME_INTERVAL_SECONDS="${WATCH_RUNTIME_INTERVAL_SECONDS:-3600}"\n'
-        'SUPERVISOR_SCAN_INTERVAL_SECONDS="${SUPERVISOR_SCAN_INTERVAL_SECONDS:-3600}"\n'
-        'WATCH_RUNTIME_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime"\n\n'
-        'SUPERVISOR_RECONCILE_SCRIPT="${WORKSPACE_ROOT}/ops/medautoscience/bin/supervisor-reconcile"\n\n'
-        'if [[ ! -x "${WATCH_RUNTIME_SCRIPT}" ]]; then\n'
-        '  echo "watch-runtime entry is missing or not executable: ${WATCH_RUNTIME_SCRIPT}" >&2\n'
-        "  exit 1\n"
-        "fi\n\n"
-        'if [[ ! -x "${SUPERVISOR_RECONCILE_SCRIPT}" ]]; then\n'
-        '  echo "supervisor-reconcile entry is missing or not executable: ${SUPERVISOR_RECONCILE_SCRIPT}" >&2\n'
-        "  exit 1\n"
-        "fi\n\n"
-        f'exec "${{SUPERVISOR_RECONCILE_SCRIPT}}" {DEVELOPER_SUPERVISOR_RECONCILE_ARGS} "$@"\n'
-    )
-
-
 def _render_supervisor_scan_script() -> str:
     return (
         "#!/usr/bin/env bash\n"
@@ -216,47 +195,6 @@ def _render_supervisor_reconcile_script() -> str:
     )
 
 
-def _render_supervisor_systemd_service(*, workspace_root: Path) -> str:
-    supervisor_runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
-    return (
-        "[Unit]\n"
-        "Description=MedAutoScience portable supervisor reconcile\n\n"
-        "[Service]\n"
-        "Type=oneshot\n"
-        f"WorkingDirectory={workspace_root}\n"
-        f"ExecStart={supervisor_runner}\n"
-    )
-
-
-def _render_supervisor_systemd_timer() -> str:
-    return (
-        "[Unit]\n"
-        "Description=Run MedAutoScience portable supervisor scan hourly\n\n"
-        "[Timer]\n"
-        "OnCalendar=hourly\n"
-        "Persistent=true\n\n"
-        "[Install]\n"
-        "WantedBy=timers.target\n"
-    )
-
-
-def _render_supervisor_cron_template(*, workspace_root: Path) -> str:
-    supervisor_runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
-    return f"# Runs supervisor reconcile one-shot; scan/consume/execute-dispatch remain debug entries.\n0 * * * * {supervisor_runner}\n"
-
-
-def _render_supervisor_launchd_instructions() -> str:
-    return (
-        "# launchd Compatibility\n\n"
-        "macOS launchd remains a compatibility scheduler for the portable supervisor reconcile one-shot.\n\n"
-        "Install instructions:\n\n"
-        "```bash\n"
-        "ops/medautoscience/bin/install-watch-runtime-service --manager launchd\n"
-        "```\n\n"
-        "The command returns the template path and copy/load command. It does not claim a host service is installed.\n"
-    )
-
-
 def _render_install_watch_runtime_service_script() -> str:
     return (
         "#!/usr/bin/env bash\n"
@@ -265,10 +203,13 @@ def _render_install_watch_runtime_service_script() -> str:
         'if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then\n'
         '  cat <<'"'"'EOF'"'"'\n'
         "Install portable MAS runtime supervision.\n\n"
-        "Supported managers:\n"
-        "  --manager systemd   Linux systemd --user service/timer\n"
-        "  --manager cron      plain host cron entry\n"
-        "  --manager launchd   macOS compatibility path\n"
+        "Default:\n"
+        "  no --manager       register/refresh Hermes gateway cron and clean retired workspace-local host services\n\n"
+        "Retired diagnostic managers:\n"
+        "  --manager systemd   fail-closed; reports retired workspace-local service manager\n"
+        "  --manager cron      fail-closed; reports retired workspace-local service manager\n"
+        "  --manager launchd   fail-closed; reports retired workspace-local service manager\n"
+        "  --manager docker    fail-closed; MAS does not own container scheduler installation\n"
         "EOF\n"
         "  exit 0\n"
         "fi\n\n"

@@ -180,7 +180,7 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_product_entry_program_step(
                 step_id="supervisor_service",
-                title="确认 workspace 常驻监管在线",
+                title="确认 workspace 定时监管在线",
                 surface_kind="workspace_supervisor_service",
                 command=supervisor_service_command,
             ),

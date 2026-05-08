@@ -817,7 +817,14 @@ def supervisor_scan(
         "workspace_root": str(profile.workspace_root),
         "scheduler_contract": {
             "codex_app_heartbeat_required": False,
-            "supported_schedulers": ["systemd_user", "cron", "launchd", "external_container_scheduler"],
+            "scheduler_owner": "hermes_gateway_cron",
+            "tick_contract": {
+                "command": "ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1",
+                "cadence_seconds": 300,
+                "resident_daemon": False,
+            },
+            "retired_workspace_local_schedulers": ["systemd_user", "cron", "launchd"],
+            "external_scheduler_role": "caller_of_mas_cli_only",
             "developer_supervisor_mode": developer_mode.to_dict(),
         },
         "developer_supervisor_mode": developer_mode.to_dict(),

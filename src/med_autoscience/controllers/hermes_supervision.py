@@ -127,16 +127,6 @@ def _codex_app_automation_path() -> Path:
     return Path.home() / ".codex" / "automations" / "mas" / "automation.toml"
 
 
-def _portable_supervisor_templates(profile: WorkspaceProfile) -> dict[str, Path]:
-    templates_root = profile.workspace_root / "ops" / "medautoscience" / "supervisor"
-    return {
-        "systemd_service": templates_root / "systemd" / "medautoscience-supervisor-scan.service",
-        "systemd_timer": templates_root / "systemd" / "medautoscience-supervisor-scan.timer",
-        "cron": templates_root / "cron" / "supervisor-scan.cron",
-        "launchd_instructions": templates_root / "launchd" / "README.md",
-    }
-
-
 def _github_user_login_check() -> dict[str, Any]:
     gate = current_github_user_gate(expected_login=_DEVELOPER_SUPERVISOR_GITHUB_LOGIN)
     return {
@@ -163,12 +153,7 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     supervisor_reconcile = _workspace_supervisor_reconcile_entry_path(profile)
     supervisor_consume = _workspace_supervisor_consume_entry_path(profile)
     supervisor_execute_dispatch = _workspace_supervisor_execute_dispatch_entry_path(profile)
-    if manager == "codex_app":
-        scheduler_owner = "codex_app_compat"
-    elif unsupported_manager:
-        scheduler_owner = "external_container_scheduler"
-    else:
-        scheduler_owner = f"{manager}_scheduler"
+    scheduler_owner = f"retired_{manager}_scheduler"
     expected_artifacts = [
         str(profile.workspace_root / "artifacts" / "supervision" / "reconcile" / "latest.json"),
         str(profile.workspace_root / "artifacts" / "supervision" / "reconcile" / "history.jsonl"),
@@ -186,7 +171,7 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     return {
         "mode": "developer_apply_safe" if developer_mode_enabled else "external_observe",
         "requested_mode": "developer_apply_safe",
-        "mode_source": "unsupported_container_scheduler" if unsupported_manager else "github_user_gate",
+        "mode_source": "retired_workspace_local_service_manager" if unsupported_manager else "github_user_gate",
         "developer_mode_enabled": developer_mode_enabled,
         "safe_actions_enabled": developer_mode_enabled,
         "repo_level_repair_authority": developer_mode_enabled,
@@ -268,55 +253,18 @@ def _portable_supervisor_instruction(
     supervisor_reconcile = _workspace_supervisor_reconcile_entry_path(profile)
     supervisor_consume = _workspace_supervisor_consume_entry_path(profile)
     supervisor_execute_dispatch = _workspace_supervisor_execute_dispatch_entry_path(profile)
-    templates = _portable_supervisor_templates(profile)
     manager_key = manager.strip().lower()
-    user_systemd_root = Path.home() / ".config" / "systemd" / "user"
-    result_templates: dict[str, str]
-    install_commands: list[str]
-    if manager_key == "systemd":
-        service_template = templates["systemd_service"]
-        timer_template = templates["systemd_timer"]
-        result_templates = {
-            "service": str(service_template),
-            "timer": str(timer_template),
-        }
-        install_commands = [
-            f"mkdir -p {user_systemd_root}",
-            f"cp {service_template} {user_systemd_root / service_template.name}",
-            f"cp {timer_template} {user_systemd_root / timer_template.name}",
-            "systemctl --user daemon-reload",
-            f"systemctl --user enable --now {timer_template.name}",
-        ]
-    elif manager_key == "cron":
-        cron_template = templates["cron"]
-        result_templates = {"crontab": str(cron_template)}
-        install_commands = [
-            f"(crontab -l 2>/dev/null; cat {cron_template}) | crontab -",
-        ]
-    elif manager_key == "docker":
-        result_templates = {}
-        install_commands = [
-            "Run this MAS CLI entry from the container image or scheduler owned by OPL, Hermes, or the deployment platform: "
-            f"<container-entry> medautosci runtime supervisor-reconcile --profile <profile> {_DEVELOPER_SUPERVISOR_RECONCILE_TEXT}"
-        ]
-    elif manager_key == "launchd":
-        result_templates = {"instructions": str(templates["launchd_instructions"])}
-        install_commands = [
-            f"{profile.workspace_root}/ops/medautoscience/bin/install-watch-runtime-service --manager launchd",
-        ]
-    else:
-        result_templates = {}
-        install_commands = []
     developer_supervisor_mode = _developer_supervisor_mode_projection(
         profile=profile,
         manager=manager_key,
         interval_seconds=interval_seconds,
     )
-    host_service_claim = "not_installed_by_mas"
+    host_service_claim = "retired_not_installed_by_mas"
+    install_commands: list[str] = []
     install_proof = _portable_install_proof(
         profile=profile,
         manager=manager_key,
-        scheduler_owner=developer_supervisor_mode["scheduler_owner"],
+        scheduler_owner=f"retired_{manager_key}_scheduler",
         install_commands=install_commands,
         status_check_commands=developer_supervisor_mode["install_proof"]["status_check_commands"],
         expected_artifacts=developer_supervisor_mode["install_proof"]["expected_artifacts"],
@@ -324,12 +272,11 @@ def _portable_supervisor_instruction(
         safe_action_mode=developer_supervisor_mode["mode"],
         github_gate=developer_supervisor_mode["github_user_gate"],
         host_service_claim=host_service_claim,
-        status=str(developer_supervisor_mode["install_proof"]["status"]),
+        status="retired_fail_closed",
     )
-    if write_install_proof:
-        _write_json(_install_proof_path(profile), install_proof)
     return {
-        "action": "portable_scheduler_instruction",
+        "action": "retired_workspace_local_service_manager",
+        "status": "retired_fail_closed",
         "manager": manager_key,
         "mode": developer_supervisor_mode["mode"],
         "requested_mode": developer_supervisor_mode["requested_mode"],
@@ -337,10 +284,18 @@ def _portable_supervisor_instruction(
         "developer_mode_enabled": developer_supervisor_mode["developer_mode_enabled"],
         "safe_actions_enabled": developer_supervisor_mode["safe_actions_enabled"],
         "repo_level_repair_authority": developer_supervisor_mode["repo_level_repair_authority"],
-        "scheduler_owner": developer_supervisor_mode["scheduler_owner"],
+        "scheduler_owner": f"retired_{manager_key}_scheduler",
         "github_user": developer_supervisor_mode["github_user"],
         "github_user_gate": developer_supervisor_mode["github_user_gate"],
         "installed": False,
+        "canonical_owner": "hermes_gateway_cron",
+        "retired_reason": "workspace_local_host_services_are_no_longer_active_mas_runtime_owners",
+        "recommended_command": [
+            "medautosci",
+            "runtime-ensure-supervision",
+            "--profile",
+            str(profile.workspace_root / "ops" / "medautoscience" / "profiles"),
+        ],
         "profile": str(profile.workspace_root / "ops" / "medautoscience" / "profiles"),
         "interval_seconds": interval_seconds,
         "supervisor_scan_entry": {
@@ -363,14 +318,13 @@ def _portable_supervisor_instruction(
             "exists": supervisor_execute_dispatch.is_file(),
             "executable": supervisor_execute_dispatch.is_file() and os.access(supervisor_execute_dispatch, os.X_OK),
         },
-        "command": [
-            str(supervisor_reconcile),
-            *_DEVELOPER_SUPERVISOR_RECONCILE_ARGS,
-        ],
-        "templates": result_templates,
+        "command": [],
+        "templates": {},
         "install_commands": install_commands,
         "install_proof": install_proof,
-        "install_proof_path": str(_install_proof_path(profile)) if write_install_proof else None,
+        "install_proof_path": None,
+        "write_install_proof_requested": bool(write_install_proof),
+        "write_install_proof_supported": False,
         "status_check_commands": install_proof["status_check_commands"],
         "expected_artifacts": install_proof["expected_artifacts"],
         "freshness": install_proof["freshness"],
@@ -378,7 +332,7 @@ def _portable_supervisor_instruction(
         "codex_app_automation_prompt": developer_supervisor_mode["codex_app_automation_prompt"],
         "codex_app_heartbeat_required": False,
         "host_service_claim": host_service_claim,
-        "container_policy": "MAS does not own a Docker image or Kubernetes CronJob; external OPL, Hermes, or deployment schedulers may call the MAS reconcile CLI entry.",
+        "container_policy": "MAS does not own a Docker image, Kubernetes CronJob, or workspace-local host service runtime owner.",
     }
 
 
@@ -494,10 +448,12 @@ def _status_summary(
     legacy_service = dict(legacy_service or {})
     legacy_loaded = bool(legacy_service.get("loaded"))
     legacy_exists = bool(legacy_service.get("service_exists"))
-    if status == "legacy_only" and (legacy_loaded or legacy_exists):
-        return "检测到 legacy workspace-local runtime supervision service 仍在运行，当前 canonical Hermes supervision 尚未接管。"
-    if status == "owner_drift" and (legacy_loaded or legacy_exists):
-        return "canonical Hermes supervision 与 legacy workspace-local runtime supervision service 同时存在，当前需要迁移到单一 Hermes owner。"
+    if status == "retired_legacy_service_present" and (legacy_loaded or legacy_exists):
+        return (
+            "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 "
+            "Hermes gateway cron；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 "
+            "Hermes cron tick。"
+        )
     return _shared_status_summary(
         status=status,
         gateway_service_loaded=gateway_service_loaded,
@@ -533,23 +489,39 @@ def _latest_job_run(profile: WorkspaceProfile, *, job_id: str | None) -> dict[st
     session_path = _latest_job_session_path(profile, job_id=job_id)
     if session_path is None:
         return None
-    try:
-        payload = json.loads(session_path.read_text(encoding="utf-8")) or {}
-    except (OSError, json.JSONDecodeError):
-        return {
-            "status": "invalid",
-            "summary": "latest cron session payload is unreadable",
-            "session_path": str(session_path),
-            "recorded_at": None,
-        }
+    payload = _read_latest_job_session_payload(session_path)
+    if payload is None:
+        return _latest_job_run_projection(
+            status="invalid",
+            summary="latest cron session payload is unreadable",
+            session_path=session_path,
+            recorded_at=None,
+        )
     if not isinstance(payload, dict):
-        return {
-            "status": "invalid",
-            "summary": "latest cron session payload is invalid",
-            "session_path": str(session_path),
-            "recorded_at": None,
-        }
-    messages = payload.get("messages")
+        return _latest_job_run_projection(
+            status="invalid",
+            summary="latest cron session payload is invalid",
+            session_path=session_path,
+            recorded_at=None,
+        )
+    latest_content = _latest_assistant_content(payload.get("messages"))
+    status, summary = _latest_job_run_status(latest_content)
+    return _latest_job_run_projection(
+        status=status,
+        summary=summary,
+        session_path=session_path,
+        recorded_at=str(payload.get("last_updated") or payload.get("session_start") or "").strip() or None,
+    )
+
+
+def _read_latest_job_session_payload(session_path: Path) -> object | None:
+    try:
+        return json.loads(session_path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _latest_assistant_content(messages: object) -> str | None:
     latest_content: str | None = None
     if isinstance(messages, list):
         for item in reversed(messages):
@@ -561,6 +533,10 @@ def _latest_job_run(profile: WorkspaceProfile, *, job_id: str | None) -> dict[st
             if isinstance(candidate, str) and candidate.strip():
                 latest_content = candidate.strip()
                 break
+    return latest_content
+
+
+def _latest_job_run_status(latest_content: str | None) -> tuple[str, str | None]:
     status = "unknown"
     summary = None
     if latest_content == _SILENT_SUCCESS_RESPONSE:
@@ -572,11 +548,21 @@ def _latest_job_run(profile: WorkspaceProfile, *, job_id: str | None) -> dict[st
     elif latest_content is not None:
         status = "reported"
         summary = latest_content.splitlines()[0].strip()
+    return status, summary
+
+
+def _latest_job_run_projection(
+    *,
+    status: str,
+    summary: str | None,
+    session_path: Path,
+    recorded_at: str | None,
+) -> dict[str, Any]:
     return {
         "status": status,
         "summary": summary,
         "session_path": str(session_path),
-        "recorded_at": str(payload.get("last_updated") or payload.get("session_start") or "").strip() or None,
+        "recorded_at": recorded_at,
     }
 
 
@@ -708,19 +694,17 @@ def read_supervision_status(
     legacy_loaded = bool(legacy_service.get("loaded"))
     legacy_exists = bool(legacy_service.get("service_exists"))
     if legacy_loaded:
-        drift_reasons = [*drift_reasons, "legacy_service_loaded"]
+        drift_reasons = [*drift_reasons, "retired_legacy_service_loaded"]
     elif legacy_exists:
-        drift_reasons = [*drift_reasons, "legacy_service_present"]
-    if job_present and gateway_service_loaded and job_enabled and job_state == "scheduled" and script_exists:
+        drift_reasons = [*drift_reasons, "retired_legacy_service_present"]
+    if legacy_loaded or legacy_exists:
+        status = "retired_legacy_service_present"
+    elif job_present and gateway_service_loaded and job_enabled and job_state == "scheduled" and script_exists:
         status = "execution_failed" if latest_run_failed else "loaded"
     elif job_present:
         status = "not_loaded"
-    elif legacy_loaded or legacy_exists:
-        status = "legacy_only"
     else:
         status = "not_installed"
-    if status in {"loaded", "execution_failed", "not_loaded"} and (legacy_loaded or legacy_exists):
-        status = "owner_drift"
     summary = _status_summary(
         status=status,
         gateway_service_loaded=gateway_service_loaded,
@@ -773,6 +757,8 @@ def read_supervision_status(
         "runtime_contract_ready": bool(runtime_contract.get("ready")),
         "runtime_contract_issues": list(runtime_contract.get("issues") or []),
         "legacy_service": legacy_service,
+        "legacy_service_role": "retired_cleanup_evidence",
+        "retired_legacy_cleanup_required": legacy_loaded or legacy_exists,
     }
 
 
@@ -794,6 +780,17 @@ def ensure_supervision(
     _ensure_script_file(profile, interval_seconds=interval_seconds)
     watch_runtime_repair = _repair_legacy_workspace_watch_runtime_entry(profile)
     before = read_supervision_status(profile=profile, interval_seconds=interval_seconds)
+    legacy_removal = None
+    command_outputs: list[dict[str, Any]] = []
+    action = "noop"
+    if bool(watch_runtime_repair.get("repaired")):
+        action = "repaired_watch_runtime_entry"
+    before_legacy_service = dict(before.get("legacy_service") or {})
+    if bool(before_legacy_service.get("service_exists")) or bool(before_legacy_service.get("loaded")):
+        legacy_removal = _remove_legacy_service(profile)
+        if legacy_removal["unloaded"] or legacy_removal["removed_service_file"]:
+            action = "retired_legacy_service" if action == "noop" else action
+        before = read_supervision_status(profile=profile, interval_seconds=interval_seconds)
     missing_prereqs = [
         issue
         for issue in before["runtime_contract_issues"]
@@ -808,13 +805,11 @@ def ensure_supervision(
             "action": "blocked",
             "blocking_issues": missing_prereqs,
             "before": before,
+            "watch_runtime_repair": watch_runtime_repair,
+            "legacy_removal": legacy_removal,
         }
 
     primary_job_id = before["job_id"]
-    action = "noop"
-    command_outputs: list[dict[str, Any]] = []
-    if bool(watch_runtime_repair.get("repaired")) and action == "noop":
-        action = "repaired_watch_runtime_entry"
     if primary_job_id is None:
         create_command = _hermes_cli_command(
             profile,
@@ -893,15 +888,6 @@ def ensure_supervision(
         if exit_code == 0 and action == "noop":
             action = "scheduled_now"
 
-    legacy_removal = None
-    if bool((before.get("legacy_service") or {}).get("service_exists")):
-        legacy_removal = _remove_legacy_service(profile)
-        if action == "noop" and (
-            legacy_removal["unloaded"]
-            or legacy_removal["removed_service_file"]
-        ):
-            action = "migrated_legacy_service"
-
     after = read_supervision_status(profile=profile, interval_seconds=interval_seconds)
     return {
         "action": action,
@@ -940,7 +926,8 @@ def remove_supervision(
         _remove_empty_parent_dirs(script_path, stop_at=profile.hermes_home_root / "scripts")
 
     legacy_removal = None
-    if bool((before.get("legacy_service") or {}).get("service_exists")):
+    before_legacy_service = dict(before.get("legacy_service") or {})
+    if bool(before_legacy_service.get("service_exists")) or bool(before_legacy_service.get("loaded")):
         legacy_removal = _remove_legacy_service(profile)
 
     after = read_supervision_status(profile=profile, interval_seconds=interval_seconds)

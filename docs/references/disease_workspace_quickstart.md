@@ -174,17 +174,17 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 ## Runtime Boundary
 
 - `MedAutoScience` 是正式研究入口，单一 MAS app skill 负责承接其稳定 callable surface
-- `Hermes` 是默认 outer runtime substrate owner
-- `MedDeepScientist` 是 controlled research backend / oracle / legacy diagnostic reference
+- `MAS Runtime OS` 是默认 runtime owner；`Hermes gateway cron` 是默认 supervision scheduler owner
+- `MedDeepScientist` 只保留为 frozen source archive / historical fixture / explicit legacy diagnostic / provenance reference，不是默认 workspace runtime 依赖
 - 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
-- 旧 `ops/med-deepscientist/bin/*` 只用于 legacy runtime 运维、诊断和恢复，不用于新研究治理或新 quest materialization
+- 旧 `ops/med-deepscientist/bin/*` 如果在历史 workspace 中出现，只作为 historical/debug evidence 或 cleanup target；新 workspace 不生成，也不作为 active runtime 运维入口
 - `OPL` handoff、product-entry manifest 与其他机器可读桥接只保留在集成或参考层
 - Agent 查状态或做 lifecycle 操作时，读 file authority、SQLite runtime lifecycle、lifecycle ledger、quest manifest 和 restore index；不查 Git
 
 ## 常见误区
 
 - 不要复制整个 legacy workspace 当模板
-- 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；只有 backend audit / parity oracle 需要时才配置外部 controlled backend checkout
+- 不要在每个病种 workspace 里再 clone 一份上游 `DeepScientist`；只有 backend audit / parity oracle / source provenance 需要时才配置外部 MDS reference repo
 - 不要把单篇论文目录当成 workspace 顶层
 - 不要在每个 study 下各自维护一份未经登记的数据真相源
 

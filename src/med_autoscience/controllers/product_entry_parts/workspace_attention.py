@@ -342,11 +342,11 @@ def _attention_queue(
         queue.append(
             _attention_item(
                 code="workspace_supervisor_service_not_loaded",
-                title="先恢复 Hermes-hosted 常驻监管",
+                title="先恢复 Hermes-hosted 定时监管",
                 summary=_non_empty_text(service.get("summary"))
-                or "当前 workspace 还没有稳定的 Hermes-hosted 常驻监管入口。",
+                or "当前 workspace 还没有稳定的 Hermes-hosted 定时监管入口。",
                 recommended_step_id=_attention_step_id("workspace_supervisor_service_not_loaded"),
-                recommended_command=commands.get("service_status") or commands.get("service_install"),
+                recommended_command=commands.get("service_install") or commands.get("service_status"),
                 scope="workspace",
             )
         )
