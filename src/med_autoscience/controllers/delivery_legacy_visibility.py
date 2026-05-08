@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-READ_MODEL_NAME = "delivery_legacy_visibility_read_model"
+READ_MODEL_NAME = "delivery_visibility_read_model"
 WRITE_AUTHORITY = "controller_authorized_delivery_sync_apply_only"
 DOCTOR_README_STRUCTURE = [
     {
@@ -190,7 +190,7 @@ def build_delivery_legacy_visibility_read_model(value: object) -> dict[str, Any]
     next_sync_command = _text(inspection.get("next_sync_command"))
     backfill_status = "clear" if not blockers else "blocked"
     return {
-        "surface": "delivery_legacy_visibility",
+        "surface": "delivery_visibility",
         "surface_kind": READ_MODEL_NAME,
         "schema_version": 1,
         "read_model": READ_MODEL_NAME,

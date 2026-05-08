@@ -4,6 +4,16 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .human_gates import *  # noqa: F403
 
 
+def _public_executor_source_surface(execution: dict[str, Any]) -> str:
+    executor_kind = str(execution.get("executor_kind") or "").strip()
+    if executor_kind in {"codex_cli", "hermes_agent"}:
+        return executor_kind
+    executor = str(execution.get("executor") or "").strip()
+    if executor == "hermes_agent":
+        return "hermes_agent"
+    return "codex_cli"
+
+
 def _record_family_orchestration_companion(
     *,
     status: StudyRuntimeStatus,
@@ -41,11 +51,7 @@ def _record_family_orchestration_companion(
         surface_kind="study_runtime_status",
         surface_id="study_runtime_status",
         event_name=f"study_runtime_status.{runtime_decision or 'observed'}",
-        source_surface=str(
-            status.execution.get("executor_kind")
-            or status.execution.get("executor")
-            or "codex_cli_autonomous"
-        ),
+        source_surface=_public_executor_source_surface(status.execution),
         session_id=f"study-runtime:{status.study_id}",
         program_id=family_orchestration.resolve_program_id(status.execution),
         study_id=status.study_id,

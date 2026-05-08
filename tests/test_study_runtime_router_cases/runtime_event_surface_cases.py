@@ -599,7 +599,7 @@ def test_study_runtime_status_prefers_executor_kind_for_family_source_surface(
     _write_execution_overrides(
         study_root,
         executor="codex_cli_autonomous",
-        executor_kind="hermes_native_proof",
+        executor_kind="hermes_agent",
     )
     quest_root = profile.runtime_root / "001-risk"
     write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
@@ -679,7 +679,7 @@ def test_study_runtime_status_prefers_executor_kind_for_family_source_surface(
     result = module.study_runtime_status(profile=profile, study_id="001-risk")
 
     envelope = result["family_event_envelope"]
-    assert envelope["session"]["source_surface"] == "hermes_native_proof"
+    assert envelope["session"]["source_surface"] == "hermes_agent"
 
 
 @pytest.mark.parametrize(

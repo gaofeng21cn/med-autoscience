@@ -45,7 +45,8 @@ def test_delivery_legacy_visibility_projects_legacy_queue_and_read_only_authorit
 
     read_model = module.build_delivery_legacy_visibility_read_model(_legacy_inspection())
 
-    assert read_model["read_model"] == "delivery_legacy_visibility_read_model"
+    assert read_model["read_model"] == "delivery_visibility_read_model"
+    assert read_model["surface"] == "delivery_visibility"
     assert read_model["projection_only"] is True
     assert read_model["traffic_light"]["status"] == "legacy_pending"
     assert len(read_model["legacy_upgrade_queue"]) == 3
@@ -104,8 +105,9 @@ def test_delivery_visibility_projection_embeds_l4_read_model() -> None:
     assert projection["status"] == "legacy_layout_pending_sync"
     assert projection["read_model"] == "delivery_visibility_projection"
     assert projection["projection_only"] is True
-    assert projection["legacy_visibility"]["traffic_light"]["status"] == "legacy_pending"
-    assert projection["legacy_visibility"]["authority"]["can_write_delivery_truth"] is False
+    assert "legacy_visibility" not in projection
+    assert projection["delivery_visibility"]["traffic_light"]["status"] == "legacy_pending"
+    assert projection["delivery_visibility"]["authority"]["can_write_delivery_truth"] is False
     markdown = "\n".join(
         projection_module.render_delivery_inspection_markdown_lines(
             projection,
