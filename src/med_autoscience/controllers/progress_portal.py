@@ -16,9 +16,11 @@ from med_autoscience.profiles import WorkspaceProfile
 
 SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_progress_portal"
+HOSTED_PACKAGE_SURFACE_KIND = "mas_progress_portal_hosted_package"
 BRAND = "Med Auto Science"
 PROGRESS_PORTAL_PAYLOAD_REF = "artifacts/runtime/progress_portal/latest.json"
 PROGRESS_PORTAL_HTML_REF = "ops/mas/progress/index.html"
+PROGRESS_PORTAL_HOSTED_PACKAGE_REF = "artifacts/runtime/progress_portal/hosted_package.json"
 
 
 def build_progress_portal_payload(
@@ -268,11 +270,21 @@ def materialize_progress_portal(
         auto_refresh_seconds=auto_refresh_seconds,
     )
     payload_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "latest.json"
+    hosted_package_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
     html_path = profile.workspace_root / "ops" / "mas" / "progress" / "index.html"
     payload_path.parent.mkdir(parents=True, exist_ok=True)
     html_path.parent.mkdir(parents=True, exist_ok=True)
     payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     html_path.write_text(render_progress_portal_html(payload), encoding="utf-8")
+    hosted_package = build_progress_portal_hosted_package(
+        profile=profile,
+        profile_ref=profile_ref,
+        payload=payload,
+        payload_path=payload_path,
+        html_path=html_path,
+        hosted_package_path=hosted_package_path,
+    )
+    hosted_package_path.write_text(json.dumps(hosted_package, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if open_browser:
         webbrowser.open(html_path.as_uri())
     opl_handoff = _materialized_opl_handoff(
@@ -285,8 +297,101 @@ def materialize_progress_portal(
         "surface_kind": SURFACE_KIND,
         "payload_path": str(payload_path),
         "html_path": str(html_path),
+        "hosted_package_path": str(hosted_package_path),
         "generated_at": payload["generated_at"],
         "opl_handoff": opl_handoff,
+        "hosted_package": hosted_package,
+    }
+
+
+def build_progress_portal_hosted_package(
+    *,
+    profile: WorkspaceProfile,
+    payload: Mapping[str, Any],
+    payload_path: Path,
+    html_path: Path,
+    hosted_package_path: Path,
+    profile_ref: str | Path | None = None,
+) -> dict[str, Any]:
+    workspace_root = profile.workspace_root
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": HOSTED_PACKAGE_SURFACE_KIND,
+        "owner": "MedAutoScience",
+        "packaging_owner": "MedAutoScience",
+        "package_role": "optional_hosted_runtime_workspace_truth_package",
+        "generated_at": payload.get("generated_at"),
+        "read_only": True,
+        "default_operation_requires_external_mds": False,
+        "default_diagnostic_requires_external_mds": False,
+        "mds_webui_dependency_allowed": False,
+        "default_webui": "mas_progress_portal",
+        "authority": {
+            "kind": "hosted_read_model_package",
+            "writes_authority_surface": False,
+            "forbidden_authority": [
+                "study_truth",
+                "publication_judgment",
+                "quality_verdict",
+                "runtime_authority",
+                "artifact_authority",
+                "controller_decision_authority",
+            ],
+        },
+        "workspace": {
+            "profile_name": profile.name,
+            "workspace_root": str(workspace_root),
+            "profile_ref": str(profile_ref) if profile_ref is not None else None,
+        },
+        "package_refs": {
+            "hosted_package": str(hosted_package_path),
+            "hosted_package_ref": PROGRESS_PORTAL_HOSTED_PACKAGE_REF,
+            "progress_payload": str(payload_path),
+            "progress_payload_ref": PROGRESS_PORTAL_PAYLOAD_REF,
+            "html": str(html_path),
+            "html_ref": PROGRESS_PORTAL_HTML_REF,
+            "workspace_relative": {
+                "hosted_package": _workspace_relative(hosted_package_path, workspace_root),
+                "progress_payload": _workspace_relative(payload_path, workspace_root),
+                "html": _workspace_relative(html_path, workspace_root),
+            },
+        },
+        "entrypoints": {
+            "static_html": str(html_path),
+            "static_html_ref": PROGRESS_PORTAL_HTML_REF,
+            "workspace_helper": "ops/mas/bin/start-web",
+            "refresh_command": "medautosci workspace progress-portal --profile <profile>",
+            "optional_local_read_only_service": "medautosci workspace progress-portal --profile <profile> --serve",
+        },
+        "hosted_runtime_carrier_contract": {
+            "allowed_carriers": [
+                "local_read_only_http_server",
+                "external_hosted_runtime_static_file_carrier",
+                "OPL Runtime Manager family-level projection consumer",
+            ],
+            "must_consume": [
+                PROGRESS_PORTAL_PAYLOAD_REF,
+                PROGRESS_PORTAL_HTML_REF,
+            ],
+            "must_not_consume": [
+                "MDS WebUI state",
+                "external MedDeepScientist runtime root",
+                "upstream DeepScientist UI state",
+            ],
+            "must_not_write": [
+                "study_runtime_status",
+                "runtime_watch",
+                "publication_eval/latest.json",
+                "controller_decisions/latest.json",
+                "study_macro_state/latest.json",
+                "runtime_lifecycle.sqlite",
+                "manuscript/current_package",
+            ],
+        },
+        "source_refs": _string_list(payload.get("source_refs")),
+        "source_payloads": _mapping(payload.get("source_payloads")),
+        "conditions": _mapping(payload.get("conditions")),
+        "opl_handoff": _mapping(payload.get("opl_handoff")),
     }
 
 
@@ -357,8 +462,10 @@ def serve_progress_portal(
         "read_only": True,
         "payload_path": materialized["payload_path"],
         "html_path": materialized["html_path"],
+        "hosted_package_path": materialized["hosted_package_path"],
         "generated_at": materialized["generated_at"],
         "opl_handoff": materialized.get("opl_handoff"),
+        "hosted_package": materialized.get("hosted_package"),
     }
     if once:
         server.server_close()
@@ -670,6 +777,13 @@ def _materialized_opl_handoff(
     return handoff
 
 
+def _workspace_relative(path: Path, workspace_root: Path) -> str:
+    try:
+        return path.relative_to(workspace_root).as_posix()
+    except ValueError:
+        return str(path)
+
+
 def _condition_badge(conditions: Mapping[str, Any]) -> str:
     labels = []
     for key in ("missing", "stale", "conflict"):
@@ -750,6 +864,7 @@ def _refresh_meta(value: object) -> str:
 
 __all__ = [
     "build_progress_portal_payload",
+    "build_progress_portal_hosted_package",
     "render_progress_portal_html",
     "materialize_progress_portal",
     "serve_progress_portal",

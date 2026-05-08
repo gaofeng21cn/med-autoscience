@@ -23,6 +23,9 @@ def test_workspace_progress_portal_grouped_command_materializes(monkeypatch, tmp
                 "status": "materialized",
                 "payload_path": str(tmp_path / "artifacts" / "runtime" / "progress_portal" / "latest.json"),
                 "html_path": str(tmp_path / "ops" / "mas" / "progress" / "index.html"),
+                "hosted_package_path": str(
+                    tmp_path / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
+                ),
                 "opl_handoff": {
                     "payload_ref": str(tmp_path / "artifacts" / "runtime" / "progress_portal" / "latest.json"),
                     "deep_link": str(tmp_path / "ops" / "mas" / "progress" / "index.html"),
@@ -59,6 +62,9 @@ def test_workspace_progress_portal_grouped_command_materializes(monkeypatch, tmp
     assert payload["opl_handoff"]["payload_ref"] == str(
         tmp_path / "artifacts" / "runtime" / "progress_portal" / "latest.json"
     )
+    assert payload["hosted_package_path"] == str(
+        tmp_path / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
+    )
 
 
 def test_workspace_progress_portal_grouped_command_serves_read_only(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -75,6 +81,9 @@ def test_workspace_progress_portal_grouped_command_serves_read_only(monkeypatch,
                 "status": "serving",
                 "url": "http://127.0.0.1:4201",
                 "html_path": str(tmp_path / "ops" / "mas" / "progress" / "index.html"),
+                "hosted_package_path": str(
+                    tmp_path / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
+                ),
             }
 
     monkeypatch.setattr(cli, "progress_portal", FakeProgressPortal)
@@ -102,6 +111,7 @@ def test_workspace_progress_portal_grouped_command_serves_read_only(monkeypatch,
 
     assert exit_code == 0
     assert "http://127.0.0.1:4201" in captured.out
+    assert "hosted_package:" in captured.out
     assert calls["profile"].name == "nfpitnet"
     assert calls["profile_ref"] == profile_path
     assert calls["study_id"] is None

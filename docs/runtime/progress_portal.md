@@ -42,6 +42,7 @@ Progress Portal 采用双层形态：
 同一目的集成到 OPL App 进度看板的最优形态是分层消费，而不是把 MAS Portal 搬进 OPL 重新解释：
 
 - `MAS` 负责 domain-owned progress portal payload 和 HTML，生成 `artifacts/runtime/progress_portal/latest.json` 与 `ops/mas/progress/index.html`。
+- `MAS` 还负责 hosted packaging manifest，生成 `artifacts/runtime/progress_portal/hosted_package.json`。这个 manifest 只打包 MAS-owned workspace truth packaging，不消费 MDS WebUI，也不写任何 authority surface。
 - 本地 MAS Portal 是每个 workspace 的固定入口，适合医生、PI 或维护者直接打开查看同一条研究线。
 - `OPL App` / `OPL Runtime Manager` 只消费 MAS read-model / payload refs，把它们汇总到 family-level dashboard、attention queue、running/recent item 和 artifact locator。
 - `latest.json` 固定暴露 `opl_handoff`：包含 payload refs、freshness、source refs、artifact locators、workspace-local Portal deep link 和 forbidden authority 列表，供 OPL family projection 直接索引。
@@ -84,6 +85,7 @@ Portal 只能生成 read-model payload 和展示文件，例如：
 
 ```text
 artifacts/runtime/progress_portal/latest.json
+artifacts/runtime/progress_portal/hosted_package.json
 ops/mas/progress/index.html
 ```
 
@@ -141,6 +143,7 @@ ops/mas/progress/index.html
 
 - `src/med_autoscience/controllers/progress_portal.py`
 - `medautosci workspace progress-portal`
+- `artifacts/runtime/progress_portal/hosted_package.json` MAS-owned hosted packaging manifest
 - workspace init 生成 `ops/mas/progress/index.html` placeholder 和 `ops/medautoscience/bin/progress-portal`
 - workspace init 生成 `ops/mas/bin/start-web`，默认刷新并打开 MAS Progress Portal
 - `tests/test_progress_portal.py`

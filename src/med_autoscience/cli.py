@@ -197,6 +197,9 @@ def _render_progress_portal_command_text(result: dict[str, Any]) -> str:
     payload_path = result.get("payload_path")
     if payload_path:
         lines.append(f"payload: {payload_path}")
+    hosted_package_path = result.get("hosted_package_path")
+    if hosted_package_path:
+        lines.append(f"hosted_package: {hosted_package_path}")
     return "\n".join(lines) + "\n"
 
 
