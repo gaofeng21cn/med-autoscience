@@ -515,6 +515,14 @@ def _validate_runtime_continuity_completion(value: object, issues: list[dict[str
     if not isinstance(value, Mapping):
         issues.append({"code": "runtime_continuity_completion_missing"})
         return
+    _validate_runtime_continuity_header(value, issues)
+    _validate_runtime_continuity_session(value.get("runtime_session_read_model"), issues)
+    _validate_runtime_continuity_trigger(value.get("safe_reconcile_trigger"), issues)
+    _validate_runtime_continuity_user_projection(value.get("user_surface_projection"), issues)
+    _validate_runtime_continuity_authority(value, issues)
+
+
+def _validate_runtime_continuity_header(value: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
     if _text(value.get("surface")) != "mas_runtime_continuity_completion":
         issues.append({"code": "runtime_continuity_completion_wrong_surface"})
     if _text(value.get("status")) != "landed":
@@ -527,27 +535,42 @@ def _validate_runtime_continuity_completion(value: object, issues: list[dict[str
         issues.append({"code": "runtime_continuity_active_scheduler_drift"})
     if int(value.get("default_tick_interval_seconds") or 0) != 300:
         issues.append({"code": "runtime_continuity_tick_interval_drift"})
-    session = value.get("runtime_session_read_model")
+
+
+def _validate_runtime_continuity_session(session: object, issues: list[dict[str, Any]]) -> None:
     if not isinstance(session, Mapping):
         issues.append({"code": "runtime_continuity_session_read_model_missing"})
-    else:
-        if _text(session.get("role")) != "read_model" or session.get("read_only") is not True:
-            issues.append({"code": "runtime_continuity_session_role_drift"})
-        if session.get("writes_authority_surface") is not False:
-            issues.append({"code": "runtime_continuity_session_authority_write"})
-    trigger = value.get("safe_reconcile_trigger")
+        return
+    if _text(session.get("role")) != "read_model" or session.get("read_only") is not True:
+        issues.append({"code": "runtime_continuity_session_role_drift"})
+    if session.get("writes_authority_surface") is not False:
+        issues.append({"code": "runtime_continuity_session_authority_write"})
+
+
+def _validate_runtime_continuity_trigger(trigger: object, issues: list[dict[str, Any]]) -> None:
     if not isinstance(trigger, Mapping):
         issues.append({"code": "runtime_continuity_safe_trigger_missing"})
-    else:
-        if trigger.get("executes_reconcile") is not False:
-            issues.append({"code": "runtime_continuity_safe_trigger_executes_reconcile"})
-        if trigger.get("writes_runtime") is not False:
-            issues.append({"code": "runtime_continuity_safe_trigger_writes_runtime"})
-    user_projection = value.get("user_surface_projection")
+        return
+    if trigger.get("executes_reconcile") is not False:
+        issues.append({"code": "runtime_continuity_safe_trigger_executes_reconcile"})
+    if trigger.get("writes_runtime") is not False:
+        issues.append({"code": "runtime_continuity_safe_trigger_writes_runtime"})
+
+
+def _validate_runtime_continuity_user_projection(
+    user_projection: object,
+    issues: list[dict[str, Any]],
+) -> None:
     if not isinstance(user_projection, Mapping):
         issues.append({"code": "runtime_continuity_user_projection_missing"})
     elif user_projection.get("reinterprets_study_truth") is not False:
         issues.append({"code": "runtime_continuity_user_projection_reinterprets_truth"})
+
+
+def _validate_runtime_continuity_authority(
+    value: Mapping[str, Any],
+    issues: list[dict[str, Any]],
+) -> None:
     for field in (
         "quality_ready_authorized",
         "publication_ready_authorized",
