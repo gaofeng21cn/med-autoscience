@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+
 
 ROUTE_ACTIONS = frozenset(
     {
@@ -27,15 +29,24 @@ _ACTION_AUTHORIZATION_FIELDS = {
     "cleanup_apply": "cleanup_apply_allowed",
 }
 
+_UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS = frozenset(
+    {
+        "execution_owner_guard.supervisor_only",
+        "live_worker_meaningful_artifact_delta_timeout",
+        "publication_supervisor_state.bundle_tasks_downstream_only",
+        "same_fingerprint_loop",
+    }
+)
+
 _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
-    "analysis_claim_evidence_repair": frozenset({"bundle_build"}),
+    "analysis_claim_evidence_repair": frozenset({"paper_write"}),
     "controller_owned_publication_repair": frozenset(
         {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
     ),
     "display_reporting_contract_repair": frozenset({"bundle_build"}),
-    "figure_results_trace_repair": frozenset({"bundle_build"}),
+    "figure_results_trace_repair": frozenset({"paper_write"}),
     "local_architecture_overview_repair": frozenset({"bundle_build"}),
-    "manuscript_story_repair": frozenset({"bundle_build"}),
+    "manuscript_story_repair": frozenset({"paper_write"}),
     "publication_gate_replay": frozenset(
         {"bundle_build", "delivery_sync", "submission_notice_materialize"}
     ),
@@ -45,7 +56,7 @@ _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "submission_minimal_refresh": frozenset(
         {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
     ),
-    "treatment_gap_reporting_repair": frozenset({"bundle_build"}),
+    "treatment_gap_reporting_repair": frozenset({"paper_write"}),
 }
 _CONTROLLER_ROUTE_ACTION_TYPES = {
     "run_gate_clearing_batch",
@@ -113,6 +124,7 @@ def authorize_control_plane_route(
         if (reason_text := _text(reason)) is not None
     ]
     if dispatch_gate.get("state") != "open" and not _controller_route_can_bypass_dispatch_reasons(
+        normalized_action,
         controller_route_gate,
         dispatch_gate_reasons,
     ):
@@ -124,7 +136,12 @@ def authorize_control_plane_route(
     route_authorization = _mapping(snapshot.get("route_authorization"))
     authorization_field = _ACTION_AUTHORIZATION_FIELDS[normalized_action]
     if route_authorization.get(authorization_field) is False:
-        blocking_reasons.append(f"{authorization_field}_false")
+        if not _controller_route_can_bypass_action_authorization(
+            normalized_action,
+            controller_route_gate,
+            dispatch_gate_reasons,
+        ):
+            blocking_reasons.append(f"{authorization_field}_false")
     elif authorization_field not in route_authorization:
         blocking_reasons.append(f"{authorization_field}_missing")
 
@@ -259,6 +276,7 @@ def _controller_route_context(route_context: Mapping[str, Any]) -> Mapping[str, 
 
 
 def _controller_route_can_bypass_dispatch_reasons(
+    action: str,
     controller_route_gate: Mapping[str, Any],
     dispatch_gate_reasons: list[str],
 ) -> bool:
@@ -266,7 +284,32 @@ def _controller_route_can_bypass_dispatch_reasons(
         return False
     if not dispatch_gate_reasons:
         return False
+    if _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action):
+        return set(dispatch_gate_reasons) <= _UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS
     return set(dispatch_gate_reasons) <= {"runtime_recovery_retry_budget_exhausted"}
+
+
+def _controller_route_can_bypass_action_authorization(
+    action: str,
+    controller_route_gate: Mapping[str, Any],
+    dispatch_gate_reasons: list[str],
+) -> bool:
+    return (
+        bool(dispatch_gate_reasons)
+        and _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action)
+        and set(dispatch_gate_reasons) <= _UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS
+    )
+
+
+def _controller_route_is_upstream_publishability_repair(
+    controller_route_gate: Mapping[str, Any],
+    *,
+    action: str,
+) -> bool:
+    return (
+        action == "paper_write"
+        and _text(controller_route_gate.get("work_unit_id")) in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+    )
 
 
 def _controller_repair_authorization_ref(controller_route_gate: Mapping[str, Any]) -> dict[str, Any]:

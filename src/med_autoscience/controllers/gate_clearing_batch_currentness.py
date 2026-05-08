@@ -8,6 +8,7 @@ from med_autoscience.controllers import gate_clearing_batch_replay_closure
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
     derived_next_publication_work_unit,
     explicit_next_publication_work_unit,
     submission_delivery_sync_closure_work_unit,
@@ -223,13 +224,19 @@ def publication_work_unit_selection(
     selected_publication_work_unit = controller_decision_work_unit or explicit_next_work_unit or (
         current_next_work_unit if isinstance(current_next_work_unit, dict) else derived_next_publication_work_unit(gate_report)
     )
+    selected_work_unit_id = publication_work_unit_id(selected_publication_work_unit)
     if (
-        publication_work_unit_id(selected_publication_work_unit) == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
+        selected_work_unit_id == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
         and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)
     ):
         selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
-    if authority_settle_delivery_redrive_requested:
+        selected_work_unit_id = publication_work_unit_id(selected_publication_work_unit)
+    if (
+        authority_settle_delivery_redrive_requested
+        and selected_work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+    ):
         selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
+        selected_work_unit_id = publication_work_unit_id(selected_publication_work_unit)
     if direct_submission_delivery_sync_requested and publication_work_unit_id(
         explicit_next_work_unit
     ) == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID:

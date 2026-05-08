@@ -202,3 +202,50 @@ def test_gate_clearing_batch_does_not_reuse_stale_explicit_analysis_when_current
     assert result["explicit_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert result["work_unit_currentness"]["current_work_unit_fingerprint"] == current_work_unit_fingerprint
     assert result["work_unit_currentness"]["explicit_work_unit_fingerprint"] == current_work_unit_fingerprint
+
+
+def test_publication_work_unit_selection_keeps_explicit_upstream_repair_ahead_of_delivery_redrive() -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_currentness")
+    publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "return_to_publishability_gate",
+        "blockers": [
+            "medical_publication_surface_blocked",
+            "claim_evidence_consistency_failed",
+            "stale_study_delivery_mirror",
+        ],
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": ["claim_evidence_map_missing_or_incomplete"],
+        "study_delivery_status": "stale_source_changed",
+        "blocking_artifact_refs": [
+            {
+                "blocker": "claim_evidence_consistency_failed",
+                "source_path": "paper/claim_evidence_map.json",
+            }
+        ],
+    }
+    work_unit_fingerprint = publication_work_units.derive_publication_work_units(gate_report)["fingerprint"]
+    publication_eval_payload = {
+        "recommended_actions": [
+            {
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "next_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                    "summary": "Repair claim-evidence and paper-facing traceability blockers.",
+                },
+            }
+        ]
+    }
+
+    selection = module.publication_work_unit_selection(
+        publication_eval_payload=publication_eval_payload,
+        latest_batch={},
+        gate_report=gate_report,
+        authority_settle_delivery_redrive_requested=True,
+    )
+
+    assert selection["explicit_next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert selection["current_next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert selection["selected_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"

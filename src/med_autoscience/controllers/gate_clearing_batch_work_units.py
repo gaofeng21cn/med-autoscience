@@ -4,6 +4,15 @@ from importlib import import_module
 from typing import Any, Iterable
 
 
+UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS = frozenset(
+    {
+        "analysis_claim_evidence_repair",
+        "figure_results_trace_repair",
+        "manuscript_story_repair",
+        "treatment_gap_reporting_repair",
+    }
+)
+
 PUBLICATION_WORK_UNIT_REPAIR_IDS = {
     "analysis_claim_evidence_repair": frozenset(
         {

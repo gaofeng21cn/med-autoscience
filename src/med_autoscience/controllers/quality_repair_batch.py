@@ -9,6 +9,7 @@ from med_autoscience.controllers import gate_clearing_batch_blockers
 from med_autoscience.controllers import gate_clearing_batch_currentness
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import study_runtime_router
+from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_latest import read_publication_eval_latest
@@ -172,6 +173,44 @@ def _controller_route_context_for_gate(
     }
 
 
+def _controller_route_context_for_publication_work_unit(
+    *,
+    gate_report: Mapping[str, Any],
+    source_eval_id: str | None,
+) -> dict[str, Any] | None:
+    publication_work_unit_payload = publication_work_units.derive_publication_work_units(dict(gate_report))
+    next_work_unit = publication_work_unit_payload.get("next_work_unit")
+    if not isinstance(next_work_unit, Mapping):
+        return None
+    work_unit_id = _non_empty_text(next_work_unit.get("unit_id"))
+    if work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+        return None
+    return {
+        "controller_route_context": {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+            "work_unit_id": work_unit_id,
+            "requires_human_confirmation": False,
+            "source_eval_id": source_eval_id,
+            "gate_fingerprint": _non_empty_text(gate_report.get("gate_fingerprint")),
+            "work_unit_fingerprint": _non_empty_text(publication_work_unit_payload.get("fingerprint")),
+        }
+    }
+
+
+def _route_action_for_controller_context(route_context: Mapping[str, Any] | None) -> str:
+    controller_route_context = (
+        route_context.get("controller_route_context")
+        if isinstance(route_context, Mapping)
+        else None
+    )
+    if not isinstance(controller_route_context, Mapping):
+        return "bundle_build"
+    if _non_empty_text(controller_route_context.get("work_unit_id")) in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+        return "paper_write"
+    return "bundle_build"
+
+
 def _merge_route_contexts(*contexts: Mapping[str, Any] | None) -> dict[str, Any] | None:
     merged: dict[str, Any] = {}
     for context in contexts:
@@ -284,12 +323,17 @@ def run_quality_repair_batch(
         gate_report=gate_report,
         source_eval_id=current_eval_id,
     )
+    if controller_route_context is None:
+        controller_route_context = _controller_route_context_for_publication_work_unit(
+            gate_report=gate_report,
+            source_eval_id=current_eval_id,
+        )
     resolved_route_context = _merge_route_contexts(
         resolved_route_context,
         controller_route_context,
     )
     control_plane_route_gate = assert_control_plane_route_authorized(
-        "bundle_build",
+        _route_action_for_controller_context(resolved_route_context),
         {"projection_only": True} if resolved_route_context is None else resolved_route_context,
     )
     summary_payload = _read_quality_summary(study_root=resolved_study_root)

@@ -224,6 +224,62 @@ def test_publication_gate_replay_route_authorizes_delivery_sync_without_snapshot
     assert gate["blocking_reasons"] == []
 
 
+def test_analysis_claim_evidence_route_authorizes_paper_repair_under_downstream_bundle_gate() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "paper_write",
+        {
+            "control_plane_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
+                bundle_build_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "quality_repair_batch",
+                "controller_action_type": "run_quality_repair_batch",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::003::latest",
+                "work_unit_fingerprint": "publication-blockers::analysis",
+            },
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["route_authorization_flag"] == "paper_write_allowed"
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert gate["controller_repair_authorization_ref"]["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert gate["blocking_reasons"] == []
+
+
+def test_analysis_claim_evidence_route_does_not_authorize_bundle_build_under_downstream_gate() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "bundle_build",
+        {
+            "control_plane_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
+                bundle_build_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "quality_repair_batch",
+                "controller_action_type": "run_quality_repair_batch",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::003::latest",
+            },
+        },
+    )
+
+    assert gate["authorized"] is False
+    assert "dispatch_gate_blocked" in gate["blocking_reasons"]
+    assert "bundle_build_allowed_false" in gate["blocking_reasons"]
+    assert "controller_route_action_not_allowed_for_work_unit" in gate["controller_route_gate"]["blocking_reasons"]
+
+
 def test_controller_owned_submission_refresh_route_can_proceed_when_only_runtime_recovery_is_exhausted() -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
 
