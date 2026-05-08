@@ -2,7 +2,7 @@
 
 ## 2026-05-08：MAS monolith closeout 取代外部 MDS 默认运行依赖
 
-- 决策：`med-autoscience` 是唯一日常 repo、唯一研究入口和默认 operation owner。外部 `med-deepscientist` checkout 不再是 MAS 默认 study/status/progress/cockpit operation 的运行必需依赖；保留的 MDS / DeepScientist 价值只能作为显式 backend audit、legacy restore/import diagnostic、upstream intake 或 parity oracle 出现。
+- 决策：`med-autoscience` 是唯一日常 repo、唯一研究入口和默认 operation owner。外部 `med-deepscientist` checkout 不再是 MAS 默认 study/status/progress/cockpit operation 的运行必需依赖；保留的 MDS / DeepScientist 价值只能作为显式 backend audit、explicit archive import reference、upstream intake 或 parity oracle 出现。
 - 理由：no-history physical absorb 已把 source provenance、author guard、capability parity fixtures、retained capability absorb 与 default-runtime-retirement 落到 repo-level guard；继续把 MDS 写成默认 backend 会重新制造第二 owner 和安装依赖漂移。
 - 影响：未来从 MDS / DeepScientist 学习或引入能力，必须记录 source ref/hash、snapshot checksum、license refs、capability classification、remaining surface inventory、MAS owner、authority boundary、tests、parity proof 与 no-history contributor audit；classification 只允许 `mas_owned`、`rewrite_in_mas`、`fixture_only`、`retire`、`external_source_archive_only`。`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status`、`runtime_watch`、paper/manuscript/current_package 与 artifact rebuild proof 不得被 MDS 写回或授权。
 
@@ -34,7 +34,7 @@
 
 ## 2026-05-02：MAS AI-first Research OS 成为长线目标架构
 
-- 决策：长线目标固定为 `MAS AI-first Research OS`。MAS 作为唯一 research / quality / publication / artifact / user-visible truth owner；MDS 已收敛为显式 backend audit、legacy diagnostic、upstream intake 与 parity oracle companion。机械系统只负责 evidence、status、completeness、blocker、projection 与 replay；AI reviewer workflow 持有科学质量、医学写作质量、publishability 与 submission-facing readiness。
+- 决策：长线目标固定为 `MAS AI-first Research OS`。MAS 作为唯一 research / quality / publication / artifact / user-visible truth owner；MDS 已收敛为显式 backend audit、explicit archive import reference、upstream intake 与 parity oracle companion。机械系统只负责 evidence、status、completeness、blocker、projection 与 replay；AI reviewer workflow 持有科学质量、医学写作质量、publishability 与 submission-facing readiness。
 - Authority anchor：AI reviewer artifacts 持有科学质量；机械系统只负责 evidence、status、completeness、blocker、projection 与 replay。
 - 理由：近期论文修复证明，机械 gate 先给 ready、下游再补救会把质量风险推迟到最贵的阶段。AI-first 的真实落点应前移到 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 与真实论文 soak，而不是在文档层增加措辞约束。
 - 影响：新增架构、质量、运行、产物、观测或 MDS 吸收能力时，必须回到 [MAS AI-first Research OS Architecture](./references/ai_first_research_os_architecture.md) 的 owner / authority / proof 口径；MDS no-history absorb 只允许在 parity proof、owner cutover、rollback surface 与质量不降级证明成立后以 MAS-authored snapshot 落地。当前 no-history absorb 已关闭为 repo-level guard/parity/default-dependency-retirement；更大的 runtime core ingest、controlled cutover 或平台结构调整仍需独立 gate。本决策不新增文档 wording gate，不修改测试或 preflight contract。
@@ -134,7 +134,7 @@
 
 - 决策：方向锁定之后，普通科研推进、论文质量判断、reviewer concern 排序、证据充分性判断与 `bounded_analysis` 一类有限补充分析推进，默认由 `MAS` 自主完成；human gate 收口到重大边界与最终投稿前审计。
 - 理由：长时间自治和医学论文质量需要同一 owner、同一 study truth 和同一审计边界，`MAS` 已经持有 study authority、workspace authority、证据推进与人工接手点，适合承担默认裁决权。
-- 影响：后续 program、status、runtime 与 eval 文档都要按这个 owner 边界写作；`MDS` 只保留显式 backend audit、legacy diagnostic、行为等价 oracle 与上游 intake buffer。
+- 影响：后续 program、status、runtime 与 eval 文档都要按这个 owner 边界写作；`MDS` 只保留显式 backend audit、explicit archive import reference、行为等价 oracle 与上游 intake buffer。
 
 ## 2026-04-20：study charter 承载质量总合同
 

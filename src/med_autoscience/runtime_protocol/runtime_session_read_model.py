@@ -20,8 +20,8 @@ def build_runtime_session_read_model(
     study_root: Path | None = None,
     quest_root: Path | None = None,
     db_path: Path | None = None,
-    legacy_diagnostic_fixture: Mapping[str, Any] | None = None,
-    legacy_diagnostic_fixture_path: Path | None = None,
+    historical_fixture: Mapping[str, Any] | None = None,
+    historical_fixture_path: Path | None = None,
     generated_at: str | None = None,
     freshness_ttl_seconds: int | None = None,
 ) -> dict[str, Any]:
@@ -32,8 +32,8 @@ def build_runtime_session_read_model(
         study_root=study_root,
         quest_root=quest_root,
         db_path=db_path,
-        legacy_diagnostic_fixture=legacy_diagnostic_fixture,
-        legacy_diagnostic_fixture_path=legacy_diagnostic_fixture_path,
+        historical_fixture=historical_fixture,
+        historical_fixture_path=historical_fixture_path,
     )
     session = _session_from_source(
         source=source,
@@ -63,8 +63,8 @@ def _resolve_source(
     study_root: Path | None,
     quest_root: Path | None,
     db_path: Path | None,
-    legacy_diagnostic_fixture: Mapping[str, Any] | None,
-    legacy_diagnostic_fixture_path: Path | None,
+    historical_fixture: Mapping[str, Any] | None,
+    historical_fixture_path: Path | None,
 ) -> dict[str, Any]:
     status_source = _study_runtime_status_source(
         study_runtime_status=study_runtime_status,
@@ -81,9 +81,9 @@ def _resolve_source(
     if receipt_source is not None:
         return receipt_source
 
-    legacy_source = _legacy_diagnostic_fixture_source(
-        legacy_diagnostic_fixture=legacy_diagnostic_fixture,
-        legacy_diagnostic_fixture_path=legacy_diagnostic_fixture_path,
+    legacy_source = _historical_fixture_source(
+        historical_fixture=historical_fixture,
+        historical_fixture_path=historical_fixture_path,
     )
     if legacy_source is not None:
         return legacy_source
@@ -297,31 +297,31 @@ def _latest_dispatch_receipt_row(conn: sqlite3.Connection, *, quest_root: Path |
     ).fetchone()
 
 
-def _legacy_diagnostic_fixture_source(
+def _historical_fixture_source(
     *,
-    legacy_diagnostic_fixture: Mapping[str, Any] | None,
-    legacy_diagnostic_fixture_path: Path | None,
+    historical_fixture: Mapping[str, Any] | None,
+    historical_fixture_path: Path | None,
 ) -> dict[str, Any] | None:
-    if legacy_diagnostic_fixture is not None:
-        payload = dict(legacy_diagnostic_fixture)
+    if historical_fixture is not None:
+        payload = dict(historical_fixture)
         if payload:
             return {
-                "source_priority": "legacy_diagnostic_fixture",
+                "source_priority": "historical_fixture_ref",
                 "payload": payload,
-                "evidence_refs": [{"source": "legacy_diagnostic_fixture"}],
+                "evidence_refs": [{"source": "historical_fixture_ref"}],
             }
-    if legacy_diagnostic_fixture_path is None:
+    if historical_fixture_path is None:
         return None
-    path = Path(legacy_diagnostic_fixture_path).expanduser().resolve()
+    path = Path(historical_fixture_path).expanduser().resolve()
     if not path.exists():
         return None
     payload = _read_json_mapping(path)
     if not payload:
         return None
     return {
-        "source_priority": "legacy_diagnostic_fixture",
+        "source_priority": "historical_fixture_ref",
         "payload": payload,
-        "evidence_refs": [{"source": "legacy_diagnostic_fixture", "path": str(path)}],
+        "evidence_refs": [{"source": "historical_fixture_ref", "path": str(path)}],
     }
 
 
@@ -409,7 +409,7 @@ def _runtime_liveness_status(*, source_priority: str, payload: Mapping[str, Any]
 
 
 def _worker_running(*, source_priority: str, payload: Mapping[str, Any]) -> bool | None:
-    if source_priority in {"owner_route_receipts", "legacy_diagnostic_fixture", "none"}:
+    if source_priority in {"owner_route_receipts", "historical_fixture_ref", "none"}:
         return None
     liveness = _mapping(payload.get("runtime_liveness_audit"))
     runtime_audit = _runtime_audit(payload)
@@ -438,7 +438,7 @@ def _worker_state(*, source_priority: str, payload: Mapping[str, Any]) -> str | 
         liveness.get("worker_state"),
         worker_liveness_state.get("state"),
         _mapping(payload.get("mds_worker_activity")).get("activity_state"),
-        payload.get("status") if source_priority == "legacy_diagnostic_fixture" else None,
+        payload.get("status") if source_priority == "historical_fixture_ref" else None,
         "running" if _worker_running(source_priority=source_priority, payload=payload) is True else None,
     )
 

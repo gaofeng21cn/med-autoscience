@@ -27,7 +27,7 @@ description: Use when Codex should operate MedAutoScience through its stable run
 - `medautosci runtime watch --runtime-root <runtime-root>`
 - `medautosci runtime overlay-status --profile <profile>`
 - `medautosci runtime install-overlay --profile <profile>`
-- `medautosci doctor backend-upgrade --profile <profile> --refresh`
+- `medautosci doctor backend-audit --profile <profile> --refresh`
 - plugin-local MCP launcher: `plugins/mas/bin/medautosci-mcp`
 
 如果 `medautosci` 不在 `PATH` 上，用模块入口：

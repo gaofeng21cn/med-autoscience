@@ -307,7 +307,7 @@ def _git_lifecycle_cutover(
     retirement_validation = validate_compatibility_retirement(compatibility_payload)
     retirement_allowed = cutover_verified and bool(retirement_validation["allowed"])
     if retirement_allowed:
-        next_required_action = "Q6 complete: remove default compatibility fallback and keep legacy restore/import diagnostic only."
+        next_required_action = "Q6 complete: remove default compatibility fallback and keep explicit archive import reference only."
     elif cutover_verified:
         next_required_action = "Complete Q6 compatibility retirement guard before deleting legacy fallback."
     else:

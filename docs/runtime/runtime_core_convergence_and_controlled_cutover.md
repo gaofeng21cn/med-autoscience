@@ -12,7 +12,7 @@ Date: `2026-05-08`
 - `Hermes gateway cron` 持有默认 supervision scheduler owner，每 300 秒调用一次 `ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1`。
 - MAS Runtime Turn Lifecycle Kernel 持有 runner completion 后的状态归一化和下一 turn 调度；正常 `auto_continue` 不再等待 300 秒 supervision tick。
 - `med-deepscientist` 不再是 MAS 默认 study/status/progress/cockpit/diagnostic operation 的必需 checkout、daemon、runtime root 或 WebUI。
-- `MedDeepScientist` 只保留为 frozen source archive、historical fixture、explicit legacy diagnostic / backend audit / provenance reference。
+- `MedDeepScientist` 只保留为 frozen source archive、historical fixture、explicit archive import reference / backend audit / provenance reference。
 
 这完成的是 default independence 和 functional monolith closeout，不是旧 MDS resident daemon 的 full behavior equivalence。行为差异以 [MDS Behavior Equivalence Gap Matrix](../references/mds_behavior_equivalence_gap_matrix.md) 为准。
 
@@ -48,7 +48,7 @@ Date: `2026-05-08`
 1. 不重新引入外部 MDS daemon / WebUI / repo checkout 作为默认依赖。
 2. 不把 workspace-local launchd/systemd/cron/docker service 恢复为 active scheduler。
 3. 不用 `functional_monolith_completion=landed` 掩盖 MDS resident daemon 行为差异。
-4. 不让 legacy diagnostic / backend audit transport 参与默认 watch/status/execute/recovery。
+4. 不让 explicit archive import reference / backend audit transport 参与默认 watch/status/execute/recovery。
 5. 不让 SQLite、legacy `.ds` payload、MDS artifact inventory 或 old current_package projection 成为 paper truth / quality truth / delivery authority。
 
 ## 5. 结论

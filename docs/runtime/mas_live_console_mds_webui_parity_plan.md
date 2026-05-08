@@ -12,7 +12,7 @@ Date: `2026-05-08`
 - runtime run/session 可见；
 - terminal / bash stream 可读；
 - runtime supervision、worker log、artifact delta、recent events 可读；
-- 明确区分 read-only 观察、controller-authorized action、legacy diagnostic。
+- 明确区分 read-only 观察、controller-authorized action、historical fixture / explicit archive import reference。
 
 ## 当前事实
 

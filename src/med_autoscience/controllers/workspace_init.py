@@ -331,16 +331,6 @@ def _render_workspace_profile(
     return "\n".join(line for _, line in entries) + "\n"
 
 
-def _payload_has_legacy_diagnostic_runtime(payload: dict[str, object]) -> bool:
-    legacy_diagnostic = payload.get("legacy_diagnostic")
-    if not isinstance(legacy_diagnostic, dict):
-        return False
-    return any(
-        isinstance(legacy_diagnostic.get(key), str) and str(legacy_diagnostic.get(key)).strip()
-        for key in ("runtime_root", "med_deepscientist_runtime_root")
-    )
-
-
 def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -> str | None:
     suffix = path.parts[-4:]
     for detector in (
@@ -665,7 +655,7 @@ def _merge_workspace_profile_content(
     missing_lines = [
         line
         for key, line in merge_entries
-        if key not in payload and not (key == "managed_runtime_home" and _payload_has_legacy_diagnostic_runtime(payload))
+        if key not in payload
     ]
     if not missing_lines:
         return existing_content

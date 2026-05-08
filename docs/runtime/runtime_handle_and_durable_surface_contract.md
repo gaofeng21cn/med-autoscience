@@ -12,7 +12,7 @@
   - `MedAutoScience` = 唯一研究入口、research gateway、study / workspace authority owner
   - `Hermes gateway cron` = 默认 supervision scheduler owner
   - `MAS Runtime OS` = 默认 runtime/backend owner
-  - `MedDeepScientist` = frozen source archive、historical fixture、explicit legacy diagnostic / backend audit reference
+  - `MedDeepScientist` = frozen source archive、historical fixture、explicit archive import reference / backend audit reference
 - 旧 `Codex-default host-agent runtime` 只保留为迁移期对照面与 regression oracle，不再是长期产品方向。
 - 当前 formal-entry matrix：
   - `default_formal_entry = CLI`

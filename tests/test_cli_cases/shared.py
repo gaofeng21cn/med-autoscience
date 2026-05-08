@@ -41,8 +41,6 @@ def write_profile(
                 f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"}"',
                 f'studies_root = "{workspace_root / "studies"}"',
                 f'portfolio_root = "{workspace_root / "portfolio"}"',
-                f'med_deepscientist_runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
-                f'med_deepscientist_repo_root = "{med_deepscientist_repo_root}"',
                 f'hermes_agent_repo_root = "{hermes_agent_repo_root}"',
                 'hermes_home_root = "~/.hermes"',
                 'default_publication_profile = "general_medical_journal"',
@@ -59,12 +57,21 @@ def write_profile(
                 "primary = true",
                 "package_required = true",
                 'story_surface = "general_medical_journal"',
+                "",
+                "[source_provenance]",
+                'source_role = "frozen_source_archive_or_historical_fixture"',
+                f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
+                "",
+                "[historical_fixture_ref]",
+                f'runtime_root = "{workspace_root / "ops" / "med-deepscientist" / "runtime"}"',
+                "",
+                "[explicit_archive_import_ref]",
+                f'controlled_backend_repo_root = "{med_deepscientist_repo_root}"',
             ]
         )
         + "\n",
         encoding="utf-8",
     )
-
 
 
 

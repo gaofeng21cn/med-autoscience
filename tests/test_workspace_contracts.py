@@ -48,8 +48,8 @@ def test_inspect_workspace_contracts_reports_missing_items(tmp_path: Path) -> No
     assert result["runtime_contract"]["checks"]["managed_runtime_quests_root_exists"] is False
     assert result["runtime_contract"]["checks"]["managed_runtime_home_exists"] is False
     assert result["runtime_contract"]["checks"]["managed_runtime_quests_root_matches_layout"] is True
-    assert result["runtime_contract"]["legacy_diagnostic"]["read_only"] is True
-    assert result["runtime_contract"]["legacy_diagnostic"]["med_deepscientist_runtime_root_exists"] is False
+    assert result["runtime_contract"]["historical_fixture_ref"]["read_only"] is True
+    assert result["runtime_contract"]["historical_fixture_ref"]["runtime_root_exists"] is False
     assert result["runtime_contract"]["ready"] is False
 
     assert result["launcher_contract"]["surface_kind"] == "backend_audit_contract"
@@ -65,7 +65,7 @@ def test_inspect_workspace_contracts_reports_missing_items(tmp_path: Path) -> No
     assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_absolute"] is False
     assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_exists"] is False
     assert result["launcher_contract"]["runner_retirement"]["checks"]["controlled_backend_launcher_executable"] is False
-    assert result["launcher_contract"]["legacy_diagnostic"]["read_only"] is True
+    assert result["launcher_contract"]["explicit_archive_import_ref"]["read_only"] is True
     assert result["launcher_contract"]["ready"] is True
 
     assert result["behavior_gate"]["checks"]["gate_file_exists"] is False
@@ -176,7 +176,7 @@ def test_inspect_workspace_contracts_accepts_mas_first_runtime_bridge(tmp_path: 
     assert "launcher_contract.default_mds_runner_configured" in result["launcher_contract"]["issues"]
     assert result["launcher_contract"]["controlled_backend_config_env"] == str(runtime_bridge_root / "config.env")
     assert result["launcher_contract"]["controlled_backend_bin_dir"] == str(runtime_bridge_root / "bin")
-    assert result["launcher_contract"]["legacy_diagnostic"]["med_deepscientist_config_env"] == str(
+    assert result["launcher_contract"]["explicit_archive_import_ref"]["controlled_backend_config_env"] == str(
         runtime_bridge_root / "config.env"
     )
     assert result["behavior_gate"]["path"] == str(runtime_bridge_root / "behavior_equivalence_gate.yaml")

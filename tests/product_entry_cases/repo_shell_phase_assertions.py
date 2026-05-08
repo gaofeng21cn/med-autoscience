@@ -161,7 +161,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "backend_retained_now": [
             "frozen MedDeepScientist source archive",
             "historical oracle fixtures",
-            "explicit legacy restore/import/backend-audit diagnostic",
+            "explicit archive import / backend-audit reference",
         ],
         "current_backend_chain": [
             "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
@@ -194,7 +194,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
     assert phase5["sequence_scope"] == "monorepo_landing_readiness"
     assert phase5["current_readiness_summary"] == (
         "MAS 默认运行、进度、诊断、artifact/quality parity、workspace helpers 与 OPL handoff 都已切到 MAS-owned surfaces；"
-        "external MDS 只保留 frozen archive / historical fixture / explicit legacy diagnostic。"
+        "external MDS 只保留 frozen archive / historical fixture / explicit archive import reference。"
     )
     assert phase5["north_star_topology"] == {
         "domain_gateway": "Med Auto Science",

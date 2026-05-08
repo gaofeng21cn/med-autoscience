@@ -16,13 +16,13 @@
 - `research_backend_id = mas_runtime_core`
 - `research_engine_id = mas-runtime-core`
 
-旧 `Codex-default host-agent runtime` 继续作为本机执行配置来源；direct `med_deepscientist` backend lane 只保留为 frozen source archive / historical fixture / explicit legacy diagnostic，不作为 runnable dependency。
+旧 `Codex-default host-agent runtime` 继续作为本机执行配置来源；direct `med_deepscientist` backend lane 只保留为 frozen source archive / historical fixture / explicit archive import reference，不作为 runnable dependency。
 
 默认 MAS operation 的外部 MDS 依赖必须由 machine-readable contract 明确表达：
 
 - `external_mds_required_for_default_operation = false`
-- external MDS 只服务 frozen source provenance、historical fixture 和显式 legacy restore/import/backend-audit diagnostic
-- profile JSON 顶层不得重新暴露 `med_deepscientist_*` 字段；legacy diagnostic 字段只能位于 `legacy_diagnostic.read_only`
+- external MDS 只服务 source provenance、historical fixture 和 explicit archive import reference
+- profile JSON 顶层不得重新暴露 `med_deepscientist_*` 字段；历史引用面只能位于 `source_provenance`、`historical_fixture_ref` 与 `explicit_archive_import_ref`
 
 ## 2. Backend 选择规则
 
@@ -78,7 +78,7 @@ managed runtime backend 必须显式暴露：
 - `get_quest_session`、`inspect_quest_live_runtime`、`inspect_quest_live_execution` 读取 MAS local state、runtime files 和 event refs，返回与 controller contract 对齐的 session/liveness projection。
 - `chat_quest`、`artifact_complete_quest`、`artifact_interact` 只记录 MAS runtime event / queue / artifact handoff，不调用 MDS HTTP API。
 
-因此，旧 MDS daemon 的长期价值被拆成两部分：controller-facing operation shape 由 `ManagedRuntimeBackend` contract 保留，运行状态与事件实现由 MAS Runtime OS 持有；旧 `runtime_transport/med_deepscientist.py` 只能服务 explicit legacy diagnostic / historical fixture / backend audit，不参与 default watch/status/execute/recovery。
+因此，旧 MDS daemon 的长期价值被拆成两部分：controller-facing operation shape 由 `ManagedRuntimeBackend` contract 保留，运行状态与事件实现由 MAS Runtime OS 持有；旧 `runtime_transport/med_deepscientist.py` 只能服务 explicit archive import reference / historical fixture / backend audit，不参与 default watch/status/execute/recovery。
 
 ## 3.2 Registry validation
 
@@ -127,7 +127,7 @@ managed runtime execution 的正式条件是：
 
 - `engine`
 - `runtime_root`
-- `legacy_diagnostic.med_deepscientist_runtime_root`
+- `historical_fixture_ref.runtime_root`
 
 这意味着 controller / outer-loop 不应再依赖 `med_deepscientist_runtime_root` 这一实现名义字段来推导 authority truth。
 
@@ -137,9 +137,9 @@ managed runtime execution 的正式条件是：
 
 - controller 与 transport 之间的 backend abstraction freeze
 - MAS Runtime OS / `mas_runtime_core` 作为默认 runtime owner/substrate 的 repo-side 闭环
-- `MedDeepScientist` 作为 frozen archive / historical fixture / explicit legacy diagnostic 的显式边界
+- `MedDeepScientist` 作为 frozen archive / historical fixture / explicit archive import reference 的显式边界
 - default MAS operation 不依赖 external `med-deepscientist` repo / runtime root
-- external MDS 只作为显式 backend audit、legacy restore/import diagnostic、historical fixture 和 source provenance target
+- external MDS 只作为显式 backend audit、historical fixture / explicit archive import reference、historical fixture 和 source provenance target
 - optional hosted runtime / workspace truth packaging 已由 MAS Progress Portal 承接：`artifacts/runtime/progress_portal/hosted_package.json` 只打包 MAS-owned read-model payload、HTML 入口、source refs、conditions 和 OPL handoff refs，不消费 MDS WebUI 或 external MDS runtime root
 
 这份 contract 还没有完成的是：

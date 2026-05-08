@@ -22,8 +22,8 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["active_tranche_owner_truth"]["owner"] == "MedAutoScience"
     assert [item["role_id"] for item in payload["active_tranche_owner_truth"]["mds_retained_roles"]] == [
         "external_source_archive",
-        "historical_oracle_fixture",
-        "explicit_legacy_diagnostic",
+        "historical_fixture_ref",
+        "explicit_archive_import_ref",
     ]
     assert all(item["owner"].startswith("MAS") for item in payload["active_tranche_owner_truth"]["lanes"])
     assert payload["ideal_state"]["runtime_topology"]["runtime_owner"] == "mas_runtime_os"
@@ -39,8 +39,8 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     ]
     assert [item["role_id"] for item in payload["single_project_boundary"]["mds_retained_roles"]] == [
         "external_source_archive",
-        "historical_oracle_fixture",
-        "explicit_legacy_diagnostic",
+        "historical_fixture_ref",
+        "explicit_archive_import_ref",
     ]
     assert "new upstream intake from future MDS/DeepScientist snapshots" in payload["single_project_boundary"]["post_gate_only"]
     assert payload["capability_owner_boundary"]["surface_kind"] == "mas_capability_owner_boundary"
@@ -65,7 +65,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["capability_owner_boundary"]["proof_and_absorb_boundary"]["physical_absorb_status"] == (
         "landed_no_history_functional_monolith"
     )
-    assert "historical_oracle_fixture" in payload["capability_owner_boundary"]["proof_and_absorb_boundary"][
+    assert "historical_fixture_ref" in payload["capability_owner_boundary"]["proof_and_absorb_boundary"][
         "parity_proof_sources"
     ]
     assert payload["current_program_phase"]["id"] == "phase_1_mainline_established"
@@ -82,8 +82,8 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     ]
     assert [item["role_id"] for item in payload["current_program_phase"]["single_project_boundary"]["mds_retained_roles"]] == [
         "external_source_archive",
-        "historical_oracle_fixture",
-        "explicit_legacy_diagnostic",
+        "historical_fixture_ref",
+        "explicit_archive_import_ref",
     ]
     assert "new upstream intake from future MDS/DeepScientist snapshots" in payload["current_program_phase"]["single_project_boundary"]["post_gate_only"]
     assert len(payload["phase_ladder"]) == 5
@@ -317,7 +317,7 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Active Tranche Owner Truth" in markdown
     assert "Capability Owner Boundary" in markdown
     assert "MAS capability `research_entry`" in markdown
-    assert "MDS migration-only `historical_oracle_fixture`" in markdown
+    assert "MDS migration-only `historical_fixture_ref`" in markdown
     assert "physical absorb: landed_no_history_functional_monolith" in markdown
     assert "owner lane `autonomy`" in markdown
     assert "owner lane `quality`" in markdown
@@ -387,8 +387,8 @@ def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
     ]
     assert [item["role_id"] for item in current_payload["phase"]["single_project_boundary"]["mds_retained_roles"]] == [
         "external_source_archive",
-        "historical_oracle_fixture",
-        "explicit_legacy_diagnostic",
+        "historical_fixture_ref",
+        "explicit_archive_import_ref",
     ]
     assert "new upstream intake from future MDS/DeepScientist snapshots" in current_payload["phase"]["single_project_boundary"]["post_gate_only"]
     assert any(item["name"] == "mainline_status" for item in current_payload["phase"]["entry_points"])
@@ -427,7 +427,7 @@ def test_render_mainline_phase_markdown_surfaces_current_tranche_boundary() -> N
     assert "Owner Truth Lanes" in markdown
     assert "Capability Owner Boundary" in markdown
     assert "MAS capability `program_mainline_truth`" in markdown
-    assert "MDS migration-only `explicit_legacy_diagnostic`" in markdown
+    assert "MDS migration-only `explicit_archive_import_ref`" in markdown
     assert "owner lane `autonomy`" in markdown
     assert "owner lane `quality`" in markdown
     assert "owner lane `single_project_owner`" in markdown

@@ -128,8 +128,9 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
         "quest_id": "quest-001",
         "runtime_root": str(runtime_root / "quests"),
         "runtime_quests_root": str(runtime_root / "quests"),
-        "legacy_diagnostic": {
-            "med_deepscientist_runtime_root": str(runtime_root),
+        "historical_fixture_ref": {
+            "surface_kind": "historical_fixture_ref",
+            "runtime_root": str(runtime_root),
             "read_only": True,
         },
         "last_action": "resume",
@@ -165,8 +166,9 @@ def test_write_runtime_binding_supports_explicit_hermes_backend_metadata(tmp_pat
     assert payload["runtime_home"] == str(runtime_root)
     assert payload["runtime_quests_root"] == str(runtime_root / "quests")
     assert "med_deepscientist_runtime_root" not in payload
-    assert payload["legacy_diagnostic"] == {
-        "med_deepscientist_runtime_root": str(runtime_root),
+    assert payload["historical_fixture_ref"] == {
+        "surface_kind": "historical_fixture_ref",
+        "runtime_root": str(runtime_root),
         "read_only": True,
     }
 

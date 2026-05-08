@@ -13,13 +13,6 @@ studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"
 # 当前 workspace 的病种级 portfolio 根目录。
 portfolio_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/portfolio"
 
-# historical import/provenance runtime home。新 workspace 默认指向 MAS runtime home；
-# 旧 ops/med-deepscientist 路径只通过显式 restore/import diagnostic 读取。
-med_deepscientist_runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/runtime"
-
-# 可选 controlled backend / oracle 源码仓库；仅用于 backend-audit 或 parity oracle。
-med_deepscientist_repo_root = ""
-
 # 外部 Hermes-Agent 源码仓库；只用于 outer runtime substrate 审计与后续真实 adapter cutover。
 hermes_agent_repo_root = "/ABS/PATH/TO/hermes-agent"
 
@@ -32,3 +25,13 @@ medical_overlay_scope = "workspace"
 medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "write", "review", "rebuttal", "finalize"]
 research_route_bias_policy = "high_plasticity_medical"
 preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]
+
+[source_provenance]
+source_role = "frozen_source_archive_or_historical_fixture"
+runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/runtime"
+
+[historical_fixture_ref]
+runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/runtime"
+
+[explicit_archive_import_ref]
+controlled_backend_repo_root = ""

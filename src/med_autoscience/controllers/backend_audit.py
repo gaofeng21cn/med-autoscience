@@ -240,7 +240,7 @@ def _determine_decision(
         return "oracle_unavailable", actions
 
     if not repo_check["is_git_repo"]:
-        actions.append("point_legacy_diagnostic_to_valid_controlled_backend_git_repo_for_explicit_audit")
+        actions.append("point_explicit_archive_import_ref_to_valid_controlled_backend_git_repo_for_explicit_audit")
         return "oracle_unavailable", actions
 
     if repo_check["refresh_attempted"] and not repo_check["refresh_succeeded"]:

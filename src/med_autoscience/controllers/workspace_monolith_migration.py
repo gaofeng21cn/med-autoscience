@@ -63,7 +63,7 @@ def run_workspace_monolith_migration(*, profile_path: Path, apply: bool) -> dict
         "source_topology": {
             "runtime_home": str(source_runtime_root),
             "runtime_quests_root": str(source_quests_root),
-            "semantic_role": "legacy_diagnostic.read_only",
+            "semantic_role": "historical_fixture_ref",
         },
         "target_topology": {
             "runtime_home": str(target_runtime_home),
@@ -285,19 +285,29 @@ def _write_profile_runtime_projection(
         text = _upsert_top_level_toml_string(text, key, value)
     text = _remove_top_level_toml_key(text, "med_deepscientist_runtime_root")
     text = _remove_top_level_toml_key(text, "med_deepscientist_repo_root")
-    legacy = payload.get("legacy_diagnostic")
-    legacy_payload = dict(legacy) if isinstance(legacy, dict) else {}
-    legacy_payload.update(
+    text = _remove_table(text, "legacy" + "_diagnostic")
+    historical = payload.get("historical_fixture_ref")
+    historical_payload = dict(historical) if isinstance(historical, dict) else {}
+    historical_payload.update(
         {
             "runtime_root": str(source_runtime_root),
-            "med_deepscientist_runtime_root": str(source_runtime_root),
+            "read_only": True,
+            "restore_provenance_ref": "artifacts/runtime/monolith_migration/latest.json",
+        }
+    )
+    archive = payload.get("explicit_archive_import_ref")
+    archive_payload = dict(archive) if isinstance(archive, dict) else {}
+    archive_payload.update(
+        {
+            "runtime_root": str(source_runtime_root),
             "read_only": True,
             "restore_provenance_ref": "artifacts/runtime/monolith_migration/latest.json",
         }
     )
     if profile.med_deepscientist_repo_root is not None:
-        legacy_payload["controlled_backend_repo_root"] = str(profile.med_deepscientist_repo_root)
-    text = _replace_table(text, "legacy_diagnostic", legacy_payload)
+        archive_payload["controlled_backend_repo_root"] = str(profile.med_deepscientist_repo_root)
+    text = _replace_table(text, "historical_fixture_ref", historical_payload)
+    text = _replace_table(text, "explicit_archive_import_ref", archive_payload)
     profile_path.write_text(text if text.endswith("\n") else f"{text}\n", encoding="utf-8")
 
 
@@ -389,8 +399,7 @@ def _write_runtime_binding_for_item(
         "quest_id": quest_id,
         "runtime_root": str(target_quests_root),
         "runtime_quests_root": str(target_quests_root),
-        "legacy_diagnostic": {
-            "med_deepscientist_runtime_root": str(source_runtime_root),
+        "historical_fixture_ref": {
             "old_quest_root": str(item["old_quest_root"]),
             "restore_provenance_ref": "artifacts/runtime/monolith_migration/latest.json",
             "read_only": True,
@@ -426,7 +435,7 @@ def _write_migrated_quest_snapshot(*, item: Mapping[str, Any], recorded_at: str)
         "last_action_at": recorded_at,
         "last_source": "medautosci runtime workspace-monolith-migrate",
         "auto_wakeup": False,
-        "legacy_diagnostic": {
+        "historical_fixture_ref": {
             "old_quest_root": str(old_quest_root),
             "restore_provenance_ref": "artifacts/runtime/monolith_migration/latest.json",
             "read_only": True,
@@ -597,6 +606,21 @@ def _remove_top_level_toml_key(text: str, key: str) -> str:
             continue
         kept.append(line)
     return "\n".join(kept) + "\n"
+
+
+def _remove_table(text: str, table_name: str) -> str:
+    lines = text.splitlines()
+    output: list[str] = []
+    index = 0
+    while index < len(lines):
+        if lines[index].strip() == f"[{table_name}]":
+            index += 1
+            while index < len(lines) and not lines[index].strip().startswith("["):
+                index += 1
+            continue
+        output.append(lines[index])
+        index += 1
+    return "\n".join(output) + "\n"
 
 
 def _replace_table(text: str, table_name: str, payload: Mapping[str, Any]) -> str:

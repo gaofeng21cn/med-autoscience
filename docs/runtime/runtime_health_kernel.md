@@ -25,7 +25,7 @@
 1. `study_runtime_status` / `runtime_liveness_audit`
 2. `artifacts/runtime/runtime_lifecycle.sqlite` 的 runtime lifecycle store
 3. `owner_route` / dispatch receipts
-4. explicit legacy diagnostic fixture
+4. historical fixture / explicit archive import reference
 
 只有 `runtime_liveness_status=live` 且 `worker_running=true` 时，`active_run_id` 才保留为 active；否则旧 run 只能降级为 `last_known_run_id`。
 

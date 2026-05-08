@@ -301,7 +301,7 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
             "use_mas_default",
             "use_mas_with_latency_awareness",
             "use_progress_portal",
-            "use_explicit_legacy_diagnostic_only",
+            "use_explicit_archive_import_ref_only",
             "retired_no_active_replacement",
             "use_historical_fixture_only",
         }

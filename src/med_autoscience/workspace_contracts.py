@@ -203,11 +203,12 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
         "managed_runtime_home": str(profile.managed_runtime_home),
         "managed_runtime_quests_root": str(profile.managed_runtime_quests_root),
         "runtime_root_expected": str(runtime_root_expected),
-        "legacy_diagnostic": {
+        "historical_fixture_ref": {
+            "surface_kind": "historical_fixture_ref",
             "read_only": True,
-            "runtime_root_matches_med_deepscientist_runtime": profile.runtime_root == runtime_root_expected,
-            "med_deepscientist_runtime_root_exists": profile.med_deepscientist_runtime_root.exists(),
-            "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
+            "runtime_quests_root_matches_layout": profile.runtime_root == runtime_root_expected,
+            "runtime_root_exists": profile.med_deepscientist_runtime_root.exists(),
+            "runtime_root": str(profile.med_deepscientist_runtime_root),
         },
     }
 
@@ -267,11 +268,12 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
         },
         "repo_manifest": manifest_info,
         "manifest_checks": manifest_checks,
-        "legacy_diagnostic": {
+        "explicit_archive_import_ref": {
+            "surface_kind": "explicit_archive_import_ref",
             "read_only": True,
-            "med_deepscientist_config_env": str(controlled_backend_config_env),
-            "med_deepscientist_bin_dir": str(controlled_backend_bin_dir),
-            "med_deepscientist_repo_root": (
+            "controlled_backend_config_env": str(controlled_backend_config_env),
+            "controlled_backend_bin_dir": str(controlled_backend_bin_dir),
+            "controlled_backend_repo_root": (
                 str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None
             ),
         },

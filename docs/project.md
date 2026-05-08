@@ -7,7 +7,7 @@
 - 用户层：研究问题、工作区、进度反馈、交付文件都统一由 `Med Auto Science` 这条 domain agent 主线承载；对外第一主语是独立 domain agent，其后是单一 MAS app skill。
 - 操作与集成层：`CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，共同构成 MAS 对外稳定 capability surface；`product-entry manifest`、`OPL handoff` 与其他机器可读桥接只做 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不接管研究 owner 身份。
 - OPL 运行管理层：目标形态中，`OPL Runtime Manager` 位于 OPL product entry / family orchestration 与外部 `Hermes-Agent` substrate 之间，只负责 Hermes profile/provisioning、task registration hydration、runtime status projection、doctor/repair/resume、native helper catalog 与高频状态索引；它不成为 MAS 的研究 truth、scheduler kernel、session store、memory store 或 concrete executor。
-- 运行时层：`Med Auto Science` 持有课题与工作区权威语义以及发表判断；默认执行继续继承本机 `Codex` 配置；`Hermes-Agent` 只作为可选 hosted runtime target / reference-layer 运行载体，并可由 OPL Runtime Manager 管理其 family-level adapter/projection；`MedDeepScientist` 不再是默认 operation 依赖，只保留为显式 backend audit、legacy restore/import diagnostic、behavior parity oracle 与 upstream intake source。
+- 运行时层：`Med Auto Science` 持有课题与工作区权威语义以及发表判断；默认执行继续继承本机 `Codex` 配置；`Hermes-Agent` 只作为可选 hosted runtime target / reference-layer 运行载体，并可由 OPL Runtime Manager 管理其 family-level adapter/projection；`MedDeepScientist` 不再是默认 operation 依赖，只保留为显式 backend audit、explicit archive import reference、behavior parity oracle 与 upstream intake source。
 
 ## 当前目标
 
@@ -26,7 +26,7 @@
 - `OPL` 是更高层的整合入口；它不会改写 MAS 的领域真相，也不把 MAS 定义为内部模块。
 - `OPL Runtime Manager` 可以读取 MAS 的 task registration、runtime_control projection、artifact/progress locator 与 wakeup/approval 边界，用于上层状态索引和托管入口编排；这些 projection 只能回指 MAS durable truth surface，不能复制或替代研究判断。
 - `Hermes-Agent` 继续只出现在可选 hosted runtime target 或 reference-layer 语境，不改写 MAS 的稳定 capability surface 或研究 owner 语义。
-- `MedDeepScientist` 不再承载默认运行依赖或第二 owner 语义；保留价值只通过 MAS 显式声明的 backend audit、legacy diagnostic、upstream intake 和 parity oracle surface 出现。
+- `MedDeepScientist` 不再承载默认运行依赖或第二 owner 语义；保留价值只通过 MAS 显式声明的 backend audit、explicit archive import reference、upstream intake 和 parity oracle surface 出现。
 - `MAS AI-first Research OS` 是长线目标架构。当前可用落点是 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 与真实论文 soak 的逐步闭合；真实论文 soak 仍是证据缺口。
 
 ## 当前非目标

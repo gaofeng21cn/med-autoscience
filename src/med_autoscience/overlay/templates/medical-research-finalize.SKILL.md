@@ -56,7 +56,7 @@ Use the readiness labels with strict scope:
 - `submission-ready`: the line is `paper-ready`, submission gates and submission hygiene are passed, and the package is ready for the human pre-submission audit
 
 MedAutoScience owns the final medical manuscript recommendation, downgrade history, submission hygiene summary, runtime evidence, and artifact provenance.
-Historical MedDeepScientist material can only contribute as source provenance, historical fixture, or explicit legacy diagnostic evidence when it is directly cited by a MAS-owned surface.
+Historical MedDeepScientist material can only contribute as source provenance, historical fixture, or explicit archive import reference evidence when it is directly cited by a MAS-owned surface.
 
 ## Use when
 

@@ -115,11 +115,11 @@ def _build_family_persistence_policy_surface(
                 ],
             )
         ],
-        "legacy_diagnostics": [
+        "explicit_archive_import_refs": [
             _persistence_surface(
                 surface_id="quest_git_restore_import",
-                surface_role="legacy_restore_diagnostic",
-                storage_role="legacy_diagnostic_only",
+                surface_role="explicit_archive_import_reference",
+                storage_role="explicit_archive_import_ref_only",
                 owner=TARGET_DOMAIN_ID,
                 ref=_ref("runtime/quests/<quest_id>/.git", ref_kind="workspace_locator"),
             )

@@ -34,7 +34,7 @@ Date: `2026-05-04`
 README、status、policy、runtime reference 与 program reference 都是人读面，但它们不能各自长出新的 owner truth。对应的机器合同是 `mas_mds_doc_reference_semantic_guard`，它把文档语义固定为以下几类：
 
 - 受约束的文档族：`README`、`docs/README`、`docs/status`、`docs/policies`、`docs/program`、`docs/runtime`、`docs/references`
-- 允许的 MDS 角色：`frozen_source_archive`、`historical_fixture`、`explicit_legacy_diagnostic`、`provenance_reference`、`parity_oracle`、`upstream_intake_source`
+- 允许的 MDS 角色：`frozen_source_archive`、`historical_fixture_ref`、`explicit_archive_import_ref`、`source_provenance`、`parity_oracle`、`upstream_intake_source`
 - 禁止的 MDS 语义：默认运行依赖、默认诊断依赖、默认 WebUI/progress owner、默认 runner、product owner、study / quality / publication / runtime authority、contributor history import
 - MAS-owned packaging surface：`artifacts/runtime/progress_portal/latest.json`、`ops/mas/progress/index.html`、`ops/mas/bin/start-web`、`medautosci workspace progress-portal --serve`
 - hub 角色约束：`product_entry`、`study_progress`、`MCP`、`Progress Portal`、`display/quality entrances` 只能是 thin read-model / adapter / materializer，不得升级成 authority

@@ -30,8 +30,8 @@ def test_bootstrap_command_refreshes_legacy_workspace_runtime_entry_scripts(
 
     profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "legacy.local.toml"
     profile_text = profile_path.read_text(encoding="utf-8").replace(
-        'med_deepscientist_repo_root = ""',
-        f'med_deepscientist_repo_root = "{med_deepscientist_repo_root}"',
+        'controlled_backend_repo_root = ""',
+        f'controlled_backend_repo_root = "{med_deepscientist_repo_root}"',
     )
     profile_path.write_text(profile_text, encoding="utf-8")
 

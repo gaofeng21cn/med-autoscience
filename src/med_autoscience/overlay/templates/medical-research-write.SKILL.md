@@ -107,7 +107,7 @@ MedAutoScience owns the medical manuscript judgments here:
 - `submission-ready`: the line is `paper-ready`, `submission_minimal` has passed, submission hygiene is explicit, and the package is ready for the human pre-submission audit
 
 MedAutoScience holds the runtime, artifact, evidence, manuscript quality judgment, claim downgrades, route-back decisions, and readiness labels.
-Historical MedDeepScientist material can only enter as source provenance, historical fixture, or explicit legacy diagnostic evidence.
+Historical MedDeepScientist material can only enter as source provenance, historical fixture, or explicit archive import reference evidence.
 
 For paper-like deliverables, the durable contract is outline-first, not prose-first.
 The approved outline should be a real structured object, typically containing:

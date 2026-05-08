@@ -235,12 +235,13 @@ def _legacy_mds_evidence(
         value = _text(profile_dict.get(key))
         if "med-deepscientist" in value or "/.ds" in value:
             evidence.append({"kind": "profile_path", "key": key, "value": value})
-    legacy_diagnostic = profile_dict.get("legacy_diagnostic")
-    if isinstance(legacy_diagnostic, Mapping):
-        for key, raw_value in legacy_diagnostic.items():
-            value = _text(raw_value)
-            if "med-deepscientist" in value or "/.ds" in value:
-                evidence.append({"kind": "legacy_diagnostic", "key": str(key), "value": value})
+    for table_name in ("historical_fixture_ref", "source_provenance", "explicit_archive_import_ref"):
+        table = profile_dict.get(table_name)
+        if isinstance(table, Mapping):
+            for key, raw_value in table.items():
+                value = _text(raw_value)
+                if "med-deepscientist" in value or "/.ds" in value:
+                    evidence.append({"kind": table_name, "key": str(key), "value": value})
     for relative_ref in LEGACY_MDS_LAUNCHER_REFS:
         path = profile.workspace_root / relative_ref
         if path.exists():

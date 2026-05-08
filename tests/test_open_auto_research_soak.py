@@ -304,7 +304,6 @@ def test_open_auto_research_soak_cli_group_alias_accepts_allow_controller_writes
                 f'runtime_root = "{profile.runtime_root}"',
                 f'studies_root = "{profile.studies_root}"',
                 f'portfolio_root = "{profile.portfolio_root}"',
-                f'med_deepscientist_runtime_root = "{profile.med_deepscientist_runtime_root}"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
                 "enable_medical_overlay = true",
@@ -312,6 +311,9 @@ def test_open_auto_research_soak_cli_group_alias_accepts_allow_controller_writes
                 'medical_overlay_skills = ["scout"]',
                 'research_route_bias_policy = "high_plasticity_medical"',
                 'preferred_study_archetypes = ["clinical_classifier"]',
+                "",
+                "[historical_fixture_ref]",
+                f'runtime_root = "{profile.med_deepscientist_runtime_root}"',
             ]
         )
         + "\n",

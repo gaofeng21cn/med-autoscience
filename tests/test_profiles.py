@@ -13,8 +13,6 @@ PROFILE_LINES = [
     f'runtime_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "runtime" / "quests"}"',
     f'studies_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "studies"}"',
     f'portfolio_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "portfolio"}"',
-    f'med_deepscientist_runtime_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "runtime"}"',
-    'med_deepscientist_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
     'hermes_agent_repo_root = "/Users/gaofeng/workspace/_external/hermes-agent"',
     'hermes_home_root = "~/.hermes"',
     'default_publication_profile = "general_medical_journal"',
@@ -36,6 +34,16 @@ PROFILE_LINES = [
     "primary = true",
     "package_required = true",
     'story_surface = "general_medical_journal"',
+    "",
+    "[source_provenance]",
+    'source_role = "frozen_source_archive_or_historical_fixture"',
+    f'runtime_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "runtime"}"',
+    "",
+    "[historical_fixture_ref]",
+    f'runtime_root = "{CANONICAL_NFPITNET_WORKSPACE_ROOT / "runtime"}"',
+    "",
+    "[explicit_archive_import_ref]",
+    'controlled_backend_repo_root = "/Users/gaofeng/workspace/med-deepscientist"',
 ]
 
 
@@ -171,12 +179,12 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     assert profile.developer_supervisor_mode_explicit is False
 
 
-def test_load_profile_accepts_legacy_diagnostic_table_without_top_level_mds_fields(tmp_path: Path) -> None:
-    profile_path = tmp_path / "legacy-diagnostic.local.toml"
+def test_load_profile_accepts_historical_reference_tables_without_top_level_mds_fields(tmp_path: Path) -> None:
+    profile_path = tmp_path / "historical-reference.local.toml"
     profile_path.write_text(
         "\n".join(
             [
-                'name = "legacy-diagnostic"',
+                'name = "historical-reference"',
                 'workspace_root = "/tmp/workspace"',
                 'runtime_root = "/tmp/workspace/runtime/quests"',
                 'managed_runtime_home = "/tmp/workspace/runtime"',
@@ -184,8 +192,10 @@ def test_load_profile_accepts_legacy_diagnostic_table_without_top_level_mds_fiel
                 'portfolio_root = "/tmp/workspace/portfolio"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
-                "[legacy_diagnostic]",
+                "[source_provenance]",
+                'source_role = "frozen_source_archive_or_historical_fixture"',
                 'runtime_root = "/tmp/workspace/legacy/mds-runtime"',
+                "[explicit_archive_import_ref]",
                 'controlled_backend_repo_root = "/tmp/med-deepscientist"',
                 "read_only = true",
             ]
@@ -229,15 +239,25 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["portfolio_root"] == str(profile.portfolio_root)
     assert "med_deepscientist_runtime_root" not in contract
     assert "med_deepscientist_repo_root" not in contract
-    legacy_diagnostic = contract["legacy_diagnostic"]
-    assert legacy_diagnostic["runtime_root"] == str(profile.med_deepscientist_runtime_root)
-    assert legacy_diagnostic["med_deepscientist_runtime_root"] == str(profile.med_deepscientist_runtime_root)
-    assert legacy_diagnostic["controlled_backend_repo_root"] == str(profile.med_deepscientist_repo_root)
-    assert legacy_diagnostic["med_deepscientist_repo_root"] == str(profile.med_deepscientist_repo_root)
-    assert legacy_diagnostic["field_compatibility"] == (
-        "legacy diagnostic/backend-audit profile aliases are exposed only under legacy_diagnostic"
-    )
-    assert legacy_diagnostic["read_only"] is True
+    assert contract["source_provenance"] == {
+        "surface_kind": "source_provenance",
+        "source_role": "frozen_source_archive_or_historical_fixture",
+        "runtime_root": str(profile.med_deepscientist_runtime_root),
+        "controlled_backend_repo_root": str(profile.med_deepscientist_repo_root),
+        "read_only": True,
+    }
+    assert contract["historical_fixture_ref"] == {
+        "surface_kind": "historical_fixture_ref",
+        "runtime_root": str(profile.med_deepscientist_runtime_root),
+        "runtime_root_exists": profile.med_deepscientist_runtime_root.exists(),
+        "read_only": True,
+    }
+    assert contract["explicit_archive_import_ref"] == {
+        "surface_kind": "explicit_archive_import_ref",
+        "runtime_root": str(profile.med_deepscientist_runtime_root),
+        "controlled_backend_repo_root": str(profile.med_deepscientist_repo_root),
+        "read_only": True,
+    }
     assert contract["hermes_agent_repo_root"] == str(profile.hermes_agent_repo_root)
     assert contract["hermes_home_root"] == str(profile.hermes_home_root)
     assert contract["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
@@ -291,8 +311,9 @@ def test_render_profile_labels_backend_paths_as_diagnostics(tmp_path: Path) -> N
 
     assert "runtime_quests_root: " in rendered
     assert "mas_runtime_home: " in rendered
-    assert "legacy_diagnostic_runtime_root: " in rendered
+    assert "historical_fixture_runtime_root: " in rendered
     assert "controlled_backend_audit_repo_root: " in rendered
+    assert "legacy_diagnostic_runtime_root: " not in rendered
     assert "med_deepscientist_runtime_root: " not in rendered
     assert "med_deepscientist_repo_root: " not in rendered
 
@@ -309,12 +330,14 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
                 'runtime_root = "../workspace/runtime/quests"',
                 'studies_root = "../workspace/studies"',
                 'portfolio_root = "../workspace/portfolio"',
-                'med_deepscientist_runtime_root = "../workspace/runtime"',
-                'med_deepscientist_repo_root = "../../med-deepscientist"',
                 'hermes_agent_repo_root = "../../_external/hermes-agent"',
                 'hermes_home_root = "../../.hermes-home"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
+                "[historical_fixture_ref]",
+                'runtime_root = "../workspace/runtime"',
+                "[explicit_archive_import_ref]",
+                'controlled_backend_repo_root = "../../med-deepscientist"',
             ]
         )
         + "\n",

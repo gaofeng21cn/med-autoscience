@@ -52,7 +52,7 @@ DOC_REFERENCE_GUARDED_FAMILIES: tuple[str, ...] = (
 DOC_REFERENCE_ALLOWED_MDS_ROLES: tuple[str, ...] = (
     "frozen_source_archive",
     "historical_fixture",
-    "explicit_legacy_diagnostic",
+    "explicit_archive_import_ref",
     "provenance_reference",
     "parity_oracle",
     "upstream_intake_source",

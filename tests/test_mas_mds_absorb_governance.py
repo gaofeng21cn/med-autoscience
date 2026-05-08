@@ -126,7 +126,7 @@ def test_doc_reference_semantic_guard_freezes_thin_hub_and_mas_owned_packaging()
     assert guard["allowed_mds_roles"] == [
         "frozen_source_archive",
         "historical_fixture",
-        "explicit_legacy_diagnostic",
+        "explicit_archive_import_ref",
         "provenance_reference",
         "parity_oracle",
         "upstream_intake_source",

@@ -209,8 +209,9 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     migrated_profile_text = profile_path.read_text(encoding="utf-8")
     assert 'runtime_root = "' + str(workspace_root / "runtime" / "quests") + '"' in migrated_profile_text
     assert 'managed_runtime_home = "' + str(workspace_root / "runtime") + '"' in migrated_profile_text
-    top_level_profile_text = migrated_profile_text.split("[legacy_diagnostic]", maxsplit=1)[0]
+    top_level_profile_text = migrated_profile_text.split("[historical_fixture_ref]", maxsplit=1)[0]
     assert "med_deepscientist_runtime_root" not in top_level_profile_text
+    assert "[legacy_diagnostic]" not in migrated_profile_text
 
     alpha_binding = yaml.safe_load(
         (workspace_root / "studies" / "010-alpha-dynamic" / "runtime_binding.yaml").read_text(encoding="utf-8")
@@ -218,8 +219,8 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert alpha_binding["runtime_home"] == str(workspace_root / "runtime")
     assert alpha_binding["runtime_root"] == str(workspace_root / "runtime" / "quests")
     assert alpha_binding["runtime_quests_root"] == str(workspace_root / "runtime" / "quests")
-    assert alpha_binding["legacy_diagnostic"]["read_only"] is True
-    assert alpha_binding["legacy_diagnostic"]["old_quest_root"].endswith(
+    assert alpha_binding["historical_fixture_ref"]["read_only"] is True
+    assert alpha_binding["historical_fixture_ref"]["old_quest_root"].endswith(
         "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
     )
     migrated_quest_root = workspace_root / "runtime" / "quests" / "quest-alpha-dynamic"
@@ -232,8 +233,8 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert migrated_runtime_state["status"] == "completed"
     assert migrated_runtime_state["active_run_id"] is None
     assert migrated_runtime_state["worker_running"] is False
-    assert migrated_runtime_state["legacy_diagnostic"]["read_only"] is True
-    assert migrated_runtime_state["legacy_diagnostic"]["old_quest_root"].endswith(
+    assert migrated_runtime_state["historical_fixture_ref"]["read_only"] is True
+    assert migrated_runtime_state["historical_fixture_ref"]["old_quest_root"].endswith(
         "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
     )
     mas_bin_root = workspace_root / "ops" / "mas" / "bin"

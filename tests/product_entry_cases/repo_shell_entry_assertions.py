@@ -156,8 +156,8 @@ def _assert_task_lifecycle_surface(*, module, payload, profile, profile_ref) -> 
     )
     assert [item["role_id"] for item in payload["single_project_boundary"]["mds_retained_roles"]] == [
         "external_source_archive",
-        "historical_oracle_fixture",
-        "explicit_legacy_diagnostic",
+        "historical_fixture_ref",
+        "explicit_archive_import_ref",
     ]
     assert "new upstream intake from future MDS/DeepScientist snapshots" in payload["single_project_boundary"]["post_gate_only"]
     assert payload["product_entry_status"]["summary"] == "继续收口 blocker 并把用户入口壳压实。"

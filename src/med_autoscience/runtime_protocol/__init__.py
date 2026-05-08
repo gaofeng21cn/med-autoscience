@@ -13,7 +13,6 @@ from .layout import (
     build_workspace_runtime_layout_for_profile,
     resolve_runtime_root_from_quest_root,
 )
-from . import legacy_restore_import_diagnostics
 from .topology import (
     PaperRootContext,
     resolve_paper_root_context,
@@ -24,7 +23,6 @@ from .topology import (
     resolve_worktree_root_from_paper_root,
 )
 from .paper_artifacts import (
-    resolve_legacy_restore_import_diagnostic_paper_bundle_manifest,
     resolve_artifact_manifest,
     resolve_artifact_manifest_from_main_result,
     resolve_latest_paper_root,
@@ -69,7 +67,6 @@ from .study_runtime import (
 from .quest_state import (
     QuestRuntimeSnapshot,
     find_latest,
-    find_latest_legacy_restore_import_diagnostic_main_result_path,
     find_latest_main_result,
     find_latest_main_result_path,
     inspect_quest_runtime,
@@ -108,14 +105,12 @@ __all__ = [
     "enqueue_user_message",
     "resolve_artifact_manifest",
     "resolve_artifact_manifest_from_main_result",
-    "resolve_legacy_restore_import_diagnostic_paper_bundle_manifest",
     "resolve_latest_paper_root",
     "resolve_paper_bundle_manifest",
     "resolve_submission_minimal_manifest",
     "resolve_submission_minimal_artifact_authority",
     "resolve_submission_minimal_output_paths",
     "find_latest",
-    "find_latest_legacy_restore_import_diagnostic_main_result_path",
     "find_latest_main_result",
     "find_latest_main_result_path",
     "inspect_quest_runtime",
@@ -135,7 +130,6 @@ __all__ = [
     "resolve_active_stdout_path",
     "resolve_worktree_root_from_paper_root",
     "load_watch_state",
-    "legacy_restore_import_diagnostics",
     "save_watch_state",
     "should_refresh_startup_hydration_while_blocked",
     "validate_startup_contract_resolution",

@@ -92,7 +92,7 @@
 
 必须满足：
 
-- profile 的 legacy diagnostic controlled backend repo root 已经指向受控的 `med-deepscientist`
+- profile 的 explicit archive import reference controlled backend repo root 已经指向受控的 `med-deepscientist`
 - `MEDICAL_FORK_MANIFEST.json` 能说明当前 fork 身份
 - 需要的历史补丁已经在 fork 或 `med-autoscience` 中显式落盘
 

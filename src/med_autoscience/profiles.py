@@ -217,24 +217,26 @@ def _optional_path(payload: dict[str, object], key: str, *, profile_dir: Path) -
     return _resolve_profile_path(value, profile_dir=profile_dir)
 
 
-def _optional_legacy_diagnostic_payload(payload: dict[str, object]) -> dict[str, object]:
-    value = payload.get("legacy_diagnostic")
+def _optional_reference_payload(payload: dict[str, object], key: str) -> dict[str, object]:
+    value = payload.get(key)
     if value is None:
         return {}
     if not isinstance(value, dict):
-        raise TypeError("legacy_diagnostic must be a table when provided")
+        raise TypeError(f"{key} must be a table when provided")
     return dict(value)
 
 
-def _optional_legacy_runtime_root(
+def _optional_historical_runtime_root(
     payload: dict[str, object],
     *,
-    legacy_diagnostic: dict[str, object],
+    source_provenance: dict[str, object],
+    historical_fixture_ref: dict[str, object],
+    explicit_archive_import_ref: dict[str, object],
     profile_dir: Path,
     default: Path,
 ) -> Path:
-    for key in ("runtime_root", "med_deepscientist_runtime_root"):
-        value = legacy_diagnostic.get(key)
+    for table in (historical_fixture_ref, source_provenance, explicit_archive_import_ref):
+        value = table.get("runtime_root")
         if isinstance(value, str) and value.strip():
             return _resolve_profile_path(value, profile_dir=profile_dir)
     value = _optional_string(payload, "med_deepscientist_runtime_root", empty_as_none=True)
@@ -243,14 +245,15 @@ def _optional_legacy_runtime_root(
     return default
 
 
-def _optional_legacy_repo_root(
+def _optional_archive_import_repo_root(
     payload: dict[str, object],
     *,
-    legacy_diagnostic: dict[str, object],
+    source_provenance: dict[str, object],
+    explicit_archive_import_ref: dict[str, object],
     profile_dir: Path,
 ) -> Path | None:
-    for key in ("controlled_backend_repo_root", "med_deepscientist_repo_root"):
-        value = legacy_diagnostic.get(key)
+    for table in (explicit_archive_import_ref, source_provenance):
+        value = table.get("controlled_backend_repo_root")
         if isinstance(value, str) and value.strip():
             return _resolve_profile_path(value, profile_dir=profile_dir)
     return _optional_path(payload, "med_deepscientist_repo_root", profile_dir=profile_dir)
@@ -303,16 +306,21 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
     _reject_stale_workspace_alias(profile_name=profile_name, workspace_root=workspace_root)
     runtime_root = _resolve_profile_path(_require_string(payload, "runtime_root"), profile_dir=profile_dir)
     managed_runtime_home = _optional_path(payload, "managed_runtime_home", profile_dir=profile_dir) or runtime_root.parent
-    legacy_diagnostic = _optional_legacy_diagnostic_payload(payload)
-    med_deepscientist_runtime_root = _optional_legacy_runtime_root(
+    source_provenance = _optional_reference_payload(payload, "source_provenance")
+    historical_fixture_ref = _optional_reference_payload(payload, "historical_fixture_ref")
+    explicit_archive_import_ref = _optional_reference_payload(payload, "explicit_archive_import_ref")
+    med_deepscientist_runtime_root = _optional_historical_runtime_root(
         payload,
-        legacy_diagnostic=legacy_diagnostic,
+        source_provenance=source_provenance,
+        historical_fixture_ref=historical_fixture_ref,
+        explicit_archive_import_ref=explicit_archive_import_ref,
         profile_dir=profile_dir,
         default=managed_runtime_home,
     )
-    med_deepscientist_repo_root = _optional_legacy_repo_root(
+    med_deepscientist_repo_root = _optional_archive_import_repo_root(
         payload,
-        legacy_diagnostic=legacy_diagnostic,
+        source_provenance=source_provenance,
+        explicit_archive_import_ref=explicit_archive_import_ref,
         profile_dir=profile_dir,
     )
     hermes_agent_repo_root = _optional_path(payload, "hermes_agent_repo_root", profile_dir=profile_dir)
@@ -361,6 +369,14 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
 
 def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
     default_submission_targets = [dict(item) for item in profile.default_submission_targets]
+    explicit_archive_import_ref = {
+        "surface_kind": "explicit_archive_import_ref",
+        "runtime_root": str(profile.med_deepscientist_runtime_root),
+        "controlled_backend_repo_root": (
+            str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None
+        ),
+        "read_only": True,
+    }
     return {
         "name": profile.name,
         "workspace_root": str(profile.workspace_root),
@@ -369,20 +385,20 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         "managed_runtime_quests_root": str(profile.managed_runtime_quests_root),
         "studies_root": str(profile.studies_root),
         "portfolio_root": str(profile.portfolio_root),
-        "legacy_diagnostic": {
+        "source_provenance": {
+            "surface_kind": "source_provenance",
+            "source_role": "frozen_source_archive_or_historical_fixture",
             "runtime_root": str(profile.med_deepscientist_runtime_root),
-            "med_deepscientist_runtime_root": str(profile.med_deepscientist_runtime_root),
-            "controlled_backend_repo_root": (
-                str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None
-            ),
-            "med_deepscientist_repo_root": (
-                str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None
-            ),
-            "field_compatibility": (
-                "legacy diagnostic/backend-audit profile aliases are exposed only under legacy_diagnostic"
-            ),
+            "controlled_backend_repo_root": explicit_archive_import_ref["controlled_backend_repo_root"],
             "read_only": True,
         },
+        "historical_fixture_ref": {
+            "surface_kind": "historical_fixture_ref",
+            "runtime_root": str(profile.med_deepscientist_runtime_root),
+            "runtime_root_exists": profile.med_deepscientist_runtime_root.exists(),
+            "read_only": True,
+        },
+        "explicit_archive_import_ref": explicit_archive_import_ref,
         "hermes_agent_repo_root": str(profile.hermes_agent_repo_root) if profile.hermes_agent_repo_root else None,
         "hermes_home_root": str(profile.hermes_home_root),
         "managed_runtime_backend_id": profile.managed_runtime_backend_id,

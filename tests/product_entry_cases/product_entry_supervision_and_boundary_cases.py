@@ -406,7 +406,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     assert "Single-Project Boundary" in markdown
     assert "Capability Owner Boundary" in markdown
     assert "MAS capability `progress_truth_projection`" in markdown
-    assert "MDS migration-only `explicit_legacy_diagnostic`" in markdown
+    assert "MDS migration-only `explicit_archive_import_ref`" in markdown
     assert "MDS 保留 `external_source_archive`" in markdown
     assert "Single Path" in markdown
     assert "Workspace Preview" in markdown

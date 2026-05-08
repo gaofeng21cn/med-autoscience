@@ -4,7 +4,7 @@
 
 ## 1. Sidecar provider 在 MedAutoScience 的定位
 
-1. **主线 runtime 默认是 MAS-owned runtime/artifact/quality surfaces。** Sidecar provider 只是为 `MedAutoScience` 提供受控扩展的 bounded route，不能取代主线 runtime 处理模型训练、评估或结果收敛流程。外部 `MedDeepScientist` 只可作为显式 backend audit、legacy diagnostic 或 parity oracle reference，不是默认执行前置。
+1. **主线 runtime 默认是 MAS-owned runtime/artifact/quality surfaces。** Sidecar provider 只是为 `MedAutoScience` 提供受控扩展的 bounded route，不能取代主线 runtime 处理模型训练、评估或结果收敛流程。外部 `MedDeepScientist` 只可作为显式 backend audit、historical fixture / explicit archive import reference 或 parity oracle reference，不是默认执行前置。
 2. **Sidecar 不是随意“绕过主线”的后门。** 任何 sidecar 调用都应报告其 trigger、recommendation gate 结论，以及最终 handoff root，这样人类审阅者可以追溯为什么选择 sidecar 以及它的输出对主线决策有哪些影响。
 
 ## 2. Sidecar provider 契约

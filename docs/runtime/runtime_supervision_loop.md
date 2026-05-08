@@ -37,7 +37,7 @@
 - `MAS Runtime OS`
   - 默认 runtime/backend state、event、recovery 与 quest lifecycle owner
 - `MedDeepScientist`
-  - frozen source archive、historical fixture 或显式 backend audit / legacy diagnostic reference
+  - frozen source archive、historical fixture 或显式 backend audit / explicit archive import reference
 
 对应的监管外环是：
 
@@ -93,7 +93,7 @@ medautosci runtime supervisor-scan \
 
 2026-05-08 Runtime Continuity closeout 又把旧 MDS daemon 退役后最关键的两类用户可见行为补齐为 MAS-owned surface：
 
-- `runtime_session` read model：从 `study_runtime_status/runtime_liveness_audit`、SQLite runtime lifecycle store、owner_route/dispatch receipts 和显式 legacy diagnostic fixture 依序投影 `active_run_id`、`last_known_run_id`、`worker_state`、`worker_running`、`last_seen_at`、event cursor、stdout ref 与 freshness。它只读，不写 runtime truth。
+- `runtime_session` read model：从 `study_runtime_status/runtime_liveness_audit`、SQLite runtime lifecycle store、owner_route/dispatch receipts 和historical fixture / explicit archive import reference 依序投影 `active_run_id`、`last_known_run_id`、`worker_state`、`worker_running`、`last_seen_at`、event cursor、stdout ref 与 freshness。它只读，不写 runtime truth。
 - `recovery_intent` ledger：supervisor scan 在每个 study projection 中写出 `runtime_recovery_intent`，记录恢复原因、next owner、retry budget、dedupe fingerprint、last attempt/result、next eligible tick 与 `current_action`。允许动作固定为 `await_next_tick`、`safe_reconcile_ready`、`recovering`、`parked`、`human_gate_required`、`escalated`。
 - `runtime_reconcile_trigger` projection：`study-progress`、workspace cockpit、product-entry status 和 Progress Portal 可以显示“是否可请求一次 safe reconcile dry-run”。该投影本身不执行 reconcile、不写 runtime、不写 paper/current_package、不写 publication gate；页面刷新只会生成幂等推荐命令和 blocked reasons。
 

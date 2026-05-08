@@ -253,7 +253,7 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
         backend_retained_now=[
             "frozen MedDeepScientist source archive",
             "historical oracle fixtures",
-            "explicit legacy restore/import/backend-audit diagnostic",
+            "explicit archive import / backend-audit reference",
         ],
         current_backend_chain=[
             "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",

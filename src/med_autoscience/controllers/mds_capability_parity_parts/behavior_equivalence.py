@@ -18,7 +18,7 @@ ALLOWED_BEHAVIOR_OPERATOR_ACTIONS: tuple[str, ...] = (
     "use_mas_default",
     "use_mas_with_latency_awareness",
     "use_progress_portal",
-    "use_explicit_legacy_diagnostic_only",
+    "use_explicit_archive_import_ref_only",
     "retired_no_active_replacement",
     "use_historical_fixture_only",
 )
@@ -303,7 +303,7 @@ RUNTIME_CONTINUITY_COMPLETION = {
             "study_runtime_status/runtime_liveness_audit",
             "runtime_lifecycle_store",
             "owner_route/dispatch_receipts",
-            "legacy_diagnostic_fixture",
+            "historical_fixture_ref",
         ],
         "writes_authority_surface": False,
     },

@@ -18,7 +18,7 @@
 这意味着：
 
 - `OPL Gateway` 不替代 `MedAutoScience`
-- `MAS Runtime OS` 是当前默认 runtime owner / substrate；`MedDeepScientist` 只保留 frozen source archive、historical fixture 和 explicit legacy diagnostic / provenance reference
+- `MAS Runtime OS` 是当前默认 runtime owner / substrate；`MedDeepScientist` 只保留 frozen source archive、historical fixture 和 explicit archive import reference / provenance reference
 - future monorepo 的 `controller_charter / runtime / eval_hygiene` 应被理解为 harness OS 内部主模块，而不是对外 gateway 的替代品
 
 更系统的定位说明见：[Domain Gateway And Harness OS](../references/domain_gateway_harness_os.md)

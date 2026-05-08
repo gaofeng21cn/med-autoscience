@@ -186,7 +186,7 @@ def _assert_family_persistence_lifecycle_owner_route(*, module, payload, profile
     assert policy["sidecar_indexes"][0]["storage_role"] == "sqlite_sidecar_index"
     assert policy["sidecar_indexes"][0]["ref"]["ref"] == "artifacts/runtime/runtime_lifecycle.sqlite"
     assert policy["projection_caches"][0]["storage_role"] == "projection_cache"
-    assert policy["legacy_diagnostics"][0]["storage_role"] == "legacy_diagnostic_only"
+    assert policy["explicit_archive_import_refs"][0]["storage_role"] == "explicit_archive_import_ref_only"
 
     ledger = payload["lifecycle_ledger"]
     assert ledger["surface_kind"] == "family_lifecycle_ledger"

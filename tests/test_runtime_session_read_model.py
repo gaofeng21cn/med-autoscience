@@ -163,7 +163,7 @@ def test_runtime_session_projection_falls_back_to_owner_route_receipts_without_c
     ]
 
 
-def test_runtime_session_projection_reads_explicit_legacy_diagnostic_fixture_last(tmp_path: Path) -> None:
+def test_runtime_session_projection_reads_explicit_historical_fixture_last(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_session_read_model")
     fixture_path = tmp_path / "fixtures" / "runtime_state.json"
     fixture_path.parent.mkdir(parents=True)
@@ -185,13 +185,13 @@ def test_runtime_session_projection_reads_explicit_legacy_diagnostic_fixture_las
     )
 
     projection = read_model.build_runtime_session_read_model(
-        legacy_diagnostic_fixture_path=fixture_path,
+        historical_fixture_path=fixture_path,
         generated_at="2026-05-08T00:25:00+00:00",
         freshness_ttl_seconds=60,
     )
 
     session = projection["runtime_session"]
-    assert session["source_priority"] == "legacy_diagnostic_fixture"
+    assert session["source_priority"] == "historical_fixture_ref"
     assert session["study_id"] == "001-risk"
     assert session["quest_id"] == "quest-001"
     assert session["active_run_id"] is None
@@ -203,7 +203,7 @@ def test_runtime_session_projection_reads_explicit_legacy_diagnostic_fixture_las
     assert session["freshness_state"] == "stale"
     assert session["freshness_age_seconds"] == 300
     assert session["evidence_refs"] == [
-        {"source": "legacy_diagnostic_fixture", "path": str(fixture_path.resolve())}
+        {"source": "historical_fixture_ref", "path": str(fixture_path.resolve())}
     ]
 
 

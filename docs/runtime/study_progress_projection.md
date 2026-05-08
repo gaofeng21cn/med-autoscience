@@ -54,7 +54,7 @@
 - `studies/<study_id>/artifacts/controller_decisions/latest.json`
 - `studies/<study_id>/artifacts/controller/controller_confirmation_summary.json`
 - `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
-- legacy diagnostic reference: `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+- explicit archive import reference: `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
 - `runtime_watch` 最新 report
 
 允许吸收但不赋予 authority 的 enrichment surface：

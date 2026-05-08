@@ -100,14 +100,14 @@ def _single_project_boundary() -> dict[str, Any]:
                 "summary": "只保留 source provenance、hash、license refs 和 historical audit context；不作为 runnable dependency。",
             },
             {
-                "role_id": "historical_oracle_fixture",
-                "title": "Historical oracle fixture",
+                "role_id": "historical_fixture_ref",
+                "title": "Historical fixture reference",
                 "summary": "只作为 retained capability parity fixture；不能运行成默认 daemon、WebUI 或研究执行后端。",
             },
             {
-                "role_id": "explicit_legacy_diagnostic",
-                "title": "Explicit legacy diagnostic",
-                "summary": "仅限显式 legacy restore/import/backend audit 读取；默认 MAS 诊断不要求外部 MDS checkout。",
+                "role_id": "explicit_archive_import_ref",
+                "title": "Explicit archive import reference",
+                "summary": "仅限显式 archive import 或 backend audit 读取；默认 MAS 诊断不要求外部 MDS checkout。",
             },
         ],
         "land_now": [
@@ -136,7 +136,7 @@ def _capability_owner_boundary() -> dict[str, Any]:
         "summary": (
             "调用方应把研究入口、task intake、controller outer loop、进度真相、论文质量门控、"
             "runtime recovery 与 program/mainline 解释都读作 MAS-owned capability；"
-            "MDS 只保留 frozen archive / historical fixture / explicit legacy diagnostic 角色。"
+            "MDS 只保留 frozen archive / historical fixture / explicit archive import reference 角色。"
         ),
         "mas_owned_capabilities": [
             {
@@ -189,21 +189,21 @@ def _capability_owner_boundary() -> dict[str, Any]:
                 "summary": "只服务 provenance、license refs、source hash 和历史审计；不拥有默认执行或诊断入口。",
             },
             {
-                "role_id": "historical_oracle_fixture",
+                "role_id": "historical_fixture_ref",
                 "migration_only": True,
                 "summary": "只作为 historical fixture / parity proof input；不替代 MAS durable truth。",
             },
             {
-                "role_id": "explicit_legacy_diagnostic",
+                "role_id": "explicit_archive_import_ref",
                 "migration_only": True,
-                "summary": "只在操作者显式 legacy restore/import/backend audit 时读取；不作为 hidden fallback。",
+                "summary": "只在操作者显式 archive import / backend audit 时读取；不作为 hidden fallback。",
             },
         ],
         "proof_and_absorb_boundary": {
             "surface_kind": "proof_and_absorb_boundary",
             "parity_status": "landed_for_retained_mds_capabilities",
             "parity_proof_sources": [
-                "historical_oracle_fixture",
+                "historical_fixture_ref",
                 "study_progress_projection_contract",
                 "publication_eval/latest.json",
                 "controller_decisions/latest.json",
@@ -248,7 +248,7 @@ def _active_tranche_owner_truth() -> dict[str, Any]:
         "stage_id": CURRENT_STAGE_ID,
         "summary": (
             "当前 tranche 用 autonomy、quality、single-project owner 三线解释 MAS owner truth；"
-            "MedDeepScientist 只保留 archive、historical fixture、explicit legacy diagnostic 角色。"
+            "MedDeepScientist 只保留 archive、historical fixture、explicit archive import reference 角色。"
         ),
         "lanes": [
             {
@@ -316,7 +316,7 @@ def _platform_target() -> dict[str, Any]:
         current_step_id="functional_monolith_completion",
         current_readiness_summary=(
             "MAS 默认运行、进度、诊断、artifact/quality parity、workspace helpers 与 OPL handoff 都已切到 MAS-owned surfaces；"
-            "external MDS 只保留 frozen archive / historical fixture / explicit legacy diagnostic。"
+            "external MDS 只保留 frozen archive / historical fixture / explicit archive import reference。"
         ),
         north_star_topology={
             "domain_gateway": "Med Auto Science",
@@ -669,7 +669,7 @@ def _phase4_backend_deconstruction() -> dict[str, Any]:
         backend_retained_now=[
             "frozen MedDeepScientist source archive",
             "historical oracle fixtures",
-            "explicit legacy restore/import/backend-audit diagnostic",
+            "explicit archive import / backend-audit reference",
         ],
         current_backend_chain=[
             "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
@@ -709,7 +709,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "focus": [
                 "autonomy: keep runtime truth, recovery proof, and progress freshness controller-owned",
                 "quality: keep publication-grade quality route truth under MAS study contracts",
-                "single-project owner: keep MDS retained as frozen archive / historical fixture / explicit diagnostic only",
+                "single-project owner: keep MDS retained as frozen archive / historical fixture / explicit archive import reference only",
             ],
             "entry_points": [
                 {
@@ -829,7 +829,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "title": "Phase 4 backend deconstruction",
             "status": "pending",
             "usable_now": True,
-            "summary": "在 MAS Runtime OS 与产品回路稳定后，继续把 MDS 保持为 archive/fixture/explicit diagnostic reference，并只对新的可迁能力走 no-history provenance 与 parity gate。",
+            "summary": "在 MAS Runtime OS 与产品回路稳定后，继续把 MDS 保持为 archive/fixture/explicit archive import reference，并只对新的可迁能力走 no-history provenance 与 parity gate。",
             "focus": [
                 "move any newly reusable runtime capability into MAS-owned surfaces only with provenance and proof",
                 "keep executor replacement explicit and contract-driven instead of forced rewrites",
@@ -848,7 +848,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             ],
             "exit_criteria": [
                 "迁出的能力有明确 owner、contract、tests 和 proof surface。",
-                "MedDeepScientist 保持 frozen archive / historical fixture / explicit diagnostic reference，而不是 hidden runtime authority。",
+                "MedDeepScientist 保持 frozen archive / historical fixture / explicit archive import reference，而不是 hidden runtime authority。",
                 "executor replacement 不依赖一次性重写或 truth rewrite。",
             ],
             "phase_refs": [
@@ -991,7 +991,7 @@ def read_mainline_status() -> dict[str, Any]:
         "next_focus": [
             "autonomy: keep task, progress, supervision, stuck-state, recovery, and human-gate truth visible through MAS durable surfaces",
             "quality: keep publication-grade route truth, same-line repair, bounded analysis, and submission readiness under MAS quality contracts",
-            "single-project owner: keep MedDeepScientist pinned to archive / historical fixture / explicit diagnostic roles instead of second-owner language",
+            "single-project owner: keep MedDeepScientist pinned to archive / historical fixture / explicit archive import reference roles instead of second-owner language",
             "keep core status and runtime contracts aligned so OPL language, MAS role, and runtime truth do not drift",
             "only move toward hosted/federated frontend work without changing MAS truth authority",
         ],

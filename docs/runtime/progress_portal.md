@@ -15,7 +15,7 @@ ops/mas/progress/index.html
 
 这个入口是 per-workspace fixed entrance。无论未来从 Codex、浏览器、OPL App 还是 OPL Runtime Manager 打开，页面和 payload 的 domain owner 都保持为 MAS。
 
-新 workspace 中旧 `start-web` 目的的默认落点也固定到 MAS Progress Portal：`ops/mas/bin/start-web` 刷新并打开 `ops/mas/progress/index.html`。如果维护者需要外部 MDS WebUI，只能通过显式 legacy diagnostic / backend audit 路径启动；医生/PI 默认不再在旧 WebUI 与 MAS Portal 之间判断进度 truth。
+新 workspace 中旧 `start-web` 目的的默认落点也固定到 MAS Progress Portal：`ops/mas/bin/start-web` 刷新并打开 `ops/mas/progress/index.html`。如果维护者需要外部 MDS WebUI，只能通过显式 explicit archive import reference / backend audit 路径启动；医生/PI 默认不再在旧 WebUI 与 MAS Portal 之间判断进度 truth。
 
 Portal 现在是 MAS functional monolith completion 的默认进度可视化替代面。它不表示 MDS 被函数级 1:1 搬进 MAS；它表示日常研究进度、路线、阻塞、artifact pickup 和 OPL handoff 的用户可见入口已经由 MAS-owned read-model 承接，医生/PI 默认不再去 MDS WebUI 判断研究进度。旧 MDS WebUI 的 terminal/log streaming 属于 live console 能力，不应继续混进 Portal 的完成口径。
 
@@ -141,8 +141,8 @@ ops/mas/progress/index.html
 
 迁移原则：
 
-- 旧 `start-web` 语义应转向 MAS Progress Portal 或明确 legacy diagnostic。
-- `DeepScientist`、`MDS`、`DS` 只允许出现在折叠的 legacy diagnostic / provenance / oracle 区域。
+- 旧 `start-web` 语义应转向 MAS Progress Portal 或明确 explicit archive import reference。
+- `DeepScientist`、`MDS`、`DS` 只允许出现在折叠的 explicit archive import reference / provenance / oracle 区域。
 - 默认医生视图不得展示 MDS/DS 路径作为 workspace truth。
 - 不把上游 WebUI 历史、contributor footprint 或 product semantics 导入 MAS main。
 
