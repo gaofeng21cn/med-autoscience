@@ -6,7 +6,7 @@ __all__ = [
     "data_asset_updates",
     "display_pack_surface_sync",
     "display_surface_materialization",
-    "med_deepscientist_upgrade_check",
+    "backend_audit",
     "mds_retained_capability_absorb",
     "external_research",
     "figure_loop_guard",

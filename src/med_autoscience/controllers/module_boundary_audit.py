@@ -221,7 +221,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
         "owner": "MedDeepScientist",
         "repo_targets": [
             "src/med_autoscience/controllers/mds_capability_parity.py",
-            "src/med_autoscience/controllers/med_deepscientist_upgrade_check.py",
+            "src/med_autoscience/controllers/backend_audit.py",
             "src/med_autoscience/controllers/study_runtime_transport.py",
         ],
         "allowed_dependencies": ["runtime_os", "artifact_delivery", "observability_os"],

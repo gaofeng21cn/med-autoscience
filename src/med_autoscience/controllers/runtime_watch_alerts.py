@@ -155,19 +155,7 @@ def build_runtime_alert_payload(
 
 
 def resolve_runtime_alert_backend(execution: Mapping[str, Any] | None) -> Any | None:
-    managed_backend = runtime_backend_contract.resolve_managed_runtime_backend(execution)
-    if managed_backend is None:
-        return None
-    backend_id = _non_empty_text(getattr(managed_backend, "BACKEND_ID", None))
-    if backend_id is None:
-        return managed_backend
-    try:
-        controlled_backend_id, _ = runtime_backend_contract.controlled_research_backend_metadata_for_backend_id(
-            backend_id
-        )
-        return runtime_backend_contract.get_managed_runtime_backend(controlled_backend_id)
-    except ValueError:
-        return managed_backend
+    return runtime_backend_contract.resolve_managed_runtime_backend(execution)
 
 
 def resolve_runtime_alert_runtime_root(

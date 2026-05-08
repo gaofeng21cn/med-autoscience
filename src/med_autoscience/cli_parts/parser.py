@@ -443,9 +443,9 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     init_workspace_parser.add_argument("--force", action="store_true")
     init_workspace_parser.add_argument("--with-git", action="store_true")
 
-    backend_upgrade_check_parser = subparsers.add_parser("backend-upgrade-check")
-    backend_upgrade_check_parser.add_argument("--profile", required=True)
-    backend_upgrade_check_parser.add_argument("--refresh", action="store_true")
+    backend_audit_parser = subparsers.add_parser("backend-audit")
+    backend_audit_parser.add_argument("--profile", required=True)
+    backend_audit_parser.add_argument("--refresh", action="store_true")
 
     hermes_runtime_check_parser = subparsers.add_parser("hermes-runtime-check")
     hermes_runtime_check_parser.add_argument("--profile")

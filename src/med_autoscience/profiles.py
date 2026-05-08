@@ -13,6 +13,7 @@ from med_autoscience.policies.research_route_bias import DEFAULT_RESEARCH_ROUTE_
 from med_autoscience.policies.study_archetypes import DEFAULT_STUDY_ARCHETYPE_IDS
 from med_autoscience.runtime_backend import (
     DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
+    EXTERNAL_MDS_ALLOWED_USES,
     registered_managed_runtime_backend_ids,
     runtime_backend_default_operation_contract,
 )
@@ -190,6 +191,15 @@ def _optional_managed_runtime_backend_id(payload: dict[str, object]) -> str:
     return backend_id
 
 
+def _reject_legacy_default_backend(*, backend_id: str) -> None:
+    if backend_id == "med_deepscientist":
+        allowed = ", ".join(EXTERNAL_MDS_ALLOWED_USES)
+        raise TypeError(
+            "managed_runtime_backend_id cannot be med_deepscientist; "
+            f"MDS is retained only for explicit audit, restore, import, or oracle uses: {allowed}"
+        )
+
+
 def _optional_bool(payload: dict[str, object], key: str, *, default: bool) -> bool:
     if key not in payload:
         return default
@@ -254,6 +264,8 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
     med_deepscientist_repo_root = _optional_path(payload, "med_deepscientist_repo_root", profile_dir=profile_dir)
     hermes_agent_repo_root = _optional_path(payload, "hermes_agent_repo_root", profile_dir=profile_dir)
     hermes_home_root = _optional_path(payload, "hermes_home_root", profile_dir=profile_dir)
+    managed_runtime_backend_id = _optional_managed_runtime_backend_id(payload)
+    _reject_legacy_default_backend(backend_id=managed_runtime_backend_id)
     return WorkspaceProfile(
         name=profile_name,
         workspace_root=workspace_root,
@@ -267,7 +279,7 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
         med_deepscientist_repo_root=med_deepscientist_repo_root,
         hermes_agent_repo_root=hermes_agent_repo_root,
         hermes_home_root=hermes_home_root or (Path.home() / ".hermes").resolve(),
-        managed_runtime_backend_id=_optional_managed_runtime_backend_id(payload),
+        managed_runtime_backend_id=managed_runtime_backend_id,
         default_publication_profile=_require_string(payload, "default_publication_profile"),
         default_citation_style=_require_string(payload, "default_citation_style"),
         enable_medical_overlay=_optional_bool(payload, "enable_medical_overlay", default=True),

@@ -13,6 +13,8 @@ __all__ = [
     "_resolve_study",
 ]
 
+_LEGACY_MDS_ENGINE_IDS = {"med-deepscientist", "med_deepscientist"}
+
 
 def _router_module():
     return import_module("med_autoscience.controllers.study_runtime_router")
@@ -69,9 +71,8 @@ def _execution_payload(
         profile_backend_id = str(profile.managed_runtime_backend_id or "").strip()
         legacy_backend_id = runtime_backend_contract.runtime_backend_id_from_execution(normalized_execution)
         engine_text = str(normalized_execution.get("engine") or "").strip()
-        should_apply_profile_backend = (
-            legacy_backend_id == "med_deepscientist"
-            or (legacy_backend_id is None and not engine_text)
+        should_apply_profile_backend = legacy_backend_id == "med_deepscientist" or (
+            legacy_backend_id is None and (not engine_text or engine_text in _LEGACY_MDS_ENGINE_IDS)
         )
         if profile_backend_id and should_apply_profile_backend:
             normalized_execution["runtime_backend_id"] = profile_backend_id

@@ -51,50 +51,65 @@ def test_external_research_status_command_dispatches_controller(monkeypatch, tmp
     assert exit_code == 0
     assert called["workspace_root"] == tmp_path / "workspace"
     assert '"prompt_file_count": 1' in captured.out
-def test_backend_upgrade_check_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_backend_audit_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
     called: dict[str, object] = {}
 
-    def fake_run_upgrade_check(profile, *, refresh: bool) -> dict:
+    def fake_run_backend_audit(profile, *, refresh: bool) -> dict:
         called["profile"] = profile
         called["refresh"] = refresh
-        return {"decision": "upgrade_available", "recommended_actions": ["pull_origin_main_then_reapply_medical_overlay"]}
+        return {"decision": "audit_delta_available", "recommended_actions": ["review_backend_audit_delta_as_oracle_fixture"]}
 
-    monkeypatch.setattr(cli.med_deepscientist_upgrade_check, "run_upgrade_check", fake_run_upgrade_check)
+    monkeypatch.setattr(cli.backend_audit, "run_backend_audit", fake_run_backend_audit)
 
-    exit_code = cli.main(["doctor", "backend-upgrade", "--profile", str(profile_path), "--refresh"])
+    exit_code = cli.main(["doctor", "backend-audit", "--profile", str(profile_path), "--refresh"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
     assert called["profile"].med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/med-deepscientist")
     assert called["refresh"] is True
-    assert '"decision": "upgrade_available"' in captured.out
-def test_doctor_group_help_surfaces_backend_upgrade_and_hides_legacy_name(capsys) -> None:
+    assert '"decision": "audit_delta_available"' in captured.out
+
+
+def test_doctor_group_help_surfaces_backend_audit_and_hides_legacy_names(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
     exit_code = cli.main(["doctor"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert "backend-upgrade" in captured.out
-    assert "med-deepscientist-upgrade" not in captured.out
-def test_legacy_grouped_backend_upgrade_alias_is_removed() -> None:
+    assert "backend-audit" in captured.out
+    assert "backend-" + "upgrade" not in captured.out
+    assert "med-deepscientist-" + "upgrade" not in captured.out
+
+
+def test_removed_grouped_backend_audit_old_name_is_removed() -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
     with pytest.raises(SystemExit, match=r"Grouped command requires a supported subcommand under `doctor`\.$"):
-        cli.main(["doctor", "med-deepscientist-upgrade", "--profile", "/tmp/profile.toml"])
-def test_legacy_flat_backend_upgrade_alias_is_removed(capsys) -> None:
+        cli.main(["doctor", "backend-" + "upgrade", "--profile", "/tmp/profile.toml"])
+
+
+def test_removed_grouped_med_deepscientist_audit_old_name_is_removed() -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
+    with pytest.raises(SystemExit, match=r"Grouped command requires a supported subcommand under `doctor`\.$"):
+        cli.main(["doctor", "med-deepscientist-" + "upgrade", "--profile", "/tmp/profile.toml"])
+
+
+def test_removed_flat_backend_audit_old_name_is_removed(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    removed_command = "med-deepscientist-" + "upgrade-check"
+
     with pytest.raises(SystemExit) as excinfo:
-        cli.main(["med-deepscientist-upgrade-check", "--profile", "/tmp/profile.toml"])
+        cli.main([removed_command, "--profile", "/tmp/profile.toml"])
     captured = capsys.readouterr()
 
     assert excinfo.value.code == 2
     assert "invalid choice" in captured.err
-    assert "med-deepscientist-upgrade-check" in captured.err
+    assert removed_command in captured.err
 def test_ensure_study_runtime_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"

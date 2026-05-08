@@ -126,6 +126,7 @@ def test_default_managed_runtime_backend_registry_exposes_mas_runtime_core_witho
     assert backend.BACKEND_ID == "mas_runtime_core"
     assert backend.ENGINE_ID == "mas-runtime-core"
     assert "med_deepscientist" not in module.registered_managed_runtime_backend_ids()
+    assert module.try_get_managed_runtime_backend("med_deepscientist") is None
     assert hermes_backend.BACKEND_ID == "hermes"
     assert hermes_backend.ENGINE_ID == "hermes"
     assert "hermes" in module.registered_managed_runtime_backend_ids()

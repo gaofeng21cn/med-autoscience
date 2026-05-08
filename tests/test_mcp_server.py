@@ -151,25 +151,27 @@ def test_mcp_server_documents_live_runtime_guard_on_study_runtime_tools() -> Non
     assert "bundle/build/proofing" in description
 
 
-def test_mcp_server_doctor_tool_describes_backend_upgrade_surface() -> None:
+def test_mcp_server_doctor_tool_describes_backend_audit_surface() -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     descriptions = {tool["name"]: tool["description"] for tool in module.build_tool_manifest()}
 
     description = descriptions["doctor_audit"]
 
-    assert "backend_upgrade" in description
-    assert "med_deepscientist_upgrade" not in description
+    assert "backend_audit" in description
+    assert "backend_" + "upgrade" not in description
+    assert "med_deepscientist_" + "upgrade" not in description
 
 
-def test_mcp_server_rejects_legacy_med_deepscientist_upgrade_mode(tmp_path: Path) -> None:
+@pytest.mark.parametrize("removed_mode", ("med_deepscientist_" + "upgrade", "backend_" + "upgrade"))
+def test_mcp_server_rejects_removed_backend_audit_modes(tmp_path: Path, removed_mode: str) -> None:
     module = importlib.import_module("med_autoscience.mcp_server")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
 
-    result = module.call_tool("doctor_audit", {"mode": "med_deepscientist_upgrade", "profile_path": str(profile_path)})
+    result = module.call_tool("doctor_audit", {"mode": removed_mode, "profile_path": str(profile_path)})
 
     assert result["isError"] is True
-    assert "Unsupported doctor_audit mode: med_deepscientist_upgrade" in result["content"][0]["text"]
+    assert f"Unsupported doctor_audit mode: {removed_mode}" in result["content"][0]["text"]
 
 
 def test_mcp_server_can_call_doctor_report_tool(tmp_path: Path) -> None:

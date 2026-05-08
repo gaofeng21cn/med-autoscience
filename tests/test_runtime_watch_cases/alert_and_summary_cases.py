@@ -720,7 +720,7 @@ def test_watch_runtime_retries_alert_delivery_after_previous_failure(
     assert "temporarily unavailable" in failed_alert["error"]
     assert delivered_alert["delivery_status"] == "delivered"
     assert delivered_alert["health_status"] == "recovering"
-def test_watch_runtime_routes_alert_delivery_through_controlled_research_backend(
+def test_watch_runtime_routes_alert_delivery_through_outer_backend_without_mds_fallback(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -770,9 +770,6 @@ def test_watch_runtime_routes_alert_delivery_through_controlled_research_backend
     class OuterBackend:
         BACKEND_ID = "hermes"
 
-    class ControlledBackend:
-        BACKEND_ID = "med_deepscientist"
-
         def artifact_interact(self, *, runtime_root: Path, quest_id: str, payload: dict[str, object]) -> dict[str, object]:
             calls.append(
                 {
@@ -781,7 +778,7 @@ def test_watch_runtime_routes_alert_delivery_through_controlled_research_backend
                     "payload": dict(payload),
                 }
             )
-            return {"status": "ok", "interaction_id": "interaction-controlled"}
+            return {"status": "ok", "interaction_id": "interaction-outer"}
 
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -798,16 +795,6 @@ def test_watch_runtime_routes_alert_delivery_through_controlled_research_backend
         module.runtime_backend_contract,
         "resolve_managed_runtime_backend",
         lambda execution: OuterBackend(),
-    )
-    monkeypatch.setattr(
-        module.runtime_backend_contract,
-        "controlled_research_backend_metadata_for_backend_id",
-        lambda backend_id: ("med_deepscientist", "med-deepscientist"),
-    )
-    monkeypatch.setattr(
-        module.runtime_backend_contract,
-        "get_managed_runtime_backend",
-        lambda backend_id: ControlledBackend(),
     )
 
     module.run_watch_for_runtime(

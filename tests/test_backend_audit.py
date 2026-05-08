@@ -30,8 +30,8 @@ def make_profile(tmp_path: Path):
     )
 
 
-def test_run_upgrade_check_reports_upgrade_available(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
+def test_run_backend_audit_reports_audit_delta_available(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.backend_audit")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -81,18 +81,19 @@ def test_run_upgrade_check_reports_upgrade_available(monkeypatch, tmp_path: Path
         },
     )
 
-    result = module.run_upgrade_check(profile, refresh=True)
+    result = module.run_backend_audit(profile, refresh=True)
 
-    assert result["surface_kind"] == "controlled_backend_upgrade_diagnostic"
+    assert result["surface_kind"] == "backend_audit"
+    assert result["retained_entry"] == "backend_audit"
     assert result["read_only"] is True
-    assert result["decision"] == "upgrade_available"
+    assert result["decision"] == "audit_delta_available"
     assert result["repo_check"]["behind_count"] == 2
     assert result["repo_check"]["upstream_update_available"] is True
-    assert "pull_origin_main_then_reapply_medical_overlay" in result["recommended_actions"]
+    assert "review_backend_audit_delta_as_oracle_fixture" in result["recommended_actions"]
 
 
-def test_run_upgrade_check_blocks_dirty_repo(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
+def test_run_backend_audit_blocks_dirty_repo(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.backend_audit")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -136,14 +137,14 @@ def test_run_upgrade_check_blocks_dirty_repo(monkeypatch, tmp_path: Path) -> Non
         lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
     )
 
-    result = module.run_upgrade_check(profile, refresh=False)
+    result = module.run_backend_audit(profile, refresh=False)
 
     assert result["decision"] == "blocked_dirty_repo"
     assert "clean_or_commit_controlled_backend_repo_before_audit" in result["recommended_actions"]
 
 
-def test_run_upgrade_check_requests_branch_review_when_not_on_main(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
+def test_run_backend_audit_requests_branch_review_when_not_on_main(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.backend_audit")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -187,14 +188,14 @@ def test_run_upgrade_check_requests_branch_review_when_not_on_main(monkeypatch, 
         lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
     )
 
-    result = module.run_upgrade_check(profile, refresh=False)
+    result = module.run_backend_audit(profile, refresh=False)
 
     assert result["decision"] == "needs_branch_review"
-    assert "review_local_branch_before_upgrade" in result["recommended_actions"]
+    assert "review_local_branch_before_backend_audit" in result["recommended_actions"]
 
 
-def test_run_upgrade_check_accepts_clean_controlled_fork_on_main(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
+def test_run_backend_audit_accepts_clean_controlled_fork_on_main(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.backend_audit")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -250,14 +251,14 @@ def test_run_upgrade_check_accepts_clean_controlled_fork_on_main(monkeypatch, tm
         lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
     )
 
-    result = module.run_upgrade_check(profile, refresh=False)
+    result = module.run_backend_audit(profile, refresh=False)
 
     assert result["decision"] == "up_to_date"
-    assert "review_local_branch_before_upgrade" not in result["recommended_actions"]
+    assert "review_local_branch_before_backend_audit" not in result["recommended_actions"]
 
 
-def test_run_upgrade_check_routes_controlled_fork_updates_to_intake(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
+def test_run_backend_audit_routes_controlled_fork_updates_to_intake(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.backend_audit")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -313,15 +314,15 @@ def test_run_upgrade_check_routes_controlled_fork_updates_to_intake(monkeypatch,
         lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
     )
 
-    result = module.run_upgrade_check(profile, refresh=True)
+    result = module.run_backend_audit(profile, refresh=True)
 
-    assert result["decision"] == "upgrade_available"
+    assert result["decision"] == "audit_delta_available"
     assert "run_controlled_fork_intake_workflow" in result["recommended_actions"]
-    assert "pull_origin_main_then_reapply_medical_overlay" not in result["recommended_actions"]
+    assert "review_backend_audit_delta_as_oracle_fixture" not in result["recommended_actions"]
 
 
-def test_run_upgrade_check_reports_oracle_unavailable_when_repo_root_missing(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
+def test_run_backend_audit_reports_oracle_unavailable_when_repo_root_missing(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.backend_audit")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = replace(make_profile(tmp_path), med_deepscientist_repo_root=None)
 
@@ -346,7 +347,7 @@ def test_run_upgrade_check_reports_oracle_unavailable_when_repo_root_missing(mon
         lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
     )
 
-    result = module.run_upgrade_check(profile, refresh=False)
+    result = module.run_backend_audit(profile, refresh=False)
 
     assert result["decision"] == "oracle_unavailable"
     assert result["external_runtime_optional"] is True
@@ -355,8 +356,8 @@ def test_run_upgrade_check_reports_oracle_unavailable_when_repo_root_missing(mon
     assert "configure_controlled_backend_repo_root_for_explicit_audit" in result["recommended_actions"]
 
 
-def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
+def test_run_backend_audit_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.backend_audit")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -394,16 +395,17 @@ def test_run_upgrade_check_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_
         lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
     )
 
-    result = module.run_upgrade_check(profile, refresh=False)
+    result = module.run_backend_audit(profile, refresh=False)
 
-    assert result["surface_kind"] == "controlled_backend_upgrade_diagnostic"
+    assert result["surface_kind"] == "backend_audit"
+    assert result["retained_entry"] == "backend_audit"
     assert result["read_only"] is True
     assert result["decision"] == "blocked_behavior_equivalence_gate"
     assert "complete_phase_25_behavior_equivalence_gate" in result["recommended_actions"]
 
 
-def test_run_upgrade_check_exposes_repo_manifest(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
+def test_run_backend_audit_exposes_repo_manifest(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.backend_audit")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -455,13 +457,13 @@ def test_run_upgrade_check_exposes_repo_manifest(monkeypatch, tmp_path: Path) ->
         lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
     )
 
-    result = module.run_upgrade_check(profile, refresh=False)
+    result = module.run_backend_audit(profile, refresh=False)
 
     assert result["repo_check"]["repo_manifest"] is manifest_blob
 
 
 def test_inspect_deepscientist_repo_prefers_upstream_remote_for_controlled_fork(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
+    module = importlib.import_module("med_autoscience.controllers.backend_audit")
     repo_root = tmp_path / "med-deepscientist"
     repo_root.mkdir()
 
@@ -511,8 +513,8 @@ def test_inspect_deepscientist_repo_prefers_upstream_remote_for_controlled_fork(
     assert ("rev-list", "--left-right", "--count", "HEAD...upstream/main") in calls
 
 
-def test_run_upgrade_check_blocks_when_controlled_fork_tracking_is_missing(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.med_deepscientist_upgrade_check")
+def test_run_backend_audit_blocks_when_controlled_fork_tracking_is_missing(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.backend_audit")
     doctor = importlib.import_module("med_autoscience.doctor")
     profile = make_profile(tmp_path)
 
@@ -568,7 +570,7 @@ def test_run_upgrade_check_blocks_when_controlled_fork_tracking_is_missing(monke
         lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
     )
 
-    result = module.run_upgrade_check(profile, refresh=False)
+    result = module.run_backend_audit(profile, refresh=False)
 
     assert result["decision"] == "blocked_controlled_fork_upstream_tracking_missing"
     assert "configure_controlled_fork_upstream_tracking" in result["recommended_actions"]

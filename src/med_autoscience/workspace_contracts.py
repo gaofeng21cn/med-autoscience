@@ -221,17 +221,25 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
         "controlled_backend_config_env_exists": controlled_backend_config_env.is_file(),
         "controlled_backend_bin_dir_exists": controlled_backend_bin_dir.is_dir(),
     }
-    launcher_checks.update(launcher_path_info["checks"])
+    runner_retirement_checks = dict(launcher_path_info["checks"])
     manifest_checks: dict[str, bool] = {
         "manifest_found": manifest_info["manifest_found"],
         "manifest_parsable": manifest_info["manifest_parsable"],
     }
     launcher_issues = _collect_check_issues(launcher_checks, prefix="launcher_contract")
+    runner_configured = bool(runner_retirement_checks.get("controlled_backend_launcher_configured"))
+    if runner_configured:
+        launcher_issues.append("launcher_contract.default_mds_runner_configured")
     config_error = launcher_path_info["config_error"]
     if isinstance(config_error, str) and config_error.strip():
         launcher_issues.append(f"launcher_contract.controlled_backend_launcher_config_error:{config_error}")
     launcher_contract = {
-        "ready": all(launcher_checks.values()),
+        "surface_kind": "backend_audit_contract",
+        "retained_entry": "backend_audit",
+        "read_only": True,
+        "default_runner_allowed": False,
+        "default_webui_allowed": False,
+        "ready": not runner_configured,
         "checks": launcher_checks,
         "issues": launcher_issues,
         "medautoscience_config_env": str(medautoscience_config_env),
@@ -241,6 +249,17 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
         "controlled_backend_repo_root_configured_for_audit": profile.med_deepscientist_repo_root is not None,
         "configured_launcher_value": launcher_path_info["configured_launcher_value"],
         "resolved_launcher_path": launcher_path_info["resolved_launcher_path"],
+        "runner_retirement": {
+            "read_only": True,
+            "default_runner_allowed": False,
+            "default_webui_allowed": False,
+            "checks": runner_retirement_checks,
+            "issues": (
+                ["launcher_contract.default_mds_runner_configured"]
+                if runner_configured
+                else []
+            ),
+        },
         "repo_manifest": manifest_info,
         "manifest_checks": manifest_checks,
         "legacy_diagnostic": {

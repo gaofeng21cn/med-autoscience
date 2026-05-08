@@ -67,7 +67,7 @@ hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervisi
 runtime_supervisor_consumer = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_consumer"))
 runtime_supervisor_dispatch_executor = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_dispatch_executor"))
 runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_scan"))
-med_deepscientist_upgrade_check = _LazyModuleProxy(lambda: _load_controller("med_deepscientist_upgrade_check"))
+backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
 runtime_lifecycle_read_model = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model"))
 runtime_lifecycle_migration = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration"))
 quest_materializer = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.quest_materializer"))
@@ -293,9 +293,9 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
-    if args.command == "backend-upgrade-check":
+    if args.command == "backend-audit":
         profile = load_profile(args.profile)
-        result = med_deepscientist_upgrade_check.run_upgrade_check(profile, refresh=bool(args.refresh))
+        result = backend_audit.run_backend_audit(profile, refresh=bool(args.refresh))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

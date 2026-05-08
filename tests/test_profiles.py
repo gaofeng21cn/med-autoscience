@@ -63,7 +63,7 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.med_deepscientist_repo_root == Path("/Users/gaofeng/workspace/med-deepscientist")
     assert profile.hermes_agent_repo_root == Path("/Users/gaofeng/workspace/_external/hermes-agent")
     assert profile.hermes_home_root == Path.home() / ".hermes"
-    assert profile.managed_runtime_backend_id == "hermes"
+    assert profile.managed_runtime_backend_id == "mas_runtime_core"
     assert profile.default_publication_profile == "general_medical_journal"
     assert profile.default_citation_style == "AMA"
     assert profile.enable_medical_overlay is True
@@ -135,7 +135,7 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     assert profile.med_deepscientist_repo_root is None
     assert profile.hermes_agent_repo_root is None
     assert profile.hermes_home_root == Path.home() / ".hermes"
-    assert profile.managed_runtime_backend_id == "hermes"
+    assert profile.managed_runtime_backend_id == "mas_runtime_core"
     assert profile.enable_medical_overlay is True
     assert profile.medical_overlay_scope == "workspace"
     assert profile.medical_overlay_skills == (
@@ -210,17 +210,14 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["hermes_home_root"] == str(profile.hermes_home_root)
     assert contract["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
     assert contract["runtime_backend_contract"] == {
-        "runtime_backend_id": "hermes",
-        "runtime_engine_id": "hermes",
-        "research_backend_id": "med_deepscientist",
-        "research_engine_id": "med-deepscientist",
+        "runtime_backend_id": "mas_runtime_core",
+        "runtime_engine_id": "mas-runtime-core",
+        "research_backend_id": "mas_runtime_core",
+        "research_engine_id": "mas-runtime-core",
         "external_mds_required_for_default_operation": False,
-        "external_mds_allowed_uses": [
-            "explicit_backend_audit",
-            "legacy_restore_import_diagnostic",
-            "upstream_intake",
-            "parity_oracle",
-        ],
+        "external_mds_runnable_dependency": False,
+        "external_mds_retained_role": "frozen_source_archive_or_historical_fixture",
+        "external_mds_allowed_uses": ["source_provenance_ref", "historical_fixture_ref"],
     }
 
     publication = contract["publication"]
@@ -524,4 +521,29 @@ def test_load_profile_rejects_invalid_developer_supervisor_mode(tmp_path: Path) 
 
     profiles = importlib.import_module("med_autoscience.profiles")
     with pytest.raises(TypeError, match="developer_supervisor_mode"):
+        profiles.load_profile(profile_path)
+
+
+def test_load_profile_rejects_med_deepscientist_as_default_managed_backend(tmp_path: Path) -> None:
+    profile_path = tmp_path / "mds-backend.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "mds-backend"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
+                'managed_runtime_backend_id = "med_deepscientist"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    with pytest.raises(TypeError, match="managed_runtime_backend_id"):
         profiles.load_profile(profile_path)
