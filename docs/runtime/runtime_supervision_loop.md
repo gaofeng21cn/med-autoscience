@@ -99,6 +99,14 @@ medautosci runtime supervisor-scan \
 
 safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、manual parked、`quest_status=parked`、completed、human gate、publication gate missing、retry exhausted 都不得进入可请求状态。真正恢复仍必须走 `RuntimeHealthKernel -> owner_route -> executor -> rescan` 闭环。
 
+2026-05-08 Runtime Evidence closeout 进一步把外层监管延迟做成可解释 SLA，而不是新增常驻进程：
+
+- `outer_supervision_slo` read model 固定字段包括 `last_tick_at` / `latest_hermes_run_at`、`last_reconcile_at` / `latest_supervisor_reconcile_at`、`next_due_at` 等价阈值、`tick_age_seconds` / `age_seconds`、`state=fresh|due|stale|missing|blocked`、dedupe fingerprint、authority flags 与 canonical `runtime-supervisor-reconcile --dry-run` 推荐命令。
+- `fresh` 表示最新 Hermes tick 或 supervisor reconcile 仍在 freshness window 内；`due` 表示应安全加速一次 one-shot reconcile；`stale` 表示外环监管已经陈旧；`missing` 表示缺监管事件或 status surface；`blocked` 表示最新 Hermes cron 失败、旧 service 冲突或 supervision contract 本身阻塞。
+- 该 read model 投影到 `runtime-supervision-status`、`runtime-supervisor-reconcile` receipt、`runtime_reconcile_trigger`、`study_progress`、workspace cockpit、Product Entry 和 Progress Portal。
+- 它只允许页面或 CLI 显示推荐命令，或由已有 controller/supervisor safe surface 做 dry-run/apply；读入口刷新不能直接 relaunch worker、写 runtime truth、写 paper/current_package、写 `publication_eval/latest.json` 或写 `controller_decisions/latest.json`。
+- 它不改变默认 scheduler owner：Hermes gateway cron 继续每 `300` 秒调用 one-shot tick；旧 workspace-local `launchd/systemd/cron/docker` service 仍是 retired cleanup evidence。
+
 这条外环和内层 turn lifecycle 的分界是固定的：正常 runner 返回后的 `active_run_id` / `worker_running` 清理、queued user message 优先级、`continuation_policy=auto` 的约 `0.2s` 下一 turn、human/terminal gate 停止，都由 `mas_runtime_core` 的 Runtime Turn Lifecycle Kernel 处理。Hermes cron 只负责发现外层 stale/no-live、刷新 supervision/read-model、触发 safe recovery 或把异常升级；它不再是自动科研连续跑的主循环 owner。
 
 MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 policy：
@@ -302,6 +310,24 @@ uv run python scripts/real-paper-autonomy-soak-inventory.py \
 - 不替代后续 Lane 1 blocker fix、Lane 2 reconcile CLI、Lane 3 owner_route schema、Lane 4 migration apply。
 
 这份 inventory 是 `control-plane-autonomy` 与 `workspace-monolith-migration` focused lane 的输入证据；它只能证明“状态可枚举、可读、可解释”，不能证明论文质量、投稿 readiness 或 autonomous runtime 已完成迁移。
+
+## Paper Autonomy Stability Evidence
+
+`paper_autonomy_stability_evidence` 是真实论文自治稳定性的单一 read model closeout 面。它组合四类输入：
+
+- `real_paper_autonomy_soak_inventory` 的真实 profile inventory；
+- `runtime-supervisor-reconcile --dry-run` 等价的 `scan -> consume -> execute-dispatch -> rescan` 只读证据；
+- `workspace-monolith-migrate --dry-run` 的 migration readiness / skipped / appliable reason；
+- `real_workspace_soak_monitor` 的 status/progress、active/parked/completed reason 与 legacy diagnostic evidence。
+
+该 read model 的完成边界固定为：
+
+- 默认 `can_claim_landed=false`，除非真实 evidence 无 blocker；
+- human gate、publication gate、parked handoff、profile unreadable、runtime truth 缺失等都必须列成 blocker 和 next action；
+- 只读 dry-run 可以报告 blocked、skipped 或 appliable，不做 migration apply；
+- 不写 `current_package`、`submission_minimal`、`publication_eval/latest.json`、`controller_decisions/latest.json`、runtime SQLite 或 restore archive。
+
+因此，repo capability 可以记录为 `paper_autonomy_stability_evidence=evidence_read_model_landed`；真实论文自治稳定性只能在后续 evidence 无 blocker 时单独 closeout 为 `paper_autonomy_stability=landed`。
 
 `medautosci runtime ensure-supervision` 现在只注册或刷新 canonical `Hermes gateway cron`。如果显式传入 `--manager systemd|cron|launchd|docker`，命令必须 fail-closed 返回 `retired_workspace_local_service_manager`，不渲染模板、不给安装命令、不写 install proof。检测到旧 workspace-local host service 文件或 loaded 状态时，`runtime-ensure-supervision` 会把它作为 `retired_cleanup_evidence` 清理，然后回到 Hermes cron owner。
 

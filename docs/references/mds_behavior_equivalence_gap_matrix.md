@@ -13,6 +13,8 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 2026-05-08 Runtime Continuity closeout 补齐了 daemon 退役后另一个影响用户信任的外层行为：durable session/worker tracking 和 crash-recovery intent。MAS 现在用 `runtime_session` read model 投影 worker/last seen/run/freshness，用 `recovery_intent` ledger 记录恢复原因、next owner、retry budget 与 current action，用 `runtime_reconcile_trigger` 给读入口展示一次 safe reconcile 的幂等推荐。这些能力仍是 scheduler-bound / controller-owned，不表示 MAS 变成 resident MDS daemon。
 
+2026-05-08 Runtime Evidence closeout 又把剩余用户感知缺口压成三组可审阅 evidence：`outer_supervision_slo` 解释 300 秒外环是否 fresh/due/stale/missing/blocked，并给出 safe one-shot reconcile dry-run；`portal_console_soak` 在真实 workspace 上证明 MAS Progress Portal / Live Console 可刷新、可区分多 study/run、source refs 不回流旧 MDS identity；`paper_autonomy_stability_evidence` 把真实 profile inventory、supervisor reconcile dry-run、workspace migration dry-run 和 real workspace soak monitor 合成单一 read model。这些 surface 解决“用户怎么看监管是否还在、页面是否可信、真实论文自治证据是否足够”的问题，不声明旧 resident daemon 低延迟交互或 connector threads 1:1 等价。
+
 这不等于旧 MDS resident daemon 的行为被 1:1 复刻。正确完成口径是：
 
 - `default_independence`: landed
@@ -59,6 +61,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 | queued user messages/mailbox | `partially_equivalent` | daemon mailbox schedules turns | quest-local `user_message_queue` triggers turn scheduling; durable task intake / controller handoff handles broader work | queued messages during active worker execution are covered; chat-connector delivery is not default MAS behavior |
 | progress visibility | `behavior_equivalent` | Web/API status | MAS Progress Portal / study-progress / cockpit | fixed MAS-owned progress place replaces MDS WebUI for default users |
 | WebUI/WebSocket/terminal streaming | `purpose_equivalent_with_different_timing` | React WebUI, WebSocket terminal attach, bash log stream | Progress Portal for progress plus MAS-authored Live Console session read model, static shell, snapshot and loopback SSE stream | users get MAS-owned progress and read-only runtime observation; old resident WebSocket terminal attach is not restored |
+| Portal / Live Console real-workspace evidence | `purpose_equivalent_with_different_timing` | WebUI observed live status from resident daemon surfaces | MAS `portal_console_soak` refreshes Portal and Live Console read models, checks multi-study/run disambiguation, terminal/log refs, source-ref cleanliness and MAS identity | users get auditable read-only evidence for the MAS-native visual surfaces; failed soak becomes blocker evidence rather than a hidden fallback to MDS WebUI |
 | connector/channel background delivery | `not_equivalent_retired` | QQ/Slack/Discord/Telegram/Weixin/WhatsApp/Feishu background threads | durable handoff refs for external consumers | chat connector delivery is outside default MAS monolith operation |
 | MCP surface | `purpose_equivalent_with_different_timing` | daemon-backed MCP | MAS MCP calls owner surfaces directly | MAS truth/status/progress surfaces covered without MDS daemon |
 | GitOps state management | `not_equivalent_retired` | root Git / quest Git / diff reader | SQLite lifecycle + restore proof + plain quest dirs | intentional behavior change; Git no longer owns runtime lifecycle |
@@ -67,6 +70,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 | artifact interaction handoff | `partially_equivalent` | daemon artifact interactions | Artifact OS locator / package handoff / controller refs | package discovery covered; interactive artifact mutation retired |
 | daemon lifecycle controls | `not_equivalent_retired` | start/stop/restart MDS daemon | register/remove Hermes cron supervision | no MAS-native MDS daemon control path is needed |
 | workspace-local host service | `not_equivalent_retired` | historical MAS launchd/systemd/cron bridge | retired cleanup evidence; canonical owner is Hermes gateway cron | old host services should be removed, not kept as active option |
+| paper autonomy stability evidence | `purpose_equivalent_with_different_timing` | daemon plus WebUI often implied progress was still autonomously managed | MAS read-only evidence combines profile inventory, status/progress readability, supervisor reconcile dry-run, workspace migration dry-run and soak monitor blockers | users can see concrete blockers and next actions; landed paper autonomy remains evidence-gated and cannot be inferred from functional monolith alone |
 
 ## Runtime Continuity Completion
 
@@ -78,6 +82,16 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 - `mas_runtime_continuity_projection`：投影到 `study-progress`、workspace cockpit、product-entry status、Progress Portal、MCP compact projection 和 OPL handoff。
 
 这组 surface 的完成口径是“用户能看清有没有 worker、上次看到什么时候、为什么没继续、下一次怎么恢复”。它不复刻 MDS in-memory session API，也不复刻 WebSocket terminal。质量、投稿、交付授权继续由 MAS quality/publication/artifact owner surface 持有。
+
+## Runtime Evidence Closeout
+
+本轮后续优化的行为口径：
+
+- `outer_supervision_slo`: landed。它解释 outer supervision latency，默认仍由 Hermes gateway cron 300 秒 tick 承担；`due/stale/missing/blocked` 都会投影到用户入口，并给出 canonical one-shot reconcile dry-run 推荐。
+- `portal_console_soak`: landed。它证明 MAS-native Portal / Live Console 的 read-only display surface 可在真实 workspace 上审阅；它只写 display evidence，不写 truth。
+- `paper_autonomy_stability_evidence`: evidence read model landed。它把真实 workspace 只读证据收成单一 report；如果 evidence 有 blocker，状态应保持 `evidence_landed_with_blockers`，不能宣称真实论文自治稳定性 landed。
+
+这三项让 MAS monolith 的“可解释、可查看、可审阅证据”更接近旧 MDS daemon/WebUI 给用户的信任感，但仍遵守本矩阵的核心结论：MAS 不恢复 MDS resident daemon，也不恢复旧 workspace-local service。
 
 ## Live Console Parity Authority Boundary
 

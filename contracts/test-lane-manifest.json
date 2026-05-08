@@ -123,6 +123,83 @@
         "study_truth",
         "runtime_lifecycle.sqlite"
       ]
+    },
+    "outer-supervision-slo": {
+      "kind": "focused_outer_supervision_slo_contract_gate",
+      "paths": [
+        "tests/test_hermes_supervision.py",
+        "tests/test_runtime_reconcile_trigger.py",
+        "tests/test_recovery_intent_ledger.py",
+        "tests/test_runtime_watch.py",
+        "tests/test_study_progress.py",
+        "tests/test_progress_portal.py",
+        "tests/test_product_entry.py"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "scheduler_bound_read_model_safe_reconcile_projection",
+      "implementation_status": "landed",
+      "default_scheduler_owner": "hermes_gateway_cron",
+      "default_tick_interval_seconds": 300,
+      "resident_daemon_allowed": false,
+      "retired_workspace_local_service_allowed": false
+    },
+    "portal-console-soak": {
+      "kind": "focused_portal_console_real_workspace_soak_gate",
+      "paths": [
+        "tests/test_progress_portal.py",
+        "tests/test_cli_cases/progress_portal_commands.py",
+        "tests/test_runtime_live_console_read_model.py",
+        "tests/test_runtime_live_console_stream.py",
+        "tests/test_runtime_live_console_ui.py",
+        "tests/test_live_console_docs_contract.py",
+        "tests/test_live_console_cleanroom_spec.py"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "read_only_display_evidence",
+      "implementation_status": "landed",
+      "evidence_surface": "artifacts/runtime/portal_console_soak/latest.json",
+      "allowed_writes": [
+        "artifacts/runtime/progress_portal/*",
+        "artifacts/runtime/live_console/*",
+        "artifacts/runtime/portal_console_soak/latest.json",
+        "ops/mas/progress/index.html",
+        "ops/mas/live-console/index.html"
+      ],
+      "forbidden_authority_writes": [
+        "paper/current_package",
+        "manuscript/current_package",
+        "paper/submission_minimal",
+        "manuscript/submission_minimal",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "runtime_lifecycle.sqlite",
+        "restore_archive"
+      ]
+    },
+    "paper-autonomy-stability-evidence": {
+      "kind": "focused_paper_autonomy_stability_evidence_gate",
+      "paths": [
+        "tests/test_paper_autonomy_stability_evidence.py",
+        "tests/test_real_paper_autonomy_soak_inventory.py",
+        "tests/test_real_workspace_soak_monitor.py",
+        "tests/test_real_paper_ai_first_soak.py",
+        "tests/test_cli_cases/runtime_supervisor_reconcile_command.py",
+        "tests/test_cli_cases/workspace_monolith_migration_command.py",
+        "tests/test_workspace_git_boundary.py",
+        "tests/test_runtime_lifecycle_migration.py"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "read_only_evidence_no_publication_authority",
+      "implementation_status": "evidence_read_model_landed",
+      "completion_claim_rule": "landed_only_when_real_evidence_has_no_blockers",
+      "fallback_status": "evidence_landed_with_blockers",
+      "forbidden_authority_writes": [
+        "current_package",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "runtime_lifecycle.sqlite",
+        "restore_archive"
+      ]
     }
   }
 }

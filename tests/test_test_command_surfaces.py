@@ -509,13 +509,16 @@ def test_parallel_full_lane_script_covers_all_marker_groups() -> None:
     assert 'MAS_PYTEST_WORKERS="${MAS_PYTEST_WORKERS:-${full_lane_pytest_workers}}" make "${lane}"' in script
 
 
-def test_focused_lane_manifest_exposes_autonomy_reconcile_and_migration_lanes() -> None:
+def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_evidence_lanes() -> None:
     manifest = _test_lane_manifest()
     focused_lanes = manifest["focused_lanes"]
     expected = {
         "control-plane-autonomy": "read_only_inventory_and_observability",
         "supervisor-reconcile": "scan_consume_execute_rescan_contract",
         "workspace-monolith-migration": "dry_run_before_real_workspace_apply",
+        "outer-supervision-slo": "scheduler_bound_read_model_safe_reconcile_projection",
+        "portal-console-soak": "read_only_display_evidence",
+        "paper-autonomy-stability-evidence": "read_only_evidence_no_publication_authority",
     }
 
     for lane, authority_boundary in expected.items():
@@ -530,6 +533,14 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_and_migration_lanes() 
 
     assert "tests/test_real_paper_autonomy_soak_inventory.py" in focused_lanes["control-plane-autonomy"]["paths"]
     assert "tests/test_real_paper_autonomy_soak_inventory.py" in focused_lanes["workspace-monolith-migration"]["paths"]
+    assert "tests/test_runtime_reconcile_trigger.py" in focused_lanes["outer-supervision-slo"]["paths"]
+    assert "tests/test_runtime_live_console_ui.py" in focused_lanes["portal-console-soak"]["paths"]
+    assert "tests/test_paper_autonomy_stability_evidence.py" in focused_lanes["paper-autonomy-stability-evidence"]["paths"]
+    assert focused_lanes["outer-supervision-slo"]["resident_daemon_allowed"] is False
+    assert focused_lanes["portal-console-soak"]["implementation_status"] == "landed"
+    assert focused_lanes["paper-autonomy-stability-evidence"]["completion_claim_rule"] == (
+        "landed_only_when_real_evidence_has_no_blockers"
+    )
 
 
 def test_parallel_full_lane_script_writes_summary_and_invokes_make_lanes(tmp_path: Path) -> None:

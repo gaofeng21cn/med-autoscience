@@ -100,6 +100,8 @@ Portal 的输入来自现有 MAS surface：
 
 Runtime continuity 在 Portal 中只负责解释运行连续性，不负责执行动作。页面可以显示 worker state、last known run、last seen、freshness、recovery action、next owner、next eligible tick，以及 safe reconcile 是否 requestable；它不能直接重启 worker，不能修改 `current_package`，不能写 `publication_eval/latest.json` 或 `controller_decisions/latest.json`。
 
+Outer supervision SLA 在 Portal 中只负责解释外环监管是否新鲜。页面应显示 `outer_supervision_slo.state`、最新 tick/reconcile 时间、监管年龄、blocked/missing reason，以及 canonical one-shot `runtime-supervisor-reconcile --dry-run` 推荐命令。`due` 或 `stale` 表示可以安全加速一次 reconcile；它不表示 Portal 拥有 runtime relaunch 权限。重复刷新必须通过 dedupe fingerprint 和 `runtime_reconcile_trigger` 去重，不能制造重复恢复动作。
+
 Portal 只能生成 read-model payload 和展示文件，例如：
 
 ```text
@@ -145,6 +147,18 @@ ops/mas/progress/index.html
 实时服务的价值是让用户看到页面持续更新，减少“是不是还在跑”的不确定感；工程上它只是 read-model refresh loop。
 
 如果 read-model 给出 `runtime_reconcile_trigger.safe_to_request=true`，实时服务或页面刷新只能展示推荐命令或调用现有 controller/supervisor safe surface；重复刷新必须依赖 dedupe fingerprint，不能制造重复 relaunch。已 parked、completed、human gate、publication gate missing 或 retry exhausted 的 study 必须显示 blocked reason，而不是提示恢复。
+
+## Portal / Console Soak Evidence
+
+真实 workspace 上的 Portal / Live Console soak 由 `medautosci workspace portal-console-soak --profile <profile>` 生成。该 runner 复用现有 `workspace progress-portal` 与 `runtime live-console --snapshot`，输出 `artifacts/runtime/portal_console_soak/latest.json`，检查：
+
+- Portal 是否能刷新并写出 payload / HTML；
+- Live Console 是否能区分多 study / run；
+- terminal/log refs 是否可读；
+- source refs 是否没有把旧 MDS 路径冒充 truth；
+- 页面是否保持 `Med Auto Science` identity，不把旧 MDS WebUI 作为产品入口。
+
+该 soak 只允许写 display/read-model evidence：`artifacts/runtime/progress_portal/*`、`artifacts/runtime/live_console/*`、`artifacts/runtime/portal_console_soak/latest.json`、`ops/mas/progress/index.html` 与 `ops/mas/live-console/index.html`。它禁止写 paper/package、publication gate、controller decision、runtime SQLite 或 restore archive。soak 失败时应输出 blocker，不得伪造页面可用或 paper autonomy landed。
 
 ## 旧 MDS WebUI 关系
 

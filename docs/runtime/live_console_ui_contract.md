@@ -38,6 +38,8 @@ When no study is selected, the profile-level read model keeps `selected_study_id
 
 The UI is read-only. It can show action intent for pause / resume / relaunch / reconcile, but UI 不直接执行 apply.
 
+The real-workspace soak surface is also read-only. `portal-console-soak` may refresh the Progress Portal and Live Console snapshot, then materialize display evidence under `artifacts/runtime/portal_console_soak/latest.json`. It must not turn a page refresh into runtime reconcile, package rebuild, publication gate update, controller decision, or runtime SQLite write.
+
 Forbidden writes:
 
 - `paper/current_package`
@@ -50,6 +52,18 @@ Forbidden writes:
 - `runtime_lifecycle.sqlite`
 
 Any runtime mutation still goes through MAS controller/runtime owner surfaces. Any paper/package/publication readiness change still goes through canonical MAS owner surfaces.
+
+## Real Workspace Soak Contract
+
+`medautosci workspace portal-console-soak --profile <profile>` checks the Live Console purpose-equivalence surface against a real workspace profile. Required observations:
+
+- multiple studies/runs stay distinguishable by `study_id` / `run_id`;
+- terminal tail and log tail refs resolve to readable local refs when available;
+- source refs do not promote `med-deepscientist`, `.ds/worktrees`, or old MDS launcher paths to current truth;
+- generated pages retain MAS product identity;
+- forbidden authority writes remain untouched.
+
+Allowed writes are limited to Portal / Console / soak read-model artifacts and static HTML display files. A blocked soak is acceptable evidence; it must report concrete blockers rather than claiming MDS WebUI parity or paper autonomy stability.
 
 ## Clean-Room Rule
 
