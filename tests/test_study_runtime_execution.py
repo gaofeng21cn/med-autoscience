@@ -30,8 +30,8 @@ def _base_status_payload() -> dict[str, object]:
     }
 
 
-def _patch_router(monkeypatch, module) -> None:
-    managed_runtime_backend = SimpleNamespace(resolve_daemon_url=lambda *, runtime_root: "http://127.0.0.1:21999")
+def _patch_router(monkeypatch, module, *, monitoring_url: str = "http://127.0.0.1:21999") -> None:
+    managed_runtime_backend = SimpleNamespace(resolve_daemon_url=lambda *, runtime_root: monitoring_url)
     monkeypatch.setattr(
         module,
         "_router_module",
@@ -171,6 +171,41 @@ def test_autonomous_runtime_notice_reports_live_runtime_only_when_liveness_is_st
     assert status.to_dict()["autonomous_runtime_notice"]["notification_reason"] == (
         "detected_existing_live_managed_runtime"
     )
+
+
+def test_autonomous_runtime_notice_does_not_fabricate_api_urls_for_static_progress_portal(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
+    portal_url = (tmp_path / "workspace" / "ops" / "mas" / "progress" / "index.html").as_uri()
+    _patch_router(monkeypatch, module, monitoring_url=portal_url)
+    status = typed_surface.StudyRuntimeStatus.from_payload(_base_status_payload())
+    status.record_runtime_liveness_audit(
+        {
+            "status": "live",
+            "active_run_id": "run-live",
+            "runtime_audit": {
+                "status": "live",
+                "active_run_id": "run-live",
+                "worker_running": True,
+                "worker_pending": False,
+                "stop_requested": False,
+            },
+        }
+    )
+
+    module._record_autonomous_runtime_notice_if_required(
+        status=status,
+        runtime_root=tmp_path / "workspace" / "runtime",
+        launch_report_path=tmp_path / "workspace" / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json",
+    )
+
+    notice = status.to_dict()["autonomous_runtime_notice"]
+    assert notice["browser_url"] == portal_url
+    assert notice["quest_api_url"] is None
+    assert notice["quest_session_api_url"] is None
 
 
 def test_autonomous_runtime_notice_marks_unhealthy_runtime_without_claiming_live(monkeypatch) -> None:

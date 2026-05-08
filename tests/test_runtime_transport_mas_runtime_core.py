@@ -45,6 +45,36 @@ def test_mas_runtime_core_live_execution_reads_local_runtime_state(tmp_path: Pat
     assert result["runtime_audit"]["worker_running"] is True
 
 
+def test_mas_runtime_core_monitoring_url_points_to_progress_portal(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    workspace_root = tmp_path / "workspace"
+    runtime_root = workspace_root / "runtime"
+    portal_path = workspace_root / "ops" / "mas" / "progress" / "index.html"
+    portal_path.parent.mkdir(parents=True)
+    portal_path.write_text("<!doctype html><title>MAS Progress Portal</title>", encoding="utf-8")
+
+    result = module.resolve_daemon_url(runtime_root=runtime_root)
+
+    assert result == portal_path.resolve().as_uri()
+    assert result != runtime_root.resolve().as_uri()
+
+
+def test_mas_runtime_core_monitoring_url_requires_materialized_progress_portal(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+
+    try:
+        module.resolve_daemon_url(runtime_root=runtime_root)
+    except RuntimeError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("resolve_daemon_url should require a materialized MAS Progress Portal")
+
+    assert "MAS Progress Portal is not materialized" in message
+    assert "workspace progress-portal" in message
+    assert str(runtime_root.parent / "ops" / "mas" / "progress" / "index.html") in message
+
+
 def test_mas_runtime_core_update_startup_context_echoes_typed_receipt_fields(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
     runtime_root = tmp_path / "workspace" / "runtime"

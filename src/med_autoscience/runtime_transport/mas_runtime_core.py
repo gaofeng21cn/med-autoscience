@@ -146,7 +146,16 @@ def _result(*, quest_root: Path, status: str, source: str, **extra: Any) -> dict
 
 
 def resolve_daemon_url(*, runtime_root: Path) -> str:
-    return _resolved_runtime_root(runtime_root).as_uri()
+    resolved_runtime_root = _resolved_runtime_root(runtime_root)
+    workspace_root = resolved_runtime_root.parent
+    portal_path = workspace_root / "ops" / "mas" / "progress" / "index.html"
+    if not portal_path.is_file():
+        raise RuntimeError(
+            "MAS Progress Portal is not materialized; run "
+            "`medautosci workspace progress-portal --profile <profile>` or "
+            f"`ops/mas/bin/start-web` to generate {portal_path}"
+        )
+    return portal_path.as_uri()
 
 
 def create_quest(*, runtime_root: Path, payload: dict[str, Any]) -> dict[str, Any]:
