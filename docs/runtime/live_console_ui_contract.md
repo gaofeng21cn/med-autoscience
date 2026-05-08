@@ -12,6 +12,8 @@ The current landed scope is read-only observation. Resident WebSocket terminal a
 
 User-view parity gaps for per-paper navigation, executor conversation, and interactive terminal/control are tracked in [MDS WebUI User Parity Gap Review](../references/mds_webui_user_parity_gap_review.md).
 
+2026-05-09 fresh assessment: Live Console is the MAS-native read-only observation replacement for the old WebUI observation class. It is not an interactive terminal/control replacement yet. The next valid improvement path is study-scoped filtering from Portal deep links, then an authorized UI action lane for pause/resume/reconcile/stop intents, and only after that a separate interactive terminal attach design with threat model, owner gate, token/lease, idempotency, and audit contract.
+
 ## Stable Entry
 
 - Static shell: `ops/mas/live-console/index.html`
@@ -47,6 +49,8 @@ When terminal/log files are missing, the console should explain that absence as 
 ## Authority Boundary
 
 The UI is read-only. It can show action intent for pause / resume / relaunch / reconcile, but UI 不直接执行 apply.
+
+This read-only boundary is intentional for the current monolith closeout. A future authorized UI control surface must call MAS controller/runtime owner surfaces, write audit receipts, dedupe repeated user clicks, and fail closed on stale owner route, parked/completed state, human gate, publication gate missing, retry exhausted, or missing authorization. It must not reuse the old MDS daemon as an owner.
 
 The real-workspace soak surface is also read-only. `portal-console-soak` may refresh the Progress Portal and Live Console snapshot, then materialize display evidence under `artifacts/runtime/portal_console_soak/latest.json`. It must not turn a page refresh into runtime reconcile, package rebuild, publication gate update, controller decision, or runtime SQLite write.
 

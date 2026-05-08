@@ -1,7 +1,7 @@
 # Program Portfolio Consolidation
 
 Status: `active portfolio governance`
-Date: `2026-05-08`
+Date: `2026-05-09`
 Owner: `MedAutoScience`
 
 ## 结论
@@ -35,6 +35,8 @@ Owner: `MedAutoScience`
 
 2026-05-08 runtime evidence closeout：后续三件优化已收口为 repo-owned read-model/evidence surface，而不是新的 program board。`outer_supervision_slo=landed` 把 Hermes gateway cron 300 秒外环监管的新鲜度投影到 `runtime-supervision-status`、`runtime-supervisor-reconcile`、`runtime_reconcile_trigger`、`study_progress`、Product Entry 和 Portal；它只生成 `fresh/due/stale/missing/blocked`、dedupe fingerprint 与 canonical one-shot `supervisor-reconcile --dry-run` 推荐，不恢复 MDS daemon 或旧 workspace-local service。`portal_console_soak=landed` 生成 MAS-owned 只读 Portal + Live Console evidence，允许写 display/read-model artifact，禁止写 paper/package/publication/controller/runtime SQLite authority。`paper_autonomy_stability_evidence=evidence_read_model_landed` 把真实 profile inventory、supervisor reconcile dry-run、workspace migration dry-run 和 real workspace soak monitor 合并成单一 read model；真实 workspace 若因 human gate、publication gate、parked handoff 或 profile unreadable 阻塞，必须写 blocker 和下一步，不能把 `paper_autonomy_stability` 伪造为 landed。
 
+2026-05-09 fresh reassessment：当前主线仍是 MAS monolith 收尾，但下一步不再是“继续吸收 MDS repo”或“恢复 MDS daemon”。机器矩阵当前固定为 `17` 个 behavior surface：`2 behavior_equivalent / 6 purpose_equivalent_with_different_timing / 4 partially_equivalent / 4 not_equivalent_retired / 1 historical_fixture_only`，`fully_equivalent_to_mds_daemon=false`。需要继续补的是用户感知和受控交互：per-study/per-paper Portal 工作台、runtime conversation read model、study-scoped Live Console、authorized UI control，以及更长线的 interactive terminal attach safety design。已经退役的 connector background delivery、GitOps runtime lifecycle、MDS daemon lifecycle controls 和 workspace-local service manager 不作为默认 backlog 重开。
+
 2026-05-08 hub role hardening closeout：中心 hub 风险已从“建议”转为 architecture fitness guard。Runtime Supervisor、Product Cockpit、MCP Adapter 与 Display Validation 的本轮收口只改变内部角色边界，不改变 CLI/MCP/controller payload 或 live study artifact。`module_boundary_audit` / `architecture_owner_boundary` 现在要求 hub 声明 `authority`、`read_model`、`adapter` 或 `materializer`；read-model / adapter hub 如果声明 authority、控制 runtime/publication 或写 runtime/study truth，会被 blocking。该 hardening 是横向 guard，不改变 next execution queue。
 
 ## Next Execution Queue
@@ -51,6 +53,7 @@ Owner: `MedAutoScience`
 | `4c` | `runtime_continuity_completion` | `../runtime/runtime_supervision_loop.md`、`../runtime/runtime_health_kernel.md`、`../runtime/study_progress_projection.md`、`../runtime/progress_portal.md`、`../references/mds_behavior_equivalence_gap_matrix.md` | `landed`: `runtime_session`、`recovery_intent`、safe reconcile trigger 和 runtime continuity projection 已覆盖用户可见 worker tracking / last seen / recovery intent；仍按 scheduler-bound MAS Runtime OS 口径，不重引入 MDS daemon 或旧 workspace-local service。 |
 | `5` | `runtime_evidence_closeout` | `mas_single_project_mds_absorb_program.md`、`../runtime/runtime_supervision_loop.md`、`../runtime/progress_portal.md`、`../runtime/live_console_ui_contract.md` | `landed/evidence-gated`: outer supervision latency SLA、Portal/Live Console real workspace soak runner 和 paper autonomy stability evidence read model 已落地；`paper_autonomy_stability` 仍只能在真实 evidence 无 blocker 时写成 landed，否则保持 `evidence_landed_with_blockers`。 |
 | `5b` | `portal_webui_user_parity` | `../references/mds_webui_user_parity_gap_review.md`、`../runtime/progress_portal.md`、`../runtime/mas_live_console_mds_webui_parity_plan.md` | `planned`: Portal 从 workspace overview 进化到 per-study/per-paper 工作台，补 study-scoped deep links、Path/Stage、Runtime/Run、Conversation、Terminal/Logs、Artifacts 和 source refs；interactive terminal/control 单独 gated，不复用旧 daemon owner。 |
+| `5c` | `runtime_interactive_parity_guarded` | `../references/mds_webui_user_parity_gap_review.md`、`../runtime/live_console_ui_contract.md` | `planned/gated`: 先补 runtime conversation read model、study-scoped Live Console 与 authorized UI action intent/apply；terminal attach/input/resize/detach 只能在 threat model、owner gate、idempotency、audit 和 token/lease contract 完整后进入实现。 |
 
 本文是队列 authority。实现 lane 可以并行拆分，但吸收顺序仍按上表 gate；不能绕过 portfolio 直接新建另一套 program board。
 

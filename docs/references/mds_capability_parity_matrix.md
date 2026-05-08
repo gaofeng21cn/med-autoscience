@@ -18,6 +18,8 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 
 2026-05-08 user-view WebUI parity review 进一步校准 `progress_visibility`：当前 MAS 有固定 Progress Portal、study rows、study-progress 和 cockpit，但默认 UX 仍偏 workspace overview，多篇论文会混在同一页解释。旧 MDS WebUI 的 per-project/per-quest 信息架构应作为 clean-room UX oracle；后续 P0 是 per-study/per-paper Portal drilldown、deep link 和单篇论文 detail view。详见 [MDS WebUI User Parity Gap Review](./mds_webui_user_parity_gap_review.md)。
 
+2026-05-09 fresh assessment：当前 machine-readable behavior matrix 仍是 `17` 个 behavior surface，分类为 `2 behavior_equivalent / 6 purpose_equivalent_with_different_timing / 4 partially_equivalent / 4 not_equivalent_retired / 1 historical_fixture_only`，且 `fully_equivalent_to_mds_daemon=false`。这不是退回到外部 MDS 依赖；它表示 MAS monolith 已经承接默认日常运行，但仍保留可见 UX / interactive control / scheduler cadence 的差异。后续能力补齐应聚焦 per-study Portal、conversation read model、authorized UI control 和 gated terminal attach；connector background delivery、GitOps lifecycle、MDS daemon lifecycle controls 与 workspace-local host service 仍保持 retired，不进入默认 backlog。
+
 ## Capability Matrix
 
 | Capability | Classification | MDS role | MAS owner | Parity proof | Medical quality authority |
@@ -71,6 +73,14 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | workspace-local host service | `not_equivalent_retired` | Clean retired service evidence; do not install. |
 
 `turn_completion_continuation` 是本轮重新评估后的关键变化：旧 MDS 的 runner completion 后状态归一化和下一 turn 调度，已经落在 MAS Runtime Turn Lifecycle Kernel；`Hermes gateway cron` 只剩 outer supervision / stale recovery cadence。`runtime_continuity_completion` 是 session tracking 和 crash recovery intent 的 landed refinement，但仍保留 scheduler-bound timing 差异，不宣称 resident daemon equivalence。
+
+仍未实现完整语义等价的能力不应笼统写成“MDS 没吸收完”。精确口径如下：
+
+- `progress_visibility`: MAS 已默认替代 MDS WebUI，但用户体验是部分等价；差距是 per-study/per-paper 工作台和 deep link。
+- `webui_websocket_terminal_streaming`: MAS 已实现 read-only purpose parity；差距是 interactive terminal attach/input/resize/detach 与 UI-issued runtime control。
+- `daemon_residency` / `supervision_cadence` / `crash_recovery_auto_resume`: MAS 已把正常 turn continuation 内生化；差距只剩 outer supervision / crash-stale recovery cadence。
+- `queued_user_messages_mailbox`: runtime user queue 与 durable task intake 已可用；差距是用户可读 conversation/timeline pane，而不是后台 chat connector。
+- `connector_channel_background_delivery`、`gitops_state_management`、`system_update_daemon_lifecycle_controls`、`workspace_local_host_service`: 这些是有意退役的旧行为，不属于当前 monolith 降级。
 
 ## Parity Proof Requirements
 
