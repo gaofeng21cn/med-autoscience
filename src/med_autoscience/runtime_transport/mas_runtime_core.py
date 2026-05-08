@@ -342,13 +342,20 @@ def update_quest_startup_context(
     if not (quest_root / "quest.yaml").is_file():
         raise RuntimeError(f"MAS runtime quest is missing: {quest_root}")
     payload = {
+        "quest_id": quest_root.name,
         "startup_contract": startup_contract,
         "requested_baseline_ref": requested_baseline_ref,
         "updated_at": _utc_now(),
         "runtime_backend_id": BACKEND_ID,
     }
     _write_json(quest_root / "artifacts" / "runtime" / "startup_context.json", payload)
-    return {"ok": True, "status": "updated", "source": "mas_runtime_core", "snapshot": payload}
+    return {
+        "ok": True,
+        "status": "updated",
+        "source": "mas_runtime_core",
+        "quest_id": quest_root.name,
+        "snapshot": payload,
+    }
 
 
 def chat_quest(

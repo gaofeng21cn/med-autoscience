@@ -45,6 +45,31 @@ def test_mas_runtime_core_live_execution_reads_local_runtime_state(tmp_path: Pat
     assert result["runtime_audit"]["worker_running"] is True
 
 
+def test_mas_runtime_core_update_startup_context_echoes_typed_receipt_fields(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    result = module.update_quest_startup_context(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        startup_contract={"scope": "full_research"},
+        requested_baseline_ref={"baseline_id": "demo"},
+    )
+
+    startup_context = json.loads(
+        (runtime_root / "quests" / "quest-001" / "artifacts" / "runtime" / "startup_context.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert result["ok"] is True
+    assert result["quest_id"] == "quest-001"
+    assert result["snapshot"]["quest_id"] == "quest-001"
+    assert result["snapshot"]["startup_contract"] == {"scope": "full_research"}
+    assert result["snapshot"]["requested_baseline_ref"] == {"baseline_id": "demo"}
+    assert startup_context["quest_id"] == "quest-001"
+
+
 def test_runtime_transport_package_defaults_to_mas_runtime_core(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport")
     runtime_root = tmp_path / "workspace" / "runtime"
