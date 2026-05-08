@@ -280,6 +280,26 @@ def inspect_quest_live_runtime(
     }
 
 
+def inspect_quest_live_bash_sessions(
+    *,
+    quest_id: str,
+    daemon_url: str | None = None,
+    runtime_root: Path | None = None,
+    timeout: int | None = None,
+) -> dict[str, Any]:
+    if runtime_root is None:
+        raise ValueError("runtime_root is required for MAS runtime core inspect_quest_live_bash_sessions")
+    _snapshot(quest_root=_quest_root(runtime_root=runtime_root, quest_id=quest_id))
+    return {
+        "ok": True,
+        "status": "none",
+        "source": "mas_runtime_core_no_external_bash_session",
+        "session_count": 0,
+        "live_session_count": 0,
+        "live_session_ids": [],
+    }
+
+
 def inspect_quest_live_execution(
     *,
     quest_id: str,
@@ -302,14 +322,12 @@ def inspect_quest_live_execution(
         "runner_live": live,
         "bash_live": False,
         "runtime_audit": runtime_audit,
-        "bash_session_audit": {
-            "ok": True,
-            "status": "none",
-            "source": "mas_runtime_core_no_external_bash_session",
-            "session_count": 0,
-            "live_session_count": 0,
-            "live_session_ids": [],
-        },
+        "bash_session_audit": inspect_quest_live_bash_sessions(
+            quest_id=quest_id,
+            daemon_url=daemon_url,
+            runtime_root=runtime_root,
+            timeout=timeout,
+        ),
     }
 
 
@@ -417,4 +435,3 @@ def release_idle_workspace_daemon(
             "idle_seconds": 0,
         },
     }
-

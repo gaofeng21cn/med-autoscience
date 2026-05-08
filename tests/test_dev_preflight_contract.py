@@ -570,7 +570,7 @@ def test_plan_commands_for_external_runtime_dependency_surface_include_gate_proo
 
     assert "uv run pytest tests/test_med_deepscientist_repo_manifest.py -q" in commands
     assert "uv run pytest tests/test_workspace_contracts.py -q" in commands
-    assert "uv run pytest tests/test_deepscientist_upgrade_check.py -q" in commands
+    assert "uv run pytest tests/test_backend_audit.py -q" in commands
     assert "uv run pytest tests/test_hermes_runtime_contract.py -q" in commands
     assert "uv run pytest tests/test_hermes_runtime_check.py -q" in commands
 

@@ -256,7 +256,7 @@ def test_study_runtime_status_does_not_echo_stale_runtime_escalation_ref_after_b
     assert "runtime_escalation_ref" not in result
 
 
-def test_study_runtime_status_uses_profile_default_hermes_substrate_for_legacy_managed_execution(
+def test_study_runtime_status_uses_profile_default_hermes_substrate_without_mds_research_backend(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -299,8 +299,8 @@ def test_study_runtime_status_uses_profile_default_hermes_substrate_for_legacy_m
     assert result["execution"]["runtime_backend_id"] == "hermes"
     assert result["execution"]["runtime_backend"] == "hermes"
     assert result["execution"]["runtime_engine_id"] == "hermes"
-    assert result["execution"]["research_backend_id"] == "med_deepscientist"
-    assert result["execution"]["research_engine_id"] == "med-deepscientist"
+    assert result["execution"]["research_backend_id"] == "mas_runtime_core"
+    assert result["execution"]["research_engine_id"] == "mas-runtime-core"
     assert result["decision"] == "resume"
     assert result["reason"] == "quest_initialized_waiting_to_start"
 

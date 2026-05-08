@@ -115,7 +115,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
     assert payload["family_human_gates"] == []
     assert latest_payload == payload
     assert not (study_root / "artifacts" / "controller" / "controller_confirmation_summary.json").exists()
-def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_runtime_escalation_ref(
+def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_runtime_escalation_ref_and_quest_root(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -133,7 +133,8 @@ def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_ru
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
     charter_ref = _write_charter(study_root)
-    publication_eval_ref = _write_publication_eval(study_root, profile.med_deepscientist_runtime_root / "quests" / "quest-001")
+    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    publication_eval_ref = _write_publication_eval(study_root, quest_root)
 
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -142,7 +143,9 @@ def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_ru
             "study_id": "001-risk",
             "quest_id": "quest-001",
             "execution": {
-                "engine": "med-deepscientist",
+                "engine": "mas-runtime-core",
+                "runtime_backend_id": "mas_runtime_core",
+                "runtime_engine_id": "mas-runtime-core",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
@@ -208,8 +211,11 @@ def test_study_outer_loop_tick_reads_runtime_escalation_ref_from_runtime_event_c
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
+            "quest_root": str(quest_root),
             "execution": {
-                "engine": "med-deepscientist",
+                "engine": "mas-runtime-core",
+                "runtime_backend_id": "mas_runtime_core",
+                "runtime_engine_id": "mas-runtime-core",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
@@ -275,7 +281,9 @@ def test_study_outer_loop_tick_falls_back_to_status_surface_when_runtime_event_r
             "decision": "resume",
             "reason": "publication_quality_gap",
             "execution": {
-                "engine": "med-deepscientist",
+                "engine": "mas-runtime-core",
+                "runtime_backend_id": "mas_runtime_core",
+                "runtime_engine_id": "mas-runtime-core",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
@@ -345,8 +353,11 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_quest_identity_mi
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
+            "quest_root": str(quest_root),
             "execution": {
-                "engine": "med-deepscientist",
+                "engine": "mas-runtime-core",
+                "runtime_backend_id": "mas_runtime_core",
+                "runtime_engine_id": "mas-runtime-core",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
@@ -405,8 +416,11 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_supervisor_tick_i
         lambda **_: {
             "study_id": "001-risk",
             "quest_id": "quest-001",
+            "quest_root": str(quest_root),
             "execution": {
-                "engine": "med-deepscientist",
+                "engine": "mas-runtime-core",
+                "runtime_backend_id": "mas_runtime_core",
+                "runtime_engine_id": "mas-runtime-core",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "quest-001",
             },
