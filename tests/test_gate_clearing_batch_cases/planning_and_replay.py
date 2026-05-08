@@ -163,6 +163,72 @@ def test_build_gate_clearing_batch_recommended_action_promotes_blocked_bounded_a
     assert action["controller_action_type"] == "run_gate_clearing_batch"
     assert action["gate_clearing_batch_mapping_path"] == str(mapping_path)
     assert "scientific-anchor fields can be frozen" in action["gate_clearing_batch_reason"]
+
+
+def test_build_gate_clearing_batch_recommended_action_uses_managed_runtime_quest_root(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    profile = make_profile(tmp_path)
+    profile = profiles.WorkspaceProfile(
+        **{
+            **profile.__dict__,
+            "runtime_root": profile.workspace_root / "runtime" / "quests",
+            "med_deepscientist_runtime_root": profile.workspace_root / "legacy" / "mds-runtime",
+        }
+    )
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    mapping_path = (
+        profile.managed_runtime_quests_root
+        / "quest-001"
+        / ".ds"
+        / "worktrees"
+        / "analysis-analysis-c7574291-freeze-scientific-anchor-and-gate-map"
+        / "experiments"
+        / "analysis"
+        / "analysis-c7574291"
+        / "freeze-scientific-anchor-and-gate-map"
+        / "outputs"
+        / "scientific_anchor_mapping.json"
+    )
+    _write_json(
+        mapping_path,
+        {
+            "proposed_scientific_followup_questions": ["Q1"],
+            "proposed_explanation_targets": ["T1"],
+            "clinician_facing_interpretation_target": "Clinician-facing interpretation target.",
+        },
+    )
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "medical_publication_surface_blocked",
+            "claim_evidence_consistency_failed",
+        ],
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": [
+            "claim_evidence_map_missing_or_incomplete",
+        ],
+    }
+
+    action = module.build_gate_clearing_batch_recommended_action(
+        profile=profile,
+        study_root=study_root,
+        quest_id="quest-001",
+        publication_eval_payload=publication_eval_payload,
+        gate_report=gate_report,
+    )
+
+    assert action is not None
+    assert action["gate_clearing_batch_mapping_path"] == str(mapping_path)
 def test_build_gate_clearing_batch_recommended_action_uses_surface_blocker_details(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
     profile = make_profile(tmp_path)

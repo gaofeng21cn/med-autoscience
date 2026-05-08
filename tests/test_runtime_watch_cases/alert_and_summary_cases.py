@@ -54,7 +54,9 @@ def test_watch_runtime_writes_supervision_changed_event_when_degraded_runtime_re
             "study_root": str(study_root),
             "entry_mode": "full_research",
             "execution": {
-                "engine": "med-deepscientist",
+                "engine": "mas-runtime-core",
+                "runtime_backend_id": "mas_runtime_core",
+                "runtime_engine_id": "mas-runtime-core",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "001-risk",
                 "auto_resume": True,
@@ -87,7 +89,9 @@ def test_watch_runtime_writes_supervision_changed_event_when_degraded_runtime_re
             "study_root": str(study_root),
             "entry_mode": "full_research",
             "execution": {
-                "engine": "med-deepscientist",
+                "engine": "mas-runtime-core",
+                "runtime_backend_id": "mas_runtime_core",
+                "runtime_engine_id": "mas-runtime-core",
                 "auto_entry": "on_managed_research_intent",
                 "quest_id": "001-risk",
                 "auto_resume": True,
@@ -195,7 +199,9 @@ def test_watch_runtime_refreshes_recovery_requested_status_to_live_within_same_t
         "study_root": str(study_root),
         "entry_mode": "full_research",
         "execution": {
-            "engine": "med-deepscientist",
+            "engine": "mas-runtime-core",
+            "runtime_backend_id": "mas_runtime_core",
+            "runtime_engine_id": "mas-runtime-core",
             "auto_entry": "on_managed_research_intent",
             "quest_id": "001-risk",
             "auto_resume": True,
@@ -818,5 +824,5 @@ def test_watch_runtime_routes_alert_delivery_through_controlled_research_backend
 
     assert len(calls) == 1
     assert calls[0]["quest_id"] == "001-risk"
-    assert calls[0]["runtime_root"] == str(profile.med_deepscientist_runtime_root)
+    assert calls[0]["runtime_root"] == str(profile.managed_runtime_home)
     assert latest_alert["delivery_status"] == "delivered"

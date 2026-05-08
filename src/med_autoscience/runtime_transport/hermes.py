@@ -7,20 +7,19 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
-from med_autoscience.runtime_transport import med_deepscientist as stable_transport
 
 if TYPE_CHECKING:
     from med_autoscience.profiles import WorkspaceProfile
 
 
-# Hermes 接入当前是“真实 outer-runtime adapter + controlled backend delegation”：
-# adapter 自身必须先拿到 external Hermes runtime binding 并做 ready 校验，
-# 然后才允许把 quest 控制动作委托给受控的 MedDeepScientist backend。
+# Hermes 是可选 hosted runtime substrate adapter。MAS 默认 functional monolith
+# 使用 mas_runtime_core；Hermes 入口保留 readiness/binding contract，但不得
+# 重新委托到 external MedDeepScientist runnable transport。
 BACKEND_ID = "hermes"
 ENGINE_ID = "hermes"
-CONTROLLED_RESEARCH_BACKEND_ID = stable_transport.BACKEND_ID
-CONTROLLED_RESEARCH_ENGINE_ID = stable_transport.ENGINE_ID
-DEFAULT_DAEMON_TIMEOUT_SECONDS = stable_transport.DEFAULT_DAEMON_TIMEOUT_SECONDS
+CONTROLLED_RESEARCH_BACKEND_ID = "mas_runtime_core"
+CONTROLLED_RESEARCH_ENGINE_ID = "mas-runtime-core"
+DEFAULT_DAEMON_TIMEOUT_SECONDS = 10
 RUNTIME_BINDING_FILENAME = "hermes_runtime_binding.yaml"
 
 
@@ -151,6 +150,13 @@ def _load_runtime_local_state(*, runtime_root: Path, quest_id: str) -> dict[str,
     return payload
 
 
+def _hosted_operation_unavailable(operation_name: str) -> RuntimeError:
+    return RuntimeError(
+        f"Hermes hosted operation `{operation_name}` is not part of MAS default functional monolith. "
+        "Use mas_runtime_core for default operation or an explicit backend audit/intake surface for external runtimes."
+    )
+
+
 def _external_runtime_unavailable_live_execution(
     *,
     runtime_root: Path,
@@ -196,25 +202,25 @@ def _external_runtime_unavailable_live_execution(
 def resolve_daemon_url(*, runtime_root: Path) -> str:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="resolve_daemon_url")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.resolve_daemon_url(runtime_root=resolved_runtime_root)
+    raise _hosted_operation_unavailable("resolve_daemon_url")
 
 
 def create_quest(*, runtime_root: Path, payload: dict[str, Any]) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="create_quest")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.create_quest(runtime_root=resolved_runtime_root, payload=payload)
+    raise _hosted_operation_unavailable("create_quest")
 
 
 def resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="resume_quest")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.resume_quest(runtime_root=resolved_runtime_root, quest_id=quest_id, source=source)
+    raise _hosted_operation_unavailable("resume_quest")
 
 
 def pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="pause_quest")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.pause_quest(runtime_root=resolved_runtime_root, quest_id=quest_id, source=source)
+    raise _hosted_operation_unavailable("pause_quest")
 
 
 def stop_quest(
@@ -226,12 +232,7 @@ def stop_quest(
 ) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="stop_quest")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.stop_quest(
-        daemon_url=daemon_url,
-        runtime_root=resolved_runtime_root,
-        quest_id=quest_id,
-        source=source,
-    )
+    raise _hosted_operation_unavailable("stop_quest")
 
 
 def get_quest_session(
@@ -243,12 +244,7 @@ def get_quest_session(
 ) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="get_quest_session")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.get_quest_session(
-        quest_id=quest_id,
-        daemon_url=daemon_url,
-        runtime_root=resolved_runtime_root,
-        timeout=timeout,
-    )
+    raise _hosted_operation_unavailable("get_quest_session")
 
 
 def inspect_quest_live_runtime(
@@ -260,12 +256,7 @@ def inspect_quest_live_runtime(
 ) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="inspect_quest_live_runtime")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.inspect_quest_live_runtime(
-        quest_id=quest_id,
-        daemon_url=daemon_url,
-        runtime_root=resolved_runtime_root,
-        timeout=timeout,
-    )
+    raise _hosted_operation_unavailable("inspect_quest_live_runtime")
 
 
 def inspect_quest_live_bash_sessions(
@@ -277,12 +268,7 @@ def inspect_quest_live_bash_sessions(
 ) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="inspect_quest_live_bash_sessions")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.inspect_quest_live_bash_sessions(
-        quest_id=quest_id,
-        daemon_url=daemon_url,
-        runtime_root=resolved_runtime_root,
-        timeout=timeout,
-    )
+    raise _hosted_operation_unavailable("inspect_quest_live_bash_sessions")
 
 
 def inspect_quest_live_execution(
@@ -301,12 +287,38 @@ def inspect_quest_live_execution(
             quest_id=quest_id,
             error_text=str(exc),
         )
-    return stable_transport.inspect_quest_live_execution(
-        quest_id=quest_id,
-        daemon_url=daemon_url,
-        runtime_root=resolved_runtime_root,
-        timeout=timeout,
-    )
+    local_runtime_state = _load_runtime_local_state(runtime_root=resolved_runtime_root, quest_id=quest_id)
+    active_run_id = None
+    status = "none"
+    if isinstance(local_runtime_state, dict):
+        active_run_id = str(local_runtime_state.get("active_run_id") or "").strip() or None
+        if str(local_runtime_state.get("status") or "").strip() == "running" and active_run_id is not None:
+            status = "live"
+    return {
+        "ok": status == "live",
+        "status": status,
+        "source": "hermes_binding_local_projection",
+        "active_run_id": active_run_id,
+        "runner_live": status == "live",
+        "bash_live": False,
+        "runtime_audit": {
+            "ok": status == "live",
+            "status": status,
+            "source": "hermes_binding_local_projection",
+            "active_run_id": active_run_id,
+            "worker_running": status == "live",
+            "worker_pending": False,
+            "stop_requested": False,
+        },
+        "bash_session_audit": {
+            "ok": True,
+            "status": "none",
+            "session_count": 0,
+            "live_session_count": 0,
+            "live_session_ids": [],
+        },
+        "local_runtime_state": local_runtime_state,
+    }
 
 
 def update_quest_startup_context(
@@ -318,12 +330,7 @@ def update_quest_startup_context(
 ) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="update_quest_startup_context")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.update_quest_startup_context(
-        runtime_root=resolved_runtime_root,
-        quest_id=quest_id,
-        startup_contract=startup_contract,
-        requested_baseline_ref=requested_baseline_ref,
-    )
+    raise _hosted_operation_unavailable("update_quest_startup_context")
 
 
 def chat_quest(
@@ -337,14 +344,7 @@ def chat_quest(
 ) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="chat_quest")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.chat_quest(
-        runtime_root=resolved_runtime_root,
-        quest_id=quest_id,
-        text=text,
-        source=source,
-        reply_to_interaction_id=reply_to_interaction_id,
-        decision_response=decision_response,
-    )
+    raise _hosted_operation_unavailable("chat_quest")
 
 
 def artifact_complete_quest(
@@ -355,11 +355,7 @@ def artifact_complete_quest(
 ) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="artifact_complete_quest")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.artifact_complete_quest(
-        runtime_root=resolved_runtime_root,
-        quest_id=quest_id,
-        summary=summary,
-    )
+    raise _hosted_operation_unavailable("artifact_complete_quest")
 
 
 def artifact_interact(
@@ -370,8 +366,4 @@ def artifact_interact(
 ) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="artifact_interact")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
-    return stable_transport.artifact_interact(
-        runtime_root=resolved_runtime_root,
-        quest_id=quest_id,
-        payload=payload,
-    )
+    raise _hosted_operation_unavailable("artifact_interact")

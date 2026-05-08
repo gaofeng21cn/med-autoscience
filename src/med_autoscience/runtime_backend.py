@@ -6,13 +6,11 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any, Protocol
 
-DEFAULT_MANAGED_RUNTIME_BACKEND_ID = "hermes"
+DEFAULT_MANAGED_RUNTIME_BACKEND_ID = "mas_runtime_core"
 CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER = "controlled_research_backend"
 EXTERNAL_MDS_ALLOWED_USES = (
-    "explicit_backend_audit",
-    "legacy_restore_import_diagnostic",
-    "upstream_intake",
-    "parity_oracle",
+    "source_provenance_ref",
+    "historical_fixture_ref",
 )
 
 
@@ -315,14 +313,16 @@ def runtime_backend_default_operation_contract(backend_id: str) -> dict[str, obj
         "research_backend_id": research_backend_id,
         "research_engine_id": research_engine_id,
         "external_mds_required_for_default_operation": False,
+        "external_mds_runnable_dependency": False,
+        "external_mds_retained_role": "frozen_source_archive_or_historical_fixture",
         "external_mds_allowed_uses": list(EXTERNAL_MDS_ALLOWED_USES),
     }
 
 
 register_lazy_managed_runtime_backend(
-    backend_id="med_deepscientist",
-    engine_id="med-deepscientist",
-    loader=lambda: import_module("med_autoscience.runtime_transport.med_deepscientist"),
+    backend_id="mas_runtime_core",
+    engine_id="mas-runtime-core",
+    loader=lambda: import_module("med_autoscience.runtime_transport.mas_runtime_core"),
 )
 register_lazy_managed_runtime_backend(
     backend_id="hermes",

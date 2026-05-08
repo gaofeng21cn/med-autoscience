@@ -3,12 +3,29 @@ from __future__ import annotations
 from pathlib import Path
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
-from med_autoscience.runtime_transport import med_deepscientist as med_deepscientist_transport
 from med_autoscience.controllers.gate_clearing_batch_parts.io_utils import non_empty_text, read_json
 
 
 def quest_root(profile: WorkspaceProfile, *, quest_id: str) -> Path:
-    return profile.med_deepscientist_runtime_root / "quests" / quest_id
+    return profile.managed_runtime_quests_root / quest_id
+
+
+def _read_optional_config_env_value(*, path: Path, key: str) -> str | None:
+    if not path.exists():
+        return None
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        current_key, raw_value = line.split("=", 1)
+        if current_key.strip() != key:
+            continue
+        value = raw_value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+            value = value[1:-1]
+        normalized = value.strip()
+        return normalized or None
+    return None
 
 
 def resolve_profile_for_study_root(study_root: Path) -> WorkspaceProfile | None:
@@ -17,7 +34,7 @@ def resolve_profile_for_study_root(study_root: Path) -> WorkspaceProfile | None:
     config_env_path = workspace_root / "ops" / "medautoscience" / "config.env"
     profile_path: Path | None = None
     if config_env_path.exists():
-        configured = med_deepscientist_transport._read_optional_config_env_value(
+        configured = _read_optional_config_env_value(
             path=config_env_path,
             key="MED_AUTOSCIENCE_PROFILE",
         )

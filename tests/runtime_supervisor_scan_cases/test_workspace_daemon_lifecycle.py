@@ -49,7 +49,7 @@ def test_supervisor_scan_apply_safe_actions_releases_idle_workspace_daemon(
         }
 
     daemon_part = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan_parts.workspace_daemon")
-    monkeypatch.setattr(daemon_part.med_deepscientist_transport, "release_idle_workspace_daemon", fake_release_idle_workspace_daemon)
+    monkeypatch.setattr(daemon_part.mas_runtime_transport, "release_idle_workspace_daemon", fake_release_idle_workspace_daemon)
 
     result = module.supervisor_scan(
         profile=profile,
@@ -57,7 +57,7 @@ def test_supervisor_scan_apply_safe_actions_releases_idle_workspace_daemon(
         apply_safe_actions=True,
     )
 
-    assert calls == [profile.med_deepscientist_runtime_root]
+    assert calls == [profile.managed_runtime_home]
     assert result["workspace_daemon_lifecycle"]["released"] is True
     assert result["workspace_daemon_lifecycle"]["reason"] == "idle_workspace_daemon_released"
     assert result["workspace_daemon_lifecycle"]["daemon_lifecycle"]["active_lease_count"] == 0
@@ -93,7 +93,7 @@ def test_supervisor_scan_observe_mode_does_not_release_workspace_daemon(
     )
     daemon_part = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan_parts.workspace_daemon")
     monkeypatch.setattr(
-        daemon_part.med_deepscientist_transport,
+        daemon_part.mas_runtime_transport,
         "release_idle_workspace_daemon",
         lambda **_: (_ for _ in ()).throw(AssertionError("observe mode must not stop workspace daemon")),
     )
@@ -106,4 +106,3 @@ def test_supervisor_scan_observe_mode_does_not_release_workspace_daemon(
 
     assert result["workspace_daemon_lifecycle"]["released"] is False
     assert result["workspace_daemon_lifecycle"]["reason"] == "safe_actions_not_enabled"
-

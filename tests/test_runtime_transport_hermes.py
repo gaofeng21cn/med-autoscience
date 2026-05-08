@@ -22,7 +22,7 @@ def _profile_with_hermes_binding(tmp_path: Path):
     )
 
 
-def test_hermes_transport_requires_explicit_runtime_binding_before_delegating(tmp_path: Path) -> None:
+def test_hermes_transport_requires_explicit_runtime_binding_before_hosted_runtime_use(tmp_path: Path) -> None:
     hermes = importlib.import_module("med_autoscience.runtime_transport.hermes")
 
     with pytest.raises(RuntimeError, match="hermes runtime adapter binding"):
@@ -32,12 +32,11 @@ def test_hermes_transport_requires_explicit_runtime_binding_before_delegating(tm
         )
 
 
-def test_hermes_transport_binds_runtime_root_and_delegates_after_external_runtime_check(
+def test_hermes_transport_binds_runtime_root_and_fails_closed_without_mds_delegation(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     hermes = importlib.import_module("med_autoscience.runtime_transport.hermes")
-    stable_transport = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     profile = _profile_with_hermes_binding(tmp_path)
     runtime_root = profile.runtime_root
     seen: dict[str, object] = {}
@@ -57,16 +56,11 @@ def test_hermes_transport_binds_runtime_root_and_delegates_after_external_runtim
             }
         ),
     )
-    monkeypatch.setattr(
-        stable_transport,
-        "create_quest",
-        lambda **kwargs: (seen.__setitem__("create_kwargs", kwargs) or {"ok": True, "delegated": True}),
-    )
-
-    result = hermes.create_quest(
-        runtime_root=runtime_root,
-        payload={"quest_id": "quest-001"},
-    )
+    with pytest.raises(RuntimeError, match="not part of MAS default functional monolith"):
+        hermes.create_quest(
+            runtime_root=runtime_root,
+            payload={"quest_id": "quest-001"},
+        )
 
     binding_path = runtime_root.parent / hermes.RUNTIME_BINDING_FILENAME
     binding_payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
@@ -79,11 +73,7 @@ def test_hermes_transport_binds_runtime_root_and_delegates_after_external_runtim
         "hermes_agent_repo_root": profile.hermes_agent_repo_root.resolve(),
         "hermes_home_root": profile.hermes_home_root.resolve(),
     }
-    assert seen["create_kwargs"] == {
-        "runtime_root": runtime_root,
-        "payload": {"quest_id": "quest-001"},
-    }
-    assert result == {"ok": True, "delegated": True}
+    assert "create_kwargs" not in seen
 
 
 def test_hermes_transport_fails_closed_when_external_runtime_is_not_ready(
@@ -91,7 +81,6 @@ def test_hermes_transport_fails_closed_when_external_runtime_is_not_ready(
     tmp_path: Path,
 ) -> None:
     hermes = importlib.import_module("med_autoscience.runtime_transport.hermes")
-    stable_transport = importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
     profile = _profile_with_hermes_binding(tmp_path)
     runtime_root = profile.runtime_root
 
@@ -104,11 +93,6 @@ def test_hermes_transport_fails_closed_when_external_runtime_is_not_ready(
             "ready": False,
             "issues": ["external_runtime.gateway_service_not_loaded"],
         },
-    )
-    monkeypatch.setattr(
-        stable_transport,
-        "resume_quest",
-        lambda **kwargs: pytest.fail("stable transport should not be called when Hermes runtime is not ready"),
     )
 
     with pytest.raises(RuntimeError, match="external_runtime.gateway_service_not_loaded"):

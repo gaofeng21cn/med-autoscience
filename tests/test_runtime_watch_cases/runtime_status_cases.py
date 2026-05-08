@@ -838,7 +838,9 @@ def test_watch_runtime_skips_outer_loop_wakeup_when_inputs_stabilize_after_no_re
             },
         },
         "execution": {
-            "engine": "med-deepscientist",
+            "engine": "mas-runtime-core",
+                "runtime_backend_id": "mas_runtime_core",
+                "runtime_engine_id": "mas-runtime-core",
             "auto_entry": "on_managed_research_intent",
             "quest_id": "quest-001",
             "auto_resume": True,

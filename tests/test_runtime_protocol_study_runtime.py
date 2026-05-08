@@ -115,13 +115,13 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
     payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
     assert payload == {
         "schema_version": 1,
-        "engine": "hermes",
-        "runtime_backend_id": "hermes",
-        "runtime_backend": "hermes",
-        "runtime_engine_id": "hermes",
-        "research_backend_id": "med_deepscientist",
-        "research_backend": "med_deepscientist",
-        "research_engine_id": "med-deepscientist",
+        "engine": "mas-runtime-core",
+        "runtime_backend_id": "mas_runtime_core",
+        "runtime_backend": "mas_runtime_core",
+        "runtime_engine_id": "mas-runtime-core",
+        "research_backend_id": "mas_runtime_core",
+        "research_backend": "mas_runtime_core",
+        "research_engine_id": "mas-runtime-core",
         "runtime_home": str(runtime_root),
         "study_id": "001-risk",
         "study_root": str(study_root),
@@ -184,9 +184,9 @@ def test_write_runtime_binding_records_controlled_research_backend_metadata_for_
     )
 
     payload = yaml.safe_load(binding_path.read_text(encoding="utf-8"))
-    assert payload["research_backend_id"] == "med_deepscientist"
-    assert payload["research_backend"] == "med_deepscientist"
-    assert payload["research_engine_id"] == "med-deepscientist"
+    assert payload["research_backend_id"] == "mas_runtime_core"
+    assert payload["research_backend"] == "mas_runtime_core"
+    assert payload["research_engine_id"] == "mas-runtime-core"
 
 
 def test_runtime_binding_backend_metadata_resolves_explicit_hermes_backend() -> None:
