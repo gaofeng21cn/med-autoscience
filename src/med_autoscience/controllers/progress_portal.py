@@ -1,0 +1,578 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
+from datetime import datetime, timezone
+from html import escape
+import json
+from pathlib import Path
+from typing import Any
+
+from med_autoscience.profiles import WorkspaceProfile
+
+
+SCHEMA_VERSION = 1
+SURFACE_KIND = "mas_progress_portal"
+BRAND = "Med Auto Science"
+
+
+def build_progress_portal_payload(
+    *,
+    profile: WorkspaceProfile | None = None,
+    profile_name: str | None = None,
+    workspace_root: str | Path | None = None,
+    study_id: str | None = None,
+    study_root: Path | None = None,
+    profile_ref: str | Path | None = None,
+    progress_payload: Mapping[str, Any] | None = None,
+    cockpit_payload: Mapping[str, Any] | None = None,
+    runtime_payload: Mapping[str, Any] | None = None,
+    package_payload: Mapping[str, Any] | None = None,
+    generated_at: str | None = None,
+    entry_mode: str | None = None,
+    sync_runtime_summary: bool = True,
+) -> dict[str, Any]:
+    resolved_profile_name = profile_name or (profile.name if profile is not None else None) or "unknown"
+    resolved_workspace_root = Path(
+        workspace_root if workspace_root is not None else (profile.workspace_root if profile is not None else ".")
+    )
+    resolved_study_id = _non_empty_text(study_id)
+
+    progress = dict(progress_payload or {})
+    if not progress:
+        if profile is None:
+            raise ValueError("profile is required when progress_payload is not provided")
+        from med_autoscience.controllers import study_progress
+
+        progress = study_progress.read_study_progress(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=resolved_study_id,
+            study_root=study_root,
+            entry_mode=entry_mode,
+            sync_runtime_summary=sync_runtime_summary,
+        )
+    resolved_study_id = resolved_study_id or _non_empty_text(progress.get("study_id")) or "unknown-study"
+
+    cockpit = dict(cockpit_payload or {})
+    if not cockpit and profile is not None:
+        from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
+            read_workspace_cockpit,
+        )
+
+        cockpit = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+
+    runtime = dict(runtime_payload or {})
+    package = dict(package_payload or {})
+    user_visible = _valid_user_visible_projection(progress.get("user_visible_projection"))
+    freshness = _freshness(progress.get("progress_freshness"))
+    latest_events = _latest_events(user_visible, progress)
+    quality = _quality_summary(progress.get("publication_eval"))
+    delivery = _delivery_summary(progress, package, study_id=resolved_study_id)
+    source_refs = _source_refs(progress, cockpit, runtime, package)
+    conditions = _conditions(
+        study_id=resolved_study_id,
+        progress=progress,
+        user_visible=user_visible,
+        cockpit=cockpit,
+        runtime=runtime,
+        package=package,
+        freshness=freshness,
+        delivery=delivery,
+        source_refs=source_refs,
+    )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": SURFACE_KIND,
+        "brand": BRAND,
+        "generated_at": generated_at or _utc_now(),
+        "authority": {
+            "kind": "read_model_display_artifact",
+            "writes_authority_surface": False,
+            "authority_note": "Portal consumes MAS durable progress surfaces and does not own study, runtime, publication, or package truth.",
+        },
+        "workspace": {
+            "profile_name": resolved_profile_name,
+            "workspace_root": str(resolved_workspace_root),
+            "workspace_status": _non_empty_text(cockpit.get("workspace_status")),
+            "workspace_alerts": _string_list(cockpit.get("workspace_alerts")),
+        },
+        "study": {
+            "study_id": resolved_study_id,
+            "state_label": _field(user_visible, "state_label", "状态投影缺失"),
+            "state_summary": _field(user_visible, "state_summary", "当前缺少可展示的用户状态投影。"),
+            "current_stage": _field(user_visible, "current_stage"),
+            "current_stage_summary": _field(user_visible, "current_stage_summary"),
+            "paper_stage": _field(user_visible, "paper_stage"),
+            "paper_stage_summary": _field(user_visible, "paper_stage_summary"),
+            "current_blockers": _list_field(user_visible, "current_blockers"),
+            "next_system_action": _field(user_visible, "next_system_action", "等待 MAS 重新生成 canonical progress projection。"),
+            "needs_physician_decision": bool(
+                user_visible.get("needs_physician_decision") or user_visible.get("needs_user_decision")
+            ),
+            "supervision": _supervision(progress, runtime),
+        },
+        "freshness": freshness,
+        "latest_events": latest_events,
+        "quality": quality,
+        "delivery": delivery,
+        "conditions": conditions,
+        "source_refs": source_refs,
+        "source_payloads": {
+            "progress": _source_payload_summary(progress),
+            "cockpit": _source_payload_summary(cockpit),
+            "runtime": _source_payload_summary(runtime),
+            "package": _source_payload_summary(package),
+        },
+    }
+
+
+def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
+    workspace = _mapping(payload.get("workspace"))
+    study = _mapping(payload.get("study"))
+    freshness = _mapping(payload.get("freshness"))
+    quality = _mapping(payload.get("quality"))
+    delivery = _mapping(payload.get("delivery"))
+    conditions = _mapping(payload.get("conditions"))
+    latest_events = [dict(item) for item in payload.get("latest_events") or [] if isinstance(item, Mapping)]
+    source_refs = _string_list(payload.get("source_refs"))
+    generated_at = str(payload.get("generated_at") or "unknown")
+    brand = str(payload.get("brand") or BRAND)
+    state_label = str(study.get("state_label") or "状态投影缺失")
+    condition_badge = _condition_badge(conditions)
+    blockers = _string_list(study.get("current_blockers"))
+    workspace_alerts = _string_list(workspace.get("workspace_alerts"))
+    return "\n".join(
+        [
+            "<!doctype html>",
+            '<html lang="zh-CN">',
+            "<head>",
+            '<meta charset="utf-8">',
+            '<meta name="viewport" content="width=device-width, initial-scale=1">',
+            f"<title>{escape(brand)} Progress Portal</title>",
+            "<style>",
+            _css(),
+            "</style>",
+            "</head>",
+            "<body>",
+            '<main class="portal">',
+            '<header class="masthead">',
+            f'<div class="brand">{escape(brand)}</div>',
+            f"<h1>{escape(str(study.get('study_id') or 'unknown-study'))}</h1>",
+            f'<p class="state">{escape(state_label)}</p>',
+            '<dl class="meta">',
+            f"<div><dt>generated_at</dt><dd>{escape(generated_at)}</dd></div>",
+            f"<div><dt>freshness</dt><dd>{escape(str(freshness.get('status') or 'unknown'))}</dd></div>",
+            f"<div><dt>workspace</dt><dd>{escape(str(workspace.get('profile_name') or 'unknown'))}</dd></div>",
+            f"<div><dt>conditions</dt><dd>{escape(condition_badge)}</dd></div>",
+            "</dl>",
+            "</header>",
+            '<section class="grid">',
+            _section(
+                "当前状态",
+                [
+                    str(study.get("state_summary") or "当前缺少状态摘要。"),
+                    str(study.get("current_stage_summary") or "当前阶段摘要缺失。"),
+                ],
+            ),
+            _section(
+                "下一步",
+                [
+                    str(study.get("next_system_action") or "等待 MAS 重新生成下一步投影。"),
+                    _gate_text(study),
+                ],
+            ),
+            _section(
+                "论文与质量",
+                [
+                    str(study.get("paper_stage_summary") or "论文阶段摘要缺失。"),
+                    str(quality.get("summary") or "质量投影缺失。"),
+                ],
+            ),
+            _section(
+                "文件与交付",
+                [
+                    str(delivery.get("summary") or "交付投影缺失。"),
+                    str(delivery.get("status") or "unknown"),
+                ],
+            ),
+            "</section>",
+            _list_section("当前阻塞", blockers, empty_text="当前没有投影出的阻塞项。"),
+            _list_section("Workspace Alerts", workspace_alerts, empty_text="当前没有 workspace alert。"),
+            _event_section(latest_events),
+            _condition_section(conditions),
+            '<details class="refs">',
+            "<summary>source refs</summary>",
+            _list_html(source_refs, empty_text="No source refs were available."),
+            "</details>",
+            "</main>",
+            "</body>",
+            "</html>",
+        ]
+    )
+
+
+def materialize_progress_portal(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str | None = None,
+    study_root: Path | None = None,
+    profile_ref: str | Path | None = None,
+    progress_payload: Mapping[str, Any] | None = None,
+    cockpit_payload: Mapping[str, Any] | None = None,
+    runtime_payload: Mapping[str, Any] | None = None,
+    package_payload: Mapping[str, Any] | None = None,
+    generated_at: str | None = None,
+    entry_mode: str | None = None,
+    sync_runtime_summary: bool = True,
+) -> dict[str, Any]:
+    payload = build_progress_portal_payload(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        profile_ref=profile_ref,
+        progress_payload=progress_payload,
+        cockpit_payload=cockpit_payload,
+        runtime_payload=runtime_payload,
+        package_payload=package_payload,
+        generated_at=generated_at,
+        entry_mode=entry_mode,
+        sync_runtime_summary=sync_runtime_summary,
+    )
+    payload_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "latest.json"
+    html_path = profile.workspace_root / "ops" / "mas" / "progress" / "index.html"
+    payload_path.parent.mkdir(parents=True, exist_ok=True)
+    html_path.parent.mkdir(parents=True, exist_ok=True)
+    payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    html_path.write_text(render_progress_portal_html(payload), encoding="utf-8")
+    return {
+        "status": "materialized",
+        "surface_kind": SURFACE_KIND,
+        "payload_path": str(payload_path),
+        "html_path": str(html_path),
+        "generated_at": payload["generated_at"],
+    }
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _non_empty_text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _valid_user_visible_projection(value: object) -> dict[str, Any]:
+    projection = _mapping(value)
+    if projection.get("schema_version") != 2:
+        return {}
+    required = ("writer_state", "user_next", "reason")
+    if any(_non_empty_text(projection.get(key)) is None for key in required):
+        return {}
+    return projection
+
+
+def _field(payload: Mapping[str, Any], key: str, default: str | None = None) -> str | None:
+    return _non_empty_text(payload.get(key)) or default
+
+
+def _list_field(payload: Mapping[str, Any], key: str) -> list[str]:
+    return _string_list(payload.get(key))
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
+        return []
+    result: list[str] = []
+    for item in value:
+        if isinstance(item, str) and item.strip():
+            result.append(item.strip())
+    return result
+
+
+def _freshness(value: object) -> dict[str, Any]:
+    freshness = _mapping(value)
+    status = _non_empty_text(freshness.get("status")) or "missing"
+    return {
+        "status": status,
+        "summary": _non_empty_text(freshness.get("summary")) or "progress freshness surface is missing.",
+        "latest_event_at": _non_empty_text(freshness.get("latest_event_at")),
+    }
+
+
+def _latest_events(user_visible: Mapping[str, Any], progress: Mapping[str, Any]) -> list[dict[str, str]]:
+    evidence = _mapping(user_visible.get("evidence"))
+    candidates = evidence.get("latest_events")
+    if not isinstance(candidates, list):
+        candidates = progress.get("latest_events")
+    events: list[dict[str, str]] = []
+    if isinstance(candidates, list):
+        for item in candidates:
+            if not isinstance(item, Mapping):
+                continue
+            summary = _non_empty_text(item.get("summary")) or _non_empty_text(item.get("message"))
+            timestamp = _non_empty_text(item.get("timestamp")) or _non_empty_text(item.get("recorded_at"))
+            if summary:
+                events.append({"timestamp": timestamp or "unknown", "summary": summary})
+    return events
+
+
+def _quality_summary(publication_eval: object) -> dict[str, Any]:
+    payload = _mapping(publication_eval)
+    verdict = _mapping(payload.get("verdict"))
+    assessment = _mapping(payload.get("quality_assessment"))
+    checks = []
+    for name, item in assessment.items():
+        if isinstance(item, Mapping):
+            checks.append(
+                {
+                    "name": str(name),
+                    "status": _non_empty_text(item.get("status")) or "unknown",
+                    "summary": _non_empty_text(item.get("summary")),
+                }
+            )
+    return {
+        "status": _non_empty_text(verdict.get("overall_verdict")) or ("missing" if not payload else "unknown"),
+        "summary": _non_empty_text(verdict.get("summary")) or "publication evaluation projection is missing.",
+        "checks": checks,
+    }
+
+
+def _delivery_summary(
+    progress: Mapping[str, Any],
+    package: Mapping[str, Any],
+    *,
+    study_id: str,
+) -> dict[str, Any]:
+    package_study_id = _non_empty_text(package.get("study_id"))
+    if package and (package_study_id is None or package_study_id == study_id):
+        return {
+            "status": _non_empty_text(package.get("status")) or "unknown",
+            "summary": _non_empty_text(package.get("summary")) or "package projection is available.",
+            "refs": _string_list(package.get("refs")),
+        }
+    delivery = _mapping(progress.get("delivery_inspection"))
+    current_package = _mapping(delivery.get("current_package"))
+    if current_package:
+        return {
+            "status": _non_empty_text(current_package.get("status")) or "unknown",
+            "summary": _non_empty_text(current_package.get("summary")) or "current package projection is available.",
+            "refs": _string_list(current_package.get("refs")),
+        }
+    return {
+        "status": "missing",
+        "summary": "current package projection is missing.",
+        "refs": [],
+    }
+
+
+def _supervision(progress: Mapping[str, Any], runtime: Mapping[str, Any]) -> dict[str, Any]:
+    supervision = _mapping(progress.get("supervision"))
+    tick_audit = _mapping(runtime.get("supervisor_tick_audit"))
+    return {
+        "browser_url": _non_empty_text(supervision.get("browser_url")),
+        "quest_session_api_url": _non_empty_text(supervision.get("quest_session_api_url")),
+        "active_run_id": _non_empty_text(supervision.get("active_run_id")) or _non_empty_text(runtime.get("active_run_id")),
+        "health_status": _non_empty_text(supervision.get("health_status")) or _non_empty_text(runtime.get("health_status")),
+        "supervisor_tick_status": (
+            _non_empty_text(tick_audit.get("status"))
+            or _non_empty_text(supervision.get("supervisor_tick_status"))
+        ),
+    }
+
+
+def _source_refs(*payloads: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for payload in payloads:
+        refs.extend(_refs_from(payload))
+    return sorted(dict.fromkeys(refs))
+
+
+def _refs_from(value: object) -> list[str]:
+    refs: list[str] = []
+    if isinstance(value, str):
+        if _looks_like_ref(value):
+            refs.append(value)
+        return refs
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if str(key).endswith("refs") or str(key) in {"refs", "evidence_refs", "source_refs"}:
+                refs.extend(_refs_from_ref_field(item))
+            elif str(key).endswith("ref") or str(key).endswith("path"):
+                refs.extend(_refs_from_ref_field(item))
+            elif isinstance(item, (Mapping, list, tuple)):
+                refs.extend(_refs_from(item))
+        return refs
+    if isinstance(value, list | tuple):
+        for item in value:
+            refs.extend(_refs_from(item))
+    return refs
+
+
+def _refs_from_ref_field(value: object) -> list[str]:
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    if isinstance(value, Mapping):
+        result: list[str] = []
+        for item in value.values():
+            result.extend(_refs_from_ref_field(item))
+        return result
+    if isinstance(value, list | tuple):
+        result: list[str] = []
+        for item in value:
+            result.extend(_refs_from_ref_field(item))
+        return result
+    return []
+
+
+def _looks_like_ref(value: str) -> bool:
+    return "/" in value or value.endswith(".json") or value.endswith(".yaml")
+
+
+def _conditions(
+    *,
+    study_id: str,
+    progress: Mapping[str, Any],
+    user_visible: Mapping[str, Any],
+    cockpit: Mapping[str, Any],
+    runtime: Mapping[str, Any],
+    package: Mapping[str, Any],
+    freshness: Mapping[str, Any],
+    delivery: Mapping[str, Any],
+    source_refs: list[str],
+) -> dict[str, list[str]]:
+    missing: list[str] = []
+    stale: list[str] = []
+    conflict: list[str] = []
+    if not user_visible:
+        missing.append("user_visible_projection_v2")
+    if not source_refs:
+        missing.append("source_refs")
+    if freshness.get("status") == "missing":
+        missing.append("progress_freshness")
+    if freshness.get("status") == "stale":
+        stale.append("progress_freshness")
+    if delivery.get("status") == "missing":
+        missing.append("current_package")
+    tick_status = _non_empty_text(_mapping(runtime.get("supervisor_tick_audit")).get("status"))
+    if tick_status in {"missing", "invalid"}:
+        missing.append("runtime_supervisor_tick")
+    elif tick_status == "stale":
+        stale.append("runtime_supervisor_tick")
+    progress_study_id = _non_empty_text(progress.get("study_id"))
+    if progress_study_id and progress_study_id != study_id:
+        conflict.append("progress_study_id_mismatch")
+    cockpit_studies = cockpit.get("studies")
+    if isinstance(cockpit_studies, list) and cockpit_studies:
+        cockpit_ids = {
+            item.get("study_id")
+            for item in cockpit_studies
+            if isinstance(item, Mapping) and _non_empty_text(item.get("study_id"))
+        }
+        if study_id not in cockpit_ids:
+            conflict.append("cockpit_study_id_mismatch")
+    package_study_id = _non_empty_text(package.get("study_id"))
+    if package_study_id and package_study_id != study_id:
+        conflict.append("package_study_id_mismatch")
+    return {
+        "missing": missing,
+        "stale": stale,
+        "conflict": conflict,
+    }
+
+
+def _source_payload_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
+    if not payload:
+        return {"available": False}
+    return {
+        "available": True,
+        "study_id": _non_empty_text(payload.get("study_id")),
+        "generated_at": _non_empty_text(payload.get("generated_at")) or _non_empty_text(payload.get("emitted_at")),
+        "status": _non_empty_text(payload.get("status")),
+        "surface_kind": _non_empty_text(payload.get("surface_kind")),
+    }
+
+
+def _condition_badge(conditions: Mapping[str, Any]) -> str:
+    labels = []
+    for key in ("missing", "stale", "conflict"):
+        values = _string_list(conditions.get(key))
+        if values:
+            labels.append(f"{key}:{len(values)}")
+    return ", ".join(labels) if labels else "clear"
+
+
+def _gate_text(study: Mapping[str, Any]) -> str:
+    if bool(study.get("needs_physician_decision")):
+        return "需要医生/PI 确认后继续。"
+    return "当前没有投影出的医生/PI gate。"
+
+
+def _section(title: str, paragraphs: list[str]) -> str:
+    body = "".join(f"<p>{escape(text)}</p>" for text in paragraphs if text)
+    return f'<section class="panel"><h2>{escape(title)}</h2>{body}</section>'
+
+
+def _list_section(title: str, items: list[str], *, empty_text: str) -> str:
+    return f'<section class="panel wide"><h2>{escape(title)}</h2>{_list_html(items, empty_text=empty_text)}</section>'
+
+
+def _event_section(events: list[dict[str, str]]) -> str:
+    if not events:
+        return _list_section("最近进展", [], empty_text="当前没有带时间戳的进展事件。")
+    items = [f"{item.get('timestamp') or 'unknown'} - {item.get('summary') or ''}" for item in events]
+    return _list_section("最近进展", items, empty_text="当前没有带时间戳的进展事件。")
+
+
+def _condition_section(conditions: Mapping[str, Any]) -> str:
+    items = []
+    for key in ("missing", "stale", "conflict"):
+        for value in _string_list(conditions.get(key)):
+            items.append(f"{key}: {value}")
+    return _list_section("stale / missing / conflict", items, empty_text="No stale, missing, or conflict conditions.")
+
+
+def _list_html(items: list[str], *, empty_text: str) -> str:
+    if not items:
+        return f"<p>{escape(empty_text)}</p>"
+    return "<ul>" + "".join(f"<li>{escape(item)}</li>" for item in items) + "</ul>"
+
+
+def _css() -> str:
+    return """
+:root { color-scheme: light; --ink:#172026; --muted:#5d6972; --line:#d8dee4; --accent:#0f766e; --warn:#b45309; --bad:#b91c1c; --bg:#f7f9fb; --panel:#ffffff; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
+.portal { max-width: 1160px; margin: 0 auto; padding: 28px; }
+.masthead { border-bottom: 1px solid var(--line); padding: 8px 0 22px; }
+.brand { color: var(--accent); font-weight: 700; letter-spacing: 0; }
+h1 { margin: 8px 0 4px; font-size: 32px; line-height: 1.15; }
+h2 { margin: 0 0 10px; font-size: 17px; }
+p { margin: 0 0 10px; line-height: 1.5; }
+.state { color: var(--muted); font-size: 18px; }
+.meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 18px 0 0; }
+.meta div { border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; border-radius: 8px; }
+dt { color: var(--muted); font-size: 12px; text-transform: uppercase; }
+dd { margin: 3px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0 14px; }
+.panel, .refs { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+.wide { margin-top: 14px; }
+ul { margin: 0; padding-left: 20px; }
+li { margin: 6px 0; overflow-wrap: anywhere; }
+summary { cursor: pointer; font-weight: 700; }
+.refs { margin-top: 14px; }
+@media (max-width: 760px) { .portal { padding: 18px; } .grid { grid-template-columns: 1fr; } h1 { font-size: 26px; } }
+""".strip()
+
+
+__all__ = [
+    "build_progress_portal_payload",
+    "render_progress_portal_html",
+    "materialize_progress_portal",
+]
