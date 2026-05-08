@@ -37,6 +37,7 @@ EXPECTED_REMAINING_SURFACE_IDS = [
 EXPECTED_BEHAVIOR_SURFACE_IDS = [
     "daemon_residency",
     "supervision_cadence",
+    "turn_completion_continuation",
     "quest_create_resume_pause_stop",
     "live_worker_session_tracking",
     "crash_recovery_auto_resume",
@@ -119,7 +120,7 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
         "proof_count": 6,
         "oracle_fixture_count": 6,
         "remaining_surface_count": 10,
-        "behavior_surface_count": 16,
+        "behavior_surface_count": 17,
         "quality_owner": "MedAutoScience",
         "mds_role": "frozen_source_archive_or_historical_fixture_only",
         "medical_quality_authority": "blocked_for_mds",
@@ -242,8 +243,8 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert matrix["completion_claim"] == "default_independence_not_full_behavior_equivalence"
     assert [item["surface_id"] for item in matrix["behavior_surfaces"]] == EXPECTED_BEHAVIOR_SURFACE_IDS
     assert matrix["summary"] == {
-        "surface_count": 16,
-        "behavior_equivalent": 2,
+        "surface_count": 17,
+        "behavior_equivalent": 3,
         "purpose_equivalent_with_different_timing": 5,
         "partially_equivalent": 3,
         "not_equivalent_retired": 5,
@@ -255,8 +256,14 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert by_surface["daemon_residency"]["behavior_difference"] == "MAS default supervision is scheduled ticks, not a resident HTTP/WebSocket daemon."
     assert by_surface["supervision_cadence"]["mas_behavior"]["interval_seconds"] == 300
     assert by_surface["supervision_cadence"]["mas_behavior"]["max_ticks"] == 1
+    assert by_surface["supervision_cadence"]["mas_behavior"]["inner_turn_continuation_owner"] == "MAS Runtime Turn Lifecycle Kernel"
+    assert by_surface["turn_completion_continuation"]["equivalence_class"] == "behavior_equivalent"
+    assert by_surface["turn_completion_continuation"]["mas_behavior"]["auto_continue_delay_seconds"] == 0.2
+    assert "complete_turn_and_normalize" in by_surface["turn_completion_continuation"]["mas_contract"]
     assert by_surface["live_worker_session_tracking"]["mas_behavior"]["session_store"] == "durable runtime state and runtime_session read model"
+    assert by_surface["live_worker_session_tracking"]["mas_behavior"]["runner_monitor"] is True
     assert "runtime_session" in by_surface["live_worker_session_tracking"]["mas_contract"]
+    assert by_surface["queued_user_messages_mailbox"]["mas_behavior"]["runtime_turn_user_queue"] is True
     assert "recovery_intent" in by_surface["crash_recovery_auto_resume"]["mas_contract"]
     assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "not_equivalent_retired"
     assert by_surface["connector_channel_background_delivery"]["equivalence_class"] == "not_equivalent_retired"

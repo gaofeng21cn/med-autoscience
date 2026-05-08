@@ -10,6 +10,7 @@ Date: `2026-05-08`
 
 - `MAS Runtime OS` 持有默认 controller-facing runtime owner / substrate。
 - `Hermes gateway cron` 持有默认 supervision scheduler owner，每 300 秒调用一次 `ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1`。
+- MAS Runtime Turn Lifecycle Kernel 持有 runner completion 后的状态归一化和下一 turn 调度；正常 `auto_continue` 不再等待 300 秒 supervision tick。
 - `med-deepscientist` 不再是 MAS 默认 study/status/progress/cockpit/diagnostic operation 的必需 checkout、daemon、runtime root 或 WebUI。
 - `MedDeepScientist` 只保留为 frozen source archive、historical fixture、explicit legacy diagnostic / backend audit / provenance reference。
 
@@ -28,15 +29,16 @@ Date: `2026-05-08`
 
 ## 3. 当前保留的行为差异
 
-当前 MAS 默认实现不是 resident daemon：
+当前 MAS 默认实现不是 resident daemon，但已经拆出内外两层：
 
 - MDS 原行为：resident `ThreadingHTTPServer`、WebSocket、session store、background connector / worker / recovery loop。
-- MAS 当前行为：Hermes gateway cron 定时唤醒 MAS one-shot tick，runtime state、event、owner route 和 progress read-model 由 MAS durable surface 持有。
+- MAS 内层行为：Runtime Turn Lifecycle Kernel 在 runner 返回后清理 live flags、drain queued user messages、按 continuation policy 调度下一 turn，并保留 human/terminal gate。
+- MAS 外层行为：Hermes gateway cron 定时唤醒 MAS one-shot tick，runtime state、event、owner route 和 progress read-model 由 MAS durable surface 持有。
 
 因此：
 
-- 日常研究推进、状态读取、恢复投影、progress/cockpit/Portal 可独立完成。
-- 低延迟 resident callback、WebSocket terminal streaming、connector background delivery、in-memory session continuity 不作为默认 MAS active behavior 保留。
+- 日常研究推进、turn-to-turn continuation、状态读取、恢复投影、progress/cockpit/Portal 可独立完成。
+- 外层 drift detection / stale recovery 仍受 300 秒 tick cadence 约束；低延迟 resident callback、WebSocket terminal streaming、connector background delivery、in-memory session continuity 不作为默认 MAS active behavior 保留。
 - 需要长时唤醒时，当前正确 owner 是 Hermes gateway cron 或未来受控 hosted scheduler，不是 workspace-local launchd/systemd/cron/docker service。
 
 ## 4. Gate 规则

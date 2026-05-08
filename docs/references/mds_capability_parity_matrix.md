@@ -49,7 +49,8 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | Surface | Equivalence class | MAS default action |
 | --- | --- | --- |
 | daemon residency | `purpose_equivalent_with_different_timing` | Use MAS with scheduler-latency awareness. |
-| supervision cadence | `purpose_equivalent_with_different_timing` | Use 300s Hermes gateway cron one-shot tick. |
+| supervision cadence | `purpose_equivalent_with_different_timing` | Use 300s Hermes gateway cron one-shot tick for outer supervision only. |
+| turn completion continuation | `behavior_equivalent` | Use MAS Runtime Turn Lifecycle Kernel. |
 | quest create/resume/pause/stop | `behavior_equivalent` | Use MAS Runtime OS. |
 | live worker/session tracking | `purpose_equivalent_with_different_timing` | Use durable liveness/read-model state. |
 | crash recovery and auto-resume | `purpose_equivalent_with_different_timing` | Use MAS tick or explicit watch/ensure runtime. |
@@ -65,7 +66,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | daemon lifecycle controls | `not_equivalent_retired` | Use Hermes cron supervision controls. |
 | workspace-local host service | `not_equivalent_retired` | Clean retired service evidence; do not install. |
 
-`runtime_continuity_completion` 是上述两行的 landed refinement：行为目标覆盖用户可见 session tracking 和 crash recovery intent，但仍保留 scheduler-bound timing 差异，不宣称 resident daemon equivalence。
+`turn_completion_continuation` 是本轮重新评估后的关键变化：旧 MDS 的 runner completion 后状态归一化和下一 turn 调度，已经落在 MAS Runtime Turn Lifecycle Kernel；`Hermes gateway cron` 只剩 outer supervision / stale recovery cadence。`runtime_continuity_completion` 是 session tracking 和 crash recovery intent 的 landed refinement，但仍保留 scheduler-bound timing 差异，不宣称 resident daemon equivalence。
 
 ## Parity Proof Requirements
 
