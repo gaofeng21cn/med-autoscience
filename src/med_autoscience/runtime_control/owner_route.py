@@ -54,9 +54,25 @@ def build_owner_route(
     current_owner = _current_owner(status=status, progress=progress, active_run_id=active_run_id)
     route = {
         "surface": "runtime_supervisor_owner_route",
-        "schema_version": 1,
+        "schema_version": 2,
         "study_id": study_id,
         "quest_id": quest_id,
+        "truth_epoch": route_epoch,
+        "runtime_health_epoch": _runtime_health_epoch(status, progress),
+        "work_unit_fingerprint": _work_unit_fingerprint(
+            status=status,
+            progress=progress,
+            actions=normalized_actions,
+            source_fingerprint=source_fingerprint,
+        ),
+        "failure_signature": owner_reason,
+        "trace_id": _trace_id(
+            study_id=study_id,
+            route_epoch=route_epoch,
+            source_fingerprint=source_fingerprint,
+            next_owner=owner,
+            owner_reason=owner_reason,
+        ),
         "route_epoch": route_epoch,
         "source_fingerprint": source_fingerprint,
         "current_owner": current_owner,
@@ -68,8 +84,7 @@ def build_owner_route(
         "idempotency_scope": "study_quest_owner_route",
         "source_refs": {
             "study_truth_epoch": _text(truth.get("truth_epoch")),
-            "runtime_health_epoch": _text(_mapping(status.get("runtime_health_snapshot")).get("runtime_health_epoch"))
-            or _text(_mapping(progress.get("runtime_health_snapshot")).get("runtime_health_epoch")),
+            "runtime_health_epoch": _runtime_health_epoch(status, progress),
             "publication_eval_path": _text(_mapping(progress.get("refs")).get("publication_eval_path")),
             "quest_root": _text(status.get("quest_root")) or _text(progress.get("quest_root")),
             "study_macro_state": _macro_state_source_ref(status, progress),
@@ -87,16 +102,50 @@ def build_owner_route(
 
 
 def decorate_actions(*, actions: Iterable[Mapping[str, Any]], owner_route: Mapping[str, Any]) -> list[dict[str, Any]]:
+    normalized_route = ensure_owner_route_v2(owner_route)
     decorated: list[dict[str, Any]] = []
     for action in actions:
         payload = dict(action)
-        payload["owner_route"] = dict(owner_route)
+        payload["owner_route"] = dict(normalized_route)
         handoff_packet = dict(_mapping(payload.get("handoff_packet")))
-        handoff_packet["owner_route"] = dict(owner_route)
-        handoff_packet["idempotency_key"] = _text(owner_route.get("idempotency_key"))
+        handoff_packet["owner_route"] = dict(normalized_route)
+        handoff_packet["idempotency_key"] = _text(normalized_route.get("idempotency_key"))
         payload["handoff_packet"] = handoff_packet
         decorated.append(payload)
     return decorated
+
+
+def ensure_owner_route_v2(route: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(route)
+    if not payload:
+        return {}
+    route_epoch = _text(payload.get("truth_epoch")) or _text(payload.get("route_epoch")) or "unknown"
+    source_fingerprint = _text(payload.get("source_fingerprint")) or _text(payload.get("idempotency_key")) or route_epoch
+    owner_reason = _text(payload.get("failure_signature")) or _text(payload.get("owner_reason"))
+    next_owner = _text(payload.get("next_owner"))
+    source_refs = _mapping(payload.get("source_refs"))
+    runtime_health_epoch = _text(payload.get("runtime_health_epoch")) or _text(source_refs.get("runtime_health_epoch"))
+    work_unit_fingerprint = _text(payload.get("work_unit_fingerprint")) or source_fingerprint
+    payload.update(
+        {
+            "schema_version": 2,
+            "truth_epoch": route_epoch,
+            "runtime_health_epoch": runtime_health_epoch,
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "failure_signature": owner_reason,
+            "trace_id": _text(payload.get("trace_id"))
+            or _trace_id(
+                study_id=_text(payload.get("study_id")) or "unknown-study",
+                route_epoch=route_epoch,
+                source_fingerprint=source_fingerprint,
+                next_owner=next_owner,
+                owner_reason=owner_reason,
+            ),
+            "route_epoch": route_epoch,
+            "source_fingerprint": source_fingerprint,
+        }
+    )
+    return payload
 
 
 def route_and_decorate_actions(
@@ -124,15 +173,18 @@ def route_and_decorate_actions(
 
 
 def owner_route_matches(*, dispatch: Mapping[str, Any], current_route: Mapping[str, Any] | None) -> bool:
-    dispatch_route = _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
-    if not dispatch_route or not current_route:
+    dispatch_route = ensure_owner_route_v2(
+        _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
+    )
+    normalized_current_route = ensure_owner_route_v2(_mapping(current_route))
+    if not dispatch_route or not normalized_current_route:
         return False
     return (
-        _text(dispatch_route.get("idempotency_key")) == _text(current_route.get("idempotency_key"))
-        and _text(dispatch_route.get("route_epoch")) == _text(current_route.get("route_epoch"))
-        and _text(dispatch_route.get("source_fingerprint")) == _text(current_route.get("source_fingerprint"))
-        and _text(dispatch_route.get("next_owner")) == _text(current_route.get("next_owner"))
-        and _text(dispatch_route.get("owner_reason")) == _text(current_route.get("owner_reason"))
+        _text(dispatch_route.get("idempotency_key")) == _text(normalized_current_route.get("idempotency_key"))
+        and _text(dispatch_route.get("route_epoch")) == _text(normalized_current_route.get("route_epoch"))
+        and _text(dispatch_route.get("source_fingerprint")) == _text(normalized_current_route.get("source_fingerprint"))
+        and _text(dispatch_route.get("next_owner")) == _text(normalized_current_route.get("next_owner"))
+        and _text(dispatch_route.get("owner_reason")) == _text(normalized_current_route.get("owner_reason"))
     )
 
 
@@ -265,6 +317,59 @@ def _source_fingerprint(
     return f"owner-route-source::{digest}"
 
 
+def _runtime_health_epoch(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str | None:
+    return _text(_mapping(status.get("runtime_health_snapshot")).get("runtime_health_epoch")) or _text(
+        _mapping(progress.get("runtime_health_snapshot")).get("runtime_health_epoch")
+    )
+
+
+def _work_unit_fingerprint(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    actions: list[Mapping[str, Any]],
+    source_fingerprint: str,
+) -> str:
+    for action in actions:
+        if text := _text(action.get("work_unit_fingerprint")):
+            return text
+        controller_route = _mapping(action.get("controller_route"))
+        if text := _text(controller_route.get("work_unit_fingerprint")):
+            return text
+    publication_eval = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
+    for action in publication_eval.get("recommended_actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        if text := _text(action.get("work_unit_fingerprint")):
+            return text
+        next_work_unit = _mapping(action.get("next_work_unit"))
+        if text := _text(next_work_unit.get("fingerprint")):
+            return text
+    return source_fingerprint
+
+
+def _trace_id(
+    *,
+    study_id: str,
+    route_epoch: str,
+    source_fingerprint: str,
+    next_owner: str | None,
+    owner_reason: str | None,
+) -> str:
+    digest = hashlib.sha256(
+        _stable_json(
+            {
+                "study_id": study_id,
+                "route_epoch": route_epoch,
+                "source_fingerprint": source_fingerprint,
+                "next_owner": next_owner,
+                "owner_reason": owner_reason,
+            }
+        ).encode("utf-8")
+    ).hexdigest()[:16]
+    return f"owner-route-trace::{study_id}::{digest}"
+
+
 def _idempotency_key(
     *,
     study_id: str,
@@ -320,6 +425,7 @@ __all__ = [
     "ROUTED_ACTION_TYPES",
     "build_owner_route",
     "decorate_actions",
+    "ensure_owner_route_v2",
     "owner_route_matches",
     "route_allows_action",
     "route_and_decorate_actions",

@@ -87,6 +87,7 @@ def test_supervisor_scan_projects_single_owner_route_for_current_queue(monkeypat
                 "runtime_audit": {"status": "live", "worker_running": True, "active_run_id": "run-dm002"},
             },
             "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-epoch-dm002",
                 "canonical_runtime_action": "observe_runtime",
                 "attempt_state": "live",
                 "retry_budget_remaining": 3,
@@ -123,6 +124,12 @@ def test_supervisor_scan_projects_single_owner_route_for_current_queue(monkeypat
     study = result["studies"][0]
     route = study["owner_route"]
     assert route == result["action_queue"][0]["owner_route"]
+    assert route["schema_version"] == 2
+    assert route["truth_epoch"] == "truth-epoch-dm002"
+    assert route["runtime_health_epoch"] == "runtime-health-epoch-dm002"
+    assert route["work_unit_fingerprint"] == "publication-blockers::route"
+    assert route["failure_signature"] == "ai_reviewer_assessment_required"
+    assert route["trace_id"].startswith("owner-route-trace::002-dm-china-us-mortality-attribution::")
     assert route["route_epoch"] == "truth-epoch-dm002"
     assert route["source_fingerprint"] == "truth-source-dm002"
     assert route["current_owner"] == "managed_runtime"
@@ -271,6 +278,123 @@ def test_supervisor_scan_projects_parked_macro_state_as_current_truth_owner_rout
         assert study["owner_route"]["owner_reason"] is None
 
 
+def test_supervisor_scan_suppresses_repeated_owner_route_without_meaningful_artifact_delta(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    quest_root = profile.runtime_root / "quest-dm002"
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::repeat",
+        "study_id": study_id,
+        "quest_id": "quest-dm002",
+        "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::repeat",
+                "action_type": "return_to_controller",
+                "work_unit_fingerprint": "publication-blockers::repeat",
+                "specificity_targets": _specificity_targets(study_root),
+            }
+        ],
+    }
+    previous_route = {
+        "surface": "runtime_supervisor_owner_route",
+        "schema_version": 2,
+        "study_id": study_id,
+        "quest_id": "quest-dm002",
+        "truth_epoch": "truth-epoch-dm002-repeat",
+        "runtime_health_epoch": "runtime-health-epoch-dm002-repeat",
+        "work_unit_fingerprint": "publication-blockers::repeat",
+        "failure_signature": "ai_reviewer_assessment_required",
+        "trace_id": "owner-route-trace::previous",
+        "route_epoch": "truth-epoch-dm002-repeat",
+        "source_fingerprint": "truth-source-dm002-repeat",
+        "current_owner": "managed_runtime",
+        "next_owner": "ai_reviewer",
+        "owner_reason": "ai_reviewer_assessment_required",
+        "active_run_id": "run-dm002",
+        "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        "blocked_actions": [],
+        "idempotency_key": "owner-route::previous",
+    }
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "owner_route": previous_route, "meaningful_artifact_delta": False}],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "owner_route": previous_route,
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": "quest-dm002",
+            "quest_root": str(quest_root),
+            "quest_status": "running",
+            "active_run_id": "run-dm002",
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": "run-dm002",
+                "runtime_audit": {"status": "live", "worker_running": True, "active_run_id": "run-dm002"},
+            },
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-epoch-dm002-repeat",
+                "canonical_runtime_action": "observe_runtime",
+                "attempt_state": "live",
+                "retry_budget_remaining": 3,
+            },
+            "publication_eval": publication_eval,
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch-dm002-repeat",
+                "source_signature": "truth-source-dm002-repeat",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "current_stage": "publication_supervision",
+            "paper_stage": "bundle_stage_blocked",
+            "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+            "supervision": {"active_run_id": "run-dm002", "health_status": "live"},
+            "quality_review_loop": {"closure_state": "review_required"},
+        },
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        persist_surfaces=True,
+    )
+
+    study = result["studies"][0]
+    assert result["action_queue"] == []
+    assert study["action_queue"] == []
+    assert study["repeat_suppression"]["repeat_suppressed"] is True
+    assert study["repeat_suppression"]["why_not_applied"] == "repeat_suppressed"
+    assert study["repeat_suppression"]["work_unit_fingerprint"] == "publication-blockers::repeat"
+    assert study["why_not_applied"] == "repeat_suppressed"
+
+
 def test_supervisor_consume_preserves_owner_route_in_dispatch(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -322,10 +446,13 @@ def test_supervisor_consume_preserves_owner_route_in_dispatch(monkeypatch, tmp_p
 
     dispatch = result["default_executor_dispatches"][0]
     packet = result["request_tasks"][0]["handoff_packet"]
-    assert dispatch["owner_route"] == owner_route
-    assert dispatch["prompt_contract"]["owner_route"] == owner_route
+    assert dispatch["owner_route"]["schema_version"] == 2
+    assert dispatch["owner_route"]["truth_epoch"] == owner_route["route_epoch"]
+    assert dispatch["owner_route"]["work_unit_fingerprint"] == owner_route["source_fingerprint"]
+    assert dispatch["prompt_contract"]["owner_route"] == dispatch["owner_route"]
     assert dispatch["prompt_contract"]["idempotency_key"] == owner_route["idempotency_key"]
-    assert packet["owner_route"] == owner_route
+    assert packet["owner_route"]["schema_version"] == 2
+    assert packet["owner_route"]["truth_epoch"] == owner_route["route_epoch"]
     assert packet["idempotency_key"] == owner_route["idempotency_key"]
     persisted = json.loads(
         (
@@ -337,7 +464,7 @@ def test_supervisor_consume_preserves_owner_route_in_dispatch(monkeypatch, tmp_p
             / "return_to_ai_reviewer_workflow.json"
         ).read_text(encoding="utf-8")
     )
-    assert persisted["owner_route"] == owner_route
+    assert persisted["owner_route"] == dispatch["owner_route"]
 
 
 def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) -> None:
@@ -387,6 +514,10 @@ def test_execute_dispatch_blocks_stale_owner_route(monkeypatch, tmp_path: Path) 
             "required_output_surface": "artifacts/publication_eval/latest.json",
             "owner_route": owner_route,
             "idempotency_key": owner_route["idempotency_key"],
+            "prompt_budget": {"max_prompt_tokens": 6000},
+            "compact_evidence_packet_ref": "artifacts/supervision/compact_evidence_packets/return_to_ai_reviewer_workflow.json",
+            "do_not_repeat": True,
+            "repeat_suppression_key": "truth-source-old",
             "forbidden_surfaces": [
                 "paper/**",
                 "manuscript/**",

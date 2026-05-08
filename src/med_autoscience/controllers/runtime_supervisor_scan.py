@@ -28,6 +28,8 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import submission
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import workspace_daemon
 from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.runtime_control import repeat_suppression
+from med_autoscience.runtime_protocol import runtime_lifecycle_store
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
     resolve_developer_supervisor_mode,
@@ -461,6 +463,7 @@ def _study_projection(
     apply_runtime_platform_repair: bool,
     developer_mode: DeveloperSupervisorMode,
     persist_surfaces: bool,
+    previous_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
     status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
@@ -672,6 +675,16 @@ def _study_projection(
         for action in actions
         if owner_route_part.route_allows_action(action=action, owner_route=owner_route)
     ]
+    repeat_guard = repeat_suppression.scan_repeat_suppression(
+        previous_payload=previous_payload,
+        study_id=study_id,
+        owner_route=owner_route,
+        current_meaningful_artifact_delta=bool(progress_payload.get("last_meaningful_progress_at")),
+    )
+    if repeat_guard["repeat_suppressed"]:
+        actions = []
+        why_not_applied = repeat_suppression.REPEAT_SUPPRESSED_REASON
+        blocked_reason = repeat_suppression.REPEAT_SUPPRESSED_REASON
     if developer_mode.safe_actions_enabled:
         request_packets.materialize_request_packets(
             study_root=study_root,
@@ -710,6 +723,7 @@ def _study_projection(
         "submission_milestone_parked_refresh": submission_milestone_parked_refresh,
         "runtime_platform_repair_apply": runtime_platform_repair_apply,
         "owner_route": owner_route,
+        "repeat_suppression": repeat_guard,
         "why_not_applied": why_not_applied,
         "why_not_applied_timeline": _why_not_applied_timeline(why_not_applied),
         "escalation_reason": why_not_applied,
@@ -757,6 +771,7 @@ def supervisor_scan(
             apply_runtime_platform_repair=apply_runtime_platform_repair,
             developer_mode=developer_mode,
             persist_surfaces=persist_surfaces,
+            previous_payload=previous_payload,
         )
         for study_id in resolved_study_ids
     ]
@@ -816,6 +831,20 @@ def supervisor_scan(
         "refs": {"latest_path": str(latest_path), "history_path": str(history_path)},
     }
     if persist_surfaces:
+        _write_json(latest_path, payload)
+        for study in studies:
+            owner_route = _mapping(study.get("owner_route"))
+            if not owner_route:
+                continue
+            try:
+                study_root = Path(_text(study.get("study_root")) or _study_root(profile, _text(study.get("study_id")) or ""))
+                study["owner_route_lifecycle_index"] = runtime_lifecycle_store.record_owner_route_receipt(
+                    study_root=study_root,
+                    receipt=owner_route,
+                    receipt_path=latest_path,
+                )
+            except (OSError, TypeError, ValueError, RuntimeError):
+                continue
         _write_json(latest_path, payload)
         _append_json_line(
             history_path,

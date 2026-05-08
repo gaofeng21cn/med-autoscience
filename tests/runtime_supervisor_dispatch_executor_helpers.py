@@ -12,9 +12,14 @@ def write_json(path: Path, payload: dict) -> None:
 def owner_route(*, study_id: str, action_type: str, owner: str) -> dict[str, object]:
     return {
         "surface": "runtime_supervisor_owner_route",
-        "schema_version": 1,
+        "schema_version": 2,
         "study_id": study_id,
         "quest_id": f"quest-{study_id}",
+        "truth_epoch": f"truth-epoch::{study_id}::{action_type}",
+        "runtime_health_epoch": f"runtime-health-epoch::{study_id}::{action_type}",
+        "work_unit_fingerprint": f"work-unit::{study_id}::{action_type}",
+        "failure_signature": action_type,
+        "trace_id": f"owner-route-trace::{study_id}::{action_type}",
         "route_epoch": f"truth-epoch::{study_id}::{action_type}",
         "source_fingerprint": f"truth-source::{study_id}::{action_type}",
         "current_owner": "mas_controller",
@@ -73,6 +78,10 @@ def dispatch(
             "required_output_surface": required_output_surface,
             "owner_route": route,
             "idempotency_key": route["idempotency_key"],
+            "prompt_budget": {"max_prompt_tokens": 6000},
+            "compact_evidence_packet_ref": f"artifacts/supervision/compact_evidence_packets/{action_type}.json",
+            "do_not_repeat": True,
+            "repeat_suppression_key": route["work_unit_fingerprint"],
             "forbidden_surfaces": [
                 "paper/**",
                 "manuscript/**",

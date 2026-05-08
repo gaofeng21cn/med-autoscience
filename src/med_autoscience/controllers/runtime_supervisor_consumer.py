@@ -14,6 +14,8 @@ from med_autoscience.controllers.runtime_supervisor_scan import SUPERVISION_LATE
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.runtime_control import repeat_suppression
+from med_autoscience.runtime_protocol import runtime_lifecycle_store
 
 
 SCHEMA_VERSION = 1
@@ -137,6 +139,14 @@ def _consumer_latest_path(profile: WorkspaceProfile) -> Path:
 
 def _consumer_history_path(profile: WorkspaceProfile) -> Path:
     return profile.workspace_root / CONSUMER_HISTORY_RELATIVE_PATH
+
+
+def _current_scan_study(scan_payload: Mapping[str, Any], study_id: str) -> dict[str, Any] | None:
+    for study in scan_payload.get("studies") or []:
+        payload = _mapping(study)
+        if _text(payload.get("study_id")) == study_id:
+            return payload
+    return None
 
 
 def _github_block_reason(developer_mode_payload: Mapping[str, Any]) -> str | None:
@@ -317,12 +327,16 @@ def _default_executor_dispatch(
     required_output_surface: str,
     apply: bool,
     developer_mode_payload: Mapping[str, Any],
+    scan_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
     study_id = _text(action.get("study_id")) or "unknown-study"
     dispatch_path = _default_executor_dispatch_path(profile, study_id, action_type)
     executor_policy = default_executor_policy()
-    owner_route = _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+    owner_route = owner_route_part.ensure_owner_route_v2(
+        _mapping(action.get("owner_route")) or _mapping(_mapping(action.get("handoff_packet")).get("owner_route"))
+    )
     idempotency_key = _text(owner_route.get("idempotency_key"))
+    repeat_key = repeat_suppression.repeat_key(owner_route)
     prompt_contract = {
         "study_id": study_id,
         "quest_id": _text(action.get("quest_id")) or _text(_mapping(action.get("handoff_packet")).get("quest_id")),
@@ -331,6 +345,10 @@ def _default_executor_dispatch(
         "required_output_surface": required_output_surface,
         "owner_route": owner_route or None,
         "idempotency_key": idempotency_key,
+        "prompt_budget": {"max_prompt_tokens": 6000},
+        "compact_evidence_packet_ref": f"artifacts/supervision/compact_evidence_packets/{action_type}.json",
+        "do_not_repeat": True,
+        "repeat_suppression_key": repeat_key,
         "request_packet_ref": _request_packet_ref_for_dispatch(action_type),
         "source_scan_latest": str(_scan_latest_path(profile)),
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
@@ -367,6 +385,14 @@ def _default_executor_dispatch(
             owner_route=owner_route,
         ):
             blocked_reason = "owner_route_next_owner_mismatch"
+    repeat_guard = repeat_suppression.dispatch_repeat_suppression(
+        dispatch={"prompt_contract": prompt_contract, "owner_route": owner_route, "dispatch_status": dispatch_status},
+        current_study=_current_scan_study(scan_payload, study_id),
+        existing_dispatch=_read_json_object(dispatch_path),
+    )
+    if dispatch_status == "ready" and repeat_guard["repeat_suppressed"]:
+        dispatch_status = "repeat_suppressed"
+        blocked_reason = repeat_suppression.REPEAT_SUPPRESSED_REASON
     return {
         "surface": "default_executor_dispatch_request",
         "schema_version": SCHEMA_VERSION,
@@ -379,8 +405,12 @@ def _default_executor_dispatch(
         "required_output_surface": required_output_surface,
         "owner_route": owner_route or None,
         "idempotency_key": idempotency_key,
+        "repeat_suppression_key": repeat_key,
         "dispatch_status": dispatch_status,
         "blocked_reason": blocked_reason,
+        "repeat_suppressed": bool(repeat_guard["repeat_suppressed"]),
+        "why_not_applied": repeat_guard["why_not_applied"],
+        "repeat_suppression": repeat_guard,
         "consumer_mutation_scope": "executor_dispatch_request_only",
         "default_executor_policy": executor_policy,
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
@@ -424,7 +454,7 @@ def _request_task(
     request_owner = _owner_from_action(action, action_type)
     required_output_surface = _required_output_surface(action, action_type)
     request_packet_ref = _request_packet_ref_for_action_type(action_type)
-    owner_route = _mapping(action.get("owner_route")) or _mapping(handoff_packet.get("owner_route"))
+    owner_route = owner_route_part.ensure_owner_route_v2(_mapping(action.get("owner_route")) or _mapping(handoff_packet.get("owner_route")))
     idempotency_key = _text(owner_route.get("idempotency_key"))
     owner_route_current = owner_route_part.route_allows_action(
         action={
@@ -626,6 +656,7 @@ def supervisor_consume(
             required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
             apply=apply,
             developer_mode_payload=developer_mode_payload,
+            scan_payload=scan_payload,
         )
         for action in selected_actions
     ] + [
@@ -637,6 +668,7 @@ def supervisor_consume(
             required_output_surface=_required_output_surface(action, _text(action.get("action_type")) or "unknown_action"),
             apply=apply,
             developer_mode_payload=developer_mode_payload,
+            scan_payload=scan_payload,
         )
         for action in selected_request_actions
     ]
@@ -653,6 +685,15 @@ def supervisor_consume(
             if _text(dispatch.get("dispatch_status")) != "ready":
                 continue
             dispatch_path = Path(_mapping(dispatch.get("refs")).get("dispatch_path"))
+            _write_json(dispatch_path, dispatch)
+            dispatch["dispatch_id"] = f"dispatch::{_text(dispatch.get('study_id'))}::{_text(dispatch.get('action_type'))}"
+            quest_root = profile.runtime_root / (_text(dispatch.get("quest_id")) or _text(dispatch.get("study_id")) or "")
+            dispatch["runtime_lifecycle_index"] = runtime_lifecycle_store.record_dispatch_receipt(
+                quest_root=quest_root,
+                receipt=dispatch,
+                receipt_path=dispatch_path,
+                db_path=runtime_lifecycle_store.workspace_lifecycle_store_path(profile.workspace_root),
+            )
             _write_json(dispatch_path, dispatch)
             written_files.append(str(dispatch_path))
         for task in request_tasks:
@@ -681,6 +722,7 @@ def supervisor_consume(
         "request_task_count": len(request_tasks),
         "request_tasks": request_tasks,
         "default_executor_dispatch_count": len(default_executor_dispatches),
+        "repeat_suppressed_count": sum(item.get("repeat_suppressed") is True for item in default_executor_dispatches),
         "default_executor_dispatches": default_executor_dispatches,
         "ignored_actions": ignored_actions,
         "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),

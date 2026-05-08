@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+import sqlite3
 from pathlib import Path
 
 from tests.runtime_supervisor_dispatch_executor_helpers import (
@@ -342,3 +344,136 @@ def test_execute_dispatch_action_type_requires_current_consumer_dispatch(
 
     assert result["execution_count"] == 0
     assert result["executed_count"] == 0
+
+
+def test_execute_dispatch_suppresses_repeat_when_no_meaningful_artifact_delta_and_indexes_receipt(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    route.update(
+        {
+            "schema_version": 2,
+            "truth_epoch": route["route_epoch"],
+            "runtime_health_epoch": "runtime-health-repeat",
+            "work_unit_fingerprint": "publication-blockers::repeat-executor",
+            "failure_signature": "ai_reviewer_assessment_required",
+            "trace_id": "owner-route-trace::repeat-executor",
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=route,
+    )
+    dispatch_payload["prompt_contract"].update(
+        {
+            "prompt_budget": {"max_prompt_tokens": 6000},
+            "compact_evidence_packet_ref": "artifacts/supervision/compact_evidence_packets/return_to_ai_reviewer_workflow.json",
+            "do_not_repeat": True,
+            "repeat_suppression_key": "publication-blockers::repeat-executor",
+        }
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "meaningful_artifact_delta": False,
+                }
+            ],
+        },
+    )
+    _write_json(
+        _execution_latest_path := (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "consumer"
+            / "default_executor_execution"
+            / "latest.json"
+        ),
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "study_id": study_id,
+                    "quest_id": f"quest-{study_id}",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "blocked",
+                    "blocked_reason": "ai_reviewer_request_missing",
+                    "owner_route": route,
+                    "prompt_contract": dispatch_payload["prompt_contract"],
+                    "repeat_suppression_key": "publication-blockers::repeat-executor",
+                }
+            ],
+        },
+    )
+    assert _execution_latest_path.is_file()
+    monkeypatch.setattr(
+        module,
+        "_execute_ai_reviewer_workflow",
+        lambda **_: {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "should_not_run",
+        },
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["executed_count"] == 0
+    assert result["repeat_suppressed_count"] == 1
+    assert execution["execution_status"] == "repeat_suppressed"
+    assert execution["repeat_suppressed"] is True
+    assert execution["why_not_applied"] == "repeat_suppressed"
+    assert execution["owner_callable_surface"] is None
+    assert execution["prompt_contract"]["repeat_suppression_key"] == "publication-blockers::repeat-executor"
+
+    db_path = profile.workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    assert db_path.is_file()
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute(
+            """
+            SELECT status, idempotency_key, payload_json
+            FROM dispatch_receipts
+            WHERE study_id = ? AND action_type = ?
+            """,
+            (study_id, "return_to_ai_reviewer_workflow"),
+        ).fetchone()
+    assert row is not None
+    assert row[0] == "repeat_suppressed"
+    assert row[1] == route["idempotency_key"]
+    assert json.loads(row[2])["why_not_applied"] == "repeat_suppressed"

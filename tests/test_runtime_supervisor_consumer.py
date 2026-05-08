@@ -186,9 +186,93 @@ def test_supervisor_consume_apply_writes_only_consumer_handoff_surfaces(
     assert dispatch["surface"] == "default_executor_dispatch_request"
     assert dispatch["executor_kind"] == "codex_cli_default"
     assert dispatch["consumer_mutation_scope"] == "executor_dispatch_request_only"
+    assert dispatch["prompt_contract"]["prompt_budget"] == {"max_prompt_tokens": 6000}
+    assert dispatch["prompt_contract"]["compact_evidence_packet_ref"] == "artifacts/supervision/compact_evidence_packets/runtime_platform_repair.json"
+    assert dispatch["prompt_contract"]["do_not_repeat"] is True
+    assert dispatch["prompt_contract"]["repeat_suppression_key"] == dispatch["owner_route"]["work_unit_fingerprint"]
     assert repair_packet["paper_package_mutation_allowed"] is False
     assert not (study_root / "paper").exists()
     assert not (study_root / "manuscript").exists()
+
+
+def test_supervisor_consume_suppresses_repeated_ready_dispatch_without_artifact_delta(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-endocrine-burden-followup"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
+    action = _runtime_platform_repair_action(study_id, "quest-nf")
+    route = dict(action["owner_route"])
+    route.update(
+        {
+            "schema_version": 2,
+            "truth_epoch": route["route_epoch"],
+            "runtime_health_epoch": "runtime-health-repeat",
+            "work_unit_fingerprint": "runtime-platform::repeat",
+            "failure_signature": "runtime_recovery_retry_budget_exhausted",
+            "trace_id": "owner-route-trace::repeat",
+        }
+    )
+    action["owner_route"] = route
+    action["handoff_packet"]["owner_route"] = route
+    latest_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    _write_json(
+        latest_path,
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "meaningful_artifact_delta": False,
+                }
+            ],
+            "action_queue": [action],
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "runtime_platform_repair.json"
+    )
+    _write_json(
+        dispatch_path,
+        {
+            "surface": "default_executor_dispatch_request",
+            "study_id": study_id,
+            "quest_id": "quest-nf",
+            "action_type": "runtime_platform_repair",
+            "dispatch_status": "ready",
+            "owner_route": route,
+            "idempotency_key": route["idempotency_key"],
+            "prompt_contract": {
+                "do_not_repeat": True,
+                "repeat_suppression_key": "runtime-platform::repeat",
+            },
+        },
+    )
+
+    result = module.supervisor_consume(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    dispatch = result["default_executor_dispatches"][0]
+    assert dispatch["dispatch_status"] == "repeat_suppressed"
+    assert dispatch["repeat_suppressed"] is True
+    assert dispatch["why_not_applied"] == "repeat_suppressed"
+    assert dispatch["blocked_reason"] == "repeat_suppressed"
+    assert result["repeat_suppressed_count"] == 1
+    assert dispatch_path.read_text(encoding="utf-8").find('"dispatch_status": "ready"') != -1
 
 
 def test_supervisor_consume_apply_refreshes_latest_when_current_queue_is_empty(

@@ -9,6 +9,8 @@ from typing import Any
 from med_autoscience.developer_supervisor_mode import resolve_developer_supervisor_mode
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.runtime_control import repeat_suppression
+from med_autoscience.runtime_protocol import runtime_lifecycle_store
 
 from . import ai_reviewer_publication_eval_workflow, gate_clearing_batch, publication_gate, quest_hydration, study_runtime_router
 from .runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
@@ -91,6 +93,17 @@ def _execution_latest_path(profile: WorkspaceProfile, study_id: str) -> Path:
 
 def _execution_history_path(profile: WorkspaceProfile, study_id: str) -> Path:
     return _study_root(profile, study_id) / EXECUTION_HISTORY_RELATIVE_PATH
+
+
+def _current_scan_study(profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
+    latest = _read_json_object(_scan_latest_path(profile))
+    if latest is None:
+        return None
+    for study in latest.get("studies") or []:
+        payload = _mapping(study)
+        if _text(payload.get("study_id")) == study_id:
+            return payload
+    return None
 
 
 def _publication_eval_latest_path(study_root: Path) -> Path:
@@ -178,6 +191,11 @@ def _contract_guard(dispatch: Mapping[str, Any]) -> tuple[bool, str | None]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     if not prompt_contract:
         return False, "prompt_contract_missing"
+    for key in ("prompt_budget", "compact_evidence_packet_ref", "do_not_repeat", "repeat_suppression_key"):
+        if key not in prompt_contract:
+            return False, f"{key}_missing"
+    if prompt_contract.get("do_not_repeat") is not True:
+        return False, "do_not_repeat_guard_missing"
     for key in (
         "paper_package_mutation_allowed",
         "quality_gate_relaxation_allowed",
@@ -204,12 +222,14 @@ def _current_owner_route(profile: WorkspaceProfile, study_id: str) -> dict[str, 
         payload = _mapping(study)
         if _text(payload.get("study_id")) == study_id:
             route = _mapping(payload.get("owner_route"))
-            return route or None
+            return owner_route_part.ensure_owner_route_v2(route) or None
     return None
 
 
 def _dispatch_owner_route(dispatch: Mapping[str, Any]) -> dict[str, Any]:
-    return _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
+    return owner_route_part.ensure_owner_route_v2(
+        _mapping(dispatch.get("owner_route")) or _mapping(_mapping(dispatch.get("prompt_contract")).get("owner_route"))
+    )
 
 
 def _owner_route_block_reason(*, dispatch: Mapping[str, Any], current_route: Mapping[str, Any] | None) -> str | None:
@@ -721,6 +741,12 @@ def _execute_dispatch(
     guard_ok, guard_reason = _contract_guard(dispatch)
     current_route = _current_owner_route(profile, study_id)
     owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    repeat_guard = repeat_suppression.execution_repeat_suppression(
+        dispatch={**dict(dispatch), "owner_route": _dispatch_owner_route(dispatch), "prompt_contract": prompt_contract},
+        current_study=_current_scan_study(profile, study_id),
+        previous_execution_latest=_read_json_object(_execution_latest_path(profile, study_id)),
+    )
     if not guard_ok:
         execution = {
             "execution_status": "blocked",
@@ -734,6 +760,14 @@ def _execute_dispatch(
             "owner_callable_surface": None,
             "owner_route_current": False,
             "current_owner_route": current_route,
+        }
+    elif repeat_guard["repeat_suppressed"]:
+        execution = {
+            "execution_status": "repeat_suppressed",
+            "blocked_reason": repeat_suppression.REPEAT_SUPPRESSED_REASON,
+            "owner_callable_surface": None,
+            "repeat_suppressed": True,
+            "why_not_applied": repeat_suppression.REPEAT_SUPPRESSED_REASON,
         }
     elif apply and (
         _text(developer_mode_payload.get("mode")) != SUPPORTED_MODE
@@ -768,6 +802,7 @@ def _execute_dispatch(
         "quest_id": _text(dispatch.get("quest_id")),
         "action_type": action_type,
         "action_id": _text(dispatch.get("action_id")),
+        "execution_id": f"execution::{study_id}::{action_type}::{generated_at}",
         "next_executable_owner": _text(dispatch.get("next_executable_owner")),
         "required_output_surface": _text(dispatch.get("required_output_surface")),
         "dispatch_path": str(dispatch_path),
@@ -776,6 +811,10 @@ def _execute_dispatch(
         "owner_route": _dispatch_owner_route(dispatch) or None,
         "owner_route_current": owner_route_block_reason is None if guard_ok else None,
         "current_owner_route": current_route,
+        "prompt_contract": prompt_contract or None,
+        "idempotency_key": _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key")),
+        "repeat_suppression_key": repeat_guard["repeat_suppression_key"],
+        "repeat_suppression": repeat_guard,
         "dry_run": not apply,
         "developer_supervisor_mode": dict(developer_mode_payload),
         "paper_package_mutation_allowed": False,
@@ -843,6 +882,15 @@ def execute_default_executor_dispatches(
             )
             written_files.append(str(latest_path))
             written_files.append(str(history_path))
+            for execution in study_executions:
+                quest_root = profile.runtime_root / (_text(execution.get("quest_id")) or study_id)
+                execution["runtime_lifecycle_index"] = runtime_lifecycle_store.record_dispatch_receipt(
+                    quest_root=quest_root,
+                    receipt=execution,
+                    receipt_path=latest_path,
+                    db_path=runtime_lifecycle_store.workspace_lifecycle_store_path(profile.workspace_root),
+                )
+            _write_json(latest_path, study_payload)
     payload = {
         "surface": "default_executor_dispatch_executor",
         "schema_version": SCHEMA_VERSION,
@@ -857,6 +905,7 @@ def execute_default_executor_dispatches(
         "execution_count": len(executions),
         "executed_count": sum(item.get("execution_status") == "executed" for item in executions),
         "blocked_count": sum(item.get("execution_status") == "blocked" for item in executions),
+        "repeat_suppressed_count": sum(item.get("execution_status") == "repeat_suppressed" for item in executions),
         "dry_run_count": sum(item.get("execution_status") == "dry_run" for item in executions),
         "executions": executions,
         "written_files": written_files,
