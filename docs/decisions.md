@@ -4,7 +4,7 @@
 
 - 决策：`med-autoscience` 是唯一日常 repo、唯一研究入口和默认 operation owner。外部 `med-deepscientist` checkout 不再是 MAS 默认 study/status/progress/cockpit operation 的运行必需依赖；保留的 MDS / DeepScientist 价值只能作为显式 backend audit、legacy restore/import diagnostic、upstream intake 或 parity oracle 出现。
 - 理由：no-history physical absorb 已把 source provenance、author guard、capability parity fixtures、retained capability absorb 与 default-runtime-retirement 落到 repo-level guard；继续把 MDS 写成默认 backend 会重新制造第二 owner 和安装依赖漂移。
-- 影响：未来从 MDS / DeepScientist 学习或引入能力，必须记录 source ref/hash、snapshot checksum、license refs、capability classification、MAS owner、authority boundary、tests、parity proof 与 no-history contributor audit。`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status`、`runtime_watch`、paper/manuscript/current_package 与 artifact rebuild proof 不得被 MDS 写回或授权。
+- 影响：未来从 MDS / DeepScientist 学习或引入能力，必须记录 source ref/hash、snapshot checksum、license refs、capability classification、remaining surface inventory、MAS owner、authority boundary、tests、parity proof 与 no-history contributor audit；classification 只允许 `mas_owned`、`rewrite_in_mas`、`fixture_only`、`retire`、`external_source_archive_only`。`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status`、`runtime_watch`、paper/manuscript/current_package 与 artifact rebuild proof 不得被 MDS 写回或授权。
 
 ## 2026-05-07：Controller work-unit evidence adoption 只识别受控证据，不改变 AI-first 质量 owner
 

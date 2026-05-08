@@ -47,7 +47,7 @@ Date: `2026-05-04`
    - 后续新增 projection 必须声明 consumed authority surface。
 
 3. `strangle_mds_authority_residue`
-   - MDS surface 只允许处于 `retain_in_mds_backend`、`oracle_only`、`promote_to_runtime_protocol`、`mas_owned_or_absorbed` 四档。
+   - MDS surface 的机器分类只允许 `mas_owned`、`rewrite_in_mas`、`fixture_only`、`retire`、`external_source_archive_only` 五档。
    - 任何带 publication/submission/user-progress/medical-evidence authority 的 MDS surface 必须 fail-closed。
 
 4. `block_big_bang_absorb`

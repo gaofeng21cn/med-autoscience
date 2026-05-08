@@ -2,10 +2,15 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from med_autoscience.controllers.mds_capability_parity import (
+    ALLOWED_CAPABILITY_CLASSIFICATIONS,
+    build_mds_remaining_surface_inventory,
+    validate_mds_remaining_surface_inventory,
+)
+
 
 SCHEMA_VERSION = 1
 
-ALLOWED_CAPABILITY_CLASSIFICATIONS: tuple[str, ...] = ("absorb", "oracle", "retire", "compat")
 REQUIRED_SOURCE_PROVENANCE_FIELDS: tuple[str, ...] = (
     "upstream_repo",
     "upstream_ref",
@@ -56,7 +61,7 @@ SOURCE_PROVENANCE: dict[str, Any] = {
         "MEDICAL_FORK_MANIFEST.json (controlled fork; upstream base a7853fda3432d37f6dee91fa6e66330f564bd8be)",
         "docs/references/med-deepscientist/med_deepscientist_upstream_source_provenance.md",
     ],
-    "capability_classification": "oracle",
+    "capability_classification": "external_source_archive_only",
 }
 
 AUTHOR_AUDIT: dict[str, Any] = {
@@ -68,16 +73,23 @@ AUTHOR_AUDIT: dict[str, Any] = {
 
 CAPABILITY_CLASSIFICATION_GUARD: tuple[dict[str, Any], ...] = (
     {
-        "capability_id": "mas_owned_absorb_candidate",
-        "classification": "absorb",
-        "mds_role": "source_material_only",
+        "capability_id": "mas_owned_surface",
+        "classification": "mas_owned",
+        "mds_role": "source_material_already_absorbed_or_superseded",
         "authority_claims": [],
         "required_provenance_fields": list(REQUIRED_SOURCE_PROVENANCE_FIELDS),
     },
     {
-        "capability_id": "mds_regression_oracle",
-        "classification": "oracle",
-        "mds_role": "backend_oracle_only",
+        "capability_id": "rewrite_in_mas_surface",
+        "classification": "rewrite_in_mas",
+        "mds_role": "source_archive_reference_only",
+        "authority_claims": [],
+        "required_provenance_fields": list(REQUIRED_SOURCE_PROVENANCE_FIELDS),
+    },
+    {
+        "capability_id": "fixture_only_surface",
+        "classification": "fixture_only",
+        "mds_role": "fixture_or_historical_oracle_only",
         "authority_claims": [],
         "forbidden_authority_surfaces": list(FORBIDDEN_MDS_ORACLE_AUTHORITY_SURFACES),
         "required_provenance_fields": list(REQUIRED_SOURCE_PROVENANCE_FIELDS),
@@ -90,9 +102,9 @@ CAPABILITY_CLASSIFICATION_GUARD: tuple[dict[str, Any], ...] = (
         "required_provenance_fields": list(REQUIRED_SOURCE_PROVENANCE_FIELDS),
     },
     {
-        "capability_id": "mds_compat_fixture",
-        "classification": "compat",
-        "mds_role": "compat_fixture_only",
+        "capability_id": "external_source_archive",
+        "classification": "external_source_archive_only",
+        "mds_role": "external_source_archive_only",
         "authority_claims": [],
         "required_provenance_fields": list(REQUIRED_SOURCE_PROVENANCE_FIELDS),
     },
@@ -101,35 +113,35 @@ CAPABILITY_CLASSIFICATION_GUARD: tuple[dict[str, Any], ...] = (
 NO_HISTORY_SNAPSHOT_CAPABILITIES: tuple[dict[str, Any], ...] = (
     {
         "capability_id": "runtime_execution",
-        "classification": "absorb",
+        "classification": "mas_owned",
         "mds_role": "oracle_fixture_source",
         "mas_owner": "Runtime OS",
         "authority_claims": [],
     },
     {
         "capability_id": "artifact_inventory",
-        "classification": "oracle",
+        "classification": "fixture_only",
         "mds_role": "backend_oracle_only",
         "mas_owner": "Artifact OS",
         "authority_claims": [],
     },
     {
         "capability_id": "paper_contract_health",
-        "classification": "oracle",
+        "classification": "fixture_only",
         "mds_role": "mechanical_oracle_only",
         "mas_owner": "Quality OS",
         "authority_claims": [],
     },
     {
         "capability_id": "manuscript_coverage",
-        "classification": "compat",
+        "classification": "fixture_only",
         "mds_role": "mechanical_compat_fixture",
         "mas_owner": "Quality OS",
         "authority_claims": [],
     },
     {
         "capability_id": "prompt_stage_discipline",
-        "classification": "absorb",
+        "classification": "mas_owned",
         "mds_role": "source_material_only",
         "mas_owner": "Quality OS",
         "authority_claims": [],
@@ -188,6 +200,7 @@ def build_mds_no_history_snapshot_manifest() -> dict[str, Any]:
         "source_provenance": _copy_mapping(SOURCE_PROVENANCE),
         "author_audit": _copy_mapping(AUTHOR_AUDIT),
         "capabilities": [_copy_mapping(item) for item in NO_HISTORY_SNAPSHOT_CAPABILITIES],
+        "remaining_surface_inventory": build_mds_remaining_surface_inventory(),
         "retained_capability_ids": list(RETAINED_CAPABILITY_IDS),
     }
 
@@ -205,6 +218,7 @@ def validate_mds_no_history_snapshot_manifest(manifest: Mapping[str, Any]) -> di
     _validate_source_provenance(manifest.get("source_provenance"), issues)
     _validate_author_audit(manifest.get("author_audit"), issues)
     _validate_no_history_snapshot_capabilities(manifest.get("capabilities"), issues)
+    _validate_remaining_surface_inventory(manifest.get("remaining_surface_inventory"), issues)
 
     retained_ids = [str(item).strip() for item in _list(manifest.get("retained_capability_ids")) if str(item).strip()]
     if retained_ids != list(RETAINED_CAPABILITY_IDS):
@@ -326,16 +340,28 @@ def _validate_classification_guard(guard: object, issues: list[dict[str, Any]]) 
                 }
             )
         authority_claims = set(_strings(item.get("authority_claims")))
-        if classification == "oracle":
+        if classification == "fixture_only":
             forbidden_claims = sorted(authority_claims & set(FORBIDDEN_MDS_ORACLE_AUTHORITY_SURFACES))
             if forbidden_claims:
                 issues.append(
                     {
-                        "code": "mds_oracle_claims_mas_authority",
+                        "code": "mds_fixture_claims_mas_authority",
                         "capability_id": capability_id,
                         "authority_claims": forbidden_claims,
                     }
                 )
+
+
+def _validate_remaining_surface_inventory(inventory: object, issues: list[dict[str, Any]]) -> None:
+    if not isinstance(inventory, Mapping):
+        issues.append({"code": "missing_remaining_surface_inventory"})
+        return
+    validation = validate_mds_remaining_surface_inventory(inventory)
+    for issue in _list(validation.get("issues")):
+        if isinstance(issue, Mapping):
+            issues.append(dict(issue))
+        else:
+            issues.append({"code": "invalid_remaining_surface_inventory_issue"})
 
 
 def _copy_mapping(value: Mapping[str, Any]) -> dict[str, Any]:
