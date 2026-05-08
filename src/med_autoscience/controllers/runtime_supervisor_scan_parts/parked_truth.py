@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
+
 
 PARKED_REASONS = {
     "publishability_stop_loss_recommended",
@@ -14,6 +16,8 @@ PARKED_REASONS = {
 
 def current_truth(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
     if _has_live_worker(status, progress):
+        return False
+    if abnormal_stopped_runtime.repair_kind(status, progress) == "failed_non_resumable_relaunch":
         return False
     macro_state = _mapping(status.get("study_macro_state")) or _mapping(progress.get("study_macro_state"))
     if _text(macro_state.get("writer_state")) == "parked" and _text(macro_state.get("reason")) in {

@@ -263,11 +263,16 @@ def _apply_abnormal_stopped_runtime_repair(
     repair_kind: str,
     controller_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    allow_stopped_relaunch = repair_kind in {
+        "abnormal_stopped_runtime_relaunch",
+        "failed_non_resumable_relaunch",
+    }
     try:
         resume_result = study_runtime_router.ensure_study_runtime(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
+            allow_stopped_relaunch=allow_stopped_relaunch,
             source=RUNTIME_PLATFORM_REPAIR_SOURCE,
         )
     except Exception as exc:

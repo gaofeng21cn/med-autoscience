@@ -98,6 +98,8 @@ def current_controller_runtime_route(
 def _runtime_repair_summary(reason: str) -> str:
     if reason == "abnormal_stopped_runtime_resume_required":
         return "Quest is stopped with controller/runtime facts requiring resume and no live worker is attached."
+    if reason == "failed_quest_runtime_relaunch_required":
+        return "Quest is failed/non-resumable, auto continuation is allowed, and no live worker is attached."
     return "Runtime recovery retry budget is exhausted and no live worker is attached."
 
 

@@ -394,6 +394,72 @@ def test_ensure_study_runtime_materializes_overlay_for_non_resumable_existing_qu
     assert calls == ["prepare_overlay"]
 
 
+def test_ensure_study_runtime_relaunches_failed_quest_when_platform_repair_requests_relaunch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical diabetes risk framing is fixed around cardiovascular mortality.",
+        paper_urls=["https://example.org/diabetes-risk"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
+    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"failed"}\n')
+    calls: list[tuple[str, object]] = []
+
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_prepare_runtime_overlay",
+        lambda *, profile, quest_root: calls.append(("prepare_overlay", quest_root)) or make_runtime_overlay_result(),
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "resume_quest",
+        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id))
+        or {
+            "ok": True,
+            "status": "running",
+            "snapshot": {"quest_id": quest_id, "status": "running", "active_run_id": "run-recovered"},
+        },
+    )
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id="001-risk",
+        allow_stopped_relaunch=True,
+        source="runtime_supervisor_scan_platform_repair",
+    )
+
+    assert result["decision"] == "relaunch_stopped"
+    assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
+    assert result["quest_status"] == "running"
+    assert calls == [("prepare_overlay", quest_root), ("resume", "001-risk")]
+
+
 def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)

@@ -114,8 +114,16 @@ def _enable_explicit_stopped_relaunch_if_requested(
 ) -> None:
     if (
         status.decision is not StudyRuntimeDecision.BLOCKED
-        or status.reason is not StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN
-        or status.quest_status is not StudyRuntimeQuestStatus.STOPPED
+        or status.reason
+        not in {
+            StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN,
+            StudyRuntimeReason.QUEST_EXISTS_WITH_NON_RESUMABLE_STATE,
+        }
+        or status.quest_status
+        not in {
+            StudyRuntimeQuestStatus.STOPPED,
+            StudyRuntimeQuestStatus.FAILED,
+        }
     ):
         return
     if not status.startup_boundary_allows_compute_stage:

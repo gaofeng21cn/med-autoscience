@@ -23,6 +23,13 @@ SCHEMA_VERSION = 1
 RECOVERY_INTENT_RELATIVE_PATH = Path("artifacts/runtime/recovery_intent/latest.json")
 RECOVERY_INTENT_HISTORY_RELATIVE_PATH = Path("artifacts/runtime/recovery_intent/history.jsonl")
 _RUNTIME_REDRIVE_ACTIONS = frozenset({"runtime_platform_repair"})
+_RETRY_EXHAUSTED_REDRIVE_REASONS = frozenset(
+    {
+        "abnormal_stopped_runtime_resume_required",
+        "failed_quest_runtime_relaunch_required",
+        "runtime_controller_redrive_required",
+    }
+)
 _PUBLICATION_GATE_REASONS = frozenset(
     {
         "publication_gate_specificity_required",
@@ -128,7 +135,7 @@ def _fail_closed_block(
             return {"reason": "owner_route_mismatch", "current_action": "parked"}
     if _publication_gate_missing(status, progress, owner_route, actions):
         return {"reason": "publication_gate_missing", "current_action": "human_gate_required"}
-    if _retry_exhausted(status, progress):
+    if _retry_exhausted(status, progress) and not _has_bounded_retry_exhausted_redrive(redrive_actions):
         return {"reason": "retry_exhausted", "current_action": "escalated"}
     if not redrive_actions:
         return {"reason": "awaiting_fresh_owner_route", "current_action": "await_next_tick"}
@@ -154,6 +161,8 @@ def _completed(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
 
 
 def _manual_parked(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    if _failed_non_resumable_auto_redrive(status, progress):
+        return False
     macro_state = _mapping(status.get("study_macro_state")) or _mapping(progress.get("study_macro_state"))
     auto_parked = _mapping(status.get("auto_runtime_parked")) or _mapping(progress.get("auto_runtime_parked"))
     runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
@@ -164,6 +173,25 @@ def _manual_parked(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bo
         or parked_state in {"manual_hold", "explicit_resume_pending"}
         or _text(runtime_health.get("canonical_runtime_action")) == "await_explicit_resume"
         or reason == "quest_waiting_for_explicit_wakeup_after_manual_hold"
+    )
+
+
+def _failed_non_resumable_auto_redrive(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    if _text(status.get("quest_status")) != "failed":
+        return False
+    runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
+    observed_state = _mapping(runtime_health.get("observed_quest_state"))
+    continuation_state = _mapping(status.get("continuation_state")) or _mapping(progress.get("continuation_state"))
+    policy = _text(continuation_state.get("continuation_policy"))
+    if policy in {"wait_for_user_or_resume", "manual", "manual_hold"}:
+        return False
+    auto_parked = _mapping(status.get("auto_runtime_parked")) or _mapping(progress.get("auto_runtime_parked"))
+    failure = _mapping(auto_parked.get("runtime_failure_classification"))
+    if failure.get("requires_human_gate") is True or failure.get("external_blocker") is True:
+        return False
+    return bool(
+        _text(status.get("reason")) == "quest_exists_with_non_resumable_state"
+        or _text(observed_state.get("reason")) == "quest_exists_with_non_resumable_state"
     )
 
 
@@ -195,6 +223,8 @@ def _publication_gate_missing(
 
 
 def _retry_exhausted(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    if _has_live_worker(status, progress):
+        return False
     runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
     reasons = {
         *_string_items(status.get("blocking_reasons")),
@@ -210,6 +240,19 @@ def _retry_exhausted(status: Mapping[str, Any], progress: Mapping[str, Any]) -> 
     )
 
 
+def _has_live_worker(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    if _text(status.get("active_run_id")) or _text(progress.get("active_run_id")):
+        return True
+    supervision = _mapping(progress.get("supervision"))
+    if _text(supervision.get("active_run_id")):
+        return True
+    liveness = _mapping(status.get("runtime_liveness_audit"))
+    runtime_audit = _mapping(liveness.get("runtime_audit"))
+    if _text(liveness.get("active_run_id")) or _text(runtime_audit.get("active_run_id")):
+        return True
+    return runtime_audit.get("worker_running") is True or liveness.get("worker_running") is True
+
+
 def _retry_budget(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dict[str, Any]:
     runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
     remaining = runtime_health.get("retry_budget_remaining")
@@ -219,6 +262,15 @@ def _retry_budget(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dic
         "remaining": remaining,
         "exhausted": bool(remaining == 0 or _retry_exhausted(status, progress)),
     }
+
+
+def _has_bounded_retry_exhausted_redrive(actions: list[dict[str, Any]]) -> bool:
+    for action in actions:
+        if _text(action.get("action_type")) not in _RUNTIME_REDRIVE_ACTIONS:
+            continue
+        if _text(action.get("reason")) in _RETRY_EXHAUSTED_REDRIVE_REASONS:
+            return True
+    return False
 
 
 def _dedupe_fingerprint(owner_route: Mapping[str, Any], actions: list[dict[str, Any]]) -> str | None:

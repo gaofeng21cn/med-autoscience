@@ -205,8 +205,66 @@ def test_recovery_intent_projection_fail_closed_blockers(tmp_path: Path) -> None
                     "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
                 },
             },
+            "action_queue": [],
             "expected_reason": "retry_exhausted",
             "expected_action": "escalated",
+        },
+        "failed_non_resumable_explicit_resume_projection": {
+            "status": {
+                "quest_status": "failed",
+                "reason": "quest_exists_with_non_resumable_state",
+                "active_run_id": None,
+                "auto_runtime_parked": {
+                    "parked": True,
+                    "parked_state": "explicit_resume_pending",
+                    "awaiting_explicit_wakeup": True,
+                    "auto_execution_complete": False,
+                    "source_reason": "quest_exists_with_non_resumable_state",
+                    "source_decision": "blocked",
+                    "source_quest_status": "failed",
+                    "runtime_failure_classification": {
+                        "auto_recovery_allowed": True,
+                        "external_blocker": False,
+                        "requires_human_gate": False,
+                    },
+                },
+                "runtime_health_snapshot": {
+                    "retry_budget_remaining": 0,
+                    "attempt_state": "escalated",
+                    "canonical_runtime_action": "external_supervisor_required",
+                    "observed_quest_state": {
+                        "quest_status": "failed",
+                        "decision": "blocked",
+                        "reason": "quest_exists_with_non_resumable_state",
+                    },
+                    "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+                },
+                "continuation_state": {
+                    "quest_status": "failed",
+                    "active_run_id": None,
+                    "continuation_policy": "auto",
+                },
+            },
+            "action_queue": [
+                {
+                    **action,
+                    "owner": "external_supervisor",
+                    "authority": "external_supervisor",
+                    "reason": "failed_quest_runtime_relaunch_required",
+                    "owner_route": {
+                        **owner_route,
+                        "next_owner": "external_supervisor",
+                        "owner_reason": "failed_quest_runtime_relaunch_required",
+                    },
+                }
+            ],
+            "owner_route": {
+                **owner_route,
+                "next_owner": "external_supervisor",
+                "owner_reason": "failed_quest_runtime_relaunch_required",
+            },
+            "expected_reason": "failed_quest_runtime_relaunch_required",
+            "expected_action": "safe_reconcile_ready",
         },
     }
 
@@ -225,7 +283,10 @@ def test_recovery_intent_projection_fail_closed_blockers(tmp_path: Path) -> None
 
         assert intent["reason"] == case["expected_reason"]
         assert intent["current_action"] == case["expected_action"]
-        assert intent["last_result"]["dispatch_status"] == "blocked"
+        if case["expected_action"] == "safe_reconcile_ready":
+            assert intent["last_result"] is None
+        else:
+            assert intent["last_result"]["dispatch_status"] == "blocked"
         assert intent["quality_ready_authorized"] is False
         assert intent["publication_ready_authorized"] is False
         assert intent["submission_ready_authorized"] is False

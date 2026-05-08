@@ -86,9 +86,9 @@ def runtime_platform_repair_required(
         gate_specificity
     ) and gate_specificity_part.controller_specificity_terminal(status):
         return False
-    no_live_worker = not active_run_id(status, progress) or not worker_running(status)
-    if no_live_worker and abnormal_stopped_runtime.repair_required(status, progress):
+    if abnormal_stopped_runtime.repair_required(status, progress):
         return True
+    no_live_worker = not active_run_id(status, progress) or not worker_running(status)
     return retry_exhausted(status, progress) and no_live_worker and _text(status.get("quest_status")) in {"active", "running"}
 
 

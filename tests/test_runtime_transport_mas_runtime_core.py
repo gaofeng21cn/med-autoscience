@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import subprocess
 
 import pytest
 
@@ -417,6 +418,38 @@ def test_runner_unavailable_fails_closed_without_live_worker(tmp_path: Path) -> 
     assert result["started"] is False
     assert state["active_run_id"] is None
     assert state["worker_running"] is False
+
+
+def test_codex_exec_runner_allows_mas_owned_non_git_quest_runtime(monkeypatch, tmp_path: Path) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    seen = {}
+
+    class StartedProcess:
+        pid = 12345
+
+    def fake_popen(args, **kwargs):
+        seen["args"] = list(args)
+        seen["cwd"] = kwargs.get("cwd")
+        return StartedProcess()
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-001",
+        run_id="run-001",
+        reason="explicit_resume",
+        claimed_user_messages=(),
+    )
+
+    assert result["live"] is True
+    assert result["command"] == ["codex", "exec", "--json", "--skip-git-repo-check"]
+    assert seen["args"][:4] == ["codex", "exec", "--json", "--skip-git-repo-check"]
+    assert seen["cwd"] == str(quest_root)
 
 
 def test_mas_runtime_core_live_execution_reads_local_runtime_state(tmp_path: Path) -> None:

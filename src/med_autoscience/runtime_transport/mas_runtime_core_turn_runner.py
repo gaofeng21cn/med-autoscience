@@ -40,7 +40,7 @@ class CodexExecTurnRunner:
         reason: str,
         claimed_user_messages: tuple[dict[str, Any], ...],
     ) -> dict[str, Any]:
-        command = [self.codex_binary, "exec", "--json"]
+        command = [self.codex_binary, "exec", "--json", "--skip-git-repo-check"]
         if self.dry_run:
             return {
                 "runner_kind": "codex_exec",
