@@ -12,10 +12,19 @@ from typing import Any
 import webbrowser
 
 from med_autoscience.controllers.progress_portal_parts import (
+    condition_badge,
+    condition_section,
     dedupe_texts,
+    event_section,
+    gate_text,
+    list_html,
+    list_section,
     local_time_projection,
-    render_runtime_continuity_section,
+    portal_css,
+    refresh_meta,
     render_workspace_studies_section,
+    runtime_continuity_section,
+    section,
     unique_text,
     workspace_alert_projection,
     workspace_studies,
@@ -204,7 +213,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
     state_label = str(study.get("state_label") or "状态投影缺失")
     workspace_title = str(workspace.get("profile_name") or "unknown workspace")
     selected_study_id = str(study.get("study_id") or "unknown-study")
-    condition_badge = _condition_badge(conditions)
+    condition_badge_label = condition_badge(conditions)
     blockers = _string_list(study.get("current_blockers"))
     workspace_alerts = _string_list(workspace.get("workspace_alerts"))
     current_status_paragraphs = dedupe_texts(
@@ -229,10 +238,10 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             "<head>",
             '<meta charset="utf-8">',
             '<meta name="viewport" content="width=device-width, initial-scale=1">',
-            _refresh_meta(auto_refresh_seconds),
+            refresh_meta(auto_refresh_seconds),
             f"<title>{escape(brand)} Progress Portal</title>",
             "<style>",
-            _css(),
+            portal_css(),
             "</style>",
             "</head>",
             "<body>",
@@ -247,28 +256,28 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             f"<div><dt>freshness</dt><dd>{escape(str(freshness.get('status') or 'unknown'))}</dd></div>",
             f"<div><dt>workspace</dt><dd>{escape(str(workspace.get('profile_name') or 'unknown'))}</dd></div>",
             f"<div><dt>selected study</dt><dd>{escape(selected_study_id)}</dd></div>",
-            f"<div><dt>conditions</dt><dd>{escape(condition_badge)}</dd></div>",
+            f"<div><dt>conditions</dt><dd>{escape(condition_badge_label)}</dd></div>",
             "</dl>",
             "</header>",
             render_workspace_studies_section(workspace_studies),
             '<section class="grid">',
-            _section(
+            section(
                 "当前状态",
                 current_status_paragraphs,
             ),
-            _section(
+            section(
                 "下一步",
                 [
                     str(study.get("next_system_action") or "等待 MAS 重新生成下一步投影。"),
-                    _gate_text(study),
+                    gate_text(study),
                 ],
             ),
-            render_runtime_continuity_section(runtime_continuity),
-            _section(
+            runtime_continuity_section(runtime_continuity),
+            section(
                 "论文与质量",
                 paper_paragraphs,
             ),
-            _section(
+            section(
                 "文件与交付",
                 [
                     str(delivery.get("summary") or "交付投影缺失。"),
@@ -276,13 +285,13 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
                 ],
             ),
             "</section>",
-            _list_section("当前阻塞", blockers, empty_text="当前没有投影出的阻塞项。"),
-            _list_section("Workspace Alerts", workspace_alerts, empty_text="当前没有 workspace alert。"),
-            _event_section(latest_events),
-            _condition_section(conditions),
+            list_section("当前阻塞", blockers, empty_text="当前没有投影出的阻塞项。"),
+            list_section("Workspace Alerts", workspace_alerts, empty_text="当前没有 workspace alert。"),
+            event_section(latest_events),
+            condition_section(conditions),
             '<details class="refs">',
             f"<summary>source refs ({len(source_refs)}/{len(_string_list(payload.get('source_refs')))})</summary>",
-            _list_html(source_refs, empty_text="No source refs were available."),
+            list_html(source_refs, empty_text="No source refs were available."),
             "</details>",
             "</main>",
             "</body>",
@@ -892,89 +901,6 @@ def _workspace_relative(path: Path, workspace_root: Path) -> str:
         return path.relative_to(workspace_root).as_posix()
     except ValueError:
         return str(path)
-
-
-def _condition_badge(conditions: Mapping[str, Any]) -> str:
-    labels = []
-    for key in ("missing", "stale", "conflict"):
-        values = _string_list(conditions.get(key))
-        if values:
-            labels.append(f"{key}:{len(values)}")
-    return ", ".join(labels) if labels else "clear"
-
-
-def _gate_text(study: Mapping[str, Any]) -> str:
-    if bool(study.get("needs_physician_decision")):
-        return "需要医生/PI 确认后继续。"
-    return "当前没有投影出的医生/PI gate。"
-
-
-def _section(title: str, paragraphs: list[str]) -> str:
-    body = "".join(f"<p>{escape(text)}</p>" for text in dedupe_texts(paragraphs) if text)
-    return f'<section class="panel"><h2>{escape(title)}</h2>{body}</section>'
-
-
-def _list_section(title: str, items: list[str], *, empty_text: str) -> str:
-    return f'<section class="panel wide"><h2>{escape(title)}</h2>{_list_html(items, empty_text=empty_text)}</section>'
-
-
-def _event_section(events: list[dict[str, str]]) -> str:
-    if not events:
-        return _list_section("最近进展", [], empty_text="当前没有带时间戳的进展事件。")
-    items = [f"{item.get('timestamp') or 'unknown'} - {item.get('summary') or ''}" for item in events]
-    return _list_section("最近进展", items, empty_text="当前没有带时间戳的进展事件。")
-
-
-def _condition_section(conditions: Mapping[str, Any]) -> str:
-    items = []
-    for key in ("missing", "stale", "conflict"):
-        for value in _string_list(conditions.get(key)):
-            items.append(f"{key}: {value}")
-    return _list_section("stale / missing / conflict", items, empty_text="No stale, missing, or conflict conditions.")
-
-
-def _list_html(items: list[str], *, empty_text: str) -> str:
-    if not items:
-        return f"<p>{escape(empty_text)}</p>"
-    return "<ul>" + "".join(f"<li>{escape(item)}</li>" for item in items) + "</ul>"
-
-
-def _css() -> str:
-    return """
-:root { color-scheme: light; --ink:#172026; --muted:#5d6972; --line:#d8dee4; --accent:#0f766e; --warn:#b45309; --bad:#b91c1c; --bg:#f7f9fb; --panel:#ffffff; }
-* { box-sizing: border-box; }
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
-.portal { max-width: 1160px; margin: 0 auto; padding: 28px; }
-.masthead { border-bottom: 1px solid var(--line); padding: 8px 0 22px; }
-.brand { color: var(--accent); font-weight: 700; letter-spacing: 0; }
-h1 { margin: 8px 0 4px; font-size: 32px; line-height: 1.15; }
-h2 { margin: 0 0 10px; font-size: 17px; }
-p { margin: 0 0 10px; line-height: 1.5; }
-.state { color: var(--muted); font-size: 18px; }
-.meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 18px 0 0; }
-.meta div { border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; border-radius: 8px; }
-dt { color: var(--muted); font-size: 12px; text-transform: uppercase; }
-dd { margin: 3px 0 0; font-weight: 600; overflow-wrap: anywhere; }
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0 14px; }
-.panel, .refs { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
-.wide { margin-top: 14px; }
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { border-bottom: 1px solid var(--line); padding: 9px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
-th { color: var(--muted); font-size: 12px; text-transform: uppercase; }
-.study-row.selected td { background: #eef8f6; }
-ul { margin: 0; padding-left: 20px; }
-li { margin: 6px 0; overflow-wrap: anywhere; }
-summary { cursor: pointer; font-weight: 700; }
-.refs { margin-top: 14px; }
-@media (max-width: 760px) { .portal { padding: 18px; } .grid { grid-template-columns: 1fr; } h1 { font-size: 26px; } }
-""".strip()
-
-
-def _refresh_meta(value: object) -> str:
-    if isinstance(value, int) and value > 0:
-        return f'<meta http-equiv="refresh" content="{value}">'
-    return ""
 
 
 __all__ = [

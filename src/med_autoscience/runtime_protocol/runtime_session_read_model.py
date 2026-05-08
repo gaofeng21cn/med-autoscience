@@ -81,12 +81,12 @@ def _resolve_source(
     if receipt_source is not None:
         return receipt_source
 
-    legacy_source = _historical_fixture_source(
+    historical_source = _historical_fixture_source(
         historical_fixture=historical_fixture,
         historical_fixture_path=historical_fixture_path,
     )
-    if legacy_source is not None:
-        return legacy_source
+    if historical_source is not None:
+        return historical_source
 
     resolved_db_path = _resolve_lifecycle_db_path(quest_root=quest_root, db_path=db_path)
     evidence_refs = [{"source": "runtime_lifecycle_store", "path": str(resolved_db_path)}] if resolved_db_path else []

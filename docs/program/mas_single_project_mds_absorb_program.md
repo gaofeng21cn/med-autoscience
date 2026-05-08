@@ -297,7 +297,7 @@ Workspace gates：
 - live audit-only proof
 - stopped/cold apply proof
 - user-facing progress still reads the same study truth
-- `study_macro_state` 与 `owner_route` 不被 historical reader 或 SQLite runtime authority 反向覆盖
+- `study_macro_state` 与 `owner_route` 不被 historical reader / explicit archive import reference 或 SQLite runtime authority 反向覆盖
 - `portfolio/research_memory`、incident learning 和 AI reviewer calibration 只作为 memory / observability 被消费
 - `current_package`、`submission_minimal`、delivery README 和 archive export 不被当作 edit source 或 publication authority
 
