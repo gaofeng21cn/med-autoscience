@@ -185,6 +185,7 @@ def _optional_managed_runtime_backend_id(payload: dict[str, object]) -> str:
         "managed_runtime_backend_id",
         default=DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
     )
+    _reject_legacy_default_backend(backend_id=backend_id)
     if backend_id not in registered_managed_runtime_backend_ids():
         supported = ", ".join(registered_managed_runtime_backend_ids())
         raise TypeError(f"managed_runtime_backend_id must be one of: {supported}")
@@ -196,7 +197,7 @@ def _reject_legacy_default_backend(*, backend_id: str) -> None:
         allowed = ", ".join(EXTERNAL_MDS_ALLOWED_USES)
         raise TypeError(
             "managed_runtime_backend_id cannot be med_deepscientist; "
-            f"MDS is retained only for explicit audit, restore, import, or oracle uses: {allowed}"
+            f"MDS is retained only for frozen source provenance or historical fixture references: {allowed}"
         )
 
 
@@ -265,7 +266,6 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
     hermes_agent_repo_root = _optional_path(payload, "hermes_agent_repo_root", profile_dir=profile_dir)
     hermes_home_root = _optional_path(payload, "hermes_home_root", profile_dir=profile_dir)
     managed_runtime_backend_id = _optional_managed_runtime_backend_id(payload)
-    _reject_legacy_default_backend(backend_id=managed_runtime_backend_id)
     return WorkspaceProfile(
         name=profile_name,
         workspace_root=workspace_root,
