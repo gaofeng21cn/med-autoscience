@@ -21,7 +21,7 @@
 - 用户视角：给出病种、数据、目标问题和期望论文结果，在同一个工作区里持续推进研究。
 - 研究推进视角：围绕同一条课题线管理问题定义、证据补足、进度反馈和文件交付。
 - 命令行操作视角：当前最小操作路径仍是 `product-entry-status`、`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress` 这一组接口；对外它们都收口在单一 `Med Auto Science` app skill 之下，并继续通过 repo-tracked command contracts 被调用。`product-entry-status` 只是内部操作回路与 projection contract，不是独立公开产品入口。
-- 用户可视化入口目标：`MAS Progress Portal` 已固定为 implementation-ready 的 MAS-native 进度入口，默认位置为 `ops/mas/progress/index.html`。它采用静态快照 + 可选本地只读实时服务的双层形态，由 MAS 生成 domain-owned progress payload / HTML，只消费现有 progress/cockpit/runtime/package read-model，不成为新的 truth owner；开发合同见 [MAS Progress Portal](./runtime/progress_portal.md)。同一目的接入 OPL App 时，OPL 最优形态是 family-level dashboard 消费 MAS payload/read-model refs，并深链到 workspace-local Portal，不重新解释 study truth；评估见 [Progress Portal OPL App Integration](./references/progress_portal_opl_app_integration.md)。
+- 用户可视化入口：`MAS Progress Portal` 已落成 MAS-native 进度入口，默认位置为 `ops/mas/progress/index.html`。它采用静态快照 + 可选本地只读实时服务的双层形态，由 MAS 生成 domain-owned progress payload / HTML，只消费现有 progress/cockpit/runtime/package read-model，不成为新的 truth owner；开发合同见 [MAS Progress Portal](./runtime/progress_portal.md)。它收口的是“用户看哪里”，不是“所有 MDS 功能已 1:1 吸收”。同一目的接入 OPL App 时，OPL 最优形态是 family-level dashboard 消费 MAS payload/read-model refs，并深链到 workspace-local Portal，不重新解释 study truth；评估见 [Progress Portal OPL App Integration](./references/progress_portal_opl_app_integration.md)。
 
 ## 当前执行与监管模型
 

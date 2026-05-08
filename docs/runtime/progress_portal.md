@@ -1,11 +1,11 @@
 # MAS Progress Portal
 
-Status: `implementation-ready runtime read-model surface`
+Status: `landed runtime read-model surface`
 Owner: `MedAutoScience Product Projection + Runtime OS`
 
 ## 入口结论
 
-`MAS Progress Portal` 是面向医生、PI 和研究团队的固定进度入口。开发合同已经从 planning 进入 implementation-ready：下一步实现应直接落成 MAS-owned payload 和 HTML materializer，不再重新比较旧 WebUI、OPL App 或独立前端路线。目标不是复制旧 MDS WebUI，而是给每个 MAS workspace 一个稳定位置：
+`MAS Progress Portal` 是面向医生、PI 和研究团队的固定进度入口。它已经落成 MAS-owned payload、HTML materializer、workspace helper 和可选本地只读服务。目标不是复制旧 MDS WebUI，而是给每个 MAS workspace 一个稳定位置：
 
 ```text
 ops/mas/progress/index.html
@@ -14,6 +14,8 @@ ops/mas/progress/index.html
 用户应能直接打开这个入口，看到当前课题做到了哪里、系统下一步准备做什么、为什么卡住、是否需要医生/PI 判断、交付文件在哪里。Portal 只消费 MAS 现有 truth / read-model surface，不创建第二套状态系统。
 
 这个入口是 per-workspace fixed entrance。无论未来从 Codex、浏览器、OPL App 还是 OPL Runtime Manager 打开，页面和 payload 的 domain owner 都保持为 MAS。
+
+Portal 的意义不是证明 MDS 所有功能已经被 MAS 吸收。当前系统仍保留 MDS optional backend audit / legacy diagnostic / upstream intake / parity oracle 角色，runtime core ingest 和旧 MDS WebUI 彻底退役仍属于 functional monolith completion。Portal 的意义是把“用户看哪里”先收口到 MAS-owned surface：即使底层仍有 legacy oracle 或外部参考，医生/PI 默认不再去 MDS WebUI 判断研究进度。
 
 ## 形态决策
 
@@ -26,7 +28,7 @@ Progress Portal 采用双层形态：
    - 页面必须显示 `generated_at`、`freshness`、`source_refs` 和 stale/missing 状态。
 
 2. 可选层：本地只读实时服务
-   - 由后续 `medautosci workspace progress-portal --serve --profile <profile>` 或同等 workspace helper 启动。
+   - 由 `medautosci workspace progress-portal --serve --profile <profile>` 或同等 workspace helper 启动。
    - 服务只读取本地 MAS durable surfaces 和 portal payload；可以轮询刷新或使用文件变更通知。
    - 不写 study truth、publication truth、runtime authority、package authority 或 SQLite runtime lifecycle authority。
    - 实时体验应显示“最近刷新时间”和“下一次刷新/监听状态”，让用户知道页面是否仍在更新。
@@ -121,22 +123,25 @@ ops/mas/progress/index.html
 
 迁移原则：
 
-- 旧 `start-web` 语义后续应转向 MAS Progress Portal 或明确 legacy diagnostic。
+- 旧 `start-web` 语义应转向 MAS Progress Portal 或明确 legacy diagnostic。
 - `DeepScientist`、`MDS`、`DS` 只允许出现在折叠的 legacy diagnostic / provenance / oracle 区域。
 - 默认医生视图不得展示 MDS/DS 路径作为 workspace truth。
 - 不把上游 WebUI 历史、contributor footprint 或 product semantics 导入 MAS main。
 
-## Implementation-Ready 开发入口
+如果外部 MDS 仍因 backend audit、oracle fixture 或 upstream intake 被显式运行，MDS WebUI 也只能服务维护者诊断。它不能再作为医生默认进度面，也不能和 `ops/mas/progress/index.html` 并列解释同一个 study truth。
 
-后续实现应使用独立 lane，例如 `codex/mas-progress-portal`，并保持写集聚焦。该 lane 的目标是实现现有合同，不新增 OPL-owned truth 或重写 workspace runtime：
+## Landed Implementation Surface
 
-- `src/med_autoscience/controllers/progress_portal.py` 或自然子模块。
-- `src/med_autoscience/cli_parts/` 中的 workspace command。
-- workspace init helper / template，只指向 `ops/mas/progress/index.html`。
-- `tests/test_progress_portal.py` 与必要的 workspace init / CLI / wording guard 测试。
-- docs 中的 runtime projection、architecture/status 和 README 索引。
+当前实现写集：
 
-建议 CLI 形态：
+- `src/med_autoscience/controllers/progress_portal.py`
+- `medautosci workspace progress-portal`
+- workspace init 生成 `ops/mas/progress/index.html` placeholder 和 `ops/medautoscience/bin/progress-portal`
+- `tests/test_progress_portal.py`
+- `tests/test_cli_cases/progress_portal_commands.py`
+- workspace init / README / architecture / status / OPL handoff docs
+
+CLI 形态：
 
 ```bash
 medautosci workspace progress-portal --profile <profile>
