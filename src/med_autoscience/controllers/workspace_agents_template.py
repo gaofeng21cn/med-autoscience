@@ -32,7 +32,7 @@ def render_workspace_agents(*, workspace_name: str) -> str:
         "- revision checklist 至少覆盖 text revisions、methods completeness、statistical analysis、tables/figures、follow-up evidence、discussion/claim guardrails 与 handoff/evidence surface。\n"
         "- 动手前必须查询对应 study 的 `study-runtime-status`，确认 live runtime、`execution_owner_guard`、`supervisor_only` 与 publication gate 状态；runtime 接管中时只做监督，除非已经显式暂停或接管。\n"
         "- 若已达投稿包或 finalize 里程碑后收到明确用户、导师或审稿反馈，stopped/submission-ready/finalize 状态不是前台直接改 `manuscript/current_package/` 的许可，而是同一 study 的重新激活信号。\n"
-        "- 对这种 revision reactivation，必须先写入 durable `reviewer_revision` task intake，再通过 `launch-study --allow-stopped-relaunch` 或 MAS/MDS runtime resume 接管 canonical paper surface。\n"
+        "- 对这种 revision reactivation，必须先写入 durable `reviewer_revision` task intake，再通过 `launch-study --allow-stopped-relaunch` 或 MAS runtime resume 接管 canonical paper surface。\n"
         "- 只有用户明确要求离线 emergency overlay 时，才允许临时标注 `manuscript/current_package/` 改动；这类 overlay 不能作为完成态，必须写清 canonical source 未回灌、下一步 owner 和 MAS/MDS reconciliation 路径。\n"
         "- MDS 恢复同一论文线前，必须优先读取 latest revision handoff/evidence surface，再决定继续走 MAS controller 还是 MDS paper surface。\n"
         "- `manuscript/current_package/` 是 human-facing projection，不是唯一权威源；任何未同步回 controller-authorized `paper/` 或 runtime worktree 的人工修订，都必须在 README、TODO 或 REVISION_HANDOFF 中显式标注，避免后续自动同步覆盖。\n\n"

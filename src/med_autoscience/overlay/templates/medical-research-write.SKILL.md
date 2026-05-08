@@ -58,7 +58,7 @@ This skill intentionally absorbs the strongest legacy runtime writing discipline
 - If the selected renderer family is `python`, start from the system prompt Morandi plotting template and only adjust figure size, labels, and series colors as needed.
 - If the selected renderer family is `r_ggplot2`, keep the script publication-oriented, deterministic, and audit-ready; do not use it as an excuse to introduce a different statistical result surface.
 - If the runtime starts an auto-continue turn with no new user message, keep drafting or verifying from the durable state and active requirements instead of replaying the previous user turn.
-- If the latest user/reviewer feedback arrived after a stopped, submission-ready, or finalize milestone, treat it as same-line revision reactivation. Read the durable `reviewer_revision` intake first, work on the canonical paper authority, and regenerate `manuscript/current_package/`; do not treat foreground edits to that projection as completed MDS work.
+- If the latest user/reviewer feedback arrived after a stopped, submission-ready, or finalize milestone, treat it as same-line revision reactivation. Read the durable `reviewer_revision` intake first, work on the canonical paper authority, and regenerate `manuscript/current_package/`; do not treat foreground edits to that projection as completed MAS runtime work.
 - Message templates are references only. Adapt to the actual context and vary wording so updates feel respectful, human, and non-robotic.
 - If a threaded user reply arrives, interpret it relative to the latest writing progress update before assuming the task changed completely.
 - Use milestone updates deliberately when outline selection, claim downgrades, proofing completion, bundle readiness, or route-back-to-experiment decisions become durably true.
@@ -106,8 +106,8 @@ MedAutoScience owns the medical manuscript judgments here:
 - `paper-ready`: reviewer-first concerns are dispositioned in the `review_ledger`, claim wording matches the accepted evidence package, and the manuscript can enter final closure review without hidden route-back debt
 - `submission-ready`: the line is `paper-ready`, `submission_minimal` has passed, submission hygiene is explicit, and the package is ready for the human pre-submission audit
 
-MedDeepScientist serves this line as the controlled evidence source, behavior-equivalence oracle, and upstream intake buffer.
-MedAutoScience holds manuscript quality judgment, claim downgrades, route-back decisions, and readiness labels.
+MedAutoScience holds the runtime, artifact, evidence, manuscript quality judgment, claim downgrades, route-back decisions, and readiness labels.
+Historical MedDeepScientist material can only enter as source provenance, historical fixture, or explicit legacy diagnostic evidence.
 
 For paper-like deliverables, the durable contract is outline-first, not prose-first.
 The approved outline should be a real structured object, typically containing:

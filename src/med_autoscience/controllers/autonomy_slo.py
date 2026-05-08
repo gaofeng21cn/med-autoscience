@@ -309,7 +309,7 @@ def _runtime_failure_action(
             "action_type": "platform_runtime_repair",
             "controller_surface": "runtime_watch",
             "priority": "now",
-            "summary": "Repair the MAS/MDS runtime protocol path before resuming the study.",
+            "summary": "Repair the MAS runtime protocol path before resuming the study.",
             "restore_rank": 0,
         }
     if action_mode == "wait_for_user_or_explicit_resume":

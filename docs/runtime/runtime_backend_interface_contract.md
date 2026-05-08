@@ -68,7 +68,19 @@ managed runtime backend 必须显式暴露：
 
 `MedAutoScience` controller 只能通过这层 contract 调 backend，不得再直接依赖 backend-specific module name 作为控制逻辑判断条件。
 
-## 3.1 Registry validation
+## 3.1 MAS Runtime Core implements the former daemon role
+
+`mas_runtime_core` 不是把 MDS daemon 嵌入 MAS，也不是启动外部 `med-deepscientist` daemon。它以 MAS-owned backend module 实现 controller-facing daemon contract：
+
+- `resolve_daemon_url` 返回本地 runtime root URI，只作为 backend identity / locator。
+- `create_quest` 在 `runtime/quests/<quest_id>` 下创建普通 quest directory、`quest.yaml` 和 create payload。
+- `resume_quest` / `pause_quest` / `stop_quest` 写入 `.ds/runtime_state.json` 和 `artifacts/runtime/mas_runtime_events.jsonl`，形成可回放状态与事件。
+- `get_quest_session`、`inspect_quest_live_runtime`、`inspect_quest_live_execution` 读取 MAS local state、runtime files 和 event refs，返回与 controller contract 对齐的 session/liveness projection。
+- `chat_quest`、`artifact_complete_quest`、`artifact_interact` 只记录 MAS runtime event / queue / artifact handoff，不调用 MDS HTTP API。
+
+因此，旧 MDS daemon 的长期价值被拆成两部分：controller-facing operation shape 由 `ManagedRuntimeBackend` contract 保留，运行状态与事件实现由 MAS Runtime OS 持有；旧 `runtime_transport/med_deepscientist.py` 只能服务 explicit legacy diagnostic / historical fixture / backend audit，不参与 default watch/status/execute/recovery。
+
+## 3.2 Registry validation
 
 backend registry 当前必须 fail-closed 校验：
 

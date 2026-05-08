@@ -9,7 +9,7 @@ def render_automation_ready_block() -> str:
         "",
         "Automation-ready signals include:",
         "- startup boundary has passed",
-        "- execution engine is `med-deepscientist`",
+        "- runtime backend is `mas_runtime_core` / `mas-runtime-core` or another registered MAS managed backend",
         "- managed entry is enabled",
         "- `decision_policy` is `autonomous`",
         "- auto-resume is enabled for resumable quest states",

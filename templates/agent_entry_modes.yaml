@@ -194,8 +194,8 @@ route_contracts:
     - first-draft quality note covering field-verified multicenter/geography, subgroup/association,
       guideline, and real-world constraint axes
     - revision handoff stating data source, scripts, changed tables/figures, claim
-      guardrails, MAS/MDS reactivation state, and whether `current_package` was regenerated
-      from controller-authorized `paper/`
+      guardrails, MAS runtime reactivation state, and whether `current_package` was
+      regenerated from controller-authorized `paper/`
     human_gate_boundary:
     - manuscript claims expand beyond the current evidence package or locked study
       objective
@@ -209,8 +209,8 @@ route_contracts:
     - first-draft quality scan finds verified asset dimensions that can support a
       stronger bounded analysis or manuscript framing
     - manuscript narrative changes the claim boundary
-    - foreground edits only touched `manuscript/current_package/` before MAS/MDS reactivation
-      or have not been reconciled into the canonical paper source
+    - foreground edits only touched `manuscript/current_package/` before MAS runtime
+      reactivation or have not been reconciled into the canonical paper source
   finalize:
     route_id: finalize
     display_name: Finalize
