@@ -71,6 +71,7 @@ def build_blocking_artifact_refs(
     submission_minimal_authority_stale_reason: str | None,
     study_delivery: dict[str, Any],
     medical_publication_surface_named_blockers: list[str],
+    invalid_medical_publication_surface_blockers: list[dict[str, Any]] | None = None,
     submission_surface_qc_failures: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     refs: list[dict[str, Any]] = []
@@ -126,6 +127,20 @@ def build_blocking_artifact_refs(
                 artifact_path=str(paper_root / "display_registry.json"),
                 artifact_role="display_registry",
             )
+    for invalid_blocker in invalid_medical_publication_surface_blockers or []:
+        if not isinstance(invalid_blocker, dict):
+            continue
+        source_path = _non_empty_text(invalid_blocker.get("source_path"))
+        if source_path is None:
+            continue
+        _append_blocking_artifact_ref(
+            refs,
+            blocker="invalid_blocker_payload",
+            artifact_path=source_path,
+            artifact_role="malformed_publication_surface_blocker",
+            stale_reason=_non_empty_text(invalid_blocker.get("reason")),
+            source_path=source_path,
+        )
     for failure in submission_surface_qc_failures:
         if not isinstance(failure, dict):
             continue

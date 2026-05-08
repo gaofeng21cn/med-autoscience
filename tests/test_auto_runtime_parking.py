@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 
 
 def _projection(status: dict[str, object], **kwargs: object) -> dict[str, object]:
@@ -441,3 +442,53 @@ def test_study_progress_does_not_show_explicit_resume_when_runtime_recovery_is_r
     assert result["auto_runtime_parked"]["parked"] is False
     assert result["parked_state"] is None
     assert "显式恢复" not in result["current_stage_summary"]
+
+
+def test_study_progress_reads_dm002_malformed_publication_surface_blockers(
+    tmp_path,
+) -> None:
+    progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = helpers.write_study(profile.workspace_root, study_id)
+    quest_root = profile.runtime_root / study_id
+    paper_root = helpers.write_synced_submission_delivery(study_root, quest_root)
+    helpers.write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "quest_id": study_id,
+                "study_id": study_id,
+                "status": "running",
+                "active_run_id": "run-dm002",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    helpers.write_text(
+        quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json",
+        json.dumps(
+            {
+                "status": "blocked",
+                "blockers": [
+                    {
+                        "id": "table_figure_claim_map_missing_or_incomplete",
+                        "source_path": str(paper_root / "figures" / "figure_catalog.json"),
+                    },
+                    {"source_path": str(paper_root / "claim_evidence_map.json")},
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    result = progress.read_study_progress(profile=profile, study_id=study_id)
+
+    assert result["study_id"] == study_id
+    assert result["paper_stage"] == "publishability_gate_blocked"
+    assert "invalid_blocker_payload" in result["current_blockers"]

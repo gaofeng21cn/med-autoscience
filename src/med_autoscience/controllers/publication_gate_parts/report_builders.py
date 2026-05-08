@@ -148,6 +148,48 @@ def _build_blocker_taxonomy(
     }
 
 
+def _medical_publication_surface_blocker_id(raw_blocker: Any) -> str | None:
+    if isinstance(raw_blocker, str):
+        return _non_empty_text(raw_blocker)
+    if isinstance(raw_blocker, dict):
+        for key in ("id", "blocker", "blocker_id", "key", "reason"):
+            blocker_id = _non_empty_text(raw_blocker.get(key))
+            if blocker_id:
+                return blocker_id
+    return None
+
+
+def _canonicalize_medical_publication_surface_blockers(
+    raw_blockers: Any,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    if not isinstance(raw_blockers, list):
+        return [], []
+    blocker_ids: list[str] = []
+    invalid_blockers: list[dict[str, Any]] = []
+    for index, raw_blocker in enumerate(raw_blockers):
+        blocker_id = _medical_publication_surface_blocker_id(raw_blocker)
+        if blocker_id:
+            _append_unique(blocker_ids, blocker_id)
+            continue
+        if raw_blocker is None:
+            continue
+        invalid_payload: dict[str, Any] = {
+            "index": index,
+            "reason": "missing_blocker_id",
+            "payload_type": type(raw_blocker).__name__,
+        }
+        if isinstance(raw_blocker, dict):
+            source_path = _non_empty_text(raw_blocker.get("source_path")) or _non_empty_text(
+                raw_blocker.get("artifact_path")
+            )
+            if source_path is not None:
+                invalid_payload["source_path"] = source_path
+        invalid_blockers.append(invalid_payload)
+    if invalid_blockers:
+        _append_unique(blocker_ids, "invalid_blocker_payload")
+    return blocker_ids, invalid_blockers
+
+
 def build_gate_report(state: GateState) -> dict[str, Any]:
     baseline_items = (state.main_result or {}).get("baseline_comparisons", {}).get("items") or []
     primary_delta = None
@@ -298,6 +340,13 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         blockers.append(charter_contract_linkage_status)
     if study_delivery_status.startswith("stale"):
         blockers.append("stale_study_delivery_mirror")
+    medical_publication_surface_raw_blockers_payload = (
+        state.latest_medical_publication_surface or {}
+    ).get("blockers")
+    (
+        medical_publication_surface_raw_blockers,
+        invalid_medical_publication_surface_blockers,
+    ) = _canonicalize_medical_publication_surface_blockers(medical_publication_surface_raw_blockers_payload)
     medical_publication_surface_status = str((state.latest_medical_publication_surface or {}).get("status") or "").strip()
     if medical_publication_surface_current:
         medical_publication_surface_expectation_gaps = _medical_publication_surface_expectation_gaps(
@@ -318,6 +367,8 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         if medical_publication_surface_expectation_gaps:
             blockers.append("charter_expectation_closure_incomplete")
         blockers.extend(medical_publication_surface_named_blockers)
+        if invalid_medical_publication_surface_blockers:
+            blockers.append("invalid_blocker_payload")
     if state.submission_surface_qc_failures:
         blockers.append("submission_surface_qc_failure_present")
     if state.manuscript_terminology_violations:
@@ -359,7 +410,6 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
                 "before autonomous publication work continues"
             ),
         }
-    medical_publication_surface_raw_blockers = list((state.latest_medical_publication_surface or {}).get("blockers") or [])
     blocker_taxonomy = _build_blocker_taxonomy(
         blockers=blockers,
         medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
@@ -390,6 +440,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         submission_minimal_authority_stale_reason=submission_minimal_authority_stale_reason,
         study_delivery=study_delivery,
         medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
+        invalid_medical_publication_surface_blockers=invalid_medical_publication_surface_blockers,
         submission_surface_qc_failures=list(state.submission_surface_qc_failures),
     )
     gate_fingerprint = _publication_gate_fingerprint(
@@ -503,6 +554,7 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "prebundle_display_floor_gap": prebundle_display_floor_gap,
         "prebundle_display_advisories": prebundle_display_advisories,
         "medical_publication_surface_status": medical_publication_surface_status or None,
+        "invalid_medical_publication_surface_blockers": invalid_medical_publication_surface_blockers,
         "charter_contract_linkage": dict(state.charter_contract_linkage or {}),
         "charter_contract_linkage_status": charter_contract_linkage_status or None,
         "medical_publication_surface_expectation_gaps": medical_publication_surface_expectation_gaps,

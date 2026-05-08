@@ -176,7 +176,19 @@ def _non_empty_text(value: object) -> str | None:
 def _normalized_blocker_set(value: object) -> set[str]:
     if not isinstance(value, list):
         return set()
-    return {str(item or "").strip() for item in value if str(item or "").strip()}
+    normalized: set[str] = set()
+    for item in value:
+        if isinstance(item, dict):
+            for key in ("id", "blocker", "blocker_id", "key", "reason"):
+                text = _non_empty_text(item.get(key))
+                if text:
+                    normalized.add(text)
+                    break
+            continue
+        text = _non_empty_text(item)
+        if text:
+            normalized.add(text)
+    return normalized
 
 
 def find_latest(paths: list[Path]) -> Path | None:
