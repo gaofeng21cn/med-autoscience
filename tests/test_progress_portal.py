@@ -115,6 +115,50 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
     assert payload["delivery"]["summary"] == "current package 尚未生成。"
 
 
+def test_progress_portal_payload_exposes_family_level_opl_handoff_without_new_truth() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        package_payload={
+            "study_id": "001-risk",
+            "status": "current",
+            "summary": "current package is ready.",
+            "refs": [
+                "studies/001-risk/manuscript/current_package",
+                "studies/001-risk/manuscript/current_package.zip",
+            ],
+        },
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    handoff = payload["opl_handoff"]
+    assert handoff["handoff_kind"] == "mas_progress_portal_opl_family_projection"
+    assert handoff["owner"] == "mas"
+    assert handoff["role"] == "family_level_projection"
+    assert handoff["authority"] == "display_artifact_only"
+    assert handoff["opl_role"] == "family_level_projection_consumer_only"
+    assert handoff["payload_refs"]["progress_portal"] == "artifacts/runtime/progress_portal/latest.json"
+    assert handoff["payload_refs"]["source_payloads"] == payload["source_payloads"]
+    assert handoff["freshness"] == payload["freshness"]
+    assert handoff["source_refs"] == payload["source_refs"]
+    assert handoff["artifact_locators"] == [
+        "studies/001-risk/manuscript/current_package",
+        "studies/001-risk/manuscript/current_package.zip",
+    ]
+    assert handoff["deep_link"] == "ops/mas/progress/index.html"
+    assert handoff["forbidden_authority"] == [
+        "study_truth",
+        "publication_judgment",
+        "quality_verdict",
+        "runtime_authority",
+        "artifact_authority",
+    ]
+
+
 def test_progress_portal_html_is_single_file_mas_view_without_default_mds_product_semantics() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
     payload = module.build_progress_portal_payload(
@@ -158,7 +202,11 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     assert html_path == profile.workspace_root / "ops" / "mas" / "progress" / "index.html"
     assert payload_path.exists()
     assert html_path.exists()
-    assert json.loads(payload_path.read_text(encoding="utf-8"))["study"]["study_id"] == "001-risk"
+    written_payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    assert written_payload["study"]["study_id"] == "001-risk"
+    assert written_payload["opl_handoff"]["deep_link"] == "ops/mas/progress/index.html"
+    assert result["opl_handoff"]["payload_ref"] == str(payload_path)
+    assert result["opl_handoff"]["deep_link"] == str(html_path)
     assert html_path.read_text(encoding="utf-8").startswith("<!doctype html>")
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "controller_decisions").exists()
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "publication_eval").exists()
@@ -217,5 +265,7 @@ def test_serve_progress_portal_materializes_and_reports_read_only_local_url(monk
     assert result["read_only"] is True
     assert result["interval_seconds"] == 20
     assert Path(result["html_path"]).exists()
+    assert result["opl_handoff"]["deep_link"] == result["html_path"]
+    assert result["opl_handoff"]["payload_ref"] == result["payload_path"]
     assert served["address"] == ("127.0.0.1", 4301)
     assert served["closed"] is True

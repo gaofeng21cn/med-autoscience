@@ -26,6 +26,30 @@ ops/mas/progress/index.html
 
 MAS payload 的输入只能来自 MAS durable surfaces，例如 `study_macro_state/latest.json`、`study_progress.user_visible_projection`、`workspace-cockpit`、`study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、delivery/package projection 和 runtime lifecycle read model。
 
+`latest.json` 内固定包含 `opl_handoff`，作为 OPL family projection 的最小稳定 bundle：
+
+```text
+opl_handoff:
+  handoff_kind: mas_progress_portal_opl_family_projection
+  owner: mas
+  role: family_level_projection
+  authority: display_artifact_only
+  opl_role: family_level_projection_consumer_only
+  payload_refs:
+    progress_portal: artifacts/runtime/progress_portal/latest.json
+    source_payloads: <progress/cockpit/runtime/package summary>
+  freshness: <same payload freshness object>
+  source_refs: <same payload source refs>
+  artifact_locators: <delivery/package refs>
+  conditions:
+    missing: [...]
+    stale: [...]
+    conflict: [...]
+  deep_link: ops/mas/progress/index.html
+```
+
+这个 bundle 是 `latest.json` 的投影子结构，不引入第二套状态文件或第二套 status machine。
+
 ## OPL App 侧职责
 
 OPL App / OPL Runtime Manager 可以消费 MAS 暴露的 refs：
@@ -37,6 +61,7 @@ OPL App / OPL Runtime Manager 可以消费 MAS 暴露的 refs：
 - study/workspace identifiers
 - user-facing state labels
 - attention, blocker, running/recent and artifact locator fields
+- workspace-local Portal deep link
 
 OPL App 的最优 UI 不是复制 MAS Portal 的全部页面，而是在 family-level dashboard 中展示跨 workspace 的进度条目、attention queue、running/recent items 和交付物入口；用户需要深看 MAS 医学研究线时，直接打开 `ops/mas/progress/index.html`。
 
@@ -60,6 +85,7 @@ MAS implementation lane 应把 handoff payload 固定成 OPL 可消费的 refere
 progress_portal:
   payload_ref: artifacts/runtime/progress_portal/latest.json
   html_ref: ops/mas/progress/index.html
+  deep_link: ops/mas/progress/index.html
   owner: mas
   role: domain_owned_progress_projection
   authority: display_artifact_only

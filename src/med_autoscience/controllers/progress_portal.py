@@ -17,6 +17,8 @@ from med_autoscience.profiles import WorkspaceProfile
 SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_progress_portal"
 BRAND = "Med Auto Science"
+PROGRESS_PORTAL_PAYLOAD_REF = "artifacts/runtime/progress_portal/latest.json"
+PROGRESS_PORTAL_HTML_REF = "ops/mas/progress/index.html"
 
 
 def build_progress_portal_payload(
@@ -59,7 +61,7 @@ def build_progress_portal_payload(
     resolved_study_id = resolved_study_id or _non_empty_text(progress.get("study_id")) or "unknown-study"
 
     cockpit = dict(cockpit_payload or {})
-    if not cockpit and profile is not None:
+    if not cockpit and profile is not None and progress_payload is None:
         from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
             read_workspace_cockpit,
         )
@@ -74,6 +76,12 @@ def build_progress_portal_payload(
     quality = _quality_summary(progress.get("publication_eval"))
     delivery = _delivery_summary(progress, package, study_id=resolved_study_id)
     source_refs = _source_refs(progress, cockpit, runtime, package)
+    source_payloads = {
+        "progress": _source_payload_summary(progress),
+        "cockpit": _source_payload_summary(cockpit),
+        "runtime": _source_payload_summary(runtime),
+        "package": _source_payload_summary(package),
+    }
     conditions = _conditions(
         study_id=resolved_study_id,
         progress=progress,
@@ -122,12 +130,16 @@ def build_progress_portal_payload(
         "delivery": delivery,
         "conditions": conditions,
         "source_refs": source_refs,
-        "source_payloads": {
-            "progress": _source_payload_summary(progress),
-            "cockpit": _source_payload_summary(cockpit),
-            "runtime": _source_payload_summary(runtime),
-            "package": _source_payload_summary(package),
-        },
+        "source_payloads": source_payloads,
+        "opl_handoff": _opl_handoff_projection(
+            study_id=resolved_study_id,
+            profile_name=resolved_profile_name,
+            freshness=freshness,
+            source_refs=source_refs,
+            source_payloads=source_payloads,
+            delivery=delivery,
+            conditions=conditions,
+        ),
     }
     if auto_refresh_seconds is not None and auto_refresh_seconds > 0:
         payload["portal_view"] = {
@@ -263,12 +275,18 @@ def materialize_progress_portal(
     html_path.write_text(render_progress_portal_html(payload), encoding="utf-8")
     if open_browser:
         webbrowser.open(html_path.as_uri())
+    opl_handoff = _materialized_opl_handoff(
+        payload.get("opl_handoff"),
+        payload_path=payload_path,
+        html_path=html_path,
+    )
     return {
         "status": "materialized",
         "surface_kind": SURFACE_KIND,
         "payload_path": str(payload_path),
         "html_path": str(html_path),
         "generated_at": payload["generated_at"],
+        "opl_handoff": opl_handoff,
     }
 
 
@@ -340,6 +358,7 @@ def serve_progress_portal(
         "payload_path": materialized["payload_path"],
         "html_path": materialized["html_path"],
         "generated_at": materialized["generated_at"],
+        "opl_handoff": materialized.get("opl_handoff"),
     }
     if once:
         server.server_close()
@@ -593,6 +612,62 @@ def _source_payload_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         "status": _non_empty_text(payload.get("status")),
         "surface_kind": _non_empty_text(payload.get("surface_kind")),
     }
+
+
+def _opl_handoff_projection(
+    *,
+    study_id: str,
+    profile_name: str,
+    freshness: Mapping[str, Any],
+    source_refs: list[str],
+    source_payloads: Mapping[str, Any],
+    delivery: Mapping[str, Any],
+    conditions: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "handoff_kind": "mas_progress_portal_opl_family_projection",
+        "owner": "mas",
+        "role": "family_level_projection",
+        "authority": "display_artifact_only",
+        "opl_role": "family_level_projection_consumer_only",
+        "study_id": study_id,
+        "profile_name": profile_name,
+        "payload_refs": {
+            "progress_portal": PROGRESS_PORTAL_PAYLOAD_REF,
+            "source_payloads": dict(source_payloads),
+        },
+        "freshness": dict(freshness),
+        "source_refs": list(source_refs),
+        "artifact_locators": _string_list(delivery.get("refs")),
+        "conditions": {
+            "missing": _string_list(conditions.get("missing")),
+            "stale": _string_list(conditions.get("stale")),
+            "conflict": _string_list(conditions.get("conflict")),
+        },
+        "deep_link": PROGRESS_PORTAL_HTML_REF,
+        "forbidden_authority": [
+            "study_truth",
+            "publication_judgment",
+            "quality_verdict",
+            "runtime_authority",
+            "artifact_authority",
+        ],
+    }
+
+
+def _materialized_opl_handoff(
+    value: object,
+    *,
+    payload_path: Path,
+    html_path: Path,
+) -> dict[str, Any]:
+    handoff = _mapping(value)
+    handoff["payload_ref"] = str(payload_path)
+    handoff["deep_link"] = str(html_path)
+    payload_refs = _mapping(handoff.get("payload_refs"))
+    payload_refs["progress_portal"] = str(payload_path)
+    handoff["payload_refs"] = payload_refs
+    return handoff
 
 
 def _condition_badge(conditions: Mapping[str, Any]) -> str:

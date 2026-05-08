@@ -15,6 +15,8 @@ ops/mas/progress/index.html
 
 这个入口是 per-workspace fixed entrance。无论未来从 Codex、浏览器、OPL App 还是 OPL Runtime Manager 打开，页面和 payload 的 domain owner 都保持为 MAS。
 
+新 workspace 中旧 `start-web` 目的的默认落点也固定到 MAS Progress Portal：`ops/mas/bin/start-web` 刷新并打开 `ops/mas/progress/index.html`。如果维护者需要外部 MDS WebUI，只能通过显式 legacy diagnostic / backend audit 路径启动；医生/PI 默认不再在旧 WebUI 与 MAS Portal 之间判断进度 truth。
+
 Portal 的意义不是证明 MDS 所有功能已经被 MAS 吸收。当前系统仍保留 MDS optional backend audit / legacy diagnostic / upstream intake / parity oracle 角色，runtime core ingest 和旧 MDS WebUI 彻底退役仍属于 functional monolith completion。Portal 的意义是把“用户看哪里”先收口到 MAS-owned surface：即使底层仍有 legacy oracle 或外部参考，医生/PI 默认不再去 MDS WebUI 判断研究进度。
 
 ## 形态决策
@@ -42,6 +44,7 @@ Progress Portal 采用双层形态：
 - `MAS` 负责 domain-owned progress portal payload 和 HTML，生成 `artifacts/runtime/progress_portal/latest.json` 与 `ops/mas/progress/index.html`。
 - 本地 MAS Portal 是每个 workspace 的固定入口，适合医生、PI 或维护者直接打开查看同一条研究线。
 - `OPL App` / `OPL Runtime Manager` 只消费 MAS read-model / payload refs，把它们汇总到 family-level dashboard、attention queue、running/recent item 和 artifact locator。
+- `latest.json` 固定暴露 `opl_handoff`：包含 payload refs、freshness、source refs、artifact locators、workspace-local Portal deep link 和 forbidden authority 列表，供 OPL family projection 直接索引。
 - OPL 展示层可以打开或深链到 `ops/mas/progress/index.html`，也可以读取 `latest.json` 做跨 workspace 概览；它不能把 payload 文案升级成 OPL-owned readiness、submission-ready、publication verdict、quality verdict 或新的 study truth。
 - OPL native helper 或 state indexer 只能加速文件发现、freshness、artifact index 和 source ref 汇总；它不能重算 MAS 的 study 状态、publication judgment、evidence ledger 或 controller next action。
 
@@ -85,6 +88,8 @@ ops/mas/progress/index.html
 ```
 
 这些文件是展示产物，不是 study truth。任何启动、恢复、暂停、写作、质量裁决、投稿授权、交付重建或 runtime lifecycle 写入仍回到既有 owner surface。
+
+`opl_handoff` 是同一 payload 内的 family-level projection，不是额外 truth surface。它只能引用本 payload、源 payload 摘要、freshness、source refs、artifact locators 与 Portal deep link；OPL 侧不能据此生成新的 study truth、publication judgment、quality verdict、runtime authority 或 artifact authority。
 
 ## 静态快照合同
 
@@ -137,6 +142,7 @@ ops/mas/progress/index.html
 - `src/med_autoscience/controllers/progress_portal.py`
 - `medautosci workspace progress-portal`
 - workspace init 生成 `ops/mas/progress/index.html` placeholder 和 `ops/medautoscience/bin/progress-portal`
+- workspace init 生成 `ops/mas/bin/start-web`，默认刷新并打开 MAS Progress Portal
 - `tests/test_progress_portal.py`
 - `tests/test_cli_cases/progress_portal_commands.py`
 - workspace init / README / architecture / status / OPL handoff docs
@@ -156,7 +162,7 @@ medautosci workspace progress-portal --profile <profile> --serve
 - payload builder 从现有 MAS durable surfaces 组装 read-model，不从 Markdown 文档、OPL state cache 或旧 MDS WebUI 路径推导状态。
 - HTML materializer 只渲染 payload，并把 stale/missing/conflict 显示成可见状态。
 - workspace init 只需要提供固定入口位置和可刷新路径；不能把 OPL App、长期服务进程或外部 runtime substrate 变成 Portal 的必需依赖。
-- OPL handoff 只暴露 payload refs、HTML path、freshness、source refs 和 artifact locators，供 family dashboard 消费。
+- OPL handoff 只暴露 payload refs、HTML path/deep link、freshness、source refs 和 artifact locators，供 family dashboard 消费。
 
 ## 验收标准
 
