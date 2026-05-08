@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers.runtime_ai_repair_policy import two_layer_ai_repair_policy_payload
 from med_autoscience.controllers import study_progress, study_runtime_router
+from med_autoscience.controllers import recovery_intent_ledger
 from med_autoscience.controllers.runtime_supervisor_scan_parts import canonical_inputs
 from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts import action_projection
@@ -463,6 +464,7 @@ def _study_projection(
     apply_runtime_platform_repair: bool,
     developer_mode: DeveloperSupervisorMode,
     persist_surfaces: bool,
+    generated_at: str,
     previous_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
@@ -693,6 +695,17 @@ def _study_projection(
             publication_eval_payload=publication_eval_payload,
             actions=actions,
         )
+    recovery_intent = recovery_intent_ledger.project_recovery_intent(
+        study_id=study_id,
+        quest_id=resolved_quest_id,
+        study_root=study_root,
+        status=status_payload,
+        progress=progress_payload,
+        owner_route=owner_route,
+        action_queue=actions,
+        generated_at=generated_at,
+        persist=persist_surfaces,
+    )
     _clear_resolved_repair_lifecycle(
         study_root=study_root,
         previous_lifecycle=initial_lifecycle,
@@ -722,6 +735,7 @@ def _study_projection(
         "action_queue": actions,
         "submission_milestone_parked_refresh": submission_milestone_parked_refresh,
         "runtime_platform_repair_apply": runtime_platform_repair_apply,
+        "recovery_intent": recovery_intent,
         "owner_route": owner_route,
         "repeat_suppression": repeat_guard,
         "why_not_applied": why_not_applied,
@@ -734,6 +748,7 @@ def _study_projection(
         "paper_package_mutated": False,
         "apply_safe_actions": developer_mode.safe_actions_enabled,
         "developer_supervisor_mode": developer_mode.to_dict(),
+        "refs": {"recovery_intent_path": str(recovery_intent_ledger.latest_path_for_study(study_root))},
     }
 
 
@@ -771,6 +786,7 @@ def supervisor_scan(
             apply_runtime_platform_repair=apply_runtime_platform_repair,
             developer_mode=developer_mode,
             persist_surfaces=persist_surfaces,
+            generated_at=generated_at,
             previous_payload=previous_payload,
         )
         for study_id in resolved_study_ids
