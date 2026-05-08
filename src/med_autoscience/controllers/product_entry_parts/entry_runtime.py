@@ -157,7 +157,7 @@ def build_product_entry(
             ),
             "long_line_learning_projection_contract": _build_long_line_learning_projection_contract(),
             "domain_entry_contract": _build_domain_entry_contract(),
-            "gateway_interaction_contract": _build_gateway_interaction_contract(),
+            "user_interaction_contract": _build_user_interaction_contract(),
             "cockpit_command": commands["workspace_cockpit"],
             "submit_task_command": commands["submit_study_task"],
             "launch_command": commands["launch_study"],
@@ -185,9 +185,9 @@ def build_product_entry(
         payload["return_surface_contract"]["domain_entry_contract"],
         context="build_product_entry.return_surface_contract.domain_entry_contract",
     )
-    _validate_gateway_interaction_contract_shape(
-        payload["return_surface_contract"]["gateway_interaction_contract"],
-        context="build_product_entry.return_surface_contract.gateway_interaction_contract",
+    _validate_user_interaction_contract_shape(
+        payload["return_surface_contract"]["user_interaction_contract"],
+        context="build_product_entry.return_surface_contract.user_interaction_contract",
     )
     return payload
 

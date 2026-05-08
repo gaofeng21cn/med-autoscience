@@ -13,7 +13,8 @@
     "workspace_locator",
     "single_project_boundary",
     "domain_entry_contract",
-    "gateway_interaction_contract",
+    "user_interaction_contract",
+    "product_entry_surface",
     "entry_status_surface",
     "operator_loop_surface"
   ],
@@ -30,8 +31,8 @@
     "single_project_boundary": {
       "$ref": "#/$defs/singleProjectBoundary"
     },
-    "gateway_interaction_contract": {
-      "$ref": "#/$defs/gatewayInteractionContract"
+    "user_interaction_contract": {
+      "$ref": "#/$defs/userInteractionContract"
     }
   },
   "$defs": {
@@ -149,11 +150,11 @@
         }
       }
     },
-    "gatewayInteractionContract": {
+    "userInteractionContract": {
       "type": "object",
       "required": [
         "surface_kind",
-        "frontdoor_owner",
+        "entry_owner",
         "user_interaction_mode",
         "user_commands_required",
         "command_surfaces_for_agent_consumption_only",
@@ -162,9 +163,9 @@
       ],
       "properties": {
         "surface_kind": {
-          "const": "gateway_interaction_contract"
+          "const": "user_interaction_contract"
         },
-        "frontdoor_owner": {
+        "entry_owner": {
           "type": "string"
         },
         "user_interaction_mode": {

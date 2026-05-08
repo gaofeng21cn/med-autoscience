@@ -383,12 +383,12 @@ def build_phase2_user_product_loop_lane(
     return {
         "surface_kind": "phase2_user_product_loop_lane",
         "summary": "把启动 MAS、给 study 下任务、续跑、持续看进度、处理恢复建议和人工 gate 收成同一条用户回路。",
-        "recommended_step_id": "open_entry_status",
+        "recommended_step_id": "open_product_entry",
         "recommended_command": entry_status_command,
         "single_path": [
             {
-                "step_id": "open_entry_status",
-                "title": "先打开 MAS 前台",
+                "step_id": "open_product_entry",
+                "title": "先打开 MAS 产品入口",
                 "surface_kind": "product_entry_status",
                 "command": entry_status_command,
             },

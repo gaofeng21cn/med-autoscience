@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .frontdoor_preflight_and_task_submission import *  # noqa: F403,F401
+from .product_entry_preflight_and_task_submission import *  # noqa: F403,F401
 
 def test_render_product_entry_status_markdown_shows_auto_re_review_followthrough() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")

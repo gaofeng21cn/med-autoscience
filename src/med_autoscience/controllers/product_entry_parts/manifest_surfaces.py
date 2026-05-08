@@ -39,9 +39,9 @@ def build_product_entry_manifest(
     mainline_payload = mainline_status.read_mainline_status()
     mainline_snapshot = _mainline_snapshot()
     build_doctor_report_fn = _controller_override("build_doctor_report", build_doctor_report)
-    build_gateway_interaction_contract_fn = _controller_override(
-        "_build_gateway_interaction_contract",
-        _build_gateway_interaction_contract,
+    build_user_interaction_contract_fn = _controller_override(
+        "_build_user_interaction_contract",
+        _build_user_interaction_contract,
     )
     build_family_product_entry_orchestration = _controller_override(
         "_build_shared_family_product_entry_orchestration",
@@ -61,14 +61,14 @@ def build_product_entry_manifest(
         profile_ref=profile_ref,
     )
     domain_entry_contract = _build_domain_entry_contract()
-    gateway_interaction_contract = build_gateway_interaction_contract_fn()
+    user_interaction_contract = build_user_interaction_contract_fn()
     _validate_domain_entry_contract_shape(
         domain_entry_contract,
         context="product_entry_manifest.domain_entry_contract",
     )
-    _validate_gateway_interaction_contract_shape(
-        gateway_interaction_contract,
-        context="product_entry_manifest.gateway_interaction_contract",
+    _validate_user_interaction_contract_shape(
+        user_interaction_contract,
+        context="product_entry_manifest.user_interaction_contract",
     )
     profile_arg = _profile_arg(profile_ref)
     prefix = _command_prefix(profile_ref)
@@ -80,7 +80,7 @@ def build_product_entry_manifest(
     product_entry_shell = _build_shared_product_entry_shell_catalog({
         "product_entry_status": {
             "command": f"{prefix} product-entry-status --profile {profile_arg}",
-            "purpose": "当前 research product entry status，先暴露当前 frontdoor、workspace inbox 与 shared handoff 入口。",
+            "purpose": "当前 research product entry status，先暴露当前 product entry、workspace inbox 与 shared handoff 入口。",
             "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
         },
         "workspace_cockpit": {
@@ -156,15 +156,15 @@ def build_product_entry_manifest(
         },
     })
     family_orchestration = build_family_product_entry_orchestration(
-        graph_id="mas_workspace_frontdoor_study_runtime_graph",
+        graph_id="mas_workspace_product_entry_study_runtime_graph",
         target_domain_id=TARGET_DOMAIN_ID,
         graph_kind="study_runtime_orchestration",
         graph_version="2026-04-13",
         nodes=[
             {
-                "node_id": "step:open_entry_status",
+                "node_id": "step:open_product_entry",
                 "node_kind": "operator_step",
-                "title": "Open research entry_status",
+                "title": "Open research product entry",
                 "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
             },
             {
@@ -191,17 +191,17 @@ def build_product_entry_manifest(
         ],
         edges=[
             {
-                "from": "step:open_entry_status",
+                "from": "step:open_product_entry",
                 "to": "step:submit_task",
                 "on": "new_task",
             },
             {
-                "from": "step:open_entry_status",
+                "from": "step:open_product_entry",
                 "to": "step:continue_study",
                 "on": "resume_study",
             },
             {
-                "from": "step:open_entry_status",
+                "from": "step:open_product_entry",
                 "to": "step:inspect_progress",
                 "on": "inspect_status",
             },
@@ -216,7 +216,7 @@ def build_product_entry_manifest(
                 "on": "progress_refresh",
             },
         ],
-        entry_nodes=["step:open_entry_status"],
+        entry_nodes=["step:open_product_entry"],
         exit_nodes=["step:continue_study", "step:inspect_progress"],
         human_gates=[
             {
@@ -280,13 +280,13 @@ def build_product_entry_manifest(
     phase5_platform_target = _build_phase5_platform_target()
     product_entry_quickstart = _build_shared_product_entry_quickstart(
         summary=(
-            "先从 product entry status 进入当前 research frontdoor，"
+            "先从 product entry status 进入当前 research product entry，"
             "需要新任务时先写 durable study task intake，再继续某个 study 或读取进度。"
         ),
-        recommended_step_id="open_entry_status",
+        recommended_step_id="open_product_entry",
         steps=[
             {
-                "step_id": "open_entry_status",
+                "step_id": "open_product_entry",
                 "title": "打开 MAS 入口状态",
                 "command": product_entry_shell["product_entry_status"]["command"],
                 "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
@@ -326,29 +326,31 @@ def build_product_entry_manifest(
         operator_loop_actions=operator_loop_actions,
         family_orchestration=family_orchestration,
     )
-    product_entry_overview = _build_shared_product_entry_overview(
-        summary=(
+    product_entry_status_command = product_entry_shell["product_entry_status"]["command"]
+    product_entry_overview = {
+        "surface_kind": "product_entry_overview",
+        "summary": (
             mainline_snapshot.get("current_stage_summary")
             or mainline_snapshot.get("current_program_phase_summary")
         ),
-        frontdoor_command=product_entry_shell["product_entry_status"]["command"],
-        recommended_command=product_entry_shell["workspace_cockpit"]["command"],
-        operator_loop_command=product_entry_shell["workspace_cockpit"]["command"],
-        progress_surface={
+        "product_entry_command": product_entry_status_command,
+        "entry_status_command": product_entry_status_command,
+        "recommended_command": product_entry_shell["workspace_cockpit"]["command"],
+        "operator_loop_command": product_entry_shell["workspace_cockpit"]["command"],
+        "progress_surface": {
             "surface_kind": "study_progress",
             "command": product_entry_shell["study_progress"]["command"],
             "step_id": "inspect_progress",
         },
-        resume_surface=_build_shared_product_entry_resume_surface(
+        "resume_surface": _build_shared_product_entry_resume_surface(
             command=product_entry_shell["launch_study"]["command"],
             resume_contract=family_orchestration["resume_contract"],
         ),
-        recommended_step_id=product_entry_quickstart["recommended_step_id"],
-        next_focus=list(mainline_snapshot.get("next_focus") or []),
-        remaining_gaps_count=len(list(mainline_payload.get("remaining_gaps") or [])),
-        human_gate_ids=list(product_entry_quickstart["human_gate_ids"]),
-    )
-    product_entry_overview["entry_status_command"] = product_entry_overview["frontdoor_command"]
+        "recommended_step_id": product_entry_quickstart["recommended_step_id"],
+        "next_focus": list(mainline_snapshot.get("next_focus") or []),
+        "remaining_gaps_count": len(list(mainline_payload.get("remaining_gaps") or [])),
+        "human_gate_ids": list(product_entry_quickstart["human_gate_ids"]),
+    }
     product_entry_readiness = _build_shared_product_entry_readiness(
         verdict="runtime_ready_not_standalone_product",
         usable_now=True,
@@ -504,7 +506,7 @@ def build_product_entry_manifest(
         managed_runtime_contract=managed_runtime_contract,
         repo_mainline=repo_mainline,
         product_entry_status=product_entry_status,
-        frontdoor_surface=entry_status_surface,
+        product_entry_surface=entry_status_surface,
         operator_loop_surface=operator_loop_surface,
         operator_loop_actions=operator_loop_actions,
         recommended_shell="workspace_cockpit",
@@ -530,7 +532,7 @@ def build_product_entry_manifest(
         remaining_gaps=list(mainline_payload.get("remaining_gaps") or []),
         schema_ref=PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
         domain_entry_contract=domain_entry_contract,
-        gateway_interaction_contract=gateway_interaction_contract,
+        user_interaction_contract=user_interaction_contract,
         notes=[
             "This manifest freezes the current MAS repo-tracked research product-entry shell only.",
             "It does not include the display / paper-figure asset line.",
@@ -579,13 +581,6 @@ def build_product_entry_manifest(
             ),
         },
     )
-    if isinstance(payload.get("frontdoor_surface"), dict):
-        payload["entry_status_surface"] = dict(payload["frontdoor_surface"])
-    if isinstance(payload.get("product_entry_overview"), dict):
-        product_entry_overview_payload = dict(payload["product_entry_overview"])
-        if product_entry_overview_payload.get("frontdoor_command") is not None:
-            product_entry_overview_payload["entry_status_command"] = product_entry_overview_payload["frontdoor_command"]
-        payload["product_entry_overview"] = product_entry_overview_payload
     validate_product_entry_manifest_contract(payload)
     return payload
 
@@ -626,19 +621,13 @@ def build_product_entry_status(
 ) -> dict[str, Any]:
     build_product_entry_manifest_fn = _controller_override("build_product_entry_manifest", build_product_entry_manifest)
     read_workspace_cockpit_fn = _controller_override("read_workspace_cockpit", read_workspace_cockpit)
-    build_family_product_entry_status_from_manifest = _controller_override(
-        "_build_shared_family_product_entry_status_from_manifest",
-        _build_shared_family_product_entry_status_from_manifest,
-    )
     validate_product_entry_status_contract = _controller_override(
         "_validate_product_entry_status_contract",
         _validate_product_entry_status_contract,
     )
-    manifest = _with_shared_frontdoor_aliases(
-        build_product_entry_manifest_fn(
-            profile=profile,
-            profile_ref=profile_ref,
-        )
+    manifest = build_product_entry_manifest_fn(
+        profile=profile,
+        profile_ref=profile_ref,
     )
     workspace_cockpit = read_workspace_cockpit_fn(
         profile=profile,
@@ -733,96 +722,122 @@ def build_product_entry_status(
         if current_focus is not None:
             operator_brief["current_focus"] = current_focus
 
-    payload = build_family_product_entry_status_from_manifest(
-        recommended_action="inspect_or_prepare_research_loop",
-        product_entry_manifest=manifest,
-        shell_aliases={
-            "entry_status": "product_entry_status",
-            "cockpit": "workspace_cockpit",
-            "submit_task": "submit_study_task",
-            "launch_study": "launch_study",
-            "study_progress": "study_progress",
-            "mainline_status": "mainline_status",
-            "mainline_phase": "mainline_phase",
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": PRODUCT_ENTRY_STATUS_KIND,
+        "recommended_action": "inspect_or_prepare_research_loop",
+        "target_domain_id": manifest.get("target_domain_id"),
+        "workspace_locator": dict(manifest.get("workspace_locator") or {}),
+        "runtime": dict(manifest.get("runtime") or {}),
+        "product_entry_status": dict(manifest.get("product_entry_status") or {}),
+        "product_entry_surface": dict(manifest.get("product_entry_surface") or {}),
+        "entry_status_surface": dict(manifest.get("entry_status_surface") or {}),
+        "operator_loop_surface": dict(manifest.get("operator_loop_surface") or {}),
+        "operator_loop_actions": dict(manifest.get("operator_loop_actions") or {}),
+        "product_entry_start": dict(manifest.get("product_entry_start") or {}),
+        "product_entry_overview": dict(manifest.get("product_entry_overview") or {}),
+        "product_entry_preflight": product_entry_preflight,
+        "product_entry_readiness": dict(manifest.get("product_entry_readiness") or {}),
+        "product_entry_quickstart": product_entry_quickstart,
+        "family_orchestration": dict(manifest.get("family_orchestration") or {}),
+        "product_entry_manifest": manifest,
+        "entry_surfaces": {
+            "entry_status": dict(product_entry_shell.get("product_entry_status") or {}),
+            "cockpit": dict(product_entry_shell.get("workspace_cockpit") or {}),
+            "submit_task": dict(product_entry_shell.get("submit_study_task") or {}),
+            "launch_study": dict(product_entry_shell.get("launch_study") or {}),
+            "study_progress": dict(product_entry_shell.get("study_progress") or {}),
+            "mainline_status": dict(product_entry_shell.get("mainline_status") or {}),
+            "mainline_phase": dict(product_entry_shell.get("mainline_phase") or {}),
+            "direct_entry_builder": dict(shared_handoff.get("direct_entry_builder") or {}),
+            "opl_handoff_builder": dict(shared_handoff.get("opl_handoff_builder") or {}),
         },
-        schema_ref=PRODUCT_ENTRY_STATUS_SCHEMA_REF,
-        notes=[
-            "This entry_status surface is a controller-owned front door over the current research product-entry shell.",
+        "summary": {
+            "product_entry_command": _non_empty_text(
+                (manifest.get("product_entry_overview") or {}).get("product_entry_command")
+            )
+            or _non_empty_text((manifest.get("product_entry_overview") or {}).get("entry_status_command"))
+            or _non_empty_text((product_entry_shell.get("product_entry_status") or {}).get("command")),
+            "entry_status_command": _non_empty_text(
+                (manifest.get("product_entry_overview") or {}).get("entry_status_command")
+            )
+            or _non_empty_text((product_entry_shell.get("product_entry_status") or {}).get("command")),
+            "recommended_command": _non_empty_text((manifest.get("summary") or {}).get("recommended_command"))
+            or _non_empty_text(manifest.get("recommended_command")),
+            "operator_loop_command": _non_empty_text(
+                (manifest.get("product_entry_overview") or {}).get("operator_loop_command")
+            )
+            or _non_empty_text((product_entry_shell.get("workspace_cockpit") or {}).get("command")),
+        },
+        "schema_ref": PRODUCT_ENTRY_STATUS_SCHEMA_REF,
+        "domain_entry_contract": dict(manifest.get("domain_entry_contract") or {}),
+        "user_interaction_contract": dict(manifest.get("user_interaction_contract") or {}),
+        "notes": [
+            "This entry_status surface is a controller-owned product entry over the current research product-entry shell.",
             "It does not claim that a mature standalone medical frontend is already landed.",
             "It does not include the display / paper-figure asset line.",
         ],
-        extra_payload={
-            "schema_version": SCHEMA_VERSION,
-            "single_project_boundary": single_project_boundary,
-            "capability_owner_boundary": capability_owner_boundary,
-            "executor_defaults": dict(manifest.get("executor_defaults") or {}),
-            "runtime_inventory": dict(manifest.get("runtime_inventory") or {}),
-            "task_lifecycle": dict(manifest.get("task_lifecycle") or {}),
-            "skill_catalog": dict(manifest.get("skill_catalog") or {}),
-            "automation": dict(manifest.get("automation") or {}),
-            "phase2_user_product_loop": dict(manifest.get("phase2_user_product_loop") or {}),
-            "product_entry_guardrails": dict(manifest.get("product_entry_guardrails") or {}),
-            "phase3_clearance_lane": dict(manifest.get("phase3_clearance_lane") or {}),
-            "phase4_backend_deconstruction": dict(manifest.get("phase4_backend_deconstruction") or {}),
-            "operator_brief": operator_brief,
-            "workspace_operator_brief": workspace_operator_brief,
-            "workspace_ai_first_operations_state": dict(
-                workspace_cockpit.get("ai_first_operations_state") or {}
-            ),
-            "workspace_paper_orchestra_operator_projection": dict(
-                workspace_cockpit.get("paper_orchestra_operator_projection") or {}
-            ),
-            "workspace_open_auto_research_projection": _manifest_open_auto_research_projection(
-                workspace_cockpit.get("open_auto_research_projection")
-            ),
-            "workspace_medical_paper_ops_health": dict(
-                workspace_cockpit.get("medical_paper_ops_health_state") or {}
-            ),
-            "workspace_medical_paper_readiness": dict(
-                workspace_cockpit.get("medical_paper_readiness_state") or {}
-            ),
-            "workspace_medical_paper_research_loop": _workspace_medical_paper_research_loop_manifest(
-                workspace_cockpit
-            ),
-            "workspace_delivery_inspection": _workspace_delivery_inspection_manifest(workspace_cockpit),
-            "workspace_portable_supervisor_queue_dashboard": _manifest_portable_supervisor_queue_dashboard(
-                workspace_cockpit.get("portable_supervisor_queue_dashboard")
-            ),
-            "workspace_ai_first_feedback_state": {
-                "surface_kind": "workspace_ai_first_feedback_state",
-                "authority": "observability_only",
-                "counts": dict((workspace_cockpit.get("ai_first_operations_state") or {}).get("counts") or {}),
-                "study_feedback": [
-                    {
-                        "study_id": item.get("study_id"),
-                        "feedback_state": dict(item.get("ai_first_feedback_state") or {}),
-                    }
-                    for item in (workspace_cockpit.get("studies") or [])
-                    if isinstance(item, Mapping) and item.get("ai_first_feedback_state")
-                ],
-            },
-            "workspace_attention_queue_preview": list((workspace_cockpit.get("attention_queue") or []))[:3],
-            "workspace_truth_snapshots": [
-                dict(item["study_truth_snapshot"])
+        "single_project_boundary": single_project_boundary,
+        "capability_owner_boundary": capability_owner_boundary,
+        "executor_defaults": dict(manifest.get("executor_defaults") or {}),
+        "runtime_inventory": dict(manifest.get("runtime_inventory") or {}),
+        "task_lifecycle": dict(manifest.get("task_lifecycle") or {}),
+        "skill_catalog": dict(manifest.get("skill_catalog") or {}),
+        "automation": dict(manifest.get("automation") or {}),
+        "phase2_user_product_loop": dict(manifest.get("phase2_user_product_loop") or {}),
+        "product_entry_guardrails": dict(manifest.get("product_entry_guardrails") or {}),
+        "phase3_clearance_lane": dict(manifest.get("phase3_clearance_lane") or {}),
+        "phase4_backend_deconstruction": dict(manifest.get("phase4_backend_deconstruction") or {}),
+        "operator_brief": operator_brief,
+        "workspace_operator_brief": workspace_operator_brief,
+        "workspace_ai_first_operations_state": dict(
+            workspace_cockpit.get("ai_first_operations_state") or {}
+        ),
+        "workspace_paper_orchestra_operator_projection": dict(
+            workspace_cockpit.get("paper_orchestra_operator_projection") or {}
+        ),
+        "workspace_open_auto_research_projection": _manifest_open_auto_research_projection(
+            workspace_cockpit.get("open_auto_research_projection")
+        ),
+        "workspace_medical_paper_ops_health": dict(
+            workspace_cockpit.get("medical_paper_ops_health_state") or {}
+        ),
+        "workspace_medical_paper_readiness": dict(
+            workspace_cockpit.get("medical_paper_readiness_state") or {}
+        ),
+        "workspace_medical_paper_research_loop": _workspace_medical_paper_research_loop_manifest(
+            workspace_cockpit
+        ),
+        "workspace_delivery_inspection": _workspace_delivery_inspection_manifest(workspace_cockpit),
+        "workspace_portable_supervisor_queue_dashboard": _manifest_portable_supervisor_queue_dashboard(
+            workspace_cockpit.get("portable_supervisor_queue_dashboard")
+        ),
+        "workspace_ai_first_feedback_state": {
+            "surface_kind": "workspace_ai_first_feedback_state",
+            "authority": "observability_only",
+            "counts": dict((workspace_cockpit.get("ai_first_operations_state") or {}).get("counts") or {}),
+            "study_feedback": [
+                {
+                    "study_id": item.get("study_id"),
+                    "feedback_state": dict(item.get("ai_first_feedback_state") or {}),
+                }
                 for item in (workspace_cockpit.get("studies") or [])
-                if isinstance(item, Mapping) and isinstance(item.get("study_truth_snapshot"), Mapping)
+                if isinstance(item, Mapping) and item.get("ai_first_feedback_state")
             ],
-            "workspace_runtime_health_snapshots": [
-                dict(item["runtime_health_snapshot"])
-                for item in (workspace_cockpit.get("studies") or [])
-                if isinstance(item, Mapping) and isinstance(item.get("runtime_health_snapshot"), Mapping)
-            ],
-            "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
         },
-    )
-    payload["surface_kind"] = PRODUCT_ENTRY_STATUS_KIND
-    if isinstance(payload.get("frontdoor_surface"), dict):
-        payload["entry_status_surface"] = dict(payload["frontdoor_surface"])
-    if isinstance(payload.get("summary"), dict):
-        summary = dict(payload["summary"])
-        if summary.get("frontdoor_command") is not None:
-            summary["entry_status_command"] = summary["frontdoor_command"]
-        payload["summary"] = summary
+        "workspace_attention_queue_preview": list((workspace_cockpit.get("attention_queue") or []))[:3],
+        "workspace_truth_snapshots": [
+            dict(item["study_truth_snapshot"])
+            for item in (workspace_cockpit.get("studies") or [])
+            if isinstance(item, Mapping) and isinstance(item.get("study_truth_snapshot"), Mapping)
+        ],
+        "workspace_runtime_health_snapshots": [
+            dict(item["runtime_health_snapshot"])
+            for item in (workspace_cockpit.get("studies") or [])
+            if isinstance(item, Mapping) and isinstance(item.get("runtime_health_snapshot"), Mapping)
+        ],
+        "phase5_platform_target": dict(manifest.get("phase5_platform_target") or {}),
+    }
     validate_product_entry_status_contract(payload)
     return payload
 

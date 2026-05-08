@@ -24,7 +24,7 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
     repo_mainline = dict(payload.get("repo_mainline") or {})
     product_entry_shell = dict(payload.get("product_entry_shell") or {})
     shared_handoff = dict(payload.get("shared_handoff") or {})
-    gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
+    user_interaction_contract = dict(payload.get("user_interaction_contract") or {})
     phase2_user_product_loop = dict(payload.get("phase2_user_product_loop") or {})
     product_entry_guardrails = dict(payload.get("product_entry_guardrails") or {})
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
@@ -43,8 +43,8 @@ def render_product_entry_manifest_markdown(payload: dict[str, Any]) -> str:
         f"- 当前 program phase: `{repo_mainline.get('current_program_phase_id')}`",
         f"- 当前主线阶段: `{repo_mainline.get('current_stage_id')}`",
         f"- 程序摘要: {repo_mainline.get('summary') or 'none'}",
-        f"- 前台入口归属: `{gateway_interaction_contract.get('frontdoor_owner') or 'none'}`",
-        f"- 交互模式: {_user_interaction_mode_label(gateway_interaction_contract.get('user_interaction_mode'))}",
+        f"- 产品入口归属: `{user_interaction_contract.get('entry_owner') or 'none'}`",
+        f"- 交互模式: {_user_interaction_mode_label(user_interaction_contract.get('user_interaction_mode'))}",
         "",
         "## Product Entry Shell",
         "",
@@ -146,7 +146,7 @@ def _workspace_delivery_inspection_payload(payload: Mapping[str, Any]) -> dict[s
 
 def render_product_entry_status_markdown(payload: dict[str, Any]) -> str:
     entry_surfaces = dict(payload.get("entry_surfaces") or {})
-    gateway_interaction_contract = dict(payload.get("gateway_interaction_contract") or {})
+    user_interaction_contract = dict(payload.get("user_interaction_contract") or {})
     phase2_user_product_loop = dict(payload.get("phase2_user_product_loop") or {})
     product_entry_guardrails = dict(payload.get("product_entry_guardrails") or {})
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
@@ -176,9 +176,9 @@ def render_product_entry_status_markdown(payload: dict[str, Any]) -> str:
         "",
         f"- 目标域: `{payload.get('target_domain_id')}`",
         f"- 契约引用: `{payload.get('schema_ref') or 'none'}`",
-        f"- 前台归属: `{gateway_interaction_contract.get('frontdoor_owner') or 'none'}`",
-        f"- 交互模式: `{gateway_interaction_contract.get('user_interaction_mode') or 'none'}`",
-        f"- 前台入口命令: `{(payload.get('summary') or {}).get('entry_status_command') or 'none'}`",
+        f"- 产品入口归属: `{user_interaction_contract.get('entry_owner') or 'none'}`",
+        f"- 交互模式: `{user_interaction_contract.get('user_interaction_mode') or 'none'}`",
+        f"- 产品入口命令: `{(payload.get('summary') or {}).get('product_entry_command') or (payload.get('summary') or {}).get('entry_status_command') or 'none'}`",
         f"- 推荐继续命令: `{(payload.get('summary') or {}).get('recommended_command') or 'none'}`",
         f"- 当前 loop 命令: `{(payload.get('summary') or {}).get('operator_loop_command') or 'none'}`",
         "",

@@ -250,7 +250,7 @@ def test_render_product_entry_status_markdown_shows_quality_repair_followthrough
         in markdown
     )
 
-def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_contract_shape(
+def test_product_entry_manifest_fails_closed_on_invalid_user_interaction_contract_shape(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -279,14 +279,14 @@ def test_product_entry_manifest_fails_closed_on_invalid_gateway_interaction_cont
     )
     monkeypatch.setattr(
         module,
-        "_build_gateway_interaction_contract",
+        "_build_user_interaction_contract",
         lambda: {
-            "surface_kind": "gateway_interaction_contract",
-            "frontdoor_owner": "",
+            "surface_kind": "user_interaction_contract",
+            "entry_owner": "",
         },
     )
 
-    with pytest.raises(ValueError, match="gateway_interaction_contract"):
+    with pytest.raises(ValueError, match="user_interaction_contract"):
         module.build_product_entry_manifest(
             profile=profile,
             profile_ref=profile_ref,

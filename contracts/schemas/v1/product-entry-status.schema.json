@@ -11,7 +11,8 @@
     "target_domain_id",
     "single_project_boundary",
     "domain_entry_contract",
-    "gateway_interaction_contract",
+    "user_interaction_contract",
+    "product_entry_surface",
     "entry_status_surface",
     "operator_loop_surface",
     "product_entry_manifest"
@@ -29,8 +30,8 @@
     "single_project_boundary": {
       "$ref": "./product-entry-manifest.schema.json#/$defs/singleProjectBoundary"
     },
-    "gateway_interaction_contract": {
-      "$ref": "./product-entry-manifest.schema.json#/$defs/gatewayInteractionContract"
+    "user_interaction_contract": {
+      "$ref": "./product-entry-manifest.schema.json#/$defs/userInteractionContract"
     }
   }
 }

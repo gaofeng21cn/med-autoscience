@@ -17,8 +17,9 @@ from med_autoscience.domain_entry_contract import (
     PRODUCT_ENTRY_STATUS_SCHEMA_REF,
     SERVICE_SAFE_ENTRY_ADAPTER,
     build_domain_entry_contract as _build_domain_entry_contract,
-    build_gateway_interaction_contract as _build_gateway_interaction_contract,
     build_shared_handoff as _build_shared_handoff,
+    build_user_interaction_contract as _build_user_interaction_contract,
+    validate_user_interaction_contract as _validate_shared_user_interaction_contract,
 )
 from med_autoscience.doctor import build_doctor_report
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
@@ -44,10 +45,8 @@ from opl_harness_shared.family_orchestration import (
 )
 from opl_harness_shared.family_entry_contracts import (
     validate_family_domain_entry_contract as _validate_shared_family_domain_entry_contract,
-    validate_gateway_interaction_contract as _validate_shared_gateway_interaction_contract,
 )
 from opl_harness_shared.product_entry_companions import (
-    build_family_product_frontdoor_from_manifest as _build_shared_family_product_entry_status_from_manifest,
     build_family_product_entry_manifest as _build_shared_family_product_entry_manifest,
     build_operator_loop_action_catalog as _build_shared_operator_loop_action_catalog,
     build_product_entry_start as _build_shared_product_entry_start,
@@ -58,8 +57,6 @@ from opl_harness_shared.product_entry_companions import (
     build_product_entry_shell_catalog as _build_shared_product_entry_shell_catalog,
     build_product_entry_shell_linked_surface as _build_shared_product_entry_shell_linked_surface,
     collect_family_human_gate_ids as _collect_family_human_gate_ids,
-    validate_family_product_frontdoor as _validate_shared_family_product_entry_status,
-    validate_family_product_entry_manifest as _validate_shared_family_product_entry_manifest,
 )
 from opl_harness_shared.product_entry_program_companions import (
     build_backend_deconstruction_lane as _build_shared_backend_deconstruction_lane,
@@ -162,8 +159,8 @@ def _validate_domain_entry_contract_shape(contract: Mapping[str, Any], *, contex
     _validate_shared_family_domain_entry_contract(contract, context)
 
 
-def _validate_gateway_interaction_contract_shape(contract: Mapping[str, Any], *, context: str) -> None:
-    _validate_shared_gateway_interaction_contract(contract, context)
+def _validate_user_interaction_contract_shape(contract: Mapping[str, Any], *, context: str) -> None:
+    _validate_shared_user_interaction_contract(dict(contract), context)
 
 
 def _validate_surface_kind_mapping(
@@ -181,31 +178,26 @@ def _validate_surface_kind_mapping(
         )
 
 
-def _with_shared_frontdoor_aliases(payload: Mapping[str, Any]) -> dict[str, Any]:
-    normalized = dict(payload)
-    if "frontdoor_surface" not in normalized and isinstance(
-        normalized.get("entry_status_surface"),
-        Mapping,
-    ):
-        normalized["frontdoor_surface"] = dict(normalized["entry_status_surface"])
-
-    overview = normalized.get("product_entry_overview")
-    if isinstance(overview, Mapping):
-        normalized_overview = dict(overview)
-        if (
-            "frontdoor_command" not in normalized_overview
-            and normalized_overview.get("entry_status_command") is not None
-        ):
-            normalized_overview["frontdoor_command"] = normalized_overview["entry_status_command"]
-        normalized["product_entry_overview"] = normalized_overview
-    return normalized
-
-
 def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> None:
-    _validate_shared_family_product_entry_manifest(
-        _with_shared_frontdoor_aliases(payload),
-        require_contract_bundle=True,
-        require_runtime_companions=True,
+    _validate_surface_kind_mapping(
+        payload,
+        field="product_entry_surface",
+        expected_surface_kind=PRODUCT_ENTRY_STATUS_KIND,
+        context="product_entry_manifest",
+    )
+    _validate_surface_kind_mapping(
+        payload,
+        field="operator_loop_surface",
+        expected_surface_kind="workspace_cockpit",
+        context="product_entry_manifest",
+    )
+    _validate_domain_entry_contract_shape(
+        _require_mapping(payload, "domain_entry_contract", context="product_entry_manifest"),
+        context="product_entry_manifest.domain_entry_contract",
+    )
+    _validate_user_interaction_contract_shape(
+        _require_mapping(payload, "user_interaction_contract", context="product_entry_manifest"),
+        context="product_entry_manifest.user_interaction_contract",
     )
     _validate_single_project_boundary(
         payload.get("single_project_boundary"),
@@ -218,11 +210,28 @@ def _validate_product_entry_manifest_contract(payload: Mapping[str, Any]) -> Non
 
 
 def _validate_product_entry_status_contract(payload: Mapping[str, Any]) -> None:
-    shared_payload = _with_shared_frontdoor_aliases(payload)
-    shared_payload["surface_kind"] = "product_frontdoor"
-    _validate_shared_family_product_entry_status(
-        shared_payload,
-        require_contract_bundle=True,
+    surface_kind = _require_nonempty_string_from_mapping(payload, "surface_kind", context="product_entry_status")
+    if surface_kind != PRODUCT_ENTRY_STATUS_KIND:
+        raise ValueError(f"product_entry_status.surface_kind 必须是 {PRODUCT_ENTRY_STATUS_KIND}。")
+    _validate_surface_kind_mapping(
+        payload,
+        field="product_entry_surface",
+        expected_surface_kind=PRODUCT_ENTRY_STATUS_KIND,
+        context="product_entry_status",
+    )
+    _validate_surface_kind_mapping(
+        payload,
+        field="operator_loop_surface",
+        expected_surface_kind="workspace_cockpit",
+        context="product_entry_status",
+    )
+    _validate_domain_entry_contract_shape(
+        _require_mapping(payload, "domain_entry_contract", context="product_entry_status"),
+        context="product_entry_status.domain_entry_contract",
+    )
+    _validate_user_interaction_contract_shape(
+        _require_mapping(payload, "user_interaction_contract", context="product_entry_status"),
+        context="product_entry_status.user_interaction_contract",
     )
     _validate_single_project_boundary(
         payload.get("single_project_boundary"),

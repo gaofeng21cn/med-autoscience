@@ -12,7 +12,6 @@ from opl_harness_shared.family_entry_contracts import (
     build_domain_entry_command_catalog as _build_shared_domain_entry_command_catalog,
     build_family_direct_opl_shared_handoff as _build_shared_family_direct_opl_shared_handoff,
     build_family_domain_entry_contract as _build_shared_family_domain_entry_contract,
-    build_family_gateway_interaction_contract as _build_shared_family_gateway_interaction_contract,
 )
 
 from med_autoscience.control_plane_command_catalog import (
@@ -27,6 +26,14 @@ PRODUCT_ENTRY_BUILDER_COMMAND = "build-product-entry"
 PRODUCT_ENTRY_MANIFEST_SCHEMA_REF = "contracts/schemas/v1/product-entry-manifest.schema.json"
 PRODUCT_ENTRY_STATUS_SCHEMA_REF = "contracts/schemas/v1/product-entry-status.schema.json"
 SUPPORTED_PRODUCT_ENTRY_MODES = ("direct", "opl-handoff")
+DEFAULT_USER_INTERACTION_SHARED_HANDOFF_ENVELOPE = (
+    "target_domain_id",
+    "task_intent",
+    "entry_mode",
+    "workspace_locator",
+    "runtime_session_contract",
+    "return_surface_contract",
+)
 
 
 @dataclass(frozen=True)
@@ -117,10 +124,45 @@ def build_domain_entry_contract() -> dict[str, Any]:
     )
 
 
-def build_gateway_interaction_contract() -> dict[str, Any]:
-    return _build_shared_family_gateway_interaction_contract(
-        shared_downstream_entry=SERVICE_SAFE_ENTRY_ADAPTER,
+def build_user_interaction_contract() -> dict[str, Any]:
+    return {
+        "surface_kind": "user_interaction_contract",
+        "entry_owner": "opl_product_entry_or_domain_gui",
+        "user_interaction_mode": "natural_language_entry",
+        "user_commands_required": False,
+        "command_surfaces_for_agent_consumption_only": True,
+        "shared_downstream_entry": SERVICE_SAFE_ENTRY_ADAPTER,
+        "shared_handoff_envelope": list(DEFAULT_USER_INTERACTION_SHARED_HANDOFF_ENVELOPE),
+    }
+
+
+def validate_user_interaction_contract(value: object, field: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{field} 必须是 mapping。")
+    payload = dict(value)
+    required_string_fields = (
+        "surface_kind",
+        "entry_owner",
+        "user_interaction_mode",
+        "shared_downstream_entry",
     )
+    for name in required_string_fields:
+        if not str(payload.get(name) or "").strip():
+            raise ValueError(f"{field}.{name} 必须是非空字符串。")
+    for name in ("user_commands_required", "command_surfaces_for_agent_consumption_only"):
+        if not isinstance(payload.get(name), bool):
+            raise ValueError(f"{field}.{name} 必须是 boolean。")
+    envelope = payload.get("shared_handoff_envelope")
+    if not isinstance(envelope, list) or not all(isinstance(item, str) and item for item in envelope):
+        raise ValueError(f"{field}.shared_handoff_envelope 必须是非空字符串列表。")
+    return {
+        **payload,
+        "surface_kind": str(payload["surface_kind"]),
+        "entry_owner": str(payload["entry_owner"]),
+        "user_interaction_mode": str(payload["user_interaction_mode"]),
+        "shared_downstream_entry": str(payload["shared_downstream_entry"]),
+        "shared_handoff_envelope": list(envelope),
+    }
 
 
 def build_shared_handoff(

@@ -79,7 +79,7 @@ def test_external_caller_can_consume_domain_entry_contract_without_repo_local_he
     product_entry_module.submit_study_task(
         profile=profile,
         study_id="001-risk",
-        task_intent="继续用统一 frontdoor contract 驱动 MAS，而不是暴露底层命令。",
+        task_intent="继续用统一 product entry contract 驱动 MAS，而不是暴露底层命令。",
         entry_mode="full_research",
     )
 

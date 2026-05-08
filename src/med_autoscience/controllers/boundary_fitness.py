@@ -23,7 +23,7 @@ DEFAULT_BASELINE = {
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": 1289,
     "tests/product_entry_cases/repo_shell_and_handoff_templates.py": 1265,
     "src/med_autoscience/controllers/workspace_init.py": 1186,
-    "tests/product_entry_cases/frontdoor_preflight_and_task_submission.py": 1180,
+    "tests/product_entry_cases/product_entry_preflight_and_task_submission.py": 1180,
     "src/med_autoscience/controllers/study_progress_parts/projection.py": 1155,
     "src/med_autoscience/runtime_transport/med_deepscientist.py": 1146,
     "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py": 1122,

@@ -520,7 +520,7 @@ def test_product_start_command_dispatches_product_entry_controller(monkeypatch, 
     def fake_build_product_entry_start(*, profile, profile_ref) -> dict:
         called["profile"] = profile
         called["profile_ref"] = profile_ref
-        return {"surface_kind": "product_entry_start", "recommended_mode_id": "open_entry_status"}
+        return {"surface_kind": "product_entry_start", "recommended_mode_id": "open_product_entry"}
 
     monkeypatch.setattr(cli.product_entry, "build_product_entry_start", fake_build_product_entry_start)
 
