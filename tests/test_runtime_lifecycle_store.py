@@ -24,6 +24,7 @@ def _expected_table_counts(**overrides: int) -> dict[str, int]:
         "study_macro_state_snapshots": 0,
         "owner_route_receipts": 0,
         "dispatch_receipts": 0,
+        "turn_receipts": 0,
         "surface_refs": 0,
         "report_index": 0,
     }
@@ -774,6 +775,7 @@ def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replac
     assert tables["study_macro_state_snapshots"] == 1
     assert tables["owner_route_receipts"] == 1
     assert tables["dispatch_receipts"] == 1
+    assert tables["turn_receipts"] == 0
     assert tables["surface_refs"] == 1
 
 

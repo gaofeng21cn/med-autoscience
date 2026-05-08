@@ -28,6 +28,7 @@
 
 - 当前仓库跟踪主线继续按 `Auto-only` 理解。
 - 默认执行仍继承本机 `Codex` 配置；仓库侧监管继续围绕外部运行时目标做状态检查和恢复判断。
+- 2026-05-08 Runtime Turn Lifecycle correction 已把旧 MDS daemon 的自动科研连续主循环吸收到 MAS-owned `mas_runtime_core`：`resume_quest` 进入 `schedule_turn(reason=explicit_resume)`，`chat_quest` 持久入队用户消息并触发 turn，runner completion 通过 `complete_turn_and_normalize` 清理 `active_run_id` / `worker_running` 后按 pending user message、human gate、continuation policy 和 terminal state 决定下一 turn。真实 runner 由 `CodexExecTurnRunner` 启动并由 MAS runner monitor 在 subprocess 退出后归一化；`auto_continue` 由 kernel 内部 delayed timer 低延迟消费，同时 `inspect_turn_lifecycle` / `runtime_watch` 保留 crash-recovery drain。`runtime_watch` / supervisor / Hermes cron 只做外层 reconcile、wakeup 和 stale recovery，不再被解释为自动科研主循环 owner。
 - 方向锁定后的普通科研推进、论文质量判断与 `bounded_analysis` 一类有限补充分析默认由 `MAS` 自主完成。
 - 通用研究阶段纪律继续从 upstream `DeepScientist` 方法论学习并在 `MAS` owner surface 中表达；旧 `MDS` base skill 只保留为 source/provenance 或 fixture 参考。医学质量、医学稿件规则、submission hygiene 与 `publication gate` blocker 继续由 `MAS` 的 study charter、overlay、ledger、controller surface 承担。
 - human gate 收口到方向重置、重大 claim 边界变化和投稿前最终审计。

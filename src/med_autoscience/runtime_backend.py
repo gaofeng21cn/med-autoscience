@@ -84,6 +84,34 @@ class ManagedRuntimeBackend(Protocol):
         decision_response: dict[str, Any] | None = None,
     ) -> dict[str, Any]: ...
 
+    def schedule_turn(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        reason: str,
+        source: str,
+    ) -> dict[str, Any]: ...
+
+    def complete_turn_and_normalize(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        runner_status: str,
+        source: str,
+        blocking_decision_request: dict[str, Any] | None = None,
+        same_fingerprint: bool = False,
+    ) -> dict[str, Any]: ...
+
+    def inspect_turn_lifecycle(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+    ) -> dict[str, Any]: ...
+
     def artifact_complete_quest(
         self,
         *,
@@ -122,6 +150,12 @@ _BACKEND_CALLABLE_CONTRACT: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] =
         ("runtime_root", "quest_id", "text", "source"),
         ("reply_to_interaction_id", "decision_response"),
     ),
+    "schedule_turn": (("runtime_root", "quest_id", "reason", "source"), ()),
+    "complete_turn_and_normalize": (
+        ("runtime_root", "quest_id", "run_id", "runner_status", "source"),
+        ("blocking_decision_request", "same_fingerprint"),
+    ),
+    "inspect_turn_lifecycle": (("runtime_root", "quest_id"), ()),
     "artifact_complete_quest": (("runtime_root", "quest_id", "summary"), ()),
     "artifact_interact": (("runtime_root", "quest_id", "payload"), ()),
 }

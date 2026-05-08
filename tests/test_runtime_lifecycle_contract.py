@@ -26,6 +26,7 @@ def test_runtime_lifecycle_contract_exposes_shared_schema_and_authority_boundary
     assert "study_macro_state_snapshots" in contract["sqlite_sidecar_tables"]
     assert "owner_route_receipts" in contract["sqlite_sidecar_tables"]
     assert "dispatch_receipts" in contract["sqlite_sidecar_tables"]
+    assert "turn_receipts" in contract["sqlite_sidecar_tables"]
     assert "surface_refs" in contract["sqlite_sidecar_tables"]
     assert "apply" in contract["migration_run_modes"]
     assert "rollback_plan" in contract["migration_run_modes"]
@@ -42,6 +43,7 @@ def test_runtime_lifecycle_contract_declares_sidecar_index_not_macro_state_autho
         "study_macro_state_snapshot",
         "owner_route_receipt",
         "dispatch_receipt",
+        "turn_receipt",
         "surface_ref",
         "lineage_node",
         "lineage_edge",
@@ -260,6 +262,7 @@ def test_runtime_lifecycle_contract_declares_opl_family_adapter_surface() -> Non
             "study_macro_state_snapshots",
             "owner_route_receipts",
             "dispatch_receipts",
+            "turn_receipts",
             "surface_refs",
             "archive_refs",
             "report_index",

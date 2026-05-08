@@ -4,6 +4,32 @@ import importlib
 import json
 import os
 from pathlib import Path
+import sqlite3
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _fake_available_turn_runner():
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+
+    class AvailableRunner:
+        def start_turn(self, **kwargs):
+            return {
+                "runner_kind": "fake",
+                "start_mode": "fake_started",
+                "available": True,
+                "live": True,
+            }
+
+    turn_lifecycle.set_turn_runner_for_tests(AvailableRunner())
+    turn_lifecycle.set_delayed_timers_enabled_for_tests(False)
+    try:
+        yield
+    finally:
+        turn_lifecycle.set_delayed_timers_enabled_for_tests(False)
+        turn_lifecycle.reset_turn_runner_for_tests()
+        turn_lifecycle.reset_clock_for_tests()
 
 
 def test_mas_runtime_core_creates_and_resumes_quest_without_external_daemon(tmp_path: Path) -> None:
@@ -28,6 +54,371 @@ def test_mas_runtime_core_creates_and_resumes_quest_without_external_daemon(tmp_
     assert state["external_mds_required"] is False
 
 
+def test_chat_quest_persists_user_message_queue_and_schedules_idle_turn(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+
+    result = module.chat_quest(runtime_root=runtime_root, quest_id="quest-001", text="继续分析", source="test-user")
+
+    quest_root = runtime_root / "quests" / "quest-001"
+    queue = json.loads((quest_root / "artifacts" / "runtime" / "user_message_queue.json").read_text(encoding="utf-8"))
+    state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+
+    assert result["status"] == "scheduled"
+    assert result["scheduled"] is True
+    assert result["started"] is True
+    assert result["turn_reason"] == "user_message"
+    assert queue["pending"] == []
+    assert queue["completed"][0]["content"] == "继续分析"
+    assert queue["completed"][0]["source"] == "test-user"
+    assert queue["completed"][0]["claimed_by_run_id"] == state["active_run_id"]
+    assert state["pending_user_message_count"] == 0
+    assert state["worker_running"] is True
+    assert state["active_run_id"].startswith("mas-run-")
+
+
+def test_schedule_turn_serializes_active_worker_without_second_run(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    first = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+
+    second = module.schedule_turn(runtime_root=runtime_root, quest_id="quest-001", reason="auto_continue", source="test")
+
+    state = json.loads(
+        (runtime_root / "quests" / "quest-001" / ".ds" / "runtime_state.json").read_text(encoding="utf-8")
+    )
+    assert second["status"] == "queued"
+    assert second["scheduled"] is True
+    assert second["started"] is False
+    assert second["queued"] is True
+    assert second["active_run_id"] == first["active_run_id"]
+    assert state["active_run_id"] == first["active_run_id"]
+    assert state["worker_pending"] is True
+    assert state["pending_turn_reason"] == "auto_continue"
+
+
+def test_complete_turn_normalizes_and_prioritizes_queued_user_messages(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+    module.chat_quest(runtime_root=runtime_root, quest_id="quest-001", text="新用户消息", source="test-user")
+
+    result = module.complete_turn_and_normalize(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        run_id=running["active_run_id"],
+        runner_status="succeeded",
+        source="test-runner",
+    )
+
+    state = json.loads(
+        (runtime_root / "quests" / "quest-001" / ".ds" / "runtime_state.json").read_text(encoding="utf-8")
+    )
+    assert result["next_turn"]["reason"] == "queued_user_messages"
+    assert result["next_turn"]["started"] is True
+    assert result["next_turn"]["queued"] is False
+    assert state["status"] == "running"
+    assert state["worker_running"] is True
+    assert state["active_run_id"] != running["active_run_id"]
+    assert state["pending_user_message_count"] == 0
+
+
+def test_complete_turn_auto_policy_schedules_delayed_auto_continue(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+
+    result = module.complete_turn_and_normalize(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        run_id=running["active_run_id"],
+        runner_status="succeeded",
+        source="test-runner",
+    )
+
+    assert result["status"] == "active"
+    assert result["next_turn"]["reason"] == "auto_continue"
+    assert result["next_turn"]["scheduled"] is True
+    assert result["next_turn"]["started"] is False
+    assert result["next_turn"]["delay_seconds"] == 0.2
+
+
+def test_due_delayed_auto_continue_is_drained_by_lifecycle_reconcile(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    try:
+        turn_lifecycle.set_clock_for_tests(lambda: turn_lifecycle.datetime.fromisoformat("2026-05-08T00:00:00+00:00"))
+        running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+        module.complete_turn_and_normalize(
+            runtime_root=runtime_root,
+            quest_id="quest-001",
+            run_id=running["active_run_id"],
+            runner_status="succeeded",
+            source="test-runner",
+        )
+        turn_lifecycle.set_clock_for_tests(lambda: turn_lifecycle.datetime.fromisoformat("2026-05-08T00:00:01+00:00"))
+
+        drained = module.inspect_turn_lifecycle(runtime_root=runtime_root, quest_id="quest-001")
+    finally:
+        turn_lifecycle.reset_clock_for_tests()
+
+    assert drained["status"] == "live"
+    assert drained["drained_delayed_turn"]["reason"] == "auto_continue"
+    assert drained["active_run_id"].startswith("mas-run-")
+
+
+def test_pending_worker_reason_is_drained_before_default_auto_continue(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+    module.schedule_turn(runtime_root=runtime_root, quest_id="quest-001", reason="recovery", source="watch")
+
+    result = module.complete_turn_and_normalize(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        run_id=running["active_run_id"],
+        runner_status="succeeded",
+        source="test-runner",
+    )
+
+    assert result["next_turn"]["reason"] == "recovery"
+    assert result["next_turn"]["started"] is True
+    assert result["next_turn"]["queued"] is False
+
+
+def test_complete_turn_retryable_failure_schedules_backoff_without_second_worker(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+
+    result = module.complete_turn_and_normalize(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        run_id=running["active_run_id"],
+        runner_status="error",
+        source="test-runner",
+    )
+
+    state = json.loads(
+        (runtime_root / "quests" / "quest-001" / ".ds" / "runtime_state.json").read_text(encoding="utf-8")
+    )
+    assert result["status"] == "active"
+    assert result["next_turn"]["reason"] == "retry_backoff"
+    assert result["next_turn"]["started"] is False
+    assert result["next_turn"]["delay_seconds"] == 1.0
+    assert state["active_run_id"] is None
+    assert state["worker_running"] is False
+    assert state["retry_state"] == {
+        "attempt": 1,
+        "max_attempts": 3,
+        "next_delay_seconds": 1.0,
+        "last_runner_status": "error",
+    }
+
+
+def test_same_fingerprint_guard_stops_auto_spin_until_artifact_delta(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+    quest_root = runtime_root / "quests" / "quest-001"
+    state_path = quest_root / ".ds" / "runtime_state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state["same_fingerprint_auto_turn_count"] = 2
+    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    result = module.complete_turn_and_normalize(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        run_id=running["active_run_id"],
+        runner_status="succeeded",
+        source="test-runner",
+        same_fingerprint=True,
+    )
+
+    updated = json.loads(state_path.read_text(encoding="utf-8"))
+    assert result["next_turn"] is None
+    assert updated["same_fingerprint_auto_turn_count"] == 3
+    assert updated["worker_running"] is False
+    assert updated["worker_pending"] is False
+    assert updated["control_intent_lifecycle"] == {
+        "state": "await_artifact_delta_or_gate_replay",
+        "block_reason": "same_fingerprint_no_artifact_delta",
+        "same_fingerprint_auto_turn_count": 3,
+    }
+
+
+def test_complete_turn_writes_turn_receipt_to_lifecycle_sqlite_and_storage_hook(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+    quest_root = runtime_root / "quests" / "quest-001"
+
+    result = module.complete_turn_and_normalize(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        run_id=running["active_run_id"],
+        runner_status="succeeded",
+        source="test-runner",
+    )
+
+    hook = json.loads(
+        (quest_root / "artifacts" / "runtime" / "post_turn_storage_maintenance" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    db_path = quest_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite"
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT run_id, reason, status, idempotency_key FROM turn_receipts WHERE quest_root = ? ORDER BY recorded_at",
+            (str(quest_root.resolve()),),
+        ).fetchall()
+
+    assert result["ok"] is True
+    assert hook["surface"] == "post_turn_storage_maintenance_hook"
+    assert hook["status"] == "recorded"
+    assert hook["run_id"] == running["active_run_id"]
+    assert ("explicit_resume", "started") in {(row[1], row[2]) for row in rows}
+    assert ("explicit_resume", "finished") in {(row[1], row[2]) for row in rows}
+    assert all(row[3].startswith("turn-") for row in rows)
+
+
+def test_complete_turn_waiting_for_user_blocking_decision_stops_without_auto_continue(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+
+    result = module.complete_turn_and_normalize(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        run_id=running["active_run_id"],
+        runner_status="waiting_for_user",
+        source="test-runner",
+        blocking_decision_request={"interaction_id": "decision-001", "question": "continue?"},
+    )
+
+    state = json.loads(
+        (runtime_root / "quests" / "quest-001" / ".ds" / "runtime_state.json").read_text(encoding="utf-8")
+    )
+    assert result["status"] == "waiting_for_user"
+    assert result["next_turn"] is None
+    assert state["active_run_id"] is None
+    assert state["worker_running"] is False
+    assert state["waiting_interaction_id"] == "decision-001"
+
+
+def test_normalization_failure_cleans_live_state_and_records_failure_receipt(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+    quest_root = runtime_root / "quests" / "quest-001"
+
+    def fail_next_turn(**kwargs):
+        raise RuntimeError("next turn scheduler failed")
+
+    monkeypatch.setattr(turn_lifecycle, "_next_turn_after_normalization", fail_next_turn)
+
+    result = module.complete_turn_and_normalize(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        run_id=running["active_run_id"],
+        runner_status="succeeded",
+        source="test-runner",
+    )
+
+    state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    latest_receipt = json.loads((quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json").read_text())
+    assert result["ok"] is False
+    assert result["status"] == "normalization_failed"
+    assert state["active_run_id"] is None
+    assert state["worker_running"] is False
+    assert state["normalization_error"] == "RuntimeError: next turn scheduler failed"
+    assert latest_receipt["status"] == "normalization_failed"
+
+
+def test_inspect_live_runtime_reconciles_stale_state_without_worker_lease(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    quest_root = runtime_root / "quests" / "quest-001"
+    state_path = quest_root / ".ds" / "runtime_state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state.update({"status": "running", "active_run_id": "run-stale", "worker_running": True})
+    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    result = module.inspect_quest_live_runtime(runtime_root=runtime_root, quest_id="quest-001")
+    repaired = json.loads(state_path.read_text(encoding="utf-8"))
+
+    assert result["status"] == "stale"
+    assert result["worker_running"] is False
+    assert result["active_run_id"] is None
+    assert result["stale_active_run_id"] == "run-stale"
+    assert repaired["active_run_id"] is None
+    assert repaired["worker_running"] is False
+    assert repaired["continuation_policy"] == "auto"
+
+
+def test_inspect_live_runtime_treats_stale_worker_heartbeat_as_not_live(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    try:
+        turn_lifecycle.set_clock_for_tests(lambda: turn_lifecycle.datetime.fromisoformat("2026-05-08T00:00:00+00:00"))
+        running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+        turn_lifecycle.set_clock_for_tests(lambda: turn_lifecycle.datetime.fromisoformat("2026-05-08T01:00:01+00:00"))
+
+        result = module.inspect_quest_live_runtime(runtime_root=runtime_root, quest_id="quest-001")
+    finally:
+        turn_lifecycle.reset_clock_for_tests()
+
+    state = json.loads(
+        (runtime_root / "quests" / "quest-001" / ".ds" / "runtime_state.json").read_text(encoding="utf-8")
+    )
+    assert result["status"] == "stale"
+    assert result["stale_active_run_id"] == running["active_run_id"]
+    assert state["active_run_id"] is None
+    assert state["worker_running"] is False
+
+
+def test_runner_unavailable_fails_closed_without_live_worker(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+
+    class UnavailableRunner:
+        def start_turn(self, **kwargs):
+            return {"runner_kind": "fake", "available": False, "fail_closed": True}
+
+    try:
+        turn_lifecycle.set_turn_runner_for_tests(UnavailableRunner())
+        result = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+    finally:
+        turn_lifecycle.reset_turn_runner_for_tests()
+
+    state = json.loads(
+        (runtime_root / "quests" / "quest-001" / ".ds" / "runtime_state.json").read_text(encoding="utf-8")
+    )
+    assert result["ok"] is False
+    assert result["status"] == "runner_unavailable"
+    assert result["started"] is False
+    assert state["active_run_id"] is None
+    assert state["worker_running"] is False
+
+
 def test_mas_runtime_core_live_execution_reads_local_runtime_state(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
     runtime_root = tmp_path / "workspace" / "runtime"
@@ -39,7 +430,7 @@ def test_mas_runtime_core_live_execution_reads_local_runtime_state(tmp_path: Pat
 
     assert result["ok"] is True
     assert result["status"] == "live"
-    assert result["source"] == "mas_runtime_core_local_state"
+    assert result["source"] == "mas_runtime_core_turn_lifecycle"
     assert result["runner_live"] is True
     assert result["bash_live"] is False
     assert result["runtime_audit"]["worker_running"] is True

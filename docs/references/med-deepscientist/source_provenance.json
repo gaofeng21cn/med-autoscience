@@ -85,12 +85,18 @@
       {
         "surface_id": "runtime_core_daemon",
         "title": "Runtime core daemon",
-        "classification": "rewrite_in_mas",
+        "classification": "mas_owned",
         "mds_source_surface": "daemon/session runtime core",
         "mas_target_owner": "Runtime OS",
         "mds_final_role": "external_source_archive_only",
-        "cutover_contract": "MAS Runtime OS owns daemon/session lifecycle; external MDS daemon is not a default dependency.",
-        "owner_boundary": "study_runtime_status/runtime_watch remain MAS-owned runtime truth surfaces.",
+        "cutover_contract": "MAS Runtime OS owns turn lifecycle scheduling, completion normalization, and stale-run recovery; external MDS daemon is not a default dependency.",
+        "owner_boundary": "Runtime Turn Lifecycle Kernel owns per-turn continuation; study_runtime_status/runtime_watch consume MAS-owned runtime truth and act as supervisor/reconcile surfaces.",
+        "parity_proof": {
+          "proof_kind": "turn_lifecycle_kernel",
+          "mas_contract": "mas_runtime_core exposes schedule_turn, complete_turn_and_normalize, inspect_turn_lifecycle, and user-message-triggered scheduling.",
+          "mds_oracle": "MDS daemon schedule_turn plus _normalize_status_after_turn behavior is retained as regression semantics.",
+          "acceptance": "Runner completion clears active_run_id/worker_running, prioritizes queued user messages, schedules delayed auto_continue through the kernel timer, and stops at human/terminal gates."
+        },
         "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
         "authority_claims": [],
         "imports_upstream_history": false,
@@ -131,12 +137,18 @@
       {
         "surface_id": "worker_runner_lifecycle",
         "title": "Worker and runner lifecycle",
-        "classification": "rewrite_in_mas",
+        "classification": "mas_owned",
         "mds_source_surface": "worker runners and liveness loops",
         "mas_target_owner": "Runtime OS",
         "mds_final_role": "external_source_archive_only",
-        "cutover_contract": "MAS-owned runner lifecycle must expose worker state without requiring MDS worker processes.",
-        "owner_boundary": "Controller-authorized runtime actions stay in MAS controller/runtime surfaces.",
+        "cutover_contract": "MAS-owned runner lifecycle exposes worker state, run receipts, leases, idempotency keys, and per-quest serialization without requiring MDS worker processes.",
+        "owner_boundary": "Controller-authorized runtime actions stay in MAS controller/runtime surfaces; runtime_watch may redrive recovery through schedule_turn but does not become the turn owner.",
+        "parity_proof": {
+          "proof_kind": "worker_runner_receipts",
+          "mas_contract": "MasTurnRunner records started/queued/finished receipts, worker leases, claimed user messages, and run ids.",
+          "mds_oracle": "MDS one-worker-per-quest turn worker and active_run_id lifecycle are retained as behavior fixtures.",
+          "acceptance": "An active worker only queues additional turn requests, current-turn completion drains pending worker reasons after queued user messages, stale JSON liveness is reconciled to not live, and recovery redrive creates a MAS turn receipt."
+        },
         "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
         "authority_claims": [],
         "imports_upstream_history": false,
@@ -315,8 +327,8 @@
     ],
     "classification_summary": {
       "surface_count": 10,
-      "mas_owned": 1,
-      "rewrite_in_mas": 4,
+      "mas_owned": 3,
+      "rewrite_in_mas": 2,
       "fixture_only": 2,
       "retire": 2,
       "external_source_archive_only": 1

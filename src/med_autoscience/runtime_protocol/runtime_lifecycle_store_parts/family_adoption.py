@@ -102,6 +102,7 @@ def build_product_entry_adoption_projection(
                     "runtime_snapshots",
                     "snapshot_file_refs",
                     "dispatch_receipts",
+                    "turn_receipts",
                     "archive_refs",
                     "report_index",
                 ],

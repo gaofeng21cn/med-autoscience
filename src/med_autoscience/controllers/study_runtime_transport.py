@@ -14,6 +14,9 @@ __all__ = [
     "_inspect_quest_live_execution",
     "_pause_quest",
     "_resume_quest",
+    "_schedule_turn",
+    "_complete_turn_and_normalize",
+    "_inspect_turn_lifecycle",
     "_update_quest_startup_context",
 ]
 
@@ -86,6 +89,59 @@ def _resume_quest(
         runtime_root=runtime_root,
         quest_id=quest_id,
         source=source,
+    )
+
+
+def _schedule_turn(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    reason: str,
+    source: str,
+    runtime_backend: ManagedRuntimeBackend | None = None,
+) -> dict[str, Any]:
+    backend = runtime_backend or _default_runtime_backend()
+    return backend.schedule_turn(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        reason=reason,
+        source=source,
+    )
+
+
+def _complete_turn_and_normalize(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    runner_status: str,
+    source: str,
+    blocking_decision_request: dict[str, Any] | None = None,
+    same_fingerprint: bool = False,
+    runtime_backend: ManagedRuntimeBackend | None = None,
+) -> dict[str, Any]:
+    backend = runtime_backend or _default_runtime_backend()
+    return backend.complete_turn_and_normalize(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        run_id=run_id,
+        runner_status=runner_status,
+        source=source,
+        blocking_decision_request=blocking_decision_request,
+        same_fingerprint=same_fingerprint,
+    )
+
+
+def _inspect_turn_lifecycle(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    runtime_backend: ManagedRuntimeBackend | None = None,
+) -> dict[str, Any]:
+    backend = runtime_backend or _default_runtime_backend()
+    return backend.inspect_turn_lifecycle(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
     )
 
 

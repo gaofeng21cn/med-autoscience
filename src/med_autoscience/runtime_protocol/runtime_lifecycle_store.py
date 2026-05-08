@@ -528,6 +528,14 @@ def record_dispatch_receipt(
     )
 
 
+def record_turn_receipt(*, quest_root: Path, receipt: Mapping[str, Any], receipt_path: Path, db_path: Path | None = None) -> dict[str, Any]:
+    return sidecar_indexes.record_turn_receipt(
+        connect=_connect, ensure_schema=_ensure_schema, resolve_db_path=_resolve_db_path,
+        quest_lifecycle_store_path=quest_lifecycle_store_path, index_result=_index_result,
+        quest_root=quest_root, receipt=receipt, receipt_path=receipt_path, db_path=db_path,
+    )
+
+
 def record_surface_ref(
     *,
     object_root: Path,
@@ -600,6 +608,7 @@ def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
                 "study_macro_state_snapshots",
                 "owner_route_receipts",
                 "dispatch_receipts",
+                "turn_receipts",
                 "surface_refs",
                 "report_index",
             )
@@ -976,6 +985,7 @@ __all__ = [
     "record_runtime_event",
     "record_runtime_report",
     "record_study_macro_state_snapshot",
+    "record_turn_receipt",
     "record_runtime_snapshot",
     "record_snapshot_file_ref",
     "record_surface_ref",

@@ -12,6 +12,7 @@ SIDECAR_INDEX_TABLE_NAMES = (
     "study_macro_state_snapshots",
     "owner_route_receipts",
     "dispatch_receipts",
+    "turn_receipts",
     "surface_refs",
 )
 
@@ -78,6 +79,26 @@ def ensure_sidecar_index_schema(conn: sqlite3.Connection) -> None:
             payload_json TEXT NOT NULL,
             recorded_at TEXT NOT NULL,
             PRIMARY KEY (quest_root, dispatch_id)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS turn_receipts(
+            quest_root TEXT NOT NULL,
+            run_id TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            source TEXT NOT NULL,
+            status TEXT NOT NULL,
+            idempotency_key TEXT NOT NULL,
+            started INTEGER NOT NULL,
+            queued INTEGER NOT NULL,
+            scheduled INTEGER NOT NULL,
+            recorded_at TEXT NOT NULL,
+            source_path TEXT NOT NULL,
+            payload_sha256 TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            PRIMARY KEY (quest_root, idempotency_key)
         )
         """
     )
@@ -216,6 +237,43 @@ def record_dispatch_receipt(
         ensure_schema(conn)
         _upsert_row(conn, table="dispatch_receipts", conflict_columns=("quest_root", "dispatch_id"), row=row)
     return index_result(db_path=resolved_db_path, indexed_table="dispatch_receipts", indexed_count=1, scope="quest")
+
+
+def record_turn_receipt(
+    *,
+    connect: Any,
+    ensure_schema: Any,
+    resolve_db_path: Any,
+    quest_lifecycle_store_path: Any,
+    index_result: Any,
+    quest_root: Path,
+    receipt: Mapping[str, Any],
+    receipt_path: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    resolved_db_path = resolve_db_path(db_path, default=quest_lifecycle_store_path(resolved_quest_root))
+    resolved_receipt_path = Path(receipt_path).expanduser().resolve()
+    payload_json = _stable_json(receipt)
+    row = {
+        "quest_root": str(resolved_quest_root),
+        "run_id": _require_text("receipt.run_id", receipt.get("run_id")),
+        "reason": _require_text("receipt.reason", receipt.get("reason")),
+        "source": _require_text("receipt.source", receipt.get("source")),
+        "status": _require_text("receipt.status", receipt.get("status")),
+        "idempotency_key": _require_text("receipt.idempotency_key", receipt.get("idempotency_key")),
+        "started": 1 if receipt.get("started") is True else 0,
+        "queued": 1 if receipt.get("queued") is True else 0,
+        "scheduled": 1 if receipt.get("scheduled") is True else 0,
+        "recorded_at": _require_text("receipt.recorded_at", receipt.get("recorded_at")),
+        "source_path": str(resolved_receipt_path),
+        "payload_sha256": _sha256(payload_json),
+        "payload_json": payload_json,
+    }
+    with connect(resolved_db_path) as conn:
+        ensure_schema(conn)
+        _upsert_row(conn, table="turn_receipts", conflict_columns=("quest_root", "idempotency_key"), row=row)
+    return index_result(db_path=resolved_db_path, indexed_table="turn_receipts", indexed_count=1, scope="quest")
 
 
 def record_surface_ref(
@@ -380,4 +438,5 @@ __all__ = [
     "record_owner_route_receipt",
     "record_study_macro_state_snapshot",
     "record_surface_ref",
+    "record_turn_receipt",
 ]

@@ -347,6 +347,33 @@ def chat_quest(
     raise _hosted_operation_unavailable("chat_quest")
 
 
+def schedule_turn(*, runtime_root: Path, quest_id: str, reason: str, source: str) -> dict[str, Any]:
+    resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="schedule_turn")
+    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    raise _hosted_operation_unavailable("schedule_turn")
+
+
+def complete_turn_and_normalize(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    runner_status: str,
+    source: str,
+    blocking_decision_request: dict[str, Any] | None = None,
+    same_fingerprint: bool = False,
+) -> dict[str, Any]:
+    resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="complete_turn_and_normalize")
+    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    raise _hosted_operation_unavailable("complete_turn_and_normalize")
+
+
+def inspect_turn_lifecycle(*, runtime_root: Path, quest_id: str) -> dict[str, Any]:
+    resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="inspect_turn_lifecycle")
+    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    raise _hosted_operation_unavailable("inspect_turn_lifecycle")
+
+
 def artifact_complete_quest(
     *,
     runtime_root: Path,

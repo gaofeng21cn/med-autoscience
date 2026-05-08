@@ -149,3 +149,46 @@ def test_study_runtime_transport_update_startup_context_omits_requested_baseline
 
     assert "requested_baseline_ref" not in seen["update_kwargs"]
     assert "requested_baseline_ref" not in result.to_dict()["snapshot"]
+
+
+def test_study_runtime_transport_exposes_turn_lifecycle_surface(monkeypatch, tmp_path: Path) -> None:
+    transport = importlib.import_module("med_autoscience.controllers.study_runtime_transport")
+    seen: dict[str, object] = {}
+    backend = SimpleNamespace(
+        schedule_turn=lambda **kwargs: (seen.__setitem__("schedule_kwargs", kwargs) or {"ok": True, "status": "running"}),
+        complete_turn_and_normalize=lambda **kwargs: (
+            seen.__setitem__("complete_kwargs", kwargs) or {"ok": True, "status": "active"}
+        ),
+        inspect_turn_lifecycle=lambda **kwargs: (
+            seen.__setitem__("inspect_kwargs", kwargs) or {"ok": True, "status": "none"}
+        ),
+    )
+    monkeypatch.setattr(
+        transport,
+        "_router_module",
+        lambda: SimpleNamespace(managed_runtime_backend=backend),
+    )
+
+    scheduled = transport._schedule_turn(
+        runtime_root=tmp_path / "runtime",
+        quest_id="quest-001",
+        reason="recovery",
+        source="test",
+    )
+    completed = transport._complete_turn_and_normalize(
+        runtime_root=tmp_path / "runtime",
+        quest_id="quest-001",
+        run_id="run-001",
+        runner_status="succeeded",
+        source="runner",
+        same_fingerprint=True,
+    )
+    inspected = transport._inspect_turn_lifecycle(runtime_root=tmp_path / "runtime", quest_id="quest-001")
+
+    assert scheduled["status"] == "running"
+    assert completed["status"] == "active"
+    assert inspected["status"] == "none"
+    assert seen["schedule_kwargs"]["reason"] == "recovery"
+    assert seen["complete_kwargs"]["run_id"] == "run-001"
+    assert seen["complete_kwargs"]["same_fingerprint"] is True
+    assert seen["inspect_kwargs"]["quest_id"] == "quest-001"

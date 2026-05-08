@@ -191,12 +191,17 @@ def test_mds_remaining_surface_inventory_classifies_functional_monolith_surfaces
     assert {surface["classification"] for surface in inventory["remaining_surfaces"]} == set(EXPECTED_CLASSIFICATIONS)
     assert inventory["classification_summary"] == {
         "surface_count": 10,
-        "mas_owned": 1,
-        "rewrite_in_mas": 4,
+        "mas_owned": 3,
+        "rewrite_in_mas": 2,
         "fixture_only": 2,
         "retire": 2,
         "external_source_archive_only": 1,
     }
+    surfaces_by_id = {surface["surface_id"]: surface for surface in inventory["remaining_surfaces"]}
+    assert surfaces_by_id["runtime_core_daemon"]["classification"] == "mas_owned"
+    assert surfaces_by_id["worker_runner_lifecycle"]["classification"] == "mas_owned"
+    assert surfaces_by_id["runtime_core_daemon"]["parity_proof"]["proof_kind"] == "turn_lifecycle_kernel"
+    assert surfaces_by_id["worker_runner_lifecycle"]["parity_proof"]["proof_kind"] == "worker_runner_receipts"
     for surface in inventory["remaining_surfaces"]:
         assert surface["classification"] in EXPECTED_CLASSIFICATIONS
         assert surface["mas_target_owner"]
@@ -285,7 +290,7 @@ def test_mds_behavior_equivalence_validation_blocks_overclaim_and_legacy_runtime
     }
 
 
-def test_mds_capability_cutover_gate_records_functional_monolith_landed_without_quality_authority() -> None:
+def test_mds_capability_cutover_gate_requires_complete_proof_bundle_for_owner_switch() -> None:
     module = importlib.import_module("med_autoscience.controllers.mds_capability_parity")
 
     gate = module.build_mds_capability_cutover_gate()
@@ -294,8 +299,9 @@ def test_mds_capability_cutover_gate_records_functional_monolith_landed_without_
     assert gate["mds_role"] == "frozen_source_archive_or_historical_fixture_only"
     assert gate["mds_quality_authority"] == "none"
     assert gate["quality_authority_rule"] == "mds_can_never_authorize_medical_quality"
-    assert gate["owner_switch_allowed"] is True
-    assert gate["cutover_status"] == "landed_functional_monolith"
+    assert gate["owner_switch_allowed"] is False
+    assert gate["cutover_status"] == "blocked_pending_parity_proof_bundle"
+    assert gate["proof_bundle_status"] == "missing"
     assert gate["required_gates"] == [
         "mas_side_contract_exists",
         "mds_oracle_fixture_exists",
@@ -305,13 +311,14 @@ def test_mds_capability_cutover_gate_records_functional_monolith_landed_without_
     ]
     assert gate["summary"] == {
         "capability_count": 6,
-        "owner_switch_allowed_count": 6,
-        "blocked_capability_count": 0,
+        "owner_switch_allowed_count": 0,
+        "blocked_capability_count": 6,
         "medical_quality_authority": "blocked_for_mds",
     }
     for capability in gate["capabilities"]:
-        assert capability["cutover_status"] == "landed_functional_monolith"
-        assert capability["owner_switch_allowed"] is True
+        assert capability["cutover_status"] == "blocked_pending_parity_proof_bundle"
+        assert capability["owner_switch_allowed"] is False
+        assert capability["proof_bundle_status"] == "missing"
         assert capability["required_gates"] == gate["required_gates"]
         assert capability["mas_side_contract"]
         assert capability["mds_oracle_fixture"]
@@ -339,6 +346,7 @@ def test_mds_capability_cutover_gate_allows_owner_switch_with_complete_proof_bun
 
     assert gate["proof_bundle_status"] == "complete"
     assert gate["owner_switch_allowed"] is True
+    assert gate["cutover_status"] == "landed_functional_monolith"
     assert gate["summary"] == {
         "capability_count": 6,
         "owner_switch_allowed_count": 6,
@@ -346,6 +354,7 @@ def test_mds_capability_cutover_gate_allows_owner_switch_with_complete_proof_bun
         "medical_quality_authority": "blocked_for_mds",
     }
     for capability in gate["capabilities"]:
+        assert capability["cutover_status"] == "landed_functional_monolith"
         assert capability["owner_switch_allowed"] is True
         assert capability["parity_status"] == "passed"
         assert capability["quality_ready_authority_allowed"] is False

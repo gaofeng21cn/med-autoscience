@@ -239,12 +239,18 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
     {
         "surface_id": "runtime_core_daemon",
         "title": "Runtime core daemon",
-        "classification": "rewrite_in_mas",
+        "classification": "mas_owned",
         "mds_source_surface": "daemon/session runtime core",
         "mas_target_owner": "Runtime OS",
         "mds_final_role": "external_source_archive_only",
-        "cutover_contract": "MAS Runtime OS owns daemon/session lifecycle; external MDS daemon is not a default dependency.",
-        "owner_boundary": "study_runtime_status/runtime_watch remain MAS-owned runtime truth surfaces.",
+        "cutover_contract": "MAS Runtime OS owns turn lifecycle scheduling, completion normalization, and stale-run recovery; external MDS daemon is not a default dependency.",
+        "owner_boundary": "Runtime Turn Lifecycle Kernel owns per-turn continuation; study_runtime_status/runtime_watch consume MAS-owned runtime truth and act as supervisor/reconcile surfaces.",
+        "parity_proof": {
+            "proof_kind": "turn_lifecycle_kernel",
+            "mas_contract": "mas_runtime_core exposes schedule_turn, complete_turn_and_normalize, inspect_turn_lifecycle, and user-message-triggered scheduling.",
+            "mds_oracle": "MDS daemon schedule_turn plus _normalize_status_after_turn behavior is retained as regression semantics.",
+            "acceptance": "Runner completion clears active_run_id/worker_running, prioritizes queued user messages, schedules delayed auto_continue, and stops at human/terminal gates.",
+        },
     },
     {
         "surface_id": "quest_lifecycle",
@@ -259,12 +265,18 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
     {
         "surface_id": "worker_runner_lifecycle",
         "title": "Worker and runner lifecycle",
-        "classification": "rewrite_in_mas",
+        "classification": "mas_owned",
         "mds_source_surface": "worker runners and liveness loops",
         "mas_target_owner": "Runtime OS",
         "mds_final_role": "external_source_archive_only",
-        "cutover_contract": "MAS-owned runner lifecycle must expose worker state without requiring MDS worker processes.",
-        "owner_boundary": "Controller-authorized runtime actions stay in MAS controller/runtime surfaces.",
+        "cutover_contract": "MAS-owned runner lifecycle exposes worker state, run receipts, leases, idempotency keys, and per-quest serialization without requiring MDS worker processes.",
+        "owner_boundary": "Controller-authorized runtime actions stay in MAS controller/runtime surfaces; runtime_watch may redrive recovery through schedule_turn but does not become the turn owner.",
+        "parity_proof": {
+            "proof_kind": "worker_runner_receipts",
+            "mas_contract": "MasTurnRunner records started/queued/finished receipts, worker leases, claimed user messages, and run ids.",
+            "mds_oracle": "MDS one-worker-per-quest turn worker and active_run_id lifecycle are retained as behavior fixtures.",
+            "acceptance": "An active worker only queues additional turn requests, stale JSON liveness is reconciled to not live, and recovery redrive creates a MAS turn receipt.",
+        },
     },
     {
         "surface_id": "channels_connectors_transport",
@@ -519,28 +531,29 @@ def build_mds_capability_cutover_gate(proof_bundle: Mapping[str, Any] | None = N
             capability["owner_switch_allowed"] = True
             capability["parity_status"] = _text(proof_capability.get("parity_status")) or "passed"
         else:
-            capability["proof_bundle_status"] = "landed_from_retained_capability_contract"
-            capability["owner_switch_allowed"] = True
-            capability["parity_status"] = _text(capability.get("parity_status")) or "mas_superseded_or_fixture_retained"
-        capability["cutover_status"] = MDS_CUTOVER_STATUS
+            capability["proof_bundle_status"] = "missing"
+            capability["owner_switch_allowed"] = False
+            capability["parity_status"] = "blocked_pending_parity_proof_bundle"
+        capability["cutover_status"] = MDS_CUTOVER_STATUS if proof_capability is not None else "blocked_pending_parity_proof_bundle"
     owner_switch_allowed_count = sum(1 for capability in capabilities if capability.get("owner_switch_allowed") is True)
+    owner_switch_allowed = proof_bundle_complete and owner_switch_allowed_count == len(capabilities)
     return {
         "surface": "mds_capability_cutover_gate",
         "schema_version": SCHEMA_VERSION,
         "mds_role": matrix["mds_role"],
         "mds_quality_authority": matrix["mds_quality_authority"],
         "quality_authority_rule": "mds_can_never_authorize_medical_quality",
-        "owner_switch_allowed": True,
-        "cutover_status": MDS_CUTOVER_STATUS,
+        "owner_switch_allowed": owner_switch_allowed,
+        "cutover_status": MDS_CUTOVER_STATUS if owner_switch_allowed else "blocked_pending_parity_proof_bundle",
         "proof_bundle_status": (
-            "complete" if proof_bundle_complete else "landed_from_retained_capability_contract"
+            "complete" if proof_bundle_complete else "missing"
         ),
         "required_gates": list(CUTOVER_REQUIRED_GATES),
         "capabilities": capabilities,
         "summary": {
             "capability_count": len(capabilities),
             "owner_switch_allowed_count": owner_switch_allowed_count,
-            "blocked_capability_count": 0,
+            "blocked_capability_count": len(capabilities) - owner_switch_allowed_count,
             "medical_quality_authority": "blocked_for_mds",
         },
     }

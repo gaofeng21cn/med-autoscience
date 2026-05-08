@@ -97,6 +97,45 @@ class _BackendStub:
             "decision_response": decision_response,
         }
 
+    def schedule_turn(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        reason: str,
+        source: str,
+    ) -> dict[str, object]:
+        return {"runtime_root": str(runtime_root), "quest_id": quest_id, "reason": reason, "source": source}
+
+    def complete_turn_and_normalize(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        runner_status: str,
+        source: str,
+        blocking_decision_request: dict[str, object] | None = None,
+        same_fingerprint: bool = False,
+    ) -> dict[str, object]:
+        return {
+            "runtime_root": str(runtime_root),
+            "quest_id": quest_id,
+            "run_id": run_id,
+            "runner_status": runner_status,
+            "source": source,
+            "blocking_decision_request": blocking_decision_request,
+            "same_fingerprint": same_fingerprint,
+        }
+
+    def inspect_turn_lifecycle(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+    ) -> dict[str, object]:
+        return {"runtime_root": str(runtime_root), "quest_id": quest_id}
+
     def artifact_complete_quest(
         self,
         *,
@@ -210,3 +249,20 @@ def test_runtime_backend_rejects_backend_with_signature_drift() -> None:
         module.register_managed_runtime_backend(
             SignatureDriftBackend(backend_id="broken_signature", engine_id="broken-signature")
         )
+
+
+def test_runtime_backend_contract_requires_turn_lifecycle_callables() -> None:
+    module = importlib.import_module("med_autoscience.runtime_backend")
+
+    class MissingTurnLifecycleBackend(_BackendStub):
+        schedule_turn = None
+
+    with pytest.raises(ValueError, match="missing callable `schedule_turn`"):
+        module.register_managed_runtime_backend(
+            MissingTurnLifecycleBackend(backend_id="broken_missing_turns", engine_id="broken-missing-turns")
+        )
+
+    backend = module.get_managed_runtime_backend(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
+    assert callable(getattr(backend, "schedule_turn"))
+    assert callable(getattr(backend, "complete_turn_and_normalize"))
+    assert callable(getattr(backend, "inspect_turn_lifecycle"))

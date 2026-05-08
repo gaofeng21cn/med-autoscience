@@ -7,6 +7,8 @@ from typing import Any
 
 import yaml
 
+from med_autoscience.runtime_transport import mas_runtime_core_turns as turn_lifecycle
+
 BACKEND_ID = "mas_runtime_core"
 ENGINE_ID = "mas-runtime-core"
 CONTROLLED_RESEARCH_BACKEND_ID = BACKEND_ID
@@ -33,9 +35,7 @@ def _utc_now() -> str:
 
 
 def _run_id(*, quest_id: str) -> str:
-    slug = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    safe_quest_id = "".join(ch if ch.isalnum() or ch in "-_." else "-" for ch in quest_id).strip("-") or "quest"
-    return f"mas-run-{safe_quest_id}-{slug}"
+    return turn_lifecycle.run_id(quest_id=quest_id)
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -75,7 +75,7 @@ def _event_log_path(quest_root: Path) -> Path:
 
 def _snapshot(*, quest_root: Path) -> dict[str, Any]:
     quest_payload = _read_yaml(quest_root / "quest.yaml")
-    state = _read_json(_state_path(quest_root))
+    state = turn_lifecycle.load_state(quest_root=quest_root)
     quest_id = str(state.get("quest_id") or quest_payload.get("quest_id") or quest_root.name).strip() or quest_root.name
     status = str(state.get("status") or quest_payload.get("status") or "").strip() or None
     active_run_id = str(state.get("active_run_id") or quest_payload.get("active_run_id") or "").strip() or None
@@ -88,6 +88,8 @@ def _snapshot(*, quest_root: Path) -> dict[str, Any]:
         "worker_running": state.get("worker_running") if isinstance(state.get("worker_running"), bool) else None,
         "worker_pending": state.get("worker_pending") if isinstance(state.get("worker_pending"), bool) else None,
         "stop_requested": state.get("stop_requested") if isinstance(state.get("stop_requested"), bool) else None,
+        "pending_user_message_count": int(state.get("pending_user_message_count") or 0),
+        "continuation_policy": str(state.get("continuation_policy") or "").strip() or "auto",
         "updated_at": str(state.get("updated_at") or "").strip() or None,
     }
 
@@ -116,6 +118,8 @@ def _persist_state(
         "runtime_backend_id": BACKEND_ID,
         "runtime_engine_id": ENGINE_ID,
         "external_mds_required": False,
+        "continuation_policy": previous.get("continuation_policy") or "auto",
+        "pending_user_message_count": int(previous.get("pending_user_message_count") or 0),
         "source": source,
         "updated_at": now,
     }
@@ -179,24 +183,12 @@ def resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str,
     quest_root = _quest_root(runtime_root=runtime_root, quest_id=quest_id)
     if not (quest_root / "quest.yaml").is_file():
         raise RuntimeError(f"MAS runtime quest is missing: {quest_root}")
-    active_run_id = _run_id(quest_id=quest_root.name)
-    _persist_state(
+    return turn_lifecycle.schedule_turn(
+        runtime_root=_resolved_runtime_root(runtime_root),
         quest_root=quest_root,
-        status="running",
+        quest_id=quest_root.name,
+        reason="explicit_resume",
         source=source,
-        active_run_id=active_run_id,
-        worker_running=True,
-        worker_pending=False,
-        stop_requested=False,
-    )
-    return _result(
-        quest_root=quest_root,
-        status="running",
-        source="mas_runtime_core",
-        active_run_id=active_run_id,
-        started=True,
-        queued=False,
-        scheduled=False,
     )
 
 
@@ -276,15 +268,23 @@ def inspect_quest_live_runtime(
 ) -> dict[str, Any]:
     if runtime_root is None:
         raise ValueError("runtime_root is required for MAS runtime core inspect_quest_live_runtime")
-    snapshot = _snapshot(quest_root=_quest_root(runtime_root=runtime_root, quest_id=quest_id))
-    live = snapshot["status"] == "running" and bool(snapshot["active_run_id"]) and snapshot["worker_running"] is True
+    quest_root = _quest_root(runtime_root=runtime_root, quest_id=quest_id)
+    stale = turn_lifecycle.reconcile_stale_liveness(quest_root=quest_root, source="mas_runtime_core.inspect_liveness")
+    if stale is not None:
+        return {
+            **stale,
+            "source": "mas_runtime_core_turn_lifecycle",
+        }
+    snapshot = _snapshot(quest_root=quest_root)
+    lifecycle = turn_lifecycle.inspect_turn_lifecycle(quest_root=quest_root)
+    live = snapshot["status"] == "running" and bool(lifecycle["active_run_id"]) and lifecycle["worker_running"] is True
     return {
         "ok": True,
         "status": "live" if live else "none",
-        "source": "mas_runtime_core_local_state",
-        "active_run_id": snapshot["active_run_id"],
-        "worker_running": snapshot["worker_running"] is True,
-        "worker_pending": snapshot["worker_pending"] is True,
+        "source": "mas_runtime_core_turn_lifecycle",
+        "active_run_id": lifecycle["active_run_id"] if live else None,
+        "worker_running": lifecycle["worker_running"] is True,
+        "worker_pending": lifecycle["worker_pending"] is True,
         "stop_requested": snapshot["stop_requested"] is True,
     }
 
@@ -326,7 +326,7 @@ def inspect_quest_live_execution(
     return {
         "ok": True,
         "status": "live" if live else "none",
-        "source": "mas_runtime_core_local_state",
+        "source": "mas_runtime_core_turn_lifecycle",
         "active_run_id": runtime_audit["active_run_id"],
         "runner_live": live,
         "bash_live": False,
@@ -379,15 +379,60 @@ def chat_quest(
     quest_root = _quest_root(runtime_root=runtime_root, quest_id=quest_id)
     if not (quest_root / "quest.yaml").is_file():
         raise RuntimeError(f"MAS runtime quest is missing: {quest_root}")
-    payload = {
-        "text": text,
-        "source": source,
-        "reply_to_interaction_id": reply_to_interaction_id,
-        "decision_response": decision_response,
-        "recorded_at": _utc_now(),
-    }
-    _append_event(quest_root=quest_root, event={"event": "chat", **payload})
-    return {"ok": True, "status": "queued", "source": "mas_runtime_core", "message": payload}
+    return turn_lifecycle.submit_user_message(
+        runtime_root=_resolved_runtime_root(runtime_root),
+        quest_root=quest_root,
+        quest_id=quest_root.name,
+        text=text,
+        source=source,
+        reply_to_interaction_id=reply_to_interaction_id,
+        decision_response=decision_response,
+    )
+
+
+def schedule_turn(*, runtime_root: Path, quest_id: str, reason: str, source: str) -> dict[str, Any]:
+    quest_root = _quest_root(runtime_root=runtime_root, quest_id=quest_id)
+    if not (quest_root / "quest.yaml").is_file():
+        raise RuntimeError(f"MAS runtime quest is missing: {quest_root}")
+    return turn_lifecycle.schedule_turn(
+        runtime_root=_resolved_runtime_root(runtime_root),
+        quest_root=quest_root,
+        quest_id=quest_root.name,
+        reason=reason,
+        source=source,
+    )
+
+
+def complete_turn_and_normalize(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    runner_status: str,
+    source: str,
+    blocking_decision_request: dict[str, Any] | None = None,
+    same_fingerprint: bool = False,
+) -> dict[str, Any]:
+    quest_root = _quest_root(runtime_root=runtime_root, quest_id=quest_id)
+    if not (quest_root / "quest.yaml").is_file():
+        raise RuntimeError(f"MAS runtime quest is missing: {quest_root}")
+    return turn_lifecycle.complete_turn_and_normalize(
+        runtime_root=_resolved_runtime_root(runtime_root),
+        quest_root=quest_root,
+        quest_id=quest_root.name,
+        run_id=run_id,
+        runner_status=runner_status,
+        source=source,
+        blocking_decision_request=blocking_decision_request,
+        same_fingerprint=same_fingerprint,
+    )
+
+
+def inspect_turn_lifecycle(*, runtime_root: Path, quest_id: str) -> dict[str, Any]:
+    quest_root = _quest_root(runtime_root=runtime_root, quest_id=quest_id)
+    if not (quest_root / "quest.yaml").is_file():
+        raise RuntimeError(f"MAS runtime quest is missing: {quest_root}")
+    return turn_lifecycle.inspect_turn_lifecycle(quest_root=quest_root)
 
 
 def artifact_complete_quest(*, runtime_root: Path, quest_id: str, summary: str) -> dict[str, Any]:

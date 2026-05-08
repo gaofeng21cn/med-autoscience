@@ -10,6 +10,8 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 
 2026-05-08 behavior equivalence audit 追加 `mds_behavior_equivalence_matrix`。该矩阵明确区分 `default_independence` 与 `full_mds_daemon_behavior_equivalence`：MAS 默认 operation 不依赖外部 MDS repo / daemon / WebUI，但默认监管是 `Hermes gateway cron` 每 300 秒调用一次 `watch-runtime --max-ticks 1`，不是 MDS resident HTTP/WebSocket daemon 的完整行为复刻。详细差异见 [MDS Behavior Equivalence Gap Matrix](./mds_behavior_equivalence_gap_matrix.md)。
 
+2026-05-08 Runtime Turn Lifecycle correction 把旧 MDS daemon 的连续科研主循环落成 MAS-owned runtime surface：`runtime_core_daemon` 和 `worker_runner_lifecycle` 现在归类为 `mas_owned`。`runtime_watch` / supervisor / Hermes cron 只负责 reconcile、wakeup、redrive 和 stale recovery；真正的连续执行由 `schedule_turn`、`complete_turn_and_normalize`、runner monitor、delayed auto-continue timer、worker lease、turn receipt 和 user message queue 决定。
+
 ## Capability Matrix
 
 | Capability | Classification | MDS role | MAS owner | Parity proof | Medical quality authority |
@@ -27,9 +29,9 @@ The functional monolith inventory is machine-readable as `mds_remaining_surface_
 
 | Surface | Classification | MAS owner | MDS final role |
 | --- | --- | --- | --- |
-| runtime core daemon | `rewrite_in_mas` | Runtime OS | external source archive only |
+| runtime core daemon | `mas_owned` | Runtime OS | external source archive only |
 | quest lifecycle | `mas_owned` | Runtime OS | historical oracle fixture only |
-| worker and runner lifecycle | `rewrite_in_mas` | Runtime OS | external source archive only |
+| worker and runner lifecycle | `mas_owned` | Runtime OS | external source archive only |
 | channels, connectors, and transport | `rewrite_in_mas` | Runtime OS | explicit legacy diagnostic only |
 | MCP surface | `retire` | MAS MCP | retired surface |
 | TUI and Web visual status | `rewrite_in_mas` | Progress Portal | explicit legacy diagnostic only |
@@ -69,6 +71,18 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 - MDS oracle: MDS quest execution trace 只能作为 backend behavior fixture 被 replay。
 - Proof: MAS recovery decision 必须匹配或显式 supersede replayed MDS behavior。
 
+### runtime core daemon / turn lifecycle
+
+- MAS contract: `mas_runtime_core` 暴露 `schedule_turn`、`complete_turn_and_normalize`、`inspect_turn_lifecycle`，并把 `chat_quest` 和 `resume_quest` 接到同一 turn kernel。
+- MDS oracle: MDS `schedule_turn` / `_normalize_status_after_turn` 的语义被保留为 behavior oracle。
+- Proof: turn completion 必须清理 `active_run_id` / `worker_running`，优先处理 queued user messages，按 `auto` 延迟调度并由 kernel timer 消费 `auto_continue`，并在 human/terminal gate 停住；inspect/watch 只做到期 delayed turn 的 crash-recovery drain。
+
+### worker and runner lifecycle
+
+- MAS contract: `MasTurnRunner` 记录 worker lease、run receipt、claimed user messages、idempotency key 与 per-quest serialization。
+- MDS oracle: MDS one-worker-per-quest turn worker 和 active run lifecycle 作为 behavior fixture。
+- Proof: active worker 期间追加 turn 只进入 pending/queue，当前 turn 完成后先 drain queued user messages 再 drain pending worker reason；stale JSON liveness 会被归一为 not live；recovery redrive 必须产生 MAS turn receipt。
+
 ### artifact inventory
 
 - MAS contract: MAS artifact inventory 是 consumer-facing projection owner。
@@ -102,6 +116,8 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 ## Cutover Rule
 
 每个能力都必须先有 MAS consumer contract、MDS behavior fixture、quality gate not relaxed 证明、rollback surface，以及旧 MDS authority surface 的 fixture-only 标记或退休记录。
+
+`mds_capability_cutover_gate` 没有完整 proof bundle 时必须 fail-closed：`owner_switch_allowed=false`，`cutover_status=blocked_pending_parity_proof_bundle`。这避免 remaining surface 只靠 landed contract 描述就被误报为已完成 owner switch。
 
 MDS paper contract health 和 manuscript coverage 永远不能授权医学论文质量 ready；它们只提供 backend preflight 或 mechanical oracle 信号。
 
