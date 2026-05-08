@@ -165,11 +165,11 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "StudyTruthKernel"
     )
     assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
-    assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_entry_status"
+    assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_product_entry"
     assert payload["phase2_user_product_loop"]["recommended_command"] == (
         "uv run python -m med_autoscience.cli product-entry-status --profile <profile>"
     )
-    assert payload["phase2_user_product_loop"]["single_path"][0]["step_id"] == "open_entry_status"
+    assert payload["phase2_user_product_loop"]["single_path"][0]["step_id"] == "open_product_entry"
     assert payload["phase2_user_product_loop"]["single_path"][3]["step_id"] == "continue_study"
     assert payload["phase2_user_product_loop"]["single_path"][5]["step_id"] == "handle_human_gate"
     assert payload["phase2_user_product_loop"]["proof_surfaces"] == [

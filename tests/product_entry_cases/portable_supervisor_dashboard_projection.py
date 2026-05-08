@@ -163,9 +163,9 @@ def test_workspace_cockpit_and_entry_status_surface_portable_supervisor_queue_da
                 "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
                 "operator_loop_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
             },
-            "gateway_interaction_contract": {
-                "frontdoor_owner": "opl_gateway_or_domain_gui",
-                "user_interaction_mode": "natural_language_frontdoor",
+            "user_interaction_contract": {
+                "entry_owner": "opl_product_entry_or_domain_gui",
+                "user_interaction_mode": "natural_language_entry",
             },
             "product_entry_preflight": {
                 "surface_kind": "product_entry_preflight",
@@ -214,16 +214,6 @@ def test_workspace_cockpit_and_entry_status_surface_portable_supervisor_queue_da
         },
     )
     monkeypatch.setattr(module, "_validate_product_entry_status_contract", lambda payload: None)
-    monkeypatch.setattr(
-        module,
-        "_build_shared_family_product_entry_status_from_manifest",
-        lambda **kwargs: {
-            **dict(kwargs.get("product_entry_manifest") or {}),
-            **dict(kwargs.get("extra_payload") or {}),
-            "target_domain_id": "med-autoscience",
-            "schema_ref": kwargs.get("schema_ref"),
-        },
-    )
 
     cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
     entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)

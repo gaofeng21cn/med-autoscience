@@ -93,9 +93,9 @@ def _assert_entry_contract_surfaces(*, module, payload, profile, profile_ref) ->
     assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["default_engine"] == "codex"
     assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["entry_command"] == "product-entry-status"
     assert payload["domain_entry_contract"]["domain_agent_entry_spec"]["manifest_command"] == "product-entry-manifest"
-    assert payload["gateway_interaction_contract"]["frontdoor_owner"] == "opl_gateway_or_domain_gui"
-    assert payload["gateway_interaction_contract"]["user_interaction_mode"] == "natural_language_frontdoor"
-    assert payload["gateway_interaction_contract"]["command_surfaces_for_agent_consumption_only"] is True
+    assert payload["user_interaction_contract"]["entry_owner"] == "opl_product_entry_or_domain_gui"
+    assert payload["user_interaction_contract"]["user_interaction_mode"] == "natural_language_entry"
+    assert payload["user_interaction_contract"]["command_surfaces_for_agent_consumption_only"] is True
     assert payload["entry_status_surface"]["shell_key"] == "product_entry_status"
     assert payload["entry_status_surface"]["command"].endswith(
         "product-entry-status --profile " + str(profile_ref.resolve())
@@ -116,9 +116,9 @@ def _assert_entry_contract_surfaces(*, module, payload, profile, profile_ref) ->
 
 def _assert_mainline_boundary_surface(*, module, payload, profile, profile_ref) -> None:
     assert payload["product_entry_quickstart"]["surface_kind"] == "product_entry_quickstart"
-    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_entry_status"
+    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_product_entry"
     assert [step["step_id"] for step in payload["product_entry_quickstart"]["steps"]] == [
-        "open_entry_status",
+        "open_product_entry",
         "submit_task",
         "continue_study",
         "inspect_progress",
@@ -327,7 +327,7 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
         "session_locator_field": "study_id",
         "checkpoint_locator_field": "controller_decision_path",
     }
-    assert payload["product_entry_overview"]["recommended_step_id"] == "open_entry_status"
+    assert payload["product_entry_overview"]["recommended_step_id"] == "open_product_entry"
     assert payload["product_entry_overview"]["next_focus"] == [
         "继续把 workspace inbox、study progress 与恢复建议收成统一产品壳。",
     ]
@@ -373,15 +373,15 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
     assert _phase2_loop_without_guarded_fields(payload["phase2_user_product_loop"]) == {
         "surface_kind": "phase2_user_product_loop_lane",
         "summary": "把启动 MAS、给 study 下任务、续跑、持续看进度、处理恢复建议和人工 gate 收成同一条用户回路。",
-        "recommended_step_id": "open_entry_status",
+        "recommended_step_id": "open_product_entry",
         "recommended_command": (
             "uv run python -m med_autoscience.cli product-entry-status --profile "
             + str(profile_ref.resolve())
         ),
         "single_path": [
             {
-                "step_id": "open_entry_status",
-                "title": "先打开 MAS 前台",
+                "step_id": "open_product_entry",
+                "title": "先打开 MAS 产品入口",
                 "surface_kind": "product_entry_status",
                 "command": (
                     "uv run python -m med_autoscience.cli product-entry-status --profile "

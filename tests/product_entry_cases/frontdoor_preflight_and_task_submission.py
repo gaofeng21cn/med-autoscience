@@ -1,6 +1,0 @@
-from __future__ import annotations
-
-from tests.product_entry_cases.frontdoor_supervision_and_boundary_cases import *
-from tests.product_entry_cases.frontdoor_markdown_preview_cases import *
-from tests.product_entry_cases.frontdoor_task_submission_cases import *
-from tests.product_entry_cases.product_entry_builder_cases import *

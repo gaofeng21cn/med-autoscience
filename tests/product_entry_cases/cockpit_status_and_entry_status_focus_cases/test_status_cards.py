@@ -73,7 +73,7 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
         },
         "phase2_user_product_loop": {
             "summary": "先打开 entry_status，再看 workspace inbox。",
-            "recommended_step_id": "open_entry_status",
+            "recommended_step_id": "open_product_entry",
             "recommended_command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
             "operator_questions": [],
         },

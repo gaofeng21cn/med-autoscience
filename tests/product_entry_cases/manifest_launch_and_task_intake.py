@@ -13,50 +13,34 @@ _module_reexport(_shared)
 _module_reexport(_attention_queue_and_cockpit_base)
 _module_reexport(_cockpit_status_and_entry_status_focus)
 
-def test_build_product_entry_manifest_passes_contract_bundle_via_named_shared_kwargs(
+def test_build_product_entry_manifest_projects_contract_bundle_with_product_entry_fields(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
-    captured: dict[str, object] = {}
-
-    def _fake_build_family_product_entry_manifest(**kwargs: object) -> dict[str, object]:
-        captured.update(kwargs)
-        return {
-            "surface_kind": "product_entry_manifest",
-            "target_domain_id": "med-autoscience",
-        }
-
-    monkeypatch.setattr(
-        module,
-        "_build_shared_family_product_entry_manifest",
-        _fake_build_family_product_entry_manifest,
-    )
-    monkeypatch.setattr(module, "_validate_product_entry_manifest_contract", lambda payload: None)
 
     payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
 
     assert payload["surface_kind"] == "product_entry_manifest"
-    assert captured["schema_ref"] == module.PRODUCT_ENTRY_MANIFEST_SCHEMA_REF
-    assert captured["domain_entry_contract"] == module._build_domain_entry_contract()
-    assert captured["gateway_interaction_contract"] == module._build_gateway_interaction_contract()
-    assert captured["session_continuity"]["surface_kind"] == "session_continuity"
-    assert captured["progress_projection"]["surface_kind"] == "progress_projection"
-    assert captured["artifact_inventory"]["surface_kind"] == "artifact_inventory"
-    assert "schema_ref" not in captured["extra_payload"]
-    assert "domain_entry_contract" not in captured["extra_payload"]
-    assert "gateway_interaction_contract" not in captured["extra_payload"]
+    assert payload["schema_ref"] == module.PRODUCT_ENTRY_MANIFEST_SCHEMA_REF
+    assert payload["domain_entry_contract"] == module._build_domain_entry_contract()
+    assert payload["user_interaction_contract"] == module._build_user_interaction_contract()
+    assert payload["product_entry_surface"]["shell_key"] == "product_entry_status"
+    assert payload["session_continuity"]["surface_kind"] == "session_continuity"
+    assert payload["progress_projection"]["surface_kind"] == "progress_projection"
+    assert payload["artifact_inventory"]["surface_kind"] == "artifact_inventory"
+    assert "user_interaction_contract" in payload
+    assert "product_entry_surface" in payload
 
-def test_build_product_entry_status_leaves_contract_bundle_to_shared_manifest_projection(
+def test_build_product_entry_status_projects_contract_bundle_from_manifest(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
-    captured: dict[str, object] = {}
     manifest = {
         "surface_kind": "product_entry_manifest",
         "manifest_version": 2,
@@ -121,7 +105,7 @@ def test_build_product_entry_status_leaves_contract_bundle_to_shared_manifest_pr
         },
         "product_entry_quickstart": {
             "surface_kind": "product_entry_quickstart",
-            "recommended_step_id": "open_entry_status",
+            "recommended_step_id": "open_product_entry",
             "summary": "open entry_status first",
             "steps": [],
             "resume_contract": {
@@ -131,7 +115,7 @@ def test_build_product_entry_status_leaves_contract_bundle_to_shared_manifest_pr
             "human_gate_ids": ["workspace_gate"],
         },
         "domain_entry_contract": module._build_domain_entry_contract(),
-        "gateway_interaction_contract": module._build_gateway_interaction_contract(),
+        "user_interaction_contract": module._build_user_interaction_contract(),
         "runtime_inventory": {"surface_kind": "runtime_inventory"},
         "task_lifecycle": {"surface_kind": "task_lifecycle"},
         "skill_catalog": {"surface_kind": "skill_catalog"},
@@ -178,41 +162,22 @@ def test_build_product_entry_status_leaves_contract_bundle_to_shared_manifest_pr
         },
     )
 
-    def _fake_build_family_product_entry_status_from_manifest(**kwargs: object) -> dict[str, object]:
-        captured.update(kwargs)
-        return {
-            "surface_kind": "product_entry_status",
-            "target_domain_id": "med-autoscience",
-        }
-
-    monkeypatch.setattr(
-        module,
-        "_build_shared_family_product_entry_status_from_manifest",
-        _fake_build_family_product_entry_status_from_manifest,
-    )
     monkeypatch.setattr(module, "_validate_product_entry_status_contract", lambda payload: None)
 
     payload = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
 
     assert payload["surface_kind"] == "product_entry_status"
-    assert captured["schema_ref"] == module.PRODUCT_ENTRY_STATUS_SCHEMA_REF
-    assert captured["shell_aliases"] == {
-        "entry_status": "product_entry_status",
-        "cockpit": "workspace_cockpit",
-        "submit_task": "submit_study_task",
-        "launch_study": "launch_study",
-        "study_progress": "study_progress",
-        "mainline_status": "mainline_status",
-        "mainline_phase": "mainline_phase",
-    }
-    assert captured["product_entry_manifest"]["domain_entry_contract"] == manifest["domain_entry_contract"]
-    assert captured["product_entry_manifest"]["gateway_interaction_contract"] == manifest["gateway_interaction_contract"]
-    assert captured["extra_payload"]["workspace_ai_first_operations_state"]["authority"] == "observability_only"
-    assert captured["extra_payload"]["workspace_ai_first_operations_state"]["counts"]["dashboard_count"] == 1
-    assert captured["extra_payload"]["workspace_ai_first_feedback_state"]["authority"] == "observability_only"
-    assert captured["extra_payload"]["workspace_ai_first_feedback_state"]["counts"]["open_feedback_count"] == 0
-    assert "domain_entry_contract" not in captured["extra_payload"]
-    assert "gateway_interaction_contract" not in captured["extra_payload"]
+    assert payload["schema_ref"] == module.PRODUCT_ENTRY_STATUS_SCHEMA_REF
+    assert payload["product_entry_manifest"]["domain_entry_contract"] == manifest["domain_entry_contract"]
+    assert payload["product_entry_manifest"]["user_interaction_contract"] == manifest["user_interaction_contract"]
+    assert payload["domain_entry_contract"] == manifest["domain_entry_contract"]
+    assert payload["user_interaction_contract"] == manifest["user_interaction_contract"]
+    assert payload["workspace_ai_first_operations_state"]["authority"] == "observability_only"
+    assert payload["workspace_ai_first_operations_state"]["counts"]["dashboard_count"] == 1
+    assert payload["workspace_ai_first_feedback_state"]["authority"] == "observability_only"
+    assert payload["workspace_ai_first_feedback_state"]["counts"]["open_feedback_count"] == 0
+    assert "user_interaction_contract" in payload
+    assert "product_entry_surface" in payload
 
 
 def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> None:
@@ -223,9 +188,9 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
             "target_domain_id": "med-autoscience",
             "schema_ref": "product_entry_status.schema.json",
             "recommended_action": "inspect_or_prepare_research_loop",
-            "gateway_interaction_contract": {
-                "frontdoor_owner": "opl_gateway_or_domain_gui",
-                "user_interaction_mode": "natural_language_frontdoor",
+            "user_interaction_contract": {
+                "entry_owner": "opl_product_entry_or_domain_gui",
+                "user_interaction_mode": "natural_language_entry",
             },
             "summary": {
                 "entry_status_command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
@@ -247,7 +212,7 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
             "product_entry_quickstart": {
                 "steps": [
                     {
-                        "step_id": "open_entry_status",
+                        "step_id": "open_product_entry",
                         "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml",
                         "summary": "先打开前台入口。",
                     }
@@ -376,7 +341,7 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
 
     assert "当前状态: 需要处理" in markdown
     assert "当前判断: MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。" in markdown
-    assert "前台入口命令" in markdown
+    assert "产品入口命令" in markdown
     assert "当前 workspace 判断: 当前 workspace 有关注项。" in markdown
     assert "AI-first operations: 1 个 study 已接入 AI-first operations state" in markdown
     assert "AI reviewer trace 不完整 1" in markdown
@@ -955,10 +920,10 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
         "entry_command": "product-entry-status",
         "manifest_command": "product-entry-manifest",
     }
-    assert payload["return_surface_contract"]["gateway_interaction_contract"] == {
-        "surface_kind": "gateway_interaction_contract",
-        "frontdoor_owner": "opl_gateway_or_domain_gui",
-        "user_interaction_mode": "natural_language_frontdoor",
+    assert payload["return_surface_contract"]["user_interaction_contract"] == {
+        "surface_kind": "user_interaction_contract",
+        "entry_owner": "opl_product_entry_or_domain_gui",
+        "user_interaction_mode": "natural_language_entry",
         "user_commands_required": False,
         "command_surfaces_for_agent_consumption_only": True,
         "shared_downstream_entry": "MedAutoScienceDomainEntry",

@@ -285,13 +285,13 @@ def _build_product_entry_start(
 ) -> dict[str, Any]:
     return _build_shared_product_entry_start(
         summary=(
-            "先从 MAS research entry_status 进入当前 workspace frontdoor；"
+            "先从 MAS research entry_status 进入当前 workspace product entry；"
             "需要新任务时先写 durable study task intake，已有 study 时直接恢复研究运行。"
         ),
-        recommended_mode_id="open_entry_status",
+        recommended_mode_id="open_product_entry",
         modes=[
             {
-                "mode_id": "open_entry_status",
+                "mode_id": "open_product_entry",
                 "title": "打开 MAS 入口状态",
                 "command": product_entry_shell["product_entry_status"]["command"],
                 "surface_kind": PRODUCT_ENTRY_STATUS_KIND,

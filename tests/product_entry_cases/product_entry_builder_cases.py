@@ -169,10 +169,10 @@ def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestra
 
     payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
 
-    assert payload["family_orchestration"]["action_graph"]["graph_id"] == "mas_workspace_frontdoor_study_runtime_graph"
+    assert payload["family_orchestration"]["action_graph"]["graph_id"] == "mas_workspace_product_entry_study_runtime_graph"
     assert captured["graph_kind"] == "study_runtime_orchestration"
     assert [node["node_id"] for node in captured["nodes"]] == [
-        "step:open_entry_status",
+        "step:open_product_entry",
         "step:submit_task",
         "step:continue_study",
         "step:inspect_progress",
@@ -184,7 +184,7 @@ def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestra
         "task_written",
         "progress_refresh",
     ]
-    assert captured["entry_nodes"] == ["step:open_entry_status"]
+    assert captured["entry_nodes"] == ["step:open_product_entry"]
     assert captured["exit_nodes"] == ["step:continue_study", "step:inspect_progress"]
     assert captured["checkpoint_nodes"] == [
         "step:submit_task",

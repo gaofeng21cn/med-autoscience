@@ -681,7 +681,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "submit-study-task" in payload["user_loop"]["submit_task_template"]
     assert "study-progress" in payload["user_loop"]["watch_progress_template"]
     assert payload["phase2_user_product_loop"]["surface_kind"] == "phase2_user_product_loop_lane"
-    assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_entry_status"
+    assert payload["phase2_user_product_loop"]["recommended_step_id"] == "open_product_entry"
     assert payload["phase2_user_product_loop"]["recommended_command"].endswith(
         "product-entry-status --profile " + str(profile_ref.resolve())
     )

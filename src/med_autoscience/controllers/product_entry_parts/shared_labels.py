@@ -16,7 +16,7 @@ _WORKSPACE_STATUS_LABELS = {
 }
 
 _START_MODE_LABELS = {
-    "open_entry_status": "打开 MAS 入口状态",
+    "open_product_entry": "打开 MAS 入口状态",
     "submit_task": "给 study 下 durable 任务",
     "continue_study": "启动或续跑 study",
 }
@@ -56,7 +56,7 @@ _PHASE5_MONOREPO_STATUS_LABELS = {
 }
 
 _USER_INTERACTION_MODE_LABELS = {
-    "natural_language_frontdoor": "自然语言前台（natural_language_frontdoor）",
+    "natural_language_entry": "自然语言入口（natural_language_entry）",
 }
 
 

@@ -5,8 +5,8 @@ from tests.product_entry_cases.cockpit_status_and_entry_status_focus import *
 from tests.product_entry_cases.control_plane_operation_manifest import *
 from tests.product_entry_cases.manifest_launch_and_task_intake import *
 from tests.product_entry_cases.repo_shell_and_handoff_templates import *
-from tests.product_entry_cases.frontdoor_preflight_and_task_submission import *
-from tests.product_entry_cases.frontdoor_markdown_and_skill_catalog import *
+from tests.product_entry_cases.product_entry_preflight_and_task_submission import *
+from tests.product_entry_cases.product_entry_markdown_and_skill_catalog import *
 from tests.product_entry_cases.paper_orchestra_operator_projection import *
 from tests.product_entry_cases.open_auto_research_projection import *
 from tests.product_entry_cases.portable_supervisor_dashboard_projection import *

@@ -17,7 +17,7 @@ _module_reexport(_cockpit_status_and_entry_status_focus)
 _module_reexport(_manifest_launch_and_task_intake)
 _module_reexport(_repo_shell_and_handoff_templates)
 
-def test_build_product_entry_status_projects_frontdoor_over_current_workspace_loop(monkeypatch, tmp_path: Path) -> None:
+def test_build_product_entry_status_projects_product_entry_over_current_workspace_loop(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile_ref = tmp_path / "profile.local.toml"
     profile = make_profile(tmp_path)
@@ -73,9 +73,9 @@ def test_build_product_entry_status_projects_frontdoor_over_current_workspace_lo
     assert payload["target_domain_id"] == "med-autoscience"
     assert payload["schema_ref"] == "contracts/schemas/v1/product-entry-status.schema.json"
     assert payload["domain_entry_contract"]["entry_adapter"] == "MedAutoScienceDomainEntry"
-    assert payload["gateway_interaction_contract"]["frontdoor_owner"] == "opl_gateway_or_domain_gui"
-    assert payload["gateway_interaction_contract"]["user_interaction_mode"] == "natural_language_frontdoor"
-    assert payload["gateway_interaction_contract"]["user_commands_required"] is False
+    assert payload["user_interaction_contract"]["entry_owner"] == "opl_product_entry_or_domain_gui"
+    assert payload["user_interaction_contract"]["user_interaction_mode"] == "natural_language_entry"
+    assert payload["user_interaction_contract"]["user_commands_required"] is False
     assert payload["entry_status_surface"]["shell_key"] == "product_entry_status"
     assert payload["entry_status_surface"]["command"].endswith(
         "product-entry-status --profile " + str(profile_ref.resolve())
@@ -175,7 +175,7 @@ def test_build_product_entry_status_projects_frontdoor_over_current_workspace_lo
         "runtime",
         "eval_hygiene",
     ]
-    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_entry_status"
+    assert payload["product_entry_quickstart"]["recommended_step_id"] == "open_product_entry"
     assert payload["product_entry_quickstart"]["steps"][2]["step_id"] == "continue_study"
     assert payload["product_entry_quickstart"]["steps"][2]["requires"] == ["study_id"]
     assert payload["product_entry_start"]["surface_kind"] == "product_entry_start"
@@ -365,7 +365,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     assert "workspace_supervision_contract_ready" in payload["product_entry_preflight"]["blocking_check_ids"]
     assert payload["operator_brief"]["verdict"] == "preflight_blocked"
     assert "legacy workspace-local runtime supervision service" in payload["product_entry_preflight"]["summary"]
-    assert payload["product_entry_start"]["recommended_mode_id"] == "open_entry_status"
+    assert payload["product_entry_start"]["recommended_mode_id"] == "open_product_entry"
     assert payload["product_entry_start"]["modes"][1]["mode_id"] == "submit_task"
     assert payload["product_entry_start"]["modes"][1]["requires"] == ["study_id", "task_intent"]
     assert payload["product_entry_start"]["resume_surface"]["surface_kind"] == "launch_study"
@@ -375,7 +375,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     ]
     assert payload["family_orchestration"]["action_graph_ref"]["ref"] == "/family_orchestration/action_graph"
     assert payload["family_orchestration"]["action_graph"]["graph_id"] == (
-        "mas_workspace_frontdoor_study_runtime_graph"
+        "mas_workspace_product_entry_study_runtime_graph"
     )
     assert len(payload["family_orchestration"]["action_graph"]["nodes"]) == 4
     assert len(payload["family_orchestration"]["action_graph"]["edges"]) == 5
