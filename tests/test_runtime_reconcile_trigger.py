@@ -51,6 +51,27 @@ def test_stale_runtime_session_projects_safe_reconcile_recommendation() -> None:
     assert projection["authority"]["writes_publication_truth"] is False
 
 
+def test_due_outer_supervision_slo_projects_safe_reconcile_recommendation() -> None:
+    projection = _build_projection(
+        _base_status(
+            runtime_session={"freshness_state": "fresh"},
+            worker_state="fresh",
+            outer_supervision_slo={
+                "surface_kind": "outer_supervision_slo",
+                "state": "due",
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+                    "--profile /workspace/profile.toml --studies 001-risk --mode developer_apply_safe --dry-run"
+                ),
+            },
+        )
+    )
+
+    assert projection["safe_to_request"] is True
+    assert {"source": "outer_supervision_slo.state", "state": "due"} in projection["stale_signals"]
+    assert projection["outer_supervision_slo"]["state"] == "due"
+
+
 def test_duplicate_reconcile_fingerprint_is_not_requestable() -> None:
     first = _build_projection(_base_status())
     duplicate = _build_projection(
@@ -85,6 +106,22 @@ def test_human_gate_parked_completed_and_retry_exhausted_fail_closed() -> None:
         assert projection["blocked_reasons"]
 
 
+def test_blocked_outer_supervision_slo_fail_closes_reconcile_trigger() -> None:
+    projection = _build_projection(
+        _base_status(
+            outer_supervision_slo={
+                "surface_kind": "outer_supervision_slo",
+                "state": "blocked",
+                "blocked_reasons": ["retired_legacy_service_present"],
+            }
+        )
+    )
+
+    assert projection["safe_to_request"] is False
+    assert projection["recommended_command"] is None
+    assert "outer_supervision_slo_blocked" in projection["blocked_reasons"]
+
+
 def test_reconcile_projection_never_authorizes_quality_publication_or_submission_ready() -> None:
     projection = _build_projection(_base_status())
 
@@ -109,6 +146,7 @@ def test_progress_portal_surfaces_runtime_reconcile_recommendation() -> None:
         progress_payload={
             "study_id": "001-risk",
             "progress_freshness": {"status": "stale"},
+            "outer_supervision_slo": {"surface_kind": "outer_supervision_slo", "state": "stale"},
             "runtime_reconcile_trigger": trigger,
             "user_visible_projection": {
                 "schema_version": 2,
@@ -120,8 +158,10 @@ def test_progress_portal_surfaces_runtime_reconcile_recommendation() -> None:
     )
 
     assert payload["study"]["runtime_reconcile_trigger"]["safe_to_request"] is True
+    assert payload["study"]["outer_supervision_slo"]["state"] == "stale"
     assert payload["study"]["runtime_reconcile_trigger"]["recommended_command"] == trigger["recommended_command"]
     assert "runtime_reconcile_requestable" in payload["conditions"]["stale"]
+    assert "outer_supervision_slo_stale" in payload["conditions"]["stale"]
 
 
 def test_workspace_attention_prefers_safe_reconcile_command_for_requestable_trigger() -> None:
@@ -135,6 +175,7 @@ def test_workspace_attention_prefers_safe_reconcile_command_for_requestable_trig
             {
                 "study_id": "001-risk",
                 "runtime_reconcile_trigger": trigger,
+                "outer_supervision_slo": {"surface_kind": "outer_supervision_slo", "state": "stale"},
                 "commands": {"progress": "progress-command"},
                 "progress_freshness": {"status": "stale"},
             }
@@ -145,6 +186,7 @@ def test_workspace_attention_prefers_safe_reconcile_command_for_requestable_trig
     assert queue[0]["code"] == "study_runtime_reconcile_requestable"
     assert queue[0]["recommended_command"] == trigger["recommended_command"]
     assert queue[0]["runtime_reconcile_trigger"]["dedupe_fingerprint"] == trigger["dedupe_fingerprint"]
+    assert queue[0]["outer_supervision_slo"]["state"] == "stale"
 
 
 def test_study_progress_includes_safe_reconcile_trigger(monkeypatch, tmp_path) -> None:
@@ -203,6 +245,9 @@ def test_study_progress_includes_safe_reconcile_trigger(monkeypatch, tmp_path) -
     )
 
     trigger = result["runtime_reconcile_trigger"]
+    slo = result["outer_supervision_slo"]
+    assert slo["surface_kind"] == "outer_supervision_slo"
+    assert slo["state"] in {"missing", "due", "stale"}
     assert trigger["safe_to_request"] is True
     assert trigger["recommended_command"] == (
         "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "

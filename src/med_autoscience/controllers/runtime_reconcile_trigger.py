@@ -5,6 +5,8 @@ import json
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.controllers.outer_supervision_slo import supervisor_reconcile_command
+
 
 SCHEMA_VERSION = 1
 SURFACE_KIND = "runtime_reconcile_trigger_projection"
@@ -36,12 +38,14 @@ def build_runtime_reconcile_trigger_projection(
 ) -> dict[str, Any]:
     status = _mapping(status_payload)
     progress: dict[str, Any] = {}
+    outer_slo = _mapping(status.get("outer_supervision_slo"))
     resolved_study_id = _text(study_id) or _text(status.get("study_id")) or "unknown-study"
     blocked_reasons = _blocked_reasons(
         status=status,
         progress=progress,
+        outer_slo=outer_slo,
     )
-    stale_signals = _stale_signals(status)
+    stale_signals = _stale_signals(status, outer_slo=outer_slo)
     if not stale_signals:
         blocked_reasons.append("runtime_session_not_stale")
     fingerprint = _dedupe_fingerprint(
@@ -69,6 +73,8 @@ def build_runtime_reconcile_trigger_projection(
         "dedupe_state": "duplicate" if duplicate else "new",
         "blocked_reasons": blocked_reasons,
         "stale_signals": stale_signals,
+        "outer_supervision_slo": outer_slo or None,
+        "summary": _summary(safe_to_request=safe_to_request, blocked_reasons=blocked_reasons, stale_signals=stale_signals),
         "authority": {
             "kind": "read_model_reconcile_request_projection",
             "writes_runtime": False,
@@ -81,7 +87,7 @@ def build_runtime_reconcile_trigger_projection(
     }
 
 
-def _blocked_reasons(*, status: Mapping[str, Any], progress: Mapping[str, Any]) -> list[str]:
+def _blocked_reasons(*, status: Mapping[str, Any], progress: Mapping[str, Any], outer_slo: Mapping[str, Any]) -> list[str]:
     reasons: list[str] = []
     recovery_intent = _mapping(status.get("recovery_intent"))
     if _text(recovery_intent.get("current_action")) != SAFE_CURRENT_ACTION:
@@ -94,6 +100,8 @@ def _blocked_reasons(*, status: Mapping[str, Any], progress: Mapping[str, Any]) 
         reasons.append("parked_truth")
     if _retry_exhausted(status, progress):
         reasons.append("runtime_recovery_retry_budget_exhausted")
+    if _text(outer_slo.get("state")) == "blocked":
+        reasons.append("outer_supervision_slo_blocked")
     return reasons
 
 
@@ -193,7 +201,7 @@ def _blocking_reasons(status: Mapping[str, Any], progress: Mapping[str, Any]) ->
     )
 
 
-def _stale_signals(status: Mapping[str, Any]) -> list[dict[str, str]]:
+def _stale_signals(status: Mapping[str, Any], *, outer_slo: Mapping[str, Any]) -> list[dict[str, str]]:
     signals: list[dict[str, str]] = []
     runtime_session = _mapping(status.get("runtime_session"))
     runtime_session_state = _text(runtime_session.get("freshness_state"))
@@ -202,6 +210,9 @@ def _stale_signals(status: Mapping[str, Any]) -> list[dict[str, str]]:
     worker_state = _worker_state(status)
     if worker_state in STALE_WORKER_STATES:
         signals.append({"source": "worker_state", "state": worker_state})
+    outer_state = _text(outer_slo.get("state"))
+    if outer_state in {"due", "stale", "missing"}:
+        signals.append({"source": "outer_supervision_slo.state", "state": outer_state})
     return signals
 
 
@@ -232,12 +243,17 @@ def _dedupe_fingerprint(
 
 
 def _recommended_command(*, profile_ref: str | None, study_id: str) -> str:
-    profile_arg = _quote(profile_ref or "<profile>")
-    study_arg = _quote(study_id)
-    return (
-        "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
-        f"--profile {profile_arg} --studies {study_arg} --mode developer_apply_safe --dry-run"
-    )
+    return supervisor_reconcile_command(profile_ref=profile_ref, study_id=study_id)
+
+
+def _summary(*, safe_to_request: bool, blocked_reasons: list[str], stale_signals: list[dict[str, str]]) -> str:
+    if safe_to_request:
+        return "runtime/session or outer supervision signal is stale; one-shot supervisor reconcile dry-run is requestable."
+    if blocked_reasons:
+        return "runtime supervisor reconcile request is blocked: " + ", ".join(blocked_reasons)
+    if not stale_signals:
+        return "runtime supervisor reconcile request is not needed; no stale signal is present."
+    return "runtime supervisor reconcile request is not currently safe."
 
 
 def _quote(value: str) -> str:

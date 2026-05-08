@@ -68,6 +68,13 @@ def test_read_supervision_status_reports_loaded_hermes_job(monkeypatch, tmp_path
     assert result["job_schedule_display"] == "every 5m"
     assert result["drift_reasons"] == []
     assert "Hermes-hosted runtime supervision 已在线" in result["summary"]
+    slo = result["outer_supervision_slo"]
+    assert slo["surface_kind"] == "outer_supervision_slo"
+    assert slo["state"] == "missing"
+    assert slo["canonical_one_shot_supervisor_reconcile_command"] == (
+        "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+        "--profile '<profile>' --mode developer_apply_safe --dry-run"
+    )
 
 
 def test_read_supervision_status_reports_failed_latest_cron_run(monkeypatch, tmp_path: Path) -> None:
@@ -146,6 +153,63 @@ def test_read_supervision_status_reports_failed_latest_cron_run(monkeypatch, tmp
     assert result["latest_run_status"] == "failed"
     assert result["latest_run_session_path"] == str(session_path)
     assert "最近一次 cron 执行失败" in result["summary"]
+    assert result["outer_supervision_slo"]["state"] == "blocked"
+    assert "latest_hermes_cron_execution_failed" in result["outer_supervision_slo"]["blocked_reasons"]
+
+
+def test_outer_supervision_slo_projects_fresh_due_stale_missing_and_blocked(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.outer_supervision_slo")
+    profile = make_profile(tmp_path)
+    base_status = {
+        "owner": "hermes_gateway_cron",
+        "status": "loaded",
+        "watch_command": ["watch-runtime", "--interval-seconds", "300"],
+    }
+
+    fresh = module.build_outer_supervision_slo_projection(
+        profile=profile,
+        profile_ref="/workspace/profile.toml",
+        study_id="001-risk",
+        supervision_status={**base_status, "latest_run_recorded_at": "2026-05-08T01:00:00+00:00"},
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+    due = module.build_outer_supervision_slo_projection(
+        profile=profile,
+        profile_ref="/workspace/profile.toml",
+        study_id="001-risk",
+        supervision_status={**base_status, "latest_run_recorded_at": "2026-05-08T00:49:00+00:00"},
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+    stale = module.build_outer_supervision_slo_projection(
+        profile=profile,
+        profile_ref="/workspace/profile.toml",
+        study_id="001-risk",
+        supervision_status={**base_status, "latest_run_recorded_at": "2026-05-08T00:40:00+00:00"},
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+    missing = module.build_outer_supervision_slo_projection(
+        profile=profile,
+        profile_ref="/workspace/profile.toml",
+        study_id="001-risk",
+        supervision_status=base_status,
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+    blocked = module.build_outer_supervision_slo_projection(
+        profile=profile,
+        supervision_status={**base_status, "status": "retired_legacy_service_present"},
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    assert fresh["state"] == "fresh"
+    assert fresh["recommended_command"] is None
+    assert due["state"] == "due"
+    assert stale["state"] == "stale"
+    assert missing["state"] == "missing"
+    assert blocked["state"] == "blocked"
+    assert due["recommended_command"] == (
+        "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+        "--profile /workspace/profile.toml --studies 001-risk --mode developer_apply_safe --dry-run"
+    )
 
 
 def test_read_supervision_status_accepts_object_jobs_store_payload(monkeypatch, tmp_path: Path) -> None:

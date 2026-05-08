@@ -96,6 +96,11 @@ def _progress_payload(study_id: str = "001-risk") -> dict[str, object]:
             "active_run_id": "run-001",
             "supervisor_tick_status": "fresh",
         },
+        "outer_supervision_slo": {
+            "surface_kind": "outer_supervision_slo",
+            "state": "fresh",
+            "latest_outer_supervision_at": "2026-05-08T00:59:00+00:00",
+        },
         "refs": {
             "study_runtime_status": "studies/001-risk/artifacts/runtime/status.json",
             "runtime_watch": "studies/001-risk/artifacts/runtime_watch/latest.json",
@@ -490,6 +495,32 @@ def test_progress_portal_projects_runtime_continuity_without_new_authority() -> 
     assert "MDS" not in html
 
 
+def test_progress_portal_projects_outer_supervision_slo_conditions() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    progress = {
+        **_progress_payload(),
+        "outer_supervision_slo": {
+            "surface_kind": "outer_supervision_slo",
+            "state": "due",
+            "recommended_command": (
+                "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+                "--profile /workspace/profile.toml --studies 001-risk --mode developer_apply_safe --dry-run"
+            ),
+        },
+    }
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload=progress,
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    assert payload["study"]["outer_supervision_slo"]["state"] == "due"
+    assert "outer_supervision_slo_due" in payload["conditions"]["stale"]
+
+
 def test_workspace_cockpit_study_item_projects_runtime_continuity() -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload")
     progress = {
@@ -504,6 +535,7 @@ def test_workspace_cockpit_study_item_projects_runtime_continuity() -> None:
     assert continuity["runtime_session"]["last_known_run_id"] == "run-stale-001"
     assert continuity["recovery_intent"]["current_action"] == "safe_reconcile_ready"
     assert continuity["recovery_intent"]["authority"]["submission_ready_authorized"] is False
+    assert item["outer_supervision_slo"]["state"] == "fresh"
 
 
 def test_progress_portal_html_is_single_file_mas_view_without_default_mds_product_semantics() -> None:

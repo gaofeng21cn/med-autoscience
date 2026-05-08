@@ -720,7 +720,7 @@ def read_supervision_status(
         )
         if latest_run_summary:
             summary = f"{summary} {latest_run_summary}"
-    return {
+    payload = {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": "workspace_runtime_supervision",
         "owner": "hermes_gateway_cron",
@@ -761,6 +761,15 @@ def read_supervision_status(
         "legacy_service_role": "retired_cleanup_evidence",
         "retired_legacy_cleanup_required": legacy_loaded or legacy_exists,
     }
+    from med_autoscience.controllers import outer_supervision_slo
+
+    payload["outer_supervision_slo"] = outer_supervision_slo.build_outer_supervision_slo_projection(
+        profile=profile,
+        supervision_status=payload,
+        generated_at=payload["generated_at"],
+        interval_seconds=interval_seconds,
+    )
+    return payload
 
 
 def ensure_supervision(

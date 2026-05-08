@@ -112,6 +112,7 @@ def build_progress_portal_payload(
     quality = _quality_summary(progress.get("publication_eval"))
     delivery = _delivery_summary(progress, package, study_id=resolved_study_id)
     runtime_reconcile_trigger = _runtime_reconcile_trigger(progress.get("runtime_reconcile_trigger"))
+    outer_supervision_slo = _outer_supervision_slo(progress.get("outer_supervision_slo"))
     workspace_study_rows = workspace_studies(cockpit, selected_study_id=resolved_study_id)
     workspace_alerts = workspace_alert_projection(
         cockpit.get("workspace_alerts"),
@@ -136,6 +137,7 @@ def build_progress_portal_payload(
         freshness=freshness,
         delivery=delivery,
         runtime_reconcile_trigger=runtime_reconcile_trigger,
+        outer_supervision_slo=outer_supervision_slo,
         source_refs=source_refs,
     )
     resolved_generated_at = generated_at or _utc_now()
@@ -187,6 +189,7 @@ def build_progress_portal_payload(
             ),
             "supervision": _supervision(progress, runtime),
             "runtime_reconcile_trigger": runtime_reconcile_trigger or None,
+            "outer_supervision_slo": outer_supervision_slo or None,
             "runtime_continuity": runtime_continuity,
         },
         "freshness": freshness,
@@ -727,6 +730,15 @@ def _runtime_reconcile_trigger(value: object) -> dict[str, Any]:
     return projection
 
 
+def _outer_supervision_slo(value: object) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    projection = dict(value)
+    if projection.get("surface_kind") != "outer_supervision_slo":
+        return {}
+    return projection
+
+
 def _runtime_continuity(progress: Mapping[str, Any], runtime: Mapping[str, Any]) -> dict[str, Any]:
     return runtime_continuity_projection(progress, runtime)
 
@@ -799,6 +811,7 @@ def _conditions(
     freshness: Mapping[str, Any],
     delivery: Mapping[str, Any],
     runtime_reconcile_trigger: Mapping[str, Any],
+    outer_supervision_slo: Mapping[str, Any],
     source_refs: list[str],
 ) -> dict[str, list[str]]:
     missing: list[str] = []
@@ -814,6 +827,13 @@ def _conditions(
         stale.append("progress_freshness")
     if runtime_reconcile_trigger.get("safe_to_request") is True:
         stale.append("runtime_reconcile_requestable")
+    outer_state = _non_empty_text(outer_supervision_slo.get("state"))
+    if outer_state == "missing":
+        missing.append("outer_supervision_slo")
+    elif outer_state in {"due", "stale"}:
+        stale.append(f"outer_supervision_slo_{outer_state}")
+    elif outer_state == "blocked":
+        conflict.append("outer_supervision_slo_blocked")
     if delivery.get("status") == "missing":
         missing.append("current_package")
     tick_status = _non_empty_text(_mapping(runtime.get("supervisor_tick_audit")).get("status"))

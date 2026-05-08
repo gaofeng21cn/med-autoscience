@@ -9,6 +9,7 @@ from med_autoscience.controllers import (
     medical_paper_readiness,
     open_auto_research_projection,
     runtime_reconcile_trigger,
+    outer_supervision_slo,
     study_truth_kernel,
 )
 from .delivery_inspection import (
@@ -428,8 +429,16 @@ def build_study_progress_projection(
         status=status,
         study_root=resolved_study_root,
     )
+    outer_supervision_slo_projection = outer_supervision_slo.build_outer_supervision_slo_projection(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=resolved_study_id,
+        supervision_status=_mapping_copy(status.get("workspace_runtime_supervision")),
+        generated_at=_non_empty_text(status.get("generated_at")),
+    )
+    status_with_outer_slo = {**status, "outer_supervision_slo": outer_supervision_slo_projection}
     runtime_reconcile_trigger_projection = runtime_reconcile_trigger.build_runtime_reconcile_trigger_projection(
-        status_payload=status,
+        status_payload=status_with_outer_slo,
         profile_ref=str(profile_ref) if profile_ref is not None else None,
         study_id=resolved_study_id,
     )
@@ -793,6 +802,7 @@ def build_study_progress_projection(
         module_surfaces=module_surfaces,
         runtime_efficiency=runtime_efficiency,
         runtime_reconcile_trigger=runtime_reconcile_trigger_projection,
+        outer_supervision_slo=outer_supervision_slo_projection,
         autonomy_slo_status=autonomy_slo_status,
         ai_doctor_state=ai_doctor_state,
         repair_recommendation=repair_recommendation,

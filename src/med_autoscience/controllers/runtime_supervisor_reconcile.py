@@ -8,7 +8,7 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 
-from . import runtime_supervisor_consumer, runtime_supervisor_dispatch_executor, runtime_supervisor_scan
+from . import outer_supervision_slo, runtime_supervisor_consumer, runtime_supervisor_dispatch_executor, runtime_supervisor_scan
 
 
 SCHEMA_VERSION = 1
@@ -237,6 +237,12 @@ def supervisor_reconcile(
             "history_path": str(history_path),
         },
     }
+    payload["outer_supervision_slo"] = outer_supervision_slo.build_outer_supervision_slo_projection(
+        profile=profile,
+        study_id=resolved_study_ids[0] if len(resolved_study_ids) == 1 else None,
+        reconcile_payload=payload,
+        generated_at=generated_at,
+    )
     _write_json(latest_path, payload)
     _append_json_line(
         history_path,
