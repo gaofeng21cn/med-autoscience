@@ -23,6 +23,10 @@ def test_workspace_progress_portal_grouped_command_materializes(monkeypatch, tmp
                 "status": "materialized",
                 "payload_path": str(tmp_path / "artifacts" / "runtime" / "progress_portal" / "latest.json"),
                 "html_path": str(tmp_path / "ops" / "mas" / "progress" / "index.html"),
+                "opl_handoff": {
+                    "payload_ref": str(tmp_path / "artifacts" / "runtime" / "progress_portal" / "latest.json"),
+                    "deep_link": str(tmp_path / "ops" / "mas" / "progress" / "index.html"),
+                },
             }
 
     monkeypatch.setattr(cli, "progress_portal", FakeProgressPortal)
@@ -51,6 +55,10 @@ def test_workspace_progress_portal_grouped_command_materializes(monkeypatch, tmp
     assert calls["study_root"] is None
     assert calls["entry_mode"] is None
     assert calls["open_browser"] is True
+    assert payload["opl_handoff"]["deep_link"] == str(tmp_path / "ops" / "mas" / "progress" / "index.html")
+    assert payload["opl_handoff"]["payload_ref"] == str(
+        tmp_path / "artifacts" / "runtime" / "progress_portal" / "latest.json"
+    )
 
 
 def test_workspace_progress_portal_grouped_command_serves_read_only(monkeypatch, tmp_path: Path, capsys) -> None:

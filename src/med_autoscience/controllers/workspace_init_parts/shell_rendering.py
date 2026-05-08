@@ -121,6 +121,15 @@ def _render_profile_optional_forward_script(command: str) -> str:
     )
 
 
+def _render_progress_portal_start_web_script() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        'source "$(cd "$(dirname "$0")" && pwd)/../../medautoscience/bin/_shared.sh"\n\n'
+        'run_medautosci workspace progress-portal --profile "${PROFILE_PATH}" --open "$@"\n'
+    )
+
+
 def _render_watch_runtime_script(*, workspace_root: Path, runtime_quests_root: Path) -> str:
     relative_runtime_root = runtime_quests_root.relative_to(workspace_root).as_posix()
     return (

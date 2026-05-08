@@ -26,6 +26,7 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_med_deepscientist_shared,
     _render_med_deepscientist_show_config,
     _render_medautosci_shared,
+    _render_progress_portal_start_web_script,
     _render_profile_optional_forward_script,
     _render_supervisor_cron_template,
     _render_supervisor_consume_script,
@@ -808,7 +809,7 @@ def _rendered_files(
         ),
         RenderedFile(
             path=layout.bin_root / "start-web",
-            content=_render_med_deepscientist_forward("--port 20999"),
+            content=_render_progress_portal_start_web_script(),
             executable=True,
         ),
         RenderedFile(
