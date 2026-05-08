@@ -45,6 +45,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "supervisor-execute-dispatch"): "runtime-supervisor-execute-dispatch",
     ("runtime", "supervisor-reconcile"): "runtime-supervisor-reconcile",
     ("runtime", "supervisor-refresh-controller-decisions"): "runtime-supervisor-refresh-controller-decisions",
+    ("runtime", "paper-autonomy-stability-evidence"): "paper-autonomy-stability-evidence",
     ("runtime", "lifecycle-inventory"): "runtime-lifecycle-inventory",
     ("runtime", "lifecycle-read"): "runtime-lifecycle-read",
     ("runtime", "lifecycle-export"): "runtime-lifecycle-export",
