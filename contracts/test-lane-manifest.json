@@ -32,6 +32,37 @@
     "control-plane": {
       "kind": "focused_owner_surface_gate",
       "overlap_policy": "allowed_with_regression"
+    },
+    "control-plane-autonomy": {
+      "kind": "focused_autonomy_control_surface_gate",
+      "paths": [
+        "tests/test_real_paper_autonomy_soak_inventory.py",
+        "tests/test_real_workspace_soak_monitor.py",
+        "tests/test_real_paper_ai_first_soak.py"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "read_only_inventory_and_observability"
+    },
+    "supervisor-reconcile": {
+      "kind": "focused_supervisor_reconcile_contract_gate",
+      "paths": [
+        "tests/test_runtime_watch.py",
+        "tests/test_study_progress.py",
+        "tests/test_runtime_watch_cases/supervisor_and_progress_cases.py"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "scan_consume_execute_rescan_contract"
+    },
+    "workspace-monolith-migration": {
+      "kind": "focused_workspace_monolith_migration_gate",
+      "paths": [
+        "tests/test_profiles.py",
+        "tests/test_runtime_lifecycle_migration.py",
+        "tests/test_workspace_git_boundary.py",
+        "tests/test_real_paper_autonomy_soak_inventory.py"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "dry_run_before_real_workspace_apply"
     }
   }
 }

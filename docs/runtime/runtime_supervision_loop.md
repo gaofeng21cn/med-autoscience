@@ -155,7 +155,16 @@ medautosci runtime-supervisor-consume \
 
 该入口只把 scan queue 转成 owner handoff task，写入 workspace-level `artifacts/supervision/consumer/latest.json` / `history.jsonl` 以及 study-level consumer packet。它负责说明 `request_owner`、`required_output_surface`、`request_packet_ref`、forbidden surfaces 与 verification commands；它不执行 publication gate 或 AI reviewer 的专业判断，也不修改论文包。
 
-从 2026-05-05 起，developer scheduler 的正式同 tick 行为是 `scan -> consume -> execute-dispatch`：
+从 2026-05-08 起，developer scheduler 的正式同 tick 行为是 `supervisor-reconcile` one-shot；该入口内部执行 `scan -> consume -> execute-dispatch -> rescan` 并写出 reconcile receipt。三段式入口保留为调试面：
+
+```bash
+medautosci runtime supervisor-reconcile \
+  --profile <profile> \
+  --mode developer_apply_safe \
+  --apply
+```
+
+调试时可拆成：
 
 ```bash
 medautosci runtime supervisor-scan \
@@ -247,15 +256,46 @@ workspace bootstrap 会渲染 portable scheduler entry 与示例模板：
 - `ops/medautoscience/bin/supervisor-scan`
 - `ops/medautoscience/bin/supervisor-consume`
 - `ops/medautoscience/bin/supervisor-execute-dispatch`
+- `ops/medautoscience/bin/supervisor-reconcile`
 - `ops/medautoscience/bin/watch-runtime-service-runner`
 - `ops/medautoscience/supervisor/systemd/medautoscience-supervisor-scan.service`
 - `ops/medautoscience/supervisor/systemd/medautoscience-supervisor-scan.timer`
 - `ops/medautoscience/supervisor/cron/supervisor-scan.cron`
 - `ops/medautoscience/supervisor/launchd/README.md`
 
-`systemd` 与 `cron` 模板调用 `watch-runtime-service-runner`，由 runner 在同一小时级 tick 内依次执行 `supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch`。Codex App heartbeat 仍只是本机兼容 scheduler；MAS 架构依赖的是 portable scheduler entry 和这些 durable surfaces。
+`systemd` 与 `cron` 模板调用 `watch-runtime-service-runner`，由 runner 在同一小时级 tick 内调用 `supervisor-reconcile`，并由 reconcile 写 `artifacts/supervision/reconcile/latest.json` / history。`supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch` 仍保留为调试入口。Codex App heartbeat 仍只是本机兼容 scheduler；MAS 架构依赖的是 portable scheduler entry 和这些 durable surfaces。
 
-`medautosci runtime ensure-supervision --manager systemd|cron|launchd` 返回可复制的安装命令和模板路径，并验证当前 workspace 是否已有可执行的 `supervisor-scan` entry。显式追加 `--write-install-proof` 时，它会写出 workspace-level `artifacts/supervision/install_proof/latest.json`，记录 manager、scheduler owner、安装命令、状态检查命令、预期产物、freshness、safe-action mode、GitHub gate 与 host service claim。这个接口只生成 scheduler instruction / install proof，不在没有真实宿主安装 evidence 时声称宿主 service 已安装；安装动作仍归属 host operator 或外部 scheduler。
+## Real-Paper Autonomy Soak Inventory
+
+paper autonomy stability 的证据层独立于 functional monolith closeout。functional monolith 说明默认 runtime / status / progress / portal / diagnostic 能力已经 MAS-owned；真实论文自治稳定性还必须证明现有论文 workspace 在只读 inventory、supervisor reconcile、migration dry-run 和 soak 观察下可解释。
+
+Lane 5/6 的 dry-run harness 是：
+
+```bash
+uv run python scripts/real-paper-autonomy-soak-inventory.py \
+  --yang-root /Users/gaofeng/workspace/Yang
+```
+
+该 harness 枚举 `/Users/gaofeng/workspace/Yang/*/ops/medautoscience/profiles/*.toml`，只读输出：
+
+- profile / workspace / runtime root 可读性；
+- study status/progress surface 可读性；
+- active、parked、completed 或 unreadable 的 reason；
+- legacy MDS launcher/default runner evidence；
+- profile/study migration readiness 的 dry-run 分类。
+
+边界固定如下：
+
+- 不写真实 workspace；
+- 不执行 reconcile apply；
+- 不做 migration apply；
+- 不 relaunch runtime；
+- 不写 `current_package`、`submission_minimal`、`publication_eval/latest.json` 或 publication gate；
+- 不替代后续 Lane 1 blocker fix、Lane 2 reconcile CLI、Lane 3 owner_route schema、Lane 4 migration apply。
+
+这份 inventory 是 `control-plane-autonomy` 与 `workspace-monolith-migration` focused lane 的输入证据；它只能证明“状态可枚举、可读、可解释”，不能证明论文质量、投稿 readiness 或 autonomous runtime 已完成迁移。
+
+`medautosci runtime ensure-supervision --manager systemd|cron|launchd` 返回可复制的安装命令和模板路径，并验证当前 workspace 是否已有可执行的 `supervisor-reconcile` entry。显式追加 `--write-install-proof` 时，它会写出 workspace-level `artifacts/supervision/install_proof/latest.json`，记录 manager、scheduler owner、安装命令、状态检查命令、预期产物、freshness、safe-action mode、GitHub gate 与 host service claim。这个接口只生成 scheduler instruction / install proof，不在没有真实宿主安装 evidence 时声称宿主 service 已安装；安装动作仍归属 host operator 或外部 scheduler。
 
 容器环境不是 MAS-owned runtime。MAS 不维护 `medautoscience:latest` 镜像，也不生成 Kubernetes CronJob manifest。容器、volume、gateway、scheduler 与镜像发布由 OPL、Hermes 或部署平台持有；容器内只需要能调用 MAS CLI，例如：
 
@@ -265,6 +305,8 @@ medautosci runtime supervisor-scan \
   --apply-safe-actions \
   --developer-supervisor-mode developer_apply_safe
 ```
+
+默认容器 scheduler 应调用 `medautosci runtime supervisor-reconcile --profile <profile> --mode developer_apply_safe --apply`；上面的 scan 命令只用于调试单步扫描。
 
 同时，外环还必须对“最近一次 supervisor tick 是否仍然新鲜”给出正式判断：
 

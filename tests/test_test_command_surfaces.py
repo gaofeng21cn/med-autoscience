@@ -509,6 +509,29 @@ def test_parallel_full_lane_script_covers_all_marker_groups() -> None:
     assert 'MAS_PYTEST_WORKERS="${MAS_PYTEST_WORKERS:-${full_lane_pytest_workers}}" make "${lane}"' in script
 
 
+def test_focused_lane_manifest_exposes_autonomy_reconcile_and_migration_lanes() -> None:
+    manifest = _test_lane_manifest()
+    focused_lanes = manifest["focused_lanes"]
+    expected = {
+        "control-plane-autonomy": "read_only_inventory_and_observability",
+        "supervisor-reconcile": "scan_consume_execute_rescan_contract",
+        "workspace-monolith-migration": "dry_run_before_real_workspace_apply",
+    }
+
+    for lane, authority_boundary in expected.items():
+        assert lane in focused_lanes
+        contract = focused_lanes[lane]
+        assert contract["kind"].startswith("focused_")
+        assert contract["overlap_policy"] == "allowed_with_regression"
+        assert contract["authority_boundary"] == authority_boundary
+        assert contract["paths"]
+        for path in contract["paths"]:
+            assert (REPO_ROOT / path).exists(), f"{lane} references missing test path: {path}"
+
+    assert "tests/test_real_paper_autonomy_soak_inventory.py" in focused_lanes["control-plane-autonomy"]["paths"]
+    assert "tests/test_real_paper_autonomy_soak_inventory.py" in focused_lanes["workspace-monolith-migration"]["paths"]
+
+
 def test_parallel_full_lane_script_writes_summary_and_invokes_make_lanes(tmp_path: Path) -> None:
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()

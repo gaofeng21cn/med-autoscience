@@ -23,6 +23,8 @@ Owner: `MedAutoScience`
 
 2026-05-08 functional monolith closeout：`functional_monolith_completion=landed` 已把目标从“MAS 是唯一入口”推进到“MAS 默认运行、诊断、进度可视化、artifact/quality/status/progress/cockpit/OPL handoff 都不要求外部 MDS repo、daemon、runtime root 或 WebUI”。这仍不是函数级 1:1 搬迁；完成口径是 capability supersede / rewrite / retire。外部 `med-deepscientist` 现在只保留为 frozen source archive、historical fixture、explicit legacy diagnostic / provenance reference；所有来自外部 MDS / DeepScientist 的材料只能通过 source provenance、snapshot hash、license refs、capability classification、parity proof 和 MAS maintainer-authored commit 进入，不增加 `med-autoscience` default-branch contributor graph。
 
+2026-05-08 paper autonomy stability 分层：`functional_monolith_completion=landed` 只说明 repo / 默认入口 / 可视化 / runtime core 依赖已经由 MAS 承接；`paper_autonomy_stability=landed` 是更高一层，必须额外具备真实 profile inventory、supervisor reconcile、workspace migration dry-run、read-only soak 和真实 paper status/progress 可读证据。当前新增的 `real_paper_autonomy_soak_inventory` 只做 dry-run/inventory，枚举 `/Users/gaofeng/workspace/Yang/*/ops/medautoscience/profiles/*.toml` 并报告 migration readiness、status/progress readability、active/parked/completed reason 与 legacy MDS launcher/default runner evidence；它不写真实 workspace、不运行 reconcile apply、不修改 `current_package`、不写 publication gate，也不替代 Lane 1 blocker fix、Lane 2 reconcile CLI、Lane 3 owner_route schema 或 Lane 4 migration apply。
+
 2026-05-08 hub role hardening closeout：中心 hub 风险已从“建议”转为 architecture fitness guard。Runtime Supervisor、Product Cockpit、MCP Adapter 与 Display Validation 的本轮收口只改变内部角色边界，不改变 CLI/MCP/controller payload 或 live study artifact。`module_boundary_audit` / `architecture_owner_boundary` 现在要求 hub 声明 `authority`、`read_model`、`adapter` 或 `materializer`；read-model / adapter hub 如果声明 authority、控制 runtime/publication 或写 runtime/study truth，会被 blocking。该 hardening 是横向 guard，不改变 next execution queue。
 
 ## Next Execution Queue
@@ -35,6 +37,7 @@ Owner: `MedAutoScience`
 | `2` | `profile_entry_compat_retirement` | `mas_single_project_mds_absorb_program.md` | `landed`: profile JSON、MCP doctor audit mode、workspace contracts、product-entry/progress executor owner 和 docs 已从默认 MDS entry/compat 退到 explicit legacy diagnostic / controlled backend audit；旧 `med_deepscientist_*` 输入字段保留为只读诊断和 backend/oracle 审计。 |
 | `3` | `no_history_physical_absorb` | `mas_single_project_mds_absorb_program.md` | `landed`: no-history source provenance、author audit guard、capability parity harness、MAS-owned retained capability absorb、external runtime dependency retirement 和 docs closeout 已完成；没有把上游 DeepScientist / med-deepscientist git history 或 contributor footprint 带入 `med-autoscience main`。 |
 | `4` | `functional_monolith_completion` | `mas_single_project_mds_absorb_program.md`、`../runtime/runtime_core_convergence_and_controlled_cutover.md` | `landed`: MDS remaining surface inventory、runtime core ingest、MAS-native progress/status replacement、legacy MDS WebUI default retirement、OPL App family-level handoff、compat/oracle shrink-to-diagnostic 和 local contributor audit guard 已落地；外部 MDS checkout 不再是默认 operation 或默认 diagnostic dependency，OPL App 只消费 MAS refs/deep links，不重解释 study truth。 |
+| `5` | `paper_autonomy_stability_evidence` | `mas_single_project_mds_absorb_program.md`、`../runtime/runtime_supervision_loop.md` | `evidence-gated`: 真实 profile inventory、status/progress readability、supervisor reconcile、workspace migration dry-run、read-only soak 与 active/parked/completed reason 已有可审阅证据后，才能把真实论文自治稳定性写成 landed；当前 Lane 5/6 只落 dry-run harness、docs/test lane manifest 和 focused tests。 |
 
 本文是队列 authority。实现 lane 可以并行拆分，但吸收顺序仍按上表 gate；不能绕过 portfolio 直接新建另一套 program board。
 
@@ -177,5 +180,6 @@ Owner: `MedAutoScience`
 - `runtime_lifecycle_sqlite_migration_program.md` 明确作为 `mas_single_project_mds_absorb_program.md` 的 runtime persistence 子计划执行。
 - current-project quest Git、workspace root Git retirement、workspace layout 去 MDS/DS 化、profile/entry compatibility retirement 和 no-history physical absorb repo-level closeout 不再作为未完成 active backlog 重复规划。
 - functional monolith completion 已进入 landed 口径；后续不得把默认入口/依赖退役、MDS 功能重新组织吸收或旧 WebUI/default daemon 迁移重开成 active backlog，只保留 future upstream source intake review、explicit legacy diagnostic 和 optional hosted frontend packaging。
+- paper autonomy stability 不继承 functional monolith 的 landed 结论；它必须由真实 workspace profile inventory、supervisor reconcile、migration dry-run 和 read-only soak 证据单独关闭。
 - 已落地 closeout、activation package 不再被当作 active backlog；dated learning intake 不再被当作 active backlog，但其 recurring support lane 仍按对应 policy/protocol 可触发。
 - `../references/plan_completion_ledger.md` 继续区分 repo capability landed、真实 workspace cutover completed、compatibility retirement completed、no-history absorb landed 与 recurring upstream learning support。
