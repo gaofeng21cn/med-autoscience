@@ -70,6 +70,7 @@ runtime_supervisor_dispatch_executor = _LazyModuleProxy(lambda: _load_controller
 runtime_supervisor_reconcile = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_reconcile"))
 runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_scan"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
+paper_autonomy_stability_evidence = _LazyModuleProxy(lambda: _load_controller("paper_autonomy_stability_evidence"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
 runtime_lifecycle_read_model = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model"))
 runtime_lifecycle_migration = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration"))
@@ -631,6 +632,15 @@ def main(argv: list[str] | None = None) -> int:
         result = workspace_monolith_migration.run_workspace_monolith_migration(
             profile_path=Path(args.profile),
             apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "paper-autonomy-stability-evidence":
+        result = paper_autonomy_stability_evidence.build_paper_autonomy_stability_evidence(
+            yang_root=Path(args.yang_root),
+            profile_paths=tuple(args.profiles or ()),
+            study_ids=tuple(args.studies or ()),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
