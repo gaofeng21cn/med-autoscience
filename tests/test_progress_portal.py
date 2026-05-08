@@ -162,3 +162,60 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     assert html_path.read_text(encoding="utf-8").startswith("<!doctype html>")
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "controller_decisions").exists()
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "publication_eval").exists()
+
+
+def test_materialize_progress_portal_can_open_static_entry(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    profile = make_profile(tmp_path)
+    opened: list[str] = []
+    monkeypatch.setattr(module.webbrowser, "open", lambda url: opened.append(url) or True)
+
+    result = module.materialize_progress_portal(
+        profile=profile,
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        generated_at="2026-05-08T01:05:00+00:00",
+        open_browser=True,
+    )
+
+    assert opened == [Path(result["html_path"]).as_uri()]
+
+
+def test_serve_progress_portal_materializes_and_reports_read_only_local_url(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    profile = make_profile(tmp_path)
+    served: dict[str, object] = {}
+
+    class FakeServer:
+        server_address = ("127.0.0.1", 4301)
+
+        def __init__(self, address, handler):
+            served["address"] = address
+            served["handler"] = handler
+
+        def serve_forever(self) -> None:
+            served["served"] = True
+
+        def server_close(self) -> None:
+            served["closed"] = True
+
+    monkeypatch.setattr(module.socketserver, "TCPServer", FakeServer)
+
+    result = module.serve_progress_portal(
+        profile=profile,
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        generated_at="2026-05-08T01:05:00+00:00",
+        host="127.0.0.1",
+        port=4301,
+        interval_seconds=20,
+        once=True,
+    )
+
+    assert result["status"] == "serving"
+    assert result["url"] == "http://127.0.0.1:4301/"
+    assert result["read_only"] is True
+    assert result["interval_seconds"] == 20
+    assert Path(result["html_path"]).exists()
+    assert served["address"] == ("127.0.0.1", 4301)
+    assert served["closed"] is True

@@ -3,9 +3,13 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from html import escape
+import http.server
 import json
 from pathlib import Path
+import socketserver
+import threading
 from typing import Any
+import webbrowser
 
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -30,6 +34,7 @@ def build_progress_portal_payload(
     generated_at: str | None = None,
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
+    auto_refresh_seconds: int | None = None,
 ) -> dict[str, Any]:
     resolved_profile_name = profile_name or (profile.name if profile is not None else None) or "unknown"
     resolved_workspace_root = Path(
@@ -80,7 +85,7 @@ def build_progress_portal_payload(
         delivery=delivery,
         source_refs=source_refs,
     )
-    return {
+    payload = {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
         "brand": BRAND,
@@ -124,6 +129,12 @@ def build_progress_portal_payload(
             "package": _source_payload_summary(package),
         },
     }
+    if auto_refresh_seconds is not None and auto_refresh_seconds > 0:
+        payload["portal_view"] = {
+            "auto_refresh_seconds": int(auto_refresh_seconds),
+            "refresh_mode": "read_only_server_request_refresh",
+        }
+    return payload
 
 
 def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
@@ -135,6 +146,8 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
     conditions = _mapping(payload.get("conditions"))
     latest_events = [dict(item) for item in payload.get("latest_events") or [] if isinstance(item, Mapping)]
     source_refs = _string_list(payload.get("source_refs"))
+    portal_view = _mapping(payload.get("portal_view"))
+    auto_refresh_seconds = portal_view.get("auto_refresh_seconds")
     generated_at = str(payload.get("generated_at") or "unknown")
     brand = str(payload.get("brand") or BRAND)
     state_label = str(study.get("state_label") or "状态投影缺失")
@@ -148,6 +161,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             "<head>",
             '<meta charset="utf-8">',
             '<meta name="viewport" content="width=device-width, initial-scale=1">',
+            _refresh_meta(auto_refresh_seconds),
             f"<title>{escape(brand)} Progress Portal</title>",
             "<style>",
             _css(),
@@ -224,6 +238,8 @@ def materialize_progress_portal(
     generated_at: str | None = None,
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
+    open_browser: bool = False,
+    auto_refresh_seconds: int | None = None,
 ) -> dict[str, Any]:
     payload = build_progress_portal_payload(
         profile=profile,
@@ -237,6 +253,7 @@ def materialize_progress_portal(
         generated_at=generated_at,
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
+        auto_refresh_seconds=auto_refresh_seconds,
     )
     payload_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "latest.json"
     html_path = profile.workspace_root / "ops" / "mas" / "progress" / "index.html"
@@ -244,6 +261,8 @@ def materialize_progress_portal(
     html_path.parent.mkdir(parents=True, exist_ok=True)
     payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     html_path.write_text(render_progress_portal_html(payload), encoding="utf-8")
+    if open_browser:
+        webbrowser.open(html_path.as_uri())
     return {
         "status": "materialized",
         "surface_kind": SURFACE_KIND,
@@ -251,6 +270,83 @@ def materialize_progress_portal(
         "html_path": str(html_path),
         "generated_at": payload["generated_at"],
     }
+
+
+def serve_progress_portal(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str | None = None,
+    study_root: Path | None = None,
+    profile_ref: str | Path | None = None,
+    progress_payload: Mapping[str, Any] | None = None,
+    cockpit_payload: Mapping[str, Any] | None = None,
+    runtime_payload: Mapping[str, Any] | None = None,
+    package_payload: Mapping[str, Any] | None = None,
+    generated_at: str | None = None,
+    entry_mode: str | None = None,
+    sync_runtime_summary: bool = True,
+    host: str = "127.0.0.1",
+    port: int = 0,
+    interval_seconds: int = 30,
+    open_browser: bool = False,
+    once: bool = False,
+) -> dict[str, Any]:
+    refresh_seconds = max(1, int(interval_seconds))
+
+    def refresh() -> dict[str, Any]:
+        return materialize_progress_portal(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            profile_ref=profile_ref,
+            progress_payload=progress_payload,
+            cockpit_payload=cockpit_payload,
+            runtime_payload=runtime_payload,
+            package_payload=package_payload,
+            generated_at=generated_at,
+            entry_mode=entry_mode,
+            sync_runtime_summary=sync_runtime_summary,
+            auto_refresh_seconds=refresh_seconds,
+        )
+
+    materialized = refresh()
+    html_path = Path(str(materialized["html_path"]))
+    serve_root = html_path.parent
+
+    class _ProgressPortalHandler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            super().__init__(*args, directory=str(serve_root), **kwargs)
+
+        def do_GET(self) -> None:  # noqa: N802
+            refresh()
+            super().do_GET()
+
+        def log_message(self, format: str, *args: Any) -> None:
+            return
+
+    server = socketserver.TCPServer((host, int(port)), _ProgressPortalHandler)
+    actual_host, actual_port = server.server_address
+    url = f"http://{actual_host}:{actual_port}/"
+    if open_browser:
+        webbrowser.open(url)
+    result = {
+        "status": "serving",
+        "surface_kind": SURFACE_KIND,
+        "url": url,
+        "host": actual_host,
+        "port": actual_port,
+        "interval_seconds": refresh_seconds,
+        "read_only": True,
+        "payload_path": materialized["payload_path"],
+        "html_path": materialized["html_path"],
+        "generated_at": materialized["generated_at"],
+    }
+    if once:
+        server.server_close()
+        return result
+    thread = threading.Thread(target=server.serve_forever, name="mas-progress-portal", daemon=False)
+    thread.start()
+    return result
 
 
 def _utc_now() -> str:
@@ -571,8 +667,15 @@ summary { cursor: pointer; font-weight: 700; }
 """.strip()
 
 
+def _refresh_meta(value: object) -> str:
+    if isinstance(value, int) and value > 0:
+        return f'<meta http-equiv="refresh" content="{value}">'
+    return ""
+
+
 __all__ = [
     "build_progress_portal_payload",
     "render_progress_portal_html",
     "materialize_progress_portal",
+    "serve_progress_portal",
 ]
