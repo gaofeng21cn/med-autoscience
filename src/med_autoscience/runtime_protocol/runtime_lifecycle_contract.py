@@ -184,6 +184,40 @@ Q1_Q6_CUTOVER_CONTRACT = (
     },
 )
 
+OPL_FAMILY_ADAPTER_SOURCE_TABLES = (
+    "lineage_nodes",
+    "lineage_edges",
+    "workspace_allocations",
+    "runtime_snapshots",
+    "snapshot_file_refs",
+    "revision_diffs",
+    "canvas_projection",
+    "study_macro_state_snapshots",
+    "owner_route_receipts",
+    "dispatch_receipts",
+    "surface_refs",
+    "archive_refs",
+    "report_index",
+)
+
+OPL_FAMILY_ADAPTER_SURFACE = {
+    "surface_kind": "mas_opl_family_persistence_lifecycle_owner_route_adoption",
+    "shape": ["refs", "payload"],
+    "authority": "refs_payload_projection_only",
+    "maps_to_opl_contracts": {
+        "persistence": "opl_family_persistence_contract.v1",
+        "lifecycle": "opl_family_lifecycle_contract.v1",
+        "owner_route": "opl_family_owner_route_contract.v1",
+    },
+    "source_tables": list(OPL_FAMILY_ADAPTER_SOURCE_TABLES),
+    "forbidden_authority_surfaces": [
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "manuscript/current_package",
+        "current_package.zip",
+    ],
+}
+
 MIGRATION_LEDGER_REQUIRED_FIELDS = (
     "migration_run_id",
     "workspace_root",
@@ -250,6 +284,10 @@ def runtime_lifecycle_contract() -> dict[str, Any]:
             {key: list(value) if isinstance(value, list) else value for key, value in milestone.items()}
             for milestone in Q1_Q6_CUTOVER_CONTRACT
         ],
+        "opl_family_adapter_surface": {
+            key: dict(value) if isinstance(value, dict) else list(value) if isinstance(value, list) else value
+            for key, value in OPL_FAMILY_ADAPTER_SURFACE.items()
+        },
         "migration_ledger_required_fields": list(MIGRATION_LEDGER_REQUIRED_FIELDS),
         "compatibility_verification_required_fields": list(COMPATIBILITY_VERIFICATION_REQUIRED_FIELDS),
     }

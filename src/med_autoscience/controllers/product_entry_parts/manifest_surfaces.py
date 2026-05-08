@@ -451,6 +451,9 @@ def build_product_entry_manifest(
         product_entry_shell=product_entry_shell,
         study_runtime_status_command=study_runtime_status_command,
     )
+    opl_family_persistence_lifecycle_owner_route_adoption = build_product_entry_adoption_projection(
+        workspace_root=profile.workspace_root,
+    )
     skill_catalog = _build_skill_catalog_surface(
         runtime=runtime,
         family_orchestration=family_orchestration,
@@ -552,6 +555,9 @@ def build_product_entry_manifest(
             "phase3_clearance_lane": phase3_clearance_lane,
             "phase4_backend_deconstruction": phase4_backend_deconstruction,
             "phase5_platform_target": phase5_platform_target,
+            "opl_family_persistence_lifecycle_owner_route_adoption": (
+                opl_family_persistence_lifecycle_owner_route_adoption
+            ),
         },
     )
     if isinstance(payload.get("frontdoor_surface"), dict):

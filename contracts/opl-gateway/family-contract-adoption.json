@@ -56,6 +56,49 @@
       "repair_recommendation"
     ]
   },
+  "persistence_lifecycle_owner_route_projection": {
+    "adoption_surface_kind": "mas_opl_family_persistence_lifecycle_owner_route_adoption",
+    "required_shape": [
+      "refs",
+      "payload"
+    ],
+    "source_surfaces": [
+      "artifacts/runtime/runtime_lifecycle.sqlite",
+      "study_macro_state/latest.json",
+      "runtime_supervisor_owner_route",
+      "runtime_supervisor_dispatch_receipt",
+      "surface_refs",
+      "runtime_watch/latest.json",
+      "controller_decisions/latest.json"
+    ],
+    "sqlite_tables": [
+      "lineage_nodes",
+      "lineage_edges",
+      "workspace_allocations",
+      "runtime_snapshots",
+      "snapshot_file_refs",
+      "revision_diffs",
+      "canvas_projection",
+      "study_macro_state_snapshots",
+      "owner_route_receipts",
+      "dispatch_receipts",
+      "surface_refs",
+      "archive_refs",
+      "report_index"
+    ],
+    "maps_to_opl_contracts": {
+      "persistence": "opl_family_persistence_contract.v1",
+      "lifecycle": "opl_family_lifecycle_contract.v1",
+      "owner_route": "opl_family_owner_route_contract.v1"
+    },
+    "authority_boundary": "OPL may discover and index MAS refs/payload; MAS keeps study, publication, AI reviewer, and paper package authority",
+    "forbidden_opl_authority_surfaces": [
+      "publication_eval/latest.json",
+      "AI reviewer workflow",
+      "paper/manuscript/current_package",
+      "current_package.zip"
+    ]
+  },
   "non_goals": [
     "OPL owns study truth",
     "OPL owns publication judgment",
