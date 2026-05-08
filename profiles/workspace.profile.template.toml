@@ -13,11 +13,11 @@ studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"
 # 当前 workspace 的病种级 portfolio 根目录。
 portfolio_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/portfolio"
 
-# legacy diagnostic / backend audit runtime home。新 workspace 默认指向 MAS runtime home；
+# historical import/provenance runtime home。新 workspace 默认指向 MAS runtime home；
 # 旧 ops/med-deepscientist 路径只通过显式 restore/import diagnostic 读取。
 med_deepscientist_runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/runtime"
 
-# 可选 controlled backend / oracle 源码仓库；仅用于 backend-upgrade audit 或 parity oracle。
+# 可选 controlled backend / oracle 源码仓库；仅用于 backend-audit 或 parity oracle。
 med_deepscientist_repo_root = ""
 
 # 外部 Hermes-Agent 源码仓库；只用于 outer runtime substrate 审计与后续真实 adapter cutover。

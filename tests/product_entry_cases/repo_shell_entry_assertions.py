@@ -68,13 +68,16 @@ def _assert_executor_default_surface(*, module, payload, profile, profile_ref) -
     ]
     assert payload["executor_defaults"]["optional_executor_proofs"] == [
         {
-            "executor_kind": "legacy_oracle_backend_audit",
-            "entrypoint": "explicit MedDeepScientist backend audit / parity oracle intake only",
+            "executor_kind": "hermes_agent",
+            "entrypoint": "explicit Hermes-Agent proof lane for historical provenance / parity intake only",
             "requires_full_agent_loop": True,
             "default_model": "inherit_local_hermes_default",
             "default_reasoning_effort": "inherit_local_hermes_default",
         }
     ]
+    assert {
+        proof["executor_kind"] for proof in payload["executor_defaults"]["optional_executor_proofs"]
+    } <= {"codex_cli", "hermes_agent"}
     assert payload["workspace_locator"]["profile_name"] == profile.name
     assert payload["recommended_shell"] == "workspace_cockpit"
     assert payload["recommended_command"].endswith(

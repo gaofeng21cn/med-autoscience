@@ -32,6 +32,45 @@ def _category_path_families(module) -> tuple:
     )
 
 
+def test_stale_compatibility_terms_do_not_reenter_active_surfaces() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    search_roots = [
+        repo_root / "src",
+        repo_root / "tests",
+        repo_root / "contracts",
+        repo_root / "profiles",
+        repo_root / "docs",
+    ]
+    blocked_terms = (
+        "backend-" + "upgrade",
+        "backend-" + "upgrade-check",
+        "med_deepscientist_" + "upgrade_check.py",
+        "codex_cli_" + "autonomous",
+        "legacy_oracle_" + "backend_audit",
+    )
+    allowed_doc_roots = {
+        repo_root / "docs" / "history",
+        repo_root / "docs" / "references",
+    }
+    violations: list[str] = []
+
+    for root in search_roots:
+        for path in root.rglob("*"):
+            if not path.is_file():
+                continue
+            if any(path.is_relative_to(allowed_root) for allowed_root in allowed_doc_roots):
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                continue
+            for term in blocked_terms:
+                if term in text:
+                    violations.append(f"{path.relative_to(repo_root)}: {term}")
+
+    assert violations == []
+
+
 def test_preflight_category_exact_test_paths_exist() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
     repo_root = Path(__file__).resolve().parents[1]
