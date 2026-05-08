@@ -1,8 +1,9 @@
 # MAS Live Console 与 MDS WebUI Parity 落地计划
 
-Status: `active implementation plan`
+Status: `landed read-only parity contract`
 Owner: `MedAutoScience Runtime OS + Product Projection`
 Date: `2026-05-08`
+Contract ID: `live-console-parity`
 
 ## 目标
 
@@ -14,13 +15,15 @@ Date: `2026-05-08`
 - runtime supervision、worker log、artifact delta、recent events 可读；
 - 明确区分 read-only 观察、controller-authorized action、historical fixture / explicit archive import reference。
 
+`live-console-parity` 已作为 focused lane 进入 `contracts/test-lane-manifest.json` 的 `focused_lanes.live-console-parity`。完成口径是 read-only purpose equivalence：MAS 提供 workspace overview、profile-level session snapshot、loopback SSE service shell、static Live Console HTML、Progress Portal deep link、clean-room oracle 和 forbidden authority writes。它不声明旧 MDS resident daemon、old React bundle 或 WebSocket terminal attach 被 1:1 复刻。
+
 ## 当前事实
 
 `MAS Progress Portal` 已经是 workspace 固定进度入口，适合看当前阶段、路线、阻塞、artifact 和质量状态。它是 read-model display artifact，不持有 runtime authority。
 
-旧 MDS WebUI 的用户价值不止是进度摘要，还包括 resident WebUI / WebSocket 的低延迟观察能力：状态、terminal stream、日志流、session/run 细节。这个能力在 MAS 中当前没有等价默认入口，不能继续用“Progress Portal 已替代旧 WebUI”一笔带过。
+旧 MDS WebUI 的用户价值不止是进度摘要，还包括 resident WebUI / WebSocket 的低延迟观察能力：状态、terminal stream、日志流、session/run 细节。MAS 的落点是 Progress Portal + Live Console 分工：Portal 做默认进度入口，Live Console 做 read-only runtime observation。
 
-2026-05-08 Lane D/E thin shell 更新：MAS 现在有独立 `runtime_live_console_ui` helper，用于生成 `ops/mas/live-console/index.html` 所需 payload 与 HTML。该 helper 只消费已经形成的 live-console snapshot/read-model payload，不读取、解释或改写 runtime stream/core read model，也不依赖旧 MDS bundle、旧 WebUI 代码或 CDN。Portal 集成边界保持为 thin link/ref：Progress Portal 可以暴露 Live Console entrypoint，Live Console header 可以返回 Progress Portal，但 Portal 会话不拥有 live-console 状态解释。
+2026-05-08 `live-console-parity` 更新：MAS 现在有 profile-level Live Console session read model、`runtime live-console --snapshot`、loopback `--serve`、`runtime_live_console_ui` helper 和 `ops/mas/live-console/index.html` shell。该 helper 只消费已经形成的 live-console snapshot/read-model payload，不读取、解释或改写 runtime stream/core read model，也不依赖旧 MDS bundle、旧 WebUI 代码或 CDN。Portal 集成边界保持为 thin link/ref：Progress Portal 可以暴露 Live Console entrypoint，Live Console header 可以返回 Progress Portal，但 Portal 会话不拥有 live-console 状态解释。
 
 ## 设计边界
 
@@ -34,20 +37,20 @@ Date: `2026-05-08`
 
 ### Layer 1: Runtime Session Read Model
 
-新增 MAS-owned `runtime_session_read_model`：
+MAS-owned Live Console session read model：
 
-- 输入：`runtime_lifecycle.sqlite`、`artifacts/runtime/health/latest.json`、`runtime_supervision/latest.json`、`runtime_status_summary.json`、`.ds/bash_exec/summary.json`、MAS Runtime OS run refs。
+- 输入：`study_runtime_status/latest.json`、`artifacts/runtime/health/latest.json`、`runtime_supervision/latest.json`、`runtime_status_summary.json`、runtime quest terminal/log summaries、MAS Runtime OS run refs。
 - 输出：`artifacts/runtime/live_console/session_read_model/latest.json`。
-- 字段：workspace、study_id、active_run_id、worker_running、runtime_health_status、supervisor_tick_status、last_event_at、log_sources、terminal_sources、artifact_delta、controller_allowed_actions。
+- 字段：workspace、studies、selected_study_id、runs、active_run_id、worker_running、runtime_health_status、supervisor_tick_status、events、log_sources、terminal_sources、artifact_delta、controller action intents。
 - 只读聚合，不重新解释 truth。
 
 ### Layer 2: Stream Bridge
 
-新增 MAS stream bridge：
+MAS stream bridge：
 
 - `medautosci runtime live-console --profile <profile> --serve`
 - 本地绑定 `127.0.0.1`。
-- Server-Sent Events 或 WebSocket 二选一；优先 SSE，因为 terminal/log 只读流更简单、浏览器兼容好、无需引入重前端依赖。
+- 使用 Server-Sent Events / snapshot 语义；不复刻旧 MDS WebSocket attach。
 - stream topics：
   - `workspace.status`
   - `study.status`
@@ -60,7 +63,7 @@ Date: `2026-05-08`
 
 ### Layer 3: Web UI
 
-新增 MAS-authored static UI shell：
+MAS-authored static UI shell：
 
 - 默认路径：`ops/mas/live-console/index.html`。
 - 不使用旧 MDS 代码。
@@ -81,6 +84,28 @@ Console 只生成 action intent link，不直接执行：
 - `open study runtime status`
 - `request reconcile`
 - `pause/resume/relaunch` 仅显示 controller-required command / deep link，并标明权限。
+
+## Progress Portal 与 Live Console 分工
+
+- Progress Portal：workspace / study overview、progress、blocker、artifact pickup、quality/publication projection、OPL handoff。
+- Live Console：runtime session、run、terminal tail、log tail、runtime health、supervision freshness、artifact delta、read-only event stream。
+- Portal 只暴露 Live Console link/ref 和 hosted package entrypoint；它不解释 Live Console run state。
+- Live Console 只展示 controller action intent；pause / resume / relaunch / reconcile 必须回到 MAS controller/runtime surface，UI 不直接执行 apply。
+
+## Authority Boundary
+
+`live-console-parity` 禁止写入：
+
+- `paper/current_package`
+- `manuscript/current_package`
+- `paper/submission_minimal`
+- `manuscript/submission_minimal`
+- `publication_eval/latest.json`
+- `controller_decisions/latest.json`
+- `study_truth`
+- `runtime_lifecycle.sqlite`
+
+Live Console 只能写 MAS-owned read-model/display artifacts，例如 `artifacts/runtime/live_console/session_read_model/latest.json` 和 `ops/mas/live-console/index.html`。它不得修改 paper/package、不得生成医学结论、不得授权 publication/submission readiness。
 
 ## 并行实施 Lane
 
@@ -108,7 +133,7 @@ Console 只生成 action intent link，不直接执行：
 - 生成 `ops/mas/live-console/index.html`。
 - 无构建链、无远程 CDN、无旧 MDS bundle。
 - 支持 workspace/study/run 切换、日志 tail、terminal tail、event timeline。
-- 验收：Playwright 打开本地服务能看到 DM002/DPCC003 两条 live run 和 terminal/log 区。
+- 验收：本地 static shell 能读取 session read model，展示 DM002/DPCC003 study/run 区分和 terminal/log 区。
 - 代码边界：UI shell 可以有独立 payload helper / HTML renderer；不得调用或修改 stream server、runtime core read model、Portal controller action 或旧 MDS assets。
 
 ### Lane E: Portal Integration

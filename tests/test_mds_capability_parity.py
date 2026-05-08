@@ -245,9 +245,9 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert matrix["summary"] == {
         "surface_count": 17,
         "behavior_equivalent": 3,
-        "purpose_equivalent_with_different_timing": 5,
+        "purpose_equivalent_with_different_timing": 6,
         "partially_equivalent": 3,
-        "not_equivalent_retired": 5,
+        "not_equivalent_retired": 4,
         "historical_fixture_only": 1,
         "fully_equivalent_to_mds_daemon": False,
     }
@@ -265,7 +265,11 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert "runtime_session" in by_surface["live_worker_session_tracking"]["mas_contract"]
     assert by_surface["queued_user_messages_mailbox"]["mas_behavior"]["runtime_turn_user_queue"] is True
     assert "recovery_intent" in by_surface["crash_recovery_auto_resume"]["mas_contract"]
-    assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "not_equivalent_retired"
+    assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "purpose_equivalent_with_different_timing"
+    assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["live_console"] == (
+        "MAS-authored read-only session/run/terminal/log observation shell"
+    )
+    assert "live-console-parity" in by_surface["webui_websocket_terminal_streaming"]["mas_contract"]
     assert by_surface["connector_channel_background_delivery"]["equivalence_class"] == "not_equivalent_retired"
     assert by_surface["workspace_local_host_service"]["equivalence_class"] == "not_equivalent_retired"
     continuity = matrix["runtime_continuity_completion"]

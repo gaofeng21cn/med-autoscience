@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.study_runtime_test_helpers import make_profile
+
 
 def _write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -172,3 +174,172 @@ def test_runtime_live_console_controller_exposes_cli_snapshot_alias() -> None:
     assert snapshot["surface_kind"] == "mas_live_console_read_model"
     assert snapshot["study"]["study_id"] == "002"
     assert snapshot["session"]["active_run_id"] == "run-002"
+
+
+def _write_study_status(
+    *,
+    profile,
+    study_id: str,
+    quest_id: str,
+    active_run_id: str | None,
+    quest_status: str,
+) -> None:
+    study_root = profile.studies_root / study_id
+    quest_root = profile.runtime_root / quest_id
+    _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
+    _write_json(
+        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "quest_root": str(quest_root),
+            "active_run_id": active_run_id,
+            "quest_status": quest_status,
+            "worker_running": active_run_id is not None,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "health" / "latest.json",
+        {
+            "study_id": study_id,
+            "health_status": quest_status,
+            "active_run_id": active_run_id,
+            "worker_running": active_run_id is not None,
+            "artifact_delta": {"status": "fresh" if active_run_id else "missing"},
+        },
+    )
+
+
+def test_live_console_profile_session_read_model_does_not_default_select_first_study(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    for study_id in (
+        "001-dm-cvd-mortality-risk",
+        "002-dm-china-us-mortality-attribution",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+    ):
+        study_root = profile.studies_root / study_id
+        _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
+
+    payload = module.build_live_console_session_read_model(profile, generated_at="2026-05-08T02:05:00+00:00")
+
+    assert payload["surface_kind"] == "mas_live_console_session_read_model"
+    assert payload["selected_study_id"] is None
+    assert {study["study_id"] for study in payload["studies"]} == {
+        "001-dm-cvd-mortality-risk",
+        "002-dm-china-us-mortality-attribution",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+    }
+    assert all(study["selected"] is False for study in payload["studies"])
+
+
+def test_live_console_session_read_model_distinguishes_dm002_and_dpcc003(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    _write_study_status(
+        profile=profile,
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-dm002",
+        active_run_id="run-dm002-live",
+        quest_status="running",
+    )
+    _write_study_status(
+        profile=profile,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-dpcc003",
+        active_run_id=None,
+        quest_status="recovering",
+    )
+
+    payload = module.build_live_console_session_read_model(
+        profile,
+        study_id="002-dm-china-us-mortality-attribution",
+        generated_at="2026-05-08T02:05:00+00:00",
+    )
+
+    assert [study["study_id"] for study in payload["studies"]] == [
+        "002-dm-china-us-mortality-attribution",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+    ]
+    assert payload["selected_study_id"] == "002-dm-china-us-mortality-attribution"
+    assert payload["runs"] == [
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "quest-dm002",
+            "active_run_id": "run-dm002-live",
+            "status": "running",
+            "worker_running": True,
+        }
+    ]
+
+
+def test_live_console_session_read_model_ignores_file_runtime_artifact_ref_for_terminal_source(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_root = profile.runtime_root / study_id
+    study_root = profile.studies_root / study_id
+    _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_status_summary.json",
+        {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "runtime_artifact_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "bash_exec" / "summary.json",
+        {"status": "available", "tail": ["real quest terminal tail"]},
+    )
+
+    payload = module.build_live_console_session_read_model(profile, generated_at="2026-05-08T02:05:00+00:00")
+
+    stream_by_topic = {(source["topic"], source["study_id"]): source for source in payload["stream_sources"]}
+    terminal = stream_by_topic[("terminal.tail", study_id)]
+    assert terminal["status"] == "available"
+    assert terminal["source_ref"] == str(quest_root / ".ds" / "bash_exec" / "summary.json")
+    assert "last_launch_report.json/.ds" not in json.dumps(payload, ensure_ascii=False)
+
+
+def test_live_console_profile_snapshot_materializes_current_ui_payload_and_html(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    _write_study_status(
+        profile=profile,
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-dm002",
+        active_run_id="run-dm002-live",
+        quest_status="running",
+    )
+    _write_study_status(
+        profile=profile,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-dpcc003",
+        active_run_id=None,
+        quest_status="recovering",
+    )
+
+    result = module.serve_live_console_stream(
+        profile,
+        profile_ref=tmp_path / "profile.toml",
+        host="127.0.0.1",
+        port=4812,
+        interval_seconds=30,
+    )
+
+    html_path = profile.workspace_root / "ops" / "mas" / "live-console" / "index.html"
+    ui_payload_path = profile.workspace_root / "artifacts" / "runtime" / "live_console" / "ui_payload" / "latest.json"
+    assert result["html_path"] == str(html_path)
+    assert result["ui_payload_path"] == str(ui_payload_path)
+    assert json.loads(ui_payload_path.read_text(encoding="utf-8"))["surface_kind"] == "mas_live_console_ui"
+    html = html_path.read_text(encoding="utf-8")
+    assert "diabetes" in html
+    assert "002-dm-china-us-mortality-attribution" in html
+    assert "003-dpcc-primary-care-phenotype-treatment-gap" in html
+    assert "run-dm002-live" in html
+    assert "http://127.0.0.1:4812/events" in html
+    assert "generated_at local" in html
+    assert "med-deepscientist" not in html.lower()

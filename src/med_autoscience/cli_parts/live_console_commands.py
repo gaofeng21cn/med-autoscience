@@ -3,28 +3,27 @@ from __future__ import annotations
 import argparse
 import http.server
 import json
-import sys
-from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Callable
 
 
 LoadProfile = Callable[[str], Any]
 
-REQUIRED_TOPICS = frozenset(("workspace.status", "runtime.health"))
-TAIL_TOPICS = frozenset(("terminal.tail", "log.tail"))
-REQUIRED_EVENT_FIELDS = ("source_ref", "observed_at", "sequence", "topic")
-
 
 def register_live_console_parsers(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("runtime-live-console")
-    parser.set_defaults(_command_parser=parser)
     parser.add_argument("--profile", required=True)
-    mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--once", action="store_true")
-    mode.add_argument("--serve", action="store_true")
-    parser.add_argument("--port", type=int, default=4821)
-    parser.add_argument("--format", choices=("sse", "json"), default="sse")
+    study = parser.add_mutually_exclusive_group()
+    study.add_argument("--study-id", type=str)
+    study.add_argument("--study-root", type=str)
+    parser.add_argument("--format", choices=("text", "json"), default="text")
+    parser.add_argument("--serve", action="store_true")
+    parser.add_argument("--snapshot", action="store_true")
+    parser.add_argument("--once", action="store_true")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--bind", dest="host")
+    parser.add_argument("--port", type=int, default=0)
+    parser.add_argument("--interval-seconds", type=int, default=30)
 
 
 def handle_live_console_command(
@@ -36,38 +35,78 @@ def handle_live_console_command(
 ) -> int | None:
     if args.command != "runtime-live-console":
         return None
-
-    profile_ref = Path(args.profile)
     profile = load_profile(args.profile)
-    if bool(args.once):
-        snapshot = _read_snapshot(
+    kwargs = {
+        "profile": profile,
+        "profile_ref": Path(args.profile),
+        "study_id": args.study_id,
+        "study_root": Path(args.study_root) if args.study_root else None,
+    }
+    if args.serve and not args.snapshot:
+        return _serve_loopback_live_console(
             runtime_live_console=runtime_live_console,
-            profile=profile,
-            profile_ref=profile_ref,
+            kwargs=kwargs,
+            host=str(args.host),
+            port=int(args.port),
+            interval_seconds=int(args.interval_seconds),
+            output_format=str(args.format),
         )
-        events = _validated_events(snapshot)
-        if args.format == "json":
-            _print_json(snapshot)
-        else:
-            print(render_sse_events(events), end="")
-        return 0
-
-    if bool(args.serve):
-        command_parser = getattr(args, "_command_parser", None)
-        if not isinstance(command_parser, argparse.ArgumentParser):
-            command_parser = parser
-        return _serve_sse(
-            parser=command_parser,
-            runtime_live_console=runtime_live_console,
-            profile=profile,
-            profile_ref=profile_ref,
-            port=args.port,
+    if args.snapshot:
+        result = runtime_live_console.serve_live_console_stream(
+            **kwargs,
+            host=str(args.host),
+            port=int(args.port),
+            interval_seconds=int(args.interval_seconds),
         )
+        if args.snapshot:
+            result["status"] = "snapshot"
+    elif args.once:
+        if hasattr(runtime_live_console, "read_live_console_snapshot"):
+            snapshot = _read_legacy_snapshot(
+                runtime_live_console=runtime_live_console,
+                profile=profile,
+                profile_ref=Path(args.profile),
+            )
+            if args.format == "json":
+                print(json.dumps(snapshot, ensure_ascii=False, indent=2))
+            else:
+                print(render_sse_events(_validated_events(snapshot)), end="")
+            return 0
+        result = runtime_live_console.serve_live_console_stream(
+            **kwargs,
+            host=str(args.host),
+            port=int(args.port),
+            interval_seconds=int(args.interval_seconds),
+        )
+    else:
+        result = runtime_live_console.materialize_live_console_session_read_model(**kwargs)
+    if args.format == "json":
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        print(render_live_console_command_text(dict(result)), end="")
+    return 0
 
-    return None
+
+def render_live_console_command_text(result: dict[str, Any]) -> str:
+    lines = ["MAS Live Console"]
+    if status := result.get("status"):
+        lines.append(f"status: {status}")
+    if url := result.get("url"):
+        lines.append(f"url: {url}")
+    if payload_path := result.get("payload_path"):
+        lines.append(f"payload: {payload_path}")
+    if history_path := result.get("history_path"):
+        lines.append(f"history: {history_path}")
+    lines.append(f"read_only={str(bool(result.get('read_only'))).lower()}")
+    return "\n".join(lines) + "\n"
 
 
-def render_sse_events(events: Sequence[Mapping[str, Any]]) -> str:
+REQUIRED_TOPICS = frozenset(("workspace.status", "runtime.health"))
+TAIL_TOPICS = frozenset(("terminal.tail", "log.tail"))
+REQUIRED_EVENT_FIELDS = ("source_ref", "observed_at", "sequence", "topic")
+
+
+def render_sse_events(events: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> str:
     lines: list[str] = []
     for event in events:
         topic = str(event["topic"])
@@ -80,38 +119,102 @@ def render_sse_events(events: Sequence[Mapping[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _read_snapshot(
+def _serve_loopback_live_console(
+    *,
+    runtime_live_console: Any,
+    kwargs: dict[str, Any],
+    host: str,
+    port: int,
+    interval_seconds: int,
+    output_format: str,
+) -> int:
+    bind_host = "127.0.0.1"
+
+    class LiveConsoleHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            if self.path not in {"/", "/events"}:
+                self.send_error(404)
+                return
+            result = runtime_live_console.serve_live_console_stream(
+                **kwargs,
+                host=bind_host,
+                port=int(port),
+                interval_seconds=int(interval_seconds),
+            )
+            body = render_sse_events(_events_from_stream_result(dict(result))).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, format: str, *args: object) -> None:  # noqa: A002
+            return
+
+    with http.server.ThreadingHTTPServer((bind_host, int(port)), LiveConsoleHandler) as server:
+        resolved_host, resolved_port = server.server_address
+        result = {
+            "status": "serving",
+            "surface_kind": "mas_live_console_stream",
+            "url": f"http://{resolved_host}:{int(resolved_port)}/events",
+            "host": resolved_host,
+            "port": int(resolved_port),
+            "interval_seconds": max(1, int(interval_seconds)),
+            "read_only": True,
+        }
+        if output_format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(render_live_console_command_text(result), end="")
+        server.serve_forever()
+    return 0
+
+
+def _events_from_stream_result(result: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+    events = result.get("events")
+    if isinstance(events, list | tuple):
+        return tuple(dict(event) for event in events if isinstance(event, dict))
+    model = result.get("session_read_model")
+    if isinstance(model, dict) and isinstance(model.get("events"), list | tuple):
+        return tuple(dict(event) for event in model["events"] if isinstance(event, dict))
+    return (
+        {
+            "sequence": 1,
+            "topic": "workspace.status",
+            "observed_at": result.get("generated_at") or "",
+            "source_ref": result.get("payload_path") or "live_console.session_read_model",
+            "payload": result,
+        },
+    )
+
+
+def _read_legacy_snapshot(
     *,
     runtime_live_console: Any,
     profile: Any,
     profile_ref: Path,
 ) -> dict[str, Any]:
-    try:
-        reader = getattr(runtime_live_console, "read_live_console_snapshot")
-    except ModuleNotFoundError as exc:
-        raise SystemExit("runtime live console read model is unavailable") from exc
-    if not callable(reader):
-        raise SystemExit("runtime live console read model must expose read_live_console_snapshot")
-    snapshot = reader(profile=profile, profile_ref=profile_ref)
-    if isinstance(snapshot, Mapping):
-        return dict(snapshot)
+    snapshot = runtime_live_console.read_live_console_snapshot(profile=profile, profile_ref=profile_ref)
+    if isinstance(snapshot, dict):
+        return snapshot
     to_dict = getattr(snapshot, "to_dict", None)
     if callable(to_dict):
         payload = to_dict()
-        if isinstance(payload, Mapping):
-            return dict(payload)
+        if isinstance(payload, dict):
+            return payload
     raise SystemExit("runtime live console snapshot must be a mapping")
 
 
-def _validated_events(snapshot: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
+def _validated_events(snapshot: dict[str, Any]) -> tuple[dict[str, Any], ...]:
     events = snapshot.get("events")
-    if not isinstance(events, Sequence) or isinstance(events, (str, bytes, bytearray)):
+    if not isinstance(events, list | tuple):
         raise SystemExit("runtime live console snapshot must contain an events sequence")
 
-    validated: list[Mapping[str, Any]] = []
+    validated: list[dict[str, Any]] = []
     topics: set[str] = set()
     for index, event in enumerate(events):
-        if not isinstance(event, Mapping):
+        if not isinstance(event, dict):
             raise SystemExit(f"runtime live console event[{index}] must be a mapping")
         missing = [field for field in REQUIRED_EVENT_FIELDS if field not in event]
         if missing:
@@ -136,65 +239,9 @@ def _validated_events(snapshot: Mapping[str, Any]) -> tuple[Mapping[str, Any], .
     return tuple(validated)
 
 
-def _serve_sse(
-    *,
-    parser: argparse.ArgumentParser,
-    runtime_live_console: Any,
-    profile: Any,
-    profile_ref: Path,
-    port: int,
-) -> int:
-    bind_port = _valid_port(port, parser=parser)
-
-    class LiveConsoleHandler(http.server.BaseHTTPRequestHandler):
-        def do_GET(self) -> None:  # noqa: N802
-            if self.path not in {"/", "/events", "/live-console/events"}:
-                self.send_response(404)
-                self.end_headers()
-                return
-            try:
-                snapshot = _read_snapshot(
-                    runtime_live_console=runtime_live_console,
-                    profile=profile,
-                    profile_ref=profile_ref,
-                )
-                payload = render_sse_events(_validated_events(snapshot)).encode("utf-8")
-            except SystemExit as exc:
-                self.send_response(500)
-                self.send_header("Content-Type", "text/plain; charset=utf-8")
-                self.end_headers()
-                self.wfile.write(str(exc).encode("utf-8"))
-                return
-            self.send_response(200)
-            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
-            self.send_header("Cache-Control", "no-cache")
-            self.end_headers()
-            self.wfile.write(payload)
-
-        def log_message(self, format: str, *args: Any) -> None:
-            return None
-
-    with http.server.ThreadingHTTPServer(("127.0.0.1", bind_port), LiveConsoleHandler) as server:
-        url = f"http://127.0.0.1:{server.server_address[1]}/events"
-        _print_json({"status": "serving", "url": url, "bind_host": "127.0.0.1"})
-        sys.stdout.flush()
-        server.serve_forever()
-    return 0
-
-
-def _valid_port(port: object, *, parser: argparse.ArgumentParser) -> int:
-    value = int(port)
-    if value < 0 or value > 65535:
-        parser.error("--port must be between 0 and 65535")
-    return value
-
-
-def _print_json(payload: object) -> None:
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
-
-
 __all__ = [
     "handle_live_console_command",
     "register_live_console_parsers",
+    "render_live_console_command_text",
     "render_sse_events",
 ]

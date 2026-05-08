@@ -108,6 +108,7 @@ def test_live_console_payload_projects_read_only_ui_shell_contract() -> None:
     )
 
     assert payload["surface_kind"] == "mas_live_console_ui"
+    assert payload["generated_at_local"]["timezone"]
     assert payload["html_ref"] == "ops/mas/live-console/index.html"
     assert payload["authority"]["read_only"] is True
     assert payload["authority"]["writes_authority_surface"] is False
@@ -156,6 +157,7 @@ def test_live_console_html_renders_static_shell_without_legacy_webui_assets() ->
     assert 'href="../progress/index.html"' in html
     assert "返回 Progress Portal" in html
     assert "workspace/study/run" in html
+    assert "generated_at local" in html
     assert "状态 timeline" in html
     assert "Terminal stream" in html
     assert "Log stream" in html
@@ -171,3 +173,30 @@ def test_live_console_html_renders_static_shell_without_legacy_webui_assets() ->
     assert "unpkg.com" not in html
     assert "med-deepscientist" not in html.lower()
     assert "MDS WebUI" not in html
+
+
+def test_live_console_static_shell_is_mas_authored_and_read_only() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+
+    html = module.render_live_console_static_shell()
+
+    assert "<!doctype html>" in html
+    assert "MAS Live Console" in html
+    assert "Read-only" in html
+    assert "Progress Portal" in html
+    assert "Terminal / Log Stream" in html
+    assert "Controller Action Intent" in html
+    assert "artifacts/runtime/live_console/session_read_model/latest.json" in html
+    assert "medautosci runtime live-console --profile &lt;profile&gt; --serve" in html
+    assert "DeepScientist" not in html
+    assert "MDS WebUI" not in html
+
+
+def test_live_console_static_shell_does_not_inject_runtime_payload_with_inner_html() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+
+    html = module.render_live_console_static_shell()
+    script = html.split("<script>", 1)[1].split("</script>", 1)[0]
+
+    assert ".textContent" in script
+    assert ".innerHTML" not in script

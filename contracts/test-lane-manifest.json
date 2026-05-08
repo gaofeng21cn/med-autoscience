@@ -63,6 +63,66 @@
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "dry_run_before_real_workspace_apply"
+    },
+    "live-console-parity": {
+      "kind": "focused_live_console_parity_contract_gate",
+      "paths": [
+        "tests/test_live_console_docs_contract.py",
+        "tests/test_live_console_cleanroom_spec.py",
+        "tests/test_runtime_live_console_read_model.py",
+        "tests/test_runtime_live_console_stream.py",
+        "tests/test_runtime_live_console_ui.py",
+        "tests/test_progress_portal.py",
+        "tests/test_cli_cases/progress_portal_commands.py",
+        "tests/test_workspace_init_cases/workspace_creation.py"
+      ],
+      "docs": [
+        "docs/runtime/mas_live_console_mds_webui_parity_plan.md",
+        "docs/runtime/progress_portal.md",
+        "docs/runtime/live_console_ui_contract.md",
+        "docs/references/mds_behavior_equivalence_gap_matrix.md",
+        "docs/references/mds_webui_cleanroom_behavior_spec.md"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "read_only_streaming_parity_contract",
+      "implementation_status": "landed",
+      "clean_room_required": true,
+      "real_workspace_soak": {
+        "profile_path": "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/medautoscience/profiles/dm-cvd-mortality-risk.workspace.toml",
+        "commands": [
+          "uv run python -m med_autoscience.cli workspace progress-portal --profile \"$PROFILE\" --format json",
+          "uv run python -m med_autoscience.cli runtime live-console --profile \"$PROFILE\" --snapshot --format json"
+        ],
+        "latest_observed_at": "2026-05-08T11:53:14+00:00",
+        "latest_status": "passed_read_only_snapshot",
+        "evidence_refs": [
+          "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/artifacts/runtime/progress_portal/latest.json",
+          "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/artifacts/runtime/live_console/session_read_model/latest.json",
+          "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/mas/progress/index.html",
+          "/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/ops/mas/live-console/index.html"
+        ],
+        "observed_assertions": [
+          "Progress Portal profile-only entry materializes without single-study crash",
+          "Live Console profile snapshot does not default-select 001",
+          "DM002 and DPCC003 are distinguishable by study_id",
+          "Portal source_refs contain no med-deepscientist or .ds/worktrees refs",
+          "terminal tail refs resolve to runtime quest paths without last_launch_report.json/.ds path joins"
+        ],
+        "study_lines": [
+          "DM002",
+          "DPCC003"
+        ]
+      },
+      "forbidden_authority_writes": [
+        "paper/current_package",
+        "manuscript/current_package",
+        "paper/submission_minimal",
+        "manuscript/submission_minimal",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "study_truth",
+        "runtime_lifecycle.sqlite"
+      ]
     }
   }
 }

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "fixture_kind": "mds_webui_cleanroom_behavior_oracle",
+  "clean_room": true,
+  "owner": "MedAutoScience",
+  "source_policy": {
+    "imports_old_mds_code": false,
+    "imports_old_webui_bundle": false,
+    "contains_contributor_metadata": false,
+    "contains_commit_history": false,
+    "uses_old_product_identity": false
+  },
+  "required_topics": [
+    "workspace.status",
+    "study.status",
+    "runtime.health",
+    "runtime.supervision",
+    "terminal.tail",
+    "log.tail",
+    "artifact.delta"
+  ],
+  "events": [
+    {
+      "sequence": 1,
+      "topic": "workspace.status",
+      "study_id": null,
+      "status": "active",
+      "source_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
+      "observed_at": "2026-05-08T02:00:00+00:00",
+      "local_time": {
+        "label": "2026-05-08 10:00:00 +08:00",
+        "timezone": "Asia/Shanghai"
+      }
+    },
+    {
+      "sequence": 2,
+      "topic": "study.status",
+      "study_id": "002-dm-china-us-mortality-attribution",
+      "status": "running",
+      "source_ref": "studies/002-dm-china-us-mortality-attribution/artifacts/runtime/study_runtime_status/latest.json",
+      "observed_at": "2026-05-08T02:00:00+00:00",
+      "local_time": {
+        "label": "2026-05-08 10:00:00 +08:00",
+        "timezone": "Asia/Shanghai"
+      }
+    },
+    {
+      "sequence": 3,
+      "topic": "terminal.tail",
+      "study_id": "002-dm-china-us-mortality-attribution",
+      "status": "available",
+      "source_ref": "runtime/quests/quest-dm002/.ds/bash_exec/summary.json",
+      "observed_at": "2026-05-08T02:00:00+00:00",
+      "local_time": {
+        "label": "2026-05-08 10:00:00 +08:00",
+        "timezone": "Asia/Shanghai"
+      }
+    }
+  ],
+  "forbidden_writes": [
+    "study_truth",
+    "runtime_lifecycle.sqlite",
+    "publication_eval/latest.json",
+    "controller_decisions/latest.json",
+    "paper/current_package",
+    "manuscript/current_package",
+    "paper/submission_minimal",
+    "manuscript/submission_minimal"
+  ]
+}

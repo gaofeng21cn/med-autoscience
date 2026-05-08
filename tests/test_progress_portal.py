@@ -142,6 +142,62 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
     assert "studies/001-risk/artifacts/publication_eval/latest.json" in payload["source_refs"]
     assert payload["quality"]["summary"] == "证据链仍需补强。"
     assert payload["delivery"]["summary"] == "current package 尚未生成。"
+    assert payload["live_console"] == {
+        "available": True,
+        "label": "Live Console",
+        "html_ref": "ops/mas/live-console/index.html",
+        "session_read_model_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
+        "serve_command": "medautosci runtime live-console --profile <profile> --serve",
+        "authority": "read_only_runtime_observation",
+        "disabled_reason": None,
+    }
+
+
+def test_progress_portal_payload_can_disable_live_console_link_with_reason() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        generated_at="2026-05-08T01:05:00+00:00",
+        live_console_disabled_reason="runtime live console read model is not installed",
+    )
+    html = module.render_progress_portal_html(payload)
+
+    assert payload["live_console"]["available"] is False
+    assert payload["live_console"]["disabled_reason"] == "runtime live console read model is not installed"
+    assert "Live Console unavailable" in html
+    assert "runtime live console read model is not installed" in html
+    assert "terminal/log stream" not in html
+
+
+def test_progress_portal_profile_without_study_selector_projects_workspace_overview() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        cockpit_payload={
+            "workspace_status": "active",
+            "studies": [
+                {"study_id": "001-dm-cvd-mortality-risk", "current_stage": "parked"},
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "current_stage": "live",
+                    "monitoring": {"active_run_id": "run-dm002"},
+                },
+                {"study_id": "003-dpcc-primary-care-phenotype-treatment-gap", "current_stage": "write"},
+            ],
+        },
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    assert payload["study"]["scope"] == "workspace"
+    assert payload["study"]["study_id"] == "002-dm-china-us-mortality-attribution"
+    assert payload["study"]["state_label"] == "Workspace overview"
+    assert payload["workspace"]["studies"][1]["selected"] is True
 
 
 def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppresses_legacy_alert_noise() -> None:
@@ -500,6 +556,26 @@ def test_progress_portal_html_source_refs_are_bounded_and_do_not_render_legacy_m
     assert "med-deepscientist" not in html
     assert "not/a/selected/source/ref" not in html
     assert "source refs (4/46)" in html
+
+
+def test_progress_portal_payload_source_refs_filter_legacy_runtime_paths() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload={
+            **_progress_payload(),
+            "refs": {
+                "legacy": "/workspace/ops/med-deepscientist/runtime/quests/001/.ds/worktrees/paper",
+                "health": "/workspace/studies/001-risk/artifacts/runtime/health/latest.json",
+            },
+        },
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    assert "/workspace/studies/001-risk/artifacts/runtime/health/latest.json" in payload["source_refs"]
+    assert all("med-deepscientist" not in ref and ".ds/worktrees" not in ref for ref in payload["source_refs"])
 
 
 def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_path: Path) -> None:

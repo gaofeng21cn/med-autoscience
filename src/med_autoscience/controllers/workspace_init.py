@@ -18,6 +18,7 @@ from med_autoscience.controllers.workspace_git_boundary import (
     render_workspace_gitignore,
     workspace_git_plan,
 )
+from med_autoscience.controllers.progress_portal_parts import render_live_console_static_shell
 from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_behavior_equivalence_gate,
     _render_forward_script,
@@ -112,6 +113,7 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         workspace_root / "ops" / "medautoscience" / "logs",
         workspace_root / "ops" / "medautoscience" / "profiles",
         workspace_root / "ops" / "mas" / "progress",
+        workspace_root / "ops" / "mas" / "live-console",
         layout.bin_root,
         layout.runtime_root,
         layout.quests_root,
@@ -140,10 +142,11 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "5. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
         "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
         "7. 运行 `ops/medautoscience/bin/progress-portal` 刷新固定进度入口，然后打开 `ops/mas/progress/index.html` 查看当前进度。\n\n"
-        "8. 如需让 workspace 托管监管持续在线，运行 `ops/medautoscience/bin/install-watch-runtime-service`；后续用 `watch-runtime-service-status` / `uninstall-watch-runtime-service` 管理 Hermes-hosted supervision job。\n\n"
-        "9. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
-        "10. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
-        "11. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
+        "8. 如需只读查看 runtime session、terminal/log stream 与 artifact refs，打开 `ops/mas/live-console/index.html` 或运行 `ops/mas/bin/live-console`。\n\n"
+        "9. 如需让 workspace 托管监管持续在线，运行 `ops/medautoscience/bin/install-watch-runtime-service`；后续用 `watch-runtime-service-status` / `uninstall-watch-runtime-service` 管理 Hermes-hosted supervision job。\n\n"
+        "10. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
+        "11. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
+        "12. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
         "- `runtime/` 保存运行态，`artifacts/runtime/` 保存 SQLite sidecar 与维护 ledger，`ops/mas/` 只保留薄运维桥。\n"
@@ -169,6 +172,7 @@ def _render_progress_portal_placeholder() -> str:
         "  <main>\n"
         "    <h1>MedAutoScience Progress Portal</h1>\n"
         "    <p>进度快照尚未生成。运行 <code>ops/medautoscience/bin/progress-portal</code> 刷新此入口。</p>\n"
+        '    <p><a href="../live-console/index.html">Live Console</a> 提供只读 runtime console shell。</p>\n'
         "  </main>\n"
         "</body>\n"
         "</html>\n"
@@ -714,6 +718,10 @@ def _rendered_files(
             content=_render_progress_portal_placeholder(),
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "mas" / "live-console" / "index.html",
+            content=render_live_console_static_shell(),
+        ),
+        RenderedFile(
             path=workspace_root / "AGENTS.md",
             content=_render_workspace_agents(workspace_name=workspace_name),
         ),
@@ -925,6 +933,11 @@ def _rendered_files(
         RenderedFile(
             path=layout.bin_root / "start-web",
             content=_render_progress_portal_start_web_script(),
+            executable=True,
+        ),
+        RenderedFile(
+            path=layout.bin_root / "live-console",
+            content=_render_mas_runtime_bridge_forward("runtime live-console"),
             executable=True,
         ),
         RenderedFile(

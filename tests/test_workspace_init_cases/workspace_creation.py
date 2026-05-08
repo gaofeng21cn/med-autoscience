@@ -138,6 +138,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     runtime_bridge_status = workspace_root / "ops" / "mas" / "bin" / "status"
     runtime_bridge_stop = workspace_root / "ops" / "mas" / "bin" / "stop"
     runtime_bridge_start_web = workspace_root / "ops" / "mas" / "bin" / "start-web"
+    runtime_bridge_live_console = workspace_root / "ops" / "mas" / "bin" / "live-console"
     assert bootstrap.is_file()
     assert show_profile.is_file()
     assert enter_study.is_file()
@@ -156,6 +157,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert runtime_bridge_status.is_file()
     assert runtime_bridge_stop.is_file()
     assert runtime_bridge_start_web.is_file()
+    assert runtime_bridge_live_console.is_file()
     assert os.access(bootstrap, os.X_OK)
     assert os.access(show_profile, os.X_OK)
     assert os.access(enter_study, os.X_OK)
@@ -174,6 +176,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(runtime_bridge_status, os.X_OK)
     assert os.access(runtime_bridge_stop, os.X_OK)
     assert os.access(runtime_bridge_start_web, os.X_OK)
+    assert os.access(runtime_bridge_live_console, os.X_OK)
     watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
     maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
     storage_audit_text = storage_audit.read_text(encoding="utf-8")
@@ -192,6 +195,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     runtime_bridge_status_text = runtime_bridge_status.read_text(encoding="utf-8")
     runtime_bridge_stop_text = runtime_bridge_stop.read_text(encoding="utf-8")
     runtime_bridge_start_web_text = runtime_bridge_start_web.read_text(encoding="utf-8")
+    runtime_bridge_live_console_text = runtime_bridge_live_console.read_text(encoding="utf-8")
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile_text
     assert 'run_medautosci study ensure-runtime --profile "${PROFILE_PATH}" "$@"' in enter_study_text
@@ -213,10 +217,12 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci workspace cockpit --profile "${PROFILE_PATH}" --format json "$@"' in runtime_bridge_status_text
     assert 'run_medautosci study pause-runtime --profile "${PROFILE_PATH}" "$@"' in runtime_bridge_stop_text
     assert 'run_medautosci workspace progress-portal --profile "${PROFILE_PATH}" --open "$@"' in runtime_bridge_start_web_text
+    assert 'run_medautosci runtime live-console --profile "${PROFILE_PATH}" "$@"' in runtime_bridge_live_console_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_doctor_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_status_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_stop_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_start_web_text
+    assert "run_med_deepscientist_launcher" not in runtime_bridge_live_console_text
 
     portfolio_memory_readme = workspace_root / "portfolio" / "research_memory" / "README.md"
     portfolio_memory_registry = workspace_root / "portfolio" / "research_memory" / "registry.yaml"
@@ -249,11 +255,18 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "ops/med-deepscientist" not in runtime_bridge_readme.read_text(encoding="utf-8")
 
     progress_portal_html = workspace_root / "ops" / "mas" / "progress" / "index.html"
+    live_console_html = workspace_root / "ops" / "mas" / "live-console" / "index.html"
     assert progress_portal_html.is_file()
+    assert live_console_html.is_file()
     progress_portal_html_text = progress_portal_html.read_text(encoding="utf-8")
+    live_console_html_text = live_console_html.read_text(encoding="utf-8")
     assert "MedAutoScience Progress Portal" in progress_portal_html_text
     assert "progress-portal" in progress_portal_html_text
+    assert "Live Console" in progress_portal_html_text
+    assert "MAS Live Console" in live_console_html_text
+    assert "runtime live-console" in live_console_html_text
     assert "DeepScientist" not in progress_portal_html_text
+    assert "DeepScientist" not in live_console_html_text
 
     workspace_pyproject = workspace_root / "pyproject.toml"
     assert workspace_pyproject.is_file()

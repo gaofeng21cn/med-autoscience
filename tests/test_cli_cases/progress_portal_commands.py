@@ -67,6 +67,40 @@ def test_workspace_progress_portal_grouped_command_materializes(monkeypatch, tmp
     )
 
 
+def test_workspace_progress_portal_grouped_command_materializes_workspace_overview_without_study_selector(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "nfpitnet.local.toml"
+    write_profile(profile_path)
+    calls: dict[str, object] = {}
+
+    class FakeProgressPortal:
+        @staticmethod
+        def materialize_progress_portal(**kwargs):
+            calls.update(kwargs)
+            return {
+                "status": "materialized",
+                "payload_path": str(tmp_path / "artifacts" / "runtime" / "progress_portal" / "latest.json"),
+                "html_path": str(tmp_path / "ops" / "mas" / "progress" / "index.html"),
+                "hosted_package_path": str(
+                    tmp_path / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
+                ),
+            }
+
+    monkeypatch.setattr(cli, "progress_portal", FakeProgressPortal)
+
+    exit_code = cli.main(["workspace", "progress-portal", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert json.loads(captured.out)["status"] == "materialized"
+    assert calls["study_id"] is None
+    assert calls["study_root"] is None
+
+
 def test_workspace_progress_portal_grouped_command_serves_read_only(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "nfpitnet.local.toml"

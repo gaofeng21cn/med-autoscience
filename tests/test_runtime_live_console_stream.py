@@ -144,3 +144,70 @@ def test_runtime_live_console_serve_binds_loopback_only(monkeypatch, tmp_path: P
     assert served["served"] is True
     assert served["closed"] is True
     assert "http://127.0.0.1:4812/events" in captured.out
+
+
+def test_runtime_live_console_snapshot_materializes_workspace_session_model(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "diabetes.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    for study_id, quest_id, active_run_id in (
+        ("002-dm-china-us-mortality-attribution", "quest-dm002", "run-dm002-live"),
+        ("003-dpcc-primary-care-phenotype-treatment-gap", "quest-dpcc003", None),
+    ):
+        study_root = workspace_root / "studies" / study_id
+        study_root.mkdir(parents=True)
+        (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+        status_path = study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json"
+        status_path.parent.mkdir(parents=True)
+        status_path.write_text(
+            json.dumps(
+                {
+                    "study_id": study_id,
+                    "quest_id": quest_id,
+                    "quest_root": str(workspace_root / "runtime" / "quests" / quest_id),
+                    "active_run_id": active_run_id,
+                    "quest_status": "running" if active_run_id else "recovering",
+                    "worker_running": active_run_id is not None,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "live-console",
+            "--profile",
+            str(profile_path),
+            "--snapshot",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    model = payload["session_read_model"]
+    assert payload["status"] == "snapshot"
+    assert model["selected_study_id"] is None
+    assert [study["study_id"] for study in model["studies"]] == [
+        "002-dm-china-us-mortality-attribution",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+    ]
+    assert model["runs"] == [
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "quest-dm002",
+            "active_run_id": "run-dm002-live",
+            "status": "running",
+            "worker_running": True,
+        }
+    ]
+    assert Path(payload["payload_path"]).is_file()
+    assert Path(payload["html_path"]).is_file()
+    assert "002-dm-china-us-mortality-attribution" in Path(payload["html_path"]).read_text(encoding="utf-8")

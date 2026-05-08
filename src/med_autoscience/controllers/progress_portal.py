@@ -19,12 +19,15 @@ from med_autoscience.controllers.progress_portal_parts import (
     gate_text,
     list_html,
     list_section,
+    live_console_projection,
     local_time_projection,
     portal_css,
     refresh_meta,
+    render_live_console_portal_link,
     render_workspace_studies_section,
     runtime_continuity_section,
     section,
+    selected_workspace_study_id,
     unique_text,
     workspace_alert_projection,
     workspace_studies,
@@ -59,15 +62,21 @@ def build_progress_portal_payload(
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
     auto_refresh_seconds: int | None = None,
+    live_console_disabled_reason: str | None = None,
 ) -> dict[str, Any]:
     resolved_profile_name = profile_name or (profile.name if profile is not None else None) or "unknown"
     resolved_workspace_root = Path(
         workspace_root if workspace_root is not None else (profile.workspace_root if profile is not None else ".")
     )
     resolved_study_id = _non_empty_text(study_id)
+    workspace_overview_mode = (
+        resolved_study_id is None
+        and study_root is None
+        and progress_payload is None
+    )
 
     progress = dict(progress_payload or {})
-    if not progress:
+    if not progress and not workspace_overview_mode:
         if profile is None:
             raise ValueError("profile is required when progress_payload is not provided")
         from med_autoscience.controllers import study_progress
@@ -80,8 +89,6 @@ def build_progress_portal_payload(
             entry_mode=entry_mode,
             sync_runtime_summary=sync_runtime_summary,
         )
-    resolved_study_id = resolved_study_id or _non_empty_text(progress.get("study_id")) or "unknown-study"
-
     cockpit = dict(cockpit_payload or {})
     if not cockpit and profile is not None and progress_payload is None:
         from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
@@ -89,6 +96,13 @@ def build_progress_portal_payload(
         )
 
         cockpit = read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
+
+    resolved_study_id = (
+        resolved_study_id
+        or _non_empty_text(progress.get("study_id"))
+        or selected_workspace_study_id(cockpit)
+        or "workspace-overview"
+    )
 
     runtime = dict(runtime_payload or {})
     package = dict(package_payload or {})
@@ -111,6 +125,7 @@ def build_progress_portal_payload(
         "package": _source_payload_summary(package),
     }
     runtime_continuity = _runtime_continuity(progress, runtime)
+    live_console = live_console_projection(disabled_reason=live_console_disabled_reason)
     conditions = _conditions(
         study_id=resolved_study_id,
         progress=progress,
@@ -148,8 +163,19 @@ def build_progress_portal_payload(
         },
         "study": {
             "study_id": resolved_study_id,
-            "state_label": _field(user_visible, "state_label", "状态投影缺失"),
-            "state_summary": _field(user_visible, "state_summary", "当前缺少可展示的用户状态投影。"),
+            "scope": "workspace" if workspace_overview_mode else "study",
+            "state_label": _field(
+                user_visible,
+                "state_label",
+                "Workspace overview" if workspace_overview_mode else "状态投影缺失",
+            ),
+            "state_summary": _field(
+                user_visible,
+                "state_summary",
+                "当前显示 workspace 级多论文状态；选择具体 study 后查看单篇进度。"
+                if workspace_overview_mode
+                else "当前缺少可展示的用户状态投影。",
+            ),
             "current_stage": _field(user_visible, "current_stage"),
             "current_stage_summary": _field(user_visible, "current_stage_summary"),
             "paper_stage": _field(user_visible, "paper_stage"),
@@ -167,6 +193,7 @@ def build_progress_portal_payload(
         "latest_events": latest_events,
         "quality": quality,
         "delivery": delivery,
+        "live_console": live_console,
         "conditions": conditions,
         "source_refs": source_refs,
         "source_payloads": source_payloads,
@@ -195,6 +222,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
     freshness = _mapping(payload.get("freshness"))
     quality = _mapping(payload.get("quality"))
     delivery = _mapping(payload.get("delivery"))
+    live_console = _mapping(payload.get("live_console"))
     conditions = _mapping(payload.get("conditions"))
     runtime_continuity = _mapping(study.get("runtime_continuity"))
     latest_events = [dict(item) for item in payload.get("latest_events") or [] if isinstance(item, Mapping)]
@@ -258,6 +286,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             f"<div><dt>selected study</dt><dd>{escape(selected_study_id)}</dd></div>",
             f"<div><dt>conditions</dt><dd>{escape(condition_badge_label)}</dd></div>",
             "</dl>",
+            render_live_console_portal_link(live_console),
             "</header>",
             render_workspace_studies_section(workspace_studies),
             '<section class="grid">',
@@ -316,6 +345,7 @@ def materialize_progress_portal(
     sync_runtime_summary: bool = True,
     open_browser: bool = False,
     auto_refresh_seconds: int | None = None,
+    live_console_disabled_reason: str | None = None,
 ) -> dict[str, Any]:
     payload = build_progress_portal_payload(
         profile=profile,
@@ -331,6 +361,7 @@ def materialize_progress_portal(
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
         auto_refresh_seconds=auto_refresh_seconds,
+        live_console_disabled_reason=live_console_disabled_reason,
     )
     payload_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "latest.json"
     hosted_package_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
@@ -425,6 +456,9 @@ def build_progress_portal_hosted_package(
             "workspace_helper": "ops/mas/bin/start-web",
             "refresh_command": "medautosci workspace progress-portal --profile <profile>",
             "optional_local_read_only_service": "medautosci workspace progress-portal --profile <profile> --serve",
+            "live_console_static_html": "ops/mas/live-console/index.html",
+            "live_console_read_model_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
+            "live_console_service": "medautosci runtime live-console --profile <profile> --serve",
         },
         "hosted_runtime_carrier_contract": {
             "allowed_carriers": [
@@ -435,6 +469,8 @@ def build_progress_portal_hosted_package(
             "must_consume": [
                 PROGRESS_PORTAL_PAYLOAD_REF,
                 PROGRESS_PORTAL_HTML_REF,
+                "artifacts/runtime/live_console/session_read_model/latest.json",
+                "ops/mas/live-console/index.html",
             ],
             "must_not_consume": [
                 "MDS WebUI state",
@@ -699,7 +735,16 @@ def _source_refs(*payloads: Mapping[str, Any]) -> list[str]:
     refs: list[str] = []
     for payload in payloads:
         refs.extend(_refs_from(payload))
-    return sorted(dict.fromkeys(refs))
+    return sorted(dict.fromkeys(ref for ref in refs if _source_ref_allowed(ref)))
+
+
+def _source_ref_allowed(ref: str) -> bool:
+    blocked_tokens = (
+        "/ops/med-deepscientist/",
+        "med-deepscientist",
+        ".ds/worktrees",
+    )
+    return not any(token in ref for token in blocked_tokens)
 
 
 def _refs_from(value: object) -> list[str]:

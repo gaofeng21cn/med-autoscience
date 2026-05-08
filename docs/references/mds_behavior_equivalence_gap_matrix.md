@@ -3,6 +3,7 @@
 Status: `active behavior-audit reference`
 Owner: `MedAutoScience Runtime OS`
 Date: `2026-05-08`
+Related contract: `live-console-parity`
 
 ## 结论
 
@@ -40,9 +41,9 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 | class | count |
 | --- | ---: |
 | `behavior_equivalent` | 3 |
-| `purpose_equivalent_with_different_timing` | 5 |
+| `purpose_equivalent_with_different_timing` | 6 |
 | `partially_equivalent` | 3 |
-| `not_equivalent_retired` | 5 |
+| `not_equivalent_retired` | 4 |
 | `historical_fixture_only` | 1 |
 
 ## 关键行为差异
@@ -57,7 +58,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 | crash recovery / auto-resume | `purpose_equivalent_with_different_timing` | daemon startup resume | in-process turn continuation through kernel; stale/crash recovery through next Hermes tick or explicit watch/ensure runtime | normal continuation is low-latency; crash/stale recovery remains scheduler-bound but independent of MDS checkout |
 | queued user messages/mailbox | `partially_equivalent` | daemon mailbox schedules turns | quest-local `user_message_queue` triggers turn scheduling; durable task intake / controller handoff handles broader work | queued messages during active worker execution are covered; chat-connector delivery is not default MAS behavior |
 | progress visibility | `behavior_equivalent` | Web/API status | MAS Progress Portal / study-progress / cockpit | fixed MAS-owned progress place replaces MDS WebUI for default users |
-| WebUI/WebSocket/terminal streaming | `not_equivalent_retired` | React WebUI, WebSocket terminal attach, bash log stream | read-only Portal snapshot plus MAS-authored Live Console UI shell; stream/read-model parity remains staged | current Progress Portal is not an interactive console; Live Console UI shell is independent and read-only, with Portal limited to thin entry/return refs |
+| WebUI/WebSocket/terminal streaming | `purpose_equivalent_with_different_timing` | React WebUI, WebSocket terminal attach, bash log stream | Progress Portal for progress plus MAS-authored Live Console session read model, static shell, snapshot and loopback SSE stream | users get MAS-owned progress and read-only runtime observation; old resident WebSocket terminal attach is not restored |
 | connector/channel background delivery | `not_equivalent_retired` | QQ/Slack/Discord/Telegram/Weixin/WhatsApp/Feishu background threads | durable handoff refs for external consumers | chat connector delivery is outside default MAS monolith operation |
 | MCP surface | `purpose_equivalent_with_different_timing` | daemon-backed MCP | MAS MCP calls owner surfaces directly | MAS truth/status/progress surfaces covered without MDS daemon |
 | GitOps state management | `not_equivalent_retired` | root Git / quest Git / diff reader | SQLite lifecycle + restore proof + plain quest dirs | intentional behavior change; Git no longer owns runtime lifecycle |
@@ -78,6 +79,19 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 这组 surface 的完成口径是“用户能看清有没有 worker、上次看到什么时候、为什么没继续、下一次怎么恢复”。它不复刻 MDS in-memory session API，也不复刻 WebSocket terminal。质量、投稿、交付授权继续由 MAS quality/publication/artifact owner surface 持有。
 
+## Live Console Parity Authority Boundary
+
+`live-console-parity` 只能生成 read-only observation surface，禁止写入：
+
+- `paper/current_package`
+- `manuscript/current_package`
+- `paper/submission_minimal`
+- `manuscript/submission_minimal`
+- `publication_eval/latest.json`
+- `controller_decisions/latest.json`
+- `study_truth`
+- `runtime_lifecycle.sqlite`
+
 ## Current Version Assessment
 
 按旧调研的差异项重评，当前版本解决了三类核心问题：
@@ -89,7 +103,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 仍保留差异的地方也更清楚：
 
 - `outer supervision latency`: 仍是 300 秒 Hermes gateway cron one-shot；它只影响 drift detection、stale recovery 和周期性刷新，不再影响正常 turn-to-turn continuation。
-- `interactive console`: Progress Portal 已替代默认进度查看；独立 Live Console UI shell 已作为 MAS-authored read-only 页面边界落地，但 WebSocket/SSE terminal/log stream、core read model 与真实 workspace soak 仍属于 `live-console-parity` staged contract，尚未整体 landed。
+- `interactive console`: Progress Portal 已替代默认进度查看；独立 Live Console UI shell、profile-level session read model、snapshot / loopback SSE stream 和 clean-room contract 已作为 `live-console-parity` landed。它是 read-only purpose equivalence，不是旧 MDS resident WebSocket terminal attach 的 1:1 复刻。
 - `connector background delivery`: 旧 MDS 的 QQ/Slack/Discord/Telegram/Weixin/WhatsApp/Feishu background delivery 仍不属于 MAS 默认 monolith；当前只保留 durable handoff refs。
 - `in-memory session API`: MAS 选择 durable read model 与 receipt，不恢复旧 MDS in-memory session store。
 
@@ -114,6 +128,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 - 可以说：MAS 默认 operation / diagnostic / progress / artifact / quality surfaces 不再要求外部 MDS repo、daemon、runtime root 或 WebUI。
 - 可以说：MAS 以 capability supersede / rewrite / retire 方式完成 functional monolith closeout。
+- 可以说：Live Console 提供旧 MDS WebUI 观察类能力的 MAS-owned read-only purpose equivalence。
 - 不能说：MAS 与旧 MDS resident daemon 行为完全等价。
-- 不能说：MAS 复刻了 MDS WebSocket terminal、connector background delivery、team service 或 GitOps runtime lifecycle。
+- 不能说：MAS 复刻了 MDS resident WebSocket terminal attach、connector background delivery、team service 或 GitOps runtime lifecycle。
 - 不能把旧 workspace-local launchd/systemd/cron/docker service 当成当前可选运行面。

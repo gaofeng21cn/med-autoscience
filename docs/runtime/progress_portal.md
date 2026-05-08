@@ -2,10 +2,11 @@
 
 Status: `landed runtime read-model surface`
 Owner: `MedAutoScience Product Projection + Runtime OS`
+Related contract: `live-console-parity`
 
 ## 入口结论
 
-`MAS Progress Portal` 是面向医生、PI 和研究团队的固定进度入口。它已经落成 MAS-owned payload、HTML materializer、workspace helper 和可选本地只读服务。它负责 progress / status / blocker / artifact pickup，不负责 terminal attach 或日志流；旧 MDS WebUI 的实时 console 能力由 [MAS Live Console 与 MDS WebUI Parity 落地计划](mas_live_console_mds_webui_parity_plan.md) 承接。Progress Portal 给每个 MAS workspace 一个稳定位置：
+`MAS Progress Portal` 是面向医生、PI 和研究团队的固定进度入口。它已经落成 MAS-owned payload、HTML materializer、workspace helper 和可选本地只读服务。它负责 progress / status / blocker / artifact pickup，不负责 terminal attach 或日志流；旧 MDS WebUI 的实时 console 能力由 [MAS Live Console 与 MDS WebUI Parity 落地计划](mas_live_console_mds_webui_parity_plan.md) 和 [MAS Live Console UI Contract](live_console_ui_contract.md) 承接。Progress Portal 给每个 MAS workspace 一个稳定位置：
 
 ```text
 ops/mas/progress/index.html
@@ -52,6 +53,16 @@ Progress Portal 采用双层形态：
 - OPL native helper 或 state indexer 只能加速文件发现、freshness、artifact index 和 source ref 汇总；它不能重算 MAS 的 study 状态、publication judgment、evidence ledger 或 controller next action。
 
 详细评估记录见 [Progress Portal OPL App Integration](../references/progress_portal_opl_app_integration.md)。
+
+## Live Console Integration Boundary
+
+Progress Portal 与 Live Console 分工如下：
+
+- Progress Portal 负责 workspace/study overview、progress、blocker、artifact pickup、quality/publication projection 和 OPL handoff。
+- Live Console 负责 runtime session、run、terminal tail、log tail、runtime health、supervision freshness、artifact delta 和 read-only event stream。
+- Progress Portal 只暴露 `live_console` read-only link/ref、hosted package entrypoint 和返回关系；它不解释 Live Console 的 run state。
+- Live Console 可以展示 pause / resume / relaunch / reconcile 的 controller action intent，但 UI 不直接执行 apply。
+- 两个入口都不得修改 paper/package、publication gate、controller decisions、study truth 或 runtime authority；不得修改 paper/package 是共同硬边界。
 
 ## 用户体验合同
 

@@ -119,6 +119,25 @@ def workspace_studies(cockpit: Mapping[str, Any], *, selected_study_id: str) -> 
     return result
 
 
+def selected_workspace_study_id(cockpit: Mapping[str, Any]) -> str | None:
+    studies = cockpit.get("studies")
+    if not isinstance(studies, list):
+        return None
+    for item in studies:
+        if not isinstance(item, Mapping):
+            continue
+        if _workspace_study_has_active_signal(item):
+            study_id = _non_empty_text(item.get("study_id"))
+            if study_id is not None:
+                return study_id
+    for item in studies:
+        if isinstance(item, Mapping):
+            study_id = _non_empty_text(item.get("study_id"))
+            if study_id is not None:
+                return study_id
+    return None
+
+
 def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
     if not studies:
         return ""
@@ -156,6 +175,22 @@ def _workspace_study_is_active(item: Mapping[str, Any]) -> bool:
     if _non_empty_text(item.get("active_run_id")):
         return True
     return _non_empty_text(item.get("current_stage")) == "live" or _non_empty_text(item.get("writer_state")) == "live"
+
+
+def _workspace_study_has_active_signal(item: Mapping[str, Any]) -> bool:
+    if _non_empty_text(item.get("active_run_id")):
+        return True
+    monitoring = _mapping(item.get("monitoring"))
+    if _non_empty_text(monitoring.get("active_run_id")):
+        return True
+    runtime_health = _mapping(item.get("runtime_health_snapshot"))
+    worker_liveness = _mapping(runtime_health.get("worker_liveness_state"))
+    if bool(worker_liveness.get("worker_running")):
+        return True
+    current_stage = _non_empty_text(item.get("current_stage"))
+    writer_state = _non_empty_text(item.get("writer_state"))
+    user_visible = _mapping(item.get("user_visible_projection"))
+    return current_stage == "live" or writer_state == "live" or _non_empty_text(user_visible.get("writer_state")) == "live"
 
 
 def _is_parked_study_alert(text: str) -> bool:

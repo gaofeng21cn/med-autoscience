@@ -5,10 +5,12 @@ from datetime import datetime, timezone
 from html import escape
 from typing import Any
 
+from med_autoscience.controllers.progress_portal_parts import local_time_projection
+
 
 SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_live_console_ui"
-BRAND = "Med Auto Science Live Console"
+BRAND = "Med Auto Science"
 LIVE_CONSOLE_HTML_REF = "ops/mas/live-console/index.html"
 LIVE_CONSOLE_PAYLOAD_REF = "artifacts/runtime/live_console/ui_payload/latest.json"
 
@@ -28,6 +30,7 @@ def build_live_console_ui_payload(
         "surface_kind": SURFACE_KIND,
         "brand": BRAND,
         "generated_at": generated_at or _utc_now(),
+        "generated_at_local": local_time_projection(generated_at or _utc_now(), timezone_name=None),
         "payload_ref": LIVE_CONSOLE_PAYLOAD_REF,
         "html_ref": LIVE_CONSOLE_HTML_REF,
         "authority": {
@@ -66,6 +69,8 @@ def render_live_console_html(payload: Mapping[str, Any]) -> str:
     portal_handoff = _mapping(payload.get("portal_handoff"))
     stream = _mapping(payload.get("stream"))
     generated_at = str(payload.get("generated_at") or "unknown")
+    generated_at_local = _mapping(payload.get("generated_at_local"))
+    generated_at_local_label = str(generated_at_local.get("label") or generated_at)
     brand = str(payload.get("brand") or BRAND)
     progress_href = str(portal_handoff.get("progress_portal_href") or "../progress/index.html")
     return "\n".join(
@@ -92,7 +97,8 @@ def render_live_console_html(payload: Mapping[str, Any]) -> str:
             '<dl class="meta">',
             f"<div><dt>workspace root</dt><dd>{escape(str(workspace.get('workspace_root') or ''))}</dd></div>",
             f"<div><dt>workspace status</dt><dd>{escape(str(workspace.get('workspace_status') or 'unknown'))}</dd></div>",
-            f"<div><dt>generated_at</dt><dd>{escape(generated_at)}</dd></div>",
+            f"<div><dt>generated_at local</dt><dd>{escape(generated_at_local_label)}</dd></div>",
+            f"<div><dt>generated_at UTC</dt><dd>{escape(generated_at)}</dd></div>",
             f"<div><dt>stream</dt><dd>{escape(str(stream.get('href') or 'static snapshot'))}</dd></div>",
             "</dl>",
             "</header>",
