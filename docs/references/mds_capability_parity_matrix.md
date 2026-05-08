@@ -14,6 +14,8 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 
 2026-05-08 Runtime Continuity closeout 在 behavior matrix 中追加 `runtime_continuity_completion` 合同：`runtime_session` 只读投影 worker/session/freshness，`recovery_intent` 记录 controller-owned recovery intent，`runtime_reconcile_trigger` 只输出 safe reconcile 推荐和 blocked reasons，`runtime_continuity` 投到 progress/cockpit/product-entry/Portal/MCP/OPL。该合同明确 `external_mds_repo_required=false`、`mds_daemon_required=false`，并固定 `quality_ready_authorized=false`、`publication_ready_authorized=false`、`submission_ready_authorized=false`。
 
+2026-05-08 Live Console parity closeout 把旧 MDS WebUI 中有价值的观察类能力落成 MAS-authored read-only surface：Progress Portal 继续做默认进度入口，Live Console 提供 profile-level session read model、snapshot / loopback SSE stream、terminal/log tail refs 和 `ops/mas/live-console/index.html` 静态 shell。该 closeout 是 `purpose_equivalent_with_different_timing`，不恢复旧 MDS resident WebSocket terminal attach、daemon control plane、旧 React bundle 或 contributor history。
+
 ## Capability Matrix
 
 | Capability | Classification | MDS role | MAS owner | Parity proof | Medical quality authority |
@@ -56,7 +58,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | crash recovery and auto-resume | `purpose_equivalent_with_different_timing` | Use MAS tick or explicit watch/ensure runtime. |
 | queued user messages/mailbox | `partially_equivalent` | Use durable task intake and controller handoff. |
 | progress visibility | `behavior_equivalent` | Use MAS Progress Portal / study-progress / cockpit. |
-| WebUI/WebSocket/terminal streaming | `not_equivalent_retired` | Retired from default MAS operation. |
+| WebUI/WebSocket/terminal streaming | `purpose_equivalent_with_different_timing` | Use MAS Progress Portal plus read-only MAS Live Console; old resident WebSocket attach remains retired. |
 | connector/channel background delivery | `not_equivalent_retired` | Retired from default MAS operation. |
 | MCP surface | `purpose_equivalent_with_different_timing` | Use MAS MCP adapter to owner surfaces. |
 | GitOps state management | `not_equivalent_retired` | Use SQLite lifecycle and restore proof. |
