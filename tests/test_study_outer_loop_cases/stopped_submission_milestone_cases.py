@@ -15,7 +15,7 @@ def test_build_runtime_watch_outer_loop_tick_request_keeps_stopped_submission_mi
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"

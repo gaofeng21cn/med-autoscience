@@ -49,7 +49,7 @@ def test_mds_manifest_is_event_source_not_hidden_authority(tmp_path: Path) -> No
         "allowed_controller_actions",
     ]
     assert manifest["parity_deconstruction_summary"]["surface"] == "mds_capability_parity_deconstruction_summary"
-    assert manifest["parity_deconstruction_summary"]["mds_role"] == "replaceable_backend_oracle"
+    assert manifest["parity_deconstruction_summary"]["mds_role"] == "frozen_source_archive_or_historical_fixture_only"
     assert manifest["parity_deconstruction_summary"]["mds_quality_authority"] == "none"
     assert manifest["parity_deconstruction_summary"]["quality_owner"] == "MedAutoScience"
     assert manifest["parity_deconstruction_summary"]["medical_quality_authority_owner"] == "MedAutoScience"

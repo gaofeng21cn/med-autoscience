@@ -4,22 +4,24 @@
 
 冻结 `MedAutoScience -> managed runtime backend` 的单一 contract，使 `MedAutoScience` 只依赖 `runtime backend interface` contract，而不再把 `med-deepscientist` 当作内建实现真相。
 
-当前默认 outer runtime substrate owner 是：
+当前默认 MAS runtime owner 是：
 
-- `runtime_backend_id = hermes`
-- `runtime_engine_id = hermes`
+- `runtime_owner = mas_runtime_os`
+- `runtime_substrate = mas_runtime_core`
+- `runtime_backend_id = mas_runtime_core`
+- `runtime_engine_id = mas-runtime-core`
 
 当前 controlled research backend 是：
 
-- `research_backend_id = med_deepscientist`
-- `research_engine_id = med-deepscientist`
+- `research_backend_id = mas_runtime_core`
+- `research_engine_id = mas-runtime-core`
 
-旧 `Codex-default host-agent runtime` 不再是长期产品方向；direct `med_deepscientist` backend lane 只保留为兼容 / regression oracle。
+旧 `Codex-default host-agent runtime` 继续作为本机执行配置来源；direct `med_deepscientist` backend lane 只保留为 frozen source archive / historical fixture / explicit legacy diagnostic，不作为 runnable dependency。
 
 默认 MAS operation 的外部 MDS 依赖必须由 machine-readable contract 明确表达：
 
 - `external_mds_required_for_default_operation = false`
-- external MDS 只服务显式 `backend_upgrade` audit、legacy restore/import diagnostic、upstream intake 和 parity oracle
+- external MDS 只服务 frozen source provenance、historical fixture 和显式 legacy restore/import/backend-audit diagnostic
 - profile JSON 顶层不得重新暴露 `med_deepscientist_*` 字段；legacy diagnostic 字段只能位于 `legacy_diagnostic.read_only`
 
 ## 2. Backend 选择规则
@@ -29,9 +31,8 @@
 1. `execution.runtime_backend_id`
 2. `execution.runtime_backend`
 3. 对 `auto_entry == on_managed_research_intent` 的历史 managed execution：
-   - 若 profile 固定 `managed_runtime_backend_id = hermes`
-   - 且 legacy `execution.engine` 指向 `med_deepscientist` 或为空
-   - controller 先把 execution 归一化到 `Hermes` outer substrate
+   - 若 legacy `execution.engine` 指向 `med_deepscientist` 或为空
+   - controller 先把 execution 归一化到 `mas_runtime_core`
 4. 其余场景再使用 `execution.engine` 映射到已注册 backend
 
 fail-closed 规则：
@@ -114,7 +115,7 @@ managed runtime execution 的正式条件是：
 
 - `engine`
 - `runtime_root`
-- `med_deepscientist_runtime_root`
+- `legacy_diagnostic.med_deepscientist_runtime_root`
 
 这意味着 controller / outer-loop 不应再依赖 `med_deepscientist_runtime_root` 这一实现名义字段来推导 authority truth。
 
@@ -123,13 +124,13 @@ managed runtime execution 的正式条件是：
 这份 contract 完成的是：
 
 - controller 与 transport 之间的 backend abstraction freeze
-- `Hermes` 作为默认 outer substrate owner 的 repo-side 闭环
-- `MedDeepScientist` 作为 controlled research backend 的显式 durable metadata
+- MAS Runtime OS / `mas_runtime_core` 作为默认 runtime owner/substrate 的 repo-side 闭环
+- `MedDeepScientist` 作为 frozen archive / historical fixture / explicit legacy diagnostic 的显式边界
 - default MAS operation 不依赖 external `med-deepscientist` repo / runtime root
-- external MDS 只作为显式 backend audit、legacy restore/import diagnostic、upstream intake 和 parity oracle target
+- external MDS 只作为显式 backend audit、legacy restore/import diagnostic、historical fixture 和 source provenance target
 
 这份 contract 还没有完成的是：
 
-- external `Hermes` runtime truth / workspace truth
-- external MDS repo 本身的归档/删除政策；它仍可作为 upstream learning / intake reference 保留在 default operation 之外
+- optional hosted runtime / workspace truth packaging
+- future upstream source intake review；external MDS repo 只能作为 source archive / historical fixture 保留在 default operation 之外
 - GitHub default-branch contributor surface 的 post-push 检查；本地 no-history guard 已阻止上游 history / co-author footprint 进入 MAS commits

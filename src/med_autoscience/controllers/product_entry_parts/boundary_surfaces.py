@@ -8,7 +8,7 @@ from .shared_labels import _non_empty_text
 
 
 ALLOWED_PHYSICAL_ABSORB_STATUSES = {
-    "landed_no_history_default_dependency_retired",
+    "landed_no_history_functional_monolith",
 }
 
 

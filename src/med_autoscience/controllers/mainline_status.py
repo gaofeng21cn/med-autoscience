@@ -14,6 +14,7 @@ from opl_harness_shared.product_entry_program_companions import (
     build_program_sequence_step as _build_shared_program_sequence_step,
 )
 
+from med_autoscience.runtime_backend import MAS_RUNTIME_OWNER, MAS_RUNTIME_SUBSTRATE
 from med_autoscience.controllers.mainline_status_parts.labels import _non_empty_text
 from med_autoscience.controllers.mainline_status_parts.rendering import (
     render_mainline_phase_markdown,
@@ -55,8 +56,8 @@ def _single_project_boundary() -> dict[str, Any]:
     return {
         "surface_kind": "single_project_boundary",
         "summary": (
-            "当前 tranche 收口的是 MAS 单项目 owner truth、repo-tracked program truth 与用户可见边界；"
-            "MDS no-history absorb 已完成 repo-level closeout，更大的平台/runtime ingest 继续作为后置扩展。"
+            "MAS functional monolith completion 已落地：默认运行、诊断、进度可视化、"
+            "artifact/quality/status/progress/cockpit/OPL handoff 都由 MAS-owned surface 承接。"
         ),
         "mas_owner_modules": [
             "controller_charter",
@@ -65,34 +66,36 @@ def _single_project_boundary() -> dict[str, Any]:
         ],
         "mds_retained_roles": [
             {
-                "role_id": "research_backend",
-                "title": "Controlled research backend",
-                "summary": "只保留显式 backend audit / legacy diagnostic / oracle reference，不再是默认运行依赖。",
+                "role_id": "external_source_archive",
+                "title": "Frozen source archive",
+                "summary": "只保留 source provenance、hash、license refs 和 historical audit context；不作为 runnable dependency。",
             },
             {
-                "role_id": "behavior_equivalence_oracle",
-                "title": "Behavior-equivalence oracle",
-                "summary": "继续作为质量判断、自治语义与 durable surface 的行为等价对照线。",
+                "role_id": "historical_oracle_fixture",
+                "title": "Historical oracle fixture",
+                "summary": "只作为 retained capability parity fixture；不能运行成默认 daemon、WebUI 或研究执行后端。",
             },
             {
-                "role_id": "upstream_intake_buffer",
-                "title": "Upstream intake buffer",
-                "summary": "继续承接来自 DeepScientist / MDS 的上游输入，审计后再决定是否吸收进 MAS。",
+                "role_id": "explicit_legacy_diagnostic",
+                "title": "Explicit legacy diagnostic",
+                "summary": "仅限显式 legacy restore/import/backend audit 读取；默认 MAS 诊断不要求外部 MDS checkout。",
             },
         ],
         "land_now": [
-            "MAS 单项目 owner wording and repo-tracked truth",
-            "core:status:program_mainline_boundary_alignment",
-            "user-visible wording that MDS is no longer a second long-term owner",
-            "MDS no-history physical absorb repo-level closeout and default dependency retirement",
+            "MAS functional monolith completion landed",
+            "MAS Runtime OS is the default runtime owner",
+            "MAS Progress Portal is the default visual status surface",
+            "OPL handoff consumes MAS payload refs/freshness/source refs/artifact locators only",
+            "external MDS repo, daemon, runtime root, and WebUI are no longer required for default or diagnostic operation",
         ],
         "post_gate_only": [
-            "runtime core ingest across repos",
-            "broader platform/federation restructuring after earlier phases hold",
+            "new upstream intake from future MDS/DeepScientist snapshots",
+            "optional hosted/federated frontend work outside MAS truth authority",
         ],
         "not_now": [
             "treating MedDeepScientist as a second long-term owner",
-            "using monorepo language as shorthand for current tranche completion",
+            "restoring external MDS as hidden runnable fallback",
+            "importing upstream git history or contributor footprint",
         ],
     }
 
@@ -104,7 +107,7 @@ def _capability_owner_boundary() -> dict[str, Any]:
         "summary": (
             "调用方应把研究入口、task intake、controller outer loop、进度真相、论文质量门控、"
             "runtime recovery 与 program/mainline 解释都读作 MAS-owned capability；"
-            "MDS 只保留 optional backend audit / oracle / intake 角色。"
+            "MDS 只保留 frozen archive / historical fixture / explicit legacy diagnostic 角色。"
         ),
         "mas_owned_capabilities": [
             {
@@ -140,8 +143,8 @@ def _capability_owner_boundary() -> dict[str, Any]:
             {
                 "capability_id": "runtime_recovery",
                 "owner": "MedAutoScience",
-                "truth_surface": "study_runtime_status / runtime_watch",
-                "summary": "运行恢复、supervision freshness 与下一次确认信号由 MAS runtime surfaces 解释。",
+                "truth_surface": "MAS Runtime OS study_runtime_status / runtime_watch",
+                "summary": "运行恢复、supervision freshness、worker/session replay 与下一次确认信号由 MAS Runtime OS 解释。",
             },
             {
                 "capability_id": "program_mainline_truth",
@@ -152,44 +155,47 @@ def _capability_owner_boundary() -> dict[str, Any]:
         ],
         "mds_migration_only_roles": [
             {
-                "role_id": "research_backend",
+                "role_id": "external_source_archive",
                 "migration_only": True,
-                "summary": "只服务显式 backend audit 与 legacy diagnostic；不拥有默认执行、用户入口或治理判断。",
+                "summary": "只服务 provenance、license refs、source hash 和历史审计；不拥有默认执行或诊断入口。",
             },
             {
-                "role_id": "behavior_equivalence_oracle",
+                "role_id": "historical_oracle_fixture",
                 "migration_only": True,
-                "summary": "作为行为等价与回归 oracle；不替代 MAS durable truth。",
+                "summary": "只作为 historical fixture / parity proof input；不替代 MAS durable truth。",
             },
             {
-                "role_id": "upstream_intake_buffer",
+                "role_id": "explicit_legacy_diagnostic",
                 "migration_only": True,
-                "summary": "承接上游 DeepScientist / MDS 输入，经过 MAS 审计后才吸收。",
+                "summary": "只在操作者显式 legacy restore/import/backend audit 时读取；不作为 hidden fallback。",
             },
         ],
         "proof_and_absorb_boundary": {
             "surface_kind": "proof_and_absorb_boundary",
             "parity_status": "landed_for_retained_mds_capabilities",
             "parity_proof_sources": [
-                "behavior_equivalence_oracle",
+                "historical_oracle_fixture",
                 "study_progress_projection_contract",
                 "publication_eval/latest.json",
                 "controller_decisions/latest.json",
                 "docs/references/med-deepscientist/source_provenance.json",
             ],
-            "physical_absorb_status": "landed_no_history_default_dependency_retired",
+            "physical_absorb_status": "landed_no_history_functional_monolith",
             "physical_absorb_gate": [
                 "source provenance recorded",
                 "author audit guard enforced",
                 "retained capability parity proven",
                 "external MDS default dependency retired",
+                "external MDS diagnostic dependency retired",
+                "old MDS WebUI default path retired",
             ],
-            "platform_maturation_status": "future_runtime_core_ingest_post_gate",
+            "platform_maturation_status": "functional_monolith_landed_platform_frontend_optional",
         },
         "not_authority": [
             "MedDeepScientist product entry",
             "MedDeepScientist long-term governance surface",
-            "external MDS checkout as default runtime requirement",
+            "external MDS checkout as default runtime or diagnostic requirement",
+            "external MDS daemon or WebUI as default progress surface",
         ],
     }
 
@@ -213,7 +219,7 @@ def _active_tranche_owner_truth() -> dict[str, Any]:
         "stage_id": CURRENT_STAGE_ID,
         "summary": (
             "当前 tranche 用 autonomy、quality、single-project owner 三线解释 MAS owner truth；"
-            "MedDeepScientist 只保留迁移期 backend、oracle、intake buffer 角色。"
+            "MedDeepScientist 只保留 archive、historical fixture、explicit legacy diagnostic 角色。"
         ),
         "lanes": [
             {
@@ -274,20 +280,21 @@ def _active_tranche_owner_truth() -> dict[str, Any]:
 def _platform_target() -> dict[str, Any]:
     return _build_shared_platform_target(
         summary=(
-            "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，包括 runtime core ingest、"
-            "更成熟的 direct product entry 和外部 runtime substrate 选择；这些必须建立在前四阶段真实成立之后。"
+            "Phase 5 已完成 MAS functional monolith closeout；后续平台工作只剩 optional hosted/federated "
+            "frontend 与 future upstream intake，不再以 external MDS runtime core 为默认运行条件。"
         ),
         sequence_scope="monorepo_landing_readiness",
-        current_step_id="stabilize_user_product_loop",
+        current_step_id="functional_monolith_completion",
         current_readiness_summary=(
-            "单项目长线已经完成 gateway/runtime truth 冻结，当前正在推进 user product loop hardening 与边界收紧；"
-            "MDS no-history absorb 已关闭为默认依赖退役，后续平台化不再以 external MDS 为默认运行条件。"
+            "MAS 默认运行、进度、诊断、artifact/quality parity、workspace helpers 与 OPL handoff 都已切到 MAS-owned surfaces；"
+            "external MDS 只保留 frozen archive / historical fixture / explicit legacy diagnostic。"
         ),
         north_star_topology={
             "domain_gateway": "Med Auto Science",
-            "outer_runtime_substrate_owner": "upstream Hermes-Agent",
-            "controlled_research_backend": "MAS-owned runtime/artifact/quality surfaces plus optional MDS oracle",
-            "monorepo_status": "no_history_absorb_landed",
+            "runtime_owner": MAS_RUNTIME_OWNER,
+            "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
+            "controlled_research_backend": "MAS-owned Runtime OS / Artifact OS / Quality OS",
+            "monorepo_status": "functional_monolith_completion_landed",
         },
         target_internal_modules=[
             "controller_charter",
@@ -336,19 +343,41 @@ def _platform_target() -> dict[str, Any]:
             _build_shared_program_sequence_step(
                 step_id="runtime_core_ingest",
                 title="Runtime core ingest",
+                status="completed",
+                phase_id="phase_5_federation_platform_maturation",
+                summary="默认 runtime core 已由 MAS Runtime OS 承接；external MDS daemon/runtime root 不再是默认运行或诊断依赖。",
+            ),
+            _build_shared_program_sequence_step(
+                step_id="functional_monolith_completion",
+                title="Functional monolith completion",
+                status="completed",
+                phase_id="phase_5_federation_platform_maturation",
+                summary="MAS 默认 CLI/MCP/product-entry/workspace helper/Progress Portal/OPL handoff 都不要求外部 MDS repo、daemon 或 WebUI。",
+            ),
+            _build_shared_program_sequence_step(
+                step_id="optional_hosted_frontend_packaging",
+                title="Optional hosted frontend packaging",
                 status="pending",
                 phase_id="phase_5_federation_platform_maturation",
-                summary="更大的 runtime core ingest / platform maturation 仍需独立 gate，且不得把 external MDS 恢复为默认依赖。",
+                summary="后续可把 MAS Progress Portal / OPL dashboard 打包成 hosted frontend，但不得重解释 MAS study truth。",
+            ),
+            _build_shared_program_sequence_step(
+                step_id="future_upstream_source_intake_review",
+                title="Future upstream source intake review",
+                status="pending",
+                phase_id="phase_5_federation_platform_maturation",
+                summary="未来如需吸收 MDS/DeepScientist 新 snapshot，只能走 no-history provenance、author audit 和 MAS-owned capability proof。",
             ),
         ],
         completed_step_ids=[
             "freeze_gateway_runtime_truth",
             "mds_no_history_absorb",
+            "runtime_core_ingest",
+            "functional_monolith_completion",
         ],
         remaining_step_ids=[
-            "clear_multi_workspace_host_gate",
-            "freeze_backend_deconstruction_boundary",
-            "runtime_core_ingest",
+            "optional_hosted_frontend_packaging",
+            "future_upstream_source_intake_review",
         ],
         promotion_gates=[
             "phase_1_mainline_established",
@@ -363,10 +392,11 @@ def _platform_target() -> dict[str, Any]:
             "repo-tracked product-entry shell and family orchestration companions",
             "controller-owned runtime/progress/recovery truth",
             "CLI/MCP/controller entry surfaces that already support real work",
+            "MAS-owned Progress Portal and OPL handoff refs",
         ],
         not_yet=[
-            "runtime core ingest across repos",
             "mature hosted standalone medical frontend",
+            "future upstream source intake beyond historical fixture/provenance refs",
         ],
     )
 
@@ -497,13 +527,13 @@ def _phase3_clearance_lane() -> dict[str, Any]:
     )
     return _build_shared_clearance_lane(
         surface_kind="phase3_host_clearance_lane",
-        summary="Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
-        recommended_step_id="external_runtime_contract",
+        summary="Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认运行和诊断已经由 MAS Runtime OS 承接。",
+        recommended_step_id="mas_runtime_contract",
         recommended_command=doctor_command,
         clearance_targets=[
             _build_shared_clearance_target(
                 target_id="external_runtime_contract",
-                title="Check external Hermes runtime contract",
+                title="Check optional hosted runtime contract",
                 commands=[
                     doctor_command,
                     hermes_runtime_check_command,
@@ -511,7 +541,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
             ),
             _build_shared_clearance_target(
                 target_id="supervisor_service",
-                title="Keep Hermes-hosted workspace supervision online",
+                title="Keep MAS workspace supervision online",
                 commands=[
                     supervisor_service_command,
                     refresh_supervision_command,
@@ -529,13 +559,13 @@ def _phase3_clearance_lane() -> dict[str, Any]:
         clearance_loop=[
             _build_shared_product_entry_program_step(
                 step_id="external_runtime_contract",
-                title="先确认 external Hermes runtime contract ready",
+                title="确认 optional hosted runtime contract 或 MAS runtime contract ready",
                 surface_kind="doctor_runtime_contract",
                 command=doctor_command,
             ),
             _build_shared_product_entry_program_step(
                 step_id="hermes_runtime_check",
-                title="确认 Hermes runtime 绑定证据",
+                title="显式检查 optional Hermes runtime 绑定证据",
                 surface_kind="hermes_runtime_check",
                 command=hermes_runtime_check_command,
             ),
@@ -547,7 +577,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
             ),
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
-                title="刷新 Hermes-hosted supervision tick",
+                title="刷新 MAS runtime supervision tick",
                 surface_kind="runtime_watch_refresh",
                 command=refresh_supervision_command,
             ),
@@ -594,12 +624,12 @@ def _phase3_clearance_lane() -> dict[str, Any]:
 
 def _phase4_backend_deconstruction() -> dict[str, Any]:
     return _build_backend_deconstruction_lane(
-        summary="Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时把 MDS 保持为 optional oracle / intake / diagnostic reference。",
+        summary="Phase 4 只保留 future upstream source intake / historical fixture governance；MDS 不再是 runtime substrate。",
         substrate_targets=[
             _build_shared_program_capability(
                 capability_id="session_run_watch_recovery",
-                owner="upstream Hermes-Agent",
-                summary="session / run / watch / recovery / scheduling / interruption 继续收归 outer runtime substrate。",
+                owner="MAS Runtime OS",
+                summary="session / run / watch / recovery / scheduling / interruption 默认由 MAS Runtime OS 承接。",
             ),
             _build_shared_program_capability(
                 capability_id="backend_generic_runtime_contract",
@@ -608,18 +638,18 @@ def _phase4_backend_deconstruction() -> dict[str, Any]:
             ),
         ],
         backend_retained_now=[
-            "optional MedDeepScientist backend audit",
-            "legacy restore/import diagnostic",
-            "behavior-equivalence oracle fixtures",
+            "frozen MedDeepScientist source archive",
+            "historical oracle fixtures",
+            "explicit legacy restore/import/backend-audit diagnostic",
         ],
         current_backend_chain=[
             "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
-            "optional med_deepscientist oracle/intake/audit reference",
+            "historical med_deepscientist fixture/provenance refs only",
         ],
         optional_executor_proofs=[
             {
                 "executor_kind": "hermes_agent",
-                "entrypoint": "Hermes-Agent controlled runtime adapter",
+                "entrypoint": "optional hosted runtime adapter",
                 "default_model": "inherit_local_hermes_default",
                 "default_reasoning_effort": "inherit_local_hermes_default",
             }
@@ -644,13 +674,13 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "status": "in_progress",
             "usable_now": True,
             "summary": (
-                "先证明 MAS -> Hermes-Agent target outer substrate -> controlled MedDeepScientist backend 这条主线诚实成立，"
-                "并把当前 owner truth 显式收成 autonomy、quality、single-project owner 三线；MDS no-history absorb 已关闭默认依赖。"
+                "MAS Runtime OS / Artifact OS / Quality OS 已承接默认研究运行与进度真相，"
+                "并把当前 owner truth 显式收成 autonomy、quality、single-project owner 三线。"
             ),
             "focus": [
                 "autonomy: keep runtime truth, recovery proof, and progress freshness controller-owned",
                 "quality: keep publication-grade quality route truth under MAS study contracts",
-                "single-project owner: keep MDS retained as optional audit/oracle/intake reference only",
+                "single-project owner: keep MDS retained as frozen archive / historical fixture / explicit diagnostic only",
             ],
             "entry_points": [
                 {
@@ -734,18 +764,18 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "summary": "把当前 proof 从单机/单 workspace 扩到多 workspace、多宿主的真实长期稳定性。",
             "focus": [
                 "prove service, recovery, and quality guards across more hosts and workspaces",
-                "clear broader external-runtime and workspace-specific blocker classes honestly",
+                "clear broader optional hosted-runtime and workspace-specific blocker classes honestly",
             ],
             "entry_points": [
                 {
                     "name": "doctor",
                     "command": "uv run python -m med_autoscience.cli doctor --profile <profile>",
-                    "purpose": "先看 workspace / runtime / external Hermes contract readiness。",
+                    "purpose": "先看 workspace / MAS runtime contract readiness。",
                 },
                 {
                     "name": "hermes_runtime_check",
                     "command": "uv run python -m med_autoscience.cli hermes-runtime-check --profile <profile>",
-                    "purpose": "检查 external Hermes runtime 证据和 fail-closed gate。",
+                    "purpose": "显式检查 optional Hermes runtime 证据和 fail-closed gate。",
                 },
                 {
                     "name": "watch",
@@ -754,7 +784,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 },
             ],
             "exit_criteria": [
-                "external-runtime clearance 不再只依赖当前开发宿主。",
+                "optional hosted-runtime clearance 不再只依赖当前开发宿主。",
                 "更多 workspace / host 的 service、watch、recovery 已有真实 proof。",
                 "host/env compatibility 不再反复成为主阻塞类别。",
             ],
@@ -770,7 +800,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "title": "Phase 4 backend deconstruction",
             "status": "pending",
             "usable_now": True,
-            "summary": "在 outer runtime 与产品回路稳定后，继续把 MDS 保持为 optional oracle/intake/diagnostic reference，并只对新的可迁能力走 no-history provenance 与 parity gate。",
+            "summary": "在 MAS Runtime OS 与产品回路稳定后，继续把 MDS 保持为 archive/fixture/explicit diagnostic reference，并只对新的可迁能力走 no-history provenance 与 parity gate。",
             "focus": [
                 "move any newly reusable runtime capability into MAS-owned surfaces only with provenance and proof",
                 "keep executor replacement explicit and contract-driven instead of forced rewrites",
@@ -789,7 +819,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             ],
             "exit_criteria": [
                 "迁出的能力有明确 owner、contract、tests 和 proof surface。",
-                "MedDeepScientist 保持 optional oracle / intake / diagnostic reference，而不是 hidden runtime authority。",
+                "MedDeepScientist 保持 frozen archive / historical fixture / explicit diagnostic reference，而不是 hidden runtime authority。",
                 "executor replacement 不依赖一次性重写或 truth rewrite。",
             ],
             "phase_refs": [
@@ -803,10 +833,10 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "title": "Phase 5 federation and platform maturation",
             "status": "pending",
             "usable_now": True,
-            "summary": "最后再考虑更大平台化工作，如 federation direct entry、monorepo 与 runtime core ingest。",
+            "summary": "MAS functional monolith 已落地；后续只考虑 optional hosted frontend、federation direct entry 和 future upstream intake。",
             "focus": [
                 "land broader federation-facing direct entry only after earlier phases hold",
-                "treat runtime core ingest and large platform restructures as independent post-gate work",
+                "keep future source intake and hosted frontend work outside MAS truth authority",
             ],
             "entry_points": [
                 {
@@ -852,8 +882,9 @@ def read_mainline_status() -> dict[str, Any]:
             ),
             "runtime_topology": {
                 "domain_gateway": "Med Auto Science",
-                "outer_runtime_substrate_owner": "upstream Hermes-Agent",
-                "research_backend": "MAS-owned runtime/artifact/quality surfaces plus optional MDS oracle",
+                "runtime_owner": MAS_RUNTIME_OWNER,
+                "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
+                "research_backend": "MAS-owned Runtime OS / Artifact OS / Quality OS",
                 "entry_shape": (
                     "compatible Med Auto Science product entry plus OPL handoff over the same substrate, "
                     "without replacing domain authority"
@@ -873,9 +904,8 @@ def read_mainline_status() -> dict[str, Any]:
             "status": CURRENT_STAGE_STATUS,
             "title": "MAS owner truth hardening",
             "summary": (
-                "repo-side 已拿到 external Hermes runtime truth、real adapter cutover 和至少一条真实 study "
-                "recovery/proof；当前主线用 autonomy、quality、single-project owner 三线继续压实 MAS owner truth，"
-                "而不是回去继续做 seam-only 包装或新增 MDS 第二治理面。"
+                "repo-side 已完成 MAS functional monolith closeout；当前主线用 autonomy、quality、"
+                "single-project owner 三线继续压实 MAS owner truth，而不是回去新增 MDS 第二治理面。"
             ),
         },
         "current_program_phase": {
@@ -904,8 +934,8 @@ def read_mainline_status() -> dict[str, Any]:
             },
             {
                 "id": "f1_external_hermes_runtime_truth",
-                "title": "F1 external Hermes runtime truth",
-                "summary": "repo-side contract、doctor 与 runtime-check 已能 fail-closed 识别 external Hermes evidence。",
+                "title": "F1 optional hosted runtime truth",
+                "summary": "repo-side contract、doctor 与 runtime-check 已能 fail-closed 识别 optional hosted runtime evidence。",
             },
             {
                 "id": "f2_real_adapter_cutover",
@@ -926,22 +956,22 @@ def read_mainline_status() -> dict[str, Any]:
         "remaining_gaps": [
             "mature standalone medical product entry is still not landed; the truthful surface is still the repo-tracked shell plus agent-operated CLI/MCP",
             "OPL -> MAS handoff is documented and contract-shaped, but not yet a live federation front door",
-            "external-runtime clearance still needs broader host/workspace proof; current proof is real but not universal",
+            "optional hosted-runtime clearance still needs broader host/workspace proof; current MAS default runtime does not depend on it",
             "active study blockers still need continued closeout at publication / completion / human-gate truth surfaces",
         ],
         "next_focus": [
             "autonomy: keep task, progress, supervision, stuck-state, recovery, and human-gate truth visible through MAS durable surfaces",
             "quality: keep publication-grade route truth, same-line repair, bounded analysis, and submission readiness under MAS quality contracts",
-            "single-project owner: keep MedDeepScientist pinned to optional audit / oracle / intake roles instead of second-owner language",
+            "single-project owner: keep MedDeepScientist pinned to archive / historical fixture / explicit diagnostic roles instead of second-owner language",
             "keep core status and runtime contracts aligned so OPL language, MAS role, and runtime truth do not drift",
-            "only move toward broader runtime core ingest or platform work after the external gate is honestly cleared",
+            "only move toward hosted/federated frontend work without changing MAS truth authority",
         ],
         "explicitly_not_now": [
             "large platform rewrite without a separate owner/proof gate",
             "mixing display or paper-figure assetization into the runtime mainline",
-            "claiming the external MedDeepScientist reference repo must be deleted for MAS default operation to work",
+            "claiming the external MedDeepScientist reference repo must be runnable for MAS default operation to work",
             "treating MedDeepScientist as a second long-term owner or parallel product surface",
-            "claiming upstream Hermes already fully replaces the research executor",
+            "claiming optional hosted runtime owns MAS research truth",
             "claiming a standalone OPL/MAS product frontend is already landed",
         ],
         "source_refs": [

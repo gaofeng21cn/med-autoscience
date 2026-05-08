@@ -421,7 +421,7 @@ def _research_runtime_control_projection(
     return {
         "surface_kind": "research_runtime_control_projection",
         "study_session_owner": {
-            "runtime_owner": "upstream_hermes_agent",
+            "runtime_owner": MAS_RUNTIME_OWNER,
             "study_owner": "med-autoscience",
             "executor_owner": CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER,
         },

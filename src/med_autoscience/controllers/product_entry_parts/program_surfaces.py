@@ -136,13 +136,13 @@ def _build_phase3_clearance_lane(
     build_clearance_lane = _controller_override("_build_shared_clearance_lane", _build_shared_clearance_lane)
     return build_clearance_lane(
         surface_kind="phase3_host_clearance_lane",
-        summary="Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
-        recommended_step_id="external_runtime_contract",
+        summary="Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认运行和诊断已经由 MAS Runtime OS 承接。",
+        recommended_step_id="mas_runtime_contract",
         recommended_command=doctor_command,
         clearance_targets=[
             _build_shared_clearance_target(
                 target_id="external_runtime_contract",
-                title="Check external Hermes runtime contract",
+                title="Check optional hosted runtime contract",
                 commands=[
                     doctor_command,
                     hermes_runtime_check_command,
@@ -150,7 +150,7 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_clearance_target(
                 target_id="supervisor_service",
-                title="Keep Hermes-hosted workspace supervision online",
+                title="Keep MAS workspace supervision online",
                 commands=[
                     supervisor_service_command,
                     refresh_supervision_command,
@@ -168,13 +168,13 @@ def _build_phase3_clearance_lane(
         clearance_loop=[
             _build_shared_product_entry_program_step(
                 step_id="external_runtime_contract",
-                title="先确认 external Hermes runtime contract ready",
+                title="确认 optional hosted runtime contract 或 MAS runtime contract ready",
                 surface_kind="doctor_runtime_contract",
                 command=doctor_command,
             ),
             _build_shared_product_entry_program_step(
                 step_id="hermes_runtime_check",
-                title="确认 Hermes runtime 绑定证据",
+                title="显式检查 optional Hermes runtime 绑定证据",
                 surface_kind="hermes_runtime_check",
                 command=hermes_runtime_check_command,
             ),
@@ -186,7 +186,7 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
-                title="刷新 Hermes-hosted supervision tick",
+                title="刷新 MAS runtime supervision tick",
                 surface_kind="runtime_watch_refresh",
                 command=refresh_supervision_command,
             ),
@@ -237,12 +237,12 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
         mainline_status._build_backend_deconstruction_lane,
     )
     return build_backend_deconstruction_lane(
-        summary="Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时把 MDS 保持为 optional oracle / intake / diagnostic reference。",
+        summary="Phase 4 只保留 future upstream source intake / historical fixture governance；MDS 不再是 runtime substrate。",
         substrate_targets=[
             _build_shared_program_capability(
                 capability_id="session_run_watch_recovery",
-                owner="upstream Hermes-Agent",
-                summary="session / run / watch / recovery / scheduling / interruption 继续收归 outer runtime substrate。",
+                owner="MAS Runtime OS",
+                summary="session / run / watch / recovery / scheduling / interruption 默认由 MAS Runtime OS 承接。",
             ),
             _build_shared_program_capability(
                 capability_id="backend_generic_runtime_contract",
@@ -251,18 +251,18 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
             ),
         ],
         backend_retained_now=[
-            "optional MedDeepScientist backend audit",
-            "legacy restore/import diagnostic",
-            "behavior-equivalence oracle fixtures",
+            "frozen MedDeepScientist source archive",
+            "historical oracle fixtures",
+            "explicit legacy restore/import/backend-audit diagnostic",
         ],
         current_backend_chain=[
             "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
-            "optional med_deepscientist oracle/intake/audit reference",
+            "historical med_deepscientist fixture/provenance refs only",
         ],
         optional_executor_proofs=[
             {
                 "executor_kind": "hermes_agent",
-                "entrypoint": "Hermes-Agent controlled runtime adapter",
+                "entrypoint": "optional hosted runtime adapter",
                 "default_model": "inherit_local_hermes_default",
                 "default_reasoning_effort": "inherit_local_hermes_default",
             }

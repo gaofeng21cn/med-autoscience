@@ -217,6 +217,45 @@ def _optional_path(payload: dict[str, object], key: str, *, profile_dir: Path) -
     return _resolve_profile_path(value, profile_dir=profile_dir)
 
 
+def _optional_legacy_diagnostic_payload(payload: dict[str, object]) -> dict[str, object]:
+    value = payload.get("legacy_diagnostic")
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise TypeError("legacy_diagnostic must be a table when provided")
+    return dict(value)
+
+
+def _optional_legacy_runtime_root(
+    payload: dict[str, object],
+    *,
+    legacy_diagnostic: dict[str, object],
+    profile_dir: Path,
+    default: Path,
+) -> Path:
+    for key in ("runtime_root", "med_deepscientist_runtime_root"):
+        value = legacy_diagnostic.get(key)
+        if isinstance(value, str) and value.strip():
+            return _resolve_profile_path(value, profile_dir=profile_dir)
+    value = _optional_string(payload, "med_deepscientist_runtime_root", empty_as_none=True)
+    if value is not None:
+        return _resolve_profile_path(value, profile_dir=profile_dir)
+    return default
+
+
+def _optional_legacy_repo_root(
+    payload: dict[str, object],
+    *,
+    legacy_diagnostic: dict[str, object],
+    profile_dir: Path,
+) -> Path | None:
+    for key in ("controlled_backend_repo_root", "med_deepscientist_repo_root"):
+        value = legacy_diagnostic.get(key)
+        if isinstance(value, str) and value.strip():
+            return _resolve_profile_path(value, profile_dir=profile_dir)
+    return _optional_path(payload, "med_deepscientist_repo_root", profile_dir=profile_dir)
+
+
 def _optional_string_list(payload: dict[str, object], key: str, *, default: tuple[str, ...]) -> tuple[str, ...]:
     if key not in payload:
         return default
@@ -262,20 +301,30 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
     profile_name = _require_string(payload, "name")
     workspace_root = _resolve_profile_path(_require_string(payload, "workspace_root"), profile_dir=profile_dir)
     _reject_stale_workspace_alias(profile_name=profile_name, workspace_root=workspace_root)
-    med_deepscientist_repo_root = _optional_path(payload, "med_deepscientist_repo_root", profile_dir=profile_dir)
+    runtime_root = _resolve_profile_path(_require_string(payload, "runtime_root"), profile_dir=profile_dir)
+    managed_runtime_home = _optional_path(payload, "managed_runtime_home", profile_dir=profile_dir) or runtime_root.parent
+    legacy_diagnostic = _optional_legacy_diagnostic_payload(payload)
+    med_deepscientist_runtime_root = _optional_legacy_runtime_root(
+        payload,
+        legacy_diagnostic=legacy_diagnostic,
+        profile_dir=profile_dir,
+        default=managed_runtime_home,
+    )
+    med_deepscientist_repo_root = _optional_legacy_repo_root(
+        payload,
+        legacy_diagnostic=legacy_diagnostic,
+        profile_dir=profile_dir,
+    )
     hermes_agent_repo_root = _optional_path(payload, "hermes_agent_repo_root", profile_dir=profile_dir)
     hermes_home_root = _optional_path(payload, "hermes_home_root", profile_dir=profile_dir)
     managed_runtime_backend_id = _optional_managed_runtime_backend_id(payload)
     return WorkspaceProfile(
         name=profile_name,
         workspace_root=workspace_root,
-        runtime_root=_resolve_profile_path(_require_string(payload, "runtime_root"), profile_dir=profile_dir),
+        runtime_root=runtime_root,
         studies_root=_resolve_profile_path(_require_string(payload, "studies_root"), profile_dir=profile_dir),
         portfolio_root=_resolve_profile_path(_require_string(payload, "portfolio_root"), profile_dir=profile_dir),
-        med_deepscientist_runtime_root=_resolve_profile_path(
-            _require_string(payload, "med_deepscientist_runtime_root"),
-            profile_dir=profile_dir,
-        ),
+        med_deepscientist_runtime_root=med_deepscientist_runtime_root,
         med_deepscientist_repo_root=med_deepscientist_repo_root,
         hermes_agent_repo_root=hermes_agent_repo_root,
         hermes_home_root=hermes_home_root or (Path.home() / ".hermes").resolve(),

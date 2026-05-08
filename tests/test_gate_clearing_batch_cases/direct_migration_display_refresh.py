@@ -22,7 +22,7 @@ def test_run_gate_clearing_batch_rematerializes_stale_direct_migration_display_i
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_json(
@@ -212,7 +212,7 @@ def test_run_gate_clearing_batch_migrates_legacy_feature_shift_f5_payload_to_tra
             "score compression and feature-shift explanation."
         ),
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     metrics_path = quest_root / ".ds" / "worktrees" / "analysis-run" / "outputs" / "collapse_attribution_metrics.json"
@@ -406,7 +406,7 @@ def test_run_gate_clearing_batch_normalizes_legacy_f3_cumulative_incidence_paylo
         manuscript_family="prediction_model",
         paper_framing_summary="China-US transportability paper with risk-stratified cumulative incidence.",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     payload_path = paper_root / "time_to_event_grouped_inputs.json"
@@ -577,7 +577,7 @@ def test_run_gate_clearing_batch_syncs_legacy_table1_schema_before_materialize(
         manuscript_family="prediction_model",
         paper_framing_summary="China-US transportability paper with baseline Table 1 shell.",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_json(
@@ -726,7 +726,7 @@ def test_transportability_f5_migration_relocates_legacy_runtime_metrics_path(
             "score compression and feature-shift explanation."
         ),
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     metrics_path = quest_root / ".ds" / "worktrees" / "analysis-run" / "outputs" / "collapse_attribution_metrics.json"

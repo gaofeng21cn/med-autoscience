@@ -3,8 +3,8 @@ from __future__ import annotations
 def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> None:
     assert payload["phase3_clearance_lane"] == {
         "surface_kind": "phase3_host_clearance_lane",
-        "summary": "Phase 3 把 external runtime、Hermes-hosted workspace supervision 和 study recovery proof 扩到更多 workspace/host，并保持 fail-closed。",
-        "recommended_step_id": "external_runtime_contract",
+        "summary": "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认运行和诊断已经由 MAS Runtime OS 承接。",
+        "recommended_step_id": "mas_runtime_contract",
         "recommended_command": (
             "uv run python -m med_autoscience.cli doctor --profile "
             + str(profile_ref.resolve())
@@ -12,7 +12,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "clearance_targets": [
             {
                 "target_id": "external_runtime_contract",
-                "title": "Check external Hermes runtime contract",
+                "title": "Check optional hosted runtime contract",
                 "commands": [
                     "uv run python -m med_autoscience.cli doctor --profile " + str(profile_ref.resolve()),
                     "uv run python -m med_autoscience.cli hermes-runtime-check --profile " + str(profile_ref.resolve()),
@@ -20,7 +20,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
             {
                 "target_id": "supervisor_service",
-                "title": "Keep Hermes-hosted workspace supervision online",
+                "title": "Keep MAS workspace supervision online",
                 "commands": [
                     (
                         "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
@@ -55,7 +55,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "clearance_loop": [
             {
                 "step_id": "external_runtime_contract",
-                "title": "先确认 external Hermes runtime contract ready",
+                "title": "确认 optional hosted runtime contract 或 MAS runtime contract ready",
                 "surface_kind": "doctor_runtime_contract",
                 "command": (
                     "uv run python -m med_autoscience.cli doctor --profile "
@@ -64,7 +64,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
             {
                 "step_id": "hermes_runtime_check",
-                "title": "确认 Hermes runtime 绑定证据",
+                "title": "显式检查 optional Hermes runtime 绑定证据",
                 "surface_kind": "hermes_runtime_check",
                 "command": (
                     "uv run python -m med_autoscience.cli hermes-runtime-check --profile "
@@ -82,7 +82,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
             {
                 "step_id": "refresh_supervision",
-                "title": "刷新 Hermes-hosted supervision tick",
+                "title": "刷新 MAS runtime supervision tick",
                 "surface_kind": "runtime_watch_refresh",
                 "command": (
                     "uv run python -m med_autoscience.cli watch --runtime-root "
@@ -145,12 +145,12 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
     }
     assert payload["phase4_backend_deconstruction"] == {
         "surface_kind": "phase4_backend_deconstruction_lane",
-        "summary": "Phase 4 把可迁出的通用 runtime 能力继续迁向 substrate，同时把 MDS 保持为 optional oracle / intake / diagnostic reference。",
+        "summary": "Phase 4 只保留 future upstream source intake / historical fixture governance；MDS 不再是 runtime substrate。",
         "substrate_targets": [
             {
                 "capability_id": "session_run_watch_recovery",
-                "owner": "upstream Hermes-Agent",
-                "summary": "session / run / watch / recovery / scheduling / interruption 继续收归 outer runtime substrate。",
+                "owner": "MAS Runtime OS",
+                "summary": "session / run / watch / recovery / scheduling / interruption 默认由 MAS Runtime OS 承接。",
             },
             {
                 "capability_id": "backend_generic_runtime_contract",
@@ -159,18 +159,18 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
         ],
         "backend_retained_now": [
-            "optional MedDeepScientist backend audit",
-            "legacy restore/import diagnostic",
-            "behavior-equivalence oracle fixtures",
+            "frozen MedDeepScientist source archive",
+            "historical oracle fixtures",
+            "explicit legacy restore/import/backend-audit diagnostic",
         ],
         "current_backend_chain": [
             "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
-            "optional med_deepscientist oracle/intake/audit reference",
+            "historical med_deepscientist fixture/provenance refs only",
         ],
         "optional_executor_proofs": [
             {
                 "executor_kind": "hermes_agent",
-                "entrypoint": "Hermes-Agent controlled runtime adapter",
+                "entrypoint": "optional hosted runtime adapter",
                 "default_model": "inherit_local_hermes_default",
                 "default_reasoning_effort": "inherit_local_hermes_default",
             }
@@ -188,19 +188,20 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
     phase5 = payload["phase5_platform_target"]
     assert phase5["surface_kind"] == "phase5_platform_target"
     assert phase5["summary"] == (
-        "Phase 5 的目标是把 MAS 继续收敛到 federation/platform-ready 形态，包括 runtime core ingest、"
-        "更成熟的 direct product entry 和外部 runtime substrate 选择；这些必须建立在前四阶段真实成立之后。"
+        "Phase 5 已完成 MAS functional monolith closeout；后续平台工作只剩 optional hosted/federated "
+        "frontend 与 future upstream intake，不再以 external MDS runtime core 为默认运行条件。"
     )
     assert phase5["sequence_scope"] == "monorepo_landing_readiness"
     assert phase5["current_readiness_summary"] == (
-        "单项目长线已经完成 gateway/runtime truth 冻结，当前正在推进 user product loop hardening 与边界收紧；"
-        "MDS no-history absorb 已关闭为默认依赖退役，后续平台化不再以 external MDS 为默认运行条件。"
+        "MAS 默认运行、进度、诊断、artifact/quality parity、workspace helpers 与 OPL handoff 都已切到 MAS-owned surfaces；"
+        "external MDS 只保留 frozen archive / historical fixture / explicit legacy diagnostic。"
     )
     assert phase5["north_star_topology"] == {
         "domain_gateway": "Med Auto Science",
-        "outer_runtime_substrate_owner": "upstream Hermes-Agent",
-        "controlled_research_backend": "MAS-owned runtime/artifact/quality surfaces plus optional MDS oracle",
-        "monorepo_status": "no_history_absorb_landed",
+        "runtime_owner": "mas_runtime_os",
+        "runtime_substrate": "mas_runtime_core",
+        "controlled_research_backend": "MAS-owned Runtime OS / Artifact OS / Quality OS",
+        "monorepo_status": "functional_monolith_completion_landed",
     }
     assert phase5["target_internal_modules"] == [
         "controller_charter",
@@ -214,17 +215,22 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "freeze_backend_deconstruction_boundary",
         "mds_no_history_absorb",
         "runtime_core_ingest",
+        "functional_monolith_completion",
+        "optional_hosted_frontend_packaging",
+        "future_upstream_source_intake_review",
     ]
     assert phase5["landing_sequence"][4]["status"] == "completed"
-    assert phase5["landing_sequence"][5]["status"] == "pending"
+    assert phase5["landing_sequence"][5]["status"] == "completed"
+    assert phase5["landing_sequence"][6]["status"] == "completed"
     assert phase5["completed_step_ids"] == [
         "freeze_gateway_runtime_truth",
         "mds_no_history_absorb",
+        "runtime_core_ingest",
+        "functional_monolith_completion",
     ]
     assert phase5["remaining_step_ids"] == [
-        "clear_multi_workspace_host_gate",
-        "freeze_backend_deconstruction_boundary",
-        "runtime_core_ingest",
+        "optional_hosted_frontend_packaging",
+        "future_upstream_source_intake_review",
     ]
     assert phase5["promotion_gates"] == [
         "phase_1_mainline_established",
@@ -236,10 +242,11 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "repo-tracked product-entry shell and family orchestration companions",
         "controller-owned runtime/progress/recovery truth",
         "CLI/MCP/controller entry surfaces that already support real work",
+        "MAS-owned Progress Portal and OPL handoff refs",
     ]
     assert phase5["not_yet"] == [
-        "runtime core ingest across repos",
         "mature hosted standalone medical frontend",
+        "future upstream source intake beyond historical fixture/provenance refs",
     ]
     assert phase5["recommended_phase_command"] == (
         "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"

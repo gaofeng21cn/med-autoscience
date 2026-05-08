@@ -321,7 +321,7 @@ def test_prepare_runtime_overlay_maintains_workspace_and_quest_local_stage_skill
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
+    quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     calls: dict[str, dict[str, object]] = {}
 
     monkeypatch.setattr(
@@ -355,9 +355,9 @@ def test_prepare_runtime_overlay_maintains_workspace_and_quest_local_stage_skill
     assert "home" not in calls["ensure"]
     assert "home" not in calls["materialize"]
     assert "home" not in calls["audit"]
-    assert calls["ensure"]["med_deepscientist_repo_root"] == profile.med_deepscientist_repo_root
-    assert calls["materialize"]["med_deepscientist_repo_root"] == profile.med_deepscientist_repo_root
-    assert calls["audit"]["med_deepscientist_repo_root"] == profile.med_deepscientist_repo_root
+    assert "med_deepscientist_repo_root" not in calls["ensure"]
+    assert "med_deepscientist_repo_root" not in calls["materialize"]
+    assert "med_deepscientist_repo_root" not in calls["audit"]
 
 
 def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path: Path) -> None:
@@ -420,7 +420,7 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 
     assert result["decision"] == "create_and_start"
-    assert created["runtime_root"] == profile.med_deepscientist_runtime_root
+    assert created["runtime_root"] == profile.managed_runtime_home
     payload = created["payload"]
     assert payload["quest_id"] == "001-risk"
     assert payload["auto_start"] is False
@@ -441,7 +441,7 @@ def test_ensure_study_runtime_creates_and_starts_new_quest(monkeypatch, tmp_path
     assert result["startup_hydration"]["status"] == "hydrated"
     assert result["startup_hydration_validation"]["status"] == "clear"
     assert resumed == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }
@@ -856,7 +856,7 @@ def test_ensure_study_runtime_auto_resumes_stopped_user_stop_auto_continuation_w
     assert result["reason"] == "quest_waiting_on_invalid_blocking"
     assert result["quest_status"] == "running"
     assert resumed["source"] == "medautosci-test"
-    assert resumed["runtime_root"] == profile.med_deepscientist_runtime_root
+    assert resumed["runtime_root"] == profile.managed_runtime_home
     assert resumed["quest_id"] == "001-risk"
 
 

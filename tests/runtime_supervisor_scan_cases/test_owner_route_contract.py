@@ -556,7 +556,7 @@ def test_supervisor_scan_routes_incomplete_completion_contract_to_completion_evi
                 "study_id": "002-risk",
                 "study_root": str(study_root),
                 "quest_id": "quest-002",
-                "quest_root": str(profile.med_deepscientist_runtime_root / "quests" / "quest-002"),
+                "quest_root": str(profile.managed_runtime_home / "quests" / "quest-002"),
                 "quest_status": "completed",
                 "decision": "blocked",
                 "reason": "study_completion_contract_not_ready",
@@ -620,7 +620,7 @@ def test_supervisor_scan_completed_truth_suppresses_stale_repair_lifecycle(
                 "study_id": "002-risk",
                 "study_root": str(study_root),
                 "quest_id": "quest-002",
-                "quest_root": str(profile.med_deepscientist_runtime_root / "quests" / "quest-002"),
+                "quest_root": str(profile.managed_runtime_home / "quests" / "quest-002"),
                 "quest_status": "completed",
                 "decision": "completed",
                 "reason": "quest_already_completed",
@@ -689,7 +689,7 @@ def test_supervisor_scan_routes_no_live_current_controller_work_unit_without_ext
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / study_id
+    quest_root = profile.managed_runtime_home / "quests" / study_id
     publication_eval = {
         "schema_version": 1,
         "eval_id": f"publication-eval::{study_id}::current",

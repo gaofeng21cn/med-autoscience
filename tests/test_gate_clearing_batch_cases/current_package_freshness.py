@@ -22,7 +22,7 @@ def test_current_authority_stale_delivery_syncs_then_closes_gate_replay(
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     submission_manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
     delivery_manifest_path = study_root / "manuscript" / "delivery_manifest.json"
@@ -158,7 +158,7 @@ def test_explicit_gate_specificity_does_not_block_actionable_stale_delivery_sync
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     submission_manifest_path = paper_root / "submission_minimal" / "submission_manifest.json"
     delivery_manifest_path = study_root / "manuscript" / "delivery_manifest.json"

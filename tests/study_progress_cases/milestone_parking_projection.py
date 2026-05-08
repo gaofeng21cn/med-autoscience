@@ -25,7 +25,7 @@ def test_study_progress_keeps_human_review_milestone_parking_out_of_runtime_reco
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     publication_eval_path = _write_publication_eval(study_root, quest_root)
     _write_json(
         study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",

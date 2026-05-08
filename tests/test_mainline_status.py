@@ -21,13 +21,16 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     ]
     assert payload["active_tranche_owner_truth"]["owner"] == "MedAutoScience"
     assert [item["role_id"] for item in payload["active_tranche_owner_truth"]["mds_retained_roles"]] == [
-        "research_backend",
-        "behavior_equivalence_oracle",
-        "upstream_intake_buffer",
+        "external_source_archive",
+        "historical_oracle_fixture",
+        "explicit_legacy_diagnostic",
     ]
     assert all(item["owner"].startswith("MAS") for item in payload["active_tranche_owner_truth"]["lanes"])
-    assert payload["ideal_state"]["runtime_topology"]["outer_runtime_substrate_owner"] == "upstream Hermes-Agent"
-    assert payload["ideal_state"]["runtime_topology"]["research_backend"] == "MAS-owned runtime/artifact/quality surfaces plus optional MDS oracle"
+    assert payload["ideal_state"]["runtime_topology"]["runtime_owner"] == "mas_runtime_os"
+    assert payload["ideal_state"]["runtime_topology"]["runtime_substrate"] == "mas_runtime_core"
+    assert payload["ideal_state"]["runtime_topology"]["research_backend"] == (
+        "MAS-owned Runtime OS / Artifact OS / Quality OS"
+    )
     assert payload["single_project_boundary"]["surface_kind"] == "single_project_boundary"
     assert payload["single_project_boundary"]["mas_owner_modules"] == [
         "controller_charter",
@@ -35,11 +38,11 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "eval_hygiene",
     ]
     assert [item["role_id"] for item in payload["single_project_boundary"]["mds_retained_roles"]] == [
-        "research_backend",
-        "behavior_equivalence_oracle",
-        "upstream_intake_buffer",
+        "external_source_archive",
+        "historical_oracle_fixture",
+        "explicit_legacy_diagnostic",
     ]
-    assert "runtime core ingest across repos" in payload["single_project_boundary"]["post_gate_only"]
+    assert "new upstream intake from future MDS/DeepScientist snapshots" in payload["single_project_boundary"]["post_gate_only"]
     assert payload["capability_owner_boundary"]["surface_kind"] == "mas_capability_owner_boundary"
     assert payload["capability_owner_boundary"]["owner"] == "MedAutoScience"
     assert [item["capability_id"] for item in payload["capability_owner_boundary"]["mas_owned_capabilities"]] == [
@@ -60,9 +63,9 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         for item in payload["capability_owner_boundary"]["mds_migration_only_roles"]
     )
     assert payload["capability_owner_boundary"]["proof_and_absorb_boundary"]["physical_absorb_status"] == (
-        "landed_no_history_default_dependency_retired"
+        "landed_no_history_functional_monolith"
     )
-    assert "behavior_equivalence_oracle" in payload["capability_owner_boundary"]["proof_and_absorb_boundary"][
+    assert "historical_oracle_fixture" in payload["capability_owner_boundary"]["proof_and_absorb_boundary"][
         "parity_proof_sources"
     ]
     assert payload["current_program_phase"]["id"] == "phase_1_mainline_established"
@@ -71,17 +74,18 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         "mas_capability_owner_boundary"
     )
     assert payload["current_program_phase"]["single_project_boundary"]["land_now"] == [
-        "MAS 单项目 owner wording and repo-tracked truth",
-        "core:status:program_mainline_boundary_alignment",
-        "user-visible wording that MDS is no longer a second long-term owner",
-        "MDS no-history physical absorb repo-level closeout and default dependency retirement",
+        "MAS functional monolith completion landed",
+        "MAS Runtime OS is the default runtime owner",
+        "MAS Progress Portal is the default visual status surface",
+        "OPL handoff consumes MAS payload refs/freshness/source refs/artifact locators only",
+        "external MDS repo, daemon, runtime root, and WebUI are no longer required for default or diagnostic operation",
     ]
     assert [item["role_id"] for item in payload["current_program_phase"]["single_project_boundary"]["mds_retained_roles"]] == [
-        "research_backend",
-        "behavior_equivalence_oracle",
-        "upstream_intake_buffer",
+        "external_source_archive",
+        "historical_oracle_fixture",
+        "explicit_legacy_diagnostic",
     ]
-    assert "runtime core ingest across repos" in payload["current_program_phase"]["single_project_boundary"]["post_gate_only"]
+    assert "new upstream intake from future MDS/DeepScientist snapshots" in payload["current_program_phase"]["single_project_boundary"]["post_gate_only"]
     assert len(payload["phase_ladder"]) == 5
     assert payload["phase_ladder"][1]["id"] == "phase_2_user_product_loop"
     assert payload["phase_ladder"][0]["usable_now"] is True
@@ -201,7 +205,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
         },
     ]
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
-    assert payload["phase3_clearance_lane"]["recommended_step_id"] == "external_runtime_contract"
+    assert payload["phase3_clearance_lane"]["recommended_step_id"] == "mas_runtime_contract"
     assert payload["phase3_clearance_lane"]["recommended_command"] == (
         "uv run python -m med_autoscience.cli doctor --profile <profile>"
     )
@@ -240,23 +244,29 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     )
     assert payload["platform_target"]["surface_kind"] == "phase5_platform_target"
     assert payload["platform_target"]["sequence_scope"] == "monorepo_landing_readiness"
-    assert payload["platform_target"]["current_step_id"] == "stabilize_user_product_loop"
+    assert payload["platform_target"]["current_step_id"] == "functional_monolith_completion"
     assert payload["platform_target"]["completed_step_ids"] == [
         "freeze_gateway_runtime_truth",
         "mds_no_history_absorb",
+        "runtime_core_ingest",
+        "functional_monolith_completion",
     ]
     assert payload["platform_target"]["landing_sequence"][0]["status"] == "completed"
     assert payload["platform_target"]["landing_sequence"][1]["status"] == "in_progress"
     assert payload["platform_target"]["landing_sequence"][4]["step_id"] == "mds_no_history_absorb"
     assert payload["platform_target"]["landing_sequence"][4]["status"] == "completed"
-    assert payload["platform_target"]["landing_sequence"][-1]["step_id"] == "runtime_core_ingest"
+    assert payload["platform_target"]["landing_sequence"][5]["step_id"] == "runtime_core_ingest"
+    assert payload["platform_target"]["landing_sequence"][5]["status"] == "completed"
+    assert payload["platform_target"]["landing_sequence"][6]["step_id"] == "functional_monolith_completion"
+    assert payload["platform_target"]["landing_sequence"][6]["status"] == "completed"
+    assert payload["platform_target"]["landing_sequence"][-1]["step_id"] == "future_upstream_source_intake_review"
     assert payload["platform_target"]["landing_sequence"][-1]["status"] == "pending"
     assert payload["platform_target"]["target_internal_modules"] == [
         "controller_charter",
         "runtime",
         "eval_hygiene",
     ]
-    assert payload["platform_target"]["north_star_topology"]["monorepo_status"] == "no_history_absorb_landed"
+    assert payload["platform_target"]["north_star_topology"]["monorepo_status"] == "functional_monolith_completion_landed"
     assert payload["platform_target"]["promotion_gates"] == [
         "phase_1_mainline_established",
         "phase_2_user_product_loop",
@@ -307,14 +317,14 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "Active Tranche Owner Truth" in markdown
     assert "Capability Owner Boundary" in markdown
     assert "MAS capability `research_entry`" in markdown
-    assert "MDS migration-only `behavior_equivalence_oracle`" in markdown
-    assert "physical absorb: landed_no_history_default_dependency_retired" in markdown
+    assert "MDS migration-only `historical_oracle_fixture`" in markdown
+    assert "physical absorb: landed_no_history_functional_monolith" in markdown
     assert "owner lane `autonomy`" in markdown
     assert "owner lane `quality`" in markdown
     assert "owner lane `single_project_owner`" in markdown
     assert "Single-Project Boundary" in markdown
-    assert "MDS retained `research_backend`" in markdown
-    assert "post-gate only: runtime core ingest across repos" in markdown
+    assert "MDS retained `external_source_archive`" in markdown
+    assert "post-gate only: new upstream intake from future MDS/DeepScientist snapshots" in markdown
     assert "Program Phases" in markdown
     assert "phase_1_mainline_established" in markdown
     assert "Phase 2 User Loop" in markdown
@@ -323,7 +333,7 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "推荐命令" in markdown
     assert "Platform Target" in markdown
     assert "Monorepo Sequence" in markdown
-    assert "stabilize_user_product_loop" in markdown
+    assert "functional_monolith_completion" in markdown
     assert "Phase 3 Clearance" in markdown
     assert "清障重点" in markdown
     assert "清障步骤 `refresh_supervision`" in markdown
@@ -369,17 +379,18 @@ def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
         "single_project_owner",
     ]
     assert current_payload["phase"]["single_project_boundary"]["land_now"] == [
-        "MAS 单项目 owner wording and repo-tracked truth",
-        "core:status:program_mainline_boundary_alignment",
-        "user-visible wording that MDS is no longer a second long-term owner",
-        "MDS no-history physical absorb repo-level closeout and default dependency retirement",
+        "MAS functional monolith completion landed",
+        "MAS Runtime OS is the default runtime owner",
+        "MAS Progress Portal is the default visual status surface",
+        "OPL handoff consumes MAS payload refs/freshness/source refs/artifact locators only",
+        "external MDS repo, daemon, runtime root, and WebUI are no longer required for default or diagnostic operation",
     ]
     assert [item["role_id"] for item in current_payload["phase"]["single_project_boundary"]["mds_retained_roles"]] == [
-        "research_backend",
-        "behavior_equivalence_oracle",
-        "upstream_intake_buffer",
+        "external_source_archive",
+        "historical_oracle_fixture",
+        "explicit_legacy_diagnostic",
     ]
-    assert "runtime core ingest across repos" in current_payload["phase"]["single_project_boundary"]["post_gate_only"]
+    assert "new upstream intake from future MDS/DeepScientist snapshots" in current_payload["phase"]["single_project_boundary"]["post_gate_only"]
     assert any(item["name"] == "mainline_status" for item in current_payload["phase"]["entry_points"])
     assert next_payload["phase"]["id"] == "phase_2_user_product_loop"
     assert any("workspace-cockpit" in item["command"] for item in next_payload["phase"]["entry_points"])
@@ -416,13 +427,13 @@ def test_render_mainline_phase_markdown_surfaces_current_tranche_boundary() -> N
     assert "Owner Truth Lanes" in markdown
     assert "Capability Owner Boundary" in markdown
     assert "MAS capability `program_mainline_truth`" in markdown
-    assert "MDS migration-only `upstream_intake_buffer`" in markdown
+    assert "MDS migration-only `explicit_legacy_diagnostic`" in markdown
     assert "owner lane `autonomy`" in markdown
     assert "owner lane `quality`" in markdown
     assert "owner lane `single_project_owner`" in markdown
-    assert "当前 tranche 收口: MAS 单项目 owner wording and repo-tracked truth" in markdown
-    assert "MDS 保留 `research_backend`" in markdown
-    assert "post-gate only: runtime core ingest across repos" in markdown
+    assert "当前 tranche 收口: MAS functional monolith completion landed" in markdown
+    assert "MDS 保留 `external_source_archive`" in markdown
+    assert "post-gate only: new upstream intake from future MDS/DeepScientist snapshots" in markdown
     assert "F4 blocker" not in markdown
 
 
@@ -443,7 +454,7 @@ def test_phase3_clearance_lane_uses_shared_builder(monkeypatch) -> None:
     payload = module._phase3_clearance_lane()
 
     assert payload["surface_kind"] == "phase3_host_clearance_lane"
-    assert captured["recommended_step_id"] == "external_runtime_contract"
+    assert captured["recommended_step_id"] == "mas_runtime_contract"
     assert len(captured["clearance_targets"]) == 3
     assert len(captured["proof_surfaces"]) == 5
 
@@ -487,5 +498,6 @@ def test_platform_target_uses_shared_builder(monkeypatch) -> None:
         "repo-tracked product-entry shell and family orchestration companions",
         "controller-owned runtime/progress/recovery truth",
         "CLI/MCP/controller entry surfaces that already support real work",
+        "MAS-owned Progress Portal and OPL handoff refs",
     ]
-    assert len(captured["landing_sequence"]) == 6
+    assert len(captured["landing_sequence"]) == 9

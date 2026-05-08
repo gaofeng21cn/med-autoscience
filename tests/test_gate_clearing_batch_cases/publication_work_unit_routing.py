@@ -220,7 +220,7 @@ def test_next_work_unit_limits_gate_clearing_batch_to_analysis_repair_without_su
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
@@ -313,7 +313,7 @@ def test_analysis_repair_refreshes_submission_minimal_when_materialization_leave
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
@@ -428,7 +428,7 @@ def test_current_controller_decision_work_unit_preempts_stale_publication_eval_s
         endpoint_type="time_to_event",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-002")
@@ -587,7 +587,7 @@ def test_gate_clearing_batch_records_display_materialization_failure_refs(
         endpoint_type="time_to_event",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     payload_path = paper_root / "multicenter_generalizability_inputs.json"
@@ -700,7 +700,7 @@ def test_submission_minimal_refresh_skips_current_package_sync_until_authority_s
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
@@ -795,7 +795,7 @@ def test_gate_clearing_batch_records_step_durations_with_monkeypatched_clock(
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
@@ -882,7 +882,7 @@ def test_submission_minimal_refresh_syncs_current_package_after_authority_settle
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")

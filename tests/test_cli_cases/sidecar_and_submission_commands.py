@@ -742,7 +742,7 @@ def test_overlay_status_command_dispatches_profile_overlay(monkeypatch, tmp_path
 
     assert exit_code == 0
     assert called["quest_root"] == Path("/Users/gaofeng/workspace/Yang/NF-PitNET")
-    assert called["med_deepscientist_repo_root"] == Path("/Users/gaofeng/workspace/med-deepscientist")
+    assert called["med_deepscientist_repo_root"] is None
     assert called["skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
     assert called["policy_id"] == "high_plasticity_medical"
     assert called["archetype_ids"] == (
@@ -834,7 +834,7 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     assert exit_code == 0
     assert calls["ensure_skill_ids"] == ("scout", "idea", "decision", "write", "finalize")
     assert calls["ensure_quest_root"] == workspace_root
-    assert calls["ensure_med_deepscientist_repo_root"] == med_deepscientist_repo_root
+    assert calls["ensure_med_deepscientist_repo_root"] is None
     assert calls["ensure_mode"] == "ensure_ready"
     assert calls["ensure_policy_id"] == "high_plasticity_medical"
     assert calls["ensure_archetype_ids"] == (
@@ -862,7 +862,7 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     assert '"studies"' not in captured.out
 
 
-def test_bootstrap_command_maintains_workspace_local_stage_skills_without_home_global_writes(
+def test_bootstrap_command_maintains_workspace_local_mas_stage_skills_without_home_global_writes(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -871,20 +871,11 @@ def test_bootstrap_command_maintains_workspace_local_stage_skills_without_home_g
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
     home = tmp_path / "home"
-    med_deepscientist_repo_root = tmp_path / "med-deepscientist"
     write_profile(
         profile_path,
         workspace_root=workspace_root,
-        med_deepscientist_repo_root=med_deepscientist_repo_root,
         hermes_agent_repo_root=tmp_path / "hermes-agent",
     )
-    for skill_id in ("scout", "write"):
-        skill_path = med_deepscientist_repo_root / "src" / "skills" / skill_id / "SKILL.md"
-        skill_path.parent.mkdir(parents=True, exist_ok=True)
-        skill_path.write_text(f"# DeepScientist {skill_id}\n", encoding="utf-8")
-    template_path = med_deepscientist_repo_root / "src" / "skills" / "write" / "templates" / "journal.md"
-    template_path.parent.mkdir(parents=True, exist_ok=True)
-    template_path.write_text("venue template\n", encoding="utf-8")
     profile_text = profile_path.read_text(encoding="utf-8").replace(
         'hermes_home_root = "~/.hermes"',
         f'hermes_home_root = "{home / ".hermes"}"',
@@ -913,13 +904,7 @@ def test_bootstrap_command_maintains_workspace_local_stage_skills_without_home_g
         assert (
             workspace_root / ".codex" / "skills" / f"medical-research-{skill_id}" / "SKILL.md"
         ).exists()
-    for skill_id in ("scout", "write"):
-        assert (
-            workspace_root / ".codex" / "skills" / f"deepscientist-{skill_id}" / "SKILL.md"
-        ).read_text(encoding="utf-8") == f"# DeepScientist {skill_id}\n"
-    assert (
-        workspace_root / ".codex" / "skills" / "deepscientist-write" / "templates" / "journal.md"
-    ).read_text(encoding="utf-8") == "venue template\n"
+    assert not any((workspace_root / ".codex" / "skills").glob("deepscientist-*"))
     assert not (home / ".codex" / "skills").exists()
 
 

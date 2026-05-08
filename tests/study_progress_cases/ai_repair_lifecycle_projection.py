@@ -20,7 +20,7 @@ def test_study_progress_projects_ai_repair_lifecycle_and_mcp_compact_projection(
     mcp_projection = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json",
         {
@@ -87,7 +87,7 @@ def test_study_progress_suppresses_stale_repair_lifecycle_after_work_unit_eviden
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json",
         {
@@ -154,7 +154,7 @@ def test_study_progress_builds_readonly_ai_repair_lifecycle_from_ready_repair_ac
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json",
         {

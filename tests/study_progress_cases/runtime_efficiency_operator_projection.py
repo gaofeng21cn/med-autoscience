@@ -26,7 +26,7 @@ def test_study_progress_operator_view_surfaces_noop_suppression_and_runtime_effi
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     telemetry_path, evidence_index_path = _write_runtime_efficiency_fixture(quest_root)
     gate_batch_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
@@ -160,7 +160,7 @@ def test_study_progress_projects_autonomy_slo_ai_doctor_state(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     _write_json(
         study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
@@ -228,7 +228,7 @@ def test_study_progress_materializes_autonomy_slo_when_surface_is_missing(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     slo_path = study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json"
 
@@ -292,7 +292,7 @@ def test_study_progress_projects_completed_parked_auto_continue_without_live_run
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     run_id = "run-parked-001"
     run_root = quest_root / ".ds" / "runs" / run_id
     _write_json(
@@ -380,7 +380,7 @@ def test_study_progress_prioritizes_no_live_recovery_over_closeout_continuation(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     _write_json(
         study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
@@ -542,7 +542,7 @@ def test_study_progress_freshness_uses_gate_clearing_batch_closure_as_progress_s
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     eval_id = "publication-eval::001-risk::quest-001::2026-04-10T09:00:00+00:00"
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
@@ -655,7 +655,7 @@ def test_study_progress_freshness_separates_supervisor_tick_from_artifact_delta(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     _write_publication_eval(study_root, quest_root)
     _write_json(
         study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
@@ -746,7 +746,7 @@ def test_study_progress_treats_live_worker_with_stale_artifact_delta_as_activity
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     _write_publication_eval(
         study_root,
         quest_root,
@@ -879,7 +879,7 @@ def test_study_progress_gives_new_live_run_grace_before_activity_timeout(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     _write_publication_eval(study_root, quest_root)
     _write_json(
         study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",

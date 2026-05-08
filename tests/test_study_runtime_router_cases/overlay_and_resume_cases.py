@@ -634,7 +634,7 @@ def test_ensure_study_runtime_auto_resumes_controller_owned_stopped_completion_r
     assert result["reason"] == "quest_completion_requested_before_publication_gate_clear"
     assert result["quest_status"] == "active"
     assert resumed == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }

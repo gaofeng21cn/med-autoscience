@@ -64,7 +64,7 @@ def _assert_executor_default_surface(*, module, payload, profile, profile_ref) -
     assert "hermes_native_requires_full_agent_loop" not in payload["executor_defaults"]
     assert payload["executor_defaults"]["current_backend_chain"] == [
         "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
-        "optional med_deepscientist oracle/intake/audit reference",
+        "historical med_deepscientist fixture/provenance refs only",
     ]
     assert payload["executor_defaults"]["optional_executor_proofs"] == [
         {
@@ -149,14 +149,14 @@ def _assert_task_lifecycle_surface(*, module, payload, profile, profile_ref) -> 
     assert payload["capability_owner_boundary"]["surface_kind"] == "mas_capability_owner_boundary"
     assert payload["capability_owner_boundary"]["owner"] == "MedAutoScience"
     assert payload["capability_owner_boundary"]["proof_and_absorb_boundary"]["physical_absorb_status"] == (
-        "landed_no_history_default_dependency_retired"
+        "landed_no_history_functional_monolith"
     )
     assert [item["role_id"] for item in payload["single_project_boundary"]["mds_retained_roles"]] == [
-        "research_backend",
-        "behavior_equivalence_oracle",
-        "upstream_intake_buffer",
+        "external_source_archive",
+        "historical_oracle_fixture",
+        "explicit_legacy_diagnostic",
     ]
-    assert "runtime core ingest across repos" in payload["single_project_boundary"]["post_gate_only"]
+    assert "new upstream intake from future MDS/DeepScientist snapshots" in payload["single_project_boundary"]["post_gate_only"]
     assert payload["product_entry_status"]["summary"] == "继续收口 blocker 并把用户入口壳压实。"
     assert payload["product_entry_status"]["remaining_gaps_count"] == 1
 
@@ -234,7 +234,7 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
     )
     assert payload["skill_catalog"]["skills"][0]["domain_projection"]["runtime_continuity"] == {
         "surface_kind": "skill_runtime_continuity",
-        "runtime_owner": "upstream_hermes_agent",
+        "runtime_owner": "mas_runtime_os",
         "domain_owner": "med-autoscience",
         "executor_owner": "controlled_research_backend",
         "session_locator_field": "study_id",
@@ -340,10 +340,10 @@ def _assert_readiness_and_phase2_loop(*, module, payload, profile, profile_ref) 
     assert "Single-Project Boundary" in markdown
     assert "Capability Owner Boundary" in markdown
     assert "MAS capability `publication_quality_gate`" in markdown
-    assert "MDS migration-only `research_backend`" in markdown
-    assert "physical absorb: landed_no_history_default_dependency_retired" in markdown
-    assert "MDS 保留 `research_backend`" in markdown
-    assert "post-gate only: runtime core ingest across repos" in markdown
+    assert "MDS migration-only `external_source_archive`" in markdown
+    assert "physical absorb: landed_no_history_functional_monolith" in markdown
+    assert "MDS 保留 `external_source_archive`" in markdown
+    assert "post-gate only: new upstream intake from future MDS/DeepScientist snapshots" in markdown
     assert payload["product_entry_readiness"] == {
         "surface_kind": "product_entry_readiness",
         "verdict": "runtime_ready_not_standalone_product",

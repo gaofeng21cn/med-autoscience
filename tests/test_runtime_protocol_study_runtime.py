@@ -16,10 +16,10 @@ def make_profile(tmp_path: Path):
     return profiles.WorkspaceProfile(
         name="pituitary",
         workspace_root=workspace_root,
-        runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests",
+        runtime_root=workspace_root / "runtime" / "quests",
         studies_root=workspace_root / "studies",
         portfolio_root=workspace_root / "portfolio",
-        med_deepscientist_runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime",
+        med_deepscientist_runtime_root=workspace_root / "legacy" / "med-deepscientist" / "runtime",
         med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",
@@ -69,10 +69,10 @@ def test_resolve_study_runtime_paths_derives_binding_launch_and_runtime_roots(tm
         quest_id="quest-001",
     )
 
-    assert result["runtime_root"] == profile.workspace_root / "ops" / "med-deepscientist" / "runtime"
-    assert result["quest_root"] == profile.workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+    assert result["runtime_root"] == profile.workspace_root / "runtime"
+    assert result["quest_root"] == profile.workspace_root / "runtime" / "quests" / "quest-001"
     assert result["runtime_binding_path"] == study_root / "runtime_binding.yaml"
-    assert result["startup_payload_root"] == profile.workspace_root / "ops" / "med-deepscientist" / "startup_payloads" / "001-risk"
+    assert result["startup_payload_root"] == profile.workspace_root / "runtime" / "startup_payloads" / "001-risk"
     assert result["launch_report_path"] == study_root / "artifacts" / "runtime" / "last_launch_report.json"
 
 
@@ -88,16 +88,16 @@ def test_resolve_study_runtime_context_derives_typed_paths(tmp_path: Path) -> No
         quest_id="quest-001",
     )
 
-    assert context.runtime_root == profile.workspace_root / "ops" / "med-deepscientist" / "runtime"
-    assert context.quest_root == profile.workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+    assert context.runtime_root == profile.workspace_root / "runtime"
+    assert context.quest_root == profile.workspace_root / "runtime" / "quests" / "quest-001"
     assert context.runtime_binding_path == study_root / "runtime_binding.yaml"
-    assert context.startup_payload_root == profile.workspace_root / "ops" / "med-deepscientist" / "startup_payloads" / "001-risk"
+    assert context.startup_payload_root == profile.workspace_root / "runtime" / "startup_payloads" / "001-risk"
     assert context.launch_report_path == study_root / "artifacts" / "runtime" / "last_launch_report.json"
 
 
 def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
-    runtime_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"
+    runtime_root = tmp_path / "workspace" / "runtime"
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     binding_path = study_root / "runtime_binding.yaml"
 
@@ -128,7 +128,10 @@ def test_write_runtime_binding_writes_protocol_schema(tmp_path: Path) -> None:
         "quest_id": "quest-001",
         "runtime_root": str(runtime_root / "quests"),
         "runtime_quests_root": str(runtime_root / "quests"),
-        "med_deepscientist_runtime_root": str(runtime_root),
+        "legacy_diagnostic": {
+            "med_deepscientist_runtime_root": str(runtime_root),
+            "read_only": True,
+        },
         "last_action": "resume",
         "last_action_at": "2026-04-02T12:00:00+00:00",
         "last_source": "test-source",
@@ -161,7 +164,11 @@ def test_write_runtime_binding_supports_explicit_hermes_backend_metadata(tmp_pat
     assert payload["runtime_engine_id"] == "hermes"
     assert payload["runtime_home"] == str(runtime_root)
     assert payload["runtime_quests_root"] == str(runtime_root / "quests")
-    assert payload["med_deepscientist_runtime_root"] == str(runtime_root)
+    assert "med_deepscientist_runtime_root" not in payload
+    assert payload["legacy_diagnostic"] == {
+        "med_deepscientist_runtime_root": str(runtime_root),
+        "read_only": True,
+    }
 
 
 def test_write_runtime_binding_records_controlled_research_backend_metadata_for_hermes(tmp_path: Path) -> None:

@@ -3,20 +3,20 @@
 ## 文档目的
 
 这份文档用于统一内部口径：`Med Auto Science` 不是一个独立新造的公共基础框架，而是运行在共享 `Unified Harness Engineering Substrate` 上的医学 `Research Ops` `Domain Harness OS`。
-当前状态说明（2026-04-25）：本文保留为内部 harness/substrate 边界参考。当前公开第一身份是独立 medical research domain agent 与单一 MAS app skill；`Domain Harness OS` 词汇只用于内部执行、治理与兼容边界。
+当前状态说明（2026-05-08）：本文保留为内部 harness/substrate 边界参考。当前公开第一身份是独立 medical research domain agent 与单一 MAS app skill；`Domain Harness OS` 词汇只用于内部执行、治理与兼容边界。文中涉及 MDS 的旧执行链路均按 historical / migration reference 理解，不能作为当前默认 runtime dependency。
 
 ## 1) 在 Unified Harness Engineering Substrate 中的位置
 
 可按下面这条链路理解：
 
-`User / Agent -> MAS app skill / MedAutoScience domain-agent entry -> 受控 MedDeepScientist backend -> runtime / eval / delivery surfaces`
+`User / Agent -> MAS app skill / MedAutoScience domain-agent entry -> MAS Runtime OS / Artifact OS / Quality OS -> runtime / eval / delivery surfaces`
 
 其中：
 
 - `Unified Harness Engineering Substrate` 提供跨域共享的工程约束与运行基础
 - `Med Auto Science` 负责医学领域合同、研究推进与交付治理
-- `Hermes` 负责当前默认 outer runtime substrate owner 的 controller-facing contract
-- `MedDeepScientist` 负责被调用的 controlled research backend execution surface，不承担 `Domain Harness OS` 的全部职责
+- `MAS Runtime OS` 负责当前默认 runtime owner / substrate 的 controller-facing contract
+- `MedDeepScientist` 只保留 frozen source archive、historical fixture 和 explicit legacy diagnostic / provenance reference，不承担默认执行面
 
 ## 2) 继承的统一约束（来自共享底座）
 

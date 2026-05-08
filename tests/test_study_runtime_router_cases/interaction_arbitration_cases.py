@@ -63,7 +63,7 @@ def test_ensure_study_runtime_archives_invalid_partial_quest_root_before_create(
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="test")
 
     archived_root = (
-        profile.med_deepscientist_runtime_root
+        profile.managed_runtime_home
         / "recovery"
         / "invalid_partial_quest_roots"
         / "001-risk-20260402T010203Z"
@@ -929,5 +929,5 @@ def test_ensure_study_runtime_auto_resumes_controller_stopped_submission_hardeni
     assert result["reason"] == "quest_waiting_on_invalid_blocking"
     assert result["quest_status"] == "running"
     assert resumed["source"] == "medautosci-test"
-    assert resumed["runtime_root"] == profile.med_deepscientist_runtime_root
+    assert resumed["runtime_root"] == profile.managed_runtime_home
     assert resumed["quest_id"] == "001-risk"

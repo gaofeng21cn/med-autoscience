@@ -181,7 +181,7 @@ def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_d
                 "surface_kind": "single_project_boundary",
                 "summary": "summary",
                 "mas_owner_modules": ["controller_charter"],
-                "mds_retained_roles": [{"role_id": "research_backend", "title": "Research backend", "summary": "summary"}],
+                "mds_retained_roles": [{"role_id": "external_source_archive", "title": "Research backend", "summary": "summary"}],
                 "post_gate_only": ["physical migration"],
                 "not_now": ["not now"],
             },
@@ -199,14 +199,14 @@ def test_workspace_cockpit_and_product_entry_surface_portable_supervisor_queue_d
                 ],
                 "mds_migration_only_roles": [
                     {
-                        "role_id": "research_backend",
+                        "role_id": "external_source_archive",
                         "migration_only": True,
                         "summary": "Research backend is optional audit/oracle/intake reference only.",
                     }
                 ],
                 "proof_and_absorb_boundary": {
                     "parity_status": "landed_for_retained_mds_capabilities",
-                    "physical_absorb_status": "landed_no_history_default_dependency_retired",
+                    "physical_absorb_status": "landed_no_history_functional_monolith",
                     "parity_proof_sources": ["focused tests"],
                     "physical_absorb_gate": ["source provenance recorded"],
                 },

@@ -170,7 +170,7 @@ def test_supervisor_scan_parks_submission_milestone_instead_of_platform_repair(
         BACKEND_ID = "hermes"
 
         def stop_quest(self, *, runtime_root: Path | None = None, quest_id: str, source: str, **_: object) -> dict[str, object]:
-            assert runtime_root == profile.med_deepscientist_runtime_root
+            assert runtime_root == profile.managed_runtime_home
             runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
             runtime_state.update(
                 {

@@ -70,8 +70,9 @@
     "surface": "mds_remaining_surface_inventory",
     "schema_version": 1,
     "owner": "MedAutoScience",
-    "mds_final_role": "external_source_archive_or_historical_oracle_only",
+    "mds_final_role": "frozen_source_archive_or_historical_fixture_only",
     "default_operation_requires_external_mds": false,
+    "default_diagnostic_requires_external_mds": false,
     "upstream_history_import_allowed": false,
     "allowed_classifications": [
       "mas_owned",

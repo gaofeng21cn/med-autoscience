@@ -38,7 +38,6 @@ def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]
         raise ValueError(f"unsupported medical_overlay_scope: {profile.medical_overlay_scope}")
     return {
         "quest_root": profile.workspace_root if profile.medical_overlay_scope == "workspace" else None,
-        "med_deepscientist_repo_root": profile.med_deepscientist_repo_root,
         "skill_ids": profile.medical_overlay_skills,
         "policy_id": profile.research_route_bias_policy,
         "archetype_ids": profile.preferred_study_archetypes,
@@ -51,9 +50,7 @@ def overlay_request_from_profile(profile: WorkspaceProfile) -> dict[str, object]
 def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
     workspace_contracts = inspect_workspace_contracts(profile)
     ai_first_drift_audit = dict(
-        run_ai_first_drift_audit(
-            med_deepscientist_repo_root=profile.med_deepscientist_repo_root,
-        )
+        run_ai_first_drift_audit()
     )
     overlay_status = (
         describe_medical_overlay(**overlay_request_from_profile(profile))

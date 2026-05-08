@@ -41,7 +41,7 @@ def test_study_progress_does_not_project_abnormal_stopped_blocked_bundle_as_pack
         ),
         encoding="utf-8",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     publication_eval_path = _write_publication_eval(
         study_root,
         quest_root,

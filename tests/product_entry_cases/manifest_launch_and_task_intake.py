@@ -720,7 +720,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     )
     assert payload["return_surface_contract"]["capability_owner_boundary"]["proof_and_absorb_boundary"][
         "physical_absorb_status"
-    ] == "landed_no_history_default_dependency_retired"
+    ] == "landed_no_history_functional_monolith"
     assert payload["return_surface_contract"]["study_progress_projection_contract"] == {
         "surface_kind": "study_progress_projection_contract",
         "command": (
@@ -761,10 +761,10 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     assert payload["return_surface_contract"]["research_runtime_control_projection_contract"] == {
         "surface_kind": "research_runtime_control_projection_contract",
         "study_session_owner": {
-            "runtime_owner": "upstream_hermes_agent",
-            "study_owner": "med-autoscience",
-            "executor_owner": "controlled_research_backend",
-        },
+                "runtime_owner": "mas_runtime_os",
+                "study_owner": "med-autoscience",
+                "executor_owner": "controlled_research_backend",
+            },
         "session_lineage_surface": {
             "surface_kind": "study_progress",
             "field_path": "family_checkpoint_lineage",

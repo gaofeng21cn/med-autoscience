@@ -330,7 +330,7 @@ def test_ensure_study_runtime_explicitly_relaunches_stopped_quest(monkeypatch, t
     assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
     assert result["quest_status"] == "active"
     assert resumed == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }
@@ -492,7 +492,7 @@ def test_ensure_study_runtime_auto_resumes_stopped_quest_after_reopened_task_int
     assert result["reason"] == "quest_waiting_on_invalid_blocking"
     assert result["quest_status"] == "active"
     assert resumed == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }
@@ -603,7 +603,7 @@ def test_ensure_study_runtime_auto_resumes_controller_parked_quest_after_review_
     assert result["reason"] == "quest_waiting_on_invalid_blocking"
     assert result["quest_status"] == "active"
     assert resumed == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }

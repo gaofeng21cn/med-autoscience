@@ -22,10 +22,10 @@ def render_medautoscience_config(*, workspace_root: Path, profile_relpath: Path)
     )
 
 
-def render_med_deepscientist_config() -> str:
+def render_mas_runtime_bridge_config() -> str:
     return (
-        "# Set the absolute path to the local med-deepscientist launcher binary.\n"
-        'MED_DEEPSCIENTIST_LAUNCHER="/ABS/PATH/TO/ds"\n'
+        "# MAS runtime bridge config.\n"
+        "# This file intentionally has no external MDS launcher setting; default runtime operations use MAS surfaces.\n"
     )
 
 
@@ -46,14 +46,18 @@ def render_medautoscience_readme(*, profile_relpath: Path) -> str:
     )
 
 
-def render_med_deepscientist_readme() -> str:
+def render_mas_runtime_bridge_readme() -> str:
     return (
         "# MAS Runtime Bridge\n\n"
-        "这个目录保留当前 workspace 的受控研究后端薄入口脚本。\n\n"
+        "这个目录保留当前 workspace 的 MAS-native 运维薄入口脚本。\n\n"
         "它是 MAS-first runtime 运维面，不是研究入口。\n\n"
         "请遵守下面的边界：\n\n"
         "- 研究 quest 的创建、恢复、门禁判断统一走 `MedAutoScience`。\n"
         "- 不要从这里直接发起研究，不要把 `start-web`、`status`、`doctor`、`stop` 当成研究入口。\n"
         "- 需要进入 study 时，使用 `ops/medautoscience/bin/enter-study`、`ops/medautoscience/bin/bootstrap`、`ensure-study-runtime` 等受管入口。\n"
-        "- 如果需要查看或维护 runtime，本目录下脚本只用于运维审计，不承担医学研究治理责任。\n"
+        "- 如果需要查看或维护 runtime，本目录下脚本只调用 MAS CLI / read-model / controlled pause surface，不调用外部 MDS launcher、daemon 或 WebUI。\n"
     )
+
+
+render_med_deepscientist_config = render_mas_runtime_bridge_config
+render_med_deepscientist_readme = render_mas_runtime_bridge_readme

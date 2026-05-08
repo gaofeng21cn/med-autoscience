@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .shared_base import CONTROLLED_BACKEND_EXECUTOR_OWNER, TARGET_DOMAIN_ID
+from .shared_base import (
+    CONTROLLED_BACKEND_EXECUTOR_OWNER,
+    MAS_RUNTIME_OWNER,
+    TARGET_DOMAIN_ID,
+)
 
 
 def _build_research_runtime_control_projection(
@@ -15,7 +19,7 @@ def _build_research_runtime_control_projection(
     return {
         "surface_kind": surface_kind,
         "study_session_owner": {
-            "runtime_owner": "upstream_hermes_agent",
+            "runtime_owner": MAS_RUNTIME_OWNER,
             "study_owner": TARGET_DOMAIN_ID,
             "executor_owner": CONTROLLED_BACKEND_EXECUTOR_OWNER,
         },

@@ -23,7 +23,7 @@ def test_gate_clearing_batch_treats_explicit_gate_specificity_as_platform_termin
         manuscript_family="observational_study",
     )
     quest_id = "quest-004"
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / quest_id
+    quest_root = profile.managed_runtime_home / "quests" / quest_id
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
@@ -112,7 +112,7 @@ def test_gate_clearing_batch_does_not_reuse_stale_explicit_analysis_when_current
         manuscript_family="observational_study",
     )
     quest_id = "quest-004"
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / quest_id
+    quest_root = profile.managed_runtime_home / "quests" / quest_id
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     gate_report = {

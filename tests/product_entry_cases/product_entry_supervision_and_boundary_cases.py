@@ -123,7 +123,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
         "runtime_root_exists",
         "studies_root_exists",
         "portfolio_root_exists",
-        "research_backend_runtime_ready",
+        "mas_runtime_core_ready",
         "medical_overlay_ready",
         "external_runtime_contract_ready",
         "workspace_supervision_contract_ready",
@@ -158,17 +158,17 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
     assert payload["product_entry_guardrails"]["guardrail_classes"][4]["guardrail_id"] == "quality_floor_blocker"
     assert payload["product_entry_guardrails"]["recovery_loop"][1]["step_id"] == "refresh_supervision"
     assert payload["phase3_clearance_lane"]["surface_kind"] == "phase3_host_clearance_lane"
-    assert payload["phase3_clearance_lane"]["recommended_step_id"] == "external_runtime_contract"
+    assert payload["phase3_clearance_lane"]["recommended_step_id"] == "mas_runtime_contract"
     assert payload["phase3_clearance_lane"]["clearance_targets"][1]["target_id"] == "supervisor_service"
     assert payload["phase3_clearance_lane"]["clearance_loop"][2]["step_id"] == "supervisor_service"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert payload["phase4_backend_deconstruction"]["current_backend_chain"] == [
         "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
-        "optional med_deepscientist oracle/intake/audit reference",
+        "historical med_deepscientist fixture/provenance refs only",
     ]
     assert payload["phase5_platform_target"]["surface_kind"] == "phase5_platform_target"
-    assert payload["phase5_platform_target"]["current_step_id"] == "stabilize_user_product_loop"
-    assert payload["phase5_platform_target"]["north_star_topology"]["monorepo_status"] == "no_history_absorb_landed"
+    assert payload["phase5_platform_target"]["current_step_id"] == "functional_monolith_completion"
+    assert payload["phase5_platform_target"]["north_star_topology"]["monorepo_status"] == "functional_monolith_completion_landed"
     assert payload["single_project_boundary"]["surface_kind"] == "single_project_boundary"
     assert list(payload["single_project_boundary"]["mas_owner_modules"]) == [
         "controller_charter",
@@ -404,8 +404,8 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
     assert "Single-Project Boundary" in markdown
     assert "Capability Owner Boundary" in markdown
     assert "MAS capability `progress_truth_projection`" in markdown
-    assert "MDS migration-only `upstream_intake_buffer`" in markdown
-    assert "MDS 保留 `research_backend`" in markdown
+    assert "MDS migration-only `explicit_legacy_diagnostic`" in markdown
+    assert "MDS 保留 `external_source_archive`" in markdown
     assert "Single Path" in markdown
     assert "Workspace Preview" in markdown
 
@@ -419,7 +419,7 @@ def test_validate_single_project_boundary_fails_closed_on_missing_roles() -> Non
                 "summary": "summary",
                 "mas_owner_modules": ["controller_charter"],
                 "mds_retained_roles": [],
-                "post_gate_only": ["runtime core ingest across repos"],
+                "post_gate_only": ["new upstream intake from future MDS/DeepScientist snapshots"],
                 "not_now": ["treating MedDeepScientist as a second long-term owner"],
             },
             context="test.single_project_boundary",
@@ -436,12 +436,12 @@ def test_validate_single_project_boundary_fails_closed_on_missing_not_now() -> N
                 "mas_owner_modules": ["controller_charter"],
                 "mds_retained_roles": [
                     {
-                        "role_id": "research_backend",
+                        "role_id": "external_source_archive",
                         "title": "Controlled research backend",
                         "summary": "summary",
                     }
                 ],
-                "post_gate_only": ["runtime core ingest across repos"],
+                "post_gate_only": ["new upstream intake from future MDS/DeepScientist snapshots"],
                 "not_now": [],
             },
             context="test.single_project_boundary",
@@ -466,7 +466,7 @@ def test_validate_capability_owner_boundary_rejects_pre_absorb_status() -> None:
                 ],
                 "mds_migration_only_roles": [
                     {
-                        "role_id": "behavior_equivalence_oracle",
+                        "role_id": "historical_oracle_fixture",
                         "migration_only": True,
                         "summary": "optional oracle only",
                     }
@@ -474,7 +474,7 @@ def test_validate_capability_owner_boundary_rejects_pre_absorb_status() -> None:
                 "proof_and_absorb_boundary": {
                     "surface_kind": "proof_and_absorb_boundary",
                     "parity_status": "required_until_mas_contract_parity",
-                    "parity_proof_sources": ["behavior_equivalence_oracle"],
+                    "parity_proof_sources": ["historical_oracle_fixture"],
                     "physical_absorb_status": "blocked_post_gate",
                     "physical_absorb_gate": ["external runtime gate"],
                 },

@@ -16,7 +16,7 @@ def test_build_runtime_watch_outer_loop_tick_request_ignores_stale_task_intake_a
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
@@ -172,7 +172,7 @@ def test_build_runtime_watch_outer_loop_tick_request_autoparks_without_runtime_e
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
@@ -320,7 +320,7 @@ def test_build_runtime_watch_outer_loop_tick_request_routes_active_write_task_in
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
@@ -496,7 +496,7 @@ def test_refresh_parked_submission_milestone_controller_decision_writes_parked_f
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
@@ -620,7 +620,7 @@ def test_build_runtime_watch_outer_loop_tick_request_skips_autonomous_dispatch_f
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
@@ -765,7 +765,7 @@ def test_build_runtime_watch_outer_loop_tick_request_prefers_quality_review_loop
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
@@ -882,7 +882,7 @@ def test_build_runtime_watch_outer_loop_tick_request_handles_gate_clearing_batch
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_root = helpers.write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     _write_charter(study_root)
     _write_publication_eval(study_root, quest_root)
@@ -920,7 +920,7 @@ def test_study_outer_loop_tick_dispatches_pause_runtime_action(monkeypatch, tmp_
         journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     charter_ref = _write_charter(study_root)
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
@@ -965,7 +965,7 @@ def test_study_outer_loop_tick_dispatches_pause_runtime_action(monkeypatch, tmp_
     )
 
     assert seen["pause_kwargs"] == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "quest-001",
         "source": "test-source",
     }

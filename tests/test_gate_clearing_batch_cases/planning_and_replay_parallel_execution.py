@@ -18,7 +18,7 @@ def test_run_gate_clearing_batch_executes_parallel_units_then_replays_gate(monke
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-001" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-001")
@@ -120,7 +120,7 @@ def test_run_gate_clearing_batch_waits_for_live_path_repair_before_display_refre
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-001" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_blocked_publication_eval(study_root, quest_id="quest-001")

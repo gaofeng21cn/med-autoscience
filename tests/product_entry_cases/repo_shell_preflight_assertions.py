@@ -61,11 +61,11 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     ),
                 },
                 {
-                    "check_id": "research_backend_runtime_ready",
-                    "title": "Research Backend Runtime Ready",
+                    "check_id": "mas_runtime_core_ready",
+                    "title": "MAS Runtime Core Ready",
                     "status": "pass",
                     "blocking": True,
-                    "summary": "受控 research backend runtime 已就位。",
+                    "summary": "MAS runtime core contract 已就位。",
                     "command": (
                         "uv run python -m med_autoscience.cli doctor --profile "
                         + str(profile_ref.resolve())

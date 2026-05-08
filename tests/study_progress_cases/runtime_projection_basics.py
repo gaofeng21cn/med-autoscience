@@ -135,7 +135,7 @@ def test_study_progress_surfaces_evidence_packet_and_gate_cache_without_telemetr
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     evidence_index_path = quest_root / ".ds" / "evidence_packets" / "run-live" / "index.json"
     gate_cache_path = quest_root / ".ds" / "gate_cache" / "paper_contract_health.json"
     _write_publication_eval(study_root, quest_root)
@@ -218,7 +218,7 @@ def test_study_progress_builds_physician_friendly_projection(monkeypatch, tmp_pa
         journal_shortlist=["BMC Medicine"],
         minimum_sci_ready_evidence_package=["external_validation"],
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     _write_study_charter_and_controller_summary(study_root)
     publication_eval_path = _write_publication_eval(study_root, quest_root)
@@ -422,7 +422,7 @@ def test_study_progress_skips_eval_hygiene_materialization_when_runtime_escalati
         journal_shortlist=["BMC Medicine"],
         minimum_sci_ready_evidence_package=["external_validation"],
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
     runtime_escalation_path = quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
 
@@ -501,7 +501,7 @@ def test_render_study_progress_markdown_uses_physician_friendly_sections(monkeyp
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_study_charter_and_controller_summary(study_root)
     _write_publication_eval(study_root, quest_root)
     _write_controller_decision(
@@ -638,7 +638,7 @@ def test_study_progress_projects_stale_progress_signal_for_active_runtime(monkey
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     _write_publication_eval(study_root, quest_root)
     _write_runtime_watch(quest_root)
@@ -733,7 +733,7 @@ def test_study_progress_prioritizes_runtime_supervision_alerts_over_paper_stage_
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     _write_runtime_watch(quest_root)
     runtime_supervision_path = _write_runtime_supervision(study_root, quest_root)
@@ -928,7 +928,7 @@ def test_study_progress_autonomy_contract_projects_restore_point_from_checkpoint
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
         module.study_runtime_router,

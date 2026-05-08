@@ -7,15 +7,15 @@ def _assert_manifest_runtime_identity(*, module, payload, profile, profile_ref) 
     assert payload["target_domain_id"] == "med-autoscience"
     assert payload["formal_entry"]["default"] == "CLI"
     assert payload["formal_entry"]["supported_protocols"] == ["MCP"]
-    assert payload["runtime"]["runtime_owner"] == "upstream_hermes_agent"
+    assert payload["runtime"]["runtime_owner"] == "mas_runtime_os"
 
 def _assert_managed_runtime_contract(*, module, payload, profile, profile_ref) -> None:
     assert payload["runtime"]["domain_owner"] == "med-autoscience"
     assert payload["runtime"]["executor_owner"] == "controlled_research_backend"
-    assert payload["runtime"]["runtime_substrate"] == "external_hermes_agent_target"
+    assert payload["runtime"]["runtime_substrate"] == "mas_runtime_core"
     assert payload["managed_runtime_contract"] == {
         "shared_contract_ref": "contracts/opl-gateway/managed-runtime-three-layer-contract.json",
-        "runtime_owner": "upstream_hermes_agent",
+        "runtime_owner": "mas_runtime_os",
         "domain_owner": "med-autoscience",
         "executor_owner": "controlled_research_backend",
         "supervision_status_surface": {
@@ -37,12 +37,12 @@ def _assert_managed_runtime_contract(*, module, payload, profile, profile_ref) -
         ],
     }
     assert payload["runtime_inventory"]["surface_kind"] == "runtime_inventory"
-    assert payload["runtime_inventory"]["runtime_owner"] == "upstream_hermes_agent"
+    assert payload["runtime_inventory"]["runtime_owner"] == "mas_runtime_os"
     assert payload["runtime_inventory"]["domain_owner"] == "med-autoscience"
 
 def _assert_runtime_inventory(*, module, payload, profile, profile_ref) -> None:
     assert payload["runtime_inventory"]["executor_owner"] == "controlled_research_backend"
-    assert payload["runtime_inventory"]["substrate"] == "external_hermes_agent_target"
+    assert payload["runtime_inventory"]["substrate"] == "mas_runtime_core"
     assert payload["runtime_inventory"]["availability"] == "ready"
     assert payload["runtime_inventory"]["health_status"] == "healthy"
     assert payload["runtime_inventory"]["status_surface"]["ref_kind"] == "workspace_locator"
@@ -71,7 +71,7 @@ def _assert_artifact_inventory_summary(*, module, payload, profile, profile_ref)
     assert payload["progress_projection"]["domain_projection"]["research_runtime_control_projection"] == {
         "surface_kind": "research_runtime_control_projection",
         "study_session_owner": {
-            "runtime_owner": "upstream_hermes_agent",
+            "runtime_owner": "mas_runtime_os",
             "study_owner": "med-autoscience",
             "executor_owner": "controlled_research_backend",
         },

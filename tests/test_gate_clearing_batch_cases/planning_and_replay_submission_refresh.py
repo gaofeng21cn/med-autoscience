@@ -21,7 +21,7 @@ def test_run_gate_clearing_batch_executes_bundle_stage_submission_refresh_then_r
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
@@ -103,7 +103,7 @@ def test_run_gate_clearing_batch_refreshes_stale_submission_minimal_authority_wi
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
@@ -168,7 +168,7 @@ def test_run_gate_clearing_batch_replays_gate_when_stale_authority_signature_is_
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
@@ -270,7 +270,7 @@ def test_run_gate_clearing_batch_executes_bundle_stage_workspace_refresh_before_
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     (paper_root / "build").mkdir(parents=True, exist_ok=True)
     (paper_root / "build" / "generate_display_exports.py").write_text("print('ok')\n", encoding="utf-8")
@@ -361,7 +361,7 @@ def test_run_gate_clearing_batch_syncs_stale_submission_delivery_after_bundle_re
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-004")
@@ -451,7 +451,7 @@ def test_run_gate_clearing_batch_reuses_embedded_submission_delivery_sync_after_
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")

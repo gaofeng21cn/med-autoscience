@@ -91,10 +91,10 @@ def build_product_entry(
             "study_root": str(resolved_study_root),
         },
         "runtime_session_contract": {
-            "runtime_owner": "upstream_hermes_agent",
+            "runtime_owner": MAS_RUNTIME_OWNER,
             "domain_owner": TARGET_DOMAIN_ID,
             "executor_owner": CONTROLLED_BACKEND_EXECUTOR_OWNER,
-            "runtime_substrate": "external_hermes_agent_target",
+            "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
             "managed_entry_mode": managed_entry_mode,
             "managed_runtime_backend_id": runtime_contract.get("managed_runtime_backend_id") or profile.managed_runtime_backend_id,
             "runtime_root": runtime_contract.get("runtime_root") or str(profile.runtime_root),

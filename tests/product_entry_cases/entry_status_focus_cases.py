@@ -67,7 +67,7 @@ def test_build_product_entry_status_uses_operator_status_card_for_now_summary(mo
                     "entry_mode": "direct",
                 }
             },
-            "runtime": {"runtime_owner": "upstream_hermes_agent"},
+            "runtime": {"runtime_owner": "mas_runtime_os"},
             "product_entry_status": {"summary": "test status"},
             "product_entry_surface": {
                 "surface_kind": "product_entry_status",
@@ -268,7 +268,7 @@ def test_build_product_entry_status_uses_same_line_route_truth_for_current_focus
                 "mainline_phase": {"command": "uv run python -m med_autoscience.cli mainline-phase", "surface_kind": "mainline_phase"},
             },
             "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
-            "runtime": {"runtime_owner": "upstream_hermes_agent"},
+            "runtime": {"runtime_owner": "mas_runtime_os"},
             "product_entry_status": {"summary": "test status"},
             "product_entry_surface": {"surface_kind": "product_entry_status", "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml", "summary": "open entry_status"},
             "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
@@ -396,7 +396,7 @@ def test_build_product_entry_status_uses_quality_review_followthrough_for_monito
             "mainline_phase": {"command": "uv run python -m med_autoscience.cli mainline-phase", "surface_kind": "mainline_phase"},
         },
         "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
-        "runtime": {"runtime_owner": "upstream_hermes_agent"},
+        "runtime": {"runtime_owner": "mas_runtime_os"},
         "product_entry_status": {"summary": "test status"},
         "product_entry_surface": {"surface_kind": "product_entry_status", "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml", "summary": "open entry_status"},
         "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
@@ -412,7 +412,7 @@ def test_build_product_entry_status_uses_quality_review_followthrough_for_monito
         "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
         "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
         "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"},
-        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "research_backend", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["runtime core ingest across repos"], "not_now": ["not now"]},
+        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "external_source_archive", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["new upstream intake from future MDS/DeepScientist snapshots"], "not_now": ["not now"]},
     })
     monkeypatch.setattr(module, "read_workspace_cockpit", lambda **kwargs: {
         "operator_brief": {
@@ -465,7 +465,7 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
             "mainline_phase": {"command": "uv run python -m med_autoscience.cli mainline-phase", "surface_kind": "mainline_phase"},
         },
         "shared_handoff": {"direct_entry_builder": {"command": "uv run python -m med_autoscience.cli build-product-entry --entry-mode direct", "entry_mode": "direct"}},
-        "runtime": {"runtime_owner": "upstream_hermes_agent"},
+        "runtime": {"runtime_owner": "mas_runtime_os"},
         "product_entry_status": {"summary": "test status"},
         "product_entry_surface": {"surface_kind": "product_entry_status", "command": "uv run python -m med_autoscience.cli product-entry-status --profile profile.local.toml", "summary": "open entry_status"},
         "operator_loop_surface": {"surface_kind": "workspace_cockpit", "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml", "summary": "open workspace cockpit"},
@@ -481,7 +481,7 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
         "schema_ref": "contracts/schemas/v1/product-entry-manifest.schema.json",
         "recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml",
         "summary": {"recommended_command": "uv run python -m med_autoscience.cli workspace-cockpit --profile profile.local.toml"},
-        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "research_backend", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["runtime core ingest across repos"], "not_now": ["not now"]},
+        "single_project_boundary": {"surface_kind": "single_project_boundary", "summary": "summary", "mas_owner_modules": ["controller_charter"], "mds_retained_roles": [{"role_id": "external_source_archive", "title": "Controlled research backend", "summary": "summary"}], "post_gate_only": ["new upstream intake from future MDS/DeepScientist snapshots"], "not_now": ["not now"]},
     })
     monkeypatch.setattr(module, "read_workspace_cockpit", lambda **kwargs: {
         "operator_brief": {

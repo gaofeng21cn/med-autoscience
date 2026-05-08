@@ -28,7 +28,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -133,7 +133,7 @@ def test_study_progress_projects_explicit_runtime_blocker_before_publication_sup
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -229,7 +229,7 @@ def test_study_progress_projects_manual_finishing_contract_before_runtime_blocke
         ),
         encoding="utf-8",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -343,7 +343,7 @@ def test_study_progress_projects_manual_finishing_fast_lane_intake(
             "controller-visible intake and handoff, canonical paper patch, export/sync, QC and package consistency checks",
         ),
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     monkeypatch.setattr(
         module.study_runtime_router,
@@ -408,7 +408,7 @@ def test_study_progress_projects_bundle_only_submission_ready_parking_before_run
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     write_synced_submission_delivery(
         study_root,
         quest_root,
@@ -580,7 +580,7 @@ def test_study_progress_reopened_task_intake_overrides_bundle_only_parking(
         evidence_boundary=("统计扩展限于预设 subgroup / association analysis。",),
         first_cycle_outputs=("价格顾虑有/无分层的生物制剂使用结构比较表与统计检验结果。",),
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         {
@@ -752,7 +752,7 @@ def test_study_progress_reopened_task_intake_yields_to_fresh_bundle_only_closeou
         evidence_boundary=("统计扩展限于预设 subgroup / association analysis。",),
         first_cycle_outputs=("价格顾虑有/无分层的生物制剂使用结构比较表与统计检验结果。",),
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     write_synced_submission_delivery(
         study_root,
         quest_root,

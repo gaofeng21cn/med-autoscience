@@ -17,7 +17,7 @@ ops/mas/progress/index.html
 
 新 workspace 中旧 `start-web` 目的的默认落点也固定到 MAS Progress Portal：`ops/mas/bin/start-web` 刷新并打开 `ops/mas/progress/index.html`。如果维护者需要外部 MDS WebUI，只能通过显式 legacy diagnostic / backend audit 路径启动；医生/PI 默认不再在旧 WebUI 与 MAS Portal 之间判断进度 truth。
 
-Portal 的意义不是证明 MDS 所有功能已经被 MAS 吸收。当前系统仍保留 MDS optional backend audit / legacy diagnostic / upstream intake / parity oracle 角色，runtime core ingest 和旧 MDS WebUI 彻底退役仍属于 functional monolith completion。Portal 的意义是把“用户看哪里”先收口到 MAS-owned surface：即使底层仍有 legacy oracle 或外部参考，医生/PI 默认不再去 MDS WebUI 判断研究进度。
+Portal 现在是 MAS functional monolith completion 的默认可视化替代面。它不表示 MDS 被函数级 1:1 搬进 MAS；它表示日常研究进度、路线、阻塞、artifact pickup 和 OPL handoff 的用户可见入口已经由 MAS-owned read-model 承接，医生/PI 默认不再去 MDS WebUI 判断研究进度。
 
 ## 形态决策
 

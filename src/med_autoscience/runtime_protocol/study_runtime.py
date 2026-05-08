@@ -493,7 +493,10 @@ def write_runtime_binding(
             "quest_id": quest_id,
             "runtime_root": str(resolved_runtime_root / "quests"),
             "runtime_quests_root": str(resolved_runtime_root / "quests"),
-            "med_deepscientist_runtime_root": str(resolved_runtime_root),
+            "legacy_diagnostic": {
+                "med_deepscientist_runtime_root": str(resolved_runtime_root),
+                "read_only": True,
+            },
             "last_action": last_action,
             "last_action_at": recorded_at,
             "last_source": source,

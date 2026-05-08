@@ -94,7 +94,7 @@ def test_ensure_study_runtime_auto_resumes_controller_guard_stopped_quest_when_p
     assert result["reason"] == "quest_stopped_by_controller_guard"
     assert result["quest_status"] == "active"
     assert resumed == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }
@@ -197,7 +197,7 @@ def test_ensure_study_runtime_auto_resumes_controller_guard_stopped_quest_when_b
     assert result["reason"] == "quest_stopped_by_controller_guard"
     assert result["quest_status"] == "active"
     assert resumed == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }
@@ -376,7 +376,7 @@ def test_ensure_study_runtime_auto_resumes_controller_guard_stopped_quest_when_w
     assert result["reason"] == "quest_stale_decision_after_write_stage_ready"
     assert result["quest_status"] == "active"
     assert resumed == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }

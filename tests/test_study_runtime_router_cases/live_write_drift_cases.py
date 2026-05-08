@@ -371,7 +371,7 @@ def test_ensure_study_runtime_enqueues_controller_reply_for_premature_completion
     assert result["reason"] == "quest_completion_requested_before_publication_gate_clear"
     assert result["quest_status"] == "active"
     assert resumed == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }

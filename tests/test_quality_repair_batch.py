@@ -556,7 +556,7 @@ def test_study_outer_loop_executes_quality_repair_batch_controller_action(monkey
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "artifacts" / "controller" / "study_charter.json",
         {

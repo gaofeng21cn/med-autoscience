@@ -80,8 +80,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'name = "glioma"' in profile_text
     assert f'workspace_root = "{workspace_root}"' in profile_text
     assert f'runtime_root = "{workspace_root / "runtime" / "quests"}"' in profile_text
-    assert f'med_deepscientist_runtime_root = "{workspace_root / "runtime"}"' in profile_text
-    assert 'med_deepscientist_repo_root = ""' in profile_text
+    assert f'managed_runtime_home = "{workspace_root / "runtime"}"' in profile_text
+    assert "med_deepscientist_runtime_root" not in profile_text
+    assert "med_deepscientist_repo_root" not in profile_text
     assert 'default_startup_anchor_policy = "scout_first_for_continue_existing_state"' in profile_text
     assert 'legacy_code_execution_policy = "forbid_without_user_approval"' in profile_text
     assert 'public_data_discovery_policy = "required_for_scout_route_selection"' in profile_text
@@ -101,6 +102,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert runtime_bridge_shared.is_file()
     med_shared_text = med_shared.read_text(encoding="utf-8")
     runtime_bridge_shared_text = runtime_bridge_shared.read_text(encoding="utf-8")
+    runtime_bridge_config_text = runtime_bridge_config.read_text(encoding="utf-8")
     assert 'MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN:-$(command -v uv || true)}"' in med_shared_text
     assert 'MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN:-$(command -v Rscript || true)}"' in med_shared_text
     assert 'MED_AUTOSCIENCE_NODE_BIN="${MED_AUTOSCIENCE_NODE_BIN:-$(command -v node || true)}"' in med_shared_text
@@ -113,6 +115,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
         'CONTRACT_JSON="${payload_json}" "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - <<'
         in runtime_bridge_shared_text
     )
+    assert "MED_DEEPSCIENTIST_LAUNCHER" not in runtime_bridge_config_text
+    assert "MED_DEEPSCIENTIST_LAUNCHER" not in runtime_bridge_shared_text
+    assert "run_med_deepscientist_launcher" not in runtime_bridge_shared_text
     assert ' uv run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}"' not in runtime_bridge_shared_text
 
     show_profile = workspace_root / "ops" / "medautoscience" / "bin" / "show-profile"
@@ -130,6 +135,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     prepare_external_research = workspace_root / "ops" / "medautoscience" / "bin" / "prepare-external-research"
     external_research_status = workspace_root / "ops" / "medautoscience" / "bin" / "external-research-status"
     runtime_bridge_doctor = workspace_root / "ops" / "mas" / "bin" / "doctor"
+    runtime_bridge_status = workspace_root / "ops" / "mas" / "bin" / "status"
+    runtime_bridge_stop = workspace_root / "ops" / "mas" / "bin" / "stop"
     runtime_bridge_start_web = workspace_root / "ops" / "mas" / "bin" / "start-web"
     assert bootstrap.is_file()
     assert show_profile.is_file()
@@ -146,6 +153,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert prepare_external_research.is_file()
     assert external_research_status.is_file()
     assert runtime_bridge_doctor.is_file()
+    assert runtime_bridge_status.is_file()
+    assert runtime_bridge_stop.is_file()
     assert runtime_bridge_start_web.is_file()
     assert os.access(bootstrap, os.X_OK)
     assert os.access(show_profile, os.X_OK)
@@ -162,6 +171,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(prepare_external_research, os.X_OK)
     assert os.access(external_research_status, os.X_OK)
     assert os.access(runtime_bridge_doctor, os.X_OK)
+    assert os.access(runtime_bridge_status, os.X_OK)
+    assert os.access(runtime_bridge_stop, os.X_OK)
     assert os.access(runtime_bridge_start_web, os.X_OK)
     watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
     maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
@@ -177,6 +188,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     workspace_literature_status_text = workspace_literature_status.read_text(encoding="utf-8")
     prepare_external_research_text = prepare_external_research.read_text(encoding="utf-8")
     external_research_status_text = external_research_status.read_text(encoding="utf-8")
+    runtime_bridge_doctor_text = runtime_bridge_doctor.read_text(encoding="utf-8")
+    runtime_bridge_status_text = runtime_bridge_status.read_text(encoding="utf-8")
+    runtime_bridge_stop_text = runtime_bridge_stop.read_text(encoding="utf-8")
     runtime_bridge_start_web_text = runtime_bridge_start_web.read_text(encoding="utf-8")
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile_text
@@ -195,7 +209,13 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert 'run_medautosci data literature-status "$@"' in workspace_literature_status_text
     assert 'run_medautosci data prepare-external-research "$@"' in prepare_external_research_text
     assert 'run_medautosci data external-research-status "$@"' in external_research_status_text
+    assert 'run_medautosci doctor report --profile "${PROFILE_PATH}" "$@"' in runtime_bridge_doctor_text
+    assert 'run_medautosci workspace cockpit --profile "${PROFILE_PATH}" --format json "$@"' in runtime_bridge_status_text
+    assert 'run_medautosci study pause-runtime --profile "${PROFILE_PATH}" "$@"' in runtime_bridge_stop_text
     assert 'run_medautosci workspace progress-portal --profile "${PROFILE_PATH}" --open "$@"' in runtime_bridge_start_web_text
+    assert "run_med_deepscientist_launcher" not in runtime_bridge_doctor_text
+    assert "run_med_deepscientist_launcher" not in runtime_bridge_status_text
+    assert "run_med_deepscientist_launcher" not in runtime_bridge_stop_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_start_web_text
 
     portfolio_memory_readme = workspace_root / "portfolio" / "research_memory" / "README.md"

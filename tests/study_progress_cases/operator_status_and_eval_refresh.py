@@ -26,7 +26,7 @@ def test_study_progress_surfaces_bounded_analysis_quality_focus_without_human_ga
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(
         study_root,
         quest_root,
@@ -112,7 +112,7 @@ def test_study_progress_does_not_treat_invalid_finalize_metadata_wait_as_user_de
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     publication_eval_path = _write_publication_eval(study_root, quest_root)
     launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
     _write_json(
@@ -248,7 +248,7 @@ def test_study_progress_projects_auditable_submission_metadata_wait_as_auto_runt
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     write_submission_metadata_only_bundle(
         quest_root,
         blocking_item_ids=[
@@ -375,7 +375,7 @@ def test_study_progress_exposes_operator_status_card_for_runtime_recovery_in_pro
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     _write_json(
         study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
@@ -460,7 +460,7 @@ def test_study_progress_exposes_operator_status_card_for_paper_surface_refresh_g
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         {
@@ -563,7 +563,7 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         {
@@ -677,7 +677,7 @@ def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_study_charter_and_controller_summary(study_root)
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
@@ -845,7 +845,7 @@ def test_study_progress_refreshes_semantically_stale_publication_eval_even_when_
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_study_charter_and_controller_summary(study_root)
     publication_eval_path = _write_publication_eval(study_root, quest_root)
     stale_eval = json.loads(publication_eval_path.read_text(encoding="utf-8"))

@@ -25,7 +25,7 @@ def test_study_progress_does_not_project_study_completed_when_completion_contrac
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
 
     monkeypatch.setattr(
         module.study_runtime_router,

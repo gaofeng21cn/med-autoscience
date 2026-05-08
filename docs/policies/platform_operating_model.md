@@ -8,7 +8,7 @@
 这不是一句 README 口号，而是平台级操作约束：
 
 - 人类主要负责提出研究任务、提供或更新数据、审核关键结果、做最终决策
-- `Codex` 这类 Agent 主要负责读取 workspace 状态、调用平台 controller、协调 `MedDeepScientist` 与外挂工具、组织论文交付
+- `Codex` 这类 Agent 主要负责读取 workspace 状态、调用平台 controller、协调 MAS Runtime OS / Progress Portal / Artifact OS / Quality OS 与外挂工具、组织论文交付
 - `MedAutoScience` 自身负责提供稳定、可验证、可审计的 gateway 接口，而不是要求人手工维护底层状态文件
 
 在 `OPL` 联邦链路里，推荐始终按下面这条理解：
@@ -18,7 +18,7 @@
 这意味着：
 
 - `OPL Gateway` 不替代 `MedAutoScience`
-- `MedDeepScientist` 当前是 harness OS 中最重要的 runtime executor 之一，但不等于整个 harness OS
+- `MAS Runtime OS` 是当前默认 runtime owner / substrate；`MedDeepScientist` 只保留 frozen source archive、historical fixture 和 explicit legacy diagnostic / provenance reference
 - future monorepo 的 `controller_charter / runtime / eval_hygiene` 应被理解为 harness OS 内部主模块，而不是对外 gateway 的替代品
 
 更系统的定位说明见：[Domain Gateway And Harness OS](../references/domain_gateway_harness_os.md)

@@ -19,7 +19,7 @@ def test_ai_first_research_os_freezes_owner_boundaries_and_os_layers() -> None:
     assert contract["target_state"] == {
         "research_owner": "MedAutoScience",
         "quality_owner": "MedAutoScience AI reviewer artifacts",
-        "mds_role": "replaceable_backend_oracle",
+        "mds_role": "frozen_source_archive_or_historical_fixture_only",
         "mechanical_system_role": "evidence_status_completeness_replay",
         "quality_gate_relaxation_allowed": False,
     }
@@ -34,7 +34,9 @@ def test_ai_first_research_os_freezes_owner_boundaries_and_os_layers() -> None:
     ]
     assert contract["authority_rules"]["submission_readiness_requires_ai_reviewer_provenance"] is True
     assert contract["authority_rules"]["mechanical_projection_can_authorize_quality"] is False
-    assert contract["migration_strategy"]["physical_monorepo_absorb"] == "post_parity_gate_only"
+    assert contract["migration_strategy"]["physical_monorepo_absorb"] == (
+        "landed_no_history_functional_monolith"
+    )
     assert {item["basis_id"] for item in contract["external_engineering_basis"]} == {
         "iso_42010_architecture_description",
         "nist_ai_rmf",

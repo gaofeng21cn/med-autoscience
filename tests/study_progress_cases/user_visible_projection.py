@@ -17,7 +17,7 @@ def test_study_progress_emits_canonical_user_visible_projection(monkeypatch, tmp
     profiler = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,

@@ -24,7 +24,7 @@ def test_study_progress_autonomy_contract_projects_latest_outer_loop_dispatch(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_watch_path = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
     _write_json(
         runtime_watch_path,
@@ -142,7 +142,7 @@ def test_study_progress_projects_quality_closure_truth_and_basis(monkeypatch, tm
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_study_charter_and_controller_summary(study_root)
     _write_publication_eval(
         study_root,
@@ -604,7 +604,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     publication_eval_path = _write_publication_eval(study_root, quest_root)
     controller_decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     _write_json(
@@ -740,7 +740,7 @@ def test_study_progress_does_not_project_autonomous_controller_gate_as_physician
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     publication_eval_path = _write_publication_eval(study_root, quest_root)
     _write_controller_decision(
         study_root,
@@ -809,7 +809,7 @@ def test_study_progress_labels_bounded_analysis_as_autonomous_next_step(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(study_root, quest_root)
     _write_controller_decision(
         study_root,
@@ -876,7 +876,7 @@ def test_study_progress_surfaces_same_line_route_back_quality_focus(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_publication_eval(
         study_root,
         quest_root,

@@ -77,7 +77,7 @@ def test_study_progress_projects_delivery_inspector_summary_without_authority_ch
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     captured: dict[str, object] = {}
     _install_fake_delivery_inspector(monkeypatch, captured=captured)
 

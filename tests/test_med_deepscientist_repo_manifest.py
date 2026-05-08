@@ -18,7 +18,7 @@ def test_inspect_med_deepscientist_repo_manifest_missing(tmp_path: Path) -> None
     assert result["freeze_base_commit"] is None
     assert result["applied_commits"] == ()
     assert result["is_controlled_fork"] is False
-    assert result["parity_deconstruction_summary"]["mds_role"] == "replaceable_backend_oracle"
+    assert result["parity_deconstruction_summary"]["mds_role"] == "frozen_source_archive_or_historical_fixture_only"
     assert result["parity_deconstruction_summary"]["mds_quality_authority"] == "none"
     assert result["parity_deconstruction_summary"]["quality_owner"] == "MedAutoScience"
     assert result["parity_deconstruction_summary"]["medical_quality_authority_granted_to_mds"] is False

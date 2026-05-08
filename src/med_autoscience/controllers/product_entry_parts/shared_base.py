@@ -140,6 +140,8 @@ PRODUCT_ENTRY_MANIFEST_KIND = "med_autoscience_product_entry_manifest"
 PRODUCT_ENTRY_STATUS_KIND = "product_entry_status"
 TARGET_DOMAIN_ID = "med-autoscience"
 CONTROLLED_BACKEND_EXECUTOR_OWNER = runtime_backend_contract.CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER
+MAS_RUNTIME_OWNER = runtime_backend_contract.MAS_RUNTIME_OWNER
+MAS_RUNTIME_SUBSTRATE = runtime_backend_contract.MAS_RUNTIME_SUBSTRATE
 SUPPORTED_DIRECT_ENTRY_MODES = ("direct", "opl-handoff")
 _LIVE_TASK_INTAKE_RUNTIME_STATUSES = frozenset({"running", "active", "waiting_for_user"})
 _ATTENTION_PRIORITIES = {
@@ -371,6 +373,7 @@ def _build_managed_runtime_contract(
     recovery_contract_surface: str,
 ) -> dict[str, Any]:
     return _build_shared_managed_runtime_contract(
+        runtime_owner=MAS_RUNTIME_OWNER,
         domain_owner=domain_owner,
         executor_owner=executor_owner,
         supervision_status_surface=supervision_status_surface,
@@ -406,6 +409,13 @@ def _doctor_workspace_supervision_contract(doctor_report: Any) -> dict[str, Any]
     return {}
 
 
+def _doctor_mas_runtime_core_ready(doctor_report: Any) -> bool:
+    contract = getattr(doctor_report, "runtime_contract", None)
+    if isinstance(contract, Mapping):
+        return bool(contract.get("ready"))
+    return bool(getattr(doctor_report, "runtime_exists", False))
+
+
 def _workspace_ready_alerts(doctor_report) -> list[str]:
     alerts: list[str] = []
     if not doctor_report.workspace_exists:
@@ -416,8 +426,9 @@ def _workspace_ready_alerts(doctor_report) -> list[str]:
         alerts.append("studies 根目录不存在，当前没有 study authority surface。")
     if not doctor_report.portfolio_exists:
         alerts.append("portfolio 根目录不存在，workspace 数据资产面还未完整。")
-    if not doctor_report.med_deepscientist_runtime_exists:
-        alerts.append("受控 research backend runtime root 不存在，当前无法继续研究执行。")
+    runtime_contract_ready = _doctor_mas_runtime_core_ready(doctor_report)
+    if not runtime_contract_ready:
+        alerts.append("MAS runtime contract 尚未 ready，当前无法继续托管研究执行。")
     if not doctor_report.medical_overlay_ready:
         alerts.append("workspace medical overlay 还未 ready，当前运行前置能力不完整。")
     external_runtime_ready = bool((doctor_report.external_runtime_contract or {}).get("ready"))
@@ -442,6 +453,7 @@ def _build_product_entry_preflight(
     doctor_command = f"{_command_prefix(profile_ref)} doctor --profile {_profile_arg(profile_ref)}"
     start_command = f"{_command_prefix(profile_ref)} product-entry-status --profile {_profile_arg(profile_ref)}"
     workspace_supervision_contract = _doctor_workspace_supervision_contract(doctor_report)
+    runtime_contract_ready = _doctor_mas_runtime_core_ready(doctor_report)
     checks = [
         _build_shared_program_check(
             check_id="workspace_root_exists",
@@ -476,14 +488,14 @@ def _build_product_entry_preflight(
             command=doctor_command,
         ),
         _build_shared_program_check(
-            check_id="research_backend_runtime_ready",
-            title="Research Backend Runtime Ready",
-            status="pass" if doctor_report.med_deepscientist_runtime_exists else "fail",
+            check_id="mas_runtime_core_ready",
+            title="MAS Runtime Core Ready",
+            status="pass" if runtime_contract_ready else "fail",
             blocking=True,
             summary=(
-                "受控 research backend runtime 已就位。"
-                if doctor_report.med_deepscientist_runtime_exists
-                else "受控 research backend runtime 尚未就位。"
+                "MAS runtime core contract 已就位。"
+                if runtime_contract_ready
+                else "MAS runtime core contract 尚未 ready。"
             ),
             command=doctor_command,
         ),

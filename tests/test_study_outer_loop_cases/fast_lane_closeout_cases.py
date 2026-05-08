@@ -17,7 +17,7 @@ def test_build_runtime_watch_outer_loop_tick_request_stops_live_runtime_after_fa
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
@@ -200,7 +200,7 @@ def test_build_runtime_watch_outer_loop_tick_request_does_not_stop_when_fast_lan
     task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-dm-cvd-mortality-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"

@@ -275,14 +275,14 @@ def _render_install_watch_runtime_service_script() -> str:
     )
 
 
-def _render_med_deepscientist_shared() -> str:
+def _render_mas_runtime_bridge_shared() -> str:
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n\n"
         'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
-        'MED_DEEPSCIENTIST_OPS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"\n'
+        'MAS_OPS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"\n'
         'WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"\n'
-        'MED_DEEPSCIENTIST_CONFIG_ENV_PATH="${MED_DEEPSCIENTIST_OPS_ROOT}/config.env"\n'
+        'MAS_CONFIG_ENV_PATH="${MAS_OPS_ROOT}/config.env"\n'
         'MEDAUTOSCI_SHARED_SH="${WORKSPACE_ROOT}/ops/medautoscience/bin/_shared.sh"\n\n'
         'if [[ ! -f "${MEDAUTOSCI_SHARED_SH}" ]]; then\n'
         '  echo "MedAutoScience shared entry is missing: ${MEDAUTOSCI_SHARED_SH}" >&2\n'
@@ -290,23 +290,11 @@ def _render_med_deepscientist_shared() -> str:
         "fi\n\n"
         "# shellcheck disable=SC1090\n"
         'source "${MEDAUTOSCI_SHARED_SH}"\n\n'
-        'if [[ -f "${MED_DEEPSCIENTIST_CONFIG_ENV_PATH}" ]]; then\n'
+        'if [[ -f "${MAS_CONFIG_ENV_PATH}" ]]; then\n'
         "  # shellcheck disable=SC1090\n"
-        '  source "${MED_DEEPSCIENTIST_CONFIG_ENV_PATH}"\n'
+        '  source "${MAS_CONFIG_ENV_PATH}"\n'
         "fi\n\n"
-        'if [[ -z "${MED_DEEPSCIENTIST_LAUNCHER:-}" ]]; then\n'
-        '  echo "MED_DEEPSCIENTIST_LAUNCHER is not configured. Set it in ${MED_DEEPSCIENTIST_CONFIG_ENV_PATH}." >&2\n'
-        "  exit 1\n"
-        "fi\n\n"
-        'if [[ "${MED_DEEPSCIENTIST_LAUNCHER}" != /* ]]; then\n'
-        '  echo "MED_DEEPSCIENTIST_LAUNCHER must be an absolute path: ${MED_DEEPSCIENTIST_LAUNCHER}" >&2\n'
-        "  exit 1\n"
-        "fi\n\n"
-        'if [[ ! -x "${MED_DEEPSCIENTIST_LAUNCHER}" ]]; then\n'
-        '  echo "MED_DEEPSCIENTIST_LAUNCHER is not executable: ${MED_DEEPSCIENTIST_LAUNCHER}" >&2\n'
-        "  exit 1\n"
-        "fi\n\n"
-        "load_med_deepscientist_contract() {\n"
+        "load_mas_runtime_bridge_contract() {\n"
         "  local payload_json\n"
         '  payload_json="$(\n'
         '    "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - "${PROFILE_PATH}" <<'"'"'PY'"'"'\n'
@@ -326,7 +314,7 @@ def _render_med_deepscientist_shared() -> str:
         ")\n"
         "PY\n"
         '  )"\n\n'
-        '  export MEDAUTOSCI_MED_DEEPSCIENTIST_CONTRACT_JSON="${payload_json}"\n\n'
+        '  export MEDAUTOSCI_MAS_RUNTIME_BRIDGE_CONTRACT_JSON="${payload_json}"\n\n'
         "  local contract_lines\n"
         '  contract_lines="$(\n'
         '    CONTRACT_JSON="${payload_json}" "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - <<'"'"'PY'"'"'\n'
@@ -334,21 +322,16 @@ def _render_med_deepscientist_shared() -> str:
         "import os\n\n"
         'payload = json.loads(os.environ["CONTRACT_JSON"])\n'
         'profile = payload["profile"]\n'
-        'legacy_diagnostic = profile["legacy_diagnostic"]\n'
         'contracts = payload["contracts"]\n'
         'runtime_contract = contracts["runtime_contract"]\n'
-        'launcher_contract = contracts["launcher_contract"]\n'
         'behavior_gate = contracts["behavior_gate"]\n\n'
         "pairs = {\n"
         '    "workspace_root": profile["workspace_root"],\n'
         '    "runtime_root": profile["runtime_root"],\n'
-        '    "legacy_diagnostic_runtime_root": legacy_diagnostic["runtime_root"],\n'
-        '    "controlled_backend_repo_root": legacy_diagnostic.get("controlled_backend_repo_root") or "",\n'
         '    "managed_runtime_quests_root_matches_layout": str(\n'
         '        bool(runtime_contract.get("checks", {}).get("managed_runtime_quests_root_matches_layout"))\n'
         '    ).lower(),\n'
         '    "runtime_contract_ready": str(bool(runtime_contract.get("ready"))).lower(),\n'
-        '    "launcher_contract_ready": str(bool(launcher_contract.get("ready"))).lower(),\n'
         '    "phase_25_ready": str(bool(behavior_gate.get("phase_25_ready"))).lower(),\n'
         "}\n\n"
         "for key, value in pairs.items():\n"
@@ -357,46 +340,40 @@ def _render_med_deepscientist_shared() -> str:
         '  )"\n\n'
         '  while IFS=$'"'"'\\t'"'"' read -r key value; do\n'
         '    case "${key}" in\n'
-        '      workspace_root) MED_DEEPSCIENTIST_WORKSPACE_ROOT="${value}" ;;\n'
-        '      runtime_root) MED_DEEPSCIENTIST_RUNTIME_ROOT="${value}" ;;\n'
-        '      legacy_diagnostic_runtime_root) MED_DEEPSCIENTIST_HOME="${value}" ;;\n'
-        '      controlled_backend_repo_root) MED_DEEPSCIENTIST_REPO_ROOT_AUDIT="${value}" ;;\n'
+        '      workspace_root) MAS_WORKSPACE_ROOT="${value}" ;;\n'
+        '      runtime_root) MAS_RUNTIME_QUESTS_ROOT="${value}" ;;\n'
         '      managed_runtime_quests_root_matches_layout) RUNTIME_ROOT_MATCHES_MANAGED_RUNTIME_LAYOUT="${value}" ;;\n'
-        '      runtime_contract_ready) MED_DEEPSCIENTIST_RUNTIME_CONTRACT_READY="${value}" ;;\n'
-        '      launcher_contract_ready) MED_DEEPSCIENTIST_LAUNCHER_CONTRACT_READY="${value}" ;;\n'
-        '      phase_25_ready) MED_DEEPSCIENTIST_PHASE_25_READY="${value}" ;;\n'
+        '      runtime_contract_ready) MAS_RUNTIME_CONTRACT_READY="${value}" ;;\n'
+        '      phase_25_ready) MAS_PHASE_25_READY="${value}" ;;\n'
         "    esac\n"
         '  done <<< "${contract_lines}"\n\n'
         '  if [[ "${RUNTIME_ROOT_MATCHES_MANAGED_RUNTIME_LAYOUT:-false}" != "true" ]]; then\n'
         '    echo "runtime_root does not match managed runtime layout for profile ${PROFILE_PATH}" >&2\n'
         "    exit 1\n"
         "  fi\n\n"
-        '  if [[ -z "${MED_DEEPSCIENTIST_HOME:-}" ]]; then\n'
-        '    echo "Failed to resolve med_deepscientist_runtime_root from profile ${PROFILE_PATH}" >&2\n'
+        '  if [[ -z "${MAS_RUNTIME_QUESTS_ROOT:-}" ]]; then\n'
+        '    echo "Failed to resolve MAS runtime_root from profile ${PROFILE_PATH}" >&2\n'
         "    exit 1\n"
         "  fi\n"
         "}\n\n"
-        "render_med_deepscientist_config_json() {\n"
-        '  CONTRACT_JSON="${MEDAUTOSCI_MED_DEEPSCIENTIST_CONTRACT_JSON}" \\\n'
-        '  LAUNCHER_PATH="${MED_DEEPSCIENTIST_LAUNCHER}" \\\n'
+        "render_mas_runtime_bridge_config_json() {\n"
+        '  CONTRACT_JSON="${MEDAUTOSCI_MAS_RUNTIME_BRIDGE_CONTRACT_JSON}" \\\n'
         '  python3 - <<'"'"'PY'"'"'\n'
         "import json\n"
         "import os\n\n"
         'payload = json.loads(os.environ["CONTRACT_JSON"])\n'
         'profile = payload["profile"]\n'
-        'legacy_diagnostic = profile["legacy_diagnostic"]\n'
         'contracts = payload["contracts"]\n\n'
         "print(\n"
         "    json.dumps(\n"
         "        {\n"
         '            "workspace_root": profile["workspace_root"],\n'
         '            "runtime_root": profile["runtime_root"],\n'
-        '            "legacy_diagnostic_runtime_root": legacy_diagnostic["runtime_root"],\n'
-        '            "controlled_backend_audit_repo_root": legacy_diagnostic.get("controlled_backend_repo_root"),\n'
-        '            "legacy_diagnostic_read_only": bool(legacy_diagnostic.get("read_only")),\n'
-        '            "launcher": os.environ["LAUNCHER_PATH"],\n'
+        '            "managed_runtime_home": profile["managed_runtime_home"],\n'
+        '            "managed_runtime_backend_id": profile["managed_runtime_backend_id"],\n'
+        '            "external_mds_runnable_dependency": False,\n'
+        '            "default_webui": "mas_progress_portal",\n'
         '            "runtime_contract_ready": contracts["runtime_contract"]["ready"],\n'
-        '            "launcher_contract_ready": contracts["launcher_contract"]["ready"],\n'
         '            "phase_25_ready": contracts["behavior_gate"]["phase_25_ready"],\n'
         '            "behavior_gate_path": contracts["behavior_gate"]["path"],\n'
         "        },\n"
@@ -406,31 +383,55 @@ def _render_med_deepscientist_shared() -> str:
         ")\n"
         "PY\n"
         "}\n\n"
-        "run_med_deepscientist_launcher() {\n"
-        '  exec "${MED_DEEPSCIENTIST_LAUNCHER}" --home "${MED_DEEPSCIENTIST_HOME}" "$@"\n'
-        "}\n"
     )
 
 
-def _render_med_deepscientist_forward(script_command: str) -> str:
+def _render_mas_runtime_bridge_forward(
+    command: str,
+    *,
+    with_profile: bool = True,
+    command_suffix: str = "",
+) -> str:
+    profile_arg = ' --profile "${PROFILE_PATH}"' if with_profile else ""
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n\n"
         'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
         "# shellcheck disable=SC1091\n"
         'source "${SCRIPT_DIR}/_shared.sh"\n\n'
-        "load_med_deepscientist_contract\n"
-        f"run_med_deepscientist_launcher {script_command} \"$@\"\n"
+        "load_mas_runtime_bridge_contract\n"
+        f'run_medautosci {command}{profile_arg}{command_suffix} "$@"\n'
     )
 
 
-def _render_med_deepscientist_show_config() -> str:
+def _render_mas_runtime_bridge_stop_script() -> str:
     return (
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n\n"
         'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
         "# shellcheck disable=SC1091\n"
         'source "${SCRIPT_DIR}/_shared.sh"\n\n'
-        "load_med_deepscientist_contract\n"
-        "render_med_deepscientist_config_json\n"
+        "load_mas_runtime_bridge_contract\n"
+        'if [[ "$#" -eq 0 ]]; then\n'
+        '  echo "MAS controlled pause requires --study-id <study_id> or --study-root <path>." >&2\n'
+        "  exit 2\n"
+        "fi\n"
+        'run_medautosci study pause-runtime --profile "${PROFILE_PATH}" "$@"\n'
     )
+
+
+def _render_mas_runtime_bridge_show_config() -> str:
+    return (
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n\n"
+        'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
+        "# shellcheck disable=SC1091\n"
+        'source "${SCRIPT_DIR}/_shared.sh"\n\n'
+        "load_mas_runtime_bridge_contract\n"
+        "render_mas_runtime_bridge_config_json\n"
+    )
+
+
+_render_med_deepscientist_shared = _render_mas_runtime_bridge_shared
+_render_med_deepscientist_forward = _render_mas_runtime_bridge_forward
+_render_med_deepscientist_show_config = _render_mas_runtime_bridge_show_config

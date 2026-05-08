@@ -78,10 +78,10 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
     matrix = module.build_mds_capability_parity_matrix()
 
     assert matrix["surface"] == "mds_capability_parity_matrix"
-    assert matrix["mds_role"] == "replaceable_backend_oracle"
+    assert matrix["mds_role"] == "frozen_source_archive_or_historical_fixture_only"
     assert matrix["mds_quality_authority"] == "none"
     assert matrix["mas_owner"] == "MedAutoScience"
-    assert matrix["physical_absorb_allowed"] == "after_parity_and_owner_cutover_only"
+    assert matrix["physical_absorb_allowed"] == "landed_no_history_functional_monolith"
     assert matrix["allowed_capability_classifications"] == EXPECTED_CLASSIFICATIONS
     assert [capability["capability_id"] for capability in matrix["capabilities"]] == EXPECTED_CAPABILITY_IDS
     assert matrix["capability_ids"] == EXPECTED_CAPABILITY_IDS
@@ -94,7 +94,7 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
         "oracle_fixture_count": 6,
         "remaining_surface_count": 10,
         "quality_owner": "MedAutoScience",
-        "mds_role": "replaceable_backend_oracle",
+        "mds_role": "frozen_source_archive_or_historical_fixture_only",
         "medical_quality_authority": "blocked_for_mds",
     }
     fixtures_by_capability = {
@@ -140,8 +140,8 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
         assert capability["parity_proof"]["mds_oracle"]
         assert capability["parity_proof"]["acceptance"]
         cutover_readiness = capability["cutover_readiness"]
-        assert cutover_readiness["cutover_status"] == "blocked_pending_cutover_proofs"
-        assert cutover_readiness["owner_switch_allowed"] is False
+        assert cutover_readiness["cutover_status"] == "landed_functional_monolith"
+        assert cutover_readiness["owner_switch_allowed"] is True
         assert cutover_readiness["required_gates"] == matrix["cutover_gates"]
         assert cutover_readiness["mas_side_contract"]
         assert cutover_readiness["mds_oracle_fixture"]
@@ -163,7 +163,7 @@ def test_mds_remaining_surface_inventory_classifies_functional_monolith_surfaces
     assert inventory["surface"] == "mds_remaining_surface_inventory"
     assert inventory["schema_version"] == 1
     assert inventory["owner"] == "MedAutoScience"
-    assert inventory["mds_final_role"] == "external_source_archive_or_historical_oracle_only"
+    assert inventory["mds_final_role"] == "frozen_source_archive_or_historical_fixture_only"
     assert inventory["default_operation_requires_external_mds"] is False
     assert inventory["upstream_history_import_allowed"] is False
     assert inventory["allowed_classifications"] == EXPECTED_CLASSIFICATIONS
@@ -193,17 +193,17 @@ def test_mds_remaining_surface_inventory_classifies_functional_monolith_surfaces
     assert module.validate_mds_remaining_surface_inventory(inventory)["ok"] is True
 
 
-def test_mds_capability_cutover_gate_blocks_owner_switch_until_proofs_complete() -> None:
+def test_mds_capability_cutover_gate_records_functional_monolith_landed_without_quality_authority() -> None:
     module = importlib.import_module("med_autoscience.controllers.mds_capability_parity")
 
     gate = module.build_mds_capability_cutover_gate()
 
     assert gate["surface"] == "mds_capability_cutover_gate"
-    assert gate["mds_role"] == "replaceable_backend_oracle"
+    assert gate["mds_role"] == "frozen_source_archive_or_historical_fixture_only"
     assert gate["mds_quality_authority"] == "none"
     assert gate["quality_authority_rule"] == "mds_can_never_authorize_medical_quality"
-    assert gate["owner_switch_allowed"] is False
-    assert gate["cutover_status"] == "blocked_pending_capability_proofs"
+    assert gate["owner_switch_allowed"] is True
+    assert gate["cutover_status"] == "landed_functional_monolith"
     assert gate["required_gates"] == [
         "mas_side_contract_exists",
         "mds_oracle_fixture_exists",
@@ -213,13 +213,13 @@ def test_mds_capability_cutover_gate_blocks_owner_switch_until_proofs_complete()
     ]
     assert gate["summary"] == {
         "capability_count": 6,
-        "owner_switch_allowed_count": 0,
-        "blocked_capability_count": 6,
+        "owner_switch_allowed_count": 6,
+        "blocked_capability_count": 0,
         "medical_quality_authority": "blocked_for_mds",
     }
     for capability in gate["capabilities"]:
-        assert capability["cutover_status"] == "blocked_pending_cutover_proofs"
-        assert capability["owner_switch_allowed"] is False
+        assert capability["cutover_status"] == "landed_functional_monolith"
+        assert capability["owner_switch_allowed"] is True
         assert capability["required_gates"] == gate["required_gates"]
         assert capability["mas_side_contract"]
         assert capability["mds_oracle_fixture"]

@@ -377,10 +377,10 @@ def build_product_entry_manifest(
         recovery_contract_surface="study_runtime_status",
     )
     runtime = {
-        "runtime_owner": "upstream_hermes_agent",
+        "runtime_owner": MAS_RUNTIME_OWNER,
         "domain_owner": TARGET_DOMAIN_ID,
         "executor_owner": CONTROLLED_BACKEND_EXECUTOR_OWNER,
-        "runtime_substrate": "external_hermes_agent_target",
+        "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
         "managed_runtime_backend_id": profile.managed_runtime_backend_id,
         "runtime_root": str(profile.runtime_root),
         "hermes_home_root": str(profile.hermes_home_root),
@@ -559,7 +559,7 @@ def build_product_entry_manifest(
                 "hermes_agent_requires_full_agent_loop": True,
                 "current_backend_chain": [
                     "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
-                    "optional med_deepscientist oracle/intake/audit reference",
+                    "historical med_deepscientist fixture/provenance refs only",
                 ],
                 "optional_executor_proofs": [
                     {

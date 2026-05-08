@@ -280,7 +280,7 @@ def test_doctor_report_renders_auditable_contract_sections(tmp_path: Path) -> No
     assert "ai_first_drift_audit: " in rendered
 
 
-def test_inspect_workspace_contracts_reports_repo_manifest(tmp_path: Path) -> None:
+def test_inspect_workspace_contracts_skips_repo_manifest_by_default(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.workspace_contracts")
     profile = make_profile(tmp_path)
     repo_root = profile.med_deepscientist_repo_root
@@ -315,12 +315,11 @@ def test_inspect_workspace_contracts_reports_repo_manifest(tmp_path: Path) -> No
 
     result = module.inspect_workspace_contracts(profile)
     manifest_checks = result["launcher_contract"]["manifest_checks"]
-    assert manifest_checks["manifest_found"] is True
-    assert manifest_checks["manifest_parsable"] is True
+    assert manifest_checks["default_manifest_inspection_disabled"] is True
+    assert manifest_checks["manifest_found"] is False
+    assert manifest_checks["manifest_parsable"] is False
 
     repo_manifest = result["launcher_contract"]["repo_manifest"]
-    assert repo_manifest["manifest_found"] is True
-    assert repo_manifest["engine_family"] == manifest_payload["engine_family"]
-    assert repo_manifest["freeze_base_commit"] == manifest_payload["upstream_source"]["base_commit"]
-    assert repo_manifest["applied_commits"] == ("aaa", "bbb")
-    assert repo_manifest["is_controlled_fork"] is True
+    assert repo_manifest["inspection_skipped"] is True
+    assert repo_manifest["skip_reason"] == "explicit_backend_audit_only"
+    assert repo_manifest["repo_root"] == str(repo_root)

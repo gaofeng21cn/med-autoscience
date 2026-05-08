@@ -67,7 +67,7 @@ def test_run_gate_clearing_batch_refreshes_submission_hardening_without_live_pat
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
@@ -98,7 +98,7 @@ def test_run_gate_clearing_batch_reruns_same_eval_after_failed_submission_harden
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")

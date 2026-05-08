@@ -22,7 +22,7 @@ def test_study_outer_loop_tick_dispatches_stop_runtime_action(monkeypatch, tmp_p
         journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     charter_ref = _write_charter(study_root)
     publication_eval_ref = _write_publication_eval(study_root, quest_root)
@@ -67,7 +67,7 @@ def test_study_outer_loop_tick_dispatches_stop_runtime_action(monkeypatch, tmp_p
     )
 
     assert seen["stop_kwargs"] == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "quest-001",
         "source": "test-source",
     }
@@ -92,7 +92,7 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
         journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "artifacts" / "runtime" / "last_launch_report.json",
         {
@@ -160,7 +160,7 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
     )
     assert Path(runtime_escalation_ref["artifact_path"]).exists()
     assert seen["stop_kwargs"] == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "quest-001",
         "source": "runtime_watch_outer_loop_wakeup",
     }

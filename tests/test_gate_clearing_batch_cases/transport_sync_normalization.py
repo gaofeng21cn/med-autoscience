@@ -22,7 +22,7 @@ def test_run_gate_clearing_batch_normalizes_f3_payload_rewritten_by_transport_sy
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     payload_path = paper_root / "time_to_event_grouped_inputs.json"

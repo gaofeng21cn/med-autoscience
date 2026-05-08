@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any, Protocol
 
 DEFAULT_MANAGED_RUNTIME_BACKEND_ID = "mas_runtime_core"
+MAS_RUNTIME_OWNER = "mas_runtime_os"
+MAS_RUNTIME_SUBSTRATE = "mas_runtime_core"
 CONTROLLED_RESEARCH_BACKEND_EXECUTOR_OWNER = "controlled_research_backend"
 EXTERNAL_MDS_ALLOWED_USES = (
     "source_provenance_ref",
@@ -308,6 +310,8 @@ def runtime_backend_default_operation_contract(backend_id: str) -> dict[str, obj
         raise ValueError(f"managed runtime backend `{backend_id}` is missing runtime backend metadata")
     research_backend_id, research_engine_id = controlled_research_backend_metadata_for_backend_id(backend_id)
     return {
+        "runtime_owner": MAS_RUNTIME_OWNER,
+        "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
         "runtime_backend_id": runtime_backend_id,
         "runtime_engine_id": runtime_engine_id,
         "research_backend_id": research_backend_id,

@@ -192,23 +192,23 @@ repo 吸收必须采用 `no-history import`。
 
 ## Functional Monolith Completion Campaign
 
-这不是新建第二套 program board；它是本 program 在 no-history physical absorb closeout 之后的真实剩余目标。验收标准从“外部 MDS 不再是默认依赖”提升为“同一目的下不需要再运行 MDS WebUI、MDS daemon 或 MDS repo 来获得 MAS 日常能力”。
+这不是新建第二套 program board；它是本 program 在 no-history physical absorb closeout 之后的 functional monolith closeout。验收标准已从“外部 MDS 不再是默认依赖”提升并落地为“同一目的下不需要再运行 MDS WebUI、MDS daemon 或 MDS repo 来获得 MAS 日常能力”。
 
 | lane | write set | target | contributor rule |
 | --- | --- | --- | --- |
 | `M1_remaining_capability_inventory` | source provenance、capability matrix、tests/fixtures | 已清点 MDS daemon、quest、runners、channels/connectors、MCP、TUI/Web、gitops、skills、team、upstream archive 等 remaining surface，标记 `mas_owned` / `rewrite_in_mas` / `fixture_only` / `retire` / `external_source_archive_only`；不再用 unique function name 数量作为完成指标，但覆盖 workflow 语义。 | 只记录 source ref/hash/license/provenance，不导入上游 history。 |
-| `M2_runtime_core_ingest` | Runtime OS、runtime_transport、runtime_protocol、controller/runtime tests | 把仍依赖 MDS runtime core 的执行、watch、worker lifecycle、event cursor、daemon/session interaction 收进 MAS-owned runtime modules；外部 MDS 只能留下 replay oracle 或 diagnostic fixture。 | MAS maintainer-authored implementation 或 no-history snapshot，禁止 co-author trailer。 |
+| `M2_runtime_core_ingest` | Runtime OS、runtime_transport、runtime_protocol、controller/runtime tests | 已把默认执行、watch、worker lifecycle、event cursor、daemon/session interaction 收进 MAS-owned runtime modules；默认 runtime binding 与 live task intake 走 `runtime/` / MAS Runtime OS，外部 MDS 只能留下 replay oracle 或 diagnostic fixture。 | MAS maintainer-authored implementation 或 no-history snapshot，禁止 co-author trailer。 |
 | `M3_visual_status_replacement` | progress portal、workspace scripts、OPL handoff docs/tests | MAS Progress Portal 成为默认可视化入口；新 workspace 的旧 `start-web` 目的默认刷新并打开 MAS Portal，外部 MDS WebUI 只能作为 explicit legacy diagnostic / backend audit，不再让用户在两个进度看板之间判断 truth。OPL App 的最优集成方式也固定在这里：只消费 MAS 的 `opl_handoff` payload refs、freshness、source refs、artifact locators 和 workspace-local Portal deep link，做 family-level dashboard / attention queue / running-recent 聚合，不重解释 study truth。 | 不导入上游 WebUI commit history、branding 或 contributor footprint；不把 OPL App 或 OPL state cache 升级成 MAS progress authority。 |
-| `M4_entry_and_compat_shrink` | CLI/MCP/product-entry/profile/workspace contracts | 删除或 fail-closed 仍会把 MDS 当默认 backend、default WebUI、default runner 或 hidden fallback 的兼容面；保留入口必须显式命名为 legacy restore/import/audit/oracle。 | 每个删除/迁移都带 regression guard，避免恢复默认 MDS dependency。 |
-| `M5_quality_and_artifact_supersede` | Quality OS、Artifact OS、publication eval、delivery tests | 对 paper health、coverage、artifact inventory、package locator 等 MDS mechanical signals 给出 MAS-owned supersede proof；MDS 信号最多触发 review/request，不授权 quality ready。 | 保留 fixture 可以引用 source provenance，但不引入上游 author graph。 |
-| `M6_contributor_and_release_audit` | provenance records、author guard、GitHub/default-branch audit docs | 每轮吸收前后检查 `git log --format='%an <%ae>' origin/main..HEAD`，push 后检查 GitHub contributor surface；若出现不应进入 MAS 的 contributor footprint，停止并修正历史。 | 这是 hard gate。 |
+| `M4_entry_and_compat_shrink` | CLI/MCP/product-entry/profile/workspace contracts | 已删除或 fail-closed 仍会把 MDS 当默认 backend、default WebUI、default runner 或 hidden fallback 的兼容面；保留入口显式命名为 legacy restore/import/audit/oracle，并保持只读诊断。 | 每个删除/迁移都带 regression guard，避免恢复默认 MDS dependency。 |
+| `M5_quality_and_artifact_supersede` | Quality OS、Artifact OS、publication eval、delivery tests | 已对 paper health、coverage、artifact inventory、package locator 等 MDS mechanical signals 给出 MAS-owned supersede proof；MDS 信号最多触发 review/request，不授权 quality ready。 | 保留 fixture 可以引用 source provenance，但不引入上游 author graph。 |
+| `M6_contributor_and_release_audit` | provenance records、author guard、GitHub/default-branch audit docs | local author audit guard 已要求 `git log --format='%an <%ae>' origin/main..HEAD` 不出现上游 MDS/DeepScientist author 或 co-author trailer；push 后仍需做 GitHub contributor surface 复核。 | 这是 hard gate。 |
 
-完成该 campaign 后，`MDS retained role` 应从 `research_backend / behavior_equivalence_oracle / upstream_intake_buffer` 进一步降为 `external_source_archive / historical_oracle_fixture / explicit_legacy_diagnostic`。任何仍需长期运行外部 MDS daemon 或 WebUI 的能力，都不能算 monolith completion。
+完成该 campaign 后，`MDS retained role` 已从 `research_backend / behavior_equivalence_oracle / upstream_intake_buffer` 降为 `external_source_archive / historical_oracle_fixture / explicit_legacy_diagnostic`。任何未来能力如果仍需长期运行外部 MDS daemon 或 WebUI，都不能进入默认 MAS operation，只能作为 future upstream source intake review 或 explicit legacy diagnostic 重新评审。
 
 ## Execution Order
 
 1. `L0-L8` 的 repo-level implementation queue 已关闭到 landed/guard 口径；这只关闭 default dependency / layout / compat / no-history closeout。
-2. `M1-M6` 是 functional monolith completion 的当前未完成队列，可以并行开 worktree，但吸收必须先过 owner boundary、parity proof、rollback surface 和 contributor audit。
+2. `M1-M6` 已作为 functional monolith completion campaign 落地；后续不再把它们作为未完成队列重开。新增能力只能走 future upstream source intake review 或 optional hosted frontend packaging。
 3. 后续新能力只能作为 MAS-owned surface、explicit legacy diagnostic、upstream intake 或 parity oracle 进入，不再重开默认 MDS dependency lane。
 4. 若未来从外部 `med-deepscientist` 或上游 `DeepScientist` 学习新能力，必须重新记录 source ref/hash、capability classification、MAS owner、authority boundary、tests 和 no-history contributor audit；classification 必须使用 `mas_owned` / `rewrite_in_mas` / `fixture_only` / `retire` / `external_source_archive_only`。
 

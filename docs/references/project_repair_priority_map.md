@@ -31,15 +31,15 @@
 
 当前已完成事实：
 
-- `med-deepscientist` runtime core 已原生写出 quest-owned native runtime event durable surface
-- `GET /api/quests/{quest_id}/session` 已暴露 `runtime_event_ref` 与 `runtime_event`
-- `MedAutoScience` 已把 managed runtime 的 `status.runtime_event_ref` 改成消费 session-native ref，而不是再主写 quest-owned truth
+- MAS Runtime OS / `mas_runtime_core` 已承接默认 runtime owner 与 runtime substrate。
+- `runtime_binding.yaml`、live task intake、runtime watch/status 与 progress surfaces 默认走 MAS-owned `runtime/` / `runtime/quests`。
+- 外部 MDS daemon、repo checkout、runtime root 和 WebUI 不再是 MAS 默认运行、诊断或进度查看依赖；旧 MDS runtime event / session 资料只作为 historical fixture 或 explicit legacy diagnostic 被读取。
 
 这条 tranche 当前要守住的是：
 
 - 不让 controller 再覆盖 `artifacts/reports/runtime_events/latest.json`
 - 不让 outer loop 重新退回 `poll + inference + synthetic event`
-- 不让 runtime native truth 与 study-owned supervision / escalation / decision truth 再次混叠
+- 不让 historical MDS fixture/provenance 与 study-owned supervision / escalation / decision truth 再次混叠
 
 ### 3.2 P1：Workspace Knowledge / Literature 已完成
 

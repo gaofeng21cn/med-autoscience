@@ -24,7 +24,7 @@ def test_authority_settle_redrive_syncs_delivery_without_recreating_package(
     )
     quest_id = "quest-004"
     paper_root = (
-        profile.med_deepscientist_runtime_root
+        profile.managed_runtime_home
         / "quests"
         / quest_id
         / ".ds"

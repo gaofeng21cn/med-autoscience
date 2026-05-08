@@ -21,7 +21,7 @@ def test_run_gate_clearing_batch_executes_delivery_refresh_fast_lane_for_stale_p
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
@@ -128,7 +128,7 @@ def test_run_gate_clearing_batch_skips_repair_units_when_unit_fingerprints_match
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     latest_record_path = study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"
@@ -266,7 +266,7 @@ def test_run_gate_clearing_batch_skips_submission_refresh_only_when_inputs_match
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_submission_minimal_fingerprint_inputs(paper_root)
@@ -379,7 +379,7 @@ def test_run_gate_clearing_batch_reruns_submission_refresh_when_previous_matchin
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_submission_minimal_fingerprint_inputs(paper_root)
@@ -465,7 +465,7 @@ def test_run_gate_clearing_batch_reruns_delivery_sync_when_previous_matching_run
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_submission_minimal_fingerprint_inputs(paper_root)
@@ -585,7 +585,7 @@ def test_run_gate_clearing_batch_reruns_submission_refresh_when_quality_inputs_c
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_submission_minimal_fingerprint_inputs(paper_root)
@@ -670,7 +670,7 @@ def test_run_gate_clearing_batch_reruns_submission_refresh_when_submission_outpu
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_submission_minimal_fingerprint_inputs(paper_root)
@@ -768,7 +768,7 @@ def test_run_gate_clearing_batch_rebuilds_submission_minimal_when_delivery_surfa
         endpoint_type="binary",
         manuscript_family="observational_study",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     _write_submission_minimal_fingerprint_inputs(paper_root)
@@ -838,7 +838,7 @@ def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeyp
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
 
     _write_json(
         study_root / "artifacts" / "controller" / "study_charter.json",

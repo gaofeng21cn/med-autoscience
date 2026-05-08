@@ -25,7 +25,7 @@ def test_study_progress_verified_reviewer_handoff_surfaces_ai_reviewer_quality_c
         endpoint_type="binary",
         manuscript_family="risk_stratification",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-003"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-003"
     _write_json(
         study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
         {

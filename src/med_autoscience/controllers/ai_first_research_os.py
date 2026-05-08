@@ -146,7 +146,7 @@ def build_ai_first_research_os_contract() -> dict[str, Any]:
         "target_state": {
             "research_owner": "MedAutoScience",
             "quality_owner": "MedAutoScience AI reviewer artifacts",
-            "mds_role": "replaceable_backend_oracle",
+            "mds_role": "frozen_source_archive_or_historical_fixture_only",
             "mechanical_system_role": "evidence_status_completeness_replay",
             "quality_gate_relaxation_allowed": False,
         },
@@ -160,8 +160,8 @@ def build_ai_first_research_os_contract() -> dict[str, Any]:
         },
         "migration_strategy": {
             "mode": "contract_first_strangler",
-            "physical_monorepo_absorb": "post_parity_gate_only",
-            "capability_cutover_rule": "parity_proof_before_owner_switch",
+            "physical_monorepo_absorb": "landed_no_history_functional_monolith",
+            "capability_cutover_rule": "mas_owned_capability_or_historical_fixture_only",
             "rollback_surface_required": True,
         },
         "external_engineering_basis": [dict(item) for item in EXTERNAL_ENGINEERING_BASIS],
@@ -176,8 +176,8 @@ def validate_ai_first_research_os_contract(contract: Mapping[str, Any]) -> dict[
         issues.append({"code": "wrong_research_owner"})
     if _text(target_state.get("quality_owner")) != "MedAutoScience AI reviewer artifacts":
         issues.append({"code": "quality_owner_not_ai_reviewer_artifacts"})
-    if _text(target_state.get("mds_role")) != "replaceable_backend_oracle":
-        issues.append({"code": "mds_role_not_backend_oracle"})
+    if _text(target_state.get("mds_role")) != "frozen_source_archive_or_historical_fixture_only":
+        issues.append({"code": "mds_role_not_frozen_archive_or_fixture"})
     if _text(target_state.get("mechanical_system_role")) != "evidence_status_completeness_replay":
         issues.append({"code": "mechanical_system_role_not_projection_replay"})
     if target_state.get("quality_gate_relaxation_allowed") is not False:

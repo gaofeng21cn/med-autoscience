@@ -119,7 +119,7 @@ def test_build_phase5_platform_target_uses_shared_builder(monkeypatch) -> None:
 
     assert payload["surface_kind"] == "phase5_platform_target"
     assert captured["sequence_scope"] == "monorepo_landing_readiness"
-    assert len(captured["landing_sequence"]) == 6
+    assert len(captured["landing_sequence"]) == 9
 
 def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestration(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")

@@ -27,7 +27,7 @@ Human / Agent
 
 - `OPL Gateway` 负责顶层路由语义与跨 domain 联邦语言
 - `MedAutoScience` 负责 `Research Ops` 这个 domain 的正式入口与运行底座
-- `MedDeepScientist` 当前是 `MedAutoScience` harness OS 中最核心的 runtime executor 之一，但不等于整个 harness OS
+- `MAS Runtime OS` 是当前默认 runtime owner / substrate；`MedDeepScientist` 只作为 frozen source archive、historical fixture 和 explicit legacy diagnostic / provenance reference 保留
 
 ## Domain Gateway 负责什么
 

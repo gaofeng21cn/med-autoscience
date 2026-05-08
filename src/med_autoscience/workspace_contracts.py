@@ -214,7 +214,6 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     medautoscience_config_env = profile.workspace_root / "ops" / "medautoscience" / "config.env"
     controlled_backend_config_env = layout.config_env_path
     controlled_backend_bin_dir = layout.bin_root
-    manifest_info = inspect_med_deepscientist_repo_manifest(profile.med_deepscientist_repo_root)
     launcher_path_info = _inspect_launcher_path(controlled_backend_config_env)
     launcher_checks: dict[str, bool] = {
         "medautoscience_config_env_exists": medautoscience_config_env.is_file(),
@@ -222,9 +221,15 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
         "controlled_backend_bin_dir_exists": controlled_backend_bin_dir.is_dir(),
     }
     runner_retirement_checks = dict(launcher_path_info["checks"])
+    manifest_info: dict[str, object] = {
+        "inspection_skipped": True,
+        "skip_reason": "explicit_backend_audit_only",
+        "repo_root": str(profile.med_deepscientist_repo_root) if profile.med_deepscientist_repo_root else None,
+    }
     manifest_checks: dict[str, bool] = {
-        "manifest_found": manifest_info["manifest_found"],
-        "manifest_parsable": manifest_info["manifest_parsable"],
+        "default_manifest_inspection_disabled": True,
+        "manifest_found": False,
+        "manifest_parsable": False,
     }
     launcher_issues = _collect_check_issues(launcher_checks, prefix="launcher_contract")
     runner_configured = bool(runner_retirement_checks.get("controlled_backend_launcher_configured"))

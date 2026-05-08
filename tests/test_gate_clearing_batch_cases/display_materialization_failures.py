@@ -164,7 +164,7 @@ def test_gate_clearing_batch_record_binds_source_work_unit_fingerprint(monkeypat
     publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "002-dm-china-us-mortality-attribution", quest_id="quest-002")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-002" / "paper"
     paper_root.mkdir(parents=True, exist_ok=True)
     gate_report = {

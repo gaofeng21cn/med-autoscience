@@ -25,10 +25,10 @@ def make_profile(tmp_path: Path):
     return profiles.WorkspaceProfile(
         name="diabetes",
         workspace_root=workspace_root,
-        runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests",
+        runtime_root=workspace_root / "runtime" / "quests",
         studies_root=workspace_root / "studies",
         portfolio_root=workspace_root / "portfolio",
-        med_deepscientist_runtime_root=workspace_root / "ops" / "med-deepscientist" / "runtime",
+        med_deepscientist_runtime_root=workspace_root / "legacy" / "med-deepscientist" / "runtime",
         med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",

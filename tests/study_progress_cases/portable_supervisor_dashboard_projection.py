@@ -20,7 +20,7 @@ def test_study_progress_projects_workspace_hourly_supervisor_dashboard_and_mcp_m
     mcp_projection = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk", quest_id="quest-001")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     hourly_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
     _write_json(
         hourly_path,

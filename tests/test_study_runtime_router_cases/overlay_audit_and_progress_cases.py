@@ -375,7 +375,7 @@ def test_ensure_study_runtime_pauses_running_quest_when_runtime_overlay_audit_fa
     assert result["reason"] == "runtime_overlay_audit_failed_for_running_quest"
     assert result["quest_status"] == "paused"
     assert paused == {
-        "runtime_root": profile.med_deepscientist_runtime_root,
+        "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
     }

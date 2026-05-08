@@ -22,9 +22,10 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_behavior_equivalence_gate,
     _render_forward_script,
     _render_install_watch_runtime_service_script,
-    _render_med_deepscientist_forward,
-    _render_med_deepscientist_shared,
-    _render_med_deepscientist_show_config,
+    _render_mas_runtime_bridge_forward,
+    _render_mas_runtime_bridge_shared,
+    _render_mas_runtime_bridge_show_config,
+    _render_mas_runtime_bridge_stop_script,
     _render_medautosci_shared,
     _render_progress_portal_start_web_script,
     _render_profile_optional_forward_script,
@@ -137,9 +138,9 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "- 稿件与投稿交付物\n\n"
         "## 下一步\n\n"
         "1. 整理原始数据、变量定义、终点定义和参考资料。\n"
-        f"2. 编辑 `{profile_relpath.as_posix()}`，补全 publication profile 与受控研究后端 repo 信息。\n"
+        f"2. 编辑 `{profile_relpath.as_posix()}`，补全 publication profile、citation style 与 workspace 路径信息。\n"
         "3. 编辑 `ops/medautoscience/config.env`，设置共享 `MedAutoScience` 仓库路径。\n"
-        "4. 编辑 `ops/mas/config.env`，设置本机受控研究后端 launcher 路径。\n"
+        "4. `ops/mas/config.env` 是 MAS runtime bridge 配置面，默认不需要外部 MDS launcher。\n"
         "5. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
         "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
         "7. 运行 `ops/medautoscience/bin/progress-portal` 刷新固定进度入口，然后打开 `ops/mas/progress/index.html` 查看当前进度。\n\n"
@@ -150,8 +151,8 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
         "- `runtime/` 保存运行态，`artifacts/runtime/` 保存 SQLite sidecar 与维护 ledger，`ops/mas/` 只保留薄运维桥。\n"
-        "- 不要直接通过后端 UI、CLI 或 daemon HTTP API 发起研究 quest。\n"
-        "- 如果需要启动、查看或停止 runtime，只把 `ops/mas/bin/*` 当作运维面，不把它当成研究入口。\n"
+        "- 不要直接通过外部后端 UI、CLI 或 daemon HTTP API 发起研究 quest。\n"
+        "- 如果需要启动、查看或停止 runtime，只把 `ops/mas/bin/*` 当作 MAS 运维面，不把它当成研究入口。\n"
     )
 
 
@@ -246,13 +247,9 @@ def _render_workspace_profile_entries(
         ("name", f"name = {_quote_toml_string(workspace_name)}"),
         ("workspace_root", f"workspace_root = {_quote_toml_string(workspace_root)}"),
         ("runtime_root", f"runtime_root = {_quote_toml_string(layout.quests_root)}"),
+        ("managed_runtime_home", f"managed_runtime_home = {_quote_toml_string(layout.runtime_root)}"),
         ("studies_root", f"studies_root = {_quote_toml_string(workspace_root / 'studies')}"),
         ("portfolio_root", f"portfolio_root = {_quote_toml_string(workspace_root / 'portfolio')}"),
-        (
-            "med_deepscientist_runtime_root",
-            f"med_deepscientist_runtime_root = {_quote_toml_string(layout.runtime_root)}",
-        ),
-        ("med_deepscientist_repo_root", 'med_deepscientist_repo_root = ""'),
     ]
     if hermes_agent_repo_root is not None:
         entries.append(
@@ -338,8 +335,30 @@ def _render_workspace_profile(
     return "\n".join(line for _, line in entries) + "\n"
 
 
+def _payload_has_legacy_diagnostic_runtime(payload: dict[str, object]) -> bool:
+    legacy_diagnostic = payload.get("legacy_diagnostic")
+    if not isinstance(legacy_diagnostic, dict):
+        return False
+    return any(
+        isinstance(legacy_diagnostic.get(key), str) and str(legacy_diagnostic.get(key)).strip()
+        for key in ("runtime_root", "med_deepscientist_runtime_root")
+    )
+
+
 def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -> str | None:
     suffix = path.parts[-4:]
+    if len(path.parts) >= 3 and path.parts[-3:] == ("ops", "mas", "config.env"):
+        if "MED_DEEPSCIENTIST_LAUNCHER" in existing_content:
+            return "legacy_mds_launcher_bridge_config"
+        return None
+    if suffix == ("ops", "mas", "bin", "_shared.sh"):
+        if "MED_DEEPSCIENTIST_LAUNCHER" in existing_content or "run_med_deepscientist_launcher" in existing_content:
+            return "legacy_mds_launcher_bridge_shared"
+        return None
+    if len(suffix) == 4 and suffix[:3] == ("ops", "mas", "bin"):
+        if "run_med_deepscientist_launcher" in existing_content:
+            return "legacy_mds_launcher_bridge_forward"
+        return None
     if suffix == ("ops", "medautoscience", "bin", "_shared.sh"):
         if "python3 -m med_autoscience.cli" in existing_content:
             return "legacy_python_entry"
@@ -502,7 +521,6 @@ def _merge_workspace_profile_content(
         "runtime_root",
         "studies_root",
         "portfolio_root",
-        "med_deepscientist_runtime_root",
     }
     if not required_identity_keys.issubset(payload):
         return existing_content
@@ -515,7 +533,11 @@ def _merge_workspace_profile_content(
         hermes_home_root=hermes_home_root,
         include_hermes_placeholders=False,
     )
-    missing_lines = [line for key, line in merge_entries if key not in payload]
+    missing_lines = [
+        line
+        for key, line in merge_entries
+        if key not in payload and not (key == "managed_runtime_home" and _payload_has_legacy_diagnostic_runtime(payload))
+    ]
     if not missing_lines:
         return existing_content
     base = existing_content.rstrip()
@@ -608,11 +630,11 @@ def _rendered_files(
         ),
         RenderedFile(
             path=layout.config_env_path,
-            content=workspace_entry_rendering_controller.render_med_deepscientist_config(),
+            content=workspace_entry_rendering_controller.render_mas_runtime_bridge_config(),
         ),
         RenderedFile(
             path=layout.config_env_example_path,
-            content=workspace_entry_rendering_controller.render_med_deepscientist_config(),
+            content=workspace_entry_rendering_controller.render_mas_runtime_bridge_config(),
         ),
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "README.md",
@@ -620,7 +642,7 @@ def _rendered_files(
         ),
         RenderedFile(
             path=layout.readme_path,
-            content=workspace_entry_rendering_controller.render_med_deepscientist_readme(),
+            content=workspace_entry_rendering_controller.render_mas_runtime_bridge_readme(),
         ),
         RenderedFile(
             path=layout.behavior_gate_path,
@@ -794,17 +816,17 @@ def _rendered_files(
         ),
         RenderedFile(
             path=layout.bin_root / "_shared.sh",
-            content=_render_med_deepscientist_shared(),
+            content=_render_mas_runtime_bridge_shared(),
             executable=True,
         ),
         RenderedFile(
             path=layout.bin_root / "doctor",
-            content=_render_med_deepscientist_forward("doctor"),
+            content=_render_mas_runtime_bridge_forward("doctor report"),
             executable=True,
         ),
         RenderedFile(
             path=layout.bin_root / "show-config",
-            content=_render_med_deepscientist_show_config(),
+            content=_render_mas_runtime_bridge_show_config(),
             executable=True,
         ),
         RenderedFile(
@@ -814,12 +836,12 @@ def _rendered_files(
         ),
         RenderedFile(
             path=layout.bin_root / "status",
-            content=_render_med_deepscientist_forward("--status"),
+            content=_render_mas_runtime_bridge_forward("workspace cockpit", command_suffix=" --format json"),
             executable=True,
         ),
         RenderedFile(
             path=layout.bin_root / "stop",
-            content=_render_med_deepscientist_forward("--stop"),
+            content=_render_mas_runtime_bridge_stop_script(),
             executable=True,
         ),
     ]
@@ -973,7 +995,6 @@ def init_workspace(
         "profile_path": str(profile_path),
         "next_steps": [
             f"edit {workspace_root / 'ops' / 'medautoscience' / 'config.env'}",
-            f"edit {layout.config_env_path}",
             f"review {profile_path}",
             f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'show-profile'}",
             f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'bootstrap'}",

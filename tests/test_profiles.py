@@ -118,9 +118,9 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
                 'name = "minimal"',
                 'workspace_root = "/tmp/workspace"',
                 'runtime_root = "/tmp/workspace/runtime/quests"',
+                'managed_runtime_home = "/tmp/workspace/runtime"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
             ]
@@ -132,6 +132,7 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     profiles = importlib.import_module("med_autoscience.profiles")
     profile = profiles.load_profile(profile_path)
 
+    assert profile.med_deepscientist_runtime_root == Path("/tmp/workspace/runtime").resolve()
     assert profile.med_deepscientist_repo_root is None
     assert profile.hermes_agent_repo_root is None
     assert profile.hermes_home_root == Path.home() / ".hermes"
@@ -168,6 +169,37 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     assert profile.startup_boundary_requirements == ("paper_framing", "journal_shortlist", "evidence_package")
     assert profile.developer_supervisor_mode == "internal_only"
     assert profile.developer_supervisor_mode_explicit is False
+
+
+def test_load_profile_accepts_legacy_diagnostic_table_without_top_level_mds_fields(tmp_path: Path) -> None:
+    profile_path = tmp_path / "legacy-diagnostic.local.toml"
+    profile_path.write_text(
+        "\n".join(
+            [
+                'name = "legacy-diagnostic"',
+                'workspace_root = "/tmp/workspace"',
+                'runtime_root = "/tmp/workspace/runtime/quests"',
+                'managed_runtime_home = "/tmp/workspace/runtime"',
+                'studies_root = "/tmp/workspace/studies"',
+                'portfolio_root = "/tmp/workspace/portfolio"',
+                'default_publication_profile = "general_medical_journal"',
+                'default_citation_style = "AMA"',
+                "[legacy_diagnostic]",
+                'runtime_root = "/tmp/workspace/legacy/mds-runtime"',
+                'controlled_backend_repo_root = "/tmp/med-deepscientist"',
+                "read_only = true",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    profiles = importlib.import_module("med_autoscience.profiles")
+    profile = profiles.load_profile(profile_path)
+
+    assert profile.runtime_root == Path("/tmp/workspace/runtime/quests").resolve()
+    assert profile.med_deepscientist_runtime_root == Path("/tmp/workspace/legacy/mds-runtime").resolve()
+    assert profile.med_deepscientist_repo_root == Path("/tmp/med-deepscientist").resolve()
 
 
 def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> None:
@@ -210,6 +242,8 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["hermes_home_root"] == str(profile.hermes_home_root)
     assert contract["managed_runtime_backend_id"] == profile.managed_runtime_backend_id
     assert contract["runtime_backend_contract"] == {
+        "runtime_owner": "mas_runtime_os",
+        "runtime_substrate": "mas_runtime_core",
         "runtime_backend_id": "mas_runtime_core",
         "runtime_engine_id": "mas-runtime-core",
         "research_backend_id": "mas_runtime_core",

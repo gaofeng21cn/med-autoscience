@@ -18,7 +18,7 @@ def test_study_progress_projects_artifact_proof_and_submission_hygiene_truth(
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     paper_root = study_root / "paper"
     source_root = paper_root / "submission_minimal"
     source_root.mkdir(parents=True, exist_ok=True)
@@ -115,7 +115,7 @@ def test_study_progress_projects_ai_first_action_dispatch_lifecycle(
     dispatch = importlib.import_module("med_autoscience.controllers.ai_first_action_dispatch")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "artifacts" / "runtime" / "ai_first_action_dispatch_ledger" / "latest.json",
         {
@@ -197,7 +197,7 @@ def test_study_progress_projects_ai_reviewer_request_lifecycle(
     )
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(study_root / "paper" / "manuscript.md", {"body": "Draft manuscript."})
     _write_json(study_root / "paper" / "evidence_ledger.json", {"items": []})
     _write_json(study_root / "paper" / "review" / "review_ledger.json", {"closures": []})
@@ -294,7 +294,7 @@ def test_study_progress_projects_paper_orchestra_operator_read_model_without_new
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "paper" / "authoring_workplan.json",
         {
@@ -442,7 +442,7 @@ def test_study_progress_operator_projection_integrates_landed_paper_orchestra_su
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     paper_root = study_root / "paper"
     _write_json(
         paper_root / "authoring_workplan.json",

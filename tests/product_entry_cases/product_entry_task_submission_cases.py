@@ -82,7 +82,7 @@ def test_submit_study_task_enqueues_task_context_for_live_runtime(
     runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
+    quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     write_text(quest_root / "quest.yaml", "id: 001-risk\n")
     write_text(
         quest_root / ".ds" / "runtime_state.json",
@@ -159,7 +159,7 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_for_current_run(
     runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
+    quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     write_text(quest_root / "quest.yaml", "id: 001-risk\n")
     write_text(
         quest_root / ".ds" / "runtime_state.json",
@@ -235,7 +235,7 @@ def test_submit_study_task_deduplicates_same_live_runtime_task_across_run_attemp
     runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
+    quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     write_text(quest_root / "quest.yaml", "id: 001-risk\n")
     write_text(
         quest_root / ".ds" / "runtime_state.json",
@@ -310,8 +310,8 @@ def test_submit_study_task_uses_managed_quest_id_for_live_runtime_intervention(
     runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk", quest_id="001-risk-managed")
-    short_quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
-    managed_quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk-managed"
+    short_quest_root = profile.managed_runtime_home / "quests" / "001-risk"
+    managed_quest_root = profile.managed_runtime_home / "quests" / "001-risk-managed"
     write_text(managed_quest_root / "quest.yaml", "id: 001-risk-managed\n")
     write_text(
         managed_quest_root / ".ds" / "runtime_state.json",
@@ -371,7 +371,7 @@ def test_submit_study_task_requires_reactivation_for_stopped_reviewer_revision(t
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
     write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
+    quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     write_text(quest_root / "quest.yaml", "id: 001-risk\n")
     write_text(
         quest_root / ".ds" / "runtime_state.json",
@@ -413,7 +413,7 @@ def test_submit_study_task_falls_back_to_durable_queue_when_backend_chat_is_unav
     runtime_backend = importlib.import_module("med_autoscience.runtime_backend")
     profile = make_profile(tmp_path)
     write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "001-risk"
+    quest_root = profile.managed_runtime_home / "quests" / "001-risk"
     write_text(quest_root / "quest.yaml", "id: 001-risk\n")
     write_text(
         quest_root / ".ds" / "runtime_state.json",

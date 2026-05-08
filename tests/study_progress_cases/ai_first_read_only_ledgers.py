@@ -21,7 +21,7 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,
@@ -150,7 +150,7 @@ def test_study_progress_default_read_does_not_materialize_ai_first_ledgers(
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         {

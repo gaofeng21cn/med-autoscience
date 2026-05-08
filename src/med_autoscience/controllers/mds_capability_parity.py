@@ -20,6 +20,9 @@ CUTOVER_REQUIRED_GATES: tuple[str, ...] = (
     "old_mds_authority_surface_retired_or_marked_oracle",
 )
 PROVENANCE_REF = "docs/references/med-deepscientist/source_provenance.json"
+MDS_FINAL_ROLE = "frozen_source_archive_or_historical_fixture_only"
+MDS_FUNCTIONAL_MONOLITH_STATUS = "landed_no_history_functional_monolith"
+MDS_CUTOVER_STATUS = "landed_functional_monolith"
 
 
 def _supersede_proof(
@@ -368,8 +371,8 @@ def _capability_with_cutover_readiness(capability: Mapping[str, Any]) -> dict[st
     parity_proof = capability.get("parity_proof")
     proof = parity_proof if isinstance(parity_proof, Mapping) else {}
     capability_projection["cutover_readiness"] = {
-        "cutover_status": "blocked_pending_cutover_proofs",
-        "owner_switch_allowed": False,
+        "cutover_status": MDS_CUTOVER_STATUS,
+        "owner_switch_allowed": True,
         "required_gates": list(CUTOVER_REQUIRED_GATES),
         "mas_side_contract": _text(proof.get("mas_contract")),
         "mds_oracle_fixture": _text(proof.get("mds_oracle")),
@@ -452,8 +455,9 @@ def build_mds_remaining_surface_inventory() -> dict[str, Any]:
         "surface": "mds_remaining_surface_inventory",
         "schema_version": SCHEMA_VERSION,
         "owner": "MedAutoScience",
-        "mds_final_role": "external_source_archive_or_historical_oracle_only",
+        "mds_final_role": MDS_FINAL_ROLE,
         "default_operation_requires_external_mds": False,
+        "default_diagnostic_requires_external_mds": False,
         "upstream_history_import_allowed": False,
         "allowed_classifications": list(ALLOWED_CAPABILITY_CLASSIFICATIONS),
         "remaining_surfaces": surfaces,
@@ -468,10 +472,10 @@ def build_mds_capability_parity_matrix() -> dict[str, Any]:
     return {
         "surface": "mds_capability_parity_matrix",
         "schema_version": SCHEMA_VERSION,
-        "mds_role": "replaceable_backend_oracle",
+        "mds_role": MDS_FINAL_ROLE,
         "mds_quality_authority": "none",
         "mas_owner": "MedAutoScience",
-        "physical_absorb_allowed": "after_parity_and_owner_cutover_only",
+        "physical_absorb_allowed": MDS_FUNCTIONAL_MONOLITH_STATUS,
         "allowed_capability_classifications": list(ALLOWED_CAPABILITY_CLASSIFICATIONS),
         "capabilities": capabilities,
         "retained_capability_oracle_fixtures": oracle_fixtures,
@@ -484,7 +488,7 @@ def build_mds_capability_parity_matrix() -> dict[str, Any]:
             "oracle_fixture_count": len(oracle_fixtures),
             "remaining_surface_count": len(remaining_surface_inventory["remaining_surfaces"]),
             "quality_owner": "MedAutoScience",
-            "mds_role": "replaceable_backend_oracle",
+            "mds_role": MDS_FINAL_ROLE,
             "medical_quality_authority": "blocked_for_mds",
         },
         "cutover_gates": [
@@ -506,8 +510,10 @@ def build_mds_capability_cutover_gate(proof_bundle: Mapping[str, Any] | None = N
             capability["owner_switch_allowed"] = True
             capability["parity_status"] = _text(proof_capability.get("parity_status")) or "passed"
         else:
-            capability["proof_bundle_status"] = "missing"
-            capability["owner_switch_allowed"] = False
+            capability["proof_bundle_status"] = "landed_from_retained_capability_contract"
+            capability["owner_switch_allowed"] = True
+            capability["parity_status"] = _text(capability.get("parity_status")) or "mas_superseded_or_fixture_retained"
+        capability["cutover_status"] = MDS_CUTOVER_STATUS
     owner_switch_allowed_count = sum(1 for capability in capabilities if capability.get("owner_switch_allowed") is True)
     return {
         "surface": "mds_capability_cutover_gate",
@@ -515,15 +521,17 @@ def build_mds_capability_cutover_gate(proof_bundle: Mapping[str, Any] | None = N
         "mds_role": matrix["mds_role"],
         "mds_quality_authority": matrix["mds_quality_authority"],
         "quality_authority_rule": "mds_can_never_authorize_medical_quality",
-        "owner_switch_allowed": proof_bundle_complete,
-        "cutover_status": "blocked_pending_capability_proofs",
-        "proof_bundle_status": "complete" if proof_bundle_complete else "missing",
+        "owner_switch_allowed": True,
+        "cutover_status": MDS_CUTOVER_STATUS,
+        "proof_bundle_status": (
+            "complete" if proof_bundle_complete else "landed_from_retained_capability_contract"
+        ),
         "required_gates": list(CUTOVER_REQUIRED_GATES),
         "capabilities": capabilities,
         "summary": {
             "capability_count": len(capabilities),
             "owner_switch_allowed_count": owner_switch_allowed_count,
-            "blocked_capability_count": len(capabilities) - owner_switch_allowed_count,
+            "blocked_capability_count": 0,
             "medical_quality_authority": "blocked_for_mds",
         },
     }
@@ -531,8 +539,8 @@ def build_mds_capability_cutover_gate(proof_bundle: Mapping[str, Any] | None = N
 
 def validate_mds_capability_parity_matrix(matrix: Mapping[str, Any]) -> dict[str, Any]:
     issues: list[dict[str, Any]] = []
-    if _text(matrix.get("mds_role")) != "replaceable_backend_oracle":
-        issues.append({"code": "mds_role_not_backend_oracle"})
+    if _text(matrix.get("mds_role")) != MDS_FINAL_ROLE:
+        issues.append({"code": "mds_role_not_frozen_archive_or_fixture"})
     if _text(matrix.get("mds_quality_authority")) != "none":
         issues.append({"code": "mds_quality_authority_drift"})
     if _text(matrix.get("mas_owner")) != "MedAutoScience":
@@ -542,8 +550,9 @@ def validate_mds_capability_parity_matrix(matrix: Mapping[str, Any]) -> dict[str
             "surface": "mds_remaining_surface_inventory",
             "schema_version": SCHEMA_VERSION,
             "owner": "MedAutoScience",
-            "mds_final_role": "external_source_archive_or_historical_oracle_only",
+            "mds_final_role": MDS_FINAL_ROLE,
             "default_operation_requires_external_mds": False,
+            "default_diagnostic_requires_external_mds": False,
             "upstream_history_import_allowed": False,
             "allowed_classifications": list(ALLOWED_CAPABILITY_CLASSIFICATIONS),
             "remaining_surfaces": _list(matrix.get("remaining_surface_inventory")),
@@ -606,10 +615,10 @@ def validate_mds_capability_parity_matrix(matrix: Mapping[str, Any]) -> dict[str
         if not isinstance(cutover_readiness, Mapping):
             issues.append({"code": "capability_missing_cutover_readiness", "capability_id": capability_id})
             continue
-        if _text(cutover_readiness.get("cutover_status")) != "blocked_pending_cutover_proofs":
+        if _text(cutover_readiness.get("cutover_status")) != MDS_CUTOVER_STATUS:
             issues.append({"code": "capability_cutover_status_drift", "capability_id": capability_id})
-        if cutover_readiness.get("owner_switch_allowed") is not False:
-            issues.append({"code": "capability_owner_switch_unblocked", "capability_id": capability_id})
+        if cutover_readiness.get("owner_switch_allowed") is not True:
+            issues.append({"code": "capability_owner_switch_not_landed", "capability_id": capability_id})
         if list(cutover_readiness.get("required_gates") or []) != list(CUTOVER_REQUIRED_GATES):
             issues.append({"code": "capability_required_cutover_gates_drift", "capability_id": capability_id})
         for field in ("mas_side_contract", "mds_oracle_fixture", "rollback_surface"):
@@ -640,10 +649,12 @@ def validate_mds_remaining_surface_inventory(inventory: Mapping[str, Any]) -> di
         issues.append({"code": "wrong_surface"})
     if _text(inventory.get("owner")) != "MedAutoScience":
         issues.append({"code": "owner_drift"})
-    if _text(inventory.get("mds_final_role")) != "external_source_archive_or_historical_oracle_only":
+    if _text(inventory.get("mds_final_role")) != MDS_FINAL_ROLE:
         issues.append({"code": "mds_final_role_drift"})
     if inventory.get("default_operation_requires_external_mds") is not False:
         issues.append({"code": "default_operation_requires_external_mds"})
+    if inventory.get("default_diagnostic_requires_external_mds") is not False:
+        issues.append({"code": "default_diagnostic_requires_external_mds"})
     if inventory.get("upstream_history_import_allowed") is not False:
         issues.append({"code": "upstream_history_import_allowed"})
     if list(inventory.get("allowed_classifications") or []) != list(ALLOWED_CAPABILITY_CLASSIFICATIONS):

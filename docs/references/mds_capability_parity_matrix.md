@@ -1,10 +1,10 @@
 # MDS Capability Parity Matrix
 
-MDS 的长线角色是 replaceable backend / behavior oracle。MAS 吸收 MDS 能力时按 capability / remaining surface 推进，不按目录搬迁。
+MDS 的长线角色已经降为 frozen source archive / historical fixture / explicit legacy diagnostic / provenance reference。MAS 吸收 MDS 能力时按 capability / remaining surface 推进，不按目录搬迁。
 
-MDS 不能授权 medical quality。医学论文质量、publication readiness、controller decision 与最终 package state 都由 MedAutoScience 持有；MDS 只能提供可替换 backend 行为、机械检查信号、legacy fixture 和 parity oracle。
+MDS 不能授权 medical quality。医学论文质量、publication readiness、controller decision 与最终 package state 都由 MedAutoScience 持有；MDS 只能提供 historical fixture、source provenance、mechanical signal fixture 和 explicit legacy diagnostic 输入。
 
-2026-05-08 no-history physical absorb closeout 已把当前 retained capability 固定为 MAS-owned proof bundle：source provenance 见 `docs/references/med-deepscientist/source_provenance.json`，当前 snapshot 为 `med-deepscientist@35976b7d6e3b99b15b57ec44ff5f5d959b342ecc`，archive sha256 为 `f8dc31822dc52ecc6e073f54c8b5c95cd46646e299a67cd1c1f6f7f3764e0d5b`。该 closeout 没有导入上游 git history；MDS 独立 checkout 只保留为 optional oracle / intake / audit reference。
+2026-05-08 no-history physical absorb closeout 已把当前 retained capability 固定为 MAS-owned proof bundle：source provenance 见 `docs/references/med-deepscientist/source_provenance.json`，当前 snapshot 为 `med-deepscientist@35976b7d6e3b99b15b57ec44ff5f5d959b342ecc`，archive sha256 为 `f8dc31822dc52ecc6e073f54c8b5c95cd46646e299a67cd1c1f6f7f3764e0d5b`。该 closeout 没有导入上游 git history；MDS 独立 checkout 只保留为 frozen source archive、historical fixture 和 explicit legacy diagnostic / provenance reference。
 
 2026-05-08 functional monolith inventory 追加机器可读分类，固定在 `med_autoscience.controllers.mds_capability_parity` 与 `docs/references/med-deepscientist/source_provenance.json`。允许分类只有 `mas_owned`、`rewrite_in_mas`、`fixture_only`、`retire`、`external_source_archive_only`；旧 `absorb` / `oracle` / `compat` 不再是 machine-readable cutover contract 值。
 

@@ -25,7 +25,7 @@ def test_study_progress_projects_gate_specificity_as_controller_lane(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         {
@@ -134,7 +134,7 @@ def test_gate_specificity_supersedes_older_task_intake_route_override(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     _write_json(
         study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
         {
@@ -240,7 +240,7 @@ def test_gate_specificity_takes_priority_over_live_activity_timeout(
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
     )
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         {
@@ -380,7 +380,7 @@ def test_study_progress_reads_gate_specificity_request_surface(
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
     request_path = (
         study_root
         / "artifacts"

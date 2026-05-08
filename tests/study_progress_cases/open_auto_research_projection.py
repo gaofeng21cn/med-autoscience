@@ -180,7 +180,7 @@ def test_study_progress_projects_open_auto_research_capabilities_without_authori
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     _write_open_auto_research_surfaces(study_root)
 
     monkeypatch.setattr(
@@ -340,7 +340,7 @@ def test_dm002_like_open_auto_research_soak_matrix_blocks_authority_takeover_and
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "DM002-like")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-dm002"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-dm002"
     _write_dm002_like_open_auto_research_soak_surfaces(study_root)
 
     monkeypatch.setattr(

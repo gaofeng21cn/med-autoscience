@@ -140,7 +140,7 @@ def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract
     outer_loop_tests = importlib.import_module("tests.test_study_outer_loop")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.med_deepscientist_runtime_root / "quests" / "quest-001"
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = outer_loop_tests._write_runtime_escalation_record(outer_loop, quest_root, study_root)
     charter_ref = outer_loop_tests._write_charter(study_root)
     publication_eval_ref = outer_loop_tests._write_publication_eval(study_root, quest_root)
