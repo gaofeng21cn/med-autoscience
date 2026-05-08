@@ -9,6 +9,26 @@ import pytest
 
 pytestmark = pytest.mark.meta
 
+EXPECTED_CLASSIFICATIONS = [
+    "mas_owned",
+    "rewrite_in_mas",
+    "fixture_only",
+    "retire",
+    "external_source_archive_only",
+]
+EXPECTED_REMAINING_SURFACE_IDS = [
+    "runtime_core_daemon",
+    "quest_lifecycle",
+    "worker_runner_lifecycle",
+    "channels_connectors_transport",
+    "mcp_surface",
+    "tui_web_visual_status",
+    "gitops_workspace_state",
+    "skills_overlay_templates",
+    "team_multiagent_coordination",
+    "upstream_source_archive",
+]
+
 
 def test_absorb_governance_contract_freezes_no_history_import_and_source_provenance() -> None:
     module = importlib.import_module("med_autoscience.controllers.mas_mds_absorb_governance")
@@ -41,30 +61,31 @@ def test_absorb_governance_contract_freezes_no_history_import_and_source_provena
     assert provenance["snapshot_archive_format"] == "git archive --format=tar HEAD"
     assert provenance["snapshot_file_count"] == 1843
     assert "LICENSE (Apache-2.0; Copyright 2026 ResearAI)" in provenance["license_refs"]
-    assert provenance["capability_classification"] in {"absorb", "oracle", "retire", "compat"}
+    assert provenance["capability_classification"] in EXPECTED_CLASSIFICATIONS
 
 
-def test_capability_classification_only_allows_absorb_oracle_retire_compat() -> None:
+def test_capability_classification_only_allows_functional_monolith_cutover_contract_values() -> None:
     module = importlib.import_module("med_autoscience.controllers.mas_mds_absorb_governance")
 
     contract = module.build_mas_mds_absorb_governance_contract()
 
-    assert contract["allowed_capability_classifications"] == ["absorb", "oracle", "retire", "compat"]
+    assert contract["allowed_capability_classifications"] == EXPECTED_CLASSIFICATIONS
     assert [item["classification"] for item in contract["capability_classification_guard"]] == [
-        "absorb",
-        "oracle",
+        "mas_owned",
+        "rewrite_in_mas",
+        "fixture_only",
         "retire",
-        "compat",
+        "external_source_archive_only",
     ]
     validation = module.validate_mas_mds_absorb_governance_contract(contract)
     assert validation["ok"] is True
 
-    contract["source_provenance"]["capability_classification"] = "owner"
+    contract["source_provenance"]["capability_classification"] = "oracle"
     contract["capability_classification_guard"].append(
         {
-            "capability_id": "bad_owner_claim",
-            "classification": "owner",
-            "mds_role": "second_owner",
+            "capability_id": "old_oracle_claim",
+            "classification": "oracle",
+            "mds_role": "legacy_oracle",
             "authority_claims": [],
         }
     )
@@ -82,10 +103,10 @@ def test_mds_oracle_classification_cannot_claim_mas_authority_surfaces() -> None
     module = importlib.import_module("med_autoscience.controllers.mas_mds_absorb_governance")
 
     contract = module.build_mas_mds_absorb_governance_contract()
-    oracle = next(item for item in contract["capability_classification_guard"] if item["classification"] == "oracle")
-    assert oracle["mds_role"] == "backend_oracle_only"
-    assert oracle["authority_claims"] == []
-    assert oracle["forbidden_authority_surfaces"] == [
+    fixture = next(item for item in contract["capability_classification_guard"] if item["classification"] == "fixture_only")
+    assert fixture["mds_role"] == "fixture_or_historical_oracle_only"
+    assert fixture["authority_claims"] == []
+    assert fixture["forbidden_authority_surfaces"] == [
         "publication_authority",
         "quality_authority",
         "study_authority",
@@ -93,7 +114,7 @@ def test_mds_oracle_classification_cannot_claim_mas_authority_surfaces() -> None
         "user_visible_next_action_authority",
     ]
 
-    oracle["authority_claims"] = [
+    fixture["authority_claims"] = [
         "study_authority",
         "quality_authority",
         "publication_authority",
@@ -104,7 +125,7 @@ def test_mds_oracle_classification_cannot_claim_mas_authority_surfaces() -> None
     validation = module.validate_mas_mds_absorb_governance_contract(contract)
 
     assert validation["ok"] is False
-    assert {issue["code"] for issue in validation["issues"]} == {"mds_oracle_claims_mas_authority"}
+    assert {issue["code"] for issue in validation["issues"]} == {"mds_fixture_claims_mas_authority"}
 
 
 def test_absorb_governance_validation_fails_closed_on_history_and_provenance_drift() -> None:
@@ -178,7 +199,11 @@ def test_no_history_snapshot_manifest_records_author_guard_and_retained_capabili
         "unwanted_upstream_author_identity_allowed": False,
         "default_branch_contributor_check_required": True,
     }
-    assert {item["classification"] for item in manifest["capabilities"]} == {"absorb", "oracle", "retire", "compat"}
+    assert {item["classification"] for item in manifest["capabilities"]} == {
+        "mas_owned",
+        "fixture_only",
+        "retire",
+    }
     assert manifest["retained_capability_ids"] == [
         "runtime_execution",
         "artifact_inventory",
@@ -190,6 +215,24 @@ def test_no_history_snapshot_manifest_records_author_guard_and_retained_capabili
     assert module.validate_mds_no_history_snapshot_manifest(manifest)["ok"] is True
 
 
+def test_no_history_snapshot_manifest_records_remaining_surface_cutover_classification() -> None:
+    module = importlib.import_module("med_autoscience.controllers.mas_mds_absorb_governance")
+
+    manifest = module.build_mds_no_history_snapshot_manifest()
+    inventory = manifest["remaining_surface_inventory"]
+
+    assert inventory["surface"] == "mds_remaining_surface_inventory"
+    assert inventory["allowed_classifications"] == EXPECTED_CLASSIFICATIONS
+    assert [surface["surface_id"] for surface in inventory["remaining_surfaces"]] == EXPECTED_REMAINING_SURFACE_IDS
+    assert {surface["classification"] for surface in inventory["remaining_surfaces"]} == set(EXPECTED_CLASSIFICATIONS)
+    for surface in inventory["remaining_surfaces"]:
+        assert surface["authority_claims"] == []
+        assert surface["imports_upstream_history"] is False
+        assert surface["default_runtime_dependency_allowed"] is False
+        assert surface["quality_authority_allowed"] is False
+        assert surface["publication_ready_authority_allowed"] is False
+
+
 def test_no_history_snapshot_manifest_validation_blocks_author_and_history_drift() -> None:
     module = importlib.import_module("med_autoscience.controllers.mas_mds_absorb_governance")
 
@@ -199,8 +242,9 @@ def test_no_history_snapshot_manifest_validation_blocks_author_and_history_drift
     manifest["source_provenance"]["snapshot_sha256"] = ""
     manifest["author_audit"]["coauthor_trailers_allowed"] = True
     manifest["author_audit"]["unwanted_upstream_author_identity_allowed"] = True
-    manifest["capabilities"][0]["classification"] = "owner"
+    manifest["capabilities"][0]["classification"] = "oracle"
     manifest["capabilities"][1]["authority_claims"] = ["quality_authority"]
+    manifest["remaining_surface_inventory"]["remaining_surfaces"][0]["classification"] = "absorb"
 
     validation = module.validate_mds_no_history_snapshot_manifest(manifest)
 
@@ -213,6 +257,7 @@ def test_no_history_snapshot_manifest_validation_blocks_author_and_history_drift
         "upstream_author_identity_unblocked",
         "invalid_capability_classification",
         "retained_capability_claims_mas_authority",
+        "invalid_remaining_surface_classification",
     }
 
 
@@ -236,3 +281,8 @@ def test_no_history_source_provenance_json_is_machine_readable() -> None:
     )
     assert payload["author_audit"]["coauthor_trailers_allowed"] is False
     assert payload["author_audit"]["unwanted_upstream_author_identity_allowed"] is False
+    assert payload["remaining_surface_inventory"]["surface"] == "mds_remaining_surface_inventory"
+    assert payload["remaining_surface_inventory"]["allowed_classifications"] == EXPECTED_CLASSIFICATIONS
+    assert [surface["surface_id"] for surface in payload["remaining_surface_inventory"]["remaining_surfaces"]] == (
+        EXPECTED_REMAINING_SURFACE_IDS
+    )

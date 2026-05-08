@@ -15,6 +15,25 @@ EXPECTED_CAPABILITY_IDS = [
     "prompt_stage_discipline",
     "memory_and_lesson_store",
 ]
+EXPECTED_CLASSIFICATIONS = [
+    "mas_owned",
+    "rewrite_in_mas",
+    "fixture_only",
+    "retire",
+    "external_source_archive_only",
+]
+EXPECTED_REMAINING_SURFACE_IDS = [
+    "runtime_core_daemon",
+    "quest_lifecycle",
+    "worker_runner_lifecycle",
+    "channels_connectors_transport",
+    "mcp_surface",
+    "tui_web_visual_status",
+    "gitops_workspace_state",
+    "skills_overlay_templates",
+    "team_multiagent_coordination",
+    "upstream_source_archive",
+]
 
 
 def _complete_proof_bundle_from_matrix(matrix: dict[str, object]) -> dict[str, object]:
@@ -28,6 +47,7 @@ def _complete_proof_bundle_from_matrix(matrix: dict[str, object]) -> dict[str, o
                 "parity_status": "passed",
                 "rollback_surface": capability["rollback_surface"],
                 "provenance_ref": capability["provenance_ref"],
+                "classification": capability["classification"],
                 "quality_authority_allowed": False,
                 "publication_ready_authority_allowed": False,
                 "proof_ref": f"proof-bundles/mds-capability-parity/{capability['capability_id']}.json",
@@ -50,13 +70,16 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
     assert matrix["mds_quality_authority"] == "none"
     assert matrix["mas_owner"] == "MedAutoScience"
     assert matrix["physical_absorb_allowed"] == "after_parity_and_owner_cutover_only"
+    assert matrix["allowed_capability_classifications"] == EXPECTED_CLASSIFICATIONS
     assert [capability["capability_id"] for capability in matrix["capabilities"]] == EXPECTED_CAPABILITY_IDS
     assert matrix["capability_ids"] == EXPECTED_CAPABILITY_IDS
     assert [fixture["capability_id"] for fixture in matrix["retained_capability_oracle_fixtures"]] == EXPECTED_CAPABILITY_IDS
+    assert [surface["surface_id"] for surface in matrix["remaining_surface_inventory"]] == EXPECTED_REMAINING_SURFACE_IDS
     assert matrix["parity_summary"] == {
         "capability_count": 6,
         "proof_count": 6,
         "oracle_fixture_count": 6,
+        "remaining_surface_count": 10,
         "quality_owner": "MedAutoScience",
         "mds_role": "replaceable_backend_oracle",
         "medical_quality_authority": "blocked_for_mds",
@@ -69,6 +92,7 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
         assert capability["can_authorize_medical_quality"] is False
         assert capability["quality_authority_allowed"] is False
         assert capability["publication_ready_authority_allowed"] is False
+        assert capability["classification"] in EXPECTED_CLASSIFICATIONS
         assert capability["mas_owner_surface"]
         assert capability["oracle_fixture_ref"]
         assert capability["parity_status"] == "oracle_fixture_defined"
@@ -81,6 +105,7 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
             "parity_status": "oracle_fixture_defined",
             "rollback_surface": capability["rollback_surface"],
             "provenance_ref": capability["provenance_ref"],
+            "classification": capability["classification"],
             "quality_authority_allowed": False,
             "publication_ready_authority_allowed": False,
         }
@@ -100,6 +125,44 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
         assert cutover_readiness["quality_gate_not_relaxed"] is True
         assert cutover_readiness["rollback_surface"]
         assert cutover_readiness["old_mds_authority_surface_status"] in {"marked_oracle", "retired"}
+
+
+def test_mds_remaining_surface_inventory_classifies_functional_monolith_surfaces_without_upstream_history() -> None:
+    module = importlib.import_module("med_autoscience.controllers.mds_capability_parity")
+
+    inventory = module.build_mds_remaining_surface_inventory()
+
+    assert inventory["surface"] == "mds_remaining_surface_inventory"
+    assert inventory["schema_version"] == 1
+    assert inventory["owner"] == "MedAutoScience"
+    assert inventory["mds_final_role"] == "external_source_archive_or_historical_oracle_only"
+    assert inventory["default_operation_requires_external_mds"] is False
+    assert inventory["upstream_history_import_allowed"] is False
+    assert inventory["allowed_classifications"] == EXPECTED_CLASSIFICATIONS
+    assert [surface["surface_id"] for surface in inventory["remaining_surfaces"]] == EXPECTED_REMAINING_SURFACE_IDS
+    assert {surface["classification"] for surface in inventory["remaining_surfaces"]} == set(EXPECTED_CLASSIFICATIONS)
+    assert inventory["classification_summary"] == {
+        "surface_count": 10,
+        "mas_owned": 1,
+        "rewrite_in_mas": 4,
+        "fixture_only": 2,
+        "retire": 2,
+        "external_source_archive_only": 1,
+    }
+    for surface in inventory["remaining_surfaces"]:
+        assert surface["classification"] in EXPECTED_CLASSIFICATIONS
+        assert surface["mas_target_owner"]
+        assert surface["mds_final_role"]
+        assert surface["cutover_contract"]
+        assert surface["owner_boundary"]
+        assert surface["provenance_ref"] == "docs/references/med-deepscientist/source_provenance.json"
+        assert surface["authority_claims"] == []
+        assert surface["imports_upstream_history"] is False
+        assert surface["default_runtime_dependency_allowed"] is False
+        assert surface["quality_authority_allowed"] is False
+        assert surface["publication_ready_authority_allowed"] is False
+
+    assert module.validate_mds_remaining_surface_inventory(inventory)["ok"] is True
 
 
 def test_mds_capability_cutover_gate_blocks_owner_switch_until_proofs_complete() -> None:
@@ -208,4 +271,25 @@ def test_mds_capability_proof_bundle_validation_fails_closed_on_missing_fixture_
         "proof_bundle_publication_ready_authority_allowed",
         "proof_bundle_missing_rollback_surface",
         "proof_bundle_missing_provenance_ref",
+    }
+
+
+def test_mds_remaining_surface_inventory_validation_blocks_old_classifications_and_authority_claims() -> None:
+    module = importlib.import_module("med_autoscience.controllers.mds_capability_parity")
+    inventory = module.build_mds_remaining_surface_inventory()
+    inventory["remaining_surfaces"][0]["classification"] = "oracle"
+    inventory["remaining_surfaces"][1]["authority_claims"] = ["quality_authority"]
+    inventory["remaining_surfaces"][2]["imports_upstream_history"] = True
+    inventory["remaining_surfaces"][3]["default_runtime_dependency_allowed"] = True
+    inventory["remaining_surfaces"][4]["cutover_contract"] = ""
+
+    validation = module.validate_mds_remaining_surface_inventory(inventory)
+
+    assert validation["ok"] is False
+    assert {issue["code"] for issue in validation["issues"]} >= {
+        "invalid_remaining_surface_classification",
+        "remaining_surface_claims_mas_authority",
+        "remaining_surface_imports_upstream_history",
+        "remaining_surface_default_runtime_dependency_allowed",
+        "remaining_surface_missing_cutover_contract",
     }
