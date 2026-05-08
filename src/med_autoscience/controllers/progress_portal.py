@@ -13,6 +13,7 @@ import webbrowser
 
 from med_autoscience.controllers.progress_portal_parts import (
     dedupe_texts,
+    local_time_projection,
     render_workspace_studies_section,
     unique_text,
     workspace_alert_projection,
@@ -43,6 +44,7 @@ def build_progress_portal_payload(
     runtime_payload: Mapping[str, Any] | None = None,
     package_payload: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
+    local_timezone: str | None = None,
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
     auto_refresh_seconds: int | None = None,
@@ -109,11 +111,13 @@ def build_progress_portal_payload(
         runtime_reconcile_trigger=runtime_reconcile_trigger,
         source_refs=source_refs,
     )
+    resolved_generated_at = generated_at or _utc_now()
     payload = {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
         "brand": BRAND,
-        "generated_at": generated_at or _utc_now(),
+        "generated_at": resolved_generated_at,
+        "generated_at_local": local_time_projection(resolved_generated_at, timezone_name=local_timezone),
         "authority": {
             "kind": "read_model_display_artifact",
             "writes_authority_surface": False,
@@ -188,8 +192,12 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
     portal_view = _mapping(payload.get("portal_view"))
     auto_refresh_seconds = portal_view.get("auto_refresh_seconds")
     generated_at = str(payload.get("generated_at") or "unknown")
+    generated_at_local = _mapping(payload.get("generated_at_local"))
+    generated_at_local_label = _non_empty_text(generated_at_local.get("label")) or generated_at
     brand = str(payload.get("brand") or BRAND)
     state_label = str(study.get("state_label") or "状态投影缺失")
+    workspace_title = str(workspace.get("profile_name") or "unknown workspace")
+    selected_study_id = str(study.get("study_id") or "unknown-study")
     condition_badge = _condition_badge(conditions)
     blockers = _string_list(study.get("current_blockers"))
     workspace_alerts = _string_list(workspace.get("workspace_alerts"))
@@ -225,12 +233,14 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             '<main class="portal">',
             '<header class="masthead">',
             f'<div class="brand">{escape(brand)}</div>',
-            f"<h1>{escape(str(study.get('study_id') or 'unknown-study'))}</h1>",
+            f"<h1>{escape(workspace_title)}</h1>",
             f'<p class="state">{escape(state_label)}</p>',
             '<dl class="meta">',
-            f"<div><dt>generated_at</dt><dd>{escape(generated_at)}</dd></div>",
+            f"<div><dt>generated_at local</dt><dd>{escape(generated_at_local_label)}</dd></div>",
+            f"<div><dt>generated_at UTC</dt><dd>{escape(generated_at)}</dd></div>",
             f"<div><dt>freshness</dt><dd>{escape(str(freshness.get('status') or 'unknown'))}</dd></div>",
             f"<div><dt>workspace</dt><dd>{escape(str(workspace.get('profile_name') or 'unknown'))}</dd></div>",
+            f"<div><dt>selected study</dt><dd>{escape(selected_study_id)}</dd></div>",
             f"<div><dt>conditions</dt><dd>{escape(condition_badge)}</dd></div>",
             "</dl>",
             "</header>",
@@ -285,6 +295,7 @@ def materialize_progress_portal(
     runtime_payload: Mapping[str, Any] | None = None,
     package_payload: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
+    local_timezone: str | None = None,
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
     open_browser: bool = False,
@@ -300,6 +311,7 @@ def materialize_progress_portal(
         runtime_payload=runtime_payload,
         package_payload=package_payload,
         generated_at=generated_at,
+        local_timezone=local_timezone,
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
         auto_refresh_seconds=auto_refresh_seconds,
@@ -441,6 +453,7 @@ def serve_progress_portal(
     runtime_payload: Mapping[str, Any] | None = None,
     package_payload: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
+    local_timezone: str | None = None,
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
     host: str = "127.0.0.1",
@@ -462,6 +475,7 @@ def serve_progress_portal(
             runtime_payload=runtime_payload,
             package_payload=package_payload,
             generated_at=generated_at,
+            local_timezone=local_timezone,
             entry_mode=entry_mode,
             sync_runtime_summary=sync_runtime_summary,
             auto_refresh_seconds=refresh_seconds,

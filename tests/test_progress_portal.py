@@ -267,6 +267,66 @@ def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_work
     assert "Hermes-hosted runtime supervision 尚未注册。" not in html
 
 
+def test_progress_portal_html_header_is_workspace_scoped_and_shows_explicit_local_time() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        progress_payload=_progress_payload("003-dpcc-primary-care-phenotype-treatment-gap"),
+        generated_at="2026-05-08T01:05:00+00:00",
+        local_timezone="Asia/Shanghai",
+    )
+
+    html = module.render_progress_portal_html(payload)
+
+    assert "<h1>diabetes</h1>" in html
+    assert "<h1>003-dpcc-primary-care-phenotype-treatment-gap</h1>" not in html
+    assert "<dt>selected study</dt><dd>003-dpcc-primary-care-phenotype-treatment-gap</dd>" in html
+    assert "<dt>generated_at local</dt><dd>2026-05-08 09:05:00 +08:00" in html
+    assert "Asia/Shanghai" in html
+    assert "<dt>generated_at UTC</dt><dd>2026-05-08T01:05:00+00:00</dd>" in html
+
+
+def test_progress_portal_default_local_time_uses_iana_timezone_from_env(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    monkeypatch.setenv("TZ", "Asia/Shanghai")
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        progress_payload=_progress_payload("003-dpcc-primary-care-phenotype-treatment-gap"),
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    assert payload["generated_at_local"] == {
+        "timezone": "Asia/Shanghai",
+        "iso": "2026-05-08T09:05:00+08:00",
+        "label": "2026-05-08 09:05:00 +08:00 Asia/Shanghai",
+    }
+
+
+def test_progress_portal_default_local_time_resolves_macos_localtime_symlink(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    local_time = importlib.import_module("med_autoscience.controllers.progress_portal_parts.local_time")
+    monkeypatch.delenv("TZ", raising=False)
+    monkeypatch.setattr(
+        local_time,
+        "localtime_symlink_target",
+        lambda: "/var/db/timezone/zoneinfo/Asia/Shanghai",
+    )
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        progress_payload=_progress_payload("003-dpcc-primary-care-phenotype-treatment-gap"),
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    assert payload["generated_at_local"]["timezone"] == "Asia/Shanghai"
+    assert payload["generated_at_local"]["label"] == "2026-05-08 09:05:00 +08:00 Asia/Shanghai"
+
+
 def test_progress_portal_payload_exposes_family_level_opl_handoff_without_new_truth() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
 
