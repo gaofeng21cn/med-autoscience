@@ -29,6 +29,18 @@ Date: `2026-05-04`
 | `observability_os` | MAS | observability | no authority；只提供 evidence、calibration、analytics |
 | `mds_backend` | MDS | controlled backend / oracle | no MAS authority；只提供 daemon、quest layout、native runtime events 与 mechanical oracle |
 
+## 文档 / Reference 一致性 Guard
+
+README、status、policy、runtime reference 与 program reference 都是人读面，但它们不能各自长出新的 owner truth。对应的机器合同是 `mas_mds_doc_reference_semantic_guard`，它把文档语义固定为以下几类：
+
+- 受约束的文档族：`README`、`docs/README`、`docs/status`、`docs/policies`、`docs/program`、`docs/runtime`、`docs/references`
+- 允许的 MDS 角色：`frozen_source_archive`、`historical_fixture`、`explicit_legacy_diagnostic`、`provenance_reference`、`parity_oracle`、`upstream_intake_source`
+- 禁止的 MDS 语义：默认运行依赖、默认诊断依赖、默认 WebUI/progress owner、默认 runner、product owner、study / quality / publication / runtime authority、contributor history import
+- MAS-owned packaging surface：`artifacts/runtime/progress_portal/latest.json`、`ops/mas/progress/index.html`、`ops/mas/bin/start-web`、`medautosci workspace progress-portal --serve`
+- hub 角色约束：`product_entry`、`study_progress`、`MCP`、`Progress Portal`、`display/quality entrances` 只能是 thin read-model / adapter / materializer，不得升级成 authority
+
+这条 guard 的目标是让文档更新继续跟随真实 MAS/MDS contract，而不是反过来让 README/status/policy 自己生成第二套 truth。
+
 ## 外部工程依据
 
 - `strangler_fig`：成熟 legacy 替换通常采用逐步包裹、迁移和切换，适合 MDS deconstruction；在本项目中体现为 capability-by-capability promotion，而不是一次性 monorepo absorb。

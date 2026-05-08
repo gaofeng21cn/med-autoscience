@@ -40,6 +40,9 @@
 `med-deepscientist/` 包含 DeepScientist recurring learning 的 active policy/protocol。
 dated intake 记录保存在 `docs/history/program/`，作为已完成轮次的快照。
 
+MDS reference family 同时受机器可读的 `mas_mds_doc_reference_semantic_guard`
+约束；README/status/policy prose 必须跟随这条 contract，不得成为新的 owner truth。
+
 ## Positioning And Architecture References
 
 - [Domain Harness OS positioning](./domain-harness-os-positioning.md)

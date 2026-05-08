@@ -40,6 +40,135 @@ RETAINED_CAPABILITY_IDS: tuple[str, ...] = (
     "prompt_stage_discipline",
     "memory_and_lesson_store",
 )
+DOC_REFERENCE_GUARDED_FAMILIES: tuple[str, ...] = (
+    "README",
+    "docs/README",
+    "docs/status",
+    "docs/policies",
+    "docs/program",
+    "docs/runtime",
+    "docs/references",
+)
+DOC_REFERENCE_ALLOWED_MDS_ROLES: tuple[str, ...] = (
+    "frozen_source_archive",
+    "historical_fixture",
+    "explicit_legacy_diagnostic",
+    "provenance_reference",
+    "parity_oracle",
+    "upstream_intake_source",
+)
+DOC_REFERENCE_FORBIDDEN_MDS_CLAIMS: tuple[str, ...] = (
+    "default_runtime_dependency",
+    "default_diagnostic_dependency",
+    "default_webui_progress_owner",
+    "default_runner",
+    "product_owner",
+    "study_truth_authority",
+    "quality_authority",
+    "publication_authority",
+    "runtime_authority",
+    "artifact_authority",
+    "contributor_history_import",
+)
+DOC_REFERENCE_MAS_PACKAGING_SURFACES: tuple[str, ...] = (
+    "artifacts/runtime/progress_portal/latest.json",
+    "ops/mas/progress/index.html",
+    "ops/mas/bin/start-web",
+    "medautosci workspace progress-portal --serve",
+    "optional_local_read_only_progress_service",
+)
+DOC_REFERENCE_FORBIDDEN_AUTHORITY_WRITES: tuple[str, ...] = (
+    "study_runtime_status",
+    "runtime_watch",
+    "publication_eval/latest.json",
+    "controller_decisions/latest.json",
+    "study_macro_state/latest.json",
+    "owner_route",
+    "evidence_ledger",
+    "review_ledger",
+    "current_package",
+    "runtime_lifecycle.sqlite",
+)
+DOC_REFERENCE_HUB_ROLES: tuple[dict[str, Any], ...] = (
+    {
+        "surface_id": "product_entry",
+        "hub_role": "read_model",
+        "authority_claims": [],
+        "authority_source_refs": [
+            "study_macro_state/latest.json",
+            "study_runtime_status",
+            "publication_eval/latest.json",
+            "controller_decisions/latest.json",
+        ],
+        "materializes_only": [],
+        "may_control_runtime": False,
+        "may_authorize_publication": False,
+        "may_write_study_truth": False,
+    },
+    {
+        "surface_id": "study_progress",
+        "hub_role": "read_model",
+        "authority_claims": [],
+        "authority_source_refs": [
+            "study_macro_state/latest.json",
+            "study_runtime_status",
+            "runtime_watch",
+            "publication_eval/latest.json",
+            "controller_decisions/latest.json",
+        ],
+        "materializes_only": [],
+        "may_control_runtime": False,
+        "may_authorize_publication": False,
+        "may_write_study_truth": False,
+    },
+    {
+        "surface_id": "mcp",
+        "hub_role": "adapter",
+        "authority_claims": [],
+        "authority_source_refs": [
+            "MAS CLI/controller payloads",
+            "durable workspace surfaces",
+        ],
+        "materializes_only": [],
+        "may_control_runtime": False,
+        "may_authorize_publication": False,
+        "may_write_study_truth": False,
+    },
+    {
+        "surface_id": "progress_portal",
+        "hub_role": "materializer",
+        "authority_claims": [],
+        "authority_source_refs": [
+            "study_progress.user_visible_projection",
+            "workspace-cockpit",
+            "study_runtime_status",
+            "runtime_watch",
+            "publication_eval/latest.json",
+            "controller_decisions/latest.json",
+        ],
+        "materializes_only": [
+            "artifacts/runtime/progress_portal/latest.json",
+            "ops/mas/progress/index.html",
+        ],
+        "may_control_runtime": False,
+        "may_authorize_publication": False,
+        "may_write_study_truth": False,
+    },
+    {
+        "surface_id": "display_quality_entrances",
+        "hub_role": "adapter",
+        "authority_claims": [],
+        "authority_source_refs": [
+            "display registry",
+            "quality/publication owner surfaces",
+            "artifact rebuild proof",
+        ],
+        "materializes_only": [],
+        "may_control_runtime": False,
+        "may_authorize_publication": False,
+        "may_write_study_truth": False,
+    },
+)
 
 HISTORY_POLICY: dict[str, Any] = {
     "import_mode": "no_history_snapshot_only",
@@ -167,6 +296,7 @@ def build_mas_mds_absorb_governance_contract() -> dict[str, Any]:
         "source_provenance": _copy_mapping(SOURCE_PROVENANCE),
         "allowed_capability_classifications": list(ALLOWED_CAPABILITY_CLASSIFICATIONS),
         "capability_classification_guard": [_copy_mapping(item) for item in CAPABILITY_CLASSIFICATION_GUARD],
+        "doc_reference_semantic_guard": build_mas_mds_doc_reference_semantic_guard(),
     }
 
 
@@ -181,9 +311,47 @@ def validate_mas_mds_absorb_governance_contract(contract: Mapping[str, Any]) -> 
     _validate_history_policy(contract.get("history_policy"), issues)
     _validate_source_provenance(contract.get("source_provenance"), issues)
     _validate_classification_guard(contract.get("capability_classification_guard"), issues)
+    _validate_doc_reference_semantic_guard(contract.get("doc_reference_semantic_guard"), issues)
 
     return {
         "surface": "mas_mds_absorb_governance_validation",
+        "schema_version": SCHEMA_VERSION,
+        "ok": not issues,
+        "issue_count": len(issues),
+        "issues": issues,
+    }
+
+
+def build_mas_mds_doc_reference_semantic_guard() -> dict[str, Any]:
+    return {
+        "surface": "mas_mds_doc_reference_semantic_guard",
+        "schema_version": SCHEMA_VERSION,
+        "owner": "MedAutoScience",
+        "purpose": "keep README/status/policy/reference wording aligned to MAS-owned monolith semantics",
+        "guarded_doc_families": list(DOC_REFERENCE_GUARDED_FAMILIES),
+        "machine_contract_anchor": (
+            "med_autoscience.controllers.mas_mds_absorb_governance."
+            "build_mas_mds_doc_reference_semantic_guard"
+        ),
+        "doc_prose_wording_tests_allowed": False,
+        "markdown_as_machine_truth_allowed": False,
+        "readme_status_policy_may_create_owner_truth": False,
+        "allowed_mds_roles": list(DOC_REFERENCE_ALLOWED_MDS_ROLES),
+        "forbidden_mds_claims": list(DOC_REFERENCE_FORBIDDEN_MDS_CLAIMS),
+        "default_operation_requires_external_mds": False,
+        "default_diagnostic_requires_external_mds": False,
+        "mds_webui_default_allowed": False,
+        "hosted_runtime_packaging_owner": "MedAutoScience",
+        "mas_owned_packaging_surfaces": list(DOC_REFERENCE_MAS_PACKAGING_SURFACES),
+        "hub_reference_roles": [_copy_mapping(item) for item in DOC_REFERENCE_HUB_ROLES],
+    }
+
+
+def validate_mas_mds_doc_reference_semantic_guard(guard: Mapping[str, Any]) -> dict[str, Any]:
+    issues: list[dict[str, Any]] = []
+    _validate_doc_reference_semantic_guard(guard, issues)
+    return {
+        "surface": "mas_mds_doc_reference_semantic_guard_validation",
         "schema_version": SCHEMA_VERSION,
         "ok": not issues,
         "issue_count": len(issues),
@@ -352,6 +520,102 @@ def _validate_classification_guard(guard: object, issues: list[dict[str, Any]]) 
                 )
 
 
+def _validate_doc_reference_semantic_guard(guard: object, issues: list[dict[str, Any]]) -> None:
+    if not isinstance(guard, Mapping):
+        issues.append({"code": "missing_doc_reference_semantic_guard"})
+        return
+    if _text(guard.get("surface")) != "mas_mds_doc_reference_semantic_guard":
+        issues.append({"code": "wrong_doc_reference_guard_surface"})
+    if _text(guard.get("owner")) != "MedAutoScience":
+        issues.append({"code": "doc_reference_owner_drift"})
+
+    guarded_families = set(_strings(guard.get("guarded_doc_families")))
+    for family in DOC_REFERENCE_GUARDED_FAMILIES:
+        if family not in guarded_families:
+            issues.append({"code": "missing_guarded_doc_family", "family": family})
+
+    if guard.get("doc_prose_wording_tests_allowed") is not False:
+        issues.append({"code": "doc_prose_wording_tests_unblocked"})
+    if guard.get("markdown_as_machine_truth_allowed") is not False:
+        issues.append({"code": "markdown_machine_truth_unblocked"})
+    if guard.get("readme_status_policy_may_create_owner_truth") is not False:
+        issues.append({"code": "readme_status_policy_owner_truth_unblocked"})
+    if guard.get("default_operation_requires_external_mds") is not False:
+        issues.append({"code": "doc_guard_external_mds_required_for_default_operation"})
+    if guard.get("default_diagnostic_requires_external_mds") is not False:
+        issues.append({"code": "doc_guard_external_mds_required_for_default_diagnostic"})
+    if guard.get("mds_webui_default_allowed") is not False:
+        issues.append({"code": "mds_webui_default_unblocked"})
+    if _text(guard.get("hosted_runtime_packaging_owner")) != "MedAutoScience":
+        issues.append({"code": "hosted_runtime_packaging_owner_drift"})
+
+    allowed_roles = set(_strings(guard.get("allowed_mds_roles")))
+    if allowed_roles != set(DOC_REFERENCE_ALLOWED_MDS_ROLES):
+        issues.append({"code": "allowed_mds_roles_drift", "roles": sorted(allowed_roles)})
+
+    forbidden_claims = set(_strings(guard.get("forbidden_mds_claims")))
+    for claim in DOC_REFERENCE_FORBIDDEN_MDS_CLAIMS:
+        if claim not in forbidden_claims:
+            issues.append({"code": "missing_forbidden_mds_doc_claim", "claim": claim})
+
+    packaging_surfaces = set(_strings(guard.get("mas_owned_packaging_surfaces")))
+    for surface in DOC_REFERENCE_MAS_PACKAGING_SURFACES:
+        if surface not in packaging_surfaces:
+            issues.append({"code": "missing_mas_owned_packaging_surface", "surface": surface})
+    for surface in packaging_surfaces:
+        lowered = surface.lower()
+        if "mds" in lowered or "deepscientist" in lowered or "webui" in lowered:
+            issues.append({"code": "mas_packaging_surface_points_to_mds", "surface": surface})
+
+    _validate_doc_reference_hub_roles(guard.get("hub_reference_roles"), issues)
+
+
+def _validate_doc_reference_hub_roles(hubs: object, issues: list[dict[str, Any]]) -> None:
+    hub_mappings = [_mapping(item) for item in _list(hubs)]
+    by_surface = {_text(hub.get("surface_id")): hub for hub in hub_mappings if _text(hub.get("surface_id"))}
+    for expected in [item["surface_id"] for item in DOC_REFERENCE_HUB_ROLES]:
+        if expected not in by_surface:
+            issues.append({"code": "missing_doc_reference_hub_role", "surface_id": expected})
+
+    for hub in hub_mappings:
+        surface_id = _text(hub.get("surface_id"))
+        hub_role = _text(hub.get("hub_role"))
+        authority_claims = set(_strings(hub.get("authority_claims")))
+        materializes_only = set(_strings(hub.get("materializes_only")))
+
+        if not surface_id:
+            issues.append({"code": "doc_reference_hub_missing_surface_id"})
+        if hub_role not in {"authority", "read_model", "adapter", "materializer"}:
+            issues.append({"code": "doc_reference_hub_role_unknown", "surface_id": surface_id, "hub_role": hub_role})
+
+        if hub_role != "authority":
+            if authority_claims:
+                issues.append(
+                    {
+                        "code": "doc_reference_non_authority_hub_claims_authority",
+                        "surface_id": surface_id,
+                        "authority_claims": sorted(authority_claims),
+                    }
+                )
+            if hub.get("may_control_runtime") is not False or hub.get("may_authorize_publication") is not False:
+                issues.append({"code": "doc_reference_non_authority_hub_controls_runtime_or_publication", "surface_id": surface_id})
+            if hub.get("may_write_study_truth") is not False:
+                issues.append({"code": "doc_reference_non_authority_hub_writes_study_truth", "surface_id": surface_id})
+
+        if hub_role == "materializer" and not materializes_only:
+            issues.append({"code": "doc_reference_materializer_missing_output_scope", "surface_id": surface_id})
+
+        forbidden_outputs = sorted(materializes_only & set(DOC_REFERENCE_FORBIDDEN_AUTHORITY_WRITES))
+        if forbidden_outputs:
+            issues.append(
+                {
+                    "code": "doc_reference_hub_materializes_authority_surface",
+                    "surface_id": surface_id,
+                    "surfaces": forbidden_outputs,
+                }
+            )
+
+
 def _validate_remaining_surface_inventory(inventory: object, issues: list[dict[str, Any]]) -> None:
     if not isinstance(inventory, Mapping):
         issues.append({"code": "missing_remaining_surface_inventory"})
@@ -367,11 +631,22 @@ def _validate_remaining_surface_inventory(inventory: object, issues: list[dict[s
 def _copy_mapping(value: Mapping[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, item in value.items():
-        if isinstance(item, list):
-            result[key] = list(item)
-        else:
-            result[key] = item
+        result[key] = _copy_value(item)
     return result
+
+
+def _copy_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return _copy_mapping(value)
+    if isinstance(value, list):
+        return [_copy_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_copy_value(item) for item in value]
+    return value
+
+
+def _mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
 
 
 def _list(value: object) -> list[object]:

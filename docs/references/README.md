@@ -44,6 +44,10 @@ starts from the core docs:
 DeepScientist learning. Dated intake records are stored under
 `docs/history/program/` as completed-round snapshots.
 
+The MDS reference family is also governed by the machine-readable
+`mas_mds_doc_reference_semantic_guard`; README/status/policy prose should stay
+aligned with that contract and not become a separate owner truth.
+
 ## Positioning And Architecture References
 
 - [Domain Harness OS positioning](./domain-harness-os-positioning.md)

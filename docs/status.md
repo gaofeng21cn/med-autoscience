@@ -61,6 +61,7 @@
 - `build_product_entry.return_surface_contract`、`skill-catalog` domain projection、`mainline-status` / `mainline-phase` / `product-entry-status` / `product-entry-manifest` 继续作为 caller 读取 MAS/MDS owner boundary、runtime continuity、artifact locator 与 progress truth 的入口；这些入口只能投影 MAS durable truth，不能替代研究质量判断。
 - OPL 或其他 caller 读取这些入口时，只能把它们当作 MAS durable truth 的投影与内部 command contract；不得把 MDS、product-entry-status 或 product-entry manifest 写成并行 owner 面。
 - 当前已增加 architecture owner boundary fitness function：`mas_mds_architecture_owner_boundary_report` 与 [MAS/MDS Owner Boundary Refactor Plan](./policies/mas_mds_owner_boundary_contract.md) 明确确认重复 authority 风险，并把修复路线固定为 owner matrix、strangler refactor 和 automated fitness tests。它的作用是防止 entry projection、observability、MDS oracle/backend 或 runtime adapter 在下一轮重构中重新制造第二套 study / quality / runtime / publication owner。
+- README、status、policy 与 reference 的语义边界现在由 `mas_mds_doc_reference_semantic_guard` 统一约束；它只允许文档继续做人读面，不允许它们自己生成新的 owner truth、默认 MDS 依赖或默认 MDS WebUI 入口。
 - 当前 tranche 的通过条件是：`MAS` 能默认自治推进方向锁定后的研究与有限补充分析，用户可见 truth 与 durable surface 对齐，major boundary 与最终投稿审计之外不再把 human 判断留在 `MDS` 或隐藏 owner 面里。真实论文 soak 仍是整体 AI-first 质量闭环的主要证据面；Open Auto Research 的真实 study soak 已用 DM002 完成，不再是 OAR repo-level capability 缺口。
 
 ## 当前验收与 proof 口径
