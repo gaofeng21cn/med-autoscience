@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import json
 import re
+import shlex
 import tomllib
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
@@ -415,6 +416,7 @@ def _legacy_watch_runtime_entry_reason(
                 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' not in existing_content
                 or '--profile "${PROFILE_PATH}"' not in existing_content
                 or "--ensure-study-runtimes" not in existing_content
+                or "--apply-supervisor-platform-repair" not in existing_content
                 or "--apply" not in existing_content
                 or "--loop" not in existing_content
             ):
@@ -601,12 +603,29 @@ def _is_medautoscience_config_path(path: Path) -> bool:
 
 
 def _merge_medautoscience_config_content(*, existing_content: str, workspace_root: Path, profile_relpath: Path) -> str:
-    if "MED_AUTOSCIENCE_NODE_BIN" in existing_content:
-        return existing_content
     rendered_content = workspace_entry_rendering_controller.render_medautoscience_config(
         workspace_root=workspace_root,
         profile_relpath=profile_relpath,
     )
+    existing_values = _parse_env_assignments(existing_content)
+    rendered_values = _parse_env_assignments(rendered_content)
+    placeholders_repaired = False
+    merged_values: dict[str, str] = {}
+    for key, rendered_value in rendered_values.items():
+        existing_value = existing_values.get(key)
+        if existing_value is None or _is_placeholder_path(existing_value):
+            merged_values[key] = rendered_value
+            placeholders_repaired = placeholders_repaired or existing_value is not None
+        else:
+            merged_values[key] = existing_value
+    if not placeholders_repaired and set(rendered_values).issubset(existing_values):
+        return existing_content
+    if placeholders_repaired:
+        return _render_medautoscience_config_from_values(
+            workspace_root=workspace_root,
+            profile_relpath=profile_relpath,
+            values=merged_values,
+        )
     rendered_lines = rendered_content.splitlines()
     try:
         comment_index = rendered_lines.index(
@@ -620,6 +639,53 @@ def _merge_medautoscience_config_content(*, existing_content: str, workspace_roo
     base = existing_content.rstrip()
     separator = "\n\n" if base else ""
     return f"{base}{separator}{node_block}\n"
+
+
+def _parse_env_assignments(content: str) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for line in content.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, raw_value = stripped.split("=", 1)
+        key = key.strip()
+        if not key.startswith("MED_AUTOSCIENCE_"):
+            continue
+        try:
+            parsed = shlex.split(raw_value, comments=False, posix=True)
+        except ValueError:
+            parsed = []
+        values[key] = parsed[0] if parsed else raw_value.strip().strip("\"'")
+    return values
+
+
+def _is_placeholder_path(value: str) -> bool:
+    text = value.strip().strip("\"'")
+    return not text or text.startswith("/ABS/PATH/TO/")
+
+
+def _render_medautoscience_config_from_values(
+    *,
+    workspace_root: Path,
+    profile_relpath: Path,
+    values: dict[str, str],
+) -> str:
+    rendered_content = workspace_entry_rendering_controller.render_medautoscience_config(
+        workspace_root=workspace_root,
+        profile_relpath=profile_relpath,
+    )
+    output_lines: list[str] = []
+    for line in rendered_content.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            output_lines.append(line)
+            continue
+        key, _ = stripped.split("=", 1)
+        if key in values:
+            output_lines.append(f"{key}={json.dumps(values[key], ensure_ascii=False)}")
+        else:
+            output_lines.append(line)
+    return "\n".join(output_lines).rstrip() + "\n"
 
 
 def _merge_workspace_profile_content(

@@ -287,7 +287,7 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
                 + str(profile.runtime_root)
                 + " --profile "
                 + str(profile_ref.resolve())
-                + " --ensure-study-runtimes --apply"
+                + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
             ),
             "domain_projection": {
                 "service_status_command": str(

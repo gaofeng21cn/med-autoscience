@@ -546,7 +546,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
     supervisor_service_command = "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile>"
     refresh_supervision_command = (
         "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> "
-        "--profile <profile> --ensure-study-runtimes --apply"
+        "--profile <profile> --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
     )
     launch_study_command = (
         "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>"
@@ -808,7 +808,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 },
                 {
                     "name": "watch",
-                    "command": "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply",
+                    "command": "uv run python -m med_autoscience.cli watch --runtime-root <runtime_root> --profile <profile> --ensure-study-runtimes --apply-supervisor-platform-repair --apply",
                     "purpose": "验证 supervisor tick、恢复动作和 runtime reconciliation。",
                 },
             ],

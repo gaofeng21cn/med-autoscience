@@ -569,7 +569,7 @@ def _build_product_entry_guardrails(
     progress_command = f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"
     refresh_command = (
         f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {profile_arg} --ensure-study-runtimes --apply"
+        f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
     )
     build_guardrails = _controller_override("_build_shared_product_entry_guardrails", _build_shared_product_entry_guardrails)
     return build_guardrails(

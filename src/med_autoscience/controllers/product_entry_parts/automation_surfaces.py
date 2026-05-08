@@ -21,7 +21,7 @@ def _build_automation_surface(
     summary = _non_empty_text(product_entry_status.get("summary")) or "MAS automation entry surface."
     refresh_command = (
         f"{_command_prefix(profile_ref)} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply"
+        f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
     )
     runtime_supervision = _build_shared_automation_descriptor(
         automation_id="mas_runtime_supervision_loop",

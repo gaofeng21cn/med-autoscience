@@ -102,7 +102,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
             + str(profile.runtime_root)
             + " --profile "
             + str(profile_ref.resolve())
-            + " --ensure-study-runtimes --apply"
+            + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
         ),
     }
     assert result["recommended_command"].endswith(
@@ -110,7 +110,7 @@ def test_study_progress_projects_supervisor_tick_gap_for_unsupervised_managed_ru
         + str(profile.runtime_root)
         + " --profile "
         + str(profile_ref.resolve())
-        + " --ensure-study-runtimes --apply"
+        + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
     )
     assert result["recommended_commands"][0]["step_id"] == "refresh_supervision"
     assert result["recovery_contract"]["action_mode"] == "refresh_supervision"

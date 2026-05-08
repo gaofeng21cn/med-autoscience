@@ -544,10 +544,16 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("--profile is only supported with --runtime-root")
         if args.quest_root and args.ensure_study_runtimes:
             parser.error("--ensure-study-runtimes is only supported with --runtime-root")
+        if args.quest_root and args.apply_supervisor_platform_repair:
+            parser.error("--apply-supervisor-platform-repair is only supported with --runtime-root")
         if args.quest_root and args.loop:
             parser.error("--loop is only supported with --runtime-root")
         if args.ensure_study_runtimes and not args.profile:
             parser.error("--ensure-study-runtimes requires --profile")
+        if args.apply_supervisor_platform_repair and not args.ensure_study_runtimes:
+            parser.error("--apply-supervisor-platform-repair requires --ensure-study-runtimes")
+        if args.apply_supervisor_platform_repair and not args.apply:
+            parser.error("--apply-supervisor-platform-repair requires --apply")
         if args.quest_root:
             result = runtime_watch.run_watch_for_quest(
                 quest_root=Path(args.quest_root),
@@ -561,6 +567,7 @@ def main(argv: list[str] | None = None) -> int:
                     apply=args.apply,
                     profile=profile,
                     ensure_study_runtimes=bool(args.ensure_study_runtimes),
+                    apply_supervisor_platform_repair=bool(args.apply_supervisor_platform_repair),
                     interval_seconds=args.interval_seconds,
                     max_ticks=args.max_ticks,
                 )
@@ -570,6 +577,7 @@ def main(argv: list[str] | None = None) -> int:
                     apply=args.apply,
                     profile=profile,
                     ensure_study_runtimes=bool(args.ensure_study_runtimes),
+                    apply_supervisor_platform_repair=bool(args.apply_supervisor_platform_repair),
                 )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         if args.loop and isinstance(result, dict) and list(result.get("tick_errors") or []):

@@ -4,17 +4,33 @@ from pathlib import Path
 import shutil
 
 
+def _absolute_tool_path(executable: str, *, placeholder: str) -> str:
+    detected = shutil.which(executable)
+    if detected and Path(detected).is_absolute():
+        return detected
+    return placeholder
+
+
+def _repo_config_path() -> str:
+    candidate = Path(__file__).resolve().parents[3]
+    if (candidate / "pyproject.toml").is_file() and (candidate / "src" / "med_autoscience").is_dir():
+        return str(candidate)
+    return "/ABS/PATH/TO/med-autoscience"
+
+
 def render_medautoscience_config(*, workspace_root: Path, profile_relpath: Path) -> str:
     profile_path = profile_relpath if profile_relpath.is_absolute() else workspace_root / profile_relpath
-    detected_node = shutil.which("node")
-    node_config_value = detected_node if detected_node and Path(detected_node).is_absolute() else "/ABS/PATH/TO/node"
+    repo_config_value = _repo_config_path()
+    uv_config_value = _absolute_tool_path("uv", placeholder="/ABS/PATH/TO/uv")
+    rscript_config_value = _absolute_tool_path("Rscript", placeholder="/ABS/PATH/TO/Rscript")
+    node_config_value = _absolute_tool_path("node", placeholder="/ABS/PATH/TO/node")
     return (
         "# Set the absolute path to the shared MedAutoScience checkout.\n"
-        'MED_AUTOSCIENCE_REPO="/ABS/PATH/TO/med-autoscience"\n'
+        f'MED_AUTOSCIENCE_REPO="{repo_config_value}"\n'
         "# Optional: set the absolute path to the uv binary used by workspace entry scripts and host services.\n"
-        'MED_AUTOSCIENCE_UV_BIN="/ABS/PATH/TO/uv"\n'
+        f'MED_AUTOSCIENCE_UV_BIN="{uv_config_value}"\n'
         "# Optional: set the absolute path to Rscript so host services can still see it under minimal PATH environments.\n"
-        'MED_AUTOSCIENCE_RSCRIPT_BIN="/ABS/PATH/TO/Rscript"\n'
+        f'MED_AUTOSCIENCE_RSCRIPT_BIN="{rscript_config_value}"\n'
         "# Optional: set the absolute path to node so managed runtime services can still launch node-backed backends under minimal PATH environments.\n"
         f'MED_AUTOSCIENCE_NODE_BIN="{node_config_value}"\n'
         "# Optional: override the default local profile file.\n"

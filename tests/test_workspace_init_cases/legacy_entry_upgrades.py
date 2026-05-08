@@ -90,6 +90,7 @@ def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_
     assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in watch_runtime_text
     assert 'run_medautosci runtime watch \\' in watch_runtime_text
     assert '--ensure-study-runtimes' in watch_runtime_text
+    assert '--apply-supervisor-platform-repair' in watch_runtime_text
     assert '--apply' in watch_runtime_text
     assert '--loop' in watch_runtime_text
     install_text = install_service.read_text(encoding="utf-8")
@@ -131,7 +132,9 @@ def test_init_workspace_upgrades_flat_watch_runtime_entry_even_when_current_flag
     )
 
     assert str(watch_runtime) in result["upgraded_files"]
-    assert 'run_medautosci runtime watch \\' in watch_runtime.read_text(encoding="utf-8")
+    watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
+    assert 'run_medautosci runtime watch \\' in watch_runtime_text
+    assert '--apply-supervisor-platform-repair' in watch_runtime_text
 
 
 def test_init_workspace_upgrades_legacy_public_forward_scripts_without_force(tmp_path: Path) -> None:

@@ -11,6 +11,7 @@ CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS = (
     "mode=developer_apply_safe",
     "supervisor-reconcile --mode developer_apply_safe --apply",
     "supervisor-scan --apply-safe-actions",
+    "--apply-runtime-platform-repair",
     "--developer-supervisor-mode developer_apply_safe",
     "supervisor-consume --mode developer_apply_safe --apply",
     "supervisor-execute-dispatch --mode developer_apply_safe --apply",

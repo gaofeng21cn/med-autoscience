@@ -58,7 +58,7 @@ def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
                 "hard_coded_study_allowlist_required": False,
             },
             "same_tick_actions": [
-                "runtime supervisor-scan --apply-safe-actions --developer-supervisor-mode developer_apply_safe",
+                "runtime supervisor-scan --apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe",
                 "runtime supervisor-consume --mode developer_apply_safe --apply",
                 "runtime supervisor-execute-dispatch --mode developer_apply_safe --apply",
             ],

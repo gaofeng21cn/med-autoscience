@@ -113,6 +113,45 @@ def test_paused_quest_ignores_stale_truth_active_run_id() -> None:
     assert derived["details"].get("active_run_id") is None
 
 
+def test_running_quest_with_retry_exhausted_no_worker_is_queued_for_runtime_repair() -> None:
+    derived = _derive(
+        study_id="002-dm-china-us-mortality-attribution",
+        status={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_status": "active",
+            "active_run_id": None,
+            "reason": "runtime_recovery_retry_budget_exhausted",
+            "runtime_liveness_status": "none",
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "worker_running": False,
+                "runtime_audit": {"active_run_id": None, "worker_running": False},
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": [
+                    "quest_marked_running_but_no_live_session",
+                    "runtime_recovery_retry_budget_exhausted",
+                ],
+            },
+        },
+        progress={
+            "owner_route": {
+                "next_owner": "mas_controller",
+                "owner_reason": "abnormal_stopped_runtime_resume_required",
+                "allowed_actions": ["runtime_platform_repair"],
+            }
+        },
+    )
+
+    assert derived["writer_state"] == "queued"
+    assert derived["user_next"] == "repair"
+    assert derived["reason"] == "runtime"
+    assert derived["details"].get("active_run_id") is None
+
+
 def test_stop_loss_and_user_stop_share_reopenable_parked_macro_state() -> None:
     cases = [
         (

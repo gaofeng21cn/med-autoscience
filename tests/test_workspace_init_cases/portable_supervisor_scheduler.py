@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 
-DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
+DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe"
 
 
 def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) -> None:

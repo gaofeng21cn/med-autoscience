@@ -129,7 +129,7 @@ def _build_phase3_clearance_lane(
     supervisor_service_command = f"{prefix} runtime-supervision-status --profile {profile_arg}"
     refresh_supervision_command = (
         f"{prefix} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-        f"--profile {profile_arg} --ensure-study-runtimes --apply"
+        f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
     )
     launch_study_command = f"{prefix} launch-study --profile {profile_arg} --study-id <study_id>"
     study_progress_command = f"{prefix} study-progress --profile {profile_arg} --study-id <study_id>"

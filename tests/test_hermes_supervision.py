@@ -621,6 +621,7 @@ def test_ensure_supervision_retired_manager_keeps_developer_supervisor_diagnosti
         "mode=developer_apply_safe\n"
         "supervisor-reconcile --mode developer_apply_safe --apply\n"
         "supervisor-scan --apply-safe-actions\n"
+        "--apply-runtime-platform-repair\n"
         "--developer-supervisor-mode developer_apply_safe\n"
         "supervisor-consume --mode developer_apply_safe --apply\n"
         "supervisor-execute-dispatch --mode developer_apply_safe --apply\n"
@@ -667,6 +668,7 @@ def test_ensure_supervision_retired_manager_keeps_developer_supervisor_diagnosti
         [
             str(supervisor_scan),
             "--apply-safe-actions",
+            "--apply-runtime-platform-repair",
             "--developer-supervisor-mode",
             "developer_apply_safe",
         ],
@@ -735,6 +737,7 @@ def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
         'status = "ACTIVE"\n'
         'prompt = "developer_apply_safe mode=developer_apply_safe '
         'supervisor-reconcile --mode developer_apply_safe --apply supervisor-scan --apply-safe-actions '
+        '--apply-runtime-platform-repair '
         '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
         'supervisor-execute-dispatch --mode developer_apply_safe --apply '
         'workspace_dynamic_active_studies new MAS tasks active_run_id worker_running worktree '
@@ -775,6 +778,7 @@ def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path
     assert result["active"] is True
     assert result["missing_prompt_tokens"] == [
         "supervisor-reconcile --mode developer_apply_safe --apply",
+        "--apply-runtime-platform-repair",
         "supervisor-consume --mode developer_apply_safe --apply",
         "supervisor-execute-dispatch --mode developer_apply_safe --apply",
         "workspace_dynamic_active_studies",
@@ -793,7 +797,8 @@ def test_codex_app_automation_prompt_check_rejects_study_allowlist_only_prompt(t
     automation_path.write_text(
         'status = "ACTIVE"\n'
         'prompt = "developer_apply_safe mode=developer_apply_safe supervisor-scan --apply-safe-actions '
-        '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
+        '--apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe '
+        'supervisor-consume --mode developer_apply_safe --apply '
         'supervisor-execute-dispatch --mode developer_apply_safe --apply '
         'study_ids=002-dm-china-us-mortality-attribution,003-dpcc-primary-care-phenotype-treatment-gap '
         'action_queue why_not_applied"\n',

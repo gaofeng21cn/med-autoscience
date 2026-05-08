@@ -245,8 +245,9 @@ def test_watch_loop_runs_runtime_ticks_on_interval(tmp_path: Path, monkeypatch) 
         apply: bool,
         profile=None,
         ensure_study_runtimes: bool = False,
+        apply_supervisor_platform_repair: bool = False,
     ) -> dict[str, object]:
-        seen.append(("tick", runtime_root, apply, ensure_study_runtimes))
+        seen.append(("tick", runtime_root, apply, ensure_study_runtimes, apply_supervisor_platform_repair))
         return {
             "runtime_root": str(runtime_root),
             "scanned_quests": [],
@@ -273,9 +274,9 @@ def test_watch_loop_runs_runtime_ticks_on_interval(tmp_path: Path, monkeypatch) 
         "scanned_quests": [],
     }
     assert seen == [
-        ("tick", runtime_root, True, True),
+        ("tick", runtime_root, True, True, False),
         ("sleep", 12),
-        ("tick", runtime_root, True, True),
+        ("tick", runtime_root, True, True, False),
     ]
 def test_watch_loop_continues_after_single_tick_failure(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
@@ -291,6 +292,7 @@ def test_watch_loop_continues_after_single_tick_failure(tmp_path: Path, monkeypa
         apply: bool,
         profile=None,
         ensure_study_runtimes: bool = False,
+        apply_supervisor_platform_repair: bool = False,
     ) -> dict[str, object]:
         attempts["count"] += 1
         seen.append(("tick", attempts["count"]))
@@ -364,11 +366,13 @@ def test_run_managed_supervisor_tick_uses_profile_runtime_root_and_always_enable
         apply: bool,
         profile,
         ensure_study_runtimes: bool = False,
+        apply_supervisor_platform_repair: bool = False,
     ) -> dict[str, object]:
         called["runtime_root"] = runtime_root
         called["apply"] = apply
         called["profile"] = profile
         called["ensure_study_runtimes"] = ensure_study_runtimes
+        called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
         return {"mode": "managed_supervisor_tick"}
 
     monkeypatch.setattr(module, "run_watch_for_runtime", fake_run_watch_for_runtime)
@@ -381,6 +385,7 @@ def test_run_managed_supervisor_tick_uses_profile_runtime_root_and_always_enable
         "apply": True,
         "profile": profile,
         "ensure_study_runtimes": True,
+        "apply_supervisor_platform_repair": True,
     }
 def test_run_managed_supervisor_loop_uses_profile_runtime_root_and_always_enables_study_runtime_ensure(
     tmp_path: Path,
@@ -413,6 +418,7 @@ def test_run_managed_supervisor_loop_uses_profile_runtime_root_and_always_enable
         apply: bool,
         profile,
         ensure_study_runtimes: bool = False,
+        apply_supervisor_platform_repair: bool = False,
         interval_seconds: int,
         max_ticks: int | None,
         sleep_fn,
@@ -421,6 +427,7 @@ def test_run_managed_supervisor_loop_uses_profile_runtime_root_and_always_enable
         called["apply"] = apply
         called["profile"] = profile
         called["ensure_study_runtimes"] = ensure_study_runtimes
+        called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
         called["interval_seconds"] = interval_seconds
         called["max_ticks"] = max_ticks
         called["sleep_fn"] = sleep_fn
@@ -441,5 +448,6 @@ def test_run_managed_supervisor_loop_uses_profile_runtime_root_and_always_enable
     assert called["apply"] is True
     assert called["profile"] == profile
     assert called["ensure_study_runtimes"] is True
+    assert called["apply_supervisor_platform_repair"] is True
     assert called["interval_seconds"] == 45
     assert called["max_ticks"] == 3

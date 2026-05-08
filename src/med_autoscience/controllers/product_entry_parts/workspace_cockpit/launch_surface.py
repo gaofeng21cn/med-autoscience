@@ -72,7 +72,7 @@ def launch_study(
         "cockpit": f"{_command_prefix(profile_ref)} workspace-cockpit --profile {_profile_arg(profile_ref)}",
         "supervisor_tick": (
             f"{_command_prefix(profile_ref)} watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply"
+            f"--profile {_profile_arg(profile_ref)} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
         ),
     }
     return {

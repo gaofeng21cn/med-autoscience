@@ -123,7 +123,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --ensure-study-runtimes --apply"
+                        + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
                     ),
                 },
                 {
@@ -180,7 +180,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --ensure-study-runtimes --apply"
+                        + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
                     ),
                     "surface_kind": "runtime_watch_refresh",
                 },

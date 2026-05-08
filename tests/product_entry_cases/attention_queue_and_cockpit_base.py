@@ -443,7 +443,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --ensure-study-runtimes --apply"
+                        + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
                     ),
                 },
                 "recommended_command": (
@@ -451,7 +451,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                     + str(profile.runtime_root)
                     + " --profile "
                     + str(profile_ref.resolve())
-                    + " --ensure-study-runtimes --apply"
+                    + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
                 ),
                 "recommended_commands": [
                     {
@@ -463,7 +463,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                             + str(profile.runtime_root)
                             + " --profile "
                             + str(profile_ref.resolve())
-                            + " --ensure-study-runtimes --apply"
+                            + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
                         ),
                     }
                 ],
@@ -483,7 +483,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
                                 + str(profile.runtime_root)
                                 + " --profile "
                                 + str(profile_ref.resolve())
-                                + " --ensure-study-runtimes --apply"
+                                + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
                             ),
                         }
                     ],
@@ -657,7 +657,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert any(
         item["study_id"] == "001-risk"
         and item["code"] == "study_supervision_gap"
-        and item["recommended_command"].endswith("--ensure-study-runtimes --apply")
+        and item["recommended_command"].endswith("--ensure-study-runtimes --apply-supervisor-platform-repair --apply")
         for item in payload["attention_queue"]
     )
     assert any(
@@ -671,7 +671,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["studies"][0]["task_intake"]["journal_target"] == "BMC Medicine"
     assert payload["studies"][0]["intervention_lane"]["lane_id"] == "workspace_supervision_gap"
     assert payload["studies"][0]["operator_verdict"]["decision_mode"] == "intervene_now"
-    assert payload["studies"][0]["recommended_command"].endswith("--ensure-study-runtimes --apply")
+    assert payload["studies"][0]["recommended_command"].endswith("--ensure-study-runtimes --apply-supervisor-platform-repair --apply")
     assert payload["studies"][0]["recovery_contract"]["action_mode"] == "refresh_supervision"
     assert payload["studies"][1]["intervention_lane"]["lane_id"] == "quality_floor_blocker"
     assert payload["studies"][1]["operator_verdict"]["summary"] == "图表推进陷入重复打磨循环，当前 run 应被拉回主线。"

@@ -47,6 +47,7 @@ _CURRENT_WATCH_RUNTIME_COMMAND = "run_medautosci runtime watch"
 _DEVELOPER_SUPERVISOR_GITHUB_LOGIN = "gaofeng21cn"
 _DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS = (
     "--apply-safe-actions",
+    "--apply-runtime-platform-repair",
     "--developer-supervisor-mode",
     "developer_apply_safe",
 )

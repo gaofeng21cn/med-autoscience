@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import shutil
 from pathlib import Path
 
 
@@ -302,6 +303,43 @@ def test_init_workspace_upgrades_medautoscience_config_with_detected_node_bindin
     config_text = config_env.read_text(encoding="utf-8")
     assert f'MED_AUTOSCIENCE_NODE_BIN="{detected_node}"' in config_text
     assert 'MED_AUTOSCIENCE_REPO="/Users/gaofeng/workspace/med-autoscience"' in config_text
+
+
+def test_init_workspace_repairs_placeholder_medautoscience_config_without_clobbering_profile(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "placeholder-config-workspace"
+    active_profile = workspace_root / "ops" / "medautoscience" / "profiles" / "dm-cvd.workspace.toml"
+    config_env = workspace_root / "ops" / "medautoscience" / "config.env"
+    config_env.parent.mkdir(parents=True, exist_ok=True)
+    config_env.write_text(
+        "\n".join(
+            [
+                'MED_AUTOSCIENCE_REPO="/ABS/PATH/TO/med-autoscience"',
+                'MED_AUTOSCIENCE_UV_BIN="/ABS/PATH/TO/uv"',
+                'MED_AUTOSCIENCE_RSCRIPT_BIN="/ABS/PATH/TO/Rscript"',
+                f'MED_AUTOSCIENCE_PROFILE="{active_profile}"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="dm-cvd",
+        dry_run=False,
+        force=False,
+    )
+
+    assert str(config_env) in result["upgraded_files"]
+    config_text = config_env.read_text(encoding="utf-8")
+    assert 'MED_AUTOSCIENCE_REPO="/ABS/PATH/TO/med-autoscience"' not in config_text
+    assert 'MED_AUTOSCIENCE_UV_BIN="/ABS/PATH/TO/uv"' not in config_text
+    assert f'MED_AUTOSCIENCE_REPO="{module._medautoscience_repo_root()}"' in config_text
+    uv_path = shutil.which("uv")
+    if uv_path:
+        assert f'MED_AUTOSCIENCE_UV_BIN="{uv_path}"' in config_text
+    assert f'MED_AUTOSCIENCE_PROFILE="{active_profile}"' in config_text
 
 
 def test_init_workspace_upgrades_configured_active_profile_with_explicit_hermes_binding(tmp_path: Path) -> None:

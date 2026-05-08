@@ -361,11 +361,22 @@ def _truth_conflict(*, status: Mapping[str, Any], progress: Mapping[str, Any], t
 def _active_run_id(*, status: Mapping[str, Any], progress: Mapping[str, Any], truth: Mapping[str, Any]) -> str | None:
     if _text(status.get("quest_status")) in {"paused", "stopped", "completed"}:
         return None
+    runtime_audit = _mapping(_mapping(status.get("runtime_liveness_audit")).get("runtime_audit"))
+    liveness = _mapping(status.get("runtime_liveness_audit"))
+    if runtime_audit.get("worker_running") is False or liveness.get("worker_running") is False:
+        return None
+    if _text(status.get("runtime_liveness_status")) in {"none", "not_live", "stale"}:
+        return None
+    health = _mapping(status.get("runtime_health_snapshot"))
+    if (
+        _text(health.get("canonical_runtime_action")) == "external_supervisor_required"
+        and health.get("retry_budget_remaining") == 0
+    ):
+        return None
     return (
         _text(status.get("active_run_id"))
         or _text(progress.get("active_run_id"))
         or _text(_mapping(progress.get("supervision")).get("active_run_id"))
-        or _text(truth.get("active_run_id"))
     )
 
 

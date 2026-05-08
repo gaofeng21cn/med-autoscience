@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --developer-supervisor-mode developer_apply_safe"
+DEVELOPER_SUPERVISOR_MODE_ARGS = "--apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe"
 DEVELOPER_SUPERVISOR_CONSUME_ARGS = "--mode developer_apply_safe --apply"
 DEVELOPER_SUPERVISOR_EXECUTE_DISPATCH_ARGS = "--mode developer_apply_safe --apply"
 DEVELOPER_SUPERVISOR_RECONCILE_ARGS = "--mode developer_apply_safe --apply"
@@ -142,6 +142,7 @@ def _render_watch_runtime_script(*, workspace_root: Path, runtime_quests_root: P
         '  --profile "${PROFILE_PATH}" \\\n'
         '  --runtime-root "${WORKSPACE_RUNTIME_ROOT}" \\\n'
         '  --ensure-study-runtimes \\\n'
+        '  --apply-supervisor-platform-repair \\\n'
         '  --apply \\\n'
         '  --loop \\\n'
         '  "$@"\n'

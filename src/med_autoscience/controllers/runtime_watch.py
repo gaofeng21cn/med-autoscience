@@ -19,6 +19,7 @@ from med_autoscience.controllers import (
     publication_gate,
     runtime_health_kernel,
     runtime_supervision,
+    runtime_supervisor_scan,
     runtime_watch_alerts,
     runtime_watch_outer_loop_dispatch,
     runtime_watch_recovery_policy,
@@ -215,8 +216,9 @@ def run_watch_for_runtime(
     apply: bool,
     profile: WorkspaceProfile | None = None,
     ensure_study_runtimes: bool = False,
+    apply_supervisor_platform_repair: bool = False,
 ) -> dict[str, Any]:
-    return _run_watch_for_runtime_impl(
+    report = _run_watch_for_runtime_impl(
         runtime_root=runtime_root,
         controller_runners=controller_runners or build_default_controller_runners(),
         apply=apply,
@@ -225,6 +227,15 @@ def run_watch_for_runtime(
         profile=profile,
         ensure_study_runtimes=ensure_study_runtimes,
     )
+    if apply and ensure_study_runtimes and apply_supervisor_platform_repair and profile is not None:
+        report["supervisor_platform_repair"] = runtime_supervisor_scan.supervisor_scan(
+            profile=profile,
+            study_ids=runtime_supervisor_scan.resolve_supervisor_scan_study_ids(profile),
+            apply_safe_actions=True,
+            apply_runtime_platform_repair=True,
+            developer_supervisor_mode="developer_apply_safe",
+        )
+    return report
 
 
 def run_watch_loop(
@@ -233,6 +244,7 @@ def run_watch_loop(
     apply: bool,
     profile: WorkspaceProfile | None = None,
     ensure_study_runtimes: bool = False,
+    apply_supervisor_platform_repair: bool = False,
     interval_seconds: int = 300,
     max_ticks: int | None = None,
     sleep_fn: Callable[[float], None] = time.sleep,
@@ -257,6 +269,7 @@ def run_watch_loop(
                 apply=apply,
                 profile=profile,
                 ensure_study_runtimes=ensure_study_runtimes,
+                apply_supervisor_platform_repair=apply_supervisor_platform_repair,
             )
         except Exception as exc:
             tick_errors.append(
@@ -278,6 +291,7 @@ def run_watch_loop(
         "runtime_root": str(resolved_runtime_root),
         "apply": apply,
         "ensure_study_runtimes": ensure_study_runtimes,
+        "apply_supervisor_platform_repair": apply_supervisor_platform_repair,
         "interval_seconds": interval_seconds,
         "tick_count": tick_count,
         "tick_errors": tick_errors,
@@ -295,6 +309,7 @@ def run_managed_supervisor_tick(
         apply=apply,
         profile=profile,
         ensure_study_runtimes=True,
+        apply_supervisor_platform_repair=True,
     )
 
 
@@ -311,6 +326,7 @@ def run_managed_supervisor_loop(
         apply=apply,
         profile=profile,
         ensure_study_runtimes=True,
+        apply_supervisor_platform_repair=True,
         interval_seconds=interval_seconds,
         max_ticks=max_ticks,
         sleep_fn=sleep_fn,

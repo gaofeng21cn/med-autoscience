@@ -202,6 +202,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert '--profile "${PROFILE_PATH}"' in watch_runtime_text
     assert 'run_medautosci runtime maintain-storage --profile "${PROFILE_PATH}" "$@"' in maintain_runtime_storage_text
     assert "--ensure-study-runtimes" in watch_runtime_text
+    assert "--apply-supervisor-platform-repair" in watch_runtime_text
     assert "--apply" in watch_runtime_text
     assert "--loop" in watch_runtime_text
     assert 'run_medautosci runtime storage-audit --profile "${PROFILE_PATH}" "$@"' in storage_audit_text

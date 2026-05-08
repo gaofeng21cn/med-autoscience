@@ -213,6 +213,81 @@ def test_watch_runtime_holds_auto_recovery_when_flapping_circuit_breaker_is_acti
     assert not (study_root / "artifacts" / "runtime" / "recovery_probe" / "latest.json").exists()
 
 
+def test_runtime_watch_apply_can_run_supervisor_platform_repair_tick(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = profile.studies_root / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
+    calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    def fake_supervisor_scan(**kwargs) -> dict[str, object]:
+        calls.append(kwargs)
+        return {
+            "surface": "portable_runtime_supervisor_scan",
+            "apply_runtime_platform_repair": kwargs["apply_runtime_platform_repair"],
+            "study_count": len(kwargs["study_ids"]),
+        }
+
+    monkeypatch.setattr(module.runtime_supervisor_scan, "supervisor_scan", fake_supervisor_scan)
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+        apply_supervisor_platform_repair=True,
+    )
+
+    assert len(calls) == 1
+    assert calls[0]["profile"] == profile
+    assert calls[0]["study_ids"] == ("001-risk",)
+    assert calls[0]["apply_safe_actions"] is True
+    assert calls[0]["apply_runtime_platform_repair"] is True
+    assert calls[0]["developer_supervisor_mode"] == "developer_apply_safe"
+    assert result["supervisor_platform_repair"] == {
+        "surface": "portable_runtime_supervisor_scan",
+        "apply_runtime_platform_repair": True,
+        "study_count": 1,
+    }
+
+
+def test_runtime_watch_does_not_run_supervisor_platform_repair_by_default(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = profile.studies_root / "001-risk"
+    study_root.mkdir(parents=True, exist_ok=True)
+    dump_json(study_root / "study.yaml", {"study_id": "001-risk"})
+
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    monkeypatch.setattr(
+        module.runtime_supervisor_scan,
+        "supervisor_scan",
+        lambda **kwargs: pytest.fail("runtime watch must not apply platform repair unless explicitly enabled"),
+    )
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+
+    assert "supervisor_platform_repair" not in result
+
+
 def test_hard_auto_recovery_ignores_stale_continuation_run_id() -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch_parts.managed_wakeup")
 

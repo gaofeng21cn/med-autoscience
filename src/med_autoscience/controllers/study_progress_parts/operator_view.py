@@ -47,7 +47,7 @@ def _study_command_surfaces(
         "launch_study": f"{prefix} study launch --profile {profile_arg} {selector}",
         "refresh_supervision": (
             f"{prefix} runtime watch --runtime-root {_quote_cli_arg(profile.runtime_root)} "
-            f"--profile {profile_arg} --ensure-study-runtimes --apply"
+            f"--profile {profile_arg} --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
         ),
     }
 

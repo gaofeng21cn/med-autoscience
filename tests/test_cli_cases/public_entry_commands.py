@@ -351,11 +351,13 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
         apply: bool,
         profile=None,
         ensure_study_runtimes: bool = False,
+        apply_supervisor_platform_repair: bool = False,
     ) -> dict:
         called["runtime_root"] = runtime_root
         called["apply"] = apply
         called["profile"] = profile
         called["ensure_study_runtimes"] = ensure_study_runtimes
+        called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
         return {"scanned_quests": ["q001"], "runtime_root": str(runtime_root)}
 
     monkeypatch.setattr(cli.runtime_watch, "run_watch_for_runtime", fake_run_watch_for_runtime)
@@ -368,6 +370,7 @@ def test_watch_command_dispatches_runtime_watch(monkeypatch, tmp_path: Path, cap
     assert called["apply"] is True
     assert called["profile"] is None
     assert called["ensure_study_runtimes"] is False
+    assert called["apply_supervisor_platform_repair"] is False
     assert "q001" in captured.out
 def test_study_progress_command_dispatches_controller_and_renders_markdown(
     monkeypatch,
@@ -618,11 +621,13 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
         apply: bool,
         profile=None,
         ensure_study_runtimes: bool = False,
+        apply_supervisor_platform_repair: bool = False,
     ) -> dict:
         called["runtime_root"] = runtime_root
         called["apply"] = apply
         called["profile"] = profile
         called["ensure_study_runtimes"] = ensure_study_runtimes
+        called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
         return {"managed_study_actions": [{"study_id": "001-risk", "decision": "create_and_start"}]}
 
     monkeypatch.setattr(cli.runtime_watch, "run_watch_for_runtime", fake_run_watch_for_runtime)
@@ -636,6 +641,7 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
             "--profile",
             str(profile_path),
             "--ensure-study-runtimes",
+            "--apply-supervisor-platform-repair",
             "--apply",
         ]
     )
@@ -646,6 +652,7 @@ def test_watch_command_can_ensure_managed_studies_before_runtime_scan(monkeypatc
     assert called["apply"] is True
     assert called["profile"].name == "nfpitnet"
     assert called["ensure_study_runtimes"] is True
+    assert called["apply_supervisor_platform_repair"] is True
     assert '"study_id": "001-risk"' in captured.out
 def test_runtime_supervision_status_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
@@ -751,6 +758,7 @@ def test_watch_command_dispatches_runtime_watch_loop(monkeypatch, tmp_path: Path
         apply: bool,
         profile=None,
         ensure_study_runtimes: bool = False,
+        apply_supervisor_platform_repair: bool = False,
         interval_seconds: int,
         max_ticks: int | None,
     ) -> dict[str, object]:
@@ -758,6 +766,7 @@ def test_watch_command_dispatches_runtime_watch_loop(monkeypatch, tmp_path: Path
         called["apply"] = apply
         called["profile"] = profile
         called["ensure_study_runtimes"] = ensure_study_runtimes
+        called["apply_supervisor_platform_repair"] = apply_supervisor_platform_repair
         called["interval_seconds"] = interval_seconds
         called["max_ticks"] = max_ticks
         return {
@@ -788,6 +797,7 @@ def test_watch_command_dispatches_runtime_watch_loop(monkeypatch, tmp_path: Path
     assert called["apply"] is True
     assert called["profile"] is None
     assert called["ensure_study_runtimes"] is False
+    assert called["apply_supervisor_platform_repair"] is False
     assert called["interval_seconds"] == 300
     assert called["max_ticks"] == 1
     assert '"tick_count": 1' in captured.out
@@ -800,6 +810,7 @@ def test_watch_command_fails_closed_when_loop_reports_tick_errors(monkeypatch, t
         apply: bool,
         profile=None,
         ensure_study_runtimes: bool = False,
+        apply_supervisor_platform_repair: bool = False,
         interval_seconds: int,
         max_ticks: int | None,
     ) -> dict[str, object]:

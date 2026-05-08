@@ -31,7 +31,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                         + str(profile.runtime_root)
                         + " --profile "
                         + str(profile_ref.resolve())
-                        + " --ensure-study-runtimes --apply"
+                        + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
                     ),
                 ],
             },
@@ -89,7 +89,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
                     + str(profile.runtime_root)
                     + " --profile "
                     + str(profile_ref.resolve())
-                    + " --ensure-study-runtimes --apply"
+                    + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
                 ),
             },
             {
