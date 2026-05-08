@@ -20,6 +20,7 @@ from med_autoscience.controllers.pi_action_projection import (
     build_pi_action_projection,
     compact_pi_action_projection,
 )
+from med_autoscience.controllers.runtime_continuity_projection import runtime_continuity_projection
 from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
     compact_study_macro_state_from_payload,
 )
@@ -122,6 +123,7 @@ def _study_item(
         progress_payload.get("medical_paper_readiness")
     )
     recovery_contract = dict(progress_payload.get("recovery_contract") or {})
+    runtime_continuity = runtime_continuity_projection(progress_payload)
     study_truth_snapshot = _truth_snapshot_summary(progress_payload.get("study_truth_snapshot"))
     runtime_health_snapshot = _runtime_health_snapshot_summary(progress_payload.get("runtime_health_snapshot"))
     control_plane_snapshot = _control_plane_snapshot_summary(progress_payload.get("control_plane_snapshot"))
@@ -237,6 +239,7 @@ def _study_item(
         "medical_paper_readiness": medical_paper_readiness_surface or None,
         "research_runtime_control_projection": research_runtime_control_projection or None,
         "runtime_reconcile_trigger": runtime_reconcile_trigger or None,
+        "runtime_continuity": runtime_continuity,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "needs_user_decision": bool(progress_payload.get("needs_user_decision")),

@@ -26,6 +26,7 @@ from med_autoscience.controllers.study_progress_parts.macro_state_projection imp
 from med_autoscience.controllers.study_progress_parts.user_visible_projection import (
     build_user_visible_projection,
 )
+from med_autoscience.controllers.runtime_continuity_projection import runtime_continuity_projection
 from med_autoscience.mcp_server_parts.open_auto_research_projection import (
     compact_open_auto_research_projection,
     compact_open_auto_research_soak_for_mcp,
@@ -571,6 +572,9 @@ def compact_study_progress_projection(payload: dict[str, Any]) -> dict[str, Any]
         item = builder(source_payload.get(key))
         if item is not None:
             compact[key] = item
+    runtime_continuity = runtime_continuity_projection(source_payload)
+    if runtime_continuity.get("runtime_session") or runtime_continuity.get("recovery_intent"):
+        compact["runtime_continuity"] = runtime_continuity
     if study_macro_state is not None:
         compact["study_macro_state"] = study_macro_state
     ai_repair_lifecycle = _compact_record(

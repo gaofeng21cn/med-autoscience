@@ -7,6 +7,35 @@ from pathlib import Path
 from tests.study_runtime_test_helpers import make_profile, write_text
 
 
+def _runtime_continuity_payload() -> dict[str, object]:
+    return {
+        "runtime_session": {
+            "worker_state": "stale",
+            "worker_running": False,
+            "active_run_id": None,
+            "last_known_run_id": "run-stale-001",
+            "runtime_liveness_status": "stale",
+            "last_seen_at": "2026-05-08T00:40:00+00:00",
+            "freshness_state": "stale",
+            "freshness_age_seconds": 1500,
+            "evidence_refs": ["studies/001-risk/artifacts/runtime/session/latest.json"],
+        },
+        "recovery_intent": {
+            "current_action": "safe_reconcile_ready",
+            "reason": "worker_stale",
+            "next_owner": "mas_controller",
+            "next_eligible_tick": "2026-05-08T01:10:00+00:00",
+            "dedupe_fingerprint": "runtime-continuity-001",
+            "authority": {
+                "quality_ready_authorized": False,
+                "publication_ready_authorized": False,
+                "submission_ready_authorized": False,
+            },
+            "evidence_refs": ["studies/001-risk/artifacts/runtime/recovery_intent/latest.json"],
+        },
+    }
+
+
 def _progress_payload(study_id: str = "001-risk") -> dict[str, object]:
     return {
         "study_id": study_id,
@@ -369,6 +398,56 @@ def test_progress_portal_payload_exposes_family_level_opl_handoff_without_new_tr
         "runtime_authority",
         "artifact_authority",
     ]
+
+
+def test_progress_portal_projects_runtime_continuity_without_new_authority() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    progress = {
+        **_progress_payload(),
+        **_runtime_continuity_payload(),
+    }
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload=progress,
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+    html = module.render_progress_portal_html(payload)
+
+    continuity = payload["study"]["runtime_continuity"]
+    assert continuity["runtime_session"]["worker_state"] == "stale"
+    assert continuity["runtime_session"]["last_seen_at"] == "2026-05-08T00:40:00+00:00"
+    assert continuity["runtime_session"]["last_known_run_id"] == "run-stale-001"
+    assert continuity["recovery_intent"]["current_action"] == "safe_reconcile_ready"
+    assert continuity["recovery_intent"]["next_owner"] == "mas_controller"
+    assert continuity["recovery_intent"]["authority"] == {
+        "quality_ready_authorized": False,
+        "publication_ready_authorized": False,
+        "submission_ready_authorized": False,
+    }
+    assert payload["opl_handoff"]["runtime_continuity"]["recovery_intent"]["current_action"] == "safe_reconcile_ready"
+    assert "safe_reconcile_ready" in html
+    assert "run-stale-001" in html
+    assert "quality_ready_authorized" not in html
+    assert "MDS" not in html
+
+
+def test_workspace_cockpit_study_item_projects_runtime_continuity() -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload")
+    progress = {
+        **_progress_payload(),
+        **_runtime_continuity_payload(),
+    }
+
+    item = module._study_item(progress_payload=progress, profile_ref="/workspace/profile.toml")
+
+    continuity = item["runtime_continuity"]
+    assert continuity["runtime_session"]["worker_state"] == "stale"
+    assert continuity["runtime_session"]["last_known_run_id"] == "run-stale-001"
+    assert continuity["recovery_intent"]["current_action"] == "safe_reconcile_ready"
+    assert continuity["recovery_intent"]["authority"]["submission_ready_authorized"] is False
 
 
 def test_progress_portal_html_is_single_file_mas_view_without_default_mds_product_semantics() -> None:

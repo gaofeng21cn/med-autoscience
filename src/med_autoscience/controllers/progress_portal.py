@@ -19,6 +19,7 @@ from med_autoscience.controllers.progress_portal_parts import (
     workspace_alert_projection,
     workspace_studies,
 )
+from med_autoscience.controllers.runtime_continuity_projection import runtime_continuity_projection
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -99,6 +100,7 @@ def build_progress_portal_payload(
         "runtime": _source_payload_summary(runtime),
         "package": _source_payload_summary(package),
     }
+    runtime_continuity = _runtime_continuity(progress, runtime)
     conditions = _conditions(
         study_id=resolved_study_id,
         progress=progress,
@@ -149,6 +151,7 @@ def build_progress_portal_payload(
             ),
             "supervision": _supervision(progress, runtime),
             "runtime_reconcile_trigger": runtime_reconcile_trigger or None,
+            "runtime_continuity": runtime_continuity,
         },
         "freshness": freshness,
         "latest_events": latest_events,
@@ -165,6 +168,7 @@ def build_progress_portal_payload(
             source_payloads=source_payloads,
             delivery=delivery,
             conditions=conditions,
+            runtime_continuity=runtime_continuity,
         ),
     }
     if auto_refresh_seconds is not None and auto_refresh_seconds > 0:
@@ -182,6 +186,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
     quality = _mapping(payload.get("quality"))
     delivery = _mapping(payload.get("delivery"))
     conditions = _mapping(payload.get("conditions"))
+    runtime_continuity = _mapping(study.get("runtime_continuity"))
     latest_events = [dict(item) for item in payload.get("latest_events") or [] if isinstance(item, Mapping)]
     source_refs = _display_source_refs(payload.get("source_refs"))
     workspace_studies = [
@@ -257,6 +262,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
                     _gate_text(study),
                 ],
             ),
+            _runtime_continuity_section(runtime_continuity),
             _section(
                 "论文与质量",
                 paper_paragraphs,
@@ -675,6 +681,10 @@ def _runtime_reconcile_trigger(value: object) -> dict[str, Any]:
     return projection
 
 
+def _runtime_continuity(progress: Mapping[str, Any], runtime: Mapping[str, Any]) -> dict[str, Any]:
+    return runtime_continuity_projection(progress, runtime)
+
+
 def _source_refs(*payloads: Mapping[str, Any]) -> list[str]:
     refs: list[str] = []
     for payload in payloads:
@@ -827,6 +837,7 @@ def _opl_handoff_projection(
     source_payloads: Mapping[str, Any],
     delivery: Mapping[str, Any],
     conditions: Mapping[str, Any],
+    runtime_continuity: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
         "handoff_kind": "mas_progress_portal_opl_family_projection",
@@ -843,6 +854,7 @@ def _opl_handoff_projection(
         "freshness": dict(freshness),
         "source_refs": list(source_refs),
         "artifact_locators": _string_list(delivery.get("refs")),
+        "runtime_continuity": _mapping(runtime_continuity),
         "conditions": {
             "missing": _string_list(conditions.get("missing")),
             "stale": _string_list(conditions.get("stale")),
@@ -894,6 +906,29 @@ def _gate_text(study: Mapping[str, Any]) -> str:
     if bool(study.get("needs_physician_decision")):
         return "需要医生/PI 确认后继续。"
     return "当前没有投影出的医生/PI gate。"
+
+
+def _runtime_continuity_section(runtime_continuity: Mapping[str, Any]) -> str:
+    session = _mapping(runtime_continuity.get("runtime_session"))
+    intent = _mapping(runtime_continuity.get("recovery_intent"))
+    items = []
+    if session:
+        items.append(f"worker: {session.get('worker_state') or 'unknown'}")
+        if session.get("active_run_id"):
+            items.append(f"active run: {session.get('active_run_id')}")
+        elif session.get("last_known_run_id"):
+            items.append(f"last known run: {session.get('last_known_run_id')}")
+        if session.get("last_seen_at"):
+            items.append(f"last seen: {session.get('last_seen_at')}")
+        if session.get("freshness_state"):
+            items.append(f"freshness: {session.get('freshness_state')}")
+    if intent:
+        items.append(f"recovery action: {intent.get('current_action') or 'unknown'}")
+        if intent.get("next_owner"):
+            items.append(f"next owner: {intent.get('next_owner')}")
+        if intent.get("next_eligible_tick"):
+            items.append(f"next eligible tick: {intent.get('next_eligible_tick')}")
+    return _list_section("Runtime Continuity", items, empty_text="当前没有 runtime session / recovery intent 投影。")
 
 
 def _section(title: str, paragraphs: list[str]) -> str:
