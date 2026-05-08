@@ -57,7 +57,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 | crash recovery / auto-resume | `purpose_equivalent_with_different_timing` | daemon startup resume | in-process turn continuation through kernel; stale/crash recovery through next Hermes tick or explicit watch/ensure runtime | normal continuation is low-latency; crash/stale recovery remains scheduler-bound but independent of MDS checkout |
 | queued user messages/mailbox | `partially_equivalent` | daemon mailbox schedules turns | quest-local `user_message_queue` triggers turn scheduling; durable task intake / controller handoff handles broader work | queued messages during active worker execution are covered; chat-connector delivery is not default MAS behavior |
 | progress visibility | `behavior_equivalent` | Web/API status | MAS Progress Portal / study-progress / cockpit | fixed MAS-owned progress place replaces MDS WebUI for default users |
-| WebUI/WebSocket/terminal streaming | `not_equivalent_retired` | React WebUI, WebSocket terminal attach, bash log stream | read-only Portal snapshot / optional read-only refresh service; MAS Live Console parity planned | current Progress Portal is not an interactive console; parity plan is tracked in `docs/runtime/mas_live_console_mds_webui_parity_plan.md` |
+| WebUI/WebSocket/terminal streaming | `not_equivalent_retired` | React WebUI, WebSocket terminal attach, bash log stream | read-only Portal snapshot plus MAS-authored Live Console UI shell; stream/read-model parity remains staged | current Progress Portal is not an interactive console; Live Console UI shell is independent and read-only, with Portal limited to thin entry/return refs |
 | connector/channel background delivery | `not_equivalent_retired` | QQ/Slack/Discord/Telegram/Weixin/WhatsApp/Feishu background threads | durable handoff refs for external consumers | chat connector delivery is outside default MAS monolith operation |
 | MCP surface | `purpose_equivalent_with_different_timing` | daemon-backed MCP | MAS MCP calls owner surfaces directly | MAS truth/status/progress surfaces covered without MDS daemon |
 | GitOps state management | `not_equivalent_retired` | root Git / quest Git / diff reader | SQLite lifecycle + restore proof + plain quest dirs | intentional behavior change; Git no longer owns runtime lifecycle |
@@ -89,7 +89,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 仍保留差异的地方也更清楚：
 
 - `outer supervision latency`: 仍是 300 秒 Hermes gateway cron one-shot；它只影响 drift detection、stale recovery 和周期性刷新，不再影响正常 turn-to-turn continuation。
-- `interactive console`: Progress Portal 已替代默认进度查看，但 WebSocket terminal/log streaming 仍是 `live-console-parity` staged contract，尚未 landed。
+- `interactive console`: Progress Portal 已替代默认进度查看；独立 Live Console UI shell 已作为 MAS-authored read-only 页面边界落地，但 WebSocket/SSE terminal/log stream、core read model 与真实 workspace soak 仍属于 `live-console-parity` staged contract，尚未整体 landed。
 - `connector background delivery`: 旧 MDS 的 QQ/Slack/Discord/Telegram/Weixin/WhatsApp/Feishu background delivery 仍不属于 MAS 默认 monolith；当前只保留 durable handoff refs。
 - `in-memory session API`: MAS 选择 durable read model 与 receipt，不恢复旧 MDS in-memory session store。
 
