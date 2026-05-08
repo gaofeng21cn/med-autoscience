@@ -343,3 +343,145 @@ def test_live_console_profile_snapshot_materializes_current_ui_payload_and_html(
     assert "http://127.0.0.1:4812/events" in html
     assert "generated_at local" in html
     assert "med-deepscientist" not in html.lower()
+
+
+def test_portal_console_soak_materializes_read_only_evidence_without_truth_writes(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.portal_console_soak")
+    profile = make_profile(tmp_path)
+    _write_soak_study(
+        profile=profile,
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-dm002",
+        active_run_id="run-dm002-live",
+        quest_status="running",
+    )
+    _write_soak_study(
+        profile=profile,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-dpcc003",
+        active_run_id="run-dpcc003-recovering",
+        quest_status="recovering",
+    )
+
+    report = module.run_portal_console_soak(
+        profile=profile,
+        profile_ref=tmp_path / "profile.toml",
+        generated_at="2026-05-08T02:05:00+00:00",
+    )
+
+    assert report["surface_kind"] == "mas_portal_console_soak"
+    assert report["status"] == "passed"
+    evidence = report["evidence"]
+    assert evidence["portal_refresh"]["status"] == "passed"
+    assert evidence["live_console_study_run_disambiguation"]["study_ids"] == [
+        "002-dm-china-us-mortality-attribution",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+    ]
+    assert evidence["live_console_study_run_disambiguation"]["run_ids"] == [
+        "run-dm002-live",
+        "run-dpcc003-recovering",
+    ]
+    assert evidence["terminal_log_refs"]["status"] == "passed"
+    assert evidence["source_ref_cleanliness"]["forbidden_refs"] == []
+    assert evidence["product_identity"]["forbidden_identity_tokens"] == []
+    assert Path(report["report_path"]).is_file()
+    assert (profile.workspace_root / "ops" / "mas" / "progress" / "index.html").is_file()
+    assert (profile.workspace_root / "ops" / "mas" / "live-console" / "index.html").is_file()
+    assert not (profile.workspace_root / "publication_eval" / "latest.json").exists()
+    assert not (profile.workspace_root / "controller_decisions" / "latest.json").exists()
+    assert not (profile.workspace_root / "runtime_lifecycle.sqlite").exists()
+
+
+def test_portal_console_soak_blocks_legacy_identity_and_mds_truth_refs(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.portal_console_soak")
+    profile = make_profile(tmp_path)
+    portal_payload = {
+        "source_refs": [
+            str(profile.workspace_root / "ops" / "med-deepscientist" / "runtime" / "truth.json"),
+        ],
+    }
+    console_payload = {"source_refs": []}
+    console_ui_payload = {"source_refs": []}
+    portal_payload_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "latest.json"
+    console_payload_path = (
+        profile.workspace_root / "artifacts" / "runtime" / "live_console" / "session_read_model" / "latest.json"
+    )
+    console_ui_payload_path = (
+        profile.workspace_root / "artifacts" / "runtime" / "live_console" / "ui_payload" / "latest.json"
+    )
+    portal_html_path = profile.workspace_root / "ops" / "mas" / "progress" / "index.html"
+    console_html_path = profile.workspace_root / "ops" / "mas" / "live-console" / "index.html"
+    _write_json(portal_payload_path, portal_payload)
+    _write_json(console_payload_path, console_payload)
+    _write_json(console_ui_payload_path, console_ui_payload)
+    _write_text(portal_html_path, "Med Auto Science\n")
+    _write_text(console_html_path, "MDS WebUI\n")
+
+    report = module.build_portal_console_soak_report(
+        profile=profile,
+        profile_ref=tmp_path / "profile.toml",
+        portal_result={
+            "status": "materialized",
+            "payload_path": str(portal_payload_path),
+            "html_path": str(portal_html_path),
+            "hosted_package_path": str(
+                profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
+            ),
+        },
+        console_result={
+            "payload_path": str(console_payload_path),
+            "ui_payload_path": str(console_ui_payload_path),
+            "html_path": str(console_html_path),
+            "session_read_model": {"studies": [], "stream_sources": []},
+        },
+        generated_at="2026-05-08T02:05:00+00:00",
+    )
+
+    assert report["status"] == "blocked"
+    assert report["evidence"]["source_ref_cleanliness"]["forbidden_refs"] == portal_payload["source_refs"]
+    assert report["evidence"]["product_identity"]["forbidden_identity_tokens"] == ["MDS WebUI"]
+
+
+def _write_soak_study(
+    *,
+    profile,
+    study_id: str,
+    quest_id: str,
+    active_run_id: str,
+    quest_status: str,
+) -> None:
+    study_root = profile.studies_root / study_id
+    quest_root = profile.runtime_root / quest_id
+    _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
+    _write_json(
+        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "quest_root": str(quest_root),
+            "active_run_id": active_run_id,
+            "quest_status": quest_status,
+            "worker_running": True,
+            "last_seen_at": "2026-05-08T02:04:00+00:00",
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "health" / "latest.json",
+        {
+            "study_id": study_id,
+            "health_status": quest_status,
+            "active_run_id": active_run_id,
+            "worker_running": True,
+            "last_seen_at": "2026-05-08T02:04:00+00:00",
+            "artifact_delta": {
+                "status": "fresh",
+                "latest_meaningful_delta_at": "2026-05-08T02:03:00+00:00",
+                "artifact_kind": "read_model_fixture",
+            },
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "bash_exec" / "summary.json",
+        {"status": "available", "tail": [f"{study_id} terminal tail"]},
+    )
+    _write_text(quest_root / "logs" / "worker.log", f"{study_id} worker log\n")
