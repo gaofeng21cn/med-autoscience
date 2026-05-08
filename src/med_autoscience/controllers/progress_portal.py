@@ -11,6 +11,13 @@ import threading
 from typing import Any
 import webbrowser
 
+from med_autoscience.controllers.progress_portal_parts import (
+    dedupe_texts,
+    render_workspace_studies_section,
+    unique_text,
+    workspace_alert_projection,
+    workspace_studies,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -77,6 +84,11 @@ def build_progress_portal_payload(
     latest_events = _latest_events(user_visible, progress)
     quality = _quality_summary(progress.get("publication_eval"))
     delivery = _delivery_summary(progress, package, study_id=resolved_study_id)
+    workspace_study_rows = workspace_studies(cockpit, selected_study_id=resolved_study_id)
+    workspace_alerts = workspace_alert_projection(
+        cockpit.get("workspace_alerts"),
+        workspace_studies=workspace_study_rows,
+    )
     source_refs = _source_refs(progress, cockpit, runtime, package)
     source_payloads = {
         "progress": _source_payload_summary(progress),
@@ -109,7 +121,12 @@ def build_progress_portal_payload(
             "profile_name": resolved_profile_name,
             "workspace_root": str(resolved_workspace_root),
             "workspace_status": _non_empty_text(cockpit.get("workspace_status")),
-            "workspace_alerts": _string_list(cockpit.get("workspace_alerts")),
+            "workspace_alerts": workspace_alerts["visible"],
+            "studies": workspace_study_rows,
+            "diagnostics": {
+                "suppressed_alerts": workspace_alerts["suppressed"],
+                "suppressed_alert_policy": "legacy_runtime_or_inactive_study_noise",
+            },
         },
         "study": {
             "study_id": resolved_study_id,
@@ -159,7 +176,12 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
     delivery = _mapping(payload.get("delivery"))
     conditions = _mapping(payload.get("conditions"))
     latest_events = [dict(item) for item in payload.get("latest_events") or [] if isinstance(item, Mapping)]
-    source_refs = _string_list(payload.get("source_refs"))
+    source_refs = _display_source_refs(payload.get("source_refs"))
+    workspace_studies = [
+        dict(item)
+        for item in workspace.get("studies") or []
+        if isinstance(item, Mapping) and _non_empty_text(item.get("study_id"))
+    ]
     portal_view = _mapping(payload.get("portal_view"))
     auto_refresh_seconds = portal_view.get("auto_refresh_seconds")
     generated_at = str(payload.get("generated_at") or "unknown")
@@ -168,6 +190,21 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
     condition_badge = _condition_badge(conditions)
     blockers = _string_list(study.get("current_blockers"))
     workspace_alerts = _string_list(workspace.get("workspace_alerts"))
+    current_status_paragraphs = dedupe_texts(
+        [
+            str(study.get("state_summary") or "当前缺少状态摘要。"),
+            str(study.get("current_stage_summary") or "当前阶段摘要缺失。"),
+        ]
+    )
+    paper_paragraphs = dedupe_texts(
+        [
+            unique_text(
+                str(study.get("paper_stage_summary") or "论文阶段摘要缺失。"),
+                seen=current_status_paragraphs,
+            ),
+            str(quality.get("summary") or "质量投影缺失。"),
+        ]
+    )
     return "\n".join(
         [
             "<!doctype html>",
@@ -194,13 +231,11 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             f"<div><dt>conditions</dt><dd>{escape(condition_badge)}</dd></div>",
             "</dl>",
             "</header>",
+            render_workspace_studies_section(workspace_studies),
             '<section class="grid">',
             _section(
                 "当前状态",
-                [
-                    str(study.get("state_summary") or "当前缺少状态摘要。"),
-                    str(study.get("current_stage_summary") or "当前阶段摘要缺失。"),
-                ],
+                current_status_paragraphs,
             ),
             _section(
                 "下一步",
@@ -211,10 +246,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             ),
             _section(
                 "论文与质量",
-                [
-                    str(study.get("paper_stage_summary") or "论文阶段摘要缺失。"),
-                    str(quality.get("summary") or "质量投影缺失。"),
-                ],
+                paper_paragraphs,
             ),
             _section(
                 "文件与交付",
@@ -229,7 +261,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             _event_section(latest_events),
             _condition_section(conditions),
             '<details class="refs">',
-            "<summary>source refs</summary>",
+            f"<summary>source refs ({len(source_refs)}/{len(_string_list(payload.get('source_refs')))})</summary>",
             _list_html(source_refs, empty_text="No source refs were available."),
             "</details>",
             "</main>",
@@ -721,6 +753,34 @@ def _source_payload_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _display_source_refs(value: object) -> list[str]:
+    refs = _string_list(value)
+    priority_tokens = (
+        "/artifacts/runtime/health/",
+        "/artifacts/runtime/runtime_supervision/",
+        "/artifacts/controller_decisions/",
+        "/artifacts/publication_eval/",
+        "/artifacts/truth/",
+        "/artifacts/runtime/progress_portal/",
+        "/artifacts/supervision/hourly/",
+        "/runtime/quests/",
+    )
+    blocked_tokens = (
+        "/ops/med-deepscientist/",
+        "med-deepscientist",
+        ".ds/worktrees",
+    )
+    selected: list[str] = []
+    for ref in refs:
+        if any(token in ref for token in blocked_tokens):
+            continue
+        if any(token in ref for token in priority_tokens):
+            selected.append(ref)
+        if len(selected) >= 24:
+            break
+    return selected
+
+
 def _opl_handoff_projection(
     *,
     study_id: str,
@@ -800,7 +860,7 @@ def _gate_text(study: Mapping[str, Any]) -> str:
 
 
 def _section(title: str, paragraphs: list[str]) -> str:
-    body = "".join(f"<p>{escape(text)}</p>" for text in paragraphs if text)
+    body = "".join(f"<p>{escape(text)}</p>" for text in dedupe_texts(paragraphs) if text)
     return f'<section class="panel"><h2>{escape(title)}</h2>{body}</section>'
 
 
@@ -848,6 +908,11 @@ dd { margin: 3px 0 0; font-weight: 600; overflow-wrap: anywhere; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0 14px; }
 .panel, .refs { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
 .wide { margin-top: 14px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--line); padding: 9px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+th { color: var(--muted); font-size: 12px; text-transform: uppercase; }
+.study-row.selected td { background: #eef8f6; }
 ul { margin: 0; padding-left: 20px; }
 li { margin: 6px 0; overflow-wrap: anywhere; }
 summary { cursor: pointer; font-weight: 700; }

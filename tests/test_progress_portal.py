@@ -115,6 +115,158 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
     assert payload["delivery"]["summary"] == "current package 尚未生成。"
 
 
+def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppresses_legacy_alert_noise() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        progress_payload=_progress_payload("003-dpcc-primary-care-phenotype-treatment-gap"),
+        cockpit_payload={
+            "workspace_status": "blocked",
+            "workspace_alerts": [
+                "Hermes-hosted runtime supervision 尚未注册。",
+                "状态需要检查。",
+                "用户暂停或手动停驻，需显式恢复或新方案。",
+                "live worker 已超过 meaningful artifact delta 活动窗口，必须先恢复产物增量或写出平台修复终态。",
+            ],
+            "studies": [
+                {
+                    "study_id": "001-dm-cvd-mortality-risk",
+                    "state_label": "用户暂停/手动停驻",
+                    "state_summary": "用户暂停/手动停驻；当前没有实际写入，需显式恢复或给出新方案。",
+                    "current_stage": "parked",
+                    "monitoring": {},
+                    "progress_freshness": {"status": "stale", "summary": "用户暂停或手动停驻，需显式恢复或新方案。"},
+                },
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "state_label": "自动运行中",
+                    "state_summary": "自动运行中；系统有实际 writer/run 正在推进。",
+                    "current_stage": "live",
+                    "paper_stage": "analysis-campaign",
+                    "monitoring": {
+                        "active_run_id": "mas-run-002",
+                        "health_status": "recovering",
+                        "supervisor_tick_status": "stale",
+                    },
+                    "progress_freshness": {
+                        "status": "stale",
+                        "summary": "live worker 已超过 meaningful artifact delta 活动窗口，必须先恢复产物增量或写出平台修复终态。",
+                    },
+                    "intervention_lane": {"title": "优先处理 activity timeout"},
+                },
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "state_label": "自动运行中",
+                    "state_summary": "自动运行中；系统有实际 writer/run 正在推进。",
+                    "current_stage": "live",
+                    "paper_stage": "write",
+                    "monitoring": {
+                        "active_run_id": "mas-run-003",
+                        "health_status": "recovering",
+                        "supervisor_tick_status": "stale",
+                    },
+                    "progress_freshness": {
+                        "status": "stale",
+                        "summary": "最近监管可能新鲜，但 meaningful artifact delta 已过期。",
+                    },
+                    "next_system_action": "观察自动运行推进。",
+                },
+            ],
+        },
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    workspace = payload["workspace"]
+    assert workspace["workspace_alerts"] == [
+        "live worker 已超过 meaningful artifact delta 活动窗口，必须先恢复产物增量或写出平台修复终态。"
+    ]
+    assert workspace["diagnostics"]["suppressed_alerts"] == [
+        "Hermes-hosted runtime supervision 尚未注册。",
+        "状态需要检查。",
+        "用户暂停或手动停驻，需显式恢复或新方案。",
+    ]
+    studies = workspace["studies"]
+    assert [item["study_id"] for item in studies] == [
+        "001-dm-cvd-mortality-risk",
+        "002-dm-china-us-mortality-attribution",
+        "003-dpcc-primary-care-phenotype-treatment-gap",
+    ]
+    dm002 = studies[1]
+    assert dm002["active_run_id"] == "mas-run-002"
+    assert dm002["runtime_health_status"] == "recovering"
+    assert dm002["supervisor_tick_status"] == "stale"
+    assert dm002["paper_stage"] == "analysis-campaign"
+    assert dm002["operator_focus"] == "优先处理 activity timeout"
+    dpcc003 = studies[2]
+    assert dpcc003["active_run_id"] == "mas-run-003"
+    assert dpcc003["paper_stage"] == "write"
+
+
+def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_workspace_studies() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    repeated = "自动运行中；系统有实际 writer/run 正在推进。"
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        progress_payload={
+            **_progress_payload("003-dpcc-primary-care-phenotype-treatment-gap"),
+            "user_visible_projection": {
+                **_progress_payload("003-dpcc-primary-care-phenotype-treatment-gap")["user_visible_projection"],
+                "state_label": "自动运行中",
+                "state_summary": repeated,
+                "current_stage": "live",
+                "current_stage_summary": repeated,
+                "paper_stage": "write",
+                "paper_stage_summary": repeated,
+            },
+        },
+        cockpit_payload={
+            "workspace_alerts": ["Hermes-hosted runtime supervision 尚未注册。"],
+            "studies": [
+                {
+                    "study_id": "002-dm-china-us-mortality-attribution",
+                    "state_label": "自动运行中",
+                    "current_stage": "live",
+                    "paper_stage": "analysis-campaign",
+                    "monitoring": {
+                        "active_run_id": "mas-run-002",
+                        "health_status": "recovering",
+                        "supervisor_tick_status": "stale",
+                    },
+                    "progress_freshness": {"status": "stale", "summary": "artifact delta stale"},
+                },
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "state_label": "自动运行中",
+                    "current_stage": "live",
+                    "paper_stage": "write",
+                    "monitoring": {
+                        "active_run_id": "mas-run-003",
+                        "health_status": "recovering",
+                        "supervisor_tick_status": "stale",
+                    },
+                    "progress_freshness": {"status": "stale", "summary": "artifact delta stale"},
+                },
+            ],
+        },
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    html = module.render_progress_portal_html(payload)
+
+    assert html.count(f"<p>{repeated}</p>") == 1
+    assert "论文线概览" in html
+    assert "002-dm-china-us-mortality-attribution" in html
+    assert "003-dpcc-primary-care-phenotype-treatment-gap" in html
+    assert "mas-run-002" in html
+    assert "mas-run-003" in html
+    assert "Hermes-hosted runtime supervision 尚未注册。" not in html
+
+
 def test_progress_portal_payload_exposes_family_level_opl_handoff_without_new_truth() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
 
@@ -182,6 +334,33 @@ def test_progress_portal_html_is_single_file_mas_view_without_default_mds_produc
     assert "<script src=" not in html
     assert "MDS" not in html
     assert "DeepScientist" not in html
+
+
+def test_progress_portal_html_source_refs_are_bounded_and_do_not_render_legacy_mds_paths() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+    payload["source_refs"] = [
+        "/workspace/ops/med-deepscientist/runtime/quests/001-risk/.ds/worktrees/paper",
+        "/workspace/studies/001-risk/artifacts/runtime/health/latest.json",
+        "/workspace/studies/001-risk/artifacts/runtime/runtime_supervision/latest.json",
+        "/workspace/studies/001-risk/artifacts/controller_decisions/latest.json",
+        "/workspace/studies/001-risk/artifacts/publication_eval/latest.json",
+        "not/a/selected/source/ref",
+    ] + [f"/workspace/legacy/{index:03d}.json" for index in range(40)]
+
+    html = module.render_progress_portal_html(payload)
+
+    assert "/workspace/studies/001-risk/artifacts/runtime/health/latest.json" in html
+    assert "/workspace/studies/001-risk/artifacts/controller_decisions/latest.json" in html
+    assert "med-deepscientist" not in html
+    assert "not/a/selected/source/ref" not in html
+    assert "source refs (4/46)" in html
 
 
 def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_path: Path) -> None:
