@@ -96,6 +96,7 @@ open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_r
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
 progress_portal = _LazyModuleProxy(lambda: _load_controller("progress_portal"))
+portal_console_soak = _LazyModuleProxy(lambda: _load_controller("portal_console_soak"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
@@ -202,6 +203,21 @@ def _render_progress_portal_command_text(result: dict[str, Any]) -> str:
     hosted_package_path = result.get("hosted_package_path")
     if hosted_package_path:
         lines.append(f"hosted_package: {hosted_package_path}")
+    return "\n".join(lines) + "\n"
+
+
+def _render_portal_console_soak_text(result: dict[str, Any]) -> str:
+    lines = ["MAS Portal Console Soak"]
+    if status := result.get("status"):
+        lines.append(f"status: {status}")
+    if report_path := result.get("report_path"):
+        lines.append(f"report: {report_path}")
+    evidence = result.get("evidence")
+    if isinstance(evidence, dict):
+        for key, value in evidence.items():
+            item_status = value.get("status") if isinstance(value, dict) else None
+            if item_status:
+                lines.append(f"{key}: {item_status}")
     return "\n".join(lines) + "\n"
 
 
@@ -526,6 +542,20 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(_render_progress_portal_command_text(result), end="")
+        return 0
+
+    if args.command == "portal-console-soak":
+        profile = load_profile(args.profile)
+        result = portal_console_soak.run_portal_console_soak(
+            profile=profile,
+            profile_ref=Path(args.profile),
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(_render_portal_console_soak_text(result), end="")
         return 0
 
     product_entry_result = handle_product_entry_command(

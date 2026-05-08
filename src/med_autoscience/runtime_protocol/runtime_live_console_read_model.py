@@ -115,6 +115,7 @@ def live_console_stream_snapshot(
     profile_ref: str | Path | None = None,
     study_id: str | None = None,
     study_root: str | Path | None = None,
+    generated_at: str | None = None,
     host: str = "127.0.0.1",
     port: int = 0,
     interval_seconds: int = 30,
@@ -124,6 +125,7 @@ def live_console_stream_snapshot(
         profile_ref=profile_ref,
         study_id=study_id,
         study_root=study_root,
+        generated_at=generated_at,
     )
     return {
         "status": "snapshot",
