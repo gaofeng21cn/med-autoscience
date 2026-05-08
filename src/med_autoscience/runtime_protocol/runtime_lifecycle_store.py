@@ -14,7 +14,7 @@ from .runtime_lifecycle_contract import (
     SCHEMA_VERSION,
     SURFACE_KIND,
 )
-from .runtime_lifecycle_store_parts import lineage_indexes, report_payloads, sidecar_indexes
+from .runtime_lifecycle_store_parts import family_adoption, lineage_indexes, report_payloads, sidecar_indexes
 
 
 def quest_lifecycle_store_path(quest_root: Path) -> Path:
@@ -550,6 +550,32 @@ def record_surface_ref(
     )
 
 
+def build_opl_family_adoption_surface(
+    *,
+    workspace_root: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    return family_adoption.build_opl_family_adoption_surface(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        inspect_lifecycle_store=inspect_lifecycle_store,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        workspace_root=workspace_root,
+        db_path=db_path,
+    )
+
+
+def build_product_entry_adoption_projection(
+    *,
+    workspace_root: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    return family_adoption.build_product_entry_adoption_projection(
+        workspace_root=workspace_root,
+        db_path=db_path,
+    )
+
+
 def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
     resolved_db_path = Path(db_path).expanduser().resolve()
     if not resolved_db_path.exists():
@@ -935,6 +961,8 @@ __all__ = [
     "DEFAULT_DB_FILENAME",
     "SCHEMA_VERSION",
     "SURFACE_KIND",
+    "build_opl_family_adoption_surface",
+    "build_product_entry_adoption_projection",
     "inspect_lifecycle_store",
     "quest_lifecycle_store_path",
     "record_archive_ref",

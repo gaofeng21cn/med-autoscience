@@ -81,3 +81,30 @@ def test_mas_operator_and_incident_projection_require_source_refs_and_mas_closur
         assert field in operator["required_fields"]
     for non_goal in contract["non_goals"]:
         assert non_goal not in ("", None)
+
+
+def test_mas_persistence_lifecycle_owner_route_projection_is_refs_payload_only() -> None:
+    contract = _contract()
+    projection = contract["persistence_lifecycle_owner_route_projection"]
+
+    assert projection["adoption_surface_kind"] == (
+        "mas_opl_family_persistence_lifecycle_owner_route_adoption"
+    )
+    assert projection["required_shape"] == ["refs", "payload"]
+    assert projection["maps_to_opl_contracts"] == {
+        "persistence": "opl_family_persistence_contract.v1",
+        "lifecycle": "opl_family_lifecycle_contract.v1",
+        "owner_route": "opl_family_owner_route_contract.v1",
+    }
+    assert "artifacts/runtime/runtime_lifecycle.sqlite" in projection["source_surfaces"]
+    assert "owner_route_receipts" in projection["sqlite_tables"]
+    assert "surface_refs" in projection["sqlite_tables"]
+    assert projection["authority_boundary"] == (
+        "OPL may discover and index MAS refs/payload; MAS keeps study, publication, AI reviewer, and paper package authority"
+    )
+    assert projection["forbidden_opl_authority_surfaces"] == [
+        "publication_eval/latest.json",
+        "AI reviewer workflow",
+        "paper/manuscript/current_package",
+        "current_package.zip",
+    ]

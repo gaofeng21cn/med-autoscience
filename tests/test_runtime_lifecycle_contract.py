@@ -233,3 +233,41 @@ def test_quest_git_retirement_policy_rejects_daily_lifecycle_git_usage() -> None
         "forbidden_daily_lifecycle_surfaces": [".ds/worktrees"],
         "invalid_legacy_sources": ["workspace runtime/quests"],
     }
+
+
+def test_runtime_lifecycle_contract_declares_opl_family_adapter_surface() -> None:
+    contract_module = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_contract")
+
+    contract = contract_module.runtime_lifecycle_contract()
+
+    assert contract["opl_family_adapter_surface"] == {
+        "surface_kind": "mas_opl_family_persistence_lifecycle_owner_route_adoption",
+        "shape": ["refs", "payload"],
+        "authority": "refs_payload_projection_only",
+        "maps_to_opl_contracts": {
+            "persistence": "opl_family_persistence_contract.v1",
+            "lifecycle": "opl_family_lifecycle_contract.v1",
+            "owner_route": "opl_family_owner_route_contract.v1",
+        },
+        "source_tables": [
+            "lineage_nodes",
+            "lineage_edges",
+            "workspace_allocations",
+            "runtime_snapshots",
+            "snapshot_file_refs",
+            "revision_diffs",
+            "canvas_projection",
+            "study_macro_state_snapshots",
+            "owner_route_receipts",
+            "dispatch_receipts",
+            "surface_refs",
+            "archive_refs",
+            "report_index",
+        ],
+        "forbidden_authority_surfaces": [
+            "publication_eval/latest.json",
+            "controller_decisions/latest.json",
+            "manuscript/current_package",
+            "current_package.zip",
+        ],
+    }

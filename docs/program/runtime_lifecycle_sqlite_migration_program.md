@@ -10,6 +10,12 @@ Owner: `MedAutoScience Runtime OS + MedDeepScientist backend`
 
 因此，本文剩余工作只服务 portfolio 下一队列：`workspace_layout_de_mds_ds` 和 `profile_entry_compat_retirement` 已消费本文提供的 Git/runtime 事实边界与只读 legacy restore/import diagnostic；后续只为 `no_history_physical_absorb` 提供 provenance、author audit 和 parity proof 输入。不得把新增 live writer drift、profile 文案、MDS product entry 或 no-history import gate 误写成 SQLite/runtime 子计划未完成。
 
+## 2026-05-08 OPL family adapter surface
+
+MAS 现在把既有 SQLite sidecar、lifecycle refs 与 owner-route receipt 映射为 `mas_opl_family_persistence_lifecycle_owner_route_adoption`。该 surface 只输出 `refs` / `payload`，用于 OPL family persistence / lifecycle / owner-route discovery 与 indexing；它不复制 OPL helper 源码，也不把 OPL 提升为 MAS study、publication、AI reviewer 或 paper package authority。
+
+Adapter 的输入仍是 MAS 已落地的 runtime surfaces：`artifacts/runtime/runtime_lifecycle.sqlite`、`study_macro_state/latest.json`、`runtime_supervisor_owner_route`、`runtime_supervisor_dispatch_receipt`、`surface_refs`、`runtime_watch/latest.json` 与 `controller_decisions/latest.json`。`publication_eval/latest.json`、AI reviewer workflow、`paper/manuscript/current_package` 和 `current_package.zip` 继续由 MAS owner surface 持有；OPL 只能发现、索引和展示引用，不能关闭 gate 或合成质量判断。
+
 ## 2026-05-05 restore-proof closeout
 
 本轮在用户确认所有论文 runtime 已处于停止/暂停窗口后完成 current disease workspaces 的 runtime bucket compaction。迁移范围覆盖 NF-PitNET、DM-CVD / DPCC、AS biologics 的 eligible quest；当时 DM002 与 DM003 的盘面 `runtime_state.status` 仍为 `active`，但 `active_run_id=null`，本轮按用户明确确认的 operator-confirmed parked active gate 处理。整个过程中没有 relaunch、resume 或 redrive 任一 study runtime。
