@@ -27,6 +27,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_fa
 from med_autoscience.controllers.runtime_supervisor_scan_parts import status_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_parking
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_projection
+from med_autoscience.controllers.runtime_supervisor_scan_parts import study_identity
 from med_autoscience.controllers.runtime_supervisor_scan_parts import workspace_daemon
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
@@ -79,25 +80,7 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
-def resolve_supervisor_scan_study_ids(profile: WorkspaceProfile) -> tuple[str, ...]:
-    if not profile.studies_root.is_dir():
-        return ()
-    study_ids: list[str] = []
-    for child in sorted(profile.studies_root.iterdir(), key=lambda item: item.name):
-        if not child.is_dir():
-            continue
-        if any((child / marker).is_file() for marker in ("study.yaml", "study.yml", "study.toml")):
-            study_ids.append(child.name)
-    return tuple(study_ids)
-
-
-def _validate_supervisor_scan_study_ids(profile: WorkspaceProfile, study_ids: tuple[str, ...]) -> None:
-    available_study_ids = set(resolve_supervisor_scan_study_ids(profile))
-    for study_id in study_ids:
-        if study_id in available_study_ids:
-            continue
-        known = ", ".join(sorted(available_study_ids)) or "<none>"
-        raise ValueError(f"Unknown supervisor study_id: {study_id}; known study_ids: {known}")
+resolve_supervisor_scan_study_ids = study_identity.resolve_supervisor_scan_study_ids
 
 
 def _latest_path(profile: WorkspaceProfile) -> Path:
@@ -877,7 +860,7 @@ def supervisor_scan(
     persist_surfaces: bool = True,
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
-    _validate_supervisor_scan_study_ids(profile, resolved_study_ids)
+    study_identity.validate_supervisor_scan_study_ids(profile, resolved_study_ids)
     generated_at = _utc_now()
     developer_mode = resolve_developer_supervisor_mode(
         profile=profile,
