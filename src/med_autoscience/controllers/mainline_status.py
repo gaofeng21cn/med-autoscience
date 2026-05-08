@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from typing import Any
 
 from opl_harness_shared.product_entry_program_companions import (
-    build_backend_deconstruction_lane as _build_shared_backend_deconstruction_lane,
     build_clearance_lane as _build_shared_clearance_lane,
     build_clearance_target as _build_shared_clearance_target,
     build_platform_target as _build_shared_platform_target,
@@ -12,6 +11,7 @@ from opl_harness_shared.product_entry_program_companions import (
     build_product_entry_program_surface as _build_shared_product_entry_program_surface,
     build_program_capability as _build_shared_program_capability,
     build_program_sequence_step as _build_shared_program_sequence_step,
+    build_source_provenance_surface as _build_shared_source_provenance_surface,
 )
 
 from med_autoscience.runtime_backend import MAS_RUNTIME_OWNER, MAS_RUNTIME_SUBSTRATE
@@ -42,14 +42,43 @@ def _build_backend_deconstruction_lane(
     deconstruction_map_ref: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    payload = _build_shared_backend_deconstruction_lane(
-        **kwargs,
-        deconstruction_map_doc=deconstruction_map_ref,
+    _build_shared_source_provenance_surface(
+        summary=str(kwargs["summary"]),
+        source_provenance_ref={
+            "surface_kind": "source_provenance",
+            "ref": deconstruction_map_ref,
+        },
+        historical_fixture_ref={
+            "surface_kind": "historical_fixture_ref",
+            "ref": "fixtures/med-deepscientist/parity/",
+        },
+        explicit_archive_import_ref={
+            "surface_kind": "explicit_archive_import_ref",
+            "command": "uv run python -m med_autoscience.cli backend-audit --mode archive-import",
+        },
+        parity_oracle_ref={
+            "surface_kind": "parity_oracle_ref",
+            "ref": "program:med_deepscientist_retained_capability_parity",
+        },
+        authority_boundary=[
+            "mas_runtime_core_is_default_runtime_owner",
+            "source_refs_do_not_define_runtime_dependency",
+            "archive_import_is_explicit_one_way_provenance",
+        ],
+        capability_classification="source_provenance_only",
+        recommended_audit_command="uv run python -m med_autoscience.cli backend-audit",
     )
-    payload["deconstruction_map_ref"] = str(
-        payload.pop("deconstruction_map_doc", deconstruction_map_ref)
-    )
-    return payload
+    return {
+        "surface_kind": "phase4_backend_deconstruction_lane",
+        "summary": str(kwargs["summary"]),
+        "substrate_targets": list(kwargs["substrate_targets"]),
+        "backend_retained_now": list(kwargs["backend_retained_now"]),
+        "current_backend_chain": list(kwargs["current_backend_chain"]),
+        "optional_executor_proofs": list(kwargs["optional_executor_proofs"]),
+        "promotion_rules": list(kwargs["promotion_rules"]),
+        "deconstruction_map_ref": deconstruction_map_ref,
+        "recommended_phase_command": str(kwargs["recommended_phase_command"]),
+    }
 
 
 def _single_project_boundary() -> dict[str, Any]:

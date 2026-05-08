@@ -59,7 +59,6 @@ from opl_harness_shared.product_entry_companions import (
     collect_family_human_gate_ids as _collect_family_human_gate_ids,
 )
 from opl_harness_shared.product_entry_program_companions import (
-    build_backend_deconstruction_lane as _build_shared_backend_deconstruction_lane,
     build_clearance_lane as _build_shared_clearance_lane,
     build_clearance_target as _build_shared_clearance_target,
     build_guardrail_class as _build_shared_guardrail_class,
@@ -71,6 +70,7 @@ from opl_harness_shared.product_entry_program_companions import (
     build_program_capability as _build_shared_program_capability,
     build_program_check as _build_shared_program_check,
     build_program_sequence_step as _build_shared_program_sequence_step,
+    build_source_provenance_surface as _build_shared_source_provenance_surface,
 )
 from opl_harness_shared.runtime_task_companions import (
     build_artifact_inventory as _build_shared_artifact_inventory,
