@@ -91,6 +91,7 @@ mainline_status = _LazyModuleProxy(lambda: _load_controller("mainline_status"))
 open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
 portfolio_memory_controller = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
 product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
+progress_portal = _LazyModuleProxy(lambda: _load_controller("progress_portal"))
 publication_gate = _LazyModuleProxy(lambda: _load_controller("publication_gate"))
 quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair_batch"))
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
@@ -178,6 +179,23 @@ def _handle_submission_export_or_delivery_inspect_command(args: argparse.Namespa
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
+
+
+def _render_progress_portal_command_text(result: dict[str, Any]) -> str:
+    lines = ["MAS Progress Portal"]
+    status = result.get("status")
+    if status:
+        lines.append(f"status: {status}")
+    url = result.get("url")
+    if url:
+        lines.append(f"url: {url}")
+    html_path = result.get("html_path") or result.get("output_html_path")
+    if html_path:
+        lines.append(f"html: {html_path}")
+    payload_path = result.get("payload_path")
+    if payload_path:
+        lines.append(f"payload: {payload_path}")
+    return "\n".join(lines) + "\n"
 
 
 
@@ -465,6 +483,31 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(product_entry.render_workspace_cockpit_markdown(result), end="")
+        return 0
+
+    if args.command == "progress-portal":
+        profile = load_profile(args.profile)
+        common_kwargs = {
+            "profile": profile,
+            "profile_ref": Path(args.profile),
+            "study_id": args.study_id,
+            "study_root": Path(args.study_root) if args.study_root else None,
+            "entry_mode": args.entry_mode,
+            "open_browser": bool(args.open),
+        }
+        if args.serve:
+            result = progress_portal.serve_progress_portal(
+                **common_kwargs,
+                host=str(args.host),
+                port=int(args.port),
+                interval_seconds=int(args.interval_seconds),
+            )
+        else:
+            result = progress_portal.materialize_progress_portal(**common_kwargs)
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(_render_progress_portal_command_text(result), end="")
         return 0
 
     product_entry_result = handle_product_entry_command(

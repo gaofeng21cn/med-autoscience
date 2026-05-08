@@ -25,10 +25,13 @@ def test_init_workspace_dry_run_reports_plan_without_writing_files(tmp_path: Pat
     assert str(workspace_root / "runtime" / "archives") in result["created_directories"]
     assert str(workspace_root / "runtime" / "restore_index") in result["created_directories"]
     assert str(workspace_root / "artifacts" / "runtime") in result["created_directories"]
+    assert str(workspace_root / "artifacts" / "runtime" / "progress_portal") in result["created_directories"]
     assert str(workspace_root / "ops" / "mas" / "bin") in result["created_directories"]
+    assert str(workspace_root / "ops" / "mas" / "progress") in result["created_directories"]
     assert str(workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests") not in result["created_directories"]
     assert str(workspace_root / "ops" / "med-deepscientist" / "config.env") not in result["created_files"]
     assert str(workspace_root / "AGENTS.md") in result["created_files"]
+    assert str(workspace_root / "ops" / "mas" / "progress" / "index.html") in result["created_files"]
     assert not workspace_root.exists()
 
 
@@ -60,6 +63,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert (workspace_root / "runtime" / "archives").is_dir()
     assert (workspace_root / "runtime" / "restore_index").is_dir()
     assert (workspace_root / "artifacts" / "runtime").is_dir()
+    assert (workspace_root / "artifacts" / "runtime" / "progress_portal").is_dir()
+    assert (workspace_root / "ops" / "mas" / "progress").is_dir()
     assert not (workspace_root / "ops" / "med-deepscientist").exists()
 
     behavior_gate = workspace_root / "ops" / "mas" / "behavior_equivalence_gate.yaml"
@@ -116,6 +121,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     watch_runtime = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
     maintain_runtime_storage = workspace_root / "ops" / "medautoscience" / "bin" / "maintain-runtime-storage"
     storage_audit = workspace_root / "ops" / "medautoscience" / "bin" / "storage-audit"
+    progress_portal = workspace_root / "ops" / "medautoscience" / "bin" / "progress-portal"
     resolve_journal_shortlist = workspace_root / "ops" / "medautoscience" / "bin" / "resolve-journal-shortlist"
     init_portfolio_memory = workspace_root / "ops" / "medautoscience" / "bin" / "init-portfolio-memory"
     portfolio_memory_status = workspace_root / "ops" / "medautoscience" / "bin" / "portfolio-memory-status"
@@ -130,6 +136,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert watch_runtime.is_file()
     assert maintain_runtime_storage.is_file()
     assert storage_audit.is_file()
+    assert progress_portal.is_file()
     assert resolve_journal_shortlist.is_file()
     assert init_portfolio_memory.is_file()
     assert portfolio_memory_status.is_file()
@@ -144,6 +151,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert os.access(watch_runtime, os.X_OK)
     assert os.access(maintain_runtime_storage, os.X_OK)
     assert os.access(storage_audit, os.X_OK)
+    assert os.access(progress_portal, os.X_OK)
     assert os.access(resolve_journal_shortlist, os.X_OK)
     assert os.access(init_portfolio_memory, os.X_OK)
     assert os.access(portfolio_memory_status, os.X_OK)
@@ -155,6 +163,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
     maintain_runtime_storage_text = maintain_runtime_storage.read_text(encoding="utf-8")
     storage_audit_text = storage_audit.read_text(encoding="utf-8")
+    progress_portal_text = progress_portal.read_text(encoding="utf-8")
     bootstrap_text = bootstrap.read_text(encoding="utf-8")
     show_profile_text = show_profile.read_text(encoding="utf-8")
     enter_study_text = enter_study.read_text(encoding="utf-8")
@@ -174,6 +183,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "--apply" in watch_runtime_text
     assert "--loop" in watch_runtime_text
     assert 'run_medautosci runtime storage-audit --profile "${PROFILE_PATH}" "$@"' in storage_audit_text
+    assert 'run_medautosci workspace progress-portal --profile "${PROFILE_PATH}" "$@"' in progress_portal_text
     assert 'run_medautosci publication resolve-journal-shortlist "$@"' in resolve_journal_shortlist_text
     assert 'run_medautosci data init-memory "$@"' in init_portfolio_memory_text
     assert 'run_medautosci data memory-status "$@"' in portfolio_memory_status_text
@@ -194,6 +204,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert root_readme.is_file()
     root_readme_text = root_readme.read_text(encoding="utf-8")
     assert "ops/medautoscience/bin/show-profile" in root_readme_text
+    assert "ops/medautoscience/bin/progress-portal" in root_readme_text
+    assert "ops/mas/progress/index.html" in root_readme_text
     assert "ops/mas/" in root_readme_text
     assert "ops/med-deepscientist" not in root_readme_text
     assert "portfolio/research_memory/" in root_readme_text
@@ -209,6 +221,13 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     runtime_bridge_readme = workspace_root / "ops" / "mas" / "README.md"
     assert runtime_bridge_readme.is_file()
     assert "ops/med-deepscientist" not in runtime_bridge_readme.read_text(encoding="utf-8")
+
+    progress_portal_html = workspace_root / "ops" / "mas" / "progress" / "index.html"
+    assert progress_portal_html.is_file()
+    progress_portal_html_text = progress_portal_html.read_text(encoding="utf-8")
+    assert "MedAutoScience Progress Portal" in progress_portal_html_text
+    assert "progress-portal" in progress_portal_html_text
+    assert "DeepScientist" not in progress_portal_html_text
 
     workspace_pyproject = workspace_root / "pyproject.toml"
     assert workspace_pyproject.is_file()

@@ -113,12 +113,14 @@ def _workspace_directories(workspace_root: Path) -> list[Path]:
         workspace_root / "ops" / "medautoscience" / "bin",
         workspace_root / "ops" / "medautoscience" / "logs",
         workspace_root / "ops" / "medautoscience" / "profiles",
+        workspace_root / "ops" / "mas" / "progress",
         layout.bin_root,
         layout.runtime_root,
         layout.quests_root,
         layout.archives_root,
         layout.restore_index_root,
         layout.runtime_artifacts_root,
+        layout.runtime_artifacts_root / "progress_portal",
         layout.startup_briefs_root,
         layout.startup_payloads_root,
     ]
@@ -139,10 +141,11 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "4. 编辑 `ops/mas/config.env`，设置本机受控研究后端 launcher 路径。\n"
         "5. 运行 `ops/medautoscience/bin/show-profile` 和 `ops/medautoscience/bin/bootstrap`。\n"
         "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
-        "7. 如需让 workspace 托管监管持续在线，运行 `ops/medautoscience/bin/install-watch-runtime-service`；后续用 `watch-runtime-service-status` / `uninstall-watch-runtime-service` 管理 Hermes-hosted supervision job。\n\n"
-        "8. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
-        "9. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
-        "10. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
+        "7. 运行 `ops/medautoscience/bin/progress-portal` 刷新固定进度入口，然后打开 `ops/mas/progress/index.html` 查看当前进度。\n\n"
+        "8. 如需让 workspace 托管监管持续在线，运行 `ops/medautoscience/bin/install-watch-runtime-service`；后续用 `watch-runtime-service-status` / `uninstall-watch-runtime-service` 管理 Hermes-hosted supervision job。\n\n"
+        "9. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
+        "10. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
+        "11. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
         "## Runtime Boundary\n\n"
         "- `MedAutoScience` 是研究入口与治理层。\n"
         "- `runtime/` 保存运行态，`artifacts/runtime/` 保存 SQLite sidecar 与维护 ledger，`ops/mas/` 只保留薄运维桥。\n"
@@ -153,6 +156,26 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
 
 def _render_workspace_agents(*, workspace_name: str) -> str:
     return render_workspace_agents(workspace_name=workspace_name)
+
+
+def _render_progress_portal_placeholder() -> str:
+    return (
+        "<!doctype html>\n"
+        '<html lang="zh-CN">\n'
+        "<head>\n"
+        '  <meta charset="utf-8">\n'
+        '  <meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        "  <title>MedAutoScience Progress Portal</title>\n"
+        "</head>\n"
+        "<body>\n"
+        "  <main>\n"
+        "    <h1>MedAutoScience Progress Portal</h1>\n"
+        "    <p>进度快照尚未生成。运行 <code>ops/medautoscience/bin/progress-portal</code> 刷新此入口。</p>\n"
+        "  </main>\n"
+        "</body>\n"
+        "</html>\n"
+    )
+
 
 def _render_workspace_rules() -> str:
     controller_first_summary = render_controller_first_summary()
@@ -545,6 +568,10 @@ def _rendered_files(
             content=_render_workspace_readme(workspace_name=workspace_name, profile_relpath=profile_relpath),
         ),
         RenderedFile(
+            path=workspace_root / "ops" / "mas" / "progress" / "index.html",
+            content=_render_progress_portal_placeholder(),
+        ),
+        RenderedFile(
             path=workspace_root / "AGENTS.md",
             content=_render_workspace_agents(workspace_name=workspace_name),
         ),
@@ -646,6 +673,11 @@ def _rendered_files(
         RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "storage-audit",
             content=_render_forward_script("runtime storage-audit", with_profile=True),
+            executable=True,
+        ),
+        RenderedFile(
+            path=workspace_root / "ops" / "medautoscience" / "bin" / "progress-portal",
+            content=_render_forward_script("workspace progress-portal", with_profile=True),
             executable=True,
         ),
         RenderedFile(
@@ -944,5 +976,7 @@ def init_workspace(
             f"review {profile_path}",
             f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'show-profile'}",
             f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'bootstrap'}",
+            f"run {workspace_root / 'ops' / 'medautoscience' / 'bin' / 'progress-portal'}",
+            f"open {workspace_root / 'ops' / 'mas' / 'progress' / 'index.html'}",
         ],
     }
