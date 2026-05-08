@@ -9,13 +9,17 @@ class McpToolSpec:
     name: str
     description: str
     input_schema: dict[str, Any]
+    metadata: dict[str, Any] | None = None
 
     def as_manifest_entry(self) -> dict[str, Any]:
-        return {
+        payload = {
             "name": self.name,
             "description": self.description,
             "inputSchema": self.input_schema,
         }
+        if self.metadata is not None:
+            payload["metadata"] = self.metadata
+        return payload
 
 
 STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION = (
@@ -32,7 +36,19 @@ def build_tool_registry(
     product_entry_mode_schema: dict[str, Any],
     product_entry_modes_text: str,
     product_entry_contract_gap_text: str,
+    action_catalog_metadata_by_tool: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[McpToolSpec, ...]:
+    metadata_by_tool = action_catalog_metadata_by_tool or {}
+    product_entry_action = dict(metadata_by_tool.get("product_entry") or {})
+    product_entry_description = str(product_entry_action.get("description") or "").strip()
+    if not product_entry_description:
+        product_entry_description = (
+            "Read MedAutoScience product-entry surfaces through one tool: "
+            f"{product_entry_modes_text}. migration_audit is dry-run-only; governance_report is read-only; "
+            "backfill_apply and cleanup_apply are contract-gated; safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. "
+            "lifecycle_report and continuous_soak_summary are read-only unless a separate controller apply contract authorizes cleanup. "
+            f"{product_entry_contract_gap_text}"
+        )
     return (
         McpToolSpec(
             name="doctor_audit",
@@ -102,6 +118,7 @@ def build_tool_registry(
                 "study_runtime_status, or ensure_study_runtime. "
                 f"{STUDY_RUNTIME_LIVE_GUARD_DESCRIPTION}"
             ),
+            metadata=_tool_metadata(metadata_by_tool, "study_runtime"),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -127,6 +144,7 @@ def build_tool_registry(
                 "canonical durable surfaces. It summarizes current stage, paper progress, "
                 "blockers, and supervision links without becoming a second runtime authority."
             ),
+            metadata=_tool_metadata(metadata_by_tool, "study_progress"),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -179,17 +197,12 @@ def build_tool_registry(
         ),
         McpToolSpec(
             name="product_entry",
-            description=(
-                "Read MedAutoScience product-entry surfaces through one tool: "
-                f"{product_entry_modes_text}. migration_audit is dry-run-only; governance_report is read-only; "
-                "backfill_apply and cleanup_apply are contract-gated; safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. "
-                "lifecycle_report and continuous_soak_summary are read-only unless a separate controller apply contract authorizes cleanup. "
-                f"{product_entry_contract_gap_text}"
-            ),
+            description=product_entry_description,
+            metadata=_tool_metadata(metadata_by_tool, "product_entry"),
             input_schema={
                 "type": "object",
                 "properties": {
-                    "mode": product_entry_mode_schema,
+                    "mode": product_entry_action.get("input_schema") or product_entry_mode_schema,
                     "profile_path": {"type": "string"},
                     "study_id": {"type": "string"},
                     "study_root": {"type": "string"},
@@ -211,6 +224,13 @@ def build_tool_registry(
             },
         ),
     )
+
+
+def _tool_metadata(metadata_by_tool: dict[str, dict[str, Any]], tool_name: str) -> dict[str, Any] | None:
+    payload = metadata_by_tool.get(tool_name)
+    if payload is None:
+        return None
+    return {"action_catalog_projection": dict(payload)}
 
 
 def manifest_from_registry(registry: tuple[McpToolSpec, ...]) -> list[dict[str, Any]]:

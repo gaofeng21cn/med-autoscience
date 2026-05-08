@@ -9,7 +9,7 @@
 - `Med Auto Science` 作为独立 medical research domain agent，对外先由单一 MAS app skill 统一承接；direct path 和经过 OPL 的 integration handoff 共享同一套研究语义。
 - 对外稳定 capability surface 继续是本地 CLI、workspace commands / scripts、durable truth surface 与 repo-tracked contract，方便 `Codex` 直接调用。
 - `OPL` 是上层 family-level session/runtime/projection 整合入口，并维护 shared modules/contracts/indexes；它不改写 MAS 的 domain owner 语义。
-- 当前 OPL family shared release pin 已对齐到 `b427ced5e57f24f7ceb3d3868fb49934ff4ad8c3`；`pyproject.toml` 与 `uv.lock` 共同持有这条 Python shared package pin。
+- 当前 OPL family shared release pin 已对齐到 `2b08c7efd8acd80355e870087d4ce5be7b45d4d1`；`pyproject.toml` 与 `uv.lock` 共同持有这条 Python shared package pin。
 - `OPL Runtime Manager` 是 OPL 侧新增的薄运行管理/投影目标层，负责把 MAS registration/projection 接到外部 `Hermes-Agent` substrate、native helper catalog、高频状态索引与 doctor/repair/resume 面；它不持有 MAS study truth、publication gate 或 evidence/review ledger。
 - `Hermes-Agent` 只在可选 hosted runtime target / reference-layer 语境出现；`MedDeepScientist` 不再是默认 MAS operation 或默认 diagnostic 依赖，只保留 frozen source archive、historical fixture、source provenance、explicit archive import 和 backend-audit reference 角色。
 - 2026-05-01 之后的当前主线新增了两层 reducer truth：`StudyTruthKernel` 统一 study 级 next action / package authority / publication gate 解释，`RuntimeHealthKernel` 统一 worker liveness / retry budget / recovery escalation；普通 read 只生成 shadow projection，materialized truth 只能由显式 reconcile、controller tick 或 runtime watch apply 写入。2026-05-06 又把用户宏观状态和执行路由收口为 `study_macro_state/latest.json` 与 `owner_route`，让 matrix、supervisor consume、execute-dispatch 和 lifecycle report 共享同一 current truth。

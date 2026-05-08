@@ -11,6 +11,12 @@ from med_autoscience.controllers import (
     hermes_supervision,
     study_runtime_router,
 )
+from med_autoscience.action_catalog import (
+    action_catalog_command_map as _action_catalog_command_map,
+    build_mas_action_catalog as _build_mas_action_catalog,
+    product_entry_shell_from_action_catalog as _product_entry_shell_from_action_catalog,
+    project_mas_action_catalog as _project_mas_action_catalog,
+)
 from med_autoscience.controllers.study_runtime_resolution import _execution_payload, _resolve_study
 from med_autoscience.domain_entry_contract import (
     PRODUCT_ENTRY_MANIFEST_SCHEMA_REF,
