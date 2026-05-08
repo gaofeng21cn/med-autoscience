@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 from typing import Any, Callable
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from med_autoscience.controllers import auto_runtime_parking
 from med_autoscience.runtime_protocol import quest_state
@@ -291,6 +291,15 @@ def runtime_audit_worker_running(payload: dict[str, Any]) -> bool:
     return payload.get("worker_running") is True
 
 
+def monitoring_url_supports_daemon_api(browser_url: str | None) -> bool:
+    if browser_url is None:
+        return False
+    parsed = urlparse(browser_url)
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    return parsed.netloc != ""
+
+
 def is_strictly_live_runtime_notice(
     *,
     status: StudyRuntimeStatus,
@@ -343,6 +352,7 @@ def record_autonomous_runtime_notice_if_required(
         return
     quest_status = status.quest_status.value if status.quest_status is not None else "unknown"
     encoded_quest_id = quote(status.quest_id, safe="")
+    supports_daemon_api = monitoring_url_supports_daemon_api(browser_url)
     status.record_autonomous_runtime_notice(
         StudyRuntimeAutonomousRuntimeNotice(
             required=True,
@@ -355,9 +365,9 @@ def record_autonomous_runtime_notice_if_required(
             quest_status=quest_status,
             active_run_id=resolved_active_run_id,
             browser_url=browser_url,
-            quest_api_url=f"{browser_url}/api/quests/{encoded_quest_id}" if browser_url is not None else None,
+            quest_api_url=f"{browser_url}/api/quests/{encoded_quest_id}" if supports_daemon_api else None,
             quest_session_api_url=(
-                f"{browser_url}/api/quests/{encoded_quest_id}/session" if browser_url is not None else None
+                f"{browser_url}/api/quests/{encoded_quest_id}/session" if supports_daemon_api else None
             ),
             monitoring_available=browser_url is not None,
             monitoring_error=monitoring_error,
