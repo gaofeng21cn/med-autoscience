@@ -137,6 +137,11 @@ def _fail_closed_block(
         return {"reason": "publication_gate_missing", "current_action": "human_gate_required"}
     if _retry_exhausted(status, progress) and not _has_bounded_retry_exhausted_redrive(redrive_actions):
         return {"reason": "retry_exhausted", "current_action": "escalated"}
+    if _external_supervisor_without_dispatch(owner_route, actions):
+        return {
+            "reason": _text(owner_route.get("owner_reason")) or "external_supervisor_required",
+            "current_action": "escalated",
+        }
     if not redrive_actions:
         return {"reason": "awaiting_fresh_owner_route", "current_action": "await_next_tick"}
     return None
@@ -271,6 +276,14 @@ def _has_bounded_retry_exhausted_redrive(actions: list[dict[str, Any]]) -> bool:
         if _text(action.get("reason")) in _RETRY_EXHAUSTED_REDRIVE_REASONS:
             return True
     return False
+
+
+def _external_supervisor_without_dispatch(owner_route: Mapping[str, Any], actions: list[dict[str, Any]]) -> bool:
+    if _text(owner_route.get("next_owner")) != "external_supervisor":
+        return False
+    if actions:
+        return False
+    return _text(owner_route.get("owner_reason")) is not None
 
 
 def _dedupe_fingerprint(owner_route: Mapping[str, Any], actions: list[dict[str, Any]]) -> str | None:

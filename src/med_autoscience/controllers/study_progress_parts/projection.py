@@ -239,6 +239,7 @@ def build_study_progress_projection(
         needs_user_decision=needs_physician_decision,
         manual_finish_contract=manual_finish_contract,
         task_intake_progress_override=task_intake_progress_override,
+        publication_eval_payload=publication_eval_payload,
     )
     current_stage = _current_stage(
         status=status,

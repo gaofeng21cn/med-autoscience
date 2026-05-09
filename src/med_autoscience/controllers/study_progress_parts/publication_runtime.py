@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
+
 from . import shared as _shared
 
 def _module_reexport(module) -> None:
@@ -81,6 +83,8 @@ def _publication_eval_specificity_request(publication_eval_payload: dict[str, An
             continue
         unit_id = _non_empty_text(next_work_unit.get("unit_id"))
         if unit_id not in {"gate_needs_specificity", "needs_specificity"}:
+            continue
+        if specificity_target_status(action.get("specificity_targets")).get("complete") is True:
             continue
         fingerprint = _non_empty_text(action.get("work_unit_fingerprint"))
         questions = [
