@@ -340,6 +340,16 @@ def _blocked_reason_from_scan(
     )
 
 
+def _required_output_pending(actions: list[dict[str, Any]], ai_reviewer_assessment: Mapping[str, Any]) -> bool:
+    if ai_reviewer_assessment.get("missing") is not True:
+        return False
+    return any(
+        _text(action.get("action_type")) == "return_to_ai_reviewer_workflow"
+        and _text(action.get("required_output_surface")) == "artifacts/publication_eval/latest.json"
+        for action in actions
+    )
+
+
 def _read_study_projection_inputs(
     *,
     profile: WorkspaceProfile,
@@ -779,6 +789,7 @@ def _study_projection(
         study_id=study_id,
         owner_route=owner_route,
         current_meaningful_artifact_delta=artifact_freshness.meaningful_artifact_delta_observed(progress_payload),
+        required_output_pending=_required_output_pending(actions, ai_reviewer_assessment),
     )
     if repeat_guard["repeat_suppressed"]:
         actions = []

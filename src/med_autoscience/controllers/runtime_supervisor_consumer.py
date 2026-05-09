@@ -149,6 +149,13 @@ def _current_scan_study(scan_payload: Mapping[str, Any], study_id: str) -> dict[
     return None
 
 
+def _required_output_pending(action_type: str, current_study: Mapping[str, Any] | None) -> bool:
+    if action_type != "return_to_ai_reviewer_workflow":
+        return False
+    assessment = _mapping(_mapping(current_study).get("ai_reviewer_assessment"))
+    return assessment.get("missing") is True
+
+
 def _github_block_reason(developer_mode_payload: Mapping[str, Any]) -> str | None:
     if text := _text(developer_mode_payload.get("blocked_reason")):
         return text
@@ -385,10 +392,12 @@ def _default_executor_dispatch(
             owner_route=owner_route,
         ):
             blocked_reason = "owner_route_next_owner_mismatch"
+    current_study = _current_scan_study(scan_payload, study_id)
     repeat_guard = repeat_suppression.dispatch_repeat_suppression(
         dispatch={"prompt_contract": prompt_contract, "owner_route": owner_route, "dispatch_status": dispatch_status},
-        current_study=_current_scan_study(scan_payload, study_id),
+        current_study=current_study,
         existing_dispatch=_read_json_object(dispatch_path),
+        required_output_pending=_required_output_pending(action_type, current_study),
     )
     if dispatch_status == "ready" and repeat_guard["repeat_suppressed"]:
         dispatch_status = "repeat_suppressed"

@@ -387,12 +387,14 @@ def test_supervisor_scan_suppresses_repeated_owner_route_without_meaningful_arti
     )
 
     study = result["studies"][0]
-    assert result["action_queue"] == []
-    assert study["action_queue"] == []
-    assert study["repeat_suppression"]["repeat_suppressed"] is True
-    assert study["repeat_suppression"]["why_not_applied"] == "repeat_suppressed"
+    assert [item["action_type"] for item in result["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert study["repeat_suppression"]["repeat_suppressed"] is False
+    assert study["repeat_suppression"]["why_not_applied"] is None
     assert study["repeat_suppression"]["work_unit_fingerprint"] == "publication-blockers::repeat"
-    assert study["why_not_applied"] == "repeat_suppressed"
+    assert study["why_not_applied"] == "ai_reviewer_assessment_required"
+    assert study["blocked_reason"] == "ai_reviewer_assessment_required"
+    assert study["next_owner"] == "ai_reviewer"
 
 
 def test_supervisor_consume_preserves_owner_route_in_dispatch(monkeypatch, tmp_path: Path) -> None:

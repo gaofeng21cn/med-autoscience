@@ -44,9 +44,10 @@ def scan_repeat_suppression(
     study_id: str,
     owner_route: Mapping[str, Any],
     current_meaningful_artifact_delta: bool,
+    required_output_pending: bool = False,
 ) -> dict[str, Any]:
     key = repeat_key(owner_route)
-    if key is None or current_meaningful_artifact_delta:
+    if key is None or current_meaningful_artifact_delta or required_output_pending:
         return _not_suppressed(key)
     for study in _list(_mapping(previous_payload).get("studies")):
         study_payload = _mapping(study)
@@ -71,6 +72,7 @@ def dispatch_repeat_suppression(
     dispatch: Mapping[str, Any],
     current_study: Mapping[str, Any] | None,
     existing_dispatch: Mapping[str, Any] | None,
+    required_output_pending: bool = False,
 ) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     if prompt_contract.get("do_not_repeat") is not True:
@@ -78,7 +80,7 @@ def dispatch_repeat_suppression(
     key = repeat_key(dispatch)
     if key is None:
         return _not_suppressed(None)
-    if meaningful_artifact_delta_observed(current_study):
+    if meaningful_artifact_delta_observed(current_study) or required_output_pending:
         return _not_suppressed(key)
     existing = _mapping(existing_dispatch)
     if existing and _text(existing.get("dispatch_status")) in {"ready", "repeat_suppressed"} and repeat_key(existing) == key:
@@ -91,6 +93,7 @@ def execution_repeat_suppression(
     dispatch: Mapping[str, Any],
     current_study: Mapping[str, Any] | None,
     previous_execution_latest: Mapping[str, Any] | None,
+    required_output_pending: bool = False,
 ) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     if prompt_contract.get("do_not_repeat") is not True:
@@ -98,7 +101,7 @@ def execution_repeat_suppression(
     key = repeat_key(dispatch)
     if key is None:
         return _not_suppressed(None)
-    if meaningful_artifact_delta_observed(current_study):
+    if meaningful_artifact_delta_observed(current_study) or required_output_pending:
         return _not_suppressed(key)
     for execution in _list(_mapping(previous_execution_latest).get("executions")):
         execution_payload = _mapping(execution)
