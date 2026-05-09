@@ -182,6 +182,8 @@ def runtime_platform_repair_apply_required(
 ) -> bool:
     if runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
         return True
+    if _controller_work_unit_pending_redrive_required(status):
+        return True
     if _external_supervisor_bounded_redrive_required(status, progress):
         return True
     if _pending_user_message_platform_redrive_required(status):
@@ -258,6 +260,18 @@ def _runtime_platform_repair_redrive_pending(status: Mapping[str, Any]) -> bool:
         and _text(continuation_state.get("continuation_anchor")) == "decision"
         and _text(continuation_state.get("continuation_reason")) == "runtime_platform_repair_redrive"
         and int(continuation_state.get("pending_user_message_count") or 0) == 0
+    )
+
+
+def _controller_work_unit_pending_redrive_required(status: Mapping[str, Any]) -> bool:
+    if _text(status.get("quest_status")) != "waiting_for_user":
+        return False
+    if active_run_id(status, {}) is not None or worker_running(status):
+        return False
+    interaction_arbitration = _mapping(status.get("interaction_arbitration"))
+    return bool(
+        _text(interaction_arbitration.get("classification")) == "controller_work_unit_pending_redrive"
+        and _text(interaction_arbitration.get("action")) == "resume"
     )
 
 
