@@ -72,6 +72,7 @@ def arbitrate_waiting_for_user(
     submission_metadata_only: bool,
     publication_gate_report: dict[str, Any] | None = None,
     blocked_closeout: dict[str, Any] | None = None,
+    continuation_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if submission_metadata_only:
         return {
@@ -89,6 +90,9 @@ def arbitrate_waiting_for_user(
         }
 
     if not isinstance(pending_interaction, dict):
+        pending_redrive = _pending_user_message_redrive(continuation_state)
+        if pending_redrive is not None:
+            return pending_redrive
         blocked_closeout_wait = _blocked_closeout_owner_wait(blocked_closeout)
         if blocked_closeout_wait is not None:
             return blocked_closeout_wait
@@ -183,6 +187,38 @@ def arbitrate_waiting_for_user(
         "controller_stage_note": (
             "MAS-managed studies must keep routing, finalize, adequacy, publishability, and completion decisions "
             "inside the MAS outer loop; runtime blocking may only ask for external secrets or credentials."
+        ),
+    }
+
+
+def _pending_user_message_redrive(continuation_state: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(continuation_state, dict):
+        return None
+    continuation_policy = _text(continuation_state.get("continuation_policy"))
+    continuation_anchor = _text(continuation_state.get("continuation_anchor"))
+    continuation_reason = _text(continuation_state.get("continuation_reason"))
+    if continuation_policy != "auto":
+        return None
+    if continuation_anchor != "user_message_queue":
+        return None
+    if continuation_reason != "runtime_platform_repair_resume_existing_pending_user_message":
+        return None
+    pending_count = continuation_state.get("pending_user_message_count")
+    if not isinstance(pending_count, int) or pending_count <= 0:
+        return None
+    return {
+        "classification": "pending_user_message_redrive",
+        "action": "resume",
+        "reason_code": "runtime_platform_repair_pending_user_message_redrive",
+        "requires_user_input": False,
+        "valid_blocking": False,
+        "kind": "user_message_queue",
+        "decision_type": None,
+        "source_artifact_path": None,
+        "pending_user_message_count": pending_count,
+        "controller_stage_note": (
+            "Runtime platform repair marked an existing pending user-message queue for autonomous redrive; "
+            "resume the managed runtime instead of parking on waiting_for_user."
         ),
     }
 

@@ -233,6 +233,12 @@ def _action_matches_route_owner(
     resolved_action_owner = action_owner if action_owner is not None else _action_owner(action)
     if resolved_action_owner == route_owner:
         return True
+    if (
+        route_owner == "external_supervisor"
+        and _text(action.get("action_type")) == "runtime_platform_repair"
+        and resolved_action_owner == "external_engineering_agent"
+    ):
+        return True
     if route_owner == "external_supervisor" and _text(action.get("authority")) == "external_supervisor":
         return resolved_action_owner in {None, "external_engineering_agent", "external_supervisor"}
     return False

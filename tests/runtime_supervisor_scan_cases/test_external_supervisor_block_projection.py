@@ -60,6 +60,320 @@ def test_supervisor_scan_dispatches_external_supervisor_repair_after_repeated_bl
     assert study["recovery_intent"]["evidence_refs"]["action_ids"] == [action["action_id"]]
 
 
+def test_supervisor_scan_dispatches_external_supervisor_repair_from_blocked_lifecycle_state(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "obesity_multicenter_phenotype_atlas"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: _status_payload(study_id=study_id, study_root=study_root, quest_root=quest_root),
+    )
+    progress_payload = _progress_payload(study_id=study_id, study_root=study_root)
+    progress_payload["ai_repair_lifecycle"]["state"] = "blocked"
+    monkeypatch.setattr(module.study_progress, "read_study_progress", lambda **_: progress_payload)
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["runtime_platform_repair"]
+    action = study["action_queue"][0]
+    assert action["reason"] == "runtime_recovery_not_authorized"
+    assert action["authority"] == "external_supervisor"
+    assert study["owner_route"]["allowed_actions"] == ["runtime_platform_repair"]
+    assert study["recovery_intent"]["current_action"] == "safe_reconcile_ready"
+
+
+def test_supervisor_scan_applies_external_supervisor_redrive_when_specificity_targets_supersede_terminal(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "obesity_multicenter_phenotype_atlas"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    publication_eval = {
+        "schema_version": 1,
+        "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::return_to_controller::publication-blockers::obesity",
+                "action_type": "return_to_controller",
+                "work_unit_fingerprint": "publication-blockers::obesity",
+                "next_work_unit": {"unit_id": "gate_needs_specificity", "lane": "controller"},
+                "specificity_targets": _specificity_targets(study_root),
+            }
+        ],
+    }
+    _write_json(
+        quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "blocked",
+            "blockers": ["missing_publication_anchor"],
+            "current_required_action": "return_to_publishability_gate",
+            "supervisor_phase": "scientific_anchor_missing",
+        },
+    )
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "current-specificity",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "request_gate_specificity"}],
+            "route_target": "controller",
+            "work_unit_fingerprint": "publication-blockers::obesity",
+            "next_work_unit": {"unit_id": "gate_needs_specificity", "lane": "controller"},
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "waiting_for_user",
+            "quest_id": study_id,
+            "active_run_id": None,
+            "worker_running": False,
+            "pending_user_message_count": 2,
+            "pending_user_message_ids": ["msg-data", "msg-gate"],
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "turn_closeout",
+            "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+            "blocked_turn_closeout": {
+                "run_id": "mas-run-obesity-stale",
+                "closeout_path": str(
+                    quest_root
+                    / "artifacts"
+                    / "runtime"
+                    / "turn_closeouts"
+                    / "mas-run-obesity-stale.json"
+                ),
+                "blocked_reason": "AI reviewer authority missing",
+                "next_owner": "ai_reviewer",
+            },
+            "last_liveness_reconcile_reason": "blocked_turn_closeout_waiting_for_owner",
+            "same_fingerprint_auto_turn_count": 0,
+            "last_controller_decision_authorization": {
+                "decision_id": "current-specificity",
+                "route_target": "controller",
+                "work_unit_id": "gate_needs_specificity",
+                "work_unit_fingerprint": "publication-blockers::obesity",
+                "controller_work_unit_lifecycle": {
+                    "lifecycle_state": "needs_specificity",
+                    "latest_event_type": "needs_specificity",
+                    "delivery_blocked": True,
+                    "block_reason": "needs_specificity",
+                    "terminal_consumed": True,
+                },
+            },
+            "control_intent_lifecycle": {
+                "state": "needs_specificity",
+                "work_unit_id": "gate_needs_specificity",
+                "work_unit_fingerprint": "publication-blockers::obesity",
+            },
+        },
+    )
+    ensure_calls: list[dict[str, object]] = []
+
+    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        ensure_calls.append(dict(kwargs))
+        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+        assert "last_controller_decision_authorization" not in runtime_state
+        assert "control_intent_lifecycle" not in runtime_state
+        assert "blocked_turn_closeout" not in runtime_state
+        assert "last_liveness_reconcile_reason" not in runtime_state
+        assert runtime_state["pending_user_message_count"] == 2
+        assert runtime_state["continuation_anchor"] == "user_message_queue"
+        assert runtime_state["continuation_reason"] == "runtime_platform_repair_resume_existing_pending_user_message"
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "quest_status": "running",
+            "decision": "resume",
+            "runtime_liveness_audit": {
+                "active_run_id": "run-obesity-recovered",
+                "runtime_audit": {"worker_running": True, "active_run_id": "run-obesity-recovered"},
+            },
+        }
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            **_status_payload(study_id=study_id, study_root=study_root, quest_root=quest_root),
+            "quest_status": "waiting_for_user",
+            "publication_eval": publication_eval,
+        },
+    )
+    progress_payload = _progress_payload(study_id=study_id, study_root=study_root)
+    progress_payload["ai_repair_lifecycle"]["state"] = "blocked"
+    monkeypatch.setattr(module.study_progress, "read_study_progress", lambda **_: progress_payload)
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        apply_runtime_platform_repair=True,
+        persist_surfaces=False,
+    )
+
+    assert len(ensure_calls) == 1
+    study = result["studies"][0]
+    apply_result = study["runtime_platform_repair_apply"]
+    assert apply_result["dispatch_status"] == "applied"
+    assert apply_result["reason"] == "stale_specificity_terminal_targets_resolved"
+    assert apply_result["stale_specificity_cleared"] is True
+    assert apply_result["existing_pending_user_message_resume"]["marked"] is True
+    assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
+    assert apply_result["gate_status"]["ready"] is False
+    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-obesity-recovered"
+    assert study["external_supervisor_required"] is False
+    assert study["paper_package_mutated"] is False
+
+
+def test_supervisor_scan_redrives_half_repaired_pending_queue_with_stale_closeout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "obesity_multicenter_phenotype_atlas"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    publication_eval = {
+        "schema_version": 1,
+        "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::return_to_controller::publication-blockers::obesity",
+                "action_type": "return_to_controller",
+                "work_unit_fingerprint": "publication-blockers::obesity",
+                "next_work_unit": {"unit_id": "gate_needs_specificity", "lane": "controller"},
+                "specificity_targets": _specificity_targets(study_root),
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "waiting_for_user",
+            "quest_id": study_id,
+            "active_run_id": None,
+            "worker_running": False,
+            "pending_user_message_count": 2,
+            "continuation_policy": "auto",
+            "continuation_anchor": "user_message_queue",
+            "continuation_reason": "runtime_platform_repair_resume_existing_pending_user_message",
+            "blocked_turn_closeout": {
+                "run_id": "mas-run-obesity-stale",
+                "closeout_path": str(
+                    quest_root
+                    / "artifacts"
+                    / "runtime"
+                    / "turn_closeouts"
+                    / "mas-run-obesity-stale.json"
+                ),
+                "blocked_reason": "AI reviewer authority missing",
+                "next_owner": "ai_reviewer",
+            },
+            "last_liveness_reconcile_reason": "blocked_turn_closeout_waiting_for_owner",
+        },
+    )
+    ensure_calls: list[dict[str, object]] = []
+
+    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        ensure_calls.append(dict(kwargs))
+        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+        assert "blocked_turn_closeout" not in runtime_state
+        assert "last_liveness_reconcile_reason" not in runtime_state
+        assert runtime_state["pending_user_message_count"] == 2
+        assert runtime_state["continuation_anchor"] == "user_message_queue"
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "quest_status": "running",
+            "decision": "resume",
+            "runtime_liveness_audit": {
+                "active_run_id": "run-obesity-recovered",
+                "runtime_audit": {"worker_running": True, "active_run_id": "run-obesity-recovered"},
+            },
+        }
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            **_status_payload(study_id=study_id, study_root=study_root, quest_root=quest_root),
+            "quest_status": "waiting_for_user",
+            "continuation_state": {
+                "quest_status": "waiting_for_user",
+                "active_run_id": None,
+                "continuation_policy": "auto",
+                "continuation_anchor": "user_message_queue",
+                "continuation_reason": "runtime_platform_repair_resume_existing_pending_user_message",
+                "pending_user_message_count": 2,
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+            "interaction_arbitration": {
+                "classification": "pending_user_message_redrive",
+                "action": "resume",
+                "reason_code": "runtime_platform_repair_pending_user_message_redrive",
+                "requires_user_input": False,
+                "valid_blocking": False,
+                "kind": "user_message_queue",
+                "decision_type": None,
+                "source_artifact_path": None,
+                "pending_user_message_count": 2,
+                "controller_stage_note": "Runtime platform repair marked an existing pending user-message queue for autonomous redrive.",
+            },
+            "publication_eval": publication_eval,
+        },
+    )
+    progress_payload = _progress_payload(study_id=study_id, study_root=study_root)
+    progress_payload["ai_repair_lifecycle"] = {
+        **progress_payload["ai_repair_lifecycle"],
+        "state": "applied",
+        "external_supervisor_required": False,
+        "blocked_reason": None,
+    }
+    monkeypatch.setattr(module.study_progress, "read_study_progress", lambda **_: progress_payload)
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        apply_runtime_platform_repair=True,
+        persist_surfaces=False,
+    )
+
+    assert len(ensure_calls) == 1
+    apply_result = result["studies"][0]["runtime_platform_repair_apply"]
+    assert apply_result["dispatch_status"] == "applied"
+    assert apply_result["reason"] == "stale_blocked_turn_closeout_pending_queue_redrive"
+    assert apply_result["existing_pending_user_message_resume"]["marked"] is True
+    assert apply_result["blocked_turn_closeout_clear"]["cleared"] is True
+
+
 def _write_previous_scan(workspace_root: Path, *, study_id: str) -> None:
     previous_route = {
         "surface": "runtime_supervisor_owner_route",

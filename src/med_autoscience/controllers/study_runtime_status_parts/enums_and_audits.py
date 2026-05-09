@@ -107,6 +107,7 @@ class StudyRuntimeReason(StrEnum):
     QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED = "quest_marked_running_but_auto_resume_disabled"
     QUEST_WAITING_FOR_USER = "quest_waiting_for_user"
     QUEST_WAITING_ON_INVALID_BLOCKING = "quest_waiting_on_invalid_blocking"
+    QUEST_WAITING_USER_MESSAGE_REDRIVE = "quest_waiting_user_message_redrive"
     QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR = (
         "quest_completion_requested_before_publication_gate_clear"
     )
@@ -633,6 +634,7 @@ class StudyRuntimeContinuationState:
     continuation_anchor: str | None
     continuation_reason: str | None
     stop_reason: str | None
+    pending_user_message_count: int
     runtime_state_path: str
 
     def __post_init__(self) -> None:
@@ -649,6 +651,8 @@ class StudyRuntimeContinuationState:
                 raise TypeError(f"study runtime continuation state {field_name} must be str or None")
         if not isinstance(self.runtime_state_path, str) or not self.runtime_state_path.strip():
             raise TypeError("study runtime continuation state runtime_state_path must be non-empty str")
+        if not isinstance(self.pending_user_message_count, int) or self.pending_user_message_count < 0:
+            raise TypeError("study runtime continuation state pending_user_message_count must be non-negative int")
 
     def to_dict(self) -> dict[str, Any]:
         payload = {
@@ -657,6 +661,7 @@ class StudyRuntimeContinuationState:
             "continuation_policy": self.continuation_policy,
             "continuation_anchor": self.continuation_anchor,
             "continuation_reason": self.continuation_reason,
+            "pending_user_message_count": self.pending_user_message_count,
             "runtime_state_path": self.runtime_state_path,
         }
         if self.stop_reason is not None:
@@ -674,5 +679,6 @@ class StudyRuntimeContinuationState:
             continuation_anchor=str(payload.get("continuation_anchor") or "").strip() or None,
             continuation_reason=str(payload.get("continuation_reason") or "").strip() or None,
             stop_reason=str(payload.get("stop_reason") or "").strip() or None,
+            pending_user_message_count=int(payload.get("pending_user_message_count") or 0),
             runtime_state_path=str(payload.get("runtime_state_path") or ""),
         )

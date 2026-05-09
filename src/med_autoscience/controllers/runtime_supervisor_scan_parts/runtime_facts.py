@@ -148,11 +148,48 @@ def runtime_platform_repair_apply_required(
 ) -> bool:
     if runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
         return True
+    if _external_supervisor_bounded_redrive_required(status, progress):
+        return True
+    if _pending_user_message_platform_redrive_required(status):
+        return True
     return live_activity_timeout_current_controller_route_available(
         status,
         progress,
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
+    )
+
+
+def _pending_user_message_platform_redrive_required(status: Mapping[str, Any]) -> bool:
+    if _text(status.get("quest_status")) != "waiting_for_user":
+        return False
+    if active_run_id(status, {}) is not None or worker_running(status):
+        return False
+    continuation_state = _mapping(status.get("continuation_state"))
+    return bool(
+        _text(continuation_state.get("continuation_policy")) == "auto"
+        and _text(continuation_state.get("continuation_anchor")) == "user_message_queue"
+        and _text(continuation_state.get("continuation_reason"))
+        == "runtime_platform_repair_resume_existing_pending_user_message"
+        and int(continuation_state.get("pending_user_message_count") or 0) > 0
+    )
+
+
+def _external_supervisor_bounded_redrive_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    if active_run_id(status, progress) is not None or worker_running(status):
+        return False
+    lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
+    if _text(lifecycle.get("state")) not in {"blocked", "external_supervisor_required"}:
+        return False
+    if lifecycle.get("external_supervisor_required") is not True:
+        return False
+    if _text(lifecycle.get("blocked_reason")) != "runtime_recovery_not_authorized":
+        return False
+    top_action = _mapping(lifecycle.get("top_action"))
+    return bool(
+        _text(top_action.get("action_type")) == "controller_repair"
+        and _text(top_action.get("repair_kind")) == "bounded_work_unit_redrive"
+        and top_action.get("auto_apply_allowed") is True
     )
 
 

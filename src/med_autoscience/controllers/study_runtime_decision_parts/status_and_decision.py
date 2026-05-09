@@ -30,12 +30,14 @@ def _record_interaction_arbitration_if_required(
         return
     payload = status.extras.get("pending_user_interaction")
     blocked_closeout = status.extras.get("blocked_turn_closeout")
+    continuation_state = status.extras.get("continuation_state")
     arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
         pending_interaction=payload if isinstance(payload, dict) else None,
         decision_policy=str(execution.get("decision_policy") or "").strip() or None,
         submission_metadata_only=submission_metadata_only,
         publication_gate_report=publication_gate_report if isinstance(publication_gate_report, dict) else None,
         blocked_closeout=blocked_closeout if isinstance(blocked_closeout, dict) else None,
+        continuation_state=continuation_state if isinstance(continuation_state, dict) else None,
     )
     status.record_interaction_arbitration(arbitration)
 
@@ -863,6 +865,7 @@ def _status_state(
                         StudyRuntimeReason.QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR
                     ),
                     "invalid_blocking": StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
+                    "pending_user_message_redrive": StudyRuntimeReason.QUEST_WAITING_USER_MESSAGE_REDRIVE,
                 }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
                 result.set_decision(
                     StudyRuntimeDecision.RESUME,
