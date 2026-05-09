@@ -339,19 +339,22 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert by_surface["progress_visibility"]["future_parity_candidate"] == "real_workspace_user_soak_and_interactive_gate_polish"
     assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "purpose_equivalent_with_different_timing"
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["live_console"] == (
-        "MAS-authored read-only session/run/terminal/log observation shell"
+        "MAS-authored session/run/terminal/log observation shell"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["websocket_terminal_attach"] == (
-        "blocked_by_missing_terminal_input_owner"
+        "mas_owner_available_or_blocked_by_missing_terminal_input_owner"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["terminal_attach_gate"] == (
         "mas_terminal_attach_gate"
+    )
+    assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["terminal_attach_owner"] == (
+        "mas_terminal_attach_owner"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["authorized_portal_actions"] == (
         "controller_authorized_apply_for_pause_resume_stop"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["future_parity_candidate"] == (
-        "interactive_terminal_attach_and_authorized_ui_control"
+        "real_workspace_terminal_attach_owner_soak"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["paper_progress_degradation"]["classification"] == (
         "diagnostic_degrading"

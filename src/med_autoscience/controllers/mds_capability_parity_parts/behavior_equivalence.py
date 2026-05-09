@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
+
+from med_autoscience.controllers.mds_capability_parity_parts.paper_progress_degradation import (
+    ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES,
+    build_mds_paper_progress_degradation_classifier,
+    paper_progress_degradation_for_surface,
+    validate_behavior_surface_paper_progress,
+    validate_paper_progress_degradation_classifier,
+)
 
 
 SCHEMA_VERSION = 1
@@ -22,171 +30,6 @@ ALLOWED_BEHAVIOR_OPERATOR_ACTIONS: tuple[str, ...] = (
     "retired_no_active_replacement",
     "use_historical_fixture_only",
 )
-ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES: tuple[str, ...] = (
-    "production_degrading",
-    "production_risk",
-    "diagnostic_degrading",
-    "acceptable_design_difference",
-    "retired_non_goal",
-)
-REQUIRED_PRODUCTION_DEGRADING_OVERLAY_IDS: tuple[str, ...] = (
-    "owner_handoff_dispatch",
-    "repeat_suppression",
-    "work_unit_redrive",
-)
-
-PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
-    "daemon_residency": {
-        "classification": "production_risk",
-        "affects_automatic_paper_production": True,
-        "production_path": "outer_supervision_recovery_latency",
-        "rationale": "Scheduled supervision can delay stale-run detection and recovery, but MAS turn continuation no longer depends on resident MDS.",
-        "required_guard_surface": "runtime_watch/runtime_supervision freshness",
-    },
-    "supervision_cadence": {
-        "classification": "production_risk",
-        "affects_automatic_paper_production": True,
-        "production_path": "outer_supervision_recovery_latency",
-        "rationale": "The five-minute tick is acceptable only while per-turn continuation and stale recovery receipts remain healthy.",
-        "required_guard_surface": "mas_supervision_scheduler tick receipt",
-    },
-    "turn_completion_continuation": {
-        "classification": "acceptable_design_difference",
-        "affects_automatic_paper_production": True,
-        "production_path": "runtime_turn_continuation",
-        "rationale": "MAS keeps the production behavior and changes the owner from MDS daemon code to the MAS turn kernel.",
-        "required_guard_surface": "complete_turn_and_normalize receipt",
-    },
-    "quest_create_resume_pause_stop": {
-        "classification": "acceptable_design_difference",
-        "affects_automatic_paper_production": True,
-        "production_path": "study_runtime_lifecycle_controls",
-        "rationale": "Lifecycle controls remain available through MAS owner surfaces rather than MDS HTTP routes.",
-        "required_guard_surface": "study_runtime_status/ensure_study_runtime",
-    },
-    "live_worker_session_tracking": {
-        "classification": "production_risk",
-        "affects_automatic_paper_production": True,
-        "production_path": "worker_liveness_and_stale_run_detection",
-        "rationale": "Durable liveness is safer than an in-memory daemon store, but stale truth can stall production if receipts drift.",
-        "required_guard_surface": "runtime_liveness_audit/runtime_session",
-    },
-    "crash_recovery_auto_resume": {
-        "classification": "production_risk",
-        "affects_automatic_paper_production": True,
-        "production_path": "crash_recovery_and_auto_resume",
-        "rationale": "Recovery is MAS-owned and MDS-independent, while scheduler-bound restart latency can slow automatic paper progress.",
-        "required_guard_surface": "recovery_intent/runtime_watch",
-    },
-    "queued_user_messages_mailbox": {
-        "classification": "production_risk",
-        "affects_automatic_paper_production": True,
-        "production_path": "task_intake_owner_handoff_and_user_queue",
-        "rationale": "Quest-local queueing is covered, but routing drift in broader task intake can starve production work.",
-        "required_guard_surface": "owner_route/consumer latest/dispatch receipts",
-    },
-    "progress_visibility": {
-        "classification": "diagnostic_degrading",
-        "affects_automatic_paper_production": False,
-        "production_path": "operator_progress_diagnostics",
-        "rationale": "Portal and route/decision views improve supervision visibility without writing paper production truth.",
-        "required_guard_surface": "progress_portal read-only source refs",
-    },
-    "webui_websocket_terminal_streaming": {
-        "classification": "diagnostic_degrading",
-        "affects_automatic_paper_production": False,
-        "production_path": "live_console_and_terminal_diagnostics",
-        "rationale": "Live Console and terminal attach parity are diagnostic/control surfaces; missing interactive attach should not block automatic paper work.",
-        "required_guard_surface": "mas_terminal_attach_gate/live-console read model",
-    },
-    "connector_channel_background_delivery": {
-        "classification": "retired_non_goal",
-        "affects_automatic_paper_production": False,
-        "production_path": "retired_connector_delivery",
-        "rationale": "Background chat connectors are outside default MAS paper production.",
-        "required_guard_surface": "durable handoff refs only",
-    },
-    "mcp_surface": {
-        "classification": "acceptable_design_difference",
-        "affects_automatic_paper_production": False,
-        "production_path": "adapter_status_access",
-        "rationale": "MAS MCP reads owner surfaces directly and remains adapter-only.",
-        "required_guard_surface": "MAS MCP truth refs",
-    },
-    "gitops_state_management": {
-        "classification": "retired_non_goal",
-        "affects_automatic_paper_production": False,
-        "production_path": "retired_gitops_lifecycle",
-        "rationale": "Runtime lifecycle is SQLite/restore-proof owned; MDS quest Git is not a production goal.",
-        "required_guard_surface": "runtime_lifecycle.sqlite/restore index",
-    },
-    "memory_lesson_store": {
-        "classification": "production_risk",
-        "affects_automatic_paper_production": True,
-        "production_path": "incident_learning_and_repeat_avoidance",
-        "rationale": "Memory is evidence-only, but losing lesson intake can reintroduce repeated failed work patterns.",
-        "required_guard_surface": "portfolio/research_memory and incident learning read models",
-    },
-    "team_multiagent_coordination": {
-        "classification": "production_risk",
-        "affects_automatic_paper_production": True,
-        "production_path": "owner_route_controller_coordination",
-        "rationale": "MAS controller routing replaces MDS team service; routing drift can strand publication work units.",
-        "required_guard_surface": "owner_route -> consumer latest -> executor dispatch -> rescan",
-    },
-    "artifact_interaction_handoff": {
-        "classification": "production_risk",
-        "affects_automatic_paper_production": True,
-        "production_path": "artifact_inventory_package_locator",
-        "rationale": "Artifact discovery feeds package production; interactive mutation APIs remain outside default MAS.",
-        "required_guard_surface": "Artifact OS inventory/package locator/rebuild proof",
-    },
-    "system_update_daemon_lifecycle_controls": {
-        "classification": "retired_non_goal",
-        "affects_automatic_paper_production": False,
-        "production_path": "retired_external_daemon_admin",
-        "rationale": "MDS daemon lifecycle controls are retired because MAS has no default MDS daemon dependency.",
-        "required_guard_surface": "runtime-ensure-supervision/runtime-remove-supervision",
-    },
-    "workspace_local_host_service": {
-        "classification": "retired_non_goal",
-        "affects_automatic_paper_production": False,
-        "production_path": "retired_workspace_local_service",
-        "rationale": "Old workspace-local host services are cleanup evidence, not an active production owner.",
-        "required_guard_surface": "mas_supervision_scheduler registration",
-    },
-}
-
-PAPER_PROGRESS_DEGRADATION_OVERLAYS: tuple[dict[str, Any], ...] = (
-    {
-        "risk_id": "owner_handoff_dispatch",
-        "classification": "production_degrading",
-        "affects_automatic_paper_production": True,
-        "covered_by_behavior_surface": "queued_user_messages_mailbox",
-        "production_path": "task_intake_to_controller_to_executor_dispatch",
-        "rationale": "If owner handoff cannot route actionable paper work to the executor, automatic production stalls even when progress surfaces render.",
-        "required_guard_surface": "owner_route/consumer latest/dispatch receipts",
-    },
-    {
-        "risk_id": "repeat_suppression",
-        "classification": "production_degrading",
-        "affects_automatic_paper_production": True,
-        "covered_by_behavior_surface": "memory_lesson_store",
-        "production_path": "no_op_suppression_and_incident_learning",
-        "rationale": "If repeat suppression fails, the runtime can burn turns on unchanged blockers instead of advancing the manuscript or package.",
-        "required_guard_surface": "managed_study_no_op_suppressions/runtime efficiency projection",
-    },
-    {
-        "risk_id": "work_unit_redrive",
-        "classification": "production_degrading",
-        "affects_automatic_paper_production": True,
-        "covered_by_behavior_surface": "crash_recovery_auto_resume",
-        "production_path": "publication_work_unit_recovery_redrive",
-        "rationale": "If failed or stale work units cannot be redriven under MAS authority, automatic paper production cannot recover without manual repair.",
-        "required_guard_surface": "recovery_intent/gate-clearing batch/work-unit receipts",
-    },
-)
-
 BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
     {
         "surface_id": "daemon_residency",
@@ -362,17 +205,18 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "mds_behavior": {"react_webui": True, "websocket_terminal_attach": True, "bash_log_streaming": True},
         "mas_behavior": {
             "progress_portal": "default progress and blocker entry",
-            "live_console": "MAS-authored read-only session/run/terminal/log observation shell",
-            "stream_transport": "SSE snapshot/loopback stream in the landed read-only scope",
-            "websocket_terminal_attach": "blocked_by_missing_terminal_input_owner",
+            "live_console": "MAS-authored session/run/terminal/log observation shell",
+            "stream_transport": "SSE snapshot/loopback stream for observation",
+            "websocket_terminal_attach": "mas_owner_available_or_blocked_by_missing_terminal_input_owner",
             "terminal_attach_gate": "mas_terminal_attach_gate",
+            "terminal_attach_owner": "mas_terminal_attach_owner",
             "authorized_portal_actions": "controller_authorized_apply_for_pause_resume_stop",
             "bash_log_streaming": "read-only terminal/log tail refs",
         },
-        "behavior_difference": "MAS preserves the observation purpose through Progress Portal plus Live Console and now exposes explicit local-loopback authorized Portal actions for pause/resume/stop through MAS runtime owner surfaces; the old resident WebSocket terminal attach/input/resize/detach path is not implemented and remains a future parity candidate rather than a retired requirement.",
-        "default_user_impact": "Users now have MAS-owned progress, read-only live observation surfaces, and gated pause/resume/stop apply when Progress Portal is served with --enable-actions; low-latency interactive terminal attach still requires a separate safety/owner/audit-gated lane.",
-        "mas_contract": "live-console-parity owns workspace/study/run, terminal.tail, log.tail, runtime.health, runtime.supervision and artifact.delta read models without writing authority surfaces; mas_terminal_attach_gate fails closed with token/lease/idempotency/audit/input/resize/detach owner requirements.",
-        "future_parity_candidate": "interactive_terminal_attach_and_authorized_ui_control",
+        "behavior_difference": "MAS preserves the observation purpose through Progress Portal plus Live Console and now exposes explicit local-loopback authorized Portal actions for pause/resume/stop through MAS runtime owner surfaces; terminal attach/input/resize/detach is MAS-owner gated rather than owned by the old resident WebSocket path.",
+        "default_user_impact": "Users now have MAS-owned progress, live observation surfaces, gated pause/resume/stop apply when Progress Portal is served with --enable-actions, and attach/input/resize/detach UI/API when a MAS terminal attach owner is available.",
+        "mas_contract": "live-console-parity owns workspace/study/run, terminal.tail, log.tail, runtime.health, runtime.supervision and artifact.delta read models; mas_terminal_attach_gate fails closed by default and exposes mas_terminal_attach_owner attach/input/resize/detach endpoints when the owner contract is available.",
+        "future_parity_candidate": "real_workspace_terminal_attach_owner_soak",
         "recommended_operator_action": "use_mas_with_latency_awareness",
     },
     {
@@ -555,15 +399,9 @@ def _text(value: object) -> str:
     return str(value or "").strip()
 
 
-def _paper_progress_degradation_for_surface(surface_id: str) -> dict[str, Any]:
-    if surface_id not in PAPER_PROGRESS_DEGRADATION_BY_SURFACE:
-        raise ValueError(f"missing paper progress degradation classification: {surface_id}")
-    return copy.deepcopy(PAPER_PROGRESS_DEGRADATION_BY_SURFACE[surface_id])
-
-
 def _behavior_surface_projection(surface: Mapping[str, Any]) -> dict[str, Any]:
     projection = copy.deepcopy(dict(surface))
-    projection["paper_progress_degradation"] = _paper_progress_degradation_for_surface(
+    projection["paper_progress_degradation"] = paper_progress_degradation_for_surface(
         _text(projection.get("surface_id"))
     )
     projection["provenance_ref"] = PROVENANCE_REF
@@ -582,75 +420,6 @@ def _behavior_equivalence_summary(surfaces: list[Mapping[str, Any]]) -> dict[str
         )
     summary["fully_equivalent_to_mds_daemon"] = False
     return summary
-
-
-def _classifier_counts(items: Sequence[Mapping[str, Any]]) -> dict[str, int]:
-    return {
-        classification: sum(1 for item in items if _text(item.get("classification")) == classification)
-        for classification in ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES
-    }
-
-
-def _paper_progress_classification_projection(surface: Mapping[str, Any]) -> dict[str, Any]:
-    classification = surface.get("paper_progress_degradation")
-    payload = classification if isinstance(classification, Mapping) else {}
-    projection = copy.deepcopy(dict(payload))
-    projection["surface_id"] = _text(surface.get("surface_id"))
-    return projection
-
-
-def _paper_progress_degradation_summary(
-    behavior_classifications: Sequence[Mapping[str, Any]],
-    overlay_risks: Sequence[Mapping[str, Any]],
-) -> dict[str, Any]:
-    behavior_counts = _classifier_counts(behavior_classifications)
-    overlay_counts = _classifier_counts(overlay_risks)
-    combined_counts = {
-        classification: behavior_counts[classification] + overlay_counts[classification]
-        for classification in ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES
-    }
-    return {
-        "behavior_surface_count": len(behavior_classifications),
-        "overlay_risk_count": len(overlay_risks),
-        "total_classifier_entry_count": len(behavior_classifications) + len(overlay_risks),
-        "automatic_paper_production_behavior_surface_count": sum(
-            1 for item in behavior_classifications if item.get("affects_automatic_paper_production") is True
-        ),
-        "automatic_paper_production_entry_count": sum(
-            1
-            for item in (*behavior_classifications, *overlay_risks)
-            if item.get("affects_automatic_paper_production") is True
-        ),
-        "production_degrading_entry_count": combined_counts["production_degrading"],
-        "behavior_surface_classification_counts": behavior_counts,
-        "overlay_classification_counts": overlay_counts,
-        "combined_classification_counts": combined_counts,
-        "production_degrading_risk_ids": [
-            _text(item.get("risk_id"))
-            for item in overlay_risks
-            if _text(item.get("classification")) == "production_degrading"
-        ],
-    }
-
-
-def build_mds_paper_progress_degradation_classifier(
-    behavior_surfaces: Sequence[Mapping[str, Any]],
-) -> dict[str, Any]:
-    behavior_classifications = [
-        _paper_progress_classification_projection(surface)
-        for surface in behavior_surfaces
-    ]
-    overlay_risks = [copy.deepcopy(risk) for risk in PAPER_PROGRESS_DEGRADATION_OVERLAYS]
-    return {
-        "surface": "mds_paper_progress_degradation_classifier",
-        "schema_version": SCHEMA_VERSION,
-        "owner": "MedAutoScience",
-        "scope": "mds_behavior_equivalence_paper_progress_impact",
-        "allowed_degradation_classes": list(ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES),
-        "behavior_surface_classifications": behavior_classifications,
-        "overlay_risks": overlay_risks,
-        "summary": _paper_progress_degradation_summary(behavior_classifications, overlay_risks),
-    }
 
 
 def build_mds_behavior_equivalence_matrix() -> dict[str, Any]:
@@ -691,7 +460,7 @@ def validate_mds_behavior_equivalence_matrix(matrix: Mapping[str, Any]) -> dict[
     _validate_behavior_matrix_claims(matrix, issues)
     _validate_behavior_matrix_allowed_values(matrix, issues)
     _validate_behavior_matrix_surfaces(matrix, issues)
-    _validate_paper_progress_degradation_classifier(matrix, issues)
+    validate_paper_progress_degradation_classifier(matrix, issues)
     _validate_runtime_continuity_completion(matrix.get("runtime_continuity_completion"), issues)
     return {
         "surface": "mds_behavior_equivalence_matrix_validation",
@@ -762,7 +531,7 @@ def _validate_behavior_surface(surface: Mapping[str, Any], issues: list[dict[str
     equivalence_class = _text(surface.get("equivalence_class"))
     _validate_behavior_surface_identity(surface, surface_id, equivalence_class, issues)
     _validate_behavior_surface_content(surface, surface_id, issues)
-    _validate_behavior_surface_paper_progress(surface, surface_id, issues)
+    validate_behavior_surface_paper_progress(surface, surface_id, issues)
     _validate_behavior_surface_authority(surface, surface_id, issues)
 
 
@@ -805,149 +574,6 @@ def _validate_behavior_surface_content(
         issues.append({"code": "behavior_surface_missing_mas_behavior", "surface_id": surface_id})
     if _text(surface.get("recommended_operator_action")) not in ALLOWED_BEHAVIOR_OPERATOR_ACTIONS:
         issues.append({"code": "behavior_surface_invalid_operator_action", "surface_id": surface_id})
-
-
-def _validate_behavior_surface_paper_progress(
-    surface: Mapping[str, Any],
-    surface_id: str,
-    issues: list[dict[str, Any]],
-) -> None:
-    classification = surface.get("paper_progress_degradation")
-    if not isinstance(classification, Mapping):
-        issues.append({"code": "behavior_surface_missing_paper_progress_degradation", "surface_id": surface_id})
-        return
-    if _text(classification.get("classification")) not in ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES:
-        issues.append(
-            {
-                "code": "behavior_surface_invalid_paper_progress_degradation_class",
-                "surface_id": surface_id,
-                "classification": _text(classification.get("classification")),
-            }
-        )
-    if not isinstance(classification.get("affects_automatic_paper_production"), bool):
-        issues.append({"code": "behavior_surface_invalid_paper_progress_impact_flag", "surface_id": surface_id})
-    for field in ("production_path", "rationale", "required_guard_surface"):
-        if not _text(classification.get(field)):
-            issues.append({"code": f"behavior_surface_missing_paper_progress_{field}", "surface_id": surface_id})
-
-
-def _validate_paper_progress_degradation_classifier(
-    matrix: Mapping[str, Any],
-    issues: list[dict[str, Any]],
-) -> None:
-    classifier = matrix.get("paper_progress_degradation_classifier")
-    if not isinstance(classifier, Mapping):
-        issues.append({"code": "paper_progress_degradation_classifier_missing"})
-        return
-    if _text(classifier.get("surface")) != "mds_paper_progress_degradation_classifier":
-        issues.append({"code": "paper_progress_degradation_classifier_wrong_surface"})
-    if list(classifier.get("allowed_degradation_classes") or []) != list(ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES):
-        issues.append({"code": "paper_progress_degradation_allowed_classes_drift"})
-    behavior_surfaces = [surface for surface in _list(matrix.get("behavior_surfaces")) if isinstance(surface, Mapping)]
-    behavior_ids = [_text(surface.get("surface_id")) for surface in behavior_surfaces]
-    embedded_classifications = {
-        _text(surface.get("surface_id")): surface.get("paper_progress_degradation")
-        for surface in behavior_surfaces
-    }
-    classification_items = _list(classifier.get("behavior_surface_classifications"))
-    classification_ids = [
-        _text(item.get("surface_id"))
-        for item in classification_items
-        if isinstance(item, Mapping)
-    ]
-    if sorted(classification_ids) != sorted(behavior_ids):
-        issues.append(
-            {
-                "code": "paper_progress_degradation_behavior_surface_coverage_drift",
-                "expected_surface_ids": sorted(behavior_ids),
-                "observed_surface_ids": sorted(classification_ids),
-            }
-        )
-    for item in classification_items:
-        if isinstance(item, Mapping):
-            _validate_paper_progress_classification_item(item, "surface_id", issues)
-            _validate_paper_progress_classifier_matches_embedded_surface(
-                item,
-                embedded_classifications.get(_text(item.get("surface_id"))),
-                issues,
-            )
-    overlay_items = _list(classifier.get("overlay_risks"))
-    for item in overlay_items:
-        if isinstance(item, Mapping):
-            _validate_paper_progress_classification_item(item, "risk_id", issues)
-    required_overlays = set(REQUIRED_PRODUCTION_DEGRADING_OVERLAY_IDS)
-    production_degrading_overlays = {
-        _text(item.get("risk_id"))
-        for item in overlay_items
-        if isinstance(item, Mapping) and _text(item.get("classification")) == "production_degrading"
-    }
-    missing_overlays = required_overlays - production_degrading_overlays
-    if missing_overlays:
-        issues.append(
-            {
-                "code": "paper_progress_degradation_missing_required_production_overlay",
-                "missing_overlay_ids": sorted(missing_overlays),
-            }
-        )
-    summary = classifier.get("summary")
-    expected_summary = _paper_progress_degradation_summary(
-        [item for item in classification_items if isinstance(item, Mapping)],
-        [item for item in overlay_items if isinstance(item, Mapping)],
-    )
-    if not isinstance(summary, Mapping) or dict(summary) != expected_summary:
-        issues.append({"code": "paper_progress_degradation_summary_drift"})
-    matrix_summary = matrix.get("paper_progress_degradation_summary")
-    if isinstance(matrix_summary, Mapping) and dict(matrix_summary) != dict(summary or {}):
-        issues.append({"code": "paper_progress_degradation_matrix_summary_drift"})
-
-
-def _validate_paper_progress_classifier_matches_embedded_surface(
-    item: Mapping[str, Any],
-    embedded: object,
-    issues: list[dict[str, Any]],
-) -> None:
-    surface_id = _text(item.get("surface_id"))
-    if not isinstance(embedded, Mapping):
-        issues.append({"code": "paper_progress_degradation_missing_embedded_surface_classification", "surface_id": surface_id})
-        return
-    for field in (
-        "classification",
-        "affects_automatic_paper_production",
-        "production_path",
-        "rationale",
-        "required_guard_surface",
-    ):
-        if item.get(field) != embedded.get(field):
-            issues.append(
-                {
-                    "code": "paper_progress_degradation_classifier_surface_projection_drift",
-                    "surface_id": surface_id,
-                    "field": field,
-                }
-            )
-
-
-def _validate_paper_progress_classification_item(
-    item: Mapping[str, Any],
-    id_field: str,
-    issues: list[dict[str, Any]],
-) -> None:
-    item_id = _text(item.get(id_field))
-    if not item_id:
-        issues.append({"code": "paper_progress_degradation_missing_id", "id_field": id_field})
-    if _text(item.get("classification")) not in ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES:
-        issues.append(
-            {
-                "code": "paper_progress_degradation_invalid_class",
-                id_field: item_id,
-                "classification": _text(item.get("classification")),
-            }
-        )
-    if not isinstance(item.get("affects_automatic_paper_production"), bool):
-        issues.append({"code": "paper_progress_degradation_invalid_impact_flag", id_field: item_id})
-    for field in ("production_path", "rationale", "required_guard_surface"):
-        if not _text(item.get(field)):
-            issues.append({"code": f"paper_progress_degradation_missing_{field}", id_field: item_id})
 
 
 def _validate_behavior_surface_authority(
