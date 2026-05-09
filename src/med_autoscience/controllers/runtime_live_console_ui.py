@@ -8,6 +8,7 @@ from typing import Any
 from med_autoscience.controllers.progress_portal_parts import local_time_projection
 from med_autoscience.controllers.progress_portal_parts.rendering import local_time_label
 from med_autoscience.controllers.progress_portal_parts.status_display import display_text, status_chip, status_label
+from med_autoscience.runtime_protocol import live_console_contract
 
 
 SCHEMA_VERSION = 1
@@ -62,6 +63,9 @@ def build_live_console_ui_payload(
             "mode": "read_only_observation",
             "writes_authority_surface": False,
         },
+        "terminal_attach_gate": live_console_contract.terminal_attach_gate_status(
+            study_id=selected_study_id,
+        ),
         "workspace": {
             "profile_name": _text(workspace.get("profile_name")) or "unknown",
             "workspace_root": _text(workspace.get("workspace_root")) or "",
@@ -84,6 +88,7 @@ def render_live_console_html(payload: Mapping[str, Any]) -> str:
     studies = [dict(item) for item in payload.get("studies") or [] if isinstance(item, Mapping)]
     portal_handoff = _mapping(payload.get("portal_handoff"))
     stream = _mapping(payload.get("stream"))
+    terminal_gate = _mapping(payload.get("terminal_attach_gate"))
     empty_state = _mapping(payload.get("empty_state"))
     action_intents = _mapping_list(payload.get("controller_action_intents"))
     generated_at = str(payload.get("generated_at") or "unknown")
@@ -131,6 +136,7 @@ def render_live_console_html(payload: Mapping[str, Any]) -> str:
             _stream_section("终端输出", studies, key="terminal_sources"),
             _stream_section("日志输出", studies, key="log_sources"),
             "</section>",
+            _terminal_attach_gate_section(terminal_gate),
             _action_intents_section(action_intents),
             _refs_section("产物来源", studies, key="artifact_refs"),
             _refs_section("事件来源", studies, key="event_refs"),
@@ -441,6 +447,32 @@ def _action_intents_section(action_intents: list[dict[str, Any]]) -> str:
         "<tbody>"
         + "".join(rows)
         + "</tbody></table></div></section>"
+    )
+
+
+def _terminal_attach_gate_section(gate: Mapping[str, Any]) -> str:
+    if not gate:
+        return ""
+    contract = _mapping(gate.get("required_owner_contract"))
+    rows = []
+    headers = ("能力", "owner contract")
+    for key in ("token", "lease", "idempotency", "audit", "input", "resize", "detach"):
+        rows.append(
+            "<tr>"
+            f'<td data-label="{escape(headers[0])}">{escape(key)}</td>'
+            f'<td data-label="{escape(headers[1])}">{escape(str(contract.get(key) or "missing"))}</td>'
+            "</tr>"
+        )
+    return (
+        '<section class="panel wide notice">'
+        "<h2>Terminal Attach Gate</h2>"
+        f"<p>status={escape(str(gate.get('status') or 'unknown'))} · "
+        f"read_only_default={escape(str(bool(gate.get('read_only_default'))).lower())} · "
+        f"forbidden_owner={escape(str(gate.get('forbidden_owner') or ''))}</p>"
+        '<div class="table-wrap"><table class="responsive-table">'
+        "<thead><tr><th>能力</th><th>owner contract</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table></div>"
+        "</section>"
     )
 
 

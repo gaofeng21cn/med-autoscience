@@ -4,6 +4,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.runtime_protocol import terminal_attach_gate
+
 
 def authority() -> dict[str, bool | str]:
     return {
@@ -32,6 +34,19 @@ def controller_action_links(*, study_id: str | None) -> list[dict[str, Any]]:
             "direct_execution_allowed": False,
         },
     ]
+
+
+def terminal_attach_gate_status(
+    *,
+    profile_ref: str | Path | None = None,
+    study_id: str | None = None,
+    study_root: str | Path | None = None,
+) -> dict[str, Any]:
+    return terminal_attach_gate.blocked_by_missing_terminal_input_owner(
+        profile_ref=profile_ref,
+        study_id=study_id,
+        study_root=study_root,
+    )
 
 
 def source_refs(
@@ -87,4 +102,5 @@ __all__ = [
     "controller_action_links",
     "first_source_ref",
     "source_refs",
+    "terminal_attach_gate_status",
 ]
