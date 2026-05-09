@@ -285,13 +285,6 @@ def _why_not_applied_timeline(reason: str | None) -> list[dict[str, Any]]:
     return [{"reason": reason, "state": "blocked", "recorded_at": _utc_now()}]
 
 
-def _artifact_delta(progress: Mapping[str, Any]) -> dict[str, Any]:
-    last_delta = _text(progress.get("last_meaningful_progress_at"))
-    if last_delta is not None:
-        return {"status": "fresh", "latest_meaningful_delta_at": last_delta}
-    return {"status": "not_observed", "summary": "No meaningful artifact delta observed by supervisor scan."}
-
-
 def _gate_specificity_status(gate_specificity: Mapping[str, Any]) -> dict[str, Any]:
     return gate_specificity_part.gate_specificity_status(gate_specificity)
 
@@ -785,7 +778,7 @@ def _study_projection(
         previous_payload=previous_payload,
         study_id=study_id,
         owner_route=owner_route,
-        current_meaningful_artifact_delta=bool(progress_payload.get("last_meaningful_progress_at")),
+        current_meaningful_artifact_delta=artifact_freshness.meaningful_artifact_delta_observed(progress_payload),
     )
     if repeat_guard["repeat_suppressed"]:
         actions = []
@@ -830,8 +823,8 @@ def _study_projection(
         "paper_stage": _text(progress_payload.get("paper_stage")),
         "runtime_health": _mapping(status_payload.get("runtime_health_snapshot"))
         or _mapping(progress_payload.get("runtime_health_snapshot")),
-        "meaningful_artifact_delta": bool(progress_payload.get("last_meaningful_progress_at")),
-        "artifact_delta": _artifact_delta(progress_payload),
+        "meaningful_artifact_delta": artifact_freshness.meaningful_artifact_delta_observed(progress_payload),
+        "artifact_delta": artifact_freshness.artifact_delta(progress_payload),
         "gate_specificity": _gate_specificity_status(gate_specificity),
         "ai_reviewer_assessment": ai_reviewer_assessment,
         "ai_reviewer_status": ai_reviewer.status(ai_reviewer_assessment),

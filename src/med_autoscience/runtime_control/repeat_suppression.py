@@ -33,7 +33,9 @@ def meaningful_artifact_delta_observed(payload: Mapping[str, Any] | None) -> boo
     artifact_delta = _mapping(mapping.get("artifact_delta"))
     if _text(artifact_delta.get("latest_meaningful_delta_at")) is not None:
         return True
-    return _text(mapping.get("last_meaningful_progress_at")) is not None
+    progress_freshness = _mapping(mapping.get("progress_freshness"))
+    artifact_delta_freshness = _mapping(progress_freshness.get("meaningful_artifact_delta_freshness"))
+    return _text(artifact_delta_freshness.get("latest_progress_at")) is not None
 
 
 def scan_repeat_suppression(

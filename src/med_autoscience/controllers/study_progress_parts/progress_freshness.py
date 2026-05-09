@@ -209,10 +209,7 @@ def _split_progress_freshness(
         }
 
     markers = _mapping_copy((autonomy_slo_status or {}).get("mds_progress_markers"))
-    artifact_delta_at = (
-        _non_empty_text(markers.get("meaningful_artifact_delta_at"))
-        or _non_empty_text((autonomy_slo_status or {}).get("last_meaningful_progress_at"))
-    )
+    artifact_delta_at = _non_empty_text(markers.get("meaningful_artifact_delta_at"))
     artifact_delta_freshness = _freshness_from_timestamp(
         timestamp=artifact_delta_at,
         source="mds_artifact_delta",

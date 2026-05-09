@@ -241,11 +241,20 @@ def _conflict_projection(
 def _actual_write_active(*, writer_state: str, macro_state: Mapping[str, Any], payload: Mapping[str, Any]) -> bool:
     if writer_state != "live":
         return False
+    progress_freshness = _mapping_copy(payload.get("progress_freshness"))
+    activity_timeout = _mapping_copy(progress_freshness.get("activity_timeout"))
+    if _non_empty_text(activity_timeout.get("state")) in {"timed_out", "at_risk", "watching_new_run"}:
+        return False
+    artifact_delta_freshness = _mapping_copy(progress_freshness.get("meaningful_artifact_delta_freshness"))
+    if artifact_delta_freshness:
+        if _non_empty_text(artifact_delta_freshness.get("status")) != "fresh":
+            return False
+        if _non_empty_text(artifact_delta_freshness.get("latest_progress_at")) is None:
+            return False
     return bool(
         _non_empty_text(_mapping_copy(macro_state.get("details")).get("active_run_id"))
         or _non_empty_text(payload.get("active_run_id"))
         or _non_empty_text(_mapping_copy(payload.get("supervision")).get("active_run_id"))
-        or writer_state == "live"
     )
 
 
@@ -295,7 +304,9 @@ def _state_summary(
     current_blockers: list[str],
 ) -> str:
     if state_label == "自动运行中":
-        return "自动运行中；系统有实际 writer/run 正在推进。"
+        if actual_write_active:
+            return "自动运行中；系统有实际 writer/run 正在推进。"
+        return "自动运行中；worker 已接管，但尚未观察到论文产物级有效增量。"
     if state_label == "系统排队处理中":
         return "系统排队处理中；当前没有实际写入，但 MAS 已有明确 owner/action。"
     if state_label == "投稿包已交付，等待外部投稿信息":

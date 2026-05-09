@@ -72,6 +72,33 @@ def remove_runtime_platform_repair(actions: list[dict[str, Any]]) -> list[dict[s
     return [action for action in actions if _text(action.get("action_type")) != "runtime_platform_repair"]
 
 
+def artifact_delta(progress: Mapping[str, Any]) -> dict[str, Any]:
+    progress_freshness = _mapping(progress.get("progress_freshness"))
+    delta_freshness = _mapping(progress_freshness.get("meaningful_artifact_delta_freshness"))
+    if _text(delta_freshness.get("status")) in {"fresh", "stale"}:
+        last_delta = _text(delta_freshness.get("latest_progress_at"))
+        if last_delta is not None:
+            return {
+                "status": _text(delta_freshness.get("status")) or "observed",
+                "latest_meaningful_delta_at": last_delta,
+                "source": _text(delta_freshness.get("latest_progress_source")) or "mds_artifact_delta",
+            }
+    autonomy_slo = _mapping(progress.get("autonomy_slo"))
+    markers = _mapping(autonomy_slo.get("mds_progress_markers"))
+    last_delta = _text(markers.get("meaningful_artifact_delta_at"))
+    if last_delta is not None:
+        return {
+            "status": "observed",
+            "latest_meaningful_delta_at": last_delta,
+            "source": "mds_artifact_delta",
+        }
+    return {"status": "not_observed", "summary": "No meaningful artifact delta observed by supervisor scan."}
+
+
+def meaningful_artifact_delta_observed(progress: Mapping[str, Any]) -> bool:
+    return _text(artifact_delta(progress).get("latest_meaningful_delta_at")) is not None
+
+
 def _gate_clearing_path(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / REQUIRED_OUTPUT_SURFACE
 
@@ -182,7 +209,9 @@ __all__ = [
     "OWNER",
     "REQUIRED_OUTPUT_SURFACE",
     "action_payload",
+    "artifact_delta",
     "blocked_action_from_gate_clearing",
+    "meaningful_artifact_delta_observed",
     "remove_runtime_platform_repair",
     "route_required",
 ]

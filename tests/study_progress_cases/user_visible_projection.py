@@ -183,6 +183,48 @@ def test_user_visible_projection_fails_closed_without_macro_state() -> None:
     assert projection["conflict_reason"] == "missing_macro_state"
 
 
+def test_user_visible_projection_does_not_call_live_worker_active_without_artifact_delta() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "002-dm",
+            "active_run_id": "run-live-control-only",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "002-dm",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-live-control-only"},
+                "conditions": [],
+            },
+            "progress_freshness": {
+                "status": "stale",
+                "meaningful_artifact_delta_freshness": {
+                    "status": "missing",
+                    "latest_progress_at": None,
+                },
+                "activity_timeout": {
+                    "state": "at_risk",
+                    "breach_types": ["same_fingerprint_loop"],
+                },
+            },
+            "supervision": {
+                "active_run_id": "run-live-control-only",
+                "health_status": "live",
+            },
+        }
+    )
+
+    assert projection["state_label"] == "自动运行中"
+    assert projection["actual_write_active"] is False
+    assert "实际 writer/run 正在推进" not in projection["state_summary"]
+    condition = next(item for item in projection["conditions"] if item["type"] == "actual_write_active")
+    assert condition["reason"] == "writer_inactive"
+
+
 def test_user_visible_projection_labels_all_macro_state_classes() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     cases = [
