@@ -186,8 +186,10 @@ def _resume_result_active_run_id(resume_result: Mapping[str, Any]) -> str | None
     runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
     runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
     snapshot = _mapping(resume_result.get("snapshot"))
+    postcondition = _mapping(resume_result.get("resume_postcondition"))
     for value in (
         resume_result.get("active_run_id"),
+        postcondition.get("active_run_id"),
         runtime_liveness.get("active_run_id"),
         runtime_audit.get("active_run_id"),
         snapshot.get("active_run_id"),

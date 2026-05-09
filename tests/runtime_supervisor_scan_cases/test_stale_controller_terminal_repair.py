@@ -365,9 +365,18 @@ def test_supervisor_scan_applies_current_controller_redrive_for_live_activity_ti
             "quest_id": study_id,
             "quest_status": "running",
             "decision": "resume",
-            "runtime_liveness_audit": {
+            "resume_postcondition": {
+                "effective": True,
+                "failure_mode": None,
+                "snapshot_status": "running",
                 "active_run_id": "run-dpcc-redriven",
-                "runtime_audit": {"worker_running": True, "active_run_id": "run-dpcc-redriven"},
+                "scheduled": True,
+                "started": True,
+                "queued": False,
+            },
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {"worker_running": False, "active_run_id": None},
             },
         }
 
@@ -435,7 +444,7 @@ def test_supervisor_scan_applies_current_controller_redrive_for_live_activity_ti
     assert apply_result["reason"] == "runtime_controller_redrive_required"
     assert apply_result["repair_kind"] == "live_activity_timeout_current_controller_redrive"
     assert apply_result["current_controller_authorization_written"] is True
-    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dpcc-redriven"
+    assert apply_result["resume_result"]["resume_postcondition"]["active_run_id"] == "run-dpcc-redriven"
     assert study["blocked_reason"] is None
     assert study["external_supervisor_required"] is False
 
