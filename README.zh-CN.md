@@ -60,14 +60,14 @@
 
 - `Med Auto Science` 是独立的 medical research domain agent，可被 Codex 或其他通用 agent 直接调用。
 - 它的单一 MAS app skill 是对外稳定的前台入口，承接 repo-tracked skill surface。
-- 它对外稳定暴露的 capability surface 是本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract。
+- 它对外稳定暴露的 capability surface 是本地 CLI、MCP tools、product-entry surface、controller-authorized workspace commands / scripts、durable surface 与 repo-tracked contract。
 - 具名 product-entry、cockpit 与 progress 命令都是这个单一 app skill 下的内部 command contract，不是独立的对外第一主语。
 - AI-first 线是运行模型，不是文档 wording gate：当前落点是 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 和真实论文 soak。
 - `OPL` handoff、product-entry manifest 以及其他机器可读桥接载荷都只保留在集成或参考层。
 - 它负责课题接收、工作区语境、证据推进、进度投影和面向论文的交付。
 - `OPL` 只负责 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不把 MAS 改写成内部模块。
 - 目标形态中的 `OPL Runtime Manager` 可以在外部 `Hermes-Agent` substrate 之上索引 MAS task/runtime/artifact projection，但 MAS 继续持有 study truth 与 publication judgment。
-- `MedDeepScientist` 不再是 MAS 默认运行依赖；只保留为显式可选的 backend audit target、legacy restore/import diagnostic、上游 intake source 和 parity oracle。
+- `MedDeepScientist` 不再是 MAS 默认运行、默认诊断、runtime root 或 WebUI 依赖；只保留为显式可选的 backend audit target、source-provenance reference、historical fixture、explicit archive-import reference、upstream intake source 和 parity oracle。
 - MAS 当前不提供面向用户安装的 standalone GitHub Release 或独立 installer 叙事；OPL 管理模块安装当前走 git checkout / sibling repo 路径，后续可消费 OPL Packages/GHCR-backed module 坐标。
 - 临床问题界定、结论采用和投稿决策由研究者与课题负责人把关。
 - 期刊投稿和外部系统交互由人工监督完成。
@@ -86,7 +86,7 @@
 - 先读 [文档索引](./docs/README.zh-CN.md)。这里已经把当前产品边界、operator entry surface 和技术阅读顺序列清楚了。
 - 如果你要接管或初始化一个专病 workspace，下一跳读 [Bootstrap](./bootstrap/README.md)。它说明了 workspace-first 心智模型，以及 `init-workspace -> doctor -> show-profile -> bootstrap` 这条最短接管路径。
 - 在改 runtime、入口表述或 docs 之前，把 [项目概览](./docs/project.md)、[当前状态](./docs/status.md)、[架构](./docs/architecture.md)、[不可变约束](./docs/invariants.md) 和 [关键决策](./docs/decisions.md) 当成人工可读的 repo-tracked 真相集。
-- 当前正式 operator entry surfaces 是 `CLI`、`MCP` 和 `controller`。产品入口与运行时合同主要放在 `docs/runtime/` 和 `docs/program/`，Agent 可以直接从这些文档切入，不必先通读代码；稳定可调用面继续是本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract。
+- 当前正式 operator entry surfaces 是 `CLI`、`MCP`、`product-entry` 和 `controller`。产品入口与运行时合同主要放在 `docs/runtime/` 和 `docs/program/`，Agent 可以直接从这些文档切入，不必先通读代码；稳定可调用面继续是本地 CLI、MCP tools、product-entry surface、controller-authorized workspace commands / scripts、durable surface 与 repo-tracked contract。
 - 如果外部 agent 需要直接读取 repo-tracked 的 MAS skill surface，用 `medautosci product skill-catalog --profile <profile> --format json`；返回的是单一 MAS app skill、底层 command contracts，以及由现有 runtime/session/progress/artifact surface 投影出的 machine-readable `runtime_continuity` envelope。
 
 </details>

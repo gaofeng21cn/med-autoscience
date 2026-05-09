@@ -155,6 +155,64 @@ def test_workspace_progress_portal_grouped_command_serves_read_only(monkeypatch,
     assert calls["port"] == 4201
     assert calls["interval_seconds"] == 15
     assert calls["open_browser"] is False
+    assert calls["enable_actions"] is False
+
+
+def test_workspace_progress_portal_grouped_command_serves_with_actions_enabled(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "nfpitnet.local.toml"
+    write_profile(profile_path)
+    calls: dict[str, object] = {}
+
+    class FakeProgressPortal:
+        @staticmethod
+        def serve_progress_portal(**kwargs):
+            calls.update(kwargs)
+            return {
+                "status": "serving",
+                "url": "http://127.0.0.1:4201",
+                "html_path": str(tmp_path / "ops" / "mas" / "progress" / "index.html"),
+            }
+
+    monkeypatch.setattr(cli, "progress_portal", FakeProgressPortal)
+
+    exit_code = cli.main(
+        [
+            "workspace",
+            "progress-portal",
+            "--profile",
+            str(profile_path),
+            "--serve",
+            "--enable-actions",
+            "--format",
+            "json",
+        ]
+    )
+
+    assert exit_code == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "serving"
+    assert calls["enable_actions"] is True
+
+
+def test_workspace_progress_portal_enable_actions_requires_serve(tmp_path: Path) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "nfpitnet.local.toml"
+    write_profile(profile_path)
+
+    with pytest.raises(SystemExit, match="--enable-actions requires --serve"):
+        cli.main(
+            [
+                "workspace",
+                "progress-portal",
+                "--profile",
+                str(profile_path),
+                "--enable-actions",
+            ]
+        )
 
 
 def test_workspace_portal_console_soak_grouped_command_materializes_read_only_report(
