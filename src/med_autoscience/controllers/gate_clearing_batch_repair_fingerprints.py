@@ -132,12 +132,10 @@ def submission_minimal_fingerprint_payload(
         return payload
 
     try:
-        compile_report_path = submission_minimal_controller.resolve_relpath(
-            workspace_root,
-            submission_minimal_controller.resolve_bundle_input_path(
-                bundle_manifest=bundle_manifest,
-                key="compile_report_path",
-            ),
+        compile_report_path = submission_minimal_controller.resolve_compile_report_path(
+            workspace_root=workspace_root,
+            paper_root=paper_root,
+            bundle_manifest=bundle_manifest,
         )
         figure_catalog_path = submission_minimal_controller.resolve_relpath(
             workspace_root,
