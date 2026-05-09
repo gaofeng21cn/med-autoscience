@@ -136,6 +136,7 @@ def test_runtime_supervisor_reconcile_command_runs_one_shot_and_writes_receipt(
     assert payload["suppressed_dispatch_count"] == 1
     assert payload["will_start_llm"] is False
     assert payload["action_cost"]["action_class"] == "controller_apply"
+    assert payload["action_cost"]["will_start_llm"] is False
     assert payload["study_receipts"][0]["before"]["action_queue"][0]["action_type"] == "action-1"
     assert payload["study_receipts"][0]["after"]["why_not_applied"] == "publication_gate_blocked"
     assert payload["study_receipts"][0]["after"]["owner_forwarded"] is True
@@ -144,3 +145,85 @@ def test_runtime_supervisor_reconcile_command_runs_one_shot_and_writes_receipt(
     history_path = workspace_root / "artifacts" / "supervision" / "reconcile" / "history.jsonl"
     assert json.loads(latest_path.read_text(encoding="utf-8"))["surface"] == "runtime_supervisor_reconcile_receipt"
     assert history_path.read_text(encoding="utf-8").strip()
+
+
+def test_runtime_supervisor_reconcile_dry_run_never_dispatches_llm(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    reconcile = importlib.import_module("med_autoscience.controllers.runtime_supervisor_reconcile")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    def fake_supervisor_scan(**kwargs) -> dict[str, object]:
+        return {
+            "surface": "portable_runtime_supervisor_scan",
+            "workspace_root": str(kwargs["profile"].workspace_root),
+            "studies": [
+                {
+                    "study_id": "DM002",
+                    "owner_route": {"next_owner": "mas_controller", "idempotency_key": "route-dry-run"},
+                    "action_queue": [{"action_type": "runtime_platform_repair"}],
+                    "paper_progress_stall": {
+                        "surface_kind": "paper_progress_stall",
+                        "stalled": True,
+                        "stall_reasons": ["same_fingerprint_loop"],
+                    },
+                }
+            ],
+            "action_queue": [{"study_id": "DM002", "action_type": "runtime_platform_repair"}],
+        }
+
+    monkeypatch.setattr(reconcile.runtime_supervisor_scan, "supervisor_scan", fake_supervisor_scan)
+    monkeypatch.setattr(
+        reconcile.runtime_supervisor_consumer,
+        "supervisor_consume",
+        lambda **_: {"surface": "runtime_supervisor_consumer", "default_executor_dispatch_count": 1},
+    )
+    monkeypatch.setattr(
+        reconcile.runtime_supervisor_dispatch_executor,
+        "execute_default_executor_dispatches",
+        lambda **_: {
+            "surface": "default_executor_dispatch_executor",
+            "execution_count": 1,
+            "executed_count": 0,
+            "blocked_count": 0,
+            "dry_run_count": 1,
+            "codex_dispatch_count": 0,
+            "suppressed_dispatch_count": 0,
+            "action_fingerprints": ["runtime_platform_repair::same_fingerprint_loop"],
+            "executions": [
+                {
+                    "study_id": "DM002",
+                    "action_type": "runtime_platform_repair",
+                    "execution_status": "dry_run",
+                    "will_start_llm": False,
+                }
+            ],
+        },
+    )
+
+    exit_code = cli.main(
+        [
+            "runtime-supervisor-reconcile",
+            "--profile",
+            str(profile_path),
+            "--studies",
+            "DM002",
+            "--mode",
+            "developer_apply_safe",
+            "--dry-run",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["dry_run"] is True
+    assert payload["will_start_llm"] is False
+    assert payload["codex_dispatch_count"] == 0
+    assert payload["action_cost"]["action_class"] == "reconcile_dry_run"
+    assert payload["action_cost"]["will_start_llm"] is False
+    assert payload["executed_dispatch"]["executions"][0]["will_start_llm"] is False

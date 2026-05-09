@@ -21,6 +21,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import lifecycle_
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair
 from med_autoscience.controllers.runtime_supervisor_scan_parts import publication_gate_actions
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
+from med_autoscience.controllers.runtime_supervisor_scan_parts import paper_progress_stall_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
@@ -784,6 +785,12 @@ def _study_projection(
         for action in actions
         if owner_route_part.route_allows_action(action=action, owner_route=owner_route)
     ]
+    paper_progress_stall_payload, actions = paper_progress_stall_projection.build_and_attach(
+        status=status_payload,
+        progress=progress_payload,
+        owner_route=owner_route,
+        actions=actions,
+    )
     repeat_guard = repeat_suppression.scan_repeat_suppression(
         previous_payload=previous_payload,
         study_id=study_id,
@@ -844,6 +851,7 @@ def _study_projection(
         "submission_milestone_parked_refresh": submission_milestone_parked_refresh,
         "runtime_platform_repair_apply": runtime_platform_repair_apply,
         "recovery_intent": recovery_intent,
+        "paper_progress_stall": paper_progress_stall_payload,
         "owner_route": owner_route,
         "repeat_suppression": repeat_guard,
         "why_not_applied": why_not_applied,

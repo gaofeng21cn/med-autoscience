@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from med_autoscience.controllers.outer_supervision_slo import supervisor_reconcile_command
-from med_autoscience.controllers import runtime_dispatch_cost
+from med_autoscience.controllers import paper_progress_stall, runtime_dispatch_cost
 
 
 SCHEMA_VERSION = 1
@@ -40,13 +40,17 @@ def build_runtime_reconcile_trigger_projection(
     status = _mapping(status_payload)
     progress: dict[str, Any] = {}
     outer_slo = _mapping(status.get("outer_supervision_slo"))
+    stall = paper_progress_stall.build_paper_progress_stall_read_model(
+        status_payload=status,
+        progress_payload={},
+    )
     resolved_study_id = _text(study_id) or _text(status.get("study_id")) or "unknown-study"
     blocked_reasons = _blocked_reasons(
         status=status,
         progress=progress,
         outer_slo=outer_slo,
     )
-    stale_signals = _stale_signals(status, outer_slo=outer_slo)
+    stale_signals = _stale_signals(status, outer_slo=outer_slo, paper_progress_stall=stall)
     if not stale_signals:
         blocked_reasons.append("runtime_session_not_stale")
     fingerprint = _dedupe_fingerprint(
@@ -86,6 +90,7 @@ def build_runtime_reconcile_trigger_projection(
         "dedupe_state": "duplicate" if duplicate else "new",
         "blocked_reasons": blocked_reasons,
         "stale_signals": stale_signals,
+        "paper_progress_stall": stall,
         "outer_supervision_slo": outer_slo or None,
         "summary": _summary(safe_to_request=safe_to_request, blocked_reasons=blocked_reasons, stale_signals=stale_signals),
         "authority": {
@@ -214,7 +219,12 @@ def _blocking_reasons(status: Mapping[str, Any], progress: Mapping[str, Any]) ->
     )
 
 
-def _stale_signals(status: Mapping[str, Any], *, outer_slo: Mapping[str, Any]) -> list[dict[str, str]]:
+def _stale_signals(
+    status: Mapping[str, Any],
+    *,
+    outer_slo: Mapping[str, Any],
+    paper_progress_stall: Mapping[str, Any],
+) -> list[dict[str, str]]:
     signals: list[dict[str, str]] = []
     runtime_session = _mapping(status.get("runtime_session"))
     runtime_session_state = _text(runtime_session.get("freshness_state"))
@@ -226,6 +236,9 @@ def _stale_signals(status: Mapping[str, Any], *, outer_slo: Mapping[str, Any]) -
     outer_state = _text(outer_slo.get("state"))
     if outer_state in {"due", "stale", "missing"}:
         signals.append({"source": "outer_supervision_slo.state", "state": outer_state})
+    for reason in paper_progress_stall.get("stall_reasons") or []:
+        if text := _text(reason):
+            signals.append({"source": "paper_progress_stall.stall_reasons", "state": text})
     return signals
 
 

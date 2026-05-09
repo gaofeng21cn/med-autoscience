@@ -95,3 +95,75 @@ def test_execute_dispatch_rejects_incomplete_forbidden_surface_contract(monkeypa
 
     assert result["blocked_count"] == 1
     assert result["executions"][0]["blocked_reason"] == "forbidden_surfaces_incomplete"
+
+
+def test_execute_dispatch_blocks_apply_when_stall_fingerprint_is_not_current(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="runtime_platform_repair",
+        owner="mas_controller",
+        required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
+    )
+    dispatch["paper_progress_stall"] = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "action_fingerprint": "stall::old",
+        "stall_reasons": ["same_fingerprint_loop"],
+    }
+    dispatch["prompt_contract"]["paper_progress_stall"] = dispatch["paper_progress_stall"]
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "runtime_platform_repair.json"
+    )
+    _write_json(dispatch_path, dispatch)
+    _write_scan_latest(profile, study_id, dict(dispatch["owner_route"]))
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": dispatch["owner_route"],
+                    "paper_progress_stall": {
+                        "surface_kind": "paper_progress_stall",
+                        "stalled": True,
+                        "action_fingerprint": "stall::fresh",
+                        "stall_reasons": ["same_fingerprint_loop"],
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "runtime_supervisor_consumer",
+            "schema_version": 1,
+            "default_executor_dispatches": [{**dispatch, "refs": {"dispatch_path": str(dispatch_path)}}],
+        },
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("runtime_platform_repair",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "paper_progress_stall_fingerprint_stale"
+    assert execution["will_start_llm"] is False

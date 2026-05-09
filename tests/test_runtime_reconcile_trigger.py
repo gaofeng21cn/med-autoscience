@@ -75,6 +75,65 @@ def test_due_outer_supervision_slo_projects_safe_reconcile_recommendation() -> N
     assert projection["outer_supervision_slo"]["state"] == "due"
 
 
+def test_stall_signals_project_paper_progress_stall_read_model() -> None:
+    projection = _build_projection(
+        _base_status(
+            runtime_health_snapshot={
+                "attempt_state": "recovering",
+                "retry_budget_remaining": 2,
+                "blocking_reasons": [
+                    "same_fingerprint_loop",
+                    "read_churn_without_artifact_delta",
+                    "stale_truth_surface",
+                ],
+                "worker_liveness_state": {"state": "activity_timeout"},
+            },
+            autonomy_slo={
+                "state": "breach",
+                "breach_types": ["same_fingerprint_loop", "read_churn_without_artifact_delta"],
+                "mds_progress_markers": {"turn_progress_kind": "read_churn_without_artifact_delta"},
+            },
+            study_truth_snapshot={"freshness_state": "stale", "truth_epoch": "truth-stale"},
+        )
+    )
+
+    stall = projection["paper_progress_stall"]
+    assert stall["surface_kind"] == "paper_progress_stall"
+    assert stall["stalled"] is True
+    assert stall["stall_reasons"] == [
+        "same_fingerprint_loop",
+        "read_churn_without_artifact_delta",
+        "stale_truth_surface",
+    ]
+    assert stall["safe_reconcile_candidate"] is True
+    assert stall["will_start_llm"] is False
+    assert stall["codex_dispatch_count"] == 0
+    assert {"source": "paper_progress_stall.stall_reasons", "state": "same_fingerprint_loop"} in projection[
+        "stale_signals"
+    ]
+    assert projection["safe_to_request"] is True
+
+
+def test_retry_budget_exhausted_projects_terminal_paper_progress_stall() -> None:
+    projection = _build_projection(
+        _base_status(
+            runtime_health_snapshot={
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+        )
+    )
+
+    stall = projection["paper_progress_stall"]
+    assert stall["stalled"] is True
+    assert stall["terminal"] is True
+    assert stall["safe_reconcile_candidate"] is False
+    assert stall["stall_reasons"] == ["runtime_recovery_retry_budget_exhausted"]
+    assert "runtime_recovery_retry_budget_exhausted" in projection["blocked_reasons"]
+    assert projection["safe_to_request"] is False
+
+
 def test_duplicate_reconcile_fingerprint_is_not_requestable() -> None:
     first = _build_projection(_base_status())
     duplicate = _build_projection(

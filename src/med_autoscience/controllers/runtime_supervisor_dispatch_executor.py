@@ -107,6 +107,10 @@ def _current_scan_study(profile: WorkspaceProfile, study_id: str) -> dict[str, A
     return None
 
 
+def _current_scan_stall(profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
+    return _mapping(_mapping(_current_scan_study(profile, study_id)).get("paper_progress_stall"))
+
+
 def _required_output_pending(action_type: str, current_study: Mapping[str, Any] | None) -> bool:
     if action_type != "return_to_ai_reviewer_workflow":
         return False
@@ -249,6 +253,27 @@ def _owner_route_block_reason(*, dispatch: Mapping[str, Any], current_route: Map
         return "owner_route_stale"
     if not owner_route_part.route_allows_action(action=dispatch, owner_route=current_route):
         return "owner_route_next_owner_mismatch"
+    return None
+
+
+def _paper_progress_stall_block_reason(
+    *,
+    dispatch: Mapping[str, Any],
+    current_study: Mapping[str, Any] | None,
+) -> str | None:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    dispatch_stall = _mapping(dispatch.get("paper_progress_stall")) or _mapping(prompt_contract.get("paper_progress_stall"))
+    if not dispatch_stall:
+        return None
+    current_stall = _mapping(_mapping(current_study).get("paper_progress_stall"))
+    if not current_stall:
+        return "paper_progress_stall_current_missing"
+    if current_stall.get("terminal") is True:
+        return "paper_progress_stall_terminal"
+    dispatch_fingerprint = _text(dispatch_stall.get("action_fingerprint")) or _text(dispatch.get("action_fingerprint"))
+    current_fingerprint = _text(current_stall.get("action_fingerprint"))
+    if dispatch_fingerprint is not None and current_fingerprint is not None and dispatch_fingerprint != current_fingerprint:
+        return "paper_progress_stall_fingerprint_stale"
     return None
 
 
@@ -755,6 +780,7 @@ def _execute_dispatch(
     owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     current_study = _current_scan_study(profile, study_id)
+    stall_block_reason = _paper_progress_stall_block_reason(dispatch=dispatch, current_study=current_study)
     repeat_guard = repeat_suppression.execution_repeat_suppression(
         dispatch={**dict(dispatch), "owner_route": _dispatch_owner_route(dispatch), "prompt_contract": prompt_contract},
         current_study=current_study,
@@ -774,6 +800,13 @@ def _execute_dispatch(
             "owner_callable_surface": None,
             "owner_route_current": False,
             "current_owner_route": current_route,
+        }
+    elif stall_block_reason is not None:
+        execution = {
+            "execution_status": "blocked",
+            "blocked_reason": stall_block_reason,
+            "owner_callable_surface": None,
+            "paper_progress_stall_current": False,
         }
     elif repeat_guard["repeat_suppressed"]:
         execution = {
@@ -832,6 +865,10 @@ def _execute_dispatch(
         "owner_route_current": owner_route_block_reason is None if guard_ok else None,
         "current_owner_route": current_route,
         "prompt_contract": prompt_contract or None,
+        "paper_progress_stall": _mapping(dispatch.get("paper_progress_stall"))
+        or _mapping(prompt_contract.get("paper_progress_stall"))
+        or None,
+        "current_paper_progress_stall": _current_scan_stall(profile, study_id) or None,
         "idempotency_key": _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key")),
         "repeat_suppression_key": repeat_guard["repeat_suppression_key"],
         "repeat_suppression": repeat_guard,
