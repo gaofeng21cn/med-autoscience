@@ -544,6 +544,52 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
     )
 
 
+def test_focused_lane_manifest_exposes_paper_progress_degradation_closeout_guard() -> None:
+    manifest = _test_lane_manifest()
+    lane = manifest["focused_lanes"]["paper-progress-degradation-closeout"]
+
+    assert lane["kind"] == "focused_paper_progress_degradation_closeout_gate"
+    assert lane["overlap_policy"] == "allowed_with_regression"
+    assert lane["authority_boundary"] == "paper_progress_read_model_owner_handoff_guard"
+    assert lane["implementation_status"] == {
+        "paper_progress_degradation_classifier": "landed",
+        "owner_handoff_repeat_suppression_closeout": "landed",
+        "paper_progress_stall_safe_reconcile": "landed",
+        "paper_progress_degradation_evidence": "landed_read_model",
+        "production_blocker_impact_projection": "landed",
+    }
+    assert lane["production_degrading_overlays"] == [
+        "owner_handoff_dispatch",
+        "repeat_suppression",
+        "work_unit_redrive",
+    ]
+    assert lane["dry_run_dispatch_policy"] == "zero_codex_dispatch"
+    assert lane["apply_dispatch_guard"] == (
+        "fresh_owner_route_not_parked_not_completed_no_human_gate_no_missing_publication_gate_"
+        "retry_budget_available_new_action_fingerprint"
+    )
+    assert set(lane["projection_fields"]) == {
+        "affects_output",
+        "next_owner",
+        "why_not_running",
+        "same_fingerprint_or_handoff",
+        "will_start_llm",
+        "safe_reconcile_command",
+        "route",
+        "source_refs",
+    }
+    assert lane["forbidden_runtime_regressions"] == [
+        "default_mds_daemon_dependency",
+        "default_mds_webui_dependency",
+        "old_workspace_local_service_manager",
+    ]
+    assert {"quality_ready", "publication_ready", "submission_ready"}.issubset(
+        set(lane["forbidden_authority_writes"])
+    )
+    for path in lane["paths"]:
+        assert (REPO_ROOT / path).exists(), f"paper-progress-degradation-closeout references missing path: {path}"
+
+
 def test_parallel_full_lane_script_writes_summary_and_invokes_make_lanes(tmp_path: Path) -> None:
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()

@@ -282,6 +282,71 @@
         "restore_archive"
       ]
     },
+    "paper-progress-degradation-closeout": {
+      "kind": "focused_paper_progress_degradation_closeout_gate",
+      "paths": [
+        "tests/test_mds_capability_parity.py",
+        "tests/test_study_runtime_execution_evidence_adoption.py",
+        "tests/runtime_supervisor_scan_cases/test_evidence_adoption_projection.py",
+        "tests/runtime_supervisor_scan_cases/test_control_surface_artifact_delta.py",
+        "tests/test_runtime_supervisor_dispatch_executor.py",
+        "tests/test_runtime_reconcile_trigger.py",
+        "tests/test_recovery_intent_ledger.py",
+        "tests/test_runtime_watch.py",
+        "tests/test_cli_cases/runtime_supervisor_reconcile_command.py",
+        "tests/test_paper_autonomy_stability_evidence.py",
+        "tests/test_real_workspace_soak_monitor.py",
+        "tests/test_study_progress.py",
+        "tests/test_progress_portal.py",
+        "tests/test_runtime_live_console_read_model.py"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "paper_progress_read_model_owner_handoff_guard",
+      "implementation_status": {
+        "paper_progress_degradation_classifier": "landed",
+        "owner_handoff_repeat_suppression_closeout": "landed",
+        "paper_progress_stall_safe_reconcile": "landed",
+        "paper_progress_degradation_evidence": "landed_read_model",
+        "production_blocker_impact_projection": "landed"
+      },
+      "production_degrading_overlays": [
+        "owner_handoff_dispatch",
+        "repeat_suppression",
+        "work_unit_redrive"
+      ],
+      "dry_run_dispatch_policy": "zero_codex_dispatch",
+      "apply_dispatch_guard": "fresh_owner_route_not_parked_not_completed_no_human_gate_no_missing_publication_gate_retry_budget_available_new_action_fingerprint",
+      "projection_fields": [
+        "affects_output",
+        "next_owner",
+        "why_not_running",
+        "same_fingerprint_or_handoff",
+        "will_start_llm",
+        "safe_reconcile_command",
+        "route",
+        "source_refs"
+      ],
+      "forbidden_runtime_regressions": [
+        "default_mds_daemon_dependency",
+        "default_mds_webui_dependency",
+        "old_workspace_local_service_manager"
+      ],
+      "forbidden_authority_writes": [
+        "current_package",
+        "paper/current_package",
+        "manuscript/current_package",
+        "paper/submission_minimal",
+        "manuscript/submission_minimal",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "study_truth",
+        "quality_ready",
+        "publication_ready",
+        "submission_ready",
+        "runtime_lifecycle.sqlite",
+        "restore_archive"
+      ]
+    },
     "paper-autonomy-stability-evidence": {
       "kind": "focused_paper_autonomy_stability_evidence_gate",
       "paths": [

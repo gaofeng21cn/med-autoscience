@@ -39,6 +39,8 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 旧 MDS daemon 的关键事实是 resident `ThreadingHTTPServer` + WebSocket + session store + background connector / worker / recovery loop。MAS 当前拆成三层：内层 Runtime Core / turn lifecycle kernel 已承担 runner 返回后的连续科研主循环；外层 Supervisor Scheduler contract 负责 drift detection、stale recovery、read-model refresh 与 supervision tick，默认 adapter 是 MAS-owned `local` scheduler，Hermes gateway cron 是 explicit optional adapter；Product Projection 负责 Portal / Live Console / progress 只读展示。三层在“日常研究推进、turn-to-turn continuation、恢复投影和进度查看”上已经解决主要运行目的问题；在 resident process、低延迟交互、WebSocket terminal attach、connector background delivery 和 in-memory session continuity 上仍不完全等价。WebSocket terminal attach / UI-issued runtime control 不是当前 read-only closeout 的 landed scope，也不应写成 abandoned；它们属于后续 interactive parity candidate，需要单独 safety / owner / audit gate。
 
+2026-05-09 paper progress degradation closeout：自动论文产出能力的降级判断现在由同一矩阵内的 `paper_progress_degradation_classifier` 持有。允许分类固定为 `production_degrading`、`production_risk`、`diagnostic_degrading`、`acceptable_design_difference`、`retired_non_goal`。其中 P0 `production_degrading` 不是来自旧 MDS daemon 本身，而是来自 MAS-native 自动推进闭环的三类 overlay：`owner_handoff_dispatch`、`repeat_suppression`、`work_unit_redrive`。对应 closeout 已 landed：controller work-unit evidence adoption 必须 handoff 到 publication gate / AI reviewer / writer / next owner；repeat suppression 只能压住重复 dispatch，不能压住 handoff；same-fingerprint loop、read churn、stale truth surface 与 retry budget exhausted 必须进入 `paper_progress_stall` / safe reconcile guard。这个分类层用来判断“是否影响自动论文产出”，不把 Portal/Live Console 诊断体验问题夸大成生产降级，也不把 connector/GitOps/旧 daemon lifecycle 这类 retired surface 放回默认 backlog。
+
 ## 行为分类
 
 机器可读矩阵在 `med_autoscience.controllers.mds_capability_parity.build_mds_behavior_equivalence_matrix()`。
@@ -105,6 +107,25 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 - `paper_autonomy_stability_evidence`: evidence read model landed。它把真实 workspace 只读证据收成单一 report；如果 evidence 有 blocker，状态应保持 `evidence_landed_with_blockers`，不能宣称真实论文自治稳定性 landed。
 
 这三项让 MAS monolith 的“可解释、可查看、可审阅证据”更接近旧 MDS daemon/WebUI 给用户的信任感，但仍遵守本矩阵的核心结论：MAS 当前不把 MDS resident daemon 或旧 workspace-local service 恢复成默认依赖；Portal 的 pause/resume/stop 已通过 MAS runtime owner apply 落地，交互式 terminal attach/input/resize/detach 若要补齐，必须走 MAS-native interactive parity lane，而不是重新启用旧 daemon 作为 owner。
+
+## Paper Progress Degradation Closeout
+
+当前用于判断“是否降低旧 MAS+MDS 自动论文推进能力”的 surface 已固定为：
+
+- `mds_paper_progress_degradation_classifier`：把 17 个 MDS behavior surface 映射到生产影响类别，并要求每项带 `production_path`、`rationale` 和 `required_guard_surface`。
+- `owner_handoff_dispatch` overlay：如果 evidence adoption 后无法把 work unit 交给下一 owner，属于 P0 真降级。
+- `repeat_suppression` overlay：如果 suppression 让同一 fingerprint 无限 no-op 或压掉 handoff，属于 P0 真降级。
+- `work_unit_redrive` overlay：如果 stale/failed work unit 不能在 MAS owner guard 下 redrive，属于 P0 真降级。
+- `paper_progress_stall`：统一投影 `same_fingerprint_loop`、`read_churn_without_artifact_delta`、`stale_truth_surface`、`runtime_recovery_retry_budget_exhausted` 和 handoff 状态。
+- `mas_production_blocker_impact_projection`：向用户面解释 `affects_output`、`next_owner`、`why_not_running`、`same_fingerprint_or_handoff`、`will_start_llm`、safe reconcile command、route 和 source refs。
+- `paper_progress_degradation_evidence`：在真实 profile 上记录 status/progress 可读性、owner_route 前进、publication gate / AI reviewer / writer handoff、Portal/Console refs 和 safe reconcile dry-run 的 blocker / next action。
+
+Guard 口径：
+
+- `runtime-supervisor-reconcile --dry-run` 必须保持零 Codex dispatch。
+- `--apply` 只能在 fresh owner_route、未 parked、未 completed、无 human gate、无 publication gate missing、retry budget 未耗尽且 action fingerprint 新鲜时启动 Codex worker。
+- read model、Portal、Live Console、study-progress、workspace cockpit、Product Entry 和 OPL handoff 只能解释 production impact 和深链 source refs；不得写 paper/package、runtime SQLite、publication eval、controller decisions 或 quality/publication/submission ready。
+- 真实 workspace blocker 必须如实记录为 blocker 和 next owner；不能因为 repo capability landed 而声明真实 `paper_autonomy_stability=landed`。
 
 ## Live Console Parity Authority Boundary
 

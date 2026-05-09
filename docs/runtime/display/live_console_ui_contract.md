@@ -15,6 +15,8 @@ User-view parity gaps for per-paper navigation, executor conversation, and inter
 
 2026-05-09 fresh assessment: Live Console is the MAS-native observation replacement for the old WebUI observation class. Study-scoped filtering, action receipts, authorized Progress Portal pause/resume/stop apply, and terminal attach owner gating are now repo-tracked contracts. The terminal attach MVP does not recreate the old resident WebSocket owner; it exposes attach/input/resize/detach controls only when a MAS-owned owner contract is present.
 
+2026-05-09 paper progress degradation closeout: Live Console may display the production blocker impact projection for the selected study, including next owner, why not running, same fingerprint or handoff state, will-start-LLM, safe reconcile command, route refs, and source refs. This is an observation surface only. It must not execute reconcile, dispatch a worker, update publication gates, change controller decisions, write runtime SQLite, or mark quality/publication/submission readiness.
+
 ## Stable Entry
 
 - Static shell: `ops/mas/live-console/index.html`
@@ -56,6 +58,8 @@ The Live Console UI is read-only. It can show action intent for pause / resume /
 Progress Portal has a separate local-loopback action endpoint. It remains disabled by default; when explicitly served with `--enable-actions`, it may call MAS runtime owner surfaces for `pause`, `resume`, and `stop`, write audit receipts, dedupe repeated user clicks by idempotency key, and fail closed on disallowed actions or missing `quest_id/study_id`. It must not reuse the old MDS daemon as an owner. Terminal attach/input/resize/detach is owned by the MAS terminal attach owner contract, not by the generic Portal action endpoint.
 
 The real-workspace soak surface is also read-only. `portal-console-soak` may refresh the Progress Portal and Live Console snapshot, then materialize display evidence under `artifacts/runtime/portal_console_soak/latest.json`. It must not turn a page refresh into runtime reconcile, package rebuild, publication gate update, controller decision, or runtime SQLite write.
+
+Paper progress degradation evidence is also read-only. It may explain whether a blocker affects automatic paper production, whether a same-fingerprint loop or owner handoff exists, and what safe reconcile command would be appropriate. It cannot authorize quality ready, publication ready, submission ready, package rebuild, controller apply, or terminal input.
 
 Forbidden writes:
 

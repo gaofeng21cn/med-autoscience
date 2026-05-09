@@ -124,6 +124,15 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 
 这个设计参考了成熟控制面经验：Kubernetes controller 用 current/desired state reconcile，不把每个 controller 都做成互相耦合的巨大循环；Temporal 用 Activity heartbeat / timeout 及时发现长任务 worker failure；systemd watchdog 用 keep-alive ping 区分服务存活；EventBridge Scheduler 用 retry / DLQ 让调度失败可追踪。MAS 对应做法是 per-run heartbeat + fail-closed reconcile + dispatch 去重，而不是高频 LLM cron。
 
+2026-05-09 Paper Progress Degradation closeout 把“论文推进变慢”的 P0/P1 风险接进同一条外环合同：
+
+- `paper_progress_degradation_classifier` 把旧 MDS 行为差异按是否影响自动论文产出分类；Portal/Console 诊断体验不被当作生产降级，connector/GitOps/旧 daemon lifecycle 不重新进入默认 backlog。
+- controller work-unit evidence adoption 后，supervisor 必须把同一 work unit 推进到 `owner_handoff` / `publication_gate_recheck`，并带 `next_owner`、`next_work_unit`、route reason 与 idempotency key；不得继续 redrive 同一 `analysis_claim_evidence_repair` fingerprint。
+- repeat suppression 的职责是阻断重复 dispatch 和无效 LLM 花费；它不得阻断 owner handoff、publication gate recheck 或 AI reviewer / writer next owner。
+- `paper_progress_stall` read model 统一表达 `same_fingerprint_loop`、`read_churn_without_artifact_delta`、`stale_truth_surface`、`runtime_recovery_retry_budget_exhausted`、handoff 状态和 source refs。
+- `runtime-supervisor-reconcile --dry-run` 是零 dispatch 诊断；`--apply` 只有在 fresh owner_route、未 parked、未 completed、无 human gate、无 publication gate missing、retry budget 未耗尽且 action fingerprint 新鲜时，才能通过 Codex worker dispatch。
+- study-progress、Portal、Live Console、workspace cockpit、Product Entry 和 OPL handoff 只能投影 `affects_output`、`next_owner`、`why_not_running`、`same_fingerprint_or_handoff`、`will_start_llm`、safe reconcile command 和 source refs；它们不得写 paper/package、publication gate、controller decision、runtime SQLite 或 quality/publication/submission ready。
+
 MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 policy：
 
 - `executor_kind = codex_cli_default`
