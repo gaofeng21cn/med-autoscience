@@ -268,6 +268,32 @@ def test_supervisor_scan_applies_authorized_controller_work_unit_wait_redrive(
             "quest_id": study_id,
             "quest_status": "running",
             "decision": "resume",
+            "reason": "controller_work_unit_evidence_adopted",
+            "controller_work_unit_evidence_adoption": {
+                "already_recorded": True,
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "route_target": "analysis-campaign",
+                "recommended_next_route": "handoff_to_next_owner",
+                "analysis_lane_status": "exhausted_for_current_fingerprint",
+                "next_owner": "write/ai_reviewer",
+                "next_work_unit": "manuscript_story_repair",
+                "result": {
+                    "analysis_lane_status": "exhausted_for_current_fingerprint",
+                    "meaningful_artifact_delta": True,
+                    "local_traceability_repair_complete": True,
+                },
+            },
+            "controller_decision_authorization_deduped": {
+                "source": "controller_work_unit_evidence_adoption",
+                "lifecycle": {"lifecycle_state": "owner_handoff"},
+            },
+            "controller_work_unit_next_route": {
+                "recommended_next_route": "handoff_to_next_owner",
+                "owner": "write/ai_reviewer",
+                "quality_gate_relaxation_allowed": False,
+                "runtime_relaunch_required": False,
+                "next_work_unit": "manuscript_story_repair",
+            },
             "runtime_liveness_audit": {
                 "active_run_id": "run-authorized-work-unit-redrive",
                 "runtime_audit": {
@@ -359,4 +385,9 @@ def test_supervisor_scan_applies_authorized_controller_work_unit_wait_redrive(
     assert apply_result["repair_kind"] == "controller_work_unit_pending_redrive"
     assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-authorized-work-unit-redrive"
     assert study["external_supervisor_required"] is False
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert study["action_queue"][0]["owner"] == "write/ai_reviewer"
+    assert study["action_queue"][0]["next_work_unit"] == "manuscript_story_repair"
+    assert study["why_not_applied"] == "controller_work_unit_owner_handoff_required"
+    assert study["next_owner"] == "write/ai_reviewer"
     assert study["paper_package_mutated"] is False
