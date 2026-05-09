@@ -420,6 +420,32 @@ def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_work
     assert "期望输出" in html
 
 
+def test_progress_portal_projects_local_scheduler_drift_with_repair_command() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        cockpit_payload={
+            "workspace_alerts": [
+                "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。"
+            ],
+            "studies": [],
+        },
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    item = payload["workspace"]["workspace_alert_items"][0]
+    assert item["source"] == "workspace_supervision.service.summary"
+    assert item["current_output"] == "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。"
+    assert item["recommended_command"] == (
+        "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile <profile>"
+    )
+    html = module.render_progress_portal_html(payload)
+    assert "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。" in html
+    assert "workspace_supervision.service.summary" in html
+    assert "runtime-ensure-supervision" in html
+
+
 def test_progress_portal_hides_low_information_generic_status_diagnostic_when_study_rows_exist() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
     payload = module.build_progress_portal_payload(

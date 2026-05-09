@@ -827,6 +827,17 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     )
     monkeypatch.setattr(cli.overlay_installer, "ensure_medical_overlay", fake_ensure)
     monkeypatch.setattr(cli.data_asset_updates_controller, "refresh_data_assets", fake_refresh_data_assets)
+    monkeypatch.setattr(
+        cli.supervision_scheduler,
+        "ensure_supervision",
+        lambda **kwargs: {
+            "surface_kind": "workspace_runtime_supervision_install_result",
+            "action": "installed",
+            "manager": kwargs["manager"],
+            "trigger_now": kwargs["trigger_now"],
+            "write_install_proof": kwargs["write_install_proof"],
+        },
+    )
 
     exit_code = cli.main(["workspace", "bootstrap", "--profile", str(profile_path)])
     captured = capsys.readouterr()
@@ -857,6 +868,10 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     assert calls["ensure_default_citation_style"] == "AMA"
     assert calls["refresh_data_assets_workspace_root"] == workspace_root
     assert '"selected_action": "noop"' in captured.out
+    assert '"supervision_bootstrap"' in captured.out
+    assert '"manager": "local"' in captured.out
+    assert '"trigger_now": false' in captured.out
+    assert '"write_install_proof": true' in captured.out
     assert '"impact_report"' in captured.out
     assert '"startup_data_readiness"' in captured.out
     assert '"studies"' not in captured.out
@@ -892,6 +907,11 @@ def test_bootstrap_command_maintains_workspace_local_mas_stage_skills_without_ho
         cli.data_asset_updates_controller,
         "refresh_data_assets",
         lambda *, workspace_root: {"status": {"layout_ready": True}},
+    )
+    monkeypatch.setattr(
+        cli.supervision_scheduler,
+        "ensure_supervision",
+        lambda **kwargs: {"surface_kind": "workspace_runtime_supervision_install_result", "action": "installed"},
     )
     monkeypatch.setenv("HOME", str(home))
 
@@ -945,6 +965,11 @@ def test_bootstrap_command_honors_status_only_overlay_mode(monkeypatch, tmp_path
         cli.data_asset_updates_controller,
         "refresh_data_assets",
         lambda *, workspace_root: {"status": {"layout_ready": True}},
+    )
+    monkeypatch.setattr(
+        cli.supervision_scheduler,
+        "ensure_supervision",
+        lambda **kwargs: {"surface_kind": "workspace_runtime_supervision_install_result", "action": "installed"},
     )
 
     exit_code = cli.main(["workspace", "bootstrap", "--profile", str(profile_path)])

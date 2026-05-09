@@ -1025,6 +1025,12 @@ def main(argv: list[str] | None = None) -> int:
             hermes_agent_repo_root=profile.hermes_agent_repo_root,
             hermes_home_root=profile.hermes_home_root,
         )
+        supervision_bootstrap = supervision_scheduler.ensure_supervision(
+            profile=profile,
+            manager="local",
+            trigger_now=False,
+            write_install_proof=True,
+        )
         doctor = _load_doctor_module()
         doctor_report = doctor.build_doctor_report(profile)
         overlay_install = None
@@ -1064,6 +1070,7 @@ def main(argv: list[str] | None = None) -> int:
             "overlay_install": overlay_install,
             "overlay_status": overlay_status,
             "data_assets": data_assets_refresh,
+            "supervision_bootstrap": supervision_bootstrap,
         }
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

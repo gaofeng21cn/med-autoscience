@@ -18,6 +18,8 @@ Date: `2026-05-09`
 
 2026-05-09 落地更新：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 已接到 `supervision_scheduler` façade，默认 `--manager local`。macOS local adapter 会生成 MAS-owned tick script、LaunchAgent plist、install proof 和 scheduler receipt；显式 `--manager hermes` 继续调用 Hermes adapter 并投影到同一 `scheduler_owner=mas_supervision_scheduler` 合同下。旧 `systemd|cron|launchd|docker` manager 仍是 retired fail-closed diagnostic，不作为 active shortcut。
 
+2026-05-09 bootstrap 修复：`workspace bootstrap --profile <profile>` 现在会作为显式 apply 入口调用默认 `local` scheduler 的 `runtime-ensure-supervision` 语义，刷新 LaunchAgent、tick script 与 install proof，但不立即触发 tick。`runtime-supervision-status`、`product-entry-status`、Progress Portal 与 Live Console 仍是 read/projection surface，不自动写入 OS scheduler；发现 drift 时必须显示 source 与 repair command，由 `workspace bootstrap` 或 `runtime-ensure-supervision` 执行幂等修复。
+
 ## 当前 Hermes 实际职责
 
 截至 `2026-05-09`，Hermes 在 MAS 显式 optional adapter 路径中承担的职责很单一：

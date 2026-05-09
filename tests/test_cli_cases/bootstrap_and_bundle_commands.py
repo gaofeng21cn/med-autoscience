@@ -97,12 +97,25 @@ def test_bootstrap_command_refreshes_legacy_workspace_runtime_entry_scripts(
         "refresh_data_assets",
         lambda *, workspace_root: {"status": {"layout_ready": True}},
     )
+    monkeypatch.setattr(
+        cli.supervision_scheduler,
+        "ensure_supervision",
+        lambda **kwargs: {
+            "surface_kind": "workspace_runtime_supervision_install_result",
+            "action": "installed",
+            "manager": kwargs["manager"],
+            "trigger_now": kwargs["trigger_now"],
+            "write_install_proof": kwargs["write_install_proof"],
+        },
+    )
 
     exit_code = cli.main(["workspace", "bootstrap", "--profile", str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0
     assert '"selected_action": "noop"' in captured.out
+    assert '"supervision_bootstrap"' in captured.out
+    assert '"trigger_now": false' in captured.out
     install_text = install_service.read_text(encoding="utf-8")
     assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
 def test_ensure_study_runtime_analysis_bundle_command_prints_controller_payload(monkeypatch, capsys) -> None:

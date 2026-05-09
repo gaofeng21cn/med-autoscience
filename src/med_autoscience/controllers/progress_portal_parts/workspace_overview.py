@@ -16,6 +16,14 @@ _LEGACY_OR_GENERIC_WORKSPACE_ALERTS = frozenset(
         "状态需要检查。",
     }
 )
+_WORKSPACE_SUPERVISION_ALERTS = frozenset(
+    {
+        "Hermes-hosted runtime supervision 尚未注册。",
+        "MAS scheduler runtime supervision 尚未注册。",
+        "Supervisor scheduler 尚未注册。",
+        "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。",
+    }
+)
 _PARKED_STUDY_WORKSPACE_ALERTS = frozenset(
     {
         "用户暂停或手动停驻，需显式恢复或新方案。",
@@ -309,14 +317,11 @@ def _alert_item(text: str) -> dict[str, str | None]:
     purpose = "提示 workspace 级运行、进度或质量异常。"
     expected = "具体 study 行应给出 owner、运行健康、进度 freshness 和下一步。"
     recommended_command: str | None = None
-    if text in {
-        "Hermes-hosted runtime supervision 尚未注册。",
-        "MAS scheduler runtime supervision 尚未注册。",
-        "Supervisor scheduler 尚未注册。",
-    }:
+    if text in _WORKSPACE_SUPERVISION_ALERTS:
         source = "workspace_supervision.service.summary"
-        text = "MAS scheduler runtime supervision 尚未注册。"
-        purpose = "说明 workspace 级 MAS scheduler job 尚未安装或未注册。"
+        if text != "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。":
+            text = "MAS scheduler runtime supervision 尚未注册。"
+        purpose = "说明 workspace 级 MAS scheduler job 尚未安装、未加载或存在漂移。"
         expected = "MAS scheduler local adapter 应注册并按计划触发 runtime supervision tick。"
         recommended_command = "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile <profile>"
     elif text == "状态需要检查。":
