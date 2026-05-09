@@ -52,9 +52,10 @@ Progress Portal 采用双层形态：
 - `MAS` 还负责 hosted packaging manifest，生成 `artifacts/runtime/progress_portal/hosted_package.json`。这个 manifest 只打包 MAS-owned workspace truth packaging，不消费 MDS WebUI，也不写任何 authority surface。
 - 本地 MAS Portal 是每个 workspace 的固定入口，适合医生、PI 或维护者直接打开查看同一条研究线。
 - `OPL App` / `OPL Runtime Manager` 只消费 MAS read-model / payload refs，把它们汇总到 family-level dashboard、attention queue、running/recent item 和 artifact locator。
-- `latest.json` 固定暴露 `opl_handoff`：包含 payload refs、freshness、source refs、artifact locators、workspace-local Portal deep link 和 forbidden authority 列表，供 OPL family projection 直接索引。
+- `latest.json` 固定暴露 `opl_handoff`：包含 payload refs、freshness、source refs、artifact locators、workspace-local Portal deep link 和 forbidden authority 列表，供 OPL family projection 直接索引。OPL 只能消费这些引用，不重新解释 study truth，不写 MAS truth，也不接管 runtime、publication 或 package authority。
 - OPL 展示层可以打开或深链到 `ops/mas/progress/index.html`，也可以读取 `latest.json` 做跨 workspace 概览；它不能把 payload 文案升级成 OPL-owned readiness、submission-ready、publication verdict、quality verdict 或新的 study truth。
 - OPL native helper 或 state indexer 只能加速文件发现、freshness、artifact index 和 source ref 汇总；它不能重算 MAS 的 study 状态、publication judgment、evidence ledger 或 controller next action。
+- `browser_url` 只表示 hosted/runtime monitoring URL，用于 Live Console 或可选本地只读服务的浏览器入口；Progress Portal 的 OPL handoff 使用 workspace-local HTML/ref deep link，例如 `portal_path` / `portal_url` / `deep_link` 指向 `ops/mas/progress/index.html` 或其本地文件 URL，不把 hosted monitoring URL 写成 Portal authority。
 
 详细评估记录见 [Progress Portal OPL App Integration](../references/progress_portal_opl_app_integration.md)。
 
@@ -148,7 +149,7 @@ ops/mas/progress/index.html
 
 这些文件是展示产物，不是 study truth。任何启动、恢复、暂停、写作、质量裁决、投稿授权、交付重建或 runtime lifecycle 写入仍回到既有 owner surface。
 
-`opl_handoff` 是同一 payload 内的 family-level projection，不是额外 truth surface。它只能引用本 payload、源 payload 摘要、freshness、source refs、artifact locators 与 Portal deep link；OPL 侧不能据此生成新的 study truth、publication judgment、quality verdict、runtime authority 或 artifact authority。
+`opl_handoff` 是同一 payload 内的 family-level projection，不是额外 truth surface。它只能引用本 payload、源 payload 摘要、freshness、source refs、artifact locators 与 workspace-local Portal deep link；OPL 侧只能把它作为 family-level projection consumer 输入，不能据此生成新的 study truth、publication judgment、quality verdict、runtime authority、publication authority、package authority 或 artifact authority。若 payload 同时暴露 hosted monitoring `browser_url` 与 Portal `portal_path` / `portal_url` / `deep_link`，OPL 应把 `browser_url` 视为 runtime monitoring 入口，把 Portal 字段视为本地 HTML/ref deep link。
 
 ## 静态快照合同
 
