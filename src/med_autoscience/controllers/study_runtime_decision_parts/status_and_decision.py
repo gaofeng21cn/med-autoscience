@@ -866,6 +866,9 @@ def _status_state(
                     ),
                     "invalid_blocking": StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
                     "pending_user_message_redrive": StudyRuntimeReason.QUEST_WAITING_USER_MESSAGE_REDRIVE,
+                    "platform_repair_decision_redrive": (
+                        StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+                    ),
                 }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
                 result.set_decision(
                     StudyRuntimeDecision.RESUME,

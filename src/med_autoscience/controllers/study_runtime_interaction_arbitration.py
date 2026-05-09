@@ -93,6 +93,9 @@ def arbitrate_waiting_for_user(
         pending_redrive = _pending_user_message_redrive(continuation_state)
         if pending_redrive is not None:
             return pending_redrive
+        platform_repair_redrive = _platform_repair_decision_redrive(continuation_state)
+        if platform_repair_redrive is not None:
+            return platform_repair_redrive
         blocked_closeout_wait = _blocked_closeout_owner_wait(blocked_closeout)
         if blocked_closeout_wait is not None:
             return blocked_closeout_wait
@@ -219,6 +222,38 @@ def _pending_user_message_redrive(continuation_state: dict[str, Any] | None) -> 
         "controller_stage_note": (
             "Runtime platform repair marked an existing pending user-message queue for autonomous redrive; "
             "resume the managed runtime instead of parking on waiting_for_user."
+        ),
+    }
+
+
+def _platform_repair_decision_redrive(continuation_state: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(continuation_state, dict):
+        return None
+    continuation_policy = _text(continuation_state.get("continuation_policy"))
+    continuation_anchor = _text(continuation_state.get("continuation_anchor"))
+    continuation_reason = _text(continuation_state.get("continuation_reason"))
+    if continuation_policy != "auto":
+        return None
+    if continuation_anchor != "decision":
+        return None
+    if continuation_reason != "runtime_platform_repair_redrive":
+        return None
+    pending_count = continuation_state.get("pending_user_message_count")
+    if isinstance(pending_count, int) and pending_count > 0:
+        return None
+    return {
+        "classification": "platform_repair_decision_redrive",
+        "action": "resume",
+        "reason_code": "runtime_platform_repair_decision_redrive",
+        "requires_user_input": False,
+        "valid_blocking": False,
+        "kind": "runtime_platform_repair",
+        "decision_type": None,
+        "source_artifact_path": None,
+        "pending_user_message_count": int(pending_count or 0),
+        "controller_stage_note": (
+            "Runtime platform repair cleared a stale waiting state and marked the controller decision lane "
+            "for autonomous redrive; resume the managed runtime instead of parking on waiting_for_user."
         ),
     }
 

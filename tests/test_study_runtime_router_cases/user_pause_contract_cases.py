@@ -276,6 +276,77 @@ def test_waiting_pending_user_message_redrive_resumes_without_explicit_wakeup(
     assert calls == ["sync_context", "resume"]
 
 
+def test_waiting_platform_repair_decision_redrive_resumes_without_pending_messages(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    _, quest_root = _write_managed_study(profile, study_id)
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "waiting_for_user",
+                "active_run_id": None,
+                "worker_running": False,
+                "pending_user_message_count": 0,
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "runtime_platform_repair_redrive",
+            }
+        )
+        + "\n",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "get_quest_session",
+        lambda *, runtime_root, quest_id: {
+            "ok": True,
+            "quest_id": quest_id,
+            "snapshot": {"status": "waiting_for_user", "pending_user_message_count": 0},
+            "runtime_audit": {
+                "ok": True,
+                "status": "none",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
+        or {
+            "ok": True,
+            "status": "running",
+            "started": True,
+            "scheduled": True,
+            "snapshot": {"status": "running", "active_run_id": "run-decision-redrive"},
+        },
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_platform_repair")
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_platform_repair_redrive"
+    assert result["quest_status"] == "running"
+    assert result["interaction_arbitration"]["classification"] == "platform_repair_decision_redrive"
+    assert result["interaction_arbitration"]["action"] == "resume"
+    assert calls == ["sync_context", "resume"]
+
+
 def test_legacy_human_takeover_escalation_not_treated_as_user_pause(
     monkeypatch,
     tmp_path: Path,

@@ -486,7 +486,8 @@ def test_supervisor_scan_queues_runtime_repair_for_paused_resume_without_live_wo
     assert study["blocked_reason"] == "abnormal_stopped_runtime_resume_required"
     assert study["next_owner"] == "external_supervisor"
     assert study["external_supervisor_required"] is True
-    assert study["gate_specificity"]["status"] == "not_required"
+    assert study["gate_specificity"]["status"] == "specific_targets_present"
+    assert study["gate_specificity"]["required"] is False
     assert study["ai_reviewer_assessment"]["present"] is True
     assert study["paper_package_mutated"] is False
 

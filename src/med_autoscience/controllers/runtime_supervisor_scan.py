@@ -446,6 +446,7 @@ def _apply_runtime_platform_repair_projection(
                 gate_specificity=gate_specificity,
             ),
         ),
+        gate_specificity=gate_specificity,
     )
     if apply_result is None:
         return None, None

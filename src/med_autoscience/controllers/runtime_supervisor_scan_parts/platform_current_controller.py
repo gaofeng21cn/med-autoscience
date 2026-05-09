@@ -107,13 +107,22 @@ def current_controller_authorization_payload(
     study_root: Path,
     publication_eval_payload: Mapping[str, Any],
     read_json_object: Callable[[Path], dict[str, Any] | None],
+    allow_specificity_work_unit: bool = False,
 ) -> dict[str, Any] | None:
     route = current_truth_owner.current_controller_runtime_route(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
     )
     if route is None:
-        return None
+        if not allow_specificity_work_unit:
+            return None
+        route = specificity_controller_runtime_route(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+            read_json_object=read_json_object,
+        )
+        if route is None:
+            return None
     decision = read_json_object(Path(str(route["decision_path"])))
     if decision is None:
         return None
@@ -149,6 +158,37 @@ def current_controller_authorization_payload(
     return authorization
 
 
+def specificity_controller_runtime_route(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    read_json_object: Callable[[Path], dict[str, Any] | None],
+) -> dict[str, Any] | None:
+    decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
+    decision = read_json_object(decision_path)
+    if decision is None or decision.get("requires_human_confirmation") is True:
+        return None
+    work_unit = mapping(decision.get("next_work_unit"))
+    work_unit_id = text(work_unit.get("unit_id"))
+    if work_unit_id not in current_truth_owner.SPECIFICITY_WORK_UNIT_IDS:
+        return None
+    decision_fingerprint = text(decision.get("work_unit_fingerprint")) or text(work_unit.get("fingerprint"))
+    publication_action = publication_action_for_work_unit(
+        publication_eval_payload=publication_eval_payload,
+        work_unit_fingerprint=decision_fingerprint,
+    )
+    if publication_action is None:
+        return None
+    return {
+        "decision_path": str(decision_path),
+        "decision_id": text(decision.get("decision_id")),
+        "controller_actions": sorted(controller_action_types(decision)),
+        "route_target": text(decision.get("route_target")),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": decision_fingerprint,
+    }
+
+
 def write_current_controller_authorization(
     *,
     runtime_state_path: Path,
@@ -159,11 +199,16 @@ def write_current_controller_authorization(
     read_json_object: Callable[[Path], dict[str, Any] | None],
     write_json: Callable[[Path, Mapping[str, Any]], None],
     append_json_line: Callable[[Path, Mapping[str, Any]], None],
+    continuation_reason: str = "controller_work_unit_pending",
+    repair_clear_reason: str = "current_controller_authorization",
+    repair_extra: Mapping[str, Any] | None = None,
+    allow_specificity_work_unit: bool = False,
 ) -> dict[str, Any] | None:
     authorization = current_controller_authorization_payload(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
         read_json_object=read_json_object,
+        allow_specificity_work_unit=allow_specificity_work_unit,
     )
     if authorization is None:
         return None
@@ -177,7 +222,7 @@ def write_current_controller_authorization(
     runtime_state["worker_running"] = False
     runtime_state["continuation_policy"] = "auto"
     runtime_state["continuation_anchor"] = "decision"
-    runtime_state["continuation_reason"] = "controller_work_unit_pending"
+    runtime_state["continuation_reason"] = continuation_reason
     runtime_state["continuation_updated_at"] = utc_now()
     runtime_state["same_fingerprint_auto_turn_count"] = 0
     runtime_state["last_controller_decision_authorization"] = authorization
@@ -187,11 +232,13 @@ def write_current_controller_authorization(
         "study_id": study_id,
         "quest_id": quest_id,
         "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
-        "clear_reason": "current_controller_authorization",
+        "clear_reason": repair_clear_reason,
         "applied_at": utc_now(),
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
     }
+    if repair_extra:
+        runtime_state["last_runtime_platform_repair"].update(dict(repair_extra))
     write_json(runtime_state_path, runtime_state)
     append_json_line(
         runtime_state_path.parent / "events.jsonl",
@@ -242,5 +289,6 @@ __all__ = [
     "current_controller_authorization_payload",
     "mapping_has_actionable_controller_target",
     "publication_action_for_work_unit",
+    "specificity_controller_runtime_route",
     "write_current_controller_authorization",
 ]
