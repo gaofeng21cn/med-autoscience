@@ -203,6 +203,20 @@ def _mas_quality_repair_report_is_current(
     )
 
 
+def _handoff_report_is_current(
+    *,
+    payload: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    return _report_is_current_for_authorization(
+        payload=payload,
+        authorization_context=authorization_context,
+    ) or _work_unit_fingerprint_explicitly_matches(
+        payload=payload,
+        authorization_context=authorization_context,
+    )
+
+
 def _controller_field(payload: dict[str, Any], key: str) -> str | None:
     controller = payload.get("controller")
     if not isinstance(controller, dict):
@@ -259,7 +273,7 @@ def _report_matches_analysis_repair(
             and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
             and _text(payload.get("next_owner")) is not None
             and _text(payload.get("next_work_unit")) is not None
-            and _report_is_current_for_authorization(
+            and _handoff_report_is_current(
                 payload=payload,
                 authorization_context=authorization_context,
             )
@@ -498,6 +512,20 @@ def _has_prior_delivery_or_duplicate(
     )
 
 
+def _has_prior_delivery_or_duplicate_for_business_key(
+    *,
+    study_root: Path,
+    identity: control_intent.ControlIntentIdentity,
+) -> bool:
+    return any(
+        _text(event.get("event_type")) in {"delivered", "skipped_duplicate"}
+        for event in control_intent.events_for_business_key(
+            study_root=study_root,
+            business_key=identity.business_key,
+        )
+    )
+
+
 def adopt_controller_work_unit_evidence_if_present(
     *,
     study_root: Path,
@@ -516,11 +544,16 @@ def adopt_controller_work_unit_evidence_if_present(
     )
     if existing_payload is not None:
         return existing_payload
-    if not _has_prior_delivery_or_duplicate(
+    has_delivery_for_current_decision = _has_prior_delivery_or_duplicate(
         study_root=study_root,
         identity=identity,
         authorization_context=authorization_context,
-    ):
+    )
+    has_delivery_for_same_business_key = _has_prior_delivery_or_duplicate_for_business_key(
+        study_root=study_root,
+        identity=identity,
+    )
+    if not has_delivery_for_current_decision and not has_delivery_for_same_business_key:
         return None
     for report_path in _report_candidates(quest_root):
         if not report_path.exists():
@@ -530,6 +563,8 @@ def adopt_controller_work_unit_evidence_if_present(
             payload=report_payload,
             authorization_context=authorization_context,
         ):
+            continue
+        if not has_delivery_for_current_decision and not _is_analysis_repair_exhausted_handoff(report_payload):
             continue
         payload = {
             "active_run_id": active_run_id,

@@ -353,7 +353,7 @@ def test_execute_noop_runtime_decision_adopts_analysis_lane_exhausted_handoff(
     _write_controller_decision_authorization(
         study_root,
         action_type="run_quality_repair_batch",
-        emitted_at="2026-05-09T11:40:00+00:00",
+        emitted_at="2026-05-09T12:09:27+00:00",
         work_unit_fingerprint="publication-blockers::497d1260db522f01",
         next_work_unit={
             "unit_id": "analysis_claim_evidence_repair",
