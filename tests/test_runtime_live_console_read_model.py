@@ -525,6 +525,240 @@ def test_portal_console_soak_blocks_legacy_identity_and_mds_truth_refs(tmp_path:
     assert report["evidence"]["product_identity"]["forbidden_identity_tokens"] == ["MDS WebUI"]
 
 
+def test_conversation_read_model_projects_user_messages_turn_receipts_and_blockers(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = "quest-dm002"
+    study_root = profile.studies_root / study_id
+    quest_root = profile.runtime_root / quest_id
+    _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
+    _write_json(
+        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        {
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "quest_root": str(quest_root),
+            "active_run_id": "run-dm002",
+            "quest_status": "waiting_for_user",
+            "worker_running": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "health" / "latest.json",
+        {
+            "study_id": study_id,
+            "health_status": "blocked",
+            "blocking_reasons": ["awaiting_user_decision"],
+            "canonical_runtime_action": "await_explicit_resume",
+            "allowed_controller_actions": ["resume_runtime"],
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "quest_id": quest_id,
+            "status": "waiting_for_user",
+            "last_completed_run_id": "run-dm002",
+            "stop_requested": True,
+            "pending_turn_reason": "manual_replan",
+            "blocking_decision_request": {
+                "interaction_id": "interaction-001",
+                "reason": "confirm next analysis branch",
+            },
+            "pending_user_message_count": 1,
+            "updated_at": "2026-05-08T02:06:00+00:00",
+        },
+    )
+    _write_json(
+        quest_root / "artifacts" / "runtime" / "user_message_queue.json",
+        {
+            "schema_version": 1,
+            "pending": [
+                {
+                    "message_id": "msg-pending",
+                    "content": "继续，但先解释阻塞。",
+                    "recorded_at": "2026-05-08T02:05:00+00:00",
+                    "status": "pending",
+                }
+            ],
+            "completed": [
+                {
+                    "message_id": "msg-completed",
+                    "content": "上一轮先停。",
+                    "recorded_at": "2026-05-08T02:01:00+00:00",
+                    "status": "completed",
+                    "claimed_by_run_id": "run-dm002",
+                    "claimed_at": "2026-05-08T02:02:00+00:00",
+                }
+            ],
+        },
+    )
+    _write_text(
+        quest_root / "artifacts" / "runtime" / "turn_receipts.jsonl",
+        json.dumps(
+            {
+                "quest_id": quest_id,
+                "run_id": "run-dm002",
+                "reason": "user_message",
+                "source": "test",
+                "status": "started",
+                "started": True,
+                "queued": False,
+                "idempotency_key": "idem-001",
+                "recorded_at": "2026-05-08T02:02:00+00:00",
+                "claimed_user_messages": [
+                    {
+                        "message_id": "msg-completed",
+                        "status": "completed",
+                        "claimed_at": "2026-05-08T02:02:00+00:00",
+                    }
+                ],
+                "runner_receipt": {
+                    "runner_kind": "codex_exec",
+                    "stdout_path": str(quest_root / ".ds" / "runs" / "run-dm002" / "stdout.jsonl"),
+                    "stderr_path": str(quest_root / ".ds" / "runs" / "run-dm002" / "stderr.txt"),
+                },
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+    _write_text(
+        quest_root / "artifacts" / "runtime" / "mas_runtime_events.jsonl",
+        json.dumps(
+            {
+                "event": "turn_finished",
+                "recorded_at": "2026-05-08T02:06:00+00:00",
+                "snapshot": {
+                    "quest_id": quest_id,
+                    "status": "waiting_for_user",
+                    "last_completed_run_id": "run-dm002",
+                    "turn_reason": "user_message",
+                    "stop_requested": True,
+                    "blocking_decision_request": {"interaction_id": "interaction-001"},
+                },
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+
+    payload = module.build_conversation_read_model(
+        profile,
+        study_id=study_id,
+        generated_at="2026-05-08T02:07:00+00:00",
+    )
+
+    assert payload["surface_kind"] == "mas_runtime_conversation_read_model"
+    assert payload["read_only"] is True
+    assert payload["authority"]["writes_authority_surface"] is False
+    assert payload["authority"]["can_write_runtime_sqlite_authority"] is False
+    assert payload["selected_study_id"] == study_id
+    timeline = payload["timeline"]
+    assert {item["item_kind"] for item in timeline} >= {
+        "user_message",
+        "turn_receipt",
+        "runtime_lifecycle_event",
+        "runtime_control_ref",
+        "action_or_blocker_ref",
+        "live_console_run_ref",
+    }
+    user_items = [item for item in timeline if item["item_kind"] == "user_message"]
+    assert {item["message_id"] for item in user_items} == {"msg-pending", "msg-completed"}
+    receipt = next(item for item in timeline if item["item_kind"] == "turn_receipt")
+    assert receipt["tool_refs"]
+    assert receipt["assistant_refs"]
+    assert receipt["claimed_user_message_refs"] == [
+        {
+            "message_id": "msg-completed",
+            "status": "completed",
+            "claimed_at": "2026-05-08T02:02:00+00:00",
+        }
+    ]
+    control_refs = [item for item in timeline if item["item_kind"] == "runtime_control_ref"]
+    assert {item["event_name"] for item in control_refs} >= {
+        "stop_requested",
+        "replan_or_pending_turn",
+        "blocked_waiting_for_user",
+    }
+    assert any(ref["kind"] == "blocking_decision_request" for item in control_refs for ref in item["blocker_refs"])
+    assert any(
+        ref["surface_kind"] == "turn_receipts_jsonl"
+        and ref["source_ref"] == str(quest_root / "artifacts" / "runtime" / "turn_receipts.jsonl")
+        for ref in payload["source_refs"]
+    )
+    assert all(ref["read_only"] is True for ref in payload["source_refs"])
+
+
+def test_conversation_read_model_fail_closed_missing_fields_without_guessing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = "quest-dm002"
+    study_root = profile.studies_root / study_id
+    quest_root = profile.runtime_root / quest_id
+    _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
+    _write_json(
+        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        {"study_id": study_id, "quest_id": quest_id, "quest_root": str(quest_root)},
+    )
+    _write_json(
+        quest_root / "artifacts" / "runtime" / "user_message_queue.json",
+        {"schema_version": 1, "pending": [{"content": "missing metadata"}], "completed": []},
+    )
+    _write_text(
+        quest_root / "artifacts" / "runtime" / "turn_receipts.jsonl",
+        json.dumps({"run_id": "run-missing", "status": "started"}, ensure_ascii=False) + "\n",
+    )
+
+    payload = module.build_conversation_read_model(
+        profile,
+        study_id=study_id,
+        generated_at="2026-05-08T02:07:00+00:00",
+    )
+
+    user_item = next(item for item in payload["timeline"] if item["item_kind"] == "user_message")
+    receipt_item = next(item for item in payload["timeline"] if item["item_kind"] == "turn_receipt")
+    assert user_item["message_id"] is None
+    assert user_item["message_status"] == "pending"
+    assert user_item["missing_fields"] == ["message_id", "recorded_at"]
+    assert receipt_item["turn_reason"] is None
+    assert receipt_item["turn_status"] == "started"
+    assert receipt_item["missing_fields"] == ["reason", "recorded_at"]
+    assert payload["timeline_summary"]["missing_field_item_count"] >= 2
+
+
+def test_conversation_read_model_materializes_latest_and_history_without_truth_writes(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = "quest-dm002"
+    study_root = profile.studies_root / study_id
+    quest_root = profile.runtime_root / quest_id
+    _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
+    status_path = study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json"
+    _write_json(status_path, {"study_id": study_id, "quest_id": quest_id, "quest_root": str(quest_root)})
+    before = status_path.stat().st_mtime_ns
+
+    result = module.materialize_conversation_read_model(
+        profile,
+        study_id=study_id,
+        generated_at="2026-05-08T02:07:00+00:00",
+    )
+
+    latest_path = profile.workspace_root / "artifacts" / "runtime" / "conversation_read_model" / "latest.json"
+    history_path = profile.workspace_root / "artifacts" / "runtime" / "conversation_read_model" / "history.jsonl"
+    assert result["payload_path"] == str(latest_path.resolve())
+    assert result["history_path"] == str(history_path.resolve())
+    assert json.loads(latest_path.read_text(encoding="utf-8"))["surface_kind"] == "mas_runtime_conversation_read_model"
+    assert len(history_path.read_text(encoding="utf-8").splitlines()) == 1
+    assert status_path.stat().st_mtime_ns == before
+    assert not (profile.workspace_root / "artifacts" / "publication_eval").exists()
+    assert not (profile.workspace_root / "artifacts" / "controller_decisions").exists()
+    assert not (profile.workspace_root / "runtime_lifecycle.sqlite").exists()
+
+
 def _write_soak_study(
     *,
     profile,
