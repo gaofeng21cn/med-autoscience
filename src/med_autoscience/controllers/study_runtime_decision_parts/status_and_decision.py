@@ -461,7 +461,10 @@ def _status_state(
                 StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN,
             )
             return _finalize_result()
-        if _record_existing_controller_work_unit_evidence_adoption(status=result, study_root=study_root) is not None:
+        if (
+            not _platform_repair_redrive_without_live_worker(result, audit_status=audit_status)
+            and _record_existing_controller_work_unit_evidence_adoption(status=result, study_root=study_root) is not None
+        ):
             result.set_decision(
                 StudyRuntimeDecision.NOOP,
                 StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,

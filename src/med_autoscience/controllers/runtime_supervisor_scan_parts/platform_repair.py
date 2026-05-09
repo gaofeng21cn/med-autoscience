@@ -220,12 +220,29 @@ def _apply_abnormal_stopped_runtime_repair(
     base: Mapping[str, Any],
     repair_kind: str,
     controller_authorization: Mapping[str, Any] | None = None,
+    force_fresh_turn: bool = False,
 ) -> dict[str, Any]:
     allow_stopped_relaunch = repair_kind in {
         "abnormal_stopped_runtime_relaunch",
         "failed_non_resumable_relaunch",
     }
     try:
+        restart_result = None
+        if force_fresh_turn:
+            restart_result = _force_fresh_runtime_turn(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                repair_kind=repair_kind,
+            )
+            if restart_result.get("forced") is not True:
+                return {
+                    **dict(base),
+                    "dispatch_status": "blocked",
+                    "reason": _text(restart_result.get("reason")) or "runtime_redrive_force_restart_failed",
+                    "repair_kind": repair_kind,
+                    "force_fresh_turn": restart_result,
+                }
         resume_result = study_runtime_router.ensure_study_runtime(
             profile=profile,
             study_id=study_id,
@@ -254,13 +271,46 @@ def _apply_abnormal_stopped_runtime_repair(
             "repair_kind": repair_kind,
             "resume_result": resume_payload,
             "resume_postcondition": postcondition_failure.get("resume_postcondition"),
+            "force_fresh_turn": restart_result,
         }
-    return {
+    result = {
         **dict(base),
         "dispatch_status": "applied",
         "reason": "abnormal_stopped_runtime_relaunch_requested",
         "repair_kind": repair_kind,
         "resume_result": resume_payload,
+    }
+    if restart_result is not None:
+        result["force_fresh_turn"] = restart_result
+    return result
+
+
+def _force_fresh_runtime_turn(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    repair_kind: str,
+) -> dict[str, Any]:
+    try:
+        pause_result = study_runtime_router.pause_study_runtime(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+        )
+    except Exception as exc:
+        return {
+            "forced": False,
+            "reason": "runtime_redrive_pause_failed",
+            "repair_kind": repair_kind,
+            "error": str(exc),
+        }
+    return {
+        "forced": True,
+        "reason": "live_activity_timeout_force_fresh_turn",
+        "repair_kind": repair_kind,
+        "pause_result": dict(pause_result) if isinstance(pause_result, Mapping) else pause_result,
     }
 
 
@@ -274,6 +324,7 @@ def _apply_current_controller_runtime_redrive(
     publication_eval_payload: Mapping[str, Any],
     base: Mapping[str, Any],
     repair_kind: str,
+    force_fresh_turn: bool = False,
 ) -> dict[str, Any]:
     authorization = _write_current_controller_authorization(
         runtime_state_path=runtime_state_path,
@@ -306,6 +357,7 @@ def _apply_current_controller_runtime_redrive(
                 base=base,
                 repair_kind=repair_kind,
                 controller_authorization=None,
+                force_fresh_turn=force_fresh_turn,
             )
             return {
                 **apply_result,
@@ -327,6 +379,7 @@ def _apply_current_controller_runtime_redrive(
         base=base,
         repair_kind=repair_kind,
         controller_authorization=authorization,
+        force_fresh_turn=force_fresh_turn,
     )
     if authorization is not None:
         return {
@@ -364,6 +417,7 @@ def _apply_live_activity_timeout_current_controller_redrive(
             publication_eval_payload=publication_eval_payload,
             base={**dict(base), "reason": current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON},
             repair_kind="live_activity_timeout_current_controller_redrive",
+            force_fresh_turn=True,
         )
     )
 

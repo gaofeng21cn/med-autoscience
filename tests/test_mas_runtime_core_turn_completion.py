@@ -111,6 +111,46 @@ def test_runner_completion_rejects_closeout_that_marks_owner_request_as_meaningf
     assert result["invalid_artifact_refs"] == ["artifacts/runtime/owner_progress_requests/run-001.json"]
 
 
+def test_runner_completion_rejects_closeout_that_only_marks_repair_packet_as_meaningful_delta(
+    tmp_path: Path,
+) -> None:
+    quest_root = tmp_path / "quest-001"
+    _write_closeout(
+        quest_root=quest_root,
+        run_id="run-001",
+        payload={
+            "quest_id": "quest-001",
+            "run_id": "run-001",
+            "status": "completed",
+            "meaningful_artifact_delta": True,
+            "artifact_refs": [
+                "artifacts/reports/analysis_claim_evidence_repair/latest.json",
+                "artifacts/supervision/controller_consumption/latest.json",
+                "artifacts/controller/gate_clearing_batch/latest.json",
+            ],
+        },
+    )
+    _write_stdout(
+        quest_root=quest_root,
+        run_id="run-001",
+        events=[
+            {"type": "item.started", "item": {"id": "item-1"}},
+            {"type": "item.completed", "item": {"id": "item-1"}},
+        ],
+    )
+
+    result = inspect_runner_completion(quest_root=quest_root, run_id="run-001", runner_status="succeeded")
+
+    assert result["state"] == "incomplete"
+    assert result["reason"] == "invalid_meaningful_artifact_delta"
+    assert result["normalized_runner_status"] == "runner_incomplete"
+    assert result["invalid_artifact_refs"] == [
+        "artifacts/reports/analysis_claim_evidence_repair/latest.json",
+        "artifacts/supervision/controller_consumption/latest.json",
+        "artifacts/controller/gate_clearing_batch/latest.json",
+    ]
+
+
 def test_logical_turn_completion_reports_stale_nonterminal_receipt(tmp_path: Path) -> None:
     quest_root = tmp_path / "quest-001"
     _write_closeout(quest_root=quest_root, run_id="run-001")

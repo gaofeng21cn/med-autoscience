@@ -43,6 +43,7 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     text,
 )
 from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import (
+    terminate_orphan_worker_leases,
     terminate_worker_lease_for_run,
     terminate_worker_leases,
 )
@@ -299,6 +300,8 @@ def schedule_turn(
                 receipt=receipt,
                 snapshot_payload=snapshot(quest_root=quest_root, state=updated),
             )
+    if active_run_id is None:
+        _prune_orphan_worker_leases_before_new_turn(quest_root=quest_root, source=source)
     if delay_seconds is not None and delay_seconds > 0:
         payload = {
             "schema_version": 1,
@@ -342,6 +345,28 @@ def schedule_turn(
         runtime_root=runtime_root, quest_root=quest_root, quest_id=quest_id, reason=reason, source=source,
         terminal_attach_capable=terminal_attach_capable,
     )
+
+
+def _prune_orphan_worker_leases_before_new_turn(*, quest_root: Path, source: str) -> dict[str, Any] | None:
+    cleanup = terminate_orphan_worker_leases(
+        quest_root=quest_root,
+        active_run_id=None,
+        source=source,
+        reason="orphan_worker_before_new_turn",
+        utc_now=utc_now,
+        read_json=read_json,
+        write_json=write_json,
+        append_runtime_event=append_runtime_event,
+    )
+    if cleanup is None:
+        return None
+    persist_state(
+        quest_root=quest_root,
+        updates={"last_orphan_worker_cleanup": cleanup},
+        source=source,
+        event_name="orphan_worker_before_new_turn_pruned",
+    )
+    return cleanup
 
 
 def start_turn(

@@ -533,6 +533,29 @@ def test_supervisor_scan_applies_current_controller_redrive_for_live_activity_ti
             },
         }
 
+    pause_calls: list[dict[str, object]] = []
+
+    def fake_pause_study_runtime(**kwargs: object) -> dict[str, object]:
+        pause_calls.append(dict(kwargs))
+        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+        assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "current-dpcc-live-timeout-redrive"
+        assert runtime_state["active_run_id"] is None
+        assert runtime_state["worker_running"] is False
+        assert runtime_state["same_fingerprint_auto_turn_count"] == 0
+        runtime_state["status"] = "paused"
+        (quest_root / ".ds" / "runtime_state.json").write_text(
+            json.dumps(runtime_state, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "decision": "pause",
+            "reason": "human_takeover_requested",
+            "quest_status": "paused",
+        }
+
+    monkeypatch.setattr(module.study_runtime_router, "pause_study_runtime", fake_pause_study_runtime)
     monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
     monkeypatch.setattr(
         module,
@@ -593,9 +616,14 @@ def test_supervisor_scan_applies_current_controller_redrive_for_live_activity_ti
 
     study = result["studies"][0]
     apply_result = study["runtime_platform_repair_apply"]
+    assert len(pause_calls) == 1
+    assert pause_calls[0]["study_id"] == study_id
+    assert pause_calls[0]["source"] == "runtime_supervisor_scan_platform_repair"
     assert apply_result["dispatch_status"] == "applied"
     assert apply_result["reason"] == "runtime_controller_redrive_required"
     assert apply_result["repair_kind"] == "live_activity_timeout_current_controller_redrive"
+    assert apply_result["force_fresh_turn"]["forced"] is True
+    assert apply_result["force_fresh_turn"]["reason"] == "live_activity_timeout_force_fresh_turn"
     assert apply_result["current_controller_authorization_written"] is True
     assert apply_result["resume_result"]["resume_postcondition"]["active_run_id"] == "run-dpcc-redriven"
     assert study["blocked_reason"] is None

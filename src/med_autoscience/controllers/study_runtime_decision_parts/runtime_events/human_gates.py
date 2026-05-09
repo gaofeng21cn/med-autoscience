@@ -111,11 +111,26 @@ def _platform_repair_redrive_without_live_worker(
         continuation_state = status.continuation_state
     except KeyError:
         return False
-    return (
+    if not (
         continuation_state.active_run_id is None
         and continuation_state.continuation_policy == "auto"
         and continuation_state.continuation_anchor == "decision"
-        and continuation_state.continuation_reason == "runtime_platform_repair_redrive"
+        and continuation_state.continuation_reason
+        in {
+            "runtime_platform_repair_redrive",
+            "controller_work_unit_pending",
+        }
+    ):
+        return False
+    runtime_state = _load_json_dict(Path(continuation_state.runtime_state_path))
+    platform_repair = runtime_state.get("last_runtime_platform_repair")
+    authorization = runtime_state.get("last_controller_decision_authorization")
+    return (
+        isinstance(platform_repair, dict)
+        and str(platform_repair.get("source") or "").strip() == "runtime_supervisor_scan_platform_repair"
+    ) or (
+        isinstance(authorization, dict)
+        and str(authorization.get("source") or "").strip() == "runtime_supervisor_scan_platform_repair"
     )
 
 

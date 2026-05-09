@@ -7,6 +7,11 @@ from pathlib import Path
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def test_supervisor_scan_routes_adopted_work_unit_evidence_to_publication_gate_recheck(
     monkeypatch,
     tmp_path: Path,
@@ -435,6 +440,192 @@ def test_supervisor_scan_preserves_owner_handoff_when_platform_redrive_adopts_ev
     assert study["owner_route"]["next_owner"] == "write/ai_reviewer"
     assert study["owner_route"]["owner_reason"] == "controller_work_unit_owner_handoff_required"
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+
+
+def test_supervisor_scan_redrives_adopted_handoff_when_progress_activity_timeout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    work_unit_fingerprint = "publication-blockers::497d1260db522f01"
+    publication_eval = {
+        "schema_version": 1,
+        "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+                "specificity_targets": [
+                    {
+                        "target_kind": "source_path",
+                        "target_id": "publication_gate_source_path",
+                        "source_path": str(
+                            quest_root
+                            / "artifacts"
+                            / "reports"
+                            / "medical_publication_surface"
+                            / "latest.json"
+                        ),
+                    }
+                ],
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "decision-adopted-handoff-timeout-redrive",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "run_quality_repair_batch"}],
+            "route_target": "write",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "running",
+            "quest_id": study_id,
+            "active_run_id": "run-adopted-timeout",
+            "worker_running": True,
+            "pending_user_message_count": 0,
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "controller_work_unit_pending",
+            "same_fingerprint_auto_turn_count": 5,
+        },
+    )
+
+    def fake_ensure_study_runtime(**_: object) -> dict[str, object]:
+        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+        authorization = runtime_state["last_controller_decision_authorization"]
+        assert authorization["decision_id"] == "decision-adopted-handoff-timeout-redrive"
+        assert authorization["work_unit_id"] == "analysis_claim_evidence_repair"
+        assert runtime_state["active_run_id"] is None
+        assert runtime_state["worker_running"] is False
+        assert runtime_state["same_fingerprint_auto_turn_count"] == 0
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "quest_status": "running",
+            "decision": "resume",
+            "resume_postcondition": {
+                "effective": True,
+                "active_run_id": "run-adopted-timeout-redriven",
+                "scheduled": True,
+                "started": True,
+                "queued": False,
+            },
+            "runtime_liveness_audit": {
+                "active_run_id": None,
+                "runtime_audit": {"worker_running": False, "active_run_id": None},
+            },
+        }
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            {
+                "study_id": study_id,
+                "study_root": str(study_root),
+                "quest_id": study_id,
+                "quest_root": str(quest_root),
+                "quest_status": "running",
+                "decision": "noop",
+                "reason": "controller_work_unit_evidence_adopted",
+                "active_run_id": "run-adopted-timeout",
+                "runtime_liveness_audit": {
+                    "status": "live",
+                    "active_run_id": "run-adopted-timeout",
+                    "runtime_audit": {
+                        "status": "live",
+                        "worker_running": True,
+                        "active_run_id": "run-adopted-timeout",
+                    },
+                },
+                "runtime_health_snapshot": {
+                    "canonical_runtime_action": "continue_supervising_runtime",
+                    "attempt_state": "live",
+                    "retry_budget_remaining": 3,
+                    "worker_liveness_state": {
+                        "state": "live",
+                        "runtime_liveness_status": "live",
+                        "worker_running": True,
+                        "active_run_id": "run-adopted-timeout",
+                    },
+                    "blocking_reasons": [],
+                },
+                "controller_work_unit_next_route": {
+                    "recommended_next_route": "handoff_to_next_owner",
+                    "owner": "write/ai_reviewer",
+                    "next_work_unit": "manuscript_story_repair",
+                    "quality_gate_relaxation_allowed": False,
+                    "runtime_relaunch_required": False,
+                },
+                "controller_work_unit_evidence_adoption": {
+                    "already_recorded": True,
+                    "work_unit_id": "analysis_claim_evidence_repair",
+                    "route_target": "analysis-campaign",
+                    "recommended_next_route": "handoff_to_next_owner",
+                    "analysis_lane_status": "exhausted_for_current_fingerprint",
+                    "next_owner": "write/ai_reviewer",
+                    "next_work_unit": "manuscript_story_repair",
+                    "result": {
+                        "local_traceability_repair_complete": True,
+                        "analysis_lane_status": "exhausted_for_current_fingerprint",
+                        "meaningful_artifact_delta": True,
+                    },
+                },
+                "publication_eval": publication_eval,
+            },
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "current_stage": "publication_supervision",
+                "paper_stage": "write",
+                "supervision": {"active_run_id": "run-adopted-timeout", "health_status": "live"},
+                "progress_freshness": {
+                    "activity_timeout": {
+                        "state": "timed_out",
+                        "active_run_id": "run-adopted-timeout",
+                        "breach_types": ["same_fingerprint_loop"],
+                    }
+                },
+                "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+            },
+            study_id,
+            publication_eval,
+        ),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        apply_safe_actions=True,
+        apply_runtime_platform_repair=True,
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    apply_result = study["runtime_platform_repair_apply"]
+    assert apply_result["dispatch_status"] == "applied"
+    assert apply_result["repair_kind"] == "live_activity_timeout_current_controller_redrive"
+    assert apply_result["resume_result"]["resume_postcondition"]["active_run_id"] == "run-adopted-timeout-redriven"
+    assert study["paper_package_mutated"] is False
 
 
 def test_supervisor_scan_keeps_runtime_redrive_when_adopted_work_unit_did_not_clear_gate(

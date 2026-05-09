@@ -288,6 +288,10 @@ def _invalid_meaningful_delta_refs(closeout: Mapping[str, Any]) -> list[str]:
 def _is_bookkeeping_artifact_ref(ref: str) -> bool:
     normalized = ref.strip().lstrip("./")
     bookkeeping_prefixes = (
+        "artifacts/autonomy/",
+        "artifacts/controller/gate_clearing_batch/",
+        "artifacts/controller/quality_repair_batch/",
+        "artifacts/reports/",
         "artifacts/runtime/owner_progress_requests/",
         "artifacts/runtime/turn_closeouts/",
         "artifacts/runtime/turn_receipts",
@@ -295,6 +299,7 @@ def _is_bookkeeping_artifact_ref(ref: str) -> bool:
         "artifacts/runtime/mas_runtime_events",
         "artifacts/runtime/user_message_queue",
         "artifacts/runtime/runtime_lifecycle.",
+        "artifacts/supervision/",
     )
     return normalized.startswith(bookkeeping_prefixes)
 

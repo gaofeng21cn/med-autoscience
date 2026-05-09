@@ -148,8 +148,6 @@ def why_not_applied(
     gate_specificity: Mapping[str, Any],
     ai_reviewer_assessment: Mapping[str, Any],
 ) -> str | None:
-    if reason := evidence_adoption.why_not_applied(status):
-        return reason
     if completion_evidence.completed_current_truth(status, progress):
         return None
     study_root = _path(_text(status.get("study_root")) or _text(progress.get("study_root")))
@@ -162,6 +160,9 @@ def why_not_applied(
     ):
         return None
     lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
+    if reason := evidence_adoption.why_not_applied(status):
+        if not _has_controller_redrive_action(actions):
+            return reason
     if runtime_facts.runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
         for action in actions:
             if _text(action.get("action_type")) == "runtime_platform_repair":
@@ -201,6 +202,14 @@ def why_not_applied(
             return None
         return text
     return None
+
+
+def _has_controller_redrive_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "runtime_platform_repair"
+        and _text(action.get("reason")) == current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
+        for action in actions
+    )
 
 
 def blocked_reason_from_scan(

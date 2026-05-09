@@ -35,6 +35,42 @@ from .work_unit_evidence_adoption import (
 )
 
 
+_RUNTIME_PLATFORM_REPAIR_SOURCE = "runtime_supervisor_scan_platform_repair"
+_PLATFORM_REPAIR_REDRIVE_CONTINUATION_REASONS = {
+    "controller_work_unit_pending",
+    "runtime_platform_repair_redrive",
+}
+
+
+def _platform_repair_controller_redrive_without_live_worker(
+    *,
+    runtime_state: dict[str, Any],
+    source: str,
+) -> bool:
+    if source != _RUNTIME_PLATFORM_REPAIR_SOURCE:
+        return False
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return False
+    if bool(runtime_state.get("worker_running")):
+        return False
+    if str(runtime_state.get("continuation_policy") or "").strip() != "auto":
+        return False
+    if str(runtime_state.get("continuation_anchor") or "").strip() != "decision":
+        return False
+    continuation_reason = str(runtime_state.get("continuation_reason") or "").strip()
+    if continuation_reason not in _PLATFORM_REPAIR_REDRIVE_CONTINUATION_REASONS:
+        return False
+    platform_repair = runtime_state.get("last_runtime_platform_repair")
+    authorization = runtime_state.get("last_controller_decision_authorization")
+    return (
+        isinstance(platform_repair, dict)
+        and str(platform_repair.get("source") or "").strip() == _RUNTIME_PLATFORM_REPAIR_SOURCE
+    ) or (
+        isinstance(authorization, dict)
+        and str(authorization.get("source") or "").strip() == _RUNTIME_PLATFORM_REPAIR_SOURCE
+    )
+
+
 def _relay_controller_decision_authorization_if_required(
     *,
     status: StudyRuntimeStatus,
@@ -62,23 +98,27 @@ def _relay_controller_decision_authorization_if_required(
         _write_runtime_state(quest_root=context.quest_root, runtime_state=runtime_state)
     active_run_id = _active_run_id_from_status_or_state(status=status, runtime_state=runtime_state)
     identity = _controller_decision_authorization_identity(authorization_context)
-    evidence_adoption = adopt_controller_work_unit_evidence_if_present(
-        study_root=context.study_root,
-        quest_root=context.quest_root,
-        authorization_context=authorization_context,
-        identity=identity,
-        active_run_id=active_run_id,
+    if not _platform_repair_controller_redrive_without_live_worker(
+        runtime_state=runtime_state,
         source=context.source,
-    )
-    if evidence_adoption is not None:
-        record_controller_work_unit_evidence_adoption(
-            status=status,
+    ):
+        evidence_adoption = adopt_controller_work_unit_evidence_if_present(
             study_root=context.study_root,
-            identity=identity,
+            quest_root=context.quest_root,
             authorization_context=authorization_context,
-            evidence_adoption=evidence_adoption,
+            identity=identity,
+            active_run_id=active_run_id,
+            source=context.source,
         )
-        return None
+        if evidence_adoption is not None:
+            record_controller_work_unit_evidence_adoption(
+                status=status,
+                study_root=context.study_root,
+                identity=identity,
+                authorization_context=authorization_context,
+                evidence_adoption=evidence_adoption,
+            )
+            return None
     if _runtime_state_awaits_artifact_delta_or_gate_replay(
         runtime_state=runtime_state,
         authorization_context=authorization_context,
@@ -242,6 +282,11 @@ def adopt_controller_work_unit_evidence_for_current_authorization(
     assert authorization_context is not None
     runtime_state = quest_state.load_runtime_state(context.quest_root)
     if int(runtime_state.get("pending_user_message_count") or 0) > 0:
+        return None
+    if _platform_repair_controller_redrive_without_live_worker(
+        runtime_state=runtime_state,
+        source=context.source,
+    ):
         return None
     active_run_id = _active_run_id_from_status_or_state(status=status, runtime_state=runtime_state)
     identity = _controller_decision_authorization_identity(authorization_context)

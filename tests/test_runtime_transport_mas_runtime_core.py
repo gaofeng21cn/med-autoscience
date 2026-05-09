@@ -658,6 +658,49 @@ def test_inspect_live_runtime_prunes_orphan_leased_workers_without_stopping_acti
         _cleanup_process(orphan_worker)
 
 
+def test_schedule_turn_prunes_orphan_leased_worker_before_starting_new_run(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    quest_root = runtime_root / "quests" / "quest-001"
+    orphan_worker = _spawn_sleep_worker()
+    try:
+        state_path = quest_root / ".ds" / "runtime_state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state.update(
+            {
+                "status": "active",
+                "active_run_id": None,
+                "worker_running": False,
+                "worker_pending": False,
+                "last_completed_run_id": "run-complete",
+            }
+        )
+        state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        _write_worker_lease(turn_lifecycle, quest_root=quest_root, run_id="run-orphan", pid=orphan_worker.pid)
+
+        result = module.schedule_turn(
+            runtime_root=runtime_root,
+            quest_id="quest-001",
+            reason="controller_work_unit_pending",
+            source="runtime_supervisor_scan_platform_repair",
+        )
+
+        state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+        assert result["status"] == "running"
+        assert result["started"] is True
+        assert result["active_run_id"] != "run-orphan"
+        assert state["active_run_id"] == result["active_run_id"]
+        assert state["worker_running"] is True
+        assert state["last_orphan_worker_cleanup"]["reason"] == "orphan_worker_before_new_turn"
+        assert state["last_orphan_worker_cleanup"]["termination_count"] == 1
+        assert state["last_orphan_worker_cleanup"]["terminations"][0]["run_id"] == "run-orphan"
+        assert _wait_for_process_exit(orphan_worker), f"orphan worker pid {orphan_worker.pid} was not terminated"
+    finally:
+        _cleanup_process(orphan_worker)
+
+
 def test_runner_unavailable_fails_closed_without_live_worker(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
     turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")

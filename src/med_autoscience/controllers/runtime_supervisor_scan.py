@@ -441,16 +441,13 @@ def _apply_runtime_platform_repair_projection(
         publication_eval_payload=publication_eval_payload,
         developer_mode=developer_mode,
         enabled=apply_runtime_platform_repair,
-        repair_required=evidence_adoption.platform_repair_required(
+        repair_required=evidence_adoption.platform_repair_required_from_scan(
             status=status_payload,
+            progress=progress_payload,
+            publication_eval_payload=publication_eval_payload,
+            study_root=study_root,
+            gate_specificity=gate_specificity,
             submission_milestone_parked=submission_milestone_parked,
-            base_required=runtime_facts.runtime_platform_repair_apply_required(
-                status=status_payload,
-                progress=progress_payload,
-                publication_eval_payload=publication_eval_payload,
-                study_root=study_root,
-                gate_specificity=gate_specificity,
-            ),
         ),
         gate_specificity=gate_specificity,
     )
