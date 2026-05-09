@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -22,6 +23,17 @@ EVAL_HYGIENE_QUALITY_SUMMARY_RELATIVE_PATH = Path("artifacts/eval_hygiene/evalua
 LEGACY_QUALITY_SUMMARY_RELATIVE_PATH = Path("artifacts/evaluation_summary/latest.json")
 _QUALITY_REPAIR_CLOSURE_STATES = frozenset({"quality_repair_required"})
 _QUALITY_REPAIR_LANES = frozenset({"general_quality_repair", "quality_floor_blocker"})
+_CANONICAL_PAPER_OWNER_REQUIRED_SURFACES = (
+    Path("paper_bundle_manifest.json"),
+    Path("draft.md"),
+    Path("medical_manuscript_blueprint.json"),
+    Path("medical_prose_review.json"),
+    Path("claim_evidence_map.json"),
+    Path("results_narrative_map.json"),
+    Path("figure_semantics_manifest.json"),
+    Path("figures/figure_catalog.json"),
+    Path("tables/table_catalog.json"),
+)
 
 
 def stable_quality_repair_batch_path(*, study_root: Path) -> Path:
@@ -225,6 +237,152 @@ def _merge_route_contexts(*contexts: Mapping[str, Any] | None) -> dict[str, Any]
     return merged or None
 
 
+def _canonical_paper_owner_surface_complete(paper_root: Path) -> bool:
+    return all((paper_root / relpath).exists() for relpath in _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES)
+
+
+def _default_canonical_paper_json_surface(
+    *,
+    relpath: Path,
+    study_id: str,
+    quest_id: str,
+) -> dict[str, Any]:
+    if relpath == Path("paper_bundle_manifest.json"):
+        return {
+            "schema_version": 1,
+            "paper_branch": "paper/main",
+            "bundle_inputs": {
+                "compile_report_path": "paper/build/compile_report.json",
+                "compiled_markdown_path": "paper/build/review_manuscript.md",
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
+            },
+            "owner_surface": {
+                "status": "initialized_for_controller_quality_repair",
+                "controller": "quality_repair_batch",
+                "study_id": study_id,
+                "quest_id": quest_id,
+            },
+        }
+    if relpath == Path("medical_manuscript_blueprint.json"):
+        return {"schema_version": 1, "status": "owner_surface_initialized", "sections": []}
+    if relpath == Path("medical_prose_review.json"):
+        return {"schema_version": 1, "status": "owner_surface_initialized", "findings": []}
+    if relpath == Path("claim_evidence_map.json"):
+        return {"schema_version": 1, "status": "owner_surface_initialized", "claims": []}
+    if relpath == Path("results_narrative_map.json"):
+        return {"schema_version": 1, "status": "owner_surface_initialized", "sections": []}
+    if relpath == Path("figure_semantics_manifest.json"):
+        return {"schema_version": 1, "status": "owner_surface_initialized", "figures": []}
+    if relpath == Path("figures/figure_catalog.json"):
+        return {"schema_version": 1, "status": "owner_surface_initialized", "figures": []}
+    if relpath == Path("tables/table_catalog.json"):
+        return {"schema_version": 1, "status": "owner_surface_initialized", "tables": []}
+    return {"schema_version": 1, "status": "owner_surface_initialized"}
+
+
+def _copy_or_initialize_canonical_paper_surface(
+    *,
+    source_root: Path,
+    target_root: Path,
+    relpath: Path,
+    study_id: str,
+    quest_id: str,
+) -> dict[str, Any]:
+    target_path = target_root / relpath
+    if target_path.exists():
+        return {"relative_path": relpath.as_posix(), "status": "already_present"}
+    source_path = source_root / relpath
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    if source_path.exists() and source_path.is_file():
+        shutil.copy2(source_path, target_path)
+        return {
+            "relative_path": relpath.as_posix(),
+            "status": "copied_from_quest_projection",
+            "source_path": str(source_path.resolve()),
+        }
+    if relpath == Path("draft.md"):
+        target_path.write_text(
+            "# Manuscript Draft\n\nCanonical paper owner surface initialized for controller-owned quality repair.\n",
+            encoding="utf-8",
+        )
+        return {"relative_path": relpath.as_posix(), "status": "initialized_owner_shell"}
+    _write_json(
+        target_path,
+        _default_canonical_paper_json_surface(relpath=relpath, study_id=study_id, quest_id=quest_id),
+    )
+    return {"relative_path": relpath.as_posix(), "status": "initialized_owner_shell"}
+
+
+def _prepare_canonical_paper_owner_surface_for_upstream_repair(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    quest_id: str,
+    gate_state: Any,
+    control_plane_route_gate: Mapping[str, Any],
+) -> dict[str, Any]:
+    if _non_empty_text(control_plane_route_gate.get("action")) != "paper_write":
+        return {"status": "not_applicable", "reason": "route_action_not_paper_write"}
+    if getattr(gate_state, "paper_root", None) is not None:
+        return {"status": "not_applicable", "reason": "paper_root_already_resolved"}
+
+    canonical_paper_root = Path(study_root).expanduser().resolve() / "paper"
+    if _canonical_paper_owner_surface_complete(canonical_paper_root):
+        return {"status": "already_complete", "paper_root": str(canonical_paper_root)}
+
+    quest_root = profile.managed_runtime_quests_root / quest_id
+    projected_paper_root = quest_root / "paper"
+    projected_surface_count = sum(
+        1 for relpath in _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES if (projected_paper_root / relpath).is_file()
+    )
+    if projected_surface_count == 0:
+        return {
+            "status": "blocked_missing_projection",
+            "paper_root": str(canonical_paper_root),
+            "quest_projection_root": str(projected_paper_root.resolve()),
+            "missing_reason": "quest paper projection has no canonical owner-surface inputs",
+        }
+    surface_results = [
+        _copy_or_initialize_canonical_paper_surface(
+            source_root=projected_paper_root,
+            target_root=canonical_paper_root,
+            relpath=relpath,
+            study_id=study_id,
+            quest_id=quest_id,
+        )
+        for relpath in _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES
+    ]
+    for dirname in ("build", "review", "submission_minimal"):
+        (canonical_paper_root / dirname).mkdir(parents=True, exist_ok=True)
+
+    manifest_payload = _read_json_object(canonical_paper_root / "paper_bundle_manifest.json")
+    paper_branch = _non_empty_text(manifest_payload.get("paper_branch")) or "paper/main"
+    paper_line_state_path = canonical_paper_root / "paper_line_state.json"
+    if not paper_line_state_path.exists():
+        _write_json(
+            paper_line_state_path,
+            {
+                "schema_version": 1,
+                "paper_branch": paper_branch,
+                "paper_root": str(canonical_paper_root),
+                "surface_owner": "study_canonical_paper_owner_surface",
+                "controller": "quality_repair_batch",
+                "study_id": study_id,
+                "quest_id": quest_id,
+            },
+        )
+        surface_results.append({"relative_path": "paper_line_state.json", "status": "initialized_owner_state"})
+
+    return {
+        "status": "materialized",
+        "paper_root": str(canonical_paper_root),
+        "quest_projection_root": str(projected_paper_root.resolve()),
+        "surface_results": surface_results,
+    }
+
+
 def build_quality_repair_batch_recommended_action(
     *,
     profile: WorkspaceProfile,
@@ -343,6 +501,14 @@ def run_quality_repair_batch(
         _route_action_for_controller_context(resolved_route_context),
         {"projection_only": True} if resolved_route_context is None else resolved_route_context,
     )
+    paper_owner_surface_prepare = _prepare_canonical_paper_owner_surface_for_upstream_repair(
+        profile=profile,
+        study_id=study_id,
+        study_root=resolved_study_root,
+        quest_id=quest_id,
+        gate_state=gate_state,
+        control_plane_route_gate=control_plane_route_gate,
+    )
     summary_payload = _read_quality_summary(study_root=resolved_study_root)
     quality_closure_truth, quality_execution_lane = _quality_repair_context(summary_payload)
     source_summary_id = _non_empty_text(summary_payload.get("summary_id"))
@@ -392,6 +558,7 @@ def run_quality_repair_batch(
         "gate_clearing_batch": gate_clearing_result,
         "gate_clearing_execution_summary": gate_clearing_execution_summary,
         "control_plane_route_gate": control_plane_route_gate,
+        "paper_owner_surface_prepare": paper_owner_surface_prepare,
     }
     record_path = stable_quality_repair_batch_path(study_root=resolved_study_root)
     _write_json(record_path, record)
