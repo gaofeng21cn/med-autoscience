@@ -65,8 +65,15 @@ class CodexExecTurnRunner:
         stderr_path = _run_root(quest_root=quest_root, run_id=run_id) / "stderr.txt"
         prompt_path = _run_root(quest_root=quest_root, run_id=run_id) / "prompt.md"
         stdout_path.parent.mkdir(parents=True, exist_ok=True)
+        runtime_state = _read_runtime_state(quest_root=quest_root)
         prompt_path.write_text(
-            _codex_turn_prompt(quest_id=quest_id, run_id=run_id, reason=reason, claimed_user_messages=claimed_user_messages),
+            _codex_turn_prompt(
+                quest_id=quest_id,
+                run_id=run_id,
+                reason=reason,
+                claimed_user_messages=claimed_user_messages,
+                runtime_state=runtime_state,
+            ),
             encoding="utf-8",
         )
         wrapper_cmd = wrapper_command(
@@ -136,8 +143,11 @@ def _codex_turn_prompt(
     run_id: str,
     reason: str,
     claimed_user_messages: tuple[dict[str, Any], ...],
+    runtime_state: Mapping[str, Any] | None = None,
 ) -> str:
     messages = json.dumps(list(claimed_user_messages), ensure_ascii=False, indent=2, sort_keys=True)
+    authorization = _controller_authorization(runtime_state)
+    authorization_section = _controller_authorization_prompt_section(authorization=authorization)
     closeout_path = f"artifacts/runtime/turn_closeouts/{run_id}.json"
     return (
         f"You are running a MAS runtime turn for quest `{quest_id}`.\n"
@@ -145,6 +155,7 @@ def _codex_turn_prompt(
         f"Turn reason: `{reason}`.\n\n"
         "Read the quest-local runtime files, continue the research workflow according to MAS contracts, "
         "and leave durable artifacts/receipts in the quest workspace. Do not bypass MAS quality gates.\n\n"
+        f"{authorization_section}"
         "Turn closeout contract:\n"
         f"- Before ending this turn, write `{closeout_path}`.\n"
         "- The closeout must be valid JSON with this shape:\n"
@@ -170,6 +181,64 @@ def _codex_turn_prompt(
         "- Do not relax MAS quality gates, quality thresholds, publication gates, or authority boundaries.\n\n"
         f"Claimed user messages:\n```json\n{messages}\n```\n"
     )
+
+
+def _read_runtime_state(*, quest_root: Path) -> dict[str, Any]:
+    path = quest_root / ".ds" / "runtime_state.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _controller_authorization(runtime_state: Mapping[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(runtime_state, Mapping):
+        return {}
+    for key in ("last_controller_decision_authorization", "current_controller_authorization"):
+        value = runtime_state.get(key)
+        if isinstance(value, Mapping):
+            return dict(value)
+    return {}
+
+
+def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any]) -> str:
+    if not authorization:
+        return ""
+    payload = _compact_controller_authorization(authorization)
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+    return (
+        "Active MAS controller work unit:\n"
+        "```json\n"
+        f"{rendered}\n"
+        "```\n"
+        "- Treat this controller work unit as the first execution target for this turn.\n"
+        "- Produce a MAS-authorized durable artifact that addresses `work_unit_id`, `next_work_unit`, and any listed "
+        "`specificity_targets`, or write a blocked closeout naming the missing controller/owner surface.\n"
+        "- A runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta for this work unit.\n\n"
+    )
+
+
+def _compact_controller_authorization(authorization: Mapping[str, Any]) -> dict[str, Any]:
+    keys = (
+        "decision_id",
+        "controller_actions",
+        "route_target",
+        "route_key_question",
+        "route_rationale",
+        "work_unit_id",
+        "work_unit_fingerprint",
+        "next_work_unit",
+        "blocking_work_units",
+        "specificity_targets",
+        "work_unit_targets",
+        "blocking_artifact_refs",
+        "blocker_details",
+        "gate_blocker_details",
+        "gaps",
+        "source_path",
+    )
+    return {key: authorization[key] for key in keys if key in authorization and authorization[key] not in (None, "", [], {})}
 
 
 def _run_root(*, quest_root: Path, run_id: str) -> Path:
