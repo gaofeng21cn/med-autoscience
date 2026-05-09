@@ -74,6 +74,9 @@ def _latest_runtime_observed_at(
 ) -> str | None:
     status_payload = _mapping_copy(status)
     supervision_payload = _mapping_copy(runtime_supervision_payload)
+    stable_run_anchor = _stable_runtime_run_anchor(status_payload, supervision_payload)
+    if stable_run_anchor is not None:
+        return stable_run_anchor
     status_health = _mapping_copy(status_payload.get("runtime_health_snapshot"))
     supervision_health = _mapping_copy(supervision_payload.get("runtime_health_snapshot"))
     runtime_health = supervision_health or status_health
@@ -85,16 +88,6 @@ def _latest_runtime_observed_at(
                 value = _non_empty_text(item.get("recorded_at"))
                 if value is not None:
                     candidates.append(value)
-    supervisor_state = _mapping_copy(runtime_health.get("supervisor_state"))
-    for value in (
-        runtime_health.get("generated_at"),
-        supervisor_state.get("latest_recorded_at"),
-        supervision_payload.get("recorded_at"),
-        status_payload.get("recorded_at"),
-    ):
-        text = _non_empty_text(value)
-        if text is not None:
-            candidates.append(text)
     dated = [
         (parsed, text)
         for text in candidates
@@ -103,6 +96,54 @@ def _latest_runtime_observed_at(
     if not dated:
         return None
     return max(dated, key=lambda item: item[0])[1]
+
+
+def _stable_runtime_run_anchor(*payloads: Mapping[str, Any]) -> str | None:
+    candidates: list[str] = []
+    for payload in payloads:
+        candidates.extend(_stable_run_anchor_candidates(payload))
+    for candidate in candidates:
+        if _timestamp_value(candidate) is not None:
+            return candidate
+    return None
+
+
+def _stable_run_anchor_candidates(payload: Mapping[str, Any]) -> list[str]:
+    candidates: list[str] = []
+    for value in (
+        payload.get("started_at"),
+        payload.get("run_started_at"),
+        payload.get("last_turn_started_at"),
+    ):
+        text = _non_empty_text(value)
+        if text is not None:
+            candidates.append(text)
+    for watchdog in _worker_watchdog_payloads(payload):
+        for key in ("started_at", "run_started_at", "last_output_at"):
+            text = _non_empty_text(watchdog.get(key))
+            if text is not None:
+                candidates.append(text)
+    return candidates
+
+
+def _worker_watchdog_payloads(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    payloads: list[dict[str, Any]] = []
+
+    def append_watchdog(value: object) -> None:
+        watchdog = _mapping_copy(value)
+        if watchdog and watchdog not in payloads:
+            payloads.append(watchdog)
+
+    append_watchdog(payload.get("worker_watchdog"))
+    runtime_audit = _mapping_copy(payload.get("runtime_audit"))
+    append_watchdog(runtime_audit.get("worker_watchdog"))
+    liveness = _mapping_copy(payload.get("runtime_liveness_audit"))
+    append_watchdog(liveness.get("worker_watchdog"))
+    liveness_runtime_audit = _mapping_copy(liveness.get("runtime_audit"))
+    append_watchdog(liveness_runtime_audit.get("worker_watchdog"))
+    runtime_health = _mapping_copy(payload.get("runtime_health_snapshot"))
+    append_watchdog(runtime_health.get("worker_watchdog"))
+    return payloads
 
 
 def _new_run_activity_grace(

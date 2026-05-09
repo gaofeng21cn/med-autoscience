@@ -100,15 +100,23 @@ def live_activity_timeout_current_controller_redrive_required(
     runtime_health = _mapping(status.get("runtime_health_snapshot"))
     worker_liveness = _mapping(runtime_health.get("worker_liveness_state"))
     reasons = set(blocking_reasons(status, progress))
+    progress_timeout = _progress_activity_timeout(progress)
     return (
         _text(status.get("quest_status")) in {"active", "running"}
         and active_run_id(status, progress) is not None
         and worker_running(status)
-        and _text(runtime_health.get("canonical_runtime_action")) == "recover_runtime"
-        and _text(worker_liveness.get("state")) == "activity_timeout"
+        and (
+            (
+                _text(runtime_health.get("canonical_runtime_action")) == "recover_runtime"
+                and _text(worker_liveness.get("state")) == "activity_timeout"
+            )
+            or progress_timeout["timed_out"]
+        )
         and (
             "live_worker_meaningful_artifact_delta_timeout" in reasons
             or "same_fingerprint_loop" in reasons
+            or "same_fingerprint_loop" in progress_timeout["breach_types"]
+            or progress_timeout["timed_out"]
         )
     )
 
@@ -155,6 +163,16 @@ def _string_items(value: object) -> list[str]:
     if not isinstance(value, Iterable) or isinstance(value, Mapping | bytes):
         return []
     return list(dict.fromkeys(text for item in value if (text := _text(item)) is not None))
+
+
+def _progress_activity_timeout(progress: Mapping[str, Any]) -> dict[str, Any]:
+    progress_freshness = _mapping(progress.get("progress_freshness"))
+    activity_timeout = _mapping(progress_freshness.get("activity_timeout"))
+    return {
+        "timed_out": _text(activity_timeout.get("state")) == "timed_out",
+        "active_run_id": _text(activity_timeout.get("active_run_id")),
+        "breach_types": set(_string_items(activity_timeout.get("breach_types"))),
+    }
 
 
 def _mapping(value: object) -> dict[str, Any]:

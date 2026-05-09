@@ -178,3 +178,102 @@ def test_codex_exec_runner_explicit_terminal_attach_capability_uses_controlled_b
     assert result["chat_quest_input_allowed"] is False
     assert result["terminal_bridge_path"].endswith("/.ds/runs/run-001/terminal_bridge.json")
     assert result["terminal_transcript_path"].endswith("/.ds/runs/run-001/terminal.log")
+
+
+def test_codex_exec_runner_prompt_maps_controller_action_to_callable_command(monkeypatch, tmp_path: Path) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-002"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "last_controller_decision_authorization": {
+    "decision_id": "decision-quality-002",
+    "controller_actions": ["run_quality_repair_batch"],
+    "work_unit_id": "analysis_claim_evidence_repair",
+    "next_work_unit": {
+      "unit_id": "analysis_claim_evidence_repair"
+    }
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-002",
+        run_id="run-002",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+
+    assert "Controller action execution contract" in prompt
+    assert "run_quality_repair_batch" in prompt
+    assert "uv run python -m med_autoscience.cli quality-repair-batch" in prompt
+    assert "--profile <workspace MAS profile>" in prompt
+    assert "--study-id <study_id>" in prompt
+    assert "--quest-id quest-002" in prompt
+    assert "ops/medautoscience/profiles/*.workspace.toml" in prompt
+    assert "Invoke the listed controller command before freeform artifact writing" in prompt
+    assert "repair packet, gate audit, controller handoff, runtime/watch receipt, or console-only summary is not sufficient" in prompt
+    assert "blocked_reason=owner_callable_surface_missing" in prompt
+
+
+def test_codex_exec_runner_prompt_infers_quality_repair_command_from_blocking_work_units(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-003"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "last_controller_decision_authorization": {
+    "decision_id": "decision-quality-003",
+    "blocking_work_units": [
+      {"unit_id": "analysis_claim_evidence_repair"},
+      {"unit_id": "manuscript_story_repair"},
+      {"unit_id": "submission_minimal_refresh"}
+    ]
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-003",
+        run_id="run-003",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+
+    assert "Controller action execution contract" in prompt
+    assert "run_quality_repair_batch" in prompt
+    assert "uv run python -m med_autoscience.cli quality-repair-batch" in prompt
+    assert "--quest-id quest-003" in prompt

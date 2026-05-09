@@ -153,6 +153,19 @@ class CodexExecTurnRunner:
 
 
 _RUNNING_PROCESSES: dict[str, subprocess.Popen[str]] = {}
+_QUALITY_REPAIR_BATCH_WORK_UNIT_IDS = frozenset(
+    {
+        "analysis_claim_evidence_repair",
+        "figure_results_trace_repair",
+        "manuscript_story_repair",
+        "treatment_gap_reporting_repair",
+        "submission_minimal_refresh",
+        "submission_delivery_sync_closure",
+        "display_reporting_contract_repair",
+        "controller_owned_publication_repair",
+        "local_architecture_overview_repair",
+    }
+)
 
 
 def pop_running_process(*, quest_root: Path, run_id: str) -> subprocess.Popen[str] | None:
@@ -181,7 +194,10 @@ def _codex_turn_prompt(
 ) -> str:
     messages = json.dumps(list(claimed_user_messages), ensure_ascii=False, indent=2, sort_keys=True)
     authorization = _controller_authorization(runtime_state)
-    authorization_section = _controller_authorization_prompt_section(authorization=authorization)
+    authorization_section = _controller_authorization_prompt_section(
+        authorization=authorization,
+        quest_id=quest_id,
+    )
     closeout_path = f"artifacts/runtime/turn_closeouts/{run_id}.json"
     return (
         f"You are running a MAS runtime turn for quest `{quest_id}`.\n"
@@ -244,11 +260,15 @@ def _controller_authorization(runtime_state: Mapping[str, Any] | None) -> dict[s
     return {}
 
 
-def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any]) -> str:
+def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any], quest_id: str) -> str:
     if not authorization:
         return ""
     payload = _compact_controller_authorization(authorization)
     rendered = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+    controller_action_contract = _controller_action_execution_contract_prompt_section(
+        authorization=authorization,
+        quest_id=quest_id,
+    )
     return (
         "Active MAS controller work unit:\n"
         "```json\n"
@@ -265,6 +285,113 @@ def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any]
         "- Produce a MAS-authorized durable artifact that addresses `work_unit_id`, `next_work_unit`, and any listed "
         "`specificity_targets`, or write a blocked closeout naming the missing controller/owner surface.\n"
         "- A runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta for this work unit.\n\n"
+        f"{controller_action_contract}"
+    )
+
+
+def _controller_action_execution_contract_prompt_section(
+    *,
+    authorization: Mapping[str, Any],
+    quest_id: str,
+) -> str:
+    action_names = _controller_action_names(authorization)
+    if not action_names:
+        return ""
+    command_lines = [
+        command
+        for action_name in action_names
+        if (command := _controller_action_command(action_name=action_name, quest_id=quest_id)) is not None
+    ]
+    if not command_lines:
+        return (
+            "Controller action execution contract:\n"
+            f"- Requested controller actions: {', '.join(action_names)}.\n"
+            "- No callable MAS CLI command is registered in this prompt for those action names. Write the turn closeout "
+            "with status=blocked, meaningful_artifact_delta=false, blocked_reason=owner_callable_surface_missing, "
+            "and next_owner=MAS/controller.\n\n"
+        )
+    rendered_commands = "\n".join(f"  {command}" for command in command_lines)
+    return (
+        "Controller action execution contract:\n"
+        f"- Controller action names: {', '.join(action_names)}.\n"
+        "- Invoke the listed controller command before freeform artifact writing:\n"
+        "```bash\n"
+        f"{rendered_commands}\n"
+        "```\n"
+        "- Resolve `<workspace MAS profile>` from `MED_AUTOSCIENCE_PROFILE` or "
+        "`ops/medautoscience/profiles/*.workspace.toml`; resolve `<study_id>` from the active authorization, "
+        "study runtime status, or quest/study directory identity.\n"
+        "- A repair packet, gate audit, controller handoff, runtime/watch receipt, or console-only summary is not "
+        "sufficient unless the controller command itself produced the durable paper-facing artifact delta or returned "
+        "a concrete owner block.\n"
+        "- If the command cannot be resolved or invoked safely, write the blocked closeout with "
+        "blocked_reason=owner_callable_surface_missing and next_owner=MAS/controller.\n\n"
+    )
+
+
+def _controller_action_names(authorization: Mapping[str, Any]) -> list[str]:
+    raw_actions = authorization.get("controller_actions")
+    if isinstance(raw_actions, str):
+        actions: list[object] = [raw_actions]
+    elif isinstance(raw_actions, (list, tuple)):
+        actions = list(raw_actions)
+    else:
+        actions = []
+    names: list[str] = []
+    for item in actions:
+        if isinstance(item, Mapping):
+            raw_name = item.get("action_type") or item.get("action") or item.get("name")
+        else:
+            raw_name = item
+        name = str(raw_name or "").strip()
+        if name and name not in names:
+            names.append(name)
+    if "run_quality_repair_batch" not in names and _quality_repair_work_unit_present(authorization):
+        names.append("run_quality_repair_batch")
+    return names
+
+
+def _quality_repair_work_unit_present(authorization: Mapping[str, Any]) -> bool:
+    for unit_id in _controller_work_unit_ids(authorization):
+        if unit_id in _QUALITY_REPAIR_BATCH_WORK_UNIT_IDS:
+            return True
+    return False
+
+
+def _controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[str]:
+    candidates: list[object] = [
+        authorization.get("work_unit_id"),
+        authorization.get("next_work_unit"),
+        authorization.get("blocking_work_units"),
+        authorization.get("work_unit_targets"),
+    ]
+    unit_ids: list[str] = []
+
+    def append_unit_id(value: object) -> None:
+        if isinstance(value, Mapping):
+            raw_value = value.get("unit_id") or value.get("work_unit_id") or value.get("id")
+        else:
+            raw_value = value
+        unit_id = str(raw_value or "").strip()
+        if unit_id and unit_id not in unit_ids:
+            unit_ids.append(unit_id)
+
+    for candidate in candidates:
+        if isinstance(candidate, (list, tuple)):
+            for item in candidate:
+                append_unit_id(item)
+        else:
+            append_unit_id(candidate)
+    return unit_ids
+
+
+def _controller_action_command(*, action_name: str, quest_id: str) -> str | None:
+    if action_name != "run_quality_repair_batch":
+        return None
+    return (
+        "uv run python -m med_autoscience.cli quality-repair-batch "
+        "--profile <workspace MAS profile> --study-id <study_id> "
+        f"--quest-id {quest_id}"
     )
 
 
