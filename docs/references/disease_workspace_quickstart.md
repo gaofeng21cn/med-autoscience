@@ -56,9 +56,9 @@ workspace 级数据版本层。
 
 ### 4. `quest`
 
-`MedDeepScientist` 在某个 study 下的运行状态。
+`MAS Runtime OS` 在某个 study 下的受管运行状态。
 
-它更像运行过程和任务执行面，不是病种级目录。
+它更像运行过程和任务执行面，不是病种级目录，也不是外部 `MedDeepScientist` daemon 的默认入口。
 
 ### 5. `paper bundle / submission package`
 
@@ -174,7 +174,7 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 ## Runtime Boundary
 
 - `MedAutoScience` 是正式研究入口，单一 MAS app skill 负责承接其稳定 callable surface
-- `MAS Runtime OS` 是默认 runtime owner；`Hermes gateway cron` 是默认 supervision scheduler owner
+- `MAS Runtime OS` 是默认 runtime owner；`MAS supervision scheduler contract` 是默认 supervision scheduler owner，当前 active adapter 是 `Hermes gateway cron`
 - `MedDeepScientist` 只保留为 frozen source archive / historical fixture / explicit legacy diagnostic / provenance reference，不是默认 workspace runtime 依赖
 - 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
 - 旧 `ops/med-deepscientist/bin/*` 如果在历史 workspace 中出现，只作为 historical/debug evidence 或 cleanup target；新 workspace 不生成，也不作为 active runtime 运维入口

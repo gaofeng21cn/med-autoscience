@@ -2,7 +2,7 @@
 
 **Status:** `historical closeout reference`
 
-**Goal:** 本文件记录旧 `P2 controlled cutover -> physical monorepo migration` 的历史执行计划。当前默认运行 closeout 已由 MAS Runtime OS + Hermes gateway cron + behavior-equivalence matrix 接管；不得把本文作为重开 Hermes/MDS backend migration 或 workspace-local service 的 active plan。
+**Goal:** 本文件记录旧 `P2 controlled cutover -> physical monorepo migration` 的历史执行计划。当前默认运行 closeout 已由 MAS Runtime OS + MAS supervision scheduler contract + behavior-equivalence matrix 接管；Hermes gateway cron 只是当前 active adapter。不得把本文作为重开 Hermes/MDS backend migration 或 workspace-local service 的 active plan。
 
 **Architecture:** 当前 active architecture 以 `runtime_core_convergence_and_controlled_cutover.md`、`runtime_supervision_loop.md` 和 `mds_behavior_equivalence_gap_matrix.md` 为准。
 

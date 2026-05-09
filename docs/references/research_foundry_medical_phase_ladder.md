@@ -2,7 +2,7 @@
 
 这份维护者参考把 `Med Auto Science` 从“当前主线已成立”走到“更完整理想形态”的 5 个阶段固定下来。
 
-当前状态说明（2026-05-08）：本文是 historical / positioning reference。`functional_monolith_completion` 和 `mds_behavior_equivalence_audit` 已把默认运行口径收敛为 MAS Runtime OS + Hermes gateway cron；外部 `MedDeepScientist` 不再是默认 backend，只保留 source archive / historical fixture / explicit legacy diagnostic / provenance reference。本文中早期“controlled research backend”表述不得作为当前 execution plan 使用。
+当前状态说明（2026-05-09）：本文是 historical / positioning reference。`functional_monolith_completion`、`mds_behavior_equivalence_audit` 与 supervision scheduler contract 已把默认运行口径收敛为 MAS Runtime OS + MAS-owned scheduler contract；当前 active adapter 是 Hermes gateway cron。外部 `MedDeepScientist` 不再是默认 backend，只保留 source archive / historical fixture / explicit legacy diagnostic / provenance reference。本文中早期“controlled research backend”表述不得作为当前 execution plan 使用。
 
 它解决三个问题：
 
@@ -22,7 +22,7 @@
 - `OPL`：family-level federation / gateway language
 - `Research Foundry`：通用 `Research Ops` framework
 - `Med Auto Science`：medical domain gateway + `Domain Harness OS`
-- `Hermes gateway cron` / future hosted scheduler：长期唤醒与调度 owner
+- `MAS supervision scheduler contract`：长期唤醒与调度 owner；当前 active adapter 是 `Hermes gateway cron`，future hosted scheduler 是 optional adapter
 - `MedDeepScientist`：source archive、historical fixture、explicit legacy diagnostic / provenance reference
 
 面向用户时，理想形态必须至少成立下面这件事：
@@ -36,7 +36,7 @@
 历史目标：
 
 - 曾用于让 `MedAutoScience -> Hermes target substrate -> MDS backend` 这条迁移链路诚实成立
-- 当前已被 MAS Runtime OS + Hermes gateway cron closeout 取代
+- 当前已被 MAS Runtime OS + MAS supervision scheduler contract closeout 取代；Hermes gateway cron 只是当前 active adapter
 - 后续 blocker 不得重新写成外部 MDS backend 默认依赖
 
 当前完成标志：

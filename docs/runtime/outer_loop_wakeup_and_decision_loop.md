@@ -396,5 +396,5 @@ future automation 不应直接替代 outer-loop authority。
 
 今后统一按下面这条口径理解：
 
-`MAS Runtime OS` 是默认 runtime/backend owner；`Hermes gateway cron` 是默认 wakeup owner；`MedAutoScience` 是 tick-driven controller。
+`MAS Runtime OS` 是默认 runtime/backend owner；`MAS supervision scheduler contract` 是默认 wakeup owner，当前 active adapter 是 `Hermes gateway cron`；`MedAutoScience` 是 tick-driven controller。
 它们通过 `study_charter -> startup projection -> runtime_escalation_record -> publication_eval -> study_decision_record` 这条 durable artifact loop 对接，而不是通过隐式回调耦合成一个常驻大运行体。旧 MDS resident daemon 只作为 historical fixture / explicit archive import reference，不是当前默认执行形态。

@@ -1,11 +1,11 @@
 # Workspace Architecture
 
-这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到“MAS-owned runtime/artifact/quality surfaces + Hermes gateway cron one-shot supervision”标准形态的约束。
+这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到“MAS-owned runtime/artifact/quality surfaces + MAS supervision scheduler contract”标准形态的约束。当前 scheduler adapter 是 `Hermes gateway cron` one-shot supervision。
 
 在顶层定位上，应始终按下面这条理解：
 
 - `MedAutoScience` = `Research Ops` 的 `domain gateway + Domain Harness OS`，并由单一 MAS app skill 承接稳定 callable surface
-- `Hermes gateway cron` = 默认 supervision scheduler owner；当前通过 MAS CLI one-shot tick 暴露
+- `MAS supervision scheduler contract` = 默认 supervision scheduler owner；当前 active adapter 是 `Hermes gateway cron`，通过 MAS CLI one-shot tick 暴露
 - `MedDeepScientist` = optional oracle / intake / backend-audit / legacy diagnostic reference，不是默认 workspace runtime 依赖
 - 如果存在 `OPL Gateway`，它位于 `MedAutoScience` 之上，而不是替代 `MedAutoScience`
 
@@ -25,7 +25,7 @@
 - 程序本体与重依赖不在每个疾病 workspace 内重复存放
 - workspace 根目录默认 no root Git，quest 默认 no quest Git；已有 root Git 通过 runtime lifecycle full retirement lane 做 restore-proof inventory、archive、remove 和 verify
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
-- `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，`Hermes gateway cron` 负责默认 300 秒 one-shot supervision；外部 `MedDeepScientist`（仓库名 `med-deepscientist`）只保留为 optional oracle / intake / backend-audit / legacy diagnostic reference
+- `MedAutoScience` 继续作为 `Research Ops` 的 domain gateway 与 harness OS，`MAS supervision scheduler contract` 负责默认 300 秒 one-shot supervision；当前 active adapter 是 `Hermes gateway cron`。外部 `MedDeepScientist`（仓库名 `med-deepscientist`）只保留为 optional oracle / intake / backend-audit / legacy diagnostic reference
 
 这也意味着：正式研究入口必须是 `MedAutoScience`，而不是直接面向 `MedDeepScientist`、`DeepScientist upstream`，也不是被 `OPL` 顶层语义直接吞并。
 
@@ -49,7 +49,7 @@
 - `study`
   - 单条研究线，通常对应一篇主稿或一组强关联投稿产物
 - `quest`
-  - 当前由 MAS Runtime OS + Hermes gateway cron one-shot tick 绑定到 managed runtime state 的运行状态与过程性产物
+  - 当前由 MAS Runtime OS + MAS supervision scheduler contract 绑定到 managed runtime state 的运行状态与过程性产物；当前 scheduler adapter 是 Hermes gateway cron one-shot tick
 - `paper bundle / submission package`
   - 面向投稿的 study-local 交付结果
 

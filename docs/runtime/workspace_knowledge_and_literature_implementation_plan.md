@@ -2,7 +2,7 @@
 
 **Status:** `historical closeout reference`
 
-**Goal:** 守住已经完成的 workspace-first canonical knowledge / literature contract。旧 `P2 controlled cutover -> physical monorepo migration` 已被 MAS Runtime OS + Hermes gateway cron + behavior-equivalence closeout 取代，不再作为 active implementation plan。
+**Goal:** 守住已经完成的 workspace-first canonical knowledge / literature contract。旧 `P2 controlled cutover -> physical monorepo migration` 已被 MAS Runtime OS + MAS supervision scheduler contract + behavior-equivalence closeout 取代；Hermes gateway cron 只是当前 active adapter。本文件不再作为 active implementation plan。
 
 **Architecture:** workspace 持有 canonical literature / research memory，study 持有 reference context，quest 只做 materialization。`P1` 已完成，当前不再重新打开 owner 设计，而是保证 cutover 期间不回退。
 

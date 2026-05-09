@@ -269,7 +269,7 @@ Hermes 可以继续作为 optional hosted / remote / multi-model executor substr
 
 验收：
 
-- `rg "Hermes gateway cron = 默认|Hermes-hosted runtime supervision"` 不再命中 active default wording。
+- active default docs 不再把 Hermes 写成默认 owner，也不再把旧 Hermes-hosted supervision warning 当作默认运行 blocker。
 - 无 Hermes host 环境下 MAS default workflow 可完成 status/progress/watch/supervision。
 - Hermes adapter 仍可显式安装、检查和移除。
 

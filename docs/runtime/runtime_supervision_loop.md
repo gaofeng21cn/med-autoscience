@@ -525,7 +525,7 @@ medautosci runtime supervisor-scan \
 - 先把单次 `supervisor tick` 做严谨
 - 再由外部 scheduler 周期调用它
 
-当前唯一 canonical scheduler owner 是 `Hermes gateway cron`。旧 Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager 只在历史/debug 文档或 retired diagnostic response 中出现；active scaffold 不再渲染这些 service 模板。
+当前唯一 canonical scheduler owner 是 `MAS supervision scheduler contract`。当前 active adapter 是 `Hermes gateway cron`；目标默认 adapter 是 MAS-owned local scheduler。旧 Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager 只在历史/debug 文档或 retired diagnostic response 中出现；active scaffold 不再渲染这些 service 模板，直到新的 `local` adapter 通过同构 status / receipt / SLO 验证。
 
 MAS 负责“这一跳应该怎么判、怎么恢复、怎么写 durable truth”。scheduler 只负责按周期调用，不持有医学或 runtime authority。
 

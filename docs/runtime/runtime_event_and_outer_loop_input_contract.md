@@ -145,7 +145,7 @@ native runtime truth 扩展字段：
 - `P0 runtime native truth`：已完成，上游完成点为 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`
 - `MedAutoScience` consumer-side cutover：已完成，managed runtime 不再覆盖 quest-owned `runtime_events/*`
 - `P1 workspace canonical literature / knowledge truth`：已完成
-- 当前剩余工作不在本 contract 内重开；default runtime closeout 以 MAS Runtime OS、Hermes gateway cron 和 behavior-equivalence matrix 为准
+- 当前剩余工作不在本 contract 内重开；default runtime closeout 以 MAS Runtime OS、MAS supervision scheduler contract（当前 active adapter 是 Hermes gateway cron）和 behavior-equivalence matrix 为准
 
 因此，这份文件不再把 `runtime event contract` 写成“MAS 物化的一份 projection contract”，而是把它写成：
 
