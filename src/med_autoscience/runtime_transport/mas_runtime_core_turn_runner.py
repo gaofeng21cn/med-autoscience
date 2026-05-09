@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Protocol
 
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import wrapper_command
 from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import quest_python_runtime_env
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import command_available
@@ -166,6 +167,7 @@ _QUALITY_REPAIR_BATCH_WORK_UNIT_IDS = frozenset(
         "local_architecture_overview_repair",
     }
 )
+_SPECIFICITY_WORK_UNIT_IDS = frozenset({"gate_needs_specificity", "needs_specificity"})
 
 
 def pop_running_process(*, quest_root: Path, run_id: str) -> subprocess.Popen[str] | None:
@@ -318,8 +320,9 @@ def _controller_action_execution_contract_prompt_section(
         "```bash\n"
         f"{rendered_commands}\n"
         "```\n"
-        "- Resolve `<workspace MAS profile>` from `MED_AUTOSCIENCE_PROFILE` or "
-        "`ops/medautoscience/profiles/*.workspace.toml`; resolve `<study_id>` from the active authorization, "
+        "- Resolve `<workspace MAS profile>` from `MED_AUTOSCIENCE_PROFILE`, "
+        "`ops/medautoscience/profiles/*.workspace.toml`, or `ops/medautoscience/profiles/*.local.toml`; "
+        "resolve `<study_id>` from the active authorization, "
         "study runtime status, or quest/study directory identity.\n"
         "- A repair packet, gate audit, controller handoff, runtime/watch receipt, or console-only summary is not "
         "sufficient unless the controller command itself produced the durable paper-facing artifact delta or returned "
@@ -346,7 +349,11 @@ def _controller_action_names(authorization: Mapping[str, Any]) -> list[str]:
         name = str(raw_name or "").strip()
         if name and name not in names:
             names.append(name)
-    if "run_quality_repair_batch" not in names and _quality_repair_work_unit_present(authorization):
+    if _specificity_targets_ready_for_quality_repair(authorization):
+        names = [name for name in names if name != "request_gate_specificity"]
+        if "run_quality_repair_batch" not in names:
+            names.append("run_quality_repair_batch")
+    elif "run_quality_repair_batch" not in names and _quality_repair_work_unit_present(authorization):
         names.append("run_quality_repair_batch")
     return names
 
@@ -356,6 +363,12 @@ def _quality_repair_work_unit_present(authorization: Mapping[str, Any]) -> bool:
         if unit_id in _QUALITY_REPAIR_BATCH_WORK_UNIT_IDS:
             return True
     return False
+
+
+def _specificity_targets_ready_for_quality_repair(authorization: Mapping[str, Any]) -> bool:
+    if not any(unit_id in _SPECIFICITY_WORK_UNIT_IDS for unit_id in _controller_work_unit_ids(authorization)):
+        return False
+    return specificity_target_status(authorization.get("specificity_targets")).get("complete") is True
 
 
 def _controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[str]:

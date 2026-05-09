@@ -226,6 +226,7 @@ def test_codex_exec_runner_prompt_maps_controller_action_to_callable_command(mon
     assert "--study-id <study_id>" in prompt
     assert "--quest-id quest-002" in prompt
     assert "ops/medautoscience/profiles/*.workspace.toml" in prompt
+    assert "ops/medautoscience/profiles/*.local.toml" in prompt
     assert "Invoke the listed controller command before freeform artifact writing" in prompt
     assert "repair packet, gate audit, controller handoff, runtime/watch receipt, or console-only summary is not sufficient" in prompt
     assert "blocked_reason=owner_callable_surface_missing" in prompt
@@ -277,3 +278,85 @@ def test_codex_exec_runner_prompt_infers_quality_repair_command_from_blocking_wo
     assert "run_quality_repair_batch" in prompt
     assert "uv run python -m med_autoscience.cli quality-repair-batch" in prompt
     assert "--quest-id quest-003" in prompt
+
+
+def test_codex_exec_runner_prompt_maps_complete_specificity_request_to_quality_repair_command(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-004"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "last_controller_decision_authorization": {
+    "decision_id": "decision-specificity-004",
+    "controller_actions": ["request_gate_specificity"],
+    "work_unit_id": "gate_needs_specificity",
+    "next_work_unit": {
+      "unit_id": "gate_needs_specificity"
+    },
+    "specificity_targets": [
+      {
+        "target_kind": "claim",
+        "target_id": "claim_evidence_map",
+        "source_path": "paper/claim_evidence_map.json",
+        "blocking_reason": "missing_publication_anchor"
+      },
+      {
+        "target_kind": "figure",
+        "target_id": "figure_catalog",
+        "source_path": "paper/figures/figure_catalog.json",
+        "blocking_reason": "missing_publication_anchor"
+      },
+      {
+        "target_kind": "table",
+        "target_id": "submission_manifest",
+        "source_path": "paper/submission_minimal/submission_manifest.json",
+        "blocking_reason": "missing_publication_anchor"
+      },
+      {
+        "target_kind": "metric",
+        "target_id": "main_result_metrics",
+        "source_path": "artifacts/results/main_result.json",
+        "blocking_reason": "missing_publication_anchor"
+      },
+      {
+        "target_kind": "source_path",
+        "target_id": "publication_gate_source_path",
+        "source_path": "artifacts/reports/publishability_gate/latest.json",
+        "blocking_reason": "missing_publication_anchor"
+      }
+    ]
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-004",
+        run_id="run-004",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+
+    assert "Controller action execution contract" in prompt
+    assert "Controller action names: run_quality_repair_batch." in prompt
+    assert "uv run python -m med_autoscience.cli quality-repair-batch" in prompt
+    assert "--quest-id quest-004" in prompt
+    assert "No callable MAS CLI command is registered" not in prompt
+    assert "Requested controller actions: request_gate_specificity" not in prompt

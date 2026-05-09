@@ -152,6 +152,13 @@ def runtime_platform_repair_apply_required(
         return True
     if _pending_user_message_platform_redrive_required(status):
         return True
+    if _publication_gate_closeout_targets_resolved_redrive_required(
+        status=status,
+        gate_specificity=gate_specificity,
+    ):
+        return True
+    if _runtime_platform_repair_redrive_pending(status):
+        return True
     return live_activity_timeout_current_controller_route_available(
         status,
         progress,
@@ -172,6 +179,44 @@ def _pending_user_message_platform_redrive_required(status: Mapping[str, Any]) -
         and _text(continuation_state.get("continuation_reason"))
         == "runtime_platform_repair_resume_existing_pending_user_message"
         and int(continuation_state.get("pending_user_message_count") or 0) > 0
+    )
+
+
+def _publication_gate_closeout_targets_resolved_redrive_required(
+    *,
+    status: Mapping[str, Any],
+    gate_specificity: Mapping[str, Any] | None,
+) -> bool:
+    if _text(status.get("quest_status")) != "waiting_for_user":
+        return False
+    if active_run_id(status, {}) is not None or worker_running(status):
+        return False
+    continuation_state = _mapping(status.get("continuation_state"))
+    if int(continuation_state.get("pending_user_message_count") or 0) > 0:
+        return False
+    blocked_closeout = _mapping(status.get("blocked_turn_closeout"))
+    if not blocked_closeout:
+        blocked_closeout = _mapping(_mapping(status.get("interaction_arbitration")).get("blocked_turn_closeout"))
+    return bool(
+        _text(continuation_state.get("continuation_policy")) == "wait_for_user_or_resume"
+        and _text(continuation_state.get("continuation_anchor")) == "turn_closeout"
+        and _text(continuation_state.get("continuation_reason")) == "blocked_turn_closeout_waiting_for_owner"
+        and _owner_token(blocked_closeout.get("next_owner")) in {"publication_gate", "mas_controller"}
+        and _mapping(gate_specificity).get("specific_targets_present") is True
+    )
+
+
+def _runtime_platform_repair_redrive_pending(status: Mapping[str, Any]) -> bool:
+    if _text(status.get("quest_status")) != "waiting_for_user":
+        return False
+    if active_run_id(status, {}) is not None or worker_running(status):
+        return False
+    continuation_state = _mapping(status.get("continuation_state"))
+    return bool(
+        _text(continuation_state.get("continuation_policy")) == "auto"
+        and _text(continuation_state.get("continuation_anchor")) == "decision"
+        and _text(continuation_state.get("continuation_reason")) == "runtime_platform_repair_redrive"
+        and int(continuation_state.get("pending_user_message_count") or 0) == 0
     )
 
 
@@ -214,6 +259,13 @@ def _progress_activity_timeout(progress: Mapping[str, Any]) -> dict[str, Any]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _owner_token(value: object) -> str | None:
+    text = _text(value)
+    if text is None:
+        return None
+    return text.lower().replace("/", "_").replace("-", "_")
 
 
 def _text(value: object) -> str | None:
