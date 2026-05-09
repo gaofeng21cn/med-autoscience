@@ -176,9 +176,15 @@ def _controller_route_context_for_gate(
 def _controller_route_context_for_publication_work_unit(
     *,
     gate_report: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any],
     source_eval_id: str | None,
 ) -> dict[str, Any] | None:
-    publication_work_unit_payload = publication_work_units.derive_publication_work_units(dict(gate_report))
+    publication_work_unit_payload = publication_work_units.derive_publication_work_units(
+        dict(gate_report),
+        specificity_targets=publication_work_units.specificity_targets_from_publication_eval(
+            publication_eval_payload
+        ),
+    )
     next_work_unit = publication_work_unit_payload.get("next_work_unit")
     if not isinstance(next_work_unit, Mapping):
         return None
@@ -326,6 +332,7 @@ def run_quality_repair_batch(
     if controller_route_context is None:
         controller_route_context = _controller_route_context_for_publication_work_unit(
             gate_report=gate_report,
+            publication_eval_payload=publication_eval_payload,
             source_eval_id=current_eval_id,
         )
     resolved_route_context = _merge_route_contexts(

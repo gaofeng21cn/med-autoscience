@@ -268,3 +268,54 @@ def test_true_current_blocker_with_specific_source_ref_keeps_repair_unit() -> No
 
     assert result["actionability_status"] == "actionable"
     assert result["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+
+
+def test_missing_publication_anchor_with_specific_targets_routes_to_upstream_repair() -> None:
+    publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = publication_work_units.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "blockers": ["missing_publication_anchor"],
+            "anchor_kind": "missing",
+            "main_result_path": None,
+            "paper_root": None,
+            "bundle_tasks_downstream_only": True,
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "missing_publication_anchor",
+                    "target_kind": "claim",
+                    "target_id": "claim_evidence_map",
+                    "source_path": "/tmp/study/paper/claim_evidence_map.json",
+                },
+                {
+                    "blocker": "missing_publication_anchor",
+                    "target_kind": "figure",
+                    "target_id": "figure_catalog",
+                    "source_path": "/tmp/study/paper/figures/figure_catalog.json",
+                },
+                {
+                    "blocker": "missing_publication_anchor",
+                    "target_kind": "table",
+                    "target_id": "submission_manifest",
+                    "source_path": "/tmp/study/paper/submission_minimal/submission_manifest.json",
+                },
+                {
+                    "blocker": "missing_publication_anchor",
+                    "target_kind": "metric",
+                    "target_id": "main_result_metrics",
+                    "source_path": "/tmp/study/artifacts/results/main_result.json",
+                },
+                {
+                    "blocker": "missing_publication_anchor",
+                    "target_kind": "source_path",
+                    "target_id": "publishability_gate",
+                    "source_path": "/tmp/study/artifacts/publication_eval/latest.json",
+                },
+            ],
+        }
+    )
+
+    assert result["actionability_status"] == "actionable"
+    assert result["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert result["fingerprint_blockers"] == ["missing_publication_anchor"]

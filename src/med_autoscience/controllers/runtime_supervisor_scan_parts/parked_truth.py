@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
+from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 
 
 PARKED_REASONS = {
@@ -18,6 +20,8 @@ def current_truth(status: Mapping[str, Any], progress: Mapping[str, Any]) -> boo
     if _has_live_worker(status, progress):
         return False
     if abnormal_stopped_runtime.repair_kind(status, progress) == "failed_non_resumable_relaunch":
+        return False
+    if _current_controller_route_available(status, progress):
         return False
     macro_state = _mapping(status.get("study_macro_state")) or _mapping(progress.get("study_macro_state"))
     if _text(macro_state.get("writer_state")) == "parked" and _text(macro_state.get("reason")) in {
@@ -64,6 +68,22 @@ def _owner_route_pending(auto_parked: Mapping[str, Any]) -> bool:
     if auto_parked.get("awaiting_explicit_wakeup") is True:
         return False
     return _text(auto_parked.get("parked_state")) == "ai_reviewer_pending" or _text(auto_parked.get("parked_owner")) == "ai_reviewer"
+
+
+def _current_controller_route_available(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    study_root = _text(status.get("study_root")) or _text(progress.get("study_root"))
+    if study_root is None:
+        return False
+    publication_eval = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
+    if not publication_eval:
+        return False
+    return (
+        current_truth_owner.current_controller_runtime_route(
+            study_root=Path(study_root),
+            publication_eval_payload=publication_eval,
+        )
+        is not None
+    )
 
 
 def _mapping(value: object) -> dict[str, Any]:

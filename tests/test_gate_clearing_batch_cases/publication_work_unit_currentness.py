@@ -249,3 +249,104 @@ def test_publication_work_unit_selection_keeps_explicit_upstream_repair_ahead_of
     assert selection["explicit_next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert selection["current_next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert selection["selected_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+
+
+def test_publication_work_unit_selection_supersedes_gate_specificity_after_targets_are_complete() -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_currentness")
+    publication_work_units = importlib.import_module("med_autoscience.controllers.publication_work_units")
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "return_to_publishability_gate",
+        "blockers": ["missing_publication_anchor"],
+        "anchor_kind": "missing",
+        "bundle_tasks_downstream_only": True,
+        "blocking_artifact_refs": [
+            {
+                "blocker": "missing_publication_anchor",
+                "target_kind": "claim",
+                "target_id": "claim_evidence_map",
+                "source_path": "/tmp/study/paper/claim_evidence_map.json",
+            },
+            {
+                "blocker": "missing_publication_anchor",
+                "target_kind": "figure",
+                "target_id": "figure_catalog",
+                "source_path": "/tmp/study/paper/figures/figure_catalog.json",
+            },
+            {
+                "blocker": "missing_publication_anchor",
+                "target_kind": "table",
+                "target_id": "submission_manifest",
+                "source_path": "/tmp/study/paper/submission_minimal/submission_manifest.json",
+            },
+            {
+                "blocker": "missing_publication_anchor",
+                "target_kind": "metric",
+                "target_id": "main_result_metrics",
+                "source_path": "/tmp/study/artifacts/results/main_result.json",
+            },
+            {
+                "blocker": "missing_publication_anchor",
+                "target_kind": "source_path",
+                "target_id": "publishability_gate",
+                "source_path": "/tmp/study/artifacts/publication_eval/latest.json",
+            },
+        ],
+    }
+    work_unit_fingerprint = publication_work_units.derive_publication_work_units(gate_report)["fingerprint"]
+    publication_eval_payload = {
+        "recommended_actions": [
+            {
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "next_work_unit": {
+                    "unit_id": "gate_needs_specificity",
+                    "lane": "controller",
+                    "summary": "Ask the publication gate to identify concrete blocker targets.",
+                },
+                "specificity_targets": [
+                    {
+                        "target_kind": "claim",
+                        "target_id": "claim_evidence_map",
+                        "source_path": "/tmp/study/paper/claim_evidence_map.json",
+                        "blocking_reason": "missing_publication_anchor",
+                    },
+                    {
+                        "target_kind": "figure",
+                        "target_id": "figure_catalog",
+                        "source_path": "/tmp/study/paper/figures/figure_catalog.json",
+                        "blocking_reason": "missing_publication_anchor",
+                    },
+                    {
+                        "target_kind": "table",
+                        "target_id": "submission_manifest",
+                        "source_path": "/tmp/study/paper/submission_minimal/submission_manifest.json",
+                        "blocking_reason": "missing_publication_anchor",
+                    },
+                    {
+                        "target_kind": "metric",
+                        "target_id": "main_result_metrics",
+                        "source_path": "/tmp/study/artifacts/results/main_result.json",
+                        "blocking_reason": "missing_publication_anchor",
+                    },
+                    {
+                        "target_kind": "source_path",
+                        "target_id": "publishability_gate",
+                        "source_path": "/tmp/study/artifacts/publication_eval/latest.json",
+                        "blocking_reason": "missing_publication_anchor",
+                    },
+                ],
+            }
+        ]
+    }
+
+    selection = module.publication_work_unit_selection(
+        publication_eval_payload=publication_eval_payload,
+        latest_batch={},
+        gate_report=gate_report,
+        authority_settle_delivery_redrive_requested=False,
+    )
+
+    assert selection["explicit_next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert selection["current_next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert selection["selected_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert selection["terminal_reason"] is None
