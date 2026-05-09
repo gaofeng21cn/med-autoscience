@@ -5,8 +5,8 @@
 一句话结论：
 
 - `MedAutoScience` 默认不是 resident HTTP/WebSocket daemon
-- 默认监管 owner 是 `Hermes gateway cron`，每 `300` 秒调用一次 MAS one-shot tick
-- 默认 tick 命令是 `ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1`
+- 当前默认 scheduler adapter 是 `Hermes gateway cron`，每 `300` 秒调用一次 MAS-owned supervision tick script
+- 当前 desired tick script 依序调用 `watch-runtime --max-ticks 1`、`supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch`
 - 该 outer loop 不拥有 runner completion 后的连续科研主循环；内层 `turn completion -> next turn` 由 MAS Runtime Turn Lifecycle Kernel 低延迟处理
 - 旧 workspace-local `systemd` / `cron` / `launchd` / `docker` service manager 已退役；检测到它们时只作为 cleanup evidence，不作为 active scheduler 选项
 - 这个 loop 的职责是发现掉线、执行 reconciliation、写出 durable supervision surface，并把结果翻译成前台可见的人话
@@ -30,8 +30,10 @@
 
 这里的外环应按三层分工理解：
 
-- `Hermes-Agent`
-  - 长期运行与托管能力 owner
+- `Scheduler Adapter`
+  - 负责按约定 cadence 调用 MAS supervision tick script
+  - 当前已实现 adapter 是 `Hermes gateway cron`
+  - local OS scheduler adapter 尚未落地；显式传入 `systemd|cron|launchd|docker` 当前必须 fail-closed
 - `MedAutoScience`
   - 医学研究治理、supervision judgment、projection 与 reconciliation owner
 - `MAS Runtime OS`
@@ -41,7 +43,7 @@
 
 对应的监管外环是：
 
-- `Hermes-cron-hosted`
+- `scheduler-adapter-hosted`
 - `controller-judged`
 - `tick-driven`
 - `fail-closed`
@@ -60,24 +62,27 @@
 
 ## 3. 正式执行形态
 
-当前正式 outer-loop tick 入口是：
+当前正式 outer-loop tick 由 scheduler adapter 调用 MAS 生成的 script。Hermes adapter 下的脚本位于：
 
-- `ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1`
+- `~/.hermes/scripts/med-autoscience/<workspace-key>/watch_runtime_tick.py`
 
-```bash
-ops/medautoscience/bin/watch-runtime \
-  --interval-seconds 300 \
-  --max-ticks 1
-```
+该脚本由 `runtime-ensure-supervision --manager hermes` 生成，并注册进 `~/.hermes/cron/jobs.json`。当前 desired script 顺序执行四个 MAS workspace entry：
 
-这个 tick 每次至少做四件事：
+1. `ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1`
+2. `ops/medautoscience/bin/supervisor-scan --apply-safe-actions --apply-runtime-platform-repair --developer-supervisor-mode developer_apply_safe`
+3. `ops/medautoscience/bin/supervisor-consume --mode developer_apply_safe --apply`
+4. `ops/medautoscience/bin/supervisor-execute-dispatch --mode developer_apply_safe --apply`
+
+`watch-runtime` 这一步每次至少做四件事：
 
 1. 读取 managed study 的 `study_runtime_status` 或 `ensure_study_runtime`
 2. 扫描 live quest 的 `runtime_watch`
 3. 生成 study-owned `runtime_supervision/latest.json`
 4. 必要时写出或刷新 `runtime_escalation_record.json`
 
-也就是说，外环的核心不是“循环本身”，而是单次 tick 的 controller contract。
+随后 `supervisor-scan` / `supervisor-consume` / `supervisor-execute-dispatch` 负责把 workspace-level action queue、default executor dispatch request 和可执行 dispatch receipt 收成同一轮证据。也就是说，外环的核心不是“循环本身”，而是同一轮 tick 的 MAS controller contract。
+
+真实 workspace 可能仍保留旧 Hermes job script，只调用单步 `watch-runtime`。这类状态不是新 contract；应通过 `runtime-ensure-supervision --profile <profile>` 刷新。`runtime-supervision-status` 的职责是暴露 job、script、latest session 与 drift，而不是把旧 script 解释成新的 desired behavior。
 
 跨 study 的巡检入口是 supervisor scan：
 
@@ -270,7 +275,7 @@ Developer Supervisor Mode 有三个正式模式：
 
 `developer_apply_safe` 还受 GitHub 用户门控保护：本机 `gh api user --jq .login` 必须返回 `gaofeng21cn`，否则 effective mode 自动降级到 `external_observe`，并投影 `github_user_not_authorized_for_developer_supervisor_mode`。这个门控用于防止普通用户或生产研究环境意外获得 repo-level developer supervisor authority。
 
-`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 可以作为本机开发环境的一个外部 caller 调用该入口；MAS canonical scheduler owner 仍是 `Hermes gateway cron`。Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager 不再作为 active workspace-local scheduler 选项。
+`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 可以作为本机开发环境的一个外部 caller 调用该入口；MAS canonical scheduler contract 仍是 scheduler adapter 定期调用同一个 MAS tick script。当前 active adapter 是 `Hermes gateway cron`。Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager 不再作为 active workspace-local scheduler 选项。
 
 workspace bootstrap 只渲染 MAS CLI entry，不再渲染 workspace-local host-service 模板：
 
@@ -279,7 +284,7 @@ workspace bootstrap 只渲染 MAS CLI entry，不再渲染 workspace-local host-
 - `ops/medautoscience/bin/supervisor-execute-dispatch`
 - `ops/medautoscience/bin/supervisor-reconcile`
 
-`supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch` 仍保留为调试入口。正式同 tick 行为由 `supervisor-reconcile` one-shot 和 Hermes gateway cron 调用的 `watch-runtime` entry 承接，并写 `artifacts/supervision/reconcile/latest.json` / history。
+`supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch` 仍保留为调试入口。正式同 tick 行为由 scheduler adapter 调用 MAS-owned tick script 承接；`supervisor-reconcile` one-shot 是调试、加速和 dry-run / apply 入口。二者都不得把 scheduler 提升为 study truth owner。
 
 ## Real-Paper Autonomy Soak Inventory
 
@@ -329,7 +334,9 @@ uv run python scripts/real-paper-autonomy-soak-inventory.py \
 
 因此，repo capability 可以记录为 `paper_autonomy_stability_evidence=evidence_read_model_landed`；真实论文自治稳定性只能在后续 evidence 无 blocker 时单独 closeout 为 `paper_autonomy_stability=landed`。
 
-`medautosci runtime ensure-supervision` 现在只注册或刷新 canonical `Hermes gateway cron`。如果显式传入 `--manager systemd|cron|launchd|docker`，命令必须 fail-closed 返回 `retired_workspace_local_service_manager`，不渲染模板、不给安装命令、不写 install proof。检测到旧 workspace-local host service 文件或 loaded 状态时，`runtime-ensure-supervision` 会把它作为 `retired_cleanup_evidence` 清理，然后回到 Hermes cron owner。
+`medautosci runtime ensure-supervision` 现在只注册或刷新 active `Hermes gateway cron` adapter。该选择是当前实现状态，不是 MAS 架构必须长期依赖 Hermes 的证明。如果显式传入 `--manager systemd|cron|launchd|docker`，命令必须 fail-closed 返回 `retired_workspace_local_service_manager`，不渲染模板、不给安装命令、不写 install proof。检测到旧 workspace-local host service 文件或 loaded 状态时，`runtime-ensure-supervision` 会把它作为 `retired_cleanup_evidence` 清理，然后回到 Hermes cron adapter。
+
+如果后续要减少 Hermes 对本地运行的必要性，应新增一个正式 local scheduler adapter。它必须调用同一个 MAS tick script、写出同构 status / latest-run / SLO projection，并满足与 Hermes adapter 相同的幂等、去重、失败可见性和 retired-service cleanup 规则；不能复活旧 workspace-local service 模板作为隐式旁路。
 
 容器环境不是 MAS-owned runtime。MAS 不维护 `medautoscience:latest` 镜像，也不生成 Kubernetes CronJob manifest。容器、volume、gateway、scheduler 与镜像发布由 OPL、Hermes 或部署平台持有；容器内如果需要触发 MAS 监管，只能调用 MAS CLI 的 canonical tick/reconcile 入口，例如：
 
@@ -340,7 +347,7 @@ medautosci runtime supervisor-scan \
   --developer-supervisor-mode developer_apply_safe
 ```
 
-默认外部 scheduler 应调用 `ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1` 或同等 `medautosci runtime supervisor-reconcile --profile <profile> --mode developer_apply_safe --apply` one-shot；上面的 scan 命令只用于调试单步扫描。
+默认外部 scheduler 应调用 MAS-owned supervision tick script；如果只能调用单条命令，应调用同等 `medautosci runtime supervisor-reconcile --profile <profile> --mode developer_apply_safe --apply` one-shot。直接调用 `watch-runtime --max-ticks 1` 只覆盖外环检查，不覆盖同 tick 的 scan / consume / execute-dispatch 全链；上面的 scan 命令只用于调试单步扫描。
 
 同时，外环还必须对“最近一次 supervisor tick 是否仍然新鲜”给出正式判断：
 

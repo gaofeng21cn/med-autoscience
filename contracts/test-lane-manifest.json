@@ -144,10 +144,85 @@
       "resident_daemon_allowed": false,
       "retired_workspace_local_service_allowed": false
     },
+    "portal-route-decision-trail": {
+      "kind": "focused_portal_route_decision_trail_contract_gate",
+      "paths": [
+        "tests/test_progress_portal.py",
+        "tests/progress_portal_cases",
+        "tests/test_mds_capability_parity.py",
+        "tests/test_live_console_docs_contract.py"
+      ],
+      "docs": [
+        "docs/runtime/progress_portal.md",
+        "docs/references/mds_webui_user_parity_gap_review.md",
+        "docs/references/mds_behavior_equivalence_gap_matrix.md"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "read_only_route_decision_projection",
+      "implementation_status": "landed_read_only_contract",
+      "surface_kind": "mas_progress_portal_route_decision_trail",
+      "required_inputs": [
+        "controller_decisions",
+        "evidence_or_review_ledgers",
+        "runtime_lifecycle_lineage_or_canvas",
+        "source_refs"
+      ],
+      "required_display_fields": [
+        "route_node",
+        "decision_rationale",
+        "blocked_reason",
+        "pivot_rationale",
+        "superseded_path",
+        "active_path",
+        "winning_path",
+        "source_refs"
+      ],
+      "fail_closed_when_inputs_missing": true,
+      "forbidden_authority_writes": [
+        "study_truth",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "runtime_lifecycle.sqlite",
+        "paper/current_package",
+        "manuscript/current_package"
+      ]
+    },
+    "terminal-attach-gate": {
+      "kind": "focused_terminal_attach_fail_closed_contract_gate",
+      "paths": [
+        "tests/test_runtime_live_console_ui.py",
+        "tests/test_live_console_docs_contract.py",
+        "tests/test_mds_capability_parity.py"
+      ],
+      "docs": [
+        "docs/runtime/live_console_ui_contract.md",
+        "docs/runtime/mas_live_console_mds_webui_parity_plan.md",
+        "docs/references/mds_webui_user_parity_gap_review.md",
+        "docs/references/mds_behavior_equivalence_gap_matrix.md"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "fail_closed_interactive_terminal_attach_probe",
+      "implementation_status": "landed_fail_closed_gate",
+      "surface_kind": "mas_terminal_attach_gate",
+      "blocked_status": "blocked_by_missing_terminal_input_owner",
+      "forbidden_owner": "legacy_mds_daemon_websocket",
+      "read_only_default": true,
+      "required_owner_contract": [
+        "token",
+        "lease",
+        "idempotency",
+        "audit",
+        "input",
+        "resize",
+        "detach"
+      ],
+      "attach_session_started_when_blocked": false
+    },
     "portal-console-soak": {
       "kind": "focused_portal_console_real_workspace_soak_gate",
       "paths": [
         "tests/test_progress_portal.py",
+        "tests/progress_portal_cases",
         "tests/test_cli_cases/progress_portal_commands.py",
         "tests/test_runtime_live_console_read_model.py",
         "tests/test_runtime_live_console_stream.py",

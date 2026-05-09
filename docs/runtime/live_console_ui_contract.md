@@ -3,6 +3,7 @@
 Status: `landed read-only display contract`
 Owner: `MedAutoScience Runtime OS + Product Projection`
 Related contract: `live-console-parity`
+Related focused lane: `terminal-attach-gate`
 
 ## Purpose
 
@@ -12,7 +13,7 @@ The current landed scope is read-only observation. Resident WebSocket terminal a
 
 User-view parity gaps for per-paper navigation, executor conversation, and interactive terminal/control are tracked in [MDS WebUI User Parity Gap Review](../references/mds_webui_user_parity_gap_review.md).
 
-2026-05-09 fresh assessment: Live Console is the MAS-native read-only observation replacement for the old WebUI observation class. It is not an interactive terminal/control replacement yet. The next valid improvement path is study-scoped filtering from Portal deep links, then an authorized UI action lane for pause/resume/reconcile/stop intents, and only after that a separate interactive terminal attach design with threat model, owner gate, token/lease, idempotency, and audit contract.
+2026-05-09 fresh assessment: Live Console is the MAS-native read-only observation replacement for the old WebUI observation class. It is not an interactive terminal/control replacement yet. Study-scoped filtering, action receipts, and the formal terminal attach gate are now repo-tracked contracts. The remaining valid improvement path is real-workspace polish, an authorized UI action apply lane for pause/resume/reconcile/stop intents, and only after that a MAS-owned interactive terminal attach implementation with threat model, owner gate, token/lease, idempotency, and audit contract.
 
 ## Stable Entry
 
@@ -71,6 +72,8 @@ Any runtime mutation still goes through MAS controller/runtime owner surfaces. A
 ## Terminal Attach Gate
 
 Interactive terminal attach is part of the formal parity gate. The current status is fail-closed: until MAS owns a terminal input/resize/detach surface, any explicit attach request must return the `mas_terminal_attach_gate` payload with `status=blocked_by_missing_terminal_input_owner` and must not start an attach session.
+
+The machine-readable contract lives in `contracts/test-lane-manifest.json` at `focused_lanes.terminal-attach-gate`. It fixes the current implementation status as `landed_fail_closed_gate`, the forbidden owner as `legacy_mds_daemon_websocket`, and `read_only_default=true`.
 
 Required gate payload fields:
 

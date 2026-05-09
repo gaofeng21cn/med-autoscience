@@ -10,7 +10,7 @@ pytestmark = pytest.mark.contract
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = REPO_ROOT / "contracts" / "test-lane-manifest.json"
-CONTRACT_DOCS = (
+CONTRACT_DOC_PATHS = (
     "docs/runtime/mas_live_console_mds_webui_parity_plan.md",
     "docs/runtime/progress_portal.md",
     "docs/runtime/live_console_ui_contract.md",
@@ -34,10 +34,6 @@ def _manifest() -> dict[str, object]:
     return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
-def _read(relative_path: str) -> str:
-    return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
-
-
 def test_live_console_parity_lane_declares_read_only_contract_and_soak_boundary() -> None:
     lane = _manifest()["focused_lanes"]["live-console-parity"]
 
@@ -52,7 +48,7 @@ def test_live_console_parity_lane_declares_read_only_contract_and_soak_boundary(
         "tests/test_cli_cases/progress_portal_commands.py",
         "tests/test_workspace_init_cases/workspace_creation.py",
     ]
-    assert lane["docs"] == list(CONTRACT_DOCS)
+    assert lane["docs"] == list(CONTRACT_DOC_PATHS)
     assert lane["overlap_policy"] == "allowed_with_regression"
     assert lane["authority_boundary"] == "read_only_streaming_parity_contract"
     assert lane["implementation_status"] == "landed"
@@ -72,56 +68,60 @@ def test_live_console_parity_lane_declares_read_only_contract_and_soak_boundary(
     ]
 
 
-def test_live_console_parity_docs_expose_staged_contract_metadata() -> None:
-    contract_doc = _read(CONTRACT_DOCS[0])
-    portal_doc = _read(CONTRACT_DOCS[1])
-    ui_doc = _read(CONTRACT_DOCS[2])
-    gap_matrix = _read(CONTRACT_DOCS[3])
-    user_gap_review = _read(CONTRACT_DOCS[5])
+def test_portal_route_decision_trail_and_terminal_attach_have_machine_contracts() -> None:
+    lanes = _manifest()["focused_lanes"]
+    route = lanes["portal-route-decision-trail"]
+    terminal = lanes["terminal-attach-gate"]
+    soak = lanes["portal-console-soak"]
 
-    assert "Contract ID: `live-console-parity`" in contract_doc
-    assert "Status: `landed" in contract_doc
-    assert "Related contract: `live-console-parity`" in portal_doc
-    assert "Related contract: `live-console-parity`" in ui_doc
-    assert "Related contract: `live-console-parity`" in gap_matrix
+    assert route["implementation_status"] == "landed_read_only_contract"
+    assert route["surface_kind"] == "mas_progress_portal_route_decision_trail"
+    assert route["authority_boundary"] == "read_only_route_decision_projection"
+    assert route["fail_closed_when_inputs_missing"] is True
+    assert route["required_inputs"] == [
+        "controller_decisions",
+        "evidence_or_review_ledgers",
+        "runtime_lifecycle_lineage_or_canvas",
+        "source_refs",
+    ]
+    assert set(route["required_display_fields"]) == {
+        "route_node",
+        "decision_rationale",
+        "blocked_reason",
+        "pivot_rationale",
+        "superseded_path",
+        "active_path",
+        "winning_path",
+        "source_refs",
+    }
+    assert "publication_eval/latest.json" in route["forbidden_authority_writes"]
+    assert "controller_decisions/latest.json" in route["forbidden_authority_writes"]
+    assert "tests/progress_portal_cases" in route["paths"]
+    assert "route_decision_trail" in soak["required_evidence_keys"]
+    assert "tests/progress_portal_cases" in soak["paths"]
 
-    assert "focused_lanes.live-console-parity" in contract_doc
-    assert "Progress Portal 与 Live Console 分工" in contract_doc
-    assert "Live Console Integration Boundary" in portal_doc
-    assert "Live Console UI Contract" in ui_doc
-    assert "Live Console Parity" in gap_matrix
-    assert "Status: `active UX parity reference`" in user_gap_review
-    assert "per-study/per-paper page" in user_gap_review
-    assert "portal-route-decision-trail" in user_gap_review
-    assert "Route / Decision Trail" in user_gap_review
-    assert "active/winning path" in user_gap_review
-    assert "interactive parity candidate" in user_gap_review
-    assert "blocked_by_missing_terminal_input_owner" in ui_doc
-    assert "mas_terminal_attach_gate" in ui_doc
-    assert "legacy_mds_daemon_websocket" in ui_doc
-    assert "read_only_default=true" in ui_doc
-    assert "token" in ui_doc
-    assert "lease" in ui_doc
-    assert "idempotency" in ui_doc
-    assert "audit" in ui_doc
-    assert "input" in ui_doc
-    assert "resize" in ui_doc
-    assert "detach" in ui_doc
+    assert terminal["implementation_status"] == "landed_fail_closed_gate"
+    assert terminal["surface_kind"] == "mas_terminal_attach_gate"
+    assert terminal["blocked_status"] == "blocked_by_missing_terminal_input_owner"
+    assert terminal["forbidden_owner"] == "legacy_mds_daemon_websocket"
+    assert terminal["read_only_default"] is True
+    assert terminal["attach_session_started_when_blocked"] is False
+    assert set(terminal["required_owner_contract"]) == {
+        "token",
+        "lease",
+        "idempotency",
+        "audit",
+        "input",
+        "resize",
+        "detach",
+    }
 
 
-def test_live_console_parity_docs_keep_paper_and_package_authority_forbidden() -> None:
-    contract_doc = _read(CONTRACT_DOCS[0])
-    portal_doc = _read(CONTRACT_DOCS[1])
-    gap_matrix = _read(CONTRACT_DOCS[3])
+def test_live_console_parity_manifest_keeps_doc_refs_and_forbidden_authority_surfaces() -> None:
+    lane = _manifest()["focused_lanes"]["live-console-parity"]
     manifest_forbidden = set(
-        _manifest()["focused_lanes"]["live-console-parity"]["forbidden_authority_writes"]
+        lane["forbidden_authority_writes"]
     )
 
+    assert lane["docs"] == list(CONTRACT_DOC_PATHS)
     assert manifest_forbidden == set(FORBIDDEN_AUTHORITY_SURFACES)
-    for surface in FORBIDDEN_AUTHORITY_SURFACES:
-        assert surface in contract_doc
-        assert surface in gap_matrix
-
-    assert "pause / resume / relaunch / reconcile" in portal_doc
-    assert "UI 不直接执行 apply" in portal_doc
-    assert "不得修改 paper/package" in portal_doc

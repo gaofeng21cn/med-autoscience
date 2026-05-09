@@ -5,13 +5,23 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import platform
 import re
 import subprocess
 from typing import Any
 
 from med_autoscience.controllers.hermes_supervision_parts.codex_app_automation import (
     codex_app_automation_prompt_check as _shared_codex_app_automation_prompt_check,
+)
+from med_autoscience.controllers.hermes_supervision_parts.legacy_services import (
+    launchd_label as _shared_launchd_label,
+    launchd_service_file as _shared_launchd_service_file,
+    legacy_service_status as _shared_legacy_service_status,
+    remove_legacy_service as _shared_remove_legacy_service,
+    systemd_service_file as _shared_systemd_service_file,
+    systemd_service_name as _shared_systemd_service_name,
+)
+from med_autoscience.controllers.hermes_supervision_parts.job_runs import (
+    latest_job_run as _shared_latest_job_run,
 )
 from med_autoscience.developer_supervisor_mode import current_github_user_gate
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
@@ -542,198 +552,36 @@ def _remove_empty_parent_dirs(path: Path, *, stop_at: Path) -> None:
     _shared_remove_empty_parent_dirs(path, stop_at=stop_at)
 
 
-def _latest_job_session_path(profile: WorkspaceProfile, *, job_id: str | None) -> Path | None:
-    resolved_job_id = str(job_id or "").strip()
-    if not resolved_job_id:
-        return None
-    sessions_root = profile.hermes_home_root / "sessions"
-    candidates = sorted(sessions_root.glob(f"session_cron_{resolved_job_id}_*.json"))
-    if not candidates:
-        return None
-    return candidates[-1]
-
-
 def _latest_job_run(profile: WorkspaceProfile, *, job_id: str | None) -> dict[str, Any] | None:
-    session_path = _latest_job_session_path(profile, job_id=job_id)
-    if session_path is None:
-        return None
-    payload = _read_latest_job_session_payload(session_path)
-    if payload is None:
-        return _latest_job_run_projection(
-            status="invalid",
-            summary="latest cron session payload is unreadable",
-            session_path=session_path,
-            recorded_at=None,
-        )
-    if not isinstance(payload, dict):
-        return _latest_job_run_projection(
-            status="invalid",
-            summary="latest cron session payload is invalid",
-            session_path=session_path,
-            recorded_at=None,
-        )
-    latest_content = _latest_assistant_content(payload.get("messages"))
-    status, summary = _latest_job_run_status(latest_content)
-    return _latest_job_run_projection(
-        status=status,
-        summary=summary,
-        session_path=session_path,
-        recorded_at=str(payload.get("last_updated") or payload.get("session_start") or "").strip() or None,
+    return _shared_latest_job_run(
+        profile,
+        job_id=job_id,
+        silent_success_response=_SILENT_SUCCESS_RESPONSE,
     )
 
 
-def _read_latest_job_session_payload(session_path: Path) -> object | None:
-    try:
-        return json.loads(session_path.read_text(encoding="utf-8")) or {}
-    except (OSError, json.JSONDecodeError):
-        return None
-
-
-def _latest_assistant_content(messages: object) -> str | None:
-    latest_content: str | None = None
-    if isinstance(messages, list):
-        for item in reversed(messages):
-            if not isinstance(item, dict):
-                continue
-            if str(item.get("role") or "").strip() != "assistant":
-                continue
-            candidate = item.get("content")
-            if isinstance(candidate, str) and candidate.strip():
-                latest_content = candidate.strip()
-                break
-    return latest_content
-
-
-def _latest_job_run_status(latest_content: str | None) -> tuple[str, str | None]:
-    status = "unknown"
-    summary = None
-    if latest_content == _SILENT_SUCCESS_RESPONSE:
-        status = "success"
-        summary = "latest Hermes supervision tick completed"
-    elif latest_content is not None and "data-collection script failed" in latest_content.lower():
-        status = "failed"
-        summary = latest_content.splitlines()[0].strip()
-    elif latest_content is not None:
-        status = "reported"
-        summary = latest_content.splitlines()[0].strip()
-    return status, summary
-
-
-def _latest_job_run_projection(
-    *,
-    status: str,
-    summary: str | None,
-    session_path: Path,
-    recorded_at: str | None,
-) -> dict[str, Any]:
-    return {
-        "status": status,
-        "summary": summary,
-        "session_path": str(session_path),
-        "recorded_at": recorded_at,
-    }
-
-
 def _legacy_launchd_label(profile: WorkspaceProfile) -> str:
-    return f"ai.medautoscience.{_slugify(profile.name)}.watch-runtime"
+    return _shared_launchd_label(profile=profile, slug=_slugify(profile.name))
 
 
 def _legacy_launchd_service_file(profile: WorkspaceProfile) -> Path:
-    return Path.home() / "Library" / "LaunchAgents" / f"{_legacy_launchd_label(profile)}.plist"
+    return _shared_launchd_service_file(profile=profile, slug=_slugify(profile.name))
 
 
 def _legacy_systemd_service_name(profile: WorkspaceProfile) -> str:
-    return f"medautoscience-watch-runtime-{_slugify(profile.name)}"
+    return _shared_systemd_service_name(profile=profile, slug=_slugify(profile.name))
 
 
 def _legacy_systemd_service_file(profile: WorkspaceProfile) -> Path:
-    return Path.home() / ".config" / "systemd" / "user" / f"{_legacy_systemd_service_name(profile)}.service"
+    return _shared_systemd_service_file(profile=profile, slug=_slugify(profile.name))
 
 
 def _read_legacy_service_status(profile: WorkspaceProfile) -> dict[str, Any]:
-    system = platform.system()
-    if system == "Darwin":
-        label = _legacy_launchd_label(profile)
-        service_file = _legacy_launchd_service_file(profile)
-        completed = subprocess.run(
-            ["launchctl", "print", f"gui/{os.getuid()}/{label}"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        output = completed.stdout.strip() or completed.stderr.strip()
-        return {
-            "manager": "launchd",
-            "service_label": label,
-            "service_file": str(service_file),
-            "service_exists": service_file.exists(),
-            "loaded": completed.returncode == 0,
-            "details": output or None,
-        }
-    if system == "Linux":
-        service_name = _legacy_systemd_service_name(profile)
-        service_file = _legacy_systemd_service_file(profile)
-        completed = subprocess.run(
-            ["systemctl", "--user", "is-active", f"{service_name}.service"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        output = completed.stdout.strip() or completed.stderr.strip()
-        return {
-            "manager": "systemd",
-            "service_label": service_name,
-            "service_file": str(service_file),
-            "service_exists": service_file.exists(),
-            "loaded": completed.returncode == 0 and output == "active",
-            "details": output or None,
-        }
-    return {
-        "manager": system.lower() or "unknown",
-        "service_label": None,
-        "service_file": None,
-        "service_exists": False,
-        "loaded": False,
-        "details": None,
-    }
+    return _shared_legacy_service_status(profile=profile, slug=_slugify(profile.name))
 
 
 def _remove_legacy_service(profile: WorkspaceProfile) -> dict[str, Any]:
-    status = _read_legacy_service_status(profile)
-    manager = str(status.get("manager") or "")
-    service_label = str(status.get("service_label") or "").strip()
-    service_file_text = str(status.get("service_file") or "").strip()
-    service_file = Path(service_file_text) if service_file_text else None
-    command_outputs: list[dict[str, Any]] = []
-    unloaded = False
-    removed_service_file = False
-
-    if manager == "launchd" and service_label:
-        command = ["launchctl", "bootout", f"gui/{os.getuid()}/{service_label}"]
-        exit_code, output = _run_command(command=command)
-        command_outputs.append({"command": command, "exit_code": exit_code, "output": output})
-        unloaded = exit_code == 0
-    elif manager == "systemd" and service_label:
-        command = ["systemctl", "--user", "disable", "--now", f"{service_label}.service"]
-        exit_code, output = _run_command(command=command)
-        command_outputs.append({"command": command, "exit_code": exit_code, "output": output})
-        unloaded = exit_code == 0
-
-    if service_file is not None and service_file.exists():
-        service_file.unlink()
-        removed_service_file = True
-
-    if manager == "systemd" and removed_service_file:
-        command = ["systemctl", "--user", "daemon-reload"]
-        exit_code, output = _run_command(command=command)
-        command_outputs.append({"command": command, "exit_code": exit_code, "output": output})
-
-    return {
-        "before": status,
-        "unloaded": unloaded,
-        "removed_service_file": removed_service_file,
-        "command_outputs": command_outputs,
-    }
+    return _shared_remove_legacy_service(profile=profile, slug=_slugify(profile.name), run_command=_run_command)
 
 
 def read_supervision_status(

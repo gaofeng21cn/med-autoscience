@@ -19,10 +19,10 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 - `default_independence`: landed
 - `full_mds_daemon_behavior_equivalence`: false
-- `default_supervision_owner`: `hermes_gateway_cron`
+- `default_scheduler_adapter`: `hermes_gateway_cron`
 - `default_tick_interval_seconds`: `300`
-- `default_tick_max_ticks`: `1`
-- `default_tick_command`: `ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1`
+- `default_tick_shape`: MAS-owned supervision tick script
+- `default_tick_sequence`: `watch-runtime --max-ticks 1` -> `supervisor-scan` -> `supervisor-consume` -> `supervisor-execute-dispatch`
 
 2026-05-09 fresh assessment：当前差异不再是“MAS 还依赖 MDS 才能跑”，而是“MAS 选择了 durable / scheduler-bound / read-only-first 的 monolith 实现，和旧 MDS resident daemon + WebUI 的交互体验并不完全相同”。按机器矩阵复核，17 个行为面中：
 
@@ -62,8 +62,8 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 | behavior surface | classification | MDS behavior | MAS behavior | user impact |
 | --- | --- | --- | --- | --- |
-| daemon residency | `purpose_equivalent_with_different_timing` | resident HTTP/WebSocket daemon | Hermes gateway cron calls one-shot MAS tick every 300s | drift detection and recovery can be scheduler-bound; no MAS resident daemon is claimed |
-| supervision cadence | `purpose_equivalent_with_different_timing` | resident callbacks and worker/session loop | 300s scheduled tick with `max_ticks=1`, with turn-to-turn continuation owned by the MAS kernel | acceptable for outer drift detection and stale recovery; normal continuation no longer waits for cron, but live interactive daemon response is still not claimed |
+| daemon residency | `purpose_equivalent_with_different_timing` | resident HTTP/WebSocket daemon | Hermes gateway cron calls MAS-owned supervision tick script every 300s | drift detection and recovery can be scheduler-bound; no MAS resident daemon is claimed |
+| supervision cadence | `purpose_equivalent_with_different_timing` | resident callbacks and worker/session loop | 300s scheduled tick script begins with `watch-runtime --max-ticks 1`, then runs supervisor scan / consume / execute-dispatch; turn-to-turn continuation is owned by the MAS kernel | acceptable for outer drift detection and stale recovery; normal continuation no longer waits for cron, but live interactive daemon response is still not claimed |
 | turn completion continuation | `behavior_equivalent` | runner completion normalizes state, drains queued user messages, schedules auto continuation, stops at human/terminal gates | MAS Runtime Turn Lifecycle Kernel performs the same normalization and next-turn decision with runner monitor, delayed timer, worker lease, user queue and receipt |旧 MDS 的“一个 session 结束后怎么启动另一个 session”缺口已补齐为 MAS-owned runtime behavior |
 | quest create/resume/pause/stop | `behavior_equivalent` | daemon API / quest service | MAS Runtime OS / study runtime router | daily lifecycle controls do not require external MDS |
 | live worker/session tracking | `purpose_equivalent_with_different_timing` | in-memory session store and live session API | worker lease + runner monitor + durable runtime state/read model observed by ticks | fail-closed durable liveness is stronger than stale JSON; MDS in-memory session continuity remains retired |
@@ -127,7 +127,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 仍保留差异的地方也更清楚：
 
 - `outer supervision latency`: 仍是 300 秒 Hermes gateway cron one-shot；它只影响 drift detection、stale recovery 和周期性刷新，不再影响正常 turn-to-turn continuation。
-- `progress visibility UX`: Progress Portal 已替代默认进度查看入口，但当前用户体验只是固定入口 + workspace/study 概览，尚未达到旧 MDS WebUI 的 per-project/per-quest 工作台等价。后续 P0 是 study-scoped Portal IA、deep link、Route/Decision Trail 和单篇论文 detail view。
+- `progress visibility UX`: Progress Portal 已替代默认进度查看入口，并已有 per-study Portal page、Route/Decision Trail read-only helper、conversation read model 与 soak evidence keys。它仍保持 `partially_equivalent`，因为真实多论文 workspace 的长期用户体验、route input 完整性和交互深度仍需 evidence-gated polish。
 - `interactive console`: 独立 Live Console UI shell、profile-level session read model、snapshot / loopback SSE stream 和 clean-room contract 已作为 `live-console-parity` landed。它是 read-only purpose equivalence，不是旧 MDS resident WebSocket terminal attach 的 1:1 复刻；terminal attach/input/resize/detach 与 UI-issued runtime control 是后续 interactive parity candidate。
 - `connector background delivery`: 旧 MDS 的 QQ/Slack/Discord/Telegram/Weixin/WhatsApp/Feishu background delivery 仍不属于 MAS 默认 monolith；当前只保留 durable handoff refs。
 - `in-memory session API`: MAS 选择 durable read model 与 receipt，不恢复旧 MDS in-memory session store。
@@ -138,15 +138,15 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 | gap | current impact | why it is acceptable now | recommended improvement |
 | --- | --- | --- | --- |
-| Portal per-study/per-paper IA | 多论文 workspace 里，用户能看到 study rows，但还需要在 workspace overview 中自行定位单篇论文；这会削弱“看这里就知道这篇论文到哪了”的可信感。 | 默认进度入口、source refs、freshness、artifact locator 和 OPL handoff 已由 MAS 持有；不会回落到 MDS WebUI。 | P0：实现 study-scoped Portal shell、per-study deep link、单篇论文 Overview / Path / Runtime / Conversation / Terminal / Artifacts。 |
-| Portal route / decision trail | 用户看不到旧 MDS WebUI 式的研究路线演进：尝试了哪条路、为什么走不通、为什么转向、哪条路线被 supersede、当前 active/winning path 是哪条。 | MAS 已有 controller decisions、evidence/review ledgers、runtime lifecycle lineage/canvas 等底层材料，但它们尚未被产品化投影到 Portal。 | P0：实现 study-scoped Route / Decision Trail read model，只读展示 route node、decision rationale、blocked reason、superseded path、active/winning path 和 source refs；不得让 Portal 重新裁决医学质量。 |
+| Portal per-study/per-paper IA | 多论文 workspace 里，用户已能进入 per-study Portal page；真实 workspace 还需要验证长期刷新、attention queue、deep link 和 source refs 足够清晰。 | 默认进度入口、source refs、freshness、artifact locator、OPL handoff 和 per-study repo contract 已由 MAS 持有；不会回落到 MDS WebUI。 | P0 polish：继续真实 workspace user soak，修正混读、链接、source ref 可读性和 artifact grouping。 |
+| Portal route / decision trail | Repo contract 已落地，但真实论文若缺 controller/evidence/runtime lineage 输入，会 fail-closed 显示 missing，用户仍看不到完整路线演进。 | `focused_lanes.portal-route-decision-trail` 与 `mas_progress_portal_route_decision_trail` 已固定 read-only contract，不让 Portal 重新裁决医学质量。 | P0 soak/polish：补真实 route inputs 与可读 source refs，持续验证 route node、decision rationale、blocked reason、superseded path、active/winning path。 |
 | Live Console interactive terminal/control | 当前能看 session/run、terminal/log tail、SSE/snapshot 和 action intent；不能在 UI 里 attach terminal、输入命令、resize/detach 或直接 stop/resume/reconcile apply。 | read-only observation 已覆盖旧 WebUI 的“看状态/日志/终端尾部”目的；直接控制会触碰 runtime owner、authorization、idempotency 和审计边界。 | P1/P2：先做 authorized UI action lane（pause/resume/reconcile/stop intent apply），再单独评估 interactive terminal attach。 |
 | outer supervision stale/crash latency | 正常 turn-to-turn continuation 不等 cron；但 worker crash、stale recovery、drift detection 和部分 read-model refresh 仍可能等到 300 秒 Hermes tick，或由 operator 触发 one-shot dry-run/reconcile。 | 这比旧 resident daemon 更可审计、fail-closed，且 `outer_supervision_slo` 已把 fresh/due/stale/blocked 和推荐命令投影给用户。 | P1：对真实 workspace 继续收集 SLO evidence，必要时用安全 one-shot reconcile 或更短受控 scheduler cadence，而不是恢复 resident MDS daemon。 |
 | queued mailbox / conversation view | 运行中追加 user message 已有 queue；但用户还缺一个像旧 WebUI chat pane 那样的 executor conversation/timeline 视图。 | durable task intake、owner_route 和 runtime receipts 已能驱动研究，不依赖 chat connector。 | P1：从 turn receipts、user queue、tool/action refs 生成 conversation read model，并挂到 per-study Portal。 |
 | artifact interactive mutation | package locator、artifact refs、current package discovery 已由 Artifact OS 持有；旧 MDS interactive artifact API 没有默认保留。 | MAS 选择 canonical-source-first，避免 UI 或 legacy artifact API 绕过 paper/package authority。 | P2：仅在 Artifact OS authority 下增加 file browser / pickup / rebuild proof view；不恢复任意 mutation API。 |
 | memory/lesson service | MAS 有 incident learning、portfolio/research memory 和 calibration evidence，但不复刻 MDS autonomous memory service。 | 经验/记忆不能直接授权质量、投稿或 route。 | P2：把高价值 lessons 继续导入 Evaluation OS / research memory，保持 evidence-only。 |
 
-后续完善顺序建议固定为：`portal-study-scoped-ia` -> `portal-route-decision-trail` / `portal-stage-artifact-path` -> `runtime-conversation-read-model` / `live-console-study-scope-polish` -> `authorized-ui-control` -> `interactive-terminal-attach-design`。这条顺序能提高用户可信度，同时不让 UI、connector 或旧 daemon 重新成为 runtime owner。
+后续完善顺序建议固定为：real-workspace `portal_console_soak` / source-ref polish -> route input completeness -> authorized UI action apply gate -> interactive terminal attach implementation gate。`portal-study-scoped-ia`、`portal-route-decision-trail`、`portal-stage-artifact-path`、`runtime-conversation-read-model` 和 study-scoped Live Console 已有 repo contract；下一步重点是让真实多论文 workspace 的用户体验稳定，同时不让 UI、connector 或旧 daemon 重新成为 runtime owner。
 
 ## 旧 Workspace-Local Service Policy
 
