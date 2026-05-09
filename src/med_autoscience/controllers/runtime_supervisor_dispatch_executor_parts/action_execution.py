@@ -154,7 +154,6 @@ def execute_current_package_freshness(
     quest_root = quest_root_from_status(profile, study_id)
     if quest_root is None:
         return {"execution_status": "blocked", "blocked_reason": "quest_root_missing", "owner_callable_surface": None}
-    study_root = _study_root(profile, study_id)
     if not apply:
         return {
             "execution_status": "dry_run",
@@ -163,36 +162,49 @@ def execute_current_package_freshness(
             "quest_root": str(quest_root),
         }
     try:
-        owner_result = gate_clearing_batch.run_gate_clearing_batch(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            quest_id=quest_root.name,
-            source="runtime_supervisor_dispatch_executor",
-            control_plane_route_context={
-                "controller_route_context": {
-                    "control_surface": "gate_clearing_batch",
-                    "controller_action_type": "run_gate_clearing_batch",
-                    "work_unit_id": "submission_minimal_refresh",
-                    "requires_human_confirmation": False,
-                }
-            },
-        )
+        owner_result = _run_current_package_gate_clearing_batch(profile=profile, study_id=study_id, quest_root=quest_root)
     except (OSError, TypeError, ValueError, RuntimeError) as exc:
-        return {
-            "execution_status": "blocked",
-            "blocked_reason": "current_package_freshness_workflow_failed",
-            "owner_callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
-            "next_owner": "artifact_os",
-            "error": str(exc),
-            "quest_root": str(quest_root),
-        }
+        return _blocked_current_package_freshness(exc=exc, quest_root=quest_root)
     executed = bool(owner_result.get("ok")) if isinstance(owner_result, Mapping) else False
     return {
         "execution_status": "executed" if executed else "blocked",
         "blocked_reason": None if executed else _text(_mapping(owner_result).get("status")) or "gate_clearing_batch_not_applied",
         "owner_callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
         "owner_result": dict(owner_result) if isinstance(owner_result, Mapping) else owner_result,
+        "quest_root": str(quest_root),
+    }
+
+
+def _run_current_package_gate_clearing_batch(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    quest_root: Path,
+) -> Mapping[str, Any]:
+    return gate_clearing_batch.run_gate_clearing_batch(
+        profile=profile,
+        study_id=study_id,
+        study_root=_study_root(profile, study_id),
+        quest_id=quest_root.name,
+        source="runtime_supervisor_dispatch_executor",
+        control_plane_route_context={
+            "controller_route_context": {
+                "control_surface": "gate_clearing_batch",
+                "controller_action_type": "run_gate_clearing_batch",
+                "work_unit_id": "submission_minimal_refresh",
+                "requires_human_confirmation": False,
+            }
+        },
+    )
+
+
+def _blocked_current_package_freshness(*, exc: Exception, quest_root: Path) -> dict[str, Any]:
+    return {
+        "execution_status": "blocked",
+        "blocked_reason": "current_package_freshness_workflow_failed",
+        "owner_callable_surface": "gate_clearing_batch.run_gate_clearing_batch",
+        "next_owner": "artifact_os",
+        "error": str(exc),
         "quest_root": str(quest_root),
     }
 
@@ -224,17 +236,38 @@ def execute_artifact_display_materialization(
     try:
         stub_result = quest_hydration.materialize_display_contract_stubs(paper_root=paper_root)
     except (OSError, TypeError, ValueError, RuntimeError) as exc:
-        return {
-            "execution_status": "blocked",
-            "blocked_reason": "display_contract_stub_materialization_failed",
-            "owner_callable_surface": "quest_hydration.materialize_display_contract_stubs",
-            "next_owner": "artifact_os",
-            "error": str(exc),
-            "paper_root": str(paper_root),
-        }
+        return _blocked_display_materialization(exc=exc, paper_root=paper_root)
     gate_result = execute_current_package_freshness(profile=profile, study_id=study_id, apply=apply)
     owner_result = _mapping(gate_result.get("owner_result"))
     executed = gate_result.get("execution_status") == "executed"
+    return _display_materialization_result(
+        gate_result=gate_result,
+        owner_result=owner_result,
+        stub_result=stub_result,
+        executed=executed,
+        paper_root=paper_root,
+    )
+
+
+def _blocked_display_materialization(*, exc: Exception, paper_root: Path) -> dict[str, Any]:
+    return {
+        "execution_status": "blocked",
+        "blocked_reason": "display_contract_stub_materialization_failed",
+        "owner_callable_surface": "quest_hydration.materialize_display_contract_stubs",
+        "next_owner": "artifact_os",
+        "error": str(exc),
+        "paper_root": str(paper_root),
+    }
+
+
+def _display_materialization_result(
+    *,
+    gate_result: Mapping[str, Any],
+    owner_result: Mapping[str, Any],
+    stub_result: Mapping[str, Any],
+    executed: bool,
+    paper_root: Path,
+) -> dict[str, Any]:
     return {
         **gate_result,
         "execution_status": "executed" if executed else "blocked",
@@ -246,6 +279,7 @@ def execute_artifact_display_materialization(
         },
         "paper_root": str(paper_root),
     }
+
 
 
 def execute_ai_reviewer_workflow(

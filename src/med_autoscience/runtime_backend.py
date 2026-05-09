@@ -257,49 +257,81 @@ def _validate_backend_callable_contract(*, backend_id: str, backend: ManagedRunt
             raise ValueError(f"managed runtime backend `{backend_id}` is missing callable `{operation_name}`")
         signature = inspect.signature(candidate)
         parameters = signature.parameters
-        missing_parameters = [
-            parameter_name
-            for parameter_name in (*required_parameters, *optional_parameters)
-            if parameter_name not in parameters
-        ]
-        if missing_parameters:
+        _validate_backend_callable_declared_parameters(
+            backend_id=backend_id,
+            operation_name=operation_name,
+            parameters=parameters,
+            required_parameters=required_parameters,
+            optional_parameters=optional_parameters,
+        )
+        _validate_backend_callable_extra_parameters(
+            backend_id=backend_id,
+            operation_name=operation_name,
+            parameters=parameters,
+            required_parameters=required_parameters,
+            optional_parameters=optional_parameters,
+        )
+
+
+def _validate_backend_callable_declared_parameters(
+    *,
+    backend_id: str,
+    operation_name: str,
+    parameters: Mapping[str, inspect.Parameter],
+    required_parameters: tuple[str, ...],
+    optional_parameters: tuple[str, ...],
+) -> None:
+    missing_parameters = [
+        parameter_name
+        for parameter_name in (*required_parameters, *optional_parameters)
+        if parameter_name not in parameters
+    ]
+    if missing_parameters:
+        raise ValueError(
+            f"managed runtime backend `{backend_id}` callable `{operation_name}` is missing parameters: "
+            + ", ".join(missing_parameters)
+        )
+    for parameter_name in required_parameters:
+        parameter = parameters[parameter_name]
+        if parameter.kind not in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
             raise ValueError(
-                f"managed runtime backend `{backend_id}` callable `{operation_name}` is missing parameters: "
-                + ", ".join(missing_parameters)
+                f"managed runtime backend `{backend_id}` callable `{operation_name}` has unsupported parameter kind "
+                f"for `{parameter_name}`"
             )
-        for parameter_name in required_parameters:
-            parameter = parameters[parameter_name]
-            if parameter.kind not in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
-                raise ValueError(
-                    f"managed runtime backend `{backend_id}` callable `{operation_name}` has unsupported parameter kind "
-                    f"for `{parameter_name}`"
-                )
-            if parameter.default is not inspect.Signature.empty:
-                raise ValueError(
-                    f"managed runtime backend `{backend_id}` callable `{operation_name}` must require `{parameter_name}`"
-                )
-        for parameter_name in optional_parameters:
-            parameter = parameters[parameter_name]
-            if parameter.kind not in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
-                raise ValueError(
-                    f"managed runtime backend `{backend_id}` callable `{operation_name}` has unsupported parameter kind "
-                    f"for `{parameter_name}`"
-                )
-        allowed_parameters = set(required_parameters) | set(optional_parameters)
-        for parameter_name, parameter in parameters.items():
-            if parameter.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
-                continue
-            if parameter_name not in allowed_parameters:
-                raise ValueError(
-                    f"managed runtime backend `{backend_id}` callable `{operation_name}` has unexpected parameter "
-                    f"`{parameter_name}`"
-                )
-        for parameter_name in optional_parameters:
-            parameter = parameters[parameter_name]
-            if parameter.default is inspect.Signature.empty:
-                raise ValueError(
-                    f"managed runtime backend `{backend_id}` callable `{operation_name}` must make `{parameter_name}` optional"
-                )
+        if parameter.default is not inspect.Signature.empty:
+            raise ValueError(
+                f"managed runtime backend `{backend_id}` callable `{operation_name}` must require `{parameter_name}`"
+            )
+    for parameter_name in optional_parameters:
+        parameter = parameters[parameter_name]
+        if parameter.kind not in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY):
+            raise ValueError(
+                f"managed runtime backend `{backend_id}` callable `{operation_name}` has unsupported parameter kind "
+                f"for `{parameter_name}`"
+            )
+        if parameter.default is inspect.Signature.empty:
+            raise ValueError(
+                f"managed runtime backend `{backend_id}` callable `{operation_name}` must make `{parameter_name}` optional"
+            )
+
+
+def _validate_backend_callable_extra_parameters(
+    *,
+    backend_id: str,
+    operation_name: str,
+    parameters: Mapping[str, inspect.Parameter],
+    required_parameters: tuple[str, ...],
+    optional_parameters: tuple[str, ...],
+) -> None:
+    allowed_parameters = set(required_parameters) | set(optional_parameters)
+    for parameter_name, parameter in parameters.items():
+        if parameter.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+            continue
+        if parameter_name not in allowed_parameters:
+            raise ValueError(
+                f"managed runtime backend `{backend_id}` callable `{operation_name}` has unexpected parameter "
+                f"`{parameter_name}`"
+            )
 
 
 def register_managed_runtime_backend(backend: ManagedRuntimeBackend) -> None:

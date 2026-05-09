@@ -125,7 +125,36 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     platform_target = dict(payload.get("platform_target") or {})
     unified_enhancement_program = dict(payload.get("unified_enhancement_program") or {})
-    lines = [
+    lines = _mainline_header_lines(
+        payload=payload,
+        current_stage=current_stage,
+        current_program_phase=current_program_phase,
+        runtime_topology=runtime_topology,
+    )
+    lines.extend(_mainline_active_tranche_lines(active_tranche_owner_truth))
+    lines.extend(_mainline_capability_boundary_lines(capability_owner_boundary))
+    lines.extend(
+        _mainline_single_project_phase_lines(
+            single_project_boundary=single_project_boundary,
+            phase2_user_product_loop=phase2_user_product_loop,
+            phase3_clearance_lane=phase3_clearance_lane,
+        )
+    )
+    lines.extend(_mainline_phase4_lines(phase4_backend_deconstruction))
+    lines.extend(_mainline_unified_program_lines(unified_enhancement_program))
+    lines.extend(_mainline_platform_target_lines(platform_target))
+    lines.extend(_mainline_program_list_lines(payload))
+    return "\n".join(lines) + "\n"
+
+
+def _mainline_header_lines(
+    *,
+    payload: Mapping[str, Any],
+    current_stage: Mapping[str, Any],
+    current_program_phase: Mapping[str, Any],
+    runtime_topology: Mapping[str, Any],
+) -> list[str]:
+    return [
         "# Mainline Status",
         "",
         f"- 当前 program: `{payload.get('program_id')}`",
@@ -142,6 +171,11 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         f"- runtime substrate: {runtime_topology.get('runtime_substrate') or 'none'}",
         f"- 研究后端: {runtime_topology.get('research_backend') or 'none'}",
         f"- 入口形态: {runtime_topology.get('entry_shape') or 'none'}",
+    ]
+
+
+def _mainline_active_tranche_lines(active_tranche_owner_truth: Mapping[str, Any]) -> list[str]:
+    lines = [
         "",
         "## Active Tranche Owner Truth",
         "",
@@ -157,15 +191,18 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- MDS migration role `{item.get('role_id')}`: {item.get('summary') or 'none'}")
-    lines.extend(
-        [
-            "",
-            "## Capability Owner Boundary",
-            "",
-            f"- 当前摘要: {capability_owner_boundary.get('summary') or 'none'}",
-            f"- owner: {capability_owner_boundary.get('owner') or 'none'}",
-        ]
-    )
+    return lines
+
+
+def _mainline_capability_boundary_lines(capability_owner_boundary: Mapping[str, Any]) -> list[str]:
+    proof_boundary = dict(capability_owner_boundary.get("proof_and_absorb_boundary") or {})
+    lines = [
+        "",
+        "## Capability Owner Boundary",
+        "",
+        f"- 当前摘要: {capability_owner_boundary.get('summary') or 'none'}",
+        f"- owner: {capability_owner_boundary.get('owner') or 'none'}",
+    ]
     for item in capability_owner_boundary.get("mas_owned_capabilities") or []:
         if not isinstance(item, dict):
             continue
@@ -174,42 +211,69 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         if not isinstance(item, dict):
             continue
         lines.append(f"- MDS migration-only `{item.get('role_id')}`: {item.get('summary') or 'none'}")
-    proof_boundary = dict(capability_owner_boundary.get("proof_and_absorb_boundary") or {})
     lines.append(f"- parity proof: {proof_boundary.get('parity_status') or 'none'}")
     lines.append(f"- physical absorb: {proof_boundary.get('physical_absorb_status') or 'none'}")
-    lines.extend(
-        [
-            "",
-            "## Single-Project Boundary",
-            "",
-            f"- 当前摘要: {single_project_boundary.get('summary') or 'none'}",
-            f"- MAS owner modules: `{', '.join(single_project_boundary.get('mas_owner_modules') or []) or 'none'}`",
-            "",
-            "## Phase 2 User Loop",
-            "",
-            f"- program phase 摘要: {phase2_user_product_loop.get('summary') or 'none'}",
-            f"- 推荐动作: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`",
-            f"- 推荐命令: `{phase2_user_product_loop.get('recommended_command') or 'none'}`",
-            "",
-            "## Phase 3 Clearance",
-            "",
-            f"- 清障重点: {phase3_clearance_lane.get('summary') or 'none'}",
-            f"- 推荐动作: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`",
-            f"- 推荐命令: `{phase3_clearance_lane.get('recommended_command') or 'none'}`",
-        ]
-    )
+    return lines
+
+
+def _mainline_single_project_phase_lines(
+    *,
+    single_project_boundary: Mapping[str, Any],
+    phase2_user_product_loop: Mapping[str, Any],
+    phase3_clearance_lane: Mapping[str, Any],
+) -> list[str]:
+    lines = _single_project_boundary_header_lines(single_project_boundary)
+    lines.extend(_phase2_user_product_loop_lines(phase2_user_product_loop))
+    lines.extend(_phase3_clearance_lane_lines(phase3_clearance_lane))
+    lines.extend(_single_project_boundary_tail_lines(single_project_boundary))
+    return lines
+
+
+def _single_project_boundary_header_lines(single_project_boundary: Mapping[str, Any]) -> list[str]:
+    return [
+        "",
+        "## Single-Project Boundary",
+        "",
+        f"- 当前摘要: {single_project_boundary.get('summary') or 'none'}",
+        f"- MAS owner modules: `{', '.join(single_project_boundary.get('mas_owner_modules') or []) or 'none'}`",
+    ]
+
+
+def _phase2_user_product_loop_lines(phase2_user_product_loop: Mapping[str, Any]) -> list[str]:
+    lines = [
+        "",
+        "## Phase 2 User Loop",
+        "",
+        f"- program phase 摘要: {phase2_user_product_loop.get('summary') or 'none'}",
+        f"- 推荐动作: `{phase2_user_product_loop.get('recommended_step_id') or 'none'}`",
+        f"- 推荐命令: `{phase2_user_product_loop.get('recommended_command') or 'none'}`",
+    ]
     for item in phase2_user_product_loop.get("single_path") or []:
-        if not isinstance(item, dict):
-            continue
-        lines.append(f"- 单一路径 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+        if isinstance(item, dict):
+            lines.append(f"- 单一路径 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+    return lines
+
+
+def _phase3_clearance_lane_lines(phase3_clearance_lane: Mapping[str, Any]) -> list[str]:
+    lines = [
+        "",
+        "## Phase 3 Clearance",
+        "",
+        f"- 清障重点: {phase3_clearance_lane.get('summary') or 'none'}",
+        f"- 推荐动作: `{phase3_clearance_lane.get('recommended_step_id') or 'none'}`",
+        f"- 推荐命令: `{phase3_clearance_lane.get('recommended_command') or 'none'}`",
+    ]
     for item in phase3_clearance_lane.get("clearance_targets") or []:
-        if not isinstance(item, dict):
-            continue
-        lines.append(f"- `{item.get('target_id')}`: `{((item.get('commands') or ['none'])[0])}`")
+        if isinstance(item, dict):
+            lines.append(f"- `{item.get('target_id')}`: `{((item.get('commands') or ['none'])[0])}`")
     for item in phase3_clearance_lane.get("clearance_loop") or []:
-        if not isinstance(item, dict):
-            continue
-        lines.append(f"- 清障步骤 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+        if isinstance(item, dict):
+            lines.append(f"- 清障步骤 `{item.get('step_id')}`: `{item.get('command') or 'none'}`")
+    return lines
+
+
+def _single_project_boundary_tail_lines(single_project_boundary: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
     for item in single_project_boundary.get("mds_retained_roles") or []:
         if not isinstance(item, dict):
             continue
@@ -220,31 +284,46 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         lines.append(f"- post-gate only: {item}")
     for item in single_project_boundary.get("not_now") or []:
         lines.append(f"- 当前不允许: {item}")
-    lines.extend(
-        [
-            "",
-            "## Phase 4 Deconstruction",
-            "",
-            f"- 当前摘要: {phase4_backend_deconstruction.get('summary') or 'none'}",
-        ]
-    )
+    return lines
+
+
+def _mainline_phase4_lines(phase4_backend_deconstruction: Mapping[str, Any]) -> list[str]:
+    lines = [
+        "",
+        "## Phase 4 Deconstruction",
+        "",
+        f"- 当前摘要: {phase4_backend_deconstruction.get('summary') or 'none'}",
+    ]
     for item in phase4_backend_deconstruction.get("substrate_targets") or []:
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
+    return lines
+
+
+def _mainline_unified_program_lines(unified_enhancement_program: Mapping[str, Any]) -> list[str]:
     module_boundary_audit = dict(unified_enhancement_program.get("module_boundary_audit") or {})
-    lines.extend(
-        [
-            "",
-            "## Unified Enhancement Program",
-            "",
-            f"- surface: `{unified_enhancement_program.get('surface_kind') or 'none'}`",
-            f"- status: `{unified_enhancement_program.get('status') or 'none'}`",
-            f"- source: `{unified_enhancement_program.get('source_ref') or 'none'}`",
-            f"- projection-only: {_bool_label(unified_enhancement_program.get('projection_only'))}",
-            f"- authority boundary: {unified_enhancement_program.get('authority_boundary') or 'none'}",
-        ]
-    )
+    lines = _unified_program_header_lines(unified_enhancement_program)
+    lines.extend(_unified_program_lane_lines(unified_enhancement_program))
+    lines.extend(_module_boundary_audit_lines(module_boundary_audit))
+    return lines
+
+
+def _unified_program_header_lines(unified_enhancement_program: Mapping[str, Any]) -> list[str]:
+    return [
+        "",
+        "## Unified Enhancement Program",
+        "",
+        f"- surface: `{unified_enhancement_program.get('surface_kind') or 'none'}`",
+        f"- status: `{unified_enhancement_program.get('status') or 'none'}`",
+        f"- source: `{unified_enhancement_program.get('source_ref') or 'none'}`",
+        f"- projection-only: {_bool_label(unified_enhancement_program.get('projection_only'))}",
+        f"- authority boundary: {unified_enhancement_program.get('authority_boundary') or 'none'}",
+    ]
+
+
+def _unified_program_lane_lines(unified_enhancement_program: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
     for item in unified_enhancement_program.get("lanes") or []:
         if not isinstance(item, dict):
             continue
@@ -259,15 +338,17 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         if secondary_lane_id:
             lane_id = f"{lane_id} + {secondary_lane_id}"
         lines.append(f"- recommendation `{item.get('recommendation_id')}` -> `{lane_id}`: {item.get('summary') or 'none'}")
-    lines.extend(
-        [
-            "",
-            "## Module Boundary Audit",
-            "",
-            f"- projection-only: {_bool_label(module_boundary_audit.get('projection_only'))}",
-            f"- 当前摘要: {module_boundary_audit.get('summary') or 'none'}",
-        ]
-    )
+    return lines
+
+
+def _module_boundary_audit_lines(module_boundary_audit: Mapping[str, Any]) -> list[str]:
+    lines = [
+        "",
+        "## Module Boundary Audit",
+        "",
+        f"- projection-only: {_bool_label(module_boundary_audit.get('projection_only'))}",
+        f"- 当前摘要: {module_boundary_audit.get('summary') or 'none'}",
+    ]
     for item in module_boundary_audit.get("boundaries") or []:
         if not isinstance(item, dict):
             continue
@@ -275,23 +356,25 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
             f"- audit boundary `{item.get('boundary_id')}` owner `{item.get('authority_owner')}`: "
             f"{', '.join(item.get('projection_consumers') or []) or 'none'}"
         )
-    lines.extend(
-        [
-            "",
-            "## Platform Target",
-            "",
-            f"- 当前平台目标: `{platform_target.get('surface_kind') or 'none'}`",
-            f"- 当前摘要: {platform_target.get('summary') or 'none'}",
-            f"- 当前序列范围: {_sequence_scope_label(platform_target.get('sequence_scope'))}",
-            f"- 当前步骤: `{platform_target.get('current_step_id') or 'none'}`",
-            f"- 当前就绪判断: {platform_target.get('current_readiness_summary') or 'none'}",
-            f"- monorepo 目标状态: {_monorepo_status_label((platform_target.get('north_star_topology') or {}).get('monorepo_status'))}",
-            f"- 推荐 phase 命令: `{platform_target.get('recommended_phase_command') or 'none'}`",
-            "",
-            "## Monorepo Sequence",
-            "",
-        ]
-    )
+    return lines
+
+
+def _mainline_platform_target_lines(platform_target: Mapping[str, Any]) -> list[str]:
+    lines = [
+        "",
+        "## Platform Target",
+        "",
+        f"- 当前平台目标: `{platform_target.get('surface_kind') or 'none'}`",
+        f"- 当前摘要: {platform_target.get('summary') or 'none'}",
+        f"- 当前序列范围: {_sequence_scope_label(platform_target.get('sequence_scope'))}",
+        f"- 当前步骤: `{platform_target.get('current_step_id') or 'none'}`",
+        f"- 当前就绪判断: {platform_target.get('current_readiness_summary') or 'none'}",
+        f"- monorepo 目标状态: {_monorepo_status_label((platform_target.get('north_star_topology') or {}).get('monorepo_status'))}",
+        f"- 推荐 phase 命令: `{platform_target.get('recommended_phase_command') or 'none'}`",
+        "",
+        "## Monorepo Sequence",
+        "",
+    ]
     landing_sequence = list(platform_target.get("landing_sequence") or [])
     if landing_sequence:
         for item in landing_sequence:
@@ -302,6 +385,11 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
             )
     else:
         lines.append("- none")
+    return lines
+
+
+def _mainline_program_list_lines(payload: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
     lines.extend(["", "## Program Phases", ""])
     for item in payload.get("phase_ladder") or []:
         if not isinstance(item, dict):
@@ -328,4 +416,4 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     lines.extend(["", "## Key Refs", ""])
     for item in payload.get("source_refs") or []:
         lines.append(f"- `{item}`")
-    return "\n".join(lines) + "\n"
+    return lines

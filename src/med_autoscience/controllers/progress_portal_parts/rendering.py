@@ -28,7 +28,13 @@ def gate_text(study: Mapping[str, Any]) -> str:
 def runtime_continuity_section(runtime_continuity: Mapping[str, Any]) -> str:
     session = _mapping(runtime_continuity.get("runtime_session"))
     intent = _mapping(runtime_continuity.get("recovery_intent"))
-    items = []
+    items = _runtime_session_continuity_items(session)
+    items.extend(_recovery_intent_continuity_items(intent))
+    return list_section("运行连续性", items, empty_text="当前没有 runtime session / recovery intent 投影。")
+
+
+def _runtime_session_continuity_items(session: Mapping[str, Any]) -> list[str]:
+    items: list[str] = []
     if session:
         items.append(f"worker：{display_text(session.get('worker_state'), fallback='未提供')}")
         if session.get("active_run_id"):
@@ -54,13 +60,18 @@ def runtime_continuity_section(runtime_continuity: Mapping[str, Any]) -> str:
             items.append(f"will start LLM：{'yes' if session.get('will_start_llm') else 'no'}")
         if session.get("freshness_state"):
             items.append(f"freshness：{display_text(session.get('freshness_state'), fallback='未提供')}")
+    return items
+
+
+def _recovery_intent_continuity_items(intent: Mapping[str, Any]) -> list[str]:
+    items: list[str] = []
     if intent:
         items.append(f"recovery action：{display_text(intent.get('current_action'), fallback='未提供')}")
         if intent.get("next_owner"):
             items.append(f"next owner：{intent.get('next_owner')}")
         if intent.get("next_eligible_tick"):
             items.append(f"next eligible tick：{local_time_label(intent.get('next_eligible_tick'))}")
-    return list_section("运行连续性", items, empty_text="当前没有 runtime session / recovery intent 投影。")
+    return items
 
 
 def section(title: str, paragraphs: list[str]) -> str:

@@ -187,25 +187,39 @@ def _github_block_reason(developer_mode_payload: Mapping[str, Any]) -> str | Non
 
 
 def _contract_guard(dispatch: Mapping[str, Any]) -> tuple[bool, str | None]:
-    if _text(dispatch.get("surface")) != "default_executor_dispatch_request":
-        return False, "unsupported_dispatch_surface"
-    if _text(dispatch.get("dispatch_status")) != "ready":
-        return False, "dispatch_not_ready"
-    if _text(dispatch.get("executor_kind")) != "codex_cli_default":
-        return False, "unsupported_executor_kind"
-    if dispatch.get("chat_completion_only_executor_forbidden") is not True:
-        return False, "chat_completion_only_guard_missing"
-    action_type = _text(dispatch.get("action_type"))
-    if action_type not in SUPPORTED_ACTION_TYPES:
-        return False, "unsupported_action_type"
+    dispatch_error = _dispatch_contract_error(dispatch)
+    if dispatch_error is not None:
+        return False, dispatch_error
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     if not prompt_contract:
         return False, "prompt_contract_missing"
+    prompt_contract_error = _prompt_contract_error(prompt_contract)
+    if prompt_contract_error is not None:
+        return False, prompt_contract_error
+    return True, None
+
+
+def _dispatch_contract_error(dispatch: Mapping[str, Any]) -> str | None:
+    if _text(dispatch.get("surface")) != "default_executor_dispatch_request":
+        return "unsupported_dispatch_surface"
+    if _text(dispatch.get("dispatch_status")) != "ready":
+        return "dispatch_not_ready"
+    if _text(dispatch.get("executor_kind")) != "codex_cli_default":
+        return "unsupported_executor_kind"
+    if dispatch.get("chat_completion_only_executor_forbidden") is not True:
+        return "chat_completion_only_guard_missing"
+    action_type = _text(dispatch.get("action_type"))
+    if action_type not in SUPPORTED_ACTION_TYPES:
+        return "unsupported_action_type"
+    return None
+
+
+def _prompt_contract_error(prompt_contract: Mapping[str, Any]) -> str | None:
     for key in ("prompt_budget", "compact_evidence_packet_ref", "do_not_repeat", "repeat_suppression_key"):
         if key not in prompt_contract:
-            return False, f"{key}_missing"
+            return f"{key}_missing"
     if prompt_contract.get("do_not_repeat") is not True:
-        return False, "do_not_repeat_guard_missing"
+        return "do_not_repeat_guard_missing"
     for key in (
         "paper_package_mutation_allowed",
         "quality_gate_relaxation_allowed",
@@ -213,15 +227,15 @@ def _contract_guard(dispatch: Mapping[str, Any]) -> tuple[bool, str | None]:
         "medical_claim_authoring_allowed",
     ):
         if prompt_contract.get(key) is not False:
-            return False, f"{key}_guard_missing"
+            return f"{key}_guard_missing"
     forbidden = {
         text
         for item in prompt_contract.get("forbidden_surfaces") or []
         if (text := _text(item)) is not None
     }
     if not set(FORBIDDEN_SURFACES).issubset(forbidden):
-        return False, "forbidden_surfaces_incomplete"
-    return True, None
+        return "forbidden_surfaces_incomplete"
+    return None
 
 
 def _current_owner_route(profile: WorkspaceProfile, study_id: str) -> dict[str, Any] | None:
