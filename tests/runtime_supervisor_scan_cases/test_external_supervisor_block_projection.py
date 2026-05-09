@@ -12,7 +12,7 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_supervisor_scan_does_not_repeat_suppress_external_supervisor_block_without_actions(
+def test_supervisor_scan_dispatches_external_supervisor_repair_after_repeated_block(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -42,16 +42,22 @@ def test_supervisor_scan_does_not_repeat_suppress_external_supervisor_block_with
     )
 
     study = result["studies"][0]
-    assert study["action_queue"] == []
+    assert [item["action_type"] for item in study["action_queue"]] == ["runtime_platform_repair"]
+    action = study["action_queue"][0]
+    assert action["authority"] == "external_supervisor"
+    assert action["reason"] == "runtime_recovery_not_authorized"
+    assert action["handoff_packet"]["recommended_owner"] == "external_engineering_agent"
+    assert [item["action_type"] for item in result["action_queue"]] == ["runtime_platform_repair"]
     assert study["external_supervisor_required"] is True
     assert study["next_owner"] == "external_supervisor"
     assert study["blocked_reason"] == "runtime_recovery_not_authorized"
     assert study["why_not_applied"] == "runtime_recovery_not_authorized"
     assert study["repeat_suppression"]["repeat_suppressed"] is False
     assert study["repeat_suppression"]["why_not_applied"] is None
-    assert study["recovery_intent"]["current_action"] == "escalated"
+    assert study["recovery_intent"]["current_action"] == "safe_reconcile_ready"
     assert study["recovery_intent"]["reason"] == "runtime_recovery_not_authorized"
-    assert study["recovery_intent"]["last_result"]["reason"] == "runtime_recovery_not_authorized"
+    assert study["recovery_intent"]["last_result"] is None
+    assert study["recovery_intent"]["evidence_refs"]["action_ids"] == [action["action_id"]]
 
 
 def _write_previous_scan(workspace_root: Path, *, study_id: str) -> None:

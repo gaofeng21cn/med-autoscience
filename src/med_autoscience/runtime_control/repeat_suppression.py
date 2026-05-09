@@ -48,7 +48,7 @@ def scan_repeat_suppression(
     required_output_pending: bool = False,
 ) -> dict[str, Any]:
     key = repeat_key(owner_route)
-    if _owner_handoff_route(owner_route):
+    if _owner_handoff_route(owner_route) or _external_supervisor_repair_route(owner_route):
         return _not_suppressed(key)
     if key is None or current_meaningful_artifact_delta or required_output_pending:
         return _not_suppressed(key)
@@ -137,6 +137,14 @@ def _owner_handoff_route(owner_route: Mapping[str, Any]) -> bool:
     if _text(route.get("owner_reason")) == OWNER_HANDOFF_REASON:
         return True
     return _text(route.get("failure_signature")) == OWNER_HANDOFF_REASON
+
+
+def _external_supervisor_repair_route(owner_route: Mapping[str, Any]) -> bool:
+    route = _mapping(owner_route)
+    return (
+        _text(route.get("next_owner")) == "external_supervisor"
+        and _text(route.get("owner_reason")) == "runtime_recovery_not_authorized"
+    )
 
 
 def _mapping(value: object) -> dict[str, Any]:
