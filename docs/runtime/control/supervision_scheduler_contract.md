@@ -252,6 +252,8 @@ Status: `CLI default switched to local; real workspace migration receipts pendin
 
 ### Phase 5: OPL simplification and optional Hermes
 
+Status: `in progress across OPL ecosystem`
+
 把 OPL 的依赖口径同步为 optional Hermes provider。
 
 关键要求：
@@ -267,6 +269,8 @@ Status: `CLI default switched to local; real workspace migration receipts pendin
 - 安装包和状态页能在未安装 Hermes 时保持 green，只把 hosted/online-management 能力列为 optional missing。
 
 ### Phase 6: Cleanup and compatibility retirement
+
+Status: `MAS default wording cleanup landed; old workspace migration receipts pending`
 
 移除默认路径中的 Hermes required assumptions。
 

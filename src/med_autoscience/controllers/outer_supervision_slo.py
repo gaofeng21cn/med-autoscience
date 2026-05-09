@@ -35,6 +35,7 @@ def build_outer_supervision_slo_projection(
     reconcile = dict(reconcile_payload or _read_json_object(profile.workspace_root / RECONCILE_LATEST_RELATIVE_PATH) or {})
     supervision = dict(supervision_status or {})
     latest_run_at = _text(supervision.get("latest_run_recorded_at"))
+    adapter_id = _adapter_id(supervision)
     latest_reconcile_at = _text(reconcile.get("generated_at"))
     latest_event_at = _latest_timestamp(latest_run_at, latest_reconcile_at)
     blocked_reasons = _blocked_reasons(supervision)
@@ -83,9 +84,8 @@ def build_outer_supervision_slo_projection(
         "summary": _summary(state=state, age_seconds=age_seconds, blocked_reasons=blocked_reasons, missing_reasons=missing_reasons),
         "owner": "med_autoscience_outer_supervision_read_model",
         "supervision_owner": _text(supervision.get("scheduler_owner")) or "mas_supervision_scheduler",
-        "adapter_id": _text(supervision.get("adapter_id")) or _text(supervision.get("owner")) or "unknown",
+        "adapter_id": adapter_id,
         "latest_outer_supervision_at": latest_event_at,
-        "latest_hermes_run_at": latest_run_at,
         "latest_scheduler_run_at": latest_run_at,
         "latest_supervisor_reconcile_at": latest_reconcile_at,
         "age_seconds": age_seconds,
@@ -162,13 +162,18 @@ def supervisor_reconcile_command(*, profile_ref: str | Path | None, study_id: st
 
 def _blocked_reasons(supervision: Mapping[str, Any]) -> list[str]:
     status = _text(supervision.get("status"))
+    adapter_id = _adapter_id(supervision)
     reasons = [item for item in _string_items(supervision.get("runtime_contract_issues"))]
     if status == "retired_legacy_service_present":
         reasons.append("retired_legacy_service_present")
     if status == "execution_failed":
-        reasons.append("latest_hermes_cron_execution_failed")
+        reasons.append("latest_scheduler_tick_execution_failed")
+        if adapter_id == "hermes_gateway_cron":
+            reasons.append("latest_hermes_cron_execution_failed")
     if status in {"not_loaded", "not_installed"} and supervision:
-        reasons.append(f"hermes_supervision_{status}")
+        reasons.append(f"supervision_scheduler_{status}")
+        if adapter_id == "hermes_gateway_cron":
+            reasons.append(f"hermes_supervision_{status}")
     return list(dict.fromkeys(reasons))
 
 
@@ -197,14 +202,18 @@ def _interval_from_status(supervision: Mapping[str, Any] | None) -> int | None:
 
 def _summary(*, state: str, age_seconds: int | None, blocked_reasons: list[str], missing_reasons: list[str]) -> str:
     if state == "blocked":
-        return "outer Hermes supervision/reconcile SLA blocked: " + ", ".join(blocked_reasons)
+        return "outer supervision scheduler/reconcile SLA blocked: " + ", ".join(blocked_reasons)
     if state == "missing":
-        return "outer Hermes supervision/reconcile SLA missing: " + ", ".join(missing_reasons)
+        return "outer supervision scheduler/reconcile SLA missing: " + ", ".join(missing_reasons)
     if state == "fresh":
-        return f"outer Hermes supervision/reconcile is fresh ({age_seconds}s old)."
+        return f"outer supervision scheduler/reconcile is fresh ({age_seconds}s old)."
     if state == "due":
-        return f"outer Hermes supervision/reconcile is due ({age_seconds}s old); request one-shot supervisor reconcile."
-    return f"outer Hermes supervision/reconcile is stale ({age_seconds}s old); request one-shot supervisor reconcile."
+        return f"outer supervision scheduler/reconcile is due ({age_seconds}s old); request one-shot supervisor reconcile."
+    return f"outer supervision scheduler/reconcile is stale ({age_seconds}s old); request one-shot supervisor reconcile."
+
+
+def _adapter_id(supervision: Mapping[str, Any]) -> str:
+    return _text(supervision.get("adapter_id")) or _text(supervision.get("owner")) or "unknown"
 
 
 def _dedupe_fingerprint(
