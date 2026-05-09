@@ -201,18 +201,50 @@ def test_install_medical_overlay_requires_existing_target_directories(tmp_path: 
     assert "medical-research-intake-audit" in message
 
 
-def test_install_medical_overlay_requires_runtime_repo_seed_for_workspace_append_stage(tmp_path: Path) -> None:
+def test_install_medical_overlay_materializes_workspace_append_stage_without_mds_seed(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     quest_root = tmp_path / "workspace"
 
-    with pytest.raises(FileNotFoundError) as excinfo:
-        module.install_medical_overlay(
-            quest_root=quest_root,
-            skill_ids=("intake-audit",),
-        )
+    result = module.install_medical_overlay(
+        quest_root=quest_root,
+        skill_ids=("intake-audit",),
+    )
+    status = module.describe_medical_overlay(quest_root=quest_root, skill_ids=("intake-audit",))
 
-    assert "controlled-backend skill seed" in str(excinfo.value)
-    assert "intake-audit" in str(excinfo.value)
+    assert result["installed_count"] == 1
+    assert result["mds_skill_sync"]["scope"] == "disabled"
+    assert status["all_targets_ready"] is True
+    skill_path = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-intake-audit" / "SKILL.md"
+    skill_text = skill_path.read_text(encoding="utf-8")
+    assert skill_text.startswith("---\n")
+    assert "name: intake-audit" in skill_text
+    assert "<!-- MED_AUTOSCIENCE_APPEND_BLOCK:intake-audit -->" in skill_text
+    assert skill_text == module.load_overlay_skill_text(
+        "intake-audit",
+        base_text="",
+    )
+
+
+def test_reapply_medical_overlay_repairs_materialized_append_stage_missing_frontmatter(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+    quest_root = tmp_path / "workspace"
+    skill_path = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-intake-audit" / "SKILL.md"
+    skill_path.parent.mkdir(parents=True, exist_ok=True)
+    skill_path.write_text(
+        "\n\n<!-- MED_AUTOSCIENCE_APPEND_BLOCK:intake-audit -->\n\n## stale append-only block\n",
+        encoding="utf-8",
+    )
+
+    result = module.reapply_medical_overlay(
+        quest_root=quest_root,
+        skill_ids=("intake-audit",),
+    )
+
+    skill_text = skill_path.read_text(encoding="utf-8")
+    assert result["installed_count"] == 1
+    assert skill_text.startswith("---\n")
+    assert "name: intake-audit" in skill_text
+    assert "<!-- MED_AUTOSCIENCE_APPEND_BLOCK:intake-audit -->" in skill_text
 
 
 def test_install_medical_overlay_can_target_selected_skill_subset(tmp_path: Path) -> None:
