@@ -183,12 +183,10 @@ def describe_submission_minimal_authority(
     bundle_manifest_path = resolved_paper_root / "paper_bundle_manifest.json"
     try:
         bundle_manifest = load_json(bundle_manifest_path)
-        compile_report_path = resolve_relpath(
-            workspace_root,
-            resolve_bundle_input_path(
-                bundle_manifest=bundle_manifest,
-                key="compile_report_path",
-            ),
+        compile_report_path = resolve_compile_report_path(
+            workspace_root=workspace_root,
+            paper_root=resolved_paper_root,
+            bundle_manifest=bundle_manifest,
         )
         figure_catalog_path = resolve_relpath(
             workspace_root,

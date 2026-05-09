@@ -764,6 +764,38 @@ Wrong draft abstract.
     assert "Wrong draft title" not in submission_markdown
 
 
+def test_create_submission_minimal_package_ignores_recursive_compile_report_path(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+    repeated_compile_path = (
+        "studies/002-early-residual-risk/paper/"
+        "studies/002-early-residual-risk/paper/"
+        "build/compile_report.json"
+    )
+    dump_json(
+        paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "draft_path": "paper/build/review_manuscript.md",
+            "pdf_path": "paper/paper.pdf",
+            "compile_report_path": repeated_compile_path,
+            "bundle_inputs": {
+                "compile_report_path": repeated_compile_path,
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
+            },
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert manifest["output_root"] == "paper/submission_minimal"
+    assert (paper_root / "submission_minimal" / "paper.pdf").exists()
+
+
 def test_create_submission_minimal_package_accepts_current_figure_and_table_catalog_shape(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)
