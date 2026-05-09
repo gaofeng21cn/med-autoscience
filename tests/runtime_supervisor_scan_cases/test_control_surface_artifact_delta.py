@@ -172,3 +172,34 @@ def test_repeat_suppression_ignores_last_meaningful_progress_without_artifact_de
             },
         }
     ) is False
+
+
+def test_repeat_suppression_does_not_override_owner_handoff_projection() -> None:
+    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+
+    guard = module.scan_repeat_suppression(
+        previous_payload={
+            "studies": [
+                {
+                    "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+                    "meaningful_artifact_delta": False,
+                    "owner_route": {
+                        "work_unit_fingerprint": "truth-snapshot::owner-handoff",
+                    },
+                }
+            ]
+        },
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        owner_route={
+            "work_unit_fingerprint": "truth-snapshot::owner-handoff",
+            "owner_reason": "controller_work_unit_owner_handoff_required",
+            "failure_signature": "controller_work_unit_owner_handoff_required",
+            "next_owner": "write/ai_reviewer",
+            "allowed_actions": [],
+        },
+        current_meaningful_artifact_delta=False,
+    )
+
+    assert guard["repeat_suppressed"] is False
+    assert guard["why_not_applied"] is None
+    assert guard["work_unit_fingerprint"] == "truth-snapshot::owner-handoff"

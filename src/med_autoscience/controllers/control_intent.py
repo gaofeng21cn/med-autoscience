@@ -21,6 +21,7 @@ _LIFECYCLE_EVENT_TYPES = frozenset(
         "artifact_written",
         "gate_replayed",
         "needs_specificity",
+        "owner_handoff",
         GATE_REREAD_REQUIRED,
         "explicit_recovery",
         "closed",
@@ -43,6 +44,7 @@ _TERMINAL_EVENT_TYPES = frozenset(
     {
         "closed",
         "needs_specificity",
+        "owner_handoff",
         "superseded",
         GATE_REREAD_REQUIRED,
         PLATFORM_REPAIR_REQUIRED,
@@ -56,6 +58,7 @@ _DIRECT_BLOCK_REASON_EVENT_TYPES = frozenset(
     {
         "closed",
         "needs_specificity",
+        "owner_handoff",
         GATE_REREAD_REQUIRED,
         PLATFORM_REPAIR_REQUIRED,
         AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,

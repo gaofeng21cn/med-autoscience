@@ -61,11 +61,17 @@ def projection_block_state(
     if completion_state is not None:
         return completion_state
     blocked_reason = _text(lifecycle.get("blocked_reason"))
-    if why_not_applied == evidence_adoption.RECHECK_REASON or (
+    if why_not_applied in {evidence_adoption.RECHECK_REASON, evidence_adoption.OWNER_HANDOFF_REASON} or (
         why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions)
     ):
         blocked_reason = why_not_applied
-    next_owner = next_owner_for_blocked_reason(blocked_reason) if blocked_reason else _text(lifecycle.get("next_owner"))
+    next_owner = (
+        evidence_adoption.adopted_next_owner(status)
+        if blocked_reason == evidence_adoption.OWNER_HANDOFF_REASON
+        else next_owner_for_blocked_reason(blocked_reason)
+        if blocked_reason
+        else _text(lifecycle.get("next_owner"))
+    )
     external_supervisor_required = bool(
         lifecycle.get("external_supervisor_required")
         or any(_text(action.get("authority")) == "external_supervisor" for action in actions)
@@ -92,6 +98,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "publication_gate"
     if blocked_reason == evidence_adoption.RECHECK_REASON:
         return "publication_gate"
+    if blocked_reason == evidence_adoption.OWNER_HANDOFF_REASON:
+        return "mas_controller"
     if blocked_reason == "current_package_freshness_required":
         return "artifact_os"
     if blocked_reason == "display_surface_materialization_failed":

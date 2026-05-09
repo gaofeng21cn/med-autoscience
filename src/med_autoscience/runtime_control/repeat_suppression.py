@@ -5,6 +5,7 @@ from typing import Any
 
 
 REPEAT_SUPPRESSED_REASON = "repeat_suppressed"
+OWNER_HANDOFF_REASON = "controller_work_unit_owner_handoff_required"
 
 
 def repeat_key(payload: Mapping[str, Any] | None) -> str | None:
@@ -47,6 +48,8 @@ def scan_repeat_suppression(
     required_output_pending: bool = False,
 ) -> dict[str, Any]:
     key = repeat_key(owner_route)
+    if _owner_handoff_route(owner_route):
+        return _not_suppressed(key)
     if key is None or current_meaningful_artifact_delta or required_output_pending:
         return _not_suppressed(key)
     for study in _list(_mapping(previous_payload).get("studies")):
@@ -129,6 +132,13 @@ def _not_suppressed(key: str | None) -> dict[str, Any]:
     }
 
 
+def _owner_handoff_route(owner_route: Mapping[str, Any]) -> bool:
+    route = _mapping(owner_route)
+    if _text(route.get("owner_reason")) == OWNER_HANDOFF_REASON:
+        return True
+    return _text(route.get("failure_signature")) == OWNER_HANDOFF_REASON
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -143,6 +153,7 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
+    "OWNER_HANDOFF_REASON",
     "REPEAT_SUPPRESSED_REASON",
     "dispatch_repeat_suppression",
     "execution_repeat_suppression",

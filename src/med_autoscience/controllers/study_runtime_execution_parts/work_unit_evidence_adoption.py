@@ -19,8 +19,12 @@ _ANALYSIS_REPAIR_REPORT_SUFFIX = Path(
     "specificity_target_traceability_reaudit.json",
 )
 _MAS_QUALITY_REPAIR_REPORT_SUFFIX = Path("artifacts", "reports", "mas_quality_repair", "latest.json")
+_CONTROLLER_CONSUMPTION_REPORT_SUFFIX = Path("artifacts", "supervision", "controller_consumption", "latest.json")
 _MAS_QUALITY_REPAIR_REPORT_TYPE = "mas_quality_repair_batch"
 _ANALYSIS_REPAIR_RECOMMENDED_NEXT_ROUTE = "return_to_publication_gate_recheck"
+_ANALYSIS_REPAIR_HANDOFF_REPORT_TYPE = "analysis_claim_evidence_current_run_handoff"
+_ANALYSIS_REPAIR_HANDOFF_STATUS = "exhausted_for_current_fingerprint"
+_ANALYSIS_REPAIR_HANDOFF_NEXT_ROUTE = "handoff_to_next_owner"
 
 
 def _text(value: object) -> str | None:
@@ -79,6 +83,7 @@ def _report_candidates(quest_root: Path) -> tuple[Path, ...]:
     candidates = [
         resolved_quest_root / _ANALYSIS_REPAIR_REPORT_SUFFIX,
         resolved_quest_root / _MAS_QUALITY_REPAIR_REPORT_SUFFIX,
+        resolved_quest_root / _CONTROLLER_CONSUMPTION_REPORT_SUFFIX,
     ]
     history_root = resolved_quest_root / ".ds" / "cold_archive" / "report_history"
     if history_root.exists():
@@ -198,11 +203,32 @@ def _mas_quality_repair_report_is_current(
     )
 
 
+def _handoff_report_is_current(
+    *,
+    payload: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    return _report_is_current_for_authorization(
+        payload=payload,
+        authorization_context=authorization_context,
+    ) or _work_unit_fingerprint_explicitly_matches(
+        payload=payload,
+        authorization_context=authorization_context,
+    )
+
+
 def _controller_field(payload: dict[str, Any], key: str) -> str | None:
     controller = payload.get("controller")
     if not isinstance(controller, dict):
         return None
     return _text(controller.get(key))
+
+
+def _is_analysis_repair_exhausted_handoff(payload: dict[str, Any]) -> bool:
+    return (
+        _text(payload.get("repair_packet_type")) == _ANALYSIS_REPAIR_HANDOFF_REPORT_TYPE
+        or _text(payload.get("report_type")) == _ANALYSIS_REPAIR_HANDOFF_REPORT_TYPE
+    ) and _text(payload.get("analysis_lane_status")) == _ANALYSIS_REPAIR_HANDOFF_STATUS
 
 
 def _analysis_repair_batch_report_matches(
@@ -241,6 +267,17 @@ def _report_matches_analysis_repair(
     explicit_action = _text(payload.get("action"))
     explicit_report_type = _text(payload.get("report_type"))
     explicit_report_kind = _text(payload.get("report_kind"))
+    if _is_analysis_repair_exhausted_handoff(payload):
+        return (
+            explicit_work_unit_id == _ANALYSIS_REPAIR_WORK_UNIT_ID
+            and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
+            and _text(payload.get("next_owner")) is not None
+            and _text(payload.get("next_work_unit")) is not None
+            and _handoff_report_is_current(
+                payload=payload,
+                authorization_context=authorization_context,
+            )
+        )
     if explicit_work_unit_id is not None and explicit_work_unit_id != _ANALYSIS_REPAIR_WORK_UNIT_ID:
         return False
     if explicit_route_target is not None and explicit_route_target != _ANALYSIS_REPAIR_ROUTE_TARGET:
@@ -303,6 +340,16 @@ def _normalized_repair_result(
     report_payload: dict[str, Any],
     authorization_context: dict[str, Any],
 ) -> dict[str, Any]:
+    if _is_analysis_repair_exhausted_handoff(report_payload):
+        return {
+            "local_traceability_repair_complete": True,
+            "analysis_lane_status": _ANALYSIS_REPAIR_HANDOFF_STATUS,
+            "meaningful_artifact_delta": bool(report_payload.get("meaningful_artifact_delta")),
+            "specificity_target_count": int(report_payload.get("specificity_target_count") or 0),
+            "publication_gate_cleared": False,
+            "writing_ready_after_repair": False,
+            "finalize_ready_after_repair": False,
+        }
     metrics = report_payload.get("metrics_summary")
     if isinstance(metrics, dict):
         return {
@@ -361,6 +408,8 @@ def _normalized_repair_result(
 
 
 def _result_requires_runtime_relaunch(result: dict[str, Any]) -> bool:
+    if _text(result.get("analysis_lane_status")) == _ANALYSIS_REPAIR_HANDOFF_STATUS:
+        return False
     for key in (
         "publication_gate_cleared",
         "writing_ready_after_repair",
@@ -428,9 +477,9 @@ def record_controller_work_unit_evidence_adoption(
         )
     else:
         lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
-    relaunch_required = _result_requires_runtime_relaunch(
-        dict(evidence_adoption.get("result") or {})
-    )
+    relaunch_required = _result_requires_runtime_relaunch(dict(evidence_adoption.get("result") or {}))
+    next_owner = _text(evidence_adoption.get("next_owner")) or "publication_gate"
+    next_work_unit = _text(evidence_adoption.get("next_work_unit"))
     status.extras["controller_work_unit_evidence_adoption"] = evidence_adoption
     status.extras["controller_decision_authorization_deduped"] = {
         "control_intent_key": authorization_context.get("control_intent_key"),
@@ -439,10 +488,12 @@ def record_controller_work_unit_evidence_adoption(
     }
     status.extras["controller_work_unit_next_route"] = {
         "recommended_next_route": evidence_adoption.get("recommended_next_route"),
-        "owner": "publication_gate",
+        "owner": next_owner,
         "quality_gate_relaxation_allowed": False,
         "runtime_relaunch_required": relaunch_required,
     }
+    if next_work_unit is not None:
+        status.extras["controller_work_unit_next_route"]["next_work_unit"] = next_work_unit
 
 
 def _has_prior_delivery_or_duplicate(
@@ -457,6 +508,20 @@ def _has_prior_delivery_or_duplicate(
             study_root=study_root,
             business_key=identity.business_key,
             recorded_at=authorization_context.get("decision_emitted_at"),
+        )
+    )
+
+
+def _has_prior_delivery_or_duplicate_for_business_key(
+    *,
+    study_root: Path,
+    identity: control_intent.ControlIntentIdentity,
+) -> bool:
+    return any(
+        _text(event.get("event_type")) in {"delivered", "skipped_duplicate"}
+        for event in control_intent.events_for_business_key(
+            study_root=study_root,
+            business_key=identity.business_key,
         )
     )
 
@@ -479,11 +544,16 @@ def adopt_controller_work_unit_evidence_if_present(
     )
     if existing_payload is not None:
         return existing_payload
-    if not _has_prior_delivery_or_duplicate(
+    has_delivery_for_current_decision = _has_prior_delivery_or_duplicate(
         study_root=study_root,
         identity=identity,
         authorization_context=authorization_context,
-    ):
+    )
+    has_delivery_for_same_business_key = _has_prior_delivery_or_duplicate_for_business_key(
+        study_root=study_root,
+        identity=identity,
+    )
+    if not has_delivery_for_current_decision and not has_delivery_for_same_business_key:
         return None
     for report_path in _report_candidates(quest_root):
         if not report_path.exists():
@@ -494,24 +564,54 @@ def adopt_controller_work_unit_evidence_if_present(
             authorization_context=authorization_context,
         ):
             continue
+        if not has_delivery_for_current_decision and not _is_analysis_repair_exhausted_handoff(report_payload):
+            continue
         payload = {
             "active_run_id": active_run_id,
             "report_ref": str(report_path),
             "created_at": _report_timestamp(report_payload),
             "work_unit_id": _ANALYSIS_REPAIR_WORK_UNIT_ID,
             "route_target": _ANALYSIS_REPAIR_ROUTE_TARGET,
-            "recommended_next_route": _ANALYSIS_REPAIR_RECOMMENDED_NEXT_ROUTE,
+            "recommended_next_route": (
+                _ANALYSIS_REPAIR_HANDOFF_NEXT_ROUTE
+                if _is_analysis_repair_exhausted_handoff(report_payload)
+                else _ANALYSIS_REPAIR_RECOMMENDED_NEXT_ROUTE
+            ),
             "source": source,
             "result": _normalized_repair_result(
                 report_payload=report_payload,
                 authorization_context=authorization_context,
             ),
         }
+        next_owner = _text(report_payload.get("next_owner"))
+        next_work_unit = _text(report_payload.get("next_work_unit"))
+        analysis_lane_status = _text(report_payload.get("analysis_lane_status"))
+        if analysis_lane_status is not None:
+            payload["analysis_lane_status"] = analysis_lane_status
+        if next_owner is not None:
+            payload["next_owner"] = next_owner
+        if next_work_unit is not None:
+            payload["next_work_unit"] = next_work_unit
+        if dedupe_recommendation := _text(report_payload.get("dedupe_recommendation")):
+            payload["dedupe_recommendation"] = dedupe_recommendation
         control_intent.append_event(
             study_root=study_root,
             identity=identity,
             event_type="artifact_written",
             payload=payload,
         )
+        if analysis_lane_status == _ANALYSIS_REPAIR_HANDOFF_STATUS and next_owner is not None:
+            control_intent.append_event(
+                study_root=study_root,
+                identity=identity,
+                event_type="owner_handoff",
+                payload={
+                    "reason": _ANALYSIS_REPAIR_HANDOFF_STATUS,
+                    "next_owner": next_owner,
+                    "next_work_unit": next_work_unit,
+                    "report_ref": str(report_path),
+                    "source": source,
+                },
+            )
         return payload
     return None
