@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.progress_portal_parts import local_time_projection
+from med_autoscience.controllers.production_blocker_impact_projection import (
+    build_production_blocker_impact_projection,
+)
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import (
     live_console_contract,
@@ -166,6 +169,7 @@ def build_live_console_read_model(
 ) -> dict[str, Any]:
     generated = io.text(generated_at) or _utc_now()
     resolved_workspace_root = Path(workspace_root).expanduser().resolve() if workspace_root is not None else None
+    source_status = io.load_payload(study_runtime_status, study_runtime_status_path)
     session_projection = runtime_session_read_model.build_runtime_session_read_model(
         study_runtime_status=study_runtime_status,
         study_runtime_status_path=study_runtime_status_path,
@@ -182,6 +186,28 @@ def build_live_console_read_model(
     health = io.load_payload(runtime_health, runtime_health_path)
     supervision = io.load_payload(runtime_supervision, runtime_supervision_path)
     artifact_payload = dict(artifact_delta or {})
+    production_blocker_impact = build_production_blocker_impact_projection(
+        {
+            "study_id": resolved_study_id,
+            "runtime_session": session,
+            "recovery_intent": source_status.get("recovery_intent"),
+            "runtime_reconcile_trigger": source_status.get("runtime_reconcile_trigger"),
+            "owner_route": source_status.get("owner_route"),
+            "paper_progress_stall": source_status.get("paper_progress_stall"),
+            "runtime_health_snapshot": source_status.get("runtime_health_snapshot"),
+            "control_plane_snapshot": source_status.get("control_plane_snapshot"),
+            "current_stage": source_status.get("current_stage"),
+            "current_blockers": source_status.get("current_blockers"),
+            "refs": source_status.get("refs"),
+        },
+        {
+            "study_id": resolved_study_id,
+            "reason": source_status.get("reason"),
+            "worker_state": source_status.get("worker_state"),
+            "blocking_reasons": source_status.get("blocking_reasons"),
+        },
+        study_id=resolved_study_id,
+    )
     read_model = {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
@@ -200,6 +226,7 @@ def build_live_console_read_model(
         "watchdog": _watchdog_projection(session),
         "runtime_health": health,
         "runtime_supervision": supervision,
+        "production_blocker_impact": production_blocker_impact,
         "terminal_sources": terminal,
         "log_sources": logs,
         "artifact_delta": artifact_payload,

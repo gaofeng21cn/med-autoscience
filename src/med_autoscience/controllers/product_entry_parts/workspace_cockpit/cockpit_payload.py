@@ -20,6 +20,9 @@ from med_autoscience.controllers.pi_action_projection import (
     build_pi_action_projection,
     compact_pi_action_projection,
 )
+from med_autoscience.controllers.production_blocker_impact_projection import (
+    build_production_blocker_impact_projection,
+)
 from med_autoscience.controllers.runtime_continuity_projection import runtime_continuity_projection
 from med_autoscience.controllers.study_progress_parts.macro_state_projection import (
     compact_study_macro_state_from_payload,
@@ -130,6 +133,10 @@ def _study_item(
     research_runtime_control_projection = dict(progress_payload.get("research_runtime_control_projection") or {})
     runtime_reconcile_trigger = dict(progress_payload.get("runtime_reconcile_trigger") or {})
     outer_supervision_slo = dict(progress_payload.get("outer_supervision_slo") or {})
+    production_blocker_impact = build_production_blocker_impact_projection(
+        progress_payload,
+        study_id=study_id,
+    )
     gate_surface = dict(research_runtime_control_projection.get("research_gate_surface") or {})
     if gate_surface.get("approval_gate_field") == "needs_user_decision":
         gate_surface.setdefault("legacy_approval_gate_field", "needs_physician_decision")
@@ -242,6 +249,7 @@ def _study_item(
         "runtime_reconcile_trigger": runtime_reconcile_trigger or None,
         "outer_supervision_slo": outer_supervision_slo or None,
         "runtime_continuity": runtime_continuity,
+        "production_blocker_impact": production_blocker_impact,
         "recovery_contract": recovery_contract or None,
         "needs_physician_decision": bool(progress_payload.get("needs_physician_decision")),
         "needs_user_decision": bool(progress_payload.get("needs_user_decision")),

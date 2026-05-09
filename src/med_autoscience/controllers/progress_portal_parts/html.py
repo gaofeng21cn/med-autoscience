@@ -46,6 +46,7 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
     conditions = _mapping(payload.get("conditions"))
     workspace_diagnostics = _mapping(workspace.get("diagnostics"))
     runtime_continuity = _mapping(study.get("runtime_continuity"))
+    production_blocker_impact = _mapping(study.get("production_blocker_impact"))
     section_explanations = _mapping_list(payload.get("section_explanations"))
     latest_events = [dict(item) for item in payload.get("latest_events") or [] if isinstance(item, Mapping)]
     source_refs = display_source_refs(payload.get("source_refs"))
@@ -132,6 +133,7 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
             section("当前状态", current_status_paragraphs),
             section("下一步", next_step_paragraphs),
             runtime_continuity_section(runtime_continuity),
+            _production_blocker_impact_section(production_blocker_impact),
             section("论文与质量", paper_paragraphs),
             section("文件与交付", delivery_paragraphs),
             "</section>",
@@ -181,6 +183,32 @@ def _navigation_section(payload: Mapping[str, Any]) -> str:
         + "".join(links)
         + "</div></nav>"
     )
+
+
+def _production_blocker_impact_section(payload: Mapping[str, Any]) -> str:
+    if not payload:
+        return ""
+    items = [
+        f"是否影响产出：{'yes' if payload.get('affects_output') is True else 'no'}",
+    ]
+    for label, key in (
+        ("next owner", "next_owner"),
+        ("why not running", "why_not_running"),
+        ("same fingerprint or handoff", "same_fingerprint_or_handoff"),
+        ("will start LLM", "will_start_llm"),
+        ("safe reconcile command", "safe_reconcile_command"),
+    ):
+        value = payload.get(key)
+        if value is None:
+            continue
+        if isinstance(value, bool):
+            value = "yes" if value else "no"
+        items.append(f"{label}：{value}")
+    route = _mapping(payload.get("route"))
+    for key in ("source_fingerprint", "work_unit_fingerprint", "trace_id"):
+        if route.get(key):
+            items.append(f"route {key}：{route[key]}")
+    return list_section("是否真影响产出", [str(item) for item in items], empty_text="当前没有 production blocker impact 投影。")
 
 
 def _non_empty_text(value: object) -> str | None:

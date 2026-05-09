@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
+
 from . import shared as _shared
 
 def _module_reexport(module) -> None:
@@ -82,6 +84,8 @@ def _publication_eval_specificity_request(publication_eval_payload: dict[str, An
         unit_id = _non_empty_text(next_work_unit.get("unit_id"))
         if unit_id not in {"gate_needs_specificity", "needs_specificity"}:
             continue
+        if _publication_eval_specificity_superseded_by_ai_review(publication_eval_payload, action):
+            continue
         fingerprint = _non_empty_text(action.get("work_unit_fingerprint"))
         questions = [
             _non_empty_text(item)
@@ -101,6 +105,21 @@ def _publication_eval_specificity_request(publication_eval_payload: dict[str, An
             "reason": _non_empty_text(action.get("reason")),
         }
     return None
+
+
+def _publication_eval_specificity_superseded_by_ai_review(
+    publication_eval_payload: dict[str, Any] | None,
+    action: dict[str, Any],
+) -> bool:
+    if specificity_target_status(action.get("specificity_targets")).get("complete") is not True:
+        return False
+    provenance = (publication_eval_payload or {}).get("assessment_provenance")
+    if not isinstance(provenance, dict):
+        return False
+    return (
+        _non_empty_text(provenance.get("owner")) == "ai_reviewer"
+        and provenance.get("ai_reviewer_required") is False
+    )
 
 
 def _decision_type_label(value: object) -> str | None:

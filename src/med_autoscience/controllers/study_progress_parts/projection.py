@@ -448,6 +448,12 @@ def build_study_progress_projection(
         status_payload=status_with_outer_slo,
         progress_payload={},
     )
+    existing_paper_progress_stall = _mapping_copy(status.get("paper_progress_stall"))
+    if existing_paper_progress_stall:
+        paper_progress_stall_projection = {
+            **paper_progress_stall_projection,
+            **existing_paper_progress_stall,
+        }
     ai_doctor_state = (
         _mapping_copy((autonomy_slo_status or {}).get("ai_doctor_request"))
         or {

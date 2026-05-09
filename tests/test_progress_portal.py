@@ -39,6 +39,31 @@ def _runtime_continuity_payload() -> dict[str, object]:
             },
             "evidence_refs": ["studies/001-risk/artifacts/runtime/recovery_intent/latest.json"],
         },
+        "runtime_reconcile_trigger": {
+            "safe_to_request": True,
+            "recommended_command": (
+                "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+                "--profile /workspace/profile.toml --studies 001-risk --dry-run"
+            ),
+            "dedupe_fingerprint": "runtime-continuity-001",
+            "will_start_llm": False,
+            "source_refs": ["studies/001-risk/artifacts/runtime/owner_route/latest.json"],
+        },
+        "owner_route": {
+            "next_owner": "mas_controller",
+            "owner_reason": "runtime_stale",
+            "source_fingerprint": "runtime-continuity-001",
+            "work_unit_fingerprint": "runtime-continuity-001",
+            "source_refs": {
+                "runtime_health_epoch": "runtime-health-001",
+                "publication_eval_path": "studies/001-risk/artifacts/publication_eval/latest.json",
+            },
+        },
+        "paper_progress_stall": {
+            "why_not_running": "worker heartbeat is stale; no new manuscript artifact delta",
+            "same_fingerprint_or_handoff": "same_fingerprint",
+            "source_refs": ["studies/001-risk/artifacts/autonomy/slo_status/latest.json"],
+        },
     }
 
 
@@ -544,6 +569,7 @@ def test_progress_portal_projects_runtime_continuity_without_new_authority() -> 
     html = module.render_progress_portal_html(payload)
 
     continuity = payload["study"]["runtime_continuity"]
+    impact = payload["study"]["production_blocker_impact"]
     assert continuity["runtime_session"]["worker_state"] == "stale"
     assert continuity["runtime_session"]["last_seen_at"] == "2026-05-08T00:40:00+00:00"
     assert continuity["runtime_session"]["last_known_run_id"] == "run-stale-001"
@@ -557,10 +583,24 @@ def test_progress_portal_projects_runtime_continuity_without_new_authority() -> 
         "publication_ready_authorized": False,
         "submission_ready_authorized": False,
     }
+    assert impact["surface_kind"] == "mas_production_blocker_impact_projection"
+    assert impact["affects_output"] is True
+    assert impact["next_owner"] == "mas_controller"
+    assert impact["why_not_running"] == "worker heartbeat is stale; no new manuscript artifact delta"
+    assert impact["same_fingerprint_or_handoff"] == "same_fingerprint"
+    assert impact["will_start_llm"] is False
+    assert impact["safe_reconcile_command"].endswith("--studies 001-risk --dry-run")
+    assert impact["route"]["source_fingerprint"] == "runtime-continuity-001"
+    assert "studies/001-risk/artifacts/runtime/owner_route/latest.json" in impact["source_refs"]
+    assert impact["authority"]["writes_authority_surface"] is False
     assert payload["opl_handoff"]["runtime_continuity"]["recovery_intent"]["current_action"] == "safe_reconcile_ready"
+    assert payload["opl_handoff"]["production_blocker_impact"]["safe_reconcile_command"] == impact["safe_reconcile_command"]
     assert "last worker heartbeat" in html
     assert "will start LLM" in html
     assert "safe_reconcile_ready" in html
+    assert "是否影响产出" in html
+    assert "safe reconcile command" in html
+    assert "--studies 001-risk --dry-run" in html
     assert "run-stale-001" in html
     assert "quality_ready_authorized" not in html
     assert "MDS" not in html
@@ -602,10 +642,15 @@ def test_workspace_cockpit_study_item_projects_runtime_continuity() -> None:
     item = module._study_item(progress_payload=progress, profile_ref="/workspace/profile.toml")
 
     continuity = item["runtime_continuity"]
+    impact = item["production_blocker_impact"]
     assert continuity["runtime_session"]["worker_state"] == "stale"
     assert continuity["runtime_session"]["last_known_run_id"] == "run-stale-001"
     assert continuity["recovery_intent"]["current_action"] == "safe_reconcile_ready"
     assert continuity["recovery_intent"]["authority"]["submission_ready_authorized"] is False
+    assert impact["next_owner"] == "mas_controller"
+    assert impact["affects_output"] is True
+    assert impact["same_fingerprint_or_handoff"] == "same_fingerprint"
+    assert impact["will_start_llm"] is False
     assert item["outer_supervision_slo"]["state"] == "fresh"
 
 

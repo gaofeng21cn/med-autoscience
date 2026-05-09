@@ -30,6 +30,9 @@ from med_autoscience.controllers.progress_portal_parts.html import (
     render_progress_portal_html as render_progress_portal_html_part,
 )
 from med_autoscience.controllers.progress_portal_parts.serving import build_progress_portal_handler
+from med_autoscience.controllers.production_blocker_impact_projection import (
+    build_production_blocker_impact_projection,
+)
 from med_autoscience.controllers.runtime_continuity_projection import runtime_continuity_projection
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -130,6 +133,11 @@ def build_progress_portal_payload(
         "package": _source_payload_summary(package),
     }
     runtime_continuity = _runtime_continuity(progress, runtime)
+    production_blocker_impact = _production_blocker_impact(
+        progress,
+        runtime,
+        study_id=resolved_study_id,
+    )
     study_workbench = (
         build_study_workbench_payload(
             progress,
@@ -237,6 +245,7 @@ def build_progress_portal_payload(
             "runtime_reconcile_trigger": runtime_reconcile_trigger or None,
             "outer_supervision_slo": outer_supervision_slo or None,
             "runtime_continuity": runtime_continuity,
+            "production_blocker_impact": production_blocker_impact,
         },
         "freshness": freshness,
         "latest_events": latest_events,
@@ -265,6 +274,7 @@ def build_progress_portal_payload(
             delivery=delivery,
             conditions=conditions,
             runtime_continuity=runtime_continuity,
+            production_blocker_impact=production_blocker_impact,
             page_scope=resolved_page_scope,
         ),
     }
@@ -838,6 +848,15 @@ def _runtime_continuity(progress: Mapping[str, Any], runtime: Mapping[str, Any])
     return runtime_continuity_projection(progress, runtime)
 
 
+def _production_blocker_impact(
+    progress: Mapping[str, Any],
+    runtime: Mapping[str, Any],
+    *,
+    study_id: str,
+) -> dict[str, Any]:
+    return build_production_blocker_impact_projection(progress, runtime, study_id=study_id)
+
+
 def _conditions(
     *,
     study_id: str,
@@ -923,6 +942,7 @@ def _opl_handoff_projection(
     delivery: Mapping[str, Any],
     conditions: Mapping[str, Any],
     runtime_continuity: Mapping[str, Any],
+    production_blocker_impact: Mapping[str, Any],
     page_scope: str,
 ) -> dict[str, Any]:
     return {
@@ -942,6 +962,7 @@ def _opl_handoff_projection(
         "source_refs": list(source_refs),
         "artifact_locators": _string_list(delivery.get("refs")),
         "runtime_continuity": _mapping(runtime_continuity),
+        "production_blocker_impact": _mapping(production_blocker_impact),
         "conditions": {
             "missing": _string_list(conditions.get("missing")),
             "stale": _string_list(conditions.get("stale")),

@@ -107,6 +107,61 @@ def test_live_console_read_model_projects_runtime_session_and_stream_refs(tmp_pa
     assert read_model["controller_action_links"][0]["direct_execution_allowed"] is False
 
 
+def test_live_console_read_model_projects_output_blocker_impact_without_writes() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+
+    read_model = module.build_live_console_read_model(
+        profile_name="dm-cvd",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        study_runtime_status={
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "runtime_liveness_status": "stale",
+            "worker_running": False,
+            "worker_state": "stale",
+            "runtime_session": {"freshness_state": "stale"},
+            "recovery_intent": {
+                "current_action": "safe_reconcile_ready",
+                "next_owner": "mas_controller",
+                "dedupe_fingerprint": "runtime-continuity-001",
+            },
+            "runtime_reconcile_trigger": {
+                "safe_to_request": True,
+                "recommended_command": (
+                    "uv run python -m med_autoscience.cli runtime-supervisor-reconcile "
+                    "--profile /workspace/profile.toml --studies 001-risk --dry-run"
+                ),
+                "will_start_llm": False,
+                "dedupe_fingerprint": "runtime-continuity-001",
+                "source_refs": ["studies/001-risk/artifacts/runtime/owner_route/latest.json"],
+            },
+            "owner_route": {
+                "next_owner": "mas_controller",
+                "owner_reason": "runtime_stale",
+                "source_fingerprint": "runtime-continuity-001",
+            },
+            "paper_progress_stall": {
+                "why_not_running": "worker heartbeat stale",
+                "same_fingerprint_or_handoff": "same_fingerprint",
+            },
+        },
+        generated_at="2026-05-08T02:05:00+00:00",
+    )
+
+    impact = read_model["production_blocker_impact"]
+    assert impact["surface_kind"] == "mas_production_blocker_impact_projection"
+    assert impact["affects_output"] is True
+    assert impact["next_owner"] == "mas_controller"
+    assert impact["why_not_running"] == "worker heartbeat stale"
+    assert impact["same_fingerprint_or_handoff"] == "same_fingerprint"
+    assert impact["will_start_llm"] is False
+    assert impact["safe_reconcile_command"].endswith("--studies 001-risk --dry-run")
+    assert impact["route"]["source_fingerprint"] == "runtime-continuity-001"
+    assert impact["authority"]["writes_authority_surface"] is False
+    assert "studies/001-risk/artifacts/runtime/owner_route/latest.json" in impact["source_refs"]
+
+
 def test_live_console_materialization_writes_only_live_console_read_model(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
     status_path = tmp_path / "studies" / "002" / "artifacts" / "runtime" / "status.json"

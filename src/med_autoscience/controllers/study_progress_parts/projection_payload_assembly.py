@@ -6,6 +6,9 @@ from typing import Any
 import med_autoscience.controllers.autonomy_ai_doctor as autonomy_ai_doctor
 import med_autoscience.controllers.open_auto_research_projection as open_auto_research_projection
 import med_autoscience.controllers.pi_action_projection as pi_action_projection
+from med_autoscience.controllers.production_blocker_impact_projection import (
+    build_production_blocker_impact_projection,
+)
 import med_autoscience.controllers.runtime_health_kernel as runtime_health_kernel
 import med_autoscience.controllers.study_truth_kernel as study_truth_kernel
 
@@ -413,6 +416,11 @@ def assemble_study_progress_payload(
         ),
         "refs": refs,
     }
+    payload["production_blocker_impact"] = build_production_blocker_impact_projection(
+        payload,
+        status,
+        study_id=study_id,
+    )
     payload["study_macro_state"] = compact_study_macro_state_from_payload(payload)
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
