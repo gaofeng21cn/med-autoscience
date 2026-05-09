@@ -148,6 +148,54 @@
       "resident_daemon_allowed": false,
       "retired_workspace_local_service_allowed": false
     },
+    "mas-durable-autonomy-closeout": {
+      "kind": "focused_mas_durable_autonomy_closeout_gate",
+      "paths": [
+        "tests/test_autonomy_ai_doctor.py",
+        "tests/test_runtime_health_kernel.py",
+        "tests/test_supervision_scheduler.py",
+        "tests/test_runtime_supervisor_scan.py",
+        "tests/test_runtime_transport_mas_runtime_core.py",
+        "tests/test_recovery_intent_ledger.py"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "slo_breach_read_model_runtime_continuity_projection_only",
+      "implementation_status": "landed_read_model",
+      "surface_kind": "autonomy_progress_slo_status",
+      "required_breach_fields_when_state_breach": [
+        "breach_reason",
+        "breach_explanation"
+      ],
+      "allowed_breach_explanation_categories": [
+        "owner_route",
+        "human_gate",
+        "bundle_blocker",
+        "quality_repair",
+        "worker_recovery",
+        "safe_reconcile_dry_run"
+      ],
+      "required_continuity_refs": [
+        "worker_lease",
+        "checkpoint_lineage",
+        "retry_budget",
+        "idempotent_dispatch",
+        "controller_apply_receipt"
+      ],
+      "default_scheduler_owner": "mas_supervision_scheduler",
+      "default_adapter_id": "local_launchd_on_macos",
+      "explicit_optional_adapter_id": "hermes_gateway_cron",
+      "resident_daemon_allowed": false,
+      "forbidden_authority_writes": [
+        "paper/current_package",
+        "manuscript/current_package",
+        "paper/submission_minimal",
+        "manuscript/submission_minimal",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "runtime_lifecycle.sqlite",
+        "restore_archive"
+      ]
+    },
     "portal-route-decision-trail": {
       "kind": "focused_portal_route_decision_trail_contract_gate",
       "paths": [

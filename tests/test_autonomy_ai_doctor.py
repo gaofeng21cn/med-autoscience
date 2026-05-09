@@ -128,6 +128,77 @@ def test_autonomy_progress_slo_uses_mds_read_churn_without_artifact_delta(tmp_pa
     assert payload["breach_types"] == ["read_churn_without_artifact_delta"]
     assert payload["mds_progress_markers"]["same_result_reinjection_count"] == 6
     assert payload["ai_doctor_request_required"] is True
+    assert payload["breach_reason"] == "read_churn_without_artifact_delta"
+    assert payload["breach_explanation"]["status"] == "explained"
+    assert payload["breach_explanation"]["category"] == "quality_repair"
+
+
+def test_autonomy_slo_read_model_explains_existing_low_information_breach(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.autonomy_ai_doctor")
+    study_root = tmp_path / "studies" / "003-dpcc"
+    latest_path = module.stable_slo_status_path(study_root=study_root)
+    latest_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_path.write_text(
+        json.dumps(
+            {
+                "surface": "autonomy_progress_slo_status",
+                "schema_version": 1,
+                "study_id": "003-dpcc",
+                "quest_id": "quest-003",
+                "state": "breach",
+                "breach_types": ["same_fingerprint_loop"],
+                "owner_route": {
+                    "trace_id": "route-003",
+                    "next_owner": "mas_controller",
+                    "owner_reason": "same_fingerprint_loop",
+                    "idempotency_key": "owner-route::003",
+                },
+                "runtime_session": {
+                    "active_run_id": "run-003",
+                    "worker_state": "stale",
+                    "worker_lease": {
+                        "run_id": "run-003",
+                        "heartbeat_at": "2026-05-02T01:00:00+00:00",
+                    },
+                },
+                "runtime_health_snapshot": {
+                    "canonical_runtime_action": "recover_runtime",
+                    "retry_budget_remaining": 2,
+                },
+                "family_checkpoint_lineage": {
+                    "checkpoint_id": "checkpoint-003",
+                    "resume_contract": {"human_gate_required": False},
+                },
+                "runtime_reconcile_trigger": {
+                    "safe_to_request": True,
+                    "recommended_command": "runtime-supervisor-reconcile --dry-run --study-id 003-dpcc",
+                    "action_class": "reconcile_dry_run",
+                },
+                "controller_apply_receipt": {
+                    "receipt_id": "apply-003",
+                    "action_type": "controller_apply",
+                    "idempotency_key": "owner-route::003",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    payload = module.read_latest_slo_status(study_root=study_root)
+
+    assert payload["state"] == "breach"
+    assert payload["breach_reason"] == "same_fingerprint_loop"
+    assert payload["breach_explanation"]["status"] == "explained"
+    assert payload["breach_explanation"]["owner_route"]["next_owner"] == "mas_controller"
+    assert payload["breach_explanation"]["worker_recovery"]["canonical_runtime_action"] == "recover_runtime"
+    assert payload["breach_explanation"]["worker_recovery"]["retry_budget_remaining"] == 2
+    assert payload["breach_explanation"]["safe_reconcile_dry_run"]["safe_to_request"] is True
+    assert payload["breach_explanation"]["continuity_refs"]["worker_lease"]["run_id"] == "run-003"
+    assert payload["breach_explanation"]["continuity_refs"]["checkpoint_lineage"]["checkpoint_id"] == "checkpoint-003"
+    assert payload["breach_explanation"]["continuity_refs"]["idempotent_dispatch"]["idempotency_key"] == "owner-route::003"
+    assert payload["breach_explanation"]["continuity_refs"]["controller_apply_receipt"]["receipt_id"] == "apply-003"
+    assert payload["breach_explanation"]["low_information_breach_rejected"] is True
 
 
 def test_ai_doctor_request_materialization_creates_attempt_record(tmp_path: Path) -> None:
@@ -176,6 +247,8 @@ def test_ai_doctor_request_materialization_creates_attempt_record(tmp_path: Path
 
     assert payload["ai_doctor_state"] == "attempt_recorded"
     assert payload["ai_doctor_attempt"]["path"] == str(attempts_root / f"{attempt['attempt_id'].split('::')[-1]}.json")
+    assert payload["breach_reason"] == "read_churn_without_artifact_delta"
+    assert payload["breach_explanation"]["low_information_breach_rejected"] is True
     assert attempt["surface"] == "ai_doctor_attempt"
     assert attempt["request_id"] == payload["ai_doctor_request"]["request_id"]
     assert attempt["root_cause"] == "read_churn_without_artifact_delta"

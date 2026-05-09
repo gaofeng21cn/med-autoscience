@@ -133,6 +133,13 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 - `runtime-supervisor-reconcile --dry-run` 是零 dispatch 诊断；`--apply` 只有在 fresh owner_route、未 parked、未 completed、无 human gate、无 publication gate missing、retry budget 未耗尽且 action fingerprint 新鲜时，才能通过 Codex worker dispatch。
 - study-progress、Portal、Live Console、workspace cockpit、Product Entry 和 OPL handoff 只能投影 `affects_output`、`next_owner`、`why_not_running`、`same_fingerprint_or_handoff`、`will_start_llm`、safe reconcile command 和 source refs；它们不得写 paper/package、publication gate、controller decision、runtime SQLite 或 quality/publication/submission ready。
 
+2026-05-10 durable autonomy closeout 又把 `autonomy_progress_slo_status` 的 breach 解释收成正式 read model：
+
+- `state=breach` 必须带 `breach_reason` 与 `breach_explanation`，不能只暴露低信息 `breach_types`。
+- `breach_explanation.category` 必须落在 `owner_route`、`human_gate`、`bundle_blocker`、`quality_repair`、`worker_recovery`、`safe_reconcile_dry_run` 之一。
+- 同一投影需要把 MAS-owned runtime continuity 线索串起来：`owner_route`、`worker_lease` / `runtime_session`、checkpoint lineage / resume contract、`runtime_health_snapshot.retry_budget_remaining`、recovery intent dedupe fingerprint、idempotent dispatch receipt、controller apply receipt 与 safe reconcile dry-run command。
+- 这是只读解释层；它不执行 reconcile、不启动 Codex worker、不写 paper/package、不写 `publication_eval/latest.json`、不写 `controller_decisions/latest.json`，也不恢复 MDS resident daemon。
+
 MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 policy：
 
 - `executor_kind = codex_cli_default`
