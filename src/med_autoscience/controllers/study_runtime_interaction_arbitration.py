@@ -236,7 +236,10 @@ def _platform_repair_decision_redrive(continuation_state: dict[str, Any] | None)
         return None
     if continuation_anchor != "decision":
         return None
-    if continuation_reason != "runtime_platform_repair_redrive":
+    if continuation_reason not in {
+        "runtime_platform_repair_redrive",
+        "controller_work_unit_pending",
+    }:
         return None
     pending_count = continuation_state.get("pending_user_message_count")
     if isinstance(pending_count, int) and pending_count > 0:
@@ -252,8 +255,8 @@ def _platform_repair_decision_redrive(continuation_state: dict[str, Any] | None)
         "source_artifact_path": None,
         "pending_user_message_count": int(pending_count or 0),
         "controller_stage_note": (
-            "Runtime platform repair cleared a stale waiting state and marked the controller decision lane "
-            "for autonomous redrive; resume the managed runtime instead of parking on waiting_for_user."
+            "Runtime platform repair marked the controller decision lane for autonomous redrive; "
+            "resume the managed runtime instead of parking on waiting_for_user."
         ),
     }
 

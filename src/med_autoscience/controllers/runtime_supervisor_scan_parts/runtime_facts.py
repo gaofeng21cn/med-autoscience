@@ -253,11 +253,16 @@ def _runtime_platform_repair_redrive_pending(status: Mapping[str, Any]) -> bool:
     if active_run_id(status, {}) is not None or worker_running(status):
         return False
     continuation_state = _mapping(status.get("continuation_state"))
+    if int(continuation_state.get("pending_user_message_count") or 0) > 0:
+        return False
     return bool(
         _text(continuation_state.get("continuation_policy")) == "auto"
         and _text(continuation_state.get("continuation_anchor")) == "decision"
-        and _text(continuation_state.get("continuation_reason")) == "runtime_platform_repair_redrive"
-        and int(continuation_state.get("pending_user_message_count") or 0) == 0
+        and _text(continuation_state.get("continuation_reason"))
+        in {
+            "runtime_platform_repair_redrive",
+            "controller_work_unit_pending",
+        }
     )
 
 

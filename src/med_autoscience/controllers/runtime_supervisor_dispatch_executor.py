@@ -272,7 +272,13 @@ def _paper_progress_stall_block_reason(
     *,
     dispatch: Mapping[str, Any],
     current_study: Mapping[str, Any] | None,
+    current_route: Mapping[str, Any] | None,
 ) -> str | None:
+    if _text(dispatch.get("action_type")) == "return_to_ai_reviewer_workflow" and owner_route_part.route_allows_action(
+        action=dispatch,
+        owner_route=current_route,
+    ):
+        return None
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     dispatch_stall = _mapping(dispatch.get("paper_progress_stall")) or _mapping(prompt_contract.get("paper_progress_stall"))
     if not dispatch_stall:
@@ -537,7 +543,11 @@ def _execute_dispatch(
     owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     current_study = _current_scan_study(profile, study_id)
-    stall_block_reason = _paper_progress_stall_block_reason(dispatch=dispatch, current_study=current_study)
+    stall_block_reason = _paper_progress_stall_block_reason(
+        dispatch=dispatch,
+        current_study=current_study,
+        current_route=current_route,
+    )
     repeat_guard = repeat_suppression.execution_repeat_suppression(
         dispatch={**dict(dispatch), "owner_route": _dispatch_owner_route(dispatch), "prompt_contract": prompt_contract},
         current_study=current_study,

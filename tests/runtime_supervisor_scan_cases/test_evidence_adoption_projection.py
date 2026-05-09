@@ -301,6 +301,142 @@ def test_supervisor_scan_routes_analysis_handoff_to_next_owner(
     assert request_packet["blockers"] == ["controller_work_unit_owner_handoff_required"]
 
 
+def test_supervisor_scan_preserves_owner_handoff_when_platform_redrive_adopts_evidence(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    publication_eval = {
+        "schema_version": 1,
+        "assessment_provenance": {"owner": "ai_reviewer"},
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                "next_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                },
+            }
+        ],
+    }
+
+    def fake_apply_runtime_platform_repair(**_: object) -> dict[str, object]:
+        return {
+            "action_type": "runtime_platform_repair",
+            "dispatch_status": "blocked",
+            "reason": "runtime_relaunch_no_live_run_started",
+            "repair_kind": "pending_runtime_platform_repair_redrive",
+            "resume_result": {
+                "decision": "noop",
+                "reason": "controller_work_unit_evidence_adopted",
+                "quest_status": "waiting_for_user",
+                "active_run_id": None,
+                "controller_work_unit_next_route": {
+                    "recommended_next_route": "handoff_to_next_owner",
+                    "owner": "write/ai_reviewer",
+                    "next_work_unit": "manuscript_story_repair",
+                    "quality_gate_relaxation_allowed": False,
+                    "runtime_relaunch_required": False,
+                },
+                "controller_work_unit_evidence_adoption": {
+                    "already_recorded": True,
+                    "work_unit_id": "analysis_claim_evidence_repair",
+                    "route_target": "analysis-campaign",
+                    "recommended_next_route": "handoff_to_next_owner",
+                    "analysis_lane_status": "exhausted_for_current_fingerprint",
+                    "next_owner": "write/ai_reviewer",
+                    "next_work_unit": "manuscript_story_repair",
+                    "result": {
+                        "local_traceability_repair_complete": True,
+                        "analysis_lane_status": "exhausted_for_current_fingerprint",
+                        "meaningful_artifact_delta": True,
+                    },
+                },
+            },
+        }
+
+    monkeypatch.setattr(module.platform_repair, "apply_runtime_platform_repair", fake_apply_runtime_platform_repair)
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            {
+                "study_id": study_id,
+                "study_root": str(study_root),
+                "quest_id": study_id,
+                "quest_root": str(quest_root),
+                "quest_status": "waiting_for_user",
+                "decision": "resume",
+                "reason": "quest_waiting_platform_repair_redrive",
+                "active_run_id": None,
+                "runtime_liveness_audit": {
+                    "status": "none",
+                    "active_run_id": None,
+                    "runtime_audit": {"worker_running": False, "active_run_id": None},
+                },
+                "continuation_state": {
+                    "active_run_id": None,
+                    "status": "waiting_for_user",
+                    "continuation_policy": "auto",
+                    "continuation_anchor": "decision",
+                    "continuation_reason": "controller_work_unit_pending",
+                    "pending_user_message_count": 0,
+                },
+                "runtime_health_snapshot": {
+                    "canonical_runtime_action": "external_supervisor_required",
+                    "attempt_state": "escalated",
+                    "retry_budget_remaining": 0,
+                    "blocking_reasons": [
+                        "quest_marked_running_but_no_live_session",
+                        "runtime_recovery_retry_budget_exhausted",
+                    ],
+                },
+                "publication_eval": publication_eval,
+                "study_truth_snapshot": {
+                    "truth_epoch": "truth-epoch-platform-handoff",
+                    "source_signature": "truth-source-platform-handoff",
+                },
+            },
+            {
+                "study_id": study_id,
+                "quest_id": study_id,
+                "current_stage": "publication_supervision",
+                "paper_stage": "write",
+                "supervision": {"active_run_id": None, "health_status": "escalated"},
+                "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+            },
+            study_id,
+            publication_eval,
+        ),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        apply_safe_actions=True,
+        apply_runtime_platform_repair=True,
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert study["runtime_platform_repair_apply"]["dispatch_status"] == "blocked"
+    assert study["why_not_applied"] == "controller_work_unit_owner_handoff_required"
+    assert study["blocked_reason"] == "controller_work_unit_owner_handoff_required"
+    assert study["next_owner"] == "write/ai_reviewer"
+    assert study["external_supervisor_required"] is False
+    assert study["owner_route"]["next_owner"] == "write/ai_reviewer"
+    assert study["owner_route"]["owner_reason"] == "controller_work_unit_owner_handoff_required"
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+
+
 def test_supervisor_scan_keeps_runtime_redrive_when_adopted_work_unit_did_not_clear_gate(
     monkeypatch,
     tmp_path: Path,
