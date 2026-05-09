@@ -58,7 +58,7 @@ def render_medautoscience_readme(*, profile_relpath: Path) -> str:
         "- `bin/watch-runtime-service-status`\n"
         "- `bin/uninstall-watch-runtime-service`\n\n"
         "其中 `install-watch-runtime-service` / `watch-runtime-service-status` / `uninstall-watch-runtime-service`\n"
-        "会管理 Hermes-hosted supervision job，而不是再安装第二个 workspace-local 常驻 service。\n"
+        "会管理 MAS scheduler supervision job；Hermes 只在显式 `--manager hermes` 时作为 optional adapter。\n"
     )
 
 

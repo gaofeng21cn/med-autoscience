@@ -20,7 +20,7 @@ Date: `2026-05-09`
 
 ## 当前 Hermes 实际职责
 
-截至 `2026-05-09`，Hermes 在 MAS 默认路径中承担的职责很单一：
+截至 `2026-05-09`，Hermes 在 MAS 显式 optional adapter 路径中承担的职责很单一：
 
 1. 写入或刷新 MAS-owned tick script。
    - 当前 Hermes adapter 将脚本放到 `~/.hermes/scripts/med-autoscience/<workspace-key>/watch_runtime_tick.py`。
@@ -157,12 +157,12 @@ Hermes 可以继续作为 optional hosted / remote / multi-model executor substr
 - 更新 `runtime_boundary.md`、`runtime_supervision_loop.md`、`runtime_core_convergence_and_controlled_cutover.md`、`architecture.md`、`status.md`、`decisions.md` 的口径。
 - 明确三层：Runtime Core / Supervisor Scheduler / Product Projection。
 - 明确 Hermes 当前承担的是单一 scheduler adapter 职责。
-- 明确 local adapter 落地前不能删除 Hermes；local adapter parity 后 Hermes 降为 optional。
+- 明确 local adapter 已成为默认；Hermes 只作为 explicit optional adapter 保留。
 
 验收：
 
 - docs 中不再把 Hermes 写成 MAS architecture center。
-- active docs 允许说 `Hermes gateway cron = current active scheduler adapter`。
+- active docs 只能说 `Hermes gateway cron = explicit optional scheduler adapter`。
 - active docs 不允许说 `Hermes = MAS runtime owner / session owner / research executor owner`。
 
 ### Phase 1: Contract surface implementation

@@ -205,7 +205,9 @@ def _render_install_watch_runtime_service_script() -> str:
         '  cat <<'"'"'EOF'"'"'\n'
         "Install portable MAS runtime supervision.\n\n"
         "Default:\n"
-        "  no --manager       register/refresh Hermes gateway cron and clean retired workspace-local host services\n\n"
+        "  no --manager       register/refresh MAS scheduler contract local adapter\n\n"
+        "Optional adapters:\n"
+        "  --manager hermes    explicit Hermes gateway cron adapter\n\n"
         "Retired diagnostic managers:\n"
         "  --manager systemd   fail-closed; reports retired workspace-local service manager\n"
         "  --manager cron      fail-closed; reports retired workspace-local service manager\n"

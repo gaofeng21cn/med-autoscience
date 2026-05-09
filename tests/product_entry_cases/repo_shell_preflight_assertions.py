@@ -83,22 +83,11 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     ),
                 },
                 {
-                    "check_id": "external_runtime_contract_ready",
-                    "title": "External Runtime Contract Ready",
-                    "status": "pass",
-                    "blocking": True,
-                    "summary": "external Hermes runtime contract 已 ready。",
-                    "command": (
-                        "uv run python -m med_autoscience.cli doctor --profile "
-                        + str(profile_ref.resolve())
-                    ),
-                },
-                {
                     "check_id": "workspace_supervision_contract_ready",
                     "title": "Workspace Supervision Contract Ready",
                     "status": "pass",
                     "blocking": True,
-                    "summary": "workspace supervision owner 已收敛到 canonical Hermes supervision。",
+                    "summary": "workspace supervision scheduler 已 ready。",
                 "command": (
                     "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile "
                     + str(profile_ref.resolve())
@@ -117,7 +106,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                 {
                     "guardrail_id": "workspace_supervision_gap",
                     "trigger": "workspace-cockpit attention queue / study-progress supervisor freshness",
-                        "symptom": "Hermes-hosted supervision 未在线、supervisor tick stale/missing、托管恢复真相不再新鲜。",
+                        "symptom": "MAS scheduler supervision 未在线、supervisor tick stale/missing、托管恢复真相不再新鲜。",
                     "recommended_command": (
                         "uv run python -m med_autoscience.cli watch --runtime-root "
                         + str(profile.runtime_root)

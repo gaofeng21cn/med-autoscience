@@ -787,7 +787,7 @@ def _intervention_lane(
     if _supervisor_tick_gap_present(supervisor_tick_audit):
         return {
             "lane_id": "workspace_supervision_gap",
-            "title": "优先恢复 Hermes-hosted 托管监管",
+            "title": "优先恢复 MAS scheduler 托管监管",
             "severity": "critical",
             "summary": (
                 _non_empty_text((supervisor_tick_audit or {}).get("summary"))

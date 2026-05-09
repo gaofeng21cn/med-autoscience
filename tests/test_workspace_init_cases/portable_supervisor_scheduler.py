@@ -60,8 +60,9 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
 
     install_text = install_service.read_text(encoding="utf-8")
     assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
-    assert "register/refresh Hermes gateway cron" in install_text
-    assert "clean retired workspace-local host services" in install_text
+    assert "register/refresh MAS scheduler contract local adapter" in install_text
+    assert "--manager hermes" in install_text
+    assert "explicit Hermes gateway cron adapter" in install_text
     assert "Retired diagnostic managers:" in install_text
     assert "--manager systemd" in install_text
     assert "--manager cron" in install_text

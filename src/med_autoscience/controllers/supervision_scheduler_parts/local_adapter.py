@@ -177,7 +177,12 @@ def _launchd_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict
         drift_reasons.append("tick_script_checksum_drift")
     installed = plist_path.exists()
     script_exists = script.exists()
-    loaded = installed and script_exists and not drift_reasons
+    launchd_probe = (
+        _launch_agent_probe(label=_launchd_label(profile))
+        if installed
+        else {"loaded": False, "exit_code": None, "output": ""}
+    )
+    loaded = installed and script_exists and bool(launchd_probe.get("loaded")) and not drift_reasons
     status_value = "loaded" if loaded else ("not_loaded" if installed else "not_installed")
     summary = (
         "MAS local scheduler LaunchAgent 已安装并指向 MAS-owned supervision tick。"
@@ -199,12 +204,16 @@ def _launchd_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict
         {
             "launch_agent_label": _launchd_label(profile),
             "launch_agent_path": str(plist_path),
+            "launch_agent_probe": launchd_probe,
             "adapter_status": {
                 "adapter_installed": installed,
                 "adapter_loaded": loaded,
                 "adapter_enabled": installed,
                 "migration_state": "none",
             },
+            "adapter_installed": installed,
+            "adapter_loaded": loaded,
+            "adapter_enabled": installed,
             "job_exists": installed,
             "job_enabled": installed,
             "job_state": "scheduled" if installed else None,
@@ -445,6 +454,17 @@ def _load_launch_agent(*, plist_path: Path, label: str) -> list[dict[str, Any]]:
     ]
 
 
+def _launch_agent_probe(*, label: str) -> dict[str, Any]:
+    domain = f"gui/{os.getuid()}"
+    result = _run_command(["launchctl", "print", f"{domain}/{label}"])
+    return {
+        "command": result["command"],
+        "exit_code": result["exit_code"],
+        "loaded": result["exit_code"] == 0,
+        "output": result["output"],
+    }
+
+
 def _unload_launch_agent(*, plist_path: Path, label: str) -> list[dict[str, Any]]:
     domain = f"gui/{os.getuid()}"
     return [
@@ -592,3 +612,16 @@ def _slugify(value: str) -> str:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+__all__ = [
+    "DEFAULT_INTERVAL_SECONDS",
+    "SCHEMA_VERSION",
+    "SCHEDULER_OWNER",
+    "ensure",
+    "local_backend_id",
+    "remove",
+    "status",
+    "utc_now",
+    "workspace_key",
+]

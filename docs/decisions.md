@@ -1,10 +1,10 @@
 # 关键决策记录
 
-## 2026-05-09：MAS 持有 supervision scheduler contract，Hermes 降为当前 adapter
+## 2026-05-09：MAS 持有 supervision scheduler contract，local 成为默认 adapter
 
-- 决策：`MAS supervision scheduler contract` 是 outer supervision 的正式 owner；`Hermes gateway cron` 只是当前 active scheduler adapter。MAS 的运行架构按 Runtime Core、Supervisor Scheduler、Product Projection 三层表达：Runtime Core 由 `MAS Runtime OS` / `mas_runtime_core` 持有；Supervisor Scheduler 只负责按 cadence 唤醒 MAS-owned tick、记录 job/run receipt、暴露 SLO / drift；Product Projection 只读展示进度、日志、阻塞和下一步。
-- 理由：fresh repo 状态显示 Hermes 当前承担的是单一、可替换的 scheduler adapter 工作：生成 tick script、注册/更新/触发/删除 cron job、提供 job registry/latest run/session projection 和 gateway liveness。它不持有研究执行、turn continuation、publication judgment、quality authority 或 study truth。成熟工程实践也要求 scheduler 只生产可审计触发，幂等、并发、missed-run、receipt 和 migration 由系统 contract 明确表达。
-- 影响：后续先按 [Supervision Scheduler Contract](./runtime/control/supervision_scheduler_contract.md) 实现 MAS-owned local scheduler adapter；local adapter 与 Hermes adapter 必须输出同构 status / SLO / latest receipt / drift / duplicate detection。local adapter parity 前不能裸删 Hermes，因为会丢失 active scheduled tick 与状态投影；parity 后，Hermes 从 required dependency 降为 optional hosted / remote / non-GPT executor / OPL online-management adapter。OPL 文档、Full package、runtime tray 和 installer 应随 cutover 把 Hermes 改为 optional provider，而不是 core/domain readiness 前置条件。
+- 决策：`MAS supervision scheduler contract` 是 outer supervision 的正式 owner；`local` 是默认 scheduler adapter，macOS 落到 MAS-owned LaunchAgent，`Hermes gateway cron` 只作为显式 `--manager hermes` optional adapter。MAS 的运行架构按 Runtime Core、Supervisor Scheduler、Product Projection 三层表达：Runtime Core 由 `MAS Runtime OS` / `mas_runtime_core` 持有；Supervisor Scheduler 只负责按 cadence 唤醒 MAS-owned tick、记录 job/run receipt、暴露 SLO / drift；Product Projection 只读展示进度、日志、阻塞和下一步。
+- 理由：fresh repo 状态显示 scheduler 应承担单一、可替换的 adapter 工作：生成 tick script、注册/更新/触发/删除 job、提供 job registry/latest run/session projection 和 liveness。它不持有研究执行、turn continuation、publication judgment、quality authority 或 study truth。成熟工程实践也要求 scheduler 只生产可审计触发，幂等、并发、missed-run、receipt 和 migration 由系统 contract 明确表达。
+- 影响：`runtime-supervision-status`、`runtime-ensure-supervision` 与 `runtime-remove-supervision` 默认走 MAS-owned `local` adapter；Hermes 保留为 optional hosted / remote / non-GPT executor / OPL online-management adapter。OPL 文档、Full package、runtime tray 和 installer 应把 Hermes 作为 optional provider，而不是 core/domain readiness 前置条件。
 
 ## 2026-05-08：MAS monolith closeout 取代外部 MDS 默认运行依赖
 

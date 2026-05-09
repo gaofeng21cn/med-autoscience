@@ -537,8 +537,8 @@ def _status_summary(
     if status == "retired_legacy_service_present" and (legacy_loaded or legacy_exists):
         return (
             "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 "
-            "Hermes gateway cron；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 "
-            "Hermes cron tick。"
+            "MAS supervision scheduler contract；请运行 runtime-ensure-supervision 清理旧 host service "
+            "并注册/刷新 local scheduler tick。"
         )
     return _shared_status_summary(
         status=status,

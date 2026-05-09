@@ -6,7 +6,7 @@ import platform
 
 from med_autoscience.ai_first_drift_audit import run_ai_first_drift_audit
 from med_autoscience.controllers.ai_first_observability import build_doctor_ai_first_observability_summary
-from med_autoscience.controllers import hermes_supervision
+from med_autoscience.controllers import supervision_scheduler
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.overlay import describe_medical_overlay
@@ -79,7 +79,7 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
                 ),
             )
         ),
-        workspace_supervision_contract=dict(hermes_supervision.read_supervision_status(profile=profile)),
+        workspace_supervision_contract=dict(supervision_scheduler.read_supervision_status(profile=profile)),
         ai_first_drift_audit=ai_first_drift_audit,
         ai_first_observability=dict(
             build_doctor_ai_first_observability_summary(drift_audit=ai_first_drift_audit)

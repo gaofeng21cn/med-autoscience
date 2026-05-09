@@ -75,6 +75,8 @@ def test_local_scheduler_apply_writes_tick_script_plist_and_receipt(monkeypatch,
 
     assert result["action"] == "installed_and_triggered"
     assert result["after"]["loaded"] is True
+    assert result["after"]["launch_agent_probe"]["loaded"] is True
+    assert result["after"]["scheduler_owner"] == "mas_supervision_scheduler"
     assert result["after"]["latest_run_recorded_at"] == "2026-05-09T00:00:01+00:00"
     assert Path(result["script_path"]).is_file()
     assert Path(result["launch_agent_path"]).is_file()
@@ -85,7 +87,33 @@ def test_local_scheduler_apply_writes_tick_script_plist_and_receipt(monkeypatch,
     assert "supervisor-consume" in script
     assert "supervisor-execute-dispatch" in script
     assert any(command[:2] == ["launchctl", "bootstrap"] for command in commands)
+    assert any(command[:2] == ["launchctl", "print"] for command in commands)
     assert any(command and command[0].endswith("watch_runtime_tick.py") for command in commands)
+
+
+def test_local_scheduler_status_requires_launchd_loaded_probe(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
+    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
+    profile = make_profile(tmp_path)
+    launch_agents = tmp_path / "LaunchAgents"
+    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
+    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
+
+    local._ensure_tick_script(profile=profile, interval_seconds=300)
+    plist_path = local._launch_agent_path(profile)
+    plist_path.parent.mkdir(parents=True, exist_ok=True)
+    plist_path.write_bytes(local.plistlib.dumps(local._launch_agent_plist(profile=profile, interval_seconds=300)))
+    monkeypatch.setattr(
+        local,
+        "_run_command",
+        lambda command: {"command": command, "exit_code": 113, "output": "Could not find service"},
+    )
+
+    result = module.read_supervision_status(profile=profile, manager="local")
+
+    assert result["status"] == "not_loaded"
+    assert result["loaded"] is False
+    assert result["launch_agent_probe"]["loaded"] is False
 
 
 def test_explicit_hermes_adapter_is_projected_under_mas_scheduler_owner(monkeypatch, tmp_path: Path) -> None:
@@ -111,5 +139,6 @@ def test_explicit_hermes_adapter_is_projected_under_mas_scheduler_owner(monkeypa
     assert result["scheduler_owner"] == "mas_supervision_scheduler"
     assert result["adapter_id"] == "hermes_gateway_cron"
     assert result["owner"] == "hermes_gateway_cron"
+    assert result["workspace_key"] == "diabetes-abc12345"
     assert result["outer_supervision_slo"]["supervision_owner"] == "mas_supervision_scheduler"
     assert result["outer_supervision_slo"]["adapter_id"] == "hermes_gateway_cron"

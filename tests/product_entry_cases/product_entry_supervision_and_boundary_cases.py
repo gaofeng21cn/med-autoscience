@@ -125,7 +125,6 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
         "portfolio_root_exists",
         "mas_runtime_core_ready",
         "medical_overlay_ready",
-        "external_runtime_contract_ready",
         "workspace_supervision_contract_ready",
     ]
     assert payload["product_entry_readiness"]["recommended_start_command"].endswith(
@@ -202,7 +201,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
             workspace_supervision_contract={
                 "status": "retired_legacy_service_present",
                 "loaded": False,
-                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 Hermes gateway cron；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 Hermes cron tick。",
+                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 MAS supervision scheduler contract；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 local scheduler tick。",
                 "drift_reasons": ["retired_legacy_service_loaded"],
             },
         ),
@@ -214,7 +213,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
             "manager": "launchd",
             "status": "retired_legacy_service_present",
             "loaded": False,
-            "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 Hermes gateway cron；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 Hermes cron tick。",
+            "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 MAS supervision scheduler contract；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 local scheduler tick。",
             "drift_reasons": ["retired_legacy_service_loaded"],
             "legacy_service": {"loaded": True, "service_exists": True},
             "legacy_service_role": "retired_cleanup_evidence",
@@ -334,7 +333,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
             workspace_supervision_contract={
                 "status": "retired_legacy_service_present",
                 "loaded": False,
-                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 Hermes gateway cron；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 Hermes cron tick。",
+                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 MAS supervision scheduler contract；请运行 runtime-ensure-supervision 清理旧 host service 并注册/刷新 local scheduler tick。",
                 "drift_reasons": ["retired_legacy_service_loaded"],
             },
         ),

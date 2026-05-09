@@ -346,9 +346,9 @@ def _attention_queue(
         queue.append(
             _attention_item(
                 code="workspace_supervisor_service_not_loaded",
-                title="先恢复 Hermes-hosted 定时监管",
+                title="先恢复 MAS scheduler 定时监管",
                 summary=_non_empty_text(service.get("summary"))
-                or "当前 workspace 还没有稳定的 Hermes-hosted 定时监管入口。",
+                or "当前 workspace 还没有稳定的 MAS scheduler 定时监管入口。",
                 recommended_step_id=_attention_step_id("workspace_supervisor_service_not_loaded"),
                 recommended_command=commands.get("service_install") or commands.get("service_status"),
                 scope="workspace",
@@ -533,7 +533,7 @@ def _attention_queue(
                 _attention_item(
                     code="study_supervision_gap",
                     title=f"{study_id} 当前失去新鲜监管心跳",
-                    summary=lane_summary or "Hermes-hosted 托管监管存在缺口。",
+                    summary=lane_summary or "MAS scheduler 托管监管存在缺口。",
                     recommended_step_id=quality_repair_step_id or gate_clearing_step_id or _attention_step_id("study_supervision_gap"),
                     recommended_command=preferred_command or commands.get("supervisor_tick") or progress_command,
                     scope="study",

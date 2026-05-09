@@ -8,7 +8,7 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 
 2026-05-08 functional monolith inventory 追加机器可读分类，固定在 `med_autoscience.controllers.mds_capability_parity` 与 `docs/references/med-deepscientist/source_provenance.json`。允许分类只有 `mas_owned`、`rewrite_in_mas`、`fixture_only`、`retire`、`external_source_archive_only`；旧 `absorb` / `oracle` / `compat` 不再是 machine-readable cutover contract 值。
 
-2026-05-08 behavior equivalence audit 追加 `mds_behavior_equivalence_matrix`，2026-05-09 scheduler contract correction 又把 owner 口径从 Hermes adapter 提升为 MAS-owned scheduler contract。该矩阵明确区分 `default_independence` 与 `full_mds_daemon_behavior_equivalence`：MAS 默认 operation 不依赖外部 MDS repo / daemon / WebUI，但外层监管仍是 scheduler-bound；当前 active adapter 是 `Hermes gateway cron`，每 300 秒调用一次 MAS-owned supervision tick sequence，不是 MDS resident HTTP/WebSocket daemon 的完整行为复刻。详细差异见 [MDS Behavior Equivalence Gap Matrix](./mds_behavior_equivalence_gap_matrix.md)。
+2026-05-08 behavior equivalence audit 追加 `mds_behavior_equivalence_matrix`，2026-05-09 scheduler contract correction 又把 owner 口径从 Hermes adapter 提升为 MAS-owned scheduler contract。该矩阵明确区分 `default_independence` 与 `full_mds_daemon_behavior_equivalence`：MAS 默认 operation 不依赖外部 MDS repo / daemon / WebUI，但外层监管仍是 scheduler-bound；默认 adapter 是 MAS-owned `local` scheduler，macOS backend 已落地为 LaunchAgent，每 300 秒调用一次 MAS-owned supervision tick sequence；Hermes gateway cron 是 explicit optional adapter，不是 MDS resident HTTP/WebSocket daemon 的完整行为复刻。详细差异见 [MDS Behavior Equivalence Gap Matrix](./mds_behavior_equivalence_gap_matrix.md)。
 
 2026-05-08 Runtime Turn Lifecycle correction 把旧 MDS daemon 的连续科研主循环落成 MAS-owned runtime surface：`runtime_core_daemon` 和 `worker_runner_lifecycle` 现在归类为 `mas_owned`。`runtime_watch` / supervisor / Hermes cron 只负责 reconcile、wakeup、redrive 和 stale recovery；真正的连续执行由 `schedule_turn`、`complete_turn_and_normalize`、runner monitor、delayed auto-continue timer、worker lease、turn receipt 和 user message queue 决定。
 
@@ -55,7 +55,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | Surface | Equivalence class | MAS default action |
 | --- | --- | --- |
 | daemon residency | `purpose_equivalent_with_different_timing` | Use MAS with scheduler-latency awareness. |
-| supervision cadence | `purpose_equivalent_with_different_timing` | Use MAS supervision scheduler contract; current active adapter is 300s Hermes gateway cron one-shot tick. |
+| supervision cadence | `purpose_equivalent_with_different_timing` | Use MAS supervision scheduler contract; default adapter is 300s MAS local one-shot tick, with Hermes gateway cron as explicit optional adapter. |
 | turn completion continuation | `behavior_equivalent` | Use MAS Runtime Turn Lifecycle Kernel. |
 | quest create/resume/pause/stop | `behavior_equivalent` | Use MAS Runtime OS. |
 | live worker/session tracking | `purpose_equivalent_with_different_timing` | Use durable liveness/read-model state. |
@@ -72,7 +72,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | daemon lifecycle controls | `not_equivalent_retired` | Use Hermes cron supervision controls. |
 | workspace-local host service | `not_equivalent_retired` | Clean retired service evidence; do not install. |
 
-`turn_completion_continuation` 是本轮重新评估后的关键变化：旧 MDS 的 runner completion 后状态归一化和下一 turn 调度，已经落在 MAS Runtime Turn Lifecycle Kernel；`Hermes gateway cron` 只剩 outer supervision / stale recovery cadence。`runtime_continuity_completion` 是 session tracking 和 crash recovery intent 的 landed refinement，但仍保留 scheduler-bound timing 差异，不宣称 resident daemon equivalence。
+`turn_completion_continuation` 是本轮重新评估后的关键变化：旧 MDS 的 runner completion 后状态归一化和下一 turn 调度，已经落在 MAS Runtime Turn Lifecycle Kernel；MAS scheduler adapter 只剩 outer supervision / stale recovery cadence。`runtime_continuity_completion` 是 session tracking 和 crash recovery intent 的 landed refinement，但仍保留 scheduler-bound timing 差异，不宣称 resident daemon equivalence。
 
 仍未实现完整语义等价的能力不应笼统写成“MDS 没吸收完”。精确口径如下：
 

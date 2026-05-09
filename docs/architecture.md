@@ -51,7 +51,7 @@
 ## 当前运行时责任分层
 
 - `Med Auto Science`：唯一研究入口、课题与工作区权威语义、进度语义、发表判断 owner，同时对外暴露稳定 capability surface。
-- `MAS supervision scheduler contract`：外层 supervision cadence、job identity、tick receipt、SLO / drift projection 和 adapter migration owner；当前 active adapter 是 `Hermes gateway cron`，目标默认 adapter 是 MAS-owned local scheduler。
+- `MAS supervision scheduler contract`：外层 supervision cadence、job identity、tick receipt、SLO / drift projection 和 adapter migration owner；默认 adapter 是 MAS-owned `local` scheduler，macOS backend 已落地为 LaunchAgent；`Hermes gateway cron` 只在显式选择时作为 optional adapter。
 - `OPL Runtime Manager`：OPL 侧 product-managed adapter/projection layer，负责把 MAS registration/projection 接到高频索引、doctor/repair/resume 与 native helper catalog；不持有 MAS domain truth。
 - `Hermes-Agent`：可选外部 runtime substrate / hosted carrier / provider-routed executor；只在显式 hosted runtime target / reference-layer 语境出现，不改写默认 capability contract。
 - `MedDeepScientist`：frozen source archive、historical fixture、explicit archive import / backend-audit reference 与 provenance reference；不承担默认运行依赖、默认诊断依赖、用户入口或第二 owner 身份。

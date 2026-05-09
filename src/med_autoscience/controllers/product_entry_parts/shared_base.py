@@ -8,7 +8,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers import (
     ai_first_cross_study_completion,
-    hermes_supervision,
+    supervision_scheduler,
     study_runtime_router,
 )
 from med_autoscience.action_catalog import (
@@ -406,7 +406,7 @@ def _require_direct_entry_mode(value: str | None) -> str:
 
 
 def _inspect_workspace_supervision(profile: WorkspaceProfile) -> dict[str, Any]:
-    return hermes_supervision.read_supervision_status(profile=profile)
+    return supervision_scheduler.read_supervision_status(profile=profile)
 
 
 def _doctor_workspace_supervision_contract(doctor_report: Any) -> dict[str, Any]:
@@ -438,16 +438,13 @@ def _workspace_ready_alerts(doctor_report) -> list[str]:
         alerts.append("MAS runtime contract 尚未 ready，当前无法继续托管研究执行。")
     if not doctor_report.medical_overlay_ready:
         alerts.append("workspace medical overlay 还未 ready，当前运行前置能力不完整。")
-    external_runtime_ready = bool((doctor_report.external_runtime_contract or {}).get("ready"))
-    if not external_runtime_ready:
-        alerts.append("external Hermes runtime 还未 ready，MAS 会对托管运行 fail-closed。")
     workspace_supervision_contract = _doctor_workspace_supervision_contract(doctor_report)
     workspace_supervision_ready = bool(workspace_supervision_contract.get("loaded"))
     workspace_supervision_summary = _non_empty_text(workspace_supervision_contract.get("summary"))
     if not workspace_supervision_ready:
         alerts.append(
             workspace_supervision_summary
-            or "workspace supervision owner 尚未收敛到 canonical Hermes supervision。"
+            or "workspace supervision scheduler 尚未 ready。"
         )
     return alerts
 
@@ -515,27 +512,15 @@ def _build_product_entry_preflight(
             command=doctor_command,
         ),
         _build_shared_program_check(
-            check_id="external_runtime_contract_ready",
-            title="External Runtime Contract Ready",
-            status="pass" if bool((doctor_report.external_runtime_contract or {}).get("ready")) else "fail",
-            blocking=True,
-            summary=(
-                "external Hermes runtime contract 已 ready。"
-                if bool((doctor_report.external_runtime_contract or {}).get("ready"))
-                else "external Hermes runtime contract 尚未 ready。"
-            ),
-            command=doctor_command,
-        ),
-        _build_shared_program_check(
             check_id="workspace_supervision_contract_ready",
             title="Workspace Supervision Contract Ready",
             status="pass" if bool(workspace_supervision_contract.get("loaded")) else "fail",
             blocking=True,
             summary=(
-                "workspace supervision owner 已收敛到 canonical Hermes supervision。"
+                "workspace supervision scheduler 已 ready。"
                 if bool(workspace_supervision_contract.get("loaded"))
                 else _non_empty_text(workspace_supervision_contract.get("summary"))
-                or "workspace supervision owner 仍未收敛到 canonical Hermes supervision。"
+                or "workspace supervision scheduler 尚未 ready。"
             ),
             command=f"{_command_prefix(profile_ref)} runtime-ensure-supervision --profile {_profile_arg(profile_ref)}",
         ),
@@ -587,7 +572,7 @@ def _build_product_entry_guardrails(
             _build_shared_guardrail_class(
                 guardrail_id="workspace_supervision_gap",
                 trigger="workspace-cockpit attention queue / study-progress supervisor freshness",
-                symptom="Hermes-hosted supervision 未在线、supervisor tick stale/missing、托管恢复真相不再新鲜。",
+                symptom="MAS scheduler supervision 未在线、supervisor tick stale/missing、托管恢复真相不再新鲜。",
                 recommended_command=refresh_command,
             ),
             _build_shared_guardrail_class(

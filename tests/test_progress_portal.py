@@ -298,7 +298,7 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
     assert workspace["workspace_alert_items"][0]["current_output"] == "进度信号：有记录，但 worker 或 artifact delta 不满足继续推进证据。"
     assert workspace["workspace_alert_items"][0]["expected"]
     assert workspace["diagnostics"]["suppressed_alerts"] == [
-        "Supervisor scheduler 尚未注册。",
+        "MAS scheduler runtime supervision 尚未注册。",
         "用户暂停或手动停驻，需显式恢复或新方案。",
     ]
     assert workspace["diagnostics"]["suppressed_alert_items"][0]["source"] == "workspace_supervision.service.summary"
@@ -382,7 +382,7 @@ def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_work
     assert "mas-run-002" in html
     assert "mas-run-003" in html
     assert "诊断与修复建议" in html
-    assert "Supervisor scheduler 尚未注册。" in html
+    assert "MAS scheduler runtime supervision 尚未注册。" in html
     assert "Hermes-hosted runtime supervision 尚未注册。" not in html
     assert "runtime-ensure-supervision" in html
     assert ">none<" not in html

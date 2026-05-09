@@ -5,7 +5,7 @@
 一句话结论：
 
 - `MedAutoScience` 默认不是 resident HTTP/WebSocket daemon
-- 当前 active scheduler adapter 是 `Hermes gateway cron`，每 `300` 秒调用一次 MAS-owned supervision tick script；contract owner 是 `MAS supervision scheduler contract`
+- 默认 scheduler adapter 是 `local`，每 `300` 秒调用一次 MAS-owned supervision tick script；macOS backend 已落到 MAS-owned LaunchAgent；contract owner 是 `MAS supervision scheduler contract`
 - 当前 desired tick script 依序调用 `watch-runtime --max-ticks 1`、`supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch`
 - 该 outer loop 不拥有 runner completion 后的连续科研主循环；内层 `turn completion -> next turn` 由 MAS Runtime Turn Lifecycle Kernel 低延迟处理
 - 旧 workspace-local `systemd` / `cron` / `launchd` / `docker` service manager 已退役；检测到它们时只作为 cleanup evidence，不作为 active scheduler 选项
@@ -33,8 +33,8 @@
 - `Scheduler Contract / Adapter`
   - contract owner 是 `MAS supervision scheduler contract`
   - 负责按约定 cadence 调用 MAS supervision tick script
-  - 当前已实现 adapter 是 `Hermes gateway cron`
-  - 目标默认 adapter 是 MAS-owned `local` scheduler；落地前显式传入 `systemd|cron|launchd|docker` 当前必须 fail-closed
+  - 当前默认 adapter 是 MAS-owned `local` scheduler；macOS backend 已落地为 LaunchAgent
+  - 显式传入 `systemd|cron|launchd|docker` 当前必须 fail-closed；显式 `hermes` 只走 optional adapter
 - `MedAutoScience`
   - 医学研究治理、supervision judgment、projection 与 reconciliation owner
 - `MAS Runtime OS`
@@ -111,7 +111,7 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 - `fresh` 表示最新 Hermes tick 或 supervisor reconcile 仍在 freshness window 内；`due` 表示应安全加速一次 one-shot reconcile；`stale` 表示外环监管已经陈旧；`missing` 表示缺监管事件或 status surface；`blocked` 表示最新 Hermes cron 失败、旧 service 冲突或 supervision contract 本身阻塞。
 - 该 read model 投影到 `runtime-supervision-status`、`runtime-supervisor-reconcile` receipt、`runtime_reconcile_trigger`、`study_progress`、workspace cockpit、Product Entry 和 Progress Portal。
 - 它只允许页面或 CLI 显示推荐命令，或由已有 controller/supervisor safe surface 做 dry-run/apply；读入口刷新不能直接 relaunch worker、写 runtime truth、写 paper/current_package、写 `publication_eval/latest.json` 或写 `controller_decisions/latest.json`。
-- 它不改变当前 adapter 事实：Hermes gateway cron 继续每 `300` 秒调用 one-shot tick；旧 workspace-local `launchd/systemd/cron/docker` service 仍是 retired cleanup evidence。后续 scheduler owner / adapter / status 同构计划以 [Supervision Scheduler Contract](./supervision_scheduler_contract.md) 为准。
+- 它不改变当前 adapter 事实：默认 `local` scheduler 每 `300` 秒调用 one-shot tick；Hermes gateway cron 只在显式 `--manager hermes` 时作为 optional adapter；旧 workspace-local `launchd/systemd/cron/docker` service 仍是 retired cleanup evidence。scheduler owner / adapter / status 同构计划以 [Supervision Scheduler Contract](./supervision_scheduler_contract.md) 为准。
 
 这条外环和内层 turn lifecycle 的分界是固定的：正常 runner 返回后的 `active_run_id` / `worker_running` 清理、queued user message 优先级、`continuation_policy=auto` 的约 `0.2s` 下一 turn、human/terminal gate 停止，都由 `mas_runtime_core` 的 Runtime Turn Lifecycle Kernel 处理。Hermes cron 只负责发现外层 stale/no-live、刷新 supervision/read-model、触发 safe recovery 或把异常升级；它不再是自动科研连续跑的主循环 owner。
 
@@ -285,7 +285,7 @@ Developer Supervisor Mode 有三个正式模式：
 
 `developer_apply_safe` 还受 GitHub 用户门控保护：本机 `gh api user --jq .login` 必须返回 `gaofeng21cn`，否则 effective mode 自动降级到 `external_observe`，并投影 `github_user_not_authorized_for_developer_supervisor_mode`。这个门控用于防止普通用户或生产研究环境意外获得 repo-level developer supervisor authority。
 
-`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 可以作为本机开发环境的一个外部 caller 调用该入口；MAS canonical scheduler contract 仍是 scheduler adapter 定期调用同一个 MAS tick script。当前 active adapter 是 `Hermes gateway cron`。Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager 不再作为 active workspace-local scheduler 选项。
+`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 可以作为本机开发环境的一个外部 caller 调用该入口；MAS canonical scheduler contract 仍是 scheduler adapter 定期调用同一个 MAS tick script。默认 adapter 是 `local`，macOS backend 使用 LaunchAgent。Linux `systemd --user`、宿主 `cron` 和 Docker/container manager 尚未作为 persistent local backend 落地；旧 workspace-local service manager 不再作为 active 选项。
 
 workspace bootstrap 只渲染 MAS CLI entry，不再渲染 workspace-local host-service 模板：
 
@@ -344,7 +344,7 @@ uv run python scripts/real-paper-autonomy-soak-inventory.py \
 
 因此，repo capability 可以记录为 `paper_autonomy_stability_evidence=evidence_read_model_landed`；真实论文自治稳定性只能在后续 evidence 无 blocker 时单独 closeout 为 `paper_autonomy_stability=landed`。
 
-`medautosci runtime ensure-supervision` 现在只注册或刷新 active `Hermes gateway cron` adapter。该选择是当前实现状态，不是 MAS 架构必须长期依赖 Hermes 的证明。如果显式传入 `--manager systemd|cron|launchd|docker`，命令必须 fail-closed 返回 `retired_workspace_local_service_manager`，不渲染模板、不给安装命令、不写 install proof。检测到旧 workspace-local host service 文件或 loaded 状态时，`runtime-ensure-supervision` 会把它作为 `retired_cleanup_evidence` 清理，然后回到 Hermes cron adapter。
+`medautosci runtime ensure-supervision` 默认注册或刷新 MAS-owned `local` adapter；macOS 会写入 LaunchAgent、tick script、install proof 和 scheduler receipt。显式 `--manager hermes` 会走 optional Hermes gateway cron adapter。如果显式传入 `--manager systemd|cron|launchd|docker`，命令必须 fail-closed 返回 `retired_workspace_local_service_manager`，不渲染模板、不给安装命令、不写旧 install proof。检测到旧 workspace-local host service 文件或 loaded 状态时，只能把它作为 `retired_cleanup_evidence` 清理，然后回到 MAS scheduler contract。
 
 如果后续要减少 Hermes 对本地运行的必要性，应新增一个正式 local scheduler adapter。它必须调用同一个 MAS tick script、写出同构 status / latest-run / SLO projection，并满足与 Hermes adapter 相同的幂等、去重、失败可见性和 retired-service cleanup 规则；不能复活旧 workspace-local service 模板作为隐式旁路。
 
@@ -525,7 +525,7 @@ medautosci runtime supervisor-scan \
 - 先把单次 `supervisor tick` 做严谨
 - 再由外部 scheduler 周期调用它
 
-当前唯一 canonical scheduler owner 是 `MAS supervision scheduler contract`。当前 active adapter 是 `Hermes gateway cron`；目标默认 adapter 是 MAS-owned local scheduler。旧 Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager 只在历史/debug 文档或 retired diagnostic response 中出现；active scaffold 不再渲染这些 service 模板，直到新的 `local` adapter 通过同构 status / receipt / SLO 验证。
+当前唯一 canonical scheduler owner 是 `MAS supervision scheduler contract`。默认 adapter 是 MAS-owned `local` scheduler；macOS backend 已落地为 LaunchAgent；Hermes gateway cron 只在显式 `--manager hermes` 时作为 optional adapter。旧 Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager service scaffold 只在历史/debug 文档或 retired diagnostic response 中出现；active scaffold 不再渲染这些旧模板。
 
 MAS 负责“这一跳应该怎么判、怎么恢复、怎么写 durable truth”。scheduler 只负责按周期调用，不持有医学或 runtime authority。
 
