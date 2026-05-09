@@ -239,7 +239,12 @@ def _action_queue(
 ) -> list[dict[str, Any]]:
     if completion_evidence.completed_current_truth(status, progress):
         return []
-    if parked_truth.current_truth(status, progress):
+    if parked_truth.current_truth(
+        status,
+        progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
         return []
     return action_projection.action_queue(
         status,
@@ -588,7 +593,12 @@ def _study_projection(
     ))
     if completion_evidence.completed_current_truth(status_payload, progress_payload):
         lifecycle = {}
-    if parked_truth.current_truth(status_payload, progress_payload):
+    if parked_truth.current_truth(
+        status_payload,
+        progress_payload,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
         lifecycle = {}
     submission_milestone_parked = (
         _text(_mapping(submission_milestone_parked_refresh).get("dispatch_status")) == "applied"
@@ -707,6 +717,8 @@ def _study_projection(
     block_state = block_state_part.projection_block_state(
         status=status_payload,
         progress=progress_payload,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
         lifecycle=lifecycle,
         actions=actions,
         why_not_applied=why_not_applied,

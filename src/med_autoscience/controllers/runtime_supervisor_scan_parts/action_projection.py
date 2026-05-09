@@ -28,7 +28,12 @@ def action_queue(
 ) -> list[dict[str, Any]]:
     if completion_evidence.completed_current_truth(status, progress):
         return []
-    if parked_truth.current_truth(status, progress):
+    if parked_truth.current_truth(
+        status,
+        progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
         return []
     actions: list[dict[str, Any]] = []
     if (
@@ -147,7 +152,14 @@ def why_not_applied(
         return reason
     if completion_evidence.completed_current_truth(status, progress):
         return None
-    if parked_truth.current_truth(status, progress):
+    study_root = _path(_text(status.get("study_root")) or _text(progress.get("study_root")))
+    publication_eval_payload = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
+    if parked_truth.current_truth(
+        status,
+        progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
         return None
     lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
     if runtime_facts.runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
@@ -242,6 +254,10 @@ def _external_supervisor_runtime_repair_reason(progress: Mapping[str, Any]) -> s
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _path(value: str | None) -> Path | None:
+    return Path(value) if value is not None else None
 
 
 __all__ = [

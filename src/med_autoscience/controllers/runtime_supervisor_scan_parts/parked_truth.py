@@ -16,12 +16,23 @@ PARKED_REASONS = {
 }
 
 
-def current_truth(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+def current_truth(
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    *,
+    study_root: Path | None = None,
+    publication_eval_payload: Mapping[str, Any] | None = None,
+) -> bool:
     if _has_live_worker(status, progress):
         return False
     if abnormal_stopped_runtime.repair_kind(status, progress) == "failed_non_resumable_relaunch":
         return False
-    if _current_controller_route_available(status, progress):
+    if _current_controller_route_available(
+        status,
+        progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
         return False
     macro_state = _mapping(status.get("study_macro_state")) or _mapping(progress.get("study_macro_state"))
     if _text(macro_state.get("writer_state")) == "parked" and _text(macro_state.get("reason")) in {
@@ -41,8 +52,19 @@ def current_truth(status: Mapping[str, Any], progress: Mapping[str, Any]) -> boo
     return _text(status.get("reason")) in PARKED_REASONS
 
 
-def block_state(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dict[str, Any] | None:
-    if not current_truth(status, progress):
+def block_state(
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    *,
+    study_root: Path | None = None,
+    publication_eval_payload: Mapping[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    if not current_truth(
+        status,
+        progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
         return None
     return {
         "blocked_reason": None,
@@ -70,16 +92,26 @@ def _owner_route_pending(auto_parked: Mapping[str, Any]) -> bool:
     return _text(auto_parked.get("parked_state")) == "ai_reviewer_pending" or _text(auto_parked.get("parked_owner")) == "ai_reviewer"
 
 
-def _current_controller_route_available(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
-    study_root = _text(status.get("study_root")) or _text(progress.get("study_root"))
-    if study_root is None:
+def _current_controller_route_available(
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    *,
+    study_root: Path | None = None,
+    publication_eval_payload: Mapping[str, Any] | None = None,
+) -> bool:
+    resolved_study_root = study_root or _path(_text(status.get("study_root")) or _text(progress.get("study_root")))
+    if resolved_study_root is None:
         return False
-    publication_eval = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
+    publication_eval = (
+        _mapping(publication_eval_payload)
+        or _mapping(status.get("publication_eval"))
+        or _mapping(progress.get("publication_eval"))
+    )
     if not publication_eval:
         return False
     return (
         current_truth_owner.current_controller_runtime_route(
-            study_root=Path(study_root),
+            study_root=resolved_study_root,
             publication_eval_payload=publication_eval,
         )
         is not None
@@ -93,6 +125,10 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _path(value: str | None) -> Path | None:
+    return Path(value) if value is not None else None
 
 
 __all__ = ["block_state", "current_truth"]

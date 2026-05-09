@@ -48,13 +48,20 @@ def projection_block_state(
     *,
     status: Mapping[str, Any],
     progress: Mapping[str, Any],
+    study_root: Any = None,
+    publication_eval_payload: Mapping[str, Any] | None = None,
     lifecycle: Mapping[str, Any],
     actions: list[dict[str, Any]],
     why_not_applied: str | None,
 ) -> dict[str, Any]:
     if completion_evidence.completed_current_truth(status, progress):
         return _clear_block_state()
-    parked_state = parked_truth.block_state(status, progress)
+    parked_state = parked_truth.block_state(
+        status,
+        progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
     if parked_state is not None:
         return parked_state
     completion_state = completion_evidence.block_state(status, progress)
