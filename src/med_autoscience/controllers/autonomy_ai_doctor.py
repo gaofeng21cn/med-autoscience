@@ -6,6 +6,10 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers.autonomy_ai_doctor_parts.breach_explanation import (
+    with_breach_explanation,
+)
+
 
 SCHEMA_VERSION = 1
 DEFAULT_EXPECTED_MINUTES = 30
@@ -150,7 +154,8 @@ def repair_actions_root(*, study_root: Path) -> Path:
 
 
 def read_latest_slo_status(*, study_root: Path) -> dict[str, Any] | None:
-    return _read_json_object(stable_slo_status_path(study_root=study_root))
+    payload = _read_json_object(stable_slo_status_path(study_root=study_root))
+    return with_breach_explanation(payload) if payload is not None else None
 
 
 def _latest_timestamp_from_payload(value: object) -> datetime | None:
@@ -846,6 +851,7 @@ def build_autonomy_control_plane_observer(
             "quality_gate_relaxation_allowed": False,
         },
     }
+    payload = with_breach_explanation(payload) or payload
     request = build_ai_doctor_request(payload) if ai_doctor_required else None
     repair = build_repair_orchestration(slo_status=payload)
     if request is not None:
