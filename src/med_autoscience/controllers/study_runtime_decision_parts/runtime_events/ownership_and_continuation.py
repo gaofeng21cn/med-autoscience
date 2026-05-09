@@ -135,6 +135,7 @@ def _continuation_state_payload(*, quest_root: Path, quest_status: StudyRuntimeQ
         "continuation_anchor": continuation_anchor,
         "continuation_reason": continuation_reason,
         "stop_reason": stop_reason,
+        "pending_user_message_count": int(runtime_state.get("pending_user_message_count") or 0),
         "runtime_state_path": str(runtime_state_path),
     }
 

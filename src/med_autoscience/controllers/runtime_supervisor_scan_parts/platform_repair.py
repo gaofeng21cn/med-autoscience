@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_current_controller
+from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_pending_redrive
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
@@ -329,10 +330,11 @@ def _apply_current_controller_runtime_redrive(
     )
     if authorization is not None and authorization.get("written") is not True:
         if _text(authorization.get("reason")) == "pending_user_messages_present":
-            pending_resume = _mark_existing_pending_user_message_redrive(
+            pending_resume = platform_repair_pending_redrive.mark_existing_pending_user_message_redrive(
                 runtime_state_path=runtime_state_path,
                 study_id=study_id,
                 quest_id=quest_id,
+                source=RUNTIME_PLATFORM_REPAIR_SOURCE,
             )
             if pending_resume.get("marked") is not True:
                 return {
@@ -559,13 +561,18 @@ def _stale_specificity_redrive_can_apply(
     publication_eval_payload: Mapping[str, Any],
 ) -> tuple[bool, dict[str, Any], dict[str, Any]]:
     gate_status = _publication_gate_ready_for_specificity_redrive(quest_root)
-    if gate_status.get("ready") is not True:
-        return False, gate_status, {}
     supersession = _controller_decision_supersedes_specificity(
         study_root=study_root,
         runtime_state=runtime_state,
         publication_eval_payload=publication_eval_payload,
     )
+    if (
+        supersession.get("supersedes") is True
+        and _text(supersession.get("reason")) == "publication_eval_specificity_targets_complete"
+    ):
+        return True, gate_status, supersession
+    if gate_status.get("ready") is not True:
+        return False, gate_status, supersession
     return supersession.get("supersedes") is True, gate_status, supersession
 
 
@@ -575,11 +582,12 @@ def _clear_stale_controller_runtime_state(
     study_id: str,
     quest_id: str | None,
     clear_reason: str,
+    allow_pending_user_messages: bool = False,
 ) -> dict[str, Any]:
     runtime_state = _read_json_object(runtime_state_path)
     if runtime_state is None:
         return {"cleared": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
-    if int(runtime_state.get("pending_user_message_count") or 0) > 0:
+    if int(runtime_state.get("pending_user_message_count") or 0) > 0 and not allow_pending_user_messages:
         return {"cleared": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path)}
     if not _runtime_state_has_controller_terminal(runtime_state):
         return {"cleared": False, "reason": "stale_controller_terminal_not_found", "path": str(runtime_state_path)}
@@ -591,6 +599,8 @@ def _clear_stale_controller_runtime_state(
         "retry_state",
         "last_stage_fingerprint",
         "last_stage_fingerprint_at",
+        "blocked_turn_closeout",
+        "last_liveness_reconcile_reason",
     ):
         if key in runtime_state:
             runtime_state.pop(key, None)
@@ -632,62 +642,12 @@ def _clear_stale_controller_runtime_state(
     return {"cleared": True, "cleared_keys": cleared_keys, "path": str(runtime_state_path)}
 
 
-def _mark_existing_pending_user_message_redrive(
-    *,
-    runtime_state_path: Path,
-    study_id: str,
-    quest_id: str | None,
-) -> dict[str, Any]:
-    runtime_state = _read_json_object(runtime_state_path)
-    if runtime_state is None:
-        return {"marked": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
-    pending_count = int(runtime_state.get("pending_user_message_count") or 0)
-    if pending_count <= 0:
-        return {"marked": False, "reason": "pending_user_messages_missing", "path": str(runtime_state_path)}
-    runtime_state["quest_id"] = _text(runtime_state.get("quest_id")) or quest_id
-    runtime_state["active_run_id"] = None
-    runtime_state["worker_running"] = False
-    runtime_state["continuation_policy"] = "auto"
-    runtime_state["continuation_anchor"] = "user_message_queue"
-    runtime_state["continuation_reason"] = "runtime_platform_repair_resume_existing_pending_user_message"
-    runtime_state["continuation_updated_at"] = _utc_now()
-    runtime_state["same_fingerprint_auto_turn_count"] = 0
-    for key in ("retry_state", "last_stage_fingerprint", "last_stage_fingerprint_at"):
-        runtime_state.pop(key, None)
-    runtime_state["last_runtime_platform_repair"] = {
-        "study_id": study_id,
-        "quest_id": quest_id,
-        "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
-        "clear_reason": "existing_pending_user_message_redrive",
-        "pending_user_message_count": pending_count,
-        "applied_at": _utc_now(),
-        "paper_package_mutation_allowed": False,
-        "quality_gate_relaxation_allowed": False,
-    }
-    _write_json(runtime_state_path, runtime_state)
-    _append_json_line(
-        runtime_state_path.parent / "events.jsonl",
-        {
-            "event_id": f"mas-runtime-platform-repair::{study_id}::{_utc_now()}",
-            "type": "mas.runtime_platform_repair",
-            "study_id": study_id,
-            "quest_id": quest_id,
-            "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
-            "clear_reason": "existing_pending_user_message_redrive",
-            "pending_user_message_count": pending_count,
-            "paper_package_mutation_allowed": False,
-            "quality_gate_relaxation_allowed": False,
-            "created_at": _utc_now(),
-        },
-    )
-    return {"marked": True, "pending_user_message_count": pending_count, "path": str(runtime_state_path)}
-
-
 def _clear_stale_specificity_runtime_state(
     *,
     runtime_state_path: Path,
     study_id: str,
     quest_id: str | None,
+    allow_pending_user_messages: bool = False,
 ) -> dict[str, Any]:
     runtime_state = _read_json_object(runtime_state_path)
     if runtime_state is None:
@@ -699,6 +659,7 @@ def _clear_stale_specificity_runtime_state(
         study_id=study_id,
         quest_id=quest_id,
         clear_reason="stale_specificity_terminal",
+        allow_pending_user_messages=allow_pending_user_messages,
     )
 
 
@@ -793,6 +754,49 @@ def apply_runtime_platform_repair(
     runtime_state = _read_json_object(runtime_path)
     if runtime_state is None:
         return {**base, "dispatch_status": "blocked", "reason": "runtime_state_missing_or_invalid"}
+    pending_platform_redrive = _mapping(status.get("interaction_arbitration"))
+    if _text(pending_platform_redrive.get("classification")) == "pending_user_message_redrive":
+        pending_resume = platform_repair_pending_redrive.mark_existing_pending_user_message_redrive(
+            runtime_state_path=runtime_path,
+            study_id=study_id,
+            quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+            source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+        )
+        blocked_turn_closeout_clear = platform_repair_pending_redrive.blocked_turn_closeout_clear_result(
+            pending_resume
+        )
+        if pending_resume.get("marked") is not True:
+            return {
+                **base,
+                "dispatch_status": "blocked",
+                "reason": _text(pending_resume.get("reason")) or "existing_pending_user_message_redrive_not_marked",
+                "existing_pending_user_message_resume": pending_resume,
+                "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
+            }
+        try:
+            resume_result = study_runtime_router.ensure_study_runtime(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+            )
+        except Exception as exc:
+            return {
+                **base,
+                "dispatch_status": "blocked",
+                "reason": "resume_after_platform_repair_failed",
+                "error": str(exc),
+                "existing_pending_user_message_resume": pending_resume,
+                "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
+            }
+        return {
+            **base,
+            "dispatch_status": "applied",
+            "reason": "stale_blocked_turn_closeout_pending_queue_redrive",
+            "existing_pending_user_message_resume": pending_resume,
+            "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
+            "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
+        }
     if runtime_facts.live_activity_timeout_current_controller_redrive_required(status, progress):
         return _apply_live_activity_timeout_current_controller_redrive(
             profile=profile,
@@ -846,13 +850,17 @@ def apply_runtime_platform_repair(
                 repair_kind=abnormal_repair_kind,
             )
     gate_status = _publication_gate_ready_for_specificity_redrive(quest_root)
-    if gate_status.get("ready") is not True:
-        return {**base, "dispatch_status": "blocked", "reason": _text(gate_status.get("reason")), "gate_status": gate_status}
     supersession = _controller_decision_supersedes_specificity(
         study_root=study_root,
         runtime_state=runtime_state,
         publication_eval_payload=publication_eval_payload,
     )
+    superseded_by_targets = (
+        supersession.get("supersedes") is True
+        and _text(supersession.get("reason")) == "publication_eval_specificity_targets_complete"
+    )
+    if gate_status.get("ready") is not True and not superseded_by_targets:
+        return {**base, "dispatch_status": "blocked", "reason": _text(gate_status.get("reason")), "gate_status": gate_status}
     if supersession.get("supersedes") is not True:
         return {
             **base,
@@ -865,6 +873,7 @@ def apply_runtime_platform_repair(
         runtime_state_path=runtime_path,
         study_id=study_id,
         quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+        allow_pending_user_messages=superseded_by_targets,
     )
     if clear_result.get("cleared") is not True:
         return {
@@ -875,6 +884,31 @@ def apply_runtime_platform_repair(
             "gate_status": gate_status,
             "stale_specificity_clear": clear_result,
         }
+    pending_resume: dict[str, Any] | None = None
+    blocked_turn_closeout_clear = platform_repair_pending_redrive.blocked_turn_closeout_clear_result(clear_result)
+    if superseded_by_targets and int(runtime_state.get("pending_user_message_count") or 0) > 0:
+        pending_resume = platform_repair_pending_redrive.mark_existing_pending_user_message_redrive(
+            runtime_state_path=runtime_path,
+            study_id=study_id,
+            quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+            source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+        )
+        blocked_turn_closeout_clear = (
+            platform_repair_pending_redrive.blocked_turn_closeout_clear_result(pending_resume)
+            or blocked_turn_closeout_clear
+        )
+        if pending_resume.get("marked") is not True:
+            return {
+                **base,
+                "dispatch_status": "blocked",
+                "reason": _text(pending_resume.get("reason")) or "existing_pending_user_message_redrive_not_marked",
+                "controller_supersession": supersession,
+                "gate_status": gate_status,
+                "stale_specificity_clear": clear_result,
+                "stale_specificity_cleared": True,
+                "existing_pending_user_message_resume": pending_resume,
+                "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
+            }
     try:
         resume_result = study_runtime_router.ensure_study_runtime(
             profile=profile,
@@ -892,6 +926,8 @@ def apply_runtime_platform_repair(
             "gate_status": gate_status,
             "stale_specificity_clear": clear_result,
             "stale_specificity_cleared": True,
+            "existing_pending_user_message_resume": pending_resume,
+            "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
         }
     return {
         **base,
@@ -905,6 +941,8 @@ def apply_runtime_platform_repair(
         "gate_status": gate_status,
         "stale_specificity_clear": clear_result,
         "stale_specificity_cleared": True,
+        "existing_pending_user_message_resume": pending_resume,
+        "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
         "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
     }
 

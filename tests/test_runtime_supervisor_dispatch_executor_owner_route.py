@@ -209,6 +209,63 @@ def test_execute_dispatch_allows_action_type_when_route_reason_is_concrete_block
     assert execution["blocked_reason"] == "owner_callable_surface_missing"
 
 
+def test_execute_dispatch_allows_external_engineering_agent_for_external_supervisor_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        action_type="runtime_platform_repair",
+        owner="external_supervisor",
+    )
+    route["owner_reason"] = "runtime_recovery_not_authorized"
+    route["failure_signature"] = "runtime_recovery_not_authorized"
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="runtime_platform_repair",
+        owner="external_engineering_agent",
+        required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
+        owner_route=route,
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "runtime_platform_repair.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    monkeypatch.setattr(
+        module,
+        "_execute_runtime_platform_repair",
+        lambda **_: {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "runtime_supervisor_scan.supervisor_scan(apply_runtime_platform_repair=True)",
+        },
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("runtime_platform_repair",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    execution = result["executions"][0]
+    assert execution["owner_route_current"] is True
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+
+
 def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
     monkeypatch,
     tmp_path: Path,

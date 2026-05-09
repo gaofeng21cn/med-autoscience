@@ -39,7 +39,7 @@ def publication_gate_specificity_required(
         or _next_work_unit_needs_specificity(no_op_suppression.get("next_work_unit"))
         or specificity_request is not None
     )
-    if required and target_status.get("complete") is True:
+    if target_status.get("complete") is True:
         return {
             "required": False,
             "request": specificity_request,

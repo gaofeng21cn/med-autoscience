@@ -209,7 +209,7 @@ def _external_supervisor_runtime_repair_required(progress: Mapping[str, Any]) ->
 
 def _external_supervisor_runtime_repair_reason(progress: Mapping[str, Any]) -> str | None:
     lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
-    if _text(lifecycle.get("state")) != "external_supervisor_required":
+    if _text(lifecycle.get("state")) not in {"blocked", "external_supervisor_required"}:
         return None
     if lifecycle.get("external_supervisor_required") is not True:
         return None
