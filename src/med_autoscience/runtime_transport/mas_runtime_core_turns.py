@@ -42,7 +42,10 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     runner_unavailable,
     text,
 )
-from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import terminate_worker_leases
+from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import (
+    terminate_worker_lease_for_run,
+    terminate_worker_leases,
+)
 
 AUTO_CONTINUE_DELAY_SECONDS = 0.2
 MAX_RETRY_ATTEMPTS = 3
@@ -818,6 +821,7 @@ def reconcile_stale_liveness(*, quest_root: Path, source: str) -> dict[str, Any]
         turn_receipt=_turn_receipt,
         make_idempotency_key=make_idempotency_key,
         terminate_worker_leases=terminate_worker_leases,
+        terminate_worker_lease_for_run=terminate_worker_lease_for_run,
         utc_now=utc_now,
         read_json=read_json,
         write_json=write_json,

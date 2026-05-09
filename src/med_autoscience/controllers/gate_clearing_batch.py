@@ -493,6 +493,39 @@ def _sync_submission_minimal_delivery(**kwargs: Any) -> dict[str, Any]:
     return sync_submission_minimal_delivery_with_route(study_delivery_sync=study_delivery_sync, **kwargs)
 
 
+def _controller_route_context_for_selected_work_unit(
+    *,
+    selected_publication_work_unit: dict[str, Any] | None,
+    gate_report: dict[str, Any],
+    current_publication_work_unit_payload: dict[str, Any],
+    source_eval_id: str | None,
+) -> dict[str, Any] | None:
+    if not isinstance(selected_publication_work_unit, dict):
+        return None
+    work_unit_id = _non_empty_text(selected_publication_work_unit.get("unit_id"))
+    if work_unit_id is None:
+        return None
+    return {
+        "controller_route_context": {
+            "control_surface": "gate_clearing_batch",
+            "controller_action_type": "run_gate_clearing_batch",
+            "work_unit_id": work_unit_id,
+            "requires_human_confirmation": False,
+            "source_eval_id": source_eval_id,
+            "gate_fingerprint": _non_empty_text(gate_report.get("gate_fingerprint")),
+            "work_unit_fingerprint": _non_empty_text(current_publication_work_unit_payload.get("fingerprint")),
+        }
+    }
+
+
+def _merge_control_plane_route_contexts(*contexts: dict[str, Any] | None) -> dict[str, Any] | None:
+    merged: dict[str, Any] = {}
+    for context in contexts:
+        if isinstance(context, dict):
+            merged.update(context)
+    return merged or None
+
+
 def run_gate_clearing_batch(
     *,
     profile: WorkspaceProfile,
@@ -563,6 +596,15 @@ def run_gate_clearing_batch(
     explicit_next_work_unit = work_unit_selection["explicit_next_work_unit"]
     current_publication_work_unit_payload = work_unit_selection["current_publication_work_unit_payload"]
     selected_publication_work_unit = work_unit_selection["selected_publication_work_unit"]
+    resolved_route_context = _merge_control_plane_route_contexts(
+        resolved_route_context,
+        _controller_route_context_for_selected_work_unit(
+            selected_publication_work_unit=selected_publication_work_unit,
+            gate_report=gate_report,
+            current_publication_work_unit_payload=current_publication_work_unit_payload,
+            source_eval_id=current_eval_id,
+        ),
+    )
     work_unit_currentness = work_unit_selection["work_unit_currentness"]
     terminal_reason = work_unit_selection["terminal_reason"]
     selected_work_unit_id = _non_empty_text(

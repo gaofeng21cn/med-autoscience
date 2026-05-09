@@ -138,6 +138,7 @@ def reconcile_stale_liveness(
     turn_receipt: Callable[..., dict[str, Any]],
     make_idempotency_key: Callable[..., str],
     terminate_worker_leases: Callable[..., dict[str, Any]],
+    terminate_worker_lease_for_run: Callable[..., dict[str, Any] | None] | None = None,
     utc_now: Callable[[], str],
     read_json: Callable[[Path], dict[str, Any]],
     write_json: Callable[[Path, Mapping[str, Any]], None],
@@ -176,12 +177,32 @@ def reconcile_stale_liveness(
         )
         if parked is not None:
             return parked
+        completed = _reconcile_latest_completed_closeout_without_live_run(
+            quest_root=quest_root,
+            source=source,
+            lifecycle=lifecycle,
+            load_state=load_state,
+            persist_state=persist_state,
+            snapshot=snapshot,
+            turn_receipt=turn_receipt,
+            make_idempotency_key=make_idempotency_key,
+            terminate_worker_leases=terminate_worker_leases,
+            terminate_worker_lease_for_run=terminate_worker_lease_for_run,
+            utc_now=utc_now,
+            read_json=read_json,
+            write_json=write_json,
+            append_runtime_event=append_runtime_event,
+        )
+        if completed is not None:
+            return completed
         return None
     worker_cleanup = _terminate_stuck_worker(
         quest_root=quest_root,
         source=source,
         stale_reason=stale_reason,
+        stale_run_id=stale_run_id,
         terminate_worker_leases=terminate_worker_leases,
+        terminate_worker_lease_for_run=terminate_worker_lease_for_run,
         utc_now=utc_now,
         read_json=read_json,
         write_json=write_json,
@@ -209,6 +230,100 @@ def reconcile_stale_liveness(
     if logical_completion is not None:
         result["logical_completion"] = logical_completion
     return result
+
+
+def _reconcile_latest_completed_closeout_without_live_run(
+    *,
+    quest_root: Path,
+    source: str,
+    lifecycle: Mapping[str, Any],
+    load_state: Callable[..., dict[str, Any]],
+    persist_state: Callable[..., dict[str, Any]],
+    snapshot: Callable[..., dict[str, Any]],
+    turn_receipt: Callable[..., dict[str, Any]],
+    make_idempotency_key: Callable[..., str],
+    terminate_worker_leases: Callable[..., dict[str, Any]],
+    terminate_worker_lease_for_run: Callable[..., dict[str, Any] | None] | None,
+    utc_now: Callable[[], str],
+    read_json: Callable[[Path], dict[str, Any]],
+    write_json: Callable[[Path, Mapping[str, Any]], None],
+    append_runtime_event: Callable[..., None],
+) -> dict[str, Any] | None:
+    state = load_state(quest_root=quest_root)
+    if str(state.get("status") or "").strip() not in {"active", "running"}:
+        return None
+    if state.get("worker_running") is True or state.get("worker_pending") is True:
+        return None
+    if str(state.get("active_run_id") or "").strip():
+        return None
+    logical_completion = _latest_completed_closeout(quest_root=quest_root)
+    if logical_completion is None:
+        return None
+    stale_run_id = str(logical_completion["run_id"])
+    if (
+        str(state.get("last_completed_run_id") or "").strip() == stale_run_id
+        and logical_completion.get("latest_receipt_terminal") is True
+    ):
+        return None
+    if not logical_completion["latest_receipt_terminal"]:
+        _write_missed_completion_receipt(
+            quest_root=quest_root,
+            source=source,
+            stale_run_id=stale_run_id,
+            logical_completion=logical_completion,
+            load_state=load_state,
+            turn_receipt=turn_receipt,
+            make_idempotency_key=make_idempotency_key,
+        )
+    stale_reason = "logical_turn_completed"
+    worker_cleanup = _terminate_stuck_worker(
+        quest_root=quest_root,
+        source=source,
+        stale_reason=stale_reason,
+        stale_run_id=stale_run_id,
+        terminate_worker_leases=terminate_worker_leases,
+        terminate_worker_lease_for_run=terminate_worker_lease_for_run,
+        utc_now=utc_now,
+        read_json=read_json,
+        write_json=write_json,
+        append_runtime_event=append_runtime_event,
+    )
+    repaired = _persist_reconciled_state(
+        quest_root=quest_root,
+        source=source,
+        stale_run_id=stale_run_id,
+        stale_reason=stale_reason,
+        worker_cleanup=worker_cleanup,
+        logical_completion=logical_completion,
+        load_state=load_state,
+        persist_state=persist_state,
+    )
+    result = _reconcile_result(
+        quest_root=quest_root,
+        stale_run_id=stale_run_id,
+        stale_reason=stale_reason,
+        repaired=repaired,
+        snapshot=snapshot,
+    )
+    if worker_cleanup is not None:
+        result["worker_cleanup"] = worker_cleanup
+    result["logical_completion"] = logical_completion
+    result["previous_lifecycle"] = dict(lifecycle)
+    return result
+
+
+def _latest_completed_closeout(*, quest_root: Path) -> dict[str, Any] | None:
+    closeout_root = quest_root / "artifacts" / "runtime" / "turn_closeouts"
+    if not closeout_root.is_dir():
+        return None
+    for path in sorted(closeout_root.glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True):
+        logical_completion = inspect_logical_turn_completion(quest_root=quest_root, run_id=path.stem)
+        if logical_completion is None:
+            continue
+        if logical_completion.get("reason") == "blocked_turn_closeout_waiting_for_owner":
+            continue
+        return logical_completion
+    return None
 
 
 def _reconcile_latest_blocked_closeout_without_live_run(
@@ -317,7 +432,9 @@ def _terminate_stuck_worker(
     quest_root: Path,
     source: str,
     stale_reason: str,
+    stale_run_id: str,
     terminate_worker_leases: Callable[..., dict[str, Any]],
+    terminate_worker_lease_for_run: Callable[..., dict[str, Any] | None] | None,
     utc_now: Callable[[], str],
     read_json: Callable[[Path], dict[str, Any]],
     write_json: Callable[[Path, Mapping[str, Any]], None],
@@ -325,6 +442,17 @@ def _terminate_stuck_worker(
 ) -> dict[str, Any] | None:
     if stale_reason != "logical_turn_completed":
         return None
+    if terminate_worker_lease_for_run is not None:
+        return terminate_worker_lease_for_run(
+            quest_root=quest_root,
+            run_id=stale_run_id,
+            source=source,
+            reason=stale_reason,
+            utc_now=utc_now,
+            read_json=read_json,
+            write_json=write_json,
+            append_runtime_event=append_runtime_event,
+        )
     return terminate_worker_leases(
         quest_root=quest_root,
         source=source,

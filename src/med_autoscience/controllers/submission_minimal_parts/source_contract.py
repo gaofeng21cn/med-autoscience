@@ -76,6 +76,7 @@ def build_submission_minimal_source_contract(
     figure_catalog: dict[str, Any],
     table_catalog: dict[str, Any],
     pack_lock_path: Path | None = None,
+    references_source_path: Path | None = None,
 ) -> dict[str, Any]:
     resolved_paper_root = paper_root.expanduser().resolve()
     resolved_workspace_root = workspace_root.expanduser().resolve()
@@ -99,7 +100,7 @@ def build_submission_minimal_source_contract(
     add_required(figure_catalog_path)
     add_required(table_catalog_path)
 
-    references_path = resolved_paper_root / "references.bib"
+    references_path = references_source_path or (resolved_paper_root / "references.bib")
     if references_path.exists():
         add_required(references_path)
     if pack_lock_path is not None and pack_lock_path.exists():

@@ -827,6 +827,92 @@ def test_run_gate_clearing_batch_rebuilds_submission_minimal_when_delivery_surfa
     assert result["unit_results"][0]["status"] == "ready"
 
 
+def test_run_gate_clearing_batch_authorizes_submission_refresh_from_selected_work_unit(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-004"
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    _write_submission_minimal_fingerprint_inputs(paper_root)
+    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id="quest-004")
+    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "submission_minimal_refresh",
+        "lane": "finalize",
+        "summary": "Refresh the stale submission_minimal package and current delivery bundle.",
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "stale_study_delivery_mirror",
+            "submission_surface_qc_failure_present",
+        ],
+        "current_required_action": "complete_bundle_stage",
+        "medical_publication_surface_status": "clear",
+        "study_delivery_status": "stale_source_changed",
+        "submission_minimal_present": True,
+        "submission_minimal_docx_present": True,
+        "submission_minimal_pdf_present": False,
+        "submission_minimal_authority_status": "stale",
+        "submission_minimal_evaluated_source_signature": "source::new",
+        "submission_minimal_authority_source_signature": "source::old",
+        "gate_fingerprint": "publication-gate::submission-refresh",
+    }
+
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(module.publication_gate, "build_gate_report", lambda _state: dict(gate_report))
+    monkeypatch.setattr(module, "_eligible_mapping_payload", lambda **_: (None, {}))
+    monkeypatch.setattr(module.study_delivery_sync, "can_sync_study_delivery", lambda *, paper_root: True)
+    seen_contexts: list[dict[str, object]] = []
+
+    def fake_create_submission_minimal_package(*, paper_root, profile, control_plane_route_context):
+        seen_contexts.append(control_plane_route_context)
+        return {"status": "ready"}
+
+    monkeypatch.setattr(module, "_create_submission_minimal_package", fake_create_submission_minimal_package)
+    monkeypatch.setattr(
+        module.publication_gate,
+        "run_controller",
+        lambda **_: {
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["stale_study_delivery_mirror"],
+            "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id="quest-004",
+        source="test-source",
+    )
+
+    assert result["unit_results"][0]["unit_id"] == "create_submission_minimal_package"
+    assert result["unit_results"][0]["status"] == "ready"
+    route_context = seen_contexts[0]["controller_route_context"]
+    assert route_context["control_surface"] == "gate_clearing_batch"
+    assert route_context["controller_action_type"] == "run_gate_clearing_batch"
+    assert route_context["work_unit_id"] == "submission_minimal_refresh"
+    assert route_context["requires_human_confirmation"] is False
+
+
 def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
     runtime_protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")

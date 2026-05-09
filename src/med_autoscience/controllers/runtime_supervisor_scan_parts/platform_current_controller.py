@@ -217,22 +217,37 @@ def write_current_controller_authorization(
         return {"written": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
     if int(runtime_state.get("pending_user_message_count") or 0) > 0:
         return {"written": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path)}
+    preserved_active_run_id = text(runtime_state.get("active_run_id"))
+    preserve_worker_state = runtime_state.get("worker_running") is True and preserved_active_run_id is not None
     runtime_state["quest_id"] = text(runtime_state.get("quest_id")) or quest_id
-    runtime_state["active_run_id"] = None
-    runtime_state["worker_running"] = False
+    if not preserve_worker_state:
+        runtime_state["active_run_id"] = None
+        runtime_state["worker_running"] = False
     runtime_state["continuation_policy"] = "auto"
     runtime_state["continuation_anchor"] = "decision"
     runtime_state["continuation_reason"] = continuation_reason
     runtime_state["continuation_updated_at"] = utc_now()
     runtime_state["same_fingerprint_auto_turn_count"] = 0
     runtime_state["last_controller_decision_authorization"] = authorization
-    for key in ("retry_state", "last_stage_fingerprint", "last_stage_fingerprint_at"):
+    cleared_keys: list[str] = []
+    for key in (
+        "retry_state",
+        "last_stage_fingerprint",
+        "last_stage_fingerprint_at",
+        "blocked_turn_closeout",
+        "last_liveness_reconcile_reason",
+    ):
+        if key in runtime_state:
+            cleared_keys.append(key)
         runtime_state.pop(key, None)
     runtime_state["last_runtime_platform_repair"] = {
         "study_id": study_id,
         "quest_id": quest_id,
         "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
         "clear_reason": repair_clear_reason,
+        "cleared_keys": cleared_keys,
+        "worker_state_preserved": preserve_worker_state,
+        "preserved_active_run_id": preserved_active_run_id if preserve_worker_state else None,
         "applied_at": utc_now(),
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
@@ -250,6 +265,9 @@ def write_current_controller_authorization(
             "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
             "work_unit_id": authorization.get("work_unit_id"),
             "work_unit_fingerprint": authorization.get("work_unit_fingerprint"),
+            "cleared_keys": cleared_keys,
+            "worker_state_preserved": preserve_worker_state,
+            "preserved_active_run_id": preserved_active_run_id if preserve_worker_state else None,
             "paper_package_mutation_allowed": False,
             "quality_gate_relaxation_allowed": False,
             "created_at": utc_now(),
@@ -261,6 +279,9 @@ def write_current_controller_authorization(
         "decision_id": authorization.get("decision_id"),
         "work_unit_id": authorization.get("work_unit_id"),
         "work_unit_fingerprint": authorization.get("work_unit_fingerprint"),
+        "cleared_keys": cleared_keys,
+        "worker_state_preserved": preserve_worker_state,
+        "preserved_active_run_id": preserved_active_run_id if preserve_worker_state else None,
     }
 
 

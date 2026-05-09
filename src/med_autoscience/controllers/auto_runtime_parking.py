@@ -280,6 +280,8 @@ def _state_from_reason(
         next_owner = _text(interaction_arbitration.get("next_owner"))
         if next_owner == "ai_reviewer":
             return "ai_reviewer_pending"
+        if next_owner is not None and next_owner.lower().replace("/", "_").replace("-", "_") == "mas_controller":
+            return None
     if needs_user_decision or reason in {
         "quest_waiting_for_user",
         "study_completion_requires_program_human_confirmation",

@@ -120,6 +120,328 @@ def test_refresh_controller_decisions_for_current_publication_eval_materializes_
     assert calls["materialize_kwargs"]["source"] == "runtime_supervisor_controller_decision_refresh"
 
 
+def test_refresh_controller_decision_authorizes_runtime_and_requests_resume(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    work_unit_fingerprint = "publication-blockers::current"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "publication-eval::current",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "assessment_provenance": {"owner": "ai_reviewer"},
+            "recommended_actions": [
+                {
+                    "action_type": "route_back_same_line",
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "next_work_unit": {
+                        "unit_id": "analysis_claim_evidence_repair",
+                        "lane": "analysis-campaign",
+                    },
+                    "specificity_targets": [
+                        {
+                            "target_kind": "claim",
+                            "target_id": "claim_evidence_map",
+                            "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "active",
+            "quest_id": study_id,
+            "active_run_id": None,
+            "worker_running": False,
+            "pending_user_message_count": 0,
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "controller_work_unit_pending",
+            "same_fingerprint_auto_turn_count": 4,
+            "retry_state": {"terminal": True},
+            "blocked_turn_closeout": {
+                "run_id": "old-blocked-run",
+                "blocked_reason": "controller_callable_surface_failed_path_normalization",
+                "next_owner": "MAS/controller",
+            },
+            "last_liveness_reconcile_reason": "blocked_turn_closeout_waiting_for_owner",
+            "last_controller_decision_authorization": {
+                "decision_id": "stale-ai-reviewer-decision",
+                "route_target": "write",
+                "work_unit_id": "old_work_unit",
+                "work_unit_fingerprint": "publication-blockers::old",
+            },
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "decision": "noop",
+        "reason": "controller_work_unit_evidence_adopted",
+        "quest_status": "waiting_for_user",
+    }
+    tick_request = {
+        "study_root": study_root,
+        "charter_ref": {
+            "charter_id": f"charter::{study_id}::v1",
+            "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+        },
+        "publication_eval_ref": {
+            "eval_id": "publication-eval::current",
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        },
+        "decision_type": "continue_same_line",
+        "route_target": "write",
+        "route_key_question": "What paper repair should run next?",
+        "route_rationale": "AI reviewer refreshed the current publication blockers.",
+        "source_route_key_question": None,
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "run_quality_repair_batch",
+                "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            }
+        ],
+        "reason": "AI reviewer refreshed the current publication blockers.",
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "blocking_work_units": [{"unit_id": "analysis_claim_evidence_repair"}],
+    }
+    resume_calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+
+    def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
+        _write_json(
+            study_root / "artifacts" / "controller_decisions" / "latest.json",
+            {
+                "schema_version": 1,
+                "decision_id": "fresh-ai-reviewer-decision",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "requires_human_confirmation": False,
+                "controller_actions": tick_request["controller_actions"],
+                "route_target": "write",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "next_work_unit": tick_request["next_work_unit"],
+            },
+        )
+        return {
+            "dispatch_status": "recorded_non_dispatching",
+            "study_decision_ref": {
+                "artifact_path": str(study_root / "artifacts" / "controller_decisions" / "latest.json")
+            },
+        }
+
+    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        resume_calls.append(dict(kwargs))
+        runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
+        authorization = runtime_state["last_controller_decision_authorization"]
+        assert authorization["decision_id"] == "fresh-ai-reviewer-decision"
+        assert authorization["work_unit_id"] == "analysis_claim_evidence_repair"
+        assert authorization["work_unit_fingerprint"] == work_unit_fingerprint
+        assert runtime_state["same_fingerprint_auto_turn_count"] == 0
+        assert "retry_state" not in runtime_state
+        assert "blocked_turn_closeout" not in runtime_state
+        assert "last_liveness_reconcile_reason" not in runtime_state
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "decision": "resume",
+            "quest_status": "running",
+        }
+
+    monkeypatch.setattr(outer_loop, "materialize_non_dispatching_outer_loop_decision", fake_materialize_non_dispatching_outer_loop_decision)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+
+    result = module.refresh_controller_decisions_for_current_publication_eval(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    refresh = result["refreshes"][0]
+    runtime_authorization = refresh["runtime_authorization"]
+    assert result["materialized_count"] == 1
+    assert runtime_authorization["authorization_status"] == "written"
+    assert runtime_authorization["runtime_resume_status"] == "requested"
+    assert runtime_authorization["current_controller_authorization"]["decision_id"] == "fresh-ai-reviewer-decision"
+    assert runtime_authorization["current_controller_authorization"]["cleared_keys"] == [
+        "retry_state",
+        "blocked_turn_closeout",
+        "last_liveness_reconcile_reason",
+    ]
+    assert len(resume_calls) == 1
+    assert resume_calls[0]["study_id"] == study_id
+    assert resume_calls[0]["source"] == "runtime_supervisor_controller_decision_refresh"
+
+
+def test_refresh_controller_decision_preserves_live_worker_state(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    live_run_id = "mas-run-003-live"
+    work_unit_fingerprint = "publication-blockers::fresh"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "publication-eval::current",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "assessment_provenance": {"owner": "ai_reviewer"},
+            "recommended_actions": [
+                {
+                    "action_type": "route_back_same_line",
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "next_work_unit": {
+                        "unit_id": "analysis_claim_evidence_repair",
+                        "lane": "analysis-campaign",
+                    },
+                    "specificity_targets": [
+                        {
+                            "target_kind": "claim",
+                            "target_id": "claim_evidence_map",
+                            "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "running",
+            "quest_id": study_id,
+            "active_run_id": live_run_id,
+            "worker_running": True,
+            "worker_pending": False,
+            "pending_user_message_count": 0,
+            "continuation_policy": "auto",
+            "continuation_reason": "controller_work_unit_pending",
+            "same_fingerprint_auto_turn_count": 2,
+            "retry_state": {"attempt": 1},
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "decision": "noop",
+        "quest_status": "running",
+    }
+    tick_request = {
+        "study_root": study_root,
+        "charter_ref": {
+            "charter_id": f"charter::{study_id}::v1",
+            "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+        },
+        "publication_eval_ref": {
+            "eval_id": "publication-eval::current",
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        },
+        "decision_type": "continue_same_line",
+        "route_target": "write",
+        "route_key_question": "What paper repair should run next?",
+        "route_rationale": "AI reviewer refreshed the current publication blockers.",
+        "source_route_key_question": None,
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "run_quality_repair_batch",
+                "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            }
+        ],
+        "reason": "AI reviewer refreshed the current publication blockers.",
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "blocking_work_units": [{"unit_id": "analysis_claim_evidence_repair"}],
+    }
+    resume_calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+
+    def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
+        _write_json(
+            study_root / "artifacts" / "controller_decisions" / "latest.json",
+            {
+                "schema_version": 1,
+                "decision_id": "fresh-ai-reviewer-decision",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "requires_human_confirmation": False,
+                "controller_actions": tick_request["controller_actions"],
+                "route_target": "write",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "next_work_unit": tick_request["next_work_unit"],
+            },
+        )
+        return {
+            "dispatch_status": "recorded_non_dispatching",
+            "study_decision_ref": {
+                "artifact_path": str(study_root / "artifacts" / "controller_decisions" / "latest.json")
+            },
+        }
+
+    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        resume_calls.append(dict(kwargs))
+        runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
+        assert runtime_state["active_run_id"] == live_run_id
+        assert runtime_state["worker_running"] is True
+        assert runtime_state["worker_pending"] is False
+        assert runtime_state["last_controller_decision_authorization"]["decision_id"] == "fresh-ai-reviewer-decision"
+        assert "retry_state" not in runtime_state
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "decision": "resume",
+            "quest_status": "running",
+            "active_run_id": live_run_id,
+            "worker_running": True,
+        }
+
+    monkeypatch.setattr(outer_loop, "materialize_non_dispatching_outer_loop_decision", fake_materialize_non_dispatching_outer_loop_decision)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+
+    result = module.refresh_controller_decisions_for_current_publication_eval(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
+    authorization = result["refreshes"][0]["runtime_authorization"]["current_controller_authorization"]
+    assert runtime_state["active_run_id"] == live_run_id
+    assert runtime_state["worker_running"] is True
+    assert authorization["worker_state_preserved"] is True
+    assert authorization["preserved_active_run_id"] == live_run_id
+    assert len(resume_calls) == 1
+
+
 def test_refresh_controller_decisions_for_current_publication_eval_dry_run_does_not_materialize(
     monkeypatch,
     tmp_path: Path,

@@ -81,6 +81,7 @@ runtime_storage_maintenance = _LazyModuleProxy(lambda: _load_controller("runtime
 runtime_health_kernel = _LazyModuleProxy(lambda: _load_controller("runtime_health_kernel"))
 external_research_controller = _LazyModuleProxy(lambda: _load_controller("external_research"))
 figure_loop_guard = _LazyModuleProxy(lambda: _load_controller("figure_loop_guard"))
+gate_clearing_batch = _LazyModuleProxy(lambda: _load_controller("gate_clearing_batch"))
 journal_package_controller = _LazyModuleProxy(lambda: _load_controller("journal_package"))
 journal_requirements_controller = _LazyModuleProxy(lambda: _load_controller("journal_requirements"))
 journal_shortlist_controller = _LazyModuleProxy(lambda: _load_controller("journal_shortlist"))
@@ -186,6 +187,36 @@ def _handle_submission_export_or_delivery_inspect_command(args: argparse.Namespa
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
+
+
+def _resolve_study_and_quest_for_batch_command(
+    args: argparse.Namespace,
+    *,
+    parser: argparse.ArgumentParser,
+) -> tuple[Any, Path, str]:
+    if bool(args.study_id) == bool(args.study_root):
+        parser.error("Specify exactly one of --study-id or --study-root")
+    profile = load_profile(args.profile)
+    study_root = Path(args.study_root) if args.study_root else None
+    quest_id = str(args.quest_id or "").strip() or None
+    if quest_id is None or study_root is None:
+        status = study_runtime_router.study_runtime_status(
+            profile=profile,
+            study_id=args.study_id,
+            study_root=study_root,
+            entry_mode=None,
+        )
+        if study_root is None:
+            resolved_study_root = status.get("study_root")
+            if not isinstance(resolved_study_root, str) or not resolved_study_root.strip():
+                parser.error(f"Unable to resolve study_root for {args.command}")
+            study_root = Path(resolved_study_root)
+        if quest_id is None:
+            resolved_quest_id = str(status.get("quest_id") or "").strip()
+            if not resolved_quest_id:
+                parser.error(f"Unable to resolve quest_id for {args.command}")
+            quest_id = resolved_quest_id
+    return profile, study_root, quest_id
 
 
 def _render_progress_portal_command_text(result: dict[str, Any]) -> str:
@@ -462,29 +493,20 @@ def main(argv: list[str] | None = None) -> int:
             profile_workspace_cycles_runner=study_cycle_profiler.profile_workspace_cycles,
         )
     if args.command == "quality-repair-batch":
-        if bool(args.study_id) == bool(args.study_root):
-            parser.error("Specify exactly one of --study-id or --study-root")
-        profile = load_profile(args.profile)
-        study_root = Path(args.study_root) if args.study_root else None
-        quest_id = str(args.quest_id or "").strip() or None
-        if quest_id is None or study_root is None:
-            status = study_runtime_router.study_runtime_status(
-                profile=profile,
-                study_id=args.study_id,
-                study_root=study_root,
-                entry_mode=None,
-            )
-            if study_root is None:
-                resolved_study_root = status.get("study_root")
-                if not isinstance(resolved_study_root, str) or not resolved_study_root.strip():
-                    parser.error("Unable to resolve study_root for quality-repair-batch")
-                study_root = Path(resolved_study_root)
-            if quest_id is None:
-                resolved_quest_id = str(status.get("quest_id") or "").strip()
-                if not resolved_quest_id:
-                    parser.error("Unable to resolve quest_id for quality-repair-batch")
-                quest_id = resolved_quest_id
+        profile, study_root, quest_id = _resolve_study_and_quest_for_batch_command(args, parser=parser)
         result = quality_repair_batch.run_quality_repair_batch(
+            profile=profile,
+            study_id=args.study_id or study_root.name,
+            study_root=study_root,
+            quest_id=quest_id,
+            source="cli",
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "gate-clearing-batch":
+        profile, study_root, quest_id = _resolve_study_and_quest_for_batch_command(args, parser=parser)
+        result = gate_clearing_batch.run_gate_clearing_batch(
             profile=profile,
             study_id=args.study_id or study_root.name,
             study_root=study_root,

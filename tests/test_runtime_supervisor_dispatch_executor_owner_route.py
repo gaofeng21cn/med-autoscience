@@ -635,3 +635,125 @@ def test_execute_dispatch_does_not_repeat_suppress_pending_ai_reviewer_output(
     assert execution["execution_status"] == "blocked"
     assert execution["blocked_reason"] == "ai_reviewer_request_missing"
     assert execution["repeat_suppression"]["repeat_suppressed"] is False
+
+
+def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exhausted_analysis(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="write/ai_reviewer",
+    )
+    route.update(
+        {
+            "schema_version": 2,
+            "truth_epoch": "truth-event-000004",
+            "runtime_health_epoch": "runtime-health-event-002417",
+            "work_unit_fingerprint": "truth-snapshot::handoff",
+            "source_fingerprint": "truth-snapshot::handoff",
+            "failure_signature": "controller_work_unit_owner_handoff_required",
+            "owner_reason": "controller_work_unit_owner_handoff_required",
+            "trace_id": "owner-route-trace::handoff",
+        }
+    )
+    paper_progress_stall = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "terminal": True,
+        "stall_reasons": [
+            "same_fingerprint_loop",
+            "runtime_recovery_retry_budget_exhausted",
+        ],
+        "action_fingerprint": "paper_progress_stall::handoff",
+        "action_cost": {
+            "surface_kind": "runtime_dispatch_cost_contract",
+            "action_class": "observe_only",
+            "will_start_llm": False,
+            "reason": "paper_progress_stall_read_model",
+            "llm_dispatch_allowed": False,
+            "codex_worker_dispatch": False,
+        },
+    }
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="write/ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=route,
+    )
+    dispatch_payload["paper_progress_stall"] = paper_progress_stall
+    dispatch_payload["prompt_contract"]["paper_progress_stall"] = paper_progress_stall
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "paper_progress_stall": paper_progress_stall,
+                    "ai_reviewer_assessment": {
+                        "present": False,
+                        "missing": True,
+                        "owner": "write/ai_reviewer",
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "runtime_supervisor_consumer",
+            "schema_version": 1,
+            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+        },
+    )
+    called: dict[str, object] = {}
+
+    def fake_execute_ai_reviewer_workflow(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+            "owner_result": {"status": "materialized"},
+        }
+
+    monkeypatch.setattr(module, "_execute_ai_reviewer_workflow", fake_execute_ai_reviewer_workflow)
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert result["codex_dispatch_count"] == 0
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+    assert execution["paper_progress_stall_handoff_allowed"] is True
+    assert execution["action_class"] == "controller_apply"
+    assert execution["will_start_llm"] is False
+    assert called["study_id"] == study_id

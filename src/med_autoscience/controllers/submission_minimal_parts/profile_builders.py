@@ -97,7 +97,6 @@ def build_general_medical_submission_markdown(
             label="Conclusion",
         )
         appendix_heading, appendix = _extract_canonical_manuscript_section(compiled_text, "appendix")
-        bibliography_path = (paper_root / "references.bib").resolve()
     elif manuscript_title and (manuscript_sections or manuscript_auxiliary_blocks):
         title = manuscript_title
         abstract = first_nonempty_block(manuscript_sections, "Abstract")
@@ -121,11 +120,8 @@ def build_general_medical_submission_markdown(
             )
         figure_semantics_map = load_figure_semantics_map(paper_root)
         appendix_heading, appendix = _extract_canonical_manuscript_section(compiled_text, "appendix")
-        bibliography_path = (paper_root / "references.bib").resolve()
     else:
         title = metadata.get("title", "Article Title")
-        bibliography_value = metadata.get("bibliography", "../references.bib")
-        bibliography_path = (compiled_markdown_path.parent / bibliography_value).resolve()
         abstract = extract_optional_markdown_block(
             body,
             "Abstract",
@@ -181,7 +177,7 @@ def build_general_medical_submission_markdown(
         if main_figures.strip() and not figure_semantics_map:
             figure_semantics_map = load_figure_semantics_map(paper_root)
 
-    bibliography_rel = os.path.relpath(bibliography_path, submission_root.resolve())
+    bibliography_rel = "references.bib"
     catalog_image_map = build_catalog_backed_submission_figure_image_map(
         paper_root=paper_root,
         submission_root=submission_root,
@@ -237,9 +233,7 @@ def build_frontiers_manuscript_markdown(
     compiled_text = compiled_markdown_text if compiled_markdown_text is not None else compiled_markdown_path.read_text(encoding="utf-8")
     metadata, body = split_front_matter(compiled_text)
     title = metadata.get("title", "Article Title")
-    bibliography_value = metadata.get("bibliography", "../references.bib")
-    bibliography_path = (compiled_markdown_path.parent / bibliography_value).resolve()
-    bibliography_rel = os.path.relpath(bibliography_path, submission_root.resolve())
+    bibliography_rel = "references.bib"
 
     abstract = extract_markdown_block(
         body,
@@ -308,9 +302,7 @@ def build_frontiers_supplementary_markdown(
 ) -> Path:
     compiled_text = compiled_markdown_text if compiled_markdown_text is not None else compiled_markdown_path.read_text(encoding="utf-8")
     metadata, body = split_front_matter(compiled_text)
-    bibliography_value = metadata.get("bibliography", "../references.bib")
-    bibliography_path = (compiled_markdown_path.parent / bibliography_value).resolve()
-    bibliography_rel = os.path.relpath(bibliography_path, submission_root.resolve())
+    bibliography_rel = "references.bib"
     appendix = extract_optional_markdown_block(body, "Appendix", [])
     if not appendix.strip():
         main_figures = extract_optional_markdown_block(body, "Main Figures", ["Appendix", "Main Tables"])

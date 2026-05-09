@@ -4,7 +4,8 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import runtime_watch_work_units
+from med_autoscience.controllers import control_plane_route_gate, runtime_watch_work_units
+from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 
 
 CONTROL_PLANE_DISPATCH_BLOCKED_SUMMARY = (
@@ -15,6 +16,24 @@ FAIL_CLOSED_BLOCKING_REASONS = frozenset(
         "study_truth_epoch_missing",
         "runtime_health_epoch_missing",
         "runtime_recovery_retry_budget_exhausted",
+    }
+)
+ACTION_AWARE_PAPER_REPAIR_BYPASS_REASONS = frozenset(
+    {
+        "live_worker_meaningful_artifact_delta_timeout",
+        "publication_supervisor_state.bundle_tasks_downstream_only",
+        "runtime_recovery_retry_budget_exhausted",
+        "same_fingerprint_loop",
+    }
+)
+OWNER_ACTIVE_BLOCKING_REASONS = frozenset({"execution_owner_guard.supervisor_only"})
+RUNTIME_RECOVERY_ACTIONS = frozenset(
+    {
+        "ensure_study_runtime",
+        "relaunch_runtime",
+        "recover_runtime",
+        "resume_runtime",
+        "resume_same_study_line",
     }
 )
 
@@ -52,6 +71,92 @@ def _controller_action_types(tick_request: Mapping[str, Any]) -> set[str]:
     return action_types
 
 
+def _first_controller_action(tick_request: Mapping[str, Any]) -> Mapping[str, Any]:
+    controller_actions = tick_request.get("controller_actions")
+    if not isinstance(controller_actions, list | tuple) or not controller_actions:
+        return {}
+    first_action = controller_actions[0]
+    return first_action if isinstance(first_action, Mapping) else {}
+
+
+def _next_work_unit_id(tick_request: Mapping[str, Any]) -> str | None:
+    next_work_unit = tick_request.get("next_work_unit")
+    if not isinstance(next_work_unit, Mapping):
+        return None
+    return _non_empty_text(next_work_unit.get("unit_id"))
+
+
+def _route_action_for_tick_request(tick_request: Mapping[str, Any]) -> str | None:
+    action_type = _non_empty_text(_first_controller_action(tick_request).get("action_type"))
+    if action_type in RUNTIME_RECOVERY_ACTIONS:
+        return "runtime_recovery"
+    if action_type == "run_quality_repair_batch":
+        return "paper_write"
+    if action_type != "run_gate_clearing_batch":
+        return None
+    work_unit_id = _next_work_unit_id(tick_request)
+    if work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+        return "paper_write"
+    return "bundle_build"
+
+
+def _controller_route_context(tick_request: Mapping[str, Any]) -> dict[str, Any] | None:
+    action_type = _non_empty_text(_first_controller_action(tick_request).get("action_type"))
+    work_unit_id = _next_work_unit_id(tick_request)
+    if action_type is None or work_unit_id is None:
+        return None
+    control_surface = {
+        "run_gate_clearing_batch": "gate_clearing_batch",
+        "run_quality_repair_batch": "quality_repair_batch",
+    }.get(action_type)
+    if control_surface is None:
+        return None
+    publication_eval_ref = tick_request.get("publication_eval_ref")
+    source_eval_id = (
+        _non_empty_text(publication_eval_ref.get("eval_id"))
+        if isinstance(publication_eval_ref, Mapping)
+        else None
+    )
+    return {
+        "control_surface": control_surface,
+        "controller_action_type": action_type,
+        "work_unit_id": work_unit_id,
+        "requires_human_confirmation": bool(tick_request.get("requires_human_confirmation")),
+        "source_eval_id": source_eval_id,
+        "work_unit_fingerprint": _non_empty_text(tick_request.get("work_unit_fingerprint")),
+    }
+
+
+def _authorized_dispatch_route(
+    *,
+    snapshot: Mapping[str, Any],
+    tick_request: Mapping[str, Any],
+    route_payload: Mapping[str, Any],
+    blocking_reasons: list[str],
+) -> dict[str, Any] | None:
+    route_action = _route_action_for_tick_request(tick_request)
+    if route_action != "paper_write":
+        return None
+    if route_payload.get("paper_write_allowed") is not True:
+        return None
+    reason_set = set(blocking_reasons)
+    if reason_set & OWNER_ACTIVE_BLOCKING_REASONS:
+        return None
+    if not reason_set or not reason_set <= ACTION_AWARE_PAPER_REPAIR_BYPASS_REASONS:
+        return None
+    controller_route_context = _controller_route_context(tick_request)
+    if controller_route_context is None:
+        return None
+    gate = control_plane_route_gate.authorize_control_plane_route(
+        route_action,
+        {
+            "control_plane_snapshot": snapshot,
+            "controller_route_context": controller_route_context,
+        },
+    )
+    return gate if gate.get("authorized") is True else None
+
+
 def control_plane_dispatch_block(
     *,
     status_payload: Mapping[str, Any],
@@ -84,21 +189,26 @@ def control_plane_dispatch_block(
         dispatch_blocked = True
         if not blocking_reasons:
             blocking_reasons.append("dispatch_gate_blocked")
-    if FAIL_CLOSED_BLOCKING_REASONS.intersection(blocking_reasons):
+    authorized_dispatch_route = _authorized_dispatch_route(
+        snapshot=snapshot,
+        tick_request=tick_request,
+        route_payload=route_payload,
+        blocking_reasons=blocking_reasons,
+    )
+    if authorized_dispatch_route is not None:
+        dispatch_blocked = False
+    if FAIL_CLOSED_BLOCKING_REASONS.intersection(blocking_reasons) and authorized_dispatch_route is None:
         dispatch_blocked = True
-    if route_payload.get("authorized") is False and "route_not_authorized" not in blocking_reasons:
+    if (
+        route_payload.get("authorized") is False
+        and authorized_dispatch_route is None
+        and "route_not_authorized" not in blocking_reasons
+    ):
         dispatch_blocked = True
         blocking_reasons.append("route_not_authorized")
-    runtime_recovery_actions = {
-        "ensure_study_runtime",
-        "relaunch_runtime",
-        "recover_runtime",
-        "resume_runtime",
-        "resume_same_study_line",
-    }
     if (
         route_payload.get("runtime_recovery_allowed") is False
-        and _controller_action_types(tick_request) & runtime_recovery_actions
+        and _controller_action_types(tick_request) & RUNTIME_RECOVERY_ACTIONS
     ):
         dispatch_blocked = True
         blocking_reasons.append("runtime_recovery_not_authorized")

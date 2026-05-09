@@ -34,6 +34,7 @@ _UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS = frozenset(
         "execution_owner_guard.supervisor_only",
         "live_worker_meaningful_artifact_delta_timeout",
         "publication_supervisor_state.bundle_tasks_downstream_only",
+        "runtime_recovery_retry_budget_exhausted",
         "same_fingerprint_loop",
     }
 )

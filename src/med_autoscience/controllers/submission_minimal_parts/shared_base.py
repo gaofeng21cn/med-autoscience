@@ -11,13 +11,17 @@ import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 from urllib import request
 
 from pypdf import PdfReader
 
+from med_autoscience.adapters.literature import pubmed as pubmed_adapter
+from med_autoscience.controllers import workspace_literature as workspace_literature_controller
 from med_autoscience.controllers import study_delivery_sync
+from med_autoscience.literature_records import LiteratureRecord
 from med_autoscience.display_pack_resolver import get_pack_id
 from med_autoscience.publication_profiles import (
     FRONTIERS_FAMILY_HARVARD_PROFILE,
@@ -75,6 +79,22 @@ def write_text(path: Path, content: str) -> None:
 
 def count_bibtex_entries(text: str) -> int:
     return sum(1 for line in text.splitlines() if line.lstrip().startswith("@"))
+
+
+def bibtex_entry_keys(text: str) -> set[str]:
+    return {
+        match.group(1).strip()
+        for match in re.finditer(r"@\w+\s*\{\s*([^,\s]+)", text)
+        if match.group(1).strip()
+    }
+
+
+def markdown_citation_keys(text: str) -> set[str]:
+    return {
+        match.group(1).strip()
+        for match in re.finditer(r"(?<![A-Za-z0-9_])@([A-Za-z0-9_:.#/-]+)", text)
+        if match.group(1).strip()
+    }
 
 
 def relpath_from_workspace(path: Path, workspace_root: Path) -> str:
@@ -710,14 +730,62 @@ def materialize_submission_references(
     submission_root: Path,
     workspace_root: Path,
 ) -> dict[str, Any] | None:
-    source_path = paper_root / "references.bib"
-    if not source_path.exists():
+    source_path, source_kind = resolve_submission_references_source(paper_root=paper_root)
+    if source_path is None:
         return None
     target_path = submission_root / "references.bib"
     shutil.copy2(source_path, target_path)
     entry_count = count_bibtex_entries(source_path.read_text(encoding="utf-8"))
     return {
-        "source_path": relpath_from_workspace(source_path, workspace_root),
+        "_source_abs_path": str(source_path.resolve()),
+        "source_path": _path_label_from_workspace(path=source_path, workspace_root=workspace_root),
+        "source_kind": source_kind,
         "output_path": relpath_from_workspace(target_path, workspace_root),
         "entry_count": entry_count,
+    }
+
+
+def _path_label_from_workspace(*, path: Path, workspace_root: Path) -> str:
+    try:
+        return relpath_from_workspace(path, workspace_root)
+    except ValueError:
+        return str(path.expanduser().resolve())
+
+
+def resolve_submission_references_source(*, paper_root: Path) -> tuple[Path | None, str | None]:
+    resolved_paper_root = paper_root.expanduser().resolve()
+    paper_references = resolved_paper_root / "references.bib"
+    if paper_references.exists():
+        return paper_references, "paper_references"
+    for ancestor in resolved_paper_root.parents:
+        candidate = ancestor / "portfolio" / "research_memory" / "literature" / "references.bib"
+        if candidate.exists():
+            return candidate, "workspace_literature"
+    return None, None
+
+
+def validate_submission_references_coverage(
+    *,
+    source_markdown_path: Path,
+    references_path: Path | None,
+) -> dict[str, Any]:
+    citation_keys = sorted(markdown_citation_keys(source_markdown_path.read_text(encoding="utf-8")))
+    if not citation_keys:
+        return {
+            "status": "not_required",
+            "citation_key_count": 0,
+            "missing_citation_keys": [],
+        }
+    if references_path is None or not references_path.exists():
+        raise FileNotFoundError(
+            "missing submission references.bib for citation keys: " + ", ".join(citation_keys)
+        )
+    reference_keys = bibtex_entry_keys(references_path.read_text(encoding="utf-8"))
+    missing = sorted(set(citation_keys) - reference_keys)
+    if missing:
+        raise ValueError("submission references.bib missing citation keys: " + ", ".join(missing))
+    return {
+        "status": "complete",
+        "citation_key_count": len(citation_keys),
+        "missing_citation_keys": [],
     }

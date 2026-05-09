@@ -206,6 +206,99 @@ def test_watch_runtime_control_plane_open_snapshot_allows_outer_loop_dispatch(
     assert result["managed_study_no_op_suppressions"] == []
 
 
+def test_watch_runtime_downstream_bundle_gate_allows_authorized_paper_repair_dispatch(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    tick_request = _runtime_watch_tick_request(study_root, quest_root)
+    tick_request["controller_actions"] = [
+        {
+            "action_type": "run_quality_repair_batch",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
+    status_payload = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="resume",
+            reason="quest_waiting_platform_repair_redrive",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "control_plane_snapshot": {
+            **_control_plane_snapshot(
+                state="blocked",
+                blocking_reasons=[
+                    "publication_supervisor_state.bundle_tasks_downstream_only",
+                    "runtime_recovery_retry_budget_exhausted",
+                ],
+            ),
+            "control_state": "blocked_runtime_escalation",
+            "canonical_next_action": "resume_same_study_line",
+            "canonical_runtime_action": "external_supervisor_required",
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+            "route_authorization": {
+                "authorized": False,
+                "paper_write_allowed": True,
+                "bundle_build_allowed": False,
+                "runtime_recovery_allowed": False,
+            },
+        },
+    }
+    calls: list[str] = []
+
+    def fake_outer_loop_tick(**kwargs):
+        calls.append(str(kwargs.get("source") or ""))
+        return {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "source": kwargs.get("source"),
+            "study_decision_ref": {
+                "artifact_path": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve())
+            },
+            "dispatch_status": "executed",
+            "executed_controller_action": {
+                "action_type": "run_quality_repair_batch",
+                "result": {"status": "executed"},
+            },
+        }
+
+    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "study_outer_loop_tick", fake_outer_loop_tick)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+    wakeup_latest = json.loads(
+        (study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json").read_text(encoding="utf-8")
+    )
+
+    assert calls == ["runtime_watch_outer_loop_wakeup"]
+    assert len(result["managed_study_outer_loop_dispatches"]) == 1
+    assert result["managed_study_no_op_suppressions"] == []
+    assert wakeup_latest["outcome"] == "dispatched"
+    assert wakeup_latest["work_unit_dispatch_key"] == (
+        "publication-blockers::control-plane::analysis_claim_evidence_repair::run_quality_repair_batch"
+    )
+
+
 def test_control_plane_blocked_request_supersedes_stale_specificity_decision(
     tmp_path: Path,
     monkeypatch,

@@ -188,6 +188,36 @@ def terminate_worker_leases(
     )
 
 
+def terminate_worker_lease_for_run(
+    *,
+    quest_root: Path,
+    run_id: str,
+    source: str,
+    reason: str,
+    utc_now: Callable[[], str],
+    read_json: Callable[[Path], dict[str, Any]],
+    write_json: Callable[[Path, Mapping[str, Any]], None],
+    append_runtime_event: Callable[..., None],
+) -> dict[str, Any] | None:
+    lease_path = quest_root / ".ds" / "runs" / run_id / "worker_lease.json"
+    lease = read_json(lease_path)
+    if not lease:
+        return None
+    lease_run_id = text(lease.get("run_id")) or lease_path.parent.name
+    lease_quest_id = text(lease.get("quest_id"))
+    if lease_run_id != run_id or (lease_quest_id and lease_quest_id != quest_root.name):
+        return None
+    return _terminate_leases(
+        quest_root=quest_root,
+        leases=((lease_path, lease),),
+        source=source,
+        reason=reason,
+        utc_now=utc_now,
+        write_json=write_json,
+        append_runtime_event=append_runtime_event,
+    )
+
+
 def terminate_orphan_worker_leases(
     *,
     quest_root: Path,

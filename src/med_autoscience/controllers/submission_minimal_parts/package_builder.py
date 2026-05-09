@@ -383,6 +383,15 @@ def create_submission_minimal_package(
             submission_root=staging_submission_root,
             workspace_root=workspace_root,
         )
+        references_source_path = (
+            Path(str(references_manifest.pop("_source_abs_path")))
+            if references_manifest is not None and references_manifest.get("_source_abs_path")
+            else None
+        )
+        references_coverage = validate_submission_references_coverage(
+            source_markdown_path=source_markdown_path,
+            references_path=staging_submission_root / "references.bib" if references_manifest is not None else None,
+        )
 
         export_docx(
             compiled_markdown_path=source_markdown_path,
@@ -431,6 +440,7 @@ def create_submission_minimal_package(
             figure_catalog=figure_catalog,
             table_catalog=table_catalog,
             pack_lock_path=pack_lock_path,
+            references_source_path=references_source_path,
         )
         source_markdown_metadata, _ = split_front_matter(source_markdown_path.read_text(encoding="utf-8"))
         manifest: dict[str, Any] = {
@@ -509,6 +519,7 @@ def create_submission_minimal_package(
                     staging_root=staging_submission_root,
                     target_root=target_submission_root,
                 ),
+                "coverage": references_coverage,
             }
         if source_markdown_alias_path is not None:
             manifest["manuscript"]["source_markdown_alias_path"] = relpath_from_workspace(
