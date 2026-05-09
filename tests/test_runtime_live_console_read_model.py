@@ -342,7 +342,6 @@ def test_live_console_session_read_model_distinguishes_dm002_and_dpcc003(tmp_pat
 
     assert [study["study_id"] for study in payload["studies"]] == [
         "002-dm-china-us-mortality-attribution",
-        "003-dpcc-primary-care-phenotype-treatment-gap",
     ]
     assert payload["selected_study_id"] == "002-dm-china-us-mortality-attribution"
     assert payload["runs"] == [
@@ -354,6 +353,50 @@ def test_live_console_session_read_model_distinguishes_dm002_and_dpcc003(tmp_pat
             "worker_running": True,
         }
     ]
+    assert {source["study_id"] for source in payload["stream_sources"]} == {
+        "002-dm-china-us-mortality-attribution"
+    }
+    assert {event.get("study_id") for event in payload["events"] if event.get("study_id")} == {
+        "002-dm-china-us-mortality-attribution"
+    }
+    serialized_refs = json.dumps(payload["source_refs"], ensure_ascii=False)
+    assert "003-dpcc-primary-care-phenotype-treatment-gap" not in serialized_refs
+
+
+def test_live_console_session_read_model_filters_to_selected_study_root(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    _write_study_status(
+        profile=profile,
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-dm002",
+        active_run_id="run-dm002-live",
+        quest_status="running",
+    )
+    _write_study_status(
+        profile=profile,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-dpcc003",
+        active_run_id="run-dpcc003-live",
+        quest_status="running",
+    )
+
+    payload = module.build_live_console_session_read_model(
+        profile,
+        study_root=profile.studies_root / "003-dpcc-primary-care-phenotype-treatment-gap",
+        generated_at="2026-05-08T02:05:00+00:00",
+    )
+
+    assert payload["selected_study_id"] == "003-dpcc-primary-care-phenotype-treatment-gap"
+    assert [study["study_id"] for study in payload["studies"]] == [
+        "003-dpcc-primary-care-phenotype-treatment-gap"
+    ]
+    assert [run["study_id"] for run in payload["runs"]] == [
+        "003-dpcc-primary-care-phenotype-treatment-gap"
+    ]
+    assert {source["study_id"] for source in payload["stream_sources"]} == {
+        "003-dpcc-primary-care-phenotype-treatment-gap"
+    }
 
 
 def test_live_console_session_read_model_ignores_file_runtime_artifact_ref_for_terminal_source(
@@ -426,6 +469,59 @@ def test_live_console_profile_snapshot_materializes_current_ui_payload_and_html(
     assert "http://127.0.0.1:4812/events" in html
     assert "本机时间" in html
     assert "med-deepscientist" not in html.lower()
+
+
+def test_live_console_study_snapshot_materializes_study_scoped_ui_and_progress_return_link(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console")
+    profile = make_profile(tmp_path)
+    selected_study_id = "002-dm-china-us-mortality-attribution"
+    _write_study_status(
+        profile=profile,
+        study_id=selected_study_id,
+        quest_id="quest-dm002",
+        active_run_id="run-dm002-live",
+        quest_status="running",
+    )
+    _write_study_status(
+        profile=profile,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-dpcc003",
+        active_run_id="run-dpcc003-live",
+        quest_status="running",
+    )
+    per_study_progress = (
+        profile.workspace_root
+        / "ops"
+        / "mas"
+        / "progress"
+        / "studies"
+        / selected_study_id
+        / "index.html"
+    )
+    _write_text(per_study_progress, "selected progress\n")
+
+    result = module.serve_live_console_stream(
+        profile,
+        profile_ref=tmp_path / "profile.toml",
+        study_id=selected_study_id,
+        host="127.0.0.1",
+        port=4812,
+        interval_seconds=30,
+    )
+
+    ui_payload = result["ui_payload"]
+    assert ui_payload["scope"] == "study"
+    assert ui_payload["selected_study_id"] == selected_study_id
+    assert ui_payload["portal_handoff"]["progress_portal_href"] == (
+        f"../progress/studies/{selected_study_id}/index.html"
+    )
+    assert [study["study_id"] for study in ui_payload["studies"]] == [selected_study_id]
+    html = Path(result["html_path"]).read_text(encoding="utf-8")
+    assert "控制台范围" in html
+    assert selected_study_id in html
+    assert "run-dm002-live" in html
+    assert "003-dpcc-primary-care-phenotype-treatment-gap" not in html
+    assert f'href="../progress/studies/{selected_study_id}/index.html"' in html
 
 
 def test_portal_console_soak_materializes_read_only_evidence_without_truth_writes(tmp_path: Path) -> None:
