@@ -546,6 +546,71 @@ def test_ensure_supervision_creates_job_and_triggers_run(monkeypatch, tmp_path: 
     assert any(_command_contains(command, "cron", "run") for command in commands)
 
 
+def test_ensure_supervision_tick_script_runs_full_same_tick_repair_loop(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    profile = make_profile(tmp_path)
+    jobs_path = profile.hermes_home_root / "cron" / "jobs.json"
+
+    monkeypatch.setattr(
+        module,
+        "inspect_hermes_runtime_contract",
+        lambda **_: {
+            "ready": True,
+            "issues": [],
+            "gateway_service_manager": "launchd",
+            "gateway_service_label": "ai.hermes.gateway",
+            "gateway_service_loaded": True,
+        },
+    )
+
+    def fake_run_command(*, command: list[str]) -> tuple[int, str]:
+        if _command_contains(command, "cron", "create"):
+            jobs_path.parent.mkdir(parents=True, exist_ok=True)
+            jobs_path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "id": "job-created",
+                            "name": module._job_name(profile),
+                            "prompt": module._SILENT_PROMPT,
+                            "deliver": "local",
+                            "script": module._script_relpath(profile),
+                            "schedule": {"kind": "interval", "minutes": 5},
+                            "schedule_display": "every 5m",
+                            "enabled": True,
+                            "state": "scheduled",
+                            "next_run_at": "2026-04-17T12:10:00+08:00",
+                            "created_at": "2026-04-17T12:00:00+08:00",
+                        }
+                    ],
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            return 0, "Created job: job-created"
+        return 0, "ok"
+
+    monkeypatch.setattr(module, "_run_command", fake_run_command)
+
+    module.ensure_supervision(profile=profile, trigger_now=False)
+
+    script_text = module._script_path(profile).read_text(encoding="utf-8")
+    assert "COMMANDS = json.loads" in script_text
+    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime") in script_text
+    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan") in script_text
+    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume") in script_text
+    assert str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch") in script_text
+    assert "--apply-runtime-platform-repair" in script_text
+    assert script_text.index("watch-runtime") < script_text.index("supervisor-scan")
+    assert script_text.index("supervisor-scan") < script_text.index("supervisor-consume")
+    assert script_text.index("supervisor-consume") < script_text.index("supervisor-execute-dispatch")
+
+
 def test_ensure_supervision_repairs_legacy_watch_runtime_entry_before_triggering_run(
     monkeypatch,
     tmp_path: Path,

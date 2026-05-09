@@ -17,13 +17,11 @@ from med_autoscience.developer_supervisor_mode import current_github_user_gate
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
 from opl_harness_shared.hermes_supervision import (
-    ensure_script_file as _shared_ensure_script_file,
     job_drift as _shared_job_drift,
     jobs_path as _shared_jobs_path,
     load_jobs as _shared_load_jobs,
     matching_jobs as _shared_matching_jobs,
     remove_empty_parent_dirs as _shared_remove_empty_parent_dirs,
-    render_supervision_script as _shared_render_supervision_script,
     require_interval_minutes as _shared_require_interval_minutes,
     resolve_job_script_path as _shared_resolve_job_script_path,
     schedule_matches as _shared_schedule_matches,
@@ -101,6 +99,40 @@ def _watch_runtime_command(profile: WorkspaceProfile, *, interval_seconds: int) 
         str(interval_seconds),
         "--max-ticks",
         "1",
+    ]
+
+
+def _supervisor_scan_command(profile: WorkspaceProfile) -> list[str]:
+    return [
+        str(_workspace_supervisor_scan_entry_path(profile)),
+        *_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS,
+    ]
+
+
+def _supervisor_consume_command(profile: WorkspaceProfile) -> list[str]:
+    return [
+        str(_workspace_supervisor_consume_entry_path(profile)),
+        "--mode",
+        "developer_apply_safe",
+        "--apply",
+    ]
+
+
+def _supervisor_execute_dispatch_command(profile: WorkspaceProfile) -> list[str]:
+    return [
+        str(_workspace_supervisor_execute_dispatch_entry_path(profile)),
+        "--mode",
+        "developer_apply_safe",
+        "--apply",
+    ]
+
+
+def _supervision_tick_commands(profile: WorkspaceProfile, *, interval_seconds: int) -> list[list[str]]:
+    return [
+        _watch_runtime_command(profile, interval_seconds=interval_seconds),
+        _supervisor_scan_command(profile),
+        _supervisor_consume_command(profile),
+        _supervisor_execute_dispatch_command(profile),
     ]
 
 
@@ -370,7 +402,50 @@ def _repair_legacy_workspace_watch_runtime_entry(profile: WorkspaceProfile) -> d
 
 
 def _render_supervision_script(profile: WorkspaceProfile, *, interval_seconds: int) -> str:
-    return _shared_render_supervision_script(_watch_runtime_command(profile, interval_seconds=interval_seconds))
+    commands_json = json.dumps(_supervision_tick_commands(profile, interval_seconds=interval_seconds))
+    return (
+        "#!/usr/bin/env python3\n"
+        "from __future__ import annotations\n\n"
+        "import json\n"
+        "import subprocess\n\n"
+        f"COMMANDS = json.loads({json.dumps(commands_json)})\n\n"
+        "results = []\n"
+        "exit_code = 0\n"
+        "for command in COMMANDS:\n"
+        "    completed = subprocess.run(command, capture_output=True, text=True, check=False)\n"
+        "    item = {\n"
+        '        "command": command,\n'
+        '        "returncode": completed.returncode,\n'
+        "    }\n"
+        "    stdout = (completed.stdout or '').strip()\n"
+        "    stderr = (completed.stderr or '').strip()\n"
+        "    if stdout:\n"
+        "        try:\n"
+        '            item["result"] = json.loads(stdout)\n'
+        "        except json.JSONDecodeError:\n"
+        '            item["stdout"] = stdout\n'
+        "    if stderr:\n"
+        '        item["stderr"] = stderr\n'
+        "    results.append(item)\n"
+        "    if completed.returncode != 0:\n"
+        "        exit_code = completed.returncode\n"
+        "        break\n"
+        "payload = {\n"
+        '    "commands": COMMANDS,\n'
+        '    "returncode": exit_code,\n'
+        '    "results": results,\n'
+        "}\n"
+        "print(json.dumps(payload, ensure_ascii=False))\n"
+        "raise SystemExit(exit_code)\n"
+    )
+
+
+def _ensure_script_file(profile: WorkspaceProfile, *, interval_seconds: int) -> Path:
+    target = _script_path(profile)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(_render_supervision_script(profile, interval_seconds=interval_seconds), encoding="utf-8")
+    target.chmod(0o755)
+    return target
 
 
 def _run_command(*, command: list[str]) -> tuple[int, str]:
@@ -460,14 +535,6 @@ def _status_summary(
         gateway_service_loaded=gateway_service_loaded,
         job_present=job_present,
         drift_reasons=drift_reasons,
-    )
-
-
-def _ensure_script_file(profile: WorkspaceProfile, *, interval_seconds: int) -> Path:
-    return _shared_ensure_script_file(
-        hermes_home_root=profile.hermes_home_root,
-        script_relpath=_script_relpath(profile),
-        command=_watch_runtime_command(profile, interval_seconds=interval_seconds),
     )
 
 
