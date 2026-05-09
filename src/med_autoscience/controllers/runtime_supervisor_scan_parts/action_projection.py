@@ -39,13 +39,15 @@ def action_queue(
             study_root=study_root,
             publication_eval_payload=publication_eval_payload,
         )
+        or _external_supervisor_runtime_repair_required(progress)
     ):
         actions.append(
             current_truth_owner.runtime_platform_repair_action(
                 study_root=study_root,
                 status=status,
                 publication_eval_payload=publication_eval_payload,
-                default_reason=current_truth_owner.runtime_platform_repair_reason(status, progress),
+                default_reason=_external_supervisor_runtime_repair_reason(progress)
+                or current_truth_owner.runtime_platform_repair_reason(status, progress),
             )
         )
     if gate_specificity.get("required") is True:
@@ -171,6 +173,29 @@ def blocked_reason_from_scan(
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _external_supervisor_runtime_repair_required(progress: Mapping[str, Any]) -> bool:
+    return _external_supervisor_runtime_repair_reason(progress) is not None
+
+
+def _external_supervisor_runtime_repair_reason(progress: Mapping[str, Any]) -> str | None:
+    lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
+    if _text(lifecycle.get("state")) != "external_supervisor_required":
+        return None
+    if lifecycle.get("external_supervisor_required") is not True:
+        return None
+    blocked_reason = _text(lifecycle.get("blocked_reason"))
+    if blocked_reason != "runtime_recovery_not_authorized":
+        return None
+    top_action = _mapping(lifecycle.get("top_action"))
+    if (
+        _text(top_action.get("action_type")) == "controller_repair"
+        and _text(top_action.get("repair_kind")) == "bounded_work_unit_redrive"
+        and top_action.get("auto_apply_allowed") is True
+    ):
+        return blocked_reason
+    return None
 
 
 def _text(value: object) -> str | None:
