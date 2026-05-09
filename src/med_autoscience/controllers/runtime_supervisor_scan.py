@@ -12,6 +12,7 @@ from med_autoscience.controllers import recovery_intent_ledger
 from med_autoscience.controllers.runtime_supervisor_scan_parts import canonical_inputs
 from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts import action_projection
+from med_autoscience.controllers.runtime_supervisor_scan_parts import applied_repair_merge
 from med_autoscience.controllers.runtime_supervisor_scan_parts import artifact_freshness
 from med_autoscience.controllers.runtime_supervisor_scan_parts import ai_reviewer
 from med_autoscience.controllers.runtime_supervisor_scan_parts import block_state as block_state_part
@@ -464,67 +465,6 @@ def _runtime_platform_repair_applied(value: Mapping[str, Any] | None) -> bool:
     return value is not None and _text(value.get("dispatch_status")) == "applied"
 
 
-def _merge_applied_platform_repair_runtime_fact(
-    *,
-    status: Mapping[str, Any],
-    progress: Mapping[str, Any],
-    apply_result: Mapping[str, Any] | None,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    if not _runtime_platform_repair_applied(apply_result):
-        return dict(status), dict(progress)
-    resume_result = _mapping(_mapping(apply_result).get("resume_result"))
-    active_run_id = _active_run_id(resume_result, progress)
-    runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
-    runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
-    worker_running = runtime_audit.get("worker_running") is True or runtime_liveness.get("worker_running") is True
-    merged_status = dict(status)
-    if text := _text(resume_result.get("quest_status")):
-        merged_status["quest_status"] = text
-    if text := _text(resume_result.get("decision")):
-        merged_status["decision"] = text
-    if text := _text(resume_result.get("reason")):
-        merged_status["reason"] = text
-    if active_run_id is not None:
-        merged_status["active_run_id"] = active_run_id
-        merged_status["runtime_liveness_audit"] = {
-            **_mapping(merged_status.get("runtime_liveness_audit")),
-            "active_run_id": active_run_id,
-            "runtime_audit": {
-                **_mapping(_mapping(merged_status.get("runtime_liveness_audit")).get("runtime_audit")),
-                "active_run_id": active_run_id,
-                "worker_running": worker_running,
-            },
-        }
-        runtime_health = _mapping(merged_status.get("runtime_health_snapshot"))
-        runtime_health.update(
-            {
-                "active_run_id": active_run_id,
-                "observed_quest_state": {
-                    "quest_status": _text(merged_status.get("quest_status")),
-                    "decision": _text(merged_status.get("decision")),
-                    "reason": _text(merged_status.get("reason")),
-                },
-                "canonical_runtime_action": "continue_supervising_runtime",
-                "attempt_state": "recovering",
-                "retry_budget_remaining": _runtime_repair_retry_budget(runtime_health),
-                "blocking_reasons": [
-                    reason
-                    for reason in _string_items(runtime_health.get("blocking_reasons"))
-                    if reason != "runtime_recovery_retry_budget_exhausted"
-                ],
-            }
-        )
-        merged_status["runtime_health_snapshot"] = runtime_health
-    merged_progress = dict(progress)
-    if active_run_id is not None:
-        merged_progress["supervision"] = {
-            **_mapping(merged_progress.get("supervision")),
-            "active_run_id": active_run_id,
-            "health_status": "recovering",
-        }
-    return merged_status, merged_progress
-
-
 def _runtime_repair_retry_budget(runtime_health: Mapping[str, Any]) -> int:
     remaining = runtime_health.get("retry_budget_remaining")
     if isinstance(remaining, int) and remaining > 0:
@@ -676,7 +616,7 @@ def _study_projection(
             study_id=study_id,
             study_root=study_root,
         )
-        status_payload, progress_payload = _merge_applied_platform_repair_runtime_fact(
+        status_payload, progress_payload = applied_repair_merge.merge_runtime_fact(
             status=status_payload,
             progress=progress_payload,
             apply_result=runtime_platform_repair_apply,
@@ -697,6 +637,16 @@ def _study_projection(
             progress=progress_payload,
             publication_eval=publication_eval_payload,
             blocking_reasons=_blocking_reasons(status_payload, progress_payload),
+        )
+        actions = _action_queue(
+            status_payload,
+            progress_payload,
+            study_root=study_root,
+            study_id=study_id,
+            quest_id=resolved_quest_id,
+            publication_eval_payload=publication_eval_payload,
+            gate_specificity=gate_specificity,
+            ai_reviewer_assessment=ai_reviewer_assessment,
         )
     lifecycle = evidence_adoption.resolved_lifecycle(status_payload, lifecycle)
     if block_state_part.runtime_relaunch_lifecycle_resolved(
