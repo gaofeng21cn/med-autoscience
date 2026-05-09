@@ -6,15 +6,13 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.progress_portal_parts import local_time_projection
-from med_autoscience.controllers.production_blocker_impact_projection import (
-    build_production_blocker_impact_projection,
-)
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import (
     live_console_contract,
     live_console_observation,
     live_console_read_model_io as io,
+    local_time_projection,
+    production_blocker_impact_projection,
     runtime_session_read_model,
 )
 
@@ -54,7 +52,7 @@ def build_live_console_session_read_model(
         "surface_kind": SESSION_SURFACE_KIND,
         "owner": OWNER,
         "generated_at": generated,
-        "generated_at_local": local_time_projection(generated, timezone_name=None),
+        "generated_at_local": local_time_projection.local_time_projection(generated, timezone_name=None),
         "authority": {
             "kind": "read_model_display_artifact",
             "mode": "read_only",
@@ -186,7 +184,7 @@ def build_live_console_read_model(
     health = io.load_payload(runtime_health, runtime_health_path)
     supervision = io.load_payload(runtime_supervision, runtime_supervision_path)
     artifact_payload = dict(artifact_delta or {})
-    production_blocker_impact = build_production_blocker_impact_projection(
+    production_blocker_impact = production_blocker_impact_projection.build_production_blocker_impact_projection(
         {
             "study_id": resolved_study_id,
             "runtime_session": session,
@@ -688,7 +686,7 @@ def _event(
         "status": status or "missing",
         "source_ref": source_ref,
         "observed_at": observed_at,
-        "local_time": local_time_projection(observed_at, timezone_name=None),
+        "local_time": local_time_projection.local_time_projection(observed_at, timezone_name=None),
     }
 
 

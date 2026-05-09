@@ -984,5 +984,6 @@ def test_study_runtime_status_resumes_controller_owned_finalize_parking_and_surf
         "continuation_policy": "wait_for_user_or_resume",
         "continuation_anchor": "decision",
         "continuation_reason": "unchanged_finalize_state",
+        "pending_user_message_count": 0,
         "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
     }

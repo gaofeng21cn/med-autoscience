@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SPEC_PATH = REPO_ROOT / "docs" / "references" / "mds_webui_cleanroom_behavior_spec.md"
+SPEC_PATH = REPO_ROOT / "docs" / "references" / "mds-parity" / "mds_webui_cleanroom_behavior_spec.md"
 ORACLE_PATH = REPO_ROOT / "tests" / "fixtures" / "live_console" / "mds_webui_cleanroom_oracle.json"
 
 

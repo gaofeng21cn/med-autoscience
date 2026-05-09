@@ -31,6 +31,10 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
     "tests/test_runtime_watch.py": {
         "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
         "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_runtime_activity_projection.py",
+        "tests/test_runtime_watch_cases/supervisor_and_progress_cases_cases/test_alias_and_family_companion.py",
+        "tests/test_runtime_watch_cases/supervisor_and_progress_cases_cases/test_managed_recovery_holds.py",
+        "tests/test_runtime_watch_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
+        "tests/test_runtime_watch_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_gate.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_outer_loop_context.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_platform_repair_delta.py",
@@ -50,6 +54,12 @@ NESTED_CASE_REEXPORT_SURFACES = {
         "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_ai_doctor_autonomy_repair.py",
         "tests/test_runtime_watch_cases/runtime_status_cases_cases/test_runtime_activity_projection.py",
     },
+    "tests/test_runtime_watch_cases/supervisor_and_progress_cases.py": {
+        "tests/test_runtime_watch_cases/supervisor_and_progress_cases_cases/test_alias_and_family_companion.py",
+        "tests/test_runtime_watch_cases/supervisor_and_progress_cases_cases/test_managed_recovery_holds.py",
+        "tests/test_runtime_watch_cases/supervisor_and_progress_cases_cases/test_managed_recovery_redrive.py",
+        "tests/test_runtime_watch_cases/supervisor_and_progress_cases_cases/test_supervision_escalation.py",
+    },
     "tests/test_runtime_watch_cases/work_unit_dispatch_cases.py": {
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_control_plane_dispatch_gate.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases_cases/test_outer_loop_context.py",
@@ -65,6 +75,7 @@ NESTED_CASE_REEXPORT_SURFACES = {
 AGGREGATE_ENTRYPOINT_REEXPORT_SURFACES = {
     "tests/test_runtime_watch.py": {
         "tests/test_runtime_watch_cases/runtime_status_cases.py",
+        "tests/test_runtime_watch_cases/supervisor_and_progress_cases.py",
         "tests/test_runtime_watch_cases/work_unit_dispatch_cases.py",
     },
 }
