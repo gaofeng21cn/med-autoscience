@@ -6,17 +6,22 @@ from typing import Any
 
 ADOPTED_REASON = "controller_work_unit_evidence_adopted"
 RECHECK_REASON = "publication_gate_recheck_required"
+OWNER_HANDOFF_REASON = "controller_work_unit_owner_handoff_required"
 
 
 def adopted_controller_work_unit(status: Mapping[str, Any]) -> bool:
     if _text(status.get("reason")) != ADOPTED_REASON:
         return False
     next_route = _mapping(status.get("controller_work_unit_next_route"))
-    if _text(next_route.get("owner")) != "publication_gate":
-        return False
     if next_route.get("runtime_relaunch_required") is not False:
         return False
-    return bool(status.get("controller_work_unit_evidence_adoption"))
+    return bool(status.get("controller_work_unit_evidence_adoption")) and _text(next_route.get("owner")) is not None
+
+
+def adopted_next_owner(status: Mapping[str, Any]) -> str | None:
+    if not adopted_controller_work_unit(status):
+        return None
+    return _text(_mapping(status.get("controller_work_unit_next_route")).get("owner"))
 
 
 def should_suppress_runtime_platform_repair(status: Mapping[str, Any]) -> bool:
@@ -46,6 +51,8 @@ def resolved_lifecycle(status: Mapping[str, Any], lifecycle: Mapping[str, Any]) 
 
 def why_not_applied(status: Mapping[str, Any]) -> str | None:
     if adopted_controller_work_unit(status):
+        if adopted_next_owner(status) != "publication_gate":
+            return OWNER_HANDOFF_REASON
         return RECHECK_REASON
     return None
 
@@ -61,8 +68,10 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "ADOPTED_REASON",
+    "OWNER_HANDOFF_REASON",
     "RECHECK_REASON",
     "adopted_controller_work_unit",
+    "adopted_next_owner",
     "platform_repair_required",
     "resolved_lifecycle",
     "should_suppress_runtime_platform_repair",

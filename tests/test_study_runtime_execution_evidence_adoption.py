@@ -340,6 +340,125 @@ def test_execute_noop_runtime_decision_adopts_analysis_claim_evidence_repair_bat
     assert adoption["result"]["unresolved_local_defect_count"] == 0
 
 
+def test_execute_noop_runtime_decision_adopts_analysis_lane_exhausted_handoff(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
+    quest_root = tmp_path / "runtime" / "quest-003"
+    _write_controller_decision_authorization(
+        study_root,
+        action_type="run_quality_repair_batch",
+        emitted_at="2026-05-09T11:40:00+00:00",
+        work_unit_fingerprint="publication-blockers::497d1260db522f01",
+        next_work_unit={
+            "unit_id": "analysis_claim_evidence_repair",
+            "lane": "analysis-campaign",
+            "summary": "Repair claim-evidence blockers.",
+        },
+    )
+    _write_publication_eval_work_unit_authority(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    identity = auth_module._controller_decision_authorization_identity(authorization_context)
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={"message_id": "msg-analysis-repair", "active_run_id": "run-003"},
+        recorded_at="2026-05-09T11:41:00+00:00",
+    )
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="skipped_duplicate",
+        payload={"reason": "same_fingerprint_no_artifact_delta", "active_run_id": "run-003"},
+        recorded_at="2026-05-09T11:50:00+00:00",
+    )
+    handoff_path = quest_root / "artifacts" / "supervision" / "controller_consumption" / "latest.json"
+    handoff_path.parent.mkdir(parents=True, exist_ok=True)
+    handoff_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "surface": "controller_consumption_receipt_latest",
+                "study_id": "003-dpcc",
+                "quest_id": "quest-003",
+                "run_id": "run-003",
+                "updated_at": "2026-05-09T11:58:53Z",
+                "work_unit_id": "analysis_claim_evidence_repair",
+                "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+                "repair_packet_ref": "artifacts/reports/analysis_claim_evidence_repair/20260509T115853Z.json",
+                "repair_packet_type": "analysis_claim_evidence_current_run_handoff",
+                "analysis_lane_status": "exhausted_for_current_fingerprint",
+                "meaningful_artifact_delta": True,
+                "next_owner": "write/ai_reviewer",
+                "next_work_unit": "manuscript_story_repair",
+                "dedupe_recommendation": (
+                    "Do not requeue publication-blockers::497d1260db522f01 to analysis-campaign "
+                    "unless a new target, new evidence source, or explicit analysis-authorized "
+                    "repair surface changes the repair boundary."
+                ),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_runtime_state(quest_root, {"status": "running", "active_run_id": "run-003", "pending_user_message_count": 0})
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status_payload["quest_id"] = "quest-003"
+    status_payload["execution"]["quest_id"] = "quest-003"
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("analysis-exhausted handoff must be adopted instead of relayed")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+    events = control_intent.read_events(study_root=study_root)
+    lifecycle = control_intent.lifecycle_state(study_root=study_root, identity=identity)
+    adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
+    next_route = status.to_dict()["controller_work_unit_next_route"]
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert [event["event_type"] for event in events] == [
+        "delivered",
+        "skipped_duplicate",
+        "artifact_written",
+        "owner_handoff",
+    ]
+    assert lifecycle["terminal_consumed"] is True
+    assert lifecycle["block_reason"] == "owner_handoff"
+    assert adoption["report_ref"] == str(handoff_path)
+    assert adoption["analysis_lane_status"] == "exhausted_for_current_fingerprint"
+    assert adoption["next_owner"] == "write/ai_reviewer"
+    assert adoption["next_work_unit"] == "manuscript_story_repair"
+    assert adoption["result"]["meaningful_artifact_delta"] is True
+    assert next_route == {
+        "recommended_next_route": "handoff_to_next_owner",
+        "owner": "write/ai_reviewer",
+        "next_work_unit": "manuscript_story_repair",
+        "quality_gate_relaxation_allowed": False,
+        "runtime_relaunch_required": False,
+    }
+
+
 def test_execute_resume_runtime_decision_stops_after_work_unit_evidence_adoption(
     tmp_path: Path,
 ) -> None:
