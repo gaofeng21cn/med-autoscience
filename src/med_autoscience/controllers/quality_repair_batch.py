@@ -34,6 +34,17 @@ _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES = (
     Path("figures/figure_catalog.json"),
     Path("tables/table_catalog.json"),
 )
+_HYDRATION_PAPER_OWNER_INPUT_SURFACES = (
+    Path("medical_analysis_contract.json"),
+    Path("medical_reporting_contract.json"),
+    Path("display_registry.json"),
+    Path("reference_coverage_report.json"),
+    Path("references.bib"),
+)
+_HYDRATION_PAPER_OWNER_INPUT_GLOBS = (
+    "figures/*.shell.json",
+    "tables/*.shell.json",
+)
 
 
 def stable_quality_repair_batch_path(*, study_root: Path) -> Path:
@@ -241,6 +252,13 @@ def _canonical_paper_owner_surface_complete(paper_root: Path) -> bool:
     return all((paper_root / relpath).exists() for relpath in _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES)
 
 
+def _hydration_paper_owner_projection_inputs(projected_paper_root: Path) -> list[Path]:
+    inputs = [projected_paper_root / relpath for relpath in _HYDRATION_PAPER_OWNER_INPUT_SURFACES]
+    for pattern in _HYDRATION_PAPER_OWNER_INPUT_GLOBS:
+        inputs.extend(sorted(projected_paper_root.glob(pattern)))
+    return [path for path in inputs if path.is_file()]
+
+
 def _default_canonical_paper_json_surface(
     *,
     relpath: Path,
@@ -334,16 +352,24 @@ def _prepare_canonical_paper_owner_surface_for_upstream_repair(
 
     quest_root = profile.managed_runtime_quests_root / quest_id
     projected_paper_root = quest_root / "paper"
-    projected_surface_count = sum(
-        1 for relpath in _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES if (projected_paper_root / relpath).is_file()
-    )
-    if projected_surface_count == 0:
+    canonical_projection_inputs = [
+        projected_paper_root / relpath
+        for relpath in _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES
+        if (projected_paper_root / relpath).is_file()
+    ]
+    hydration_projection_inputs = _hydration_paper_owner_projection_inputs(projected_paper_root)
+    if not canonical_projection_inputs and not hydration_projection_inputs:
         return {
             "status": "blocked_missing_projection",
             "paper_root": str(canonical_paper_root),
             "quest_projection_root": str(projected_paper_root.resolve()),
             "missing_reason": "quest paper projection has no canonical owner-surface inputs",
         }
+    projection_input_status = (
+        "canonical_projection_present"
+        if canonical_projection_inputs
+        else "hydration_projection_present"
+    )
     surface_results = [
         _copy_or_initialize_canonical_paper_surface(
             source_root=projected_paper_root,
@@ -379,6 +405,8 @@ def _prepare_canonical_paper_owner_surface_for_upstream_repair(
         "status": "materialized",
         "paper_root": str(canonical_paper_root),
         "quest_projection_root": str(projected_paper_root.resolve()),
+        "projection_input_status": projection_input_status,
+        "projection_input_count": len(canonical_projection_inputs) + len(hydration_projection_inputs),
         "surface_results": surface_results,
     }
 

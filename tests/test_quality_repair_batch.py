@@ -150,10 +150,7 @@ def _paper_write_supervisor_route_context() -> dict[str, Any]:
             "surface": "control_plane_snapshot",
             "control_state": "supervisor_gated",
             "canonical_next_action": "resume_same_study_line",
-            "authority_refs": {
-                "study_truth": {"epoch": "truth-1"},
-                "runtime_health": {"epoch": "runtime-1"},
-            },
+            "authority_refs": {"study_truth": {"epoch": "truth-1"}, "runtime_health": {"epoch": "runtime-1"}},
             "dispatch_gate": {
                 "state": "blocked",
                 "blocking_reasons": ["publication_supervisor_state.bundle_tasks_downstream_only"],
@@ -756,6 +753,72 @@ def test_run_quality_repair_batch_does_not_materialize_paper_owner_surface_witho
     assert result["status"] == "blocked_no_paper_root"
     assert result["paper_owner_surface_prepare"]["status"] == "blocked_missing_projection"
     assert not (study_root / "paper").exists()
+
+
+def test_run_quality_repair_batch_materializes_owner_surface_from_hydration_projection_inputs(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    publication_gate = importlib.import_module("med_autoscience.controllers.publication_gate")
+    paper_artifacts = importlib.import_module("med_autoscience.runtime_protocol.paper_artifacts")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_id = "quest-001"
+    quest_root = profile.managed_runtime_quests_root / quest_id
+    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n", encoding="utf-8")
+    _write_json(quest_root / "paper" / "medical_analysis_contract.json", {"schema_version": 1})
+    _write_json(quest_root / "paper" / "medical_reporting_contract.json", {"schema_version": 1})
+    _write_json(quest_root / "paper" / "display_registry.json", {"schema_version": 1, "displays": []})
+    _write_json(quest_root / "paper" / "figures" / "cohort_flow.shell.json", {"schema_version": 1})
+    _write_json(quest_root / "paper" / "tables" / "baseline_characteristics.shell.json", {"schema_version": 1})
+    _write_json(
+        quest_root / "artifacts" / "reports" / "startup" / "hydration_report.json",
+        {
+            "schema_version": 1,
+            "status": "hydrated",
+            "written_files": [
+                str(quest_root / "paper" / "medical_analysis_contract.json"),
+                str(quest_root / "paper" / "medical_reporting_contract.json"),
+                str(quest_root / "paper" / "display_registry.json"),
+            ],
+        },
+    )
+    publication_eval_payload = _mark_publication_eval_as_specific_upstream_repair(
+        study_root,
+        _write_blocked_publication_eval(study_root, quest_id=quest_id),
+    )
+    _write_quality_summary(study_root)
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        control_plane_route_context=_paper_write_supervisor_route_context(),
+    )
+
+    canonical_paper_root = study_root / "paper"
+    assert result["source_eval_id"] == publication_eval_payload["eval_id"]
+    assert result["status"] != "blocked_no_paper_root"
+    assert result["paper_owner_surface_prepare"]["status"] == "materialized"
+    assert result["paper_owner_surface_prepare"]["projection_input_status"] == "hydration_projection_present"
+    assert paper_artifacts.resolve_latest_paper_root(quest_root) == canonical_paper_root.resolve()
+    gate_state = publication_gate.build_gate_state(quest_root)
+    assert gate_state.paper_root == canonical_paper_root.resolve()
+    assert (canonical_paper_root / "paper_bundle_manifest.json").is_file()
+    assert (canonical_paper_root / "paper_line_state.json").is_file()
+    assert (canonical_paper_root / "claim_evidence_map.json").is_file()
+    assert (canonical_paper_root / "figures" / "figure_catalog.json").is_file()
+    assert not (canonical_paper_root / "submission_minimal" / "submission_manifest.json").exists()
 
 
 def test_run_quality_repair_batch_reruns_same_eval_after_failed_gate_clearing_batch(
