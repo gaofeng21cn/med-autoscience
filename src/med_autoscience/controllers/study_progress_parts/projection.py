@@ -550,52 +550,18 @@ def build_study_progress_projection(
         auto_runtime_parked=auto_runtime_parked,
         publication_gate_stationary=publication_gate_stationary,
     )
-    module_surfaces: dict[str, Any] = {}
-    if controller_module_surface is not None:
-        module_surfaces["controller_charter"] = controller_module_surface
-    module_surfaces["runtime"] = runtime_module_surface
-    if evaluation_module_surface is not None:
-        module_surfaces["eval_hygiene"] = evaluation_module_surface
-    quality_closure_truth = (
-        _mapping_copy(evaluation_module_surface.get("quality_closure_truth"))
-        if evaluation_module_surface is not None
-        else {}
+    quality_projection = _quality_projection_surfaces(
+        controller_module_surface=controller_module_surface,
+        runtime_module_surface=runtime_module_surface,
+        evaluation_module_surface=evaluation_module_surface,
+        task_intake_progress_override=task_intake_progress_override,
+        publication_supervisor_state=publication_supervisor_state,
     )
-    quality_execution_lane = (
-        _mapping_copy(evaluation_module_surface.get("quality_execution_lane"))
-        if evaluation_module_surface is not None
-        else {}
-    )
-    same_line_route_truth = (
-        _mapping_copy(evaluation_module_surface.get("same_line_route_truth"))
-        if evaluation_module_surface is not None
-        else {}
-    )
-    same_line_route_surface = (
-        _mapping_copy(evaluation_module_surface.get("same_line_route_surface"))
-        if evaluation_module_surface is not None
-        else {}
-    )
-    if task_intake_progress_override:
-        quality_closure_truth = _mapping_copy(task_intake_progress_override.get("quality_closure_truth"))
-        quality_execution_lane = _mapping_copy(task_intake_progress_override.get("quality_execution_lane"))
-        same_line_route_truth = _mapping_copy(task_intake_progress_override.get("same_line_route_truth"))
-        same_line_route_surface = _mapping_copy(task_intake_progress_override.get("same_line_route_surface"))
-        eval_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
-        if eval_surface:
-            eval_surface["quality_closure_truth"] = quality_closure_truth or None
-            eval_surface["quality_execution_lane"] = quality_execution_lane or None
-            eval_surface["same_line_route_truth"] = same_line_route_truth or None
-            eval_surface["same_line_route_surface"] = same_line_route_surface or None
-            module_surfaces["eval_hygiene"] = eval_surface
-    if _publication_supervisor_blocks_same_line_route(publication_supervisor_state):
-        same_line_route_truth = {}
-        same_line_route_surface = {}
-        eval_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
-        if eval_surface:
-            eval_surface["same_line_route_truth"] = None
-            eval_surface["same_line_route_surface"] = None
-            module_surfaces["eval_hygiene"] = eval_surface
+    module_surfaces = quality_projection["module_surfaces"]
+    quality_closure_truth = quality_projection["quality_closure_truth"]
+    quality_execution_lane = quality_projection["quality_execution_lane"]
+    same_line_route_truth = quality_projection["same_line_route_truth"]
+    same_line_route_surface = quality_projection["same_line_route_surface"]
     quality_closure_basis = (
         _mapping_copy(evaluation_module_surface.get("quality_closure_basis"))
         if evaluation_module_surface is not None
@@ -649,16 +615,12 @@ def build_study_progress_projection(
         runtime_watch_path=runtime_watch_path,
         controller_decision_path=controller_decision_path,
     )
-    if publication_gate_stationary:
-        supervision_health_status = "publication_gate_blocked"
-    elif bool(auto_runtime_parked.get("parked")):
-        supervision_health_status = "parked"
-    elif runtime_facts.recovery_pending or runtime_facts.missing_live_session:
-        supervision_health_status = "recovering"
-    elif runtime_facts.strict_live:
-        supervision_health_status = runtime_health_status or "live"
-    else:
-        supervision_health_status = runtime_health_status
+    supervision_health_status = _supervision_health_status(
+        publication_gate_stationary=publication_gate_stationary,
+        auto_runtime_parked=auto_runtime_parked,
+        runtime_facts=runtime_facts,
+        runtime_health_status=runtime_health_status,
+    )
     research_runtime_control_projection = _research_runtime_control_projection(
         study_commands=study_commands,
         autonomy_contract=autonomy_contract,
@@ -826,6 +788,105 @@ def build_study_progress_projection(
         supervision_health_status=supervision_health_status,
         refs=refs,
     )
+
+
+def _quality_projection_surfaces(
+    *,
+    controller_module_surface: Mapping[str, Any] | None,
+    runtime_module_surface: Mapping[str, Any],
+    evaluation_module_surface: Mapping[str, Any] | None,
+    task_intake_progress_override: Mapping[str, Any] | None,
+    publication_supervisor_state: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    module_surfaces = _base_module_surfaces(
+        controller_module_surface=controller_module_surface,
+        runtime_module_surface=runtime_module_surface,
+        evaluation_module_surface=evaluation_module_surface,
+    )
+    projection = _evaluation_quality_projection(evaluation_module_surface)
+    if task_intake_progress_override:
+        projection = _task_intake_quality_projection(task_intake_progress_override)
+        _replace_eval_quality_projection(module_surfaces, projection)
+    if _publication_supervisor_blocks_same_line_route(publication_supervisor_state):
+        projection = {**projection, "same_line_route_truth": {}, "same_line_route_surface": {}}
+        _clear_eval_same_line_route(module_surfaces)
+    return {**projection, "module_surfaces": module_surfaces}
+
+
+def _base_module_surfaces(
+    *,
+    controller_module_surface: Mapping[str, Any] | None,
+    runtime_module_surface: Mapping[str, Any],
+    evaluation_module_surface: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    module_surfaces: dict[str, Any] = {}
+    if controller_module_surface is not None:
+        module_surfaces["controller_charter"] = controller_module_surface
+    module_surfaces["runtime"] = runtime_module_surface
+    if evaluation_module_surface is not None:
+        module_surfaces["eval_hygiene"] = evaluation_module_surface
+    return module_surfaces
+
+
+def _evaluation_quality_projection(evaluation_module_surface: Mapping[str, Any] | None) -> dict[str, Any]:
+    if evaluation_module_surface is None:
+        return _task_intake_quality_projection({})
+    return {
+        "quality_closure_truth": _mapping_copy(evaluation_module_surface.get("quality_closure_truth")),
+        "quality_execution_lane": _mapping_copy(evaluation_module_surface.get("quality_execution_lane")),
+        "same_line_route_truth": _mapping_copy(evaluation_module_surface.get("same_line_route_truth")),
+        "same_line_route_surface": _mapping_copy(evaluation_module_surface.get("same_line_route_surface")),
+    }
+
+
+def _task_intake_quality_projection(source: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "quality_closure_truth": _mapping_copy(source.get("quality_closure_truth")),
+        "quality_execution_lane": _mapping_copy(source.get("quality_execution_lane")),
+        "same_line_route_truth": _mapping_copy(source.get("same_line_route_truth")),
+        "same_line_route_surface": _mapping_copy(source.get("same_line_route_surface")),
+    }
+
+
+def _replace_eval_quality_projection(
+    module_surfaces: dict[str, Any],
+    projection: Mapping[str, Any],
+) -> None:
+    eval_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
+    if not eval_surface:
+        return
+    eval_surface["quality_closure_truth"] = projection["quality_closure_truth"] or None
+    eval_surface["quality_execution_lane"] = projection["quality_execution_lane"] or None
+    eval_surface["same_line_route_truth"] = projection["same_line_route_truth"] or None
+    eval_surface["same_line_route_surface"] = projection["same_line_route_surface"] or None
+    module_surfaces["eval_hygiene"] = eval_surface
+
+
+def _clear_eval_same_line_route(module_surfaces: dict[str, Any]) -> None:
+    eval_surface = _mapping_copy(module_surfaces.get("eval_hygiene"))
+    if not eval_surface:
+        return
+    eval_surface["same_line_route_truth"] = None
+    eval_surface["same_line_route_surface"] = None
+    module_surfaces["eval_hygiene"] = eval_surface
+
+
+def _supervision_health_status(
+    *,
+    publication_gate_stationary: bool,
+    auto_runtime_parked: Mapping[str, Any],
+    runtime_facts: Any,
+    runtime_health_status: str | None,
+) -> str | None:
+    if publication_gate_stationary:
+        return "publication_gate_blocked"
+    if bool(auto_runtime_parked.get("parked")):
+        return "parked"
+    if runtime_facts.recovery_pending or runtime_facts.missing_live_session:
+        return "recovering"
+    if runtime_facts.strict_live:
+        return runtime_health_status or "live"
+    return runtime_health_status
 
 
 def read_study_progress(

@@ -381,18 +381,14 @@ def _default_executor_dispatch(
         )
         else "dry_run" if not apply else "blocked"
     )
-    blocked_reason = None
-    if dispatch_status == "blocked":
-        blocked_reason = _github_block_reason(developer_mode_payload)
-        if blocked_reason is None and not owner_route_part.route_allows_action(
-            action={
-                **dict(action),
-                "next_executable_owner": next_executable_owner,
-                "action_type": action_type,
-            },
-            owner_route=owner_route,
-        ):
-            blocked_reason = "owner_route_next_owner_mismatch"
+    blocked_reason = _default_executor_dispatch_blocked_reason(
+        dispatch_status=dispatch_status,
+        developer_mode_payload=developer_mode_payload,
+        action=action,
+        action_type=action_type,
+        next_executable_owner=next_executable_owner,
+        owner_route=owner_route,
+    )
     current_study = _current_scan_study(scan_payload, study_id)
     repeat_guard = repeat_suppression.dispatch_repeat_suppression(
         dispatch={"prompt_contract": prompt_contract, "owner_route": owner_route, "dispatch_status": dispatch_status},
@@ -443,6 +439,31 @@ def _default_executor_dispatch(
             "dispatch_path": str(dispatch_path),
         },
     }
+
+
+def _default_executor_dispatch_blocked_reason(
+    *,
+    dispatch_status: str,
+    developer_mode_payload: Mapping[str, Any],
+    action: Mapping[str, Any],
+    action_type: str,
+    next_executable_owner: str,
+    owner_route: Mapping[str, Any],
+) -> str | None:
+    if dispatch_status != "blocked":
+        return None
+    if reason := _github_block_reason(developer_mode_payload):
+        return reason
+    if owner_route_part.route_allows_action(
+        action={
+            **dict(action),
+            "next_executable_owner": next_executable_owner,
+            "action_type": action_type,
+        },
+        owner_route=owner_route,
+    ):
+        return None
+    return "owner_route_next_owner_mismatch"
 
 
 def _request_task(

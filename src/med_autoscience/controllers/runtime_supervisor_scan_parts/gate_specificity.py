@@ -30,14 +30,12 @@ def publication_gate_specificity_required(
     no_op_suppression = _mapping(operator_status.get("no_op_suppression"))
     specificity_request = _publication_eval_specificity_request(dict(publication_eval_payload) or None)
     target_status = _publication_eval_specificity_target_status(publication_eval_payload)
-    required = (
-        "publication_gate_specificity_required" in reasons
-        or _text(_mapping(progress.get("intervention_lane")).get("lane_id")) == "publication_gate_specificity_required"
-        or _text(_mapping(progress.get("operator_verdict")).get("lane_id")) == "publication_gate_specificity_required"
-        or _text(operator_status.get("handling_state")) == "publication_gate_specificity_required"
-        or _text(no_op_suppression.get("outcome")) == "needs_specificity"
-        or _next_work_unit_needs_specificity(no_op_suppression.get("next_work_unit"))
-        or specificity_request is not None
+    required = _specificity_required_from_progress(
+        reasons=reasons,
+        progress=progress,
+        operator_status=operator_status,
+        no_op_suppression=no_op_suppression,
+        specificity_request=specificity_request,
     )
     if target_status.get("complete") is True:
         return {
@@ -74,6 +72,25 @@ def publication_gate_specificity_required(
     if text := _text(target_status.get("error")):
         result["target_validation_error"] = text
     return result
+
+
+def _specificity_required_from_progress(
+    *,
+    reasons: set[str],
+    progress: Mapping[str, Any],
+    operator_status: Mapping[str, Any],
+    no_op_suppression: Mapping[str, Any],
+    specificity_request: Mapping[str, Any] | None,
+) -> bool:
+    return (
+        "publication_gate_specificity_required" in reasons
+        or _text(_mapping(progress.get("intervention_lane")).get("lane_id")) == "publication_gate_specificity_required"
+        or _text(_mapping(progress.get("operator_verdict")).get("lane_id")) == "publication_gate_specificity_required"
+        or _text(operator_status.get("handling_state")) == "publication_gate_specificity_required"
+        or _text(no_op_suppression.get("outcome")) == "needs_specificity"
+        or _next_work_unit_needs_specificity(no_op_suppression.get("next_work_unit"))
+        or specificity_request is not None
+    )
 
 
 def gate_specificity_status(gate_specificity: Mapping[str, Any]) -> dict[str, Any]:

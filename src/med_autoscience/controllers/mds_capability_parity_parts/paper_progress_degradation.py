@@ -234,13 +234,44 @@ def validate_paper_progress_degradation_classifier(
         issues.append({"code": "paper_progress_degradation_classifier_wrong_surface"})
     if list(classifier.get("allowed_degradation_classes") or []) != list(ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES):
         issues.append({"code": "paper_progress_degradation_allowed_classes_drift"})
+    behavior_ids, embedded_classifications = _paper_progress_behavior_surface_index(matrix)
+    classification_items = _list(classifier.get("behavior_surface_classifications"))
+    overlay_items = _list(classifier.get("overlay_risks"))
+    _validate_paper_progress_classifier_behavior_items(
+        behavior_ids=behavior_ids,
+        embedded_classifications=embedded_classifications,
+        classification_items=classification_items,
+        issues=issues,
+    )
+    _validate_paper_progress_classifier_overlay_items(overlay_items, issues)
+    _validate_paper_progress_classifier_summary(
+        matrix=matrix,
+        classifier=classifier,
+        classification_items=classification_items,
+        overlay_items=overlay_items,
+        issues=issues,
+    )
+
+
+def _paper_progress_behavior_surface_index(
+    matrix: Mapping[str, Any],
+) -> tuple[list[str], dict[str, object]]:
     behavior_surfaces = [surface for surface in _list(matrix.get("behavior_surfaces")) if isinstance(surface, Mapping)]
     behavior_ids = [_text(surface.get("surface_id")) for surface in behavior_surfaces]
     embedded_classifications = {
         _text(surface.get("surface_id")): surface.get("paper_progress_degradation")
         for surface in behavior_surfaces
     }
-    classification_items = _list(classifier.get("behavior_surface_classifications"))
+    return behavior_ids, embedded_classifications
+
+
+def _validate_paper_progress_classifier_behavior_items(
+    *,
+    behavior_ids: Sequence[str],
+    embedded_classifications: Mapping[str, object],
+    classification_items: Sequence[object],
+    issues: list[dict[str, Any]],
+) -> None:
     classification_ids = [
         _text(item.get("surface_id"))
         for item in classification_items
@@ -262,7 +293,12 @@ def validate_paper_progress_degradation_classifier(
                 embedded_classifications.get(_text(item.get("surface_id"))),
                 issues,
             )
-    overlay_items = _list(classifier.get("overlay_risks"))
+
+
+def _validate_paper_progress_classifier_overlay_items(
+    overlay_items: Sequence[object],
+    issues: list[dict[str, Any]],
+) -> None:
     for item in overlay_items:
         if isinstance(item, Mapping):
             _validate_paper_progress_classification_item(item, "risk_id", issues)
@@ -280,6 +316,16 @@ def validate_paper_progress_degradation_classifier(
                 "missing_overlay_ids": sorted(missing_overlays),
             }
         )
+
+
+def _validate_paper_progress_classifier_summary(
+    *,
+    matrix: Mapping[str, Any],
+    classifier: Mapping[str, Any],
+    classification_items: Sequence[object],
+    overlay_items: Sequence[object],
+    issues: list[dict[str, Any]],
+) -> None:
     summary = classifier.get("summary")
     expected_summary = _paper_progress_degradation_summary(
         [item for item in classification_items if isinstance(item, Mapping)],
@@ -396,4 +442,3 @@ def _list(value: object) -> list[object]:
 
 def _text(value: object) -> str:
     return str(value or "").strip()
-
