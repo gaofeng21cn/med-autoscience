@@ -33,8 +33,10 @@ from .study_runtime_status import (
     StudyCompletionSyncResult,
     StudyRuntimeAnalysisBundleResult,
     StudyRuntimeBindingAction,
+    StudyRuntimeContinuationState,
     StudyRuntimeDaemonStep,
     StudyRuntimeDecision,
+    StudyRuntimeInteractionArbitration,
     StudyRuntimeOverlayResult,
     StudyRuntimePartialQuestRecoveryResult,
     StudyRuntimeQuestStatus,
@@ -150,6 +152,39 @@ def _enable_explicit_user_wakeup_if_requested(
     context: StudyRuntimeExecutionContext,
 ) -> None:
     if (
+        status.decision is StudyRuntimeDecision.BLOCKED
+        and status.reason is StudyRuntimeReason.QUEST_WAITING_FOR_USER
+        and status.quest_status is StudyRuntimeQuestStatus.WAITING_FOR_USER
+    ):
+        if not status.startup_boundary_allows_compute_stage:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+            )
+            return
+        if not status.runtime_reentry_allows_runtime_entry:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+            )
+            return
+        wakeup_record = _runtime_events.record_explicit_user_wakeup(
+            quest_root=context.quest_root,
+            source=context.source,
+        )
+        if wakeup_record is None:
+            return
+        status._record_dict_extra("explicit_user_wakeup", wakeup_record)
+        _record_platform_repair_decision_redrive_status_projection(
+            status=status,
+            wakeup_record=wakeup_record,
+        )
+        status.set_decision(
+            StudyRuntimeDecision.RESUME,
+            StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
+        )
+        return
+    if (
         status.decision is not StudyRuntimeDecision.BLOCKED
         or status.reason is not StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP
         or status.quest_status
@@ -188,6 +223,55 @@ def _enable_explicit_user_wakeup_if_requested(
             StudyRuntimeDecision.RESUME,
             StudyRuntimeReason.QUEST_PAUSED,
         )
+
+
+def _record_platform_repair_decision_redrive_status_projection(
+    *,
+    status: StudyRuntimeStatus,
+    wakeup_record: dict[str, Any],
+) -> None:
+    previous_continuation = status.extras.get("continuation_state")
+    pending_user_message_count = (
+        int(previous_continuation.get("pending_user_message_count") or 0)
+        if isinstance(previous_continuation, dict)
+        else 0
+    )
+    runtime_state_path = str(wakeup_record.get("runtime_state_path") or "").strip()
+    if not runtime_state_path:
+        return
+    status.record_continuation_state(
+        StudyRuntimeContinuationState.from_payload(
+            {
+                "quest_status": StudyRuntimeQuestStatus.WAITING_FOR_USER.value,
+                "active_run_id": None,
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "runtime_platform_repair_redrive",
+                "pending_user_message_count": pending_user_message_count,
+                "runtime_state_path": runtime_state_path,
+            }
+        )
+    )
+    status.extras.pop("blocked_turn_closeout", None)
+    status.record_interaction_arbitration(
+        StudyRuntimeInteractionArbitration.from_payload(
+            {
+                "classification": "platform_repair_decision_redrive",
+                "action": "resume",
+                "reason_code": "runtime_platform_repair_decision_redrive",
+                "requires_user_input": False,
+                "valid_blocking": False,
+                "kind": "runtime_platform_repair",
+                "decision_type": None,
+                "source_artifact_path": None,
+                "pending_user_message_count": pending_user_message_count,
+                "controller_stage_note": (
+                    "Explicit user wakeup cleared a stale controller-owned wait state and marked the "
+                    "controller decision lane for managed runtime redrive."
+                ),
+            }
+        )
+    )
 
 
 def _build_context_create_payload(context: StudyRuntimeExecutionContext) -> dict[str, Any]:

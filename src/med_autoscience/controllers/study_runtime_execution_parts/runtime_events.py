@@ -226,6 +226,13 @@ def record_explicit_user_wakeup(
     if not isinstance(runtime_state, dict):
         return None
     runtime_status = str(runtime_state.get("status") or "").strip().lower()
+    if runtime_status == StudyRuntimeQuestStatus.WAITING_FOR_USER.value:
+        return record_explicit_waiting_owner_wakeup(
+            quest_root=quest_root,
+            source=source,
+            runtime_state=runtime_state,
+            runtime_state_path=runtime_state_path,
+        )
     if runtime_status not in {
         StudyRuntimeQuestStatus.PAUSED.value,
         StudyRuntimeQuestStatus.STOPPED.value,
@@ -269,6 +276,76 @@ def record_explicit_user_wakeup(
         "recorded_at": recorded_at,
         "cleared_keys": cleared_keys,
         "cleared_stop_reason": cleared_stop_reason,
+    }
+
+
+def record_explicit_waiting_owner_wakeup(
+    *,
+    quest_root: Path,
+    source: str,
+    runtime_state: dict[str, Any],
+    runtime_state_path: Path,
+) -> dict[str, Any] | None:
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return None
+    if bool(runtime_state.get("worker_running")):
+        return None
+    if str(runtime_state.get("continuation_policy") or "").strip() != "wait_for_user_or_resume":
+        return None
+    if str(runtime_state.get("continuation_anchor") or "").strip() != "turn_closeout":
+        return None
+    if str(runtime_state.get("continuation_reason") or "").strip() != "blocked_turn_closeout_waiting_for_owner":
+        return None
+    blocked_closeout = runtime_state.get("blocked_turn_closeout")
+    if not isinstance(blocked_closeout, dict):
+        return None
+    next_owner = str(blocked_closeout.get("next_owner") or "").strip().lower().replace("-", "_")
+    if next_owner not in {"mas/controller", "mas_controller", "controller", "publication_gate"}:
+        return None
+    if not isinstance(runtime_state.get("last_controller_decision_authorization"), dict):
+        return None
+    cleared_keys = [
+        key
+        for key in (
+            "blocked_turn_closeout",
+            "last_liveness_reconcile_reason",
+            "control_intent_lifecycle",
+            "last_live_controller_reroute_restart",
+            "retry_state",
+            "last_stage_fingerprint",
+            "last_stage_fingerprint_at",
+        )
+        if key in runtime_state
+    ]
+    for key in cleared_keys:
+        runtime_state.pop(key, None)
+    recorded_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    runtime_state["active_run_id"] = None
+    runtime_state["worker_running"] = False
+    runtime_state["continuation_policy"] = "auto"
+    runtime_state["continuation_anchor"] = "decision"
+    runtime_state["continuation_reason"] = "runtime_platform_repair_redrive"
+    runtime_state["continuation_updated_at"] = recorded_at
+    runtime_state["same_fingerprint_auto_turn_count"] = 0
+    runtime_state["last_explicit_user_wakeup"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": cleared_keys,
+        "cleared_wait_owner": next_owner,
+        "previous_continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+    }
+    runtime_state_path.write_text(
+        json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "recorded",
+        "runtime_state_path": str(runtime_state_path),
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": cleared_keys,
+        "cleared_wait_owner": next_owner,
+        "previous_continuation_reason": "blocked_turn_closeout_waiting_for_owner",
     }
 
 
