@@ -83,6 +83,7 @@ def build_outer_supervision_slo_projection(
         "summary": _summary(state=state, age_seconds=age_seconds, blocked_reasons=blocked_reasons, missing_reasons=missing_reasons),
         "owner": "med_autoscience_outer_supervision_read_model",
         "supervision_owner": _text(supervision.get("owner")) or "hermes_gateway_cron",
+        "adapter_id": _text(supervision.get("adapter_id")) or _text(supervision.get("owner")) or "hermes_gateway_cron",
         "latest_outer_supervision_at": latest_event_at,
         "latest_hermes_run_at": latest_run_at,
         "latest_supervisor_reconcile_at": latest_reconcile_at,

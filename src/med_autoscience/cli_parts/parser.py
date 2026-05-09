@@ -57,6 +57,11 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_supervision_status_parser = subparsers.add_parser("runtime-supervision-status")
     runtime_supervision_status_parser.add_argument("--profile", required=True)
     runtime_supervision_status_parser.add_argument("--interval-seconds", type=int, default=300)
+    runtime_supervision_status_parser.add_argument(
+        "--manager",
+        choices=("local", "hermes", "systemd", "cron", "launchd", "docker"),
+        default="local",
+    )
 
     runtime_ensure_supervision_parser = subparsers.add_parser("runtime-ensure-supervision")
     runtime_ensure_supervision_parser.add_argument("--profile", required=True)
@@ -64,14 +69,20 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_ensure_supervision_parser.add_argument("--no-trigger-now", action="store_true")
     runtime_ensure_supervision_parser.add_argument(
         "--manager",
-        choices=("hermes", "systemd", "cron", "launchd", "docker"),
-        default="hermes",
+        choices=("local", "hermes", "systemd", "cron", "launchd", "docker"),
+        default="local",
     )
+    runtime_ensure_supervision_parser.add_argument("--dry-run", action="store_true")
     runtime_ensure_supervision_parser.add_argument("--write-install-proof", action="store_true")
 
     runtime_remove_supervision_parser = subparsers.add_parser("runtime-remove-supervision")
     runtime_remove_supervision_parser.add_argument("--profile", required=True)
     runtime_remove_supervision_parser.add_argument("--interval-seconds", type=int, default=300)
+    runtime_remove_supervision_parser.add_argument(
+        "--manager",
+        choices=("local", "hermes", "systemd", "cron", "launchd", "docker"),
+        default="local",
+    )
 
     runtime_supervisor_scan_parser = subparsers.add_parser("runtime-supervisor-scan")
     runtime_supervisor_scan_parser.add_argument("--profile", required=True)

@@ -1,6 +1,6 @@
 # Supervision Scheduler Contract
 
-Status: `active scheduler contract / implementation plan`
+Status: `active scheduler contract / local adapter landed`
 Owner: `MedAutoScience Runtime OS`
 Date: `2026-05-09`
 
@@ -14,7 +14,9 @@ Date: `2026-05-09`
 | Supervisor Scheduler | `MAS supervision scheduler contract` | 按 cadence 唤醒 MAS-owned supervision tick，记录 job/run receipt，暴露 freshness / SLO / drift；不持有研究执行或质量判断。 |
 | Product Projection | `Progress Portal` / `Live Console` / `study-progress` / cockpit | 只读展示前两层事实，不执行 runtime action，不写 study/publication/artifact truth。 |
 
-`Hermes gateway cron` 只是当前已实现的 Supervisor Scheduler adapter，不是架构中心，也不是 MAS runtime / session / research owner。后续目标是把 scheduler contract 明确归属 MAS，再把 Hermes 从 required dependency 降为 optional adapter。完成 local scheduler adapter 前，直接删除 Hermes 会降低 outer supervision 能力；完成后，默认 MAS/OPL 本地运行可以不要求 Hermes。
+`MAS supervision scheduler contract` 现在是默认 owner。`local` 是默认 adapter selection：macOS 本机落到 MAS-owned LaunchAgent，Linux / container 仍 fail-closed 为 no persistent local scheduler 并给出 one-shot reconcile 语义。`Hermes gateway cron` 保留为显式 `--manager hermes` optional adapter，不是架构中心，也不是 MAS runtime / session / research owner。
+
+2026-05-09 落地更新：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 已接到 `supervision_scheduler` façade，默认 `--manager local`。macOS local adapter 会生成 MAS-owned tick script、LaunchAgent plist、install proof 和 scheduler receipt；显式 `--manager hermes` 继续调用 Hermes adapter 并投影到同一 `scheduler_owner=mas_supervision_scheduler` 合同下。旧 `systemd|cron|launchd|docker` manager 仍是 retired fail-closed diagnostic，不作为 active shortcut。
 
 ## 当前 Hermes 实际职责
 
@@ -103,19 +105,19 @@ MAS-owned scheduler contract 必须提供下列 machine boundary。Hermes adapte
 
 ## Adapter 策略
 
-### 当前 Adapter: `hermes_gateway_cron`
+### Optional Adapter: `hermes_gateway_cron`
 
-保留为 active adapter，直到 local adapter 完成 parity。它的角色是：
+保留为 explicit optional adapter。它的角色是：
 
-- 继续服务现有真实 workspace。
+- 继续服务仍显式选择 Hermes 的真实 workspace。
 - 提供当前 job registry、session history、latest run 和 gateway liveness。
 - 作为 parity oracle，帮助验证 local adapter 输出是否同构。
 
 它不再被文档或 UI 写成 MAS architecture center。
 
-### 目标 Adapter: `mas_local_scheduler`
+### 默认 Adapter: `mas_local_scheduler`
 
-新增一个 MAS-owned local adapter，CLI 形态建议为：
+MAS-owned local adapter 的 CLI 形态为：
 
 ```bash
 medautosci runtime-ensure-supervision --profile <profile> --manager local
@@ -123,13 +125,13 @@ medautosci runtime-supervision-status --profile <profile>
 medautosci runtime-remove-supervision --profile <profile> --manager local
 ```
 
-`local` 是产品语义；内部 OS backend 由 host 探测决定：
+`local` 是产品语义；内部 OS backend 由 host 探测决定。当前 landed backend 是 macOS LaunchAgent；其他 backend 保持 blocked/fail-closed，不伪装成已安装：
 
 | OS / environment | preferred backend | notes |
 | --- | --- | --- |
-| macOS user desktop | `launchd` LaunchAgent | 不写共享 crontab；明确 sleep / wake catchup 行为。 |
-| Linux with user systemd | `systemd --user` timer | 使用 stable unit name、Persistent / Accuracy / OnUnit settings；状态来自 `systemctl --user` 和 MAS receipt。 |
-| Linux without systemd user | explicit `cron` fallback | 仅在用户显式允许时写 per-user crontab marker block；必须可 remove 和 drift-check。 |
+| macOS user desktop | `launchd` LaunchAgent | landed；不写共享 crontab；生成 MAS tick script、plist、receipt 和 install proof。 |
+| Linux with user systemd | `systemd --user` timer | blocked until implemented；不得回退到旧 workspace-local scaffold。 |
+| Linux without systemd user | explicit `cron` fallback | blocked until implemented；未来也只能通过 `local` adapter contract，不允许直接恢复旧 `--manager cron`。 |
 | container / CI | no persistent scheduler by default | 只支持 one-shot dry-run / reconcile；不得伪装成 installed scheduler。 |
 
 现有 `--manager systemd|cron|launchd|docker` 仍保持 retired/fail-closed，直到被新的 `local` adapter 取代。不要把旧 workspace-local host service scaffold 复活；新 adapter 的所有 state、receipt 和 proof 都归 MAS scheduler contract。
@@ -165,6 +167,8 @@ Hermes 可以继续作为 optional hosted / remote / multi-model executor substr
 
 ### Phase 1: Contract surface implementation
 
+Status: `landed`
+
 实现 MAS-owned scheduler data model 和 read/write façade。
 
 受影响模块建议：
@@ -190,6 +194,8 @@ Hermes 可以继续作为 optional hosted / remote / multi-model executor substr
 
 ### Phase 2: Local adapter dry-run and install proof
 
+Status: `landed for macOS LaunchAgent; blocked/fail-closed for non-macOS persistent backends`
+
 实现 `--manager local --dry-run` 和 install proof，不立即切默认。
 
 关键要求：
@@ -208,6 +214,8 @@ Hermes 可以继续作为 optional hosted / remote / multi-model executor substr
 
 ### Phase 3: Local adapter apply and shadow parity
 
+Status: `macOS apply landed; real workspace shadow/cutover evidence pending`
+
 在真实 profile 上安装 local adapter，但先 shadow 验证。
 
 关键要求：
@@ -224,6 +232,8 @@ Hermes 可以继续作为 optional hosted / remote / multi-model executor substr
 - `runtime-supervision-status` 能显示 primary/secondary adapter 与 drift。
 
 ### Phase 4: Default cutover
+
+Status: `CLI default switched to local; real workspace migration receipts pending`
 
 把默认 scheduler adapter 切到 `local`。
 

@@ -65,6 +65,7 @@ display_surface_materialization = _LazyModuleProxy(lambda: _load_controller("dis
 delivery_inspector = _LazyModuleProxy(lambda: _load_controller("delivery_inspector"))
 hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
 hermes_supervision = _LazyModuleProxy(lambda: _load_controller("hermes_supervision"))
+supervision_scheduler = _LazyModuleProxy(lambda: _load_controller("supervision_scheduler"))
 runtime_supervisor_consumer = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_consumer"))
 runtime_supervisor_dispatch_executor = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_dispatch_executor"))
 runtime_supervisor_reconcile = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_reconcile"))
@@ -620,20 +621,22 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "runtime-supervision-status":
         profile = load_profile(args.profile)
-        result = hermes_supervision.read_supervision_status(
+        result = supervision_scheduler.read_supervision_status(
             profile=profile,
             interval_seconds=int(args.interval_seconds),
+            manager=str(args.manager),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "runtime-ensure-supervision":
         profile = load_profile(args.profile)
-        result = hermes_supervision.ensure_supervision(
+        result = supervision_scheduler.ensure_supervision(
             profile=profile,
             interval_seconds=int(args.interval_seconds),
             trigger_now=not bool(args.no_trigger_now),
             manager=str(args.manager),
+            dry_run=bool(args.dry_run),
             write_install_proof=bool(args.write_install_proof),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -641,9 +644,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "runtime-remove-supervision":
         profile = load_profile(args.profile)
-        result = hermes_supervision.remove_supervision(
+        result = supervision_scheduler.remove_supervision(
             profile=profile,
             interval_seconds=int(args.interval_seconds),
+            manager=str(args.manager),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

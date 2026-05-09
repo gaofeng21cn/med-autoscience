@@ -129,6 +129,8 @@
       "kind": "focused_outer_supervision_slo_contract_gate",
       "paths": [
         "tests/test_hermes_supervision.py",
+        "tests/test_supervision_scheduler.py",
+        "tests/test_cli_cases/public_entry_commands.py",
         "tests/test_runtime_reconcile_trigger.py",
         "tests/test_recovery_intent_ledger.py",
         "tests/test_runtime_watch.py",
@@ -139,7 +141,9 @@
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "scheduler_bound_read_model_safe_reconcile_projection",
       "implementation_status": "landed",
-      "default_scheduler_owner": "hermes_gateway_cron",
+      "default_scheduler_owner": "mas_supervision_scheduler",
+      "default_adapter_id": "local_launchd_on_macos",
+      "explicit_optional_adapter_id": "hermes_gateway_cron",
       "default_tick_interval_seconds": 300,
       "resident_daemon_allowed": false,
       "retired_workspace_local_service_allowed": false
