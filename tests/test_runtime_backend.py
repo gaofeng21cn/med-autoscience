@@ -266,3 +266,15 @@ def test_runtime_backend_contract_requires_turn_lifecycle_callables() -> None:
     assert callable(getattr(backend, "schedule_turn"))
     assert callable(getattr(backend, "complete_turn_and_normalize"))
     assert callable(getattr(backend, "inspect_turn_lifecycle"))
+
+
+def test_runtime_backend_contract_does_not_expose_terminal_attach_input_owner() -> None:
+    module = importlib.import_module("med_autoscience.runtime_backend")
+    backend = module.get_managed_runtime_backend(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
+
+    assert not hasattr(backend, "attach_terminal")
+    assert not hasattr(backend, "terminal_input")
+    assert not hasattr(backend, "resize_terminal")
+    assert not hasattr(backend, "detach_terminal")
+    assert "terminal_input" not in module._BACKEND_CALLABLE_CONTRACT
+    assert "chat_quest" in module._BACKEND_CALLABLE_CONTRACT

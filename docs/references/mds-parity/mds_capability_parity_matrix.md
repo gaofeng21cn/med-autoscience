@@ -14,11 +14,11 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 
 2026-05-08 Runtime Continuity closeout 在 behavior matrix 中追加 `runtime_continuity_completion` 合同：`runtime_session` 只读投影 worker/session/freshness，`recovery_intent` 记录 controller-owned recovery intent，`runtime_reconcile_trigger` 只输出 safe reconcile 推荐和 blocked reasons，`runtime_continuity` 投到 progress/cockpit/product-entry/Portal/MCP/OPL。该合同明确 `external_mds_repo_required=false`、`mds_daemon_required=false`，并固定 `quality_ready_authorized=false`、`publication_ready_authorized=false`、`submission_ready_authorized=false`。
 
-2026-05-08 Live Console parity closeout 把旧 MDS WebUI 中有价值的观察类能力落成 MAS-authored read-only surface：Progress Portal 继续做默认进度入口，Live Console 提供 profile-level session read model、snapshot / loopback SSE stream、terminal/log tail refs 和 `ops/mas/live-console/index.html` 静态 shell。该 closeout 是 `purpose_equivalent_with_different_timing`，没有在当前 landed scope 中实现旧 MDS resident WebSocket terminal attach、terminal input/resize/detach 或 UI-issued runtime control；这些交互能力不是 abandoned / retired，而是后续 interactive parity candidate。旧 React bundle、产品身份、commit history 和 contributor metadata 仍不得导入 MAS。
+2026-05-08 Live Console parity closeout 把旧 MDS WebUI 中有价值的观察类能力落成 MAS-authored read-only surface；2026-05-09 更新把最小安全 UI control 接到 Progress Portal。Progress Portal 继续做默认进度入口，Live Console 提供 profile-level session read model、snapshot / loopback SSE stream、terminal/log tail refs 和 `ops/mas/live-console/index.html` 静态 shell；Progress Portal 在显式 `--serve --enable-actions` 下可对 pause/resume/stop 调 MAS runtime owner apply 并写 receipt。该 closeout 仍是 `purpose_equivalent_with_different_timing`，没有在当前 landed scope 中实现旧 MDS resident WebSocket terminal attach、terminal input/resize/detach；这些交互能力不是 abandoned / retired，而是后续 interactive parity candidate。旧 React bundle、产品身份、commit history 和 contributor metadata 仍不得导入 MAS。
 
 2026-05-08 user-view WebUI parity review 进一步校准 `progress_visibility`：当前 MAS 有固定 Progress Portal、study rows、study-progress 和 cockpit，但默认 UX 仍偏 workspace overview，多篇论文会混在同一页解释，也还没有把研究路线、分支、失败/阻塞原因、转向理由和 active/winning path 投影成单篇论文 decision trail。旧 MDS WebUI 的 per-project/per-quest 信息架构应作为 clean-room UX oracle；后续 P0 是 per-study/per-paper Portal drilldown、deep link、Route/Decision Trail 和单篇论文 detail view。详见 [MDS WebUI User Parity Gap Review](./mds_webui_user_parity_gap_review.md)。
 
-2026-05-09 fresh assessment：当前 machine-readable behavior matrix 仍是 `17` 个 behavior surface，分类为 `2 behavior_equivalent / 6 purpose_equivalent_with_different_timing / 4 partially_equivalent / 4 not_equivalent_retired / 1 historical_fixture_only`，且 `fully_equivalent_to_mds_daemon=false`。这不是退回到外部 MDS 依赖；它表示 MAS monolith 已经承接默认日常运行，但仍保留可见 UX / interactive control / scheduler cadence 的差异。后续能力补齐应聚焦 per-study Portal、conversation read model、authorized UI control 和 gated terminal attach；connector background delivery、GitOps lifecycle、MDS daemon lifecycle controls 与 workspace-local host service 仍保持 retired，不进入默认 backlog。
+2026-05-09 fresh assessment：当前 machine-readable behavior matrix 仍是 `17` 个 behavior surface，分类为 `2 behavior_equivalent / 6 purpose_equivalent_with_different_timing / 4 partially_equivalent / 4 not_equivalent_retired / 1 historical_fixture_only`，且 `fully_equivalent_to_mds_daemon=false`。这不是退回到外部 MDS 依赖；它表示 MAS monolith 已经承接默认日常运行，但仍保留可见 UX / terminal attach / scheduler cadence 的差异。后续能力补齐应聚焦真实 workspace per-study Portal soak、visible conversation panel polish 和 gated terminal attach；connector background delivery、GitOps lifecycle、MDS daemon lifecycle controls 与 workspace-local host service 仍保持 retired，不进入默认 backlog。
 
 ## Capability Matrix
 
@@ -62,7 +62,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | crash recovery and auto-resume | `purpose_equivalent_with_different_timing` | Use MAS tick or explicit watch/ensure runtime. |
 | queued user messages/mailbox | `partially_equivalent` | Use durable task intake and controller handoff. |
 | progress visibility | `partially_equivalent` | Use MAS Progress Portal / study-progress / cockpit; continue P0 per-study/per-paper Portal UX parity. |
-| WebUI/WebSocket/terminal streaming | `purpose_equivalent_with_different_timing` | Use MAS Progress Portal plus read-only MAS Live Console; interactive terminal attach/control remains a future gated parity lane. |
+| WebUI/WebSocket/terminal streaming | `purpose_equivalent_with_different_timing` | Use MAS Progress Portal plus read-only MAS Live Console; pause/resume/stop are gated MAS runtime owner actions; interactive terminal attach/input/resize/detach remains a future gated parity lane. |
 | connector/channel background delivery | `not_equivalent_retired` | Retired from default MAS operation. |
 | MCP surface | `purpose_equivalent_with_different_timing` | Use MAS MCP adapter to owner surfaces. |
 | GitOps state management | `not_equivalent_retired` | Use SQLite lifecycle and restore proof. |
@@ -77,7 +77,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 仍未实现完整语义等价的能力不应笼统写成“MDS 没吸收完”。精确口径如下：
 
 - `progress_visibility`: MAS 已默认替代 MDS WebUI，但用户体验是部分等价；差距是 per-study/per-paper 工作台、deep link 和 route/decision trail。
-- `webui_websocket_terminal_streaming`: MAS 已实现 read-only purpose parity；差距是 interactive terminal attach/input/resize/detach 与 UI-issued runtime control。
+- `webui_websocket_terminal_streaming`: MAS 已实现 read-only purpose parity，并已把 Portal pause/resume/stop 接到 MAS runtime owner apply；差距是 interactive terminal attach/input/resize/detach。
 - `daemon_residency` / `supervision_cadence` / `crash_recovery_auto_resume`: MAS 已把正常 turn continuation 内生化；差距只剩 outer supervision / crash-stale recovery cadence。
 - `queued_user_messages_mailbox`: runtime user queue 与 durable task intake 已可用；差距是用户可读 conversation/timeline pane，而不是后台 chat connector。
 - `connector_channel_background_delivery`、`gitops_state_management`、`system_update_daemon_lifecycle_controls`、`workspace_local_host_service`: 这些是有意退役的旧行为，不属于当前 monolith 降级。

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
+
+from tests.study_runtime_test_helpers import make_profile
 
 
 def _runtime_continuity_payload() -> dict[str, object]:
@@ -815,6 +819,171 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
     assert payload["tabs"][4] == {"id": "artifacts", "label": "产物", "status": "available"}
 
 
+def test_study_workbench_helper_renders_conversation_read_model_timeline() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    conversation_payload = {
+        "surface_kind": "mas_runtime_conversation_read_model",
+        "selected_study_id": "001-risk",
+        "read_only": True,
+        "timeline_summary": {
+            "item_count": 3,
+            "counts_by_kind": {
+                "user_message": 1,
+                "turn_receipt": 1,
+                "runtime_control_ref": 1,
+            },
+        },
+        "timeline": [
+            {
+                "sequence": 1,
+                "item_kind": "user_message",
+                "study_id": "001-risk",
+                "message_id": "msg-pending",
+                "message_status": "pending",
+                "content_ref": "content_present",
+                "source_ref": "runtime/quests/001/artifacts/runtime/user_message_queue.json",
+            },
+            {
+                "sequence": 2,
+                "item_kind": "turn_receipt",
+                "study_id": "001-risk",
+                "run_id": "run-001",
+                "turn_reason": "queued_user_messages",
+                "turn_status": "completed",
+                "source_ref": "runtime/quests/001/artifacts/runtime/turn_receipts.jsonl",
+            },
+            {
+                "sequence": 3,
+                "item_kind": "runtime_control_ref",
+                "study_id": "001-risk",
+                "event_name": "blocked_waiting_for_user",
+                "blocker_refs": [{"kind": "blocking_decision_request", "value": "confirm next route"}],
+                "source_ref": "runtime/quests/001/.ds/runtime_state.json",
+            },
+            {
+                "sequence": 4,
+                "item_kind": "turn_receipt",
+                "study_id": "other-study",
+                "run_id": "run-other",
+                "source_ref": "runtime/quests/other/artifacts/runtime/turn_receipts.jsonl",
+            },
+        ],
+        "source_refs": [
+            {
+                "surface_kind": "user_message_queue",
+                "study_id": "001-risk",
+                "source_ref": "runtime/quests/001/artifacts/runtime/user_message_queue.json",
+                "read_only": True,
+            },
+            {
+                "surface_kind": "turn_receipts_jsonl",
+                "study_id": "001-risk",
+                "source_ref": "runtime/quests/001/artifacts/runtime/turn_receipts.jsonl",
+                "read_only": True,
+            },
+            {
+                "surface_kind": "turn_receipts_jsonl",
+                "study_id": "other-study",
+                "source_ref": "runtime/quests/other/artifacts/runtime/turn_receipts.jsonl",
+                "read_only": True,
+            },
+        ],
+    }
+
+    payload = parts.build_study_workbench_payload(
+        progress=_progress_payload(),
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
+        package={"study_id": "001-risk"},
+        study_id="001-risk",
+        conversation_payload=conversation_payload,
+    )
+    html = parts.render_study_workbench_sections(payload)
+
+    assert {"id": "conversation", "label": "Conversation", "status": "available"} in payload["tabs"]
+    assert payload["conversation"]["surface_kind"] == "mas_progress_portal_conversation_panel"
+    assert payload["conversation"]["status"] == "available"
+    assert [item["item_kind"] for item in payload["conversation"]["timeline_items"]] == [
+        "user_message",
+        "turn_receipt",
+        "runtime_control_ref",
+    ]
+    assert "runtime/quests/other/artifacts/runtime/turn_receipts.jsonl" not in json.dumps(
+        payload["conversation"],
+        ensure_ascii=False,
+    )
+    assert "Conversation" in html
+    assert "user_message" in html
+    assert "msg-pending" in html
+    assert "turn_receipt" in html
+    assert "run-001" in html
+    assert "blocked_waiting_for_user" in html
+    assert "confirm next route" in html
+    assert "runtime/quests/001/artifacts/runtime/turn_receipts.jsonl" in html
+    assert "run-other" not in html
+
+
+def test_progress_portal_materialization_surfaces_selected_study_conversation(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    quest_id = "quest-001"
+    study_root = profile.studies_root / study_id
+    quest_root = profile.runtime_root / quest_id
+    _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
+    _write_json(
+        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
+        {"study_id": study_id, "quest_id": quest_id, "quest_root": str(quest_root), "active_run_id": "run-001"},
+    )
+    _write_json(
+        quest_root / "artifacts" / "runtime" / "user_message_queue.json",
+        {
+            "pending": [
+                {
+                    "message_id": "msg-portal",
+                    "content": "解释当前阻塞。",
+                    "recorded_at": "2026-05-09T01:00:00+00:00",
+                }
+            ],
+            "completed": [],
+        },
+    )
+    _write_text(
+        quest_root / "artifacts" / "runtime" / "turn_receipts.jsonl",
+        json.dumps(
+            {
+                "run_id": "run-001",
+                "reason": "user_message",
+                "status": "completed",
+                "recorded_at": "2026-05-09T01:01:00+00:00",
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+    )
+
+    result = module.materialize_progress_portal(
+        profile=profile,
+        study_id=study_id,
+        progress_payload=_progress_payload(study_id),
+        runtime_payload={"study_id": study_id, "active_run_id": "run-001"},
+        package_payload={"study_id": study_id},
+        generated_at="2026-05-09T01:02:00+00:00",
+    )
+
+    payload_path = Path(result["study_pages"][study_id]["payload_path"])
+    html_path = Path(result["study_pages"][study_id]["html_path"])
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    html = html_path.read_text(encoding="utf-8")
+    assert payload["study_workbench"]["conversation"]["status"] == "available"
+    assert "Conversation" in html
+    assert "msg-portal" in html
+    assert "run-001" in html
+    assert "artifacts/runtime/conversation_read_model/latest.json" in payload["study_workbench"]["conversation"][
+        "source_refs"
+    ]
+
+
 def test_study_workbench_helper_fail_closes_missing_inputs_and_conflicts() -> None:
     parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
 
@@ -849,6 +1018,7 @@ def test_study_workbench_helper_fail_closes_missing_inputs_and_conflicts() -> No
         "package_study_id_mismatch",
         "cockpit_study_id_mismatch",
     ]
+    assert payload["conversation"]["status"] == "missing"
 
 
 def test_study_workbench_render_helper_returns_html_sections() -> None:
@@ -956,3 +1126,13 @@ def test_route_decision_trail_helper_fail_closes_without_explicit_route_inputs()
     assert payload["active_path"] is None
     assert payload["conditions"]["missing"] == ["route_decision_trail", "route_nodes"]
     assert payload["source_refs"] == []
+
+
+def _write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
+def _write_json(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

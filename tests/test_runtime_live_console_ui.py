@@ -263,6 +263,44 @@ def test_live_console_terminal_attach_gate_cli_fails_closed_without_owner(monkey
     assert payload["attach_started"] is False
 
 
+def test_live_console_terminal_attach_gate_preempts_serve_snapshot_and_once(monkeypatch, tmp_path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    class FakeRuntimeLiveConsole:
+        @staticmethod
+        def serve_live_console_stream(**kwargs):
+            raise AssertionError("terminal attach gate must fail before stream/snapshot starts")
+
+        @staticmethod
+        def materialize_live_console_session_read_model(**kwargs):
+            raise AssertionError("terminal attach gate must fail before read model materialization")
+
+    monkeypatch.setattr(cli, "runtime_live_console", FakeRuntimeLiveConsole)
+
+    for extra_args in (
+        ["--serve", "--format", "json"],
+        ["--snapshot", "--format", "json"],
+        ["--once", "--format", "json"],
+    ):
+        exit_code = cli.main(
+            [
+                "runtime",
+                "live-console",
+                "--profile",
+                str(profile_path),
+                "--enable-terminal-attach",
+                *extra_args,
+            ]
+        )
+        payload = json.loads(capsys.readouterr().out)
+        assert exit_code == 2
+        assert payload["status"] == "blocked_by_missing_terminal_input_owner"
+        assert payload["attach_started"] is False
+
+
 def test_live_console_no_live_run_renders_meaningful_empty_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_live_console_ui")
     snapshot = {

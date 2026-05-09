@@ -98,6 +98,8 @@ def test_portal_route_decision_trail_and_terminal_attach_have_machine_contracts(
     assert "controller_decisions/latest.json" in route["forbidden_authority_writes"]
     assert "tests/progress_portal_cases" in route["paths"]
     assert "route_decision_trail" in soak["required_evidence_keys"]
+    assert "conversation_portal_panel" in soak["required_evidence_keys"]
+    assert "authorized_action_apply_receipts" in soak["required_evidence_keys"]
     assert "tests/progress_portal_cases" in soak["paths"]
 
     assert terminal["implementation_status"] == "landed_fail_closed_gate"

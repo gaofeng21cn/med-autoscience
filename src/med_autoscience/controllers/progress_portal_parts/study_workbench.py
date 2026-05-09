@@ -55,6 +55,7 @@ def build_study_workbench_payload(
     runtime: Mapping[str, Any] | None,
     package: Mapping[str, Any] | None,
     study_id: str,
+    conversation_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_progress = _mapping(progress)
     resolved_cockpit = _mapping(cockpit)
@@ -70,6 +71,7 @@ def build_study_workbench_payload(
         resolved_package,
         resolved_study_id,
     )
+    conversation = _conversation_projection(conversation_payload, resolved_study_id)
     refs = source_refs(resolved_progress, resolved_cockpit, resolved_runtime, resolved_package)
     conditions = _conditions(
         study_id=resolved_study_id,
@@ -125,6 +127,7 @@ def build_study_workbench_payload(
             {"id": "path_stage", "label": "路径/阶段", "status": _tab_status(path_stage)},
             {"id": "runtime", "label": "运行", "status": _tab_status(runtime_projection)},
             {"id": "artifacts", "label": "产物", "status": _artifact_tab_status(artifact_groups)},
+            {"id": "conversation", "label": "Conversation", "status": conversation["status"]},
             {"id": "source_refs", "label": "来源", "status": "available" if refs else "missing"},
         ],
         "overview": overview,
@@ -132,6 +135,7 @@ def build_study_workbench_payload(
         "path_stage": path_stage,
         "runtime": runtime_projection,
         "artifact_groups": artifact_groups,
+        "conversation": conversation,
         "source_refs": refs,
         "conditions": conditions,
     }
@@ -143,6 +147,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
     path_stage = _mapping(payload.get("path_stage"))
     runtime = _mapping(payload.get("runtime"))
     artifact_groups = _mapping(payload.get("artifact_groups"))
+    conversation = _mapping(payload.get("conversation"))
     conditions = _mapping(payload.get("conditions"))
     refs = _string_list(payload.get("source_refs"))
     return "\n".join(
@@ -174,6 +179,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
                 },
             ),
             _artifact_sections(artifact_groups),
+            _conversation_section(conversation),
             '<section class="panel wide"><h2>数据来源</h2>'
             + list_html(refs, empty_text="缺少 source refs。")
             + "</section>",
@@ -487,6 +493,148 @@ def _artifact_sections(groups: Mapping[str, Any]) -> str:
     return "\n".join(sections)
 
 
+def _conversation_projection(value: Mapping[str, Any] | None, study_id: str) -> dict[str, Any]:
+    payload = _mapping(value)
+    if not payload:
+        return {
+            "surface_kind": "mas_progress_portal_conversation_panel",
+            "status": "missing",
+            "study_id": study_id,
+            "timeline_summary": {"item_count": 0, "counts_by_kind": {}, "missing_field_item_count": 0},
+            "timeline_items": [],
+            "source_refs": [],
+            "conditions": {"missing": ["conversation_read_model"]},
+            "authority": _conversation_authority(),
+        }
+    if _non_empty_text(payload.get("surface_kind")) != "mas_runtime_conversation_read_model":
+        return {
+            "surface_kind": "mas_progress_portal_conversation_panel",
+            "status": "missing",
+            "study_id": study_id,
+            "timeline_summary": {"item_count": 0, "counts_by_kind": {}, "missing_field_item_count": 0},
+            "timeline_items": [],
+            "source_refs": [],
+            "conditions": {"missing": ["mas_runtime_conversation_read_model"]},
+            "authority": _conversation_authority(),
+        }
+    items = [
+        _conversation_item(item)
+        for item in _mapping_list(payload.get("timeline"))
+        if _non_empty_text(item.get("study_id")) == study_id
+    ]
+    items = [item for item in items if item is not None]
+    refs = _conversation_source_refs(payload, study_id)
+    missing = [] if items else ["conversation_timeline"]
+    return {
+        "surface_kind": "mas_progress_portal_conversation_panel",
+        "status": "available" if items else "missing",
+        "study_id": study_id,
+        "read_model_ref": "artifacts/runtime/conversation_read_model/latest.json",
+        "timeline_summary": _mapping(payload.get("timeline_summary")),
+        "timeline_items": items[:12],
+        "source_refs": refs,
+        "conditions": {"missing": missing},
+        "authority": _conversation_authority(),
+    }
+
+
+def _conversation_authority() -> dict[str, Any]:
+    return {
+        "kind": "read_only_runtime_conversation_projection",
+        "writes_authority_surface": False,
+        "can_execute_controller_actions": False,
+    }
+
+
+def _conversation_item(item: Mapping[str, Any]) -> dict[str, Any] | None:
+    kind = _non_empty_text(item.get("item_kind"))
+    if kind is None:
+        return None
+    projected = {
+        "sequence": item.get("sequence") if isinstance(item.get("sequence"), int) else None,
+        "item_kind": kind,
+        "occurred_at": _non_empty_text(item.get("occurred_at")),
+        "message_id": _non_empty_text(item.get("message_id")),
+        "message_status": _non_empty_text(item.get("message_status")),
+        "run_id": _non_empty_text(item.get("run_id")),
+        "turn_reason": _non_empty_text(item.get("turn_reason")),
+        "turn_status": _non_empty_text(item.get("turn_status")),
+        "event_name": _non_empty_text(item.get("event_name")),
+        "runtime_status": _non_empty_text(item.get("runtime_status")),
+        "source_ref": _non_empty_text(item.get("source_ref")),
+        "blocker_refs": _conversation_refs(item.get("blocker_refs")),
+        "action_refs": _conversation_refs(item.get("action_refs")),
+        "tool_refs": _conversation_refs(item.get("tool_refs")),
+    }
+    projected["summary"] = _conversation_item_summary(projected)
+    return projected
+
+
+def _conversation_item_summary(item: Mapping[str, Any]) -> str:
+    parts = [_non_empty_text(item.get("item_kind")) or "conversation_item"]
+    if item.get("message_id"):
+        parts.append(f"message={item['message_id']}")
+    if item.get("message_status"):
+        parts.append(f"message_status={item['message_status']}")
+    if item.get("run_id"):
+        parts.append(f"run={item['run_id']}")
+    if item.get("turn_reason"):
+        parts.append(f"reason={item['turn_reason']}")
+    if item.get("turn_status"):
+        parts.append(f"status={item['turn_status']}")
+    if item.get("event_name"):
+        parts.append(f"event={item['event_name']}")
+    for label in ("blocker_refs", "action_refs", "tool_refs"):
+        refs = _string_list(item.get(label))
+        if refs:
+            parts.append(f"{label}=" + "; ".join(refs[:3]))
+    if item.get("source_ref"):
+        parts.append(f"source={item['source_ref']}")
+    return " | ".join(parts)
+
+
+def _conversation_refs(value: object) -> list[str]:
+    refs: list[str] = []
+    for item in _mapping_list(value):
+        kind = _non_empty_text(item.get("kind")) or _non_empty_text(item.get("surface_kind")) or "ref"
+        text = _first_text(item.get("value"), item.get("source_ref"), item.get("message_id"), item.get("status"))
+        if text is not None:
+            refs.append(f"{kind}={text}")
+    for item in _string_list(value):
+        refs.append(item)
+    return refs
+
+
+def _conversation_source_refs(payload: Mapping[str, Any], study_id: str) -> list[str]:
+    refs = ["artifacts/runtime/conversation_read_model/latest.json"]
+    for item in _mapping_list(payload.get("source_refs")):
+        ref_study_id = _non_empty_text(item.get("study_id"))
+        if ref_study_id not in (None, study_id):
+            continue
+        ref = _non_empty_text(item.get("source_ref"))
+        if ref is not None and source_ref_allowed(ref):
+            refs.append(ref)
+    return _dedupe_strings(refs)
+
+
+def _conversation_section(conversation: Mapping[str, Any]) -> str:
+    status = _non_empty_text(conversation.get("status")) or "missing"
+    items = [
+        _non_empty_text(item.get("summary")) or _non_empty_text(item.get("item_kind")) or "conversation item"
+        for item in _mapping_list(conversation.get("timeline_items"))
+    ]
+    refs = _string_list(conversation.get("source_refs"))
+    return (
+        '<section class="panel wide"><h2>Conversation '
+        + status_chip(status)
+        + "</h2>"
+        + list_html(items, empty_text="缺少执行器 conversation timeline。")
+        + "<h3>Conversation Source Refs</h3>"
+        + list_html(refs, empty_text="缺少 conversation source refs。")
+        + "</section>"
+    )
+
+
 def _key_value_section(title: str, values: Mapping[str, str]) -> str:
     return (
         '<section class="panel wide"><h2>'
@@ -495,6 +643,23 @@ def _key_value_section(title: str, values: Mapping[str, str]) -> str:
         + "".join(f"<div><dt>{escape(key)}</dt><dd>{escape(value)}</dd></div>" for key, value in values.items())
         + "</dl></section>"
     )
+
+
+def _mapping_list(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
+def _dedupe_strings(values: Iterable[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
 
 
 def _mapping(value: object) -> dict[str, Any]:

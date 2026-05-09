@@ -11,6 +11,38 @@ from tests.study_runtime_test_helpers import make_profile
 from tests.test_progress_portal import _progress_payload
 
 
+class _BackendRecorder:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def pause_quest(self, *, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        self.calls.append({"operation": "pause_quest", "runtime_root": runtime_root, "quest_id": quest_id, "source": source})
+        return {"status": "paused", "quest_id": quest_id, "source": source}
+
+    def resume_quest(self, *, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        self.calls.append({"operation": "resume_quest", "runtime_root": runtime_root, "quest_id": quest_id, "source": source})
+        return {"status": "scheduled", "quest_id": quest_id, "source": source}
+
+    def stop_quest(
+        self,
+        *,
+        runtime_root: Path | None = None,
+        quest_id: str,
+        source: str,
+        daemon_url: str | None = None,
+    ) -> dict[str, object]:
+        self.calls.append(
+            {
+                "operation": "stop_quest",
+                "runtime_root": runtime_root,
+                "quest_id": quest_id,
+                "source": source,
+                "daemon_url": daemon_url,
+            }
+        )
+        return {"status": "stopped", "quest_id": quest_id, "source": source, "daemon_url": daemon_url}
+
+
 def test_progress_portal_authorized_actions_write_idempotent_controller_receipt(tmp_path: Path) -> None:
     actions = importlib.import_module("med_autoscience.controllers.progress_portal_parts.authorized_actions")
     profile = make_profile(tmp_path)
@@ -59,6 +91,98 @@ def test_progress_portal_authorized_actions_write_idempotent_controller_receipt(
     assert not (profile.workspace_root / "artifacts" / "controller_decisions").exists()
 
 
+def test_progress_portal_authorized_actions_apply_runtime_control_once(tmp_path: Path) -> None:
+    actions = importlib.import_module("med_autoscience.controllers.progress_portal_parts.authorized_actions")
+    profile = make_profile(tmp_path)
+    backend = _BackendRecorder()
+
+    first = actions.write_action_receipt(
+        profile=profile,
+        action="resume",
+        study_id="001-risk",
+        idempotency_key="portal-resume-001",
+        requested_at="2026-05-09T01:00:00+00:00",
+        apply=True,
+        runtime_backend=backend,
+    )
+    second = actions.write_action_receipt(
+        profile=profile,
+        action="resume",
+        study_id="001-risk",
+        idempotency_key="portal-resume-001",
+        requested_at="2026-05-09T02:00:00+00:00",
+        apply=True,
+        runtime_backend=backend,
+    )
+
+    assert first == second
+    assert backend.calls == [
+        {
+            "operation": "resume_quest",
+            "runtime_root": profile.runtime_root,
+            "quest_id": "001-risk",
+            "source": "progress_portal:resume",
+        }
+    ]
+    assert first["mode"] == "runtime_control_apply"
+    assert first["apply"] is True
+    assert first["apply_status"] == "applied"
+    assert first["runtime_control_result"] == {
+        "status": "scheduled",
+        "quest_id": "001-risk",
+        "source": "progress_portal:resume",
+    }
+    assert first["runtime_control_operation"] == "resume_quest"
+    assert first["forbidden_writes"] == [
+        "paper",
+        "package",
+        "publication_gate",
+        "controller_decision",
+        "runtime_sqlite_authority",
+    ]
+
+
+def test_progress_portal_authorized_actions_apply_pause_stop_and_block_missing_quest_id(tmp_path: Path) -> None:
+    actions = importlib.import_module("med_autoscience.controllers.progress_portal_parts.authorized_actions")
+    profile = make_profile(tmp_path)
+    backend = _BackendRecorder()
+
+    pause = actions.write_action_receipt(
+        profile=profile,
+        action="pause",
+        study_id="quest-pause",
+        idempotency_key="portal-pause-001",
+        apply=True,
+        runtime_backend=backend,
+    )
+    stop = actions.write_action_receipt(
+        profile=profile,
+        action="stop",
+        study_id="quest-stop",
+        idempotency_key="portal-stop-001",
+        apply=True,
+        runtime_backend=backend,
+    )
+
+    assert pause["apply_status"] == "applied"
+    assert pause["runtime_control_operation"] == "pause_quest"
+    assert stop["apply_status"] == "applied"
+    assert stop["runtime_control_operation"] == "stop_quest"
+    assert [call["operation"] for call in backend.calls] == ["pause_quest", "stop_quest"]
+
+    with pytest.raises(actions.PortalActionError) as excinfo:
+        actions.write_action_receipt(
+            profile=profile,
+            action="stop",
+            study_id=None,
+            idempotency_key="portal-stop-missing-quest",
+            apply=True,
+            runtime_backend=backend,
+        )
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.reason == "missing_quest_id"
+
+
 def test_progress_portal_authorized_actions_mark_inspect_and_reconcile_as_dry_run(tmp_path: Path) -> None:
     actions = importlib.import_module("med_autoscience.controllers.progress_portal_parts.authorized_actions")
     profile = make_profile(tmp_path)
@@ -78,8 +202,12 @@ def test_progress_portal_authorized_actions_mark_inspect_and_reconcile_as_dry_ru
 
     assert inspect_receipt["mode"] == "dry_run"
     assert inspect_receipt["dry_run"] is True
+    assert inspect_receipt["apply"] is False
+    assert inspect_receipt["apply_status"] == "not_applicable"
     assert reconcile_receipt["mode"] == "dry_run"
     assert reconcile_receipt["dry_run"] is True
+    assert reconcile_receipt["apply"] is False
+    assert reconcile_receipt["apply_status"] == "not_applicable"
 
 
 def test_progress_portal_actions_endpoint_is_default_off_and_enable_actions_writes_receipt(tmp_path: Path) -> None:
@@ -127,7 +255,7 @@ def test_progress_portal_actions_endpoint_is_default_off_and_enable_actions_writ
         )
         enabled_response = _post_progress_portal_action(
             served["handler"],
-            {"action": "inspect", "study_id": "001-risk", "idempotency_key": "endpoint-enabled-001"},
+            {"action": "resume", "study_id": "001-risk", "idempotency_key": "endpoint-enabled-001"},
         )
     finally:
         monkeypatch.undo()
@@ -137,8 +265,10 @@ def test_progress_portal_actions_endpoint_is_default_off_and_enable_actions_writ
     assert disabled_response["body"]["status"] == "disabled"
     assert enabled["actions_enabled"] is True
     assert enabled_response["status_code"] == 200
-    assert enabled_response["body"]["action"] == "inspect"
-    assert enabled_response["body"]["mode"] == "dry_run"
+    assert enabled_response["body"]["action"] == "resume"
+    assert enabled_response["body"]["mode"] == "runtime_control_apply"
+    assert enabled_response["body"]["apply"] is True
+    assert enabled_response["body"]["apply_status"] in {"applied", "failed"}
     assert enabled_response["body"]["controller_owned"] is True
     assert (
         profile.workspace_root
@@ -148,6 +278,74 @@ def test_progress_portal_actions_endpoint_is_default_off_and_enable_actions_writ
         / "action_receipts"
         / "endpoint-enabled-001.json"
     ).exists()
+
+
+def test_progress_portal_actions_endpoint_enable_actions_uses_runtime_backend_and_request_quest_id(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    actions = importlib.import_module("med_autoscience.controllers.progress_portal_parts.authorized_actions")
+    profile = make_profile(tmp_path)
+    backend = _BackendRecorder()
+    served: dict[str, object] = {}
+
+    class FakeServer:
+        server_address = ("127.0.0.1", 4303)
+
+        def __init__(self, address, handler):
+            served["handler"] = handler
+
+        def serve_forever(self) -> None:
+            served["served"] = True
+
+        def server_close(self) -> None:
+            served["closed"] = True
+
+    monkeypatch.setattr(module.socketserver, "TCPServer", FakeServer)
+    monkeypatch.setattr(actions, "default_runtime_backend", lambda: backend)
+
+    result = module.serve_progress_portal(
+        profile=profile,
+        study_id="study-default",
+        progress_payload=_progress_payload(),
+        host="127.0.0.1",
+        port=4303,
+        once=True,
+        enable_actions=True,
+    )
+    response = _post_progress_portal_action(
+        served["handler"],
+        {
+            "action": "pause",
+            "study_id": "study-request",
+            "quest_id": "quest-request",
+            "idempotency_key": "endpoint-apply-001",
+        },
+    )
+    duplicate = _post_progress_portal_action(
+        served["handler"],
+        {
+            "action": "pause",
+            "study_id": "study-request",
+            "quest_id": "quest-request",
+            "idempotency_key": "endpoint-apply-001",
+        },
+    )
+
+    assert result["actions_enabled"] is True
+    assert response["status_code"] == 200
+    assert response["body"] == duplicate["body"]
+    assert response["body"]["quest_id"] == "quest-request"
+    assert response["body"]["apply_status"] == "applied"
+    assert backend.calls == [
+        {
+            "operation": "pause_quest",
+            "runtime_root": profile.runtime_root,
+            "quest_id": "quest-request",
+            "source": "progress_portal:pause",
+        }
+    ]
 
 
 def _post_progress_portal_action(handler_class: object, payload: dict[str, object]) -> dict[str, object]:

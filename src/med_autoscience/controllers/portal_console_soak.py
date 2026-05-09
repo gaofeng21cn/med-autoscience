@@ -128,6 +128,11 @@ def build_portal_console_soak_report(
             portal_payload=portal_payload,
         ),
         "conversation_read_model": _conversation_read_model(conversation_payload=conversation_payload),
+        "conversation_portal_panel": _conversation_portal_panel(
+            portal_result=portal_result,
+            portal_payload=portal_payload,
+            portal_html_path=portal_html_path,
+        ),
         "study_scoped_console": _study_scoped_console(
             console_snapshot=console_snapshot,
             console_ui_payload=console_ui_payload,
@@ -135,6 +140,10 @@ def build_portal_console_soak_report(
         "action_receipts": _action_receipts(
             console_snapshot=console_snapshot,
             console_ui_payload=console_ui_payload,
+        ),
+        "authorized_action_apply_receipts": _authorized_action_apply_receipts(
+            workspace_root=profile.workspace_root,
+            portal_payload=portal_payload,
         ),
         "latency_slo_source_refs": _latency_slo_source_refs(
             portal_payload=portal_payload,
@@ -368,6 +377,43 @@ def _conversation_read_model(*, conversation_payload: Mapping[str, Any]) -> dict
     }
 
 
+def _conversation_portal_panel(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_payload: Mapping[str, Any],
+    portal_html_path: Path,
+) -> dict[str, Any]:
+    panels = _portal_conversation_panels(portal_result=portal_result, portal_payload=portal_payload)
+    visible_html_refs = _conversation_panel_html_refs(
+        portal_result=portal_result,
+        portal_html_path=portal_html_path,
+    )
+    available = [
+        panel
+        for panel in panels
+        if panel.get("surface_kind") == "mas_progress_portal_conversation_panel"
+        and panel.get("status") == "available"
+    ]
+    source_refs = [
+        ref
+        for panel in panels
+        for ref in _string_refs(panel.get("source_refs"))
+    ]
+    return {
+        "status": "passed" if available and visible_html_refs and source_refs else "blocked",
+        "panel_count": len(panels),
+        "available_panel_count": len(available),
+        "html_refs": visible_html_refs,
+        "source_refs": _dedupe_text(source_refs),
+        "blockers": _blockers(
+            ("missing_conversation_portal_panel", not panels),
+            ("missing_available_conversation_portal_panel", not available),
+            ("missing_visible_conversation_html", not visible_html_refs),
+            ("missing_conversation_panel_source_refs", not source_refs),
+        ),
+    }
+
+
 def _study_scoped_console(
     *,
     console_snapshot: Mapping[str, Any],
@@ -423,6 +469,37 @@ def _action_receipts(
             ("missing_controller_action_intents", not intents),
             ("missing_action_receipt_or_command_refs", not receipts),
             ("ui_direct_execution_detected", bool(direct_exec)),
+        ),
+    }
+
+
+def _authorized_action_apply_receipts(
+    *,
+    workspace_root: Path,
+    portal_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    receipt_root = workspace_root / "artifacts" / "runtime" / "progress_portal" / "action_receipts"
+    receipts = [_read_json_object(path) for path in sorted(receipt_root.glob("*.json"))] if receipt_root.is_dir() else []
+    for item in _mapping_list(_mapping(portal_payload.get("progress_portal_actions")).get("receipts")):
+        receipts.append(item)
+    apply_receipts = [item for item in receipts if item.get("apply") is True]
+    applied = [item for item in apply_receipts if item.get("apply_status") == "applied"]
+    forbidden_writes_ok = all(
+        "controller_decisions/latest.json" in _string_refs(item.get("forbidden_writes"))
+        and "runtime_sqlite_authority" in _string_refs(item.get("forbidden_writes"))
+        for item in apply_receipts
+    )
+    actions = sorted({_text(item.get("action")) for item in applied if _text(item.get("action"))})
+    return {
+        "status": "passed" if applied and forbidden_writes_ok else "blocked",
+        "receipt_count": len(receipts),
+        "apply_receipt_count": len(apply_receipts),
+        "applied_action_count": len(applied),
+        "applied_actions": actions,
+        "blockers": _blockers(
+            ("missing_apply_action_receipts", not apply_receipts),
+            ("missing_applied_action_receipts", not applied),
+            ("apply_receipt_forbidden_writes_missing", apply_receipts and not forbidden_writes_ok),
         ),
     }
 
@@ -627,6 +704,43 @@ def _portal_route_trails(
         if page_trail:
             trails.append(page_trail)
     return trails
+
+
+def _portal_conversation_panels(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_payload: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    panels: list[dict[str, Any]] = []
+    panel = _mapping(_mapping(portal_payload.get("study_workbench")).get("conversation"))
+    if panel:
+        panels.append(panel)
+    for page in _mapping(portal_result.get("study_pages")).values():
+        if not isinstance(page, Mapping):
+            continue
+        payload_path = Path(str(page.get("payload_path") or ""))
+        page_payload = _read_json_object(payload_path)
+        page_panel = _mapping(_mapping(page_payload.get("study_workbench")).get("conversation"))
+        if page_panel:
+            panels.append(page_panel)
+    return panels
+
+
+def _conversation_panel_html_refs(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_html_path: Path,
+) -> list[str]:
+    refs: list[str] = []
+    for path in [portal_html_path, *[
+        Path(str(page.get("html_path") or ""))
+        for page in _mapping(portal_result.get("study_pages")).values()
+        if isinstance(page, Mapping)
+    ]]:
+        html = _read_text(path)
+        if "Conversation" in html and "Conversation Source Refs" in html:
+            refs.append(str(path))
+    return refs
 
 
 def _conversation_source_refs(payload: Mapping[str, Any]) -> list[str]:

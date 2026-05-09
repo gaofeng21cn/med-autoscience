@@ -57,6 +57,7 @@ def build_progress_portal_payload(
     cockpit_payload: Mapping[str, Any] | None = None,
     runtime_payload: Mapping[str, Any] | None = None,
     package_payload: Mapping[str, Any] | None = None,
+    conversation_payload: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
     local_timezone: str | None = None,
     entry_mode: str | None = None,
@@ -130,7 +131,14 @@ def build_progress_portal_payload(
     }
     runtime_continuity = _runtime_continuity(progress, runtime)
     study_workbench = (
-        build_study_workbench_payload(progress, cockpit, runtime, package, resolved_study_id)
+        build_study_workbench_payload(
+            progress,
+            cockpit,
+            runtime,
+            package,
+            resolved_study_id,
+            conversation_payload=conversation_payload,
+        )
         if resolved_page_scope == "study"
         else {}
     )
@@ -338,6 +346,12 @@ def _materialize_study_pages(
                 profile_ref=profile_ref,
                 progress_payload=_progress_from_workspace_study_row(study),
                 cockpit_payload=cockpit_for_pages,
+                conversation_payload=_conversation_read_model_payload(
+                    profile=profile,
+                    profile_ref=profile_ref,
+                    study_id=study_id,
+                    generated_at=generated_at,
+                ),
                 generated_at=generated_at,
                 local_timezone=local_timezone,
                 sync_runtime_summary=False,
@@ -441,6 +455,13 @@ def materialize_progress_portal(
             cockpit_payload=cockpit_payload,
             runtime_payload=runtime_payload,
             package_payload=package_payload,
+            conversation_payload=_conversation_read_model_payload(
+                profile=profile,
+                profile_ref=profile_ref,
+                study_id=selected_study_id,
+                study_root=study_root,
+                generated_at=generated_at,
+            ),
             generated_at=generated_at,
             local_timezone=local_timezone,
             entry_mode=entry_mode,
@@ -544,6 +565,25 @@ def build_progress_portal_hosted_package(
         surface_kind=HOSTED_PACKAGE_SURFACE_KIND,
         profile_ref=profile_ref,
         study_pages=study_pages,
+    )
+
+
+def _conversation_read_model_payload(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: str | Path | None,
+    study_id: str | None,
+    generated_at: str | None,
+    study_root: Path | None = None,
+) -> dict[str, Any]:
+    from med_autoscience.controllers import runtime_live_console
+
+    return runtime_live_console.build_conversation_read_model(
+        profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        study_root=study_root,
+        generated_at=generated_at,
     )
 
 

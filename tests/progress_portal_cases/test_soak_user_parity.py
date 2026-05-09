@@ -35,9 +35,20 @@ def test_portal_console_soak_checks_user_parity_evidence_keys(tmp_path: Path) ->
             {"id": "path_stage"},
             {"id": "runtime"},
             {"id": "artifacts"},
+            {"id": "conversation"},
             {"id": "source_refs"},
         ],
         "route_decision_trail": route_trail,
+        "conversation": {
+            "surface_kind": "mas_progress_portal_conversation_panel",
+            "status": "available",
+            "study_id": "DM002",
+            "timeline_items": [{"item_kind": "turn_receipt", "run_id": "run-dm002"}],
+            "source_refs": [
+                "artifacts/runtime/conversation_read_model/latest.json",
+                "studies/DM002/artifacts/runtime/turn_receipts/turn-001.json",
+            ],
+        },
     }
     portal_payload = {
         "generated_at": "2026-05-09T01:00:00+00:00",
@@ -133,8 +144,39 @@ def test_portal_console_soak_checks_user_parity_evidence_keys(tmp_path: Path) ->
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     write_text(portal_html_path, "<!doctype html><title>Med Auto Science Progress Portal</title>")
-    write_text(study_page_html, "<!doctype html><title>Med Auto Science Study Workbench</title>")
+    write_text(
+        study_page_html,
+        "<!doctype html><title>Med Auto Science Study Workbench</title><h2>Conversation</h2><h3>Conversation Source Refs</h3>",
+    )
     write_text(console_html_path, "<!doctype html><title>Med Auto Science Live Console</title>")
+    receipt_path = root / "artifacts" / "runtime" / "progress_portal" / "action_receipts" / "resume-001.json"
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "mas_progress_portal_action_receipt",
+                "action": "resume",
+                "study_id": "DM002",
+                "quest_id": "DM002",
+                "mode": "runtime_control_apply",
+                "apply": True,
+                "apply_status": "applied",
+                "runtime_control_operation": "resume_quest",
+                "forbidden_writes": [
+                    "paper",
+                    "package",
+                    "publication_gate",
+                    "controller_decision",
+                    "controller_decisions/latest.json",
+                    "runtime_sqlite_authority",
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     report = module.build_portal_console_soak_report(
         profile=profile,
@@ -174,8 +216,10 @@ def test_portal_console_soak_checks_user_parity_evidence_keys(tmp_path: Path) ->
         "route_decision_trail",
         "per_study_deep_link",
         "conversation_read_model",
+        "conversation_portal_panel",
         "study_scoped_console",
         "action_receipts",
+        "authorized_action_apply_receipts",
         "latency_slo_source_refs",
         "live_console_study_run_disambiguation",
         "terminal_log_refs",
@@ -188,7 +232,9 @@ def test_portal_console_soak_checks_user_parity_evidence_keys(tmp_path: Path) ->
     assert report["evidence"]["conversation_read_model"]["source_refs"] == [
         "studies/DM002/artifacts/runtime/turn_receipts/turn-001.json"
     ]
+    assert report["evidence"]["conversation_portal_panel"]["status"] == "passed"
     assert report["evidence"]["action_receipts"]["direct_execution_intents"] == []
+    assert report["evidence"]["authorized_action_apply_receipts"]["applied_actions"] == ["resume"]
     assert report["authority"]["controller_action_execution_allowed"] is False
 
 
@@ -254,4 +300,5 @@ def test_portal_console_soak_blocks_when_user_parity_evidence_is_missing(tmp_pat
     ]
     assert "missing_route_decision_trail_surface" in report["evidence"]["route_decision_trail"]["blockers"]
     assert "missing_conversation_read_model" in report["evidence"]["conversation_read_model"]["blockers"]
+    assert "missing_conversation_portal_panel" in report["evidence"]["conversation_portal_panel"]["blockers"]
     assert "missing_selected_study_id" in report["evidence"]["study_scoped_console"]["blockers"]

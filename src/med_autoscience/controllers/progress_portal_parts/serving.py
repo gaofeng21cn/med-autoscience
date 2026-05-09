@@ -41,7 +41,9 @@ def build_progress_portal_handler(
                     profile=profile,
                     action=str(request.get("action") or ""),
                     study_id=str(request.get("study_id") or study_id or ""),
+                    quest_id=str(request.get("quest_id") or ""),
                     idempotency_key=str(request.get("idempotency_key") or ""),
+                    apply=True,
                 )
             except PortalActionError as exc:
                 self._write_json({"status": "rejected", "reason": exc.reason}, status_code=exc.status_code)

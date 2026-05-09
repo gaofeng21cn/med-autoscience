@@ -269,7 +269,7 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert by_surface["progress_visibility"]["mas_behavior"]["primary_scope"] == "workspace_shell_with_per_study_pages"
     assert by_surface["progress_visibility"]["mas_behavior"]["paper_scoped_navigation"] == "landed_per_study_pages"
     assert by_surface["progress_visibility"]["mas_behavior"]["route_decision_trail"] == "landed_read_only"
-    assert by_surface["progress_visibility"]["mas_behavior"]["conversation_read_model"] == "landed_read_only"
+    assert by_surface["progress_visibility"]["mas_behavior"]["conversation_read_model"] == "landed_read_only_visible_panel"
     assert "mas_progress_portal_route_decision_trail" in by_surface["progress_visibility"]["mas_contract"]
     assert "mas_runtime_conversation_read_model" in by_surface["progress_visibility"]["mas_contract"]
     assert by_surface["progress_visibility"]["future_parity_candidate"] == "real_workspace_user_soak_and_interactive_gate_polish"
@@ -284,7 +284,7 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
         "mas_terminal_attach_gate"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["authorized_portal_actions"] == (
-        "controller_receipt_only"
+        "controller_authorized_apply_for_pause_resume_stop"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["future_parity_candidate"] == (
         "interactive_terminal_attach_and_authorized_ui_control"

@@ -13,7 +13,7 @@ The current landed scope is read-only observation. Resident WebSocket terminal a
 
 User-view parity gaps for per-paper navigation, executor conversation, and interactive terminal/control are tracked in [MDS WebUI User Parity Gap Review](../../references/mds-parity/mds_webui_user_parity_gap_review.md).
 
-2026-05-09 fresh assessment: Live Console is the MAS-native read-only observation replacement for the old WebUI observation class. It is not an interactive terminal/control replacement yet. Study-scoped filtering, action receipts, and the formal terminal attach gate are now repo-tracked contracts. The remaining valid improvement path is real-workspace polish, an authorized UI action apply lane for pause/resume/reconcile/stop intents, and only after that a MAS-owned interactive terminal attach implementation with threat model, owner gate, token/lease, idempotency, and audit contract.
+2026-05-09 fresh assessment: Live Console is the MAS-native read-only observation replacement for the old WebUI observation class. It is not an interactive terminal attach replacement yet. Study-scoped filtering, action receipts, authorized Progress Portal pause/resume/stop apply, and the formal terminal attach gate are now repo-tracked contracts. The remaining valid improvement path is real-workspace polish and a MAS-owned interactive terminal attach implementation with threat model, owner gate, token/lease, idempotency, and audit contract.
 
 ## Stable Entry
 
@@ -50,9 +50,9 @@ When terminal/log files are missing, the console should explain that absence as 
 
 ## Authority Boundary
 
-The UI is read-only. It can show action intent for pause / resume / relaunch / reconcile, but UI 不直接执行 apply.
+The Live Console UI is read-only. It can show action intent for pause / resume / relaunch / reconcile, but Live Console does not execute apply.
 
-This read-only boundary is intentional for the current monolith closeout. A future authorized UI control surface must call MAS controller/runtime owner surfaces, write audit receipts, dedupe repeated user clicks, and fail closed on stale owner route, parked/completed state, human gate, publication gate missing, retry exhausted, or missing authorization. It must not reuse the old MDS daemon as an owner.
+Progress Portal has a separate local-loopback action endpoint. It remains disabled by default; when explicitly served with `--enable-actions`, it may call MAS runtime owner surfaces for `pause`, `resume`, and `stop`, write audit receipts, dedupe repeated user clicks by idempotency key, and fail closed on disallowed actions or missing `quest_id/study_id`. It must not reuse the old MDS daemon as an owner and must not claim terminal attach/input support.
 
 The real-workspace soak surface is also read-only. `portal-console-soak` may refresh the Progress Portal and Live Console snapshot, then materialize display evidence under `artifacts/runtime/portal_console_soak/latest.json`. It must not turn a page refresh into runtime reconcile, package rebuild, publication gate update, controller decision, or runtime SQLite write.
 
