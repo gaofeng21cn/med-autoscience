@@ -17,6 +17,7 @@ from med_autoscience.profiles import WorkspaceProfile
 SCHEMA_VERSION = 1
 SCHEDULER_OWNER = "mas_supervision_scheduler"
 DEFAULT_INTERVAL_SECONDS = 5 * 60
+LAUNCHD_TOOL_PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 
 def utc_now() -> str:
@@ -340,6 +341,12 @@ def _render_tick_script(*, profile: WorkspaceProfile, interval_seconds: int) -> 
         f"LATEST_RECEIPT = Path(json.loads({json.dumps(latest_receipt_json)}))\n"
         f"HISTORY_RECEIPT = Path(json.loads({json.dumps(history_receipt_json)}))\n"
         f"LOCK_PATH = Path(json.loads({json.dumps(lock_path_json)}))\n\n"
+        f"TOOL_PATH = {LAUNCHD_TOOL_PATH!r}\n"
+        "existing_path = os.environ.get('PATH')\n"
+        "if existing_path:\n"
+        "    os.environ['PATH'] = TOOL_PATH + os.pathsep + existing_path\n"
+        "else:\n"
+        "    os.environ['PATH'] = TOOL_PATH\n\n"
         "def now():\n"
         "    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()\n\n"
         "def write_receipt(payload):\n"
@@ -398,6 +405,7 @@ def _launch_agent_plist(*, profile: WorkspaceProfile, interval_seconds: int) -> 
         "StandardErrorPath": str(state_root / "logs" / "launchd.stderr.log"),
         "StandardOutPath": str(state_root / "logs" / "launchd.stdout.log"),
         "WorkingDirectory": str(profile.workspace_root),
+        "EnvironmentVariables": {"PATH": LAUNCHD_TOOL_PATH},
     }
 
 

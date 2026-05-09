@@ -28,6 +28,8 @@ def current_truth(status: Mapping[str, Any], progress: Mapping[str, Any]) -> boo
         return True
     auto_parked = _mapping(status.get("auto_runtime_parked")) or _mapping(progress.get("auto_runtime_parked"))
     if auto_parked.get("parked") is True:
+        if _owner_route_pending(auto_parked):
+            return False
         return True
     runtime_health = _mapping(status.get("runtime_health_snapshot")) or _mapping(progress.get("runtime_health_snapshot"))
     if _text(runtime_health.get("canonical_runtime_action")) == "await_explicit_resume":
@@ -56,6 +58,12 @@ def _has_live_worker(status: Mapping[str, Any], progress: Mapping[str, Any]) -> 
     if _text(liveness.get("active_run_id")) or _text(runtime_audit.get("active_run_id")):
         return True
     return runtime_audit.get("worker_running") is True
+
+
+def _owner_route_pending(auto_parked: Mapping[str, Any]) -> bool:
+    if auto_parked.get("awaiting_explicit_wakeup") is True:
+        return False
+    return _text(auto_parked.get("parked_state")) == "ai_reviewer_pending" or _text(auto_parked.get("parked_owner")) == "ai_reviewer"
 
 
 def _mapping(value: object) -> dict[str, Any]:

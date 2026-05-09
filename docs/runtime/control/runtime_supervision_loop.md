@@ -118,7 +118,7 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 2026-05-09 Runtime Watchdog / LLM cost closeout 把“低延迟感知”和“低成本调度”拆成两层，而不是缩短 300 秒 scheduler tick：
 
 - 真实 runtime turn 由 MAS per-run worker wrapper 托管。wrapper 是每个 run 一个子进程，负责启动并等待 `codex exec` 子进程，刷新 `worker_lease.json` 中的 `monitor_kind=mas_per_run_worker_wrapper`、`monitor_pid`、`child_pid`、`heartbeat_at`、`last_output_at`、stdout/stderr cursor、`monitor_state` 和 `stale_reason`，并在 child exit 后立即写 `runner_exit.json`、调用 `complete_turn_and_normalize`。它不是 resident MDS daemon，也不是 workspace-local service。
-- `worker_lease` / `runtime_session` / Live Console read model 现在能区分 `monitor_state=live|exited|stale|lost|unknown`，并展示 last worker heartbeat、last output、monitor owner、why waiting 与 `will_start_llm`。child exit 走低延迟归一化；wrapper lost 或 heartbeat stale 才进入 recovery intent / safe reconcile 路径，等待 Hermes fail-safe tick 或显式 one-shot reconcile。
+- `worker_lease` / `runtime_session` / Live Console read model 现在能区分 `monitor_state=live|exited|stale|lost|unknown`，并展示 last worker heartbeat、last output、monitor owner、why waiting 与 `will_start_llm`。child exit 走低延迟归一化；wrapper lost 或 heartbeat stale 才进入 recovery intent / safe reconcile 路径，等待 MAS scheduler fail-safe tick 或显式 one-shot reconcile。
 - runtime action cost contract 固定四类动作：`observe_only`、`reconcile_dry_run`、`controller_apply`、`codex_worker_dispatch`。`runtime-supervisor-reconcile --dry-run`、Portal/Console 刷新和 SLO 投影都必须是 `will_start_llm=false`；只有真正进入 MAS runtime turn / 新 owner_route action fingerprint 并启动 Codex worker 时才是 `codex_worker_dispatch`。
 - supervisor reconcile、default executor dispatch 和 runtime watch report 都投影 `codex_dispatch_count`、`suppressed_dispatch_count`、`dispatch_budget_window` 与 `action_fingerprint`。重复 tick 只能刷新 read model 或写 no-op suppression；同一 study 的同一 owner_route / work-unit fingerprint 不得重复启动 Codex worker。
 
@@ -346,7 +346,7 @@ uv run python scripts/real-paper-autonomy-soak-inventory.py \
 
 `medautosci runtime ensure-supervision` 默认注册或刷新 MAS-owned `local` adapter；macOS 会写入 LaunchAgent、tick script、install proof 和 scheduler receipt。显式 `--manager hermes` 会走 optional Hermes gateway cron adapter。如果显式传入 `--manager systemd|cron|launchd|docker`，命令必须 fail-closed 返回 `retired_workspace_local_service_manager`，不渲染模板、不给安装命令、不写旧 install proof。检测到旧 workspace-local host service 文件或 loaded 状态时，只能把它作为 `retired_cleanup_evidence` 清理，然后回到 MAS scheduler contract。
 
-如果后续要减少 Hermes 对本地运行的必要性，应新增一个正式 local scheduler adapter。它必须调用同一个 MAS tick script、写出同构 status / latest-run / SLO projection，并满足与 Hermes adapter 相同的幂等、去重、失败可见性和 retired-service cleanup 规则；不能复活旧 workspace-local service 模板作为隐式旁路。
+Hermes 对本地运行的必要性已经从默认路径移除；后续只能扩展正式 local scheduler adapter 的 backend 覆盖面。新增 backend 必须调用同一个 MAS tick script、写出同构 status / latest-run / SLO projection，并满足与 Hermes adapter 相同的幂等、去重、失败可见性和 retired-service cleanup 规则；不能复活旧 workspace-local service 模板作为隐式旁路。
 
 容器环境不是 MAS-owned runtime。MAS 不维护 `medautoscience:latest` 镜像，也不生成 Kubernetes CronJob manifest。容器、volume、gateway、scheduler 与镜像发布由 OPL、Hermes 或部署平台持有；容器内如果需要触发 MAS 监管，只能调用 MAS CLI 的 canonical tick/reconcile 入口，例如：
 

@@ -86,6 +86,9 @@ def test_local_scheduler_apply_writes_tick_script_plist_and_receipt(monkeypatch,
     assert "supervisor-scan" in script
     assert "supervisor-consume" in script
     assert "supervisor-execute-dispatch" in script
+    assert "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" in script
+    plist = json.loads(json.dumps(local.plistlib.loads(Path(result["launch_agent_path"]).read_bytes())))
+    assert plist["EnvironmentVariables"]["PATH"] == "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     assert any(command[:2] == ["launchctl", "bootstrap"] for command in commands)
     assert any(command[:2] == ["launchctl", "print"] for command in commands)
     assert any(command and command[0].endswith("watch_runtime_tick.py") for command in commands)

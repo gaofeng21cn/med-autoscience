@@ -129,6 +129,91 @@ def test_terminal_parked_truth_does_not_reopen_ai_reviewer_queue(
     assert study["owner_route"]["next_owner"] is None
 
 
+def test_ai_reviewer_pending_parked_truth_routes_to_ai_reviewer_workflow(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "001-dm-cvd-mortality-risk"
+    quest_id = "quest-dm001"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    status_payload = _parked_status(
+        study_root=study_root,
+        quest_id=quest_id,
+        parked_state="ai_reviewer_pending",
+        reason="quest_waiting_for_user",
+    )
+    status_payload["auto_runtime_parked"]["awaiting_explicit_wakeup"] = False
+    status_payload["auto_runtime_parked"]["auto_execution_complete"] = False
+    status_payload["auto_runtime_parked"]["parked_owner"] = "ai_reviewer"
+    status_payload["interaction_arbitration"] = {
+        "classification": "blocked_closeout_owner_wait",
+        "reason_code": "blocked_turn_closeout_waiting_for_owner",
+        "next_owner": "ai_reviewer",
+    }
+    status_payload["runtime_health_snapshot"]["canonical_runtime_action"] = "continue_supervising_runtime"
+    status_payload["runtime_health_snapshot"]["blocking_reasons"] = []
+    publication_eval = {
+        "assessment_provenance": {
+            "owner": "mechanical_projection",
+            "ai_reviewer_required": True,
+        },
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::specificity",
+                "action_type": "return_to_controller",
+                "next_work_unit": {"unit_id": "gate_needs_specificity"},
+                "work_unit_fingerprint": "publication-blockers::same",
+                "specificity_targets": _complete_specificity_targets(study_root),
+            }
+        ],
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "scientific_anchor_missing",
+        "auto_runtime_parked": status_payload["auto_runtime_parked"],
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "quality_review_loop": {"closure_state": "review_required"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-ai-reviewer",
+            "source_signature": "truth-source-ai-reviewer",
+        },
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            status_payload,
+            progress_payload,
+            quest_id,
+            publication_eval,
+        ),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert [item["action_type"] for item in result["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert study["why_not_applied"] == "ai_reviewer_assessment_required"
+    assert study["blocked_reason"] == "ai_reviewer_assessment_required"
+    assert study["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["current_owner"] == "controller_stop"
+    assert study["owner_route"]["next_owner"] == "ai_reviewer"
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+
+
 def _parked_status(*, study_root: Path, quest_id: str, parked_state: str, reason: str) -> dict:
     return {
         "study_id": study_root.name,
@@ -164,3 +249,38 @@ def _ai_reviewer_eval(*, required: bool) -> dict:
         },
         "recommended_actions": [],
     }
+
+
+def _complete_specificity_targets(study_root: Path) -> list[dict[str, str]]:
+    return [
+        {
+            "target_kind": "claim",
+            "target_id": "claim_evidence_map",
+            "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+            "blocking_reason": "missing_publication_anchor",
+        },
+        {
+            "target_kind": "figure",
+            "target_id": "figure_catalog",
+            "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+            "blocking_reason": "missing_publication_anchor",
+        },
+        {
+            "target_kind": "table",
+            "target_id": "submission_table_or_manifest",
+            "source_path": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+            "blocking_reason": "missing_publication_anchor",
+        },
+        {
+            "target_kind": "metric",
+            "target_id": "main_result_metrics",
+            "source_path": str(study_root / "artifacts" / "results" / "main_result.json"),
+            "blocking_reason": "missing_publication_anchor",
+        },
+        {
+            "target_kind": "source_path",
+            "target_id": "publication_gate_source_path",
+            "source_path": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+            "blocking_reason": "missing_publication_anchor",
+        },
+    ]

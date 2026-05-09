@@ -59,7 +59,7 @@ Date: `2026-05-09`
 
 ## Scheduler Contract
 
-MAS-owned scheduler contract 必须提供下列 machine boundary。Hermes adapter 和 future local adapter 都要映射到同一字段。
+MAS-owned scheduler contract 必须提供下列 machine boundary。默认 local adapter、显式 Hermes adapter 与后续 local backend 都要映射到同一字段。
 
 ### Scheduler Job
 
