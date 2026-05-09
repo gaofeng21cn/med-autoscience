@@ -138,6 +138,40 @@ def live_activity_timeout_current_controller_route_available(
     )
 
 
+def current_controller_owner_handoff_redrive_required(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    study_root: Any,
+    publication_eval_payload: Mapping[str, Any],
+) -> bool:
+    if _text(status.get("quest_status")) != "waiting_for_user":
+        return False
+    if active_run_id(status, progress) is not None or worker_running(status):
+        return False
+    continuation_state = _mapping(status.get("continuation_state"))
+    if int(continuation_state.get("pending_user_message_count") or 0) > 0:
+        return False
+    blocked_closeout = _mapping(status.get("blocked_turn_closeout"))
+    if not blocked_closeout:
+        blocked_closeout = _mapping(_mapping(status.get("interaction_arbitration")).get("blocked_turn_closeout"))
+    if not blocked_closeout:
+        interaction = _mapping(status.get("interaction_arbitration"))
+        if _text(interaction.get("classification")) == "blocked_closeout_owner_wait":
+            blocked_closeout = interaction
+    return bool(
+        _text(continuation_state.get("continuation_policy")) == "wait_for_user_or_resume"
+        and _text(continuation_state.get("continuation_anchor")) == "turn_closeout"
+        and _text(continuation_state.get("continuation_reason")) == "blocked_turn_closeout_waiting_for_owner"
+        and _owner_token(blocked_closeout.get("next_owner")) == "mas_controller"
+        and current_truth_owner.current_controller_runtime_route(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+        is not None
+    )
+
+
 def runtime_platform_repair_apply_required(
     *,
     status: Mapping[str, Any],
@@ -158,6 +192,13 @@ def runtime_platform_repair_apply_required(
     ):
         return True
     if _runtime_platform_repair_redrive_pending(status):
+        return True
+    if current_controller_owner_handoff_redrive_required(
+        status=status,
+        progress=progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
         return True
     return live_activity_timeout_current_controller_route_available(
         status,
@@ -276,6 +317,7 @@ def _text(value: object) -> str | None:
 __all__ = [
     "active_run_id",
     "blocking_reasons",
+    "current_controller_owner_handoff_redrive_required",
     "live_activity_timeout_current_controller_route_available",
     "live_activity_timeout_current_controller_redrive_required",
     "retry_exhausted",

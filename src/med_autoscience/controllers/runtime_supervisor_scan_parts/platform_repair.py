@@ -10,6 +10,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import current_tr
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_current_controller
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_closeout_redrive
+from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_owner_handoff_redrive
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_pending_redrive
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 from med_autoscience.controllers import study_runtime_router
@@ -356,6 +357,56 @@ def _apply_live_activity_timeout_current_controller_redrive(
     )
 
 
+def _apply_current_controller_owner_handoff_redrive(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    runtime_state_path: Path,
+    quest_id: str | None,
+    publication_eval_payload: Mapping[str, Any],
+    base: Mapping[str, Any],
+) -> dict[str, Any]:
+    clear_result = platform_repair_owner_handoff_redrive.clear_current_controller_owner_handoff(
+        runtime_state_path=runtime_state_path,
+        study_id=study_id,
+        quest_id=quest_id,
+        read_json_object=_read_json_object,
+        write_json=_write_json,
+        append_json_line=_append_json_line,
+        source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+    )
+    blocked_turn_closeout_clear = platform_repair_pending_redrive.blocked_turn_closeout_clear_result(
+        clear_result
+    )
+    if clear_result.get("cleared") is not True:
+        return {
+            **dict(base),
+            "dispatch_status": "blocked",
+            "reason": _text(clear_result.get("reason")) or current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON,
+            "repair_kind": "current_controller_owner_handoff_redrive",
+            "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
+            "owner_handoff_clear": clear_result,
+        }
+    apply_result = _controller_redrive_result(
+        _apply_current_controller_runtime_redrive(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            runtime_state_path=runtime_state_path,
+            quest_id=quest_id,
+            publication_eval_payload=publication_eval_payload,
+            base={**dict(base), "reason": current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON},
+            repair_kind="current_controller_owner_handoff_redrive",
+        )
+    )
+    return {
+        **apply_result,
+        "blocked_turn_closeout_clear": blocked_turn_closeout_clear,
+        "owner_handoff_clear": clear_result,
+    }
+
+
 def _runtime_platform_repair_redrive_pending(runtime_state: Mapping[str, Any]) -> bool:
     return bool(
         _text(runtime_state.get("continuation_policy")) == "auto"
@@ -678,6 +729,21 @@ def apply_runtime_platform_repair(
         return closeout_redrive
     if _runtime_platform_repair_redrive_pending(runtime_state):
         return _apply_pending_runtime_platform_repair_redrive(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            runtime_state_path=runtime_path,
+            quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+            publication_eval_payload=publication_eval_payload,
+            base=base,
+        )
+    if runtime_facts.current_controller_owner_handoff_redrive_required(
+        status=status,
+        progress=progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
+        return _apply_current_controller_owner_handoff_redrive(
             profile=profile,
             study_id=study_id,
             study_root=study_root,
