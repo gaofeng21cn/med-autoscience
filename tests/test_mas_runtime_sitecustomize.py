@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_sitecustomize_routes_mas_quest_cwd_pycache_to_quest_runtime(tmp_path: Path) -> None:
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
+    (quest_root / ".ds").mkdir(parents=True)
+    (quest_root / ".ds" / "runtime_state.json").write_text("{}", encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, "-c", "import os, sys; print(sys.pycache_prefix or ''); print(os.environ.get('PYTHONPYCACHEPREFIX') or '')"],
+        cwd=quest_root,
+        env=_sitecustomize_env(),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    assert result.stdout.splitlines() == [
+        str(quest_root / ".ds" / "python_pycache"),
+        str(quest_root / ".ds" / "python_pycache"),
+    ]
+
+
+def test_sitecustomize_routes_mas_workspace_cwd_pycache_to_workspace_ops(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    (workspace_root / "ops" / "medautoscience").mkdir(parents=True)
+    (workspace_root / "runtime").mkdir()
+
+    result = subprocess.run(
+        [sys.executable, "-c", "import os, sys; print(sys.pycache_prefix or ''); print(os.environ.get('PYTHONPYCACHEPREFIX') or '')"],
+        cwd=workspace_root,
+        env=_sitecustomize_env(),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    assert result.stdout.splitlines() == [
+        str(workspace_root / "ops" / "medautoscience" / "python_pycache"),
+        str(workspace_root / "ops" / "medautoscience" / "python_pycache"),
+    ]
+
+
+def test_sitecustomize_disables_bytecode_when_cwd_is_mas_repo_root() -> None:
+    result = subprocess.run(
+        [sys.executable, "-c", "import sys; print(sys.dont_write_bytecode); print(sys.pycache_prefix or '')"],
+        cwd=REPO_ROOT,
+        env=_sitecustomize_env(),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    assert result.stdout.splitlines() == ["True", ""]
+
+
+def test_sitecustomize_prevents_repo_source_pycache_when_importing_from_quest_cwd(tmp_path: Path) -> None:
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
+    (quest_root / ".ds").mkdir(parents=True)
+    (quest_root / ".ds" / "runtime_state.json").write_text("{}", encoding="utf-8")
+    source_root = tmp_path / "editable-src"
+    package_root = source_root / "sample_package"
+    package_root.mkdir(parents=True)
+    (package_root / "__init__.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, "-c", "import sample_package; print(sample_package.VALUE)"],
+        cwd=quest_root,
+        env=_sitecustomize_env(pythonpath=source_root),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    assert result.stdout.strip() == "1"
+    assert not (package_root / "__pycache__").exists()
+    pycache_files = list((quest_root / ".ds" / "python_pycache").rglob("*.pyc"))
+    assert pycache_files
+
+
+def test_sitecustomize_does_not_change_non_quest_cwd_pycache(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [sys.executable, "-c", "import sys; print(sys.pycache_prefix or '')"],
+        cwd=tmp_path,
+        env=_sitecustomize_env(),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    assert result.stdout.strip() == ""
+
+
+def _sitecustomize_env(*, pythonpath: Path | None = None) -> dict[str, str]:
+    env = os.environ.copy()
+    env.pop("PYTHONDONTWRITEBYTECODE", None)
+    env.pop("PYTHONPYCACHEPREFIX", None)
+    paths = [str(REPO_ROOT / "src")]
+    if pythonpath is not None:
+        paths.append(str(pythonpath))
+    env["PYTHONPATH"] = os.pathsep.join(paths)
+    return env

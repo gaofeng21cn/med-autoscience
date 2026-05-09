@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -12,6 +13,15 @@ from typing import Any
 
 
 HEARTBEAT_INTERVAL_SECONDS = 5
+
+
+def quest_python_runtime_env(*, quest_root: Path) -> dict[str, str]:
+    cache_root = quest_root / ".ds" / "python_pycache"
+    cache_root.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env["PYTHONPYCACHEPREFIX"] = str(cache_root)
+    env.pop("PYTHONDONTWRITEBYTECODE", None)
+    return env
 
 
 def wrapper_command(
@@ -94,6 +104,7 @@ def run_wrapper(
         child = subprocess.Popen(
             [codex_binary, "exec", "--json", "--skip-git-repo-check", prompt],
             cwd=str(quest_root),
+            env=quest_python_runtime_env(quest_root=quest_root),
             text=True,
             stdin=subprocess.DEVNULL,
             stdout=stdout_handle,

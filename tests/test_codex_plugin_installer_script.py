@@ -20,8 +20,8 @@ def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Pa
         "set -euo pipefail\n"
         "mkdir -p \"${UV_TOOL_BIN_DIR}\"\n"
         "printf '%s\\n' \"$@\" > \"${UV_TOOL_BIN_DIR}/uv-args.txt\"\n"
-        "printf '#!/usr/bin/env bash\\nexit 0\\n' > \"${UV_TOOL_BIN_DIR}/medautosci\"\n"
-        "printf '#!/usr/bin/env bash\\nexit 0\\n' > \"${UV_TOOL_BIN_DIR}/medautosci-mcp\"\n"
+        "printf '#!/usr/bin/env python3\\nprint(\"medautosci\")\\n' > \"${UV_TOOL_BIN_DIR}/medautosci\"\n"
+        "printf '#!/usr/bin/env python3\\nprint(\"medautosci-mcp\")\\n' > \"${UV_TOOL_BIN_DIR}/medautosci-mcp\"\n"
         "chmod +x \"${UV_TOOL_BIN_DIR}/medautosci\" \"${UV_TOOL_BIN_DIR}/medautosci-mcp\"\n",
         encoding="utf-8",
     )
@@ -42,6 +42,14 @@ def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Pa
     assert result.returncode == 0, result.stderr
     assert (home_dir / ".local" / "bin" / "medautosci").exists()
     assert (home_dir / ".local" / "bin" / "medautosci-mcp").exists()
+    assert (home_dir / ".local" / "bin" / "medautosci.uv-entrypoint").exists()
+    assert (home_dir / ".local" / "bin" / "medautosci-mcp.uv-entrypoint").exists()
+    assert "export PYTHONDONTWRITEBYTECODE=1" in (home_dir / ".local" / "bin" / "medautosci").read_text(
+        encoding="utf-8"
+    )
+    assert "export PYTHONDONTWRITEBYTECODE=1" in (home_dir / ".local" / "bin" / "medautosci-mcp").read_text(
+        encoding="utf-8"
+    )
     assert (home_dir / ".local" / "bin" / "uv-args.txt").read_text(encoding="utf-8").splitlines()[-1] == (
         f"{REPO_ROOT}[analysis]"
     )

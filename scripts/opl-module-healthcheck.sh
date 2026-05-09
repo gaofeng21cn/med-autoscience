@@ -5,6 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${repo_root}"
 
 export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:${PATH}"
+export PYTHONDONTWRITEBYTECODE=1
 
 command -v python3 >/dev/null 2>&1
 command -v uv >/dev/null 2>&1
