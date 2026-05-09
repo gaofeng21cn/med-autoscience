@@ -12,11 +12,12 @@
    - `CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，是操作与自动化接口，也是对外稳定 capability surface。
    - 单一 MAS app skill 负责把这些稳定接口对外承接起来。
    - `OPL`、`product-entry manifest` 和其他机器可读桥接属于上层整合与自动化消费面，不是第一主语。
-   - `OPL Runtime Manager` 是 OPL 侧的薄运行管理/投影层：它接收 MAS 暴露的 task registration、runtime_control projection、status/artifact locator 与 approval/wakeup 边界，再把这些信息挂到外部 `Hermes-Agent` substrate 的 profile、task、resume、doctor 与索引面；高频文件/状态索引可由 OPL Rust native helper 加速，MAS 侧通过 `native_helper_consumption.proof_surface` 和 `contracts/opl-gateway/native-helper-contract.json` 明确其 index-only 边界，但不能写成 MAS 研究真相来源。
+   - `OPL Runtime Manager` 是 OPL 侧的薄运行管理/投影层：它接收 MAS 暴露的 task registration、runtime_control projection、status/artifact locator 与 approval/wakeup 边界，再把这些信息挂到 OPL 的 profile、task、resume、doctor 与索引面；若显式选择 external hosted substrate，可使用 `Hermes-Agent` adapter。高频文件/状态索引可由 OPL Rust native helper 加速，MAS 侧通过 `native_helper_consumption.proof_surface` 和 `contracts/opl-gateway/native-helper-contract.json` 明确其 index-only 边界，但不能写成 MAS 研究真相来源。
    - 这一层负责把 MAS 控制面接到更高层入口；如果使用 integration handoff，它必须保持同一套研究语义与 owner 边界。
 
 3. 运行时与持久真相层
    - `Med Auto Science` 持有课题与工作区权威语义、进度语义和发表判断，是唯一研究入口与 owner。
+   - `MAS Runtime OS` 持有 Runtime Core；`MAS supervision scheduler contract` 持有外层监督调度语义；`Progress Portal` / `Live Console` / `study-progress` / cockpit 只做 Product Projection。
    - 默认执行继续继承本机 `Codex` 配置；`Hermes-Agent` 只作为可选 hosted runtime target / reference-layer 运行载体。
    - `MedDeepScientist` 不再是默认 operation 或默认 diagnostic 依赖；它只保留为 frozen source archive、historical fixture、explicit archive import / backend-audit reference 与 provenance reference，不是用户入口，也不是第二 owner。
 
@@ -50,8 +51,9 @@
 ## 当前运行时责任分层
 
 - `Med Auto Science`：唯一研究入口、课题与工作区权威语义、进度语义、发表判断 owner，同时对外暴露稳定 capability surface。
-- `OPL Runtime Manager`：OPL 侧 product-managed adapter/projection layer，负责把 MAS registration/projection 接到外部 runtime substrate、高频索引、doctor/repair/resume 与 native helper catalog；不持有 MAS domain truth。
-- `Hermes-Agent`：外部 runtime substrate / hosted carrier，只在可选 hosted runtime target / reference-layer 语境出现，不改写默认 capability contract。
+- `MAS supervision scheduler contract`：外层 supervision cadence、job identity、tick receipt、SLO / drift projection 和 adapter migration owner；当前 active adapter 是 `Hermes gateway cron`，目标默认 adapter 是 MAS-owned local scheduler。
+- `OPL Runtime Manager`：OPL 侧 product-managed adapter/projection layer，负责把 MAS registration/projection 接到高频索引、doctor/repair/resume 与 native helper catalog；不持有 MAS domain truth。
+- `Hermes-Agent`：可选外部 runtime substrate / hosted carrier / provider-routed executor；只在显式 hosted runtime target / reference-layer 语境出现，不改写默认 capability contract。
 - `MedDeepScientist`：frozen source archive、historical fixture、explicit archive import / backend-audit reference 与 provenance reference；不承担默认运行依赖、默认诊断依赖、用户入口或第二 owner 身份。
 
 ## 当前自治与质量合同主线
@@ -71,7 +73,7 @@
 
 - `MAS Core` 是目标 owner 层：study truth、quality truth、publication truth、artifact truth 与用户可见 truth 都应归 MAS。
 - `Quality OS` 的当前落点是 pre-draft quality runtime、evidence ledger、review ledger 与 AI reviewer-backed `publication_eval/latest.json` 的闭环；真实论文 soak 仍需继续积累。
-- `Runtime OS` 的当前落点是 operations state、runtime health、retry budget、human gate、controller-owned resume action 与 MAS-owned Runtime Turn Lifecycle Kernel。Kernel 持有 `schedule_turn`、`complete_turn_and_normalize`、`inspect_turn_lifecycle`、user message queue、worker lease、runner monitor、delayed auto-continue timer 和 turn receipt；`runtime_watch`、supervisor scan、Hermes/cron/heartbeat 只能作为外层 reconcile / wakeup / stale recovery 调用方，不能替代 runner completion 后的内生 auto-continue 主循环。
+- `Runtime OS` 的当前落点是 operations state、runtime health、retry budget、human gate、controller-owned resume action 与 MAS-owned Runtime Turn Lifecycle Kernel。Kernel 持有 `schedule_turn`、`complete_turn_and_normalize`、`inspect_turn_lifecycle`、user message queue、worker lease、runner monitor、delayed auto-continue timer 和 turn receipt；`runtime_watch`、supervisor scan、scheduler adapter / heartbeat 只能作为外层 reconcile / wakeup / stale recovery 调用方，不能替代 runner completion 后的内生 auto-continue 主循环。
 - 因此 MAS/MDS 行为差异现在必须按两层判断：内层 `turn completion continuation` 已达到旧 MDS 自动科研连续跑的行为等价；外层 resident daemon 特征仍按 scheduler-bound MAS Runtime OS 处理，300 秒 tick 只负责监督刷新、drift detection 和 stale recovery。Terminal/log observation 已由 `live-console-parity` 落为 MAS-owned read-only purpose parity；它不把 Progress Portal、Hermes cron 或 MAS Live Console 写成旧 MDS WebUI / resident daemon / WebSocket terminal attach 的 1:1 替代。WebSocket terminal attach / UI-issued runtime control 是后续 gated parity lane，不是已放弃能力。
 - `Artifact OS` 固定 canonical-source-first：manuscript、figures、tables、submission package 都从 canonical source 重建，并通过 artifact rebuild proof 支撑交付判断。
 - `Evaluation OS` 的目标是把历史返工转为 AI reviewer calibration corpus、quality regression 与 AI-first drift audit；当前不能把这些目标项写成已经完成的全部事实。

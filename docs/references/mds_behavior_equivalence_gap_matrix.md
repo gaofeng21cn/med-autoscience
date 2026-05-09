@@ -19,7 +19,9 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 - `default_independence`: landed
 - `full_mds_daemon_behavior_equivalence`: false
-- `default_scheduler_adapter`: `hermes_gateway_cron`
+- `scheduler_contract_owner`: `mas_supervision_scheduler`
+- `current_active_scheduler_adapter`: `hermes_gateway_cron`
+- `target_default_scheduler_adapter`: `mas_local_scheduler`
 - `default_tick_interval_seconds`: `300`
 - `default_tick_shape`: MAS-owned supervision tick script
 - `default_tick_sequence`: `watch-runtime --max-ticks 1` -> `supervisor-scan` -> `supervisor-consume` -> `supervisor-execute-dispatch`
@@ -34,7 +36,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 这意味着对医生/PI 的日常影响主要集中在 3 件事：多论文 workspace 的 Portal 还不够像单篇论文工作台；Live Console 仍是只读观察，不是交互式 terminal/control；outer supervision 的 crash/stale recovery 仍受 300 秒外环 tick 影响。已退役的 connector、GitOps、daemon control、workspace-local service 不应作为“能力缺口”重开，除非未来有新的产品需求和 MAS owner / audit / safety proof。
 
-旧 MDS daemon 的关键事实是 resident `ThreadingHTTPServer` + WebSocket + session store + background connector / worker / recovery loop。MAS 当前拆成两层：内层 turn lifecycle kernel 已承担 runner 返回后的连续科研主循环；外层 Hermes gateway cron 仍承担 drift detection、stale recovery、read-model refresh 与 supervision tick。二者在“日常研究推进、turn-to-turn continuation、恢复投影和进度查看”上已经解决主要运行目的问题；在 resident process、低延迟交互、WebSocket terminal attach、connector background delivery 和 in-memory session continuity 上仍不完全等价。WebSocket terminal attach / UI-issued runtime control 不是当前 read-only closeout 的 landed scope，也不应写成 abandoned；它们属于后续 interactive parity candidate，需要单独 safety / owner / audit gate。
+旧 MDS daemon 的关键事实是 resident `ThreadingHTTPServer` + WebSocket + session store + background connector / worker / recovery loop。MAS 当前拆成三层：内层 Runtime Core / turn lifecycle kernel 已承担 runner 返回后的连续科研主循环；外层 Supervisor Scheduler contract 负责 drift detection、stale recovery、read-model refresh 与 supervision tick，当前 active adapter 是 Hermes gateway cron；Product Projection 负责 Portal / Live Console / progress 只读展示。三层在“日常研究推进、turn-to-turn continuation、恢复投影和进度查看”上已经解决主要运行目的问题；在 resident process、低延迟交互、WebSocket terminal attach、connector background delivery 和 in-memory session continuity 上仍不完全等价。WebSocket terminal attach / UI-issued runtime control 不是当前 read-only closeout 的 landed scope，也不应写成 abandoned；它们属于后续 interactive parity candidate，需要单独 safety / owner / audit gate。
 
 ## 行为分类
 
@@ -62,7 +64,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 | behavior surface | classification | MDS behavior | MAS behavior | user impact |
 | --- | --- | --- | --- | --- |
-| daemon residency | `purpose_equivalent_with_different_timing` | resident HTTP/WebSocket daemon | Hermes gateway cron calls MAS-owned supervision tick script every 300s | drift detection and recovery can be scheduler-bound; no MAS resident daemon is claimed |
+| daemon residency | `purpose_equivalent_with_different_timing` | resident HTTP/WebSocket daemon | MAS supervision scheduler contract calls MAS-owned supervision tick script every 300s; current adapter is Hermes gateway cron | drift detection and recovery can be scheduler-bound; no MAS resident daemon is claimed |
 | supervision cadence | `purpose_equivalent_with_different_timing` | resident callbacks and worker/session loop | 300s scheduled tick script begins with `watch-runtime --max-ticks 1`, then runs supervisor scan / consume / execute-dispatch; turn-to-turn continuation is owned by the MAS kernel | acceptable for outer drift detection and stale recovery; normal continuation no longer waits for cron, but live interactive daemon response is still not claimed |
 | turn completion continuation | `behavior_equivalent` | runner completion normalizes state, drains queued user messages, schedules auto continuation, stops at human/terminal gates | MAS Runtime Turn Lifecycle Kernel performs the same normalization and next-turn decision with runner monitor, delayed timer, worker lease, user queue and receipt |旧 MDS 的“一个 session 结束后怎么启动另一个 session”缺口已补齐为 MAS-owned runtime behavior |
 | quest create/resume/pause/stop | `behavior_equivalent` | daemon API / quest service | MAS Runtime OS / study runtime router | daily lifecycle controls do not require external MDS |
@@ -78,8 +80,8 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 | memory / lesson store | `partially_equivalent` | memory service / lesson store | portfolio research memory / incident learning read models | lessons are evidence/calibration, not autonomous quality authority |
 | team / multi-agent coordination | `historical_fixture_only` | MDS team service | MAS owner_route/controller coordination | team behavior is reference fixture only |
 | artifact interaction handoff | `partially_equivalent` | daemon artifact interactions | Artifact OS locator / package handoff / controller refs | package discovery covered; interactive artifact mutation retired |
-| daemon lifecycle controls | `not_equivalent_retired` | start/stop/restart MDS daemon | register/remove Hermes cron supervision | no MAS-native MDS daemon control path is needed |
-| workspace-local host service | `not_equivalent_retired` | historical MAS launchd/systemd/cron bridge | retired cleanup evidence; canonical owner is Hermes gateway cron | old host services should be removed, not kept as active option |
+| daemon lifecycle controls | `not_equivalent_retired` | start/stop/restart MDS daemon | register/remove MAS supervision scheduler job; current adapter is Hermes cron | no MAS-native MDS daemon control path is needed |
+| workspace-local host service | `not_equivalent_retired` | historical MAS launchd/systemd/cron bridge | retired cleanup evidence; canonical owner is MAS scheduler contract, current adapter is Hermes gateway cron | old host services should be removed, not kept as active option |
 | paper autonomy stability evidence | `purpose_equivalent_with_different_timing` | daemon plus WebUI often implied progress was still autonomously managed | MAS read-only evidence combines profile inventory, status/progress readability, supervisor reconcile dry-run, workspace migration dry-run and soak monitor blockers | users can see concrete blockers and next actions; landed paper autonomy remains evidence-gated and cannot be inferred from functional monolith alone |
 
 ## Runtime Continuity Completion
@@ -97,7 +99,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 本轮后续优化的行为口径：
 
-- `outer_supervision_slo`: landed。它解释 outer supervision latency，默认仍由 Hermes gateway cron 300 秒 tick 承担；`due/stale/missing/blocked` 都会投影到用户入口，并给出 canonical one-shot reconcile dry-run 推荐。
+- `outer_supervision_slo`: landed。它解释 outer supervision latency，当前由 Hermes gateway cron 300 秒 tick 承担；`due/stale/missing/blocked` 都会投影到用户入口，并给出 canonical one-shot reconcile dry-run 推荐。后续 local adapter 必须输出同构 SLO，而不是让 Portal / OPL 读取 Hermes-specific path。
 - `portal_console_soak`: landed。它证明 MAS-native Portal / Live Console 的 read-only display surface 可在真实 workspace 上审阅；它只写 display evidence，不写 truth。
 - `paper_autonomy_stability_evidence`: evidence read model landed。它把真实 workspace 只读证据收成单一 report；如果 evidence 有 blocker，状态应保持 `evidence_landed_with_blockers`，不能宣称真实论文自治稳定性 landed。
 
@@ -126,7 +128,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 仍保留差异的地方也更清楚：
 
-- `outer supervision latency`: 仍是 300 秒 Hermes gateway cron one-shot；它只影响 drift detection、stale recovery 和周期性刷新，不再影响正常 turn-to-turn continuation。
+- `outer supervision latency`: 当前仍是 300 秒 Hermes gateway cron one-shot；它只影响 drift detection、stale recovery 和周期性刷新，不再影响正常 turn-to-turn continuation。目标是通过 MAS-owned local scheduler adapter 保持同一 contract，同时把 Hermes 从 required dependency 降为 optional adapter。
 - `progress visibility UX`: Progress Portal 已替代默认进度查看入口，并已有 per-study Portal page、Route/Decision Trail read-only helper、conversation read model 与 soak evidence keys。它仍保持 `partially_equivalent`，因为真实多论文 workspace 的长期用户体验、route input 完整性和交互深度仍需 evidence-gated polish。
 - `interactive console`: 独立 Live Console UI shell、profile-level session read model、snapshot / loopback SSE stream 和 clean-room contract 已作为 `live-console-parity` landed。它是 read-only purpose equivalence，不是旧 MDS resident WebSocket terminal attach 的 1:1 复刻；terminal attach/input/resize/detach 与 UI-issued runtime control 是后续 interactive parity candidate。
 - `connector background delivery`: 旧 MDS 的 QQ/Slack/Discord/Telegram/Weixin/WhatsApp/Feishu background delivery 仍不属于 MAS 默认 monolith；当前只保留 durable handoff refs。

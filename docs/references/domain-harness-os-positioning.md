@@ -39,11 +39,11 @@
 
 ## 4) 当前默认 runtime 形态
 
-当前 repo-tracked 默认 runtime 形态已经收敛为 MAS-owned runtime + scheduler-adapter-hosted supervision：
+当前 repo-tracked 默认 runtime 形态已经收敛为 MAS-owned runtime + MAS-owned scheduler contract + product projection：
 
 - `MedAutoScience` = 唯一研究入口与 domain-agent entry
 - `MAS Runtime OS` = 默认 controller-facing runtime owner / substrate
-- `Hermes gateway cron` = 当前 active supervision scheduler adapter，每 300 秒调用一次 MAS-owned supervision tick script
+- `MAS supervision scheduler contract` = 外层监管调度 owner；`Hermes gateway cron` 是当前 active adapter，每 300 秒调用一次 MAS-owned supervision tick script；目标默认 adapter 是 MAS-owned local scheduler
 - `MedDeepScientist` = frozen source archive、historical fixture、explicit legacy diagnostic / provenance reference
 - 旧 `Codex-default host-agent runtime` = 本机外部 caller / 历史对照面，不是默认 MAS runtime owner
 
@@ -54,7 +54,7 @@
   - `supported_protocol_layer = MCP`
   - `internal_controller_surface = controller`
 - 当前 repo-tracked 产品主线按 `Auto-only` 理解；future `Human-in-the-loop` 产品应作为 sibling 或 upper-layer product 复用同一 substrate
-- 运行推进通过 `Hermes gateway cron -> MAS Runtime OS` 的受控 tick 完成
+- 外层监管通过 `scheduler adapter -> MAS Runtime OS` 的受控 tick 完成；当前 adapter 是 `Hermes gateway cron`
 - `Med Auto Science` 作为 `Domain Harness OS`，负责控制面、合同面和审计面
 - `MedDeepScientist` 不作为执行面或系统本体
 

@@ -5,7 +5,7 @@
 一句话结论：
 
 - `MedAutoScience` 默认不是 resident HTTP/WebSocket daemon
-- 当前默认 scheduler adapter 是 `Hermes gateway cron`，每 `300` 秒调用一次 MAS-owned supervision tick script
+- 当前 active scheduler adapter 是 `Hermes gateway cron`，每 `300` 秒调用一次 MAS-owned supervision tick script；contract owner 是 `MAS supervision scheduler contract`
 - 当前 desired tick script 依序调用 `watch-runtime --max-ticks 1`、`supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch`
 - 该 outer loop 不拥有 runner completion 后的连续科研主循环；内层 `turn completion -> next turn` 由 MAS Runtime Turn Lifecycle Kernel 低延迟处理
 - 旧 workspace-local `systemd` / `cron` / `launchd` / `docker` service manager 已退役；检测到它们时只作为 cleanup evidence，不作为 active scheduler 选项
@@ -30,10 +30,11 @@
 
 这里的外环应按三层分工理解：
 
-- `Scheduler Adapter`
+- `Scheduler Contract / Adapter`
+  - contract owner 是 `MAS supervision scheduler contract`
   - 负责按约定 cadence 调用 MAS supervision tick script
   - 当前已实现 adapter 是 `Hermes gateway cron`
-  - local OS scheduler adapter 尚未落地；显式传入 `systemd|cron|launchd|docker` 当前必须 fail-closed
+  - 目标默认 adapter 是 MAS-owned `local` scheduler；落地前显式传入 `systemd|cron|launchd|docker` 当前必须 fail-closed
 - `MedAutoScience`
   - 医学研究治理、supervision judgment、projection 与 reconciliation owner
 - `MAS Runtime OS`
@@ -110,7 +111,7 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 - `fresh` 表示最新 Hermes tick 或 supervisor reconcile 仍在 freshness window 内；`due` 表示应安全加速一次 one-shot reconcile；`stale` 表示外环监管已经陈旧；`missing` 表示缺监管事件或 status surface；`blocked` 表示最新 Hermes cron 失败、旧 service 冲突或 supervision contract 本身阻塞。
 - 该 read model 投影到 `runtime-supervision-status`、`runtime-supervisor-reconcile` receipt、`runtime_reconcile_trigger`、`study_progress`、workspace cockpit、Product Entry 和 Progress Portal。
 - 它只允许页面或 CLI 显示推荐命令，或由已有 controller/supervisor safe surface 做 dry-run/apply；读入口刷新不能直接 relaunch worker、写 runtime truth、写 paper/current_package、写 `publication_eval/latest.json` 或写 `controller_decisions/latest.json`。
-- 它不改变默认 scheduler owner：Hermes gateway cron 继续每 `300` 秒调用 one-shot tick；旧 workspace-local `launchd/systemd/cron/docker` service 仍是 retired cleanup evidence。
+- 它不改变当前 adapter 事实：Hermes gateway cron 继续每 `300` 秒调用 one-shot tick；旧 workspace-local `launchd/systemd/cron/docker` service 仍是 retired cleanup evidence。后续 scheduler owner / adapter / status 同构计划以 [Supervision Scheduler Contract](./supervision_scheduler_contract.md) 为准。
 
 这条外环和内层 turn lifecycle 的分界是固定的：正常 runner 返回后的 `active_run_id` / `worker_running` 清理、queued user message 优先级、`continuation_policy=auto` 的约 `0.2s` 下一 turn、human/terminal gate 停止，都由 `mas_runtime_core` 的 Runtime Turn Lifecycle Kernel 处理。Hermes cron 只负责发现外层 stale/no-live、刷新 supervision/read-model、触发 safe recovery 或把异常升级；它不再是自动科研连续跑的主循环 owner。
 
