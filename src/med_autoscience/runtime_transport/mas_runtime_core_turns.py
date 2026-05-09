@@ -11,12 +11,19 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
     INCOMPLETE_RUNNER_STATUS,
     inspect_runner_completion,
     next_retry_state,
+    stale_runner_completion_result,
     status_after_runner,
 )
 from med_autoscience.runtime_transport.mas_runtime_core_turn_runner import (
     CodexExecTurnRunner,
     MasTurnRunner,
     pop_running_process,
+)
+from med_autoscience.runtime_transport.mas_runtime_core_turn_receipts import (
+    launch_fields,
+    record_post_turn_storage_maintenance_hook,
+    schedule_result,
+    turn_receipt_payload,
 )
 from med_autoscience.runtime_transport.mas_runtime_core_turn_liveness import (
     initial_worker_lease_payload,
@@ -274,17 +281,17 @@ def schedule_turn(
                 queued=True,
                 idempotency_key=make_idempotency_key(quest_id=quest_id, reason=reason, source=source, active_run_id=active_run_id),
             )
-            return _schedule_result(
+            return schedule_result(
                 quest_root=quest_root,
                 status="queued",
-                source=source,
+                backend_id=BACKEND_ID,
                 active_run_id=active_run_id,
                 started=False,
                 queued=True,
                 scheduled=True,
                 reason=reason,
                 receipt=receipt,
-                snapshot=updated,
+                snapshot_payload=snapshot(quest_root=quest_root, state=updated),
             )
     if delay_seconds is not None and delay_seconds > 0:
         payload = {
@@ -448,17 +455,17 @@ def start_turn(
         },
     )
     _arm_runner_monitor(runtime_root=runtime_root, quest_root=quest_root, quest_id=quest_id, run_id=new_run_id, source=source)
-    return _schedule_result(
+    return schedule_result(
         quest_root=quest_root,
         status="running",
-        source=source,
+        backend_id=BACKEND_ID,
         active_run_id=new_run_id,
         started=True,
         queued=False,
         scheduled=True,
         reason=reason,
         receipt=receipt,
-        snapshot=updated,
+        snapshot_payload=snapshot(quest_root=quest_root, state=updated),
     )
 
 
@@ -510,6 +517,16 @@ def complete_turn_and_normalize(
     same_fingerprint: bool = False,
 ) -> dict[str, Any]:
     previous = load_state(quest_root=quest_root)
+    stale_completion = _stale_completion_result(
+        previous=previous,
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id=run_id,
+        runner_status=runner_status,
+        source=source,
+    )
+    if stale_completion is not None:
+        return stale_completion
     completion = inspect_runner_completion(
         quest_root=quest_root,
         run_id=run_id,
@@ -876,43 +893,32 @@ def _next_turn_after_normalization(
     )
 
 
-def _schedule_result(
+def _stale_completion_result(
     *,
+    previous: Mapping[str, Any],
     quest_root: Path,
-    status: str,
+    quest_id: str,
+    run_id: str,
+    runner_status: str,
     source: str,
-    active_run_id: str | None,
-    started: bool,
-    queued: bool,
-    scheduled: bool,
-    reason: str,
-    receipt: Mapping[str, Any],
-    snapshot: Mapping[str, Any],
-) -> dict[str, Any]:
-    return {
-        "ok": True,
-        "status": status,
-        "source": BACKEND_ID,
-        "quest_id": quest_root.name,
-        "active_run_id": active_run_id,
-        "scheduled": scheduled,
-        "started": started,
-        "queued": queued,
-        "reason": reason,
-        "turn_reason": reason,
-        "idempotency_key": receipt.get("idempotency_key"),
-        "turn_receipt": dict(receipt),
-        "snapshot": globals()["snapshot"](quest_root=quest_root, state=snapshot),
-    }
+) -> dict[str, Any] | None:
+    result = stale_runner_completion_result(
+        previous=previous,
+        quest_id=quest_id,
+        run_id=run_id,
+        runner_status=runner_status,
+        source=source,
+        recorded_at=utc_now(),
+        backend_id=BACKEND_ID,
+        snapshot_payload=snapshot(quest_root=quest_root, state=previous),
+    )
+    if result is not None:
+        append_runtime_event(quest_root=quest_root, event=result["ignored_completion"])
+    return result
 
 
 def _launch_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "scheduled": bool(payload.get("scheduled")),
-        "started": bool(payload.get("started")),
-        "queued": bool(payload.get("queued")),
-        "active_run_id": text(payload.get("active_run_id")),
-    }
+    return launch_fields(payload, text=text)
 
 
 def _turn_receipt(
@@ -927,21 +933,18 @@ def _turn_receipt(
     idempotency_key: str,
     extra: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "schema_version": 1,
-        "quest_id": quest_root.name,
-        "run_id": run_id,
-        "reason": reason,
-        "source": source,
-        "status": status,
-        "started": started,
-        "queued": queued,
-        "scheduled": started or queued,
-        "idempotency_key": idempotency_key,
-        "recorded_at": utc_now(),
-    }
-    if extra:
-        payload.update(dict(extra))
+    payload = turn_receipt_payload(
+        quest_root=quest_root,
+        run_id=run_id,
+        reason=reason,
+        source=source,
+        status=status,
+        started=started,
+        queued=queued,
+        idempotency_key=idempotency_key,
+        recorded_at=utc_now(),
+        extra=extra,
+    )
     append_jsonl(turn_receipts_path(quest_root), payload)
     latest_path = quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json"
     write_json(latest_path, payload)
@@ -961,19 +964,15 @@ def _turn_receipt(
 
 
 def _record_post_turn_storage_maintenance_hook(*, quest_root: Path, quest_id: str, run_id: str, source: str) -> None:
-    payload = {
-        "schema_version": 1,
-        "surface": "post_turn_storage_maintenance_hook",
-        "status": "recorded",
-        "quest_id": quest_id,
-        "run_id": run_id,
-        "source": source,
-        "recorded_at": utc_now(),
-        "maintenance_mode": "audit_hook_only",
-    }
-    root = quest_root / "artifacts" / "runtime" / "post_turn_storage_maintenance"
-    write_json(root / "latest.json", payload)
-    append_runtime_event(quest_root=quest_root, event={"event": "post_turn_storage_maintenance_hook", **payload})
+    record_post_turn_storage_maintenance_hook(
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id=run_id,
+        source=source,
+        recorded_at=utc_now(),
+        write_json=write_json,
+        append_runtime_event=append_runtime_event,
+    )
 
 
 def _worker_lease_live(*, quest_root: Path, run_id: str) -> bool:

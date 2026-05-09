@@ -15,6 +15,7 @@ TERMINAL_RECEIPT_STATUSES = frozenset(
 )
 INCOMPLETE_RUNNER_STATUS = "runner_incomplete"
 RETRYABLE_RUNNER_STATUSES = frozenset({"failed", "error", "timeout", "runner_failed", INCOMPLETE_RUNNER_STATUS})
+STALE_COMPLETION_STATUS = "stale_completion_ignored"
 
 
 def inspect_runner_completion(
@@ -108,6 +109,45 @@ def inspect_logical_turn_completion(*, quest_root: Path, run_id: str | None) -> 
             _text(latest_receipt.get("run_id")) == run_id
             and receipt_status in TERMINAL_RECEIPT_STATUSES
         ),
+    }
+
+
+def stale_runner_completion_result(
+    *,
+    previous: Mapping[str, Any],
+    quest_id: str,
+    run_id: str,
+    runner_status: str,
+    source: str,
+    recorded_at: str,
+    backend_id: str,
+    snapshot_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    active_run_id = _text(previous.get("active_run_id"))
+    if active_run_id == run_id:
+        return None
+    if active_run_id is None and previous.get("worker_running") is not True:
+        return None
+    payload = {
+        "event": "stale_runner_completion_ignored",
+        "source": source,
+        "recorded_at": recorded_at,
+        "quest_id": quest_id,
+        "run_id": run_id,
+        "active_run_id": active_run_id,
+        "runner_status": _text(runner_status) or "succeeded",
+        "worker_running": previous.get("worker_running") is True,
+    }
+    return {
+        "ok": False,
+        "status": STALE_COMPLETION_STATUS,
+        "source": backend_id,
+        "quest_id": quest_id,
+        "run_id": run_id,
+        "active_run_id": active_run_id,
+        "snapshot": dict(snapshot_payload),
+        "next_turn": None,
+        "ignored_completion": payload,
     }
 
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
     inspect_runner_completion,
     inspect_logical_turn_completion,
+    stale_runner_completion_result,
 )
 
 
@@ -113,6 +114,74 @@ def test_logical_turn_completion_keeps_terminal_receipt_flag(tmp_path: Path) -> 
 
     assert result is not None
     assert result["latest_receipt_terminal"] is True
+
+
+def test_stale_runner_completion_result_ignores_old_run_while_active_worker_exists() -> None:
+    result = stale_runner_completion_result(
+        previous={
+            "active_run_id": "run-new",
+            "worker_running": True,
+        },
+        quest_id="quest-001",
+        run_id="run-old",
+        runner_status="succeeded",
+        source="test-runner",
+        recorded_at="2026-05-09T00:00:00+00:00",
+        backend_id="mas_runtime_core",
+        snapshot_payload={"status": "running", "active_run_id": "run-new"},
+    )
+
+    assert result is not None
+    assert result["status"] == "stale_completion_ignored"
+    assert result["next_turn"] is None
+    assert result["active_run_id"] == "run-new"
+    assert result["snapshot"] == {"status": "running", "active_run_id": "run-new"}
+    assert result["ignored_completion"] == {
+        "event": "stale_runner_completion_ignored",
+        "source": "test-runner",
+        "recorded_at": "2026-05-09T00:00:00+00:00",
+        "quest_id": "quest-001",
+        "run_id": "run-old",
+        "active_run_id": "run-new",
+        "runner_status": "succeeded",
+        "worker_running": True,
+    }
+
+
+def test_stale_runner_completion_result_accepts_matching_active_run() -> None:
+    result = stale_runner_completion_result(
+        previous={
+            "active_run_id": "run-current",
+            "worker_running": True,
+        },
+        quest_id="quest-001",
+        run_id="run-current",
+        runner_status="succeeded",
+        source="test-runner",
+        recorded_at="2026-05-09T00:00:00+00:00",
+        backend_id="mas_runtime_core",
+        snapshot_payload={},
+    )
+
+    assert result is None
+
+
+def test_stale_runner_completion_result_accepts_idle_state_without_active_run() -> None:
+    result = stale_runner_completion_result(
+        previous={
+            "active_run_id": None,
+            "worker_running": False,
+        },
+        quest_id="quest-001",
+        run_id="run-old",
+        runner_status="succeeded",
+        source="test-runner",
+        recorded_at="2026-05-09T00:00:00+00:00",
+        backend_id="mas_runtime_core",
+        snapshot_payload={},
+    )
+
+    assert result is None
 
 
 def _write_closeout(*, quest_root: Path, run_id: str) -> None:
