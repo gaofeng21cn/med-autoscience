@@ -70,6 +70,22 @@ def inspect_runner_completion(
             "stdout_open_item_count": stdout["open_item_count"],
             "stdout_turn_completed": stdout["turn_completed"],
         }
+    closeout = _read_json(closeout_path)
+    invalid_delta_refs = _invalid_meaningful_delta_refs(closeout)
+    if invalid_delta_refs:
+        return {
+            "state": "incomplete",
+            "reason": "invalid_meaningful_artifact_delta",
+            "run_id": run_id,
+            "raw_runner_status": normalized_runner_status,
+            "normalized_runner_status": INCOMPLETE_RUNNER_STATUS,
+            "closeout_path": str(closeout_path),
+            "stdout_path": str(stdout_path),
+            "stdout_event_count": stdout["event_count"],
+            "stdout_open_item_count": stdout["open_item_count"],
+            "stdout_turn_completed": stdout["turn_completed"],
+            "invalid_artifact_refs": invalid_delta_refs,
+        }
     return {
         "state": "completed",
         "reason": "turn_closeout_present",
@@ -215,6 +231,34 @@ def _inspect_stdout(path: Path) -> dict[str, Any]:
         "open_item_count": len(open_item_ids),
         "event_count": event_count,
     }
+
+
+def _invalid_meaningful_delta_refs(closeout: Mapping[str, Any]) -> list[str]:
+    if closeout.get("meaningful_artifact_delta") is not True:
+        return []
+    refs = closeout.get("artifact_refs")
+    if not isinstance(refs, list):
+        return ["<artifact_refs_missing>"]
+    text_refs = [_text(item) for item in refs]
+    concrete_refs = [item for item in text_refs if item is not None]
+    if not concrete_refs:
+        return ["<artifact_refs_empty>"]
+    invalid_refs = [item for item in concrete_refs if _is_bookkeeping_artifact_ref(item)]
+    return invalid_refs if len(invalid_refs) == len(concrete_refs) else []
+
+
+def _is_bookkeeping_artifact_ref(ref: str) -> bool:
+    normalized = ref.strip().lstrip("./")
+    bookkeeping_prefixes = (
+        "artifacts/runtime/owner_progress_requests/",
+        "artifacts/runtime/turn_closeouts/",
+        "artifacts/runtime/turn_receipts",
+        "artifacts/runtime/latest_turn_receipt",
+        "artifacts/runtime/mas_runtime_events",
+        "artifacts/runtime/user_message_queue",
+        "artifacts/runtime/runtime_lifecycle.",
+    )
+    return normalized.startswith(bookkeeping_prefixes)
 
 
 def _read_json(path: Path) -> dict[str, Any]:

@@ -81,6 +81,36 @@ def test_runner_completion_accepts_turn_closeout_without_turn_completed_event(tm
     assert result["stdout_turn_completed"] is False
 
 
+def test_runner_completion_rejects_closeout_that_marks_owner_request_as_meaningful_delta(tmp_path: Path) -> None:
+    quest_root = tmp_path / "quest-001"
+    _write_closeout(
+        quest_root=quest_root,
+        run_id="run-001",
+        payload={
+            "quest_id": "quest-001",
+            "run_id": "run-001",
+            "status": "completed",
+            "meaningful_artifact_delta": True,
+            "artifact_refs": ["artifacts/runtime/owner_progress_requests/run-001.json"],
+        },
+    )
+    _write_stdout(
+        quest_root=quest_root,
+        run_id="run-001",
+        events=[
+            {"type": "item.started", "item": {"id": "item-1"}},
+            {"type": "item.completed", "item": {"id": "item-1"}},
+        ],
+    )
+
+    result = inspect_runner_completion(quest_root=quest_root, run_id="run-001", runner_status="succeeded")
+
+    assert result["state"] == "incomplete"
+    assert result["reason"] == "invalid_meaningful_artifact_delta"
+    assert result["normalized_runner_status"] == "runner_incomplete"
+    assert result["invalid_artifact_refs"] == ["artifacts/runtime/owner_progress_requests/run-001.json"]
+
+
 def test_logical_turn_completion_reports_stale_nonterminal_receipt(tmp_path: Path) -> None:
     quest_root = tmp_path / "quest-001"
     _write_closeout(quest_root=quest_root, run_id="run-001")
@@ -184,11 +214,11 @@ def test_stale_runner_completion_result_accepts_idle_state_without_active_run() 
     assert result is None
 
 
-def _write_closeout(*, quest_root: Path, run_id: str) -> None:
+def _write_closeout(*, quest_root: Path, run_id: str, payload: dict | None = None) -> None:
     closeout_path = quest_root / "artifacts" / "runtime" / "turn_closeouts" / f"{run_id}.json"
     closeout_path.parent.mkdir(parents=True, exist_ok=True)
     closeout_path.write_text(
-        json.dumps({"quest_id": quest_root.name, "run_id": run_id}, sort_keys=True) + "\n",
+        json.dumps(payload or {"quest_id": quest_root.name, "run_id": run_id}, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
