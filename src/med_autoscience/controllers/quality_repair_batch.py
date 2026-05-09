@@ -29,10 +29,14 @@ _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES = (
     Path("medical_manuscript_blueprint.json"),
     Path("medical_prose_review.json"),
     Path("claim_evidence_map.json"),
+    Path("display_registry.json"),
     Path("results_narrative_map.json"),
     Path("figure_semantics_manifest.json"),
     Path("figures/figure_catalog.json"),
     Path("tables/table_catalog.json"),
+)
+_CANONICAL_PAPER_OWNER_PROJECTION_INPUT_SURFACES = tuple(
+    relpath for relpath in _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES if relpath != Path("display_registry.json")
 )
 _HYDRATION_PAPER_OWNER_INPUT_SURFACES = (
     Path("medical_analysis_contract.json"),
@@ -288,6 +292,8 @@ def _default_canonical_paper_json_surface(
         return {"schema_version": 1, "status": "owner_surface_initialized", "findings": []}
     if relpath == Path("claim_evidence_map.json"):
         return {"schema_version": 1, "status": "owner_surface_initialized", "claims": []}
+    if relpath == Path("display_registry.json"):
+        return {"schema_version": 1, "status": "owner_surface_initialized", "displays": []}
     if relpath == Path("results_narrative_map.json"):
         return {"schema_version": 1, "status": "owner_surface_initialized", "sections": []}
     if relpath == Path("figure_semantics_manifest.json"):
@@ -343,10 +349,27 @@ def _prepare_canonical_paper_owner_surface_for_upstream_repair(
 ) -> dict[str, Any]:
     if _non_empty_text(control_plane_route_gate.get("action")) != "paper_write":
         return {"status": "not_applicable", "reason": "route_action_not_paper_write"}
-    if getattr(gate_state, "paper_root", None) is not None:
-        return {"status": "not_applicable", "reason": "paper_root_already_resolved"}
 
     canonical_paper_root = Path(study_root).expanduser().resolve() / "paper"
+    if getattr(gate_state, "paper_root", None) is not None:
+        existing_paper_root = Path(getattr(gate_state, "paper_root"))
+        surface_results = [
+            _copy_or_initialize_canonical_paper_surface(
+                source_root=existing_paper_root,
+                target_root=canonical_paper_root,
+                relpath=relpath,
+                study_id=study_id,
+                quest_id=quest_id,
+            )
+            for relpath in _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES
+            if not (canonical_paper_root / relpath).exists()
+        ]
+        return {
+            "status": "repaired_existing" if surface_results else "already_complete",
+            "paper_root": str(canonical_paper_root),
+            "surface_results": surface_results,
+        }
+
     if _canonical_paper_owner_surface_complete(canonical_paper_root):
         return {"status": "already_complete", "paper_root": str(canonical_paper_root)}
 
@@ -354,7 +377,7 @@ def _prepare_canonical_paper_owner_surface_for_upstream_repair(
     projected_paper_root = quest_root / "paper"
     canonical_projection_inputs = [
         projected_paper_root / relpath
-        for relpath in _CANONICAL_PAPER_OWNER_REQUIRED_SURFACES
+        for relpath in _CANONICAL_PAPER_OWNER_PROJECTION_INPUT_SURFACES
         if (projected_paper_root / relpath).is_file()
     ]
     hydration_projection_inputs = _hydration_paper_owner_projection_inputs(projected_paper_root)

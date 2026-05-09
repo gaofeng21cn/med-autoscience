@@ -816,6 +816,7 @@ def test_run_quality_repair_batch_materializes_owner_surface_from_hydration_proj
     assert gate_state.paper_root == canonical_paper_root.resolve()
     assert (canonical_paper_root / "paper_bundle_manifest.json").is_file()
     assert (canonical_paper_root / "paper_line_state.json").is_file()
+    assert (canonical_paper_root / "display_registry.json").is_file()
     assert (canonical_paper_root / "claim_evidence_map.json").is_file()
     assert (canonical_paper_root / "figures" / "figure_catalog.json").is_file()
     assert not (canonical_paper_root / "submission_minimal" / "submission_manifest.json").exists()
