@@ -38,7 +38,12 @@ def build_live_console_session_read_model(*args: Any, **kwargs: Any) -> dict[str
 
 def materialize_live_console_session_read_model(*args: Any, **kwargs: Any) -> dict[str, Any]:
     result = runtime_live_console_read_model.materialize_live_console_session_read_model(*args, **kwargs)
-    _materialize_live_console_ui(result, profile=_profile_from_call(args=args, kwargs=kwargs), stream_href=None)
+    _materialize_live_console_ui(
+        result,
+        profile=_profile_from_call(args=args, kwargs=kwargs),
+        call_kwargs=kwargs,
+        stream_href=None,
+    )
     return result
 
 
@@ -60,6 +65,7 @@ def serve_live_console_stream(*args: Any, **kwargs: Any) -> dict[str, Any]:
     _materialize_live_console_ui(
         result,
         profile=_profile_from_call(args=args, kwargs=call_kwargs),
+        call_kwargs=call_kwargs,
         stream_href=str(result.get("url") or "") or None,
     )
     return result
@@ -77,6 +83,7 @@ def _materialize_live_console_ui(
     result: dict[str, Any],
     *,
     profile: Any,
+    call_kwargs: Mapping[str, Any] | None = None,
     stream_href: str | None,
 ) -> None:
     workspace_root = getattr(profile, "workspace_root", None)
@@ -86,10 +93,14 @@ def _materialize_live_console_ui(
     if not isinstance(session_read_model, Mapping):
         return
     root = Path(workspace_root).expanduser().resolve()
-    selected_study_id = _text(session_read_model.get("selected_study_id"))
+    resolved_call_kwargs = dict(call_kwargs or {})
+    selected_study_id = _text(resolved_call_kwargs.get("study_id")) or _text(session_read_model.get("selected_study_id"))
     ui_payload = runtime_live_console_ui.build_live_console_ui_payload(
         live_console_snapshot=session_read_model,
         generated_at=str(session_read_model.get("generated_at") or result.get("generated_at") or ""),
+        profile_ref=resolved_call_kwargs.get("profile_ref"),
+        study_id=resolved_call_kwargs.get("study_id") or selected_study_id,
+        study_root=resolved_call_kwargs.get("study_root"),
         progress_portal_href=_progress_portal_href(root=root, study_id=selected_study_id),
         stream_href=stream_href,
     )

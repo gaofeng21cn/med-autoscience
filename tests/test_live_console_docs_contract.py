@@ -100,6 +100,7 @@ def test_portal_route_decision_trail_and_terminal_attach_have_machine_contracts(
     assert "route_decision_trail" in soak["required_evidence_keys"]
     assert "conversation_portal_panel" in soak["required_evidence_keys"]
     assert "authorized_action_apply_receipts" in soak["required_evidence_keys"]
+    assert "terminal_attach_gate" in soak["required_evidence_keys"]
     assert "tests/progress_portal_cases" in soak["paths"]
 
     assert terminal["implementation_status"] == "landed_fail_closed_gate"

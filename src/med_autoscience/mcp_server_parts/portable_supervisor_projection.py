@@ -14,6 +14,9 @@ def _compact_record(value: Any, keys: tuple[str, ...]) -> dict[str, Any] | None:
 
 
 def _compact_string_list(value: Any, *, limit: int = 12) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
     if not isinstance(value, list):
         return []
     items: list[str] = []

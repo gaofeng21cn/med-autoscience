@@ -248,6 +248,43 @@ def test_auto_runtime_parking_prefers_parked_continuation_over_lightweight_entry
     assert stale_resume_projection["source_reason"] == "quest_marked_running_but_no_live_session"
 
 
+def test_auto_runtime_parking_routes_blocked_closeout_to_named_owner() -> None:
+    projection = _projection(
+        {
+            "decision": "blocked",
+            "reason": "quest_waiting_for_user",
+            "quest_status": "waiting_for_user",
+            "continuation_state": {
+                "quest_status": "waiting_for_user",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "turn_closeout",
+                "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+            },
+            "interaction_arbitration": {
+                "classification": "blocked_closeout_owner_wait",
+                "action": "block",
+                "reason_code": "blocked_turn_closeout_waiting_for_owner",
+                "requires_user_input": False,
+                "valid_blocking": True,
+                "kind": "turn_closeout",
+                "decision_type": None,
+                "source_artifact_path": "/tmp/runtime/turn_closeouts/run-blocked.json",
+                "run_id": "run-blocked",
+                "next_owner": "ai_reviewer",
+                "blocked_reason": "publication gate needs AI reviewer targets",
+            },
+        }
+    )
+
+    assert projection["parked"] is True
+    assert projection["parked_state"] == "ai_reviewer_pending"
+    assert projection["parked_owner"] == "ai_reviewer"
+    assert projection["awaiting_explicit_wakeup"] is False
+    assert projection["auto_execution_complete"] is False
+    assert projection["source_reason"] == "blocked_turn_closeout_waiting_for_owner"
+
+
 def test_auto_runtime_parking_maps_repeated_stop_hold_and_same_blocker_pause_as_resource_release() -> None:
     repeated_decision_stop = _projection(
         {

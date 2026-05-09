@@ -139,6 +139,29 @@ def _continuation_state_payload(*, quest_root: Path, quest_status: StudyRuntimeQ
     }
 
 
+def _blocked_closeout_payload(*, quest_root: Path) -> dict[str, object] | None:
+    runtime_state = _load_json_dict(_runtime_state_path(quest_root))
+    blocked_closeout = runtime_state.get("blocked_turn_closeout")
+    if not isinstance(blocked_closeout, dict):
+        return None
+    payload = {
+        "run_id": str(blocked_closeout.get("run_id") or "").strip() or None,
+        "closeout_path": str(blocked_closeout.get("closeout_path") or "").strip() or None,
+        "blocked_reason": str(blocked_closeout.get("blocked_reason") or "").strip() or None,
+        "next_owner": str(blocked_closeout.get("next_owner") or "").strip() or None,
+    }
+    if not any(payload.values()):
+        return None
+    return payload
+
+
+def _record_blocked_closeout_if_present(*, status: StudyRuntimeStatus, quest_root: Path) -> None:
+    payload = _blocked_closeout_payload(quest_root=quest_root)
+    if payload is None:
+        return
+    status.extras["blocked_turn_closeout"] = payload
+
+
 def _record_continuation_state_if_present(*, status: StudyRuntimeStatus, quest_root: Path) -> None:
     payload = _continuation_state_payload(quest_root=quest_root, quest_status=status.quest_status)
     if payload is None:

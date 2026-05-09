@@ -180,3 +180,37 @@ def test_arbitrate_waiting_for_user_allows_submission_metadata_only_resume_witho
             "Submission metadata gaps stay controller-owned and must not block autonomous runtime continuation."
         ),
     }
+
+
+def test_arbitrate_waiting_for_user_classifies_blocked_closeout_owner_wait_without_pending_interaction() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        blocked_closeout={
+            "run_id": "run-blocked",
+            "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
+            "blocked_reason": "publication gate requires AI reviewer provenance",
+            "next_owner": "ai_reviewer",
+        },
+    )
+
+    assert result == {
+        "classification": "blocked_closeout_owner_wait",
+        "action": "block",
+        "reason_code": "blocked_turn_closeout_waiting_for_owner",
+        "requires_user_input": False,
+        "valid_blocking": True,
+        "kind": "turn_closeout",
+        "decision_type": None,
+        "source_artifact_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
+        "run_id": "run-blocked",
+        "next_owner": "ai_reviewer",
+        "blocked_reason": "publication gate requires AI reviewer provenance",
+        "controller_stage_note": (
+            "The latest MAS turn closeout parked execution for a named owner; "
+            "this is a controller-readable wait state, not a missing pending interaction payload."
+        ),
+    }

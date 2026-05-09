@@ -488,6 +488,7 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     assert 'command -v uv >/dev/null 2>&1' in script
     assert 'command -v medautosci' not in script
     assert 'command -v medautosci-mcp' not in script
+    assert "export PYTHONDONTWRITEBYTECODE=1" in script
     assert 'repo_uv=(uv run --directory "${repo_root}" --extra analysis)' in script
     assert '"${repo_uv[@]}" medautosci --help >/dev/null' in script
     assert '"${repo_uv[@]}" medautosci doctor entry-modes >/dev/null' in script

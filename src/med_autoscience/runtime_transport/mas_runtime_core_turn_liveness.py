@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
+    read_blocked_closeout_payload,
     inspect_logical_turn_completion,
 )
 from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import worker_lease_status
@@ -134,7 +135,9 @@ def reconcile_stale_liveness(
         quest_root=quest_root,
         run_id=text(lifecycle.get("active_run_id")) or stale_run_id,
     )
-    if stale_run_id is None and logical_completion is not None:
+    if logical_completion is not None and (
+        stale_run_id is None or stale_run_id == logical_completion["run_id"]
+    ):
         stale_run_id = logical_completion["run_id"]
         stale_reason = logical_completion["reason"]
         if not logical_completion["latest_receipt_terminal"]:
@@ -148,6 +151,16 @@ def reconcile_stale_liveness(
                 make_idempotency_key=make_idempotency_key,
             )
     if stale_run_id is None:
+        parked = _reconcile_latest_blocked_closeout_without_live_run(
+            quest_root=quest_root,
+            source=source,
+            lifecycle=lifecycle,
+            load_state=load_state,
+            persist_state=persist_state,
+            snapshot=snapshot,
+        )
+        if parked is not None:
+            return parked
         return None
     worker_cleanup = _terminate_stuck_worker(
         quest_root=quest_root,
@@ -165,6 +178,7 @@ def reconcile_stale_liveness(
         stale_run_id=stale_run_id,
         stale_reason=stale_reason,
         worker_cleanup=worker_cleanup,
+        logical_completion=logical_completion,
         load_state=load_state,
         persist_state=persist_state,
     )
@@ -182,6 +196,72 @@ def reconcile_stale_liveness(
     return result
 
 
+def _reconcile_latest_blocked_closeout_without_live_run(
+    *,
+    quest_root: Path,
+    source: str,
+    lifecycle: Mapping[str, Any],
+    load_state: Callable[..., dict[str, Any]],
+    persist_state: Callable[..., dict[str, Any]],
+    snapshot: Callable[..., dict[str, Any]],
+) -> dict[str, Any] | None:
+    state = load_state(quest_root=quest_root)
+    if str(state.get("status") or "").strip() not in {"active", "running"}:
+        return None
+    if state.get("worker_running") is True or state.get("worker_pending") is True:
+        return None
+    if str(state.get("active_run_id") or "").strip():
+        return None
+    blocked_closeout = _latest_blocked_closeout(quest_root=quest_root)
+    if blocked_closeout is None:
+        return None
+    latest_run_id = str(blocked_closeout["run_id"])
+    latest_known = str(state.get("last_completed_run_id") or state.get("last_known_run_id") or "").strip()
+    if latest_known and latest_known != latest_run_id:
+        return None
+    repaired = persist_state(
+        quest_root=quest_root,
+        updates={
+            **_blocked_closeout_updates(
+                run_id=latest_run_id,
+                closeout=blocked_closeout,
+            ),
+            "active_run_id": None,
+            "last_known_run_id": latest_run_id,
+            "last_completed_run_id": latest_run_id,
+            "worker_running": False,
+            "worker_pending": False,
+            "last_liveness_reconcile_reason": "blocked_turn_closeout_waiting_for_owner",
+        },
+        source=source,
+        event_name="blocked_turn_closeout_reconciled",
+    )
+    return {
+        "ok": True,
+        "status": "parked",
+        "active_run_id": None,
+        "stale_active_run_id": latest_run_id,
+        "stale_reason": "blocked_turn_closeout_waiting_for_owner",
+        "worker_running": False,
+        "worker_pending": False,
+        "stop_requested": repaired.get("stop_requested") is True,
+        "snapshot": snapshot(quest_root=quest_root, state=repaired),
+        "blocked_turn_closeout": dict(blocked_closeout),
+        "previous_lifecycle": dict(lifecycle),
+    }
+
+
+def _latest_blocked_closeout(*, quest_root: Path) -> dict[str, Any] | None:
+    closeout_root = quest_root / "artifacts" / "runtime" / "turn_closeouts"
+    if not closeout_root.is_dir():
+        return None
+    for path in sorted(closeout_root.glob("*.json"), key=lambda item: item.stat().st_mtime, reverse=True):
+        payload = read_blocked_closeout_payload(path)
+        if payload is not None:
+            return payload
+    return None
+
+
 def _write_missed_completion_receipt(
     *,
     quest_root: Path,
@@ -193,6 +273,8 @@ def _write_missed_completion_receipt(
     make_idempotency_key: Callable[..., str],
 ) -> None:
     state = load_state(quest_root=quest_root)
+    runner_status = str(logical_completion.get("completion_runner_status") or "succeeded")
+    target_status = str(logical_completion.get("target_status") or "active")
     turn_receipt(
         quest_root=quest_root,
         run_id=stale_run_id,
@@ -208,8 +290,8 @@ def _write_missed_completion_receipt(
             active_run_id=stale_run_id,
         ),
         extra={
-            "runner_status": "succeeded",
-            "normalized_status": "active",
+            "runner_status": runner_status,
+            "normalized_status": target_status,
             "reconciled_from": dict(logical_completion),
         },
     )
@@ -246,29 +328,99 @@ def _persist_reconciled_state(
     stale_run_id: str,
     stale_reason: str,
     worker_cleanup: dict[str, Any] | None,
+    logical_completion: Mapping[str, Any] | None,
     load_state: Callable[..., dict[str, Any]],
     persist_state: Callable[..., dict[str, Any]],
 ) -> dict[str, Any]:
     state = load_state(quest_root=quest_root)
-    last_completed_run_id = (
-        stale_run_id if stale_reason == "logical_turn_completed" else state.get("last_completed_run_id")
+    blocked_closeout = _blocked_closeout_state(
+        stale_run_id=stale_run_id,
+        stale_reason=stale_reason,
+        state=state,
+        logical_completion=logical_completion,
     )
-    return persist_state(
-        quest_root=quest_root,
-        updates={
+    if blocked_closeout is not None:
+        updates = blocked_closeout
+    else:
+        updates = {
             "status": "active",
+            "continuation_policy": state.get("continuation_policy") or "auto",
+        }
+    last_completed_run_id = stale_run_id if stale_reason in {
+        "logical_turn_completed",
+        "blocked_turn_closeout_waiting_for_owner",
+    } else state.get("last_completed_run_id")
+    updates.update(
+        {
             "active_run_id": None,
             "last_known_run_id": stale_run_id,
             "last_completed_run_id": last_completed_run_id,
             "worker_running": False,
             "worker_pending": False,
-            "continuation_policy": state.get("continuation_policy") or "auto",
             "last_liveness_reconcile_reason": stale_reason,
             "last_worker_cleanup": worker_cleanup,
-        },
+        }
+    )
+    return persist_state(
+        quest_root=quest_root,
+        updates=updates,
         source=source,
         event_name="stale_turn_reconciled",
     )
+
+
+def _blocked_closeout_state(
+    *,
+    stale_run_id: str,
+    stale_reason: str,
+    state: Mapping[str, Any],
+    logical_completion: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if stale_reason != "blocked_turn_closeout_waiting_for_owner":
+        return None
+    return {
+        **_blocked_closeout_updates(
+            run_id=stale_run_id,
+            closeout=_blocked_closeout_payload(
+                stale_run_id=stale_run_id,
+                state=state,
+                logical_completion=logical_completion,
+            ),
+        ),
+    }
+
+
+def _blocked_closeout_updates(*, run_id: str, closeout: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "status": "waiting_for_user",
+        "continuation_policy": "wait_for_user_or_resume",
+        "continuation_anchor": "turn_closeout",
+        "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+        "blocked_turn_closeout": {
+            "run_id": run_id,
+            "closeout_path": closeout.get("closeout_path"),
+            "blocked_reason": closeout.get("blocked_reason"),
+            "next_owner": closeout.get("next_owner"),
+        },
+    }
+
+
+def _blocked_closeout_payload(
+    *,
+    stale_run_id: str,
+    state: Mapping[str, Any],
+    logical_completion: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    completion = state.get("last_runner_completion")
+    if not isinstance(completion, Mapping):
+        completion = {}
+    logical = logical_completion if isinstance(logical_completion, Mapping) else {}
+    return {
+        "run_id": stale_run_id,
+        "closeout_path": logical.get("closeout_path") or completion.get("closeout_path"),
+        "blocked_reason": logical.get("blocked_reason") or completion.get("blocked_reason"),
+        "next_owner": logical.get("next_owner") or completion.get("next_owner"),
+    }
 
 
 def _reconcile_result(

@@ -126,6 +126,27 @@ def _append_marker(skill_id: str) -> str:
     return f"<!-- MED_AUTOSCIENCE_APPEND_BLOCK:{skill_id} -->"
 
 
+def _minimal_skill_base_text(skill_id: str) -> str:
+    return (
+        "---\n"
+        f"name: {skill_id}\n"
+        "description: MedAutoScience-managed medical research stage skill.\n"
+        "---\n"
+        f"\n# {skill_id}\n"
+    )
+
+
+def _has_skill_frontmatter(text: str) -> bool:
+    return text.startswith("---\n")
+
+
+def _frontmatter_wrapped_skill_text(skill_id: str, text: str) -> str:
+    body = text.strip()
+    if not body:
+        return _minimal_skill_base_text(skill_id)
+    return _minimal_skill_base_text(skill_id).rstrip() + "\n\n" + body + "\n"
+
+
 def render_medical_runtime_contract_block() -> str:
     return (
         "## Medical runtime contract\n\n"
@@ -316,9 +337,13 @@ def load_overlay_skill_text(
     if base_text is None:
         raise ValueError(f"Overlay skill `{skill_id}` requires base_text")
 
+    resolved_base_text = base_text if base_text.strip() else _minimal_skill_base_text(skill_id)
+
     marker = _append_marker(skill_id)
-    if marker in base_text:
-        return base_text
+    if marker in resolved_base_text:
+        if not _has_skill_frontmatter(resolved_base_text):
+            return _frontmatter_wrapped_skill_text(skill_id, resolved_base_text)
+        return resolved_base_text
 
     block = _render_overlay_text_from_template(
         _load_template_text(APPEND_BLOCK_TEMPLATE_MAP[skill_id]),
@@ -329,7 +354,7 @@ def load_overlay_skill_text(
         default_publication_profile=default_publication_profile,
         default_citation_style=default_citation_style,
     )
-    return base_text.rstrip() + "\n\n" + block.rstrip() + "\n"
+    return resolved_base_text.rstrip() + "\n\n" + block.rstrip() + "\n"
 
 
 def _describe_target(
@@ -493,17 +518,13 @@ def _seed_workspace_target_from_runtime_repo(
         skill_id=target.skill_id,
     )
     if source_skill_path is None or not source_skill_path.exists():
-        expected = (
-            str(source_skill_path)
-            if source_skill_path is not None
-            else "<unset med_deepscientist_repo_root>/src/skills/<skill-id>/SKILL.md"
-        )
-        raise FileNotFoundError(
-            "Workspace-local overlay target missing and no authoritative controlled-backend skill seed "
-            f"found for `{target.skill_id}` at {expected}"
-        )
+        return
     target.target_root.mkdir(parents=True, exist_ok=True)
     target.skill_path.write_text(source_skill_path.read_text(encoding="utf-8"), encoding="utf-8")
+
+
+def _can_materialize_missing_target_from_templates(target: OverlayTarget) -> bool:
+    return target.scope == "quest" and target.skill_id in APPEND_BLOCK_TEMPLATE_MAP
 
 
 def _write_manifest(
@@ -552,7 +573,11 @@ def _install_for_target(
         target=target,
         med_deepscientist_repo_root=med_deepscientist_repo_root,
     )
-    current_text = _ensure_target_ready(target)
+    if not target.skill_path.exists() and _can_materialize_missing_target_from_templates(target):
+        target.target_root.mkdir(parents=True, exist_ok=True)
+        current_text = ""
+    else:
+        current_text = _ensure_target_ready(target)
     current_fingerprint = _fingerprint(current_text)
     manifest = _load_json(target.manifest_path)
     previous_source_text = manifest.get("source_text_before_overlay_text")

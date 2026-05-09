@@ -16,6 +16,23 @@ TERMINAL_RECEIPT_STATUSES = frozenset(
 INCOMPLETE_RUNNER_STATUS = "runner_incomplete"
 RETRYABLE_RUNNER_STATUSES = frozenset({"failed", "error", "timeout", "runner_failed", INCOMPLETE_RUNNER_STATUS})
 STALE_COMPLETION_STATUS = "stale_completion_ignored"
+BLOCKED_CLOSEOUT_STATUS = "blocked"
+BLOCKED_CLOSEOUT_RUNNER_STATUS = "blocked_waiting_for_user"
+BLOCKED_CLOSEOUT_REASON = "blocked_turn_closeout_waiting_for_owner"
+
+
+def blocked_closeout_wait_state(*, completion: Mapping[str, Any], run_id: str) -> dict[str, Any]:
+    return {
+        "continuation_policy": "wait_for_user_or_resume",
+        "continuation_anchor": "turn_closeout",
+        "continuation_reason": BLOCKED_CLOSEOUT_REASON,
+        "blocked_turn_closeout": {
+            "run_id": run_id,
+            "closeout_path": _text(completion.get("closeout_path")),
+            "blocked_reason": _text(completion.get("blocked_reason")),
+            "next_owner": _text(completion.get("next_owner")),
+        },
+    }
 
 
 def inspect_runner_completion(
@@ -71,6 +88,7 @@ def inspect_runner_completion(
             "stdout_turn_completed": stdout["turn_completed"],
         }
     closeout = _read_json(closeout_path)
+    closeout_fields = _closeout_fields(closeout)
     invalid_delta_refs = _invalid_meaningful_delta_refs(closeout)
     if invalid_delta_refs:
         return {
@@ -85,18 +103,21 @@ def inspect_runner_completion(
             "stdout_open_item_count": stdout["open_item_count"],
             "stdout_turn_completed": stdout["turn_completed"],
             "invalid_artifact_refs": invalid_delta_refs,
+            **closeout_fields,
         }
+    blocked_closeout = closeout_fields["closeout_status"] == BLOCKED_CLOSEOUT_STATUS
     return {
         "state": "completed",
-        "reason": "turn_closeout_present",
+        "reason": "turn_closeout_blocked" if blocked_closeout else "turn_closeout_present",
         "run_id": run_id,
         "raw_runner_status": normalized_runner_status,
-        "normalized_runner_status": normalized_runner_status,
+        "normalized_runner_status": BLOCKED_CLOSEOUT_RUNNER_STATUS if blocked_closeout else normalized_runner_status,
         "closeout_path": str(closeout_path),
         "stdout_path": str(stdout_path),
         "stdout_event_count": stdout["event_count"],
         "stdout_open_item_count": stdout["open_item_count"],
         "stdout_turn_completed": stdout["turn_completed"],
+        **closeout_fields,
     }
 
 
@@ -110,11 +131,14 @@ def inspect_logical_turn_completion(*, quest_root: Path, run_id: str | None) -> 
     stdout = _inspect_stdout(stdout_path)
     if stdout["open_item_count"] != 0:
         return None
+    closeout = _read_json(closeout_path)
+    closeout_fields = _closeout_fields(closeout)
+    blocked_closeout = closeout_fields["closeout_status"] == BLOCKED_CLOSEOUT_STATUS
     latest_receipt = _read_json(quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json")
     receipt_status = _text(latest_receipt.get("status"))
     return {
         "state": "completed",
-        "reason": "logical_turn_completed",
+        "reason": BLOCKED_CLOSEOUT_REASON if blocked_closeout else "logical_turn_completed",
         "run_id": run_id,
         "closeout_path": str(closeout_path),
         "stdout_path": str(stdout_path),
@@ -125,6 +149,9 @@ def inspect_logical_turn_completion(*, quest_root: Path, run_id: str | None) -> 
             _text(latest_receipt.get("run_id")) == run_id
             and receipt_status in TERMINAL_RECEIPT_STATUSES
         ),
+        "completion_runner_status": BLOCKED_CLOSEOUT_RUNNER_STATUS if blocked_closeout else "succeeded",
+        "target_status": "waiting_for_user" if blocked_closeout else "active",
+        **closeout_fields,
     }
 
 
@@ -177,6 +204,17 @@ def status_after_runner(runner_status: str) -> str:
     if runner_status in {"failed", "error"}:
         return "failed"
     return "active"
+
+
+def _closeout_fields(closeout: Mapping[str, Any]) -> dict[str, Any]:
+    closeout_status = _text(closeout.get("status")) or "completed"
+    meaningful_artifact_delta = closeout.get("meaningful_artifact_delta")
+    return {
+        "closeout_status": closeout_status,
+        "meaningful_artifact_delta": meaningful_artifact_delta if isinstance(meaningful_artifact_delta, bool) else None,
+        "blocked_reason": _text(closeout.get("blocked_reason")),
+        "next_owner": _text(closeout.get("next_owner")),
+    }
 
 
 def next_retry_state(
@@ -272,3 +310,16 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     rendered = str(value or "").strip()
     return rendered or None
+
+
+def read_blocked_closeout_payload(path: Path) -> dict[str, Any] | None:
+    closeout = _read_json(path)
+    closeout_fields = _closeout_fields(closeout)
+    if closeout_fields["closeout_status"] != BLOCKED_CLOSEOUT_STATUS:
+        return None
+    run_id = _text(closeout.get("run_id")) or path.stem
+    return {
+        "run_id": run_id,
+        "closeout_path": str(path),
+        **closeout_fields,
+    }

@@ -196,6 +196,8 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     runtime_bridge_stop_text = runtime_bridge_stop.read_text(encoding="utf-8")
     runtime_bridge_start_web_text = runtime_bridge_start_web.read_text(encoding="utf-8")
     runtime_bridge_live_console_text = runtime_bridge_live_console.read_text(encoding="utf-8")
+    shared_text = (workspace_root / "ops" / "medautoscience" / "bin" / "_shared.sh").read_text(encoding="utf-8")
+    assert "PYTHONDONTWRITEBYTECODE=1" in shared_text
     assert 'run_medautosci workspace bootstrap --profile "${PROFILE_PATH}" "$@"' in bootstrap_text
     assert 'run_medautosci doctor profile --profile "${PROFILE_PATH}" "$@"' in show_profile_text
     assert 'run_medautosci study ensure-runtime --profile "${PROFILE_PATH}" "$@"' in enter_study_text

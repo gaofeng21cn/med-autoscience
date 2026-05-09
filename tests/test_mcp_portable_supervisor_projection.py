@@ -51,6 +51,32 @@ def test_study_progress_portable_supervisor_projection_reads_developer_superviso
     assert projection["github_user_gate"] == {"expected_login": "gaofeng21cn", "login": "gaofeng21cn", "allowed": True, "source": "env", "reason": None}
 
 
+def test_study_progress_portable_supervisor_projection_preserves_string_why_not_applied(tmp_path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.supervisor_projection")
+    profile = make_profile(tmp_path)
+    hourly_path = profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"
+    _write_json(
+        hourly_path,
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "generated_at": "2026-05-09T08:54:24+00:00",
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "quest_status": "running",
+                    "active_run_id": "run-001",
+                    "why_not_applied": "repeat_suppressed",
+                    "blocked_reason": "repeat_suppressed",
+                }
+            ],
+        },
+    )
+
+    projection = module.portable_supervisor_study_projection(profile=profile, study_id="001-risk")
+
+    assert projection["why_not_applied"] == ["repeat_suppressed"]
+
+
 def test_mcp_compacts_and_renders_portable_supervisor_queue_dashboard() -> None:
     module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
     payload = {
@@ -118,3 +144,22 @@ def test_mcp_compacts_and_renders_portable_supervisor_queue_dashboard() -> None:
     assert "Codex App heartbeat required: `False`" in markdown
     assert "publication_gate_specificity_required" in markdown
     assert "runtime_recovery_retry_budget_exhausted" in markdown
+
+
+def test_mcp_compacts_string_why_not_applied_as_single_reason() -> None:
+    module = importlib.import_module("med_autoscience.mcp_server_parts.study_progress_projection")
+    payload = {
+        "schema_version": 1,
+        "study_id": "001-risk",
+        "portable_supervisor_dashboard": {
+            "surface_kind": "portable_supervisor_study_queue_dashboard",
+            "authority": "observability_only",
+            "why_not_applied": "repeat_suppressed",
+        },
+    }
+
+    compact = module.compact_study_progress_projection(payload)
+    markdown = module.render_mcp_study_progress_markdown(payload)
+
+    assert compact["portable_supervisor_dashboard"]["why_not_applied"] == ["repeat_suppressed"]
+    assert "`repeat_suppressed`" in markdown

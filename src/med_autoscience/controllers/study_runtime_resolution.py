@@ -14,6 +14,7 @@ __all__ = [
 ]
 
 _LEGACY_MDS_ENGINE_IDS = {"med-deepscientist", "med_deepscientist"}
+_MAS_NATIVE_ENGINE_IDS = {"med-autoscience", "med_autoscience"}
 
 
 def _router_module():
@@ -72,7 +73,12 @@ def _execution_payload(
         legacy_backend_id = runtime_backend_contract.runtime_backend_id_from_execution(normalized_execution)
         engine_text = str(normalized_execution.get("engine") or "").strip()
         should_apply_profile_backend = legacy_backend_id == "med_deepscientist" or (
-            legacy_backend_id is None and (not engine_text or engine_text in _LEGACY_MDS_ENGINE_IDS)
+            legacy_backend_id is None
+            and (
+                not engine_text
+                or engine_text in _LEGACY_MDS_ENGINE_IDS
+                or engine_text in _MAS_NATIVE_ENGINE_IDS
+            )
         )
         if profile_backend_id and should_apply_profile_backend:
             normalized_execution["runtime_backend_id"] = profile_backend_id

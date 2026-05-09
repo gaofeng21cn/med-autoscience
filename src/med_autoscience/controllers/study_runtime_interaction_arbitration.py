@@ -32,6 +32,7 @@ def arbitrate_waiting_for_user(
     decision_policy: str | None,
     submission_metadata_only: bool,
     publication_gate_report: dict[str, Any] | None = None,
+    blocked_closeout: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if submission_metadata_only:
         return {
@@ -49,6 +50,9 @@ def arbitrate_waiting_for_user(
         }
 
     if not isinstance(pending_interaction, dict):
+        blocked_closeout_wait = _blocked_closeout_owner_wait(blocked_closeout)
+        if blocked_closeout_wait is not None:
+            return blocked_closeout_wait
         return {
             "classification": "unclassified_waiting_state",
             "action": "block",
@@ -172,5 +176,31 @@ def arbitrate_waiting_for_user(
         "controller_stage_note": (
             "MAS-managed studies must keep routing, finalize, adequacy, publishability, and completion decisions "
             "inside the MAS outer loop; runtime blocking may only ask for external secrets or credentials."
+        ),
+    }
+
+
+def _blocked_closeout_owner_wait(blocked_closeout: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(blocked_closeout, dict):
+        return None
+    closeout_path = _text(blocked_closeout.get("closeout_path"))
+    next_owner = _text(blocked_closeout.get("next_owner"))
+    if closeout_path is None and next_owner is None:
+        return None
+    return {
+        "classification": "blocked_closeout_owner_wait",
+        "action": "block",
+        "reason_code": "blocked_turn_closeout_waiting_for_owner",
+        "requires_user_input": False,
+        "valid_blocking": True,
+        "kind": "turn_closeout",
+        "decision_type": None,
+        "source_artifact_path": closeout_path,
+        "run_id": _text(blocked_closeout.get("run_id")),
+        "next_owner": next_owner,
+        "blocked_reason": _text(blocked_closeout.get("blocked_reason")),
+        "controller_stage_note": (
+            "The latest MAS turn closeout parked execution for a named owner; "
+            "this is a controller-readable wait state, not a missing pending interaction payload."
         ),
     }

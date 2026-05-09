@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -12,6 +13,34 @@ from typing import Any
 
 
 HEARTBEAT_INTERVAL_SECONDS = 5
+
+
+def quest_python_runtime_env(*, quest_root: Path) -> dict[str, str]:
+    cache_root = quest_root / ".ds" / "python_pycache"
+    cache_root.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env["PYTHONPYCACHEPREFIX"] = str(cache_root)
+    env.pop("PYTHONDONTWRITEBYTECODE", None)
+    _remove_active_python_virtualenv(env)
+    return env
+
+
+def _remove_active_python_virtualenv(env: dict[str, str]) -> None:
+    virtual_env = env.pop("VIRTUAL_ENV", None)
+    env.pop("__PYVENV_LAUNCHER__", None)
+    if not virtual_env:
+        return
+    virtualenv_bin = Path(virtual_env) / "bin"
+    path_entries = env.get("PATH", "").split(os.pathsep)
+    kept_entries = [entry for entry in path_entries if not _same_path(Path(entry), virtualenv_bin)]
+    env["PATH"] = os.pathsep.join(kept_entries)
+
+
+def _same_path(left: Path, right: Path) -> bool:
+    try:
+        return left.resolve() == right.resolve()
+    except OSError:
+        return left == right
 
 
 def wrapper_command(
@@ -94,6 +123,7 @@ def run_wrapper(
         child = subprocess.Popen(
             [codex_binary, "exec", "--json", "--skip-git-repo-check", prompt],
             cwd=str(quest_root),
+            env=quest_python_runtime_env(quest_root=quest_root),
             text=True,
             stdin=subprocess.DEVNULL,
             stdout=stdout_handle,

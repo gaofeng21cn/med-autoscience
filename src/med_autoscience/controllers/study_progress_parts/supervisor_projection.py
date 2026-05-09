@@ -124,6 +124,19 @@ def _first_present_mapping_value(mappings: tuple[Mapping[str, Any], ...], key: s
     return None
 
 
+def _string_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return [
+        text
+        for item in value
+        if (text := _non_empty_text(item)) is not None
+    ]
+
+
 def _portable_supervisor_mode_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
     scheduler_contract = _mapping_copy(payload.get("scheduler_contract"))
     developer_supervisor = _mapping_copy(payload.get("developer_supervisor"))
@@ -194,11 +207,7 @@ def portable_supervisor_study_projection(
         for item in matching.get("action_queue") or []
         if isinstance(item, Mapping)
     ]
-    why_not_applied = [
-        text
-        for item in matching.get("why_not_applied") or []
-        if (text := _non_empty_text(item)) is not None
-    ]
+    why_not_applied = _string_list(matching.get("why_not_applied"))
     projection = {
         "surface_kind": "portable_supervisor_study_queue_dashboard",
         "read_model": "workspace_hourly_supervision_projection",

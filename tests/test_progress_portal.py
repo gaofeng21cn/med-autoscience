@@ -1128,6 +1128,37 @@ def test_route_decision_trail_helper_fail_closes_without_explicit_route_inputs()
     assert payload["source_refs"] == []
 
 
+def test_route_decision_trail_helper_blocks_incomplete_explicit_route_inputs() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+
+    payload = parts.build_route_decision_trail_payload(
+        progress={
+            "study_id": "001-risk",
+            "route_decision_trail": {
+                "surface_kind": "mas_progress_portal_route_decision_trail",
+                "nodes": [
+                    {
+                        "route_id": "route-a",
+                        "label": "Can broad model generalize?",
+                        "decision": "continue",
+                    }
+                ],
+            },
+        },
+        runtime={},
+        package={},
+        study_id="001-risk",
+    )
+
+    assert payload["status"] == "missing"
+    assert [node["route_id"] for node in payload["nodes"]] == ["route-a"]
+    assert payload["conditions"]["missing"] == [
+        "active_path",
+        "winning_path",
+        "route_source_refs",
+    ]
+
+
 def _write_text(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")

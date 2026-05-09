@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
+    BLOCKED_CLOSEOUT_RUNNER_STATUS,
     INCOMPLETE_RUNNER_STATUS,
+    blocked_closeout_wait_state,
     inspect_runner_completion,
     next_retry_state,
     stale_runner_completion_result,
@@ -569,9 +571,12 @@ def complete_turn_and_normalize(
     if target_status == "waiting_for_user" and isinstance(blocking_decision_request, Mapping):
         updates["waiting_interaction_id"] = text(blocking_decision_request.get("interaction_id"))
         updates["blocking_decision_request"] = dict(blocking_decision_request)
+    else:
+        updates["continuation_policy"] = previous.get("continuation_policy") or "auto"
+    if normalized_runner_status == BLOCKED_CLOSEOUT_RUNNER_STATUS:
+        updates.update(blocked_closeout_wait_state(completion=completion, run_id=run_id))
     queue = load_message_queue(quest_root=quest_root)
     updates["pending_user_message_count"] = len(queue["pending"])
-    updates["continuation_policy"] = previous.get("continuation_policy") or "auto"
     updated = persist_state(quest_root=quest_root, updates=updates, source=source, event_name="turn_finished")
     _turn_receipt(
         quest_root=quest_root,
@@ -846,7 +851,7 @@ def _next_turn_after_normalization(
     status = text(state.get("status")) or "active"
     if status in TERMINAL_STATUSES:
         return None
-    if status == "waiting_for_user" and text(state.get("waiting_interaction_id")):
+    if status == "waiting_for_user":
         return None
     queue = load_message_queue(quest_root=quest_root)
     if queue["pending"]:

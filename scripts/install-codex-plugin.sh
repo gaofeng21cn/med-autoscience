@@ -77,6 +77,30 @@ install_python_tools() {
     --force \
     --editable \
     "${REPO_ROOT}[analysis]"
+  wrap_python_tool_entrypoint medautosci
+  wrap_python_tool_entrypoint medautosci-mcp
+}
+
+wrap_python_tool_entrypoint() {
+  local name="$1"
+  local script_path="${INSTALL_HOME}/.local/bin/${name}"
+  local uv_entrypoint_path="${script_path}.uv-entrypoint"
+  if [[ ! -f "${script_path}" ]]; then
+    fail "uv tool install did not create ${script_path}"
+  fi
+  if grep -q "med-autoscience env wrapper" "${script_path}"; then
+    return
+  fi
+  rm -f "${uv_entrypoint_path}"
+  mv "${script_path}" "${uv_entrypoint_path}"
+  cat >"${script_path}" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+# med-autoscience env wrapper: keep editable installs from writing bytecode into the repo checkout.
+export PYTHONDONTWRITEBYTECODE=1
+exec "\$(dirname "\${BASH_SOURCE[0]}")/${name}.uv-entrypoint" "\$@"
+EOF
+  chmod +x "${script_path}"
 }
 
 install_codex_paths() {

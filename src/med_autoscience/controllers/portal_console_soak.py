@@ -145,6 +145,7 @@ def build_portal_console_soak_report(
             workspace_root=profile.workspace_root,
             portal_payload=portal_payload,
         ),
+        "terminal_attach_gate": _terminal_attach_gate(console_ui_payload=console_ui_payload),
         "latency_slo_source_refs": _latency_slo_source_refs(
             portal_payload=portal_payload,
             console_snapshot=console_snapshot,
@@ -289,9 +290,17 @@ def _route_decision_trail(
     explicit = [trail for trail in trails if trail.get("surface_kind") == "mas_progress_portal_route_decision_trail"]
     available = [trail for trail in explicit if trail.get("status") == "available"]
     missing = [trail for trail in explicit if trail.get("status") != "available"]
+    all_conditions = [
+        condition
+        for trail in explicit
+        for condition in _string_refs(_mapping(trail.get("conditions")).get("missing"))
+    ]
+    has_nodes = any(_mapping_list(trail.get("nodes")) for trail in available)
+    has_active_path = any(_text(trail.get("active_path")) for trail in available)
+    has_winning_path = any(_text(trail.get("winning_path")) for trail in available)
     has_source_refs = any(_string_refs(trail.get("source_refs")) for trail in available)
     return {
-        "status": "passed" if explicit and (available or missing) else "blocked",
+        "status": "passed" if explicit and available and has_nodes and has_active_path and has_winning_path and has_source_refs else "blocked",
         "trail_count": len(explicit),
         "available_count": len(available),
         "missing_count": len(missing),
@@ -300,8 +309,12 @@ def _route_decision_trail(
         "source_ref_count": sum(len(_string_refs(trail.get("source_refs"))) for trail in available),
         "blockers": _blockers(
             ("missing_route_decision_trail_surface", not explicit),
+            ("missing_route_nodes", not has_nodes),
+            ("missing_active_path", explicit and not has_active_path),
+            ("missing_winning_path", explicit and not has_winning_path),
             ("missing_route_decision_trail_source_refs", bool(available) and not has_source_refs),
-        ),
+        )
+        + [f"route_decision_trail:{condition}" for condition in _dedupe_text(all_conditions)],
     }
 
 
@@ -501,6 +514,36 @@ def _authorized_action_apply_receipts(
             ("missing_applied_action_receipts", not applied),
             ("apply_receipt_forbidden_writes_missing", apply_receipts and not forbidden_writes_ok),
         ),
+    }
+
+
+def _terminal_attach_gate(*, console_ui_payload: Mapping[str, Any]) -> dict[str, Any]:
+    gate = _mapping(console_ui_payload.get("terminal_attach_gate"))
+    contract = _mapping(gate.get("required_owner_contract"))
+    required = {"token", "lease", "idempotency", "audit", "input", "resize", "detach"}
+    observed = {key for key in required if _text(contract.get(key))}
+    missing_contract = sorted(required - observed)
+    blocked_status = gate.get("status") == "blocked_by_missing_terminal_input_owner"
+    forbidden_owner_ok = gate.get("forbidden_owner") == "legacy_mds_daemon_websocket"
+    read_only = gate.get("read_only_default") is True
+    attach_started = gate.get("attach_started") is True
+    return {
+        "status": "passed" if gate and blocked_status and forbidden_owner_ok and read_only and not attach_started and not missing_contract else "blocked",
+        "surface_kind": _text(gate.get("surface_kind")),
+        "gate_status": _text(gate.get("status")),
+        "forbidden_owner": _text(gate.get("forbidden_owner")),
+        "read_only_default": gate.get("read_only_default"),
+        "attach_started": bool(gate.get("attach_started")),
+        "study_id": _text(gate.get("study_id")),
+        "missing_owner_contract": missing_contract,
+        "blockers": _blockers(
+            ("missing_terminal_attach_gate", not gate),
+            ("terminal_attach_gate_not_blocked", bool(gate) and not blocked_status),
+            ("legacy_owner_not_forbidden", bool(gate) and not forbidden_owner_ok),
+            ("terminal_attach_gate_not_read_only", bool(gate) and not read_only),
+            ("terminal_attach_started", attach_started),
+        )
+        + [f"missing_owner_contract:{item}" for item in missing_contract],
     }
 
 

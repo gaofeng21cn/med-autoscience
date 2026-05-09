@@ -106,6 +106,9 @@ def test_live_console_payload_projects_read_only_ui_shell_contract() -> None:
     payload = module.build_live_console_ui_payload(
         live_console_snapshot=_live_console_snapshot(),
         generated_at="2026-05-08T01:06:00+00:00",
+        profile_ref="/workspace/DM-CVD/profile.local.toml",
+        study_root="/workspace/DM-CVD/studies/002-dm-china-us-mortality-attribution",
+        study_id="002-dm-china-us-mortality-attribution",
         progress_portal_href="../progress/index.html",
         stream_href="http://127.0.0.1:8765/events",
     )
@@ -149,9 +152,9 @@ def test_live_console_payload_projects_read_only_ui_shell_contract() -> None:
         "forbidden_owner": "legacy_mds_daemon_websocket",
         "read_only_default": True,
         "attach_started": False,
-        "profile_ref": None,
-        "study_id": None,
-        "study_root": None,
+        "profile_ref": "/workspace/DM-CVD/profile.local.toml",
+        "study_id": "002-dm-china-us-mortality-attribution",
+        "study_root": "/workspace/DM-CVD/studies/002-dm-china-us-mortality-attribution",
     }
 
     studies = payload["studies"]

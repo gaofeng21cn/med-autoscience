@@ -531,6 +531,8 @@ def test_live_console_study_snapshot_materializes_study_scoped_ui_and_progress_r
     ui_payload = result["ui_payload"]
     assert ui_payload["scope"] == "study"
     assert ui_payload["selected_study_id"] == selected_study_id
+    assert ui_payload["terminal_attach_gate"]["profile_ref"] == str(tmp_path / "profile.toml")
+    assert ui_payload["terminal_attach_gate"]["study_id"] == selected_study_id
     assert ui_payload["portal_handoff"]["progress_portal_href"] == (
         f"../progress/studies/{selected_study_id}/index.html"
     )
@@ -573,8 +575,9 @@ def test_portal_console_soak_materializes_read_only_evidence_without_truth_write
     assert evidence["portal_refresh"]["status"] == "passed"
     assert evidence["per_study_workbench"]["status"] == "passed"
     assert evidence["per_study_deep_link"]["status"] == "passed"
-    assert evidence["route_decision_trail"]["status"] == "passed"
+    assert evidence["route_decision_trail"]["status"] == "blocked"
     assert evidence["route_decision_trail"]["missing_count"] >= 1
+    assert "missing_route_nodes" in evidence["route_decision_trail"]["blockers"]
     assert evidence["conversation_read_model"]["status"] == "passed"
     assert evidence["conversation_read_model"]["surface_kind"] == "mas_runtime_conversation_read_model"
     assert evidence["study_scoped_console"]["status"] == "blocked"
@@ -583,6 +586,8 @@ def test_portal_console_soak_materializes_read_only_evidence_without_truth_write
     assert evidence["action_receipts"]["intent_count"] == 6
     assert evidence["action_receipts"]["receipt_or_command_count"] == 6
     assert evidence["action_receipts"]["direct_execution_intents"] == []
+    assert evidence["terminal_attach_gate"]["status"] == "passed"
+    assert evidence["terminal_attach_gate"]["attach_started"] is False
     assert evidence["latency_slo_source_refs"]["status"] == "blocked"
     assert "missing_outer_supervision_slo" in evidence["latency_slo_source_refs"]["blockers"]
     assert evidence["live_console_study_run_disambiguation"]["study_ids"] == [

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import wrapper_command
+from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import quest_python_runtime_env
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import command_available
 
 
@@ -93,6 +94,7 @@ class CodexExecTurnRunner:
             process = subprocess.Popen(
                 popen_args,
                 cwd=str(quest_root),
+                env=quest_python_runtime_env(quest_root=quest_root),
                 text=True,
                 stdin=subprocess.DEVNULL,
                 stdout=stdout_handle,

@@ -25,6 +25,13 @@ def test_portal_console_soak_checks_user_parity_evidence_keys(tmp_path: Path) ->
         "status": "available",
         "active_path": "analysis-route-b",
         "winning_path": "analysis-route-b",
+        "nodes": [
+            {
+                "route_id": "analysis-route-b",
+                "label": "Analysis route B",
+                "decision": "continue",
+            }
+        ],
         "source_refs": ["studies/DM002/artifacts/runtime/route_trail/latest.json"],
     }
     study_workbench = {
@@ -132,6 +139,23 @@ def test_portal_console_soak_checks_user_parity_evidence_keys(tmp_path: Path) ->
     console_ui_payload = {
         "selected_study_id": "DM002",
         "controller_action_intents": console_snapshot["controller_action_intents"],
+        "terminal_attach_gate": {
+            "surface_kind": "mas_terminal_attach_gate",
+            "status": "blocked_by_missing_terminal_input_owner",
+            "required_owner_contract": {
+                "token": "MAS-issued attach token with explicit study/run scope and expiry",
+                "lease": "single active terminal input lease with renewal and stale lease rejection",
+                "idempotency": "dedupe key for each input, resize, and detach request",
+                "audit": "append-only receipt for attach, input, resize, detach, denial, and expiry",
+                "input": "MAS-owned terminal input route with authorization and run-state checks",
+                "resize": "MAS-owned resize route with lease and run-state checks",
+                "detach": "MAS-owned detach route with audited lease release",
+            },
+            "forbidden_owner": "legacy_mds_daemon_websocket",
+            "read_only_default": True,
+            "attach_started": False,
+            "study_id": "DM002",
+        },
         "source_refs": ["artifacts/runtime/live_console/session_read_model/latest.json"],
     }
     for path, payload in (
@@ -220,6 +244,7 @@ def test_portal_console_soak_checks_user_parity_evidence_keys(tmp_path: Path) ->
         "study_scoped_console",
         "action_receipts",
         "authorized_action_apply_receipts",
+        "terminal_attach_gate",
         "latency_slo_source_refs",
         "live_console_study_run_disambiguation",
         "terminal_log_refs",
@@ -235,6 +260,8 @@ def test_portal_console_soak_checks_user_parity_evidence_keys(tmp_path: Path) ->
     assert report["evidence"]["conversation_portal_panel"]["status"] == "passed"
     assert report["evidence"]["action_receipts"]["direct_execution_intents"] == []
     assert report["evidence"]["authorized_action_apply_receipts"]["applied_actions"] == ["resume"]
+    assert report["evidence"]["terminal_attach_gate"]["status"] == "passed"
+    assert report["evidence"]["terminal_attach_gate"]["attach_started"] is False
     assert report["authority"]["controller_action_execution_allowed"] is False
 
 
@@ -299,6 +326,8 @@ def test_portal_console_soak_blocks_when_user_parity_evidence_is_missing(tmp_pat
         "missing_study_scoped_portal_or_console_deep_link"
     ]
     assert "missing_route_decision_trail_surface" in report["evidence"]["route_decision_trail"]["blockers"]
+    assert "missing_route_nodes" in report["evidence"]["route_decision_trail"]["blockers"]
     assert "missing_conversation_read_model" in report["evidence"]["conversation_read_model"]["blockers"]
     assert "missing_conversation_portal_panel" in report["evidence"]["conversation_portal_panel"]["blockers"]
     assert "missing_selected_study_id" in report["evidence"]["study_scoped_console"]["blockers"]
+    assert "missing_terminal_attach_gate" in report["evidence"]["terminal_attach_gate"]["blockers"]

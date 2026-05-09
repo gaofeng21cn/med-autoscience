@@ -57,9 +57,15 @@ class QuestRuntimeSnapshot:
         )
 
     def with_runtime_liveness_audit(self, runtime_liveness_audit: dict[str, Any]) -> "QuestRuntimeSnapshot":
+        snapshot = runtime_liveness_audit.get("snapshot")
+        quest_status = (
+            str(snapshot.get("status") or "").strip()
+            if isinstance(snapshot, dict)
+            else None
+        )
         return QuestRuntimeSnapshot(
             quest_exists=self.quest_exists,
-            quest_status=self.quest_status,
+            quest_status=quest_status or self.quest_status,
             bash_session_audit=dict(self.bash_session_audit) if self.bash_session_audit is not None else None,
             runtime_liveness_audit=dict(runtime_liveness_audit),
         )

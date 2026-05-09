@@ -34,6 +34,10 @@ def build_route_decision_trail_payload(
         missing.append("route_decision_trail")
     if not nodes:
         missing.append("route_nodes")
+    if nodes and not active_path:
+        missing.append("active_path")
+    if nodes and not winning_path:
+        missing.append("winning_path")
     if (explicit or controller or graph) and not refs:
         missing.append("route_source_refs")
     return {
@@ -56,7 +60,7 @@ def build_route_decision_trail_payload(
             ],
         },
         "study_id": resolved_study_id,
-        "status": "available" if nodes else "missing",
+        "status": "available" if nodes and not missing else "missing",
         "active_path": active_path,
         "winning_path": winning_path,
         "nodes": nodes,

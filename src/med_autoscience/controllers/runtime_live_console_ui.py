@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 from html import escape
+from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.progress_portal_parts import local_time_projection
@@ -22,13 +23,16 @@ def build_live_console_ui_payload(
     *,
     live_console_snapshot: Mapping[str, Any],
     generated_at: str | None = None,
+    profile_ref: str | Path | None = None,
+    study_id: str | None = None,
+    study_root: str | Path | None = None,
     progress_portal_href: str = "../progress/index.html",
     stream_href: str | None = None,
 ) -> dict[str, Any]:
     workspace = _mapping(live_console_snapshot.get("workspace"))
     studies = _studies(live_console_snapshot.get("studies"))
     live_runs = _mapping_list(live_console_snapshot.get("runs"))
-    selected_study_id = _text(live_console_snapshot.get("selected_study_id"))
+    selected_study_id = _text(study_id) or _text(live_console_snapshot.get("selected_study_id"))
     scope = "study" if selected_study_id else "profile"
     source_refs = _source_refs(studies)
     generated = generated_at or _utc_now()
@@ -64,7 +68,9 @@ def build_live_console_ui_payload(
             "writes_authority_surface": False,
         },
         "terminal_attach_gate": live_console_contract.terminal_attach_gate_status(
+            profile_ref=profile_ref,
             study_id=selected_study_id,
+            study_root=study_root,
         ),
         "workspace": {
             "profile_name": _text(workspace.get("profile_name")) or "unknown",

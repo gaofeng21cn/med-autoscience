@@ -248,6 +248,7 @@
         "study_scoped_console",
         "action_receipts",
         "authorized_action_apply_receipts",
+        "terminal_attach_gate",
         "latency_slo_source_refs",
         "live_console_study_run_disambiguation",
         "terminal_log_refs",

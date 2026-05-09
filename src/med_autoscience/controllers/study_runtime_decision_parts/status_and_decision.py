@@ -29,11 +29,13 @@ def _record_interaction_arbitration_if_required(
     ):
         return
     payload = status.extras.get("pending_user_interaction")
+    blocked_closeout = status.extras.get("blocked_turn_closeout")
     arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
         pending_interaction=payload if isinstance(payload, dict) else None,
         decision_policy=str(execution.get("decision_policy") or "").strip() or None,
         submission_metadata_only=submission_metadata_only,
         publication_gate_report=publication_gate_report if isinstance(publication_gate_report, dict) else None,
+        blocked_closeout=blocked_closeout if isinstance(blocked_closeout, dict) else None,
     )
     status.record_interaction_arbitration(arbitration)
 
@@ -85,6 +87,7 @@ def _status_state(
         quest_runtime = quest_runtime.with_runtime_liveness_audit(runtime_liveness_audit).with_bash_session_audit(
             dict(runtime_liveness_audit.get("bash_session_audit") or {})
         )
+        quest_status = StudyRuntimeStatus._normalize_quest_status_field(quest_runtime.quest_status)
     contracts = router.inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
     startup_boundary_gate = startup_boundary_gate_controller.evaluate_startup_boundary(
@@ -168,6 +171,7 @@ def _status_state(
     manual_finish_compatibility_guard = manual_finish_state["manual_finish_compatibility_guard"]
     submission_metadata_only_wait = manual_finish_state["submission_metadata_only_wait"]
     _record_continuation_state_if_present(status=result, quest_root=quest_root)
+    _record_blocked_closeout_if_present(status=result, quest_root=quest_root)
     _record_pending_user_interaction_if_required(
         status=result,
         runtime_root=runtime_root,

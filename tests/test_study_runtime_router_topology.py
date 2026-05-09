@@ -29,6 +29,27 @@ def test_study_runtime_router_build_create_payload_uses_router_startup_contract_
     assert payload["startup_contract"]["marker"] == "patched-via-router"
 
 
+def test_study_runtime_resolution_maps_mas_native_engine_to_profile_backend() -> None:
+    resolution = importlib.import_module("med_autoscience.controllers.study_runtime_resolution")
+
+    execution = resolution._execution_payload(
+        {
+            "execution": {
+                "engine": "med-autoscience",
+                "auto_entry": "on_managed_research_intent",
+            }
+        },
+        profile=SimpleNamespace(managed_runtime_backend_id="mas_runtime_core"),
+    )
+
+    assert execution["runtime_backend_id"] == "mas_runtime_core"
+    assert execution["runtime_backend"] == "mas_runtime_core"
+    assert execution["runtime_engine_id"] == "mas-runtime-core"
+    assert execution["research_backend_id"] == "mas_runtime_core"
+    assert execution["research_backend"] == "mas_runtime_core"
+    assert execution["research_engine_id"] == "mas-runtime-core"
+
+
 def test_study_runtime_router_completion_state_uses_router_resolver_binding(monkeypatch, tmp_path: Path) -> None:
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
 

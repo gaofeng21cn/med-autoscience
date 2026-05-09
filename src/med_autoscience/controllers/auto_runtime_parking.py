@@ -18,6 +18,7 @@ PARKED_STATES = (
     "waiting_user_decision",
     "external_input_pending",
     "external_upstream_pending",
+    "ai_reviewer_pending",
     "platform_startup_noise",
     "explicit_resume_pending",
     "platform_repair_pending",
@@ -44,6 +45,7 @@ _EXTERNAL_METADATA_REASONS = frozenset(
 
 _EXPLICIT_RESUME_REASONS = frozenset(
     {
+        "blocked_turn_closeout_waiting_for_owner",
         "quest_stopped_requires_explicit_rerun",
         "quest_stopped_explicit_relaunch_requested",
         "quest_initialized_waiting_to_start",
@@ -61,6 +63,7 @@ _EXPLICIT_RESUME_REASONS = frozenset(
 )
 _PARKED_CLOSEOUT_REASONS = frozenset(
     {
+        "blocked_turn_closeout_waiting_for_owner",
         "completed_parked_auto_continue_no_new_message",
         "parked_after_checkpoint_no_new_message",
     }
@@ -108,6 +111,7 @@ _STATE_LABELS = {
     "waiting_user_decision": "等待用户判断",
     "external_input_pending": "等待外部输入",
     "external_upstream_pending": "等待上游服务恢复",
+    "ai_reviewer_pending": "等待 AI reviewer",
     "platform_startup_noise": "平台启动噪声退避",
     "explicit_resume_pending": "等待显式恢复",
     "platform_repair_pending": "等待 MAS/MDS 平台修复",
@@ -138,6 +142,10 @@ _STATE_SUMMARIES = {
         "当前阻塞来自 Codex/API/provider/account/quota/rate-limit/5xx 等上游问题；"
         "MAS/MDS 本机不会把它当作可本地修复问题继续空转。"
     ),
+    "ai_reviewer_pending": (
+        "当前运行已由 turn closeout 停驻给 AI reviewer；MAS/MDS 已释放运行资源，"
+        "等待 AI reviewer 或 publication gate 生成可执行的科学锚点与证据目标。"
+    ),
     "platform_startup_noise": (
         "当前阻塞来自 MDS worker 启动阶段的外部噪声或短暂启动抖动；"
         "MAS/MDS 不会把它归因成论文质量问题。"
@@ -155,6 +163,7 @@ _NEXT_ACTIONS = {
     "waiting_user_decision": "等待用户给出明确判断；收到新意见后按用户反馈优先重新进入修订线。",
     "external_input_pending": "等待外部输入可用后再恢复运行。",
     "external_upstream_pending": "等待上游服务或账户状态恢复；退避重试耗尽后保持停驻。",
+    "ai_reviewer_pending": "等待 AI reviewer / publication gate 给出可授权的下一步科学目标。",
     "platform_startup_noise": "等待下一次启动退避检查；如噪声持续，再进入平台修复而不是论文质量修复。",
     "explicit_resume_pending": "等待显式 resume、rerun 或 relaunch。",
     "platform_repair_pending": "先修复 MAS/MDS 平台问题并验证，再恢复运行。",
@@ -169,6 +178,7 @@ _OWNER_BY_STATE = {
     "waiting_user_decision": "user",
     "external_input_pending": "user",
     "external_upstream_pending": "external_provider",
+    "ai_reviewer_pending": "ai_reviewer",
     "platform_startup_noise": "mas_platform",
     "explicit_resume_pending": "user",
     "platform_repair_pending": "mas_platform",
@@ -227,6 +237,7 @@ def _reason_from_parked_continuation(
     if current_reason in _NON_PARKED_RUNTIME_REASONS:
         return current_reason
     continuation_state = _mapping(status_payload.get("continuation_state"))
+    interaction_arbitration = _mapping(status_payload.get("interaction_arbitration"))
     continuation_reason = _text(continuation_state.get("continuation_reason"))
     if continuation_reason not in _PARKED_CLOSEOUT_REASONS:
         return current_reason
@@ -234,6 +245,8 @@ def _reason_from_parked_continuation(
         return current_reason
     if _text(continuation_state.get("active_run_id")) is not None:
         return current_reason
+    if _text(interaction_arbitration.get("reason_code")) == continuation_reason:
+        return continuation_reason
     if current_reason is not None and current_reason not in _WEAK_RUNTIME_REASONS:
         return current_reason
     return continuation_reason
@@ -263,6 +276,10 @@ def _state_from_reason(
         return "external_input_pending"
     if _text(interaction_arbitration.get("classification")) == "external_input_required":
         return "external_input_pending"
+    if _text(interaction_arbitration.get("classification")) == "blocked_closeout_owner_wait":
+        next_owner = _text(interaction_arbitration.get("next_owner"))
+        if next_owner == "ai_reviewer":
+            return "ai_reviewer_pending"
     if needs_user_decision or reason in {
         "quest_waiting_for_user",
         "study_completion_requires_program_human_confirmation",

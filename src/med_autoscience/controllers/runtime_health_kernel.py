@@ -138,6 +138,7 @@ def _stable_event_payload(event_type: str, payload: Mapping[str, Any]) -> dict[s
     if event_type != "runtime_state_observed":
         return dict(payload)
     stable = dict(payload)
+    stable.pop("observed_at", None)
     runtime_audit = _mapping(stable.get("runtime_audit"))
     if runtime_audit:
         stable["runtime_audit"] = _stable_runtime_audit(runtime_audit)
@@ -749,6 +750,7 @@ def _status_payload_runtime_health_events(
         "worker_pending": facts.worker_pending,
         "stop_requested": facts.stop_requested,
         "active_run_id": facts.active_run_id if facts.strict_live else None,
+        "observed_at": recorded_at,
         "runtime_audit": stable_runtime_audit or None,
         "runtime_liveness_audit": stable_runtime_liveness_audit or None,
         "liveness_guard_reason": _text(runtime_liveness_audit.get("liveness_guard_reason")),

@@ -86,6 +86,7 @@ def _render_medautosci_shared(profile_relpath: Path) -> str:
         "fi\n\n"
         'export MED_AUTOSCIENCE_NODE_BIN\n\n'
         "run_medautosci() {\n"
+        "  PYTHONDONTWRITEBYTECODE=1 \\\n"
         '  "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"\n'
         "}\n"
     )
