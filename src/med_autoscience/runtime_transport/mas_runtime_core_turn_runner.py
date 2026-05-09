@@ -138,12 +138,36 @@ def _codex_turn_prompt(
     claimed_user_messages: tuple[dict[str, Any], ...],
 ) -> str:
     messages = json.dumps(list(claimed_user_messages), ensure_ascii=False, indent=2, sort_keys=True)
+    closeout_path = f"artifacts/runtime/turn_closeouts/{run_id}.json"
     return (
         f"You are running a MAS runtime turn for quest `{quest_id}`.\n"
         f"Run id: `{run_id}`.\n"
         f"Turn reason: `{reason}`.\n\n"
         "Read the quest-local runtime files, continue the research workflow according to MAS contracts, "
         "and leave durable artifacts/receipts in the quest workspace. Do not bypass MAS quality gates.\n\n"
+        "Turn closeout contract:\n"
+        f"- Before ending this turn, write `{closeout_path}`.\n"
+        "- The closeout must be valid JSON with this shape:\n"
+        "```json\n"
+        "{\n"
+        '  "schema_version": 1,\n'
+        f'  "quest_id": "{quest_id}",\n'
+        f'  "run_id": "{run_id}",\n'
+        '  "status": "completed",\n'
+        '  "completed_at": "<UTC ISO-8601 timestamp>",\n'
+        '  "meaningful_artifact_delta": true,\n'
+        '  "artifact_refs": ["relative/path/to/new-or-updated-durable-artifact"],\n'
+        '  "blocked_reason": null,\n'
+        '  "next_owner": null\n'
+        "}\n"
+        "```\n"
+        "- If no safe meaningful artifact delta is possible, write a blocked closeout instead: set "
+        '`"status": "blocked"`, `"meaningful_artifact_delta": false`, include a concrete `"blocked_reason"`, '
+        'and set `"next_owner"` to the MAS/controller owner that must act next.\n'
+        "- Do not exit silently with only console output; MAS treats a successful Codex process without this closeout as incomplete.\n"
+        "- Do not mutate paper/current_package, manuscript/current_package, submission_minimal/current_package, "
+        "publication gate conclusions, or medical claims unless an explicit MAS controller contract authorizes that surface.\n"
+        "- Do not relax MAS quality gates, quality thresholds, publication gates, or authority boundaries.\n\n"
         f"Claimed user messages:\n```json\n{messages}\n```\n"
     )
 
