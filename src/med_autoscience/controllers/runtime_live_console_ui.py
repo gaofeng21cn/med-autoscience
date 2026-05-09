@@ -28,6 +28,7 @@ def build_live_console_ui_payload(
     study_root: str | Path | None = None,
     progress_portal_href: str = "../progress/index.html",
     stream_href: str | None = None,
+    terminal_attach_owner: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     workspace = _mapping(live_console_snapshot.get("workspace"))
     studies = _studies(live_console_snapshot.get("studies"))
@@ -68,6 +69,7 @@ def build_live_console_ui_payload(
             "writes_authority_surface": False,
         },
         "terminal_attach_gate": live_console_contract.terminal_attach_gate_status(
+            owner_contract=terminal_attach_owner or _mapping(live_console_snapshot.get("terminal_attach_owner")),
             profile_ref=profile_ref,
             study_id=selected_study_id,
             study_root=study_root,
@@ -105,6 +107,7 @@ def render_live_console_html(payload: Mapping[str, Any]) -> str:
     selected_study_id = _text(payload.get("selected_study_id"))
     scope = _text(payload.get("scope")) or ("study" if selected_study_id else "profile")
     scope_label = selected_study_id if scope == "study" and selected_study_id else "operator 总览"
+    attach_badge = "Attach Ready" if terminal_gate.get("status") == "available" else "只读"
     return "\n".join(
         [
             "<!doctype html>",
@@ -122,7 +125,7 @@ def render_live_console_html(payload: Mapping[str, Any]) -> str:
             '<header class="masthead">',
             '<div class="topline">',
             f'<span class="brand">{escape(brand)}</span>',
-            '<span class="badge">只读</span>',
+            f'<span class="badge">{escape(attach_badge)}</span>',
             f'<a class="portal-link" href="{escape(progress_href, quote=True)}">返回进度入口</a>',
             "</div>",
             f"<h1>{escape(str(workspace.get('profile_name') or 'unknown workspace'))}</h1>",
@@ -459,6 +462,8 @@ def _action_intents_section(action_intents: list[dict[str, Any]]) -> str:
 def _terminal_attach_gate_section(gate: Mapping[str, Any]) -> str:
     if not gate:
         return ""
+    if gate.get("status") == "available":
+        return _terminal_attach_controls_section(gate)
     contract = _mapping(gate.get("required_owner_contract"))
     rows = []
     headers = ("能力", "owner contract")
@@ -478,6 +483,44 @@ def _terminal_attach_gate_section(gate: Mapping[str, Any]) -> str:
         '<div class="table-wrap"><table class="responsive-table">'
         "<thead><tr><th>能力</th><th>owner contract</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div>"
+        "</section>"
+    )
+
+
+def _terminal_attach_controls_section(gate: Mapping[str, Any]) -> str:
+    endpoints = _mapping(gate.get("endpoints"))
+    capabilities = set(_string_list(gate.get("capabilities")))
+    buttons = []
+    labels = {
+        "attach": "Attach",
+        "input": "Input",
+        "resize": "Resize",
+        "detach": "Detach",
+    }
+    for capability in ("attach", "input", "resize", "detach"):
+        if capability not in capabilities:
+            continue
+        endpoint = str(endpoints.get(capability) or "")
+        buttons.append(
+            f'<button type="button" data-terminal-action="{escape(capability, quote=True)}" '
+            f'data-endpoint="{escape(endpoint, quote=True)}">{escape(labels[capability])}</button>'
+        )
+    return (
+        '<section class="panel wide terminal-attach">'
+        "<h2>Terminal Attach</h2>"
+        f"<p>status=available · owner={escape(str(gate.get('owner') or ''))} · "
+        f"scope={escape(str(gate.get('study_id') or 'profile'))}</p>"
+        '<div class="terminal-actions">'
+        + "".join(buttons)
+        + "</div>"
+        '<label class="terminal-input-label" for="terminal-input">Input</label>'
+        '<textarea id="terminal-input" rows="4" placeholder="MAS-owned terminal input"></textarea>'
+        '<div class="terminal-resize">'
+        '<label for="terminal-cols">Cols</label><input id="terminal-cols" type="number" min="20" value="120">'
+        '<label for="terminal-rows">Rows</label><input id="terminal-rows" type="number" min="5" value="30">'
+        "</div>"
+        '<p class="source-ref">UI shows owner-provided attach/input/resize/detach endpoints; '
+        'transport and audit remain owned by the MAS terminal attach owner.</p>'
         "</section>"
     )
 
@@ -734,6 +777,15 @@ body {
   font-weight: 700;
   text-decoration: none;
 }
+button {
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  min-height: 34px;
+  padding: 5px 10px;
+  font-weight: 750;
+}
 h1 {
   margin: 14px 0 12px;
   font-size: 30px;
@@ -858,6 +910,32 @@ pre {
   color: var(--ink);
   font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   white-space: pre-wrap;
+}
+.terminal-actions, .terminal-resize {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+}
+.terminal-input-label {
+  display: block;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+textarea, input[type="number"] {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 9px;
+  font: inherit;
+}
+textarea {
+  width: 100%;
+  resize: vertical;
+}
+input[type="number"] {
+  width: 90px;
 }
 .empty {
   color: var(--muted);

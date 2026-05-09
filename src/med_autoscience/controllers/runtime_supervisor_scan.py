@@ -29,6 +29,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import status_pro
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_parking
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import study_identity
+from med_autoscience.controllers.runtime_supervisor_scan_parts import supervision_contract
 from med_autoscience.controllers.runtime_supervisor_scan_parts import workspace_daemon
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
@@ -43,20 +44,11 @@ from med_autoscience.profiles import WorkspaceProfile
 SCHEMA_VERSION = 1
 OWNER_PICKUP_OVERDUE_HOURS = 2
 DEVELOPER_SUPERVISOR_ATTENTION_HOURS = 6
-SUPERVISION_LATEST_RELATIVE_PATH = Path("artifacts/supervision/hourly/latest.json")
-SUPERVISION_HISTORY_RELATIVE_PATH = Path("artifacts/supervision/hourly/history.jsonl")
-SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES = ["artifacts/supervision/**"]
-SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES = [
-    "artifacts/supervision/**",
-    "artifacts/autonomy/repair_lifecycle/latest.json",
-    "artifacts/autonomy/repair_actions/latest.json",
-]
-SUPERVISION_FORBIDDEN_ACTIONS = [
-    "paper_package_mutation",
-    "manual_study_patch",
-    "quality_gate_relaxation",
-    "medical_claim_authoring",
-]
+SUPERVISION_LATEST_RELATIVE_PATH = supervision_contract.SUPERVISION_LATEST_RELATIVE_PATH
+SUPERVISION_HISTORY_RELATIVE_PATH = supervision_contract.SUPERVISION_HISTORY_RELATIVE_PATH
+SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES = supervision_contract.SUPERVISION_REQUEST_ALLOWED_WRITE_SURFACES
+SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES = supervision_contract.SUPERVISION_CONTROL_ALLOWED_WRITE_SURFACES
+SUPERVISION_FORBIDDEN_ACTIONS = supervision_contract.SUPERVISION_FORBIDDEN_ACTIONS
 
 
 def _utc_now() -> str:

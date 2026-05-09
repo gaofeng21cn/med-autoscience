@@ -29,7 +29,9 @@ def live_console_projection(
         "label": "运行控制台",
         "html_ref": LIVE_CONSOLE_HTML_REF,
         "href": href,
+        "scope": "study" if scoped_study_id else "profile",
         "study_id": scoped_study_id,
+        "capability_badge": "Study-scoped Live Console" if scoped_study_id else "Profile Live Console",
         "session_read_model_ref": LIVE_CONSOLE_SESSION_READ_MODEL_REF,
         "serve_command": LIVE_CONSOLE_SERVE_COMMAND,
         "authority": "read_only_runtime_observation",
@@ -43,10 +45,16 @@ def render_live_console_portal_link(live_console: Mapping[str, Any]) -> str:
     label = _non_empty_text(live_console.get("label")) or "运行控制台"
     serve_command = _non_empty_text(live_console.get("serve_command")) or LIVE_CONSOLE_SERVE_COMMAND
     href = _non_empty_text(live_console.get("href")) or "../live-console/index.html"
+    scope = _non_empty_text(live_console.get("scope")) or "profile"
+    badge = _non_empty_text(live_console.get("capability_badge")) or (
+        "Study-scoped Live Console" if scope == "study" else "Profile Live Console"
+    )
     if bool(live_console.get("available")):
         return (
             '<div class="live-console-link">'
             f'<a href="{escape(href, quote=True)}">运行控制台</a>'
+            f'<span class="capability-badge">{escape(badge)}</span>'
+            f"<span>scope={escape(scope)}</span>"
             f"<span>{escape(serve_command)}</span>"
             "</div>"
         )
@@ -96,6 +104,8 @@ dl {{ margin: 0; display: grid; gap: 8px; }}
 dd {{ margin-left: 0; }}
 code {{ background: #eef2f6; border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; overflow-wrap: anywhere; }}
 .intent {{ border-left: 3px solid var(--warn); padding-left: 10px; }}
+.terminal-actions {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+button {{ border: 1px solid var(--accent); border-radius: 6px; background: var(--accent); color: #fff; min-height: 32px; padding: 4px 10px; font-weight: 750; }}
 ul {{ margin: 0; padding-left: 20px; }}
 li {{ margin: 6px 0; overflow-wrap: anywhere; }}
 @media (max-width: 980px) {{ main {{ grid-template-columns: 1fr; }} header {{ grid-template-columns: 1fr; }} .top-actions {{ justify-content: flex-start; }} }}
@@ -142,6 +152,16 @@ li {{ margin: 6px 0; overflow-wrap: anywhere; }}
         <div><dt>请求 reconcile</dt><dd><code>controller-required runtime reconcile intent</code></dd></div>
       </dl>
     </div>
+    <section class="terminal-attach" aria-labelledby="terminal-attach-heading">
+      <h2 id="terminal-attach-heading">Terminal Attach</h2>
+      <p class="subtle">默认 fail closed；只有 MAS terminal attach owner 提供 token、lease、idempotency、audit 与 attach/input/resize/detach endpoints 时才可用。</p>
+      <div class="terminal-actions">
+        <button type="button">Attach</button>
+        <button type="button">Input</button>
+        <button type="button">Resize</button>
+        <button type="button">Detach</button>
+      </div>
+    </section>
   </section>
 </main>
 </div>

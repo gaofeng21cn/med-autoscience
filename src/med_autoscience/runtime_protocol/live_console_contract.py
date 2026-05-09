@@ -38,11 +38,13 @@ def controller_action_links(*, study_id: str | None) -> list[dict[str, Any]]:
 
 def terminal_attach_gate_status(
     *,
+    owner_contract: Mapping[str, Any] | None = None,
     profile_ref: str | Path | None = None,
     study_id: str | None = None,
     study_root: str | Path | None = None,
 ) -> dict[str, Any]:
-    return terminal_attach_gate.blocked_by_missing_terminal_input_owner(
+    return terminal_attach_gate.terminal_attach_status(
+        owner_contract=owner_contract,
         profile_ref=profile_ref,
         study_id=study_id,
         study_root=study_root,

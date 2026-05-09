@@ -251,6 +251,7 @@ def schedule_turn(
     reason: str,
     source: str,
     delay_seconds: float | None = None,
+    terminal_attach_capable: bool = False,
 ) -> dict[str, Any]:
     state = load_state(quest_root=quest_root)
     active_run_id = text(state.get("active_run_id"))
@@ -334,7 +335,10 @@ def schedule_turn(
             "idempotency_key": payload["idempotency_key"],
             "snapshot": snapshot(quest_root=quest_root, state=updated),
         }
-    return start_turn(runtime_root=runtime_root, quest_root=quest_root, quest_id=quest_id, reason=reason, source=source)
+    return start_turn(
+        runtime_root=runtime_root, quest_root=quest_root, quest_id=quest_id, reason=reason, source=source,
+        terminal_attach_capable=terminal_attach_capable,
+    )
 
 
 def start_turn(
@@ -344,6 +348,7 @@ def start_turn(
     quest_id: str,
     reason: str,
     source: str,
+    terminal_attach_capable: bool = False,
 ) -> dict[str, Any]:
     state = load_state(quest_root=quest_root)
     new_run_id = run_id(quest_id=quest_id)
@@ -357,6 +362,7 @@ def start_turn(
             run_id=new_run_id,
             reason=reason,
             claimed_user_messages=claimed_messages,
+            terminal_attach_capable=terminal_attach_capable,
         )
     except Exception as exc:  # pragma: no cover - exercised through fake runner tests when needed.
         runner_receipt = {
@@ -457,18 +463,15 @@ def start_turn(
         },
     )
     _arm_runner_monitor(runtime_root=runtime_root, quest_root=quest_root, quest_id=quest_id, run_id=new_run_id, source=source)
-    return schedule_result(
-        quest_root=quest_root,
-        status="running",
-        backend_id=BACKEND_ID,
-        active_run_id=new_run_id,
-        started=True,
-        queued=False,
-        scheduled=True,
-        reason=reason,
-        receipt=receipt,
+    result = schedule_result(
+        quest_root=quest_root, status="running", backend_id=BACKEND_ID, active_run_id=new_run_id,
+        started=True, queued=False, scheduled=True, reason=reason, receipt=receipt,
         snapshot_payload=snapshot(quest_root=quest_root, state=updated),
     )
+    if terminal_attach_capable:
+        result["terminal_attach_capable"] = True
+        result["terminal_bridge_status"] = runner_receipt.get("terminal_bridge_status")
+    return result
 
 
 def claim_pending_user_messages(*, quest_root: Path, run_id: str) -> tuple[dict[str, Any], ...]:

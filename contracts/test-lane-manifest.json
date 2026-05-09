@@ -192,7 +192,7 @@
       ]
     },
     "terminal-attach-gate": {
-      "kind": "focused_terminal_attach_fail_closed_contract_gate",
+      "kind": "focused_terminal_attach_mas_native_mvp_gate",
       "paths": [
         "tests/test_runtime_live_console_ui.py",
         "tests/test_live_console_docs_contract.py",
@@ -205,12 +205,20 @@
         "docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md"
       ],
       "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "fail_closed_interactive_terminal_attach_probe",
-      "implementation_status": "landed_fail_closed_gate",
+      "authority_boundary": "fail_closed_by_default_mas_owned_terminal_attach",
+      "implementation_status": "landed_mas_native_mvp",
       "surface_kind": "mas_terminal_attach_gate",
       "blocked_status": "blocked_by_missing_terminal_input_owner",
+      "available_status": "available",
+      "owner_surface_kind": "mas_terminal_attach_owner",
       "forbidden_owner": "legacy_mds_daemon_websocket",
       "read_only_default": true,
+      "enabled_capabilities_when_owner_available": [
+        "attach",
+        "input",
+        "resize",
+        "detach"
+      ],
       "required_owner_contract": [
         "token",
         "lease",

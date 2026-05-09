@@ -499,6 +499,129 @@ def artifact_interact(*, runtime_root: Path, quest_id: str, payload: dict[str, A
     return {"ok": True, "status": "queued", "source": "mas_runtime_core", "snapshot": _snapshot(quest_root=quest_root)}
 
 
+def inspect_terminal_attach(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    study_id: str,
+    token: str | None = None,
+    source: str,
+) -> dict[str, Any]:
+    from med_autoscience.runtime_protocol import terminal_attach_gate
+
+    return terminal_attach_gate.inspect_terminal_attach(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        run_id=run_id,
+        study_id=study_id,
+        token=token,
+        source=source,
+    )
+
+
+def attach_terminal(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    study_id: str,
+    idempotency_key: str,
+    source: str,
+) -> dict[str, Any]:
+    from med_autoscience.runtime_protocol import terminal_attach_gate
+
+    return terminal_attach_gate.attach_terminal(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        run_id=run_id,
+        study_id=study_id,
+        idempotency_key=idempotency_key,
+        source=source,
+    )
+
+
+def terminal_input(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    study_id: str,
+    token: str,
+    lease_id: str,
+    text: str,
+    idempotency_key: str,
+    source: str,
+) -> dict[str, Any]:
+    from med_autoscience.runtime_protocol import terminal_attach_gate
+
+    return terminal_attach_gate.terminal_input(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        run_id=run_id,
+        study_id=study_id,
+        token=token,
+        lease_id=lease_id,
+        text=text,
+        idempotency_key=idempotency_key,
+        source=source,
+    )
+
+
+def resize_terminal(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    study_id: str,
+    token: str,
+    lease_id: str,
+    rows: int,
+    cols: int,
+    idempotency_key: str,
+    source: str,
+) -> dict[str, Any]:
+    from med_autoscience.runtime_protocol import terminal_attach_gate
+
+    return terminal_attach_gate.resize_terminal(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        run_id=run_id,
+        study_id=study_id,
+        token=token,
+        lease_id=lease_id,
+        rows=rows,
+        cols=cols,
+        idempotency_key=idempotency_key,
+        source=source,
+    )
+
+
+def detach_terminal(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    study_id: str,
+    token: str,
+    lease_id: str,
+    idempotency_key: str,
+    source: str,
+) -> dict[str, Any]:
+    from med_autoscience.runtime_protocol import terminal_attach_gate
+
+    return terminal_attach_gate.detach_terminal(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        run_id=run_id,
+        study_id=study_id,
+        token=token,
+        lease_id=lease_id,
+        idempotency_key=idempotency_key,
+        source=source,
+    )
+
+
 def release_idle_workspace_daemon(
     *,
     runtime_root: Path,

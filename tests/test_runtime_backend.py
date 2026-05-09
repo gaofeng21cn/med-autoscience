@@ -154,6 +154,119 @@ class _BackendStub:
     ) -> dict[str, object]:
         return {"runtime_root": str(runtime_root), "quest_id": quest_id, "payload": payload}
 
+    def inspect_terminal_attach(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        study_id: str,
+        token: str | None = None,
+        source: str,
+    ) -> dict[str, object]:
+        return {
+            "runtime_root": str(runtime_root),
+            "quest_id": quest_id,
+            "run_id": run_id,
+            "study_id": study_id,
+            "token": token,
+            "source": source,
+        }
+
+    def attach_terminal(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        study_id: str,
+        idempotency_key: str,
+        source: str,
+    ) -> dict[str, object]:
+        return {
+            "runtime_root": str(runtime_root),
+            "quest_id": quest_id,
+            "run_id": run_id,
+            "study_id": study_id,
+            "idempotency_key": idempotency_key,
+            "source": source,
+        }
+
+    def terminal_input(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        study_id: str,
+        token: str,
+        lease_id: str,
+        text: str,
+        idempotency_key: str,
+        source: str,
+    ) -> dict[str, object]:
+        return {
+            "runtime_root": str(runtime_root),
+            "quest_id": quest_id,
+            "run_id": run_id,
+            "study_id": study_id,
+            "token": token,
+            "lease_id": lease_id,
+            "text": text,
+            "idempotency_key": idempotency_key,
+            "source": source,
+        }
+
+    def resize_terminal(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        study_id: str,
+        token: str,
+        lease_id: str,
+        rows: int,
+        cols: int,
+        idempotency_key: str,
+        source: str,
+    ) -> dict[str, object]:
+        return {
+            "runtime_root": str(runtime_root),
+            "quest_id": quest_id,
+            "run_id": run_id,
+            "study_id": study_id,
+            "token": token,
+            "lease_id": lease_id,
+            "rows": rows,
+            "cols": cols,
+            "idempotency_key": idempotency_key,
+            "source": source,
+        }
+
+    def detach_terminal(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        study_id: str,
+        token: str,
+        lease_id: str,
+        idempotency_key: str,
+        source: str,
+    ) -> dict[str, object]:
+        return {
+            "runtime_root": str(runtime_root),
+            "quest_id": quest_id,
+            "run_id": run_id,
+            "study_id": study_id,
+            "token": token,
+            "lease_id": lease_id,
+            "idempotency_key": idempotency_key,
+            "source": source,
+        }
+
 
 def test_default_managed_runtime_backend_registry_exposes_mas_runtime_core_without_runnable_mds() -> None:
     module = importlib.import_module("med_autoscience.runtime_backend")
@@ -268,13 +381,15 @@ def test_runtime_backend_contract_requires_turn_lifecycle_callables() -> None:
     assert callable(getattr(backend, "inspect_turn_lifecycle"))
 
 
-def test_runtime_backend_contract_does_not_expose_terminal_attach_input_owner() -> None:
+def test_runtime_backend_contract_exposes_terminal_attach_input_owner() -> None:
     module = importlib.import_module("med_autoscience.runtime_backend")
     backend = module.get_managed_runtime_backend(module.DEFAULT_MANAGED_RUNTIME_BACKEND_ID)
 
-    assert not hasattr(backend, "attach_terminal")
-    assert not hasattr(backend, "terminal_input")
-    assert not hasattr(backend, "resize_terminal")
-    assert not hasattr(backend, "detach_terminal")
-    assert "terminal_input" not in module._BACKEND_CALLABLE_CONTRACT
+    assert callable(getattr(backend, "inspect_terminal_attach"))
+    assert callable(getattr(backend, "attach_terminal"))
+    assert callable(getattr(backend, "terminal_input"))
+    assert callable(getattr(backend, "resize_terminal"))
+    assert callable(getattr(backend, "detach_terminal"))
+    assert "inspect_terminal_attach" in module._BACKEND_CALLABLE_CONTRACT
+    assert "terminal_input" in module._BACKEND_CALLABLE_CONTRACT
     assert "chat_quest" in module._BACKEND_CALLABLE_CONTRACT

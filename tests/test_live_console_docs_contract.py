@@ -103,12 +103,15 @@ def test_portal_route_decision_trail_and_terminal_attach_have_machine_contracts(
     assert "terminal_attach_gate" in soak["required_evidence_keys"]
     assert "tests/progress_portal_cases" in soak["paths"]
 
-    assert terminal["implementation_status"] == "landed_fail_closed_gate"
+    assert terminal["implementation_status"] == "landed_mas_native_mvp"
     assert terminal["surface_kind"] == "mas_terminal_attach_gate"
     assert terminal["blocked_status"] == "blocked_by_missing_terminal_input_owner"
+    assert terminal["available_status"] == "available"
+    assert terminal["owner_surface_kind"] == "mas_terminal_attach_owner"
     assert terminal["forbidden_owner"] == "legacy_mds_daemon_websocket"
     assert terminal["read_only_default"] is True
     assert terminal["attach_session_started_when_blocked"] is False
+    assert terminal["enabled_capabilities_when_owner_available"] == ["attach", "input", "resize", "detach"]
     assert set(terminal["required_owner_contract"]) == {
         "token",
         "lease",

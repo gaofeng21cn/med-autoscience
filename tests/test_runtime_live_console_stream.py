@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import io
 import json
 from pathlib import Path
 
@@ -144,6 +145,116 @@ def test_runtime_live_console_serve_binds_loopback_only(monkeypatch, tmp_path: P
     assert served["served"] is True
     assert served["closed"] is True
     assert "http://127.0.0.1:4812/events" in captured.out
+
+
+def test_runtime_live_console_serve_terminal_attach_endpoint_uses_mas_runtime_core(monkeypatch, tmp_path: Path) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    module = importlib.import_module("med_autoscience.cli_parts.live_console_commands")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    runtime_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests"
+    quest_root = runtime_root / "quest-001"
+    run_root = quest_root / ".ds" / "runs" / "run-001"
+    run_root.mkdir(parents=True)
+    (quest_root / "quest.yaml").write_text("quest_id: quest-001\n", encoding="utf-8")
+    (quest_root / ".ds" / "runtime_state.json").write_text(
+        json.dumps(
+            {
+                "quest_id": "quest-001",
+                "study_id": "study-001",
+                "status": "running",
+                "active_run_id": "run-001",
+                "worker_running": True,
+                "runtime_backend_id": "mas_runtime_core",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_root / "worker_lease.json").write_text(
+        json.dumps({"run_id": "run-001", "terminal_attach_capable": True}),
+        encoding="utf-8",
+    )
+    served: dict[str, object] = {}
+
+    class FakeServer:
+        def __init__(self, address, handler):
+            self.server_address = address
+            served["handler"] = handler
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def serve_forever(self):
+            return None
+
+    monkeypatch.setattr(module.http.server, "ThreadingHTTPServer", FakeServer)
+    cli.main(
+        [
+            "runtime",
+            "live-console",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "study-001",
+            "--serve",
+            "--enable-terminal-attach",
+            "--port",
+            "4812",
+            "--format",
+            "json",
+        ]
+    )
+
+    handler = served["handler"]
+
+    class FakeRequest(handler):
+        def __init__(self, *, path: str, payload: dict[str, object]) -> None:
+            self.path = path
+            self.headers = {"Content-Length": str(len(json.dumps(payload).encode("utf-8")))}
+            self.rfile = io.BytesIO(json.dumps(payload).encode("utf-8"))
+            self.wfile = io.BytesIO()
+            self.status_code = None
+            self.headers_sent: dict[str, str] = {}
+
+        def send_response(self, status_code: int) -> None:
+            self.status_code = status_code
+
+        def send_header(self, key: str, value: str) -> None:
+            self.headers_sent[key] = value
+
+        def end_headers(self) -> None:
+            return None
+
+        def send_error(self, status_code: int) -> None:
+            self.status_code = status_code
+
+        def log_message(self, format: str, *args: object) -> None:
+            return None
+
+    attach_request = FakeRequest(path="/terminal/attach", payload={"idempotency_key": "attach-1"})
+    attach_request.do_POST()
+    attach_payload = json.loads(attach_request.wfile.getvalue().decode("utf-8"))
+    input_request = FakeRequest(
+        path="/terminal/input",
+        payload={
+            "idempotency_key": "input-1",
+            "token": attach_payload["attach_token"],
+            "lease_id": attach_payload["lease"]["lease_id"],
+            "text": "hello\n",
+        },
+    )
+    input_request.do_POST()
+    input_payload = json.loads(input_request.wfile.getvalue().decode("utf-8"))
+
+    assert attach_request.status_code == 200
+    assert attach_payload["status"] == "attached"
+    assert input_request.status_code == 200
+    assert input_payload["status"] == "accepted"
+    assert (run_root / "terminal_commands.jsonl").is_file()
 
 
 def test_runtime_live_console_snapshot_materializes_workspace_session_model(tmp_path: Path, capsys) -> None:

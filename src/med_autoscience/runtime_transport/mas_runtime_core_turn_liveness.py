@@ -108,6 +108,21 @@ def initial_worker_lease_payload(
         value = runner_receipt.get(key)
         if isinstance(value, int):
             lease[key] = value
+    terminal_attach_capable = runner_receipt.get("terminal_attach_capable") is True
+    lease.update(
+        {
+            "terminal_attach_capable": terminal_attach_capable,
+            "terminal_bridge_status": text(runner_receipt.get("terminal_bridge_status"))
+            or ("enabled" if terminal_attach_capable else "disabled_by_run_capability"),
+            "terminal_bridge_kind": text(runner_receipt.get("terminal_bridge_kind")),
+            "terminal_input_owner": text(runner_receipt.get("terminal_input_owner")),
+            "chat_quest_input_allowed": runner_receipt.get("chat_quest_input_allowed") is True,
+        }
+    )
+    for key in ("terminal_bridge_path", "terminal_transcript_path"):
+        value = text(runner_receipt.get(key))
+        if value:
+            lease[key] = value
     return lease
 
 

@@ -22,6 +22,7 @@ class MasTurnRunner(Protocol):
         run_id: str,
         reason: str,
         claimed_user_messages: tuple[dict[str, Any], ...],
+        terminal_attach_capable: bool = False,
     ) -> dict[str, Any]: ...
 
 
@@ -42,6 +43,7 @@ class CodexExecTurnRunner:
         run_id: str,
         reason: str,
         claimed_user_messages: tuple[dict[str, Any], ...],
+        terminal_attach_capable: bool = False,
     ) -> dict[str, Any]:
         command = [self.codex_binary, "exec", "--json", "--skip-git-repo-check"]
         if self.dry_run:
@@ -86,6 +88,7 @@ class CodexExecTurnRunner:
             stdout_path=stdout_path,
             stderr_path=stderr_path,
             codex_binary=self.codex_binary,
+            terminal_attach_capable=terminal_attach_capable,
         )
         stdout_handle = stdout_path.open("w", encoding="utf-8")
         stderr_handle = stderr_path.open("w", encoding="utf-8")
@@ -117,18 +120,35 @@ class CodexExecTurnRunner:
         _RUNNING_PROCESSES[_process_key(quest_root=quest_root, run_id=run_id)] = process
         return {
             "runner_kind": "codex_exec",
-            "start_mode": "worker_wrapper_subprocess" if self.use_worker_wrapper else "subprocess",
+            "start_mode": _start_mode(
+                use_worker_wrapper=self.use_worker_wrapper,
+                terminal_attach_capable=terminal_attach_capable,
+            ),
             "command": command,
             "wrapper_command": wrapper_cmd if self.use_worker_wrapper else None,
             "available": True,
             "live": True,
             "pid": process.pid,
-            "monitor_kind": "mas_per_run_worker_wrapper" if self.use_worker_wrapper else "in_process_runner_monitor",
+            "monitor_kind": _monitor_kind(
+                use_worker_wrapper=self.use_worker_wrapper,
+                terminal_attach_capable=terminal_attach_capable,
+            ),
             "monitor_pid": process.pid if self.use_worker_wrapper else None,
             "child_pid": None,
+            "terminal_attach_capable": terminal_attach_capable,
+            "terminal_bridge_status": "enabled" if terminal_attach_capable else "disabled_by_run_capability",
+            "terminal_bridge_kind": "mas_controlled_pty" if terminal_attach_capable else None,
+            "terminal_input_owner": "mas_terminal_attach_contract" if terminal_attach_capable else None,
+            "chat_quest_input_allowed": False,
             "prompt_path": str(prompt_path),
             "stdout_path": str(stdout_path),
             "stderr_path": str(stderr_path),
+            "terminal_bridge_path": str(_run_root(quest_root=quest_root, run_id=run_id) / "terminal_bridge.json")
+            if terminal_attach_capable
+            else None,
+            "terminal_transcript_path": str(_run_root(quest_root=quest_root, run_id=run_id) / "terminal.log")
+            if terminal_attach_capable
+            else None,
         }
 
 
@@ -137,6 +157,18 @@ _RUNNING_PROCESSES: dict[str, subprocess.Popen[str]] = {}
 
 def pop_running_process(*, quest_root: Path, run_id: str) -> subprocess.Popen[str] | None:
     return _RUNNING_PROCESSES.pop(_process_key(quest_root=quest_root, run_id=run_id), None)
+
+
+def _start_mode(*, use_worker_wrapper: bool, terminal_attach_capable: bool) -> str:
+    if terminal_attach_capable and use_worker_wrapper:
+        return "terminal_bridge_worker_wrapper_subprocess"
+    return "worker_wrapper_subprocess" if use_worker_wrapper else "subprocess"
+
+
+def _monitor_kind(*, use_worker_wrapper: bool, terminal_attach_capable: bool) -> str:
+    if terminal_attach_capable and use_worker_wrapper:
+        return "mas_per_run_terminal_bridge_wrapper"
+    return "mas_per_run_worker_wrapper" if use_worker_wrapper else "in_process_runner_monitor"
 
 
 def _codex_turn_prompt(

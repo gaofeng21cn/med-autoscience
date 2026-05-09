@@ -7,12 +7,12 @@ Related contracts: `live-console-parity`, `mds_behavior_equivalence_matrix`
 
 ## 结论
 
-当前 MAS Progress Portal / Live Console 已经解决了“有 MAS-owned 地方看进度和只读运行证据”的问题，并且 repo contract 已把 per-study 工作台、Route / Decision Trail、visible Conversation panel、study-scoped Live Console、authorized action apply receipts 和 terminal attach fail-closed gate 纳入 MAS-owned surface。用户视角的剩余差距主要转为真实 workspace polish、长期刷新 soak、source ref 可读性和 interactive terminal attach 安全门禁。旧 MDS WebUI 的主路径是 project / quest scoped，用户按一篇论文或一个 quest 进入后看进度、stage、文件、执行对话和 terminal；MAS 现在应继续沿 per-study/per-paper shell 收敛，而不是恢复旧 WebUI 或旧 daemon 作为 owner。
+当前 MAS Progress Portal / Live Console 已经解决了“有 MAS-owned 地方看进度和运行证据”的问题，并且 repo contract 已把 per-study 工作台、Route / Decision Trail、visible Conversation panel、study-scoped Live Console、authorized action apply receipts 和 terminal attach owner gate 纳入 MAS-owned surface。用户视角的剩余差距主要转为真实 workspace polish、长期刷新 soak、source ref 可读性和 terminal attach owner soak。旧 MDS WebUI 的主路径是 project / quest scoped，用户按一篇论文或一个 quest 进入后看进度、stage、文件、执行对话和 terminal；MAS 现在应继续沿 per-study/per-paper shell 收敛，而不是恢复旧 WebUI 或旧 daemon 作为 owner。
 
 因此当前口径应改为：
 
 - `progress_visibility`: `partially_equivalent`，但 repo contract 已前进。MAS 有固定 Portal、study-progress、cockpit、per-study page、source refs 和 `mas_progress_portal_route_decision_trail` read-only helper；真实 workspace 用户等价仍取决于多论文 workspace soak、route inputs 完整性和 UI polish。
-- `live_console_parity`: `landed_read_only_purpose_parity`。MAS 有 session/run/terminal/log tail 的只读观察面；Progress Portal 在显式 `--serve --enable-actions` 下已有本机 pause/resume/stop 受控 apply。旧 MDS 的 resident WebSocket terminal attach、terminal input/resize/detach 不是当前 landed scope，但也不应写成 retired / abandoned。它们是后续 interactive parity lane，需要安全、owner、idempotency 和审计 gate。
+- `live_console_parity`: `landed_mas_native_terminal_attach_mvp`。MAS 有 session/run/terminal/log tail 的观察面；Progress Portal 在显式 `--serve --enable-actions` 下已有本机 pause/resume/stop 受控 apply。Terminal attach/input/resize/detach 现在由 MAS terminal attach owner gate 管理：无 owner 时 fail closed，owner available 时展示 attach/input/resize/detach UI/API。旧 MDS 的 resident WebSocket owner 仍不进入 MAS 默认运行。
 - `old_mds_webui_code`: 仍不导入。可借鉴旧 MDS WebUI 的行为规格、信息架构和 UX oracle，不能复制旧 React/WebSocket 代码、bundle、历史或产品身份。
 
 2026-05-09 fresh assessment：这个 gap review 仍然成立，但它的含义需要更精确。MAS Progress Portal / Live Console 的 repo 能力已经 landed，真实 workspace soak 也有 evidence；当前缺口是用户路径 polish 和 interactive terminal attach 深度，不是 MAS 默认还需要 MDS WebUI。对用户影响最大的是“真实多论文 workspace 中每篇论文是否稳定走 per-study 工作台”、“Route / Decision Trail 是否有足够 controller/evidence/runtime lineage 输入”、“Conversation panel 是否覆盖真实执行器证据”和“MAS-native terminal attach/input owner 能否安全落地”。这些应作为 MAS-native UX / control lane 处理，不应通过重新启用旧 MDS daemon 或旧 WebUI 解决。

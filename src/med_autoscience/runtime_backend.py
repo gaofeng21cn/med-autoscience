@@ -128,6 +128,70 @@ class ManagedRuntimeBackend(Protocol):
         payload: dict[str, Any],
     ) -> dict[str, Any]: ...
 
+    def inspect_terminal_attach(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        study_id: str,
+        token: str | None = None,
+        source: str,
+    ) -> dict[str, Any]: ...
+
+    def attach_terminal(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        study_id: str,
+        idempotency_key: str,
+        source: str,
+    ) -> dict[str, Any]: ...
+
+    def terminal_input(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        study_id: str,
+        token: str,
+        lease_id: str,
+        text: str,
+        idempotency_key: str,
+        source: str,
+    ) -> dict[str, Any]: ...
+
+    def resize_terminal(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        study_id: str,
+        token: str,
+        lease_id: str,
+        rows: int,
+        cols: int,
+        idempotency_key: str,
+        source: str,
+    ) -> dict[str, Any]: ...
+
+    def detach_terminal(
+        self,
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        run_id: str,
+        study_id: str,
+        token: str,
+        lease_id: str,
+        idempotency_key: str,
+        source: str,
+    ) -> dict[str, Any]: ...
+
 
 _REGISTERED_MANAGED_RUNTIME_BACKENDS: dict[str, ManagedRuntimeBackend] = {}
 _ENGINE_TO_BACKEND_ID: dict[str, str] = {}
@@ -158,6 +222,26 @@ _BACKEND_CALLABLE_CONTRACT: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] =
     "inspect_turn_lifecycle": (("runtime_root", "quest_id"), ()),
     "artifact_complete_quest": (("runtime_root", "quest_id", "summary"), ()),
     "artifact_interact": (("runtime_root", "quest_id", "payload"), ()),
+    "inspect_terminal_attach": (
+        ("runtime_root", "quest_id", "run_id", "study_id", "source"),
+        ("token",),
+    ),
+    "attach_terminal": (
+        ("runtime_root", "quest_id", "run_id", "study_id", "idempotency_key", "source"),
+        (),
+    ),
+    "terminal_input": (
+        ("runtime_root", "quest_id", "run_id", "study_id", "token", "lease_id", "text", "idempotency_key", "source"),
+        (),
+    ),
+    "resize_terminal": (
+        ("runtime_root", "quest_id", "run_id", "study_id", "token", "lease_id", "rows", "cols", "idempotency_key", "source"),
+        (),
+    ),
+    "detach_terminal": (
+        ("runtime_root", "quest_id", "run_id", "study_id", "token", "lease_id", "idempotency_key", "source"),
+        (),
+    ),
 }
 
 

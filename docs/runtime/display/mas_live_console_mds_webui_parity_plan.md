@@ -15,7 +15,7 @@ Contract ID: `live-console-parity`
 - runtime supervision、worker log、artifact delta、recent events 可读；
 - 明确区分 read-only 观察、controller-authorized action、historical fixture / explicit archive import reference。
 
-`live-console-parity` 已作为 focused lane 进入 `contracts/test-lane-manifest.json` 的 `focused_lanes.live-console-parity`。完成口径是 read-only purpose equivalence：MAS 提供 workspace overview、profile-level session snapshot、loopback SSE service shell、static Live Console HTML、Progress Portal deep link、clean-room oracle 和 forbidden authority writes。它不声明旧 MDS resident daemon、old React bundle 或 WebSocket terminal attach 被 1:1 复刻。WebSocket terminal attach、terminal input/resize/detach 与 UI-issued runtime control 也不应写成 abandoned / retired；它们是后续 interactive parity candidate，落地前必须补安全、owner、幂等和审计 gate。
+`live-console-parity` 已作为 focused lane 进入 `contracts/test-lane-manifest.json` 的 `focused_lanes.live-console-parity`。完成口径是 MAS-native purpose equivalence：MAS 提供 workspace overview、profile-level session snapshot、loopback SSE service shell、static Live Console HTML、Progress Portal deep link、clean-room oracle、forbidden authority writes，以及默认 fail-closed 的 terminal attach owner gate。它不声明旧 MDS resident daemon、old React bundle 或 WebSocket terminal attach 被 1:1 复刻。Terminal attach/input/resize/detach 的 MVP 已落到 MAS owner contract：无 owner 时 fail closed；owner available 时展示 attach/input/resize/detach UI/API。
 
 ## 当前事实
 
@@ -54,7 +54,7 @@ MAS stream bridge：
 
 - `medautosci runtime live-console --profile <profile> --serve`
 - 本地绑定 `127.0.0.1`。
-- 当前 landed scope 使用 Server-Sent Events / snapshot 语义；不声称已复刻旧 MDS WebSocket attach。交互式 attach/control 属后续 gated parity lane。
+- 当前 landed scope 使用 Server-Sent Events / snapshot 语义；不声称已复刻旧 MDS WebSocket attach。交互式 terminal attach/control 使用 MAS terminal attach owner gate；无 owner 时 fail closed，owner available 时仅展示 owner-provided attach/input/resize/detach endpoint contract。
 - stream topics：
   - `workspace.status`
   - `study.status`

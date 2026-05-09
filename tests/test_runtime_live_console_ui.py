@@ -222,6 +222,44 @@ def test_live_console_html_renders_static_shell_without_legacy_webui_assets() ->
     assert "MDS WebUI" not in html
 
 
+def test_live_console_renders_terminal_attach_controls_when_mas_owner_is_available() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_live_console_ui")
+    owner = {
+        "surface_kind": "mas_terminal_attach_owner",
+        "status": "available",
+        "owner": "mas_terminal_attach_loopback",
+        "capabilities": ["attach", "input", "resize", "detach"],
+        "owner_contract": ["token", "lease", "idempotency", "audit", "input", "resize", "detach"],
+        "endpoints": {
+            "attach": "/terminal/attach",
+            "input": "/terminal/input",
+            "resize": "/terminal/resize",
+            "detach": "/terminal/detach",
+        },
+    }
+
+    payload = module.build_live_console_ui_payload(
+        live_console_snapshot={**_live_console_snapshot(), "terminal_attach_owner": owner},
+        generated_at="2026-05-08T01:06:00+00:00",
+        profile_ref="/workspace/DM-CVD/profile.local.toml",
+        study_id="002-dm-china-us-mortality-attribution",
+    )
+    html = module.render_live_console_html(payload)
+
+    assert payload["terminal_attach_gate"]["status"] == "available"
+    assert payload["terminal_attach_gate"]["owner_surface_kind"] == "mas_terminal_attach_owner"
+    assert payload["terminal_attach_gate"]["capabilities"] == ["attach", "input", "resize", "detach"]
+    assert payload["terminal_attach_gate"]["attach_started"] is False
+    assert "Attach Ready" in html
+    assert "Terminal Attach" in html
+    assert 'data-terminal-action="attach"' in html
+    assert 'data-terminal-action="input"' in html
+    assert 'data-terminal-action="resize"' in html
+    assert 'data-terminal-action="detach"' in html
+    assert "MAS-owned terminal input" in html
+    assert "blocked_by_missing_terminal_input_owner" not in html
+
+
 def test_live_console_terminal_attach_gate_cli_fails_closed_without_owner(monkeypatch, tmp_path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
@@ -266,7 +304,7 @@ def test_live_console_terminal_attach_gate_cli_fails_closed_without_owner(monkey
     assert payload["attach_started"] is False
 
 
-def test_live_console_terminal_attach_gate_preempts_serve_snapshot_and_once(monkeypatch, tmp_path, capsys) -> None:
+def test_live_console_terminal_attach_gate_preempts_snapshot_and_once(monkeypatch, tmp_path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     workspace_root = tmp_path / "workspace"
@@ -284,7 +322,6 @@ def test_live_console_terminal_attach_gate_preempts_serve_snapshot_and_once(monk
     monkeypatch.setattr(cli, "runtime_live_console", FakeRuntimeLiveConsole)
 
     for extra_args in (
-        ["--serve", "--format", "json"],
         ["--snapshot", "--format", "json"],
         ["--once", "--format", "json"],
     ):
@@ -302,6 +339,122 @@ def test_live_console_terminal_attach_gate_preempts_serve_snapshot_and_once(monk
         assert exit_code == 2
         assert payload["status"] == "blocked_by_missing_terminal_input_owner"
         assert payload["attach_started"] is False
+
+
+def test_live_console_terminal_attach_serve_starts_with_blocked_terminal_status(
+    monkeypatch,
+    tmp_path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    live_console_commands = importlib.import_module("med_autoscience.cli_parts.live_console_commands")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    served: dict[str, object] = {}
+
+    class FakeRuntimeLiveConsole:
+        @staticmethod
+        def serve_live_console_stream(**kwargs):
+            raise AssertionError("serve startup must not need a runtime stream read")
+
+    class FakeServer:
+        def __init__(self, address, handler):
+            self.server_address = address
+            served["address"] = address
+            served["handler"] = handler
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            served["closed"] = True
+
+        def serve_forever(self):
+            served["served"] = True
+
+    monkeypatch.setattr(cli, "runtime_live_console", FakeRuntimeLiveConsole)
+    monkeypatch.setattr(live_console_commands.http.server, "ThreadingHTTPServer", FakeServer)
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "live-console",
+            "--profile",
+            str(profile_path),
+            "--enable-terminal-attach",
+            "--serve",
+            "--port",
+            "4812",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert served["address"] == ("127.0.0.1", 4812)
+    assert served["served"] is True
+    assert served["closed"] is True
+    assert payload["status"] == "serving"
+    assert payload["read_only"] is True
+    assert payload["terminal_attach"]["status"] == "blocked_by_missing_terminal_input_owner"
+    assert payload["terminal_attach"]["reason"] == "no_attach_capable_live_run"
+    assert payload["terminal_attach"]["attach_started"] is False
+
+
+def test_live_console_terminal_attach_cli_reports_available_owner_without_materializing(monkeypatch, tmp_path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    owner_path = workspace_root / "artifacts" / "runtime" / "terminal_attach" / "owner.json"
+    owner_path.parent.mkdir(parents=True)
+    owner_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "mas_terminal_attach_owner",
+                "status": "available",
+                "owner": "mas_terminal_attach_loopback",
+                "capabilities": ["attach", "input", "resize", "detach"],
+                "owner_contract": ["token", "lease", "idempotency", "audit", "input", "resize", "detach"],
+                "endpoints": {
+                    "attach": "/terminal/attach",
+                    "input": "/terminal/input",
+                    "resize": "/terminal/resize",
+                    "detach": "/terminal/detach",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeRuntimeLiveConsole:
+        @staticmethod
+        def materialize_live_console_session_read_model(**kwargs):
+            raise AssertionError("terminal attach API probe must not materialize live console")
+
+    monkeypatch.setattr(cli, "runtime_live_console", FakeRuntimeLiveConsole)
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "live-console",
+            "--profile",
+            str(profile_path),
+            "--enable-terminal-attach",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["surface_kind"] == "mas_terminal_attach_gate"
+    assert payload["status"] == "available"
+    assert payload["owner_surface_kind"] == "mas_terminal_attach_owner"
+    assert payload["capabilities"] == ["attach", "input", "resize", "detach"]
+    assert payload["attach_started"] is False
 
 
 def test_live_console_no_live_run_renders_meaningful_empty_state() -> None:
@@ -395,6 +548,11 @@ def test_live_console_static_shell_is_mas_authored_and_read_only() -> None:
     assert "控制器动作意图" in html
     assert "artifacts/runtime/live_console/session_read_model/latest.json" in html
     assert "medautosci runtime live-console --profile &lt;profile&gt; --serve" in html
+    assert "Terminal Attach" in html
+    assert "Attach" in html
+    assert "Input" in html
+    assert "Resize" in html
+    assert "Detach" in html
     assert "DeepScientist" not in html
     assert "MDS WebUI" not in html
 

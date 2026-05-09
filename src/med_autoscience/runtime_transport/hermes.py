@@ -394,3 +394,87 @@ def artifact_interact(
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="artifact_interact")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)
     raise _hosted_operation_unavailable("artifact_interact")
+
+
+def inspect_terminal_attach(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    study_id: str,
+    token: str | None = None,
+    source: str,
+) -> dict[str, Any]:
+    del quest_id, run_id, study_id, token, source
+    resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="inspect_terminal_attach")
+    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    raise _hosted_operation_unavailable("inspect_terminal_attach")
+
+
+def attach_terminal(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    study_id: str,
+    idempotency_key: str,
+    source: str,
+) -> dict[str, Any]:
+    del quest_id, run_id, study_id, idempotency_key, source
+    resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="attach_terminal")
+    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    raise _hosted_operation_unavailable("attach_terminal")
+
+
+def terminal_input(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    study_id: str,
+    token: str,
+    lease_id: str,
+    text: str,
+    idempotency_key: str,
+    source: str,
+) -> dict[str, Any]:
+    del quest_id, run_id, study_id, token, lease_id, text, idempotency_key, source
+    resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="terminal_input")
+    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    raise _hosted_operation_unavailable("terminal_input")
+
+
+def resize_terminal(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    study_id: str,
+    token: str,
+    lease_id: str,
+    rows: int,
+    cols: int,
+    idempotency_key: str,
+    source: str,
+) -> dict[str, Any]:
+    del quest_id, run_id, study_id, token, lease_id, rows, cols, idempotency_key, source
+    resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="resize_terminal")
+    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    raise _hosted_operation_unavailable("resize_terminal")
+
+
+def detach_terminal(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    run_id: str,
+    study_id: str,
+    token: str,
+    lease_id: str,
+    idempotency_key: str,
+    source: str,
+) -> dict[str, Any]:
+    del quest_id, run_id, study_id, token, lease_id, idempotency_key, source
+    resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="detach_terminal")
+    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    raise _hosted_operation_unavailable("detach_terminal")

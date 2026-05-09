@@ -103,3 +103,78 @@ def test_codex_exec_runner_prompt_includes_active_controller_work_unit(monkeypat
     assert "Do not treat `execution_owner_guard.supervisor_only=true` as a reason to skip this runtime turn" in prompt
     assert "Do not treat `execution_owner_guard.supervisor_only=true` as a reason to skip this controller work unit" in prompt
     assert "runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta" in prompt
+
+
+def test_codex_exec_runner_default_turn_is_not_terminal_attach_capable(monkeypatch, tmp_path: Path) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    popen_calls = []
+
+    class StartedProcess:
+        pid = 12345
+
+    def fake_popen(*args, **kwargs):
+        popen_calls.append((args, kwargs))
+        return StartedProcess()
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-001",
+        run_id="run-001",
+        reason="explicit_resume",
+        claimed_user_messages=({"content": "do not become stdin", "source": "test"},),
+    )
+
+    popen_kwargs = popen_calls[0][1]
+    assert popen_kwargs["stdin"] is subprocess.DEVNULL
+    assert "--terminal-attach-capable" not in result["wrapper_command"]
+    assert result["terminal_attach_capable"] is False
+    assert result["terminal_bridge_status"] == "disabled_by_run_capability"
+    assert result["chat_quest_input_allowed"] is False
+
+
+def test_codex_exec_runner_explicit_terminal_attach_capability_uses_controlled_bridge(
+    monkeypatch, tmp_path: Path
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    popen_calls = []
+
+    class StartedProcess:
+        pid = 12345
+
+    def fake_popen(*args, **kwargs):
+        popen_calls.append((args, kwargs))
+        return StartedProcess()
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-001",
+        run_id="run-001",
+        reason="explicit_terminal_attach_test",
+        claimed_user_messages=(),
+        terminal_attach_capable=True,
+    )
+
+    popen_kwargs = popen_calls[0][1]
+    assert popen_kwargs["stdin"] is subprocess.DEVNULL
+    assert "--terminal-attach-capable" in result["wrapper_command"]
+    assert result["start_mode"] == "terminal_bridge_worker_wrapper_subprocess"
+    assert result["monitor_kind"] == "mas_per_run_terminal_bridge_wrapper"
+    assert result["terminal_attach_capable"] is True
+    assert result["terminal_bridge_status"] == "enabled"
+    assert result["terminal_bridge_kind"] == "mas_controlled_pty"
+    assert result["terminal_input_owner"] == "mas_terminal_attach_contract"
+    assert result["chat_quest_input_allowed"] is False
+    assert result["terminal_bridge_path"].endswith("/.ds/runs/run-001/terminal_bridge.json")
+    assert result["terminal_transcript_path"].endswith("/.ds/runs/run-001/terminal.log")

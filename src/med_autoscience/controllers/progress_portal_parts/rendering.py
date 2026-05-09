@@ -137,6 +137,7 @@ tbody tr:hover td { background: #f7fafc; }
 .live-console-link { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
 .live-console-link a, .live-console-link strong { color: var(--accent); font-weight: 750; }
 .live-console-link span { color: var(--muted); overflow-wrap: anywhere; }
+.live-console-link .capability-badge { color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 750; background: #e9f5f3; }
 code { background: #eef2f6; border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; color: var(--code); }
 ul { margin: 0; padding-left: 20px; }
 li { margin: 6px 0; overflow-wrap: anywhere; }
