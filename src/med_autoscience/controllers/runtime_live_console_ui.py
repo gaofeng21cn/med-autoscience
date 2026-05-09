@@ -27,6 +27,8 @@ def build_live_console_ui_payload(
     workspace = _mapping(live_console_snapshot.get("workspace"))
     studies = _studies(live_console_snapshot.get("studies"))
     live_runs = _mapping_list(live_console_snapshot.get("runs"))
+    selected_study_id = _text(live_console_snapshot.get("selected_study_id"))
+    scope = "study" if selected_study_id else "profile"
     source_refs = _source_refs(studies)
     generated = generated_at or _utc_now()
     no_live_blockers = _no_live_blockers(studies)
@@ -36,6 +38,8 @@ def build_live_console_ui_payload(
         "brand": BRAND,
         "generated_at": generated,
         "generated_at_local": local_time_projection(generated, timezone_name=None),
+        "scope": scope,
+        "selected_study_id": selected_study_id,
         "payload_ref": LIVE_CONSOLE_PAYLOAD_REF,
         "html_ref": LIVE_CONSOLE_HTML_REF,
         "authority": {
@@ -87,6 +91,9 @@ def render_live_console_html(payload: Mapping[str, Any]) -> str:
     generated_at_local_label = str(generated_at_local.get("label") or generated_at)
     brand = str(payload.get("brand") or BRAND)
     progress_href = str(portal_handoff.get("progress_portal_href") or "../progress/index.html")
+    selected_study_id = _text(payload.get("selected_study_id"))
+    scope = _text(payload.get("scope")) or ("study" if selected_study_id else "profile")
+    scope_label = selected_study_id if scope == "study" and selected_study_id else "operator 总览"
     return "\n".join(
         [
             "<!doctype html>",
@@ -109,6 +116,7 @@ def render_live_console_html(payload: Mapping[str, Any]) -> str:
             "</div>",
             f"<h1>{escape(str(workspace.get('profile_name') or 'unknown workspace'))}</h1>",
             '<dl class="meta">',
+            f"<div><dt>控制台范围</dt><dd>{escape(scope_label)}</dd></div>",
             f"<div><dt>工作区路径</dt><dd>{escape(str(workspace.get('workspace_root') or ''))}</dd></div>",
             f"<div><dt>工作区状态</dt><dd>{status_chip(workspace.get('workspace_status') or 'unknown')}</dd></div>",
             f"<div><dt>本机时间</dt><dd>{escape(generated_at_local_label)}</dd></div>",

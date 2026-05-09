@@ -149,11 +149,13 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
     if not studies:
         return ""
     rows = []
-    headers = ("论文线", "状态", "active_run_id", "运行健康", "监管心跳", "进度新鲜度", "论文阶段", "焦点/下一步")
+    headers = ("论文线", "Live Console", "状态", "active_run_id", "运行健康", "监管心跳", "进度新鲜度", "论文阶段", "焦点/下一步")
     for item in studies:
         selected_class = " selected" if bool(item.get("selected")) else ""
+        study_id = display_text(item.get("study_id"), fallback="未知论文线", preserve_known_token=False)
         values = (
-            escape(display_text(item.get("study_id"), fallback="未知论文线", preserve_known_token=False)),
+            escape(study_id),
+            _study_live_console_link(study_id),
             escape(display_text(item.get("state_label"), fallback="状态投影缺失", preserve_known_token=False)),
             escape(display_text(item.get("active_run_id"), fallback="无 live run", preserve_known_token=False)),
             status_chip(item.get("runtime_health_status") or "unknown"),
@@ -173,13 +175,17 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
         "<h2>论文线概览</h2>"
         '<div class="table-wrap"><table class="responsive-table">'
         "<thead><tr>"
-        "<th>论文线</th><th>状态</th><th>active_run_id</th><th>运行健康</th>"
+        "<th>论文线</th><th>Live Console</th><th>状态</th><th>active_run_id</th><th>运行健康</th>"
         "<th>监管心跳</th><th>进度新鲜度</th><th>论文阶段</th><th>焦点/下一步</th>"
         "</tr></thead>"
         "<tbody>"
         + "".join(rows)
         + "</tbody></table></div></section>"
     )
+
+
+def _study_live_console_link(study_id: str) -> str:
+    return f'<a href="../live-console/index.html?study_id={escape(study_id, quote=True)}">打开</a>'
 
 
 def render_workspace_alerts_section(title: str, items: list[dict[str, str | None]], *, empty_text: str) -> str:

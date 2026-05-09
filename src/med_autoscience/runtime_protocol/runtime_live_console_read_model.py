@@ -306,9 +306,7 @@ def _study_contexts(
     contexts = [_study_context(profile=profile, study_root=root) for root in sorted(set(roots))]
     if selected_study_id is None:
         return contexts
-    selected = [context for context in contexts if context["study_id"] == selected_study_id]
-    others = [context for context in contexts if context["study_id"] != selected_study_id]
-    return [*selected, *others] if selected else contexts
+    return [context for context in contexts if context["study_id"] == selected_study_id]
 
 
 def _discover_study_roots(profile: WorkspaceProfile) -> list[Path]:

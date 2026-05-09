@@ -78,10 +78,11 @@ def _materialize_live_console_ui(
     if not isinstance(session_read_model, Mapping):
         return
     root = Path(workspace_root).expanduser().resolve()
+    selected_study_id = _text(session_read_model.get("selected_study_id"))
     ui_payload = runtime_live_console_ui.build_live_console_ui_payload(
         live_console_snapshot=session_read_model,
         generated_at=str(session_read_model.get("generated_at") or result.get("generated_at") or ""),
-        progress_portal_href="../progress/index.html",
+        progress_portal_href=_progress_portal_href(root=root, study_id=selected_study_id),
         stream_href=stream_href,
     )
     ui_payload_path = root / runtime_live_console_ui.LIVE_CONSOLE_PAYLOAD_REF
@@ -93,6 +94,22 @@ def _materialize_live_console_ui(
     result["ui_payload_path"] = str(ui_payload_path)
     result["html_path"] = str(html_path)
     result["ui_payload"] = ui_payload
+
+
+def _progress_portal_href(*, root: Path, study_id: str | None) -> str:
+    if study_id is None:
+        return "../progress/index.html"
+    per_study_href = f"../progress/studies/{study_id}/index.html"
+    if (root / "ops" / "mas" / "progress" / "studies" / study_id / "index.html").is_file():
+        return per_study_href
+    return f"../progress/index.html?study_id={study_id}"
+
+
+def _text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    return stripped or None
 
 
 __all__ = [
