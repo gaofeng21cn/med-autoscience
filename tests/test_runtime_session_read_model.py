@@ -68,6 +68,50 @@ def test_runtime_session_projection_prefers_study_runtime_status_and_enforces_st
     assert session["generated_at"] == "2026-05-08T00:05:00+00:00"
 
 
+def test_runtime_session_projection_includes_watchdog_fields_without_relaxing_strict_live() -> None:
+    read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_session_read_model")
+    status_payload = {
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "active_run_id": "run-wrapper",
+        "runtime_liveness_status": "unknown",
+        "worker_running": True,
+        "worker_state": "stale",
+        "last_seen_at": "2026-05-08T00:03:00+00:00",
+        "worker_watchdog": {
+            "monitor_kind": "mas_per_run_worker_wrapper",
+            "monitor_pid": 4242,
+            "child_pid": 4343,
+            "heartbeat_age_seconds": 360,
+            "last_output_at": "2026-05-08T00:02:30+00:00",
+            "stdout_cursor": 2048,
+            "monitor_state": "stale",
+            "stale_reason": "heartbeat_ttl_exceeded",
+            "last_stdout_ref": "stdout://run-wrapper",
+            "will_start_llm": False,
+        },
+    }
+
+    projection = read_model.build_runtime_session_read_model(
+        study_runtime_status=status_payload,
+        generated_at="2026-05-08T00:10:00+00:00",
+    )
+
+    session = projection["runtime_session"]
+    assert session["active_run_id"] is None
+    assert session["last_known_run_id"] == "run-wrapper"
+    assert session["monitor_kind"] == "mas_per_run_worker_wrapper"
+    assert session["monitor_pid"] == 4242
+    assert session["child_pid"] == 4343
+    assert session["heartbeat_age_seconds"] == 360
+    assert session["last_output_at"] == "2026-05-08T00:02:30+00:00"
+    assert session["stdout_cursor"] == 2048
+    assert session["monitor_state"] == "stale"
+    assert session["stale_reason"] == "heartbeat_ttl_exceeded"
+    assert session["last_stdout_ref"] == "stdout://run-wrapper"
+    assert session["will_start_llm"] is False
+
+
 def test_runtime_session_projection_reads_latest_lifecycle_event_when_status_is_absent(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_session_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"

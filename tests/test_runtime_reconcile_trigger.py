@@ -68,6 +68,9 @@ def test_due_outer_supervision_slo_projects_safe_reconcile_recommendation() -> N
     )
 
     assert projection["safe_to_request"] is True
+    assert projection["action_class"] == "reconcile_dry_run"
+    assert projection["will_start_llm"] is False
+    assert projection["action_fingerprint"] == projection["dedupe_fingerprint"]
     assert {"source": "outer_supervision_slo.state", "state": "due"} in projection["stale_signals"]
     assert projection["outer_supervision_slo"]["state"] == "due"
 

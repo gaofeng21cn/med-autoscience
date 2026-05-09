@@ -197,6 +197,7 @@ def build_live_console_read_model(
             "quest_id": io.first_text(session.get("quest_id"), Path(quest_root).name if quest_root is not None else None),
         },
         "session": session,
+        "watchdog": _watchdog_projection(session),
         "runtime_health": health,
         "runtime_supervision": supervision,
         "terminal_sources": terminal,
@@ -245,6 +246,7 @@ def build_live_console_stream_events(read_model: Mapping[str, Any]) -> list[dict
         ("study.status", "live_console.study", read_model.get("study")),
         ("runtime.health", "live_console.runtime_health", read_model.get("runtime_health")),
         ("runtime.supervision", "live_console.runtime_supervision", read_model.get("runtime_supervision")),
+        ("runtime.watchdog", "live_console.watchdog", read_model.get("watchdog")),
         (
             "terminal.tail",
             live_console_contract.first_source_ref(read_model.get("terminal_sources")) or "live_console.terminal",
@@ -864,6 +866,22 @@ def _surface_path_text(context: Mapping[str, Any], key: str) -> str | None:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _watchdog_projection(session: Mapping[str, Any]) -> dict[str, Any]:
+    keys = (
+        "monitor_kind",
+        "monitor_pid",
+        "child_pid",
+        "heartbeat_age_seconds",
+        "last_output_at",
+        "stdout_cursor",
+        "stderr_cursor",
+        "monitor_state",
+        "stale_reason",
+        "will_start_llm",
+    )
+    return {key: session.get(key) for key in keys if session.get(key) is not None}
 
 
 def _utc_now() -> str:

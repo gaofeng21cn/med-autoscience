@@ -202,7 +202,11 @@ def test_outer_supervision_slo_projects_fresh_due_stale_missing_and_blocked(tmp_
 
     assert fresh["state"] == "fresh"
     assert fresh["recommended_command"] is None
+    assert fresh["action_class"] == "observe_only"
+    assert fresh["will_start_llm"] is False
     assert due["state"] == "due"
+    assert due["action_class"] == "reconcile_dry_run"
+    assert due["will_start_llm"] is False
     assert stale["state"] == "stale"
     assert missing["state"] == "missing"
     assert blocked["state"] == "blocked"

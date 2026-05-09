@@ -76,6 +76,9 @@ def test_runtime_platform_repair_dispatch_uses_non_persistent_scan(monkeypatch, 
     )
 
     assert result["executed_count"] == 1
+    assert result["codex_dispatch_count"] == 0
+    assert result["executions"][0]["action_class"] == "controller_apply"
+    assert result["executions"][0]["will_start_llm"] is False
     assert called["study_ids"] == (study_id,)
     assert called["apply_runtime_platform_repair"] is True
     assert latest_path.read_text(encoding="utf-8") == before

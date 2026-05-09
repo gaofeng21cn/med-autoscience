@@ -6,6 +6,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from med_autoscience.controllers.outer_supervision_slo import supervisor_reconcile_command
+from med_autoscience.controllers import runtime_dispatch_cost
 
 
 SCHEMA_VERSION = 1
@@ -63,6 +64,14 @@ def build_runtime_reconcile_trigger_projection(
         if safe_to_request
         else None
     )
+    action_cost = runtime_dispatch_cost.reconcile_dry_run_contract(
+        reason="runtime_reconcile_trigger_safe_dry_run",
+        action_fingerprint=fingerprint,
+        recommended_command=recommended_command,
+    ) if safe_to_request else runtime_dispatch_cost.observe_only_contract(
+        reason="runtime_reconcile_trigger_blocked_or_not_needed",
+        action_fingerprint=fingerprint,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
@@ -70,6 +79,10 @@ def build_runtime_reconcile_trigger_projection(
         "request_kind": REQUEST_KIND,
         "recommended_command": recommended_command,
         "dedupe_fingerprint": fingerprint,
+        "action_fingerprint": fingerprint,
+        "action_class": action_cost["action_class"],
+        "will_start_llm": action_cost["will_start_llm"],
+        "action_cost": action_cost,
         "dedupe_state": "duplicate" if duplicate else "new",
         "blocked_reasons": blocked_reasons,
         "stale_signals": stale_signals,

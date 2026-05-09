@@ -7,6 +7,107 @@ from typing import Any
 from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
     inspect_logical_turn_completion,
 )
+from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import worker_lease_status
+
+
+def lease_payload_status(
+    *,
+    lease: Mapping[str, Any],
+    run_id: str | None,
+    now: Callable[[], Any],
+    parse_time: Callable[[str | None], Any],
+    pid_live_check: Callable[[int], bool],
+    ttl_seconds: int,
+) -> dict[str, Any]:
+    return worker_lease_status(
+        lease=lease,
+        run_id=run_id,
+        now=now,
+        parse_time=parse_time,
+        pid_live_check=pid_live_check,
+        ttl_seconds=ttl_seconds,
+    )
+
+
+def lease_payload_live(
+    *,
+    lease: Mapping[str, Any],
+    run_id: str | None,
+    now: Callable[[], Any],
+    parse_time: Callable[[str | None], Any],
+    pid_live_check: Callable[[int], bool],
+    ttl_seconds: int,
+) -> bool:
+    return bool(
+        lease_payload_status(
+            lease=lease,
+            run_id=run_id,
+            now=now,
+            parse_time=parse_time,
+            pid_live_check=pid_live_check,
+            ttl_seconds=ttl_seconds,
+        ).get("live")
+    )
+
+
+def watchdog_projection(*, lease: Mapping[str, Any], lease_status: Mapping[str, Any]) -> dict[str, Any] | None:
+    if not lease:
+        return None
+    keys = (
+        "monitor_kind",
+        "monitor_pid",
+        "child_pid",
+        "last_seen_at",
+        "last_output_at",
+        "stdout_cursor",
+        "stderr_cursor",
+        "last_stdout_ref",
+        "last_stderr_ref",
+        "child_returncode",
+        "runner_status",
+    )
+    projection = {key: lease.get(key) for key in keys if lease.get(key) is not None}
+    projection["monitor_state"] = lease_status.get("monitor_state")
+    projection["stale_reason"] = lease_status.get("stale_reason")
+    projection["heartbeat_age_seconds"] = lease_status.get("heartbeat_age_seconds")
+    projection["live"] = bool(lease_status.get("live"))
+    return projection
+
+
+def initial_worker_lease_payload(
+    *,
+    quest_id: str,
+    run_id: str,
+    reason: str,
+    source: str,
+    started_at: str,
+    runner_receipt: Mapping[str, Any],
+    text: Callable[[object], str | None],
+) -> dict[str, Any]:
+    lease: dict[str, Any] = {
+        "schema_version": 1,
+        "quest_id": quest_id,
+        "run_id": run_id,
+        "reason": reason,
+        "source": source,
+        "started_at": started_at,
+        "heartbeat_at": started_at,
+        "runner_kind": "mas_turn_runner",
+        "monitor_kind": text(runner_receipt.get("monitor_kind")) or "in_process_runner_monitor",
+        "monitor_state": "live",
+        "last_seen_at": started_at,
+        "last_output_at": started_at,
+        "last_stdout_ref": text(runner_receipt.get("stdout_path")),
+        "last_stderr_ref": text(runner_receipt.get("stderr_path")),
+        "stdout_cursor": 0,
+        "stderr_cursor": 0,
+        "stale_reason": None,
+    }
+    for key in ("pid", "monitor_pid", "child_pid"):
+        value = runner_receipt.get(key)
+        if isinstance(value, int):
+            lease[key] = value
+    return lease
 
 
 def reconcile_stale_liveness(

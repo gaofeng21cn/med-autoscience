@@ -84,6 +84,10 @@ def test_runtime_supervisor_reconcile_command_runs_one_shot_and_writes_receipt(
         return {
             "surface": "default_executor_dispatch_executor",
             "requested_studies": list(study_ids),
+            "codex_dispatch_count": 0,
+            "suppressed_dispatch_count": 1,
+            "dry_run_count": 0,
+            "blocked_count": 1,
             "executions": [
                 {
                     "study_id": "DM002",
@@ -128,6 +132,10 @@ def test_runtime_supervisor_reconcile_command_runs_one_shot_and_writes_receipt(
     assert payload["before"]["studies"][0]["owner_route"]["next_owner"] == "owner-1"
     assert payload["after"]["studies"][0]["owner_route"]["next_owner"] == "owner-2"
     assert payload["executed_dispatch"]["executions"][0]["blocked_reason"] == "quest_root_missing"
+    assert payload["codex_dispatch_count"] == 0
+    assert payload["suppressed_dispatch_count"] == 1
+    assert payload["will_start_llm"] is False
+    assert payload["action_cost"]["action_class"] == "controller_apply"
     assert payload["study_receipts"][0]["before"]["action_queue"][0]["action_type"] == "action-1"
     assert payload["study_receipts"][0]["after"]["why_not_applied"] == "publication_gate_blocked"
     assert payload["study_receipts"][0]["after"]["owner_forwarded"] is True

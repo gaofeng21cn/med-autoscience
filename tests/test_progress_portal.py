@@ -12,6 +12,12 @@ def _runtime_continuity_payload() -> dict[str, object]:
             "last_known_run_id": "run-stale-001",
             "runtime_liveness_status": "stale",
             "last_seen_at": "2026-05-08T00:40:00+00:00",
+            "monitor_kind": "mas_per_run_worker_wrapper",
+            "monitor_state": "stale",
+            "heartbeat_age_seconds": 420,
+            "last_output_at": "2026-05-08T00:38:00+00:00",
+            "stale_reason": "heartbeat_ttl_exceeded",
+            "will_start_llm": False,
             "freshness_state": "stale",
             "freshness_age_seconds": 1500,
             "evidence_refs": ["studies/001-risk/artifacts/runtime/session/latest.json"],
@@ -534,6 +540,9 @@ def test_progress_portal_projects_runtime_continuity_without_new_authority() -> 
     assert continuity["runtime_session"]["worker_state"] == "stale"
     assert continuity["runtime_session"]["last_seen_at"] == "2026-05-08T00:40:00+00:00"
     assert continuity["runtime_session"]["last_known_run_id"] == "run-stale-001"
+    assert continuity["runtime_session"]["monitor_kind"] == "mas_per_run_worker_wrapper"
+    assert continuity["runtime_session"]["heartbeat_age_seconds"] == 420
+    assert continuity["runtime_session"]["will_start_llm"] is False
     assert continuity["recovery_intent"]["current_action"] == "safe_reconcile_ready"
     assert continuity["recovery_intent"]["next_owner"] == "mas_controller"
     assert continuity["recovery_intent"]["authority"] == {
@@ -542,6 +551,8 @@ def test_progress_portal_projects_runtime_continuity_without_new_authority() -> 
         "submission_ready_authorized": False,
     }
     assert payload["opl_handoff"]["runtime_continuity"]["recovery_intent"]["current_action"] == "safe_reconcile_ready"
+    assert "last worker heartbeat" in html
+    assert "will start LLM" in html
     assert "safe_reconcile_ready" in html
     assert "run-stale-001" in html
     assert "quality_ready_authorized" not in html

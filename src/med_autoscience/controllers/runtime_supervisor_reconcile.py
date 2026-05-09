@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.profiles import WorkspaceProfile
 
 from . import outer_supervision_slo, runtime_supervisor_consumer, runtime_supervisor_dispatch_executor, runtime_supervisor_scan
+from . import runtime_dispatch_cost
 
 
 SCHEMA_VERSION = 1
@@ -146,6 +147,23 @@ def _step_receipts(
     ]
 
 
+def _dispatch_counters(*, consumed: Mapping[str, Any], executed: Mapping[str, Any]) -> dict[str, Any]:
+    codex_dispatch_count = int(executed.get("codex_dispatch_count") or 0)
+    suppressed_dispatch_count = int(executed.get("suppressed_dispatch_count") or 0) + int(
+        consumed.get("repeat_suppressed_count") or 0
+    )
+    return {
+        "codex_dispatch_count": codex_dispatch_count,
+        "suppressed_dispatch_count": suppressed_dispatch_count,
+        "default_executor_dispatch_count": int(consumed.get("default_executor_dispatch_count") or 0),
+        "executed_count": int(executed.get("executed_count") or 0),
+        "blocked_count": int(executed.get("blocked_count") or 0),
+        "dry_run_count": int(executed.get("dry_run_count") or 0),
+        "dispatch_budget_window": runtime_dispatch_cost.dispatch_budget_window(),
+        "action_fingerprints": list(executed.get("action_fingerprints") or []),
+    }
+
+
 def supervisor_reconcile(
     *,
     profile: WorkspaceProfile,
@@ -204,6 +222,18 @@ def supervisor_reconcile(
         }
         for study_id in resolved_study_ids
     ]
+    dispatch_counters = _dispatch_counters(consumed=consumed, executed=executed)
+    action_cost = (
+        runtime_dispatch_cost.reconcile_dry_run_contract(
+            reason="runtime_supervisor_reconcile_dry_run",
+            action_fingerprint=f"runtime_supervisor_reconcile::{','.join(resolved_study_ids) or 'workspace'}",
+        )
+        if not apply
+        else runtime_dispatch_cost.controller_apply_contract(
+            reason="runtime_supervisor_reconcile_controller_apply",
+            action_fingerprint=f"runtime_supervisor_reconcile::{','.join(resolved_study_ids) or 'workspace'}",
+        )
+    )
     latest_path = _latest_path(profile)
     history_path = _history_path(profile)
     payload = {
@@ -231,6 +261,11 @@ def supervisor_reconcile(
         },
         "consumed": consumed,
         "executed_dispatch": executed,
+        "action_class": action_cost["action_class"],
+        "will_start_llm": dispatch_counters["codex_dispatch_count"] > 0,
+        "action_cost": {**action_cost, "will_start_llm": dispatch_counters["codex_dispatch_count"] > 0},
+        "dispatch_counters": dispatch_counters,
+        **dispatch_counters,
         "study_receipts": study_receipts,
         "refs": {
             "latest_path": str(latest_path),

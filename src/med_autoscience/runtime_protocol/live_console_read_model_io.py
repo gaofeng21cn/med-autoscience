@@ -13,6 +13,7 @@ STREAM_TOPICS: tuple[str, ...] = (
     "study.status",
     "runtime.health",
     "runtime.supervision",
+    "runtime.watchdog",
     "terminal.tail",
     "log.tail",
     "artifact.delta",

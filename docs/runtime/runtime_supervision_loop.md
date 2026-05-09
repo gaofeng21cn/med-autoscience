@@ -114,6 +114,15 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 
 这条外环和内层 turn lifecycle 的分界是固定的：正常 runner 返回后的 `active_run_id` / `worker_running` 清理、queued user message 优先级、`continuation_policy=auto` 的约 `0.2s` 下一 turn、human/terminal gate 停止，都由 `mas_runtime_core` 的 Runtime Turn Lifecycle Kernel 处理。Hermes cron 只负责发现外层 stale/no-live、刷新 supervision/read-model、触发 safe recovery 或把异常升级；它不再是自动科研连续跑的主循环 owner。
 
+2026-05-09 Runtime Watchdog / LLM cost closeout 把“低延迟感知”和“低成本调度”拆成两层，而不是缩短 300 秒 Hermes cron：
+
+- 真实 runtime turn 由 MAS per-run worker wrapper 托管。wrapper 是每个 run 一个子进程，负责启动并等待 `codex exec` 子进程，刷新 `worker_lease.json` 中的 `monitor_kind=mas_per_run_worker_wrapper`、`monitor_pid`、`child_pid`、`heartbeat_at`、`last_output_at`、stdout/stderr cursor、`monitor_state` 和 `stale_reason`，并在 child exit 后立即写 `runner_exit.json`、调用 `complete_turn_and_normalize`。它不是 resident MDS daemon，也不是 workspace-local service。
+- `worker_lease` / `runtime_session` / Live Console read model 现在能区分 `monitor_state=live|exited|stale|lost|unknown`，并展示 last worker heartbeat、last output、monitor owner、why waiting 与 `will_start_llm`。child exit 走低延迟归一化；wrapper lost 或 heartbeat stale 才进入 recovery intent / safe reconcile 路径，等待 Hermes fail-safe tick 或显式 one-shot reconcile。
+- runtime action cost contract 固定四类动作：`observe_only`、`reconcile_dry_run`、`controller_apply`、`codex_worker_dispatch`。`runtime-supervisor-reconcile --dry-run`、Portal/Console 刷新和 SLO 投影都必须是 `will_start_llm=false`；只有真正进入 MAS runtime turn / 新 owner_route action fingerprint 并启动 Codex worker 时才是 `codex_worker_dispatch`。
+- supervisor reconcile、default executor dispatch 和 runtime watch report 都投影 `codex_dispatch_count`、`suppressed_dispatch_count`、`dispatch_budget_window` 与 `action_fingerprint`。重复 tick 只能刷新 read model 或写 no-op suppression；同一 study 的同一 owner_route / work-unit fingerprint 不得重复启动 Codex worker。
+
+这个设计参考了成熟控制面经验：Kubernetes controller 用 current/desired state reconcile，不把每个 controller 都做成互相耦合的巨大循环；Temporal 用 Activity heartbeat / timeout 及时发现长任务 worker failure；systemd watchdog 用 keep-alive ping 区分服务存活；EventBridge Scheduler 用 retry / DLQ 让调度失败可追踪。MAS 对应做法是 per-run heartbeat + fail-closed reconcile + dispatch 去重，而不是高频 LLM cron。
+
 MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 policy：
 
 - `executor_kind = codex_cli_default`

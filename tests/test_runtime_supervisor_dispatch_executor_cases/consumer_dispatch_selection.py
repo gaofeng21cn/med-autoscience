@@ -88,6 +88,11 @@ def test_execute_dispatch_defaults_to_current_consumer_dispatches(
     assert result["execution_count"] == 1
     assert result["executed_count"] == 1
     assert result["blocked_count"] == 0
+    assert result["codex_dispatch_count"] == 0
+    assert result["suppressed_dispatch_count"] == 0
+    assert result["executions"][0]["action_class"] == "controller_apply"
+    assert result["executions"][0]["will_start_llm"] is False
+    assert result["dispatch_budget_window"]["duplicate_policy"] == "suppress_same_action_fingerprint"
     assert executed_action_types == ["publication_gate_specificity_required"]
     latest = json.loads(
         (

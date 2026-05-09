@@ -321,6 +321,7 @@ def inspect_quest_live_runtime(
         "worker_running": lifecycle["worker_running"] is True,
         "worker_pending": lifecycle["worker_pending"] is True,
         "stop_requested": snapshot["stop_requested"] is True,
+        "worker_watchdog": lifecycle.get("worker_watchdog"),
     }
     if orphan_worker_cleanup is not None:
         result["orphan_worker_cleanup"] = orphan_worker_cleanup

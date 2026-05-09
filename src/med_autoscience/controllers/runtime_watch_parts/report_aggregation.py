@@ -49,6 +49,10 @@ def build_runtime_report(
     managed_study_autonomy_slo_statuses: list[dict[str, Any]],
     managed_study_autonomy_repair_actions: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    dispatch_counters = _dispatch_counters(
+        dispatches=managed_study_outer_loop_dispatches,
+        suppressions=managed_study_no_op_suppressions,
+    )
     runtime_report = {
         "schema_version": 1,
         "scanned_at": utc_now(),
@@ -64,6 +68,14 @@ def build_runtime_report(
         "managed_study_alert_deliveries": managed_study_alert_deliveries,
         "managed_study_autonomy_slo_statuses": managed_study_autonomy_slo_statuses,
         "managed_study_autonomy_repair_actions": managed_study_autonomy_repair_actions,
+        "action_class": "codex_worker_dispatch" if dispatch_counters["codex_dispatch_count"] else (
+            "controller_apply" if managed_study_outer_loop_dispatches else "observe_only"
+        ),
+        "will_start_llm": dispatch_counters["codex_dispatch_count"] > 0,
+        "codex_dispatch_count": dispatch_counters["codex_dispatch_count"],
+        "suppressed_dispatch_count": dispatch_counters["suppressed_dispatch_count"],
+        "dispatch_budget_window": dispatch_counters["dispatch_budget_window"],
+        "action_fingerprints": dispatch_counters["action_fingerprints"],
         "reports": reports,
     }
     _attach_family_companion_to_runtime_report(runtime_report, runtime_root=Path(runtime_root).expanduser().resolve())
@@ -74,6 +86,36 @@ def utc_now() -> str:
     from datetime import datetime, timezone
 
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _dispatch_counters(*, dispatches: list[dict[str, Any]], suppressions: list[dict[str, Any]]) -> dict[str, Any]:
+    codex_dispatch_count = sum(_dispatch_starts_worker(dispatch) for dispatch in dispatches)
+    fingerprints = []
+    for item in [*dispatches, *suppressions]:
+        for key in ("work_unit_fingerprint", "work_unit_dispatch_key", "dedupe_scope"):
+            value = str(item.get(key) or "").strip()
+            if value:
+                fingerprints.append(value)
+                break
+    return {
+        "codex_dispatch_count": codex_dispatch_count,
+        "suppressed_dispatch_count": len(suppressions),
+        "dispatch_budget_window": {
+            "scope": "owner_route_action_fingerprint",
+            "max_codex_dispatches": 1,
+            "duplicate_policy": "suppress_same_action_fingerprint",
+            "dry_run_starts_llm": False,
+            "observe_only_starts_llm": False,
+        },
+        "action_fingerprints": list(dict.fromkeys(fingerprints)),
+    }
+
+
+def _dispatch_starts_worker(dispatch: dict[str, Any]) -> bool:
+    if dispatch.get("started") is True or dispatch.get("worker_running") is True:
+        return True
+    action_type = str(dispatch.get("controller_action_type") or dispatch.get("action_type") or "").strip()
+    return action_type in {"ensure_study_runtime", "ensure_study_runtime_relaunch_stopped"}
 
 
 __all__ = ["build_runtime_report", "scan_active_quest_reports"]

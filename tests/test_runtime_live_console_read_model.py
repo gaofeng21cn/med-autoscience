@@ -48,6 +48,14 @@ def test_live_console_read_model_projects_runtime_session_and_stream_refs(tmp_pa
             "last_seen_at": "2026-05-08T02:04:00+00:00",
             "last_event_cursor": "cursor-002",
             "last_stdout_ref": str(stdout_path),
+            "worker_watchdog": {
+                "monitor_kind": "mas_per_run_worker_wrapper",
+                "monitor_state": "live",
+                "heartbeat_age_seconds": 20,
+                "last_output_at": "2026-05-08T02:04:40+00:00",
+                "stdout_cursor": 123,
+                "will_start_llm": False,
+            },
         },
         runtime_health={"status": "recovering", "summary": "worker heartbeat is fresh"},
         runtime_supervision={"supervisor_tick_status": "fresh", "latest_event_at": "2026-05-08T02:04:30+00:00"},
@@ -72,6 +80,14 @@ def test_live_console_read_model_projects_runtime_session_and_stream_refs(tmp_pa
     assert read_model["study"]["study_id"] == "002-dm-china-us-mortality-attribution"
     assert read_model["session"]["active_run_id"] == "run-002"
     assert read_model["session"]["worker_running"] is True
+    assert read_model["watchdog"] == {
+        "monitor_kind": "mas_per_run_worker_wrapper",
+        "heartbeat_age_seconds": 20,
+        "last_output_at": "2026-05-08T02:04:40+00:00",
+        "stdout_cursor": 123,
+        "monitor_state": "live",
+        "will_start_llm": False,
+    }
     assert read_model["runtime_health"]["status"] == "recovering"
     assert read_model["runtime_supervision"]["supervisor_tick_status"] == "fresh"
     assert read_model["terminal_sources"][0]["tail"] == ["first terminal line", "second terminal line", "third terminal line"]
@@ -82,6 +98,7 @@ def test_live_console_read_model_projects_runtime_session_and_stream_refs(tmp_pa
         "study.status",
         "runtime.health",
         "runtime.supervision",
+        "runtime.watchdog",
         "terminal.tail",
         "log.tail",
         "artifact.delta",
@@ -134,6 +151,7 @@ def test_live_console_stream_events_are_read_only_and_ordered() -> None:
             "session": {"active_run_id": "run-002"},
             "runtime_health": {"status": "recovering"},
             "runtime_supervision": {"supervisor_tick_status": "fresh"},
+            "watchdog": {"monitor_state": "live"},
             "terminal_sources": [{"source_ref": "/tmp/stdout.jsonl", "tail": ["terminal line"]}],
             "log_sources": [{"source_ref": "/tmp/stderr.txt", "tail": ["log line"]}],
             "artifact_delta": {"refs": ["artifact.json"]},
@@ -146,6 +164,7 @@ def test_live_console_stream_events_are_read_only_and_ordered() -> None:
         "study.status",
         "runtime.health",
         "runtime.supervision",
+        "runtime.watchdog",
         "terminal.tail",
         "log.tail",
         "artifact.delta",

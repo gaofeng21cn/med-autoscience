@@ -358,6 +358,7 @@ def _session_from_source(
         "last_seen_at": last_seen_at,
         "last_event_cursor": _first_text(facts_payload.get("last_event_cursor"), payload.get("last_event_cursor")),
         "last_stdout_ref": _last_stdout_ref(facts_payload),
+        **_watchdog_fields(facts_payload),
         "freshness_state": _freshness_state(age_seconds=freshness_age_seconds, ttl_seconds=freshness_ttl_seconds),
         "freshness_age_seconds": freshness_age_seconds,
         "evidence_refs": list(source.get("evidence_refs") if isinstance(source.get("evidence_refs"), list) else []),
@@ -491,15 +492,56 @@ def _last_seen_at(
 
 def _last_stdout_ref(payload: Mapping[str, Any]) -> str | None:
     runtime_audit = _runtime_audit(payload)
+    watchdog = _worker_watchdog(payload)
     return _first_text(
         payload.get("last_stdout_ref"),
         payload.get("stdout_ref"),
         payload.get("stdout_path"),
+        watchdog.get("last_stdout_ref"),
         runtime_audit.get("last_stdout_ref"),
         runtime_audit.get("stdout_ref"),
         runtime_audit.get("stdout_path"),
         runtime_audit.get("active_stdout_path"),
     )
+
+
+def _worker_watchdog(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    direct = _mapping(payload.get("worker_watchdog"))
+    if direct:
+        return direct
+    runtime_audit = _mapping(payload.get("runtime_audit"))
+    nested = _mapping(runtime_audit.get("worker_watchdog"))
+    if nested:
+        return nested
+    liveness = _mapping(payload.get("runtime_liveness_audit"))
+    nested = _mapping(liveness.get("worker_watchdog"))
+    if nested:
+        return nested
+    nested_audit = _mapping(_mapping(liveness.get("runtime_audit")).get("worker_watchdog"))
+    return nested_audit
+
+
+def _watchdog_fields(payload: Mapping[str, Any]) -> dict[str, Any]:
+    watchdog = _worker_watchdog(payload)
+    if not watchdog:
+        return {}
+    fields: dict[str, Any] = {}
+    for key in (
+        "monitor_kind",
+        "monitor_pid",
+        "child_pid",
+        "heartbeat_age_seconds",
+        "last_output_at",
+        "stdout_cursor",
+        "stderr_cursor",
+        "monitor_state",
+        "stale_reason",
+    ):
+        if watchdog.get(key) is not None:
+            fields[key] = watchdog.get(key)
+    if watchdog.get("will_start_llm") is not None:
+        fields["will_start_llm"] = bool(watchdog.get("will_start_llm"))
+    return fields
 
 
 def _runtime_audit(payload: Mapping[str, Any]) -> Mapping[str, Any]:

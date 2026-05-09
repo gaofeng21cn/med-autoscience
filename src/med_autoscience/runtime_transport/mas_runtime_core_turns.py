@@ -13,7 +13,11 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_runner import (
     pop_running_process,
 )
 from med_autoscience.runtime_transport.mas_runtime_core_turn_liveness import (
+    initial_worker_lease_payload,
+    lease_payload_live as _lease_payload_live,
+    lease_payload_status as _lease_payload_status,
     reconcile_stale_liveness as reconcile_stale_liveness_impl,
+    watchdog_projection as _watchdog_projection,
 )
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     idempotency_key as make_idempotency_key,
@@ -23,10 +27,7 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     runner_unavailable,
     text,
 )
-from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import (
-    terminate_worker_leases,
-    worker_lease_live as _worker_lease_live_payload,
-)
+from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import terminate_worker_leases
 
 AUTO_CONTINUE_DELAY_SECONDS = 0.2
 MAX_RETRY_ATTEMPTS = 3
@@ -397,19 +398,15 @@ def start_turn(
             "turn_receipt": receipt,
             "snapshot": snapshot(quest_root=quest_root, state=updated),
         }
-    lease = {
-        "schema_version": 1,
-        "quest_id": quest_id,
-        "run_id": new_run_id,
-        "reason": reason,
-        "source": source,
-        "started_at": now,
-        "heartbeat_at": now,
-        "runner_kind": "mas_turn_runner",
-    }
-    pid = runner_receipt.get("pid")
-    if isinstance(pid, int):
-        lease["pid"] = pid
+    lease = initial_worker_lease_payload(
+        quest_id=quest_id,
+        run_id=new_run_id,
+        reason=reason,
+        source=source,
+        started_at=now,
+        runner_receipt=runner_receipt,
+        text=text,
+    )
     write_json(worker_lease_path(quest_root=quest_root, run_id=new_run_id), lease)
     pending_count = len(load_message_queue(quest_root=quest_root)["pending"])
     updated = persist_state(
@@ -618,7 +615,15 @@ def inspect_turn_lifecycle(*, quest_root: Path) -> dict[str, Any]:
     state = load_state(quest_root=quest_root)
     active_run_id = text(state.get("active_run_id"))
     lease = read_json(worker_lease_path(quest_root=quest_root, run_id=active_run_id)) if active_run_id else {}
-    lease_live = _lease_payload_live(lease=lease, run_id=active_run_id)
+    lease_status = _lease_payload_status(
+        lease=lease,
+        run_id=active_run_id,
+        now=_NOW,
+        parse_time=parse_time,
+        pid_live_check=pid_live,
+        ttl_seconds=WORKER_LEASE_TTL_SECONDS,
+    )
+    lease_live = bool(lease_status.get("live"))
     payload = {
         "ok": True,
         "status": "live" if state.get("worker_running") is True and lease_live else "none",
@@ -628,6 +633,7 @@ def inspect_turn_lifecycle(*, quest_root: Path) -> dict[str, Any]:
         "worker_pending": state.get("worker_pending") is True,
         "stop_requested": state.get("stop_requested") is True,
         "lease": lease if lease else None,
+        "worker_watchdog": _watchdog_projection(lease=lease, lease_status=lease_status),
         "snapshot": snapshot(quest_root=quest_root, state=state),
     }
     if drained_delayed_turn is not None:
@@ -974,12 +980,8 @@ def _record_post_turn_storage_maintenance_hook(*, quest_root: Path, quest_id: st
 
 
 def _worker_lease_live(*, quest_root: Path, run_id: str) -> bool:
-    return _lease_payload_live(lease=read_json(worker_lease_path(quest_root=quest_root, run_id=run_id)), run_id=run_id)
-
-
-def _lease_payload_live(*, lease: Mapping[str, Any], run_id: str | None) -> bool:
-    return _worker_lease_live_payload(
-        lease=lease,
+    return _lease_payload_live(
+        lease=read_json(worker_lease_path(quest_root=quest_root, run_id=run_id)),
         run_id=run_id,
         now=_NOW,
         parse_time=parse_time,

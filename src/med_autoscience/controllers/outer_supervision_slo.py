@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import runtime_dispatch_cost
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -52,6 +53,28 @@ def build_outer_supervision_slo_projection(
         profile_ref=profile_ref,
         study_id=study_id,
     )
+    action_cost = runtime_dispatch_cost.reconcile_dry_run_contract(
+        reason="outer_supervision_slo_recommended_one_shot_reconcile"
+        if recommended_command
+        else "outer_supervision_slo_observe_only",
+        action_fingerprint=_dedupe_fingerprint(
+            state=state,
+            study_id=study_id,
+            latest_event_at=latest_event_at,
+            blocked_reasons=blocked_reasons,
+            missing_reasons=missing_reasons,
+        ),
+        recommended_command=recommended_command,
+    ) if recommended_command else runtime_dispatch_cost.observe_only_contract(
+        reason="outer_supervision_slo_observe_only",
+        action_fingerprint=_dedupe_fingerprint(
+            state=state,
+            study_id=study_id,
+            latest_event_at=latest_event_at,
+            blocked_reasons=blocked_reasons,
+            missing_reasons=missing_reasons,
+        ),
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
@@ -68,6 +91,10 @@ def build_outer_supervision_slo_projection(
         "stale_after_seconds": stale_after_seconds,
         "recommended_command": recommended_command,
         "canonical_one_shot_supervisor_reconcile_command": recommended_command,
+        "action_class": action_cost["action_class"],
+        "will_start_llm": action_cost["will_start_llm"],
+        "action_fingerprint": action_cost["action_fingerprint"],
+        "action_cost": action_cost,
         "blocked_reasons": list(dict.fromkeys(blocked_reasons)),
         "missing_reasons": list(dict.fromkeys(missing_reasons)),
         "refs": {
@@ -176,6 +203,28 @@ def _summary(*, state: str, age_seconds: int | None, blocked_reasons: list[str],
     if state == "due":
         return f"outer Hermes supervision/reconcile is due ({age_seconds}s old); request one-shot supervisor reconcile."
     return f"outer Hermes supervision/reconcile is stale ({age_seconds}s old); request one-shot supervisor reconcile."
+
+
+def _dedupe_fingerprint(
+    *,
+    state: str,
+    study_id: str | None,
+    latest_event_at: str | None,
+    blocked_reasons: list[str],
+    missing_reasons: list[str],
+) -> str:
+    source = {
+        "surface_kind": SURFACE_KIND,
+        "state": state,
+        "study_id": _text(study_id),
+        "latest_event_at": latest_event_at,
+        "blocked_reasons": list(dict.fromkeys(blocked_reasons)),
+        "missing_reasons": list(dict.fromkeys(missing_reasons)),
+    }
+    encoded = json.dumps(source, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    import hashlib
+
+    return f"{SURFACE_KIND}:{hashlib.sha256(encoded.encode('utf-8')).hexdigest()[:16]}"
 
 
 def _latest_timestamp(*values: str | None) -> str | None:

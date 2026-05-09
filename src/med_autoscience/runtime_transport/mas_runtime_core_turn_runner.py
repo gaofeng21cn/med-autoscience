@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Protocol
 
+from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import wrapper_command
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import command_available
 
 
@@ -29,6 +30,7 @@ class CodexExecTurnRunner:
 
     codex_binary: str = "codex"
     dry_run: bool = False
+    use_worker_wrapper: bool = True
 
     def start_turn(
         self,
@@ -67,11 +69,22 @@ class CodexExecTurnRunner:
             _codex_turn_prompt(quest_id=quest_id, run_id=run_id, reason=reason, claimed_user_messages=claimed_user_messages),
             encoding="utf-8",
         )
+        wrapper_cmd = wrapper_command(
+            runtime_root=runtime_root,
+            quest_root=quest_root,
+            quest_id=quest_id,
+            run_id=run_id,
+            prompt_path=prompt_path,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            codex_binary=self.codex_binary,
+        )
         stdout_handle = stdout_path.open("w", encoding="utf-8")
         stderr_handle = stderr_path.open("w", encoding="utf-8")
         try:
+            popen_args = wrapper_cmd if self.use_worker_wrapper else [*command, prompt_path.read_text(encoding="utf-8")]
             process = subprocess.Popen(
-                [*command, prompt_path.read_text(encoding="utf-8")],
+                popen_args,
                 cwd=str(quest_root),
                 text=True,
                 stdin=subprocess.DEVNULL,
@@ -95,11 +108,15 @@ class CodexExecTurnRunner:
         _RUNNING_PROCESSES[_process_key(quest_root=quest_root, run_id=run_id)] = process
         return {
             "runner_kind": "codex_exec",
-            "start_mode": "subprocess",
+            "start_mode": "worker_wrapper_subprocess" if self.use_worker_wrapper else "subprocess",
             "command": command,
+            "wrapper_command": wrapper_cmd if self.use_worker_wrapper else None,
             "available": True,
             "live": True,
             "pid": process.pid,
+            "monitor_kind": "mas_per_run_worker_wrapper" if self.use_worker_wrapper else "in_process_runner_monitor",
+            "monitor_pid": process.pid if self.use_worker_wrapper else None,
+            "child_pid": None,
             "prompt_path": str(prompt_path),
             "stdout_path": str(stdout_path),
             "stderr_path": str(stderr_path),

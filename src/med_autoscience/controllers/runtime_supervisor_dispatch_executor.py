@@ -12,6 +12,7 @@ from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import repeat_suppression
 from med_autoscience.runtime_protocol import runtime_lifecycle_store
 
+from . import runtime_dispatch_cost
 from . import ai_reviewer_publication_eval_workflow, gate_clearing_batch, publication_gate, quest_hydration, study_runtime_router
 from .runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
 from .supervisor_action_request_lifecycle import stable_ai_reviewer_request_path
@@ -738,6 +739,10 @@ def _execute_dispatch(
             "blocked_reason": "dispatch_payload_missing_or_invalid",
         }
     action_type = _text(dispatch.get("action_type")) or "unknown_action"
+    action_fingerprint = runtime_dispatch_cost.dispatch_action_fingerprint(
+        dispatch=dispatch,
+        dispatch_path=dispatch_path,
+    )
     guard_ok, guard_reason = _contract_guard(dispatch)
     current_route = _current_owner_route(profile, study_id)
     owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
@@ -794,6 +799,12 @@ def _execute_dispatch(
             "blocked_reason": "unsupported_action_type",
             "owner_callable_surface": None,
         }
+    action_cost = runtime_dispatch_cost.executor_action_cost(
+        action_type=action_type,
+        apply=apply,
+        execution=execution,
+        action_fingerprint=action_fingerprint,
+    )
     return {
         "surface": "default_executor_dispatch_execution",
         "schema_version": SCHEMA_VERSION,
@@ -815,6 +826,10 @@ def _execute_dispatch(
         "idempotency_key": _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key")),
         "repeat_suppression_key": repeat_guard["repeat_suppression_key"],
         "repeat_suppression": repeat_guard,
+        "action_fingerprint": action_fingerprint,
+        "action_class": action_cost["action_class"],
+        "will_start_llm": action_cost["will_start_llm"],
+        "action_cost": action_cost,
         "dry_run": not apply,
         "developer_supervisor_mode": dict(developer_mode_payload),
         "paper_package_mutation_allowed": False,
@@ -868,6 +883,11 @@ def execute_default_executor_dispatches(
                 "executions": study_executions,
                 "executed_count": sum(item.get("execution_status") == "executed" for item in study_executions),
                 "blocked_count": sum(item.get("execution_status") == "blocked" for item in study_executions),
+                "codex_dispatch_count": sum(item.get("will_start_llm") is True for item in study_executions),
+                "suppressed_dispatch_count": sum(
+                    item.get("execution_status") in {"repeat_suppressed", "blocked"} for item in study_executions
+                ),
+                "dispatch_budget_window": runtime_dispatch_cost.dispatch_budget_window(),
                 "dry_run": False,
             }
             _write_json(latest_path, study_payload)
@@ -907,6 +927,14 @@ def execute_default_executor_dispatches(
         "blocked_count": sum(item.get("execution_status") == "blocked" for item in executions),
         "repeat_suppressed_count": sum(item.get("execution_status") == "repeat_suppressed" for item in executions),
         "dry_run_count": sum(item.get("execution_status") == "dry_run" for item in executions),
+        "codex_dispatch_count": sum(item.get("will_start_llm") is True for item in executions),
+        "suppressed_dispatch_count": sum(
+            item.get("execution_status") in {"repeat_suppressed", "blocked"} for item in executions
+        ),
+        "dispatch_budget_window": runtime_dispatch_cost.dispatch_budget_window(),
+        "action_fingerprints": list(
+            dict.fromkeys(item.get("action_fingerprint") for item in executions if item.get("action_fingerprint"))
+        ),
         "executions": executions,
         "written_files": written_files,
     }

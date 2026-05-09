@@ -12,6 +12,139 @@ from typing import Any
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import pid_live, text
 
 
+def worker_lease_status(
+    *,
+    lease: Mapping[str, Any],
+    run_id: str | None,
+    now: Callable[[], datetime],
+    parse_time: Callable[[str | None], datetime | None],
+    pid_live_check: Callable[[int], bool],
+    ttl_seconds: int,
+) -> dict[str, Any]:
+    if not run_id or lease.get("run_id") != run_id:
+        return _lease_status(live=False, monitor_state="unknown", stale_reason="run_id_mismatch")
+    monitor_state = text(lease.get("monitor_state")) or "unknown"
+    heartbeat_age_seconds = _heartbeat_age_seconds(
+        heartbeat=parse_time(text(lease.get("heartbeat_at"))),
+        now=now,
+    )
+    if monitor_state == "exited" or lease.get("child_returncode") is not None:
+        return _lease_status(live=False, monitor_state="exited", heartbeat_age_seconds=heartbeat_age_seconds)
+    child_status = _child_pid_status(lease=lease, pid_live_check=pid_live_check, heartbeat_age_seconds=heartbeat_age_seconds)
+    if child_status is not None:
+        return child_status
+    monitor_status = _monitor_pid_status(
+        lease=lease,
+        monitor_state=monitor_state,
+        heartbeat_age_seconds=heartbeat_age_seconds,
+        ttl_seconds=ttl_seconds,
+        pid_live_check=pid_live_check,
+    )
+    if monitor_status is not None:
+        return monitor_status
+    pid_status = _direct_pid_status(lease=lease, pid_live_check=pid_live_check, heartbeat_age_seconds=heartbeat_age_seconds)
+    if pid_status is not None:
+        return pid_status
+    return _heartbeat_status(heartbeat_age_seconds=heartbeat_age_seconds, ttl_seconds=ttl_seconds)
+
+
+def _heartbeat_age_seconds(*, heartbeat: datetime | None, now: Callable[[], datetime]) -> int | None:
+    if heartbeat is None:
+        return None
+    return max(0, int((now().astimezone(UTC) - heartbeat).total_seconds()))
+
+
+def _lease_status(
+    *,
+    live: bool,
+    monitor_state: str,
+    stale_reason: str | None = None,
+    heartbeat_age_seconds: int | None = None,
+) -> dict[str, Any]:
+    return {
+        "live": live,
+        "monitor_state": monitor_state,
+        "stale_reason": stale_reason,
+        "heartbeat_age_seconds": heartbeat_age_seconds,
+    }
+
+
+def _child_pid_status(
+    *,
+    lease: Mapping[str, Any],
+    pid_live_check: Callable[[int], bool],
+    heartbeat_age_seconds: int | None,
+) -> dict[str, Any] | None:
+    child_pid = lease.get("child_pid")
+    if not isinstance(child_pid, int) or child_pid <= 0:
+        return None
+    child_live = pid_live_check(child_pid)
+    return _lease_status(
+        live=child_live,
+        monitor_state="live" if child_live else "lost",
+        stale_reason=None if child_live else "child_pid_not_live",
+        heartbeat_age_seconds=heartbeat_age_seconds,
+    )
+
+
+def _monitor_pid_status(
+    *,
+    lease: Mapping[str, Any],
+    monitor_state: str,
+    heartbeat_age_seconds: int | None,
+    ttl_seconds: int,
+    pid_live_check: Callable[[int], bool],
+) -> dict[str, Any] | None:
+    monitor_pid = lease.get("monitor_pid")
+    if not isinstance(monitor_pid, int) or monitor_pid <= 0:
+        return None
+    if pid_live_check(monitor_pid):
+        return _lease_status(
+            live=True,
+            monitor_state=monitor_state if monitor_state != "unknown" else "live",
+            heartbeat_age_seconds=heartbeat_age_seconds,
+        )
+    if heartbeat_age_seconds is None or heartbeat_age_seconds > ttl_seconds:
+        return _lease_status(
+            live=False,
+            monitor_state="lost",
+            stale_reason="wrapper_pid_not_live",
+            heartbeat_age_seconds=heartbeat_age_seconds,
+        )
+    return _lease_status(live=True, monitor_state="live", heartbeat_age_seconds=heartbeat_age_seconds)
+
+
+def _direct_pid_status(
+    *,
+    lease: Mapping[str, Any],
+    pid_live_check: Callable[[int], bool],
+    heartbeat_age_seconds: int | None,
+) -> dict[str, Any] | None:
+    pid = lease.get("pid")
+    if not isinstance(pid, int) or pid <= 0:
+        return None
+    pid_is_live = pid_live_check(pid)
+    return _lease_status(
+        live=pid_is_live,
+        monitor_state="live" if pid_is_live else "lost",
+        stale_reason=None if pid_is_live else "pid_not_live",
+        heartbeat_age_seconds=heartbeat_age_seconds,
+    )
+
+
+def _heartbeat_status(*, heartbeat_age_seconds: int | None, ttl_seconds: int) -> dict[str, Any]:
+    if heartbeat_age_seconds is None:
+        return _lease_status(live=False, monitor_state="unknown", stale_reason="heartbeat_missing")
+    if heartbeat_age_seconds > ttl_seconds:
+        return _lease_status(
+            live=False,
+            monitor_state="stale",
+            stale_reason="heartbeat_ttl_exceeded",
+            heartbeat_age_seconds=heartbeat_age_seconds,
+        )
+    return _lease_status(live=True, monitor_state="live", heartbeat_age_seconds=heartbeat_age_seconds)
+
+
 def worker_lease_live(
     *,
     lease: Mapping[str, Any],
@@ -21,18 +154,16 @@ def worker_lease_live(
     pid_live_check: Callable[[int], bool],
     ttl_seconds: int,
 ) -> bool:
-    if not run_id or lease.get("run_id") != run_id:
-        return False
-    pid = lease.get("pid")
-    if isinstance(pid, int) and pid > 0:
-        return pid_live_check(pid)
-    heartbeat = parse_time(text(lease.get("heartbeat_at")))
-    if heartbeat is None:
-        return False
-    age_seconds = (now().astimezone(UTC) - heartbeat).total_seconds()
-    if age_seconds > ttl_seconds:
-        return False
-    return True
+    return bool(
+        worker_lease_status(
+            lease=lease,
+            run_id=run_id,
+            now=now,
+            parse_time=parse_time,
+            pid_live_check=pid_live_check,
+            ttl_seconds=ttl_seconds,
+        )["live"]
+    )
 
 
 def terminate_worker_leases(
@@ -100,7 +231,7 @@ def _terminate_leases(
     skipped: list[dict[str, Any]] = []
     for lease_path, lease in leases:
         run_id = text(lease.get("run_id")) or lease_path.parent.name
-        pid = lease.get("pid")
+        pid = lease.get("child_pid") or lease.get("monitor_pid") or lease.get("pid")
         if not isinstance(pid, int) or pid <= 0:
             skipped.append({"run_id": run_id, "lease_path": str(lease_path), "reason": "missing_pid"})
             continue

@@ -37,6 +37,21 @@ def runtime_continuity_section(runtime_continuity: Mapping[str, Any]) -> str:
             items.append(f"last known run：{session.get('last_known_run_id')}")
         if session.get("last_seen_at"):
             items.append(f"last seen：{local_time_label(session.get('last_seen_at'))}")
+        if session.get("heartbeat_age_seconds") is not None:
+            items.append(f"last worker heartbeat：{session.get('heartbeat_age_seconds')}s ago")
+        if session.get("last_output_at"):
+            items.append(f"last output：{local_time_label(session.get('last_output_at'))}")
+        if session.get("monitor_kind") or session.get("monitor_state"):
+            items.append(
+                "monitor owner："
+                + display_text(session.get("monitor_kind"), fallback="未提供")
+                + " / "
+                + display_text(session.get("monitor_state"), fallback="未提供")
+            )
+        if session.get("stale_reason"):
+            items.append(f"why waiting：{display_text(session.get('stale_reason'), fallback='未提供')}")
+        if session.get("will_start_llm") is not None:
+            items.append(f"will start LLM：{'yes' if session.get('will_start_llm') else 'no'}")
         if session.get("freshness_state"):
             items.append(f"freshness：{display_text(session.get('freshness_state'), fallback='未提供')}")
     if intent:
