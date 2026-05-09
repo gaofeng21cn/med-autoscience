@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -266,7 +267,16 @@ def test_supervisor_scan_routes_analysis_handoff_to_next_owner(
     )
 
     study = result["studies"][0]
-    assert study["action_queue"] == []
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    action = study["action_queue"][0]
+    assert action["reason"] == "controller_work_unit_owner_handoff_required"
+    assert action["owner"] == "write/ai_reviewer"
+    assert action["request_owner"] == "write/ai_reviewer"
+    assert action["recommended_owner"] == "write/ai_reviewer"
+    assert action["required_output_surface"] == "artifacts/publication_eval/latest.json"
+    assert action["next_work_unit"] == "manuscript_story_repair"
+    assert action["paper_package_mutation_allowed"] is False
+    assert action["medical_claim_authoring_allowed"] is False
     assert study["runtime_platform_repair_apply"] is None
     assert study["why_not_applied"] == "controller_work_unit_owner_handoff_required"
     assert study["blocked_reason"] == "controller_work_unit_owner_handoff_required"
@@ -274,8 +284,21 @@ def test_supervisor_scan_routes_analysis_handoff_to_next_owner(
     assert study["external_supervisor_required"] is False
     assert study["owner_route"]["next_owner"] == "write/ai_reviewer"
     assert study["owner_route"]["owner_reason"] == "controller_work_unit_owner_handoff_required"
-    assert study["owner_route"]["allowed_actions"] == []
-    assert result["queue_history"]["latest_action_count"] == 0
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert result["queue_history"]["latest_action_count"] == 1
+    request_packet = json.loads(
+        (
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "requests"
+            / "ai_reviewer"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert request_packet["source_workflow_ref"]["next_work_unit"] == "manuscript_story_repair"
+    assert request_packet["source_workflow_ref"]["route_back_target"] == "write/ai_reviewer"
+    assert request_packet["blockers"] == ["controller_work_unit_owner_handoff_required"]
 
 
 def test_supervisor_scan_keeps_runtime_redrive_when_adopted_work_unit_did_not_clear_gate(

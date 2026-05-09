@@ -64,6 +64,14 @@ def materialize_request_packets(
             packet,
         )
     if "return_to_ai_reviewer_workflow" in action_types:
+        reviewer_action = _first_action(actions, "return_to_ai_reviewer_workflow")
+        handoff_reason = _text(reviewer_action.get("reason"))
+        route_back_target = (
+            _text(reviewer_action.get("request_owner"))
+            or _text(reviewer_action.get("recommended_owner"))
+            or _text(reviewer_action.get("owner"))
+            or "ai_reviewer"
+        )
         packet = supervisor_action_requests.build_ai_reviewer_publication_eval_request(
             study_id=study_id,
             quest_id=quest_id,
@@ -85,7 +93,22 @@ def materialize_request_packets(
         )
         packet["target_assessment_owner"] = "ai_reviewer"
         packet["may_authorize_quality_gate"] = False
+        if handoff_reason:
+            packet["blockers"] = [handoff_reason]
+        if next_work_unit := _text(reviewer_action.get("next_work_unit")):
+            packet["source_workflow_ref"] = {
+                **_mapping(packet.get("source_workflow_ref")),
+                "next_work_unit": next_work_unit,
+                "route_back_target": route_back_target,
+            }
         supervisor_action_request_lifecycle.materialize_ai_reviewer_request(
             study_root=study_root,
             packet=packet,
         )
+
+
+def _first_action(actions: list[dict[str, Any]], action_type: str) -> dict[str, Any]:
+    for action in actions:
+        if _text(action.get("action_type")) == action_type:
+            return dict(action)
+    return {}

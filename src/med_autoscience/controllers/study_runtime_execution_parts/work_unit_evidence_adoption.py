@@ -18,6 +18,7 @@ _ANALYSIS_REPAIR_REPORT_SUFFIX = Path(
     "analysis_claim_evidence_repair",
     "specificity_target_traceability_reaudit.json",
 )
+_ANALYSIS_REPAIR_LATEST_REPORT_SUFFIX = Path("artifacts", "reports", "analysis_claim_evidence_repair", "latest.json")
 _MAS_QUALITY_REPAIR_REPORT_SUFFIX = Path("artifacts", "reports", "mas_quality_repair", "latest.json")
 _CONTROLLER_CONSUMPTION_REPORT_SUFFIX = Path("artifacts", "supervision", "controller_consumption", "latest.json")
 _MAS_QUALITY_REPAIR_REPORT_TYPE = "mas_quality_repair_batch"
@@ -25,6 +26,8 @@ _ANALYSIS_REPAIR_RECOMMENDED_NEXT_ROUTE = "return_to_publication_gate_recheck"
 _ANALYSIS_REPAIR_HANDOFF_REPORT_TYPE = "analysis_claim_evidence_current_run_handoff"
 _ANALYSIS_REPAIR_HANDOFF_STATUS = "exhausted_for_current_fingerprint"
 _ANALYSIS_REPAIR_HANDOFF_NEXT_ROUTE = "handoff_to_next_owner"
+_ANALYSIS_REPAIR_CONTROL_PACKET_KIND = "analysis_claim_evidence_current_run_repair_control_packet"
+_ANALYSIS_REPAIR_CONTROL_PACKET_STATUS = "completed_as_current_run_repair_control_packet"
 
 
 def _text(value: object) -> str | None:
@@ -82,6 +85,7 @@ def _report_candidates(quest_root: Path) -> tuple[Path, ...]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     candidates = [
         resolved_quest_root / _ANALYSIS_REPAIR_REPORT_SUFFIX,
+        resolved_quest_root / _ANALYSIS_REPAIR_LATEST_REPORT_SUFFIX,
         resolved_quest_root / _MAS_QUALITY_REPAIR_REPORT_SUFFIX,
         resolved_quest_root / _CONTROLLER_CONSUMPTION_REPORT_SUFFIX,
     ]
@@ -231,6 +235,26 @@ def _is_analysis_repair_exhausted_handoff(payload: dict[str, Any]) -> bool:
     ) and _text(payload.get("analysis_lane_status")) == _ANALYSIS_REPAIR_HANDOFF_STATUS
 
 
+def _is_analysis_repair_current_run_control_packet(payload: dict[str, Any]) -> bool:
+    return (
+        _text(payload.get("artifact_kind")) == _ANALYSIS_REPAIR_CONTROL_PACKET_KIND
+        and _text(payload.get("status")) == _ANALYSIS_REPAIR_CONTROL_PACKET_STATUS
+    )
+
+
+def _specificity_target_results_are_complete(payload: dict[str, Any]) -> bool:
+    targets = payload.get("specificity_target_results")
+    if not isinstance(targets, list):
+        return False
+    target_payloads = [item for item in targets if isinstance(item, dict)]
+    if len(target_payloads) != len(targets):
+        return False
+    return bool(target_payloads) and all(
+        _text(item.get("target_id")) is not None and _text(item.get("status")) is not None
+        for item in target_payloads
+    )
+
+
 def _analysis_repair_batch_report_matches(
     *,
     payload: dict[str, Any],
@@ -274,6 +298,16 @@ def _report_matches_analysis_repair(
             and _text(payload.get("next_owner")) is not None
             and _text(payload.get("next_work_unit")) is not None
             and _handoff_report_is_current(
+                payload=payload,
+                authorization_context=authorization_context,
+            )
+        )
+    if _is_analysis_repair_current_run_control_packet(payload):
+        return (
+            explicit_work_unit_id == _ANALYSIS_REPAIR_WORK_UNIT_ID
+            and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
+            and _specificity_target_results_are_complete(payload)
+            and _mas_quality_repair_report_is_current(
                 payload=payload,
                 authorization_context=authorization_context,
             )
@@ -349,6 +383,21 @@ def _normalized_repair_result(
             "publication_gate_cleared": False,
             "writing_ready_after_repair": False,
             "finalize_ready_after_repair": False,
+        }
+    if _is_analysis_repair_current_run_control_packet(report_payload):
+        specificity_targets = [
+            item for item in report_payload.get("specificity_target_results") or [] if isinstance(item, dict)
+        ]
+        return {
+            "local_traceability_repair_complete": True,
+            "meaningful_artifact_delta": bool(report_payload.get("meaningful_artifact_delta")),
+            "specificity_targets_repaired_or_classified": len(specificity_targets),
+            "missing_target_files_after_repair": 0,
+            "targets_with_repair_markers": len(specificity_targets),
+            "publication_gate_cleared": False,
+            "writing_ready_after_repair": False,
+            "finalize_ready_after_repair": False,
+            "specificity_target_count": _specificity_target_count(authorization_context),
         }
     metrics = report_payload.get("metrics_summary")
     if isinstance(metrics, dict):
@@ -583,8 +632,16 @@ def adopt_controller_work_unit_evidence_if_present(
                 authorization_context=authorization_context,
             ),
         }
+        if artifact_kind := _text(report_payload.get("artifact_kind")):
+            payload["artifact_kind"] = artifact_kind
+        if report_status := _text(report_payload.get("status")):
+            payload["status"] = report_status
         next_owner = _text(report_payload.get("next_owner"))
-        next_work_unit = _text(report_payload.get("next_work_unit"))
+        next_work_unit = (
+            _text(report_payload.get("next_work_unit"))
+            if _is_analysis_repair_exhausted_handoff(report_payload)
+            else None
+        )
         analysis_lane_status = _text(report_payload.get("analysis_lane_status"))
         if analysis_lane_status is not None:
             payload["analysis_lane_status"] = analysis_lane_status
