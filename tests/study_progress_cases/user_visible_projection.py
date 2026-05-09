@@ -225,6 +225,58 @@ def test_user_visible_projection_does_not_call_live_worker_active_without_artifa
     assert condition["reason"] == "writer_inactive"
 
 
+def test_user_visible_projection_does_not_call_runtime_health_recovery_actual_write() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "002-dm",
+            "active_run_id": "run-live-recovering",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "002-dm",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-live-recovering"},
+                "conditions": [],
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "recover_runtime",
+                "attempt_state": "recovering",
+                "worker_liveness_state": {
+                    "state": "activity_timeout",
+                    "runtime_liveness_status": "live",
+                    "worker_running": True,
+                    "active_run_id": "run-live-recovering",
+                },
+                "blocking_reasons": [
+                    "live_worker_meaningful_artifact_delta_timeout",
+                    "same_fingerprint_loop",
+                ],
+            },
+            "portable_supervisor_dashboard": {
+                "artifact_delta": {
+                    "status": "not_observed",
+                    "summary": "No meaningful artifact delta observed by supervisor scan.",
+                }
+            },
+            "supervision": {
+                "active_run_id": "run-live-recovering",
+                "health_status": "recovering",
+            },
+        }
+    )
+
+    assert projection["state_label"] == "自动运行中"
+    assert projection["actual_write_active"] is False
+    assert "实际 writer/run 正在推进" not in projection["state_summary"]
+    assert "尚未观察到论文产物级有效增量" in projection["state_summary"]
+    condition = next(item for item in projection["conditions"] if item["type"] == "actual_write_active")
+    assert condition["reason"] == "writer_inactive"
+
+
 def test_user_visible_projection_labels_all_macro_state_classes() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
     cases = [

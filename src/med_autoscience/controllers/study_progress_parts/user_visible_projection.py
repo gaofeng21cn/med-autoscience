@@ -241,6 +241,8 @@ def _conflict_projection(
 def _actual_write_active(*, writer_state: str, macro_state: Mapping[str, Any], payload: Mapping[str, Any]) -> bool:
     if writer_state != "live":
         return False
+    if _runtime_health_requires_artifact_delta_recovery(payload):
+        return False
     progress_freshness = _mapping_copy(payload.get("progress_freshness"))
     activity_timeout = _mapping_copy(progress_freshness.get("activity_timeout"))
     if _non_empty_text(activity_timeout.get("state")) in {"timed_out", "at_risk", "watching_new_run"}:
@@ -256,6 +258,26 @@ def _actual_write_active(*, writer_state: str, macro_state: Mapping[str, Any], p
         or _non_empty_text(payload.get("active_run_id"))
         or _non_empty_text(_mapping_copy(payload.get("supervision")).get("active_run_id"))
     )
+
+
+def _runtime_health_requires_artifact_delta_recovery(payload: Mapping[str, Any]) -> bool:
+    runtime_health = _mapping_copy(payload.get("runtime_health_snapshot"))
+    worker_liveness_state = _mapping_copy(runtime_health.get("worker_liveness_state"))
+    blocking_reasons = set(_normalized_texts(runtime_health.get("blocking_reasons")))
+    if _non_empty_text(worker_liveness_state.get("state")) == "activity_timeout":
+        return True
+    if _non_empty_text(runtime_health.get("canonical_runtime_action")) == "recover_runtime":
+        return True
+    if _non_empty_text(runtime_health.get("attempt_state")) == "recovering":
+        return True
+    if blocking_reasons.intersection({"live_worker_meaningful_artifact_delta_timeout", "same_fingerprint_loop"}):
+        return True
+
+    dashboard = _mapping_copy(payload.get("portable_supervisor_dashboard"))
+    artifact_delta = _mapping_copy(dashboard.get("artifact_delta"))
+    if _non_empty_text(artifact_delta.get("status")) in {"missing", "not_observed", "stale"}:
+        return True
+    return False
 
 
 def _user_action_required(*, user_next: str, reason: str, package_delivered: bool) -> bool:
