@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import importlib
+import json
+
+from tests.test_cli_cases.shared import write_profile
 
 
 def _live_console_snapshot() -> dict[str, object]:
@@ -120,6 +123,36 @@ def test_live_console_payload_projects_read_only_ui_shell_contract() -> None:
     }
     assert payload["stream"]["href"] == "http://127.0.0.1:8765/events"
     assert payload["stream"]["mode"] == "read_only_observation"
+    assert payload["terminal_attach_gate"] == {
+        "surface_kind": "mas_terminal_attach_gate",
+        "status": "blocked_by_missing_terminal_input_owner",
+        "threat_model": {
+            "scope": "interactive_terminal_attach",
+            "risks": [
+                "unauthorized_terminal_input",
+                "stale_or_replayed_resize",
+                "duplicate_or_out_of_order_input",
+                "detached_session_continuing_without_audit",
+                "legacy_daemon_regaining_runtime_ownership",
+            ],
+            "fail_closed_without_owner": True,
+        },
+        "required_owner_contract": {
+            "token": "MAS-issued attach token with explicit study/run scope and expiry",
+            "lease": "single active terminal input lease with renewal and stale lease rejection",
+            "idempotency": "dedupe key for each input, resize, and detach request",
+            "audit": "append-only receipt for attach, input, resize, detach, denial, and expiry",
+            "input": "MAS-owned terminal input route with authorization and run-state checks",
+            "resize": "MAS-owned resize route with lease and run-state checks",
+            "detach": "MAS-owned detach route with audited lease release",
+        },
+        "forbidden_owner": "legacy_mds_daemon_websocket",
+        "read_only_default": True,
+        "attach_started": False,
+        "profile_ref": None,
+        "study_id": None,
+        "study_root": None,
+    }
 
     studies = payload["studies"]
     assert [item["study_id"] for item in studies] == [
@@ -161,6 +194,17 @@ def test_live_console_html_renders_static_shell_without_legacy_webui_assets() ->
     assert "运行时间线" in html
     assert "终端输出" in html
     assert "日志输出" in html
+    assert "Terminal Attach Gate" in html
+    assert "blocked_by_missing_terminal_input_owner" in html
+    assert "legacy_mds_daemon_websocket" in html
+    assert "read_only_default=true" in html
+    assert "token" in html
+    assert "lease" in html
+    assert "idempotency" in html
+    assert "audit" in html
+    assert "input" in html
+    assert "resize" in html
+    assert "detach" in html
     assert "产物来源" in html
     assert "事件来源" in html
     assert "002-dm-china-us-mortality-attribution" in html
@@ -173,6 +217,50 @@ def test_live_console_html_renders_static_shell_without_legacy_webui_assets() ->
     assert "unpkg.com" not in html
     assert "med-deepscientist" not in html.lower()
     assert "MDS WebUI" not in html
+
+
+def test_live_console_terminal_attach_gate_cli_fails_closed_without_owner(monkeypatch, tmp_path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    class FakeRuntimeLiveConsole:
+        @staticmethod
+        def materialize_live_console_session_read_model(**kwargs):
+            raise AssertionError("terminal attach gate must fail before starting live console materialization")
+
+    monkeypatch.setattr(cli, "runtime_live_console", FakeRuntimeLiveConsole)
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "live-console",
+            "--profile",
+            str(profile_path),
+            "--enable-terminal-attach",
+            "--format",
+            "json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 2
+    assert payload["surface_kind"] == "mas_terminal_attach_gate"
+    assert payload["status"] == "blocked_by_missing_terminal_input_owner"
+    assert payload["forbidden_owner"] == "legacy_mds_daemon_websocket"
+    assert payload["read_only_default"] is True
+    assert set(payload["required_owner_contract"]) == {
+        "token",
+        "lease",
+        "idempotency",
+        "audit",
+        "input",
+        "resize",
+        "detach",
+    }
+    assert payload["attach_started"] is False
 
 
 def test_live_console_no_live_run_renders_meaningful_empty_state() -> None:

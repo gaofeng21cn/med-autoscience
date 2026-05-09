@@ -96,6 +96,17 @@ def test_live_console_parity_docs_expose_staged_contract_metadata() -> None:
     assert "Route / Decision Trail" in user_gap_review
     assert "active/winning path" in user_gap_review
     assert "interactive parity candidate" in user_gap_review
+    assert "blocked_by_missing_terminal_input_owner" in ui_doc
+    assert "mas_terminal_attach_gate" in ui_doc
+    assert "legacy_mds_daemon_websocket" in ui_doc
+    assert "read_only_default=true" in ui_doc
+    assert "token" in ui_doc
+    assert "lease" in ui_doc
+    assert "idempotency" in ui_doc
+    assert "audit" in ui_doc
+    assert "input" in ui_doc
+    assert "resize" in ui_doc
+    assert "detach" in ui_doc
 
 
 def test_live_console_parity_docs_keep_paper_and_package_authority_forbidden() -> None:

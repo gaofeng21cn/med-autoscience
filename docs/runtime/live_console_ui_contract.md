@@ -20,6 +20,7 @@ User-view parity gaps for per-paper navigation, executor conversation, and inter
 - Session read model: `artifacts/runtime/live_console/session_read_model/latest.json`
 - CLI snapshot: `medautosci runtime live-console --profile <profile> --snapshot`
 - CLI local stream: `medautosci runtime live-console --profile <profile> --serve --bind 127.0.0.1`
+- CLI terminal attach gate: `medautosci runtime live-console --profile <profile> --enable-terminal-attach`
 
 The shell is single-file HTML with inline CSS/JS. It must not require a remote CDN, a frontend build chain, the external MDS repo, or old MDS bundle assets.
 
@@ -66,6 +67,21 @@ Forbidden writes:
 - `runtime_lifecycle.sqlite`
 
 Any runtime mutation still goes through MAS controller/runtime owner surfaces. Any paper/package/publication readiness change still goes through canonical MAS owner surfaces.
+
+## Terminal Attach Gate
+
+Interactive terminal attach is part of the formal parity gate. The current status is fail-closed: until MAS owns a terminal input/resize/detach surface, any explicit attach request must return the `mas_terminal_attach_gate` payload with `status=blocked_by_missing_terminal_input_owner` and must not start an attach session.
+
+Required gate payload fields:
+
+- `surface_kind=mas_terminal_attach_gate`
+- `status=blocked_by_missing_terminal_input_owner`
+- `threat_model`
+- `required_owner_contract` with `token`, `lease`, `idempotency`, `audit`, `input`, `resize`, and `detach`
+- `forbidden_owner=legacy_mds_daemon_websocket`
+- `read_only_default=true`
+
+The CLI `--enable-terminal-attach` flag is an explicit parity probe. It must fail before starting Live Console materialization, loopback serving, terminal input, resize, detach, or any legacy MDS daemon/WebSocket route.
 
 ## Real Workspace Soak Contract
 
