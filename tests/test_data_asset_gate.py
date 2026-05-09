@@ -91,6 +91,22 @@ def test_build_gate_report_blocks_when_private_release_is_outdated(tmp_path: Pat
     assert report["study_id"] == "002-early-residual-risk"
 
 
+def test_resolve_workspace_root_supports_workspace_runtime_layout(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "runtime" / "quests" / "obesity_multicenter_phenotype_atlas"
+    quest_root.mkdir(parents=True)
+
+    assert module.resolve_workspace_root(quest_root) == workspace_root.resolve()
+
+
+def test_resolve_workspace_root_keeps_legacy_ops_runtime_layout(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
+    workspace_root, quest_root = make_workspace_with_quest(tmp_path)
+
+    assert module.resolve_workspace_root(quest_root) == workspace_root.resolve()
+
+
 def test_build_gate_report_allows_locked_historical_wave_when_latest_release_is_present(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
     workspace_root, quest_root = make_workspace_with_quest(tmp_path)

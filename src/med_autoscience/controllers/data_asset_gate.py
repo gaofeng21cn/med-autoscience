@@ -58,7 +58,12 @@ def read_quest_id(quest_root: Path) -> str:
 
 
 def resolve_workspace_root(quest_root: Path) -> Path:
-    return quest_root.parents[4]
+    resolved = quest_root.expanduser().resolve()
+    if resolved.parent.name == "quests" and resolved.parent.parent.name == "runtime":
+        if len(resolved.parents) >= 5 and resolved.parents[3].name == "ops":
+            return resolved.parents[4]
+        return resolved.parents[2]
+    raise ValueError(f"quest_root is not under a MAS runtime/quests layout: {quest_root}")
 
 
 def find_study_report(impact_report: dict[str, Any], study_id: str) -> dict[str, Any] | None:
