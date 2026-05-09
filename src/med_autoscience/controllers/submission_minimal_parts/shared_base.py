@@ -745,6 +745,58 @@ def materialize_submission_references(
     }
 
 
+def materialize_and_validate_submission_references(
+    *,
+    paper_root: Path,
+    submission_root: Path,
+    workspace_root: Path,
+    source_markdown_path: Path,
+) -> tuple[dict[str, Any] | None, Path | None, dict[str, Any]]:
+    references_manifest = materialize_submission_references(
+        paper_root=paper_root,
+        submission_root=submission_root,
+        workspace_root=workspace_root,
+    )
+    references_source_path = _references_source_path_from_manifest(references_manifest)
+    try:
+        references_coverage = validate_submission_references_coverage(
+            source_markdown_path=source_markdown_path,
+            references_path=submission_root / "references.bib" if references_manifest is not None else None,
+        )
+    except (FileNotFoundError, SubmissionReferenceCoverageError):
+        repair_report = auto_repair_submission_reference_gaps(
+            paper_root=paper_root,
+            workspace_root=workspace_root,
+            source_markdown_path=source_markdown_path,
+            references_path=submission_root / "references.bib" if references_manifest is not None else None,
+        )
+        if repair_report["status"] != "repaired":
+            raise
+        references_manifest = materialize_submission_references(
+            paper_root=paper_root,
+            submission_root=submission_root,
+            workspace_root=workspace_root,
+        )
+        references_source_path = _references_source_path_from_manifest(references_manifest)
+        references_coverage = validate_submission_references_coverage(
+            source_markdown_path=source_markdown_path,
+            references_path=submission_root / "references.bib" if references_manifest is not None else None,
+        )
+        references_coverage["auto_repair"] = repair_report
+    if references_manifest is not None:
+        references_manifest.pop("_source_abs_path", None)
+    return references_manifest, references_source_path, references_coverage
+
+
+def _references_source_path_from_manifest(references_manifest: dict[str, Any] | None) -> Path | None:
+    if references_manifest is None:
+        return None
+    source_abs_path = references_manifest.get("_source_abs_path")
+    if not source_abs_path:
+        return None
+    return Path(str(source_abs_path))
+
+
 def _path_label_from_workspace(*, path: Path, workspace_root: Path) -> str:
     try:
         return relpath_from_workspace(path, workspace_root)
@@ -783,9 +835,131 @@ def validate_submission_references_coverage(
     reference_keys = bibtex_entry_keys(references_path.read_text(encoding="utf-8"))
     missing = sorted(set(citation_keys) - reference_keys)
     if missing:
-        raise ValueError("submission references.bib missing citation keys: " + ", ".join(missing))
+        raise SubmissionReferenceCoverageError(missing_citation_keys=missing)
     return {
         "status": "complete",
         "citation_key_count": len(citation_keys),
         "missing_citation_keys": [],
     }
+
+
+class SubmissionReferenceCoverageError(ValueError):
+    def __init__(self, *, missing_citation_keys: list[str]) -> None:
+        self.missing_citation_keys = list(missing_citation_keys)
+        super().__init__(
+            "submission references.bib missing citation keys: " + ", ".join(self.missing_citation_keys)
+        )
+
+
+def auto_repair_submission_reference_gaps(
+    *,
+    paper_root: Path,
+    workspace_root: Path,
+    source_markdown_path: Path,
+    references_path: Path | None,
+) -> dict[str, Any]:
+    citation_keys = sorted(markdown_citation_keys(source_markdown_path.read_text(encoding="utf-8")))
+    if not citation_keys:
+        return {"status": "not_required", "missing_citation_keys": []}
+    reference_text = references_path.read_text(encoding="utf-8") if references_path is not None and references_path.exists() else ""
+    missing_keys = sorted(set(citation_keys) - bibtex_entry_keys(reference_text))
+    if not missing_keys:
+        return {"status": "already_complete", "missing_citation_keys": []}
+    pmids_by_key = _pmids_by_submission_citation_key(missing_keys)
+    unsupported_keys = [key for key in missing_keys if key not in pmids_by_key]
+    if unsupported_keys:
+        return {
+            "status": "unsupported_missing_citation_keys",
+            "missing_citation_keys": missing_keys,
+            "unsupported_citation_keys": unsupported_keys,
+        }
+
+    requested_pmids = [pmids_by_key[key] for key in missing_keys]
+    fetched_records = pubmed_adapter.fetch_pubmed_summary(pmids=requested_pmids)
+    fetched_by_key = {
+        _submission_bibtex_key_for_record(record): record
+        for record in fetched_records
+        if _submission_bibtex_key_for_record(record) in missing_keys
+    }
+    still_missing = [key for key in missing_keys if key not in fetched_by_key]
+    if still_missing:
+        return {
+            "status": "pubmed_records_missing",
+            "missing_citation_keys": missing_keys,
+            "unresolved_citation_keys": still_missing,
+            "fetched_record_count": len(fetched_records),
+        }
+
+    source_path, source_kind = resolve_submission_references_source(paper_root=paper_root)
+    source_text = source_path.read_text(encoding="utf-8") if source_path is not None and source_path.exists() else ""
+    existing_keys = bibtex_entry_keys(source_text)
+    appended_entries = [
+        _render_submission_bib_entry(fetched_by_key[key])
+        for key in missing_keys
+        if key not in existing_keys
+    ]
+    target_path = paper_root / "references.bib"
+    merged_text = _merge_references_text(source_text, appended_entries)
+    write_text(target_path, merged_text)
+    _sync_workspace_literature_best_effort(workspace_root=workspace_root, records=list(fetched_records))
+
+    return {
+        "status": "repaired",
+        "repair_scope": "study_paper_references",
+        "source_kind": source_kind,
+        "source_path": _path_label_from_workspace(path=source_path, workspace_root=workspace_root) if source_path else None,
+        "output_path": _path_label_from_workspace(path=target_path, workspace_root=workspace_root),
+        "missing_citation_keys": missing_keys,
+        "fetched_pmids": requested_pmids,
+        "fetched_record_count": len(fetched_records),
+    }
+
+
+def _pmids_by_submission_citation_key(citation_keys: list[str]) -> dict[str, str]:
+    pmids: dict[str, str] = {}
+    for key in citation_keys:
+        match = re.fullmatch(r"pmid[_:.-]?(\d+)", key, flags=re.IGNORECASE)
+        if match:
+            pmids[key] = match.group(1)
+    return pmids
+
+
+def _submission_bibtex_key_for_record(record: LiteratureRecord) -> str:
+    return re.sub(r"[^A-Za-z0-9]+", "_", record.record_id).strip("_") or "reference"
+
+
+def _render_submission_bib_entry(record: LiteratureRecord) -> str:
+    lines = [f"@article{{{_submission_bibtex_key_for_record(record)},", f"  title = {{{record.title}}},"]
+    if record.authors:
+        lines.append(f"  author = {{{' and '.join(record.authors)}}},")
+    if record.journal:
+        lines.append(f"  journal = {{{record.journal}}},")
+    if record.year is not None:
+        lines.append(f"  year = {{{record.year}}},")
+    if record.doi:
+        lines.append(f"  doi = {{{record.doi}}},")
+    if record.pmid:
+        lines.append(f"  pmid = {{{record.pmid}}},")
+    lines.append("}")
+    return "\n".join(lines) + "\n\n"
+
+
+def _merge_references_text(source_text: str, appended_entries: list[str]) -> str:
+    if not appended_entries:
+        return source_text if source_text.endswith("\n") or not source_text else source_text + "\n"
+    prefix = source_text.rstrip()
+    if prefix:
+        return prefix + "\n\n" + "".join(appended_entries)
+    return "".join(appended_entries)
+
+
+def _sync_workspace_literature_best_effort(*, workspace_root: Path, records: list[LiteratureRecord]) -> None:
+    if not records:
+        return
+    try:
+        workspace_literature_controller.sync_workspace_literature(
+            workspace_root=workspace_root,
+            records=[asdict(record) for record in records],
+        )
+    except Exception:
+        return

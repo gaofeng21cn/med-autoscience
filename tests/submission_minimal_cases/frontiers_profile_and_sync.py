@@ -413,7 +413,7 @@ def test_create_submission_minimal_package_builds_submission_facing_docx_for_cur
     submission_markdown = compiled_submission_markdown.read_text(encoding="utf-8")
     assert submission_markdown.startswith("---\n")
     assert 'title: "Current Draft Title"' in submission_markdown
-    assert "bibliography: ../references.bib" in submission_markdown
+    assert "bibliography: references.bib" in submission_markdown
     assert "\n# Abstract\n" in submission_markdown
     assert "\n# Conclusion\n" in submission_markdown
     assert not submission_markdown.startswith("# Draft")

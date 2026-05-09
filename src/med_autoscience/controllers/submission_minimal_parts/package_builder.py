@@ -141,7 +141,7 @@ def create_submission_minimal_package(
     resolved_route_context, control_plane_route_gate = resolve_control_plane_write_route_context(
         action="submission_materialize",
         context=control_plane_route_context or route_context,
-        default_paths=[paper_root / "submission_minimal"],
+        default_paths=[paper_root / "submission_minimal", paper_root / "references.bib"],
     )
     if not bool(control_plane_route_gate.get("authorized")):
         return blocked_control_plane_write_payload(
@@ -378,19 +378,11 @@ def create_submission_minimal_package(
             )
             table_entries.append(table_entry)
 
-        references_manifest = materialize_submission_references(
+        references_manifest, references_source_path, references_coverage = materialize_and_validate_submission_references(
             paper_root=paper_root,
             submission_root=staging_submission_root,
             workspace_root=workspace_root,
-        )
-        references_source_path = (
-            Path(str(references_manifest.pop("_source_abs_path")))
-            if references_manifest is not None and references_manifest.get("_source_abs_path")
-            else None
-        )
-        references_coverage = validate_submission_references_coverage(
             source_markdown_path=source_markdown_path,
-            references_path=staging_submission_root / "references.bib" if references_manifest is not None else None,
         )
 
         export_docx(

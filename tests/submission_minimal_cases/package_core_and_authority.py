@@ -760,7 +760,7 @@ Wrong draft abstract.
 
     submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(encoding="utf-8")
     assert 'title: "Test Medical Manuscript"' in submission_markdown
-    assert 'bibliography: ../references.bib' in submission_markdown
+    assert 'bibliography: references.bib' in submission_markdown
     assert "Wrong draft title" not in submission_markdown
 
 
