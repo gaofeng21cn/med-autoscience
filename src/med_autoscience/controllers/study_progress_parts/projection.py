@@ -273,6 +273,8 @@ def build_study_progress_projection(
         status=status,
         supervisor_tick_audit=supervisor_tick_audit,
         autonomy_slo_status=autonomy_slo_status,
+        gate_clearing_batch_payload=gate_clearing_batch_payload,
+        publication_eval_payload=publication_eval_payload,
         runtime_facts=runtime_facts,
         runtime_supervision_payload=runtime_supervision_payload,
     )

@@ -300,6 +300,24 @@ def append_event(
 ) -> dict[str, Any]:
     event_payload = dict(payload or {})
     timestamp = recorded_at or utc_now()
+    latest = latest_event(study_root=study_root, business_key=identity.business_key)
+    latest_type = _event_type(latest) if isinstance(latest, Mapping) else None
+    if event_type in _SUPERSEDING_EVENT_TYPES and latest_type in _TERMINAL_EVENT_TYPES:
+        skipped_payload = {
+            **event_payload,
+            "reason": latest_type,
+            "latest_event_type": latest_type,
+            "attempted_event_type": event_type,
+        }
+        return _write_event(
+            study_root=study_root,
+            event=_event_record(
+                identity_payload=identity.to_dict(),
+                event_type="skipped_duplicate",
+                payload=skipped_payload,
+                recorded_at=timestamp,
+            ),
+        )
     if event_type in _SUPERSEDING_EVENT_TYPES:
         _supersede_prior_active_intents(
             study_root=study_root,
@@ -462,6 +480,8 @@ def append_skipped_duplicate_if_needed(
 ) -> dict[str, Any] | None:
     latest = latest_event(study_root=study_root, business_key=identity.business_key)
     if isinstance(latest, Mapping) and _event_type(latest) == "skipped_duplicate":
+        return None
+    if isinstance(latest, Mapping) and _event_type(latest) in _TERMINAL_EVENT_TYPES:
         return None
     return append_event(
         study_root=study_root,

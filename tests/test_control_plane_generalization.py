@@ -234,6 +234,89 @@ def test_control_intent_lifecycle_blocks_terminal_platform_work_unit_states(tmp_
         assert lifecycle["block_reason"] == block_reason
 
 
+def test_control_intent_skipped_duplicate_does_not_reopen_terminal_handoff(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "studies" / "003-dpcc"
+    identity = module.build_control_intent_identity(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        route_target="analysis-campaign",
+        work_unit_id="analysis_claim_evidence_repair",
+        blocker_authority_fingerprint="publication-blockers::497d1260db522f01",
+        controller_actions=("run_quality_repair_batch",),
+        source_kind="controller_decision_authorization",
+    )
+    module.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="owner_handoff",
+        payload={
+            "reason": "exhausted_for_current_fingerprint",
+            "next_owner": "write/ai_reviewer",
+            "next_work_unit": "manuscript_story_repair",
+        },
+        recorded_at="2026-05-09T15:06:43+00:00",
+    )
+
+    skipped = module.append_skipped_duplicate_if_needed(
+        study_root=study_root,
+        identity=identity,
+        payload={"reason": "owner_handoff"},
+        recorded_at="2026-05-09T16:27:24+00:00",
+    )
+    lifecycle = module.lifecycle_state(study_root=study_root, identity=identity)
+
+    assert skipped is None
+    assert [event["event_type"] for event in module.read_events(study_root=study_root)] == ["owner_handoff"]
+    assert lifecycle["latest_event_type"] == "owner_handoff"
+    assert lifecycle["terminal_consumed"] is True
+    assert lifecycle["block_reason"] == "owner_handoff"
+
+
+def test_control_intent_delivered_does_not_reopen_terminal_handoff(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "studies" / "003-dpcc"
+    identity = module.build_control_intent_identity(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        route_target="analysis-campaign",
+        work_unit_id="analysis_claim_evidence_repair",
+        blocker_authority_fingerprint="publication-blockers::497d1260db522f01",
+        controller_actions=("run_quality_repair_batch",),
+        source_kind="controller_decision_authorization",
+    )
+    module.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="owner_handoff",
+        payload={
+            "reason": "exhausted_for_current_fingerprint",
+            "next_owner": "write/ai_reviewer",
+            "next_work_unit": "manuscript_story_repair",
+        },
+        recorded_at="2026-05-09T15:06:43+00:00",
+    )
+
+    delivered = module.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={"active_run_id": "run-003", "message_id": "msg-repeat"},
+        recorded_at="2026-05-09T16:38:02+00:00",
+    )
+    lifecycle = module.lifecycle_state(study_root=study_root, identity=identity)
+
+    assert delivered["event_type"] == "skipped_duplicate"
+    assert delivered["payload"]["reason"] == "owner_handoff"
+    assert [event["event_type"] for event in module.read_events(study_root=study_root)] == [
+        "owner_handoff",
+        "skipped_duplicate",
+    ]
+    assert lifecycle["latest_event_type"] == "skipped_duplicate"
+    assert lifecycle["terminal_consumed"] is False
+    assert lifecycle["block_reason"] == "owner_handoff"
+
+
 def test_control_intent_lifecycle_supersedes_prior_fingerprint_and_resets_series(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.control_intent")
     study_root = tmp_path / "studies" / "001-risk"

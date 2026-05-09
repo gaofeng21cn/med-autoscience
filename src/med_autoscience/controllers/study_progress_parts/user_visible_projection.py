@@ -261,6 +261,8 @@ def _actual_write_active(*, writer_state: str, macro_state: Mapping[str, Any], p
 
 
 def _runtime_health_requires_artifact_delta_recovery(payload: Mapping[str, Any]) -> bool:
+    if _fresh_artifact_delta_present(payload):
+        return False
     runtime_health = _mapping_copy(payload.get("runtime_health_snapshot"))
     worker_liveness_state = _mapping_copy(runtime_health.get("worker_liveness_state"))
     blocking_reasons = set(_normalized_texts(runtime_health.get("blocking_reasons")))
@@ -278,6 +280,15 @@ def _runtime_health_requires_artifact_delta_recovery(payload: Mapping[str, Any])
     if _non_empty_text(artifact_delta.get("status")) in {"missing", "not_observed", "stale"}:
         return True
     return False
+
+
+def _fresh_artifact_delta_present(payload: Mapping[str, Any]) -> bool:
+    progress_freshness = _mapping_copy(payload.get("progress_freshness"))
+    artifact_delta_freshness = _mapping_copy(progress_freshness.get("meaningful_artifact_delta_freshness"))
+    return (
+        _non_empty_text(artifact_delta_freshness.get("status")) == "fresh"
+        and _non_empty_text(artifact_delta_freshness.get("latest_progress_at")) is not None
+    )
 
 
 def _user_action_required(*, user_next: str, reason: str, package_delivered: bool) -> bool:

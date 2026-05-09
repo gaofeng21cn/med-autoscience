@@ -60,11 +60,130 @@ def _freshness_from_timestamp(
     }
 
 
+def _freshest_freshness(*freshnesses: dict[str, Any]) -> dict[str, Any]:
+    present = [
+        item
+        for item in freshnesses
+        if _timestamp_value(item.get("latest_progress_at")) is not None
+    ]
+    if not present:
+        return freshnesses[0] if freshnesses else {}
+    return max(
+        present,
+        key=lambda item: _timestamp_value(item.get("latest_progress_at")) or datetime.min,
+    )
+
+
 def _timestamp_value(value: object) -> datetime | None:
     normalized = _normalize_timestamp(value)
     if normalized is None:
         return None
     return datetime.fromisoformat(normalized)
+
+
+def _gate_clearing_artifact_delta_freshness(
+    *,
+    gate_clearing_batch_payload: Mapping[str, Any] | None,
+    publication_eval_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(gate_clearing_batch_payload, Mapping):
+        return _freshness_from_timestamp(
+            timestamp=None,
+            source="gate_clearing_batch",
+            summary=None,
+        )
+    if not _same_publication_eval(
+        gate_clearing_batch_payload=gate_clearing_batch_payload,
+        publication_eval_payload=publication_eval_payload,
+    ):
+        return _freshness_from_timestamp(
+            timestamp=None,
+            source="gate_clearing_batch",
+            summary=None,
+        )
+    if _non_empty_text(gate_clearing_batch_payload.get("status")) != "executed":
+        return _freshness_from_timestamp(
+            timestamp=None,
+            source="gate_clearing_batch",
+            summary=None,
+        )
+
+    changed_paths = _paper_artifact_delta_paths(gate_clearing_batch_payload)
+    if not changed_paths:
+        return _freshness_from_timestamp(
+            timestamp=None,
+            source="gate_clearing_batch",
+            summary=None,
+        )
+    display_count = sum(1 for path in changed_paths if "/paper/figures/" in path or "/paper/tables/" in path)
+    summary = (
+        "controller-owned gate-clearing batch updated "
+        f"{len(changed_paths)} paper-facing artifact(s)"
+    )
+    if display_count:
+        summary += f", including {display_count} table/figure artifact(s)"
+    summary += "."
+    return _freshness_from_timestamp(
+        timestamp=_gate_clearing_timestamp(gate_clearing_batch_payload),
+        source="gate_clearing_batch",
+        summary=summary,
+    )
+
+
+def _same_publication_eval(
+    *,
+    gate_clearing_batch_payload: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any] | None,
+) -> bool:
+    current_eval_id = _non_empty_text((publication_eval_payload or {}).get("eval_id"))
+    source_eval_id = _non_empty_text(gate_clearing_batch_payload.get("source_eval_id"))
+    if current_eval_id is not None and source_eval_id is not None:
+        return current_eval_id == source_eval_id
+    return True
+
+
+def _paper_artifact_delta_paths(gate_clearing_batch_payload: Mapping[str, Any]) -> list[str]:
+    paths: list[str] = []
+    for unit in gate_clearing_batch_payload.get("unit_results") or []:
+        unit_payload = _mapping_copy(unit)
+        if not unit_payload:
+            continue
+        unit_status = _non_empty_text(unit_payload.get("status"))
+        if unit_status not in {"updated", "materialized", "synced", "created"}:
+            continue
+        result = _mapping_copy(unit_payload.get("result"))
+        result_status = _non_empty_text(result.get("status"))
+        if result_status is not None and result_status in {
+            "control_plane_route_blocked",
+            "failed",
+            "missing",
+            "skipped_failed_dependency",
+        }:
+            continue
+        for key in ("written_files", "repaired_files", "materialized_files"):
+            for path in result.get(key) or []:
+                if (text := _non_empty_text(path)) is not None and _paper_facing_artifact_path(text):
+                    paths.append(text)
+    return sorted(dict.fromkeys(paths))
+
+
+def _paper_facing_artifact_path(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    return normalized.startswith("paper/") or "/paper/" in normalized
+
+
+def _gate_clearing_timestamp(gate_clearing_batch_payload: Mapping[str, Any]) -> str | None:
+    gate_replay_step = _mapping_copy(gate_clearing_batch_payload.get("gate_replay_step"))
+    for value in (
+        gate_replay_step.get("finished_at"),
+        gate_clearing_batch_payload.get("finished_at"),
+        gate_clearing_batch_payload.get("generated_at"),
+        gate_clearing_batch_payload.get("emitted_at"),
+        gate_clearing_batch_payload.get("recorded_at"),
+    ):
+        if (text := _non_empty_text(value)) is not None:
+            return text
+    return None
 
 
 def _latest_runtime_observed_at(
@@ -186,6 +305,8 @@ def _split_progress_freshness(
     status: dict[str, Any],
     supervisor_tick_audit: dict[str, Any],
     autonomy_slo_status: dict[str, Any] | None,
+    gate_clearing_batch_payload: dict[str, Any] | None,
+    publication_eval_payload: dict[str, Any] | None,
     runtime_facts: Any,
     runtime_supervision_payload: dict[str, Any] | None,
 ) -> dict[str, Any]:
@@ -257,6 +378,15 @@ def _split_progress_freshness(
         summary=_non_empty_text(markers.get("meaningful_artifact_delta_kind"))
         or _non_empty_text(markers.get("turn_progress_kind")),
     )
+    gate_artifact_delta_freshness = _gate_clearing_artifact_delta_freshness(
+        gate_clearing_batch_payload=gate_clearing_batch_payload,
+        publication_eval_payload=publication_eval_payload,
+    )
+    artifact_delta_freshness = _freshest_freshness(
+        artifact_delta_freshness,
+        gate_artifact_delta_freshness,
+    )
+    artifact_delta_at = _non_empty_text(artifact_delta_freshness.get("latest_progress_at"))
     breach_types = {
         text
         for item in (autonomy_slo_status or {}).get("breach_types") or []
@@ -294,7 +424,11 @@ def _split_progress_freshness(
             "live worker has exceeded the meaningful artifact delta activity window; "
             "supervisor ticks alone cannot prove paper progress."
         )
-    elif runtime_facts.strict_live and breach_types & _ACTIVITY_TIMEOUT_REASONS:
+    elif (
+        runtime_facts.strict_live
+        and artifact_delta_freshness["status"] != "fresh"
+        and breach_types & _ACTIVITY_TIMEOUT_REASONS
+    ):
         activity_timeout["state"] = "at_risk"
         activity_timeout["summary"] = (
             "live worker has autonomy SLO churn signals and must produce artifact delta before closeout."

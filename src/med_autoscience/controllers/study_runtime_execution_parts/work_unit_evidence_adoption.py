@@ -28,6 +28,9 @@ _ANALYSIS_REPAIR_HANDOFF_STATUS = "exhausted_for_current_fingerprint"
 _ANALYSIS_REPAIR_HANDOFF_NEXT_ROUTE = "handoff_to_next_owner"
 _ANALYSIS_REPAIR_CONTROL_PACKET_KIND = "analysis_claim_evidence_current_run_repair_control_packet"
 _ANALYSIS_REPAIR_CONTROL_PACKET_STATUS = "completed_as_current_run_repair_control_packet"
+_ANALYSIS_REPAIR_SOURCE_REPAIR_KIND = "analysis_claim_evidence_source_repair"
+_ANALYSIS_REPAIR_SOURCE_REPAIR_STATUS = "completed"
+_ANALYSIS_REPAIR_RETRY_BACKOFF_HANDOFF_REPORT_TYPE = "analysis_claim_evidence_retry_backoff_dedupe_handoff"
 
 
 def _text(value: object) -> str | None:
@@ -230,8 +233,16 @@ def _controller_field(payload: dict[str, Any], key: str) -> str | None:
 
 def _is_analysis_repair_exhausted_handoff(payload: dict[str, Any]) -> bool:
     return (
-        _text(payload.get("repair_packet_type")) == _ANALYSIS_REPAIR_HANDOFF_REPORT_TYPE
-        or _text(payload.get("report_type")) == _ANALYSIS_REPAIR_HANDOFF_REPORT_TYPE
+        _text(payload.get("repair_packet_type"))
+        in {
+            _ANALYSIS_REPAIR_HANDOFF_REPORT_TYPE,
+            _ANALYSIS_REPAIR_RETRY_BACKOFF_HANDOFF_REPORT_TYPE,
+        }
+        or _text(payload.get("report_type"))
+        in {
+            _ANALYSIS_REPAIR_HANDOFF_REPORT_TYPE,
+            _ANALYSIS_REPAIR_RETRY_BACKOFF_HANDOFF_REPORT_TYPE,
+        }
     ) and _text(payload.get("analysis_lane_status")) == _ANALYSIS_REPAIR_HANDOFF_STATUS
 
 
@@ -239,6 +250,13 @@ def _is_analysis_repair_current_run_control_packet(payload: dict[str, Any]) -> b
     return (
         _text(payload.get("artifact_kind")) == _ANALYSIS_REPAIR_CONTROL_PACKET_KIND
         and _text(payload.get("status")) == _ANALYSIS_REPAIR_CONTROL_PACKET_STATUS
+    )
+
+
+def _is_analysis_repair_source_repair_packet(payload: dict[str, Any]) -> bool:
+    return (
+        _text(payload.get("artifact_kind")) == _ANALYSIS_REPAIR_SOURCE_REPAIR_KIND
+        and _text(payload.get("status")) == _ANALYSIS_REPAIR_SOURCE_REPAIR_STATUS
     )
 
 
@@ -250,8 +268,38 @@ def _specificity_target_results_are_complete(payload: dict[str, Any]) -> bool:
     if len(target_payloads) != len(targets):
         return False
     return bool(target_payloads) and all(
-        _text(item.get("target_id")) is not None and _text(item.get("status")) is not None
+        _text(item.get("target_id")) is not None
+        and (_text(item.get("status")) is not None or _text(item.get("result")) is not None)
         for item in target_payloads
+    )
+
+
+def _source_repairs_are_complete(payload: dict[str, Any]) -> bool:
+    repairs = payload.get("source_repairs")
+    if not isinstance(repairs, list):
+        return False
+    repair_payloads = [item for item in repairs if isinstance(item, dict)]
+    return bool(repair_payloads) and len(repair_payloads) == len(repairs) and all(
+        _text(item.get("path")) is not None for item in repair_payloads
+    )
+
+
+def _analysis_repair_source_repair_packet_matches(
+    *,
+    payload: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    return (
+        _is_analysis_repair_source_repair_packet(payload)
+        and _text(payload.get("work_unit_id")) == _ANALYSIS_REPAIR_WORK_UNIT_ID
+        and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
+        and _mas_quality_repair_report_is_current(
+            payload=payload,
+            authorization_context=authorization_context,
+        )
+        and payload.get("meaningful_artifact_delta") is True
+        and _specificity_target_results_are_complete(payload)
+        and _source_repairs_are_complete(payload)
     )
 
 
@@ -312,6 +360,11 @@ def _report_matches_analysis_repair(
                 authorization_context=authorization_context,
             )
         )
+    if _analysis_repair_source_repair_packet_matches(
+        payload=payload,
+        authorization_context=authorization_context,
+    ):
+        return True
     if explicit_work_unit_id is not None and explicit_work_unit_id != _ANALYSIS_REPAIR_WORK_UNIT_ID:
         return False
     if explicit_route_target is not None and explicit_route_target != _ANALYSIS_REPAIR_ROUTE_TARGET:
@@ -399,6 +452,34 @@ def _normalized_repair_result(
             "finalize_ready_after_repair": False,
             "specificity_target_count": _specificity_target_count(authorization_context),
         }
+    if _is_analysis_repair_source_repair_packet(report_payload):
+        specificity_targets = [
+            item for item in report_payload.get("specificity_target_results") or [] if isinstance(item, dict)
+        ]
+        source_repairs = [item for item in report_payload.get("source_repairs") or [] if isinstance(item, dict)]
+        remaining_blockers = report_payload.get("remaining_blockers")
+        if not isinstance(remaining_blockers, dict):
+            remaining_blockers = {}
+        publication_surface_blockers = [
+            item for item in remaining_blockers.get("medical_publication_surface_blockers") or [] if _text(item)
+        ]
+        reporting_audit_blockers = [
+            item for item in remaining_blockers.get("medical_reporting_audit_blockers") or [] if _text(item)
+        ]
+        return {
+            "local_traceability_repair_complete": True,
+            "meaningful_artifact_delta": bool(report_payload.get("meaningful_artifact_delta")),
+            "specificity_targets_repaired_or_classified": len(specificity_targets),
+            "missing_target_files_after_repair": 0,
+            "targets_with_repair_markers": len(specificity_targets),
+            "source_repairs_count": len(source_repairs),
+            "publication_surface_blocker_count": len(publication_surface_blockers),
+            "reporting_audit_blocker_count": len(reporting_audit_blockers),
+            "publication_gate_cleared": False,
+            "writing_ready_after_repair": False,
+            "finalize_ready_after_repair": False,
+            "specificity_target_count": _specificity_target_count(authorization_context),
+        }
     metrics = report_payload.get("metrics_summary")
     if isinstance(metrics, dict):
         return {
@@ -454,6 +535,32 @@ def _normalized_repair_result(
         "unresolved_local_defect_count": int(result.get("unresolved_local_defect_count") or 0),
         "gate_owned_or_nonlocal_defect_count": int(result.get("gate_owned_or_nonlocal_defect_count") or 0),
     }
+
+
+def _report_next_owner(report_payload: dict[str, Any]) -> str | None:
+    direct_next_owner = _text(report_payload.get("next_owner"))
+    if direct_next_owner is not None:
+        return direct_next_owner
+    remaining_blockers = report_payload.get("remaining_blockers")
+    if isinstance(remaining_blockers, dict):
+        return _text(remaining_blockers.get("next_owner"))
+    return None
+
+
+def _report_next_work_unit(report_payload: dict[str, Any]) -> str | None:
+    direct_next_work_unit = _text(report_payload.get("next_work_unit"))
+    if direct_next_work_unit is not None:
+        return direct_next_work_unit
+    next_work_unit = report_payload.get("next_work_unit")
+    if isinstance(next_work_unit, dict):
+        return _text(next_work_unit.get("unit_id"))
+    return None
+
+
+def _report_recommended_next_route(report_payload: dict[str, Any]) -> str:
+    if _is_analysis_repair_exhausted_handoff(report_payload):
+        return _ANALYSIS_REPAIR_HANDOFF_NEXT_ROUTE
+    return _ANALYSIS_REPAIR_RECOMMENDED_NEXT_ROUTE
 
 
 def _result_requires_runtime_relaunch(result: dict[str, Any]) -> bool:
@@ -621,11 +728,7 @@ def adopt_controller_work_unit_evidence_if_present(
             "created_at": _report_timestamp(report_payload),
             "work_unit_id": _ANALYSIS_REPAIR_WORK_UNIT_ID,
             "route_target": _ANALYSIS_REPAIR_ROUTE_TARGET,
-            "recommended_next_route": (
-                _ANALYSIS_REPAIR_HANDOFF_NEXT_ROUTE
-                if _is_analysis_repair_exhausted_handoff(report_payload)
-                else _ANALYSIS_REPAIR_RECOMMENDED_NEXT_ROUTE
-            ),
+            "recommended_next_route": _report_recommended_next_route(report_payload),
             "source": source,
             "result": _normalized_repair_result(
                 report_payload=report_payload,
@@ -636,12 +739,14 @@ def adopt_controller_work_unit_evidence_if_present(
             payload["artifact_kind"] = artifact_kind
         if report_status := _text(report_payload.get("status")):
             payload["status"] = report_status
-        next_owner = _text(report_payload.get("next_owner"))
+        next_owner = _report_next_owner(report_payload)
         next_work_unit = (
-            _text(report_payload.get("next_work_unit"))
+            _report_next_work_unit(report_payload)
             if _is_analysis_repair_exhausted_handoff(report_payload)
             else None
         )
+        if _is_analysis_repair_source_repair_packet(report_payload):
+            next_work_unit = None
         analysis_lane_status = _text(report_payload.get("analysis_lane_status"))
         if analysis_lane_status is not None:
             payload["analysis_lane_status"] = analysis_lane_status
