@@ -285,6 +285,40 @@ def test_auto_runtime_parking_routes_blocked_closeout_to_named_owner() -> None:
     assert projection["source_reason"] == "blocked_turn_closeout_waiting_for_owner"
 
 
+def test_auto_runtime_parking_does_not_user_park_mas_controller_owner_wait() -> None:
+    projection = _projection(
+        {
+            "decision": "blocked",
+            "reason": "quest_waiting_for_user",
+            "quest_status": "waiting_for_user",
+            "continuation_state": {
+                "quest_status": "waiting_for_user",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "turn_closeout",
+                "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+            },
+            "interaction_arbitration": {
+                "classification": "blocked_closeout_owner_wait",
+                "action": "block",
+                "reason_code": "blocked_turn_closeout_waiting_for_owner",
+                "requires_user_input": False,
+                "valid_blocking": True,
+                "kind": "turn_closeout",
+                "next_owner": "MAS/controller",
+                "blocked_reason": "owner callable surface missing",
+            },
+        }
+    )
+
+    assert projection["parked"] is False
+    assert projection["parked_state"] is None
+    assert projection["parked_owner"] is None
+    assert projection["awaiting_explicit_wakeup"] is False
+    assert projection["auto_execution_complete"] is False
+    assert projection["source_reason"] == "blocked_turn_closeout_waiting_for_owner"
+
+
 def test_auto_runtime_parking_maps_repeated_stop_hold_and_same_blocker_pause_as_resource_release() -> None:
     repeated_decision_stop = _projection(
         {
