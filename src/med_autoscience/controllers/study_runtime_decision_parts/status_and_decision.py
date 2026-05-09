@@ -31,6 +31,7 @@ def _record_interaction_arbitration_if_required(
     payload = status.extras.get("pending_user_interaction")
     blocked_closeout = status.extras.get("blocked_turn_closeout")
     continuation_state = status.extras.get("continuation_state")
+    controller_authorization = status.extras.get("last_controller_decision_authorization")
     arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
         pending_interaction=payload if isinstance(payload, dict) else None,
         decision_policy=str(execution.get("decision_policy") or "").strip() or None,
@@ -38,6 +39,7 @@ def _record_interaction_arbitration_if_required(
         publication_gate_report=publication_gate_report if isinstance(publication_gate_report, dict) else None,
         blocked_closeout=blocked_closeout if isinstance(blocked_closeout, dict) else None,
         continuation_state=continuation_state if isinstance(continuation_state, dict) else None,
+        controller_authorization=controller_authorization if isinstance(controller_authorization, dict) else None,
     )
     status.record_interaction_arbitration(arbitration)
 
@@ -173,6 +175,7 @@ def _status_state(
     manual_finish_compatibility_guard = manual_finish_state["manual_finish_compatibility_guard"]
     submission_metadata_only_wait = manual_finish_state["submission_metadata_only_wait"]
     _record_continuation_state_if_present(status=result, quest_root=quest_root)
+    _record_controller_authorization_if_present(status=result, quest_root=quest_root)
     _record_blocked_closeout_if_present(status=result, quest_root=quest_root)
     _record_pending_user_interaction_if_required(
         status=result,
@@ -867,6 +870,9 @@ def _status_state(
                     "invalid_blocking": StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
                     "pending_user_message_redrive": StudyRuntimeReason.QUEST_WAITING_USER_MESSAGE_REDRIVE,
                     "platform_repair_decision_redrive": (
+                        StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+                    ),
+                    "controller_work_unit_pending_redrive": (
                         StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
                     ),
                 }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)

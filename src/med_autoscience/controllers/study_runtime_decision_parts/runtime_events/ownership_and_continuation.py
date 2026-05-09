@@ -140,6 +140,13 @@ def _continuation_state_payload(*, quest_root: Path, quest_status: StudyRuntimeQ
     }
 
 
+def _record_controller_authorization_if_present(*, status: StudyRuntimeStatus, quest_root: Path) -> None:
+    runtime_state = _load_json_dict(_runtime_state_path(quest_root))
+    authorization = runtime_state.get("last_controller_decision_authorization")
+    if isinstance(authorization, dict) and authorization:
+        status.extras["last_controller_decision_authorization"] = dict(authorization)
+
+
 def _blocked_closeout_payload(*, quest_root: Path) -> dict[str, object] | None:
     runtime_state = _load_json_dict(_runtime_state_path(quest_root))
     blocked_closeout = runtime_state.get("blocked_turn_closeout")
