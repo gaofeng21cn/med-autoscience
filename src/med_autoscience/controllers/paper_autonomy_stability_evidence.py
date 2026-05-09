@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import paper_progress_degradation_evidence
 from med_autoscience.controllers import real_paper_autonomy_soak_inventory
 from med_autoscience.controllers import real_workspace_soak_monitor
 from med_autoscience.controllers import runtime_supervisor_consumer
@@ -68,6 +69,13 @@ def build_paper_autonomy_stability_evidence(
         for blocker in _sequence(profile.get("blockers"))
         if isinstance(blocker, Mapping)
     ]
+    progress_degradation = paper_progress_degradation_evidence.build_paper_progress_degradation_evidence(
+        [
+            dict(evidence)
+            for profile in profile_reports
+            if isinstance((evidence := profile.get("paper_progress_degradation_evidence")), Mapping)
+        ]
+    )
     return {
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -82,6 +90,7 @@ def build_paper_autonomy_stability_evidence(
         },
         "profile_count": len(profile_reports),
         "profiles": profile_reports,
+        "paper_progress_degradation_evidence": progress_degradation,
         "summary": {
             "profiles_readable": sum(profile.get("profile_readable") is True for profile in profile_reports),
             "profiles_blocked": sum(bool(profile.get("blockers")) for profile in profile_reports),
@@ -121,6 +130,7 @@ def _profile_evidence(
             "supervisor_reconcile_dry_run": _skipped("profile_unreadable"),
             "workspace_migration_dry_run": _skipped("profile_unreadable"),
             "real_workspace_soak_monitor": _skipped("profile_unreadable"),
+            "paper_progress_degradation_evidence": _skipped("profile_unreadable"),
             "blockers": [blocker],
             "can_claim_landed": False,
         }
@@ -142,6 +152,7 @@ def _profile_evidence(
             "supervisor_reconcile_dry_run": _skipped("profile_unreadable"),
             "workspace_migration_dry_run": _skipped("profile_unreadable"),
             "real_workspace_soak_monitor": _skipped("profile_unreadable"),
+            "paper_progress_degradation_evidence": _skipped("profile_unreadable"),
             "blockers": [blocker],
             "can_claim_landed": False,
         }
@@ -155,6 +166,13 @@ def _profile_evidence(
     reconcile = _supervisor_reconcile_dry_run(profile=profile, study_ids=resolved_study_ids)
     migration = _workspace_migration_dry_run(profile_path=profile_path)
     monitor = _workspace_soak_monitor(studies=studies)
+    progress_degradation = paper_progress_degradation_evidence.build_profile_progress_degradation_evidence(
+        profile_path=str(profile_path),
+        profile=profile,
+        studies=studies,
+        reconcile=reconcile,
+        monitor=monitor,
+    )
     blockers = _profile_blockers(
         profile_path=str(profile_path),
         studies=studies,
@@ -162,12 +180,18 @@ def _profile_evidence(
         migration=migration,
         monitor=monitor,
     )
+    blockers.extend(
+        dict(blocker)
+        for blocker in _sequence(progress_degradation.get("blockers"))
+        if isinstance(blocker, Mapping)
+    )
     return {
         **base,
         "resolved_study_ids": list(resolved_study_ids),
         "supervisor_reconcile_dry_run": reconcile,
         "workspace_migration_dry_run": migration,
         "real_workspace_soak_monitor": monitor,
+        "paper_progress_degradation_evidence": progress_degradation,
         "blockers": blockers,
         "can_claim_landed": False,
     }
@@ -221,6 +245,14 @@ def _supervisor_reconcile_dry_run(
             executed=executed,
             after_scan=after_scan,
         )
+        study_receipts = [
+            {
+                "study_id": study_id,
+                "before": runtime_supervisor_reconcile._study_projection(before_scan, study_id),  # noqa: SLF001
+                "after": runtime_supervisor_reconcile._study_projection(after_scan, study_id),  # noqa: SLF001
+            }
+            for study_id in resolved
+        ]
     except Exception as exc:
         return {
             "status": "blocked",
@@ -238,6 +270,7 @@ def _supervisor_reconcile_dry_run(
         "requested_studies": list(study_ids),
         "resolved_studies": list(resolved),
         "step_receipts": step_receipts,
+        "study_receipts": study_receipts,
         "blocked_count": executed.get("blocked_count"),
         "execution_count": executed.get("execution_count"),
         "stable_blockers": _stable_blockers(after_scan),
