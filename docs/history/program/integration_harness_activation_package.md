@@ -26,7 +26,7 @@
 
 - tranche start baseline commit：`f5e909b0f6db64489f63aa70f6e1bfe38ec362a6`
 - absorbed closeout commit：`70dc19fe4001b6eddda14e9b7a00e79a30d79ab1`
-- real-study verification note：[`../../references/real_study_relaunch_verification.md`](../../references/real_study_relaunch_verification.md)
+- real-study verification note：[`../../references/verification/real_study_relaunch_verification.md`](../../references/verification/real_study_relaunch_verification.md)
 
 因此，这份文档当前承担的是“已完成 activation package 的 repo-tracked closeout truth”，而不是“尚未 absorb 的 active tranche 说明”。
 
@@ -68,10 +68,10 @@ study_runtime_status / ensure_study_runtime
 
 当前链路的正式 repo-tracked bridge 继续由这些文档共同裁定：
 
-- [`../runtime/study_runtime_orchestration.md`](../runtime/study_runtime_orchestration.md)
-- [`../runtime/study_runtime_control_surface.md`](../runtime/study_runtime_control_surface.md)
-- [`../runtime/outer_loop_wakeup_and_decision_loop.md`](../runtime/outer_loop_wakeup_and_decision_loop.md)
-- [`../runtime/delivery_plane_contract_map.md`](../runtime/delivery_plane_contract_map.md)
+- [`../../runtime/control/study_runtime_orchestration.md`](../../runtime/control/study_runtime_orchestration.md)
+- [`../../runtime/control/study_runtime_control_surface.md`](../../runtime/control/study_runtime_control_surface.md)
+- [`../../runtime/control/outer_loop_wakeup_and_decision_loop.md`](../../runtime/control/outer_loop_wakeup_and_decision_loop.md)
+- [`../../runtime/contracts/delivery_plane_contract_map.md`](../../runtime/contracts/delivery_plane_contract_map.md)
 
 本文件只负责补齐：
 
@@ -138,7 +138,7 @@ study_runtime_status / ensure_study_runtime
 
 相关 cutover 约束继续由：
 
-- [`../../policies/merge_and_cutover_gates.md`](../../policies/merge_and_cutover_gates.md)
+- [`../../policies/repo-ops/merge_and_cutover_gates.md`](../../policies/repo-ops/merge_and_cutover_gates.md)
 
 裁定。
 
@@ -167,7 +167,7 @@ study_runtime_status / ensure_study_runtime
 
 1. 承认这条 activation package / baseline 已 absorb 到 `main`
 2. 把后续更大推进诚实地停在 external dependency gate 前
-3. 通过 [`../../policies/external_runtime_dependency_gate.md`](../../policies/external_runtime_dependency_gate.md) 把 blocker 固定为 repo-tracked canonical audit package
+3. 通过 [`../../policies/runtime-governance/external_runtime_dependency_gate.md`](../../policies/runtime-governance/external_runtime_dependency_gate.md) 把 blocker 固定为 repo-tracked canonical audit package
 4. 如果 repo 内还要继续推进，只允许打开更窄的 backend-contract continuation：
    - [`./hermes_backend_continuation_board.md`](./hermes_backend_continuation_board.md)
    - [`./hermes_backend_activation_package.md`](./hermes_backend_activation_package.md)

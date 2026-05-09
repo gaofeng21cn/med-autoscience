@@ -8,8 +8,8 @@
 
 - [文档索引](../../README.zh-CN.md)
 - [医学展示能力线入口](../../capabilities/medical-display/README.zh-CN.md)
-- [医学展示 active board](../../capabilities/medical-display/medical_display_active_board.md)
-- [医学展示文档组合治理](../../capabilities/medical-display/medical_display_portfolio_consolidation.md)
+- [医学展示 active board](../../capabilities/medical-display/board/medical_display_active_board.md)
+- [医学展示文档组合治理](../../capabilities/medical-display/portfolio/medical_display_portfolio_consolidation.md)
 
 当前归档能力线：
 

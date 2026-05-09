@@ -2,183 +2,38 @@
 
 **English** | [中文](./README.zh-CN.md)
 
-This directory is the technical reading layer for `Med Auto Science`.
-The repository home stays user-facing for clinicians, PIs, and medical teams.
-This guide is for readers who need product boundary, operator entry surfaces, runtime contracts, and maintenance records.
+This directory is the technical reading layer for `Med Auto Science`. The
+repository home remains the user-facing entry for clinicians, PIs, and medical
+research teams.
 
-## Start Here By Audience
+## Start Here
 
-| Audience | Start here | Why |
-| --- | --- | --- |
-| Potential users and medical experts | [Repository home](../README.md) | Understand what problems MAS helps solve before reading technical internals |
-| Technical readers and planners | [Project](./project.md), [Status](./status.md), [Architecture](./architecture.md), [Invariants](./invariants.md), [Decisions](./decisions.md) | Get the current role, boundary, and operating model quickly |
-| Developers and maintainers | `docs/runtime/`, `docs/program/`, `docs/capabilities/`, `docs/references/`, `docs/policies/`, [History Archive](./history/README.md) | Inspect implementation-facing material, governance records, and historical traces |
+| Need | Entry |
+| --- | --- |
+| Product role and boundary | [Project](./project.md) |
+| Current operating truth | [Status](./status.md) |
+| Architecture and owner boundaries | [Architecture](./architecture.md) |
+| Non-negotiable constraints | [Invariants](./invariants.md) |
+| Durable decisions | [Decisions](./decisions.md) |
+| Documentation lifecycle rules | [Docs portfolio governance](./docs_portfolio_consolidation.md) |
 
-## What This Layer Covers
+## Directory Map
 
-- The repository home explains what `Med Auto Science` is for, who it helps, and how to start.
-- The core docs explain product boundary, current status, architecture, invariants, and decisions.
-- `docs/runtime/`, `docs/program/`, `docs/capabilities/`, `docs/references/`, and `docs/policies/` hold implementation, maintenance, and historical or technical material.
+| Directory | Purpose |
+| --- | --- |
+| [runtime](./runtime/README.md) | Runtime contracts, control surfaces, projections, display contracts, and active designs. |
+| [program](./program/README.md) | Small active execution queue and program-level coordination. |
+| [capabilities](./capabilities/README.md) | Capability-family documentation such as medical display. |
+| [references](./references/README.md) | Supporting references, positioning, integration notes, parity material, and verification records. |
+| [policies](./policies/README.md) | Stable internal rules and long-lived operating boundaries. |
+| [history](./history/README.md) | Dated snapshots, provenance, retired boards, archived plans, and process drafts. |
 
-## Current Reading Baseline
+## Reading Rule
 
-- `Med Auto Science` is a disease-focused medical research domain agent with a single MAS app skill and a manuscript-delivery workspace.
-- The default user concern is study question, workspace context, progress narration, and file delivery.
-- `CLI`, `MCP`, and `controller` are operator and automation entry surfaces.
-- The stable callable surface is exposed through the single MAS app skill and includes the local CLI, workspace commands/scripts, durable surfaces, and repo-tracked contracts.
-- `product-entry-status`, `workspace-cockpit`, `study-progress`, and product-entry manifests remain internal command/projection contracts below the single app skill, not separate public entry products.
-- `OPL` integration, the product-entry manifest, and other machine-readable bridge surfaces belong to the integration and reference layers.
-- `OPL Runtime Manager` is the target family-level thin manager over the external `Hermes-Agent` substrate; it may consume MAS task registration, runtime-control projection, status/artifact locators, and wakeup/approval boundaries, but it does not own MAS study truth.
-- `MAS Progress Portal` is the MAS-owned progress payload and workspace-local HTML entrance at `ops/mas/progress/index.html`. OPL App integration should consume MAS payload/read-model refs in a family-level dashboard and deep-link to the local Portal; it must not reinterpret MAS study truth. Live console observation is owned separately by the MAS Runtime OS live-console contract.
-- Hosted runtime carriers such as `Hermes-Agent` stay in explicit optional or reference-layer positions; they do not redefine the default MAS capability contract.
-- `MedDeepScientist` is now a frozen source archive, historical fixture, explicit archive import reference, and provenance/parity reference; MAS remains the only research, runtime, progress, quality, and publication owner.
-- MAS standalone GitHub Releases / installers are not the active user-installation channel; distribution wording should point to the current OPL-managed module path or future OPL Packages/GHCR module coordinates.
-- AI-first is the current operating direction for runnable research quality. It is expressed through pre-draft quality runtime, AI reviewer workflow, artifact rebuild proof, operations state, and real-paper soak, not through mechanical checks over documentation wording.
-- `StudyTruthKernel` and `RuntimeHealthKernel` are current read-model reducers for study truth and runtime health; ordinary reads create shadow projections, while materialized snapshots require explicit reconcile/controller/watch apply actions.
-- `study_macro_state/latest.json` and `owner_route` now carry the user-facing macro state and executable owner ticket. `study-state-matrix`, supervisor consume, dispatch execution, and lifecycle projection should converge on those surfaces instead of re-deriving local status.
-- Artifact retention is a lifecycle projection, not authority. Terminal stop-loss compaction starts as a dry-run plan and still requires manifest, sha256, restore index, and restore proof before any future physical apply.
-- First-draft manuscript quality is handled as a pre-draft runtime concern: MAS should generate manuscript-native medical journal prose, not controller notes, figure/table anchor scaffolds, or administrative placeholders in article text.
-- Artifact proof is canonical-source-first: manuscript, figures, tables, and packages should be rebuildable from canonical sources before they are treated as delivery evidence.
-- Real-paper soak remains the main evidence gap for the AI-first line; documents should state that gap instead of presenting every target-layer capability as proven current behavior.
-- Workspace Git/storage boundaries are now part of the maintained workspace contract: new workspaces are no-root-Git / no-quest-Git by default, generated/runtime artifacts stay excluded, and existing root Git exits through restore-proof lifecycle retirement.
-- Runtime lifecycle history and indexing are carried by `artifacts/runtime/runtime_lifecycle.sqlite`, `artifacts/runtime/lifecycle_migration` ledgers, `runtime/quests` manifests, and `runtime/restore_index`; status and lifecycle operations should read these surfaces plus file authority, not Git history.
-- Historical migration terms and older naming stay in reference or history layers.
-- Treat `README*` and `docs/**` as human-readable surfaces. Scripts, tests, runtime status, and contracts should use machine-readable contracts, schemas, source paths, or `human_doc:*` semantic IDs instead of pinning prose documentation paths.
+Read the core docs first, then enter the relevant directory index. Detailed file
+lists live in each subtree README so this page stays a short navigation surface.
 
-## Technical Working Set
-
-Read these first before changing repo state:
-
-- [Project](./project.md)
-- [Status](./status.md)
-- [Architecture](./architecture.md)
-- [Invariants](./invariants.md)
-- [Decisions](./decisions.md)
-- [Documentation portfolio consolidation](./docs_portfolio_consolidation.md)
-
-## Lifecycle Map
-
-The docs tree is managed as a lifecycle portfolio:
-
-- `docs/` root: public technical entry and current core truth.
-- `docs/runtime/`: runtime contracts, control surfaces, read models, and active implementation plans.
-- `docs/policies/`: stable internal rules and boundary contracts.
-- `docs/program/`: active development-plan layer and execution queue.
-- `docs/capabilities/`: active capability-family documentation.
-- `docs/references/`: support references, positioning, parity, ledgers, and recurring learning protocols.
-- `docs/history/`: dated snapshots, provenance, superseded plans, and retired boards.
-
-Each layer has a local index or portfolio entry. If a document no longer has an active owner, update inbound links and move it to the matching history layer instead of leaving it in the default reading path.
-
-## Default Public Surface
-
-- [Repository home](../README.md)
-
-The repository home plus this guide are the default public entry surfaces.
-Public-facing material should stay mirrored in English and Chinese.
-
-## Repo-Tracked Technical Docs
-
-### Runtime contracts and control surface
-
-- [Runtime directory index](runtime/README.md)
-- [Agent runtime interface](runtime/agent_runtime_interface.md)
-- [Agent entry modes](runtime/agent_entry_modes.md)
-- [Runtime handle and durable surface contract](runtime/runtime_handle_and_durable_surface_contract.md)
-- [Runtime backend interface contract](runtime/runtime_backend_interface_contract.md)
-- [Runtime event and outer-loop input contract](runtime/runtime_event_and_outer_loop_input_contract.md)
-- [Runtime event and outer-loop input implementation plan](runtime/runtime_event_and_outer_loop_input_implementation_plan.md)
-- [Runtime boundary](runtime/runtime_boundary.md)
-- [Runtime core convergence and controlled cutover](runtime/runtime_core_convergence_and_controlled_cutover.md)
-- [Runtime core convergence and controlled cutover implementation plan](runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md)
-- [Runtime supervision loop](runtime/runtime_supervision_loop.md)
-- [Study truth kernel](runtime/study_truth_kernel.md)
-- [Runtime health kernel](runtime/runtime_health_kernel.md)
-- [Study macro state and owner route](runtime/study_macro_state_and_owner_route.md)
-- [MAS Progress Portal](runtime/progress_portal.md)
-- [Artifact retention operations contract](runtime/artifact_retention_operations_contract.md)
-- [Artifact inventory projection](runtime/artifact_inventory_projection.md)
-- [Canonical artifact contract](runtime/canonical_artifact_contract.md)
-- [Study runtime control surface](runtime/study_runtime_control_surface.md)
-- [Study runtime orchestration](runtime/study_runtime_orchestration.md)
-- [Workspace knowledge and literature contract](runtime/workspace_knowledge_and_literature_contract.md)
-- [Workspace knowledge and literature implementation plan](runtime/workspace_knowledge_and_literature_implementation_plan.md)
-
-### Capability docs
-
-- [Capability docs index](capabilities/README.md)
-- [Medical display directory index](capabilities/medical-display/README.md)
-- [Medical display platform mainline](capabilities/medical-display/medical_display_platform_mainline.md)
-- [Medical display portfolio consolidation](capabilities/medical-display/medical_display_portfolio_consolidation.md)
-- [Medical display active board](capabilities/medical-display/medical_display_active_board.md)
-- [Medical display audit guide](capabilities/medical-display/medical_display_audit_guide.md)
-- [Medical display template catalog](capabilities/medical-display/medical_display_template_catalog.md)
-- [Medical display family roadmap](capabilities/medical-display/medical_display_family_roadmap.md)
-- [Medical display visual audit protocol](capabilities/medical-display/medical_display_visual_audit_protocol.md)
-
-### Program and Maintenance Records
-
-- [Program directory index](program/README.md)
-- [Program portfolio consolidation](program/program_portfolio_consolidation.md)
-- [Runtime lifecycle SQLite migration program](program/runtime_lifecycle_sqlite_migration_program.md)
-- [MAS single-project MDS absorb program](program/mas_single_project_mds_absorb_program.md)
-- [Plan completion ledger](references/plan_completion_ledger.md)
-- [MDS capability parity matrix](references/mds_capability_parity_matrix.md)
-- [MAS single-project quality and autonomy mainline](references/mas_single_project_quality_and_autonomy_mainline.md)
-- [MedDeepScientist deconstruction map](references/med-deepscientist/med_deepscientist_deconstruction_map.md)
-- [External runtime dependency gate](policies/external_runtime_dependency_gate.md)
-- [Merge and cutover gates](policies/merge_and_cutover_gates.md)
-- [MAS/MDS owner boundary contract](policies/mas_mds_owner_boundary_contract.md)
-- [Project repair priority map](references/project_repair_priority_map.md)
-- [Study progress projection](runtime/study_progress_projection.md)
-- [Program history archive](history/program/README.md)
-
-### Integration References
-
-- [Lightweight product entry and OPL handoff](references/lightweight_product_entry_and_opl_handoff.md)
-- [Progress Portal OPL App Integration](references/progress_portal_opl_app_integration.md)
-- [Disease workspace quickstart](references/disease_workspace_quickstart.md)
-- [Workspace architecture](references/workspace_architecture.md)
-
-### References
-
-- [References directory index](references/README.md)
-- [Domain Harness OS positioning](references/domain-harness-os-positioning.md)
-- [Research Foundry positioning](references/research_foundry_positioning.md)
-- [Repo split between Research Foundry and Med Auto Science](references/repo_split_between_research_foundry_and_med_autoscience.md)
-- [Series doc governance checklist](references/series-doc-governance-checklist.md)
-
-### Stable internal rules
-
-- [Policies index](policies/README.md)
-- [Platform operating model](policies/platform_operating_model.md)
-- [Data asset management](policies/data_asset_management.md)
-- [Research route bias policy](policies/research_route_bias_policy.md)
-- [Publication gate policy](policies/publication_gate_policy.md)
-- [AI-first quality boundary policy](policies/ai_first_quality_boundary.md)
-- [Medical manuscript first-draft quality policy](policies/medical_manuscript_first_draft_quality.md)
-
-### Traceability Records
-
-- [Program directory](program/)
-- [References directory](references/)
-- [History archive](history/README.md)
-- [Capability history archive](history/capabilities/README.md)
-- [Superpowers process draft archive](history/superpowers/README.md)
-
-## Documentation Rules
-
-- Keep [Repository home](../README.md) understandable for clinicians and non-technical experts.
-- Keep public-facing docs mirrored in English and Chinese.
-- Keep runtime, program, capability, and policy material technical and repo-tracked without letting it take over the public home page.
-- Keep historical material readable while keeping the active user path focused on research workspaces, progress, and files.
-- Documentation should keep current behavior, operating direction, and evidence gaps readable for humans. Do not use tests or preflight contracts to police wording.
-- Before creating a new document, decide its lifecycle state in [Documentation portfolio consolidation](./docs_portfolio_consolidation.md): active truth, active execution plan, active contract, recurring support lane, support reference, dated snapshot, superseded/retired, or local process draft.
-
-## Governance
-
-- Documentation governance freezes in [series doc governance checklist](references/series-doc-governance-checklist.md), the technical working set, and the repo-tracked contract/doc surfaces rather than in `AGENTS.md` alone.
-- `README*` and `docs/README*` are the default public entry.
-- `docs/runtime/`, `docs/program/`, `docs/capabilities/`, and `docs/references/` are repo-tracked technical material.
-- `docs/policies/` holds stable internal rules.
-- `docs/history/` is historical archive only.
+`README*` and `docs/**` are human-readable documentation. Code, tests, runtime
+status, and contracts should depend on schemas, durable JSON, source paths, or
+semantic IDs such as `runtime:*`, `program:*`, `policy:*`, and `human_doc:*`,
+not Markdown prose wording.

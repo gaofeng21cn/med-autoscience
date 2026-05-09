@@ -206,7 +206,7 @@ def test_run_preflight_executes_external_runtime_dependency_commands(monkeypatch
     monkeypatch.setattr(module.subprocess, "run", fake_run)
 
     result = module.run_preflight(
-        changed_files=["docs/policies/external_runtime_dependency_gate.md"],
+        changed_files=["docs/policies/runtime-governance/external_runtime_dependency_gate.md"],
         repo_root=tmp_path,
     )
 
@@ -329,12 +329,12 @@ def test_collect_changed_files_from_staged_diff(monkeypatch, tmp_path: Path) -> 
     monkeypatch.setattr(
         module,
         "_git_diff_name_only",
-        lambda **kwargs: ["README.md", "docs/references/codex_plugin.md"],
+        lambda **kwargs: ["README.md", "docs/references/integration/codex_plugin.md"],
     )
 
     changed_files = module.collect_changed_files(repo_root=tmp_path, staged=True)
 
-    assert changed_files == ["README.md", "docs/references/codex_plugin.md"]
+    assert changed_files == ["README.md", "docs/references/integration/codex_plugin.md"]
 
 
 def test_collect_changed_files_from_base_ref_diff(monkeypatch, tmp_path: Path) -> None:

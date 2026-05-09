@@ -7,7 +7,7 @@
 - [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md)
 - [MAS 单项目 MDS 吸收 Program](../../program/mas_single_project_mds_absorb_program.md)
 - [Runtime Lifecycle SQLite 迁移 Program](../../program/runtime_lifecycle_sqlite_migration_program.md)
-- [Plan Completion Ledger](../../references/plan_completion_ledger.md)
+- [Plan Completion Ledger](../../references/verification/plan_completion_ledger.md)
 
 周期性支持线快照：
 

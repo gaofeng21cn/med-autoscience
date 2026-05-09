@@ -4,7 +4,7 @@
 
 - 决策：`MAS supervision scheduler contract` 是 outer supervision 的正式 owner；`Hermes gateway cron` 只是当前 active scheduler adapter。MAS 的运行架构按 Runtime Core、Supervisor Scheduler、Product Projection 三层表达：Runtime Core 由 `MAS Runtime OS` / `mas_runtime_core` 持有；Supervisor Scheduler 只负责按 cadence 唤醒 MAS-owned tick、记录 job/run receipt、暴露 SLO / drift；Product Projection 只读展示进度、日志、阻塞和下一步。
 - 理由：fresh repo 状态显示 Hermes 当前承担的是单一、可替换的 scheduler adapter 工作：生成 tick script、注册/更新/触发/删除 cron job、提供 job registry/latest run/session projection 和 gateway liveness。它不持有研究执行、turn continuation、publication judgment、quality authority 或 study truth。成熟工程实践也要求 scheduler 只生产可审计触发，幂等、并发、missed-run、receipt 和 migration 由系统 contract 明确表达。
-- 影响：后续先按 [Supervision Scheduler Contract](./runtime/supervision_scheduler_contract.md) 实现 MAS-owned local scheduler adapter；local adapter 与 Hermes adapter 必须输出同构 status / SLO / latest receipt / drift / duplicate detection。local adapter parity 前不能裸删 Hermes，因为会丢失 active scheduled tick 与状态投影；parity 后，Hermes 从 required dependency 降为 optional hosted / remote / non-GPT executor / OPL online-management adapter。OPL 文档、Full package、runtime tray 和 installer 应随 cutover 把 Hermes 改为 optional provider，而不是 core/domain readiness 前置条件。
+- 影响：后续先按 [Supervision Scheduler Contract](./runtime/control/supervision_scheduler_contract.md) 实现 MAS-owned local scheduler adapter；local adapter 与 Hermes adapter 必须输出同构 status / SLO / latest receipt / drift / duplicate detection。local adapter parity 前不能裸删 Hermes，因为会丢失 active scheduled tick 与状态投影；parity 后，Hermes 从 required dependency 降为 optional hosted / remote / non-GPT executor / OPL online-management adapter。OPL 文档、Full package、runtime tray 和 installer 应随 cutover 把 Hermes 改为 optional provider，而不是 core/domain readiness 前置条件。
 
 ## 2026-05-08：MAS monolith closeout 取代外部 MDS 默认运行依赖
 
@@ -43,7 +43,7 @@
 - 决策：长线目标固定为 `MAS AI-first Research OS`。MAS 作为唯一 research / quality / publication / artifact / user-visible truth owner；MDS 已收敛为显式 backend audit、explicit archive import reference、upstream intake 与 parity oracle companion。机械系统只负责 evidence、status、completeness、blocker、projection 与 replay；AI reviewer workflow 持有科学质量、医学写作质量、publishability 与 submission-facing readiness。
 - Authority anchor：AI reviewer artifacts 持有科学质量；机械系统只负责 evidence、status、completeness、blocker、projection 与 replay。
 - 理由：近期论文修复证明，机械 gate 先给 ready、下游再补救会把质量风险推迟到最贵的阶段。AI-first 的真实落点应前移到 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 与真实论文 soak，而不是在文档层增加措辞约束。
-- 影响：新增架构、质量、运行、产物、观测或 MDS 吸收能力时，必须回到 [MAS AI-first Research OS Architecture](./references/ai_first_research_os_architecture.md) 的 owner / authority / proof 口径；MDS no-history absorb 只允许在 parity proof、owner cutover、rollback surface 与质量不降级证明成立后以 MAS-authored snapshot 落地。当前 no-history absorb 已关闭为 repo-level guard/parity/default-dependency-retirement；更大的 runtime core ingest、controlled cutover 或平台结构调整仍需独立 gate。本决策不新增文档 wording gate，不修改测试或 preflight contract。
+- 影响：新增架构、质量、运行、产物、观测或 MDS 吸收能力时，必须回到 [MAS AI-first Research OS Architecture](./references/mainline/ai_first_research_os_architecture.md) 的 owner / authority / proof 口径；MDS no-history absorb 只允许在 parity proof、owner cutover、rollback surface 与质量不降级证明成立后以 MAS-authored snapshot 落地。当前 no-history absorb 已关闭为 repo-level guard/parity/default-dependency-retirement；更大的 runtime core ingest、controlled cutover 或平台结构调整仍需独立 gate。本决策不新增文档 wording gate，不修改测试或 preflight contract。
 
 ## 2026-05-01：StudyTruthKernel 成为 study 级用户可见真相 reducer
 

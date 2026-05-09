@@ -29,7 +29,7 @@ Owner: `MedAutoScience`
 
 2026-05-08 live console closeout：`live-console-parity=landed` 已把旧 MDS WebUI 的观察类价值收口为 MAS-owned read-only surface。默认医生/PI 入口仍是 Progress Portal；维护者/高级用户需要 session/run、terminal tail、log tail、runtime health、supervision freshness 和 artifact/event refs 时，进入 MAS Live Console。该能力不依赖外部 MDS repo / daemon / WebUI，不导入旧 WebUI 代码或 history，也不把 UI 升级成 runtime 或 publication authority。
 
-2026-05-08 WebUI user parity correction，2026-05-09 更新：Portal 已落地固定 MAS 进度入口，per-study/per-paper 工作台、Route / Decision Trail read-only helper、runtime conversation read model、study-scoped Live Console、authorized action receipts 与 terminal attach fail-closed gate 已进入 repo contract。旧 MDS WebUI 的 per-project/per-quest 工作台仍是 UX oracle；后续 UX parity 的 active reference 是 `docs/references/mds_webui_user_parity_gap_review.md`，重点从“补机器合同”转为真实多论文 workspace soak、route input 完整性、source-ref 可读性、authorized action apply 和 interactive terminal attach owner gate。
+2026-05-08 WebUI user parity correction，2026-05-09 更新：Portal 已落地固定 MAS 进度入口，per-study/per-paper 工作台、Route / Decision Trail read-only helper、runtime conversation read model、study-scoped Live Console、authorized action receipts 与 terminal attach fail-closed gate 已进入 repo contract。旧 MDS WebUI 的 per-project/per-quest 工作台仍是 UX oracle；后续 UX parity 的 active reference 是 `docs/references/mds-parity/mds_webui_user_parity_gap_review.md`，重点从“补机器合同”转为真实多论文 workspace soak、route input 完整性、source-ref 可读性、authorized action apply 和 interactive terminal attach owner gate。
 
 2026-05-08 paper autonomy stability 分层：`functional_monolith_completion=landed` 只说明 repo / 默认入口 / 可视化 / runtime core 依赖已经由 MAS 承接；`paper_autonomy_stability=landed` 是更高一层，必须额外具备真实 profile inventory、supervisor reconcile、workspace migration dry-run、read-only soak 和真实 paper status/progress 可读证据。当前新增的 `real_paper_autonomy_soak_inventory` 只做 dry-run/inventory，枚举 `/Users/gaofeng/workspace/Yang/*/ops/medautoscience/profiles/*.toml` 并报告 migration readiness、status/progress readability、active/parked/completed reason 与 legacy MDS launcher/default runner evidence；它不写真实 workspace、不运行 reconcile apply、不修改 `current_package`、不写 publication gate，也不替代 Lane 1 blocker fix、Lane 2 reconcile CLI、Lane 3 owner_route schema 或 Lane 4 migration apply。
 
@@ -50,19 +50,19 @@ Owner: `MedAutoScience`
 | `1` | `workspace_layout_de_mds_ds` | `mas_single_project_mds_absorb_program.md` | `landed`: 用户/医生可见 workspace layout、static profile template、doctor/show-profile 输出、bootstrap/quickstart/agent-runtime 文档和 quest 管理命名已去 MDS/DS 化；旧路径仅保留为 migration ledger、restore proof 或 maintainer diagnostic。 |
 | `2` | `profile_entry_compat_retirement` | `mas_single_project_mds_absorb_program.md` | `landed`: profile JSON、MCP doctor audit mode、workspace contracts、product-entry/progress executor owner 和 docs 已从默认 MDS entry/compat 退到 explicit backend audit / controlled backend audit；旧 `med_deepscientist_*` 输入字段保留为只读诊断和 backend/oracle 审计。 |
 | `3` | `no_history_physical_absorb` | `mas_single_project_mds_absorb_program.md` | `landed`: no-history source provenance、author audit guard、capability parity harness、MAS-owned retained capability absorb、external runtime dependency retirement 和 docs closeout 已完成；没有把上游 DeepScientist / med-deepscientist git history 或 contributor footprint 带入 `med-autoscience main`。 |
-| `4` | `functional_monolith_completion` | `mas_single_project_mds_absorb_program.md`、`../runtime/runtime_core_convergence_and_controlled_cutover.md` | `landed`: MDS remaining surface inventory、runtime core ingest、MAS-native progress/status replacement、legacy MDS WebUI default retirement、OPL App family-level handoff、compat/oracle shrink-to-diagnostic 和 local contributor audit guard 已落地；外部 MDS checkout 不再是默认 operation 或默认 diagnostic dependency，OPL App 只消费 MAS refs/deep links，不重解释 study truth。 |
-| `4b` | `mds_behavior_equivalence_audit` | `../references/mds_behavior_equivalence_gap_matrix.md`、`../references/mds_capability_parity_matrix.md` | `landed`: default independence 与 full daemon equivalence 分离；turn completion continuation 已行为等价，Live Console 已提供旧 WebUI 观察类能力的 read-only purpose equivalence；resident daemon / connector threads / GitOps lifecycle / workspace-local host service 的剩余差异已进入机器可读矩阵和 active docs。resident WebSocket terminal attach / UI control 作为 future interactive parity candidate 记录，不写成已放弃。 |
-| `4c` | `runtime_continuity_completion` | `../runtime/runtime_supervision_loop.md`、`../runtime/runtime_health_kernel.md`、`../runtime/study_progress_projection.md`、`../runtime/progress_portal.md`、`../references/mds_behavior_equivalence_gap_matrix.md` | `landed`: `runtime_session`、`recovery_intent`、safe reconcile trigger 和 runtime continuity projection 已覆盖用户可见 worker tracking / last seen / recovery intent；仍按 scheduler-bound MAS Runtime OS 口径，不重引入 MDS daemon 或旧 workspace-local service。 |
-| `5` | `runtime_evidence_closeout` | `mas_single_project_mds_absorb_program.md`、`../runtime/runtime_supervision_loop.md`、`../runtime/progress_portal.md`、`../runtime/live_console_ui_contract.md` | `landed/evidence-gated`: outer supervision latency SLA、Portal/Live Console real workspace soak runner 和 paper autonomy stability evidence read model 已落地；`paper_autonomy_stability` 仍只能在真实 evidence 无 blocker 时写成 landed，否则保持 `evidence_landed_with_blockers`。 |
-| `5a` | `runtime_watchdog_cost_closeout` | `../runtime/runtime_supervision_loop.md`、`../references/mds_behavior_equivalence_gap_matrix.md` | `landed`: MAS per-run worker wrapper / watchdog 已承接低延迟 child exit 感知，runtime_session / Live Console / Portal 投影显示 watchdog state 与 `will_start_llm`；supervisor / runtime_watch 记录 dispatch counters 与 duplicate guard；Hermes 300 秒 cron 仍是 fail-safe，不作为高频 LLM scheduler。 |
-| `5b` | `portal_webui_user_parity` | `../references/mds_webui_user_parity_gap_review.md`、`../runtime/progress_portal.md`、`../runtime/mas_live_console_mds_webui_parity_plan.md` | `landed_read_only_contract / soak-polish`: Portal 已进化到 per-study/per-paper 工作台，含 study-scoped deep links、Route/Decision Trail、Path/Stage、Runtime/Run、Conversation、Terminal/Logs、Artifacts 和 source refs；`focused_lanes.portal-route-decision-trail` 固定只读路线图合同。后续只做真实 workspace soak/source-ref/route-input polish。 |
-| `5c` | `runtime_interactive_parity_guarded` | `../references/mds_webui_user_parity_gap_review.md`、`../runtime/live_console_ui_contract.md` | `landed_fail_closed_gate / apply-and-attach-pending`: study-scoped Live Console、action receipts 与 terminal attach gate 已落地；authorized UI action apply 和 terminal attach/input/resize/detach 只能在 threat model、owner gate、idempotency、audit 和 token/lease contract 完整后进入实现。 |
+| `4` | `functional_monolith_completion` | `mas_single_project_mds_absorb_program.md`、`../runtime/contracts/runtime_core_convergence_and_controlled_cutover.md` | `landed`: MDS remaining surface inventory、runtime core ingest、MAS-native progress/status replacement、legacy MDS WebUI default retirement、OPL App family-level handoff、compat/oracle shrink-to-diagnostic 和 local contributor audit guard 已落地；外部 MDS checkout 不再是默认 operation 或默认 diagnostic dependency，OPL App 只消费 MAS refs/deep links，不重解释 study truth。 |
+| `4b` | `mds_behavior_equivalence_audit` | `../references/mds-parity/mds_behavior_equivalence_gap_matrix.md`、`../references/mds-parity/mds_capability_parity_matrix.md` | `landed`: default independence 与 full daemon equivalence 分离；turn completion continuation 已行为等价，Live Console 已提供旧 WebUI 观察类能力的 read-only purpose equivalence；resident daemon / connector threads / GitOps lifecycle / workspace-local host service 的剩余差异已进入机器可读矩阵和 active docs。resident WebSocket terminal attach / UI control 作为 future interactive parity candidate 记录，不写成已放弃。 |
+| `4c` | `runtime_continuity_completion` | `../runtime/control/runtime_supervision_loop.md`、`../runtime/projections/runtime_health_kernel.md`、`../runtime/projections/study_progress_projection.md`、`../runtime/display/progress_portal.md`、`../references/mds-parity/mds_behavior_equivalence_gap_matrix.md` | `landed`: `runtime_session`、`recovery_intent`、safe reconcile trigger 和 runtime continuity projection 已覆盖用户可见 worker tracking / last seen / recovery intent；仍按 scheduler-bound MAS Runtime OS 口径，不重引入 MDS daemon 或旧 workspace-local service。 |
+| `5` | `runtime_evidence_closeout` | `mas_single_project_mds_absorb_program.md`、`../runtime/control/runtime_supervision_loop.md`、`../runtime/display/progress_portal.md`、`../runtime/display/live_console_ui_contract.md` | `landed/evidence-gated`: outer supervision latency SLA、Portal/Live Console real workspace soak runner 和 paper autonomy stability evidence read model 已落地；`paper_autonomy_stability` 仍只能在真实 evidence 无 blocker 时写成 landed，否则保持 `evidence_landed_with_blockers`。 |
+| `5a` | `runtime_watchdog_cost_closeout` | `../runtime/control/runtime_supervision_loop.md`、`../runtime/control/supervision_scheduler_contract.md`、`../references/mds-parity/mds_behavior_equivalence_gap_matrix.md` | `landed`: MAS per-run worker wrapper / watchdog 已承接低延迟 child exit 感知，runtime_session / Live Console / Portal 投影显示 watchdog state 与 `will_start_llm`；supervisor / runtime_watch 记录 dispatch counters 与 duplicate guard；Hermes 300 秒 cron 仍是 fail-safe，不作为高频 LLM scheduler。 |
+| `5b` | `portal_webui_user_parity` | `../references/mds-parity/mds_webui_user_parity_gap_review.md`、`../runtime/display/progress_portal.md`、`../runtime/display/mas_live_console_mds_webui_parity_plan.md` | `landed_read_only_contract / soak-polish`: Portal 已进化到 per-study/per-paper 工作台，含 study-scoped deep links、Route/Decision Trail、Path/Stage、Runtime/Run、Conversation、Terminal/Logs、Artifacts 和 source refs；`focused_lanes.portal-route-decision-trail` 固定只读路线图合同。后续只做真实 workspace soak/source-ref/route-input polish。 |
+| `5c` | `runtime_interactive_parity_guarded` | `../references/mds-parity/mds_webui_user_parity_gap_review.md`、`../runtime/display/live_console_ui_contract.md` | `landed_fail_closed_gate / apply-and-attach-pending`: study-scoped Live Console、action receipts 与 terminal attach gate 已落地；authorized UI action apply 和 terminal attach/input/resize/detach 只能在 threat model、owner gate、idempotency、audit 和 token/lease contract 完整后进入实现。 |
 
 本文是队列 authority。实现 lane 可以并行拆分，但吸收顺序仍按上表 gate；不能绕过 portfolio 直接新建另一套 program board。
 
 ## Architecture Fitness Budget
 
-模块化治理现在是横向 fitness budget，不是新的 active program board。当前评估与落地记录见 [MAS Modularity Assessment 2026-05-07](../references/mas_modularity_assessment_2026_05_07.md)：MAS 依赖方向已经干净，Sentrux `above_diagonal=0`，本轮 architecture fitness wave 已把 boundary fitness 清到 `0 blocking / 0 advisory`；但 `product_entry`、`study_progress`、`runtime/control`、MCP/display 这些高扇入 projection/entry/read-model 仍是维护热点。
+模块化治理现在是横向 fitness budget，不是新的 active program board。当前评估与落地记录见 [MAS Modularity Assessment 2026-05-07](../references/mainline/mas_modularity_assessment_2026_05_07.md)：MAS 依赖方向已经干净，Sentrux `above_diagonal=0`，本轮 architecture fitness wave 已把 boundary fitness 清到 `0 blocking / 0 advisory`；但 `product_entry`、`study_progress`、`runtime/control`、MCP/display 这些高扇入 projection/entry/read-model 仍是维护热点。
 
 因此，后续队列执行时统一遵守：
 
@@ -83,12 +83,12 @@ Owner: `MedAutoScience`
 | order | portfolio gate | owner doc | 并行性 |
 | --- | --- | --- | --- |
 | `A0_program_portfolio_freeze` | 固定 active / support / historical 分类，停止新建重复 program board。 | 本文 | 可单独落地。 |
-| `A1_authority_contract` | 固定 MAS owner matrix、SQLite runtime authority schema、MDS oracle-only 规则。 | `../policies/mas_mds_owner_boundary_contract.md`、`runtime_lifecycle_sqlite_migration_program.md` | `Q0` 必须先完成，其他 lane 只能读合同。 |
+| `A1_authority_contract` | 固定 MAS owner matrix、SQLite runtime authority schema、MDS oracle-only 规则。 | `../policies/runtime-governance/mas_mds_owner_boundary_contract.md`、`runtime_lifecycle_sqlite_migration_program.md` | `Q0` 必须先完成，其他 lane 只能读合同。 |
 | `A2_repo_capability_absorb` | 把 MDS Git-era branch/worktree/checkpoint/diff/canvas 语义迁入 SQLite lineage/materializer/projection。 | `mas_single_project_mds_absorb_program.md`、`runtime_lifecycle_sqlite_migration_program.md` | `Q1/Q2/Q3` 可按 disjoint write set 并行。 |
 | `A3_workspace_cutover` | 当前 NF-PitNET、DM-CVD / DPCC、AS biologics、HeRR 等 workspace 进入 SQLite-backed runtime layout，quest `.git` 和 workspace root Git 退为 restore diagnostic archive；new workspace no root Git / no quest Git。 | `runtime_lifecycle_sqlite_migration_program.md` | current-project active-path quest Git、workspace root Git、用户可见 layout、profile template 和入口文档已进入 verified/landed 口径。 |
 | `A4_entry_and_compat_retirement` | MDS product entry、默认 Git writer、Git worktree writer、隐式 Git diff/log reader 退役；root Git 不再是可选 workspace 维护模式，只允许作为外部/旧 workspace 的显式 restore diagnostic 被处理。 | `mas_single_project_mds_absorb_program.md` | `landed`: quest/root Git、MDS product-entry default path、profile/entry compat 和 no-history absorb repo-level gates 已关闭；外部 MDS 仅是显式 oracle/intake/audit 支持面。 |
 | `A5_archive_cleanup` | 已落地 closeout、intake 和 activation package 移入 history/reference 或保持只读参考。 | 本文 | 只做链接保全后的文档移动，不改变 runtime。 |
-| `A6_functional_monolith_completion` | 不再满足于“MAS 是唯一入口”；把仍有长期价值的 MDS runtime core、status/visualization、orchestration、diagnostic 和 learning capabilities 以 MAS-owned/no-history 方式收进同一 repo，并退役旧 MDS WebUI default path。OPL App 集成只作为 family-level projection/deep-link layer，不成为 MAS progress authority。 | `mas_single_project_mds_absorb_program.md`、`../runtime/runtime_core_convergence_and_controlled_cutover.md` | `landed`: inventory、runtime core、visual surface、OPL handoff contract、compat shrink、contributor audit guard 已收口；后续只允许 future upstream source intake review 和 optional hosted frontend packaging。 |
+| `A6_functional_monolith_completion` | 不再满足于“MAS 是唯一入口”；把仍有长期价值的 MDS runtime core、status/visualization、orchestration、diagnostic 和 learning capabilities 以 MAS-owned/no-history 方式收进同一 repo，并退役旧 MDS WebUI default path。OPL App 集成只作为 family-level projection/deep-link layer，不成为 MAS progress authority。 | `mas_single_project_mds_absorb_program.md`、`../runtime/contracts/runtime_core_convergence_and_controlled_cutover.md` | `landed`: inventory、runtime core、visual surface、OPL handoff contract、compat shrink、contributor audit guard 已收口；后续只允许 future upstream source intake review 和 optional hosted frontend packaging。 |
 
 关键顺序是 `A1 -> A2 -> A3 -> A4 -> A6`。当前 quest Git、workspace root Git、workspace 用户可见 layout、profile/entry compatibility retirement 和 no-history physical absorb repo-level closeout 已对 repo contract / new scaffold 完成到 verified / default-retired / landed。`A6` 是新的 functional monolith completion，不是重开 Git 清理或 profile 兼容清理；如果把 SQLite 当成 paper truth，或把 legacy backend diagnostic 当成默认研究入口，会破坏 MAS publication authority。
 
@@ -109,17 +109,17 @@ Owner: `MedAutoScience`
 
 | file | support role | target owner |
 | --- | --- | --- |
-| `../policies/mas_mds_owner_boundary_contract.md` | owner-boundary contract | owner matrix、projection/oracle/observability 越权防护，所有 bridge / adapter / projection 必须引用。 |
-| `../references/mds_capability_parity_matrix.md` | MDS capability parity / oracle matrix | 由 `mas_single_project_mds_absorb_program.md` 引用，作为 absorb gate 的 appendix。 |
-| `../references/plan_completion_ledger.md` | landed evidence ledger | 记录 planned vs landed vs verified；不得把计划写成完成。 |
-| `../policies/mainline_integration_and_cleanup.md` | operational policy | worktree absorb、cleanup、push、主线卫生纪律。 |
-| `../policies/repository_ci_preflight.md` | operational policy | repo 验证与 preflight 纪律；叙述性 docs-only 走 documentation review。 |
-| `../policies/merge_and_cutover_gates.md` | gate policy | repo merge gate 与 runtime cutover gate 的老入口，后续只作为 gate policy。 |
-| `../policies/external_runtime_dependency_gate.md` | external blocker policy | external runtime / workspace / human gate 未清除前的 blocker package。 |
-| `../references/mas_single_project_quality_and_autonomy_mainline.md` | mainline narrative | 医学论文质量和长时间自治优化收口到 MAS 单项目主线的解释入口。 |
-| `../references/project_repair_priority_map.md` | repair triage reference | 维护优先级参考，不作为独立 program board。 |
-| `../policies/manual_runtime_stabilization_checklist.md` | manual ops checklist | 外部/runtime 稳定化清单。 |
-| `../references/real_study_relaunch_verification.md` | real workspace verification reference | 真实 study relaunch 验证参考。 |
+| `../policies/runtime-governance/mas_mds_owner_boundary_contract.md` | owner-boundary contract | owner matrix、projection/oracle/observability 越权防护，所有 bridge / adapter / projection 必须引用。 |
+| `../references/mds-parity/mds_capability_parity_matrix.md` | MDS capability parity / oracle matrix | 由 `mas_single_project_mds_absorb_program.md` 引用，作为 absorb gate 的 appendix。 |
+| `../references/verification/plan_completion_ledger.md` | landed evidence ledger | 记录 planned vs landed vs verified；不得把计划写成完成。 |
+| `../policies/repo-ops/mainline_integration_and_cleanup.md` | operational policy | worktree absorb、cleanup、push、主线卫生纪律。 |
+| `../policies/repo-ops/repository_ci_preflight.md` | operational policy | repo 验证与 preflight 纪律；叙述性 docs-only 走 documentation review。 |
+| `../policies/repo-ops/merge_and_cutover_gates.md` | gate policy | repo merge gate 与 runtime cutover gate 的老入口，后续只作为 gate policy。 |
+| `../policies/runtime-governance/external_runtime_dependency_gate.md` | external blocker policy | external runtime / workspace / human gate 未清除前的 blocker package。 |
+| `../references/mainline/mas_single_project_quality_and_autonomy_mainline.md` | mainline narrative | 医学论文质量和长时间自治优化收口到 MAS 单项目主线的解释入口。 |
+| `../references/mainline/project_repair_priority_map.md` | repair triage reference | 维护优先级参考，不作为独立 program board。 |
+| `../policies/runtime-governance/manual_runtime_stabilization_checklist.md` | manual ops checklist | 外部/runtime 稳定化清单。 |
+| `../references/verification/real_study_relaunch_verification.md` | real workspace verification reference | 真实 study relaunch 验证参考。 |
 | `../references/med-deepscientist/` | MDS learning and upstream intake references | MDS 被吸收后仍保留的 recurring upstream learning、deconstruction、method、provenance 与 intake 支撑材料。 |
 
 ## Recurring Support Lanes
@@ -141,7 +141,7 @@ Owner: `MedAutoScience`
 
 | file | recommended state | reason |
 | --- | --- | --- |
-| `../references/ai_first_research_os_architecture.md` | reference | AI-first OS 架构已进入 architecture/status/mainline 口径，保留为目标架构参考。 |
+| `../references/mainline/ai_first_research_os_architecture.md` | reference | AI-first OS 架构已进入 architecture/status/mainline 口径，保留为目标架构参考。 |
 | `../history/program/ai_first_operationalization_closeout.md` | landed closeout | AI-first repo-level closeout 记录，后续只读。 |
 | `../history/program/ai_first_usable_closeout_projection.md` | landed closeout | usable closeout projection 已落地，后续由 ledger 与 active surfaces 接续。 |
 | `../history/program/ai_first_closeout_handoff_governance.md` | landed closeout / support | handoff governance 已落地，可作为 closeout policy 参考。 |
@@ -162,7 +162,7 @@ Owner: `MedAutoScience`
 | `../history/program/journal_package_builtins_upgrade_plan.md` | landed/specific implementation plan | journal package builtins 计划不再作为 portfolio board。 |
 | `../history/program/mas_mds_autonomy_operating_system_program.md` | retired master board | 已被本文的 single-entry portfolio 和 execution queue 覆盖。 |
 | `../history/program/mas_mds_unified_enhancement_program.md` | retired enhancement board | L1-L5 增强 backlog 已被当前 MAS absorb / runtime lifecycle 队列和对应 policy/reference surface 收口。 |
-| `../runtime/study_progress_projection.md` | landed projection reference | study-progress projection 已是稳定 surface 参考。 |
+| `../runtime/projections/study_progress_projection.md` | landed projection reference | study-progress projection 已是稳定 surface 参考。 |
 
 ## Deprecated Or Merge Candidates
 
@@ -170,13 +170,13 @@ Owner: `MedAutoScience`
 
 | file | merge target |
 | --- | --- |
-| `../history/program/research_foundry_medical_mainline.md` | `../references/mas_single_project_quality_and_autonomy_mainline.md` / 本文 |
+| `../history/program/research_foundry_medical_mainline.md` | `../references/mainline/mas_single_project_quality_and_autonomy_mainline.md` / 本文 |
 | `../history/program/research_foundry_medical_execution_map.md` | 本文 |
 | `../history/program/open_harness_os_freeze_plan.md` | `../architecture.md` 或 `../references/` |
-| `../history/program/hermes_backend_continuation_board.md` | `../policies/external_runtime_dependency_gate.md` / `mas_single_project_mds_absorb_program.md` |
-| `../history/program/hermes_backend_activation_package.md` | `../references/plan_completion_ledger.md` / `docs/history/program/` |
-| `../history/program/integration_harness_activation_package.md` | `../references/plan_completion_ledger.md` / `docs/history/program/` |
-| `../history/program/upstream_hermes_agent_fast_cutover_board.md` | `../policies/external_runtime_dependency_gate.md` / `docs/history/program/` |
+| `../history/program/hermes_backend_continuation_board.md` | `../policies/runtime-governance/external_runtime_dependency_gate.md` / `mas_single_project_mds_absorb_program.md` |
+| `../history/program/hermes_backend_activation_package.md` | `../references/verification/plan_completion_ledger.md` / `docs/history/program/` |
+| `../history/program/integration_harness_activation_package.md` | `../references/verification/plan_completion_ledger.md` / `docs/history/program/` |
+| `../history/program/upstream_hermes_agent_fast_cutover_board.md` | `../policies/runtime-governance/external_runtime_dependency_gate.md` / `docs/history/program/` |
 
 ## Archive Rule
 
@@ -201,4 +201,4 @@ Owner: `MedAutoScience`
 - functional monolith completion 已进入 landed 口径；后续不得把默认入口/依赖退役、MDS 功能重新组织吸收或旧 WebUI/default daemon 迁移重开成 active backlog，只保留 future upstream source intake review、explicit archive import reference 和 optional hosted frontend packaging。
 - paper autonomy stability 不继承 functional monolith 的 landed 结论；它必须由真实 workspace profile inventory、supervisor reconcile、migration dry-run 和 read-only soak 证据单独关闭。
 - 已落地 closeout、activation package 不再被当作 active backlog；dated learning intake 不再被当作 active backlog，但其 recurring support lane 仍按对应 policy/protocol 可触发。
-- `../references/plan_completion_ledger.md` 继续区分 repo capability landed、真实 workspace cutover completed、compatibility retirement completed、no-history absorb landed 与 recurring upstream learning support。
+- `../references/verification/plan_completion_ledger.md` 继续区分 repo capability landed、真实 workspace cutover completed、compatibility retirement completed、no-history absorb landed 与 recurring upstream learning support。

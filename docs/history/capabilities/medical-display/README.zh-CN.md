@@ -11,11 +11,11 @@
 
 当前 active surface：
 
-- [医学展示 active board](../../../capabilities/medical-display/medical_display_active_board.md)
-- [医学展示平台主线](../../../capabilities/medical-display/medical_display_platform_mainline.md)
-- [医学展示审计指南](../../../capabilities/medical-display/medical_display_audit_guide.md)
-- [医学展示模板目录](../../../capabilities/medical-display/medical_display_template_catalog.md)
-- [医学展示文档组合治理](../../../capabilities/medical-display/medical_display_portfolio_consolidation.md)
+- [医学展示 active board](../../../capabilities/medical-display/board/medical_display_active_board.md)
+- [医学展示平台主线](../../../capabilities/medical-display/contracts/medical_display_platform_mainline.md)
+- [医学展示审计指南](../../../capabilities/medical-display/contracts/medical_display_audit_guide.md)
+- [医学展示模板目录](../../../capabilities/medical-display/catalogs/medical_display_template_catalog.md)
+- [医学展示文档组合治理](../../../capabilities/medical-display/portfolio/medical_display_portfolio_consolidation.md)
 
 归档记录：
 

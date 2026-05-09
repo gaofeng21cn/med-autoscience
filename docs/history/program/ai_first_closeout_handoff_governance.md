@@ -17,7 +17,7 @@
 
 ## Closeout 记录语义
 
-每条非冲突计划完成记录必须落在 `docs/references/plan_completion_ledger.md`，并使用同一组 ledger 字段。记录只说明计划项、落地证据、验证证据、push/cleanup 状态、live surface 验收和剩余缺口；不得把 narrative closeout 升级为机械质量 gate。
+每条非冲突计划完成记录必须落在 `docs/references/verification/plan_completion_ledger.md`，并使用同一组 ledger 字段。记录只说明计划项、落地证据、验证证据、push/cleanup 状态、live surface 验收和剩余缺口；不得把 narrative closeout 升级为机械质量 gate。
 
 `external_active_owner` 表示该项仍由本轮以外的活跃对话、worktree、branch 或上游 PR 持有。使用该状态时必须能回答：
 

@@ -164,7 +164,7 @@ Authority boundary：结构治理不改变 study truth、publication truth、del
 该 read model 不写 runtime/study/publication/delivery truth，不写 `study_runtime_status`、`runtime_watch`、
 `publication_eval/latest.json`、`controller_decisions/latest.json` 或 delivery artifact authority。
 
-Runtime lifecycle 小文件治理的执行 program 是 [Runtime Lifecycle SQLite Migration Program](./runtime_lifecycle_sqlite_migration_program.md)。它把 `L5` 的 audit compaction 前置条件推进成可执行 schema、compatibility export、workspace migration ledger、restore proof 和 Git 兼容门槛；它不改变本文件的 owner 边界，也不授权 read model 直接 compact live runtime state。
+Runtime lifecycle 小文件治理的执行 program 是 [Runtime Lifecycle SQLite Migration Program](../../program/runtime_lifecycle_sqlite_migration_program.md)。它把 `L5` 的 audit compaction 前置条件推进成可执行 schema、compatibility export、workspace migration ledger、restore proof 和 Git 兼容门槛；它不改变本文件的 owner 边界，也不授权 read model 直接 compact live runtime state。
 
 ## 实施顺序
 

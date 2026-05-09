@@ -11,12 +11,12 @@ pytestmark = pytest.mark.contract
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = REPO_ROOT / "contracts" / "test-lane-manifest.json"
 CONTRACT_DOC_PATHS = (
-    "docs/runtime/mas_live_console_mds_webui_parity_plan.md",
-    "docs/runtime/progress_portal.md",
-    "docs/runtime/live_console_ui_contract.md",
-    "docs/references/mds_behavior_equivalence_gap_matrix.md",
-    "docs/references/mds_webui_cleanroom_behavior_spec.md",
-    "docs/references/mds_webui_user_parity_gap_review.md",
+    "docs/runtime/display/mas_live_console_mds_webui_parity_plan.md",
+    "docs/runtime/display/progress_portal.md",
+    "docs/runtime/display/live_console_ui_contract.md",
+    "docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md",
+    "docs/references/mds-parity/mds_webui_cleanroom_behavior_spec.md",
+    "docs/references/mds-parity/mds_webui_user_parity_gap_review.md",
 )
 FORBIDDEN_AUTHORITY_SURFACES = (
     "paper/current_package",

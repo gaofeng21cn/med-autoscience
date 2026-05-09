@@ -24,7 +24,7 @@
   - requirement contract 与 durable artifact 覆盖。
 - `tests/test_journal_requirements_controller.py`
   - controller 输出与错误路径覆盖。
-- `docs/runtime/journal_package_builtins_upgrade_design.md`
+- `docs/runtime/designs/journal_package_builtins_upgrade_design.md`
   - 设计基线，已提交。
 
 ### 修改文件

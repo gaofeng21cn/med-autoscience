@@ -52,7 +52,7 @@
 
 当前冻结结论以这份文档为准：
 
-- [Open Harness OS Architecture](./open_harness_os_architecture.md)
+- [Open Harness OS Architecture](../../references/positioning/open_harness_os_architecture.md)
 
 ### 当前冻结内容
 

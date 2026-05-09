@@ -2,183 +2,32 @@
 
 [English](./README.md) | **中文**
 
-这个目录是 `Med Auto Science` 的技术阅读层。
-仓库首页继续优先写给医生、课题负责人和医学研究团队。
-这里负责承接产品边界、操作入口、运行合同和维护记录。
+这个目录是 `Med Auto Science` 的技术阅读层。仓库首页继续作为医生、PI 和医学研究团队的默认入口。
 
-## 按读者类型进入
+## 先读这里
 
-| 读者 | 建议起点 | 目的 |
-| --- | --- | --- |
-| 潜在用户、医生、医学专家 | [仓库首页](../README.zh-CN.md) | 先判断这个系统能解决什么问题，再决定是否进入技术细节 |
-| 技术规划者、架构读者、方向同步读者 | [项目概览](./project.md)、[当前状态](./status.md)、[架构](./architecture.md)、[不可变约束](./invariants.md)、[关键决策](./decisions.md) | 快速抓住当前角色、边界和运行方式 |
-| 开发者与维护者 | `docs/runtime/`、`docs/program/`、`docs/capabilities/`、`docs/references/`、`docs/policies/`、[历史归档索引](./history/README.zh-CN.md) | 查看实现相关材料、治理记录和历史脉络 |
+| 需求 | 入口 |
+| --- | --- |
+| 产品角色与边界 | [项目概览](./project.md) |
+| 当前运行真相 | [当前状态](./status.md) |
+| 架构与 owner 边界 | [架构](./architecture.md) |
+| 不可变约束 | [不可变约束](./invariants.md) |
+| 持久决策 | [关键决策](./decisions.md) |
+| 文档生命周期规则 | [文档组合治理](./docs_portfolio_consolidation.md) |
 
-## 这一层负责什么
+## 目录地图
 
-- 仓库首页负责解释 `Med Auto Science` 适合什么问题、谁来用、怎么开始。
-- 核心五件套负责解释产品边界、当前状态、架构、不变量和关键决策。
-- `docs/runtime/`、`docs/program/`、`docs/capabilities/`、`docs/references/`、`docs/policies/` 保存实现、维护和历史技术材料。
+| 目录 | 用途 |
+| --- | --- |
+| [runtime](./runtime/README.md) | 运行时合同、控制面、读模型、展示合同和活跃设计。 |
+| [program](./program/README.zh-CN.md) | 精简的当前执行队列和 program 级协调。 |
+| [capabilities](./capabilities/README.zh-CN.md) | 能力族文档，例如 medical display。 |
+| [references](./references/README.zh-CN.md) | 支撑参考、定位、集成说明、parity 材料和验证记录。 |
+| [policies](./policies/README.md) | 稳定内部规则和长期运行边界。 |
+| [history](./history/README.zh-CN.md) | dated snapshot、provenance、退役 board、归档计划和过程稿。 |
 
-## 当前阅读基线
+## 阅读规则
 
-- `Med Auto Science` 是面向专病研究的医学研究 domain agent，配有单一 MAS app skill，也承担论文交付工作台角色。
-- 默认用户最关心的是研究问题、工作区语境、人话进度和文件交付。
-- `CLI`、`MCP`、`controller` 属于操作与自动化入口。
-- 稳定可调用面通过单一 MAS app skill 对外承接，包含本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract。
-- `product-entry-status`、`workspace-cockpit`、`study-progress` 与 product-entry manifest 继续是单一 app skill 之下的内部 command/projection contract，不是独立公开产品入口。
-- `OPL` 集成、product-entry manifest 和其他机器可读桥接面都属于集成或参考层。
-- `OPL Runtime Manager` 是目标形态中的 family-level 薄运行管理层，位于外部 `Hermes-Agent` substrate 之上；它可以消费 MAS task registration、runtime-control projection、status/artifact locator 与 wakeup/approval 边界，但不持有 MAS study truth。
-- `MAS Progress Portal` 是 MAS-owned progress payload 与 workspace-local HTML 入口，落在 `ops/mas/progress/index.html`。接入 OPL App 时应由 family-level dashboard 消费 MAS payload/read-model refs 并深链到本地 Portal，不能重新解释 MAS study truth。Live console observation 由 MAS Runtime OS 的 live-console contract 单独持有。
-- `Hermes-Agent` 只保留在显式可选 hosted runtime 或 reference-layer 语境中，不改写默认 capability contract。
-- `MedDeepScientist` 现在只保留为 frozen source archive、historical fixture、explicit archive import reference 与 provenance/parity reference；MAS 是唯一 research、runtime、progress、quality 和 publication owner。
-- MAS standalone GitHub Release / 独立 installer 不是当前用户安装通道；分发叙事应指向当前 OPL 管理模块路径，或未来 OPL Packages/GHCR module 坐标。
-- AI-first 是当前可运行质量线的方向，落在 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 和真实论文 soak 上，不通过测试或 preflight contract 约束文档措辞。
-- `StudyTruthKernel` 与 `RuntimeHealthKernel` 是当前 study truth 与 runtime health 的 read-model reducer；普通读取只生成 shadow projection，materialized snapshot 必须由显式 reconcile、controller tick 或 runtime watch apply 写入。
-- `study_macro_state/latest.json` 与 `owner_route` 承载用户宏观状态和可执行 owner 票据。`study-state-matrix`、supervisor consume、dispatch execution 与 lifecycle projection 都应收敛到这些 surface，而不是各自局部重算。
-- Artifact retention 是文件生命周期投影，不是 authority。终局 stop-loss 精简只能先生成 dry-run plan，后续任何物理 apply 都必须有 manifest、sha256、restore index 与 restore proof。
-- 初稿质量作为写作前运行关注点处理：MAS 应生成医学期刊可读的 manuscript-native prose，而不是 controller notes、figure/table anchor scaffold 或正文里的行政占位。
-- 产物证明采用 canonical-source-first：manuscript、figures、tables 和 package 都应能从 canonical source 重建后再作为交付证据。
-- 真实论文 soak 仍是 AI-first 线的主要证据缺口；文档应明确这个缺口，不把目标层能力写成已经全部证明的当前事实。
-- Workspace Git/storage 边界已经进入当前维护合同：新 workspace 默认 no root Git / no quest Git，generated/runtime artifacts 明确排除，已有 root Git 通过 restore-proof lifecycle retirement 退出默认状态面。
-- Runtime lifecycle 历史与索引由 `artifacts/runtime/runtime_lifecycle.sqlite`、`artifacts/runtime/lifecycle_migration` ledger、`runtime/quests` manifest 与 `runtime/restore_index` 承接；查状态和做 lifecycle 操作时读这些 surface 与文件 authority，不查 Git 历史。
-- 历史迁移术语和旧命名继续留在参考层或历史层。
-- `README*` 与 `docs/**` 是人读面。脚本、测试、runtime status 和 contracts 应使用 machine-readable contract、schema、source path 或 `human_doc:*` 语义 ID，不应把 prose 文档路径钉成稳定接口。
+先读核心文档，再进入对应子目录索引。详细文件清单由各子目录 README 承担，本页只保留短导航。
 
-## 技术工作集
-
-开始改仓库状态前，先读这些文件：
-
-- [项目概览](./project.md)
-- [当前状态](./status.md)
-- [架构](./architecture.md)
-- [不可变约束](./invariants.md)
-- [关键决策](./decisions.md)
-- [文档组合治理](./docs_portfolio_consolidation.md)
-
-## 生命周期地图
-
-`docs/` 按文档生命周期组合管理：
-
-- `docs/` 根目录：公开技术入口和当前核心真相。
-- `docs/runtime/`：runtime 合同、控制面、read model 和仍活跃的实施计划。
-- `docs/policies/`：稳定内部规则和边界合同。
-- `docs/program/`：当前开发计划层和执行队列。
-- `docs/capabilities/`：当前能力族文档。
-- `docs/references/`：支撑参考、定位、parity、ledger 和周期性学习 protocol。
-- `docs/history/`：dated snapshot、provenance、已覆盖旧计划和退役 board。
-
-每一层都应有本地索引或 portfolio 入口。文档如果不再有 active owner，应先更新 inbound links，再移入对应历史层，而不是留在默认阅读路径里。
-
-## 默认公开入口
-
-- [仓库首页](../README.zh-CN.md)
-
-仓库首页和这份索引共同构成默认公开入口。
-对外文档应继续保持中英双语镜像。
-
-## 仓库跟踪的技术文档
-
-### Runtime 合同与控制面
-
-- [Runtime 目录索引](runtime/README.md)
-- [Agent 运行接口](runtime/agent_runtime_interface.md)
-- [Agent 入口模式](runtime/agent_entry_modes.md)
-- [运行句柄与持久表面合同](runtime/runtime_handle_and_durable_surface_contract.md)
-- [Runtime backend interface 合同](runtime/runtime_backend_interface_contract.md)
-- [运行事件与 outer-loop 输入合同](runtime/runtime_event_and_outer_loop_input_contract.md)
-- [运行事件与 outer-loop 输入实施计划](runtime/runtime_event_and_outer_loop_input_implementation_plan.md)
-- [运行边界](runtime/runtime_boundary.md)
-- [Runtime 核心收敛与受控 cutover](runtime/runtime_core_convergence_and_controlled_cutover.md)
-- [Runtime 核心收敛与受控 cutover 实施计划](runtime/runtime_core_convergence_and_controlled_cutover_implementation_plan.md)
-- [运行时监督外环](runtime/runtime_supervision_loop.md)
-- [Study truth kernel](runtime/study_truth_kernel.md)
-- [Runtime health kernel](runtime/runtime_health_kernel.md)
-- [Study macro state 与 owner route](runtime/study_macro_state_and_owner_route.md)
-- [MAS Progress Portal](runtime/progress_portal.md)
-- [Artifact retention operations contract](runtime/artifact_retention_operations_contract.md)
-- [Artifact inventory projection](runtime/artifact_inventory_projection.md)
-- [Canonical artifact contract](runtime/canonical_artifact_contract.md)
-- [Study runtime 控制面](runtime/study_runtime_control_surface.md)
-- [Study runtime 编排](runtime/study_runtime_orchestration.md)
-- [Workspace knowledge 与 literature 合同](runtime/workspace_knowledge_and_literature_contract.md)
-- [Workspace knowledge 与 literature 实施计划](runtime/workspace_knowledge_and_literature_implementation_plan.md)
-
-### 能力线文档
-
-- [能力线文档索引](capabilities/README.zh-CN.md)
-- [医学展示目录索引](capabilities/medical-display/README.zh-CN.md)
-- [医学展示平台主线](capabilities/medical-display/medical_display_platform_mainline.md)
-- [医学展示文档组合治理](capabilities/medical-display/medical_display_portfolio_consolidation.md)
-- [医学展示 active board](capabilities/medical-display/medical_display_active_board.md)
-- [医学展示面审计指南](capabilities/medical-display/medical_display_audit_guide.md)
-- [医学展示面模板目录](capabilities/medical-display/medical_display_template_catalog.md)
-- [医学展示面家族路线图](capabilities/medical-display/medical_display_family_roadmap.md)
-- [医学展示面视觉审计协议](capabilities/medical-display/medical_display_visual_audit_protocol.md)
-
-### 项目推进与维护记录
-
-- [Program 目录索引](program/README.zh-CN.md)
-- [Program portfolio consolidation](program/program_portfolio_consolidation.md)
-- [Runtime lifecycle SQLite 迁移 program](program/runtime_lifecycle_sqlite_migration_program.md)
-- [MAS 单项目 MDS 吸收 program](program/mas_single_project_mds_absorb_program.md)
-- [Plan completion ledger](references/plan_completion_ledger.md)
-- [MDS capability parity matrix](references/mds_capability_parity_matrix.md)
-- [MAS 单项目质量与自治主线](references/mas_single_project_quality_and_autonomy_mainline.md)
-- [MedDeepScientist 解构地图](references/med-deepscientist/med_deepscientist_deconstruction_map.md)
-- [外部运行时依赖门禁](policies/external_runtime_dependency_gate.md)
-- [Merge And Cutover Gates](policies/merge_and_cutover_gates.md)
-- [MAS/MDS owner boundary contract](policies/mas_mds_owner_boundary_contract.md)
-- [项目修复优先级地图](references/project_repair_priority_map.md)
-- [课题进度投影](runtime/study_progress_projection.md)
-- [Program 历史归档](history/program/README.zh-CN.md)
-
-### 集成参考
-
-- [轻量产品入口与 OPL 交接](references/lightweight_product_entry_and_opl_handoff.md)
-- [Progress Portal OPL App Integration](references/progress_portal_opl_app_integration.md)
-- [病种 workspace 快速起步](references/disease_workspace_quickstart.md)
-- [工作区架构](references/workspace_architecture.md)
-
-### 参考资料
-
-- [References 目录索引](references/README.zh-CN.md)
-- [Domain Harness OS 定位](references/domain-harness-os-positioning.md)
-- [Research Foundry 定位](references/research_foundry_positioning.md)
-- [Research Foundry 与 Med Auto Science 的仓库拆分边界](references/repo_split_between_research_foundry_and_med_autoscience.md)
-- [系列项目文档治理清单](references/series-doc-governance-checklist.md)
-
-### 稳定内部规则
-
-- [内部规则索引](policies/README.md)
-- [运行模型规则](policies/platform_operating_model.md)
-- [数据资产管理](policies/data_asset_management.md)
-- [研究路线偏置规则](policies/research_route_bias_policy.md)
-- [发表门控规则](policies/publication_gate_policy.md)
-- [AI-first 质量边界规则](policies/ai_first_quality_boundary.md)
-- [医学稿件初稿质量规则](policies/medical_manuscript_first_draft_quality.md)
-
-### 追溯记录
-
-- [Program 目录](program/)
-- [References 目录](references/)
-- [历史归档索引](history/README.zh-CN.md)
-- [能力线历史归档](history/capabilities/README.zh-CN.md)
-- [Superpowers 过程草稿归档](history/superpowers/README.zh-CN.md)
-
-## 文档规则
-
-- 继续把 [仓库首页](../README.zh-CN.md) 保持成医生和非技术专家可读的入口。
-- 继续把公开文档保持成中英双语镜像。
-- 运行时、推进记录、能力线和规则文档可以技术化，但公开首页继续围绕研究工作区、进度和文件组织。
-- 历史材料继续可读，当前默认用户路径继续聚焦研究问题、工作区推进和论文交付。
-- 文档负责把当前行为、运行方向和证据缺口讲清楚；不要用测试或 preflight contract 约束文档措辞。
-- 新增文档前，先在 [文档组合治理](./docs_portfolio_consolidation.md) 里判断生命周期状态：active truth、active execution plan、active contract、recurring support lane、support reference、dated snapshot、superseded/retired 或 local process draft。
-
-## 治理说明
-
-- 文档治理统一冻结在 [系列项目文档治理清单](references/series-doc-governance-checklist.md)、技术工作集和仓库跟踪的合同文档表面中，而不再只写在 `AGENTS.md`。
-- `README*` 与 `docs/README*` 是默认公开入口。
-- `docs/runtime/`、`docs/program/`、`docs/capabilities/` 与 `docs/references/` 是仓库跟踪的技术材料。
-- `docs/policies/` 收口稳定内部规则。
-- `docs/history/` 只作为历史归档入口。
+`README*` 和 `docs/**` 是人读面。代码、测试、runtime status 和 contract 应依赖 schema、durable JSON、source path 或 `runtime:*`、`program:*`、`policy:*`、`human_doc:*` 等语义 ID，不应把 Markdown prose 文案钉成机器接口。

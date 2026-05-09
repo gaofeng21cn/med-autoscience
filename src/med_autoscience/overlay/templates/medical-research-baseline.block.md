@@ -37,4 +37,4 @@ Baseline refresh discipline:
 - Do not silently overwrite baseline truth. Route through `decision` when refresh affects claims, evidence ledgers, review ledgers, publication gate, or paper-facing displays.
 - A refresh can replace an old comparator only when the reason, affected surfaces, verification refs, and route decision are durable.
 
-See `docs/runtime/baseline_refresh_contract.md`.
+See `docs/runtime/contracts/baseline_refresh_contract.md`.

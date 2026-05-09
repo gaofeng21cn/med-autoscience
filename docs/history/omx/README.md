@@ -7,8 +7,8 @@ If you need the current project rules or current working entrypoints, start from
 
 - `../../../AGENTS.md`
 - `../../README.md`
-- `../../runtime/agent_runtime_interface.md`
-- `../../runtime/runtime_handle_and_durable_surface_contract.md`
+- `../../runtime/contracts/agent_runtime_interface.md`
+- `../../runtime/contracts/runtime_handle_and_durable_surface_contract.md`
 
 Historical OMX materials kept for audit and migration context:
 

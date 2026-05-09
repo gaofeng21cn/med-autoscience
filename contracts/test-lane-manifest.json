@@ -77,12 +77,12 @@
         "tests/test_workspace_init_cases/workspace_creation.py"
       ],
       "docs": [
-        "docs/runtime/mas_live_console_mds_webui_parity_plan.md",
-        "docs/runtime/progress_portal.md",
-        "docs/runtime/live_console_ui_contract.md",
-        "docs/references/mds_behavior_equivalence_gap_matrix.md",
-        "docs/references/mds_webui_cleanroom_behavior_spec.md",
-        "docs/references/mds_webui_user_parity_gap_review.md"
+        "docs/runtime/display/mas_live_console_mds_webui_parity_plan.md",
+        "docs/runtime/display/progress_portal.md",
+        "docs/runtime/display/live_console_ui_contract.md",
+        "docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md",
+        "docs/references/mds-parity/mds_webui_cleanroom_behavior_spec.md",
+        "docs/references/mds-parity/mds_webui_user_parity_gap_review.md"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "read_only_streaming_parity_contract",
@@ -153,9 +153,9 @@
         "tests/test_live_console_docs_contract.py"
       ],
       "docs": [
-        "docs/runtime/progress_portal.md",
-        "docs/references/mds_webui_user_parity_gap_review.md",
-        "docs/references/mds_behavior_equivalence_gap_matrix.md"
+        "docs/runtime/display/progress_portal.md",
+        "docs/references/mds-parity/mds_webui_user_parity_gap_review.md",
+        "docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "read_only_route_decision_projection",
@@ -195,10 +195,10 @@
         "tests/test_mds_capability_parity.py"
       ],
       "docs": [
-        "docs/runtime/live_console_ui_contract.md",
-        "docs/runtime/mas_live_console_mds_webui_parity_plan.md",
-        "docs/references/mds_webui_user_parity_gap_review.md",
-        "docs/references/mds_behavior_equivalence_gap_matrix.md"
+        "docs/runtime/display/live_console_ui_contract.md",
+        "docs/runtime/display/mas_live_console_mds_webui_parity_plan.md",
+        "docs/references/mds-parity/mds_webui_user_parity_gap_review.md",
+        "docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "fail_closed_interactive_terminal_attach_probe",

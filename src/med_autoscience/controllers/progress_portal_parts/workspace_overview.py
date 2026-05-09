@@ -309,9 +309,10 @@ def _alert_item(text: str) -> dict[str, str | None]:
     recommended_command: str | None = None
     if text == "Hermes-hosted runtime supervision 尚未注册。":
         source = "workspace_supervision.service.summary"
+        text = "Supervisor scheduler 尚未注册。"
         purpose = "说明 workspace 级定时监管 job 尚未安装或未注册。"
-        expected = "Hermes gateway cron 应注册并按计划触发 runtime supervision tick。"
-        recommended_command = "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile <profile> --manager hermes --write-install-proof"
+        expected = "当前 scheduler adapter 应注册并按计划触发 MAS-owned runtime supervision tick。"
+        recommended_command = "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile <profile>"
     elif text == "状态需要检查。":
         source = "workspace_cockpit.generic_status"
         purpose = "旧版泛化告警；当前已有具体 study 行时不再作为主诊断展示。"

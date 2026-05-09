@@ -92,10 +92,10 @@
 
 - `docs/project.md`
 - `docs/architecture.md`
-- `docs/runtime/runtime_backend_interface_contract.md`
-- `docs/runtime/runtime_handle_and_durable_surface_contract.md`
-- `docs/policies/merge_and_cutover_gates.md`
-- `docs/policies/external_runtime_dependency_gate.md`
+- `docs/runtime/contracts/runtime_backend_interface_contract.md`
+- `docs/runtime/contracts/runtime_handle_and_durable_surface_contract.md`
+- `docs/policies/repo-ops/merge_and_cutover_gates.md`
+- `docs/policies/runtime-governance/external_runtime_dependency_gate.md`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`
 - `make test-meta`

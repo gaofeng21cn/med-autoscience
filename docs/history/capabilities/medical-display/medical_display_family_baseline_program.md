@@ -9,11 +9,11 @@ Use this file when the question is:
 - how the active Codex execution lane should continue automatically after the current owner round finishes;
 - when the platform should keep hardening an existing family versus opening a missing one.
 
-For the top-level family roadmap, see [medical_display_family_roadmap.md](./medical_display_family_roadmap.md).
+For the top-level family roadmap, see [medical_display_family_roadmap.md](../../../capabilities/medical-display/portfolio/medical_display_family_roadmap.md).
 
-For the mainline operating model, see [medical_display_platform_mainline.md](./medical_display_platform_mainline.md).
+For the mainline operating model, see [medical_display_platform_mainline.md](../../../capabilities/medical-display/contracts/medical_display_platform_mainline.md).
 
-For the strict audited engineering truth, see [medical_display_audit_guide.md](./medical_display_audit_guide.md).
+For the strict audited engineering truth, see [medical_display_audit_guide.md](../../../capabilities/medical-display/contracts/medical_display_audit_guide.md).
 
 ## Program Target
 
@@ -189,7 +189,7 @@ The current rolling-hardening program should only stop when at least one of the 
 
 If the docs appear to disagree:
 
-1. [medical_display_family_roadmap.md](./medical_display_family_roadmap.md) defines the long-horizon family target model;
+1. [medical_display_family_roadmap.md](../../../capabilities/medical-display/portfolio/medical_display_family_roadmap.md) defines the long-horizon family target model;
 2. this document defines the current completion program across those families;
-3. [medical_display_platform_mainline.md](./medical_display_platform_mainline.md) defines how the mainline executes;
-4. [medical_display_audit_guide.md](./medical_display_audit_guide.md) defines the strict audited engineering truth.
+3. [medical_display_platform_mainline.md](../../../capabilities/medical-display/contracts/medical_display_platform_mainline.md) defines how the mainline executes;
+4. [medical_display_audit_guide.md](../../../capabilities/medical-display/contracts/medical_display_audit_guide.md) defines the strict audited engineering truth.

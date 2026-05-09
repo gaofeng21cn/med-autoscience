@@ -164,8 +164,8 @@ PYTHONPATH=src pytest -q
 
 每次成功 intake 后，都要同步更新：
 
-- [`MEDICAL_FORK_MANIFEST.json`](../MEDICAL_FORK_MANIFEST.json)
-- [`docs/medical_fork_baseline.md`](../docs/medical_fork_baseline.md)
+- legacy external `med-deepscientist/MEDICAL_FORK_MANIFEST.json`
+- legacy external `med-deepscientist/docs/medical_fork_baseline.md`
 
 最少要记录：
 

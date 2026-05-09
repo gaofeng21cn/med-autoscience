@@ -22,8 +22,8 @@
 - Modify: `src/med_autoscience/overlay/templates/deepscientist-scout.SKILL.md`
 - Modify: `src/med_autoscience/overlay/templates/deepscientist-idea.SKILL.md`
 - Modify: `src/med_autoscience/overlay/templates/deepscientist-decision.SKILL.md`
-- Create: `policies/research_route_bias_policy.md`
-- Create: `policies/study_archetypes.md`
+- Create: `policies/study-workflow/research_route_bias_policy.md`
+- Create: `policies/study-workflow/study_archetypes.md`
 - Modify: `tests/test_profiles.py`
 - Modify: `tests/test_cli.py`
 - Modify: `tests/test_overlay_installer.py`
@@ -35,7 +35,7 @@
 **Files:**
 - Create: `tests/test_research_route_bias.py`
 - Create: `src/med_autoscience/policies/research_route_bias.py`
-- Create: `policies/research_route_bias_policy.md`
+- Create: `policies/study-workflow/research_route_bias_policy.md`
 - Modify: `src/med_autoscience/policies/__init__.py`
 
 - [ ] **Step 1: 写失败测试**
@@ -60,7 +60,7 @@ Expected: `ModuleNotFoundError` 或断言失败
 **Files:**
 - Create: `tests/test_study_archetypes.py`
 - Create: `src/med_autoscience/policies/study_archetypes.py`
-- Create: `policies/study_archetypes.md`
+- Create: `policies/study-workflow/study_archetypes.md`
 - Modify: `src/med_autoscience/policies/__init__.py`
 
 - [ ] **Step 1: 写失败测试**

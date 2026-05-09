@@ -11,11 +11,11 @@ Current capability entry:
 
 Current active surfaces:
 
-- [Medical display active board](../../../capabilities/medical-display/medical_display_active_board.md)
-- [Medical display platform mainline](../../../capabilities/medical-display/medical_display_platform_mainline.md)
-- [Medical display audit guide](../../../capabilities/medical-display/medical_display_audit_guide.md)
-- [Medical display template catalog](../../../capabilities/medical-display/medical_display_template_catalog.md)
-- [Medical display portfolio consolidation](../../../capabilities/medical-display/medical_display_portfolio_consolidation.md)
+- [Medical display active board](../../../capabilities/medical-display/board/medical_display_active_board.md)
+- [Medical display platform mainline](../../../capabilities/medical-display/contracts/medical_display_platform_mainline.md)
+- [Medical display audit guide](../../../capabilities/medical-display/contracts/medical_display_audit_guide.md)
+- [Medical display template catalog](../../../capabilities/medical-display/catalogs/medical_display_template_catalog.md)
+- [Medical display portfolio consolidation](../../../capabilities/medical-display/portfolio/medical_display_portfolio_consolidation.md)
 
 Archived records:
 

@@ -7,7 +7,7 @@ Current program governance lives in:
 - [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md)
 - [MAS Single-Project MDS Absorb Program](../../program/mas_single_project_mds_absorb_program.md)
 - [Runtime Lifecycle SQLite Migration Program](../../program/runtime_lifecycle_sqlite_migration_program.md)
-- [Plan Completion Ledger](../../references/plan_completion_ledger.md)
+- [Plan Completion Ledger](../../references/verification/plan_completion_ledger.md)
 
 Recurring support-lane snapshots:
 

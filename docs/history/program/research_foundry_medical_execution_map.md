@@ -9,10 +9,10 @@
 
 如果只想快速看当前真实起点与下一棒，可同时看：
 
-- [Real-Study Relaunch Verification](../../references/real_study_relaunch_verification.md)
+- [Real-Study Relaunch Verification](../../references/verification/real_study_relaunch_verification.md)
 - [Integration Harness Activation Package](./integration_harness_activation_package.md)
 - [Hermes Backend Continuation Board](./hermes_backend_continuation_board.md)
-- [External Runtime Dependency Gate](../../policies/external_runtime_dependency_gate.md)
+- [External Runtime Dependency Gate](../../policies/runtime-governance/external_runtime_dependency_gate.md)
 
 ## 一句话结论
 
@@ -53,7 +53,7 @@
   已完成并 absorbed 到 main
   - anchor-study relaunch
   - real-study relaunch and verify
-  - 当前 repo-tracked verification note：`../../references/real_study_relaunch_verification.md`
+  - 当前 repo-tracked verification note：`../../references/verification/real_study_relaunch_verification.md`
   - 最新锚点：`001-dm-cvd-mortality-risk`
   - 已验证 managed entry / runtime watch / publication gate / study delivery sync；remaining blocker 已被收敛到 external workspace-side publication surface
 
@@ -92,7 +92,7 @@
 - 它已经把 `real-study` absorbed 之后允许冻结的最小 repo-side activation baseline 做完并吸收到 `main`
 - 当前 repo-side 正在推进的下一棒，是第 5.5 层“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam” continuation
 - 当前 broader cutover 终态仍应理解为 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
-- 对应的 blocker package 见 `../../policies/external_runtime_dependency_gate.md`
+- 对应的 blocker package 见 `../../policies/runtime-governance/external_runtime_dependency_gate.md`
 
 ## 每一层解决什么问题
 
@@ -110,7 +110,7 @@
 
 这一层解决的是“论文交付面本身的正式 contract map”。
 
-当前与 runtime / eval / outer-loop artifact 一起冻结的 repo-tracked canonical bridge，见 `../runtime/delivery_plane_contract_map.md`。
+当前与 runtime / eval / outer-loop artifact 一起冻结的 repo-tracked canonical bridge，见 `../../runtime/contracts/delivery_plane_contract_map.md`。
 
 ### 第 4 层：Real-Study Relaunch & Verify
 

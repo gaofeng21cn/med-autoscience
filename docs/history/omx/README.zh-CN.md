@@ -7,8 +7,8 @@
 
 - `../../../AGENTS.md`
 - `../../README.zh-CN.md`
-- `../../runtime/agent_runtime_interface.md`
-- `../../runtime/runtime_handle_and_durable_surface_contract.md`
+- `../../runtime/contracts/agent_runtime_interface.md`
+- `../../runtime/contracts/runtime_handle_and_durable_surface_contract.md`
 
 保留为审计与迁移背景的 OMX 历史资料：
 

@@ -52,7 +52,7 @@
 
 **Files:**
 - Modify: `README.md`
-- Create: `policies/data_asset_management.md`
+- Create: `policies/study-workflow/data_asset_management.md`
 - Modify: `bootstrap/README.md`
 
 - [ ] **Step 1: 清掉 README 英文残留，加入数据资产层说明**

@@ -1,6 +1,6 @@
 # DeepScientist Learning Intake 2026-04-30
 
-这份记录对应维护者触发的“学习一下 DeepScientist 最近更新”。本轮按 [DeepScientist Latest-Update Learning Protocol](./deepscientist_latest_update_learning_protocol.md) 执行：fresh upstream audit、decision matrix、MDS/MAS owner surface 分类、落地、验证、吸收回 main。
+这份记录对应维护者触发的“学习一下 DeepScientist 最近更新”。本轮按 [DeepScientist Latest-Update Learning Protocol](../../references/med-deepscientist/deepscientist_latest_update_learning_protocol.md) 执行：fresh upstream audit、decision matrix、MDS/MAS owner surface 分类、落地、验证、吸收回 main。
 
 ## Fresh Upstream Range
 

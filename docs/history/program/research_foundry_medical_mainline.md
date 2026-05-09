@@ -13,10 +13,10 @@
 如果只想快速看“最终目标、当前进度、固定顺序”的压缩版，可直接看：
 
 - [Research Foundry Medical Execution Map](./research_foundry_medical_execution_map.md)
-- [Research Foundry Medical Phase Ladder](../../references/research_foundry_medical_phase_ladder.md)
+- [Research Foundry Medical Phase Ladder](../../references/positioning/research_foundry_medical_phase_ladder.md)
 - [Integration Harness Activation Package](./integration_harness_activation_package.md)
 - [Hermes Backend Continuation Board](./hermes_backend_continuation_board.md)
-- [External Runtime Dependency Gate](../../policies/external_runtime_dependency_gate.md)
+- [External Runtime Dependency Gate](../../policies/runtime-governance/external_runtime_dependency_gate.md)
 
 ## 一句话结论
 
@@ -68,7 +68,7 @@
 
 这条 5 阶段梯子的详细口径见：
 
-- [Research Foundry Medical Phase Ladder](../../references/research_foundry_medical_phase_ladder.md)
+- [Research Foundry Medical Phase Ladder](../../references/positioning/research_foundry_medical_phase_ladder.md)
 
 对应的 repo-level 命令面也已经落下：
 
@@ -164,7 +164,7 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 
 相关机制见：
 
-- [Outer-Loop Wakeup And Decision Loop](./outer_loop_wakeup_and_decision_loop.md)
+- [Outer-Loop Wakeup And Decision Loop](../../runtime/control/outer_loop_wakeup_and_decision_loop.md)
 
 ## 为什么 publication / display 仍然是主价值
 
@@ -230,7 +230,7 @@ outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
 1. 先继续把 `Phase 1` 收干净，也就是完成 repo-side `Hermes` continuation truth、activation package、deconstruction map 与 `F4 blocker closeout`
 2. 然后直接进入 `Phase 2`，把用户产品回路继续收成稳定入口
 3. 同时继续把 external blocker 保持为 canonical package，见：
-   - [External Runtime Dependency Gate](../../policies/external_runtime_dependency_gate.md)
+   - [External Runtime Dependency Gate](../../policies/runtime-governance/external_runtime_dependency_gate.md)
 4. 只有 external runtime / workspace / human gate 真正放行后，才允许继续往 `Phase 3+` 推进
 
 ## 固定推进顺序
