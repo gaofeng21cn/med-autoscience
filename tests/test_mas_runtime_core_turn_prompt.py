@@ -39,6 +39,8 @@ def test_codex_exec_runner_prompt_requires_auditable_turn_closeout(monkeypatch, 
     assert "write a blocked closeout" in prompt
     assert "Do not mutate paper/current_package" in prompt
     assert "Do not relax MAS quality gates" in prompt
+    assert "This Codex process is the MAS managed runtime worker for this run" in prompt
+    assert "Do not treat `execution_owner_guard.supervisor_only=true` as a reason to skip this runtime turn" in prompt
 
 
 def test_codex_exec_runner_prompt_includes_active_controller_work_unit(monkeypatch, tmp_path: Path) -> None:
@@ -98,5 +100,6 @@ def test_codex_exec_runner_prompt_includes_active_controller_work_unit(monkeypat
     assert '"target_id": "claim_evidence_map"' in prompt
     assert "Treat this controller work unit as the first execution target" in prompt
     assert "This Codex process is the MAS managed runtime worker for this run" in prompt
+    assert "Do not treat `execution_owner_guard.supervisor_only=true` as a reason to skip this runtime turn" in prompt
     assert "Do not treat `execution_owner_guard.supervisor_only=true` as a reason to skip this controller work unit" in prompt
     assert "runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta" in prompt
