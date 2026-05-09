@@ -665,6 +665,161 @@ def test_progress_portal_payload_source_refs_filter_legacy_runtime_paths() -> No
     assert all("med-deepscientist" not in ref and ".ds/worktrees" not in ref for ref in payload["source_refs"])
 
 
+def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_without_filename_inference() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+
+    payload = parts.build_study_workbench_payload(
+        progress={
+            **_progress_payload(),
+            "artifact_locators": [
+                {
+                    "group": "draft",
+                    "label": "canonical manuscript draft",
+                    "ref": "studies/001-risk/paper/manuscript.md",
+                    "status": "fresh",
+                },
+                {
+                    "category": "review_proof",
+                    "label": "AI reviewer proof",
+                    "path": "studies/001-risk/artifacts/publication_eval/latest.json",
+                    "status": "blocked",
+                },
+                {
+                    "label": "looks like a figure but has no explicit group",
+                    "ref": "studies/001-risk/manuscript/current_package/figures/Figure1.png",
+                },
+            ],
+            "delivery_refs": [
+                {
+                    "kind": "figures_tables",
+                    "label": "Table 1",
+                    "ref": "studies/001-risk/paper/tables/table1.csv",
+                }
+            ],
+        },
+        cockpit={
+            "studies": [
+                {
+                    "study_id": "001-risk",
+                    "current_stage": "cockpit-stage",
+                    "paper_stage": "cockpit-paper-stage",
+                    "monitoring": {"health_status": "recovering"},
+                }
+            ]
+        },
+        runtime={
+            "study_id": "001-risk",
+            "active_run_id": "run-001",
+            "artifact_locators": [
+                {
+                    "group": "runtime_evidence",
+                    "label": "runtime supervision",
+                    "ref": "studies/001-risk/artifacts/runtime/runtime_supervision/latest.json",
+                }
+            ],
+        },
+        package={
+            "study_id": "001-risk",
+            "refs": [
+                "studies/001-risk/manuscript/current_package",
+                "studies/001-risk/manuscript/current_package.zip",
+            ],
+        },
+        study_id="001-risk",
+    )
+
+    assert payload["surface_kind"] == "mas_progress_portal_study_workbench"
+    assert payload["path_stage"]["current_stage"] == "quality_repair"
+    assert payload["path_stage"]["paper_stage"] == "revision"
+    assert payload["runtime"]["active_run_id"] == "run-001"
+    assert payload["artifact_groups"]["draft"]["items"][0]["ref"] == "studies/001-risk/paper/manuscript.md"
+    assert payload["artifact_groups"]["figures_tables"]["items"][0]["ref"] == "studies/001-risk/paper/tables/table1.csv"
+    assert payload["artifact_groups"]["current_package"]["items"] == [
+        {
+            "ref": "studies/001-risk/manuscript/current_package",
+            "label": "studies/001-risk/manuscript/current_package",
+            "status": "available",
+            "source": "package.refs",
+        },
+        {
+            "ref": "studies/001-risk/manuscript/current_package.zip",
+            "label": "studies/001-risk/manuscript/current_package.zip",
+            "status": "available",
+            "source": "package.refs",
+        },
+    ]
+    assert payload["artifact_groups"]["review_proof"]["items"][0]["status"] == "blocked"
+    assert payload["artifact_groups"]["runtime_evidence"]["items"][0]["ref"].endswith(
+        "runtime_supervision/latest.json"
+    )
+    all_refs = [
+        item["ref"]
+        for group in payload["artifact_groups"].values()
+        for item in group["items"]
+    ]
+    assert "studies/001-risk/manuscript/current_package/figures/Figure1.png" not in all_refs
+    assert "artifact_group:draft" not in payload["conditions"]["missing"]
+    assert "artifact_group:figures_tables" not in payload["conditions"]["missing"]
+    assert "artifact_group:current_package" not in payload["conditions"]["missing"]
+    assert "artifact_group:review_proof" not in payload["conditions"]["missing"]
+    assert "artifact_group:runtime_evidence" not in payload["conditions"]["missing"]
+    assert "studies/001-risk/artifacts/controller_decisions/latest.json" in payload["source_refs"]
+    assert payload["tabs"][3] == {"id": "artifacts", "label": "产物", "status": "available"}
+
+
+def test_study_workbench_helper_fail_closes_missing_inputs_and_conflicts() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+
+    payload = parts.build_study_workbench_payload(
+        progress={},
+        cockpit={"studies": [{"study_id": "other-study"}]},
+        runtime={"study_id": "other-study"},
+        package={"study_id": "other-study"},
+        study_id="001-risk",
+    )
+
+    assert payload["overview"]["state_label"] is None
+    assert payload["path_stage"]["current_stage"] is None
+    assert payload["source_refs"] == []
+    assert payload["artifact_groups"]["draft"]["status"] == "missing"
+    assert payload["artifact_groups"]["current_package"]["status"] == "missing"
+    assert payload["conditions"]["missing"] == [
+        "study_progress",
+        "user_visible_projection_v2",
+        "source_refs",
+        "runtime_active_run_id",
+        "artifact_group:draft",
+        "artifact_group:figures_tables",
+        "artifact_group:current_package",
+        "artifact_group:review_proof",
+        "artifact_group:runtime_evidence",
+    ]
+    assert payload["conditions"]["conflict"] == [
+        "runtime_study_id_mismatch",
+        "package_study_id_mismatch",
+        "cockpit_study_id_mismatch",
+    ]
+
+
+def test_study_workbench_render_helper_returns_html_sections() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    payload = parts.build_study_workbench_payload(
+        progress=_progress_payload(),
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
+        package={"study_id": "001-risk", "refs": ["studies/001-risk/manuscript/current_package.zip"]},
+        study_id="001-risk",
+    )
+
+    html = parts.render_study_workbench_sections(payload)
+
+    assert "单篇论文工作台" in html
+    assert "路径与阶段" in html
+    assert "当前交付包" in html
+    assert "studies/001-risk/manuscript/current_package.zip" in html
+    assert "缺少 source refs。" not in html
+
+
 def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
     profile = make_profile(tmp_path)

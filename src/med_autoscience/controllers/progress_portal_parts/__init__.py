@@ -32,6 +32,11 @@ from .source_refs import (
     source_ref_allowed,
     source_refs,
 )
+from .study_workbench import (
+    ARTIFACT_GROUPS,
+    build_study_workbench_payload,
+    render_study_workbench_sections,
+)
 from .live_console_shell import (
     LIVE_CONSOLE_HTML_REF,
     LIVE_CONSOLE_SERVE_COMMAND,
@@ -60,6 +65,8 @@ __all__ = [
     "LIVE_CONSOLE_HTML_REF",
     "LIVE_CONSOLE_SERVE_COMMAND",
     "LIVE_CONSOLE_SESSION_READ_MODEL_REF",
+    "ARTIFACT_GROUPS",
+    "build_study_workbench_payload",
     "condition_badge",
     "condition_section",
     "dedupe_texts",
@@ -78,6 +85,7 @@ __all__ = [
     "refresh_meta",
     "render_workspace_studies_section",
     "render_workspace_alerts_section",
+    "render_study_workbench_sections",
     "render_live_console_portal_link",
     "render_section_explanations_section",
     "render_live_console_static_shell",
