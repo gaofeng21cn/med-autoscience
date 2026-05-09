@@ -5,6 +5,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
+
 
 RUNTIME_CONTROLLER_REDRIVE_REASON = "runtime_controller_redrive_required"
 SPECIFICITY_WORK_UNIT_IDS = {"gate_needs_specificity", "needs_specificity"}
@@ -79,12 +81,18 @@ def current_controller_runtime_route(
         return None
     work_unit = _mapping(decision.get("next_work_unit"))
     work_unit_id = _text(work_unit.get("unit_id"))
-    if work_unit_id is None or work_unit_id in SPECIFICITY_WORK_UNIT_IDS:
+    if work_unit_id is None:
         return None
     decision_fingerprint = _text(decision.get("work_unit_fingerprint")) or _text(work_unit.get("fingerprint"))
     publication_fingerprints = _publication_work_unit_fingerprints(publication_eval_payload)
     if decision_fingerprint is None or decision_fingerprint not in publication_fingerprints:
         return None
+    if work_unit_id in SPECIFICITY_WORK_UNIT_IDS:
+        if not _publication_eval_specificity_targets_complete_for_fingerprint(
+            publication_eval_payload,
+            decision_fingerprint=decision_fingerprint,
+        ):
+            return None
     return {
         "decision_path": str(decision_path),
         "decision_id": _text(decision.get("decision_id")),
@@ -114,6 +122,23 @@ def _publication_work_unit_fingerprints(publication_eval_payload: Mapping[str, A
         if fingerprint := _text(next_work_unit.get("fingerprint")):
             fingerprints.add(fingerprint)
     return fingerprints
+
+
+def _publication_eval_specificity_targets_complete_for_fingerprint(
+    publication_eval_payload: Mapping[str, Any],
+    *,
+    decision_fingerprint: str,
+) -> bool:
+    for action in publication_eval_payload.get("recommended_actions") or []:
+        if not isinstance(action, Mapping):
+            continue
+        next_work_unit = _mapping(action.get("next_work_unit"))
+        action_fingerprint = _text(action.get("work_unit_fingerprint")) or _text(next_work_unit.get("fingerprint"))
+        if action_fingerprint != decision_fingerprint:
+            continue
+        if specificity_target_status(action.get("specificity_targets")).get("complete") is True:
+            return True
+    return False
 
 
 def _controller_action_types(payload: Mapping[str, Any]) -> set[str]:

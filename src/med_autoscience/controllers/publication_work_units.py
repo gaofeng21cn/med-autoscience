@@ -6,6 +6,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers._medical_display_surface_support import _REQUIRED_DISPLAY_SURFACE_STUBS
 from med_autoscience.controllers.gate_authority_currentness import resolve_gate_authority_currentness
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
 _REQUIRED_DISPLAY_SURFACE_BLOCKERS = frozenset(
@@ -17,6 +18,7 @@ _CLAIM_EVIDENCE_BLOCKERS = frozenset(
         "claim_evidence_map_missing",
         "claim_evidence_map_missing_or_incomplete",
         "claim_evidence_trace_missing",
+        "missing_publication_anchor",
         "missing_claim_evidence_map",
     }
 )
@@ -155,10 +157,12 @@ _GENERIC_SPECIFICITY_ACTIONABLE_OBJECT_KEYS = _ACTIONABLE_OBJECT_KEYS - frozense
 _GENERIC_SPECIFICITY_BLOCKERS = frozenset(
     {
         "claim_evidence_consistency_failed",
+        "missing_publication_anchor",
         "reviewer_first_concerns_unresolved",
         *_SURFACE_BLOCKER_LABELS,
     }
 )
+_SPECIFICITY_WORK_UNIT_IDS = frozenset({"gate_needs_specificity", "needs_specificity"})
 _SPECIFICITY_QUESTIONS = (
     "Which exact claim, figure, table, metric, citation, evidence row, or package artifact is blocking the gate?",
     "Which durable source path proves the blocker and which controller surface should own the repair?",
@@ -249,6 +253,71 @@ def _normalized_blockers(report: Mapping[str, Any]) -> tuple[str, ...]:
     if current_required_action in {"complete_bundle_stage", "continue_bundle_stage"} and not clear_current_bundle_stage:
         blockers.add(current_required_action)
     return tuple(sorted(blockers))
+
+
+def specificity_targets_from_publication_eval(publication_eval_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return []
+    for action in actions:
+        if not isinstance(action, Mapping):
+            continue
+        next_work_unit = action.get("next_work_unit")
+        next_work_unit_id = (
+            str(next_work_unit.get("unit_id") or "").strip()
+            if isinstance(next_work_unit, Mapping)
+            else ""
+        )
+        blocking_work_unit_ids = {
+            str(item.get("unit_id") or "").strip()
+            for item in action.get("blocking_work_units") or []
+            if isinstance(item, Mapping)
+        }
+        if next_work_unit_id not in _SPECIFICITY_WORK_UNIT_IDS and not (
+            blocking_work_unit_ids & _SPECIFICITY_WORK_UNIT_IDS
+        ):
+            continue
+        status = specificity_target_status(action.get("specificity_targets"))
+        if status.get("complete") is True:
+            return [dict(item) for item in status.get("targets") or [] if isinstance(item, Mapping)]
+    return []
+
+
+def _report_with_specificity_targets(
+    report: Mapping[str, Any],
+    *,
+    blockers: tuple[str, ...],
+    specificity_targets: object,
+) -> dict[str, Any]:
+    status = specificity_target_status(specificity_targets)
+    if status.get("complete") is not True:
+        return dict(report)
+    blocker_set = set(blockers)
+    target_refs: list[dict[str, str]] = []
+    for target in status.get("targets") or []:
+        if not isinstance(target, Mapping):
+            continue
+        blocker = str(target.get("blocking_reason") or "").strip()
+        if blocker not in blocker_set and len(blocker_set) == 1:
+            blocker = blockers[0]
+        ref = {
+            "blocker": blocker,
+            "target_kind": str(target.get("target_kind") or "").strip(),
+            "target_id": str(target.get("target_id") or "").strip(),
+            "source_path": str(target.get("source_path") or "").strip(),
+        }
+        if ref["blocker"] and ref["target_kind"] and ref["target_id"] and ref["source_path"]:
+            target_refs.append(ref)
+    if not target_refs:
+        return dict(report)
+    enriched = dict(report)
+    existing_refs = [
+        dict(item)
+        for item in report.get("blocking_artifact_refs") or []
+        if isinstance(item, Mapping)
+    ]
+    enriched["blocking_artifact_refs"] = [*existing_refs, *target_refs]
+    return enriched
 
 
 def _fingerprint(blockers: tuple[str, ...]) -> str:
@@ -561,16 +630,28 @@ def _derive_blocking_work_units(
     return units, actionability_status, specificity_questions
 
 
-def derive_publication_work_units(report: Mapping[str, Any]) -> dict[str, Any]:
+def derive_publication_work_units(
+    report: Mapping[str, Any],
+    *,
+    specificity_targets: object = None,
+) -> dict[str, Any]:
     blockers = _normalized_blockers(report)
-    units, actionability_status, specificity_questions = _derive_blocking_work_units(report, blockers=blockers)
+    enriched_report = _report_with_specificity_targets(
+        report,
+        blockers=blockers,
+        specificity_targets=specificity_targets,
+    )
+    units, actionability_status, specificity_questions = _derive_blocking_work_units(
+        enriched_report,
+        blockers=blockers,
+    )
     fingerprint_blockers = fingerprint_blockers_for_work_unit(blockers=blockers, next_work_unit=units[0])
     return {
         "fingerprint": _fingerprint(fingerprint_blockers),
         "gate_fingerprint": str(report.get("gate_fingerprint") or "").strip() or None,
         "fingerprint_blockers": list(fingerprint_blockers),
         "blockers": list(blockers),
-        "blocking_artifact_refs": list(report.get("blocking_artifact_refs") or []),
+        "blocking_artifact_refs": list(enriched_report.get("blocking_artifact_refs") or []),
         "actionability_status": actionability_status,
         "specificity_questions": list(specificity_questions),
         "blocking_work_units": units,

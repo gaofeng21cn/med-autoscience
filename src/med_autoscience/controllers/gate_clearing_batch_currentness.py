@@ -195,8 +195,12 @@ def gate_specificity_terminal_reason(
     work_unit_currentness: dict[str, Any],
 ) -> str | None:
     explicit_work_unit_id = publication_work_unit_id(explicit_publication_work_unit)
+    selected_work_unit_id = publication_work_unit_id(selected_publication_work_unit)
     current_work_unit_id = publication_work_unit_id(current_publication_work_unit_payload.get("next_work_unit"))
-    if explicit_work_unit_id == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID:
+    if (
+        explicit_work_unit_id == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
+        and selected_work_unit_id == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
+    ):
         return "publication_eval_requested_gate_specificity"
     if current_work_unit_id != GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID:
         return None
@@ -219,12 +223,26 @@ def publication_work_unit_selection(
     controller_decision_work_unit: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     explicit_next_work_unit = explicit_next_publication_work_unit(publication_eval_payload)
-    current_publication_work_unit_payload = publication_work_units.derive_publication_work_units(gate_report)
+    specificity_targets = publication_work_units.specificity_targets_from_publication_eval(publication_eval_payload)
+    current_publication_work_unit_payload = publication_work_units.derive_publication_work_units(
+        gate_report,
+        specificity_targets=specificity_targets,
+    )
     current_next_work_unit = current_publication_work_unit_payload.get("next_work_unit")
     selected_publication_work_unit = controller_decision_work_unit or explicit_next_work_unit or (
         current_next_work_unit if isinstance(current_next_work_unit, dict) else derived_next_publication_work_unit(gate_report)
     )
     selected_work_unit_id = publication_work_unit_id(selected_publication_work_unit)
+    current_work_unit_id = publication_work_unit_id(current_next_work_unit)
+    if (
+        specificity_targets
+        and selected_work_unit_id == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
+        and current_work_unit_id is not None
+        and current_work_unit_id != GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
+        and isinstance(current_next_work_unit, dict)
+    ):
+        selected_publication_work_unit = dict(current_next_work_unit)
+        selected_work_unit_id = current_work_unit_id
     if (
         selected_work_unit_id == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
         and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)

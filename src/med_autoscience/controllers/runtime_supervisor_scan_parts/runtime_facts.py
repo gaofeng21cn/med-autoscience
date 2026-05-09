@@ -167,6 +167,35 @@ def runtime_platform_repair_apply_required(
     )
 
 
+def current_controller_route_redrive_required(
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    *,
+    study_root: Any,
+    publication_eval_payload: Mapping[str, Any],
+    gate_specificity: Mapping[str, Any] | None = None,
+) -> bool:
+    if completion_evidence.completed_current_truth(status, progress):
+        return False
+    if active_run_id(status, progress) is not None or worker_running(status):
+        return False
+    if not (
+        _publication_gate_closeout_targets_resolved_redrive_required(
+            status=status,
+            gate_specificity=gate_specificity,
+        )
+        or _runtime_platform_repair_redrive_pending(status)
+    ):
+        return False
+    return (
+        current_truth_owner.current_controller_runtime_route(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+        is not None
+    )
+
+
 def _pending_user_message_platform_redrive_required(status: Mapping[str, Any]) -> bool:
     if _text(status.get("quest_status")) != "waiting_for_user":
         return False
@@ -276,6 +305,7 @@ def _text(value: object) -> str | None:
 __all__ = [
     "active_run_id",
     "blocking_reasons",
+    "current_controller_route_redrive_required",
     "live_activity_timeout_current_controller_route_available",
     "live_activity_timeout_current_controller_redrive_required",
     "retry_exhausted",

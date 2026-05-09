@@ -460,6 +460,136 @@ def test_run_quality_repair_batch_records_eval_hygiene_summary_path(monkeypatch,
     assert record["source_summary_artifact_path"] == str(quality_summary_path.resolve())
 
 
+def test_run_quality_repair_batch_uses_specificity_targets_for_missing_publication_anchor_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_id = "quest-001"
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    publication_eval_payload["recommended_actions"][0]["action_type"] = "return_to_controller"
+    publication_eval_payload["recommended_actions"][0].pop("route_target", None)
+    publication_eval_payload["recommended_actions"][0].pop("route_key_question", None)
+    publication_eval_payload["recommended_actions"][0].pop("route_rationale", None)
+    publication_eval_payload["recommended_actions"][0]["next_work_unit"] = {
+        "unit_id": "gate_needs_specificity",
+        "lane": "controller",
+        "summary": "Ask the publication gate to identify concrete blocker targets.",
+    }
+    publication_eval_payload["recommended_actions"][0]["work_unit_fingerprint"] = "publication-blockers::anchor"
+    publication_eval_payload["recommended_actions"][0]["specificity_targets"] = [
+        {
+            "target_kind": "claim",
+            "target_id": "claim_evidence_map",
+            "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+            "blocking_reason": "missing_publication_anchor",
+        },
+        {
+            "target_kind": "figure",
+            "target_id": "figure_catalog",
+            "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+            "blocking_reason": "missing_publication_anchor",
+        },
+        {
+            "target_kind": "table",
+            "target_id": "submission_manifest",
+            "source_path": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+            "blocking_reason": "missing_publication_anchor",
+        },
+        {
+            "target_kind": "metric",
+            "target_id": "main_result_metrics",
+            "source_path": str(study_root / "artifacts" / "results" / "main_result.json"),
+            "blocking_reason": "missing_publication_anchor",
+        },
+        {
+            "target_kind": "source_path",
+            "target_id": "publishability_gate",
+            "source_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "blocking_reason": "missing_publication_anchor",
+        },
+    ]
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_quality_summary(study_root)
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "return_to_publishability_gate",
+        "blockers": ["missing_publication_anchor"],
+        "anchor_kind": "missing",
+        "paper_root": None,
+        "main_result_path": None,
+        "bundle_tasks_downstream_only": True,
+        "gate_fingerprint": "publication-gate::anchor",
+        "blocking_artifact_refs": [],
+    }
+    route_context = {
+        "control_plane_snapshot": {
+            "surface": "control_plane_snapshot",
+            "control_state": "supervisor_gated",
+            "canonical_next_action": "resume_same_study_line",
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+            "dispatch_gate": {
+                "state": "blocked",
+                "blocking_reasons": ["publication_supervisor_state.bundle_tasks_downstream_only"],
+            },
+            "route_authorization": {
+                "authorized": False,
+                "paper_write_allowed": True,
+                "bundle_build_allowed": False,
+                "runtime_recovery_allowed": True,
+            },
+        }
+    }
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: {
+            "study_id": kwargs["study_id"],
+            "study_root": str(kwargs["study_root"]),
+            "quest_id": quest_id,
+            **route_context,
+        },
+    )
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_state", lambda _quest_root: object())
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_report", lambda _state: gate_report)
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **kwargs: (
+            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            {"ok": True, "status": "executed"},
+        )[1],
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+    )
+
+    assert result["control_plane_route_gate"]["allowed"] is True
+    assert result["control_plane_route_gate"]["action"] == "paper_write"
+    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == (
+        "analysis_claim_evidence_repair"
+    )
+    assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == "analysis_claim_evidence_repair"
+
+
 def test_run_quality_repair_batch_reruns_same_eval_after_failed_gate_clearing_batch(
     monkeypatch,
     tmp_path: Path,

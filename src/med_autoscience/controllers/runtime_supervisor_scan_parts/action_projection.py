@@ -39,6 +39,13 @@ def action_queue(
             study_root=study_root,
             publication_eval_payload=publication_eval_payload,
         )
+        or runtime_facts.current_controller_route_redrive_required(
+            status,
+            progress,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+            gate_specificity=gate_specificity,
+        )
         or _external_supervisor_runtime_repair_required(progress)
     ):
         actions.append(
@@ -152,6 +159,12 @@ def why_not_applied(
         for action in actions:
             if _text(action.get("action_type")) == "runtime_platform_repair":
                 return _text(action.get("reason")) or current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
+    if any(
+        _text(action.get("action_type")) == "runtime_platform_repair"
+        and _text(action.get("reason")) == current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
+        for action in actions
+    ):
+        return current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
     if runtime_facts.retry_exhausted(status, progress):
         if gate_specificity.get("required") is True:
             return "publication_gate_specificity_required"
