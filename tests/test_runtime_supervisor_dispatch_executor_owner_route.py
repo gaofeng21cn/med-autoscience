@@ -477,3 +477,104 @@ def test_execute_dispatch_suppresses_repeat_when_no_meaningful_artifact_delta_an
     assert row[0] == "repeat_suppressed"
     assert row[1] == route["idempotency_key"]
     assert json.loads(row[2])["why_not_applied"] == "repeat_suppressed"
+
+
+def test_execute_dispatch_does_not_repeat_suppress_pending_ai_reviewer_output(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    route.update(
+        {
+            "schema_version": 2,
+            "truth_epoch": route["route_epoch"],
+            "runtime_health_epoch": "runtime-health-repeat",
+            "work_unit_fingerprint": "publication-blockers::pending-ai-reviewer",
+            "failure_signature": "ai_reviewer_assessment_required",
+            "trace_id": "owner-route-trace::pending-ai-reviewer",
+        }
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=route,
+    )
+    dispatch_payload["prompt_contract"].update(
+        {
+            "do_not_repeat": True,
+            "repeat_suppression_key": "publication-blockers::pending-ai-reviewer",
+        }
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "meaningful_artifact_delta": False,
+                    "ai_reviewer_assessment": {"present": False, "missing": True, "owner": "mechanical_projection"},
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "study_id": study_id,
+                    "quest_id": f"quest-{study_id}",
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "blocked",
+                    "blocked_reason": "ai_reviewer_request_missing",
+                    "owner_route": route,
+                    "prompt_contract": dispatch_payload["prompt_contract"],
+                    "repeat_suppression_key": "publication-blockers::pending-ai-reviewer",
+                }
+            ],
+        },
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["repeat_suppressed_count"] == 0
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "ai_reviewer_request_missing"
+    assert execution["repeat_suppression"]["repeat_suppressed"] is False

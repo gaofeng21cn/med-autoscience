@@ -107,6 +107,13 @@ def _current_scan_study(profile: WorkspaceProfile, study_id: str) -> dict[str, A
     return None
 
 
+def _required_output_pending(action_type: str, current_study: Mapping[str, Any] | None) -> bool:
+    if action_type != "return_to_ai_reviewer_workflow":
+        return False
+    assessment = _mapping(_mapping(current_study).get("ai_reviewer_assessment"))
+    return assessment.get("missing") is True
+
+
 def _publication_eval_latest_path(study_root: Path) -> Path:
     return study_root / PUBLICATION_EVAL_LATEST_RELATIVE_PATH
 
@@ -747,10 +754,12 @@ def _execute_dispatch(
     current_route = _current_owner_route(profile, study_id)
     owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    current_study = _current_scan_study(profile, study_id)
     repeat_guard = repeat_suppression.execution_repeat_suppression(
         dispatch={**dict(dispatch), "owner_route": _dispatch_owner_route(dispatch), "prompt_contract": prompt_contract},
-        current_study=_current_scan_study(profile, study_id),
+        current_study=current_study,
         previous_execution_latest=_read_json_object(_execution_latest_path(profile, study_id)),
+        required_output_pending=_required_output_pending(action_type, current_study),
     )
     if not guard_ok:
         execution = {
