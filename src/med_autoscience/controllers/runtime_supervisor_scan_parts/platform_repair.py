@@ -486,6 +486,37 @@ def _apply_pending_runtime_platform_repair_redrive(
     }
 
 
+def _apply_controller_work_unit_pending_redrive(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    base: Mapping[str, Any],
+) -> dict[str, Any]:
+    try:
+        resume_result = study_runtime_router.ensure_study_runtime(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            source=RUNTIME_PLATFORM_REPAIR_SOURCE,
+        )
+    except Exception as exc:
+        return {
+            **dict(base),
+            "dispatch_status": "blocked",
+            "reason": "resume_after_controller_work_unit_redrive_failed",
+            "repair_kind": "controller_work_unit_pending_redrive",
+            "error": str(exc),
+        }
+    return {
+        **dict(base),
+        "dispatch_status": "applied",
+        "reason": "controller_work_unit_pending_redrive",
+        "repair_kind": "controller_work_unit_pending_redrive",
+        "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
+    }
+
+
 def _publication_gate_ready_for_specificity_redrive(quest_root: str | None) -> dict[str, Any]:
     if quest_root is None:
         return {"ready": False, "clear": False, "reason": "quest_root_missing"}
@@ -735,6 +766,14 @@ def apply_runtime_platform_repair(
             runtime_state_path=runtime_path,
             quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
             publication_eval_payload=publication_eval_payload,
+            base=base,
+        )
+    interaction_arbitration = _mapping(status.get("interaction_arbitration"))
+    if _text(interaction_arbitration.get("classification")) == "controller_work_unit_pending_redrive":
+        return _apply_controller_work_unit_pending_redrive(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
             base=base,
         )
     if runtime_facts.current_controller_owner_handoff_redrive_required(
