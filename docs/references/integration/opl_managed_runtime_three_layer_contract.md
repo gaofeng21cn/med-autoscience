@@ -8,8 +8,8 @@
 
 统一按三层理解：
 
-- `Hermes-Agent`
-  - 长期运行与托管能力 owner
+- `OPL Runtime Manager` / scheduler adapter
+  - 长期运行、托管与调度能力 owner；默认消费 domain-owned scheduler projection，Hermes-Agent 只是显式 optional hosted provider
 - domain supervision
   - 领域治理、质量门控、进度真相、恢复判断 owner
 - quest executor
@@ -17,8 +17,8 @@
 
 对应到当前医学线：
 
-- `Hermes-Agent`
-  - runtime substrate / gateway / scheduler / hosted session/run owner
+- `MAS supervision scheduler contract`
+  - local default scheduler owner；Hermes-Agent 仅在显式 hosted/runtime target 时作为 optional adapter
 - `MedAutoScience`
   - medical supervision / publication governance / progress truth owner
 - `MedDeepScientist`
@@ -33,19 +33,20 @@
 
 三层切开后的好处是：
 
-- `Hermes` 只负责“长期在线、能拉起、能调度、能恢复 session/run”
+- runtime manager / scheduler adapter 只负责“长期在线、能拉起、能调度、能恢复 session/run”
 - domain supervision 只负责“现在该不该继续、该不该放行、卡在哪、该怎么恢复”
 - executor 只负责“按当前路线把活干出来”
 
 ## 三层硬边界
 
-### 1. Hermes 层
+### 1. Runtime manager / scheduler adapter 层
 
 允许：
 
 - 持有 gateway / scheduler / cron / hosted run substrate
 - 管 session / run / watch / recovery substrate
 - 提供长期在线托管能力
+- 在显式选择时使用 Hermes-Agent hosted/runtime provider
 
 不允许：
 
@@ -64,7 +65,7 @@
 不允许：
 
 - 自己变成第二个长期在线 host service
-- 绕开 Hermes 直接抢 runtime-owned downstream execution
+- 绕开 runtime manager / scheduler contract 直接抢 runtime-owned downstream execution
 - 直接覆盖 executor runtime-owned surface
 
 ### 3. Quest Executor 层
@@ -85,8 +86,8 @@
 
 ### MedAutoScience
 
-- `Hermes-Agent`
-  - Hermes-hosted supervision tick / hosted runtime substrate
+- `MAS supervision scheduler contract`
+  - default local scheduler / optional Hermes hosted adapter
 - `MedAutoScience`
   - medical supervision / publication governance / workspace cockpit / progress truth
 - `MedDeepScientist`
@@ -94,8 +95,8 @@
 
 ### RedCube AI
 
-- `Hermes-Agent`
-  - 长期运行与托管能力目标 owner
+- `OPL Runtime Manager`
+  - 长期运行与托管能力目标 owner；Hermes-Agent 是显式 optional hosted provider
 - `RedCube AI`
   - visual deliverable governance / audit / publication projection / review truth
 - concrete executor
@@ -103,8 +104,8 @@
 
 ### Med Auto Grant
 
-- `Hermes-Agent`
-  - runtime substrate / orchestration owner
+- `OPL Runtime Manager`
+  - runtime substrate / orchestration owner；Hermes-Agent 是显式 optional hosted provider
 - `Med Auto Grant`
   - author-side grant truth / progress / review / package gate owner
 - concrete executor
@@ -118,13 +119,13 @@
 
 - 三层角色命名与 owner truth
 - supervision status shape
-- hosted runtime owner invariants
+- default scheduler projection 与 optional hosted runtime owner invariants
 - domain supervision 不得越过 runtime 的 fail-closed 规则
 - 单一 MAS app skill 下的 product/entry_status/cockpit 内部 command contract 术语
 
 第二批再考虑抽离的内容：
 
-- `Hermes-hosted supervision job` 的 manifest shape
+- adapter-aware supervision job manifest shape
 - runtime owner / domain owner / executor owner 的 machine-readable envelope
 - 通用 attention queue / recovery contract 结构
 
@@ -143,7 +144,7 @@
 
 当三个仓都满足下面条件时，才算统一成立：
 
-- 长期在线 owner 只认 `Hermes-Agent`
+- 长期在线 owner 由 OPL/runtime-manager 或 domain scheduler contract 声明；Hermes-Agent 只作为显式 optional hosted provider 进入
 - domain repo 自己不再默认安装第二个 host-level 常驻 supervision service
 - domain repo 的 product/entry_status/cockpit 文案能明确说清三层分工
 - runtime blocked / paused / stale / completion request 等问题会先回到 domain supervision，而不是直接让 executor 或用户硬猜

@@ -108,7 +108,7 @@ GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "doctor": "doctor 审计、profile、mainline 与 entry-mode 检查。",
     "workspace": "workspace 初始化与 readiness cockpit。",
     "data": "研究资产、public data、registry 与 literature/memory 准备。",
-    "runtime": "runtime watch、Hermes supervision、overlay、analysis bundle、storage maintenance 与 live console。",
+    "runtime": "runtime watch、MAS scheduler supervision、overlay、analysis bundle、storage maintenance 与 live console。",
     "study": "study runtime、progress、launch 与 delivery sync。",
     "publication": "投稿包、display surface、journal/target 与 publication gate。",
     "product": "entry_status、preflight、start、manifest、build-entry 与 governance surfaces。",

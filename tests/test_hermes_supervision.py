@@ -154,6 +154,7 @@ def test_read_supervision_status_reports_failed_latest_cron_run(monkeypatch, tmp
     assert result["latest_run_session_path"] == str(session_path)
     assert "最近一次 cron 执行失败" in result["summary"]
     assert result["outer_supervision_slo"]["state"] == "blocked"
+    assert "latest_scheduler_tick_execution_failed" in result["outer_supervision_slo"]["blocked_reasons"]
     assert "latest_hermes_cron_execution_failed" in result["outer_supervision_slo"]["blocked_reasons"]
 
 

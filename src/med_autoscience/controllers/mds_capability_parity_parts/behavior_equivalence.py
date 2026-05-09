@@ -55,7 +55,9 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
             "can_react_between_ticks": True,
         },
         "mas_behavior": {
-            "cadence": "Hermes cron scheduled one-shot tick",
+            "cadence": "MAS supervision scheduler one-shot tick",
+            "default_adapter": "local",
+            "optional_adapters": ["hermes_gateway_cron"],
             "interval_seconds": 300,
             "max_ticks": 1,
             "inner_turn_continuation_owner": "MAS Runtime Turn Lifecycle Kernel",
@@ -138,7 +140,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
             "in_process_turn_continuation": "runner monitor plus complete_turn_and_normalize",
             "worker_restart": "MAS controller-authorized recovery action",
         },
-        "behavior_difference": "MDS resumes at daemon startup; MAS resumes when Hermes invokes the next MAS tick or an operator runs watch explicitly.",
+        "behavior_difference": "MDS resumes at daemon startup; MAS resumes when the MAS scheduler invokes the next tick or an operator runs watch explicitly.",
         "default_user_impact": "Recovery is independent of MDS checkout but has scheduler-bound latency.",
         "mas_contract": "recovery_intent records the controller-owned recovery reason and safe_reconcile readiness; runtime_watch and study_runtime_router reconcile active-but-not-running state and escalate fail-closed.",
         "recommended_operator_action": "use_mas_with_latency_awareness",
@@ -300,11 +302,13 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "mas_behavior": {
             "workspace_local_host_service": False,
             "retired_cleanup": True,
-            "canonical_owner": "hermes_gateway_cron",
+            "canonical_owner": "mas_supervision_scheduler",
+            "default_adapter": "local",
+            "optional_adapters": ["hermes_gateway_cron"],
         },
         "behavior_difference": "Workspace-local launchd/systemd/cron service templates are retired; their presence is cleanup evidence, not an active owner.",
         "default_user_impact": "Old host services must be removed instead of kept as an alternate supervision mode.",
-        "mas_contract": "runtime-ensure-supervision removes retired workspace-local services before registering or reporting Hermes supervision.",
+        "mas_contract": "runtime-ensure-supervision removes retired workspace-local services before registering or reporting MAS scheduler supervision.",
         "recommended_operator_action": "retired_no_active_replacement",
     },
 )
@@ -315,7 +319,9 @@ RUNTIME_CONTINUITY_COMPLETION = {
     "owner": "MedAutoScience Runtime OS",
     "external_mds_repo_required": False,
     "mds_daemon_required": False,
-    "active_scheduler": "hermes_gateway_cron",
+    "active_scheduler": "mas_supervision_scheduler",
+    "active_scheduler_adapter": "local",
+    "optional_scheduler_adapters": ["hermes_gateway_cron"],
     "default_tick_interval_seconds": 300,
     "runtime_session_read_model": {
         "surface_kind": "runtime_session_read_model",
@@ -414,7 +420,9 @@ def build_mds_behavior_equivalence_matrix() -> dict[str, Any]:
         "mds_final_role": MDS_FINAL_ROLE,
         "default_operation_requires_external_mds": False,
         "default_diagnostic_requires_external_mds": False,
-        "default_supervision_owner": "hermes_gateway_cron",
+        "default_supervision_owner": "mas_supervision_scheduler",
+        "default_scheduler_adapter": "local",
+        "optional_scheduler_adapters": ["hermes_gateway_cron"],
         "default_tick_interval_seconds": 300,
         "default_tick_max_ticks": 1,
         "default_tick_command": "ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1",
@@ -464,8 +472,10 @@ def _validate_behavior_matrix_dependency_contract(matrix: Mapping[str, Any], iss
 
 
 def _validate_behavior_matrix_scheduler_contract(matrix: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
-    if _text(matrix.get("default_supervision_owner")) != "hermes_gateway_cron":
+    if _text(matrix.get("default_supervision_owner")) != "mas_supervision_scheduler":
         issues.append({"code": "behavior_matrix_default_supervision_owner_drift"})
+    if _text(matrix.get("default_scheduler_adapter")) != "local":
+        issues.append({"code": "behavior_matrix_default_scheduler_adapter_drift"})
     if int(matrix.get("default_tick_interval_seconds") or 0) != 300:
         issues.append({"code": "behavior_matrix_default_tick_interval_drift"})
     if int(matrix.get("default_tick_max_ticks") or 0) != 1:
@@ -580,8 +590,10 @@ def _validate_runtime_continuity_header(value: Mapping[str, Any], issues: list[d
         issues.append({"code": "runtime_continuity_external_mds_dependency"})
     if value.get("mds_daemon_required") is not False:
         issues.append({"code": "runtime_continuity_mds_daemon_dependency"})
-    if _text(value.get("active_scheduler")) != "hermes_gateway_cron":
+    if _text(value.get("active_scheduler")) != "mas_supervision_scheduler":
         issues.append({"code": "runtime_continuity_active_scheduler_drift"})
+    if _text(value.get("active_scheduler_adapter")) != "local":
+        issues.append({"code": "runtime_continuity_active_scheduler_adapter_drift"})
     if int(value.get("default_tick_interval_seconds") or 0) != 300:
         issues.append({"code": "runtime_continuity_tick_interval_drift"})
 

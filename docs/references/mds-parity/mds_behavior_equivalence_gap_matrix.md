@@ -20,8 +20,9 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 - `default_independence`: landed
 - `full_mds_daemon_behavior_equivalence`: false
 - `scheduler_contract_owner`: `mas_supervision_scheduler`
-- `current_active_scheduler_adapter`: `hermes_gateway_cron`
-- `target_default_scheduler_adapter`: `mas_local_scheduler`
+- `current_active_scheduler_adapter`: `local`
+- `optional_scheduler_adapters`: `hermes_gateway_cron`
+- `target_default_scheduler_adapter`: `local`
 - `default_tick_interval_seconds`: `300`
 - `default_tick_shape`: MAS-owned supervision tick script
 - `default_tick_sequence`: `watch-runtime --max-ticks 1` -> `supervisor-scan` -> `supervisor-consume` -> `supervisor-execute-dispatch`
