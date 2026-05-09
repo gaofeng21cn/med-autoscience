@@ -266,19 +266,31 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert by_surface["queued_user_messages_mailbox"]["mas_behavior"]["runtime_turn_user_queue"] is True
     assert "recovery_intent" in by_surface["crash_recovery_auto_resume"]["mas_contract"]
     assert by_surface["progress_visibility"]["equivalence_class"] == "partially_equivalent"
-    assert by_surface["progress_visibility"]["mas_behavior"]["primary_scope"] == "workspace_overview_with_study_rows"
-    assert by_surface["progress_visibility"]["mas_behavior"]["route_decision_trail"] == "not_landed"
-    assert "study-scoped Portal view" in by_surface["progress_visibility"]["mas_contract"]
-    assert "route/decision trail" in by_surface["progress_visibility"]["mas_contract"]
-    assert by_surface["progress_visibility"]["future_parity_candidate"] == "portal_route_decision_trail"
+    assert by_surface["progress_visibility"]["mas_behavior"]["primary_scope"] == "workspace_shell_with_per_study_pages"
+    assert by_surface["progress_visibility"]["mas_behavior"]["paper_scoped_navigation"] == "landed_per_study_pages"
+    assert by_surface["progress_visibility"]["mas_behavior"]["route_decision_trail"] == "landed_read_only"
+    assert by_surface["progress_visibility"]["mas_behavior"]["conversation_read_model"] == "landed_read_only"
+    assert "mas_progress_portal_route_decision_trail" in by_surface["progress_visibility"]["mas_contract"]
+    assert "mas_runtime_conversation_read_model" in by_surface["progress_visibility"]["mas_contract"]
+    assert by_surface["progress_visibility"]["future_parity_candidate"] == "real_workspace_user_soak_and_interactive_gate_polish"
     assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "purpose_equivalent_with_different_timing"
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["live_console"] == (
         "MAS-authored read-only session/run/terminal/log observation shell"
+    )
+    assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["websocket_terminal_attach"] == (
+        "blocked_by_missing_terminal_input_owner"
+    )
+    assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["terminal_attach_gate"] == (
+        "mas_terminal_attach_gate"
+    )
+    assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["authorized_portal_actions"] == (
+        "controller_receipt_only"
     )
     assert by_surface["webui_websocket_terminal_streaming"]["future_parity_candidate"] == (
         "interactive_terminal_attach_and_authorized_ui_control"
     )
     assert "live-console-parity" in by_surface["webui_websocket_terminal_streaming"]["mas_contract"]
+    assert "mas_terminal_attach_gate" in by_surface["webui_websocket_terminal_streaming"]["mas_contract"]
     assert by_surface["connector_channel_background_delivery"]["equivalence_class"] == "not_equivalent_retired"
     assert by_surface["workspace_local_host_service"]["equivalence_class"] == "not_equivalent_retired"
     continuity = matrix["runtime_continuity_completion"]

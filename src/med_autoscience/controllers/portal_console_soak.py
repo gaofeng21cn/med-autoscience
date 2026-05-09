@@ -54,11 +54,19 @@ def run_portal_console_soak(
         port=0,
         interval_seconds=30,
     )
+    conversation_result = runtime_live_console.materialize_conversation_read_model(
+        profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        study_root=selected_study_root,
+        generated_at=generated,
+    )
     report = build_portal_console_soak_report(
         profile=profile,
         profile_ref=profile_ref,
         portal_result=portal_result,
         console_result=console_result,
+        conversation_result=conversation_result,
         generated_at=generated,
     )
     if materialize:
@@ -74,6 +82,7 @@ def build_portal_console_soak_report(
     profile_ref: str | Path | None = None,
     portal_result: Mapping[str, Any],
     console_result: Mapping[str, Any],
+    conversation_result: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated = _text(generated_at) or _utc_now()
@@ -82,10 +91,19 @@ def build_portal_console_soak_report(
     console_payload_path = Path(str(console_result.get("payload_path") or ""))
     console_html_path = Path(str(console_result.get("html_path") or ""))
     console_ui_payload_path = Path(str(console_result.get("ui_payload_path") or ""))
+    conversation_payload_path = Path(
+        str(
+            _mapping(conversation_result).get("payload_path")
+            or profile.workspace_root / "artifacts" / "runtime" / "conversation_read_model" / "latest.json"
+        )
+    )
 
     portal_payload = _read_json_object(portal_payload_path)
     console_payload = _read_json_object(console_payload_path)
     console_ui_payload = _read_json_object(console_ui_payload_path)
+    conversation_payload = _mapping(_mapping(conversation_result).get("conversation_read_model")) or _read_json_object(
+        conversation_payload_path
+    )
     portal_html = _read_text(portal_html_path)
     console_html = _read_text(console_html_path)
     console_snapshot = _mapping(console_result.get("session_read_model")) or console_payload
@@ -95,6 +113,33 @@ def build_portal_console_soak_report(
             portal_result=portal_result,
             portal_payload=portal_payload,
             portal_html_path=portal_html_path,
+        ),
+        "per_study_workbench": _per_study_workbench(
+            portal_result=portal_result,
+            portal_payload=portal_payload,
+            portal_html_path=portal_html_path,
+        ),
+        "route_decision_trail": _route_decision_trail(
+            portal_result=portal_result,
+            portal_payload=portal_payload,
+        ),
+        "per_study_deep_link": _per_study_deep_link(
+            portal_result=portal_result,
+            portal_payload=portal_payload,
+        ),
+        "conversation_read_model": _conversation_read_model(conversation_payload=conversation_payload),
+        "study_scoped_console": _study_scoped_console(
+            console_snapshot=console_snapshot,
+            console_ui_payload=console_ui_payload,
+        ),
+        "action_receipts": _action_receipts(
+            console_snapshot=console_snapshot,
+            console_ui_payload=console_ui_payload,
+        ),
+        "latency_slo_source_refs": _latency_slo_source_refs(
+            portal_payload=portal_payload,
+            console_snapshot=console_snapshot,
+            console_ui_payload=console_ui_payload,
         ),
         "live_console_study_run_disambiguation": _live_console_disambiguation(console_snapshot),
         "terminal_log_refs": _terminal_log_refs(console_snapshot),
@@ -136,6 +181,7 @@ def build_portal_console_soak_report(
             "progress_portal_payload": str(portal_payload_path),
             "progress_portal_html": str(portal_html_path),
             "live_console_session_read_model": str(console_payload_path),
+            "conversation_read_model": str(conversation_payload_path),
             "live_console_ui_payload": str(console_ui_payload_path),
             "live_console_html": str(console_html_path),
             "soak_report": str(profile.workspace_root / SOAK_REPORT_REF),
@@ -187,6 +233,234 @@ def _live_console_disambiguation(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         "study_ids": distinct_studies,
         "run_ids": distinct_runs,
         "selected_study_id": _text(snapshot.get("selected_study_id")),
+    }
+
+
+def _per_study_workbench(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_payload: Mapping[str, Any],
+    portal_html_path: Path,
+) -> dict[str, Any]:
+    workspace = _mapping(portal_payload.get("workspace"))
+    studies = [dict(item) for item in workspace.get("studies") or [] if isinstance(item, Mapping)]
+    workbench = _mapping(portal_payload.get("study_workbench"))
+    tabs = _mapping_list(workbench.get("tabs"))
+    tab_ids = {_text(item.get("id")) for item in tabs if _text(item.get("id"))}
+    expected_tabs = {"overview", "route_decision_trail", "path_stage", "runtime", "artifacts", "source_refs"}
+    materialized_pages = _materialized_study_page_refs(
+        portal_result=portal_result,
+        portal_html_path=portal_html_path,
+        studies=studies,
+    )
+    has_rows = bool({_text(item.get("study_id")) for item in studies if _text(item.get("study_id"))})
+    has_workbench_surface = workbench.get("surface_kind") == "mas_progress_portal_study_workbench"
+    has_tabs = expected_tabs.issubset(tab_ids)
+    has_materialized_pages = len(materialized_pages) >= len(studies) > 0
+    return {
+        "status": "passed" if has_rows and ((has_workbench_surface and has_tabs) or has_materialized_pages) else "blocked",
+        "study_count": len(studies),
+        "workbench_surface_kind": _text(workbench.get("surface_kind")),
+        "expected_tabs": sorted(expected_tabs),
+        "observed_tabs": sorted(tab for tab in tab_ids if tab),
+        "materialized_page_refs": materialized_pages,
+        "blockers": _blockers(
+            ("missing_workspace_study_rows", not has_rows),
+            ("missing_per_study_sections_or_pages", not ((has_workbench_surface and has_tabs) or has_materialized_pages)),
+        ),
+    }
+
+
+def _route_decision_trail(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    trails = _portal_route_trails(portal_result=portal_result, portal_payload=portal_payload)
+    explicit = [trail for trail in trails if trail.get("surface_kind") == "mas_progress_portal_route_decision_trail"]
+    available = [trail for trail in explicit if trail.get("status") == "available"]
+    missing = [trail for trail in explicit if trail.get("status") != "available"]
+    has_source_refs = any(_string_refs(trail.get("source_refs")) for trail in available)
+    return {
+        "status": "passed" if explicit and (available or missing) else "blocked",
+        "trail_count": len(explicit),
+        "available_count": len(available),
+        "missing_count": len(missing),
+        "active_paths": _dedupe_text(trail.get("active_path") for trail in available),
+        "winning_paths": _dedupe_text(trail.get("winning_path") for trail in available),
+        "source_ref_count": sum(len(_string_refs(trail.get("source_refs"))) for trail in available),
+        "blockers": _blockers(
+            ("missing_route_decision_trail_surface", not explicit),
+            ("missing_route_decision_trail_source_refs", bool(available) and not has_source_refs),
+        ),
+    }
+
+
+def _per_study_deep_link(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    handoff = _mapping(portal_payload.get("opl_handoff"))
+    live_console = _mapping(portal_payload.get("live_console"))
+    hosted_package = _mapping(portal_result.get("hosted_package"))
+    package_study_pages = _mapping(_mapping(hosted_package.get("package_refs")).get("study_pages"))
+    refs = [
+        _text(handoff.get("deep_link")),
+        _text(live_console.get("html_ref")),
+        *_string_refs(portal_payload.get("per_study_deep_links")),
+    ]
+    refs.extend(str(item) for item in package_study_pages.values() if item)
+    workspace = _mapping(portal_payload.get("workspace"))
+    for item in workspace.get("studies") or []:
+        if not isinstance(item, Mapping):
+            continue
+        refs.extend(
+            [
+                _text(item.get("href")),
+                _text(item.get("portal_href")),
+                _text(item.get("deep_link")),
+                _text(item.get("portal_deep_link")),
+                _text(item.get("live_console_href")),
+                _text(item.get("live_console_deep_link")),
+            ]
+        )
+    for page in _mapping(portal_result.get("study_pages")).values():
+        if isinstance(page, Mapping):
+            refs.extend([_text(page.get("html_path")), _text(page.get("html_ref"))])
+    clean_refs = [ref for ref in refs if ref]
+    study_scoped_refs = [
+        ref
+        for ref in clean_refs
+        if "study_id=" in ref or "/studies/" in ref or "selected_study_id=" in ref
+    ]
+    return {
+        "status": "passed" if study_scoped_refs else "blocked",
+        "checked_refs": clean_refs,
+        "study_scoped_refs": study_scoped_refs,
+        "blockers": [] if study_scoped_refs else ["missing_study_scoped_portal_or_console_deep_link"],
+    }
+
+
+def _conversation_read_model(*, conversation_payload: Mapping[str, Any]) -> dict[str, Any]:
+    timeline = _mapping_list(conversation_payload.get("timeline"))
+    studies = _mapping_list(conversation_payload.get("studies"))
+    source_refs = _conversation_source_refs(conversation_payload)
+    selected_study_id = _text(conversation_payload.get("selected_study_id"))
+    scoped = bool(selected_study_id or any(_text(item.get("study_id")) for item in studies + timeline))
+    has_conversation_items = bool(
+        timeline
+        or studies
+        or conversation_payload.get("surface_kind") == "mas_runtime_conversation_read_model"
+    )
+    return {
+        "status": "passed" if has_conversation_items and scoped and source_refs else "blocked",
+        "surface_kind": _text(conversation_payload.get("surface_kind")),
+        "selected_study_id": selected_study_id,
+        "timeline_item_count": len(timeline),
+        "study_count": len(studies),
+        "source_refs": source_refs,
+        "blockers": _blockers(
+            ("missing_conversation_read_model", not has_conversation_items),
+            ("missing_study_scope", not scoped),
+            ("missing_conversation_source_refs", not source_refs),
+        ),
+    }
+
+
+def _study_scoped_console(
+    *,
+    console_snapshot: Mapping[str, Any],
+    console_ui_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    selected = _text(console_snapshot.get("selected_study_id")) or _text(console_ui_payload.get("selected_study_id"))
+    studies = [dict(item) for item in console_snapshot.get("studies") or [] if isinstance(item, Mapping)]
+    selected_rows = [item for item in studies if item.get("selected") is True or _text(item.get("study_id")) == selected]
+    stream_sources = [
+        dict(item)
+        for item in console_snapshot.get("stream_sources") or []
+        if isinstance(item, Mapping)
+    ]
+    scoped_sources = [
+        item
+        for item in stream_sources
+        if selected and _text(item.get("study_id")) == selected
+    ]
+    return {
+        "status": "passed" if selected and (selected_rows or scoped_sources) else "blocked",
+        "selected_study_id": selected,
+        "selected_row_count": len(selected_rows),
+        "scoped_stream_source_count": len(scoped_sources),
+        "blockers": _blockers(
+            ("missing_selected_study_id", not selected),
+            ("missing_selected_study_row_or_stream_sources", not (selected_rows or scoped_sources)),
+        ),
+    }
+
+
+def _action_receipts(
+    *,
+    console_snapshot: Mapping[str, Any],
+    console_ui_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    intents = _mapping_list(console_snapshot.get("controller_action_intents"))
+    intents.extend(_mapping_list(console_ui_payload.get("controller_action_intents")))
+    receipts: list[dict[str, Any]] = []
+    for item in intents:
+        if _text(item.get("receipt_ref")) or _text(item.get("audit_ref")) or _text(item.get("command")):
+            receipts.append(item)
+    direct_exec = [
+        item
+        for item in intents
+        if item.get("executes_directly") is True or item.get("direct_execution_allowed") is True
+    ]
+    return {
+        "status": "passed" if intents and receipts and not direct_exec else "blocked",
+        "intent_count": len(intents),
+        "receipt_or_command_count": len(receipts),
+        "direct_execution_intents": [_text(item.get("intent")) for item in direct_exec],
+        "blockers": _blockers(
+            ("missing_controller_action_intents", not intents),
+            ("missing_action_receipt_or_command_refs", not receipts),
+            ("ui_direct_execution_detected", bool(direct_exec)),
+        ),
+    }
+
+
+def _latency_slo_source_refs(
+    *,
+    portal_payload: Mapping[str, Any],
+    console_snapshot: Mapping[str, Any],
+    console_ui_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    study = _mapping(portal_payload.get("study"))
+    freshness = _mapping(portal_payload.get("freshness"))
+    slo = _mapping(study.get("outer_supervision_slo")) or _mapping(portal_payload.get("outer_supervision_slo"))
+    events = _mapping_list(console_snapshot.get("events"))
+    sources = [
+        *_string_refs(portal_payload.get("source_refs")),
+        *_source_ref_objects(console_snapshot.get("source_refs")),
+        *_string_refs(console_ui_payload.get("source_refs")),
+    ]
+    has_latency = bool(
+        _text(freshness.get("status"))
+        or _text(freshness.get("latest_event_at"))
+        or _text(slo.get("state"))
+        or any(_text(item.get("observed_at")) for item in events)
+    )
+    has_slo = bool(_text(slo.get("state")) or _text(slo.get("surface_kind")) == "outer_supervision_slo")
+    has_source_refs = bool(sources)
+    return {
+        "status": "passed" if has_latency and has_slo and has_source_refs else "blocked",
+        "freshness_status": _text(freshness.get("status")),
+        "outer_supervision_slo_state": _text(slo.get("state")),
+        "event_count": len(events),
+        "source_ref_count": len(sources),
+        "blockers": _blockers(
+            ("missing_latency_or_freshness_evidence", not has_latency),
+            ("missing_outer_supervision_slo", not has_slo),
+            ("missing_source_refs", not has_source_refs),
+        ),
     }
 
 
@@ -303,6 +577,71 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _mapping_list(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
+def _blockers(*items: tuple[str, bool]) -> list[str]:
+    return [name for name, blocked in items if blocked]
+
+
+def _materialized_study_page_refs(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_html_path: Path,
+    studies: list[dict[str, Any]],
+) -> list[str]:
+    refs: list[str] = []
+    for page in _mapping(portal_result.get("study_pages")).values():
+        if isinstance(page, Mapping):
+            refs.extend([_text(page.get("html_path")), _text(page.get("html_ref"))])
+    base = portal_html_path.parent
+    for item in studies:
+        study_id = _text(item.get("study_id"))
+        if not study_id:
+            continue
+        candidate = base / "studies" / study_id / "index.html"
+        if candidate.is_file():
+            refs.append(str(candidate))
+    return [ref for ref in _dedupe_text(refs) if ref]
+
+
+def _portal_route_trails(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_payload: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    trails: list[dict[str, Any]] = []
+    workbench = _mapping(portal_payload.get("study_workbench"))
+    trail = _mapping(workbench.get("route_decision_trail"))
+    if trail:
+        trails.append(trail)
+    for page in _mapping(portal_result.get("study_pages")).values():
+        if not isinstance(page, Mapping):
+            continue
+        payload_path = Path(str(page.get("payload_path") or ""))
+        page_payload = _read_json_object(payload_path)
+        page_trail = _mapping(_mapping(page_payload.get("study_workbench")).get("route_decision_trail"))
+        if page_trail:
+            trails.append(page_trail)
+    return trails
+
+
+def _conversation_source_refs(payload: Mapping[str, Any]) -> list[str]:
+    refs = _source_ref_objects(payload.get("source_refs"))
+    for item in _mapping_list(payload.get("timeline")):
+        refs.extend(
+            [
+                _text(item.get("source_ref")),
+                _text(item.get("receipt_ref")),
+                _text(item.get("payload_ref")),
+            ]
+        )
+    return _dedupe_text(refs)
+
+
 def _source_ref_objects(value: object) -> list[str]:
     if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
         return []
@@ -319,6 +658,18 @@ def _string_refs(value: object) -> list[str]:
     if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
         return []
     return [str(item) for item in value if _text(item)]
+
+
+def _dedupe_text(values: Iterable[object]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = _text(value)
+        if text is None or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
 
 
 def _mapping(value: object) -> dict[str, Any]:

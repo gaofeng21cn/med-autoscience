@@ -549,9 +549,23 @@ def test_portal_console_soak_materializes_read_only_evidence_without_truth_write
     )
 
     assert report["surface_kind"] == "mas_portal_console_soak"
-    assert report["status"] == "passed"
+    assert report["status"] == "blocked"
     evidence = report["evidence"]
     assert evidence["portal_refresh"]["status"] == "passed"
+    assert evidence["per_study_workbench"]["status"] == "passed"
+    assert evidence["per_study_deep_link"]["status"] == "passed"
+    assert evidence["route_decision_trail"]["status"] == "passed"
+    assert evidence["route_decision_trail"]["missing_count"] >= 1
+    assert evidence["conversation_read_model"]["status"] == "passed"
+    assert evidence["conversation_read_model"]["surface_kind"] == "mas_runtime_conversation_read_model"
+    assert evidence["study_scoped_console"]["status"] == "blocked"
+    assert "missing_selected_study_id" in evidence["study_scoped_console"]["blockers"]
+    assert evidence["action_receipts"]["status"] == "passed"
+    assert evidence["action_receipts"]["intent_count"] == 6
+    assert evidence["action_receipts"]["receipt_or_command_count"] == 6
+    assert evidence["action_receipts"]["direct_execution_intents"] == []
+    assert evidence["latency_slo_source_refs"]["status"] == "blocked"
+    assert "missing_outer_supervision_slo" in evidence["latency_slo_source_refs"]["blockers"]
     assert evidence["live_console_study_run_disambiguation"]["study_ids"] == [
         "002-dm-china-us-mortality-attribution",
         "003-dpcc-primary-care-phenotype-treatment-gap",

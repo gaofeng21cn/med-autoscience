@@ -159,6 +159,21 @@
       "authority_boundary": "read_only_display_evidence",
       "implementation_status": "landed",
       "evidence_surface": "artifacts/runtime/portal_console_soak/latest.json",
+      "required_evidence_keys": [
+        "portal_refresh",
+        "per_study_workbench",
+        "route_decision_trail",
+        "per_study_deep_link",
+        "conversation_read_model",
+        "study_scoped_console",
+        "action_receipts",
+        "latency_slo_source_refs",
+        "live_console_study_run_disambiguation",
+        "terminal_log_refs",
+        "source_ref_cleanliness",
+        "product_identity",
+        "write_boundary"
+      ],
       "allowed_writes": [
         "artifacts/runtime/progress_portal/*",
         "artifacts/runtime/live_console/*",

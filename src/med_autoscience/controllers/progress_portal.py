@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
-from html import escape
 import json
 from pathlib import Path
 import socketserver
@@ -11,40 +10,24 @@ from typing import Any
 import webbrowser
 
 from med_autoscience.controllers.progress_portal_parts import (
-    condition_badge,
-    condition_section,
     build_study_workbench_payload,
-    dedupe_texts,
-    display_source_refs,
-    display_text,
-    event_section,
-    gate_text,
-    list_html,
-    list_section,
     live_console_projection,
     local_time_projection,
-    portal_css,
     progress_section_explanations,
-    refresh_meta,
-    render_live_console_portal_link,
-    render_section_explanations_section,
-    render_study_workbench_sections,
-    render_workspace_alerts_section,
-    render_workspace_studies_section,
-    runtime_continuity_section,
-    section,
     selected_workspace_study_id,
     source_refs as collect_source_refs,
-    status_chip,
     study_detail_href,
-    unique_text,
     workspace_portal_navigation,
     workspace_alert_projection,
-    workspace_delivery_paragraphs,
-    workspace_next_step_paragraphs,
-    workspace_quality_paragraphs,
-    workspace_status_paragraphs,
     workspace_studies,
+)
+from med_autoscience.controllers.progress_portal_parts.hosted_package import (
+    build_progress_portal_hosted_package as build_hosted_package,
+    materialized_opl_handoff,
+    workspace_relative,
+)
+from med_autoscience.controllers.progress_portal_parts.html import (
+    render_progress_portal_html as render_progress_portal_html_part,
 )
 from med_autoscience.controllers.progress_portal_parts.serving import build_progress_portal_handler
 from med_autoscience.controllers.runtime_continuity_projection import runtime_continuity_projection
@@ -374,9 +357,9 @@ def _materialize_study_pages(
             "study_id": study_id,
             "payload_path": str(payload_path),
             "html_path": str(html_path),
-            "payload_ref": _workspace_relative(payload_path, profile.workspace_root),
-            "html_ref": _workspace_relative(html_path, profile.workspace_root),
-            "opl_handoff": _materialized_opl_handoff(
+            "payload_ref": workspace_relative(payload_path, profile.workspace_root),
+            "html_ref": workspace_relative(html_path, profile.workspace_root),
+            "opl_handoff": materialized_opl_handoff(
                 payload.get("opl_handoff"),
                 payload_path=payload_path,
                 html_path=html_path,
@@ -426,171 +409,7 @@ def _progress_from_workspace_study_row(study: Mapping[str, Any]) -> dict[str, An
 
 
 def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
-    workspace = _mapping(payload.get("workspace"))
-    study = _mapping(payload.get("study"))
-    freshness = _mapping(payload.get("freshness"))
-    quality = _mapping(payload.get("quality"))
-    delivery = _mapping(payload.get("delivery"))
-    live_console = _mapping(payload.get("live_console"))
-    conditions = _mapping(payload.get("conditions"))
-    workspace_diagnostics = _mapping(workspace.get("diagnostics"))
-    runtime_continuity = _mapping(study.get("runtime_continuity"))
-    section_explanations = _mapping_list(payload.get("section_explanations"))
-    latest_events = [dict(item) for item in payload.get("latest_events") or [] if isinstance(item, Mapping)]
-    source_refs = display_source_refs(payload.get("source_refs"))
-    workspace_studies = [
-        dict(item)
-        for item in workspace.get("studies") or []
-        if isinstance(item, Mapping) and _non_empty_text(item.get("study_id"))
-    ]
-    portal_view = _mapping(payload.get("portal_view"))
-    auto_refresh_seconds = portal_view.get("auto_refresh_seconds")
-    generated_at = str(payload.get("generated_at") or "unknown")
-    generated_at_local = _mapping(payload.get("generated_at_local"))
-    generated_at_local_label = _non_empty_text(generated_at_local.get("label")) or generated_at
-    brand = str(payload.get("brand") or BRAND)
-    state_label = str(study.get("state_label") or "状态投影缺失")
-    workspace_title = str(workspace.get("profile_name") or "unknown workspace")
-    selected_study_id = str(study.get("study_id") or "unknown-study")
-    condition_badge_label = condition_badge(conditions)
-    blockers = _string_list(study.get("current_blockers"))
-    workspace_alerts = _string_list(workspace.get("workspace_alerts"))
-    workspace_alert_items = _mapping_list(workspace.get("workspace_alert_items"))
-    suppressed_alert_items = _mapping_list(workspace_diagnostics.get("suppressed_alert_items"))
-    current_status_paragraphs = dedupe_texts(
-        [
-            str(study.get("state_summary") or "当前缺少状态摘要。"),
-            str(study.get("current_stage_summary") or "当前阶段摘要缺失。"),
-        ]
-    )
-    paper_paragraphs = dedupe_texts(
-        [
-            unique_text(
-                str(study.get("paper_stage_summary") or "论文阶段摘要缺失。"),
-                seen=current_status_paragraphs,
-            ),
-            str(quality.get("summary") or "质量投影缺失。"),
-        ]
-    )
-    workspace_overview_mode = str(study.get("scope") or "") == "workspace"
-    if workspace_overview_mode:
-        current_status_paragraphs = workspace_status_paragraphs(workspace_studies)
-        next_step_paragraphs = workspace_next_step_paragraphs(workspace_studies)
-        paper_paragraphs = workspace_quality_paragraphs(workspace_studies)
-        delivery_paragraphs = workspace_delivery_paragraphs(workspace_studies)
-    else:
-        next_step_paragraphs = [
-            str(study.get("next_system_action") or "等待 MAS 重新生成下一步投影。"),
-            gate_text(study),
-        ]
-        delivery_paragraphs = [
-            str(delivery.get("summary") or "交付投影缺失。"),
-            display_text(delivery.get("status"), fallback="交付状态未提供"),
-        ]
-    return "\n".join(
-        [
-            "<!doctype html>",
-            '<html lang="zh-CN">',
-            "<head>",
-            '<meta charset="utf-8">',
-            '<meta name="viewport" content="width=device-width, initial-scale=1">',
-            refresh_meta(auto_refresh_seconds),
-            f"<title>{escape(brand)} Progress Portal</title>",
-            "<style>",
-            portal_css(),
-            "</style>",
-            "</head>",
-            "<body>",
-            '<main class="portal">',
-            '<header class="masthead">',
-            f'<div class="brand">{escape(brand)}</div>',
-            f"<h1>{escape(workspace_title)}</h1>",
-            f'<p class="state">{escape(state_label)}</p>',
-            '<dl class="meta">',
-            f"<div><dt>本机时间</dt><dd>{escape(generated_at_local_label)}</dd></div>",
-            f"<div><dt>UTC 时间</dt><dd>{escape(generated_at)}</dd></div>",
-            f"<div><dt>进度新鲜度</dt><dd>{status_chip(freshness.get('status') or 'unknown')}</dd></div>",
-            f"<div><dt>工作区</dt><dd>{escape(str(workspace.get('profile_name') or 'unknown'))}</dd></div>",
-            f"<div><dt>当前论文线</dt><dd>{escape('工作区总览' if workspace_overview_mode else selected_study_id)}</dd></div>",
-            f"<div><dt>状态缺口</dt><dd>{escape(condition_badge_label)}</dd></div>",
-            "</dl>",
-            render_live_console_portal_link(live_console),
-            "</header>",
-            _navigation_section(payload),
-            render_workspace_studies_section(workspace_studies),
-            '<section class="grid">',
-            section(
-                "当前状态",
-                current_status_paragraphs,
-            ),
-            section(
-                "下一步",
-                next_step_paragraphs,
-            ),
-            runtime_continuity_section(runtime_continuity),
-            section(
-                "论文与质量",
-                paper_paragraphs,
-            ),
-            section(
-                "文件与交付",
-                delivery_paragraphs,
-            ),
-            "</section>",
-            list_section("当前阻塞", [display_text(item, fallback='未提供') for item in blockers], empty_text="当前没有投影出的阻塞项。"),
-            render_workspace_alerts_section(
-                "工作区告警",
-                workspace_alert_items,
-                empty_text="当前没有 workspace 级告警。",
-            ),
-            render_workspace_alerts_section(
-                "诊断与修复建议",
-                suppressed_alert_items,
-                empty_text="当前没有被降级的旧/泛化诊断。",
-            ),
-            event_section(latest_events),
-            condition_section(conditions),
-            render_section_explanations_section(section_explanations),
-            render_study_workbench_sections(_mapping(payload.get("study_workbench")))
-            if not workspace_overview_mode
-            else "",
-            '<details class="refs">',
-            f"<summary>数据来源 ({len(source_refs)}/{len(_string_list(payload.get('source_refs')))})</summary>",
-            list_html(source_refs, empty_text="当前没有可展示的数据来源。"),
-            "</details>",
-            "</main>",
-            "</body>",
-            "</html>",
-        ]
-    )
-
-
-def _navigation_section(payload: Mapping[str, Any]) -> str:
-    navigation = _mapping(payload.get("navigation"))
-    studies = _mapping_list(navigation.get("studies"))
-    scope = _non_empty_text(navigation.get("scope")) or "workspace"
-    workspace_href = _non_empty_text(navigation.get("workspace_href")) or "index.html"
-    if not studies and scope != "study":
-        return ""
-    links: list[str] = []
-    if scope == "study":
-        links.append(f'<a href="{escape(workspace_href, quote=True)}">工作区总览</a>')
-    for item in studies:
-        study_id = _non_empty_text(item.get("study_id"))
-        href = _non_empty_text(item.get("href"))
-        if study_id is None or href is None:
-            continue
-        label = f"{study_id}（当前）" if bool(item.get("selected")) else study_id
-        links.append(f'<a href="{escape(href, quote=True)}">{escape(label)}</a>')
-    if not links:
-        return ""
-    return (
-        '<nav class="panel wide portal-nav" aria-label="论文线导航">'
-        "<h2>论文线入口</h2>"
-        '<div class="live-console-link">'
-        + "".join(links)
-        + "</div></nav>"
-    )
+    return render_progress_portal_html_part(payload, brand_fallback=BRAND)
 
 def materialize_progress_portal(
     *,
@@ -681,7 +500,7 @@ def materialize_progress_portal(
     hosted_package_path.write_text(json.dumps(hosted_package, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if open_browser:
         webbrowser.open(Path(selected_page["html_path"]).as_uri() if selected_page else html_path.as_uri())
-    opl_handoff = _materialized_opl_handoff(
+    opl_handoff = materialized_opl_handoff(
         (selected_page or {}).get("opl_handoff") if selected_page else payload.get("opl_handoff"),
         payload_path=Path(str(selected_page["payload_path"])) if selected_page else payload_path,
         html_path=Path(str(selected_page["html_path"])) if selected_page else html_path,
@@ -711,98 +530,21 @@ def build_progress_portal_hosted_package(
     profile_ref: str | Path | None = None,
     study_pages: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    workspace_root = profile.workspace_root
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "surface_kind": HOSTED_PACKAGE_SURFACE_KIND,
-        "owner": "MedAutoScience",
-        "packaging_owner": "MedAutoScience",
-        "package_role": "optional_hosted_runtime_workspace_truth_package",
-        "generated_at": payload.get("generated_at"),
-        "read_only": True,
-        "default_operation_requires_external_mds": False,
-        "default_diagnostic_requires_external_mds": False,
-        "mds_webui_dependency_allowed": False,
-        "default_webui": "mas_progress_portal",
-        "authority": {
-            "kind": "hosted_read_model_package",
-            "writes_authority_surface": False,
-            "forbidden_authority": [
-                "study_truth",
-                "publication_judgment",
-                "quality_verdict",
-                "runtime_authority",
-                "artifact_authority",
-                "controller_decision_authority",
-            ],
+    return build_hosted_package(
+        profile=profile,
+        payload=payload,
+        payload_path=payload_path,
+        html_path=html_path,
+        hosted_package_path=hosted_package_path,
+        refs={
+            "progress_payload": PROGRESS_PORTAL_PAYLOAD_REF,
+            "progress_html": PROGRESS_PORTAL_HTML_REF,
+            "hosted_package": PROGRESS_PORTAL_HOSTED_PACKAGE_REF,
         },
-        "workspace": {
-            "profile_name": profile.name,
-            "workspace_root": str(workspace_root),
-            "profile_ref": str(profile_ref) if profile_ref is not None else None,
-        },
-        "package_refs": {
-            "hosted_package": str(hosted_package_path),
-            "hosted_package_ref": PROGRESS_PORTAL_HOSTED_PACKAGE_REF,
-            "progress_payload": str(payload_path),
-            "progress_payload_ref": PROGRESS_PORTAL_PAYLOAD_REF,
-            "html": str(html_path),
-            "html_ref": PROGRESS_PORTAL_HTML_REF,
-            "workspace_relative": {
-                "hosted_package": _workspace_relative(hosted_package_path, workspace_root),
-                "progress_payload": _workspace_relative(payload_path, workspace_root),
-                "html": _workspace_relative(html_path, workspace_root),
-            },
-            "study_pages": {
-                study_id: {
-                    "payload": _workspace_relative(Path(str(page.get("payload_path"))), workspace_root),
-                    "html": _workspace_relative(Path(str(page.get("html_path"))), workspace_root),
-                }
-                for study_id, page in (study_pages or {}).items()
-            },
-        },
-        "entrypoints": {
-            "static_html": str(html_path),
-            "static_html_ref": PROGRESS_PORTAL_HTML_REF,
-            "workspace_helper": "ops/mas/bin/start-web",
-            "refresh_command": "medautosci workspace progress-portal --profile <profile>",
-            "optional_local_read_only_service": "medautosci workspace progress-portal --profile <profile> --serve",
-            "live_console_static_html": "ops/mas/live-console/index.html",
-            "live_console_read_model_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
-            "live_console_service": "medautosci runtime live-console --profile <profile> --serve",
-        },
-        "hosted_runtime_carrier_contract": {
-            "allowed_carriers": [
-                "local_read_only_http_server",
-                "external_hosted_runtime_static_file_carrier",
-                "OPL Runtime Manager family-level projection consumer",
-            ],
-            "must_consume": [
-                PROGRESS_PORTAL_PAYLOAD_REF,
-                PROGRESS_PORTAL_HTML_REF,
-                "artifacts/runtime/live_console/session_read_model/latest.json",
-                "ops/mas/live-console/index.html",
-            ],
-            "must_not_consume": [
-                "MDS WebUI state",
-                "external MedDeepScientist runtime root",
-                "upstream DeepScientist UI state",
-            ],
-            "must_not_write": [
-                "study_runtime_status",
-                "runtime_watch",
-                "publication_eval/latest.json",
-                "controller_decisions/latest.json",
-                "study_macro_state/latest.json",
-                "runtime_lifecycle.sqlite",
-                "manuscript/current_package",
-            ],
-        },
-        "source_refs": _string_list(payload.get("source_refs")),
-        "source_payloads": _mapping(payload.get("source_payloads")),
-        "conditions": _mapping(payload.get("conditions")),
-        "opl_handoff": _mapping(payload.get("opl_handoff")),
-    }
+        surface_kind=HOSTED_PACKAGE_SURFACE_KIND,
+        profile_ref=profile_ref,
+        study_pages=study_pages,
+    )
 
 
 def serve_progress_portal(
@@ -1174,28 +916,6 @@ def _opl_handoff_projection(
             "artifact_authority",
         ],
     }
-
-
-def _materialized_opl_handoff(
-    value: object,
-    *,
-    payload_path: Path,
-    html_path: Path,
-) -> dict[str, Any]:
-    handoff = _mapping(value)
-    handoff["payload_ref"] = str(payload_path)
-    handoff["deep_link"] = str(html_path)
-    payload_refs = _mapping(handoff.get("payload_refs"))
-    payload_refs["progress_portal"] = str(payload_path)
-    handoff["payload_refs"] = payload_refs
-    return handoff
-
-
-def _workspace_relative(path: Path, workspace_root: Path) -> str:
-    try:
-        return path.relative_to(workspace_root).as_posix()
-    except ValueError:
-        return str(path)
 
 
 __all__ = [
