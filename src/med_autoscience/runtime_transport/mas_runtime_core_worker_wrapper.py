@@ -45,8 +45,6 @@ def _same_path(left: Path, right: Path) -> bool:
         return left.resolve() == right.resolve()
     except OSError:
         return left == right
-
-
 def wrapper_command(
     *,
     runtime_root: Path,
