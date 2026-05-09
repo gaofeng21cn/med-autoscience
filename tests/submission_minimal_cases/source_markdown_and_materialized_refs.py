@@ -497,6 +497,9 @@ def test_create_submission_minimal_package_auto_hydrates_missing_pubmed_referenc
     assert manifest["references"]["coverage"]["status"] == "complete"
     assert manifest["references"]["coverage"]["auto_repair"]["status"] == "repaired"
     assert manifest["references"]["coverage"]["auto_repair"]["fetched_pmids"] == ["12345"]
+    assert manifest["references"]["coverage"]["auto_repair"]["workspace_literature_sync"] == {
+        "status": "synchronized"
+    }
     assert synced_records == [asdict(fetched_record)]
 
 

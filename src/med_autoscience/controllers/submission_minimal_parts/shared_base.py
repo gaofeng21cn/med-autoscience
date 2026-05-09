@@ -901,7 +901,10 @@ def auto_repair_submission_reference_gaps(
     target_path = paper_root / "references.bib"
     merged_text = _merge_references_text(source_text, appended_entries)
     write_text(target_path, merged_text)
-    _sync_workspace_literature_best_effort(workspace_root=workspace_root, records=list(fetched_records))
+    workspace_literature_sync = _sync_workspace_literature(
+        workspace_root=workspace_root,
+        records=list(fetched_records),
+    )
 
     return {
         "status": "repaired",
@@ -912,6 +915,7 @@ def auto_repair_submission_reference_gaps(
         "missing_citation_keys": missing_keys,
         "fetched_pmids": requested_pmids,
         "fetched_record_count": len(fetched_records),
+        "workspace_literature_sync": workspace_literature_sync,
     }
 
 
@@ -953,13 +957,10 @@ def _merge_references_text(source_text: str, appended_entries: list[str]) -> str
     return "".join(appended_entries)
 
 
-def _sync_workspace_literature_best_effort(*, workspace_root: Path, records: list[LiteratureRecord]) -> None:
+def _sync_workspace_literature(*, workspace_root: Path, records: list[LiteratureRecord]) -> dict[str, object] | None:
     if not records:
-        return
-    try:
-        workspace_literature_controller.sync_workspace_literature(
-            workspace_root=workspace_root,
-            records=[asdict(record) for record in records],
-        )
-    except Exception:
-        return
+        return None
+    return workspace_literature_controller.sync_workspace_literature(
+        workspace_root=workspace_root,
+        records=[asdict(record) for record in records],
+    )
