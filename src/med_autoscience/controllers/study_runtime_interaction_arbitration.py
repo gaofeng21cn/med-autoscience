@@ -26,6 +26,45 @@ def _has_structured_reply_schema(reply_schema: dict[str, Any]) -> bool:
     return True
 
 
+def _invalid_decision_request_note(
+    *,
+    kind: str | None,
+    guidance_requires_user_decision: object,
+    options_count: int,
+    structured_reply_schema: bool,
+) -> str | None:
+    if kind != "decision_request":
+        return (
+            "MAS-managed waiting_for_user is a controller-owned arbitration surface; "
+            "runtime blocking is rejected unless it is a valid structured decision request."
+        )
+    if guidance_requires_user_decision is False:
+        return "MAS rejects blocking interactions that explicitly declare no user decision is required."
+    if options_count <= 0 and not structured_reply_schema:
+        return "Blocking decision requests must carry structured options or a non-trivial reply schema."
+    return None
+
+
+def _invalid_blocking_result(
+    *,
+    kind: str | None,
+    decision_type: str | None,
+    source_artifact_path: str | None,
+    controller_stage_note: str,
+) -> dict[str, Any]:
+    return {
+        "classification": "invalid_blocking",
+        "action": "resume",
+        "reason_code": "blocking_requires_structured_decision_request",
+        "requires_user_input": False,
+        "valid_blocking": False,
+        "kind": kind,
+        "decision_type": decision_type,
+        "source_artifact_path": source_artifact_path,
+        "controller_stage_note": controller_stage_note,
+    }
+
+
 def arbitrate_waiting_for_user(
     *,
     pending_interaction: dict[str, Any] | None,
@@ -98,51 +137,19 @@ def arbitrate_waiting_for_user(
             ),
         }
 
-    if kind != "decision_request":
-        return {
-            "classification": "invalid_blocking",
-            "action": "resume",
-            "reason_code": "blocking_requires_structured_decision_request",
-            "requires_user_input": False,
-            "valid_blocking": False,
-            "kind": kind,
-            "decision_type": decision_type,
-            "source_artifact_path": source_artifact_path,
-            "controller_stage_note": (
-                "MAS-managed waiting_for_user is a controller-owned arbitration surface; "
-                "runtime blocking is rejected unless it is a valid structured decision request."
-            ),
-        }
-
-    if guidance_requires_user_decision is False:
-        return {
-            "classification": "invalid_blocking",
-            "action": "resume",
-            "reason_code": "blocking_requires_structured_decision_request",
-            "requires_user_input": False,
-            "valid_blocking": False,
-            "kind": kind,
-            "decision_type": decision_type,
-            "source_artifact_path": source_artifact_path,
-            "controller_stage_note": (
-                "MAS rejects blocking interactions that explicitly declare no user decision is required."
-            ),
-        }
-
-    if options_count <= 0 and not structured_reply_schema:
-        return {
-            "classification": "invalid_blocking",
-            "action": "resume",
-            "reason_code": "blocking_requires_structured_decision_request",
-            "requires_user_input": False,
-            "valid_blocking": False,
-            "kind": kind,
-            "decision_type": decision_type,
-            "source_artifact_path": source_artifact_path,
-            "controller_stage_note": (
-                "Blocking decision requests must carry structured options or a non-trivial reply schema."
-            ),
-        }
+    invalid_decision_note = _invalid_decision_request_note(
+        kind=kind,
+        guidance_requires_user_decision=guidance_requires_user_decision,
+        options_count=options_count,
+        structured_reply_schema=structured_reply_schema,
+    )
+    if invalid_decision_note is not None:
+        return _invalid_blocking_result(
+            kind=kind,
+            decision_type=decision_type,
+            source_artifact_path=source_artifact_path,
+            controller_stage_note=invalid_decision_note,
+        )
 
     if decision_type in _EXTERNAL_INPUT_DECISION_TYPES:
         return {

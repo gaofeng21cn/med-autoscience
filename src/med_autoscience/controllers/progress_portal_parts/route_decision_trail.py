@@ -29,17 +29,15 @@ def build_route_decision_trail_payload(
     active_path = _active_path(explicit, controller, graph)
     winning_path = _winning_path(explicit, controller, graph, active_path)
     refs = source_refs(explicit, controller, graph)
-    missing = []
-    if not explicit and not controller and not graph:
-        missing.append("route_decision_trail")
-    if not nodes:
-        missing.append("route_nodes")
-    if nodes and not active_path:
-        missing.append("active_path")
-    if nodes and not winning_path:
-        missing.append("winning_path")
-    if (explicit or controller or graph) and not refs:
-        missing.append("route_source_refs")
+    missing = _missing_route_conditions(
+        explicit=explicit,
+        controller=controller,
+        graph=graph,
+        nodes=nodes,
+        active_path=active_path,
+        winning_path=winning_path,
+        refs=refs,
+    )
     return {
         "schema_version": 1,
         "surface_kind": SURFACE_KIND,
@@ -67,6 +65,30 @@ def build_route_decision_trail_payload(
         "source_refs": refs,
         "conditions": {"missing": missing, "stale": [], "conflict": []},
     }
+
+
+def _missing_route_conditions(
+    *,
+    explicit: Mapping[str, Any],
+    controller: Mapping[str, Any],
+    graph: Mapping[str, Any],
+    nodes: list[dict[str, Any]],
+    active_path: str | None,
+    winning_path: str | None,
+    refs: Iterable[str],
+) -> list[str]:
+    missing = []
+    if not explicit and not controller and not graph:
+        missing.append("route_decision_trail")
+    if not nodes:
+        missing.append("route_nodes")
+    if nodes and not active_path:
+        missing.append("active_path")
+    if nodes and not winning_path:
+        missing.append("winning_path")
+    if (explicit or controller or graph) and not list(refs):
+        missing.append("route_source_refs")
+    return missing
 
 
 def render_route_decision_trail_section(payload: Mapping[str, Any]) -> str:
