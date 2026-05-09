@@ -204,6 +204,85 @@ def test_user_paused_quest_resumes_after_explicit_user_wakeup(
     assert "user_pause_contract" not in runtime_state
 
 
+def test_legacy_human_takeover_escalation_not_treated_as_user_pause(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    protocol = importlib.import_module("med_autoscience.runtime_protocol")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    _, quest_root = _write_managed_study(profile, study_id)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "paused",
+                "active_run_id": None,
+                "worker_running": False,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "user_pause",
+                "continuation_reason": "user_pause",
+                "stop_reason": "user_pause",
+                "updated_at": "2026-05-09T01:02:36+00:00",
+                "user_pause_contract": {
+                    "recorded_at": "2026-05-09T01:02:36+00:00",
+                    "resume_requires_explicit_wakeup": True,
+                    "source": "cli",
+                },
+            }
+        )
+        + "\n",
+    )
+    protocol.write_runtime_escalation_record(
+        quest_root=quest_root,
+        record=protocol.RuntimeEscalationRecord(
+            schema_version=1,
+            record_id="runtime-escalation::001-risk::001-risk::human_takeover_requested::2026-05-09T01:02:36+00:00",
+            study_id=study_id,
+            quest_id=study_id,
+            emitted_at="2026-05-09T01:02:36+00:00",
+            trigger=protocol.RuntimeEscalationTrigger(
+                trigger_id="human_takeover_requested",
+                source="runtime_supervision",
+            ),
+            scope="quest",
+            severity="quest",
+            reason="human_takeover_requested",
+            recommended_actions=("manual_runtime_review_required", "controller_review_required"),
+            evidence_refs=(str(tmp_path / "runtime_supervision.json"),),
+            runtime_context_refs={"runtime_supervision_path": str(tmp_path / "runtime_supervision.json")},
+            summary_ref=str(tmp_path / "last_launch_report.json"),
+        ),
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
+        or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-after-takeover"}},
+    )
+
+    result = module.ensure_study_runtime(profile=profile, study_id=study_id, source="runtime_watch")
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_paused"
+    assert calls == ["sync_context", "resume"]
+    assert "stop_reason" not in runtime_state
+    assert "user_pause_contract" not in runtime_state
+    assert runtime_state["human_takeover_contract"]["source"] == "legacy_human_takeover_escalation_repair"
+
+
 def test_relay_repeats_when_existing_authorization_marker_lacks_target_context(
     monkeypatch,
     tmp_path: Path,
@@ -406,7 +485,7 @@ def test_user_paused_active_no_worker_drift_blocks_watch_runtime_recovery(
     assert result["runtime_health_snapshot"]["canonical_runtime_action"] == "await_explicit_resume"
 
 
-def test_pause_study_runtime_replaces_auto_continuation_with_user_pause_contract(
+def test_pause_study_runtime_records_human_takeover_without_user_pause_contract(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -464,15 +543,17 @@ def test_pause_study_runtime_replaces_auto_continuation_with_user_pause_contract
 
     assert result["decision"] == "pause"
     assert result["reason"] == "human_takeover_requested"
-    assert runtime_state["stop_reason"] == "user_pause"
-    assert runtime_state["continuation_policy"] == "wait_for_user_or_resume"
-    assert runtime_state["continuation_anchor"] == "user_pause"
-    assert runtime_state["continuation_reason"] == "user_pause"
-    assert runtime_state["user_pause_contract"]["source"] == "test-human-takeover"
-    assert result["user_pause_contract"]["status"] == "recorded"
+    assert "stop_reason" not in runtime_state
+    assert runtime_state["continuation_policy"] == "controller_review"
+    assert runtime_state["continuation_anchor"] == "human_takeover"
+    assert runtime_state["continuation_reason"] == "human_takeover_requested"
+    assert "user_pause_contract" not in runtime_state
+    assert runtime_state["human_takeover_contract"]["source"] == "test-human-takeover"
+    assert runtime_state["human_takeover_contract"]["resume_requires_explicit_wakeup"] is False
+    assert result["human_takeover_contract"]["status"] == "recorded"
 
 
-def test_pause_study_runtime_records_user_pause_contract_when_daemon_is_down_but_quest_is_already_paused(
+def test_pause_study_runtime_records_human_takeover_contract_when_daemon_is_down_but_quest_is_already_paused(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -514,14 +595,15 @@ def test_pause_study_runtime_records_user_pause_contract_when_daemon_is_down_but
     assert result["reason"] == "human_takeover_requested"
     assert result["quest_status"] == "paused"
     assert result["pause_postcondition"]["effective"] is True
-    assert runtime_state["stop_reason"] == "user_pause"
-    assert runtime_state["continuation_policy"] == "wait_for_user_or_resume"
-    assert runtime_state["continuation_anchor"] == "user_pause"
-    assert runtime_state["continuation_reason"] == "user_pause"
-    assert result["user_pause_contract"]["status"] == "recorded"
+    assert "stop_reason" not in runtime_state
+    assert runtime_state["continuation_policy"] == "controller_review"
+    assert runtime_state["continuation_anchor"] == "human_takeover"
+    assert runtime_state["continuation_reason"] == "human_takeover_requested"
+    assert runtime_state["human_takeover_contract"]["source"] == "test-human-takeover"
+    assert result["human_takeover_contract"]["status"] == "recorded"
 
 
-def test_pause_study_runtime_records_user_pause_contract_when_daemon_is_down_but_quest_is_already_stopped(
+def test_pause_study_runtime_records_human_takeover_contract_when_daemon_is_down_but_quest_is_already_stopped(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -564,8 +646,9 @@ def test_pause_study_runtime_records_user_pause_contract_when_daemon_is_down_but
     assert result["reason"] == "human_takeover_requested"
     assert result["quest_status"] == "stopped"
     assert result["pause_postcondition"]["effective"] is True
-    assert runtime_state["stop_reason"] == "user_pause"
-    assert runtime_state["continuation_policy"] == "wait_for_user_or_resume"
-    assert runtime_state["continuation_anchor"] == "user_pause"
-    assert runtime_state["continuation_reason"] == "user_pause"
-    assert result["user_pause_contract"]["status"] == "recorded"
+    assert "stop_reason" not in runtime_state
+    assert runtime_state["continuation_policy"] == "controller_review"
+    assert runtime_state["continuation_anchor"] == "human_takeover"
+    assert runtime_state["continuation_reason"] == "human_takeover_requested"
+    assert runtime_state["human_takeover_contract"]["source"] == "test-human-takeover"
+    assert result["human_takeover_contract"]["status"] == "recorded"

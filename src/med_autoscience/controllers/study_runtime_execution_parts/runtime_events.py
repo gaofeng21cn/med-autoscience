@@ -8,6 +8,7 @@ from urllib.parse import quote, urlparse
 
 from med_autoscience.controllers import auto_runtime_parking
 from med_autoscience.runtime_protocol import quest_state
+from med_autoscience.runtime_escalation_record import RuntimeEscalationRecord
 
 from ..study_runtime_status import (
     StudyRuntimeAutonomousRuntimeNotice,
@@ -115,6 +116,101 @@ def record_user_pause_contract_after_pause(
         "source": source,
         "recorded_at": recorded_at,
     }
+
+
+def record_human_takeover_contract_after_pause(
+    *,
+    quest_root: Path,
+    source: str,
+) -> dict[str, Any] | None:
+    runtime_state_path = Path(quest_root) / ".ds" / "runtime_state.json"
+    try:
+        runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(runtime_state, dict):
+        return None
+    status = str(runtime_state.get("status") or "").strip().lower()
+    if status not in {
+        StudyRuntimeQuestStatus.PAUSED.value,
+        StudyRuntimeQuestStatus.STOPPED.value,
+    }:
+        return None
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return None
+    if bool(runtime_state.get("worker_running")):
+        return None
+    recorded_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    runtime_state.pop("stop_reason", None)
+    runtime_state.pop("user_pause_contract", None)
+    runtime_state["continuation_policy"] = "controller_review"
+    runtime_state["continuation_anchor"] = "human_takeover"
+    runtime_state["continuation_reason"] = "human_takeover_requested"
+    runtime_state["human_takeover_contract"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "resume_requires_explicit_wakeup": False,
+        "recommended_actions": [
+            "manual_runtime_review_required",
+            "controller_review_required",
+        ],
+    }
+    runtime_state_path.write_text(
+        json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "recorded",
+        "runtime_state_path": str(runtime_state_path),
+        "source": source,
+        "recorded_at": recorded_at,
+    }
+
+
+def repair_legacy_human_takeover_user_pause_contract(
+    *,
+    quest_root: Path,
+    source: str,
+) -> dict[str, Any] | None:
+    runtime_state_path = Path(quest_root) / ".ds" / "runtime_state.json"
+    escalation_path = (
+        Path(quest_root)
+        / "artifacts"
+        / "reports"
+        / "escalation"
+        / "runtime_escalation_record.json"
+    )
+    try:
+        runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8")) or {}
+        escalation_payload = json.loads(escalation_path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(runtime_state, dict) or not isinstance(escalation_payload, dict):
+        return None
+    try:
+        escalation_record = RuntimeEscalationRecord.from_payload(escalation_payload)
+    except (TypeError, ValueError):
+        return None
+    if escalation_record.reason != "human_takeover_requested":
+        return None
+    if str(runtime_state.get("stop_reason") or "").strip() != "user_pause":
+        return None
+    user_pause_contract = runtime_state.get("user_pause_contract")
+    if not isinstance(user_pause_contract, dict):
+        return None
+    user_pause_recorded_at = str(user_pause_contract.get("recorded_at") or "").strip()
+    if user_pause_recorded_at and user_pause_recorded_at != escalation_record.emitted_at:
+        return None
+    repaired = record_human_takeover_contract_after_pause(
+        quest_root=quest_root,
+        source=source,
+    )
+    if repaired is None:
+        return None
+    repaired["legacy_user_pause_contract_repaired"] = True
+    repaired["runtime_escalation_record_path"] = str(escalation_path)
+    repaired["runtime_escalation_reason"] = escalation_record.reason
+    return repaired
 
 
 def record_explicit_user_wakeup(

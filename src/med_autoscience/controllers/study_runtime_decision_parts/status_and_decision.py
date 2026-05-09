@@ -607,6 +607,36 @@ def _status_state(
 
     if quest_status in _RESUMABLE_QUEST_STATUSES:
         if _user_pause_contract_without_live_worker(result):
+            from med_autoscience.controllers.study_runtime_execution_parts import (
+                runtime_events as runtime_execution_events,
+            )
+
+            repaired_human_takeover = runtime_execution_events.repair_legacy_human_takeover_user_pause_contract(
+                quest_root=quest_root,
+                source="legacy_human_takeover_escalation_repair",
+            )
+            if repaired_human_takeover is not None:
+                result._record_dict_extra("human_takeover_contract", repaired_human_takeover)
+                result = _status_state(
+                    profile=profile,
+                    study_id=study_id,
+                    study_root=study_root,
+                    study_payload=study_payload,
+                    entry_mode=entry_mode,
+                    sync_runtime_summary=sync_runtime_summary,
+                    include_progress_projection=include_progress_projection,
+                )
+                result._record_dict_extra("human_takeover_contract", repaired_human_takeover)
+                quest_status = result.quest_status
+            else:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
+                )
+                return _finalize_result()
+        if quest_status not in _RESUMABLE_QUEST_STATUSES:
+            return _finalize_result()
+        if _user_pause_contract_without_live_worker(result):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
