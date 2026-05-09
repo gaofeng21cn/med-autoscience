@@ -470,6 +470,93 @@ def _runtime_platform_repair_applied(value: Mapping[str, Any] | None) -> bool:
     return value is not None and _text(value.get("dispatch_status")) == "applied"
 
 
+def _merge_platform_repair_evidence_adoption_projection(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    apply_result: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any], bool]:
+    if apply_result is None:
+        return dict(status), dict(progress), False
+    resume_result = _mapping(_mapping(apply_result).get("resume_result"))
+    if _text(resume_result.get("reason")) != evidence_adoption.ADOPTED_REASON:
+        return dict(status), dict(progress), False
+    next_route = _mapping(resume_result.get("controller_work_unit_next_route"))
+    if next_route.get("runtime_relaunch_required") is not False:
+        return dict(status), dict(progress), False
+    adoption = _mapping(resume_result.get("controller_work_unit_evidence_adoption"))
+    if not adoption:
+        return dict(status), dict(progress), False
+    merged_status = dict(status)
+    for key in ("quest_status", "decision", "reason", "active_run_id"):
+        if key in resume_result:
+            merged_status[key] = resume_result.get(key)
+    merged_status["controller_work_unit_next_route"] = next_route
+    merged_status["controller_work_unit_evidence_adoption"] = adoption
+    return merged_status, dict(progress), True
+
+
+def _merge_applied_platform_repair_runtime_fact(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    apply_result: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if not _runtime_platform_repair_applied(apply_result):
+        return dict(status), dict(progress)
+    resume_result = _mapping(_mapping(apply_result).get("resume_result"))
+    active_run_id = _active_run_id(resume_result, progress)
+    runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
+    runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
+    worker_running = runtime_audit.get("worker_running") is True or runtime_liveness.get("worker_running") is True
+    merged_status = dict(status)
+    if text := _text(resume_result.get("quest_status")):
+        merged_status["quest_status"] = text
+    if text := _text(resume_result.get("decision")):
+        merged_status["decision"] = text
+    if text := _text(resume_result.get("reason")):
+        merged_status["reason"] = text
+    if active_run_id is not None:
+        merged_status["active_run_id"] = active_run_id
+        merged_status["runtime_liveness_audit"] = {
+            **_mapping(merged_status.get("runtime_liveness_audit")),
+            "active_run_id": active_run_id,
+            "runtime_audit": {
+                **_mapping(_mapping(merged_status.get("runtime_liveness_audit")).get("runtime_audit")),
+                "active_run_id": active_run_id,
+                "worker_running": worker_running,
+            },
+        }
+        runtime_health = _mapping(merged_status.get("runtime_health_snapshot"))
+        runtime_health.update(
+            {
+                "active_run_id": active_run_id,
+                "observed_quest_state": {
+                    "quest_status": _text(merged_status.get("quest_status")),
+                    "decision": _text(merged_status.get("decision")),
+                    "reason": _text(merged_status.get("reason")),
+                },
+                "canonical_runtime_action": "continue_supervising_runtime",
+                "attempt_state": "recovering",
+                "retry_budget_remaining": _runtime_repair_retry_budget(runtime_health),
+                "blocking_reasons": [
+                    reason
+                    for reason in _string_items(runtime_health.get("blocking_reasons"))
+                    if reason != "runtime_recovery_retry_budget_exhausted"
+                ],
+            }
+        )
+        merged_status["runtime_health_snapshot"] = runtime_health
+    merged_progress = dict(progress)
+    if active_run_id is not None:
+        merged_progress["supervision"] = {
+            **_mapping(merged_progress.get("supervision")),
+            "active_run_id": active_run_id,
+            "health_status": "recovering",
+        }
+    return merged_status, merged_progress
+
+
 def _runtime_repair_retry_budget(runtime_health: Mapping[str, Any]) -> int:
     remaining = runtime_health.get("retry_budget_remaining")
     if isinstance(remaining, int) and remaining > 0:
@@ -620,6 +707,42 @@ def _study_projection(
     )
     if platform_lifecycle is not None:
         lifecycle = _mapping(platform_lifecycle)
+    adoption_projected = False
+    status_payload, progress_payload, adoption_projected = _merge_platform_repair_evidence_adoption_projection(
+        status=status_payload,
+        progress=progress_payload,
+        apply_result=runtime_platform_repair_apply,
+    )
+    if adoption_projected:
+        status_payload, progress_payload = _attach_study_macro_state(
+            study_id=study_id,
+            status_payload=status_payload,
+            progress_payload=progress_payload,
+            publication_eval_payload=publication_eval_payload,
+        )
+        gate_specificity = _publication_gate_specificity_required(
+            status_payload,
+            progress_payload,
+            publication_eval_payload,
+        )
+        ai_reviewer_assessment = ai_reviewer.assessment(
+            status=status_payload,
+            progress=progress_payload,
+            publication_eval=publication_eval_payload,
+            blocking_reasons=_blocking_reasons(status_payload, progress_payload),
+        )
+        actions = _action_queue(
+            status_payload,
+            progress_payload,
+            study_root=study_root,
+            study_id=study_id,
+            quest_id=resolved_quest_id,
+            publication_eval_payload=publication_eval_payload,
+            gate_specificity=gate_specificity,
+            ai_reviewer_assessment=ai_reviewer_assessment,
+        )
+        if developer_mode.mode == "external_observe":
+            actions = []
     if _runtime_platform_repair_applied(runtime_platform_repair_apply):
         status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
             profile=profile,

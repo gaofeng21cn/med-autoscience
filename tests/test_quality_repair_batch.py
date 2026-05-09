@@ -290,6 +290,87 @@ def test_build_quality_repair_batch_action_allows_upstream_quality_repair_when_b
     )
 
 
+def test_build_quality_repair_batch_action_honors_analysis_owner_handoff_for_same_fingerprint(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="primary_care_gap",
+    )
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id="quest-003")
+    _write_quality_summary(study_root)
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "medical_publication_surface_blocked",
+            "claim_evidence_consistency_failed",
+            "storyline_evidence_map_missing",
+        ],
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": [
+            "claim_evidence_consistency_failed",
+            "storyline_evidence_map_missing",
+        ],
+        "blocking_artifact_refs": [
+            {
+                "blocker": "claim_evidence_consistency_failed",
+                "claim_id": "claim_evidence_map",
+                "source_path": "paper/claim_evidence_map.json",
+            },
+            {
+                "blocker": "storyline_evidence_map_missing",
+                "claim_id": "storyline_evidence_map",
+                "source_path": "paper/storyline_evidence_map.json",
+            },
+        ],
+    }
+    publication_work_unit_payload = module.publication_work_units.derive_publication_work_units(gate_report)
+    assert publication_work_unit_payload["fingerprint"].startswith("publication-blockers::")
+    assert publication_work_unit_payload["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    identity = control_intent.build_control_intent_identity(
+        study_id="003-dpcc",
+        quest_id="quest-003",
+        route_target="analysis-campaign",
+        work_unit_id="analysis_claim_evidence_repair",
+        blocker_authority_fingerprint=publication_work_unit_payload["fingerprint"],
+        controller_actions=("run_quality_repair_batch",),
+        source_kind="controller_decision_authorization",
+    )
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="owner_handoff",
+        payload={
+            "reason": "exhausted_for_current_fingerprint",
+            "next_owner": "write/ai_reviewer",
+            "next_work_unit": "manuscript_story_repair",
+        },
+        recorded_at="2026-05-09T17:56:42+00:00",
+    )
+
+    action = module.build_quality_repair_batch_recommended_action(
+        profile=profile,
+        study_root=study_root,
+        quest_id="quest-003",
+        publication_eval_payload=publication_eval_payload,
+        gate_report=gate_report,
+    )
+
+    assert action is not None
+    assert action["next_work_unit"]["unit_id"] == "manuscript_story_repair"
+    assert action["next_work_unit"]["lane"] == "write"
+    assert action["blocking_work_units"][0]["unit_id"] == "manuscript_story_repair"
+    assert action["controller_work_unit_owner_handoff"]["from_work_unit"] == "analysis_claim_evidence_repair"
+    assert action["controller_work_unit_owner_handoff"]["next_owner"] == "write/ai_reviewer"
+    assert action["controller_work_unit_owner_handoff"]["next_work_unit"] == "manuscript_story_repair"
+
+
 def test_build_quality_repair_batch_action_does_not_promote_downstream_delivery_only_work_when_bundle_tasks_are_downstream(
     tmp_path: Path,
 ) -> None:

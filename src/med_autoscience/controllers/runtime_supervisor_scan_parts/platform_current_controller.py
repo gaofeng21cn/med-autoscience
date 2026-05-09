@@ -203,6 +203,7 @@ def write_current_controller_authorization(
     repair_clear_reason: str = "current_controller_authorization",
     repair_extra: Mapping[str, Any] | None = None,
     allow_specificity_work_unit: bool = False,
+    preserve_live_worker_state: bool = True,
 ) -> dict[str, Any] | None:
     authorization = current_controller_authorization_payload(
         study_root=study_root,
@@ -218,7 +219,11 @@ def write_current_controller_authorization(
     if int(runtime_state.get("pending_user_message_count") or 0) > 0:
         return {"written": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path)}
     preserved_active_run_id = text(runtime_state.get("active_run_id"))
-    preserve_worker_state = runtime_state.get("worker_running") is True and preserved_active_run_id is not None
+    preserve_worker_state = (
+        preserve_live_worker_state
+        and runtime_state.get("worker_running") is True
+        and preserved_active_run_id is not None
+    )
     runtime_state["quest_id"] = text(runtime_state.get("quest_id")) or quest_id
     if not preserve_worker_state:
         runtime_state["active_run_id"] = None

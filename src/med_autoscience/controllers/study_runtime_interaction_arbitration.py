@@ -259,8 +259,8 @@ def _platform_repair_decision_redrive(continuation_state: dict[str, Any] | None)
         "source_artifact_path": None,
         "pending_user_message_count": int(pending_count or 0),
         "controller_stage_note": (
-            "Runtime platform repair cleared a stale waiting state and marked the controller decision lane "
-            "for autonomous redrive; resume the managed runtime instead of parking on waiting_for_user."
+            "Runtime platform repair marked the controller decision lane for autonomous redrive; "
+            "resume the managed runtime instead of parking on waiting_for_user."
         ),
     }
 

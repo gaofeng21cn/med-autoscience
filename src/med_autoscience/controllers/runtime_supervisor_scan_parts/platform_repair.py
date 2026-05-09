@@ -146,6 +146,17 @@ def _resume_result_active_run_id(resume_result: Mapping[str, Any]) -> str | None
 def _resume_result_worker_running(resume_result: Mapping[str, Any]) -> bool:
     runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
     runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
+    postcondition = _mapping(resume_result.get("resume_postcondition"))
+    snapshot = _mapping(resume_result.get("snapshot"))
+    if postcondition.get("effective") is True and (
+        postcondition.get("started") is True
+        or postcondition.get("scheduled") is True
+        or postcondition.get("queued") is True
+        or _text(postcondition.get("active_run_id")) is not None
+    ):
+        return True
+    if snapshot.get("worker_running") is True:
+        return True
     if runtime_audit.get("worker_running") is False:
         return False
     if runtime_liveness.get("worker_running") is False:
@@ -408,12 +419,21 @@ def _apply_current_controller_owner_handoff_redrive(
 
 
 def _runtime_platform_repair_redrive_pending(runtime_state: Mapping[str, Any]) -> bool:
+    if int(runtime_state.get("pending_user_message_count") or 0) > 0:
+        return False
     return bool(
         _text(runtime_state.get("continuation_policy")) == "auto"
         and _text(runtime_state.get("continuation_anchor")) == "decision"
-        and _text(runtime_state.get("continuation_reason")) == "runtime_platform_repair_redrive"
-        and int(runtime_state.get("pending_user_message_count") or 0) == 0
-        and not _mapping(runtime_state.get("last_controller_decision_authorization"))
+        and (
+            (
+                _text(runtime_state.get("continuation_reason")) == "runtime_platform_repair_redrive"
+                and not _mapping(runtime_state.get("last_controller_decision_authorization"))
+            )
+            or (
+                _text(runtime_state.get("continuation_reason")) == "controller_work_unit_pending"
+                and bool(_mapping(runtime_state.get("last_controller_decision_authorization")))
+            )
+        )
     )
 
 
@@ -427,19 +447,30 @@ def _apply_pending_runtime_platform_repair_redrive(
     publication_eval_payload: Mapping[str, Any],
     base: Mapping[str, Any],
 ) -> dict[str, Any]:
-    authorization = platform_current_controller.write_current_controller_authorization(
-        runtime_state_path=runtime_state_path,
-        study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
-        publication_eval_payload=publication_eval_payload,
-        read_json_object=_read_json_object,
-        write_json=_write_json,
-        append_json_line=_append_json_line,
-        continuation_reason="runtime_platform_repair_redrive",
-        repair_clear_reason="pending_runtime_platform_repair_redrive",
-        allow_specificity_work_unit=True,
-    )
+    runtime_state = _read_json_object(runtime_state_path) or {}
+    if (
+        _text(runtime_state.get("continuation_reason")) == "controller_work_unit_pending"
+        and _mapping(runtime_state.get("last_controller_decision_authorization"))
+    ):
+        authorization: dict[str, Any] | None = {
+            "written": True,
+            "path": str(runtime_state_path),
+            **_mapping(runtime_state.get("last_controller_decision_authorization")),
+        }
+    else:
+        authorization = platform_current_controller.write_current_controller_authorization(
+            runtime_state_path=runtime_state_path,
+            study_root=study_root,
+            study_id=study_id,
+            quest_id=quest_id,
+            publication_eval_payload=publication_eval_payload,
+            read_json_object=_read_json_object,
+            write_json=_write_json,
+            append_json_line=_append_json_line,
+            continuation_reason="runtime_platform_repair_redrive",
+            repair_clear_reason="pending_runtime_platform_repair_redrive",
+            allow_specificity_work_unit=True,
+        )
     if authorization is None:
         return {
             **dict(base),
@@ -475,6 +506,22 @@ def _apply_pending_runtime_platform_repair_redrive(
             "current_controller_authorization": authorization,
             "current_controller_authorization_written": True,
         }
+    resume_payload = dict(resume_result) if isinstance(resume_result, Mapping) else {}
+    postcondition_failure = _runtime_relaunch_postcondition_failure(
+        resume_payload,
+        controller_authorization=authorization,
+    )
+    if postcondition_failure is not None:
+        return {
+            **dict(base),
+            "dispatch_status": "blocked",
+            "reason": _text(postcondition_failure.get("reason")),
+            "repair_kind": "pending_runtime_platform_repair_redrive",
+            "current_controller_authorization": authorization,
+            "current_controller_authorization_written": True,
+            "resume_result": resume_payload,
+            "resume_postcondition": postcondition_failure.get("resume_postcondition"),
+        }
     return {
         **dict(base),
         "dispatch_status": "applied",
@@ -482,7 +529,7 @@ def _apply_pending_runtime_platform_repair_redrive(
         "repair_kind": "pending_runtime_platform_repair_redrive",
         "current_controller_authorization": authorization,
         "current_controller_authorization_written": True,
-        "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
+        "resume_result": resume_payload,
     }
 
 
@@ -596,6 +643,7 @@ def _write_current_controller_authorization(
         read_json_object=_read_json_object,
         write_json=_write_json,
         append_json_line=_append_json_line,
+        preserve_live_worker_state=False,
     )
 
 
@@ -758,6 +806,14 @@ def apply_runtime_platform_repair(
     )
     if closeout_redrive is not None:
         return closeout_redrive
+    interaction_arbitration = _mapping(status.get("interaction_arbitration"))
+    if _text(interaction_arbitration.get("classification")) == "controller_work_unit_pending_redrive":
+        return _apply_controller_work_unit_pending_redrive(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            base=base,
+        )
     if _runtime_platform_repair_redrive_pending(runtime_state):
         return _apply_pending_runtime_platform_repair_redrive(
             profile=profile,
@@ -766,14 +822,6 @@ def apply_runtime_platform_repair(
             runtime_state_path=runtime_path,
             quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
             publication_eval_payload=publication_eval_payload,
-            base=base,
-        )
-    interaction_arbitration = _mapping(status.get("interaction_arbitration"))
-    if _text(interaction_arbitration.get("classification")) == "controller_work_unit_pending_redrive":
-        return _apply_controller_work_unit_pending_redrive(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
             base=base,
         )
     if runtime_facts.current_controller_owner_handoff_redrive_required(
