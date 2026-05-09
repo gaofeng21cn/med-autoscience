@@ -68,6 +68,7 @@ def build_route_decision_trail_payload(
 def render_route_decision_trail_section(payload: Mapping[str, Any]) -> str:
     nodes = _mapping_list(payload.get("nodes"))
     items = [_node_label(node) for node in nodes]
+    refs = _string_list(payload.get("source_refs"))[:12]
     active_path = _non_empty_text(payload.get("active_path"))
     winning_path = _non_empty_text(payload.get("winning_path"))
     summary_items = []
@@ -87,6 +88,8 @@ def render_route_decision_trail_section(payload: Mapping[str, Any]) -> str:
             + "</h2>",
             list_html(summary_items, empty_text="当前没有 active/winning path 投影。"),
             list_html(items, empty_text="缺少显式路线节点；Portal 不从 stage 文案或文件名猜测研究路线。"),
+            "<h3>Route Source Refs</h3>",
+            list_html(refs, empty_text="缺少路线 source refs；Portal 不推断路线来源。"),
             "</section>",
         ]
     )

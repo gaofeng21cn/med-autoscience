@@ -917,6 +917,8 @@ def test_route_decision_trail_helper_projects_branch_block_pivot_and_winning_pat
     assert "winning path: route-b" in html
     assert "route-a" in html
     assert "blocked=stop if external validation fails" in html
+    assert "Route Source Refs" in html
+    assert "studies/001-risk/artifacts/controller_decisions/latest.json" in html
 
 
 def test_route_decision_trail_helper_fail_closes_without_explicit_route_inputs() -> None:
