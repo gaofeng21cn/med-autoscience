@@ -73,6 +73,7 @@ def arbitrate_waiting_for_user(
     publication_gate_report: dict[str, Any] | None = None,
     blocked_closeout: dict[str, Any] | None = None,
     continuation_state: dict[str, Any] | None = None,
+    controller_authorization: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if submission_metadata_only:
         return {
@@ -96,6 +97,12 @@ def arbitrate_waiting_for_user(
         platform_repair_redrive = _platform_repair_decision_redrive(continuation_state)
         if platform_repair_redrive is not None:
             return platform_repair_redrive
+        controller_work_unit_redrive = _controller_work_unit_pending_redrive(
+            continuation_state,
+            controller_authorization,
+        )
+        if controller_work_unit_redrive is not None:
+            return controller_work_unit_redrive
         blocked_closeout_wait = _blocked_closeout_owner_wait(blocked_closeout)
         if blocked_closeout_wait is not None:
             return blocked_closeout_wait
@@ -254,6 +261,50 @@ def _platform_repair_decision_redrive(continuation_state: dict[str, Any] | None)
         "controller_stage_note": (
             "Runtime platform repair cleared a stale waiting state and marked the controller decision lane "
             "for autonomous redrive; resume the managed runtime instead of parking on waiting_for_user."
+        ),
+    }
+
+
+def _controller_work_unit_pending_redrive(
+    continuation_state: dict[str, Any] | None,
+    controller_authorization: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(continuation_state, dict):
+        return None
+    if not isinstance(controller_authorization, dict):
+        return None
+    work_unit_id = _text(controller_authorization.get("work_unit_id"))
+    work_unit_fingerprint = _text(controller_authorization.get("work_unit_fingerprint"))
+    if work_unit_id is None or work_unit_fingerprint is None:
+        return None
+    continuation_policy = _text(continuation_state.get("continuation_policy"))
+    continuation_anchor = _text(continuation_state.get("continuation_anchor"))
+    continuation_reason = _text(continuation_state.get("continuation_reason"))
+    if continuation_policy != "auto":
+        return None
+    if continuation_anchor != "decision":
+        return None
+    if continuation_reason != "controller_work_unit_pending":
+        return None
+    pending_count = continuation_state.get("pending_user_message_count")
+    if isinstance(pending_count, int) and pending_count > 0:
+        return None
+    return {
+        "classification": "controller_work_unit_pending_redrive",
+        "action": "resume",
+        "reason_code": "controller_work_unit_pending_redrive",
+        "requires_user_input": False,
+        "valid_blocking": False,
+        "kind": "controller_work_unit",
+        "decision_type": None,
+        "source_artifact_path": None,
+        "pending_user_message_count": int(pending_count or 0),
+        "work_unit_id": work_unit_id,
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "decision_id": _text(controller_authorization.get("decision_id")),
+        "controller_stage_note": (
+            "MAS controller has already authorized a same-line work unit; resume the managed runtime "
+            "so the controller work unit can be consumed instead of parking on waiting_for_user."
         ),
     }
 
