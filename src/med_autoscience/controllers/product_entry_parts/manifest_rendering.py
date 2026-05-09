@@ -585,7 +585,7 @@ def _render_portable_supervisor_queue_dashboard_lines(projection: Mapping[str, A
             f"Codex App heartbeat required `{supervisor_mode.get('codex_app_heartbeat_required')}`；"
             f"safe actions `{supervisor_mode.get('safe_actions_enabled')}`；"
             f"repo repair authority `{supervisor_mode.get('repo_level_repair_authority') or 'unknown'}`；"
-            f"GitHub user gate `{supervisor_mode.get('github_user_gate') or 'unknown'}`"
+            f"authority gate `{supervisor_mode.get('authority_gate') or supervisor_mode.get('github_user_gate') or 'unknown'}`"
         )
     for study in projection.get("studies") or []:
         if not isinstance(study, Mapping):

@@ -766,6 +766,7 @@ def test_ensure_supervision_retired_manager_keeps_developer_supervisor_diagnosti
         "worktree\n"
         "action_queue\n"
         "why_not_applied\n"
+        "OPL family user config\n"
         '"""\n',
         encoding="utf-8",
     )
@@ -778,7 +779,7 @@ def test_ensure_supervision_retired_manager_keeps_developer_supervisor_diagnosti
     assert result["action"] == "retired_workspace_local_service_manager"
     assert result["mode"] == "developer_apply_safe"
     assert result["requested_mode"] == "developer_apply_safe"
-    assert result["mode_source"] == "github_user_gate"
+    assert result["mode_source"] == "command"
     assert result["developer_mode_enabled"] is True
     assert result["safe_actions_enabled"] is True
     assert result["repo_level_repair_authority"] is True
@@ -786,6 +787,9 @@ def test_ensure_supervision_retired_manager_keeps_developer_supervisor_diagnosti
     assert result["github_user"]["login"] == "gaofeng21cn"
     assert result["github_user"]["matches_expected"] is True
     assert result["github_user_gate"]["allowed"] is True
+    assert result["authority_gate"]["allowed"] is True
+    assert result["authority_gate"]["source"] == "github_auto_default"
+    assert result["opl_family_user_config"]["enabled"] == "auto"
     assert result["codex_app_heartbeat_required"] is False
     assert result["codex_app_automation_prompt"]["active"] is True
     assert result["codex_app_automation_prompt"]["missing_prompt_tokens"] == []
@@ -892,6 +896,8 @@ def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
     assert result["github_user"]["login"] == "someone-else"
     assert result["github_user"]["matches_expected"] is False
     assert result["github_user_gate"]["allowed"] is False
+    assert result["authority_gate"]["allowed"] is False
+    assert result["authority_gate"]["source"] == "github_auto_default"
     assert result["install_proof"]["status"] == "retired_fail_closed"
     assert result["codex_app_heartbeat_required"] is False
 
@@ -922,6 +928,7 @@ def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path
         "worktree",
         "action_queue",
         "why_not_applied",
+        "OPL family user config",
     ]
 
 
@@ -952,4 +959,5 @@ def test_codex_app_automation_prompt_check_rejects_study_allowlist_only_prompt(t
         "active_run_id",
         "worker_running",
         "worktree",
+        "OPL family user config",
     ]

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+import json
 import os
+from pathlib import Path
 import shutil
 import subprocess
 from typing import Any
@@ -28,6 +30,8 @@ class DeveloperSupervisorMode:
     scheduler_owner: str
     codex_app_heartbeat_required: bool
     github_user_gate: dict[str, Any]
+    opl_family_user_config: dict[str, Any]
+    authority_gate: dict[str, Any]
     blocked_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -41,6 +45,8 @@ class DeveloperSupervisorMode:
             "scheduler_owner": self.scheduler_owner,
             "codex_app_heartbeat_required": self.codex_app_heartbeat_required,
             "github_user_gate": dict(self.github_user_gate),
+            "opl_family_user_config": dict(self.opl_family_user_config),
+            "authority_gate": dict(self.authority_gate),
             "blocked_reason": self.blocked_reason,
             "authority_contract": {
                 "paper_package_mutation_allowed": False,
@@ -119,6 +125,61 @@ def current_github_user_gate(
     }
 
 
+def _opl_state_dir(environ: Mapping[str, str]) -> Path:
+    explicit = _text(environ.get("OPL_STATE_DIR"))
+    if explicit is not None:
+        return Path(explicit).expanduser().resolve()
+    home = _text(environ.get("HOME")) or str(Path.home())
+    return Path(home).expanduser() / "Library" / "Application Support" / "OPL" / "state"
+
+
+def _read_opl_family_user_config(environ: Mapping[str, str] | None = None) -> dict[str, Any]:
+    env = environ or os.environ
+    path = _opl_state_dir(env) / "developer-supervisor.json"
+    base = {
+        "version": "g1",
+        "enabled": "auto",
+        "mode": "developer_apply_safe",
+        "auto_enable_github_login": EXPECTED_DEVELOPER_GITHUB_LOGIN,
+        "source": "default",
+        "path": str(path),
+        "valid": True,
+    }
+    if not path.is_file():
+        return base
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            **base,
+            "source": "invalid",
+            "valid": False,
+            "reason": "opl_family_user_config_invalid",
+            "details": str(exc),
+        }
+    if not isinstance(payload, Mapping):
+        return {
+            **base,
+            "source": "invalid",
+            "valid": False,
+            "reason": "opl_family_user_config_invalid",
+        }
+    enabled = _text(payload.get("enabled")) or "auto"
+    if enabled not in {"auto", "on", "off"}:
+        enabled = "auto"
+    mode = _text(payload.get("mode")) or "developer_apply_safe"
+    if mode not in {"external_observe", "developer_apply_safe"}:
+        mode = "external_observe"
+    return {
+        **base,
+        "enabled": enabled,
+        "mode": mode,
+        "auto_enable_github_login": _text(payload.get("auto_enable_github_login")) or EXPECTED_DEVELOPER_GITHUB_LOGIN,
+        "updated_at": _text(payload.get("updated_at")),
+        "source": "user_config",
+    }
+
+
 def _profile_mode(profile: object) -> str | None:
     if profile is None:
         return None
@@ -147,12 +208,61 @@ def resolve_developer_supervisor_mode(
         requested = "external_observe"
         mode_source = "supervisor_scan"
 
-    gate = current_github_user_gate()
+    user_config = _read_opl_family_user_config()
+    expected_login = _text(user_config.get("auto_enable_github_login")) or EXPECTED_DEVELOPER_GITHUB_LOGIN
+    gate = current_github_user_gate(expected_login=expected_login)
     effective = requested
     blocked_reason = None
-    if requested == "developer_apply_safe" and gate.get("allowed") is not True:
+    authority_gate = {"allowed": True, "source": "mode", "reason": None}
+    if user_config.get("valid") is False:
+        effective = "external_observe"
+        blocked_reason = _text(user_config.get("reason")) or "opl_family_user_config_invalid"
+        authority_gate = {
+            "allowed": False,
+            "source": "opl_family_user_config",
+            "reason": blocked_reason,
+        }
+        mode_source = "opl_family_user_config_invalid"
+    elif user_config.get("enabled") == "off":
+        effective = "external_observe"
+        blocked_reason = "developer_supervisor_disabled_by_user_config"
+        authority_gate = {
+            "allowed": False,
+            "source": "opl_family_user_config",
+            "reason": blocked_reason,
+        }
+        mode_source = "opl_family_user_config_disabled"
+    elif requested == "developer_apply_safe" and user_config.get("enabled") == "on":
+        configured_mode = validate_developer_supervisor_mode(user_config.get("mode"))
+        if configured_mode != "developer_apply_safe":
+            effective = "external_observe"
+            blocked_reason = "developer_apply_safe_not_allowed_by_user_config"
+            authority_gate = {
+                "allowed": False,
+                "source": "opl_family_user_config",
+                "reason": blocked_reason,
+            }
+        else:
+            effective = "developer_apply_safe"
+            authority_gate = {
+                "allowed": True,
+                "source": "opl_family_user_config",
+                "reason": None,
+            }
+    elif requested == "developer_apply_safe" and gate.get("allowed") is not True:
         effective = "external_observe"
         blocked_reason = _text(gate.get("reason")) or "github_user_not_authorized_for_developer_supervisor_mode"
+        authority_gate = {
+            "allowed": False,
+            "source": "github_auto_default",
+            "reason": blocked_reason,
+        }
+    elif requested == "developer_apply_safe":
+        authority_gate = {
+            "allowed": True,
+            "source": "github_auto_default",
+            "reason": None,
+        }
 
     safe_actions_enabled = effective == "developer_apply_safe" and apply_safe_actions
     return DeveloperSupervisorMode(
@@ -165,6 +275,8 @@ def resolve_developer_supervisor_mode(
         scheduler_owner=scheduler_owner,
         codex_app_heartbeat_required=False,
         github_user_gate=gate,
+        opl_family_user_config=user_config,
+        authority_gate=authority_gate,
         blocked_reason=blocked_reason,
     )
 

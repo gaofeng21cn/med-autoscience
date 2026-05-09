@@ -279,8 +279,9 @@ runtime repair 与 publication gate 的 owner routing 使用 controller terminal
 - scheduler/heartbeat：每 `3600` 秒一次
 - owner request `2` 小时未被 pickup，标记 `owner_pickup_overdue`
 - action queue `6` 小时仍未被消费或仍无进展，标记 `developer_supervisor_attention_required`
-- developer heartbeat 必须评估内置 AI monitoring/repair 是否失效，并在 `developer_apply_safe` 与 GitHub gate 通过时消费队列、写 default executor dispatch request、执行 ready dispatch，或明确 blocked reason / next owner
-- 对 GitHub 用户 `gaofeng21cn` 的本机环境，`developer_apply_safe` 是默认开发者模式；其他用户或生产环境默认降级到 `external_observe`，也可以通过受控 profile / command 显式开启。
+- developer heartbeat 必须评估内置 AI monitoring/repair 是否失效，并在 `developer_apply_safe` 与本机 family user config / auto-default authority gate 通过时消费队列、写 default executor dispatch request、执行 ready dispatch，或明确 blocked reason / next owner
+- Developer Supervisor Mode 的 authority 优先来自 OPL family 用户级配置 `~/Library/Application Support/OPL/state/developer-supervisor.json`（可由 `OPL_STATE_DIR` 切换）；配置 `enabled=on` 时可显式开启，`enabled=off` 时强制降级到 `external_observe`，`enabled=auto` 时才使用 GitHub 登录作为安装期默认探测信号。
+- 对 GitHub 用户 `gaofeng21cn` 的本机环境，`enabled=auto` 默认允许 `developer_apply_safe`；其他用户或生产环境默认降级到 `external_observe`，但可以通过受控用户级配置或 profile / command 显式开启。
 - developer heartbeat 的作用域是 `workspace_dynamic_active_studies`：每轮从 workspace 当前 truth surface 发现 active / auto-resume / needs-repair 的 MAS study，新建 MAS 任务在下一次 heartbeat 自动纳入巡检，不要求在 Codex App prompt 里硬编码 study_id allowlist。
 - 如果新任务出现 `quest_status=active` 但 `active_run_id=null`、`worker_running=false`、`runtime_liveness_status=none`、`quest_marked_running_but_no_live_session` 或 `runtime_recovery_retry_budget_exhausted`，developer heartbeat 必须判定为 active-but-not-running，并按 `scan -> consume -> execute-dispatch -> rescan` 接手平台修复。
 
@@ -292,7 +293,7 @@ Developer Supervisor Mode 有三个正式模式：
 - `external_observe`：外层只读巡检，只投影 stale/blocked/why_not_applied，不生成可消费 safe-action request。
 - `developer_apply_safe`：开发环境模式，允许 `supervisor-scan --apply-safe-actions --developer-supervisor-mode developer_apply_safe` 写 supervision/control/autonomy request、handoff packet 与 action queue。
 
-`developer_apply_safe` 还受 GitHub 用户门控保护：本机 `gh api user --jq .login` 必须返回 `gaofeng21cn`，否则 effective mode 自动降级到 `external_observe`，并投影 `github_user_not_authorized_for_developer_supervisor_mode`。这个门控用于防止普通用户或生产研究环境意外获得 repo-level developer supervisor authority。
+`developer_apply_safe` 还受本机用户级配置保护：OPL family config 是 authority gate；GitHub 登录只在 `enabled=auto` 时作为默认探测信号。这样防止普通用户或生产研究环境意外获得 repo-level developer supervisor authority，同时允许受控机器随时手动开启或关闭。
 
 `Codex App heartbeat` 不是这条 contract 的依赖。Codex App 可以作为本机开发环境的一个外部 caller 调用该入口；MAS canonical scheduler contract 仍是 scheduler adapter 定期调用同一个 MAS tick script。默认 adapter 是 `local`，macOS backend 使用 LaunchAgent。Linux `systemd --user`、宿主 `cron` 和 Docker/container manager 尚未作为 persistent local backend 落地；旧 workspace-local service manager 不再作为 active 选项。
 
@@ -444,7 +445,7 @@ medautosci runtime supervisor-scan \
 
 如果 quest 已经进入 `stopped`，但 MAS 的当前 controller truth 表明它只是 submission/finalize 里程碑停车，外环必须刷新 controller-owned parked decision，并把该状态写成正式停车，而不是把旧 stopped state 解释成可人工 patch 的许可。
 
-在 `developer_apply_safe` 且 GitHub gate 允许的前提下，supervisor scan 可以执行的动作只有：
+在 `developer_apply_safe` 且本机用户级 authority gate 允许的前提下，supervisor scan 可以执行的动作只有：
 
 - 通过 runtime backend `stop_quest` 或 already-stopped 结果确认 runtime 资源已释放
 - 写 `artifacts/autonomy/repair_lifecycle/latest.json`

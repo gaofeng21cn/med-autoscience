@@ -23,7 +23,7 @@ from med_autoscience.controllers.hermes_supervision_parts.legacy_services import
 from med_autoscience.controllers.hermes_supervision_parts.job_runs import (
     latest_job_run as _shared_latest_job_run,
 )
-from med_autoscience.developer_supervisor_mode import current_github_user_gate
+from med_autoscience.developer_supervisor_mode import current_github_user_gate, resolve_developer_supervisor_mode
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
 from opl_harness_shared.hermes_supervision import (
@@ -191,7 +191,14 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     github_user = _github_user_login_check()
     codex_app_prompt = _codex_app_automation_prompt_check()
     unsupported_manager = manager == "docker"
-    developer_mode_enabled = bool(github_user.get("matches_expected")) and not unsupported_manager
+    resolved_mode = resolve_developer_supervisor_mode(
+        profile=profile,
+        requested_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        scheduler_owner=f"retired_{manager}_scheduler",
+    )
+    developer_mode_payload = resolved_mode.to_dict()
+    developer_mode_enabled = resolved_mode.developer_mode_enabled and not unsupported_manager
     supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
     supervisor_reconcile = _workspace_supervisor_reconcile_entry_path(profile)
     supervisor_consume = _workspace_supervisor_consume_entry_path(profile)
@@ -214,13 +221,16 @@ def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager:
     return {
         "mode": "developer_apply_safe" if developer_mode_enabled else "external_observe",
         "requested_mode": "developer_apply_safe",
-        "mode_source": "retired_workspace_local_service_manager" if unsupported_manager else "github_user_gate",
+        "mode_source": "retired_workspace_local_service_manager" if unsupported_manager else resolved_mode.mode_source,
         "developer_mode_enabled": developer_mode_enabled,
         "safe_actions_enabled": developer_mode_enabled,
         "repo_level_repair_authority": developer_mode_enabled,
         "scheduler_owner": scheduler_owner,
         "github_user": github_user,
-        "github_user_gate": github_user.get("gate"),
+        "github_user_gate": developer_mode_payload["github_user_gate"],
+        "opl_family_user_config": developer_mode_payload["opl_family_user_config"],
+        "authority_gate": developer_mode_payload["authority_gate"],
+        "blocked_reason": "retired_workspace_local_service_manager" if unsupported_manager else developer_mode_payload["blocked_reason"],
         "codex_app_automation_prompt": codex_app_prompt,
         "codex_app_heartbeat_required": False,
         "install_proof": {
@@ -330,6 +340,9 @@ def _portable_supervisor_instruction(
         "scheduler_owner": f"retired_{manager_key}_scheduler",
         "github_user": developer_supervisor_mode["github_user"],
         "github_user_gate": developer_supervisor_mode["github_user_gate"],
+        "opl_family_user_config": developer_supervisor_mode["opl_family_user_config"],
+        "authority_gate": developer_supervisor_mode["authority_gate"],
+        "blocked_reason": developer_supervisor_mode["blocked_reason"],
         "installed": False,
         "canonical_owner": "hermes_gateway_cron",
         "retired_reason": "workspace_local_host_services_are_no_longer_active_mas_runtime_owners",

@@ -48,6 +48,9 @@ def two_layer_ai_repair_policy_payload() -> dict[str, Any]:
             "owner_pickup_overdue_after_hours": OWNER_PICKUP_OVERDUE_HOURS,
             "developer_attention_after_hours": DEVELOPER_SUPERVISOR_ATTENTION_HOURS,
             "default_enablement": {
+                "authority_surface": "opl_family_user_config",
+                "config_path": "~/Library/Application Support/OPL/state/developer-supervisor.json",
+                "state_dir_env_override": "OPL_STATE_DIR",
                 "auto_enabled_for_expected_github_login": "gaofeng21cn",
                 "manual_enablement_supported": True,
                 "unauthorized_users_fall_back_to": "external_observe",

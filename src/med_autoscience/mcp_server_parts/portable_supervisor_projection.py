@@ -115,7 +115,7 @@ def render_mcp_progress_portable_supervisor_dashboard(compact: dict[str, Any]) -
             f"- developer supervisor authority: safe_actions_enabled "
             f"`{dashboard.get('safe_actions_enabled')}`；"
             f"repo_level_repair_authority `{dashboard.get('repo_level_repair_authority') or 'unknown'}`；"
-            f"github_user_gate `{dashboard.get('github_user_gate') or 'unknown'}`"
+            f"authority_gate `{dashboard.get('authority_gate') or dashboard.get('github_user_gate') or 'unknown'}`"
         ),
         (
             f"- quest: `{dashboard.get('quest_status') or 'unknown'}`；"

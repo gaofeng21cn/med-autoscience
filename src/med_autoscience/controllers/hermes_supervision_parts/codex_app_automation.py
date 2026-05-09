@@ -22,6 +22,7 @@ CODEX_APP_AUTOMATION_REQUIRED_PROMPT_TOKENS = (
     "worktree",
     "action_queue",
     "why_not_applied",
+    "OPL family user config",
 )
 SCOPE_POLICY = "workspace_dynamic_active_studies"
 
