@@ -227,6 +227,54 @@ def test_complete_turn_retryable_failure_schedules_backoff_without_second_worker
     }
 
 
+def test_complete_turn_treats_codex_success_without_closeout_as_incomplete(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+    quest_root = runtime_root / "quests" / "quest-001"
+    stdout_path = quest_root / ".ds" / "runs" / running["active_run_id"] / "stdout.jsonl"
+    stdout_path.parent.mkdir(parents=True, exist_ok=True)
+    stdout_path.write_text(
+        "\n".join(
+            json.dumps(event, sort_keys=True)
+            for event in (
+                {"type": "turn.started"},
+                {"type": "item.started", "item": {"id": "item-1"}},
+                {"type": "item.completed", "item": {"id": "item-1"}},
+            )
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = module.complete_turn_and_normalize(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        run_id=running["active_run_id"],
+        runner_status="succeeded",
+        source="test-runner",
+    )
+
+    state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    latest_receipt = json.loads((quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json").read_text())
+    assert result["status"] == "active"
+    assert result["next_turn"]["reason"] == "retry_backoff"
+    assert result["next_turn"]["started"] is False
+    assert state["last_runner_status"] == "runner_incomplete"
+    assert state["last_incomplete_run_id"] == running["active_run_id"]
+    assert state.get("last_completed_run_id") != running["active_run_id"]
+    assert state["retry_state"] == {
+        "attempt": 1,
+        "max_attempts": 3,
+        "next_delay_seconds": 1.0,
+        "last_runner_status": "runner_incomplete",
+    }
+    assert latest_receipt["status"] == "runner_incomplete"
+    assert latest_receipt["raw_runner_status"] == "succeeded"
+    assert latest_receipt["runner_completion"]["reason"] == "missing_turn_closeout"
+
+
 def test_same_fingerprint_guard_stops_auto_spin_until_artifact_delta(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
     runtime_root = tmp_path / "workspace" / "runtime"

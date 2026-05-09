@@ -13,6 +13,74 @@ TERMINAL_RECEIPT_STATUSES = frozenset(
         "runner_unavailable",
     }
 )
+INCOMPLETE_RUNNER_STATUS = "runner_incomplete"
+RETRYABLE_RUNNER_STATUSES = frozenset({"failed", "error", "timeout", "runner_failed", INCOMPLETE_RUNNER_STATUS})
+
+
+def inspect_runner_completion(
+    *,
+    quest_root: Path,
+    run_id: str | None,
+    runner_status: str,
+) -> dict[str, Any]:
+    normalized_runner_status = _text(runner_status) or "succeeded"
+    if normalized_runner_status != "succeeded" or not run_id:
+        return {
+            "state": "not_checked",
+            "reason": "runner_status_not_success" if normalized_runner_status != "succeeded" else "run_id_missing",
+            "run_id": run_id,
+            "raw_runner_status": normalized_runner_status,
+            "normalized_runner_status": normalized_runner_status,
+        }
+    closeout_path = quest_root / "artifacts" / "runtime" / "turn_closeouts" / f"{run_id}.json"
+    stdout_path = quest_root / ".ds" / "runs" / run_id / "stdout.jsonl"
+    if not closeout_path.is_file() and not stdout_path.is_file():
+        return {
+            "state": "not_checked",
+            "reason": "runner_surfaces_missing",
+            "run_id": run_id,
+            "raw_runner_status": normalized_runner_status,
+            "normalized_runner_status": normalized_runner_status,
+        }
+    stdout = _inspect_stdout(stdout_path)
+    if not closeout_path.is_file():
+        return {
+            "state": "incomplete",
+            "reason": "missing_turn_closeout",
+            "run_id": run_id,
+            "raw_runner_status": normalized_runner_status,
+            "normalized_runner_status": INCOMPLETE_RUNNER_STATUS,
+            "closeout_path": str(closeout_path),
+            "stdout_path": str(stdout_path),
+            "stdout_event_count": stdout["event_count"],
+            "stdout_open_item_count": stdout["open_item_count"],
+            "stdout_turn_completed": stdout["turn_completed"],
+        }
+    if stdout["open_item_count"] != 0:
+        return {
+            "state": "incomplete",
+            "reason": "stdout_items_still_open",
+            "run_id": run_id,
+            "raw_runner_status": normalized_runner_status,
+            "normalized_runner_status": INCOMPLETE_RUNNER_STATUS,
+            "closeout_path": str(closeout_path),
+            "stdout_path": str(stdout_path),
+            "stdout_event_count": stdout["event_count"],
+            "stdout_open_item_count": stdout["open_item_count"],
+            "stdout_turn_completed": stdout["turn_completed"],
+        }
+    return {
+        "state": "completed",
+        "reason": "turn_closeout_present",
+        "run_id": run_id,
+        "raw_runner_status": normalized_runner_status,
+        "normalized_runner_status": normalized_runner_status,
+        "closeout_path": str(closeout_path),
+        "stdout_path": str(stdout_path),
+        "stdout_event_count": stdout["event_count"],
+        "stdout_open_item_count": stdout["open_item_count"],
+        "stdout_turn_completed": stdout["turn_completed"],
+    }
 
 
 def inspect_logical_turn_completion(*, quest_root: Path, run_id: str | None) -> dict[str, Any] | None:
@@ -23,7 +91,7 @@ def inspect_logical_turn_completion(*, quest_root: Path, run_id: str | None) -> 
         return None
     stdout_path = quest_root / ".ds" / "runs" / run_id / "stdout.jsonl"
     stdout = _inspect_stdout(stdout_path)
-    if not stdout["turn_completed"] or stdout["open_item_count"] != 0:
+    if stdout["open_item_count"] != 0:
         return None
     latest_receipt = _read_json(quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json")
     receipt_status = _text(latest_receipt.get("status"))
@@ -34,11 +102,43 @@ def inspect_logical_turn_completion(*, quest_root: Path, run_id: str | None) -> 
         "closeout_path": str(closeout_path),
         "stdout_path": str(stdout_path),
         "stdout_event_count": stdout["event_count"],
+        "stdout_turn_completed": stdout["turn_completed"],
         "latest_receipt_status": receipt_status,
         "latest_receipt_terminal": (
             _text(latest_receipt.get("run_id")) == run_id
             and receipt_status in TERMINAL_RECEIPT_STATUSES
         ),
+    }
+
+
+def status_after_runner(runner_status: str) -> str:
+    if runner_status in RETRYABLE_RUNNER_STATUSES:
+        return "active"
+    if runner_status in {"stopped", "paused", "completed", "failed", "error", "cancelled"}:
+        return runner_status
+    if runner_status in {"waiting_for_user", "blocked_waiting_for_user"}:
+        return "waiting_for_user"
+    if runner_status in {"failed", "error"}:
+        return "failed"
+    return "active"
+
+
+def next_retry_state(
+    *,
+    previous: Mapping[str, Any],
+    runner_status: str,
+    max_attempts: int,
+    backoff_base_seconds: float,
+) -> dict[str, Any] | None:
+    if runner_status not in RETRYABLE_RUNNER_STATUSES:
+        return None
+    previous_retry = previous.get("retry_state") if isinstance(previous.get("retry_state"), Mapping) else {}
+    attempt = int(previous_retry.get("attempt") or 0) + 1
+    return {
+        "attempt": attempt,
+        "max_attempts": max_attempts,
+        "next_delay_seconds": backoff_base_seconds * (2 ** max(0, attempt - 1)),
+        "last_runner_status": runner_status,
     }
 
 

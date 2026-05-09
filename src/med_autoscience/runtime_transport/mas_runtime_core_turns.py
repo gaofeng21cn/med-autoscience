@@ -7,6 +7,12 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
+    INCOMPLETE_RUNNER_STATUS,
+    inspect_runner_completion,
+    next_retry_state,
+    status_after_runner,
+)
 from med_autoscience.runtime_transport.mas_runtime_core_turn_runner import (
     CodexExecTurnRunner,
     MasTurnRunner,
@@ -37,7 +43,6 @@ WORKER_LEASE_TTL_SECONDS = 3600
 BACKEND_ID = "mas_runtime_core"
 ENGINE_ID = "mas-runtime-core"
 TERMINAL_STATUSES = frozenset({"stopped", "paused", "completed", "failed", "error", "cancelled"})
-RETRYABLE_RUNNER_STATUSES = frozenset({"failed", "error", "timeout", "runner_failed"})
 
 
 _TURN_RUNNER: MasTurnRunner = CodexExecTurnRunner()
@@ -505,9 +510,19 @@ def complete_turn_and_normalize(
     same_fingerprint: bool = False,
 ) -> dict[str, Any]:
     previous = load_state(quest_root=quest_root)
-    normalized_runner_status = text(runner_status) or "succeeded"
-    target_status = _status_after_runner(normalized_runner_status)
-    retry_state = _next_retry_state(previous=previous, runner_status=normalized_runner_status)
+    completion = inspect_runner_completion(
+        quest_root=quest_root,
+        run_id=run_id,
+        runner_status=text(runner_status) or "succeeded",
+    )
+    normalized_runner_status = text(completion.get("normalized_runner_status")) or text(runner_status) or "succeeded"
+    target_status = status_after_runner(normalized_runner_status)
+    retry_state = next_retry_state(
+        previous=previous,
+        runner_status=normalized_runner_status,
+        max_attempts=MAX_RETRY_ATTEMPTS,
+        backoff_base_seconds=RETRY_BACKOFF_BASE_SECONDS,
+    )
     if retry_state is not None:
         target_status = "active" if retry_state["attempt"] < retry_state["max_attempts"] else "failed"
     same_fingerprint_count = (
@@ -519,8 +534,12 @@ def complete_turn_and_normalize(
         "worker_running": False,
         "worker_pending": False,
         "retry_state": retry_state if retry_state is not None and target_status == "active" else None,
-        "last_completed_run_id": run_id,
+        "last_completed_run_id": (
+            previous.get("last_completed_run_id") if normalized_runner_status == INCOMPLETE_RUNNER_STATUS else run_id
+        ),
+        "last_incomplete_run_id": run_id if normalized_runner_status == INCOMPLETE_RUNNER_STATUS else None,
         "last_runner_status": normalized_runner_status,
+        "last_runner_completion": completion,
         "last_turn_finished_at": utc_now(),
     }
     updates["same_fingerprint_auto_turn_count"] = same_fingerprint_count
@@ -537,18 +556,21 @@ def complete_turn_and_normalize(
     updates["pending_user_message_count"] = len(queue["pending"])
     updates["continuation_policy"] = previous.get("continuation_policy") or "auto"
     updated = persist_state(quest_root=quest_root, updates=updates, source=source, event_name="turn_finished")
-    pending_turn_reason = text(previous.get("pending_turn_reason"))
-    pending_turn_source = text(previous.get("pending_turn_source"))
     _turn_receipt(
         quest_root=quest_root,
         run_id=run_id,
         reason=str(previous.get("turn_reason") or "unknown"),
         source=source,
-        status="finished",
+        status=INCOMPLETE_RUNNER_STATUS if normalized_runner_status == INCOMPLETE_RUNNER_STATUS else "finished",
         started=False,
         queued=False,
         idempotency_key=make_idempotency_key(quest_id=quest_id, reason="complete", source=source, active_run_id=run_id),
-        extra={"runner_status": normalized_runner_status, "normalized_status": target_status},
+        extra={
+            "runner_status": normalized_runner_status,
+            "raw_runner_status": text(runner_status) or "succeeded",
+            "runner_completion": completion,
+            "normalized_status": target_status,
+        },
     )
     _record_post_turn_storage_maintenance_hook(quest_root=quest_root, quest_id=quest_id, run_id=run_id, source=source)
     try:
@@ -936,31 +958,6 @@ def _turn_receipt(
         payload["runtime_lifecycle_index_error"] = f"{type(exc).__name__}: {exc}"
         write_json(latest_path, payload)
     return payload
-
-
-def _status_after_runner(runner_status: str) -> str:
-    if runner_status in RETRYABLE_RUNNER_STATUSES:
-        return "active"
-    if runner_status in TERMINAL_STATUSES:
-        return runner_status
-    if runner_status in {"waiting_for_user", "blocked_waiting_for_user"}:
-        return "waiting_for_user"
-    if runner_status in {"failed", "error"}:
-        return "failed"
-    return "active"
-
-
-def _next_retry_state(*, previous: Mapping[str, Any], runner_status: str) -> dict[str, Any] | None:
-    if runner_status not in RETRYABLE_RUNNER_STATUSES:
-        return None
-    previous_retry = previous.get("retry_state") if isinstance(previous.get("retry_state"), Mapping) else {}
-    attempt = int(previous_retry.get("attempt") or 0) + 1
-    return {
-        "attempt": attempt,
-        "max_attempts": MAX_RETRY_ATTEMPTS,
-        "next_delay_seconds": RETRY_BACKOFF_BASE_SECONDS * (2 ** max(0, attempt - 1)),
-        "last_runner_status": runner_status,
-    }
 
 
 def _record_post_turn_storage_maintenance_hook(*, quest_root: Path, quest_id: str, run_id: str, source: str) -> None:
