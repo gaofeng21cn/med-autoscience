@@ -442,7 +442,13 @@ def _apply_runtime_platform_repair_projection(
         repair_required=evidence_adoption.platform_repair_required(
             status=status_payload,
             submission_milestone_parked=submission_milestone_parked,
-            base_required=_runtime_platform_repair_required(status_payload, progress_payload, gate_specificity=gate_specificity),
+            base_required=runtime_facts.runtime_platform_repair_apply_required(
+                status=status_payload,
+                progress=progress_payload,
+                publication_eval_payload=publication_eval_payload,
+                study_root=study_root,
+                gate_specificity=gate_specificity,
+            ),
         ),
     )
     if apply_result is None:

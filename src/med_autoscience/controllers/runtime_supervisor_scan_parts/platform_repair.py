@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_current_controller
+from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
@@ -376,6 +377,37 @@ def _apply_current_controller_runtime_redrive(
             "current_controller_authorization_written": authorization.get("written") is True,
         }
     return apply_result
+
+
+def _controller_redrive_result(apply_result: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(apply_result)
+    if _text(payload.get("dispatch_status")) is not None:
+        payload["reason"] = current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
+    return payload
+
+
+def _apply_live_activity_timeout_current_controller_redrive(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    runtime_state_path: Path,
+    quest_id: str | None,
+    publication_eval_payload: Mapping[str, Any],
+    base: Mapping[str, Any],
+) -> dict[str, Any]:
+    return _controller_redrive_result(
+        _apply_current_controller_runtime_redrive(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            runtime_state_path=runtime_state_path,
+            quest_id=quest_id,
+            publication_eval_payload=publication_eval_payload,
+            base={**dict(base), "reason": current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON},
+            repair_kind="live_activity_timeout_current_controller_redrive",
+        )
+    )
 
 
 def _publication_gate_ready_for_specificity_redrive(quest_root: str | None) -> dict[str, Any]:
@@ -759,6 +791,16 @@ def apply_runtime_platform_repair(
     runtime_state = _read_json_object(runtime_path)
     if runtime_state is None:
         return {**base, "dispatch_status": "blocked", "reason": "runtime_state_missing_or_invalid"}
+    if runtime_facts.live_activity_timeout_current_controller_redrive_required(status, progress):
+        return _apply_live_activity_timeout_current_controller_redrive(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            runtime_state_path=runtime_path,
+            quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+            publication_eval_payload=publication_eval_payload,
+            base=base,
+        )
     abnormal_repair_kind = abnormal_stopped_runtime.repair_kind(status, progress)
     if abnormal_repair_kind is not None:
         stale_redrive_can_apply, _, _ = _stale_specificity_redrive_can_apply(

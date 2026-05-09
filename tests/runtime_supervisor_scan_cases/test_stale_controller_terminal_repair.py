@@ -294,6 +294,152 @@ def test_supervisor_scan_writes_current_controller_authorization_before_no_live_
     assert study["external_supervisor_required"] is False
 
 
+def test_supervisor_scan_applies_current_controller_redrive_for_live_activity_timeout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    work_unit_fingerprint = "publication-blockers::current"
+    publication_eval = {
+        "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+                "specificity_targets": [
+                    {
+                        "target_kind": "metric",
+                        "target_id": "main_metric",
+                        "source_path": str(study_root / "artifacts" / "results" / "main_result.json"),
+                    }
+                ],
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "decision_id": "current-dpcc-live-timeout-redrive",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "run_quality_repair_batch"}],
+            "route_target": "write",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "running",
+            "quest_id": study_id,
+            "active_run_id": "run-live-timeout",
+            "worker_running": True,
+            "pending_user_message_count": 0,
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "controller_work_unit_pending",
+            "same_fingerprint_auto_turn_count": 5,
+        },
+    )
+
+    def fake_ensure_study_runtime(**_: object) -> dict[str, object]:
+        runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+        authorization = runtime_state["last_controller_decision_authorization"]
+        assert authorization["decision_id"] == "current-dpcc-live-timeout-redrive"
+        assert authorization["work_unit_id"] == "analysis_claim_evidence_repair"
+        assert authorization["specificity_targets"][0]["target_kind"] == "metric"
+        assert runtime_state["active_run_id"] is None
+        assert runtime_state["worker_running"] is False
+        assert runtime_state["same_fingerprint_auto_turn_count"] == 0
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "quest_status": "running",
+            "decision": "resume",
+            "runtime_liveness_audit": {
+                "active_run_id": "run-dpcc-redriven",
+                "runtime_audit": {"worker_running": True, "active_run_id": "run-dpcc-redriven"},
+            },
+        }
+
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            {
+                "study_id": study_id,
+                "study_root": str(study_root),
+                "quest_id": study_id,
+                "quest_root": str(quest_root),
+                "quest_status": "running",
+                "decision": "noop",
+                "reason": "quest_already_running",
+                "active_run_id": "run-live-timeout",
+                "runtime_liveness_audit": {
+                    "status": "live",
+                    "active_run_id": "run-live-timeout",
+                    "runtime_audit": {"status": "live", "worker_running": True, "active_run_id": "run-live-timeout"},
+                },
+                "runtime_health_snapshot": {
+                    "canonical_runtime_action": "recover_runtime",
+                    "attempt_state": "recovering",
+                    "retry_budget_remaining": 3,
+                    "worker_liveness_state": {
+                        "state": "activity_timeout",
+                        "runtime_liveness_status": "live",
+                        "worker_running": True,
+                        "active_run_id": "run-live-timeout",
+                    },
+                    "blocking_reasons": [
+                        "live_worker_meaningful_artifact_delta_timeout",
+                        "same_fingerprint_loop",
+                    ],
+                },
+                "publication_eval": publication_eval,
+            },
+            {
+                "study_id": study_id,
+                "current_stage": "publication_supervision",
+                "paper_stage": "write",
+                "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+                "supervision": {"active_run_id": "run-live-timeout", "health_status": "recovering"},
+                "quality_review_loop": {"closure_state": "review_required"},
+            },
+            study_id,
+            publication_eval,
+        ),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        apply_runtime_platform_repair=True,
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    apply_result = study["runtime_platform_repair_apply"]
+    assert apply_result["dispatch_status"] == "applied"
+    assert apply_result["reason"] == "runtime_controller_redrive_required"
+    assert apply_result["repair_kind"] == "live_activity_timeout_current_controller_redrive"
+    assert apply_result["current_controller_authorization_written"] is True
+    assert apply_result["resume_result"]["runtime_liveness_audit"]["active_run_id"] == "run-dpcc-redriven"
+    assert study["blocked_reason"] is None
+    assert study["external_supervisor_required"] is False
+
+
 def test_supervisor_scan_resumes_existing_pending_message_for_no_live_redrive(
     monkeypatch,
     tmp_path: Path,

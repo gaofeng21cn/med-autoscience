@@ -5,6 +5,7 @@ from typing import Any
 
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
+from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 
@@ -92,6 +93,61 @@ def runtime_platform_repair_required(
     return retry_exhausted(status, progress) and no_live_worker and _text(status.get("quest_status")) in {"active", "running"}
 
 
+def live_activity_timeout_current_controller_redrive_required(
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+) -> bool:
+    runtime_health = _mapping(status.get("runtime_health_snapshot"))
+    worker_liveness = _mapping(runtime_health.get("worker_liveness_state"))
+    reasons = set(blocking_reasons(status, progress))
+    return (
+        _text(status.get("quest_status")) in {"active", "running"}
+        and active_run_id(status, progress) is not None
+        and worker_running(status)
+        and _text(runtime_health.get("canonical_runtime_action")) == "recover_runtime"
+        and _text(worker_liveness.get("state")) == "activity_timeout"
+        and (
+            "live_worker_meaningful_artifact_delta_timeout" in reasons
+            or "same_fingerprint_loop" in reasons
+        )
+    )
+
+
+def live_activity_timeout_current_controller_route_available(
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    *,
+    study_root: Any,
+    publication_eval_payload: Mapping[str, Any],
+) -> bool:
+    return (
+        live_activity_timeout_current_controller_redrive_required(status, progress)
+        and current_truth_owner.current_controller_runtime_route(
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+        is not None
+    )
+
+
+def runtime_platform_repair_apply_required(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    publication_eval_payload: Mapping[str, Any],
+    study_root: Any,
+    gate_specificity: Mapping[str, Any] | None = None,
+) -> bool:
+    if runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
+        return True
+    return live_activity_timeout_current_controller_route_available(
+        status,
+        progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+
+
 def _string_items(value: object) -> list[str]:
     if isinstance(value, str):
         text = value.strip()
@@ -113,7 +169,10 @@ def _text(value: object) -> str | None:
 __all__ = [
     "active_run_id",
     "blocking_reasons",
+    "live_activity_timeout_current_controller_route_available",
+    "live_activity_timeout_current_controller_redrive_required",
     "retry_exhausted",
+    "runtime_platform_repair_apply_required",
     "runtime_platform_repair_required",
     "supervisor_only",
     "worker_running",

@@ -31,7 +31,15 @@ def action_queue(
     if parked_truth.current_truth(status, progress):
         return []
     actions: list[dict[str, Any]] = []
-    if runtime_facts.runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity):
+    if (
+        runtime_facts.runtime_platform_repair_required(status, progress, gate_specificity=gate_specificity)
+        or runtime_facts.live_activity_timeout_current_controller_route_available(
+            status,
+            progress,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+    ):
         actions.append(
             current_truth_owner.runtime_platform_repair_action(
                 study_root=study_root,
@@ -110,6 +118,10 @@ def why_not_applied(
             if _text(action.get("action_type")) == "runtime_platform_repair":
                 return _text(action.get("reason")) or current_truth_owner.runtime_platform_repair_reason(status, progress)
         return current_truth_owner.runtime_platform_repair_reason(status, progress)
+    if runtime_facts.live_activity_timeout_current_controller_redrive_required(status, progress):
+        for action in actions:
+            if _text(action.get("action_type")) == "runtime_platform_repair":
+                return _text(action.get("reason")) or current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
     if runtime_facts.retry_exhausted(status, progress):
         if gate_specificity.get("required") is True:
             return "publication_gate_specificity_required"
