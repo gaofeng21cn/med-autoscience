@@ -53,6 +53,18 @@ EXPECTED_BEHAVIOR_SURFACE_IDS = [
     "system_update_daemon_lifecycle_controls",
     "workspace_local_host_service",
 ]
+EXPECTED_PAPER_PROGRESS_DEGRADATION_CLASSES = [
+    "production_degrading",
+    "production_risk",
+    "diagnostic_degrading",
+    "acceptable_design_difference",
+    "retired_non_goal",
+]
+EXPECTED_PRODUCTION_DEGRADING_OVERLAY_IDS = [
+    "owner_handoff_dispatch",
+    "repeat_suppression",
+    "work_unit_redrive",
+]
 EXPECTED_RUNTIME_CONTINUITY_USER_SURFACES = [
     "study_progress",
     "workspace_cockpit",
@@ -121,6 +133,8 @@ def test_mds_capability_parity_matrix_keeps_mds_backend_oracle_only() -> None:
         "oracle_fixture_count": 6,
         "remaining_surface_count": 10,
         "behavior_surface_count": 17,
+        "paper_progress_classifier_entry_count": 20,
+        "paper_progress_production_degrading_entry_count": 3,
         "quality_owner": "MedAutoScience",
         "mds_role": "frozen_source_archive_or_historical_fixture_only",
         "medical_quality_authority": "blocked_for_mds",
@@ -243,6 +257,7 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert matrix["mas_default_runtime_is_resident_daemon"] is False
     assert matrix["mds_daemon_was_resident_http_websocket_server"] is True
     assert matrix["completion_claim"] == "default_independence_not_full_behavior_equivalence"
+    assert matrix["allowed_paper_progress_degradation_classes"] == EXPECTED_PAPER_PROGRESS_DEGRADATION_CLASSES
     assert [item["surface_id"] for item in matrix["behavior_surfaces"]] == EXPECTED_BEHAVIOR_SURFACE_IDS
     assert matrix["summary"] == {
         "surface_count": 17,
@@ -253,8 +268,53 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
         "historical_fixture_only": 1,
         "fully_equivalent_to_mds_daemon": False,
     }
+    assert matrix["paper_progress_degradation_summary"] == {
+        "behavior_surface_count": 17,
+        "overlay_risk_count": 3,
+        "total_classifier_entry_count": 20,
+        "automatic_paper_production_behavior_surface_count": 10,
+        "automatic_paper_production_entry_count": 13,
+        "production_degrading_entry_count": 3,
+        "behavior_surface_classification_counts": {
+            "production_degrading": 0,
+            "production_risk": 8,
+            "diagnostic_degrading": 2,
+            "acceptable_design_difference": 3,
+            "retired_non_goal": 4,
+        },
+        "overlay_classification_counts": {
+            "production_degrading": 3,
+            "production_risk": 0,
+            "diagnostic_degrading": 0,
+            "acceptable_design_difference": 0,
+            "retired_non_goal": 0,
+        },
+        "combined_classification_counts": {
+            "production_degrading": 3,
+            "production_risk": 8,
+            "diagnostic_degrading": 2,
+            "acceptable_design_difference": 3,
+            "retired_non_goal": 4,
+        },
+        "production_degrading_risk_ids": EXPECTED_PRODUCTION_DEGRADING_OVERLAY_IDS,
+    }
+    classifier = matrix["paper_progress_degradation_classifier"]
+    assert classifier["surface"] == "mds_paper_progress_degradation_classifier"
+    assert classifier["allowed_degradation_classes"] == EXPECTED_PAPER_PROGRESS_DEGRADATION_CLASSES
+    assert [item["surface_id"] for item in classifier["behavior_surface_classifications"]] == (
+        EXPECTED_BEHAVIOR_SURFACE_IDS
+    )
+    assert [item["risk_id"] for item in classifier["overlay_risks"]] == EXPECTED_PRODUCTION_DEGRADING_OVERLAY_IDS
+    assert classifier["summary"] == matrix["paper_progress_degradation_summary"]
     by_surface = {item["surface_id"]: item for item in matrix["behavior_surfaces"]}
     assert by_surface["daemon_residency"]["equivalence_class"] == "purpose_equivalent_with_different_timing"
+    assert by_surface["daemon_residency"]["paper_progress_degradation"] == {
+        "classification": "production_risk",
+        "affects_automatic_paper_production": True,
+        "production_path": "outer_supervision_recovery_latency",
+        "rationale": "Scheduled supervision can delay stale-run detection and recovery, but MAS turn continuation no longer depends on resident MDS.",
+        "required_guard_surface": "runtime_watch/runtime_supervision freshness",
+    }
     assert by_surface["daemon_residency"]["behavior_difference"] == "MAS default supervision is scheduled ticks, not a resident HTTP/WebSocket daemon."
     assert by_surface["supervision_cadence"]["mas_behavior"]["interval_seconds"] == 300
     assert by_surface["supervision_cadence"]["mas_behavior"]["max_ticks"] == 1
@@ -274,6 +334,8 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert by_surface["progress_visibility"]["mas_behavior"]["conversation_read_model"] == "landed_read_only_visible_panel"
     assert "mas_progress_portal_route_decision_trail" in by_surface["progress_visibility"]["mas_contract"]
     assert "mas_runtime_conversation_read_model" in by_surface["progress_visibility"]["mas_contract"]
+    assert by_surface["progress_visibility"]["paper_progress_degradation"]["classification"] == "diagnostic_degrading"
+    assert by_surface["progress_visibility"]["paper_progress_degradation"]["affects_automatic_paper_production"] is False
     assert by_surface["progress_visibility"]["future_parity_candidate"] == "real_workspace_user_soak_and_interactive_gate_polish"
     assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "purpose_equivalent_with_different_timing"
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["live_console"] == (
@@ -291,9 +353,21 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert by_surface["webui_websocket_terminal_streaming"]["future_parity_candidate"] == (
         "interactive_terminal_attach_and_authorized_ui_control"
     )
+    assert by_surface["webui_websocket_terminal_streaming"]["paper_progress_degradation"]["classification"] == (
+        "diagnostic_degrading"
+    )
+    assert by_surface["webui_websocket_terminal_streaming"]["paper_progress_degradation"][
+        "affects_automatic_paper_production"
+    ] is False
     assert "live-console-parity" in by_surface["webui_websocket_terminal_streaming"]["mas_contract"]
     assert "mas_terminal_attach_gate" in by_surface["webui_websocket_terminal_streaming"]["mas_contract"]
     assert by_surface["connector_channel_background_delivery"]["equivalence_class"] == "not_equivalent_retired"
+    assert by_surface["connector_channel_background_delivery"]["paper_progress_degradation"]["classification"] == (
+        "retired_non_goal"
+    )
+    assert by_surface["turn_completion_continuation"]["paper_progress_degradation"]["classification"] == (
+        "acceptable_design_difference"
+    )
     assert by_surface["workspace_local_host_service"]["equivalence_class"] == "not_equivalent_retired"
     continuity = matrix["runtime_continuity_completion"]
     assert continuity["status"] == "landed"
@@ -326,6 +400,12 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
         assert item["requires_mds_daemon_for_default_operation"] is False
         assert item["quality_authority_allowed"] is False
         assert item["publication_ready_authority_allowed"] is False
+        paper_progress = item["paper_progress_degradation"]
+        assert paper_progress["classification"] in EXPECTED_PAPER_PROGRESS_DEGRADATION_CLASSES
+        assert isinstance(paper_progress["affects_automatic_paper_production"], bool)
+        assert paper_progress["production_path"]
+        assert paper_progress["rationale"]
+        assert paper_progress["required_guard_surface"]
         assert item["recommended_operator_action"] in {
             "use_mas_default",
             "use_mas_with_latency_awareness",
@@ -352,6 +432,13 @@ def test_mds_behavior_equivalence_validation_blocks_overclaim_and_legacy_runtime
     matrix["runtime_continuity_completion"]["safe_reconcile_trigger"]["executes_reconcile"] = True
     matrix["runtime_continuity_completion"]["user_surface_projection"]["reinterprets_study_truth"] = True
     matrix["runtime_continuity_completion"]["quality_ready_authorized"] = True
+    matrix["allowed_paper_progress_degradation_classes"] = ["production_risk"]
+    matrix["behavior_surfaces"][3]["paper_progress_degradation"]["classification"] = "paper_only"
+    matrix["paper_progress_degradation_classifier"]["behavior_surface_classifications"].pop()
+    matrix["paper_progress_degradation_classifier"]["behavior_surface_classifications"][0]["rationale"] = "drift"
+    matrix["paper_progress_degradation_classifier"]["overlay_risks"][0]["classification"] = "production_risk"
+    matrix["paper_progress_degradation_classifier"]["overlay_risks"][1]["affects_automatic_paper_production"] = "yes"
+    matrix["paper_progress_degradation_classifier"]["summary"]["total_classifier_entry_count"] = 999
 
     validation = module.validate_mds_behavior_equivalence_matrix(matrix)
 
@@ -368,6 +455,14 @@ def test_mds_behavior_equivalence_validation_blocks_overclaim_and_legacy_runtime
         "runtime_continuity_safe_trigger_executes_reconcile",
         "runtime_continuity_user_projection_reinterprets_truth",
         "runtime_continuity_quality_ready_authorized",
+        "behavior_matrix_allowed_paper_progress_degradation_classes_drift",
+        "behavior_surface_invalid_paper_progress_degradation_class",
+        "paper_progress_degradation_behavior_surface_coverage_drift",
+        "paper_progress_degradation_missing_required_production_overlay",
+        "paper_progress_degradation_invalid_impact_flag",
+        "paper_progress_degradation_classifier_surface_projection_drift",
+        "paper_progress_degradation_summary_drift",
+        "paper_progress_degradation_matrix_summary_drift",
     }
 
 

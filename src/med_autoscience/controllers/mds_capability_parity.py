@@ -6,6 +6,7 @@ from typing import Any, Mapping
 from med_autoscience.controllers.mds_capability_parity_parts.behavior_equivalence import (
     ALLOWED_BEHAVIOR_EQUIVALENCE_CLASSES,
     ALLOWED_BEHAVIOR_OPERATOR_ACTIONS,
+    ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES,
     build_mds_behavior_equivalence_matrix,
     validate_mds_behavior_equivalence_matrix,
 )
@@ -499,6 +500,8 @@ def build_mds_capability_parity_matrix() -> dict[str, Any]:
         "retained_capability_oracle_fixtures": oracle_fixtures,
         "remaining_surface_inventory": remaining_surface_inventory["remaining_surfaces"],
         "behavior_equivalence_inventory": behavior_equivalence_matrix["behavior_surfaces"],
+        "paper_progress_degradation_classifier": behavior_equivalence_matrix["paper_progress_degradation_classifier"],
+        "paper_progress_degradation_summary": behavior_equivalence_matrix["paper_progress_degradation_summary"],
         "capability_ids": [str(capability["capability_id"]) for capability in capabilities],
         "supersede_proof_ids": _supersede_proof_ids(capabilities),
         "parity_summary": {
@@ -507,6 +510,12 @@ def build_mds_capability_parity_matrix() -> dict[str, Any]:
             "oracle_fixture_count": len(oracle_fixtures),
             "remaining_surface_count": len(remaining_surface_inventory["remaining_surfaces"]),
             "behavior_surface_count": len(behavior_equivalence_matrix["behavior_surfaces"]),
+            "paper_progress_classifier_entry_count": behavior_equivalence_matrix[
+                "paper_progress_degradation_summary"
+            ]["total_classifier_entry_count"],
+            "paper_progress_production_degrading_entry_count": behavior_equivalence_matrix[
+                "paper_progress_degradation_summary"
+            ]["production_degrading_entry_count"],
             "quality_owner": "MedAutoScience",
             "mds_role": MDS_FINAL_ROLE,
             "medical_quality_authority": "blocked_for_mds",
@@ -625,8 +634,15 @@ def _append_behavior_equivalence_issues(matrix: Mapping[str, Any], issues: list[
             "completion_claim": "default_independence_not_full_behavior_equivalence",
             "allowed_equivalence_classes": list(ALLOWED_BEHAVIOR_EQUIVALENCE_CLASSES),
             "allowed_operator_actions": list(ALLOWED_BEHAVIOR_OPERATOR_ACTIONS),
+            "allowed_paper_progress_degradation_classes": list(ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES),
             "behavior_surfaces": _list(matrix.get("behavior_equivalence_inventory")),
-        }
+            "paper_progress_degradation_classifier": matrix.get("paper_progress_degradation_classifier"),
+            }
+            | (
+                {"paper_progress_degradation_summary": matrix["paper_progress_degradation_summary"]}
+                if isinstance(matrix.get("paper_progress_degradation_summary"), Mapping)
+                else {}
+            )
     )
     for issue in _list(behavior_validation.get("issues")):
         if isinstance(issue, Mapping):
