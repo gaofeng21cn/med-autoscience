@@ -12,6 +12,9 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_runner import (
     MasTurnRunner,
     pop_running_process,
 )
+from med_autoscience.runtime_transport.mas_runtime_core_turn_liveness import (
+    reconcile_stale_liveness as reconcile_stale_liveness_impl,
+)
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     idempotency_key as make_idempotency_key,
     message_id as make_message_id,
@@ -21,6 +24,7 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     text,
 )
 from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import (
+    terminate_worker_leases,
     worker_lease_live as _worker_lease_live_payload,
 )
 
@@ -750,33 +754,22 @@ def _arm_runner_monitor(*, runtime_root: Path, quest_root: Path, quest_id: str, 
 
 
 def reconcile_stale_liveness(*, quest_root: Path, source: str) -> dict[str, Any] | None:
-    lifecycle = inspect_turn_lifecycle(quest_root=quest_root)
-    stale_run_id = lifecycle.get("stale_active_run_id")
-    if not stale_run_id:
-        return None
-    repaired = persist_state(
+    return reconcile_stale_liveness_impl(
         quest_root=quest_root,
-        updates={
-            "status": "active",
-            "active_run_id": None,
-            "last_known_run_id": stale_run_id,
-            "worker_running": False,
-            "worker_pending": False,
-            "continuation_policy": load_state(quest_root=quest_root).get("continuation_policy") or "auto",
-        },
         source=source,
-        event_name="stale_turn_reconciled",
+        inspect_turn_lifecycle=inspect_turn_lifecycle,
+        text=text,
+        load_state=load_state,
+        persist_state=persist_state,
+        snapshot=snapshot,
+        turn_receipt=_turn_receipt,
+        make_idempotency_key=make_idempotency_key,
+        terminate_worker_leases=terminate_worker_leases,
+        utc_now=utc_now,
+        read_json=read_json,
+        write_json=write_json,
+        append_runtime_event=append_runtime_event,
     )
-    return {
-        "ok": True,
-        "status": "stale",
-        "active_run_id": None,
-        "stale_active_run_id": stale_run_id,
-        "worker_running": False,
-        "worker_pending": False,
-        "stop_requested": repaired.get("stop_requested") is True,
-        "snapshot": snapshot(quest_root=quest_root, state=repaired),
-    }
 
 
 def snapshot(*, quest_root: Path, state: Mapping[str, Any] | None = None) -> dict[str, Any]:

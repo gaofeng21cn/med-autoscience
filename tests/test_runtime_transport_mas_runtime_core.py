@@ -434,6 +434,49 @@ def test_inspect_live_runtime_treats_stale_worker_heartbeat_as_not_live(tmp_path
     assert state["worker_running"] is False
 
 
+def test_inspect_live_runtime_reconciles_completed_stdout_with_stuck_worker_pid(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    quest_root = runtime_root / "quests" / "quest-001"
+    worker = _spawn_sleep_worker()
+    try:
+        _write_running_state(quest_root=quest_root, active_run_id="run-active")
+        state_path = quest_root / ".ds" / "runtime_state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state.update({"turn_reason": "explicit_resume", "continuation_policy": "none"})
+        state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        _write_worker_lease(turn_lifecycle, quest_root=quest_root, run_id="run-active", pid=worker.pid)
+        _write_completed_stdout(quest_root=quest_root, run_id="run-active")
+        _write_turn_closeout(quest_root=quest_root, run_id="run-active")
+        _write_latest_turn_receipt(
+            quest_root=quest_root,
+            run_id="run-active",
+            status="queued",
+            started=False,
+            queued=True,
+        )
+
+        result = module.inspect_quest_live_runtime(runtime_root=runtime_root, quest_id="quest-001")
+
+        repaired = json.loads(state_path.read_text(encoding="utf-8"))
+        latest_receipt = json.loads(
+            (quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json").read_text(encoding="utf-8")
+        )
+        assert result["status"] == "stale"
+        assert result["stale_active_run_id"] == "run-active"
+        assert result["stale_reason"] == "logical_turn_completed"
+        assert repaired["active_run_id"] is None
+        assert repaired["worker_running"] is False
+        assert repaired["last_completed_run_id"] == "run-active"
+        assert latest_receipt["run_id"] == "run-active"
+        assert latest_receipt["status"] == "finished"
+        assert _wait_for_process_exit(worker), f"stuck worker pid {worker.pid} was not terminated"
+    finally:
+        _cleanup_process(worker)
+
+
 @pytest.mark.parametrize(("operation_name", "expected_status"), [("pause_quest", "paused"), ("stop_quest", "stopped")])
 def test_terminal_runtime_operation_terminates_active_and_orphan_leased_workers(
     tmp_path: Path, operation_name: str, expected_status: str
@@ -739,6 +782,74 @@ def _write_worker_lease(turn_lifecycle, *, quest_root: Path, run_id: str, pid: i
                 "heartbeat_at": "2026-05-08T00:00:00+00:00",
                 "started_at": "2026-05-08T00:00:00+00:00",
                 "pid": pid,
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_completed_stdout(*, quest_root: Path, run_id: str) -> None:
+    stdout_path = quest_root / ".ds" / "runs" / run_id / "stdout.jsonl"
+    stdout_path.parent.mkdir(parents=True, exist_ok=True)
+    events = [
+        {"type": "item.started", "item": {"id": "item_1", "type": "command_execution", "status": "in_progress"}},
+        {"type": "item.completed", "item": {"id": "item_1", "type": "command_execution", "status": "completed"}},
+        {"type": "turn.completed", "usage": {"input_tokens": 1, "output_tokens": 1}},
+    ]
+    stdout_path.write_text(
+        "\n".join(json.dumps(event, ensure_ascii=False, sort_keys=True) for event in events) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_turn_closeout(*, quest_root: Path, run_id: str) -> None:
+    closeout_path = quest_root / "artifacts" / "runtime" / "turn_closeouts" / f"{run_id}.json"
+    closeout_path.parent.mkdir(parents=True, exist_ok=True)
+    closeout_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "quest_id": quest_root.name,
+                "run_id": run_id,
+                "closed_at": "2026-05-09T01:21:18+00:00",
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_latest_turn_receipt(
+    *,
+    quest_root: Path,
+    run_id: str,
+    status: str,
+    started: bool,
+    queued: bool,
+) -> None:
+    receipt_path = quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json"
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "quest_id": quest_root.name,
+                "run_id": run_id,
+                "reason": "user_message",
+                "source": "runtime_watch",
+                "status": status,
+                "started": started,
+                "queued": queued,
+                "scheduled": started or queued,
+                "idempotency_key": "turn-test",
+                "recorded_at": "2026-05-09T01:13:52+00:00",
             },
             ensure_ascii=False,
             indent=2,
