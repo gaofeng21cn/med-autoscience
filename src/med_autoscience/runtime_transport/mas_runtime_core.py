@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from med_autoscience.runtime_transport import mas_runtime_core_turns as turn_lifecycle
+from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import terminate_worker_leases
 
 BACKEND_ID = "mas_runtime_core"
 ENGINE_ID = "mas-runtime-core"
@@ -196,6 +197,15 @@ def pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, 
     quest_root = _quest_root(runtime_root=runtime_root, quest_id=quest_id)
     if not (quest_root / "quest.yaml").is_file():
         raise RuntimeError(f"MAS runtime quest is missing: {quest_root}")
+    worker_cleanup = terminate_worker_leases(
+        quest_root=quest_root,
+        source=source,
+        reason="pause_quest",
+        utc_now=_utc_now,
+        read_json=_read_json,
+        write_json=_write_json,
+        append_runtime_event=_append_event,
+    )
     _persist_state(
         quest_root=quest_root,
         status="paused",
@@ -204,8 +214,9 @@ def pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, 
         worker_running=False,
         worker_pending=False,
         stop_requested=False,
+        extra={"last_worker_cleanup": worker_cleanup},
     )
-    return _result(quest_root=quest_root, status="paused", source="mas_runtime_core")
+    return _result(quest_root=quest_root, status="paused", source="mas_runtime_core", worker_cleanup=worker_cleanup)
 
 
 def stop_quest(
@@ -220,6 +231,15 @@ def stop_quest(
     quest_root = _quest_root(runtime_root=runtime_root, quest_id=quest_id)
     if not (quest_root / "quest.yaml").is_file():
         raise RuntimeError(f"MAS runtime quest is missing: {quest_root}")
+    worker_cleanup = terminate_worker_leases(
+        quest_root=quest_root,
+        source=source,
+        reason="stop_quest",
+        utc_now=_utc_now,
+        read_json=_read_json,
+        write_json=_write_json,
+        append_runtime_event=_append_event,
+    )
     _persist_state(
         quest_root=quest_root,
         status="stopped",
@@ -228,9 +248,9 @@ def stop_quest(
         worker_running=False,
         worker_pending=False,
         stop_requested=True,
-        extra={"daemon_url": daemon_url},
+        extra={"daemon_url": daemon_url, "last_worker_cleanup": worker_cleanup},
     )
-    return _result(quest_root=quest_root, status="stopped", source="mas_runtime_core")
+    return _result(quest_root=quest_root, status="stopped", source="mas_runtime_core", worker_cleanup=worker_cleanup)
 
 
 def get_quest_session(

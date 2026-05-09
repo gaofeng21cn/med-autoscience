@@ -4,8 +4,10 @@ import importlib
 import json
 import os
 from pathlib import Path
+import signal
 import sqlite3
 import subprocess
+import time
 
 import pytest
 
@@ -371,6 +373,44 @@ def test_inspect_live_runtime_reconciles_stale_state_without_worker_lease(tmp_pa
     assert repaired["continuation_policy"] == "auto"
 
 
+def test_inspect_live_runtime_keeps_stale_heartbeat_when_worker_pid_is_live(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+
+    class PidRunner:
+        def start_turn(self, **kwargs):
+            return {
+                "runner_kind": "fake",
+                "start_mode": "fake_started",
+                "available": True,
+                "live": True,
+                "pid": 4242,
+            }
+
+    try:
+        turn_lifecycle.set_turn_runner_for_tests(PidRunner())
+        turn_lifecycle.set_clock_for_tests(lambda: turn_lifecycle.datetime.fromisoformat("2026-05-08T00:00:00+00:00"))
+        running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+        monkeypatch.setattr(turn_lifecycle, "pid_live", lambda pid: pid == 4242)
+        turn_lifecycle.set_clock_for_tests(lambda: turn_lifecycle.datetime.fromisoformat("2026-05-08T01:00:01+00:00"))
+
+        result = module.inspect_quest_live_runtime(runtime_root=runtime_root, quest_id="quest-001")
+    finally:
+        turn_lifecycle.reset_turn_runner_for_tests()
+        turn_lifecycle.reset_clock_for_tests()
+
+    state = json.loads(
+        (runtime_root / "quests" / "quest-001" / ".ds" / "runtime_state.json").read_text(encoding="utf-8")
+    )
+    assert result["status"] == "live"
+    assert result["active_run_id"] == running["active_run_id"]
+    assert result["worker_running"] is True
+    assert state["active_run_id"] == running["active_run_id"]
+    assert state["worker_running"] is True
+
+
 def test_inspect_live_runtime_treats_stale_worker_heartbeat_as_not_live(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
     turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
@@ -392,6 +432,35 @@ def test_inspect_live_runtime_treats_stale_worker_heartbeat_as_not_live(tmp_path
     assert result["stale_active_run_id"] == running["active_run_id"]
     assert state["active_run_id"] is None
     assert state["worker_running"] is False
+
+
+@pytest.mark.parametrize(("operation_name", "expected_status"), [("pause_quest", "paused"), ("stop_quest", "stopped")])
+def test_terminal_runtime_operation_terminates_active_and_orphan_leased_workers(
+    tmp_path: Path, operation_name: str, expected_status: str
+) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    quest_root = runtime_root / "quests" / "quest-001"
+    active_worker = _spawn_sleep_worker()
+    orphan_worker = _spawn_sleep_worker()
+    try:
+        _write_running_state(quest_root=quest_root, active_run_id="run-active")
+        _write_worker_lease(turn_lifecycle, quest_root=quest_root, run_id="run-active", pid=active_worker.pid)
+        _write_worker_lease(turn_lifecycle, quest_root=quest_root, run_id="run-orphan", pid=orphan_worker.pid)
+
+        result = getattr(module, operation_name)(runtime_root=runtime_root, quest_id="quest-001", source="test")
+
+        state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+        assert result["status"] == expected_status
+        assert state["active_run_id"] is None
+        assert state["worker_running"] is False
+        assert _wait_for_process_exit(active_worker), f"active worker pid {active_worker.pid} was not terminated"
+        assert _wait_for_process_exit(orphan_worker), f"orphan worker pid {orphan_worker.pid} was not terminated"
+    finally:
+        _cleanup_process(active_worker)
+        _cleanup_process(orphan_worker)
 
 
 def test_runner_unavailable_fails_closed_without_live_worker(tmp_path: Path) -> None:
@@ -613,3 +682,80 @@ def test_mas_runtime_core_repair_paper_live_paths_rewrites_without_external_laun
     assert repaired_catalog["figures"][0]["qc_result"]["layout_sidecar_path"] == (
         "paper/figures/generated/F1.layout.json"
     )
+
+
+def _write_running_state(*, quest_root: Path, active_run_id: str) -> None:
+    state_path = quest_root / ".ds" / "runtime_state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state.update(
+        {
+            "status": "running",
+            "active_run_id": active_run_id,
+            "worker_running": True,
+            "worker_pending": False,
+            "stop_requested": False,
+        }
+    )
+    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_worker_lease(turn_lifecycle, *, quest_root: Path, run_id: str, pid: int) -> None:
+    lease_path = turn_lifecycle.worker_lease_path(quest_root=quest_root, run_id=run_id)
+    lease_path.parent.mkdir(parents=True, exist_ok=True)
+    lease_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "quest_id": quest_root.name,
+                "run_id": run_id,
+                "heartbeat_at": "2026-05-08T00:00:00+00:00",
+                "started_at": "2026-05-08T00:00:00+00:00",
+                "pid": pid,
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _spawn_sleep_worker() -> subprocess.Popen:
+    return subprocess.Popen(
+        ["sleep", "30"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+
+def _wait_for_process_exit(process: subprocess.Popen, timeout_seconds: float = 2.0) -> bool:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            return True
+        time.sleep(0.02)
+    return process.poll() is not None
+
+
+def _cleanup_process(process: subprocess.Popen) -> None:
+    if process.poll() is not None:
+        return
+    try:
+        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+    except OSError:
+        try:
+            process.terminate()
+        except OSError:
+            return
+    _wait_for_process_exit(process, timeout_seconds=1.0)
+    if process.poll() is None:
+        try:
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+        except OSError:
+            try:
+                process.kill()
+            except OSError:
+                return

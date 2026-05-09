@@ -20,6 +20,9 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     runner_unavailable,
     text,
 )
+from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import (
+    worker_lease_live as _worker_lease_live_payload,
+)
 
 AUTO_CONTINUE_DELAY_SECONDS = 0.2
 MAX_RETRY_ATTEMPTS = 3
@@ -982,15 +985,11 @@ def _worker_lease_live(*, quest_root: Path, run_id: str) -> bool:
 
 
 def _lease_payload_live(*, lease: Mapping[str, Any], run_id: str | None) -> bool:
-    if not run_id or lease.get("run_id") != run_id:
-        return False
-    heartbeat = parse_time(text(lease.get("heartbeat_at")))
-    if heartbeat is None:
-        return False
-    age_seconds = (_NOW().astimezone(UTC) - heartbeat).total_seconds()
-    if age_seconds > WORKER_LEASE_TTL_SECONDS:
-        return False
-    pid = lease.get("pid")
-    if isinstance(pid, int) and pid > 0:
-        return pid_live(pid)
-    return True
+    return _worker_lease_live_payload(
+        lease=lease,
+        run_id=run_id,
+        now=_NOW,
+        parse_time=parse_time,
+        pid_live_check=pid_live,
+        ttl_seconds=WORKER_LEASE_TTL_SECONDS,
+    )
