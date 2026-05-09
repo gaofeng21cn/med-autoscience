@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
+from med_autoscience.runtime_protocol import terminal_attach_gate
+
 
 LoadProfile = Callable[[str], Any]
 
@@ -24,6 +26,7 @@ def register_live_console_parsers(subparsers: argparse._SubParsersAction) -> Non
     parser.add_argument("--bind", dest="host")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument("--interval-seconds", type=int, default=30)
+    parser.add_argument("--enable-terminal-attach", action="store_true")
 
 
 def handle_live_console_command(
@@ -42,6 +45,17 @@ def handle_live_console_command(
         "study_id": args.study_id,
         "study_root": Path(args.study_root) if args.study_root else None,
     }
+    if args.enable_terminal_attach:
+        result = terminal_attach_gate.blocked_by_missing_terminal_input_owner(
+            profile_ref=Path(args.profile),
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+        )
+        if args.format == "json":
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(render_live_console_command_text(dict(result)), end="")
+        return 2
     if args.serve and not args.snapshot:
         return _serve_loopback_live_console(
             runtime_live_console=runtime_live_console,
@@ -91,6 +105,10 @@ def render_live_console_command_text(result: dict[str, Any]) -> str:
     lines = ["MAS Live Console"]
     if status := result.get("status"):
         lines.append(f"status: {status}")
+    if surface_kind := result.get("surface_kind"):
+        lines.append(f"surface_kind: {surface_kind}")
+    if forbidden_owner := result.get("forbidden_owner"):
+        lines.append(f"forbidden_owner: {forbidden_owner}")
     if url := result.get("url"):
         lines.append(f"url: {url}")
     if payload_path := result.get("payload_path"):
