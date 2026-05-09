@@ -9,8 +9,13 @@ from pathlib import Path
 import socketserver
 import threading
 from typing import Any
+from urllib.parse import urlparse
 import webbrowser
 
+from med_autoscience.controllers.progress_portal_parts.authorized_actions import (
+    PortalActionError,
+    write_action_receipt,
+)
 from med_autoscience.controllers.progress_portal_parts import (
     condition_badge,
     condition_section,
@@ -824,6 +829,7 @@ def serve_progress_portal(
     interval_seconds: int = 30,
     open_browser: bool = False,
     once: bool = False,
+    enable_actions: bool = False,
 ) -> dict[str, Any]:
     refresh_seconds = max(1, int(interval_seconds))
 
@@ -856,6 +862,44 @@ def serve_progress_portal(
             refresh()
             super().do_GET()
 
+        def do_POST(self) -> None:  # noqa: N802
+            if urlparse(self.path).path != "/actions":
+                self.send_error(404, "not found")
+                return
+            if not enable_actions:
+                self._write_json({"status": "disabled", "reason": "portal_actions_disabled"}, status_code=404)
+                return
+            try:
+                request = self._read_json_body()
+                receipt = write_action_receipt(
+                    profile=profile,
+                    action=str(request.get("action") or ""),
+                    study_id=str(request.get("study_id") or study_id or ""),
+                    idempotency_key=str(request.get("idempotency_key") or ""),
+                )
+            except PortalActionError as exc:
+                self._write_json({"status": "rejected", "reason": exc.reason}, status_code=exc.status_code)
+                return
+            except json.JSONDecodeError:
+                self._write_json({"status": "rejected", "reason": "invalid_json"}, status_code=400)
+                return
+            self._write_json(receipt, status_code=200)
+
+        def _read_json_body(self) -> dict[str, Any]:
+            length = int(self.headers.get("Content-Length") or 0)
+            payload = json.loads(self.rfile.read(length).decode("utf-8") if length else "{}")
+            if not isinstance(payload, dict):
+                raise PortalActionError(status_code=400, reason="json_body_not_object")
+            return dict(payload)
+
+        def _write_json(self, payload: Mapping[str, Any], *, status_code: int) -> None:
+            body = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+            self.send_response(status_code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
         def log_message(self, format: str, *args: Any) -> None:
             return
 
@@ -872,6 +916,7 @@ def serve_progress_portal(
         "port": actual_port,
         "interval_seconds": refresh_seconds,
         "read_only": True,
+        "actions_enabled": bool(enable_actions),
         "payload_path": materialized["payload_path"],
         "html_path": materialized["html_path"],
         "hosted_package_path": materialized["hosted_package_path"],

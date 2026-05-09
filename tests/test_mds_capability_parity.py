@@ -267,7 +267,10 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert "recovery_intent" in by_surface["crash_recovery_auto_resume"]["mas_contract"]
     assert by_surface["progress_visibility"]["equivalence_class"] == "partially_equivalent"
     assert by_surface["progress_visibility"]["mas_behavior"]["primary_scope"] == "workspace_overview_with_study_rows"
+    assert by_surface["progress_visibility"]["mas_behavior"]["route_decision_trail"] == "not_landed"
     assert "study-scoped Portal view" in by_surface["progress_visibility"]["mas_contract"]
+    assert "route/decision trail" in by_surface["progress_visibility"]["mas_contract"]
+    assert by_surface["progress_visibility"]["future_parity_candidate"] == "portal_route_decision_trail"
     assert by_surface["webui_websocket_terminal_streaming"]["equivalence_class"] == "purpose_equivalent_with_different_timing"
     assert by_surface["webui_websocket_terminal_streaming"]["mas_behavior"]["live_console"] == (
         "MAS-authored read-only session/run/terminal/log observation shell"

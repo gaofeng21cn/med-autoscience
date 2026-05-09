@@ -92,6 +92,9 @@ def test_live_console_parity_docs_expose_staged_contract_metadata() -> None:
     assert "Live Console Parity" in gap_matrix
     assert "Status: `active UX parity reference`" in user_gap_review
     assert "per-study/per-paper page" in user_gap_review
+    assert "portal-route-decision-trail" in user_gap_review
+    assert "Route / Decision Trail" in user_gap_review
+    assert "active/winning path" in user_gap_review
     assert "interactive parity candidate" in user_gap_review
 
 

@@ -451,6 +451,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     progress_portal_parser.add_argument("--format", choices=("text", "json"), default="text")
     progress_portal_parser.add_argument("--open", action="store_true")
     progress_portal_parser.add_argument("--serve", action="store_true")
+    progress_portal_parser.add_argument("--enable-actions", action="store_true")
     progress_portal_parser.add_argument("--host", default="127.0.0.1")
     progress_portal_parser.add_argument("--port", type=int, default=0)
     progress_portal_parser.add_argument("--interval-seconds", type=int, default=30)

@@ -521,6 +521,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "progress-portal":
+        if bool(getattr(args, "enable_actions", False)) and not bool(args.serve):
+            raise SystemExit("--enable-actions requires --serve")
         profile = load_profile(args.profile)
         common_kwargs = {
             "profile": profile,
@@ -536,6 +538,7 @@ def main(argv: list[str] | None = None) -> int:
                 host=str(args.host),
                 port=int(args.port),
                 interval_seconds=int(args.interval_seconds),
+                enable_actions=bool(args.enable_actions),
             )
         else:
             result = progress_portal.materialize_progress_portal(**common_kwargs)
