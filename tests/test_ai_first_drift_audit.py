@@ -12,33 +12,80 @@ pytestmark = pytest.mark.meta
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _mds_repo_root() -> Path:
-    for candidate in (
-        REPO_ROOT / ".ci" / "med-deepscientist",
-        REPO_ROOT.parent / "med-deepscientist",
-        REPO_ROOT.parents[1] / "med-deepscientist",
-        Path("/Users/gaofeng/workspace/med-deepscientist"),
-    ):
-        if (candidate / "src" / "deepscientist").exists():
-            return candidate
-    raise AssertionError("med-deepscientist repo root is required for AI-first drift audit tests")
+def _write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _write_mds_audit_fixture(root: Path) -> Path:
+    _write_text(
+        root / "src" / "deepscientist" / "quest" / "service.py",
+        '\n'.join(
+            (
+                '_MAS_MEDICAL_BLUEPRINT_AUTHORING_PROVENANCE_FIELD = "authoring_provenance"',
+                "mas_required_trigger_relpaths = (",
+                "mas_medical_preflight_required = bool(managed_study_root) or any",
+                "MAS medical manuscript blueprint lacks AI authorization/provenance",
+            )
+        ),
+    )
+    _write_text(
+        root / "src" / "deepscientist" / "artifact" / "service.py",
+        '\n'.join(
+            (
+                "mas_ai_first_surface_summaries",
+                '"mas_ai_first_surfaces": mas_ai_first_surface_summaries',
+                '"artifacts/publication_eval/medical_prose_review.json"',
+                '"paper/review/review_ledger.json"',
+                "sha256_text(path.read_text",
+                '"mechanical_coverage_only": True',
+                '"quality_authority": "mas_ai_preflight_prose_review_publication_eval"',
+                "_PAPER_QUALITY_AUTHORITY_SEMANTICS",
+            )
+        ),
+    )
+    _write_text(
+        root / "src" / "skills" / "finalize" / "SKILL.md",
+        "mechanical coverage\npaper contract health\nMAS AI preflight/prose review\n",
+    )
+    _write_text(
+        root / "src" / "skills" / "decision" / "SKILL.md",
+        "mechanical coverage check\npaper_contract_health\nMAS AI preflight\n",
+    )
+    return root
 
 
 def test_ai_first_drift_audit_passes_current_mas_and_mds_surfaces() -> None:
     module = importlib.import_module("med_autoscience.ai_first_drift_audit")
 
-    result = module.run_ai_first_drift_audit(
-        repo_root=REPO_ROOT,
-        med_deepscientist_repo_root=_mds_repo_root(),
-    )
+    result = module.run_ai_first_drift_audit(repo_root=REPO_ROOT)
 
     assert result["surface"] == "ai_first_drift_audit"
     assert result["status"] == "pass"
     assert result["ready"] is True
     assert result["summary"]["fail_count"] == 0
     assert result["summary"]["skipped_count"] == 0
+    assert result["summary"]["external_mds_rules_included"] is False
+    assert result["summary"]["external_mds_rule_count"] > 0
     assert "ready_wording_without_ai_provenance" in result["categories"]
     assert "pattern_only_subjective_blockers" in result["categories"]
+    assert "stale_ai_cache" not in result["categories"]
+
+
+def test_ai_first_drift_audit_can_include_explicit_mds_backend_audit_rules(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.ai_first_drift_audit")
+    mds_root = _write_mds_audit_fixture(tmp_path / "med-deepscientist")
+
+    result = module.run_ai_first_drift_audit(
+        repo_root=REPO_ROOT,
+        med_deepscientist_repo_root=mds_root,
+        include_external_mds_rules=True,
+    )
+
+    assert result["status"] == "pass"
+    assert result["summary"]["fail_count"] == 0
+    assert result["summary"]["skipped_count"] == 0
+    assert result["summary"]["external_mds_rules_included"] is True
     assert "coverage_as_quality" in result["categories"]
     assert "stale_ai_cache" in result["categories"]
 

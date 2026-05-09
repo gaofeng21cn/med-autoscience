@@ -436,6 +436,7 @@ def run_ai_first_drift_audit(
     *,
     repo_root: Path | str | None = None,
     med_deepscientist_repo_root: Path | str | None = None,
+    include_external_mds_rules: bool = False,
 ) -> dict[str, Any]:
     mas_root = Path(repo_root).expanduser().resolve() if repo_root is not None else default_repo_root()
     mds_root = (
@@ -448,7 +449,8 @@ def run_ai_first_drift_audit(
         "med_deepscientist_repo_root": mds_root,
     }
     checks = [evaluate_drift_rule(roots=roots, rule=rule) for rule in MAS_AI_FIRST_RULES]
-    checks.extend(evaluate_drift_rule(roots=roots, rule=rule) for rule in MDS_AI_FIRST_RULES)
+    if include_external_mds_rules or mds_root is not None:
+        checks.extend(evaluate_drift_rule(roots=roots, rule=rule) for rule in MDS_AI_FIRST_RULES)
     failed = [check for check in checks if check["status"] == "fail"]
     skipped = [check for check in checks if check["status"] == "skipped"]
     categories = sorted({check["category"] for check in checks})
@@ -469,6 +471,8 @@ def run_ai_first_drift_audit(
             "skipped_count": len(skipped),
             "failed_check_ids": [str(check["check_id"]) for check in failed],
             "skipped_check_ids": [str(check["check_id"]) for check in skipped],
+            "external_mds_rule_count": len(MDS_AI_FIRST_RULES),
+            "external_mds_rules_included": include_external_mds_rules or mds_root is not None,
         },
         "checks": checks,
         "policy_refs": [

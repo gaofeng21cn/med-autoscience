@@ -73,6 +73,19 @@ def test_watch_runtime_managed_recovery_uses_turn_lifecycle_receipt(tmp_path: Pa
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     profiles = importlib.import_module("med_autoscience.profiles")
     mas_runtime_core = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+
+    class AvailableRunner:
+        def start_turn(self, **kwargs):
+            return {
+                "runner_kind": "fake",
+                "start_mode": "fake_started",
+                "available": True,
+                "live": True,
+            }
+
+    turn_lifecycle.set_turn_runner_for_tests(AvailableRunner())
+    turn_lifecycle.set_delayed_timers_enabled_for_tests(False)
     workspace_root = tmp_path / "workspace"
     profile = profiles.WorkspaceProfile(
         name="diabetes",
@@ -124,13 +137,18 @@ def test_watch_runtime_managed_recovery_uses_turn_lifecycle_receipt(tmp_path: Pa
     )
     monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
 
-    result = module.run_watch_for_runtime(
-        runtime_root=profile.runtime_root,
-        controller_runners={},
-        apply=True,
-        profile=profile,
-        ensure_study_runtimes=True,
-    )
+    try:
+        result = module.run_watch_for_runtime(
+            runtime_root=profile.runtime_root,
+            controller_runners={},
+            apply=True,
+            profile=profile,
+            ensure_study_runtimes=True,
+        )
+    finally:
+        turn_lifecycle.set_delayed_timers_enabled_for_tests(False)
+        turn_lifecycle.reset_turn_runner_for_tests()
+        turn_lifecycle.reset_clock_for_tests()
 
     state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
     receipt = json.loads((quest_root / "artifacts" / "runtime" / "latest_turn_receipt.json").read_text(encoding="utf-8"))
