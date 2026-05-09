@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from html import escape
+from urllib.parse import quote
 from typing import Any
 
 
@@ -10,12 +11,25 @@ LIVE_CONSOLE_SESSION_READ_MODEL_REF = "artifacts/runtime/live_console/session_re
 LIVE_CONSOLE_SERVE_COMMAND = "medautosci runtime live-console --profile <profile> --serve"
 
 
-def live_console_projection(*, disabled_reason: str | None = None) -> dict[str, object]:
+def live_console_projection(
+    *,
+    disabled_reason: str | None = None,
+    study_id: str | None = None,
+    page_scope: str = "workspace",
+) -> dict[str, object]:
     reason = disabled_reason.strip() if isinstance(disabled_reason, str) and disabled_reason.strip() else None
+    scoped_study_id = study_id.strip() if isinstance(study_id, str) and study_id.strip() else None
+    href = "../live-console/index.html"
+    if page_scope == "study" and scoped_study_id:
+        href = f"../../../live-console/index.html?study_id={quote(scoped_study_id, safe='')}"
+    elif scoped_study_id:
+        href = f"../live-console/index.html?study_id={quote(scoped_study_id, safe='')}"
     return {
         "available": reason is None,
         "label": "运行控制台",
         "html_ref": LIVE_CONSOLE_HTML_REF,
+        "href": href,
+        "study_id": scoped_study_id,
         "session_read_model_ref": LIVE_CONSOLE_SESSION_READ_MODEL_REF,
         "serve_command": LIVE_CONSOLE_SERVE_COMMAND,
         "authority": "read_only_runtime_observation",
@@ -28,10 +42,11 @@ def render_live_console_portal_link(live_console: Mapping[str, Any]) -> str:
         return ""
     label = _non_empty_text(live_console.get("label")) or "运行控制台"
     serve_command = _non_empty_text(live_console.get("serve_command")) or LIVE_CONSOLE_SERVE_COMMAND
+    href = _non_empty_text(live_console.get("href")) or "../live-console/index.html"
     if bool(live_console.get("available")):
         return (
             '<div class="live-console-link">'
-            '<a href="../live-console/index.html">运行控制台</a>'
+            f'<a href="{escape(href, quote=True)}">运行控制台</a>'
             f"<span>{escape(serve_command)}</span>"
             "</div>"
         )

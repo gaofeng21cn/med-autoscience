@@ -1,0 +1,298 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
+from html import escape
+from typing import Any
+
+from .rendering import list_html, status_chip
+from .source_refs import source_refs
+from .status_display import display_text
+
+
+SURFACE_KIND = "mas_progress_portal_route_decision_trail"
+
+
+def build_route_decision_trail_payload(
+    progress: Mapping[str, Any] | None,
+    runtime: Mapping[str, Any] | None,
+    package: Mapping[str, Any] | None,
+    study_id: str,
+) -> dict[str, Any]:
+    resolved_progress = _mapping(progress)
+    resolved_runtime = _mapping(runtime)
+    resolved_package = _mapping(package)
+    resolved_study_id = _non_empty_text(study_id) or _non_empty_text(resolved_progress.get("study_id")) or "unknown-study"
+    explicit = _explicit_trail(resolved_progress, resolved_runtime, resolved_package)
+    controller = _controller_decision(resolved_progress)
+    graph = _candidate_path_graph(resolved_progress, controller)
+    nodes = _route_nodes(explicit, controller, graph)
+    active_path = _active_path(explicit, controller, graph)
+    winning_path = _winning_path(explicit, controller, graph, active_path)
+    refs = source_refs(explicit, controller, graph)
+    missing = []
+    if not explicit and not controller and not graph:
+        missing.append("route_decision_trail")
+    if not nodes:
+        missing.append("route_nodes")
+    if (explicit or controller or graph) and not refs:
+        missing.append("route_source_refs")
+    return {
+        "schema_version": 1,
+        "surface_kind": SURFACE_KIND,
+        "authority": {
+            "kind": "read_model_helper",
+            "writes_authority_surface": False,
+            "authority_note": (
+                "Consumes explicit route/decision trail surfaces only; it does not infer medical quality, "
+                "publication readiness, or controller decisions."
+            ),
+            "forbidden_authority": [
+                "study_truth",
+                "publication_judgment",
+                "quality_verdict",
+                "runtime_authority",
+                "artifact_authority",
+                "controller_decision_authority",
+            ],
+        },
+        "study_id": resolved_study_id,
+        "status": "available" if nodes else "missing",
+        "active_path": active_path,
+        "winning_path": winning_path,
+        "nodes": nodes,
+        "source_refs": refs,
+        "conditions": {"missing": missing, "stale": [], "conflict": []},
+    }
+
+
+def render_route_decision_trail_section(payload: Mapping[str, Any]) -> str:
+    nodes = _mapping_list(payload.get("nodes"))
+    items = [_node_label(node) for node in nodes]
+    active_path = _non_empty_text(payload.get("active_path"))
+    winning_path = _non_empty_text(payload.get("winning_path"))
+    summary_items = []
+    if active_path:
+        summary_items.append(f"active path: {active_path}")
+    if winning_path:
+        summary_items.append(f"winning path: {winning_path}")
+    conditions = _mapping(payload.get("conditions"))
+    missing = _string_list(conditions.get("missing"))
+    if missing:
+        summary_items.append("missing: " + ", ".join(missing))
+    return "\n".join(
+        [
+            '<section class="panel wide route-decision-trail">',
+            "<h2>Route / Decision Trail "
+            + status_chip(payload.get("status") or "missing")
+            + "</h2>",
+            list_html(summary_items, empty_text="当前没有 active/winning path 投影。"),
+            list_html(items, empty_text="缺少显式路线节点；Portal 不从 stage 文案或文件名猜测研究路线。"),
+            "</section>",
+        ]
+    )
+
+
+def _explicit_trail(*payloads: Mapping[str, Any]) -> dict[str, Any]:
+    for payload in payloads:
+        for key in ("route_decision_trail", "decision_trail", "route_trail"):
+            candidate = _mapping(payload.get(key))
+            if candidate:
+                return candidate
+    return {}
+
+
+def _controller_decision(progress: Mapping[str, Any]) -> dict[str, Any]:
+    for key in ("controller_decision", "latest_controller_decision"):
+        candidate = _mapping(progress.get(key))
+        if candidate:
+            return candidate
+    nested = _mapping(progress.get("controller_decisions"))
+    latest = _mapping(nested.get("latest"))
+    if latest:
+        return latest
+    return _mapping(_explicit_trail(progress).get("controller_decision"))
+
+
+def _candidate_path_graph(progress: Mapping[str, Any], controller: Mapping[str, Any]) -> dict[str, Any]:
+    for payload in (progress, controller, _mapping(controller.get("study_line_decision"))):
+        candidate = _mapping(payload.get("candidate_path_graph"))
+        if candidate:
+            return candidate
+    explicit = _explicit_trail(progress)
+    return _mapping(explicit.get("candidate_path_graph"))
+
+
+def _route_nodes(
+    explicit: Mapping[str, Any],
+    controller: Mapping[str, Any],
+    graph: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    explicit_nodes = _mapping_list(explicit.get("nodes")) or _mapping_list(explicit.get("route_nodes"))
+    nodes = [_normalize_node(node, index=index + 1, source="route_decision_trail.nodes") for index, node in enumerate(explicit_nodes)]
+    graph_candidates = _mapping_list(graph.get("candidates"))
+    if graph_candidates:
+        for index, candidate in enumerate(graph_candidates):
+            nodes.append(_node_from_candidate(candidate, index=index + 1, controller=controller))
+    if not nodes and controller:
+        node = _node_from_controller(controller)
+        if node:
+            nodes.append(node)
+    return _dedupe_nodes(nodes)
+
+
+def _normalize_node(node: Mapping[str, Any], *, index: int, source: str) -> dict[str, Any]:
+    route_id = _first_text(node.get("route_id"), node.get("candidate_id"), node.get("line_id"), node.get("id")) or f"route-{index}"
+    decision = _first_text(node.get("decision"), node.get("route_decision"), node.get("status"))
+    return {
+        "route_id": route_id,
+        "label": _first_text(node.get("label"), node.get("title"), node.get("question")) or route_id,
+        "decision": decision,
+        "evidence_point": _first_text(node.get("evidence_point"), node.get("evidence_basis"), node.get("expected_artifact")),
+        "blocked_reason": _first_text(node.get("blocked_reason"), node.get("blocker"), node.get("stop_rule")),
+        "pivot_rationale": _first_text(node.get("pivot_rationale"), node.get("route_rationale"), node.get("rationale")),
+        "superseded_by": _first_text(node.get("superseded_by"), node.get("replaced_by")),
+        "source": source,
+    }
+
+
+def _node_from_candidate(candidate: Mapping[str, Any], *, index: int, controller: Mapping[str, Any]) -> dict[str, Any]:
+    route_id = _first_text(candidate.get("candidate_id"), candidate.get("line_id"), candidate.get("route_id")) or f"candidate-{index}"
+    evidence_basis = _string_list(candidate.get("evidence_basis"))
+    blockers = _string_list(controller.get("blockers"))
+    decision = _non_empty_text(candidate.get("decision"))
+    return {
+        "route_id": route_id,
+        "label": _first_text(candidate.get("question"), candidate.get("label"), candidate.get("title")) or route_id,
+        "decision": decision,
+        "evidence_point": "; ".join(evidence_basis) or _non_empty_text(candidate.get("expected_artifact")),
+        "blocked_reason": _non_empty_text(candidate.get("stop_rule")) or ("; ".join(blockers) if decision in {"stop", "human_gate"} else None),
+        "pivot_rationale": _first_text(controller.get("route_rationale"), controller.get("reason"), controller.get("route_control_decision")),
+        "superseded_by": _non_empty_text(candidate.get("superseded_by")),
+        "source": "candidate_path_graph.candidates",
+    }
+
+
+def _node_from_controller(controller: Mapping[str, Any]) -> dict[str, Any]:
+    route_id = _first_text(controller.get("route_target"), controller.get("selected_line_id"), controller.get("route_decision"))
+    if route_id is None:
+        return {}
+    return {
+        "route_id": route_id,
+        "label": _first_text(controller.get("route_key_question"), controller.get("requested_action"), controller.get("decision_type")) or route_id,
+        "decision": _non_empty_text(controller.get("route_decision")),
+        "evidence_point": _non_empty_text(controller.get("evidence_point")),
+        "blocked_reason": "; ".join(_string_list(controller.get("blockers"))) or None,
+        "pivot_rationale": _first_text(controller.get("route_rationale"), controller.get("reason"), controller.get("route_control_decision")),
+        "superseded_by": None,
+        "source": "controller_decision",
+    }
+
+
+def _active_path(explicit: Mapping[str, Any], controller: Mapping[str, Any], graph: Mapping[str, Any]) -> str | None:
+    return _first_text(
+        explicit.get("active_path"),
+        explicit.get("active_route"),
+        controller.get("route_target"),
+        controller.get("selected_line_id"),
+        graph.get("selected_candidate_id"),
+    )
+
+
+def _winning_path(
+    explicit: Mapping[str, Any],
+    controller: Mapping[str, Any],
+    graph: Mapping[str, Any],
+    active_path: str | None,
+) -> str | None:
+    return _first_text(
+        explicit.get("winning_path"),
+        explicit.get("winning_route"),
+        controller.get("winning_path"),
+        graph.get("winning_candidate_id"),
+        active_path,
+    )
+
+
+def _node_label(node: Mapping[str, Any]) -> str:
+    parts = [
+        display_text(node.get("route_id"), fallback="unknown-route", preserve_known_token=False),
+        display_text(node.get("label"), fallback="问题未提供", preserve_known_token=False),
+    ]
+    decision = _non_empty_text(node.get("decision"))
+    if decision:
+        parts.append(f"decision={decision}")
+    evidence = _non_empty_text(node.get("evidence_point"))
+    if evidence:
+        parts.append(f"evidence={evidence}")
+    blocked = _non_empty_text(node.get("blocked_reason"))
+    if blocked:
+        parts.append(f"blocked={blocked}")
+    pivot = _non_empty_text(node.get("pivot_rationale"))
+    if pivot:
+        parts.append(f"pivot={pivot}")
+    superseded_by = _non_empty_text(node.get("superseded_by"))
+    if superseded_by:
+        parts.append(f"superseded_by={superseded_by}")
+    return " | ".join(parts)
+
+
+def _dedupe_nodes(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[str, str | None]] = set()
+    for node in nodes:
+        route_id = _non_empty_text(node.get("route_id"))
+        if route_id is None:
+            continue
+        key = (route_id, _non_empty_text(node.get("decision")))
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(node)
+    return result
+
+
+def _first_text(*values: object) -> str | None:
+    for value in values:
+        if isinstance(value, Iterable) and not isinstance(value, (str, bytes, Mapping)):
+            text = "; ".join(_string_list(value))
+        else:
+            text = _non_empty_text(value)
+        if text:
+            return text
+    return None
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _mapping_list(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
+def _string_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if not isinstance(value, Iterable) or isinstance(value, (bytes, Mapping)):
+        return []
+    result: list[str] = []
+    for item in value:
+        if isinstance(item, str) and item.strip():
+            result.append(item.strip())
+    return result
+
+
+def _non_empty_text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
+__all__ = [
+    "SURFACE_KIND",
+    "build_route_decision_trail_payload",
+    "render_route_decision_trail_section",
+]

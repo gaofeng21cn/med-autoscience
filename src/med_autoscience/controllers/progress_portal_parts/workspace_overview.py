@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from html import escape
+from urllib.parse import quote
 from typing import Any
 
 from .status_display import display_text, status_chip, status_label
@@ -153,9 +154,15 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
     for item in studies:
         selected_class = " selected" if bool(item.get("selected")) else ""
         study_id = display_text(item.get("study_id"), fallback="未知论文线", preserve_known_token=False)
+        study_href = _non_empty_text(item.get("portal_href"))
+        study_cell = (
+            f'<a href="{escape(study_href, quote=True)}">{escape(study_id)}</a>'
+            if study_href
+            else escape(study_id)
+        )
         values = (
-            escape(study_id),
-            _study_live_console_link(study_id),
+            study_cell,
+            _study_live_console_link(study_id, href=_non_empty_text(item.get("live_console_href"))),
             escape(display_text(item.get("state_label"), fallback="状态投影缺失", preserve_known_token=False)),
             escape(display_text(item.get("active_run_id"), fallback="无 live run", preserve_known_token=False)),
             status_chip(item.get("runtime_health_status") or "unknown"),
@@ -184,8 +191,53 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
     )
 
 
-def _study_live_console_link(study_id: str) -> str:
-    return f'<a href="../live-console/index.html?study_id={escape(study_id, quote=True)}">打开</a>'
+def _study_live_console_link(study_id: str, *, href: str | None = None) -> str:
+    resolved_href = href or f"../live-console/index.html?study_id={quote(study_id, safe='')}"
+    return f'<a href="{escape(resolved_href, quote=True)}">打开</a>'
+
+
+def study_detail_href(study_id: str, *, from_study_page: bool = False) -> str:
+    encoded = quote(study_id, safe="")
+    prefix = "" if from_study_page else "studies/"
+    return f"{prefix}{encoded}/index.html"
+
+
+def workspace_portal_navigation(
+    studies: list[dict[str, Any]],
+    *,
+    selected_study_id: str | None,
+    page_scope: str,
+) -> dict[str, Any]:
+    from_study_page = page_scope == "study"
+    rows: list[dict[str, Any]] = []
+    for item in studies:
+        study_id = _non_empty_text(item.get("study_id"))
+        if study_id is None:
+            continue
+        rows.append(
+            {
+                "study_id": study_id,
+                "selected": study_id == selected_study_id,
+                "href": study_detail_href(study_id, from_study_page=from_study_page),
+                "live_console_href": (
+                    f"../../../live-console/index.html?study_id={quote(study_id, safe='')}"
+                    if from_study_page
+                    else f"../live-console/index.html?study_id={quote(study_id, safe='')}"
+                ),
+                "state_label": item.get("state_label"),
+                "current_stage": item.get("current_stage"),
+                "paper_stage": item.get("paper_stage"),
+                "active_run_id": item.get("active_run_id"),
+                "runtime_health_status": item.get("runtime_health_status"),
+                "progress_freshness_status": item.get("progress_freshness_status"),
+            }
+        )
+    return {
+        "scope": page_scope,
+        "selected_study_id": selected_study_id,
+        "workspace_href": "../../index.html" if from_study_page else "index.html",
+        "studies": rows,
+    }
 
 
 def render_workspace_alerts_section(title: str, items: list[dict[str, str | None]], *, empty_text: str) -> str:

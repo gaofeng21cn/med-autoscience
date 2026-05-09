@@ -151,6 +151,8 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
         "available": True,
         "label": "运行控制台",
         "html_ref": "ops/mas/live-console/index.html",
+        "href": "../../../live-console/index.html?study_id=001-risk",
+        "study_id": "001-risk",
         "session_read_model_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
         "serve_command": "medautosci runtime live-console --profile <profile> --serve",
         "authority": "read_only_runtime_observation",
@@ -671,6 +673,21 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
     payload = parts.build_study_workbench_payload(
         progress={
             **_progress_payload(),
+            "route_decision_trail": {
+                "active_path": "analysis-route-b",
+                "winning_path": "analysis-route-b",
+                "nodes": [
+                    {
+                        "route_id": "analysis-route-a",
+                        "label": "Start with broad risk model",
+                        "evidence_point": "calibration audit",
+                        "blocked_reason": "external validation failed",
+                        "pivot_rationale": "route B has transportable subgroup evidence",
+                        "superseded_by": "analysis-route-b",
+                    }
+                ],
+                "source_refs": ["studies/001-risk/artifacts/controller_decisions/latest.json"],
+            },
             "artifact_locators": [
                 {
                     "group": "draft",
@@ -729,6 +746,29 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
     )
 
     assert payload["surface_kind"] == "mas_progress_portal_study_workbench"
+    assert payload["tabs"][1] == {"id": "route_decision_trail", "label": "路线/决策", "status": "available"}
+    assert payload["route_decision_trail"]["surface_kind"] == "mas_progress_portal_route_decision_trail"
+    assert payload["route_decision_trail"]["active_path"] == "analysis-route-b"
+    assert payload["route_decision_trail"]["winning_path"] == "analysis-route-b"
+    assert payload["route_decision_trail"]["nodes"][0] == {
+        "route_id": "analysis-route-a",
+        "label": "Start with broad risk model",
+        "decision": None,
+        "evidence_point": "calibration audit",
+        "blocked_reason": "external validation failed",
+        "pivot_rationale": "route B has transportable subgroup evidence",
+        "superseded_by": "analysis-route-b",
+        "source": "route_decision_trail.nodes",
+    }
+    assert payload["route_decision_trail"]["authority"]["writes_authority_surface"] is False
+    assert payload["route_decision_trail"]["authority"]["forbidden_authority"] == [
+        "study_truth",
+        "publication_judgment",
+        "quality_verdict",
+        "runtime_authority",
+        "artifact_authority",
+        "controller_decision_authority",
+    ]
     assert payload["path_stage"]["current_stage"] == "quality_repair"
     assert payload["path_stage"]["paper_stage"] == "revision"
     assert payload["runtime"]["active_run_id"] == "run-001"
@@ -764,7 +804,7 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
     assert "artifact_group:review_proof" not in payload["conditions"]["missing"]
     assert "artifact_group:runtime_evidence" not in payload["conditions"]["missing"]
     assert "studies/001-risk/artifacts/controller_decisions/latest.json" in payload["source_refs"]
-    assert payload["tabs"][3] == {"id": "artifacts", "label": "产物", "status": "available"}
+    assert payload["tabs"][4] == {"id": "artifacts", "label": "产物", "status": "available"}
 
 
 def test_study_workbench_helper_fail_closes_missing_inputs_and_conflicts() -> None:
@@ -793,6 +833,8 @@ def test_study_workbench_helper_fail_closes_missing_inputs_and_conflicts() -> No
         "artifact_group:current_package",
         "artifact_group:review_proof",
         "artifact_group:runtime_evidence",
+        "route_decision_trail:route_decision_trail",
+        "route_decision_trail:route_nodes",
     ]
     assert payload["conditions"]["conflict"] == [
         "runtime_study_id_mismatch",
@@ -814,10 +856,96 @@ def test_study_workbench_render_helper_returns_html_sections() -> None:
     html = parts.render_study_workbench_sections(payload)
 
     assert "单篇论文工作台" in html
+    assert "Route / Decision Trail" in html
+    assert "缺少显式路线节点" in html
     assert "路径与阶段" in html
     assert "当前交付包" in html
     assert "studies/001-risk/manuscript/current_package.zip" in html
     assert "缺少 source refs。" not in html
+
+
+def test_route_decision_trail_helper_projects_branch_block_pivot_and_winning_path() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+
+    payload = parts.build_route_decision_trail_payload(
+        progress={
+            "study_id": "001-risk",
+            "controller_decision": {
+                "decision_type": "study_line_route_decision",
+                "route_decision": "switch_line",
+                "route_target": "route-b",
+                "selected_line_id": "route-b",
+                "route_rationale": "route A blocked at validation; route B preserves the claim boundary.",
+                "blockers": ["route-a_external_validation_failed"],
+                "candidate_path_graph": {
+                    "surface": "candidate_path_graph",
+                    "authority": "read_model_only",
+                    "selected_candidate_id": "route-b",
+                    "candidates": [
+                        {
+                            "candidate_id": "route-a",
+                            "question": "Can broad model generalize?",
+                            "decision": "stop",
+                            "evidence_basis": ["external validation AUC dropped"],
+                            "stop_rule": "stop if external validation fails",
+                        },
+                        {
+                            "candidate_id": "route-b",
+                            "question": "Can subgroup route preserve the claim?",
+                            "decision": "pivot",
+                            "evidence_basis": ["subgroup signal replicated"],
+                            "expected_artifact": "artifacts/medical_paper/candidate_paths/route-b.json",
+                        },
+                    ],
+                    "source_refs": ["studies/001-risk/artifacts/medical_paper/route_decision_orchestrator.json"],
+                },
+                "source_refs": ["studies/001-risk/artifacts/controller_decisions/latest.json"],
+            },
+        },
+        runtime={},
+        package={},
+        study_id="001-risk",
+    )
+
+    assert payload["status"] == "available"
+    assert payload["active_path"] == "route-b"
+    assert payload["winning_path"] == "route-b"
+    assert [node["route_id"] for node in payload["nodes"]] == ["route-a", "route-b"]
+    assert payload["nodes"][0]["blocked_reason"] == "stop if external validation fails"
+    assert payload["nodes"][0]["pivot_rationale"] == "route A blocked at validation; route B preserves the claim boundary."
+    assert payload["nodes"][1]["decision"] == "pivot"
+    assert "studies/001-risk/artifacts/controller_decisions/latest.json" in payload["source_refs"]
+    html = parts.render_route_decision_trail_section(payload)
+    assert "Route / Decision Trail" in html
+    assert "active path: route-b" in html
+    assert "winning path: route-b" in html
+    assert "route-a" in html
+    assert "blocked=stop if external validation fails" in html
+
+
+def test_route_decision_trail_helper_fail_closes_without_explicit_route_inputs() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+
+    payload = parts.build_route_decision_trail_payload(
+        progress={
+            "study_id": "001-risk",
+            "artifact_locators": [
+                {
+                    "group": "draft",
+                    "ref": "studies/001-risk/manuscript/current_package/route-a-wins.txt",
+                }
+            ],
+        },
+        runtime={},
+        package={},
+        study_id="001-risk",
+    )
+
+    assert payload["status"] == "missing"
+    assert payload["nodes"] == []
+    assert payload["active_path"] is None
+    assert payload["conditions"]["missing"] == ["route_decision_trail", "route_nodes"]
+    assert payload["source_refs"] == []
 
 
 def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_path: Path) -> None:
@@ -834,16 +962,32 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
 
     payload_path = Path(result["payload_path"])
     html_path = Path(result["html_path"])
+    workspace_html_path = Path(result["workspace_html_path"])
     hosted_package_path = Path(result["hosted_package_path"])
     assert payload_path == profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "latest.json"
-    assert html_path == profile.workspace_root / "ops" / "mas" / "progress" / "index.html"
+    assert html_path == profile.workspace_root / "ops" / "mas" / "progress" / "studies" / "001-risk" / "index.html"
+    assert workspace_html_path == profile.workspace_root / "ops" / "mas" / "progress" / "index.html"
     assert hosted_package_path == profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
     assert payload_path.exists()
     assert html_path.exists()
+    assert workspace_html_path.exists()
     assert hosted_package_path.exists()
     written_payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    written_study_payload = json.loads(
+        (
+            profile.workspace_root
+            / "artifacts"
+            / "runtime"
+            / "progress_portal"
+            / "studies"
+            / "001-risk"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
     hosted_package = json.loads(hosted_package_path.read_text(encoding="utf-8"))
-    assert written_payload["study"]["study_id"] == "001-risk"
+    assert written_payload["study"]["scope"] == "workspace"
+    assert written_study_payload["study"]["study_id"] == "001-risk"
+    assert written_study_payload["study"]["scope"] == "study"
     assert written_payload["opl_handoff"]["deep_link"] == "ops/mas/progress/index.html"
     assert hosted_package["surface_kind"] == "mas_progress_portal_hosted_package"
     assert hosted_package["owner"] == "MedAutoScience"
@@ -861,16 +1005,21 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
         "progress_payload": "artifacts/runtime/progress_portal/latest.json",
         "html": "ops/mas/progress/index.html",
     }
+    assert hosted_package["package_refs"]["study_pages"]["001-risk"] == {
+        "payload": "artifacts/runtime/progress_portal/studies/001-risk/latest.json",
+        "html": "ops/mas/progress/studies/001-risk/index.html",
+    }
     assert hosted_package["entrypoints"]["workspace_helper"] == "ops/mas/bin/start-web"
     assert hosted_package["entrypoints"]["optional_local_read_only_service"] == (
         "medautosci workspace progress-portal --profile <profile> --serve"
     )
     assert "MDS WebUI state" in hosted_package["hosted_runtime_carrier_contract"]["must_not_consume"]
     assert "publication_eval/latest.json" in hosted_package["hosted_runtime_carrier_contract"]["must_not_write"]
-    assert result["opl_handoff"]["payload_ref"] == str(payload_path)
+    assert result["opl_handoff"]["payload_ref"].endswith("artifacts/runtime/progress_portal/studies/001-risk/latest.json")
     assert result["opl_handoff"]["deep_link"] == str(html_path)
     assert result["hosted_package"]["package_refs"]["hosted_package"] == str(hosted_package_path)
     assert html_path.read_text(encoding="utf-8").startswith("<!doctype html>")
+    assert "Route / Decision Trail" in html_path.read_text(encoding="utf-8")
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "controller_decisions").exists()
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "publication_eval").exists()
 
@@ -931,6 +1080,6 @@ def test_serve_progress_portal_materializes_and_reports_read_only_local_url(monk
     assert result["hosted_package_path"].endswith("artifacts/runtime/progress_portal/hosted_package.json")
     assert result["hosted_package"]["mds_webui_dependency_allowed"] is False
     assert result["opl_handoff"]["deep_link"] == result["html_path"]
-    assert result["opl_handoff"]["payload_ref"] == result["payload_path"]
+    assert result["opl_handoff"]["payload_ref"].endswith("artifacts/runtime/progress_portal/studies/001-risk/latest.json")
     assert served["address"] == ("127.0.0.1", 4301)
     assert served["closed"] is True

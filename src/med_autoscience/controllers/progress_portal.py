@@ -14,6 +14,7 @@ import webbrowser
 from med_autoscience.controllers.progress_portal_parts import (
     condition_badge,
     condition_section,
+    build_study_workbench_payload,
     dedupe_texts,
     display_source_refs,
     display_text,
@@ -28,6 +29,7 @@ from med_autoscience.controllers.progress_portal_parts import (
     refresh_meta,
     render_live_console_portal_link,
     render_section_explanations_section,
+    render_study_workbench_sections,
     render_workspace_alerts_section,
     render_workspace_studies_section,
     runtime_continuity_section,
@@ -35,7 +37,9 @@ from med_autoscience.controllers.progress_portal_parts import (
     selected_workspace_study_id,
     source_refs as collect_source_refs,
     status_chip,
+    study_detail_href,
     unique_text,
+    workspace_portal_navigation,
     workspace_alert_projection,
     workspace_delivery_paragraphs,
     workspace_next_step_paragraphs,
@@ -54,6 +58,8 @@ BRAND = "Med Auto Science"
 PROGRESS_PORTAL_PAYLOAD_REF = "artifacts/runtime/progress_portal/latest.json"
 PROGRESS_PORTAL_HTML_REF = "ops/mas/progress/index.html"
 PROGRESS_PORTAL_HOSTED_PACKAGE_REF = "artifacts/runtime/progress_portal/hosted_package.json"
+PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = "artifacts/runtime/progress_portal/studies/{study_id}/latest.json"
+PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE = "ops/mas/progress/studies/{study_id}/index.html"
 
 
 def build_progress_portal_payload(
@@ -74,6 +80,7 @@ def build_progress_portal_payload(
     sync_runtime_summary: bool = True,
     auto_refresh_seconds: int | None = None,
     live_console_disabled_reason: str | None = None,
+    page_scope: str | None = None,
 ) -> dict[str, Any]:
     resolved_profile_name = profile_name or (profile.name if profile is not None else None) or "unknown"
     resolved_workspace_root = Path(
@@ -85,6 +92,7 @@ def build_progress_portal_payload(
         and study_root is None
         and progress_payload is None
     )
+    resolved_page_scope = page_scope or ("workspace" if workspace_overview_mode else "study")
 
     progress = dict(progress_payload or {})
     if not progress and not workspace_overview_mode:
@@ -125,6 +133,7 @@ def build_progress_portal_payload(
     runtime_reconcile_trigger = _runtime_reconcile_trigger(progress.get("runtime_reconcile_trigger"))
     outer_supervision_slo = _outer_supervision_slo(progress.get("outer_supervision_slo"))
     workspace_study_rows = workspace_studies(cockpit, selected_study_id=resolved_study_id)
+    _attach_study_hrefs(workspace_study_rows, from_study_page=resolved_page_scope == "study")
     workspace_alerts = workspace_alert_projection(
         cockpit.get("workspace_alerts"),
         workspace_studies=workspace_study_rows,
@@ -137,7 +146,16 @@ def build_progress_portal_payload(
         "package": _source_payload_summary(package),
     }
     runtime_continuity = _runtime_continuity(progress, runtime)
-    live_console = live_console_projection(disabled_reason=live_console_disabled_reason)
+    study_workbench = (
+        build_study_workbench_payload(progress, cockpit, runtime, package, resolved_study_id)
+        if resolved_page_scope == "study"
+        else {}
+    )
+    live_console = live_console_projection(
+        disabled_reason=live_console_disabled_reason,
+        study_id=None if workspace_overview_mode else resolved_study_id,
+        page_scope=resolved_page_scope,
+    )
     has_workspace_studies = bool(workspace_study_rows)
     has_workspace_alerts = bool(workspace_alerts["visible_items"])
     has_diagnostics = bool(workspace_alerts["suppressed_items"])
@@ -181,6 +199,25 @@ def build_progress_portal_payload(
                 "suppressed_alert_policy": "legacy_runtime_or_inactive_study_noise",
             },
         },
+        "navigation": workspace_portal_navigation(
+            workspace_study_rows,
+            selected_study_id=None if workspace_overview_mode else resolved_study_id,
+            page_scope=resolved_page_scope,
+        ),
+        "portal_paths": {
+            "workspace_html_ref": PROGRESS_PORTAL_HTML_REF,
+            "study_html_ref": (
+                PROGRESS_PORTAL_STUDY_HTML_REF_TEMPLATE.format(study_id=resolved_study_id)
+                if not workspace_overview_mode
+                else None
+            ),
+            "workspace_payload_ref": PROGRESS_PORTAL_PAYLOAD_REF,
+            "study_payload_ref": (
+                PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE.format(study_id=resolved_study_id)
+                if not workspace_overview_mode
+                else None
+            ),
+        },
         "study": {
             "study_id": resolved_study_id,
             "scope": "workspace" if workspace_overview_mode else "study",
@@ -214,6 +251,7 @@ def build_progress_portal_payload(
         "latest_events": latest_events,
         "quality": quality,
         "delivery": delivery,
+        "study_workbench": study_workbench,
         "live_console": live_console,
         "conditions": conditions,
         "section_explanations": progress_section_explanations(
@@ -236,6 +274,7 @@ def build_progress_portal_payload(
             delivery=delivery,
             conditions=conditions,
             runtime_continuity=runtime_continuity,
+            page_scope=resolved_page_scope,
         ),
     }
     if auto_refresh_seconds is not None and auto_refresh_seconds > 0:
@@ -244,6 +283,146 @@ def build_progress_portal_payload(
             "refresh_mode": "read_only_server_request_refresh",
         }
     return payload
+
+
+def _attach_study_hrefs(studies: list[dict[str, Any]], *, from_study_page: bool) -> None:
+    for item in studies:
+        study_id = _non_empty_text(item.get("study_id"))
+        if study_id is None:
+            continue
+        item["portal_href"] = study_detail_href(study_id, from_study_page=from_study_page)
+
+
+def _ensure_workspace_has_selected_study(workspace_payload: dict[str, Any], detail_payload: Mapping[str, Any]) -> None:
+    detail_study = _mapping(detail_payload.get("study"))
+    study_id = _non_empty_text(detail_study.get("study_id"))
+    if study_id is None:
+        return
+    workspace = _mapping(workspace_payload.get("workspace"))
+    studies = _mapping_list(workspace.get("studies"))
+    if any(_non_empty_text(item.get("study_id")) == study_id for item in studies):
+        return
+    studies.append(
+        {
+            "study_id": study_id,
+            "selected": False,
+            "state_label": detail_study.get("state_label"),
+            "state_summary": detail_study.get("state_summary"),
+            "current_stage": detail_study.get("current_stage"),
+            "paper_stage": detail_study.get("paper_stage"),
+            "active_run_id": _mapping(detail_study.get("supervision")).get("active_run_id"),
+            "runtime_health_status": _mapping(detail_study.get("supervision")).get("health_status"),
+            "supervisor_tick_status": _mapping(detail_study.get("supervision")).get("supervisor_tick_status"),
+            "progress_freshness_status": _mapping(detail_payload.get("freshness")).get("status"),
+            "operator_focus": detail_study.get("next_system_action"),
+            "next_system_action": detail_study.get("next_system_action"),
+            "portal_href": study_detail_href(study_id),
+        }
+    )
+    workspace["studies"] = studies
+    workspace_payload["workspace"] = workspace
+    workspace_payload["navigation"] = workspace_portal_navigation(
+        studies,
+        selected_study_id=None,
+        page_scope="workspace",
+    )
+
+
+def _materialize_study_pages(
+    *,
+    profile: WorkspaceProfile,
+    workspace_payload: Mapping[str, Any],
+    selected_payload: Mapping[str, Any] | None,
+    profile_ref: str | Path | None,
+    generated_at: str | None,
+    local_timezone: str | None,
+    auto_refresh_seconds: int | None,
+    live_console_disabled_reason: str | None,
+) -> dict[str, dict[str, Any]]:
+    pages: dict[str, dict[str, Any]] = {}
+    workspace = _mapping(workspace_payload.get("workspace"))
+    cockpit_for_pages = _cockpit_from_workspace_payload(workspace_payload)
+    for study in _mapping_list(workspace.get("studies")):
+        study_id = _non_empty_text(study.get("study_id"))
+        if study_id is None:
+            continue
+        if selected_payload is not None and _non_empty_text(_mapping(selected_payload.get("study")).get("study_id")) == study_id:
+            payload = dict(selected_payload)
+        else:
+            payload = build_progress_portal_payload(
+                profile=profile,
+                study_id=study_id,
+                profile_ref=profile_ref,
+                progress_payload=_progress_from_workspace_study_row(study),
+                cockpit_payload=cockpit_for_pages,
+                generated_at=generated_at,
+                local_timezone=local_timezone,
+                sync_runtime_summary=False,
+                auto_refresh_seconds=auto_refresh_seconds,
+                live_console_disabled_reason=live_console_disabled_reason,
+                page_scope="study",
+            )
+        html_path = profile.workspace_root / "ops" / "mas" / "progress" / "studies" / study_id / "index.html"
+        payload_path = (
+            profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "studies" / study_id / "latest.json"
+        )
+        html_path.parent.mkdir(parents=True, exist_ok=True)
+        payload_path.parent.mkdir(parents=True, exist_ok=True)
+        payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        html_path.write_text(render_progress_portal_html(payload), encoding="utf-8")
+        pages[study_id] = {
+            "study_id": study_id,
+            "payload_path": str(payload_path),
+            "html_path": str(html_path),
+            "payload_ref": _workspace_relative(payload_path, profile.workspace_root),
+            "html_ref": _workspace_relative(html_path, profile.workspace_root),
+            "opl_handoff": _materialized_opl_handoff(
+                payload.get("opl_handoff"),
+                payload_path=payload_path,
+                html_path=html_path,
+            ),
+        }
+    return pages
+
+
+def _cockpit_from_workspace_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    workspace = _mapping(payload.get("workspace"))
+    return {
+        "workspace_status": workspace.get("workspace_status"),
+        "workspace_alerts": _string_list(workspace.get("workspace_alerts")),
+        "studies": _mapping_list(workspace.get("studies")),
+    }
+
+
+def _progress_from_workspace_study_row(study: Mapping[str, Any]) -> dict[str, Any]:
+    study_id = _non_empty_text(study.get("study_id")) or "unknown-study"
+    state_label = _non_empty_text(study.get("state_label")) or "状态投影缺失"
+    state_summary = _non_empty_text(study.get("state_summary")) or "该论文线缺少 canonical study-progress projection。"
+    return {
+        "study_id": study_id,
+        "user_visible_projection": {
+            "schema_version": 2,
+            "state_label": state_label,
+            "state_summary": state_summary,
+            "current_stage": _non_empty_text(study.get("current_stage")),
+            "paper_stage": _non_empty_text(study.get("paper_stage")),
+            "next_system_action": _non_empty_text(study.get("next_system_action"))
+            or _non_empty_text(study.get("operator_focus"))
+            or "刷新 canonical study-progress projection。",
+            "current_blockers": [],
+            "needs_physician_decision": False,
+        },
+        "progress_freshness": {
+            "status": _non_empty_text(study.get("progress_freshness_status")) or "missing",
+            "summary": _non_empty_text(study.get("progress_freshness_summary")) or "progress freshness projection 缺失。",
+        },
+        "supervision": {
+            "active_run_id": _non_empty_text(study.get("active_run_id")),
+            "health_status": _non_empty_text(study.get("runtime_health_status")),
+            "supervisor_tick_status": _non_empty_text(study.get("supervisor_tick_status")),
+        },
+        "refs": {},
+    }
 
 
 def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
@@ -337,6 +516,7 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             "</dl>",
             render_live_console_portal_link(live_console),
             "</header>",
+            _navigation_section(payload),
             render_workspace_studies_section(workspace_studies),
             '<section class="grid">',
             section(
@@ -371,6 +551,9 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
             event_section(latest_events),
             condition_section(conditions),
             render_section_explanations_section(section_explanations),
+            render_study_workbench_sections(_mapping(payload.get("study_workbench")))
+            if not workspace_overview_mode
+            else "",
             '<details class="refs">',
             f"<summary>数据来源 ({len(source_refs)}/{len(_string_list(payload.get('source_refs')))})</summary>",
             list_html(source_refs, empty_text="当前没有可展示的数据来源。"),
@@ -381,6 +564,33 @@ def render_progress_portal_html(payload: Mapping[str, Any]) -> str:
         ]
     )
 
+
+def _navigation_section(payload: Mapping[str, Any]) -> str:
+    navigation = _mapping(payload.get("navigation"))
+    studies = _mapping_list(navigation.get("studies"))
+    scope = _non_empty_text(navigation.get("scope")) or "workspace"
+    workspace_href = _non_empty_text(navigation.get("workspace_href")) or "index.html"
+    if not studies and scope != "study":
+        return ""
+    links: list[str] = []
+    if scope == "study":
+        links.append(f'<a href="{escape(workspace_href, quote=True)}">工作区总览</a>')
+    for item in studies:
+        study_id = _non_empty_text(item.get("study_id"))
+        href = _non_empty_text(item.get("href"))
+        if study_id is None or href is None:
+            continue
+        label = f"{study_id}（当前）" if bool(item.get("selected")) else study_id
+        links.append(f'<a href="{escape(href, quote=True)}">{escape(label)}</a>')
+    if not links:
+        return ""
+    return (
+        '<nav class="panel wide portal-nav" aria-label="论文线导航">'
+        "<h2>论文线入口</h2>"
+        '<div class="live-console-link">'
+        + "".join(links)
+        + "</div></nav>"
+    )
 
 def materialize_progress_portal(
     *,
@@ -400,22 +610,47 @@ def materialize_progress_portal(
     auto_refresh_seconds: int | None = None,
     live_console_disabled_reason: str | None = None,
 ) -> dict[str, Any]:
+    selected_study_id = _non_empty_text(study_id) or (study_root.name if study_root is not None else None)
+    detail_payload = None
+    if selected_study_id is not None or progress_payload is not None or study_root is not None:
+        detail_payload = build_progress_portal_payload(
+            profile=profile,
+            study_id=selected_study_id,
+            study_root=study_root,
+            profile_ref=profile_ref,
+            progress_payload=progress_payload,
+            cockpit_payload=cockpit_payload,
+            runtime_payload=runtime_payload,
+            package_payload=package_payload,
+            generated_at=generated_at,
+            local_timezone=local_timezone,
+            entry_mode=entry_mode,
+            sync_runtime_summary=sync_runtime_summary,
+            auto_refresh_seconds=auto_refresh_seconds,
+            live_console_disabled_reason=live_console_disabled_reason,
+            page_scope="study",
+        )
+        selected_study_id = str(_mapping(detail_payload.get("study")).get("study_id") or selected_study_id)
+
     payload = build_progress_portal_payload(
         profile=profile,
-        study_id=study_id,
-        study_root=study_root,
+        study_id=None,
+        study_root=None,
         profile_ref=profile_ref,
-        progress_payload=progress_payload,
+        progress_payload=None,
         cockpit_payload=cockpit_payload,
-        runtime_payload=runtime_payload,
-        package_payload=package_payload,
+        runtime_payload=None,
+        package_payload=None,
         generated_at=generated_at,
         local_timezone=local_timezone,
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
         auto_refresh_seconds=auto_refresh_seconds,
         live_console_disabled_reason=live_console_disabled_reason,
+        page_scope="workspace",
     )
+    if detail_payload is not None:
+        _ensure_workspace_has_selected_study(payload, detail_payload)
     payload_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "latest.json"
     hosted_package_path = profile.workspace_root / "artifacts" / "runtime" / "progress_portal" / "hosted_package.json"
     html_path = profile.workspace_root / "ops" / "mas" / "progress" / "index.html"
@@ -423,6 +658,17 @@ def materialize_progress_portal(
     html_path.parent.mkdir(parents=True, exist_ok=True)
     payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     html_path.write_text(render_progress_portal_html(payload), encoding="utf-8")
+    study_pages = _materialize_study_pages(
+        profile=profile,
+        workspace_payload=payload,
+        selected_payload=detail_payload,
+        profile_ref=profile_ref,
+        generated_at=generated_at,
+        local_timezone=local_timezone,
+        auto_refresh_seconds=auto_refresh_seconds,
+        live_console_disabled_reason=live_console_disabled_reason,
+    )
+    selected_page = study_pages.get(selected_study_id or "") if selected_study_id is not None else None
     hosted_package = build_progress_portal_hosted_package(
         profile=profile,
         profile_ref=profile_ref,
@@ -430,21 +676,25 @@ def materialize_progress_portal(
         payload_path=payload_path,
         html_path=html_path,
         hosted_package_path=hosted_package_path,
+        study_pages=study_pages,
     )
     hosted_package_path.write_text(json.dumps(hosted_package, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if open_browser:
-        webbrowser.open(html_path.as_uri())
+        webbrowser.open(Path(selected_page["html_path"]).as_uri() if selected_page else html_path.as_uri())
     opl_handoff = _materialized_opl_handoff(
-        payload.get("opl_handoff"),
-        payload_path=payload_path,
-        html_path=html_path,
+        (selected_page or {}).get("opl_handoff") if selected_page else payload.get("opl_handoff"),
+        payload_path=Path(str(selected_page["payload_path"])) if selected_page else payload_path,
+        html_path=Path(str(selected_page["html_path"])) if selected_page else html_path,
     )
     return {
         "status": "materialized",
         "surface_kind": SURFACE_KIND,
         "payload_path": str(payload_path),
-        "html_path": str(html_path),
+        "html_path": str(selected_page["html_path"]) if selected_page else str(html_path),
+        "workspace_html_path": str(html_path),
         "hosted_package_path": str(hosted_package_path),
+        "study_pages": study_pages,
+        "selected_study_id": selected_study_id,
         "generated_at": payload["generated_at"],
         "opl_handoff": opl_handoff,
         "hosted_package": hosted_package,
@@ -459,6 +709,7 @@ def build_progress_portal_hosted_package(
     html_path: Path,
     hosted_package_path: Path,
     profile_ref: str | Path | None = None,
+    study_pages: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     workspace_root = profile.workspace_root
     return {
@@ -501,6 +752,13 @@ def build_progress_portal_hosted_package(
                 "hosted_package": _workspace_relative(hosted_package_path, workspace_root),
                 "progress_payload": _workspace_relative(payload_path, workspace_root),
                 "html": _workspace_relative(html_path, workspace_root),
+            },
+            "study_pages": {
+                study_id: {
+                    "payload": _workspace_relative(Path(str(page.get("payload_path"))), workspace_root),
+                    "html": _workspace_relative(Path(str(page.get("html_path"))), workspace_root),
+                }
+                for study_id, page in (study_pages or {}).items()
             },
         },
         "entrypoints": {
@@ -884,6 +1142,7 @@ def _opl_handoff_projection(
     delivery: Mapping[str, Any],
     conditions: Mapping[str, Any],
     runtime_continuity: Mapping[str, Any],
+    page_scope: str,
 ) -> dict[str, Any]:
     return {
         "handoff_kind": "mas_progress_portal_opl_family_projection",
@@ -892,6 +1151,7 @@ def _opl_handoff_projection(
         "authority": "display_artifact_only",
         "opl_role": "family_level_projection_consumer_only",
         "study_id": study_id,
+        "page_scope": page_scope,
         "profile_name": profile_name,
         "payload_refs": {
             "progress_portal": PROGRESS_PORTAL_PAYLOAD_REF,

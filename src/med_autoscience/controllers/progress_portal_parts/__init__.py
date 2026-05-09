@@ -37,6 +37,10 @@ from .study_workbench import (
     build_study_workbench_payload,
     render_study_workbench_sections,
 )
+from .route_decision_trail import (
+    build_route_decision_trail_payload,
+    render_route_decision_trail_section,
+)
 from .live_console_shell import (
     LIVE_CONSOLE_HTML_REF,
     LIVE_CONSOLE_SERVE_COMMAND,
@@ -50,8 +54,10 @@ from .workspace_overview import (
     render_workspace_studies_section,
     render_workspace_alerts_section,
     selected_workspace_study_id,
+    study_detail_href,
     unique_text,
     workspace_alert_projection,
+    workspace_portal_navigation,
     workspace_studies,
 )
 from .workspace_summary import (
@@ -66,6 +72,7 @@ __all__ = [
     "LIVE_CONSOLE_SERVE_COMMAND",
     "LIVE_CONSOLE_SESSION_READ_MODEL_REF",
     "ARTIFACT_GROUPS",
+    "build_route_decision_trail_payload",
     "build_study_workbench_payload",
     "condition_badge",
     "condition_section",
@@ -85,6 +92,7 @@ __all__ = [
     "refresh_meta",
     "render_workspace_studies_section",
     "render_workspace_alerts_section",
+    "render_route_decision_trail_section",
     "render_study_workbench_sections",
     "render_live_console_portal_link",
     "render_section_explanations_section",
@@ -96,6 +104,7 @@ __all__ = [
     "status_chip",
     "status_label",
     "selected_workspace_study_id",
+    "study_detail_href",
     "system_timezone_name",
     "timezone_name_from_localtime_target",
     "unique_text",
@@ -104,6 +113,7 @@ __all__ = [
     "workspace_delivery_paragraphs",
     "workspace_next_step_paragraphs",
     "workspace_quality_paragraphs",
+    "workspace_portal_navigation",
     "workspace_status_paragraphs",
     "workspace_studies",
 ]

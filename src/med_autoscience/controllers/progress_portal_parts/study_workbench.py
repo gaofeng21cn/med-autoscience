@@ -5,6 +5,10 @@ from html import escape
 from typing import Any
 
 from .rendering import list_html, status_chip
+from .route_decision_trail import (
+    build_route_decision_trail_payload,
+    render_route_decision_trail_section,
+)
 from .source_refs import source_ref_allowed, source_refs
 from .status_display import display_text
 
@@ -60,6 +64,12 @@ def build_study_workbench_payload(
     user_visible = _valid_user_visible_projection(resolved_progress.get("user_visible_projection"))
     cockpit_study = _cockpit_study(resolved_cockpit, resolved_study_id)
     artifact_groups = _artifact_groups(resolved_progress, resolved_runtime, resolved_package)
+    route_decision_trail = build_route_decision_trail_payload(
+        resolved_progress,
+        resolved_runtime,
+        resolved_package,
+        resolved_study_id,
+    )
     refs = source_refs(resolved_progress, resolved_cockpit, resolved_runtime, resolved_package)
     conditions = _conditions(
         study_id=resolved_study_id,
@@ -69,6 +79,7 @@ def build_study_workbench_payload(
         package=resolved_package,
         user_visible=user_visible,
         artifact_groups=artifact_groups,
+        route_decision_trail=route_decision_trail,
         source_refs=refs,
     )
     overview = {
@@ -106,12 +117,18 @@ def build_study_workbench_payload(
         "study_id": resolved_study_id,
         "tabs": [
             {"id": "overview", "label": "概览", "status": _tab_status(overview)},
+            {
+                "id": "route_decision_trail",
+                "label": "路线/决策",
+                "status": _non_empty_text(route_decision_trail.get("status")) or "missing",
+            },
             {"id": "path_stage", "label": "路径/阶段", "status": _tab_status(path_stage)},
             {"id": "runtime", "label": "运行", "status": _tab_status(runtime_projection)},
             {"id": "artifacts", "label": "产物", "status": _artifact_tab_status(artifact_groups)},
             {"id": "source_refs", "label": "来源", "status": "available" if refs else "missing"},
         ],
         "overview": overview,
+        "route_decision_trail": route_decision_trail,
         "path_stage": path_stage,
         "runtime": runtime_projection,
         "artifact_groups": artifact_groups,
@@ -122,6 +139,7 @@ def build_study_workbench_payload(
 
 def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
     overview = _mapping(payload.get("overview"))
+    route_decision_trail = _mapping(payload.get("route_decision_trail"))
     path_stage = _mapping(payload.get("path_stage"))
     runtime = _mapping(payload.get("runtime"))
     artifact_groups = _mapping(payload.get("artifact_groups"))
@@ -135,6 +153,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
             + escape(display_text(overview.get("state_label"), fallback="状态投影缺失", preserve_known_token=False))
             + "</p>",
             "</section>",
+            render_route_decision_trail_section(route_decision_trail),
             _key_value_section(
                 "路径与阶段",
                 {
@@ -331,6 +350,7 @@ def _conditions(
     package: Mapping[str, Any],
     user_visible: Mapping[str, Any],
     artifact_groups: Mapping[str, Mapping[str, Any]],
+    route_decision_trail: Mapping[str, Any],
     source_refs: list[str],
 ) -> dict[str, list[str]]:
     missing: list[str] = []
@@ -349,6 +369,8 @@ def _conditions(
     for group_name, group in artifact_groups.items():
         if _non_empty_text(group.get("status")) == "missing":
             missing.append(f"artifact_group:{group_name}")
+    for item in _string_list(_mapping(route_decision_trail.get("conditions")).get("missing")):
+        missing.append(f"route_decision_trail:{item}")
     freshness_status = _non_empty_text(_mapping(progress.get("progress_freshness")).get("status"))
     if freshness_status == "missing":
         missing.append("progress_freshness")
