@@ -85,18 +85,28 @@ def workspace_root_from_paper_root(paper_root: Path) -> Path:
     return paper_root.resolve().parent
 
 
-def resolve_relpath(workspace_root: Path, value: str) -> Path:
-    return workspace_root / value
-
-
-
-
 def _canonical_paper_relative_path(value: str | Path) -> str | None:
     parts = Path(str(value).strip()).parts
     paper_indexes = [index for index, part in enumerate(parts) if part == "paper"]
     if not paper_indexes:
         return None
     return Path(*parts[paper_indexes[-1] :]).as_posix()
+
+
+def resolve_relpath(workspace_root: Path, value: str) -> Path:
+    raw_value = str(value).strip()
+    candidate_path = Path(raw_value).expanduser()
+    if candidate_path.is_absolute():
+        return candidate_path
+    canonical_paper_relpath = _canonical_paper_relative_path(raw_value)
+    if canonical_paper_relpath is not None:
+        canonical_candidate = workspace_root / canonical_paper_relpath
+        try:
+            if canonical_candidate.exists():
+                return canonical_candidate
+        except OSError:
+            pass
+    return workspace_root / raw_value
 
 
 def build_figure_basename(figure_id: str) -> str:
@@ -138,6 +148,45 @@ def resolve_bundle_input_path(
     if fallback:
         return fallback
     raise KeyError(f"missing bundle input `{key}` in paper bundle manifest")
+
+
+def resolve_compile_report_path(*, workspace_root: Path, paper_root: Path, bundle_manifest: dict[str, Any]) -> Path:
+    candidates = [
+        resolve_bundle_input_path(
+            bundle_manifest=bundle_manifest,
+            key="compile_report_path",
+            fallback="",
+        ),
+        "paper/build/compile_report.json",
+        "paper/compile_report.json",
+        "paper/submission_minimal/compile_report.json",
+        "build/compile_report.json",
+        "compile_report.json",
+        "submission_minimal/compile_report.json",
+    ]
+    first_candidate: Path | None = None
+    seen: set[Path] = set()
+    for candidate in candidates:
+        if not candidate:
+            continue
+        candidate_path = resolve_relpath(workspace_root, candidate)
+        try:
+            resolved = candidate_path.resolve()
+        except OSError:
+            continue
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if first_candidate is None:
+            first_candidate = resolved
+        try:
+            if resolved.exists():
+                return resolved
+        except OSError:
+            continue
+    if first_candidate is not None:
+        return first_candidate
+    return paper_root / "build" / "compile_report.json"
 
 
 def _first_nonempty_string(*values: object) -> str | None:

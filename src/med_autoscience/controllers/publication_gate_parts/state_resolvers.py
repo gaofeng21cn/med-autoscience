@@ -134,20 +134,38 @@ def resolve_compile_report_path(
 ) -> Path | None:
     if paper_bundle_manifest_path is None or paper_bundle_manifest is None:
         return None
+    paper_root = paper_bundle_manifest_path.resolve().parent
+    worktree_root = paper_root.parent
     candidates = [
         str(paper_bundle_manifest.get("compile_report_path") or "").strip(),
         str((paper_bundle_manifest.get("bundle_inputs") or {}).get("compile_report_path") or "").strip(),
+        "paper/build/compile_report.json",
+        "paper/compile_report.json",
+        "paper/submission_minimal/compile_report.json",
+        "build/compile_report.json",
+        "compile_report.json",
+        "submission_minimal/compile_report.json",
     ]
-    worktree_root = paper_bundle_manifest_path.resolve().parent.parent
+    candidate_roots = (worktree_root, paper_root)
+    seen: set[Path] = set()
     for candidate in candidates:
         if not candidate:
             continue
         path = Path(candidate).expanduser()
-        if not path.is_absolute():
-            path = worktree_root / path
-        resolved = path.resolve()
-        if resolved.exists():
-            return resolved
+        raw_paths = [path] if path.is_absolute() else [root / path for root in candidate_roots]
+        for raw_path in raw_paths:
+            try:
+                resolved = raw_path.resolve()
+            except OSError:
+                continue
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            try:
+                if resolved.exists():
+                    return resolved
+            except OSError:
+                continue
     return None
 
 
