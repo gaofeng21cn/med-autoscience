@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import runtime_live_console_ui
-from med_autoscience.runtime_protocol import runtime_live_console_read_model
+from med_autoscience.runtime_protocol import runtime_conversation_read_model, runtime_live_console_read_model
 
 
 def build_live_console_read_model(**kwargs: Any) -> dict[str, Any]:
@@ -40,6 +40,14 @@ def materialize_live_console_session_read_model(*args: Any, **kwargs: Any) -> di
     result = runtime_live_console_read_model.materialize_live_console_session_read_model(*args, **kwargs)
     _materialize_live_console_ui(result, profile=_profile_from_call(args=args, kwargs=kwargs), stream_href=None)
     return result
+
+
+def build_conversation_read_model(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    return runtime_conversation_read_model.build_conversation_read_model(*args, **kwargs)
+
+
+def materialize_conversation_read_model(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    return runtime_conversation_read_model.materialize_conversation_read_model(*args, **kwargs)
 
 
 def serve_live_console_stream(*args: Any, **kwargs: Any) -> dict[str, Any]:
@@ -96,10 +104,12 @@ def _materialize_live_console_ui(
 
 
 __all__ = [
+    "build_conversation_read_model",
     "build_live_console_read_model",
     "build_live_console_session_read_model",
     "build_live_console_stream_events",
     "read_live_console_snapshot",
+    "materialize_conversation_read_model",
     "materialize_live_console_read_model",
     "materialize_live_console_session_read_model",
     "serve_live_console_stream",
