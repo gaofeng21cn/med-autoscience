@@ -17,6 +17,9 @@ def test_two_layer_ai_repair_policy_freezes_intervals_and_escalation_thresholds(
     assert payload["developer_supervisor"]["owner_pickup_overdue_after_hours"] == 2
     assert payload["developer_supervisor"]["developer_attention_after_hours"] == 6
     assert payload["developer_supervisor"]["default_enablement"] == {
+        "authority_surface": "opl_family_user_config",
+        "config_path": "~/Library/Application Support/OPL/state/developer-supervisor.json",
+        "state_dir_env_override": "OPL_STATE_DIR",
         "auto_enabled_for_expected_github_login": "gaofeng21cn",
         "manual_enablement_supported": True,
         "unauthorized_users_fall_back_to": "external_observe",

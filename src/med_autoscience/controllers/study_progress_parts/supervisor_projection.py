@@ -165,6 +165,13 @@ def _portable_supervisor_mode_fields(payload: Mapping[str, Any]) -> dict[str, An
         text = _non_empty_text(github_user_gate)
         if text is not None:
             projection["github_user_gate"] = text
+    authority_gate = _first_present_mapping_value(sources, "authority_gate")
+    if isinstance(authority_gate, Mapping):
+        projection["authority_gate"] = dict(authority_gate)
+    else:
+        text = _non_empty_text(authority_gate)
+        if text is not None:
+            projection["authority_gate"] = text
     if "safe_actions_enabled" not in projection and "apply_safe_actions" in payload:
         projection["safe_actions_enabled"] = bool(payload.get("apply_safe_actions"))
     return projection
