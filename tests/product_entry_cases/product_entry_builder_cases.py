@@ -41,7 +41,7 @@ def test_build_product_entry_preflight_uses_shared_builder(monkeypatch, tmp_path
     payload = module._build_product_entry_preflight(doctor_report=doctor_report, profile_ref=profile_ref)
 
     assert payload["surface_kind"] == "product_entry_preflight"
-    assert len(captured["checks"]) == 8
+    assert len(captured["checks"]) == 7
     assert str(captured["recommended_check_command"]).endswith("doctor --profile " + str(profile_ref.resolve()))
     assert str(captured["recommended_start_command"]).endswith(
         "product-entry-status --profile " + str(profile_ref.resolve())

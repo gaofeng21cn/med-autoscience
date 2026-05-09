@@ -69,7 +69,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | memory and lesson store | `partially_equivalent` | Use MAS memory / incident-learning read models. |
 | team and multi-agent coordination | `historical_fixture_only` | Keep as historical fixture/reference. |
 | artifact interaction handoff | `partially_equivalent` | Use Artifact OS locator and handoff refs. |
-| daemon lifecycle controls | `not_equivalent_retired` | Use Hermes cron supervision controls. |
+| daemon lifecycle controls | `not_equivalent_retired` | Use MAS supervision scheduler controls; Hermes cron is only an explicit optional adapter. |
 | workspace-local host service | `not_equivalent_retired` | Clean retired service evidence; do not install. |
 
 `turn_completion_continuation` 是本轮重新评估后的关键变化：旧 MDS 的 runner completion 后状态归一化和下一 turn 调度，已经落在 MAS Runtime Turn Lifecycle Kernel；MAS scheduler adapter 只剩 outer supervision / stale recovery cadence。`runtime_continuity_completion` 是 session tracking 和 crash recovery intent 的 landed refinement，但仍保留 scheduler-bound timing 差异，不宣称 resident daemon equivalence。
