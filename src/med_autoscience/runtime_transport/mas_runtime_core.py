@@ -8,7 +8,10 @@ from typing import Any
 import yaml
 
 from med_autoscience.runtime_transport import mas_runtime_core_turns as turn_lifecycle
-from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import terminate_worker_leases
+from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import (
+    terminate_orphan_worker_leases,
+    terminate_worker_leases,
+)
 
 BACKEND_ID = "mas_runtime_core"
 ENGINE_ID = "mas-runtime-core"
@@ -298,7 +301,19 @@ def inspect_quest_live_runtime(
     snapshot = _snapshot(quest_root=quest_root)
     lifecycle = turn_lifecycle.inspect_turn_lifecycle(quest_root=quest_root)
     live = snapshot["status"] == "running" and bool(lifecycle["active_run_id"]) and lifecycle["worker_running"] is True
-    return {
+    orphan_worker_cleanup = None
+    if live:
+        orphan_worker_cleanup = terminate_orphan_worker_leases(
+            quest_root=quest_root,
+            active_run_id=str(lifecycle["active_run_id"]),
+            source="mas_runtime_core.inspect_liveness",
+            reason="orphan_worker_lease_prune",
+            utc_now=_utc_now,
+            read_json=_read_json,
+            write_json=_write_json,
+            append_runtime_event=_append_event,
+        )
+    result = {
         "ok": True,
         "status": "live" if live else "none",
         "source": "mas_runtime_core_turn_lifecycle",
@@ -307,6 +322,9 @@ def inspect_quest_live_runtime(
         "worker_pending": lifecycle["worker_pending"] is True,
         "stop_requested": snapshot["stop_requested"] is True,
     }
+    if orphan_worker_cleanup is not None:
+        result["orphan_worker_cleanup"] = orphan_worker_cleanup
+    return result
 
 
 def inspect_quest_live_bash_sessions(

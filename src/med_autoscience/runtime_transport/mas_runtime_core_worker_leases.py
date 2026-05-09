@@ -46,6 +46,56 @@ def terminate_worker_leases(
     append_runtime_event: Callable[..., None],
 ) -> dict[str, Any]:
     leases = _worker_leases(quest_root=quest_root, read_json=read_json)
+    return _terminate_leases(
+        quest_root=quest_root,
+        leases=leases,
+        source=source,
+        reason=reason,
+        utc_now=utc_now,
+        write_json=write_json,
+        append_runtime_event=append_runtime_event,
+    )
+
+
+def terminate_orphan_worker_leases(
+    *,
+    quest_root: Path,
+    active_run_id: str | None,
+    source: str,
+    reason: str,
+    utc_now: Callable[[], str],
+    read_json: Callable[[Path], dict[str, Any]],
+    write_json: Callable[[Path, Mapping[str, Any]], None],
+    append_runtime_event: Callable[..., None],
+) -> dict[str, Any] | None:
+    leases = [
+        (lease_path, lease)
+        for lease_path, lease in _worker_leases(quest_root=quest_root, read_json=read_json)
+        if (text(lease.get("run_id")) or lease_path.parent.name) != active_run_id
+    ]
+    if not leases:
+        return None
+    return _terminate_leases(
+        quest_root=quest_root,
+        leases=tuple(leases),
+        source=source,
+        reason=reason,
+        utc_now=utc_now,
+        write_json=write_json,
+        append_runtime_event=append_runtime_event,
+    )
+
+
+def _terminate_leases(
+    *,
+    quest_root: Path,
+    leases: tuple[tuple[Path, dict[str, Any]], ...],
+    source: str,
+    reason: str,
+    utc_now: Callable[[], str],
+    write_json: Callable[[Path, Mapping[str, Any]], None],
+    append_runtime_event: Callable[..., None],
+) -> dict[str, Any]:
     terminations: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
     for lease_path, lease in leases:
