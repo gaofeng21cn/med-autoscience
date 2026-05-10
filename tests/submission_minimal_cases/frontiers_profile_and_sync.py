@@ -462,7 +462,7 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
     assert "\n# Main Figures\n" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
-    assert "![](../figures/F1_main.png)" in submission_markdown
+    assert "![](figures/Figure1.png)" in submission_markdown
     assert "Catalog-backed fallback keeps the main manuscript figure visible." in submission_markdown
     assert "Panel A: The primary display remains embedded even when the draft omits a Main Figures section." in submission_markdown
 
@@ -594,7 +594,7 @@ Caption only. The inline image line was dropped from the reviewer manuscript.
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
     assert "\n# Main Figures\n" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
-    assert "![](../figures/F1_main.png)" in submission_markdown
+    assert "![](figures/Figure1.png)" in submission_markdown
     assert "Caption only. The inline image line was dropped from the reviewer manuscript." in submission_markdown
     assert manifest["manuscript"]["surface_qc"]["status"] == "pass"
     assert manifest["manuscript"]["surface_qc"]["source_markdown"]["figure_blocks_with_images"] == 1
@@ -650,7 +650,7 @@ Caption retained under the short F heading.
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
     assert "\n# Main Figures\n" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
-    assert "![](../figures/F1_main.png)" in submission_markdown
+    assert "![](figures/Figure1.png)" in submission_markdown
     assert "Caption retained under the short F heading." in submission_markdown
     assert manifest["manuscript"]["surface_qc"]["status"] == "pass"
     assert manifest["manuscript"]["surface_qc"]["source_markdown"]["figure_blocks_with_images"] == 1

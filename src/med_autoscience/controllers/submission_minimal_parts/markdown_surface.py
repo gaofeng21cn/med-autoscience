@@ -488,6 +488,21 @@ def _select_submission_markdown_figure_source(entry: dict[str, Any]) -> str:
     return normalized_paths[0] if normalized_paths else ""
 
 
+def _submission_markdown_figure_relpath(*, figure_id: str, source_relpath: str) -> str:
+    source_suffix = Path(str(source_relpath).strip()).suffix
+    if not figure_id or not source_suffix:
+        return ""
+    return f"figures/{build_figure_basename(figure_id)}{source_suffix}"
+
+
+def _first_image_alt_text(image_lines: list[str]) -> str:
+    for line in image_lines:
+        match = re.match(r"^!\[([^\]]*)]\(", line.strip())
+        if match:
+            return match.group(1)
+    return ""
+
+
 def build_catalog_backed_main_figures(*, paper_root: Path, submission_root: Path) -> str:
     figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
     if not figure_catalog_path.exists():
@@ -511,7 +526,7 @@ def build_catalog_backed_main_figures(*, paper_root: Path, submission_root: Path
         image_source_path = resolve_relpath(workspace_root, image_source_rel)
         if not image_source_path.exists():
             continue
-        image_rel = os.path.relpath(image_source_path.resolve(), submission_root.resolve())
+        image_rel = _submission_markdown_figure_relpath(figure_id=figure_id, source_relpath=image_source_rel)
         heading = _build_catalog_figure_heading(
             figure_id=figure_id,
             title=str(entry.get("title") or ""),
@@ -548,7 +563,10 @@ def build_catalog_backed_submission_figure_image_map(*, paper_root: Path, submis
         image_source_path = resolve_relpath(workspace_root, image_source_rel)
         if not image_source_path.exists():
             continue
-        image_map[figure_id] = os.path.relpath(image_source_path.resolve(), submission_root.resolve())
+        image_map[figure_id] = _submission_markdown_figure_relpath(
+            figure_id=figure_id,
+            source_relpath=image_source_rel,
+        )
     return image_map
 
 
@@ -582,8 +600,12 @@ def build_catalog_backed_figure_blocks(*, paper_root: Path, submission_root: Pat
         if image_source_rel:
             image_source_path = resolve_relpath(workspace_root, image_source_rel)
             if image_source_path.exists():
-                image_rel = os.path.relpath(image_source_path.resolve(), submission_root.resolve())
-                image_line = f"![]({image_rel})"
+                image_rel = _submission_markdown_figure_relpath(
+                    figure_id=figure_id,
+                    source_relpath=image_source_rel,
+                )
+                image_alt = _first_image_alt_text(extract_image_lines(source_body))
+                image_line = f"![{image_alt}]({image_rel})"
         heading = source_heading or _build_catalog_figure_heading(
             figure_id=figure_id,
             title=str(entry.get("title") or ""),

@@ -539,7 +539,7 @@ def test_create_submission_minimal_package_general_profile_embeds_figures_into_d
     submission_markdown = (submission_root / "manuscript_submission.md").read_text(encoding="utf-8")
     assert "# Main Figures" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
-    assert "![](../figures/F1_main.png)" in submission_markdown
+    assert "![](figures/Figure1.png)" in submission_markdown
     assert "Caption." in submission_markdown
     assert manifest["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
 
