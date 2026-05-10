@@ -18,6 +18,22 @@ Machine boundary: this is a human-readable program plan. Machine truth remains i
 
 本 program 的最高目标是把 MAS 从“能监管和解释论文停滞”推进到“能默认持续推进方向锁定后的医学论文，直到进入 human gate、科学/数据止损、或达到 AI reviewer-backed submission-facing quality closure”。
 
+## 当前落地状态
+
+本轮已经落地的是 MAS repo 级 AI-first paper autonomy callable loop，不是全部历史计划的产品级终态。
+
+| 范围 | 状态 | 当前证据 / 边界 |
+| --- | --- | --- |
+| MAS repair executor closure | `landed` | `paper_repair_executor` 可执行 `analysis_repair`、`text_repair`、`evidence_ledger_repair`、`review_ledger_repair`、`claim_downgrade`、`route_decision`，并写 owner receipt、canonical delta、ledger update、gate replay request、AI reviewer recheck request。 |
+| Negative-result executable route | `landed` | `route_decision_orchestrator` 对 weak / negative / contradictory / blocked analysis slice 输出 analysis slice contract、failed path refs、claim policy 和 executable owner tasks。 |
+| Default AI reviewer replay loop | `repo surface landed` | supervisor dispatch 与 sidecar `paper_autonomy/ai-reviewer-recheck` 可触发 MAS-owned AI reviewer workflow；最终质量仍以 AI reviewer-backed `publication_eval/latest.json` 为准。 |
+| Canonical manuscript/package loop | `landed` | repair 只写 canonical manuscript / evidence ledger / review ledger / revision log 与 rebuild/freshness/delivery proof；`current_package_write_authorized=false`。 |
+| OPL/Hermes family runtime E2E queue | `partial` | MAS sidecar task schema 与 OPL family queue projection landed；真实 Hermes gateway cron/webhook restart soak、MAG/RCA parity 和 Full App packaging 不属于本 MAS commit 的完成范围。 |
+| Real paper soak | `read-only projection landed` | DM002、DM003、Obesity 可只读报告 artifact delta、AI reviewer re-eval、route decision、stop-loss、human gate、continuing repair 或 stable blocker；尚未把三篇都跑到 controlled live apply 的 submission-facing closure。 |
+| Medical quality/reporting guard | `existing guard plus loop integration` | 医学质量仍由 study charter、evidence/review ledger、AI reviewer-backed publication eval 和 publication gate 授权；repo loop 不能机械授权 quality ready。 |
+
+因此，当前可以说“MAS AI-first paper autonomy 的 repo callable loop 已落地并有文档/测试/只读真实 paper projection”，不能说“所有计划都已经完整产品化”。Full OPL App 携带 Hermes、MAG/RCA domain adapters、Hermes gateway 真实 24h restart soak、三篇论文 controlled live apply 到最终投稿级交付，仍是后续验收项。
+
 ## 保证边界
 
 MAS 可以并且应该保证工程闭环：
