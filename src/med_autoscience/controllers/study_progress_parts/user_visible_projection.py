@@ -68,11 +68,12 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     user_next = _non_empty_text(macro_state.get("user_next")) or "inspect"
     reason = _non_empty_text(macro_state.get("reason")) or "truth_conflict"
     details = _mapping_copy(macro_state.get("details"))
-    package_delivered = bool(details.get("package_delivered"))
+    paper_progress_state = build_paper_progress_state(payload)
+    package_delivered = bool(details.get("package_delivered")) or bool(paper_progress_state.get("package_delivered"))
     actual_write_active = _actual_write_active(writer_state=writer_state, macro_state=macro_state, payload=payload)
     meaningful_artifact_delta = _meaningful_artifact_delta(payload)
-    next_owner = _next_owner(payload=payload, details=details)
-    why_not_progressing = _why_not_progressing(
+    next_owner = _non_empty_text(paper_progress_state.get("next_owner")) or _next_owner(payload=payload, details=details)
+    why_not_progressing = _non_empty_text(paper_progress_state.get("why_not_progressing")) or _why_not_progressing(
         payload=payload,
         actual_write_active=actual_write_active,
         meaningful_artifact_delta=meaningful_artifact_delta,
@@ -113,7 +114,6 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         package_delivered=package_delivered,
         details=details,
     )
-    paper_progress_state = build_paper_progress_state(payload)
 
     return {
         "surface": USER_VISIBLE_PROJECTION_SURFACE,

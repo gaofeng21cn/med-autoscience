@@ -82,12 +82,16 @@ def _paper_state(
         return "awaiting_human"
     if _is_downstream_only(payload, blocking_reasons):
         return "downstream_only"
-    if _RUNTIME_RETRY_EXHAUSTED in blocking_reasons and next_owner == "MAS/controller":
+    if (
+        _RUNTIME_RETRY_EXHAUSTED in blocking_reasons
+        and next_owner == "MAS/controller"
+        and not _route_authorization_blocked(payload)
+    ):
         return "awaiting_controller_redrive"
-    if _owner_callable_surface_missing(payload, next_owner):
-        return "awaiting_callable_owner"
     if _controller_route_blocked(payload, blocking_reasons):
         return "blocked_controller_route"
+    if _owner_callable_surface_missing(payload, next_owner):
+        return "awaiting_callable_owner"
     if actual_write_active and meaningful_artifact_delta:
         return "progressing"
     if next_owner:
@@ -114,6 +118,8 @@ def _package_delivered(payload: Mapping[str, Any], details: Mapping[str, Any]) -
         return True
     delivery = _mapping(payload.get("delivery_inspection"))
     if delivery.get("package_delivered") is True:
+        return True
+    if _delivery_current(delivery):
         return True
     submission_hygiene = _mapping(payload.get("submission_hygiene_truth"))
     if submission_hygiene.get("package_delivered") is True:
@@ -149,7 +155,9 @@ def _next_owner(payload: Mapping[str, Any], details: Mapping[str, Any]) -> str |
     portable_supervisor = _mapping(payload.get("portable_supervisor_dashboard"))
     ai_repair_lifecycle = _mapping(payload.get("ai_repair_lifecycle"))
     control_plane = _mapping(payload.get("control_plane_snapshot"))
-    return (
+    if _supervisor_only_live_quality_repair(payload):
+        return "supervisor_only/live_quality_repair"
+    owner = (
         _text(interaction.get("next_owner"))
         or _text(owner_route.get("next_owner"))
         or _text(production_impact.get("next_owner"))
@@ -159,6 +167,7 @@ def _next_owner(payload: Mapping[str, Any], details: Mapping[str, Any]) -> str |
         or _text(ai_repair_lifecycle.get("next_owner"))
         or _text(control_plane.get("next_owner"))
     )
+    return _normalize_owner(owner)
 
 
 def _requires_user_input(payload: Mapping[str, Any]) -> bool:
@@ -224,6 +233,8 @@ def _safe_reconcile_command(payload: Mapping[str, Any]) -> str | None:
 def _controller_route_blocked(payload: Mapping[str, Any], blocking_reasons: list[str]) -> bool:
     control_plane = _mapping(payload.get("control_plane_snapshot"))
     dispatch_gate = _mapping(control_plane.get("dispatch_gate"))
+    if _route_authorization_blocked(payload):
+        return True
     if _text(dispatch_gate.get("state")) == "blocked":
         return True
     if _text(control_plane.get("control_state")) in {"blocked_controller_decision", "blocked_ledger", "needs_reconcile"}:
@@ -243,6 +254,47 @@ def _owner_callable_surface_missing(payload: Mapping[str, Any], next_owner: str 
     if next_owner and next_owner not in _registered_callable_owners():
         return True
     return "owner_callable_surface_missing" in _blocking_reasons(payload)
+
+
+def _route_authorization_blocked(payload: Mapping[str, Any]) -> bool:
+    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    route_authorization = _mapping(control_plane.get("route_authorization"))
+    if not route_authorization:
+        return False
+    return route_authorization.get("authorized") is False
+
+
+def _delivery_current(delivery: Mapping[str, Any]) -> bool:
+    if _text(delivery.get("status")) == "current":
+        return True
+    if _text(delivery.get("delivery_status")) == "current":
+        return True
+    freshness = _mapping(delivery.get("freshness"))
+    if _text(freshness.get("delivery_status")) == "current":
+        return True
+    handshake = _mapping(freshness.get("gate_freshness_handshake"))
+    return _text(handshake.get("status")) == "current"
+
+
+def _supervisor_only_live_quality_repair(payload: Mapping[str, Any]) -> bool:
+    if _mapping(payload.get("execution_owner_guard")).get("supervisor_only") is not True:
+        return False
+    if not _fresh_artifact_delta_present(payload):
+        return False
+    active_run_id = (
+        _text(payload.get("active_run_id"))
+        or _text(_mapping(payload.get("supervision")).get("active_run_id"))
+        or _text(_mapping(_mapping(payload.get("study_macro_state")).get("details")).get("active_run_id"))
+    )
+    return active_run_id is not None
+
+
+def _normalize_owner(owner: str | None) -> str | None:
+    if owner is None:
+        return None
+    if owner == "mas_controller" or owner.startswith("MAS/controller"):
+        return "MAS/controller"
+    return owner
 
 
 def _registered_callable_owners() -> set[str]:

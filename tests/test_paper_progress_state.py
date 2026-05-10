@@ -77,6 +77,49 @@ def test_dm002_retry_budget_controller_route_awaits_controller_redrive() -> None
     )
 
 
+def test_dm002_retry_budget_with_blocked_route_surfaces_controller_route_blocker() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "study_macro_state": {
+                "writer_state": "parked",
+                "user_next": "inspect",
+                "reason": "unknown",
+                "details": {"package_delivered": False},
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "control_plane_snapshot": {
+                "dispatch_gate": {
+                    "state": "blocked",
+                    "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+                },
+                "route_authorization": {
+                    "authorized": False,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": True,
+                    "runtime_recovery_allowed": False,
+                },
+            },
+            "interaction_arbitration": {
+                "requires_user_input": False,
+                "next_owner": "MAS/controller route authorization owner for bundle_build_allowed on submission_minimal_refresh",
+                "blocked_reason": (
+                    "control_plane_route_blocked_bundle_build: dispatch_gate_blocked; "
+                    "execution_owner_guard.supervisor_only; non_supervisor_gate=bundle_build_allowed_false"
+                ),
+            },
+        }
+    )
+
+    assert state["state"] == "blocked_controller_route"
+    assert state["next_owner"] == "MAS/controller"
+    assert state["why_not_progressing"].startswith("control_plane_route_blocked_bundle_build")
+
+
 def test_dm003_missing_callable_owner_without_user_input_awaits_callable_owner() -> None:
     state = _module().build_paper_progress_state(
         {
@@ -124,6 +167,31 @@ def test_dm003_missing_callable_owner_without_user_input_awaits_callable_owner()
     )
 
 
+def test_current_delivery_inspection_counts_as_package_delivered() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "study_macro_state": {
+                "writer_state": "parked",
+                "user_next": "inspect",
+                "reason": "unknown",
+                "details": {"package_delivered": False},
+            },
+            "delivery_inspection": {
+                "status": "current",
+                "freshness": {
+                    "delivery_status": "current",
+                    "gate_freshness_handshake": {"status": "current"},
+                },
+            },
+        }
+    )
+
+    assert state["state"] == "terminal_delivered"
+    assert state["package_delivered"] is True
+    assert state["why_not_progressing"] == "package_delivered"
+
+
 def test_obesity_live_artifact_delta_missing_downstream_delivery_is_downstream_only() -> None:
     state = _module().build_paper_progress_state(
         {
@@ -164,6 +232,38 @@ def test_obesity_live_artifact_delta_missing_downstream_delivery_is_downstream_o
     assert state["next_owner"] == "delivery_sync"
     assert state["why_not_progressing"] == "publication_supervisor_state.bundle_tasks_downstream_only"
     assert state["safe_reconcile_command"] is None
+
+
+def test_obesity_supervisor_only_live_delta_projects_precise_owner() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "active_run_id": "run-obesity",
+            "study_macro_state": {
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-obesity", "package_delivered": False},
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-05-10T08:15:00+00:00",
+                }
+            },
+            "execution_owner_guard": {"supervisor_only": True},
+            "publication_supervisor_state": {"bundle_tasks_downstream_only": True},
+            "portable_supervisor_dashboard": {
+                "next_owner": "external_supervisor",
+                "external_supervisor_required": False,
+            },
+        }
+    )
+
+    assert state["state"] == "downstream_only"
+    assert state["actual_write_active"] is True
+    assert state["meaningful_artifact_delta"] is True
+    assert state["next_owner"] == "supervisor_only/live_quality_repair"
 
 
 def test_user_visible_projection_embeds_paper_progress_state() -> None:
