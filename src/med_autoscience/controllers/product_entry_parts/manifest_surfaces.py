@@ -418,6 +418,9 @@ def build_product_entry_manifest(
     opl_family_persistence_lifecycle_owner_route_adoption = build_product_entry_adoption_projection(
         workspace_root=profile.workspace_root,
     )
+    family_stage_control_plane = build_family_stage_control_plane(
+        family_action_catalog=action_catalog,
+    )
     family_stage_control_plane_descriptor = dict(
         opl_family_persistence_lifecycle_owner_route_adoption["payload"]["family_stage_control_plane_descriptor"]
     )
@@ -547,6 +550,7 @@ def build_product_entry_manifest(
                 opl_family_persistence_lifecycle_owner_route_adoption
             ),
             "family_stage_control_plane_descriptor": family_stage_control_plane_descriptor,
+            "family_stage_control_plane": family_stage_control_plane,
         },
     )
     validate_product_entry_manifest_contract(payload)

@@ -611,6 +611,12 @@ def build_product_entry_adoption_projection(
     )
 
 
+def build_family_stage_control_plane(*, family_action_catalog: Mapping[str, Any]) -> dict[str, Any]:
+    return family_adoption.build_family_stage_control_plane(
+        family_action_catalog=family_action_catalog,
+    )
+
+
 def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
     resolved_db_path = Path(db_path).expanduser().resolve()
     if not resolved_db_path.exists():
@@ -947,6 +953,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "build_opl_family_adoption_surface",
+    "build_family_stage_control_plane",
     "build_product_entry_adoption_projection",
     "inspect_lifecycle_store",
     "quest_lifecycle_store_path",

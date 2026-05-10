@@ -13,6 +13,7 @@ from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
 ADOPTION_SURFACE_KIND = "mas_opl_family_persistence_lifecycle_owner_route_adoption"
 FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND = "family_stage_control_plane_descriptor"
+FAMILY_STAGE_CONTROL_PLANE_KIND = "family_stage_control_plane"
 SOURCE_CONTRACT_REF = "contracts/opl-gateway/family-contract-adoption.json"
 RUNTIME_LIFECYCLE_CONTRACT_REF = (
     "med_autoscience.runtime_protocol.runtime_lifecycle_contract.runtime_lifecycle_contract"
@@ -30,6 +31,51 @@ FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "AI reviewer workflow",
     "paper/manuscript/current_package",
     "current_package.zip",
+)
+
+FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
+    {
+        "stage_id": "direction_and_route_selection",
+        "stage_kind": "planning",
+        "title": "Direction and route selection",
+        "domain_stage_refs": ["scout", "idea", "decision"],
+        "allowed_action_refs": ["product_entry_status", "workspace_cockpit", "study_progress"],
+    },
+    {
+        "stage_id": "baseline_and_evidence_setup",
+        "stage_kind": "source_preparation",
+        "title": "Baseline and evidence setup",
+        "domain_stage_refs": ["baseline", "experiment"],
+        "allowed_action_refs": ["submit_study_task", "launch_study", "study_progress"],
+    },
+    {
+        "stage_id": "bounded_analysis_campaign",
+        "stage_kind": "creation",
+        "title": "Bounded analysis campaign",
+        "domain_stage_refs": ["analysis-campaign"],
+        "allowed_action_refs": ["launch_study", "study_progress", "sidecar_export", "sidecar_dispatch"],
+    },
+    {
+        "stage_id": "manuscript_authoring",
+        "stage_kind": "creation",
+        "title": "Manuscript authoring",
+        "domain_stage_refs": ["write"],
+        "allowed_action_refs": ["launch_study", "study_progress", "sidecar_export", "sidecar_dispatch"],
+    },
+    {
+        "stage_id": "review_and_quality_gate",
+        "stage_kind": "review",
+        "title": "Review and quality gate",
+        "domain_stage_refs": ["review", "decision"],
+        "allowed_action_refs": ["study_progress", "product_entry", "sidecar_export", "sidecar_dispatch"],
+    },
+    {
+        "stage_id": "finalize_and_publication_handoff",
+        "stage_kind": "packaging",
+        "title": "Finalize and publication handoff",
+        "domain_stage_refs": ["finalize", "journal-resolution", "decision"],
+        "allowed_action_refs": ["study_progress", "product_entry", "sidecar_export"],
+    },
 )
 
 
@@ -126,6 +172,182 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "can_authorize_submission_readiness": False,
         },
     }
+
+
+def build_family_stage_control_plane(*, family_action_catalog: Mapping[str, Any]) -> dict[str, Any]:
+    descriptor = build_family_stage_control_plane_descriptor()
+    action_ids = {
+        str(action.get("action_id"))
+        for action in family_action_catalog.get("actions", [])
+        if isinstance(action, Mapping) and str(action.get("action_id") or "").strip()
+    }
+    stages = [_build_stage_descriptor(stage, descriptor=descriptor) for stage in FAMILY_STAGE_PACK]
+    missing_refs = sorted(
+        {
+            action_ref
+            for stage in stages
+            for action_ref in stage["allowed_action_refs"]
+            if action_ref not in action_ids
+        }
+    )
+    if missing_refs:
+        raise ValueError(f"MAS stage control plane allowed_action_refs missing from family_action_catalog: {missing_refs}")
+
+    return {
+        "surface_kind": FAMILY_STAGE_CONTROL_PLANE_KIND,
+        "version": "family-stage-control-plane.v1",
+        "plane_id": "med_autoscience_stage_control_plane",
+        "target_domain_id": "med-autoscience",
+        "owner": "MedAutoScience",
+        "source_refs": _plane_source_refs(descriptor),
+        "freshness": {
+            "freshness_kind": "product_entry_manifest_projection",
+            "source_observed_at_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+            "stale_if_source_refs_missing": True,
+        },
+        "stage_action_parity": {
+            "surface_kind": "family_stage_action_parity",
+            "status": "aligned",
+            "family_action_catalog_ref": "/product_entry_manifest/family_action_catalog",
+            "missing_action_refs": [],
+        },
+        "authority_boundary": {
+            "domain_truth_owner": "MedAutoScience",
+            "route_contract_owner": "MedAutoScience",
+            "stage_knowledge_plane_owner": "MedAutoScience",
+            "publication_gate_owner": "MedAutoScience",
+            "opl_role": "projection_consumer_only",
+            "write_policy": "no_study_truth_writes",
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+        },
+        "stages": stages,
+        "notes": [
+            "Descriptor-only projection over existing MAS Stage-Led Autonomy routes.",
+            "OPL may index, inspect, display and dispatch MAS-exported guarded tasks only.",
+            "MAS keeps route contracts, controller runtime, evidence/review ledgers, publication gate and execution kernel.",
+        ],
+    }
+
+
+def _plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "ref_kind": "json_pointer",
+            "ref": "/product_entry_manifest/family_action_catalog",
+            "role": "action_catalog",
+        },
+        {
+            "ref_kind": "json_pointer",
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor",
+            "role": "deep_descriptor",
+        },
+        {
+            "ref_kind": "repo_path",
+            "ref": str(_mapping(descriptor.get("source_refs")).get("route_contract_source") or AGENT_ENTRY_MODES_REF),
+            "role": "route_contract_source",
+        },
+        {
+            "ref_kind": "python_symbol",
+            "ref": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
+            "role": "stage_knowledge_plane_contract",
+        },
+        {
+            "ref_kind": "repo_path",
+            "ref": STAGE_LED_AUTONOMY_INVENTORY_REF,
+            "role": "inventory_reference",
+        },
+    ]
+
+
+def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str, Any]) -> dict[str, Any]:
+    source_refs = [
+        *_plane_source_refs(descriptor),
+        {
+            "ref_kind": "route_stage_refs",
+            "ref": list(stage["domain_stage_refs"]),
+            "role": "mas_route_projection",
+        },
+    ]
+    return {
+        "stage_id": stage["stage_id"],
+        "stage_kind": stage["stage_kind"],
+        "title": stage["title"],
+        "summary": f"{stage['title']} projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
+        "goal": _stage_goal(stage, descriptor=descriptor),
+        "owner": "MedAutoScience",
+        "domain_stage_refs": list(stage["domain_stage_refs"]),
+        "inputs": [
+            {"ref_kind": "json_pointer", "ref": "/family_action_catalog", "role": "allowed_action_catalog"},
+            {
+                "ref_kind": "json_pointer",
+                "ref": "/family_stage_control_plane_descriptor/stage_knowledge_plane",
+                "role": "stage_knowledge_plane",
+            },
+            {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "progress_read_model"},
+        ],
+        "skills": [
+            {"ref_kind": "skill_id", "ref": "med-autoscience", "role": "domain_skill"},
+            {"ref_kind": "skill_id", "ref": "mas", "role": "codex_app_skill"},
+        ],
+        "prompt_refs": [
+            {"ref_kind": "repo_path", "ref": AGENT_ENTRY_MODES_REF, "role": "route_contract"},
+            {"ref_kind": "repo_path", "ref": STAGE_LED_AUTONOMY_POLICY_REF, "role": "stage_led_policy"},
+        ],
+        "allowed_action_refs": list(stage["allowed_action_refs"]),
+        "outputs": [
+            {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "stage_status"},
+            {
+                "ref_kind": "json_pointer",
+                "ref": "/opl_family_persistence_lifecycle_owner_route_adoption",
+                "role": "owner_route_projection",
+            },
+        ],
+        "evaluation": [
+            {"ref_kind": "json_pointer", "ref": "/family_stage_control_plane_descriptor/authority_boundary", "role": "authority_boundary"},
+            {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "progress_projection"},
+        ],
+        "handoff": {
+            "next_owner": "MedAutoScience",
+            "resume_surface_ref": "/product_entry_shell/study_progress",
+            "sidecar_export_ref": "/product_entry_shell/sidecar_export",
+            "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
+        },
+        "source_refs": source_refs,
+        "freshness": {
+            "freshness_kind": "product_entry_manifest_projection",
+            "source_observed_at_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+            "stale_if_source_refs_missing": True,
+        },
+        "authority_boundary": {
+            "domain_truth_owner": "MedAutoScience",
+            "route_contract_owner": "MedAutoScience",
+            "stage_knowledge_plane_owner": "MedAutoScience",
+            "publication_gate_owner": "MedAutoScience",
+            "opl_role": "projection_consumer_only",
+            "maps_existing_routes_only": True,
+            "can_write_domain_truth": False,
+            "can_replace_route_contract": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+        },
+    }
+
+
+def _stage_goal(stage: Mapping[str, Any], *, descriptor: Mapping[str, Any]) -> str:
+    route_contracts = _mapping(load_entry_modes_payload().get("route_contracts"))
+    route_goals = [
+        str(_mapping(route_contracts.get(route_id)).get("goal") or "").strip()
+        for route_id in stage["domain_stage_refs"]
+    ]
+    route_goals = [goal for goal in route_goals if goal]
+    if route_goals:
+        return " / ".join(route_goals[:2])
+    route_count = _mapping(descriptor.get("route_contract_snapshot")).get("route_count")
+    return f"Expose MAS route snapshot for {stage['title']} without changing the {route_count} MAS routes."
 
 
 def build_opl_family_adoption_surface(
@@ -424,7 +646,9 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 __all__ = [
     "ADOPTION_SURFACE_KIND",
+    "FAMILY_STAGE_CONTROL_PLANE_KIND",
     "FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND",
+    "build_family_stage_control_plane",
     "build_family_stage_control_plane_descriptor",
     "build_opl_family_adoption_surface",
     "build_product_entry_adoption_projection",

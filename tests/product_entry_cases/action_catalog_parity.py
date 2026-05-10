@@ -172,3 +172,36 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert authority["can_authorize_submission_readiness"] is False
     assert authority["publication_eval_owner"] == "MedAutoScience"
     assert authority["publication_gate_owner"] == "MedAutoScience"
+
+    stage_plane = manifest["family_stage_control_plane"]
+    assert stage_plane["surface_kind"] == "family_stage_control_plane"
+    assert stage_plane["version"] == "family-stage-control-plane.v1"
+    assert stage_plane["plane_id"] == "med_autoscience_stage_control_plane"
+    assert stage_plane["target_domain_id"] == "med-autoscience"
+    assert stage_plane["authority_boundary"]["opl_role"] == "projection_consumer_only"
+    assert stage_plane["authority_boundary"]["can_write_domain_truth"] is False
+    assert stage_plane["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert stage_plane["authority_boundary"]["can_authorize_submission_readiness"] is False
+    assert stage_plane["stage_action_parity"]["status"] == "aligned"
+    assert stage_plane["stage_action_parity"]["missing_action_refs"] == []
+    assert stage_plane["freshness"]["refresh_policy"] == "rebuild_product_entry_manifest_before_opl_discovery"
+    assert {
+        "direction_and_route_selection",
+        "baseline_and_evidence_setup",
+        "bounded_analysis_campaign",
+        "manuscript_authoring",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff",
+    } == {stage["stage_id"] for stage in stage_plane["stages"]}
+
+    action_ids = {action["action_id"] for action in manifest["family_action_catalog"]["actions"]}
+    route_ids = set(route_payload["route_contracts"])
+    for stage in stage_plane["stages"]:
+        assert stage["owner"] == "MedAutoScience"
+        assert stage["authority_boundary"]["maps_existing_routes_only"] is True
+        assert stage["authority_boundary"]["can_replace_route_contract"] is False
+        assert set(stage["allowed_action_refs"]) <= action_ids
+        assert set(stage["domain_stage_refs"]) <= route_ids
+        assert stage["handoff"]["next_owner"] == "MedAutoScience"
+        assert stage["freshness"]["stale_if_source_refs_missing"] is True
+        assert any(ref["role"] == "deep_descriptor" for ref in stage["source_refs"])

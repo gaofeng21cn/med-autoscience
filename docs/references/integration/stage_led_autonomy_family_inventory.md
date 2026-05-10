@@ -20,7 +20,7 @@ MAS 当前的 Stage-Led Autonomy 已由以下 MAS-owned surfaces 承接：
 
 这些 surface 已经满足 Stage-Led Autonomy 的核心要求：stage 保持研究思考与探索空间，controller 继续守医学边界、证据账本、owner route、质量门禁、stop-loss 与 human gate。OPL family descriptor 只能把这些能力投影出去，不能把投影反向升级为 MAS authority。
 
-MAS 现在通过 product-entry manifest 暴露 MAS-owned `family_stage_control_plane_descriptor`。该 descriptor 由 `agent_entry_modes.yaml` 与 `stage_knowledge_plane_contract` 派生 route snapshot、packet surfaces、memory closeout/router/recall surface、evidence/review/controller/publication refs 和 `authority_boundary`；它只用于 OPL family-level indexing / display / freshness / MAS-exported dispatch discovery，不派生 route，不授权质量或投稿 readiness。
+MAS 现在通过 product-entry manifest 暴露 MAS-owned 标准 `family_stage_control_plane` 和深度 `family_stage_control_plane_descriptor`。前者供 OPL `stages list|inspect` 直接发现，后者保留 route snapshot、packet surfaces、memory closeout/router/recall surface、evidence/review/controller/publication refs 和 `authority_boundary` 的深度来源；两者只用于 OPL family-level indexing / display / freshness / MAS-exported dispatch discovery，不派生 route，不授权质量或投稿 readiness。
 
 ## Scope Guard
 
@@ -40,7 +40,8 @@ MAS 现在通过 product-entry manifest 暴露 MAS-owned `family_stage_control_p
 | `docs/program/ai_first_paper_autonomy_closure_program.md` | MAS program owner | Program context tying AI reviewer repair, route decision, stage knowledge/memory, and real-paper soak | `keep` as program context; do not use as runtime contract |
 | `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml` | MAS route contract owner | Route contract for scout, idea, baseline, experiment, analysis-campaign, write, review, finalize, decision, journal-resolution, entry modes, gates, outputs, and route-back triggers | `keep`; OPL maps route descriptors from this source read-only |
 | `src/med_autoscience/controllers/stage_knowledge_plane.py` | MAS controller/knowledge-plane owner | Machine surface for stage knowledge packets, typed closeout, memory routing receipts, and recall index | `map_to_descriptor`; descriptor mirrors surface metadata, required fields, owner, and authority boundary |
-| `product-entry-manifest.family_stage_control_plane_descriptor` | MAS product-entry projection owner | Read-only family descriptor for `stage_led_autonomy` source refs, route snapshot, packet/read-model surfaces and authority boundary | `landed`; OPL may consume it as descriptor only |
+| `product-entry-manifest.family_stage_control_plane` | MAS product-entry projection owner | OPL-standard stage plane for `stages list|inspect`, mapped to existing MAS routes and action catalog refs | `landed`; OPL may consume it as descriptor only |
+| `product-entry-manifest.family_stage_control_plane_descriptor` | MAS product-entry projection owner | Read-only deep family descriptor for `stage_led_autonomy` source refs, route snapshot, packet/read-model surfaces and authority boundary | `landed`; OPL may consume it as descriptor only |
 | `tests/test_stage_knowledge_plane.py` | MAS test owner | Verifies packet surface contract, exploratory stage obligations, missing reasons, typed closeout routing, idempotency, owner targets, and blockers | `keep`; OPL must not replace these MAS tests with family-level prose checks |
 | `tests/test_stage_knowledge_entry_injection.py` | MAS test owner | Verifies entry injection consumes stage knowledge surfaces in route materialization | `keep`; expose existence as descriptor evidence |
 | `tests/test_stage_knowledge_visibility.py` | MAS test owner | Verifies Progress/Portal visibility for stage knowledge and memory writeback surfaces | `map_to_descriptor`; family UI can consume visibility projection read-only |
