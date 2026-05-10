@@ -66,7 +66,8 @@ You can start with prompts like:
 - `OPL` handoff, the product-entry manifest, and other machine-readable bridge payloads belong to the integration or reference layer.
 - It owns study intake, workspace context, evidence progression, progress reporting, and manuscript-facing delivery.
 - `OPL` stays at family-level session/runtime/projection orchestration and shared modules/contracts/indexes; it does not redefine MAS as an internal module.
-- The target `OPL Runtime Manager` may index MAS task/runtime/artifact projections over an external `Hermes-Agent` substrate, but MAS remains the owner of study truth and publication judgment.
+- In the Hermes-first family topology, `OPL Runtime Manager` and `opl family-runtime` index MAS task/runtime/artifact projections over the OPL-managed external `Hermes-Agent` online substrate. MAS remains the owner of study truth, publication judgment, quality gates, and paper/package authority.
+- MAS exposes `medautosci sidecar export` and `medautosci sidecar dispatch` for that family queue. The sidecar is a guarded bridge for wakeup, recovery, notification receipts, and read-only supervision projection; it is not a domain-truth writer.
 - `MedDeepScientist` is no longer a default MAS runtime dependency; it remains only as an explicit optional backend audit target, source-provenance reference, historical fixture, explicit archive-import reference, upstream intake source, and parity oracle.
 - User-installable MAS standalone GitHub Release or installer stories are not the current distribution contract; OPL-managed module installation currently uses git checkout / sibling repo paths and may later consume OPL Packages/GHCR-backed module coordinates.
 - Clinical framing, claim acceptance, and submission decisions stay with researchers and PIs.
@@ -89,6 +90,7 @@ You can start with prompts like:
 - The current operator entry surfaces are `CLI`, `MCP`, `product-entry`, and `controller`. Product-entry and runtime contracts live under `docs/runtime/` and `docs/program/`, so an agent can start there instead of reverse-engineering the codebase; the stable callable surface remains the local CLI, MCP tools, product-entry surfaces, controller-authorized workspace commands/scripts, durable surfaces, and repo-tracked contracts.
 - New disease workspaces are no-root-Git / no-quest-Git by default. Runtime lifecycle status is read from file authority, `artifacts/runtime/runtime_lifecycle.sqlite`, `artifacts/runtime/lifecycle_migration`, `runtime/quests` manifests, and `runtime/restore_index`, not from Git history.
 - When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns the single MAS app skill, the underlying command contracts, and a machine-readable `runtime_continuity` envelope projected from existing runtime/session/progress/artifact surfaces.
+- For OPL Full online runtime integration, use `medautosci sidecar export --profile <profile> --format json` and `medautosci sidecar dispatch --task <task.json> --format json`. Local CLI/status/manifest reads can still run without Hermes and should report degraded online readiness rather than silently claiming Full online readiness.
 
 </details>
 

@@ -66,7 +66,8 @@
 - `OPL` handoff、product-entry manifest 以及其他机器可读桥接载荷都只保留在集成或参考层。
 - 它负责课题接收、工作区语境、证据推进、进度投影和面向论文的交付。
 - `OPL` 只负责 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不把 MAS 改写成内部模块。
-- 目标形态中的 `OPL Runtime Manager` 可以在外部 `Hermes-Agent` substrate 之上索引 MAS task/runtime/artifact projection，但 MAS 继续持有 study truth 与 publication judgment。
+- Hermes-first family topology 下，`OPL Runtime Manager` 与 `opl family-runtime` 会在 OPL-managed 外部 `Hermes-Agent` online substrate 之上索引 MAS task/runtime/artifact projection。MAS 继续持有 study truth、publication judgment、quality gate 和 paper/package authority。
+- MAS 暴露 `medautosci sidecar export` 与 `medautosci sidecar dispatch` 给 OPL family queue 使用。这个 sidecar 只负责 wakeup、recovery、notification receipt 和只读 supervision projection 的受控桥接，不写 domain truth。
 - `MedDeepScientist` 不再是 MAS 默认运行、默认诊断、runtime root 或 WebUI 依赖；只保留为显式可选的 backend audit target、source-provenance reference、historical fixture、explicit archive-import reference、upstream intake source 和 parity oracle。
 - MAS 当前不提供面向用户安装的 standalone GitHub Release 或独立 installer 叙事；OPL 管理模块安装当前走 git checkout / sibling repo 路径，后续可消费 OPL Packages/GHCR-backed module 坐标。
 - 临床问题界定、结论采用和投稿决策由研究者与课题负责人把关。
@@ -88,6 +89,7 @@
 - 在改 runtime、入口表述或 docs 之前，把 [项目概览](./docs/project.md)、[当前状态](./docs/status.md)、[架构](./docs/architecture.md)、[不可变约束](./docs/invariants.md) 和 [关键决策](./docs/decisions.md) 当成人工可读的 repo-tracked 真相集。
 - 当前正式 operator entry surfaces 是 `CLI`、`MCP`、`product-entry` 和 `controller`。产品入口与运行时合同主要放在 `docs/runtime/` 和 `docs/program/`，Agent 可以直接从这些文档切入，不必先通读代码；稳定可调用面继续是本地 CLI、MCP tools、product-entry surface、controller-authorized workspace commands / scripts、durable surface 与 repo-tracked contract。
 - 如果外部 agent 需要直接读取 repo-tracked 的 MAS skill surface，用 `medautosci product skill-catalog --profile <profile> --format json`；返回的是单一 MAS app skill、底层 command contracts，以及由现有 runtime/session/progress/artifact surface 投影出的 machine-readable `runtime_continuity` envelope。
+- OPL Full online runtime 集成使用 `medautosci sidecar export --profile <profile> --format json` 和 `medautosci sidecar dispatch --task <task.json> --format json`。本地 CLI/status/manifest 在 Hermes 暂不可用时仍可读取，但应报告 degraded online readiness，不能静默声明 Full online ready。
 
 </details>
 

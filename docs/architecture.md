@@ -12,13 +12,13 @@
    - `CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，是操作与自动化接口，也是对外稳定 capability surface。
    - 单一 MAS app skill 负责把这些稳定接口对外承接起来。
    - `OPL`、`product-entry manifest` 和其他机器可读桥接属于上层整合与自动化消费面，不是第一主语。
-   - `OPL Runtime Manager` 是 OPL 侧的薄运行管理/投影层：它接收 MAS 暴露的 task registration、runtime_control projection、status/artifact locator 与 approval/wakeup 边界，再把这些信息挂到 OPL 的 profile、task、resume、doctor 与索引面；若显式选择 external hosted substrate，可使用 `Hermes-Agent` adapter。高频文件/状态索引可由 OPL Rust native helper 加速，MAS 侧通过 `native_helper_consumption.proof_surface` 和 `contracts/opl-gateway/native-helper-contract.json` 明确其 index-only 边界，但不能写成 MAS 研究真相来源。
+   - `OPL Runtime Manager` 是 OPL 侧的薄运行管理/投影层：它接收 MAS 暴露的 task registration、runtime_control projection、status/artifact locator 与 approval/wakeup 边界，再把这些信息挂到 OPL 的 profile、task、resume、doctor 与索引面。Hermes-first family topology 中，OPL Full online runtime 默认由 OPL-managed 外部 `Hermes-Agent` substrate 提供常驻 gateway、cron/webhook wakeup、session/delivery/approval transport；MAS 侧通过 `medautosci sidecar export|dispatch` 暴露受控桥接。高频文件/状态索引可由 OPL Rust native helper 加速，MAS 侧通过 `native_helper_consumption.proof_surface` 和 `contracts/opl-gateway/native-helper-contract.json` 明确其 index-only 边界，但不能写成 MAS 研究真相来源。
    - 这一层负责把 MAS 控制面接到更高层入口；如果使用 integration handoff，它必须保持同一套研究语义与 owner 边界。
 
 3. 运行时与持久真相层
    - `Med Auto Science` 持有课题与工作区权威语义、进度语义和发表判断，是唯一研究入口与 owner。
    - `MAS Runtime OS` 持有 Runtime Core；`MAS supervision scheduler contract` 持有外层监督调度语义；`Progress Portal` / `Live Console` / `study-progress` / cockpit 只做 Product Projection。
-   - 默认执行继续继承本机 `Codex` 配置；`Hermes-Agent` 只作为可选 hosted runtime target / reference-layer 运行载体。
+   - 默认 concrete executor 继续继承本机 `Codex` 配置；OPL Full 的长期在线 substrate 由 OPL-managed 外部 `Hermes-Agent` 承担。该 substrate 只负责唤醒、session/delivery/approval transport 与 family queue tick，不持有 MAS study truth、publication judgment、quality gate 或 artifact authority。
    - `MedDeepScientist` 不再是默认 operation 或默认 diagnostic 依赖；它只保留为 frozen source archive、historical fixture、explicit archive import / backend-audit reference 与 provenance reference，不是用户入口，也不是第二 owner。
 
 ## 当前主链路
@@ -51,9 +51,9 @@
 ## 当前运行时责任分层
 
 - `Med Auto Science`：唯一研究入口、课题与工作区权威语义、进度语义、发表判断 owner，同时对外暴露稳定 capability surface。
-- `MAS supervision scheduler contract`：外层 supervision cadence、job identity、tick receipt、SLO / drift projection 和 adapter migration owner；默认 adapter 是 MAS-owned `local` scheduler，macOS backend 已落地为 LaunchAgent；`Hermes gateway cron` 只在显式选择时作为 optional adapter。
+- `MAS supervision scheduler contract`：MAS standalone/local diagnostics 的外层 supervision cadence、job identity、tick receipt、SLO / drift projection 和 adapter migration owner；默认 adapter 是 MAS-owned `local` scheduler，macOS backend 已落地为 LaunchAgent。OPL Full online runtime 的 family-level wakeup 由 OPL-managed `Hermes-Agent` substrate 触发 `opl family-runtime tick`，再通过 `medautosci sidecar dispatch` 进入 MAS owner surface。
 - `OPL Runtime Manager`：OPL 侧 product-managed adapter/projection layer，负责把 MAS registration/projection 接到高频索引、doctor/repair/resume 与 native helper catalog；不持有 MAS domain truth。
-- `Hermes-Agent`：可选外部 runtime substrate / hosted carrier / provider-routed executor；只在显式 hosted runtime target / reference-layer 语境出现，不改写默认 capability contract。
+- `Hermes-Agent`：OPL Full online family runtime 的默认外部 substrate / hosted carrier / delivery transport；它不改写 MAS 默认 concrete executor，不持有 MAS domain truth，也不替代 MAS quality 或 artifact owner。
 - `MedDeepScientist`：frozen source archive、historical fixture、explicit archive import / backend-audit reference 与 provenance reference；不承担默认运行依赖、默认诊断依赖、用户入口或第二 owner 身份。
 
 ## 当前自治与质量合同主线

@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-10：Hermes-first OPL family runtime 与 MAS sidecar bridge
+
+- 决策：OPL Full online runtime 采用 Hermes-first topology：外部 `Hermes-Agent` 由 OPL 管理，承担常驻 gateway、cron/webhook wakeup、session store、delivery/notification、approval transport 与 family queue tick；OPL 持有 typed family queue / dispatch contract；MAS 持有 study truth、publication judgment、quality gate、artifact/package authority 和 domain recovery decision。
+- 理由：此前 Hermes 在 MAS 侧主要被用成 `every 5m` cron carrier，未发挥在线 substrate 的完整价值。新的稳定设计把 24h 在线、跨仓唤醒、通知、恢复和队列放在 OPL+Hermes 层，把医学研究语义和质量判断保留在 MAS。
+- 影响：MAS 新增 `medautosci sidecar export --profile <profile> --format json` 与 `medautosci sidecar dispatch --task <task.json> --format json`，供 `opl family-runtime` 调用。sidecar dispatch 只写 MAS-owned domain control receipt / recommended command，禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package 或 artifact gate。MAS standalone/local diagnostics 仍可使用 MAS-owned local scheduler；Full online readiness 由 OPL 侧 Hermes gateway readiness 判定。
+
 ## 2026-05-10：Paper Progress SLO 成为自动推进闭环的最高运行目标
 
 - 决策：MAS 自动运行的最高 SLO 固定为“论文是否产生可验证增量”，而不是 worker 是否 live、controller 是否写 packet、gate audit 是否刷新。有效进度只认 canonical manuscript/table/figure/result 变化、submission source/current package freshness proof、AI reviewer judgement 更新、publication gate replay 后 owner 前进。live worker 超过 grace window 仍无 meaningful artifact delta 时，必须投影为 `live_no_paper_delta` / `paper_progress_stall`，并进入 controller-owned redrive 或 owner handoff。
@@ -11,9 +17,9 @@
 
 ## 2026-05-09：MAS 持有 supervision scheduler contract，local 成为默认 adapter
 
-- 决策：`MAS supervision scheduler contract` 是 outer supervision 的正式 owner；`local` 是默认 scheduler adapter，macOS 落到 MAS-owned LaunchAgent，`Hermes gateway cron` 只作为显式 `--manager hermes` optional adapter。MAS 的运行架构按 Runtime Core、Supervisor Scheduler、Product Projection 三层表达：Runtime Core 由 `MAS Runtime OS` / `mas_runtime_core` 持有；Supervisor Scheduler 只负责按 cadence 唤醒 MAS-owned tick、记录 job/run receipt、暴露 SLO / drift；Product Projection 只读展示进度、日志、阻塞和下一步。
+- 决策：`MAS supervision scheduler contract` 是 MAS standalone/local diagnostics 的 outer supervision owner；`local` 是 MAS 本地默认 scheduler adapter，macOS 落到 MAS-owned LaunchAgent。OPL Full online runtime 的 family-level wakeup 由 OPL-managed 外部 `Hermes-Agent` substrate 承担，Hermes 唤醒 `opl family-runtime tick` 后再通过 MAS sidecar dispatch 进入 domain owner surface。MAS 的运行架构按 Runtime Core、Supervisor Scheduler、Product Projection 三层表达：Runtime Core 由 `MAS Runtime OS` / `mas_runtime_core` 持有；Supervisor Scheduler 只负责按 cadence 唤醒 MAS-owned tick、记录 job/run receipt、暴露 SLO / drift；Product Projection 只读展示进度、日志、阻塞和下一步。
 - 理由：fresh repo 状态显示 scheduler 应承担单一、可替换的 adapter 工作：生成 tick script、注册/更新/触发/删除 job、提供 job registry/latest run/session projection 和 liveness。它不持有研究执行、turn continuation、publication judgment、quality authority 或 study truth。成熟工程实践也要求 scheduler 只生产可审计触发，幂等、并发、missed-run、receipt 和 migration 由系统 contract 明确表达。
-- 影响：`runtime-supervision-status`、`runtime-ensure-supervision` 与 `runtime-remove-supervision` 默认走 MAS-owned `local` adapter；Hermes 保留为 optional hosted / remote / non-GPT executor / OPL online-management adapter。OPL 文档、Full package、runtime tray 和 installer 应把 Hermes 作为 optional provider，而不是 core/domain readiness 前置条件。
+- 影响：`runtime-supervision-status`、`runtime-ensure-supervision` 与 `runtime-remove-supervision` 在 MAS standalone/local diagnostics 中默认走 MAS-owned `local` adapter；OPL Full package、runtime tray 和 installer 将 Hermes online substrate 作为 Full online readiness 前置条件。两层 readiness 必须分开显示，避免把 Hermes 写成 MAS study truth 或质量 owner。
 
 ## 2026-05-08：MAS monolith closeout 取代外部 MDS 默认运行依赖
 
@@ -99,9 +105,9 @@
 
 ## 2026-04-26：OPL Runtime Manager 作为薄运行管理层接入 MAS projection
 
-- 决策：MAS 与 OPL 的长线对齐采用 `OPL Runtime Manager -> external Hermes-Agent runtime substrate -> MAS domain entry/projection` 的分层口径。MAS 只暴露 task registration、runtime_control projection、status/artifact locator、approval/wakeup boundary 与现有 durable truth surface；`OPL Runtime Manager` 只负责上层管理、索引、doctor/repair/resume 与 native helper catalog，不成为 MAS 研究 truth 或执行器 owner。
+- 决策：MAS 与 OPL 的长线对齐采用 `OPL Runtime Manager / opl family-runtime -> external Hermes-Agent online substrate -> MAS sidecar export/dispatch -> MAS domain entry/projection` 的分层口径。MAS 只暴露 task registration、runtime_control projection、status/artifact locator、approval/wakeup boundary、sidecar guarded dispatch 与现有 durable truth surface；`OPL Runtime Manager` 只负责上层管理、索引、doctor/repair/resume 与 native helper catalog，不成为 MAS 研究 truth 或执行器 owner。
 - 理由：这能先获得长期托管、唤醒、健康检查和跨域状态索引的收益，同时保留 MAS 自己的 study authority、publication gate 与 evidence/review ledger。若未来需要自有长期常驻 sidecar，也能沿 Runtime Manager 的 adapter/projection contract promotion，而不重写 MAS domain truth。
-- 影响：后续涉及 OPL handoff、runtime_control、product-entry manifest、status projection 或 hosted lane 的文案，都必须明确 `OPL Runtime Manager` 是 OPL 侧 thin manager over external substrate；MAS durable truth surface 仍是唯一研究真相。
+- 影响：后续涉及 OPL handoff、runtime_control、product-entry manifest、status projection、sidecar export/dispatch 或 hosted lane 的文案，都必须明确 `OPL Runtime Manager` 是 OPL 侧 thin manager over external substrate；MAS durable truth surface 仍是唯一研究真相。
 
 ## 2026-04-21：公开主语固定为独立 domain agent，单一 app skill 承接稳定 surface，OPL 只做上层 federation
 

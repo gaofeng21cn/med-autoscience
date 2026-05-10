@@ -187,7 +187,7 @@ def test_group_help_lists_subcommands(capsys) -> None:
     assert exit_code == 0
     assert "Usage: medautosci study <command> [options]" in captured.out
     assert "progress" in captured.out
-    assert "runtime-status" not in captured.out
+    assert "runtime-status" in captured.out
 def test_shell_argv_grouped_subcommand_dispatches(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "nfpitnet.local.toml"

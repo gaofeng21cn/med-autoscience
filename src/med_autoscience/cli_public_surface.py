@@ -90,6 +90,8 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("publication", "reporting-audit"): "medical-reporting-audit",
     ("publication", "surface"): "medical-publication-surface",
     ("publication", "figure-loop-guard"): "figure-loop-guard",
+    ("sidecar", "export"): "sidecar-export",
+    ("sidecar", "dispatch"): "sidecar-dispatch",
     ("product", "governance-report"): "control-plane-governance-report",
     ("product", "backfill-apply"): "control-plane-backfill-apply",
     ("product", "safe-cache-cleanup-apply"): "control-plane-safe-cache-cleanup-apply",
@@ -113,6 +115,7 @@ GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "runtime": "runtime watch、MAS scheduler supervision、overlay、analysis bundle、storage maintenance 与 live console。",
     "study": "study runtime、progress、launch 与 delivery sync。",
     "publication": "投稿包、display surface、journal/target 与 publication gate。",
+    "sidecar": "OPL family-runtime typed queue 的 MAS 只读 export 与 guarded dispatch。",
     "product": "entry_status、preflight、start、manifest、build-entry 与 governance surfaces。",
 }
 GROUPED_SUBCOMMANDS: dict[str, tuple[str, ...]] = {
@@ -127,7 +130,7 @@ def print_public_help() -> None:
         "",
         "Public command groups:",
     ]
-    for group in ("doctor", "workspace", "data", "runtime", "study", "publication", "product"):
+    for group in ("doctor", "workspace", "data", "runtime", "study", "publication", "sidecar", "product"):
         lines.append(f"  {group:<12}{GROUPED_COMMAND_SUMMARIES[group]}")
     lines.extend(
         [

@@ -105,6 +105,7 @@ quality_repair_batch = _LazyModuleProxy(lambda: _load_controller("quality_repair
 reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("reference_papers"))
 runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
 sidecar_provider_controller = _LazyModuleProxy(lambda: _load_controller("sidecar_provider"))
+sidecar_family_adapter = _LazyModuleProxy(lambda: _load_controller("sidecar_family_adapter"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
@@ -530,6 +531,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+
+    if args.command == "sidecar-export":
+        profile = load_profile(args.profile)
+        result = sidecar_family_adapter.export_family_sidecar(profile=profile, profile_ref=Path(args.profile))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "sidecar-dispatch":
+        result = sidecar_family_adapter.dispatch_family_sidecar_task(task_path=Path(args.task))
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0 if bool(result.get("accepted")) else 1
 
     if args.command == "workspace-cockpit":
         profile = load_profile(args.profile)
