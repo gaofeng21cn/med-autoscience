@@ -536,6 +536,28 @@ def record_turn_receipt(*, quest_root: Path, receipt: Mapping[str, Any], receipt
     )
 
 
+def record_paper_work_unit_receipt(
+    *,
+    study_root: Path,
+    quest_root: Path,
+    receipt: Mapping[str, Any],
+    receipt_path: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    return sidecar_indexes.record_paper_work_unit_receipt(
+        connect=_connect,
+        ensure_schema=_ensure_schema,
+        resolve_db_path=_resolve_db_path,
+        workspace_lifecycle_store_path=workspace_lifecycle_store_path,
+        index_result=_index_result,
+        study_root=study_root,
+        quest_root=quest_root,
+        receipt=receipt,
+        receipt_path=receipt_path,
+        db_path=db_path,
+    )
+
+
 def record_surface_ref(
     *,
     object_root: Path,
@@ -605,11 +627,7 @@ def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
                 *lineage_indexes.LINEAGE_INDEX_TABLE_NAMES,
                 "runtime_events",
                 "archive_refs",
-                "study_macro_state_snapshots",
-                "owner_route_receipts",
-                "dispatch_receipts",
-                "turn_receipts",
-                "surface_refs",
+                *sidecar_indexes.SIDECAR_INDEX_TABLE_NAMES,
                 "report_index",
             )
         }
@@ -981,6 +999,7 @@ __all__ = [
     "record_lineage_edge",
     "record_lineage_node",
     "record_owner_route_receipt",
+    "record_paper_work_unit_receipt",
     "record_revision_diff",
     "record_runtime_event",
     "record_runtime_report",

@@ -25,6 +25,7 @@ def _expected_table_counts(**overrides: int) -> dict[str, int]:
         "owner_route_receipts": 0,
         "dispatch_receipts": 0,
         "turn_receipts": 0,
+        "paper_work_unit_receipts": 0,
         "surface_refs": 0,
         "report_index": 0,
     }
@@ -601,8 +602,9 @@ def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replac
     macro_state_path = study_root / "artifacts" / "runtime" / "study_macro_state" / "latest.json"
     owner_receipt_path = study_root / "artifacts" / "runtime" / "owner_route" / "latest.json"
     dispatch_receipt_path = quest_root / "artifacts" / "runtime" / "dispatch" / "dispatch-001.json"
+    paper_work_unit_receipt_path = study_root / "artifacts" / "runtime" / "paper_work_unit_outbox" / "receipts.jsonl"
     surface_ref_path = study_root / "artifacts" / "runtime" / "surface_refs" / "publication_eval.json"
-    for path in (macro_state_path, owner_receipt_path, dispatch_receipt_path, surface_ref_path):
+    for path in (macro_state_path, owner_receipt_path, dispatch_receipt_path, paper_work_unit_receipt_path, surface_ref_path):
         path.parent.mkdir(parents=True, exist_ok=True)
     macro_state = {
         "surface": "study_macro_state",
@@ -640,6 +642,20 @@ def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replac
         "owner_route": owner_receipt,
         "status": "dispatched",
     }
+    paper_work_unit_receipt = {
+        "surface": "paper_work_unit_outbox_receipt",
+        "schema_version": 1,
+        "receipt_id": "paper-work-unit-receipt::001",
+        "receipt_status": "started",
+        "recorded_at": "2026-05-06T00:01:30+00:00",
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "idempotency_key": "paper-work-unit::001",
+        "intent_fingerprint": "paper-work-unit-intent::001",
+        "source_fingerprint": "publication-blockers::001",
+        "started_worker": True,
+        "worker_start_ref": "worker::run-001",
+    }
     surface_ref = {
         "surface": "publication_eval/latest.json",
         "study_id": "001-risk",
@@ -652,10 +668,11 @@ def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replac
     macro_state_path.write_text(json.dumps(macro_state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     owner_receipt_path.write_text(json.dumps(owner_receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     dispatch_receipt_path.write_text(json.dumps(dispatch_receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    paper_work_unit_receipt_path.write_text(json.dumps(paper_work_unit_receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     surface_ref_path.write_text(json.dumps(surface_ref, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     mtimes = {
         path: path.stat().st_mtime_ns
-        for path in (macro_state_path, owner_receipt_path, dispatch_receipt_path, surface_ref_path)
+        for path in (macro_state_path, owner_receipt_path, dispatch_receipt_path, paper_work_unit_receipt_path, surface_ref_path)
     }
 
     macro_index = lifecycle_store.record_study_macro_state_snapshot(
@@ -676,6 +693,13 @@ def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replac
         receipt_path=dispatch_receipt_path,
         db_path=db_path,
     )
+    paper_work_unit_index = lifecycle_store.record_paper_work_unit_receipt(
+        study_root=study_root,
+        quest_root=quest_root,
+        receipt=paper_work_unit_receipt,
+        receipt_path=paper_work_unit_receipt_path,
+        db_path=db_path,
+    )
     surface_ref_index = lifecycle_store.record_surface_ref(
         object_root=study_root,
         object_scope="study",
@@ -687,6 +711,7 @@ def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replac
     assert macro_index["indexed_table"] == "study_macro_state_snapshots"
     assert owner_index["indexed_table"] == "owner_route_receipts"
     assert dispatch_index["indexed_table"] == "dispatch_receipts"
+    assert paper_work_unit_index["indexed_table"] == "paper_work_unit_receipts"
     assert surface_ref_index["indexed_table"] == "surface_refs"
     assert {path: path.stat().st_mtime_ns for path in mtimes} == mtimes
     with sqlite3.connect(db_path) as conn:
@@ -716,6 +741,16 @@ def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replac
             WHERE quest_root = ?
             """,
             (str(quest_root.resolve()),),
+        ).fetchone()
+        paper_work_unit_row = conn.execute(
+            """
+            SELECT receipt_id, study_id, quest_id, idempotency_key, intent_fingerprint,
+                   source_fingerprint, receipt_status, started_worker, worker_start_ref,
+                   payload_json, source_path
+            FROM paper_work_unit_receipts
+            WHERE study_root = ?
+            """,
+            (str(study_root.resolve()),),
         ).fetchone()
         ref_row = conn.execute(
             """
@@ -760,6 +795,19 @@ def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replac
     assert json.loads(dispatch_row[5]) == owner_receipt
     assert json.loads(dispatch_row[6]) == dispatch_receipt
     assert dispatch_row[7] == str(dispatch_receipt_path.resolve())
+    assert paper_work_unit_row[:9] == (
+        "paper-work-unit-receipt::001",
+        "001-risk",
+        "quest-001",
+        "paper-work-unit::001",
+        "paper-work-unit-intent::001",
+        "publication-blockers::001",
+        "started",
+        1,
+        "worker::run-001",
+    )
+    assert json.loads(paper_work_unit_row[9]) == paper_work_unit_receipt
+    assert paper_work_unit_row[10] == str(paper_work_unit_receipt_path.resolve())
     assert ref_row == (
         "study",
         "publication_eval",
@@ -776,6 +824,7 @@ def test_lifecycle_store_indexes_macro_state_and_routing_receipts_without_replac
     assert tables["owner_route_receipts"] == 1
     assert tables["dispatch_receipts"] == 1
     assert tables["turn_receipts"] == 0
+    assert tables["paper_work_unit_receipts"] == 1
     assert tables["surface_refs"] == 1
 
 

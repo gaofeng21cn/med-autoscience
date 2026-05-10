@@ -13,6 +13,7 @@ SIDECAR_INDEX_TABLE_NAMES = (
     "owner_route_receipts",
     "dispatch_receipts",
     "turn_receipts",
+    "paper_work_unit_receipts",
     "surface_refs",
 )
 
@@ -99,6 +100,30 @@ def ensure_sidecar_index_schema(conn: sqlite3.Connection) -> None:
             payload_sha256 TEXT NOT NULL,
             payload_json TEXT NOT NULL,
             PRIMARY KEY (quest_root, idempotency_key)
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS paper_work_unit_receipts(
+            study_root TEXT NOT NULL,
+            quest_root TEXT NOT NULL,
+            receipt_id TEXT NOT NULL,
+            study_id TEXT NOT NULL,
+            quest_id TEXT,
+            idempotency_key TEXT NOT NULL,
+            intent_fingerprint TEXT NOT NULL,
+            source_fingerprint TEXT NOT NULL,
+            receipt_status TEXT NOT NULL,
+            started_worker INTEGER NOT NULL,
+            worker_start_ref TEXT,
+            duplicate_of_receipt_id TEXT,
+            fail_closed_reason TEXT,
+            source_path TEXT NOT NULL,
+            payload_sha256 TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            PRIMARY KEY (study_root, receipt_id)
         )
         """
     )
@@ -276,6 +301,49 @@ def record_turn_receipt(
     return index_result(db_path=resolved_db_path, indexed_table="turn_receipts", indexed_count=1, scope="quest")
 
 
+def record_paper_work_unit_receipt(
+    *,
+    connect: Any,
+    ensure_schema: Any,
+    resolve_db_path: Any,
+    workspace_lifecycle_store_path: Any,
+    index_result: Any,
+    study_root: Path,
+    quest_root: Path,
+    receipt: Mapping[str, Any],
+    receipt_path: Path,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    resolved_quest_root = Path(quest_root).expanduser().resolve()
+    resolved_db_path = resolve_db_path(db_path, default=workspace_lifecycle_store_path(resolved_study_root.parent.parent))
+    resolved_receipt_path = Path(receipt_path).expanduser().resolve()
+    payload_json = _stable_json(receipt)
+    row = {
+        "study_root": str(resolved_study_root),
+        "quest_root": str(resolved_quest_root),
+        "receipt_id": _require_text("receipt.receipt_id", receipt.get("receipt_id")),
+        "study_id": _require_text("receipt.study_id", receipt.get("study_id")),
+        "quest_id": _text(receipt.get("quest_id")),
+        "idempotency_key": _require_text("receipt.idempotency_key", receipt.get("idempotency_key")),
+        "intent_fingerprint": _require_text("receipt.intent_fingerprint", receipt.get("intent_fingerprint")),
+        "source_fingerprint": _require_text("receipt.source_fingerprint", receipt.get("source_fingerprint")),
+        "receipt_status": _require_text("receipt.receipt_status", receipt.get("receipt_status")),
+        "started_worker": 1 if receipt.get("started_worker") is True else 0,
+        "worker_start_ref": _text(receipt.get("worker_start_ref")),
+        "duplicate_of_receipt_id": _text(receipt.get("duplicate_of_receipt_id")),
+        "fail_closed_reason": _text(receipt.get("fail_closed_reason")),
+        "source_path": str(resolved_receipt_path),
+        "payload_sha256": _sha256(payload_json),
+        "payload_json": payload_json,
+        "recorded_at": _require_text("receipt.recorded_at", receipt.get("recorded_at")),
+    }
+    with connect(resolved_db_path) as conn:
+        ensure_schema(conn)
+        _upsert_row(conn, table="paper_work_unit_receipts", conflict_columns=("study_root", "receipt_id"), row=row)
+    return index_result(db_path=resolved_db_path, indexed_table="paper_work_unit_receipts", indexed_count=1, scope="study")
+
+
 def record_surface_ref(
     *,
     connect: Any,
@@ -436,6 +504,7 @@ __all__ = [
     "ensure_sidecar_index_schema",
     "record_dispatch_receipt",
     "record_owner_route_receipt",
+    "record_paper_work_unit_receipt",
     "record_study_macro_state_snapshot",
     "record_surface_ref",
     "record_turn_receipt",
