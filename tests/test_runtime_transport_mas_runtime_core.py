@@ -176,6 +176,35 @@ def test_due_delayed_auto_continue_is_drained_by_lifecycle_reconcile(tmp_path: P
     assert drained["active_run_id"].startswith("mas-run-")
 
 
+def test_due_delayed_auto_continue_can_arm_real_runner_monitor(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+
+    try:
+        turn_lifecycle.set_clock_for_tests(lambda: turn_lifecycle.datetime.fromisoformat("2026-05-08T00:00:00+00:00"))
+        running = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+        module.complete_turn_and_normalize(
+            runtime_root=runtime_root,
+            quest_id="quest-001",
+            run_id=running["active_run_id"],
+            runner_status="succeeded",
+            source="test-runner",
+        )
+        turn_lifecycle.set_turn_runner_for_tests(runner_module.CodexExecTurnRunner(codex_binary="python3", use_worker_wrapper=False))
+        turn_lifecycle.set_clock_for_tests(lambda: turn_lifecycle.datetime.fromisoformat("2026-05-08T00:00:01+00:00"))
+
+        drained = module.inspect_turn_lifecycle(runtime_root=runtime_root, quest_id="quest-001")
+    finally:
+        turn_lifecycle.reset_clock_for_tests()
+
+    assert drained["status"] == "live"
+    assert drained["drained_delayed_turn"]["reason"] == "auto_continue"
+    assert drained["active_run_id"].startswith("mas-run-")
+
+
 def test_pending_worker_reason_is_drained_before_default_auto_continue(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
     runtime_root = tmp_path / "workspace" / "runtime"
