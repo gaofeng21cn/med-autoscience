@@ -8,7 +8,8 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 
-from . import outer_supervision_slo, runtime_supervisor_consumer, runtime_supervisor_dispatch_executor, runtime_supervisor_scan
+from . import outer_supervision_slo, paper_progress_reconciler, runtime_supervisor_consumer
+from . import runtime_supervisor_dispatch_executor, runtime_supervisor_scan
 from . import runtime_dispatch_cost
 
 
@@ -223,6 +224,17 @@ def supervisor_reconcile(
         for study_id in resolved_study_ids
     ]
     dispatch_counters = _dispatch_counters(consumed=consumed, executed=executed)
+    paper_progress_reconcile = paper_progress_reconciler.build_paper_progress_reconcile_receipt(
+        profile=profile,
+        requested_study_ids=requested_study_ids,
+        resolved_study_ids=resolved_study_ids,
+        before_scan=before_scan,
+        consumed=consumed,
+        executed=executed,
+        after_scan=after_scan,
+        apply=apply,
+        generated_at=generated_at,
+    )
     action_cost = (
         runtime_dispatch_cost.reconcile_dry_run_contract(
             reason="runtime_supervisor_reconcile_dry_run",
@@ -266,6 +278,7 @@ def supervisor_reconcile(
         "action_cost": {**action_cost, "will_start_llm": dispatch_counters["codex_dispatch_count"] > 0},
         "dispatch_counters": dispatch_counters,
         **dispatch_counters,
+        "paper_progress_reconcile": paper_progress_reconcile,
         "study_receipts": study_receipts,
         "refs": {
             "latest_path": str(latest_path),
