@@ -5,7 +5,7 @@
 | directory | purpose |
 | --- | --- |
 | [mainline](./mainline/) | 当前 MAS 质量、自治、模块化、修复优先级和文档治理参考。 |
-| [integration](./integration/) | Codex/plugin、OPL handoff、product-entry 和 family integration 参考。 |
+| [integration](./integration/) | Codex/plugin、OPL handoff、product-entry、family integration 和 Stage-Led Autonomy family inventory 参考。 |
 | [mds-parity](./mds-parity/) | MDS 行为/能力 parity、WebUI cleanroom 行为和用户体验差距评估。 |
 | [positioning](./positioning/) | Research Foundry、Domain/Harness OS 和 repo 定位说明。 |
 | [verification](./verification/) | 完成 ledger 和真实 study 验证记录。 |

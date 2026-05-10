@@ -7,7 +7,7 @@ verification history; they do not own execution gates or runtime truth.
 | directory | purpose |
 | --- | --- |
 | [mainline](./mainline/) | Current MAS quality, autonomy, modularity, repair-priority, and docs-governance context. |
-| [integration](./integration/) | Codex/plugin, OPL handoff, product-entry, and family integration references. |
+| [integration](./integration/) | Codex/plugin, OPL handoff, product-entry, family integration references, and Stage-Led Autonomy family inventory. |
 | [mds-parity](./mds-parity/) | MDS behavior/capability parity, WebUI cleanroom behavior, and user parity gap reviews. |
 | [positioning](./positioning/) | Research Foundry, Domain/Harness OS, and repo-positioning rationale. |
 | [verification](./verification/) | Completion ledgers and real-study verification narratives. |
