@@ -6,12 +6,22 @@ import json
 import sqlite3
 from typing import Any
 
+from med_autoscience.agent_entry import load_entry_modes_payload
+from med_autoscience.controllers import stage_knowledge_plane
+
 from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
 ADOPTION_SURFACE_KIND = "mas_opl_family_persistence_lifecycle_owner_route_adoption"
+FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND = "family_stage_control_plane_descriptor"
 SOURCE_CONTRACT_REF = "contracts/opl-gateway/family-contract-adoption.json"
 RUNTIME_LIFECYCLE_CONTRACT_REF = (
     "med_autoscience.runtime_protocol.runtime_lifecycle_contract.runtime_lifecycle_contract"
+)
+STAGE_LED_AUTONOMY_INVENTORY_REF = "docs/references/integration/stage_led_autonomy_family_inventory.md"
+STAGE_LED_AUTONOMY_POLICY_REF = "docs/policies/study-workflow/stage_led_research_autonomy.md"
+AGENT_ENTRY_MODES_REF = "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml"
+STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
+    "med_autoscience.controllers.stage_knowledge_plane.stage_knowledge_plane_contract"
 )
 
 FORBIDDEN_OPL_AUTHORITY_SURFACES = (
@@ -21,6 +31,101 @@ FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "paper/manuscript/current_package",
     "current_package.zip",
 )
+
+
+def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
+    entry_modes_payload = load_entry_modes_payload()
+    route_contracts = _mapping(entry_modes_payload.get("route_contracts"))
+    route_ids = list(route_contracts)
+    knowledge_contract = stage_knowledge_plane.stage_knowledge_plane_contract()
+    packet_contracts = _mapping(knowledge_contract.get("packet_contracts"))
+    packet_surfaces = list(packet_contracts)
+    exploratory_stages = list(knowledge_contract.get("exploratory_stages") or [])
+    return {
+        "surface_kind": FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND,
+        "schema_version": 1,
+        "domain_id": "med-autoscience",
+        "capability_id": "stage_led_autonomy",
+        "descriptor_id": "mas_stage_led_autonomy_family_stage_control_plane",
+        "authority_owner": "MedAutoScience",
+        "source_refs": {
+            "inventory": STAGE_LED_AUTONOMY_INVENTORY_REF,
+            "policy": STAGE_LED_AUTONOMY_POLICY_REF,
+            "route_contract_source": AGENT_ENTRY_MODES_REF,
+            "knowledge_plane_contract_source": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
+            "packet_contract_surfaces": packet_surfaces,
+            "stage_knowledge_root": str(stage_knowledge_plane.STAGE_KNOWLEDGE_ROOT),
+            "test_evidence": [
+                "tests/test_agent_entry_modes.py",
+                "tests/test_agent_entry_assets.py",
+                "tests/test_stage_knowledge_plane.py",
+                "tests/test_stage_knowledge_entry_injection.py",
+                "tests/test_stage_knowledge_visibility.py",
+            ],
+        },
+        "route_contract_snapshot": {
+            "source": AGENT_ENTRY_MODES_REF,
+            "route_ids": route_ids,
+            "route_count": len(route_ids),
+            "entry_mode_count": len(list(entry_modes_payload.get("modes") or [])),
+            "descriptor_derives_routes": False,
+        },
+        "stage_knowledge_plane": {
+            "contract_ref": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
+            "contract_surface": knowledge_contract.get("surface"),
+            "schema_version": knowledge_contract.get("schema_version"),
+            "exploratory_stages": exploratory_stages,
+            "packet_surfaces": packet_surfaces,
+        },
+        "stage_packets": {
+            "knowledge_packet": stage_knowledge_plane.KNOWLEDGE_PACKET_SURFACE,
+            "memory_closeout_packet": stage_knowledge_plane.MEMORY_CLOSEOUT_SURFACE,
+            "memory_write_router_receipt": stage_knowledge_plane.MEMORY_ROUTER_SURFACE,
+            "stage_recall_index": stage_knowledge_plane.RECALL_INDEX_SURFACE,
+        },
+        "memory_control": {
+            "closeout_categories": list(stage_knowledge_plane.TYPED_CLOSEOUT_CATEGORIES),
+            "router_receipt_surface": stage_knowledge_plane.MEMORY_ROUTER_SURFACE,
+            "recall_index_surface": stage_knowledge_plane.RECALL_INDEX_SURFACE,
+            "can_promote_memory_to_evidence": False,
+        },
+        "quality_and_publication_surfaces": {
+            "evidence_ledger": "paper/evidence/evidence_ledger.json",
+            "review_ledger": "paper/review/review_ledger.json",
+            "controller_decisions": "artifacts/controller_decisions/latest.json",
+            "publication_eval": "artifacts/publication_eval/latest.json",
+            "publication_gate": "MAS publication gate",
+        },
+        "allowed_family_actions": [
+            "index",
+            "display",
+            "freshness_check",
+            "dispatch_mas_exported_task",
+        ],
+        "forbidden_family_actions": [
+            "write_study_truth",
+            "replace_route_contract",
+            "authorize_publication_quality",
+            "authorize_submission_readiness",
+            "promote_memory_to_evidence",
+            "infer_medical_route_from_projection",
+        ],
+        "authority_boundary": {
+            "domain_truth_owner": "MedAutoScience",
+            "route_contract_owner": "MedAutoScience",
+            "stage_knowledge_plane_owner": "MedAutoScience",
+            "evidence_ledger_owner": "MedAutoScience",
+            "review_ledger_owner": "MedAutoScience",
+            "controller_decision_owner": "MedAutoScience",
+            "publication_eval_owner": "MedAutoScience",
+            "publication_gate_owner": "MedAutoScience",
+            "opl_role": "read_only_descriptor_consumer",
+            "opl_authority": "index_display_freshness_only",
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+        },
+    }
 
 
 def build_opl_family_adoption_surface(
@@ -71,6 +176,7 @@ def build_product_entry_adoption_projection(
 ) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
     resolved_db_path = Path(db_path or (resolved_workspace_root / "artifacts" / "runtime" / "runtime_lifecycle.sqlite")).resolve()
+    stage_control_plane_descriptor = build_family_stage_control_plane_descriptor()
     return {
         "surface_kind": ADOPTION_SURFACE_KIND,
         "schema_version": 1,
@@ -118,6 +224,7 @@ def build_product_entry_adoption_projection(
                 "paper_package_owner": "MedAutoScience",
                 "opl_authority": "discovery_and_indexing_only",
             },
+            "family_stage_control_plane_descriptor": stage_control_plane_descriptor,
         },
     }
 
@@ -317,6 +424,8 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 __all__ = [
     "ADOPTION_SURFACE_KIND",
+    "FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND",
+    "build_family_stage_control_plane_descriptor",
     "build_opl_family_adoption_surface",
     "build_product_entry_adoption_projection",
 ]

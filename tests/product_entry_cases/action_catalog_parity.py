@@ -114,3 +114,61 @@ def test_mas_action_catalog_projects_sidecar_bridge_without_new_mcp_tool(tmp_pat
     assert mcp_projection["sidecar_dispatch"]["descriptor_only"] is True
     assert mcp_projection["sidecar_dispatch"]["public_runtime"] is False
     assert {"sidecar_export", "sidecar_dispatch"}.isdisjoint(mcp_tool_names)
+
+
+def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descriptor(tmp_path: Path) -> None:
+    agent_entry = importlib.import_module("med_autoscience.agent_entry")
+    stage_knowledge_plane = importlib.import_module("med_autoscience.controllers.stage_knowledge_plane")
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    route_payload = agent_entry.load_entry_modes_payload()
+    stage_contract = stage_knowledge_plane.stage_knowledge_plane_contract()
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    descriptor = manifest["family_stage_control_plane_descriptor"]
+    nested_descriptor = manifest["opl_family_persistence_lifecycle_owner_route_adoption"]["payload"][
+        "family_stage_control_plane_descriptor"
+    ]
+
+    assert descriptor == nested_descriptor
+    assert descriptor["surface_kind"] == "family_stage_control_plane_descriptor"
+    assert descriptor["domain_id"] == "med-autoscience"
+    assert descriptor["capability_id"] == "stage_led_autonomy"
+    assert descriptor["source_refs"]["inventory"] == (
+        "docs/references/integration/stage_led_autonomy_family_inventory.md"
+    )
+    assert descriptor["source_refs"]["route_contract_source"] == (
+        "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml"
+    )
+    assert descriptor["source_refs"]["knowledge_plane_contract_source"] == (
+        "med_autoscience.controllers.stage_knowledge_plane.stage_knowledge_plane_contract"
+    )
+    assert descriptor["source_refs"]["packet_contract_surfaces"] == list(stage_contract["packet_contracts"])
+
+    snapshot = descriptor["route_contract_snapshot"]
+    assert snapshot["route_ids"] == list(route_payload["route_contracts"])
+    assert snapshot["route_count"] == len(route_payload["route_contracts"])
+    assert snapshot["entry_mode_count"] == len(route_payload["modes"])
+    assert snapshot["descriptor_derives_routes"] is False
+
+    assert descriptor["stage_knowledge_plane"]["exploratory_stages"] == stage_contract["exploratory_stages"]
+    assert descriptor["stage_knowledge_plane"]["packet_surfaces"] == list(stage_contract["packet_contracts"])
+    assert descriptor["stage_packets"] == {
+        "knowledge_packet": "stage_knowledge_packet",
+        "memory_closeout_packet": "stage_memory_closeout_packet",
+        "memory_write_router_receipt": "memory_write_router_receipt",
+        "stage_recall_index": "stage_recall_index",
+    }
+    assert descriptor["memory_control"]["can_promote_memory_to_evidence"] is False
+    assert "dispatch_mas_exported_task" in descriptor["allowed_family_actions"]
+    assert "replace_route_contract" in descriptor["forbidden_family_actions"]
+
+    authority = descriptor["authority_boundary"]
+    assert authority["opl_role"] == "read_only_descriptor_consumer"
+    assert authority["can_write_domain_truth"] is False
+    assert authority["can_authorize_publication_quality"] is False
+    assert authority["can_authorize_submission_readiness"] is False
+    assert authority["publication_eval_owner"] == "MedAutoScience"
+    assert authority["publication_gate_owner"] == "MedAutoScience"

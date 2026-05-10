@@ -1,10 +1,10 @@
 # MAS Stage-Led Autonomy Family Inventory
 
-Status: `first-round inventory`
+Status: `descriptor adapter landed`
 Date: `2026-05-10`
 Owner: `MedAutoScience`
 Purpose: inventory MAS Stage-Led Autonomy surfaces for OPL family descriptor projection without changing MAS study routes, controller runtime, publication authority, or execution kernel.
-State: `reference inventory`
+State: `reference inventory plus MAS-owned descriptor projection`
 Machine boundary: this is human-readable inventory material. Machine truth remains in `agent_entry_modes.yaml`, `stage_knowledge_plane_contract`, `stage_knowledge_packet`, `stage_memory_closeout_packet`, `memory_write_router_receipt`, `stage_recall_index`, evidence/review ledgers, controller decisions, runtime status, publication eval, and generated study artifacts.
 
 ## 结论
@@ -19,6 +19,8 @@ MAS 当前的 Stage-Led Autonomy 已由以下 MAS-owned surfaces 承接：
 - `stage_recall_index`：把 stage knowledge packets 和 memory router receipts 汇总成 stage recall read model，供后续 stage、Progress/Portal 和 operator projection 读取。
 
 这些 surface 已经满足 Stage-Led Autonomy 的核心要求：stage 保持研究思考与探索空间，controller 继续守医学边界、证据账本、owner route、质量门禁、stop-loss 与 human gate。OPL family descriptor 只能把这些能力投影出去，不能把投影反向升级为 MAS authority。
+
+MAS 现在通过 product-entry manifest 暴露 MAS-owned `family_stage_control_plane_descriptor`。该 descriptor 由 `agent_entry_modes.yaml` 与 `stage_knowledge_plane_contract` 派生 route snapshot、packet surfaces、memory closeout/router/recall surface、evidence/review/controller/publication refs 和 `authority_boundary`；它只用于 OPL family-level indexing / display / freshness / MAS-exported dispatch discovery，不派生 route，不授权质量或投稿 readiness。
 
 ## Scope Guard
 
@@ -38,6 +40,7 @@ MAS 当前的 Stage-Led Autonomy 已由以下 MAS-owned surfaces 承接：
 | `docs/program/ai_first_paper_autonomy_closure_program.md` | MAS program owner | Program context tying AI reviewer repair, route decision, stage knowledge/memory, and real-paper soak | `keep` as program context; do not use as runtime contract |
 | `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml` | MAS route contract owner | Route contract for scout, idea, baseline, experiment, analysis-campaign, write, review, finalize, decision, journal-resolution, entry modes, gates, outputs, and route-back triggers | `keep`; OPL maps route descriptors from this source read-only |
 | `src/med_autoscience/controllers/stage_knowledge_plane.py` | MAS controller/knowledge-plane owner | Machine surface for stage knowledge packets, typed closeout, memory routing receipts, and recall index | `map_to_descriptor`; descriptor mirrors surface metadata, required fields, owner, and authority boundary |
+| `product-entry-manifest.family_stage_control_plane_descriptor` | MAS product-entry projection owner | Read-only family descriptor for `stage_led_autonomy` source refs, route snapshot, packet/read-model surfaces and authority boundary | `landed`; OPL may consume it as descriptor only |
 | `tests/test_stage_knowledge_plane.py` | MAS test owner | Verifies packet surface contract, exploratory stage obligations, missing reasons, typed closeout routing, idempotency, owner targets, and blockers | `keep`; OPL must not replace these MAS tests with family-level prose checks |
 | `tests/test_stage_knowledge_entry_injection.py` | MAS test owner | Verifies entry injection consumes stage knowledge surfaces in route materialization | `keep`; expose existence as descriptor evidence |
 | `tests/test_stage_knowledge_visibility.py` | MAS test owner | Verifies Progress/Portal visibility for stage knowledge and memory writeback surfaces | `map_to_descriptor`; family UI can consume visibility projection read-only |
@@ -56,7 +59,7 @@ MAS 当前的 Stage-Led Autonomy 已由以下 MAS-owned surfaces 承接：
 
 ## Descriptor Projection Shape
 
-If OPL introduces a family descriptor for this lane, the descriptor should stay thin and read-only:
+MAS now exposes the family descriptor for this lane as `family_stage_control_plane_descriptor`; the descriptor stays thin and read-only:
 
 - `domain_id`: `med-autoscience`
 - `capability_id`: `stage_led_autonomy`
@@ -68,7 +71,7 @@ If OPL introduces a family descriptor for this lane, the descriptor should stay 
 - `forbidden_family_actions`: `write_study_truth`, `replace_route_contract`, `authorize_publication_quality`, `authorize_submission_readiness`, `promote_memory_to_evidence`, `infer_medical_route_from_projection`
 - `source_refs_required`: policy ref, route contract ref, contract surface ref, test evidence ref, freshness/refingerprint if materialized
 
-This descriptor should be generated or reviewed against MAS-owned surfaces. It should not hard-code route wording, stage counts, or Markdown paragraphs as a family truth source.
+This descriptor is generated against MAS-owned surfaces. It carries route IDs/counts as a snapshot from `agent_entry_modes.yaml`, but it does not define, add, remove, reorder or authorize routes. It should not hard-code route wording, stage counts, or Markdown paragraphs as a family truth source.
 
 ## Adoption Recommendations
 
@@ -79,8 +82,8 @@ This descriptor should be generated or reviewed against MAS-owned surfaces. It s
 | `downgrade_to_read_model` | any OPL-side stage memory index, dashboard aggregation, family catalog copy, operator UI projection | Store only source refs, status, freshness, and owner labels; never write back to MAS truth from the read model itself. |
 | `split_authority` | dispatch, guard, evaluator, repair routing, human gate, publication readiness | OPL may queue or notify from MAS-exported typed tasks; MAS executes and writes receipts/decisions. |
 
-## First-Round Gaps
+## Descriptor Adapter Closeout
 
-This inventory intentionally does not implement new family code. The remaining adoption work is to decide whether OPL needs a machine-readable descriptor surface for `stage_led_autonomy`. If it does, the descriptor should be introduced in the OPL-owned family contract layer and validated against MAS-exported metadata, while MAS keeps the current route contract, controller runtime, truth surfaces, and execution kernel unchanged.
+The first MAS-side adapter is now landed in the MAS product-entry projection. It deliberately avoids changes to route ids, stage count, controller runtime, publication gate, truth surfaces and execution kernel. The descriptor is validated by product-entry tests for source traceability, route contract snapshot stability, OPL read-only role, and MAS ownership of publication/quality authority.
 
 No MAS route id, stage count, controller runtime, truth surface, or execution kernel change is required for first-round adoption.
