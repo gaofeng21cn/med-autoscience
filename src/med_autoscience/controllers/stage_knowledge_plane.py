@@ -18,6 +18,18 @@ RECALL_INDEX_SURFACE = "stage_recall_index"
 EXPLORATORY_STAGES = ("scout", "idea", "analysis-campaign", "review")
 STAGE_KNOWLEDGE_ROOT = Path("artifacts/stage_knowledge")
 
+TYPED_CLOSEOUT_CATEGORIES = (
+    "reusable_lessons",
+    "citation_gaps",
+    "failed_paths",
+    "reference_role_updates",
+    "evidence_ledger_updates",
+    "review_ledger_updates",
+    "controller_decision_requests",
+    "human_gate_requests",
+    "claim_boundary_decisions",
+)
+
 COMMON_PACKET_FIELDS = (
     "schema_version",
     "study_id",
@@ -214,16 +226,7 @@ def normalize_stage_memory_closeout_packet(
     workspace_root: Path,
 ) -> dict[str, Any]:
     resolved_stage = _validate_stage(stage)
-    normalized = {
-        "reusable_lessons": _mapping_list(closeout_payload.get("reusable_lessons")),
-        "citation_gaps": _mapping_list(closeout_payload.get("citation_gaps")),
-        "failed_paths": _mapping_list(closeout_payload.get("failed_paths")),
-        "reference_role_updates": _mapping_list(closeout_payload.get("reference_role_updates")),
-        "evidence_ledger_updates": _mapping_list(closeout_payload.get("evidence_ledger_updates")),
-        "review_ledger_updates": _mapping_list(closeout_payload.get("review_ledger_updates")),
-        "controller_decision_requests": _mapping_list(closeout_payload.get("controller_decision_requests")),
-        "human_gate_requests": _mapping_list(closeout_payload.get("human_gate_requests")),
-    }
+    normalized, typed_blockers = _normalize_typed_closeout(closeout_payload)
     source_refs = _dedupe_text(
         [
             *_text_list(closeout_payload.get("source_refs")),
@@ -250,6 +253,7 @@ def normalize_stage_memory_closeout_packet(
         "input_refs": source_refs,
         "source_refs": source_refs,
         "proposed_writes": _proposed_writes(normalized),
+        "typed_blockers": typed_blockers,
         "normalized_closeout": normalized,
         "source_fingerprint": source_fingerprint,
         "authority_boundary": _authority_boundary(),
@@ -301,28 +305,38 @@ def route_stage_memory_closeout(
         if existing:
             return {**existing, "idempotent_replay": True, "receipt_ref": str(receipt_path)}
 
+    typed_blockers = _mapping_list(closeout_packet.get("typed_blockers"))
+    if typed_blockers:
+        receipt = _memory_router_receipt(
+            closeout_packet=closeout_packet,
+            idempotency_key=idempotency_key,
+            apply=apply,
+            accepted=[],
+            rejected=[],
+            typed_blockers=typed_blockers,
+            status="blocked",
+        )
+        if apply:
+            _write_json(receipt_path, receipt)
+        return {**receipt, "receipt_ref": str(receipt_path)}
+
     proposed = _mapping_list(closeout_packet.get("proposed_writes"))
     accepted, rejected = _route_proposed_writes(
         proposed_writes=proposed,
         study_root=resolved_study_root,
         workspace_root=resolved_workspace_root,
+        router_receipt_path=receipt_path,
         apply=apply,
     )
-    source_fingerprint = _fingerprint({"idempotency_key": idempotency_key, "accepted": accepted, "rejected": rejected})
-    receipt = {
-        "surface": MEMORY_ROUTER_SURFACE,
-        "schema_version": SCHEMA_VERSION,
-        "study_id": _required_text("study_id", closeout_packet.get("study_id")),
-        "stage": _validate_stage(_text(closeout_packet.get("stage"))),
-        "input_refs": _text_list(closeout_packet.get("source_refs")) or _text_list(closeout_packet.get("input_refs")),
-        "source_fingerprint": source_fingerprint,
-        "authority_boundary": _authority_boundary(),
-        "idempotency_key": idempotency_key,
-        "apply": apply,
-        "accepted_writes": accepted,
-        "rejected_writes": rejected,
-        "status": "applied" if apply else "dry_run",
-    }
+    receipt = _memory_router_receipt(
+        closeout_packet=closeout_packet,
+        idempotency_key=idempotency_key,
+        apply=apply,
+        accepted=accepted,
+        rejected=rejected,
+        typed_blockers=[],
+        status="applied" if apply else "dry_run",
+    )
     if apply:
         _write_json(receipt_path, receipt)
     return {**receipt, "receipt_ref": str(receipt_path)}
@@ -525,6 +539,35 @@ def _claim_boundary(*, input_refs: Sequence[Mapping[str, Any]]) -> dict[str, Any
     return dict(boundary)
 
 
+def _normalize_typed_closeout(closeout_payload: Mapping[str, Any]) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]]]:
+    normalized = {category: _mapping_list(closeout_payload.get(category)) for category in TYPED_CLOSEOUT_CATEGORIES}
+    typed_count = sum(len(items) for items in normalized.values())
+    blockers: list[dict[str, Any]] = []
+    if typed_count == 0:
+        blockers.append(
+            {
+                "blocker_id": "typed_closeout_missing",
+                "reason": "stage closeout requires typed category arrays",
+                "owner_target": "stage_closeout_author",
+            }
+        )
+    for key, value in closeout_payload.items():
+        if key in TYPED_CLOSEOUT_CATEGORIES:
+            continue
+        if key in {"idempotency_key", "source_refs"}:
+            continue
+        if isinstance(value, str) and _text(value):
+            blockers.append(
+                {
+                    "blocker_id": f"free_text_field:{key}",
+                    "reason": "free-text-only closeout fields are not parsed by memory router",
+                    "field": key,
+                    "owner_target": "stage_closeout_author",
+                }
+            )
+    return normalized, blockers
+
+
 def _proposed_writes(normalized: Mapping[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
     destinations = {
         "reusable_lessons": "workspace_research_memory_proposal",
@@ -535,15 +578,18 @@ def _proposed_writes(normalized: Mapping[str, list[dict[str, Any]]]) -> list[dic
         "review_ledger_updates": "review_ledger_repair_request",
         "controller_decision_requests": "controller_decision_request",
         "human_gate_requests": "human_gate_request",
+        "claim_boundary_decisions": "claim_boundary_controller_decision_request",
     }
     proposed: list[dict[str, Any]] = []
     for key, destination in destinations.items():
         for index, item in enumerate(normalized.get(key, [])):
+            owner_target = _owner_target_for_destination(destination)
             proposed.append(
                 {
                     "write_id": _text(item.get("write_id")) or f"{key}:{index + 1}:{_fingerprint(item)}",
                     "source_category": key,
                     "destination": destination,
+                    "owner_target": owner_target,
                     "payload": dict(item),
                     "source_refs": _text_list(item.get("source_refs")),
                 }
@@ -556,6 +602,7 @@ def _route_proposed_writes(
     proposed_writes: Sequence[Mapping[str, Any]],
     study_root: Path,
     workspace_root: Path,
+    router_receipt_path: Path,
     apply: bool,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     accepted: list[dict[str, Any]] = []
@@ -571,7 +618,14 @@ def _route_proposed_writes(
         if not target_path:
             rejected.append({**dict(write), "reason": "unsupported_destination"})
             continue
-        accepted_item = {**dict(write), "target_path": str(target_path)}
+        accepted_item = {
+            **dict(write),
+            "owner_target": _text(write.get("owner_target")) or _owner_target_for_destination(destination),
+            "target_path": str(target_path),
+        }
+        if destination == "workspace_research_memory_proposal":
+            accepted_item["proposal_ref"] = str(target_path)
+            accepted_item["receipt_ref"] = str(router_receipt_path)
         accepted.append(accepted_item)
         if apply:
             _append_jsonl_once(target_path, {**accepted_item, "write_id": write_id}, identity=write_id)
@@ -601,9 +655,63 @@ def _target_path_for_destination(destination: str, *, study_root: Path, workspac
         "evidence_ledger_repair_request": study_root / "artifacts" / "controller" / "evidence_ledger_repair_requests.jsonl",
         "review_ledger_repair_request": study_root / "artifacts" / "controller" / "review_ledger_repair_requests.jsonl",
         "controller_decision_request": study_root / "artifacts" / "controller_decisions" / "stage_closeout_requests.jsonl",
+        "claim_boundary_controller_decision_request": study_root
+        / "artifacts"
+        / "controller_decisions"
+        / "claim_boundary_requests.jsonl",
         "human_gate_request": study_root / "artifacts" / "controller" / "human_gate_requests.jsonl",
     }
     return targets.get(destination)
+
+
+def _owner_target_for_destination(destination: str) -> str:
+    owner_targets = {
+        "workspace_research_memory_proposal": "workspace_memory_owner",
+        "literature_provider_repair_request": "literature_provider",
+        "failed_path_history_or_controller_decision": "mas_controller",
+        "study_reference_context_update_request": "reference_context_owner",
+        "evidence_ledger_repair_request": "evidence_ledger_owner",
+        "review_ledger_repair_request": "review_ledger_owner",
+        "controller_decision_request": "mas_controller",
+        "claim_boundary_controller_decision_request": "mas_controller",
+        "human_gate_request": "human_gate_owner",
+    }
+    return owner_targets.get(destination, "unsupported_owner")
+
+
+def _memory_router_receipt(
+    *,
+    closeout_packet: Mapping[str, Any],
+    idempotency_key: str,
+    apply: bool,
+    accepted: Sequence[Mapping[str, Any]],
+    rejected: Sequence[Mapping[str, Any]],
+    typed_blockers: Sequence[Mapping[str, Any]],
+    status: str,
+) -> dict[str, Any]:
+    source_fingerprint = _fingerprint(
+        {
+            "idempotency_key": idempotency_key,
+            "accepted": list(accepted),
+            "rejected": list(rejected),
+            "typed_blockers": list(typed_blockers),
+        }
+    )
+    return {
+        "surface": MEMORY_ROUTER_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "study_id": _required_text("study_id", closeout_packet.get("study_id")),
+        "stage": _validate_stage(_text(closeout_packet.get("stage"))),
+        "input_refs": _text_list(closeout_packet.get("source_refs")) or _text_list(closeout_packet.get("input_refs")),
+        "source_fingerprint": source_fingerprint,
+        "authority_boundary": _authority_boundary(),
+        "idempotency_key": idempotency_key,
+        "apply": apply,
+        "accepted_writes": [dict(item) for item in accepted],
+        "rejected_writes": [dict(item) for item in rejected],
+        "typed_blockers": [dict(item) for item in typed_blockers],
+        "status": status,
+    }
 
 
 def _append_jsonl_once(path: Path, payload: Mapping[str, Any], *, identity: str) -> None:

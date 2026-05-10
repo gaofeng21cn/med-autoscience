@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 
 import pytest
 
@@ -139,3 +140,89 @@ def test_stage_memory_closeout_router_writes_typed_destinations_and_rejects_cros
     assert accepted_by_id["failed-path-1"]["target_path"].endswith(
         "artifacts/controller/failed_path_history.jsonl"
     )
+    proposal_path = workspace_root / "portfolio" / "research_memory" / "proposals" / "stage_memory_updates.jsonl"
+    failed_path = study_root / "artifacts" / "controller" / "failed_path_history.jsonl"
+    assert len(proposal_path.read_text(encoding="utf-8").splitlines()) == 1
+    assert len(failed_path.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_stage_memory_closeout_router_rejects_free_text_only_closeout(tmp_path) -> None:
+    study_root = tmp_path / "study"
+    workspace_root = tmp_path / "workspace"
+
+    packet = stage_knowledge_plane.normalize_stage_memory_closeout_packet(
+        study_id="S1",
+        stage="review",
+        study_root=study_root,
+        workspace_root=workspace_root,
+        closeout_payload={
+            "idempotency_key": "free-text-closeout",
+            "source_refs": ["review:turn-1"],
+            "summary": "Need a guideline citation and stricter claim boundary.",
+        },
+    )
+    receipt = stage_knowledge_plane.route_stage_memory_closeout(
+        closeout_packet=packet,
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+
+    assert packet["proposed_writes"] == []
+    assert receipt["status"] == "blocked"
+    assert {item["blocker_id"] for item in receipt["typed_blockers"]} == {
+        "typed_closeout_missing",
+        "free_text_field:summary",
+    }
+    assert not (workspace_root / "portfolio" / "research_memory" / "proposals" / "stage_memory_updates.jsonl").exists()
+
+
+def test_stage_memory_closeout_router_assigns_owner_targets_for_repair_and_decision_surfaces(tmp_path) -> None:
+    study_root = tmp_path / "study"
+    workspace_root = tmp_path / "workspace"
+
+    packet = stage_knowledge_plane.normalize_stage_memory_closeout_packet(
+        study_id="S1",
+        stage="review",
+        study_root=study_root,
+        workspace_root=workspace_root,
+        closeout_payload={
+            "idempotency_key": "owner-targets",
+            "source_refs": ["review:matrix-1"],
+            "citation_gaps": [{"write_id": "citation-gap-1", "gap": "Missing pivotal trial citation."}],
+            "failed_paths": [{"write_id": "failed-path-1", "reason": "Reviewer route was exhausted."}],
+            "reference_role_updates": [{"write_id": "reference-role-1", "pmid": "123", "role": "anchor"}],
+            "claim_boundary_decisions": [
+                {"write_id": "claim-boundary-1", "decision": "Keep subgroup claim exploratory only."}
+            ],
+            "controller_decision_requests": [{"write_id": "controller-decision-1", "request": "Confirm route."}],
+        },
+    )
+    receipt = stage_knowledge_plane.route_stage_memory_closeout(
+        closeout_packet=packet,
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+
+    accepted_by_id = {item["write_id"]: item for item in receipt["accepted_writes"]}
+    assert accepted_by_id["citation-gap-1"]["owner_target"] == "literature_provider"
+    assert accepted_by_id["citation-gap-1"]["target_path"].endswith(
+        "artifacts/literature_provider/repair_requests/stage_memory_closeout.jsonl"
+    )
+    assert accepted_by_id["failed-path-1"]["owner_target"] == "mas_controller"
+    assert accepted_by_id["reference-role-1"]["owner_target"] == "reference_context_owner"
+    assert accepted_by_id["reference-role-1"]["target_path"].endswith(
+        "artifacts/reference_context/update_requests.jsonl"
+    )
+    assert accepted_by_id["claim-boundary-1"]["owner_target"] == "mas_controller"
+    assert accepted_by_id["claim-boundary-1"]["target_path"].endswith(
+        "artifacts/controller_decisions/claim_boundary_requests.jsonl"
+    )
+    assert accepted_by_id["controller-decision-1"]["owner_target"] == "mas_controller"
+    assert accepted_by_id["controller-decision-1"]["target_path"].endswith(
+        "artifacts/controller_decisions/stage_closeout_requests.jsonl"
+    )
+
+    claim_boundary_rows = (
+        study_root / "artifacts" / "controller_decisions" / "claim_boundary_requests.jsonl"
+    ).read_text(encoding="utf-8").splitlines()
+    assert [json.loads(line)["write_id"] for line in claim_boundary_rows] == ["claim-boundary-1"]
