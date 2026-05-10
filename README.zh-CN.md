@@ -66,6 +66,7 @@
 - `OPL` handoff、product-entry manifest 以及其他机器可读桥接载荷都只保留在集成或参考层。
 - 它负责课题接收、工作区语境、证据推进、进度投影和面向论文的交付。
 - `OPL` 只负责 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不把 MAS 改写成内部模块。
+- 在 stage-led OPL family framework 中，MAS 持有医学研究 stage pack、prompt、skill、质量 gate、study truth reducer 和 publication/package authority。OPL 可以提供 wakeup、queue、handoff、receipt 和进度投影支撑；除非 MAS route 显式选择其他执行器，stage 内默认 concrete executor 仍是 `Codex CLI`。
 - Hermes-first family topology 下，`OPL Runtime Manager` 与 `opl family-runtime` 会在 OPL-managed 外部 `Hermes-Agent` online substrate 之上索引 MAS task/runtime/artifact projection。MAS 继续持有 study truth、publication judgment、quality gate 和 paper/package authority。
 - MAS 暴露 `medautosci sidecar export` 与 `medautosci sidecar dispatch` 给 OPL family queue 使用。这个 sidecar 只负责 wakeup、recovery、notification receipt 和只读 supervision projection 的受控桥接，不写 domain truth。
 - `MedDeepScientist` 不再是 MAS 默认运行、默认诊断、runtime root 或 WebUI 依赖；只保留为显式可选的 backend audit target、source-provenance reference、historical fixture、explicit archive-import reference、upstream intake source 和 parity oracle。
@@ -88,6 +89,7 @@
 - 如果你要接管或初始化一个专病 workspace，下一跳读 [Bootstrap](./bootstrap/README.md)。它说明了 workspace-first 心智模型，以及 `init-workspace -> doctor -> show-profile -> bootstrap` 这条最短接管路径。
 - 在改 runtime、入口表述或 docs 之前，把 [项目概览](./docs/project.md)、[当前状态](./docs/status.md)、[架构](./docs/architecture.md)、[不可变约束](./docs/invariants.md) 和 [关键决策](./docs/decisions.md) 当成人工可读的 repo-tracked 真相集。
 - 当前正式 operator entry surfaces 是 `CLI`、`MCP`、`product-entry` 和 `controller`。产品入口与运行时合同主要放在 `docs/runtime/` 和 `docs/program/`，Agent 可以直接从这些文档切入，不必先通读代码；稳定可调用面继续是本地 CLI、MCP tools、product-entry surface、controller-authorized workspace commands / scripts、durable surface 与 repo-tracked contract。
+- MAS 可以通过 Codex app skill 直接调用，也可以通过 OPL 托管调用。两条路径必须回到同一套 MAS-owned stage、controller、durable truth 和 artifact surface；OPL framework metadata 不得成为第二医学研究真相源。
 - 如果外部 agent 需要直接读取 repo-tracked 的 MAS skill surface，用 `medautosci product skill-catalog --profile <profile> --format json`；返回的是单一 MAS app skill、底层 command contracts，以及由现有 runtime/session/progress/artifact surface 投影出的 machine-readable `runtime_continuity` envelope。
 - OPL Full online runtime 集成使用 `medautosci sidecar export --profile <profile> --format json` 和 `medautosci sidecar dispatch --task <task.json> --format json`。本地 CLI/status/manifest 在 Hermes 暂不可用时仍可读取，但应报告 degraded online readiness，不能静默声明 Full online ready。
 

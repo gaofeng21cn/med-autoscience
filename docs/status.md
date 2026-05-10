@@ -5,10 +5,12 @@
 ## 当前角色
 
 - `Med Auto Science` 是面向专病研究的独立医学研究 domain agent，单一 MAS app skill 承接稳定可调用面，负责研究问题进入、工作区语境、证据推进、人话进度和论文相关文件交付。
+- MAS 可以作为 OPL Codex-first、stage-led family agent framework 上的 admitted domain agent 被托管，但不是 OPL 内部模块。OPL 负责 stage descriptor discovery、queue/wakeup、handoff、receipt、approval/retry/dead-letter、trace/projection；MAS 负责医学 stage 语义、prompt/skill、study truth、AI reviewer、publication gate 和 artifact/package authority。
 - 仓库首页负责用户入口；`CLI`、`MCP`、`controller` 负责操作与自动化入口。
 - `Med Auto Science` 作为独立 medical research domain agent，对外先由单一 MAS app skill 统一承接；direct path 和经过 OPL 的 integration handoff 共享同一套研究语义。
 - 对外稳定 capability surface 继续是本地 CLI、workspace commands / scripts、durable truth surface 与 repo-tracked contract，方便 `Codex` 直接调用。
 - `OPL` 是上层 family-level session/runtime/projection 整合入口，并维护 shared modules/contracts/indexes；它不改写 MAS 的 domain owner 语义。
+- Codex App 直接调用 MAS app skill 仍是一等入口；经 OPL 托管调用时，也必须回到同一套 MAS-owned stage、controller、durable truth 和 artifact surface。
 - 当前 OPL family shared release pin 已对齐到 `2b08c7efd8acd80355e870087d4ce5be7b45d4d1`；`pyproject.toml` 与 `uv.lock` 共同持有这条 Python shared package pin。
 - `product-entry-manifest` 现已导出 MAS-owned `family_action_catalog`，并从同一份 action definition 投影 CLI、MCP、single app skill command metadata 与 product-entry operator metadata；同一 manifest 也暴露标准 `family_stage_control_plane` 和深度 `family_stage_control_plane_descriptor`，把 Stage-Led Autonomy 的 route contract source、stage knowledge plane、stage packets、memory closeout/router/recall、evidence/review/controller/publication refs 和 authority boundary 投影给 family-level indexing / display / freshness。`OPL` 只消费 shared schema/helper/validator/discovery，不写入 MAS study truth、runtime truth、quality authority 或 publication gate。
 - `OPL Runtime Manager` 是 OPL 侧新增的薄运行管理/投影目标层，负责把 MAS registration/projection 接到 native helper catalog、高频状态索引与 doctor/repair/resume 面；它不持有 MAS study truth、publication gate 或 evidence/review ledger。Hermes-first family topology 中，`Hermes-Agent` 由 OPL 管理并作为 OPL Full online runtime 的默认外部 substrate。

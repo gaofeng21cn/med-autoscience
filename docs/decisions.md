@@ -6,6 +6,12 @@
 - 理由：此前 Hermes 在 MAS 侧主要被用成 `every 5m` cron carrier，未发挥在线 substrate 的完整价值。新的稳定设计把 24h 在线、跨仓唤醒、通知、恢复和队列放在 OPL+Hermes 层，把医学研究语义和质量判断保留在 MAS。
 - 影响：MAS 新增 `medautosci sidecar export --profile <profile> --format json` 与 `medautosci sidecar dispatch --task <task.json> --format json`，供 `opl family-runtime` 调用。sidecar export 会把非终局、非 hard human gate 的 `breach` / `parked` / recovery-ready 状态投影成 `pending_family_tasks`，由 OPL/Hermes 入 typed queue；sidecar dispatch 可在 MAS owner 内执行 `runtime-supervisor-reconcile --mode developer_apply_safe --apply`。该入口仍禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package 或 artifact gate；这些 truth 只能由对应 MAS owner surface 产生。MAS standalone/local diagnostics 仍可使用 MAS-owned local scheduler；Full online readiness 由 OPL 侧 Hermes gateway readiness 判定。
 
+## 2026-05-10：MAS 作为 OPL stage-led framework 上的独立 domain agent
+
+- 决策：MAS 的 OPL 对齐口径固定为：MAS 是可直接由 Codex App skill 调用、也可由 OPL Codex-first stage-led family framework 托管的独立 medical research domain agent。OPL 只持有 stage descriptor discovery、typed queue、wakeup、handoff、receipt、approval/retry/dead-letter、trace/projection 和 parity；MAS 持有医学 stage pack、prompt/skill、study truth reducer、evidence/review ledger、AI reviewer、publication gate、route decision 和 artifact/package authority。
+- 理由：MAS 的价值在医学研究自治与论文质量闭环。如果把研究路线、质量判断或 publication readiness 上收到 OPL，会制造第二 truth owner，也会削弱 Codex CLI 在 MAS stage 内的自主探索能力。OPL 应提供 durable framework 能力，不能成为 MAS 的领域大脑。
+- 影响：direct MAS skill path 保持一等入口；经 OPL 调用时必须回到同一套 MAS-owned CLI/MCP/product-entry/controller/stage surface。后续流程优化优先改 MAS stage policy、prompt、skill、AI reviewer、quality gate 和 route/decision receipt；不得把医学研究思路写成 OPL 机械脚本分流。
+
 ## 2026-05-10：Autonomy continuation ticket 成为 read-model 到执行闭环的桥
 
 - 决策：`slo_status=breach`、`runtime_liveness_status=parked`、`runtime_decision=blocked` 或 `safe_reconcile_ready` 不能只停留在 read model。只要 controller 未给出 `stop_loss` / terminal stop，且没有 hard human confirmation gate，MAS sidecar export 必须生成一条幂等 `pending_family_tasks[]`，默认 task kind 为 `runtime_supervisor/reconcile-apply`。

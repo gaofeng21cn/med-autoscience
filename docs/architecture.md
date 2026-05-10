@@ -12,6 +12,7 @@
    - `CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，是操作与自动化接口，也是对外稳定 capability surface。
    - 单一 MAS app skill 负责把这些稳定接口对外承接起来。
    - `OPL`、`product-entry manifest` 和其他机器可读桥接属于上层整合与自动化消费面，不是第一主语。
+   - 在 OPL Codex-first、stage-led family framework 中，MAS stage descriptor、handoff、receipt 和 projection 可以被 OPL 发现和托管，但 stage 内部的研究拆解、分析探索、写作、审核和路线判断仍由 MAS prompt/skill、AI reviewer、controller truth 和 `Codex CLI` 执行。
    - `OPL Runtime Manager` 是 OPL 侧的薄运行管理/投影层：它接收 MAS 暴露的 task registration、runtime_control projection、status/artifact locator 与 approval/wakeup 边界，再把这些信息挂到 OPL 的 profile、task、resume、doctor 与索引面。Hermes-first family topology 中，OPL Full online runtime 默认由 OPL-managed 外部 `Hermes-Agent` substrate 提供常驻 gateway、cron/webhook wakeup、session/delivery/approval transport；MAS 侧通过 `medautosci sidecar export|dispatch` 暴露受控桥接。高频文件/状态索引可由 OPL Rust native helper 加速，MAS 侧通过 `native_helper_consumption.proof_surface` 和 `contracts/opl-gateway/native-helper-contract.json` 明确其 index-only 边界，但不能写成 MAS 研究真相来源。
    - 这一层负责把 MAS 控制面接到更高层入口；如果使用 integration handoff，它必须保持同一套研究语义与 owner 边界。
 
@@ -45,6 +46,7 @@
 `family_action_catalog` 是这些 callable action 的 MAS-owned metadata 单一声明面；CLI、MCP tool descriptor、single app skill command projection 与 product-entry manifest 中的 action metadata 都从它派生。`OPL` 只读取该 catalog 做 family-level discovery/export/parity，不执行 MAS action，也不拥有 study truth、runtime controller truth、AI reviewer judgement、publication gate 或 artifact authority。
 `family_stage_control_plane` 是 OPL 标准可发现 stage descriptor；`family_stage_control_plane_descriptor` 是 Stage-Led Autonomy 的 MAS-owned 深度 descriptor projection。二者都从 `agent_entry_modes.yaml` 和 `stage_knowledge_plane_contract` 派生 route snapshot、stage packets、memory closeout/router/recall、evidence/review/controller/publication refs 与 `authority_boundary`。`OPL` 可以读取它们做 family-level indexing、display、freshness check 和 MAS-exported task discovery，但不能用它们派生 route、写 study truth、提升 memory 为 evidence，或授权 publication quality / submission readiness。
 `medautosci sidecar export|dispatch` 是 OPL/Hermes online substrate 到 MAS owner surface 的受控桥接：export 只投影 MAS-owned runtime/status/source refs 与 pending family tasks，dispatch 只接收 allowlisted task 并回到 MAS controller/runtime owner chain 产出 receipt。`MCP`、action catalog、skill command projection、plugin manifest 与 product-entry manifest 都是 entry/projection surface；它们可以暴露命令、schema、tool metadata 与 handoff refs，但不得写或裁决 study truth、publication quality、quality gate、artifact authority、paper package、`study_runtime_status` 或 `runtime_watch`。
+MAS 在 stage-led OPL framework 下的可调用路线必须保持 direct skill 等价：直接通过 MAS app skill 调用，或通过 OPL stage/queue/handoff 调用，最终都回到同一套 MAS-owned stage entry、controller、ledger、review、route decision 与 artifact surface。OPL 只能持有 framework-level attempt/receipt/projection metadata，不持有医学 research memory、evidence ledger、review ledger、publication verdict 或 current package authority。
 `MAS Progress Portal` 是这组投影面向用户的 landed 固定可视化入口：默认生成 `ops/mas/progress/index.html` 静态快照，也可由本地只读服务实时刷新。Portal 由 MAS 持有 domain-owned payload / HTML，只消费 `study-progress`、`workspace-cockpit` 和 durable truth refs，不写 study truth、publication truth、runtime authority 或 artifact authority。它统一用户进度查看入口；functional monolith completion 的完成口径是 capability supersede / rewrite / retire，不是 MDS 函数级 1:1 搬迁。当前 Portal 的用户体验仍是部分等价：旧 MDS WebUI 以 project/quest 为主工作台，MAS Portal 仍偏 workspace overview + study rows；per-study/per-paper drilldown 是后续 UX parity 的 P0。
 它们描述的是当前可执行的操作面。
 `OPL` 调用、`product-entry manifest`、`handoff envelope` 和其他机器可读载荷继续属于集成接口和参考层。
@@ -53,6 +55,7 @@
 ## 当前运行时责任分层
 
 - `Med Auto Science`：唯一研究入口、课题与工作区权威语义、进度语义、发表判断 owner，同时对外暴露稳定 capability surface。
+- `OPL stage-led framework`：只负责 MAS stage descriptor discovery、attempt/queue/approval/retry/trace/projection 支撑，不生成医学结论、不替 MAS 执行 publication 或 quality verdict。
 - `MAS supervision scheduler contract`：MAS standalone/local diagnostics 的外层 supervision cadence、job identity、tick receipt、SLO / drift projection 和 adapter migration owner；默认 adapter 是 MAS-owned `local` scheduler，macOS backend 已落地为 LaunchAgent。OPL Full online runtime 的 family-level wakeup 由 OPL-managed `Hermes-Agent` substrate 触发 `opl family-runtime tick`，再通过 `medautosci sidecar dispatch` 进入 MAS owner surface。
 - `OPL Runtime Manager`：OPL 侧 product-managed adapter/projection layer，负责把 MAS registration/projection 接到高频索引、doctor/repair/resume 与 native helper catalog；不持有 MAS domain truth。
 - `Hermes-Agent`：OPL Full online family runtime 的默认外部 substrate / hosted carrier / delivery transport；它不改写 MAS 默认 concrete executor，不持有 MAS domain truth，也不替代 MAS quality 或 artifact owner。
