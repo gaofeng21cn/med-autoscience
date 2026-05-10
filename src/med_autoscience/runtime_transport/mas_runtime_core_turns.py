@@ -4,9 +4,9 @@ from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 import json
 from pathlib import Path
-import threading
 from typing import Any
 
+from med_autoscience.runtime_transport import mas_runtime_core_turn_monitor as turn_monitor
 from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
     BLOCKED_CLOSEOUT_RUNNER_STATUS,
     INCOMPLETE_RUNNER_STATUS,
@@ -754,62 +754,22 @@ def _arm_delayed_turn_timer(*, quest_root: Path, delay_seconds: float, source: s
 
 
 def _arm_runner_monitor(*, runtime_root: Path, quest_root: Path, quest_id: str, run_id: str, source: str) -> None:
-    process = pop_running_process(quest_root=quest_root, run_id=run_id)
-    if process is None:
-        return
-
-    def _wait_and_normalize() -> None:
-        try:
-            returncode = process.wait()
-            state = load_state(quest_root=quest_root)
-            if text(state.get("active_run_id")) != run_id or state.get("worker_running") is not True:
-                append_runtime_event(
-                    quest_root=quest_root,
-                    event={
-                        "event": "runner_exit_ignored",
-                        "source": f"{source}:runner_monitor",
-                        "run_id": run_id,
-                        "returncode": returncode,
-                        "recorded_at": utc_now(),
-                    },
-                )
-                return
-            runner_status = "succeeded" if returncode == 0 else "error"
-            write_json(
-                _run_root(quest_root=quest_root, run_id=run_id) / "runner_exit.json",
-                {
-                    "schema_version": 1,
-                    "quest_id": quest_id,
-                    "run_id": run_id,
-                    "returncode": returncode,
-                    "runner_status": runner_status,
-                    "recorded_at": utc_now(),
-                },
-            )
-            complete_turn_and_normalize(
-                runtime_root=runtime_root,
-                quest_root=quest_root,
-                quest_id=quest_id,
-                run_id=run_id,
-                runner_status=runner_status,
-                source=f"{source}:runner_monitor",
-            )
-        except Exception as exc:
-            persist_state(
-                quest_root=quest_root,
-                updates={
-                    "status": "active",
-                    "active_run_id": None,
-                    "worker_running": False,
-                    "worker_pending": False,
-                    "normalization_error": f"{type(exc).__name__}: {exc}",
-                },
-                source=f"{source}:runner_monitor",
-                event_name="runner_monitor_failed",
-            )
-
-    thread = threading.Thread(target=_wait_and_normalize, name=f"mas-turn-monitor-{run_id}", daemon=True)
-    thread.start()
+    turn_monitor.arm_runner_monitor(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id=run_id,
+        source=source,
+        process=pop_running_process(quest_root=quest_root, run_id=run_id),
+        load_state=load_state,
+        text=text,
+        append_runtime_event=append_runtime_event,
+        write_json=write_json,
+        run_root=_run_root,
+        utc_now=utc_now,
+        complete_turn_and_normalize=complete_turn_and_normalize,
+        persist_state=persist_state,
+    )
 
 
 def reconcile_stale_liveness(*, quest_root: Path, source: str) -> dict[str, Any] | None:
