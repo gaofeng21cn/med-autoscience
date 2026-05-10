@@ -24,6 +24,7 @@ from .status_display import display_text
 from .study_workbench import render_study_workbench_sections
 from .workspace_overview import (
     dedupe_texts,
+    render_workspace_dashboard_section,
     render_workspace_alerts_section,
     render_workspace_studies_section,
     unique_text,
@@ -117,6 +118,8 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
             f'<div class="brand">{escape(brand)}</div>',
             f"<h1>{escape(workspace_title)}</h1>",
             f'<p class="state">{escape(state_label)}</p>',
+            '<details class="snapshot-meta">',
+            "<summary>快照信息</summary>",
             '<dl class="meta">',
             f"<div><dt>本机时间</dt><dd>{escape(generated_at_local_label)}</dd></div>",
             f"<div><dt>UTC 时间</dt><dd>{escape(generated_at)}</dd></div>",
@@ -125,8 +128,17 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
             f"<div><dt>当前论文线</dt><dd>{escape('工作区总览' if workspace_overview_mode else selected_study_id)}</dd></div>",
             f"<div><dt>状态缺口</dt><dd>{escape(condition_badge_label)}</dd></div>",
             "</dl>",
+            "</details>",
             render_live_console_portal_link(live_console),
             "</header>",
+            render_workspace_dashboard_section(
+                workspace_studies,
+                workspace_alert_items=workspace_alert_items,
+                conditions=conditions,
+                freshness=freshness,
+            )
+            if workspace_overview_mode
+            else "",
             _navigation_section(payload),
             render_workspace_studies_section(workspace_studies),
             '<section class="grid">',
