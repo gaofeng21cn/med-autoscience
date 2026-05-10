@@ -21,6 +21,7 @@
 7. backend audit
 8. managed study runtime orchestration
 9. runtime storage maintenance
+10. MAS sidecar family bridge export/dispatch
 
 对应的 Python 实现在包内：
 
@@ -35,6 +36,7 @@
 - `src/med_autoscience/controllers/study_runtime_router.py`
 - `src/med_autoscience/controllers/study_runtime_types.py`
 - `src/med_autoscience/controllers/runtime_storage_maintenance.py`
+- `src/med_autoscience/controllers/sidecar_family_adapter.py`
 
 对应测试：
 
@@ -48,6 +50,7 @@
 - upgrade-check 的专用测试模块
 - `tests/test_study_runtime_router.py`
 - `tests/test_runtime_storage_maintenance.py`
+- `tests/test_cli_cases/sidecar_family_adapter_command.py`
 
 当前迁移策略是：
 
@@ -79,6 +82,8 @@
 对应稳定技术说明见：
 
 - `docs/runtime/control/study_runtime_orchestration.md`
+
+MAS sidecar bridge 是 `OPL` / external `Hermes-Agent` family online substrate 的受控入口，不是新的 controller truth owner。`sidecar export` 只把 MAS-owned runtime/status/source refs 投影给 typed family queue；`sidecar dispatch` 只接受 allowlisted task，回到 MAS controller/runtime owner chain 产出 dispatch receipt。它不得写 study truth、publication quality verdict、artifact gate、paper package、`study_runtime_status` 或 `runtime_watch`。这条边界的机器合同由 `contracts/test-lane-manifest.json` 的 `focused_lanes.mas-entry-boundary` 持有；本文件只做人读导航。
 
 后续优先顺序：
 

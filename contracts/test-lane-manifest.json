@@ -419,6 +419,95 @@
         "runtime_lifecycle.sqlite",
         "restore_archive"
       ]
+    },
+    "mas-entry-boundary": {
+      "kind": "focused_mas_entry_docs_contract_gate",
+      "paths": [
+        "tests/test_test_lane_governance.py",
+        "tests/product_entry_cases/action_catalog_parity.py",
+        "tests/test_cli_cases/sidecar_family_adapter_command.py",
+        "tests/test_codex_plugin.py",
+        "tests/test_codex_plugin_scaffold.py",
+        "tests/test_mcp_server.py"
+      ],
+      "docs": [
+        "docs/status.md",
+        "docs/architecture.md",
+        "docs/runtime/control/controllers.md"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "entry_projection_and_controlled_sidecar_bridge_no_study_truth_authority",
+      "implementation_status": "landed_docs_contract",
+      "machine_truth_surface": "contracts/test-lane-manifest.json",
+      "docs_boundary": {
+        "markdown_prose_as_machine_truth_allowed": false,
+        "docs_role": "human_navigation_and_boundary_explanation_only",
+        "contract_lane": "focused_lanes.mas-entry-boundary"
+      },
+      "family_online_substrate": {
+        "owner": "one-person-lab",
+        "substrate": "Hermes-Agent",
+        "role": "family_online_wakeup_queue_session_delivery_approval_transport",
+        "not_authority_for": [
+          "study_truth",
+          "publication_quality",
+          "quality_gate",
+          "artifact_authority",
+          "paper_package"
+        ]
+      },
+      "sidecar_bridge": {
+        "export_command": "medautosci sidecar export --profile <profile> --format json",
+        "dispatch_command": "medautosci sidecar dispatch --task <task.json> --format json",
+        "export_surface_kind": "mas_family_sidecar_export",
+        "dispatch_receipt_surface_kind": "mas_family_sidecar_dispatch_receipt",
+        "bridge_policy": "controlled_bridge_to_mas_owner_surface",
+        "allowed_task_kinds": [
+          "runtime_supervisor/reconcile-apply",
+          "runtime_supervisor/recover",
+          "runtime_supervision/recover",
+          "runtime/recover",
+          "runtime/reconcile-apply",
+          "autonomy/continue",
+          "safe_reconcile/dry-run",
+          "study_progress/read",
+          "status/read",
+          "notification/receipt"
+        ],
+        "allowed_bridge_writes": [
+          "artifacts/runtime/opl_family_sidecar/dispatch_receipts/*.json"
+        ]
+      },
+      "entry_projection_surfaces": {
+        "cli": "medautosci command surface",
+        "mcp": "med_autoscience.mcp_server build_tool_manifest action_catalog_projection",
+        "action_catalog": "med_autoscience.action_catalog family_action_catalog",
+        "skill": "plugins/mas/skills/mas/SKILL.md",
+        "plugin_manifest": "plugins/mas/.codex-plugin/plugin.json",
+        "product_entry_manifest": "family_action_catalog"
+      },
+      "projection_only_surfaces": [
+        "MCP tool descriptors",
+        "action_catalog projections",
+        "single MAS app skill command projection",
+        "product-entry manifest action metadata"
+      ],
+      "truth_owner": "MedAutoScience",
+      "forbidden_authority_writes": [
+        "study_truth",
+        "study_runtime_status",
+        "runtime_watch",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "paper/current_package",
+        "manuscript/current_package",
+        "paper/submission_minimal",
+        "manuscript/submission_minimal",
+        "quality_ready",
+        "publication_ready",
+        "submission_ready",
+        "artifact_gate_override"
+      ]
     }
   }
 }
