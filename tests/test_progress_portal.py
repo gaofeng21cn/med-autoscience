@@ -578,6 +578,56 @@ def test_progress_portal_payload_exposes_family_level_opl_handoff_without_new_tr
     ]
 
 
+def test_progress_portal_payload_exposes_opl_runtime_workbench_projection_without_authority_transfer() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        profile_ref="/workspace/ops/medautoscience/profiles/diabetes.toml",
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        runtime_payload={"study_id": "001-risk", "active_run_id": "run-runtime-001"},
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    projection = payload["mas_opl_runtime_workbench_projection"]
+    assert projection["surface_kind"] == "mas_opl_runtime_workbench_projection"
+    assert projection["schema_version"] == 1
+    assert projection["workspace"] == {
+        "workspace_root": "/workspace",
+        "profile_ref": "/workspace/ops/medautoscience/profiles/diabetes.toml",
+        "profile_name": "diabetes",
+    }
+    assert projection["studies"][0]["study_id"] == "001-risk"
+    assert projection["studies"][0]["macro_state"] == "质量修复/复审中"
+    assert projection["studies"][0]["links"]["progress_payload_ref"] == "artifacts/runtime/progress_portal/latest.json"
+    assert projection["studies"][0]["links"]["conversation_read_model_ref"].endswith(
+        "conversation_read_model/latest.json"
+    )
+    assert projection["studies"][0]["actions"]["pause"]["owner"] == "mas_runtime_owner"
+    assert projection["studies"][0]["actions"]["stop"]["confirmation_required"] is True
+    assert projection["terminal"]["mode"] == "read_only_tail"
+    assert projection["terminal"]["active_run_id"] == "run-001"
+    assert projection["terminal"]["token_required"] is True
+    assert projection["terminal"]["lease_required"] is True
+    assert projection["authority"]["opl_role"] == "projection_consumer_and_action_transport_only"
+    assert projection["authority"]["mas_truth_owner"] is True
+    assert projection["authority"]["forbidden_writes"] == [
+        "study_truth",
+        "publication_judgment",
+        "quality_verdict",
+        "runtime_authority",
+        "artifact_authority",
+        "runtime_state",
+        "runtime_sqlite",
+        "terminal_commands",
+        "current_package",
+        "evidence_ledger",
+        "review_ledger",
+    ]
+
+
 def test_progress_portal_projects_runtime_continuity_without_new_authority() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
     progress = {

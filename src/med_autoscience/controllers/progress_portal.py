@@ -14,6 +14,7 @@ from med_autoscience.controllers.progress_portal_parts import (
     live_console_projection,
     local_time_projection,
     progress_section_explanations,
+    build_runtime_workbench_projection,
     selected_workspace_study_id,
     source_refs as collect_source_refs,
     study_detail_href,
@@ -278,6 +279,24 @@ def build_progress_portal_payload(
             page_scope=resolved_page_scope,
         ),
     }
+    payload["mas_opl_runtime_workbench_projection"] = build_runtime_workbench_projection(
+        workspace_root=resolved_workspace_root,
+        profile_ref=profile_ref,
+        profile_name=resolved_profile_name,
+        generated_at=resolved_generated_at,
+        study_id=resolved_study_id,
+        workspace_overview_mode=workspace_overview_mode,
+        page_scope=resolved_page_scope,
+        workspace_study_rows=workspace_study_rows,
+        user_visible=user_visible,
+        progress=progress,
+        runtime=runtime,
+        freshness=freshness,
+        source_refs=source_refs,
+        conditions=conditions,
+        study_workbench=study_workbench,
+        live_console=live_console,
+    )
     if auto_refresh_seconds is not None and auto_refresh_seconds > 0:
         payload["portal_view"] = {
             "auto_refresh_seconds": int(auto_refresh_seconds),
