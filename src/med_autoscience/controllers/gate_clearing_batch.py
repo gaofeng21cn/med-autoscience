@@ -727,6 +727,7 @@ def run_gate_clearing_batch(
         unit_results=unit_results,
         execution_summary=execution_summary,
         study_delivery_status=study_delivery_status,
+        selected_work_unit_id=selected_work_unit_id,
         paper_root=paper_root,
         profile=profile,
         sync_submission_minimal_delivery=_route_bound(

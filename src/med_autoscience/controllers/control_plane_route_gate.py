@@ -54,6 +54,9 @@ _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "submission_delivery_sync_closure": frozenset(
         {"bundle_build", "delivery_sync", "submission_notice_materialize"}
     ),
+    "submission_authority_sync_closure": frozenset(
+        {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
+    ),
     "submission_minimal_refresh": frozenset(
         {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
     ),

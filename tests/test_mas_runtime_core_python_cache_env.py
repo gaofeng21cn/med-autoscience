@@ -134,6 +134,45 @@ def test_worker_wrapper_runs_codex_with_quest_local_python_cache(monkeypatch, tm
     assert "PYTHONDONTWRITEBYTECODE" not in seen["env"]
 
 
+def test_quest_python_runtime_env_loads_workspace_mas_config_for_checkout_bound_commands(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    wrapper_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper")
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "runtime" / "quests" / "quest-001"
+    repo_root = tmp_path / "med-autoscience"
+    uv_bin = tmp_path / "bin" / "uv"
+    config_env = workspace_root / "ops" / "medautoscience" / "config.env"
+    config_env.parent.mkdir(parents=True)
+    config_env.write_text(
+        "\n".join(
+            [
+                f'MED_AUTOSCIENCE_REPO="{repo_root}"',
+                f'MED_AUTOSCIENCE_UV_BIN="{uv_bin}"',
+                'MED_AUTOSCIENCE_PROFILE="${WORKSPACE_ROOT}/ignored.toml"',
+                "OPENAI_API_KEY=should-not-load",
+                "MED_AUTOSCIENCE_NODE_BIN=/usr/bin/node extra-token",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("MED_AUTOSCIENCE_REPO", raising=False)
+    monkeypatch.delenv("MED_AUTOSCIENCE_UV_BIN", raising=False)
+    monkeypatch.setenv("MED_AUTOSCIENCE_PROFILE", "/already/exported/profile.toml")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    env = wrapper_module.quest_python_runtime_env(quest_root=quest_root)
+
+    assert env["MED_AUTOSCIENCE_REPO"] == str(repo_root)
+    assert env["MED_AUTOSCIENCE_UV_BIN"] == str(uv_bin)
+    assert env["MED_AUTOSCIENCE_PROFILE"] == "/already/exported/profile.toml"
+    assert env["WORKSPACE_ROOT"] == str(workspace_root)
+    assert "OPENAI_API_KEY" not in env
+    assert "MED_AUTOSCIENCE_NODE_BIN" not in env
+
+
 def test_quest_python_runtime_env_removes_development_virtualenv(monkeypatch, tmp_path: Path) -> None:
     wrapper_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"

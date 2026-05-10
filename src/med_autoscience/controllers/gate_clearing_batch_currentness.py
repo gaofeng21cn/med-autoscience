@@ -235,6 +235,13 @@ def publication_work_unit_selection(
     selected_work_unit_id = publication_work_unit_id(selected_publication_work_unit)
     current_work_unit_id = publication_work_unit_id(current_next_work_unit)
     if (
+        selected_work_unit_id == "publication_gate_replay"
+        and current_work_unit_id in {"submission_authority_sync_closure", "submission_delivery_sync_closure"}
+        and isinstance(current_next_work_unit, dict)
+    ):
+        selected_publication_work_unit = dict(current_next_work_unit)
+        selected_work_unit_id = current_work_unit_id
+    if (
         specificity_targets
         and selected_work_unit_id == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
         and current_work_unit_id is not None

@@ -163,3 +163,27 @@ def test_run_gate_clearing_batch_normalizes_f3_payload_rewritten_by_transport_sy
     ]
     assert result["unit_results"][2]["status"] == "updated"
     assert result["repair_blocking_artifact_refs"] == []
+
+
+def test_repair_paper_live_paths_canonicalizes_absolute_paths_from_old_worktree(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_parts.execution_helpers")
+    current_workspace_root = tmp_path / "workspace" / "current"
+    paper_root = current_workspace_root / "studies" / "003" / "paper"
+    old_worktree_root = tmp_path / "runtime" / "quests" / "003" / ".ds" / "worktrees" / "old-run"
+    source_root = old_worktree_root / "paper"
+    stale_path = old_worktree_root / "paper" / "figures" / "figure_catalog.json"
+    payload = {"source_paths": [str(stale_path)]}
+
+    normalized, changed = module._normalize_path_payload(
+        payload,
+        key=None,
+        source_root=source_root,
+        target_root=paper_root,
+        current_workspace_root=current_workspace_root,
+        legacy_workspace_roots=(),
+    )
+
+    assert changed is True
+    assert normalized["source_paths"] == ["figures/figure_catalog.json"]

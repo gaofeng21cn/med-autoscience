@@ -224,6 +224,31 @@ def test_publication_gate_replay_route_authorizes_delivery_sync_without_snapshot
     assert gate["blocking_reasons"] == []
 
 
+def test_submission_authority_sync_closure_route_authorizes_submission_and_delivery_actions() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+    context = {
+        "control_plane_snapshot": _snapshot(),
+        "controller_route_context": {
+            "control_surface": "gate_clearing_batch",
+            "controller_action_type": "run_gate_clearing_batch",
+            "work_unit_id": "submission_authority_sync_closure",
+            "requires_human_confirmation": False,
+            "source_eval_id": "publication-eval::003::latest",
+            "work_unit_fingerprint": "submission-authority::003",
+        },
+    }
+
+    submission_gate = module.authorize_control_plane_route("submission_materialize", context)
+    delivery_gate = module.authorize_control_plane_route("delivery_sync", context)
+    bundle_gate = module.authorize_control_plane_route("bundle_build", context)
+
+    assert submission_gate["authorized"] is True
+    assert delivery_gate["authorized"] is True
+    assert bundle_gate["authorized"] is True
+    assert submission_gate["controller_repair_authorization_ref"]["work_unit_id"] == "submission_authority_sync_closure"
+    assert delivery_gate["blocking_reasons"] == []
+
+
 def test_analysis_claim_evidence_route_authorizes_paper_repair_under_downstream_bundle_gate() -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
 

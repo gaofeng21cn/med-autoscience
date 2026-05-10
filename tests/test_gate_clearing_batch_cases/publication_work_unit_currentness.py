@@ -350,3 +350,44 @@ def test_publication_work_unit_selection_supersedes_gate_specificity_after_targe
     assert selection["current_next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert selection["selected_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert selection["terminal_reason"] is None
+
+
+def test_publication_gate_replay_selects_current_submission_authority_closure() -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_currentness")
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "complete_bundle_stage",
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "continue_bundle_stage",
+        ],
+        "medical_publication_surface_status": "clear",
+        "study_delivery_status": "current",
+        "submission_minimal_authority_status": "stale_source_changed",
+        "submission_minimal_evaluated_source_signature": "source::new",
+        "submission_minimal_authority_source_signature": "source::old",
+        "gate_fingerprint": "publication-gate::authority-sync",
+    }
+    publication_eval_payload = {
+        "recommended_actions": [
+            {
+                "work_unit_fingerprint": "publication-gate-replay::old",
+                "next_work_unit": {
+                    "unit_id": "publication_gate_replay",
+                    "lane": "controller",
+                    "summary": "Replay the publication gate after controller work.",
+                },
+            }
+        ]
+    }
+
+    selection = module.publication_work_unit_selection(
+        publication_eval_payload=publication_eval_payload,
+        latest_batch={},
+        gate_report=gate_report,
+        authority_settle_delivery_redrive_requested=False,
+    )
+
+    assert selection["explicit_next_work_unit"]["unit_id"] == "publication_gate_replay"
+    assert selection["current_next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert selection["selected_publication_work_unit"]["unit_id"] == "submission_authority_sync_closure"

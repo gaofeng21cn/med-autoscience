@@ -300,12 +300,14 @@ def build_gate_clearing_repair_units(
                 ),
             )
         )
-    if bundle_stage_repair and submission_minimal_refresh_requested:
+    if bundle_stage_repair and (
+        submission_minimal_refresh_requested or selected_work_unit_id == "submission_authority_sync_closure"
+    ):
         submission_refresh_dependencies = (
             ()
             if (
-                selected_work_unit_id == "submission_minimal_refresh"
-                and controller_decision_work_unit_id == "submission_minimal_refresh"
+                selected_work_unit_id in {"submission_minimal_refresh", "submission_authority_sync_closure"}
+                and controller_decision_work_unit_id in {"submission_minimal_refresh", "submission_authority_sync_closure"}
             )
             else existing_dependency_ids(
                 repair_units,

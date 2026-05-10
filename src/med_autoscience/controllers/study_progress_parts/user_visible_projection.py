@@ -12,6 +12,9 @@ _ANSWER_FOCUS = (
     "writer_state",
     "package_delivered",
     "actual_write_active",
+    "meaningful_artifact_delta",
+    "next_owner",
+    "why_not_progressing",
     "user_next",
     "user_action_required",
     "evidence",
@@ -65,6 +68,14 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     details = _mapping_copy(macro_state.get("details"))
     package_delivered = bool(details.get("package_delivered"))
     actual_write_active = _actual_write_active(writer_state=writer_state, macro_state=macro_state, payload=payload)
+    meaningful_artifact_delta = _meaningful_artifact_delta(payload)
+    next_owner = _next_owner(payload=payload, details=details)
+    why_not_progressing = _why_not_progressing(
+        payload=payload,
+        actual_write_active=actual_write_active,
+        meaningful_artifact_delta=meaningful_artifact_delta,
+        next_owner=next_owner,
+    )
     user_action_required = _user_action_required(
         user_next=user_next,
         reason=reason,
@@ -116,6 +127,9 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         "reason": reason,
         "package_delivered": package_delivered,
         "actual_write_active": actual_write_active,
+        "meaningful_artifact_delta": meaningful_artifact_delta,
+        "next_owner": next_owner,
+        "why_not_progressing": why_not_progressing,
         "user_action_required": user_action_required,
         "state_label": state_label,
         "state_summary": state_summary,
@@ -140,6 +154,9 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
             reason=reason,
             package_delivered=package_delivered,
             actual_write_active=actual_write_active,
+            meaningful_artifact_delta=meaningful_artifact_delta,
+            next_owner=next_owner,
+            why_not_progressing=why_not_progressing,
             user_action_required=user_action_required,
             current_blockers=current_blockers,
             next_step=next_step,
@@ -213,6 +230,9 @@ def _conflict_projection(
         "conflict_reason": reason,
         "package_delivered": False,
         "actual_write_active": False,
+        "meaningful_artifact_delta": False,
+        "next_owner": _next_owner(payload=payload, details={}),
+        "why_not_progressing": message,
         "user_action_required": False,
         "state_label": "状态需要检查",
         "state_summary": state_summary,
@@ -288,6 +308,58 @@ def _fresh_artifact_delta_present(payload: Mapping[str, Any]) -> bool:
     return (
         _non_empty_text(artifact_delta_freshness.get("status")) == "fresh"
         and _non_empty_text(artifact_delta_freshness.get("latest_progress_at")) is not None
+    )
+
+
+def _meaningful_artifact_delta(payload: Mapping[str, Any]) -> bool:
+    return _fresh_artifact_delta_present(payload)
+
+
+def _next_owner(*, payload: Mapping[str, Any], details: Mapping[str, Any]) -> str | None:
+    impact = _mapping_copy(payload.get("production_blocker_impact"))
+    owner_route = _mapping_copy(payload.get("owner_route"))
+    paper_progress_stall = _mapping_copy(payload.get("paper_progress_stall"))
+    interaction_arbitration = _mapping_copy(payload.get("interaction_arbitration"))
+    portable_supervisor = _mapping_copy(payload.get("portable_supervisor_dashboard"))
+    ai_repair_lifecycle = _mapping_copy(payload.get("ai_repair_lifecycle"))
+    return (
+        _non_empty_text(impact.get("next_owner"))
+        or _non_empty_text(owner_route.get("next_owner"))
+        or _non_empty_text(details.get("decision_owner"))
+        or _non_empty_text(paper_progress_stall.get("next_owner"))
+        or _non_empty_text(interaction_arbitration.get("next_owner"))
+        or _non_empty_text(portable_supervisor.get("next_owner"))
+        or _non_empty_text(ai_repair_lifecycle.get("next_owner"))
+    )
+
+
+def _why_not_progressing(
+    *,
+    payload: Mapping[str, Any],
+    actual_write_active: bool,
+    meaningful_artifact_delta: bool,
+    next_owner: str | None,
+) -> str | None:
+    if actual_write_active and meaningful_artifact_delta:
+        return None
+    impact = _mapping_copy(payload.get("production_blocker_impact"))
+    progress_freshness = _mapping_copy(payload.get("progress_freshness"))
+    activity_timeout = _mapping_copy(progress_freshness.get("activity_timeout"))
+    artifact_delta_freshness = _mapping_copy(progress_freshness.get("meaningful_artifact_delta_freshness"))
+    paper_progress_stall = _mapping_copy(payload.get("paper_progress_stall"))
+    interaction_arbitration = _mapping_copy(payload.get("interaction_arbitration"))
+    portable_supervisor = _mapping_copy(payload.get("portable_supervisor_dashboard"))
+    ai_repair_lifecycle = _mapping_copy(payload.get("ai_repair_lifecycle"))
+    return (
+        _non_empty_text(interaction_arbitration.get("blocked_reason"))
+        or _non_empty_text(portable_supervisor.get("blocked_reason"))
+        or _non_empty_text(ai_repair_lifecycle.get("blocked_reason"))
+        or _non_empty_text(impact.get("why_not_running"))
+        or _non_empty_text(paper_progress_stall.get("why_not_running"))
+        or _non_empty_text(paper_progress_stall.get("summary"))
+        or (f"next owner is {next_owner}; waiting for owner-consumable paper progress." if next_owner else None)
+        or _non_empty_text(activity_timeout.get("summary"))
+        or _non_empty_text(artifact_delta_freshness.get("summary"))
     )
 
 
@@ -447,6 +519,9 @@ def _projection_conditions(
     reason: str,
     package_delivered: bool,
     actual_write_active: bool,
+    meaningful_artifact_delta: bool,
+    next_owner: str | None,
+    why_not_progressing: str | None,
     user_action_required: bool,
     current_blockers: list[str],
     next_step: str,
@@ -471,6 +546,24 @@ def _projection_conditions(
             actual_write_active,
             "writer_active" if actual_write_active else "writer_inactive",
             "系统有实际 writer/run 正在写入。" if actual_write_active else "当前没有实际写入。",
+        ),
+        _condition(
+            "meaningful_artifact_delta",
+            meaningful_artifact_delta,
+            "artifact_delta_present" if meaningful_artifact_delta else "artifact_delta_absent",
+            "已观察到论文产物级有效增量。" if meaningful_artifact_delta else "尚未观察到论文产物级有效增量。",
+        ),
+        _condition(
+            "next_owner",
+            bool(next_owner),
+            "next_owner_present" if next_owner else "next_owner_missing",
+            next_owner,
+        ),
+        _condition(
+            "why_not_progressing",
+            bool(why_not_progressing),
+            "why_not_progressing_present" if why_not_progressing else "progressing_or_unknown",
+            why_not_progressing,
         ),
         _condition(
             "blocked",

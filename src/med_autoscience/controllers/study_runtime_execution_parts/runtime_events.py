@@ -7,6 +7,7 @@ from typing import Any, Callable
 from urllib.parse import quote, urlparse
 
 from med_autoscience.controllers import auto_runtime_parking
+from med_autoscience.runtime_control import callable_owner_names
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_escalation_record import RuntimeEscalationRecord
 
@@ -300,7 +301,12 @@ def record_explicit_waiting_owner_wakeup(
     if not isinstance(blocked_closeout, dict):
         return None
     next_owner = str(blocked_closeout.get("next_owner") or "").strip().lower().replace("-", "_")
-    if next_owner not in {"mas/controller", "mas_controller", "controller", "publication_gate"}:
+    callable_owner_tokens = {
+        str(owner).strip().lower().replace("-", "_")
+        for owner in callable_owner_names()
+        if str(owner).strip()
+    }
+    if next_owner not in callable_owner_tokens and next_owner not in {"mas_controller", "controller"}:
         return None
     if not isinstance(runtime_state.get("last_controller_decision_authorization"), dict):
         return None

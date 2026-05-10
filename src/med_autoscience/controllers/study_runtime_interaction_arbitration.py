@@ -2,12 +2,19 @@ from __future__ import annotations
 
 from typing import Any
 
+from med_autoscience.runtime_control import callable_owner_names
+
 
 _EXTERNAL_INPUT_DECISION_TYPES = frozenset(
     {
         "external_credential_request",
         "external_secret_request",
     }
+)
+_CALLABLE_OWNER_TOKENS = frozenset(
+    str(owner).strip().lower().replace("-", "_")
+    for owner in callable_owner_names()
+    if str(owner).strip()
 )
 
 
@@ -316,6 +323,25 @@ def _blocked_closeout_owner_wait(blocked_closeout: dict[str, Any] | None) -> dic
     next_owner = _text(blocked_closeout.get("next_owner"))
     if closeout_path is None and next_owner is None:
         return None
+    owner_token = (next_owner or "").lower().replace("-", "_")
+    if owner_token in _CALLABLE_OWNER_TOKENS:
+        return {
+            "classification": "blocked_closeout_owner_redrive",
+            "action": "resume",
+            "reason_code": "blocked_turn_closeout_waiting_for_callable_owner",
+            "requires_user_input": False,
+            "valid_blocking": False,
+            "kind": "turn_closeout",
+            "decision_type": None,
+            "source_artifact_path": closeout_path,
+            "run_id": _text(blocked_closeout.get("run_id")),
+            "next_owner": next_owner,
+            "blocked_reason": _text(blocked_closeout.get("blocked_reason")),
+            "controller_stage_note": (
+                "The latest MAS turn closeout parked execution for a registered callable owner; "
+                "resume the managed runtime or controller dispatch instead of projecting a user wait."
+            ),
+        }
     return {
         "classification": "blocked_closeout_owner_wait",
         "action": "block",

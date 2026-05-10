@@ -140,6 +140,15 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 - 同一投影需要把 MAS-owned runtime continuity 线索串起来：`owner_route`、`worker_lease` / `runtime_session`、checkpoint lineage / resume contract、`runtime_health_snapshot.retry_budget_remaining`、recovery intent dedupe fingerprint、idempotent dispatch receipt、controller apply receipt 与 safe reconcile dry-run command。
 - 这是只读解释层；它不执行 reconcile、不启动 Codex worker、不写 paper/package、不写 `publication_eval/latest.json`、不写 `controller_decisions/latest.json`，也不恢复 MDS resident daemon。
 
+2026-05-10 Paper Progress SLO closeout 把外环监管的最高目标收口为“论文是否前进”：
+
+- `worker_running=true`、`active_run_id` 存在、controller 写出 repair packet、gate audit 刷新，都只是中间信号；用户可见 progress 只有在 canonical manuscript/table/figure/result 变化、submission source/current package freshness proof、AI reviewer judgement 更新，或 publication gate replay 后 owner 前进时，才显示 `meaningful_artifact_delta=true`。
+- live worker 超过 grace window 仍无论文产物级增量时，投影为 `live_no_paper_delta` / `paper_progress_stall`，并进入 controller-owned redrive 或 owner handoff；repeat suppression 只能压住重复 dispatch，不得压住 handoff、gate replay 或 next owner。
+- 每个 paper work unit 必须能解释 `owner`、`callable_surface`、`required_inputs`、`required_outputs`、`artifact_delta_predicate`、`gate_replay_target`、`idempotency_key` 与 `source_fingerprint`。terminal success 需要 owner receipt、required output、artifact delta 或 gate replay result 同时成立。
+- `owner_callable_registry` 是 callable owner 的机器锚点，当前注册 `MAS/controller`、`ai_reviewer`、`publication_gate`、`quality_repair_batch`、`gate_clearing_batch` 与 `delivery_sync`。`owner_callable_surface_missing` 是 controller-consumable blocker 或 repo-level callable gap；当 `requires_user_input=false` 时，不得把它投影成真实 `waiting_for_user`。
+- submission authority / delivery closure 必须在同一个 work-unit transaction 中完成 source freshness proof、delivery sync 和 gate replay。来自旧 MDS worktree 的绝对 `paper/...` 路径只可规范到当前 paper root 的同后缀 source ref，不能作为 current source blocker。
+- DM002、DM003 和 Obesity 的 read-only validation 要把 `actual_write_active`、`package_delivered`、`meaningful_artifact_delta`、`next_owner`、`why_not_progressing` 同时展示；只要 publishability / AI reviewer / submission QC 未放行，就不得把 downstream package missing 写成论文进度。
+
 MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 policy：
 
 - `executor_kind = codex_cli_default`

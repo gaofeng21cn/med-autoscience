@@ -182,7 +182,7 @@ def test_arbitrate_waiting_for_user_allows_submission_metadata_only_resume_witho
     }
 
 
-def test_arbitrate_waiting_for_user_classifies_blocked_closeout_owner_wait_without_pending_interaction() -> None:
+def test_arbitrate_waiting_for_user_redrives_callable_blocked_closeout_owner_without_pending_interaction() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
 
     result = module.arbitrate_waiting_for_user(
@@ -198,11 +198,11 @@ def test_arbitrate_waiting_for_user_classifies_blocked_closeout_owner_wait_witho
     )
 
     assert result == {
-        "classification": "blocked_closeout_owner_wait",
-        "action": "block",
-        "reason_code": "blocked_turn_closeout_waiting_for_owner",
+        "classification": "blocked_closeout_owner_redrive",
+        "action": "resume",
+        "reason_code": "blocked_turn_closeout_waiting_for_callable_owner",
         "requires_user_input": False,
-        "valid_blocking": True,
+        "valid_blocking": False,
         "kind": "turn_closeout",
         "decision_type": None,
         "source_artifact_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
@@ -210,7 +210,29 @@ def test_arbitrate_waiting_for_user_classifies_blocked_closeout_owner_wait_witho
         "next_owner": "ai_reviewer",
         "blocked_reason": "publication gate requires AI reviewer provenance",
         "controller_stage_note": (
-            "The latest MAS turn closeout parked execution for a named owner; "
-            "this is a controller-readable wait state, not a missing pending interaction payload."
+            "The latest MAS turn closeout parked execution for a registered callable owner; "
+            "resume the managed runtime or controller dispatch instead of projecting a user wait."
         ),
     }
+
+
+def test_arbitrate_waiting_for_user_blocks_unknown_blocked_closeout_owner_without_pending_interaction() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        blocked_closeout={
+            "run_id": "run-blocked",
+            "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
+            "blocked_reason": "external owner handoff",
+            "next_owner": "unknown_external_owner",
+        },
+    )
+
+    assert result["classification"] == "blocked_closeout_owner_wait"
+    assert result["action"] == "block"
+    assert result["requires_user_input"] is False
+    assert result["valid_blocking"] is True
+    assert result["next_owner"] == "unknown_external_owner"

@@ -264,6 +264,14 @@ def _state_from_reason(
 ) -> str | None:
     if reason in _NON_PARKED_RUNTIME_REASONS:
         return None
+    interaction_classification = _text(interaction_arbitration.get("classification"))
+    if interaction_classification in {
+        "blocked_closeout_owner_redrive",
+        "controller_work_unit_pending_redrive",
+        "platform_repair_decision_redrive",
+        "pending_user_message_redrive",
+    }:
+        return None
     if reason in _EXTERNAL_METADATA_REASONS:
         return "external_metadata_pending"
     if reason == "publishability_stop_loss_recommended":
@@ -274,9 +282,9 @@ def _state_from_reason(
         return "explicit_resume_pending"
     if reason == "quest_waiting_for_external_input":
         return "external_input_pending"
-    if _text(interaction_arbitration.get("classification")) == "external_input_required":
+    if interaction_classification == "external_input_required":
         return "external_input_pending"
-    if _text(interaction_arbitration.get("classification")) == "blocked_closeout_owner_wait":
+    if interaction_classification == "blocked_closeout_owner_wait":
         next_owner = _text(interaction_arbitration.get("next_owner"))
         if next_owner == "ai_reviewer":
             return "ai_reviewer_pending"

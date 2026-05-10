@@ -115,6 +115,15 @@ def _collapse_duplicate_paper_segments(path: Path) -> Path:
     return Path(*collapsed) if collapsed else path
 
 
+def _paper_suffix(path: Path) -> Path | None:
+    parts = list(path.parts)
+    for index, part in enumerate(parts):
+        if part == "paper":
+            suffix_parts = parts[index + 1 :]
+            return Path(*suffix_parts) if suffix_parts else Path()
+    return None
+
+
 def _relative_path_for_root(path: Path, *, target_root: Path) -> str:
     normalized = _collapse_duplicate_paper_segments(path)
     try:
@@ -141,6 +150,14 @@ def _resolve_live_path(
     if not candidate.is_absolute():
         candidate = source_root / candidate
     candidate = _collapse_duplicate_paper_segments(candidate)
+    if not _is_under_path(candidate, target_root) and not _is_under_path(candidate, source_root):
+        paper_suffix = _paper_suffix(candidate)
+        if paper_suffix is not None:
+            candidate = target_root / paper_suffix
+    elif _is_under_path(candidate, source_root) and not _is_under_path(source_root, target_root):
+        paper_suffix = _paper_suffix(candidate)
+        if paper_suffix is not None:
+            candidate = target_root / paper_suffix
     for legacy_root in legacy_workspace_roots:
         try:
             suffix = candidate.resolve(strict=False).relative_to(legacy_root.resolve(strict=False))
@@ -149,6 +166,14 @@ def _resolve_live_path(
         candidate = current_workspace_root / suffix
         break
     return _relative_path_for_root(candidate, target_root=target_root)
+
+
+def _is_under_path(candidate: Path, root: Path) -> bool:
+    try:
+        candidate.resolve(strict=False).relative_to(root.resolve(strict=False))
+    except ValueError:
+        return False
+    return True
 
 
 def _normalize_path_payload(

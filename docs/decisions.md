@@ -1,5 +1,14 @@
 # 关键决策记录
 
+## 2026-05-10：Paper Progress SLO 成为自动推进闭环的最高运行目标
+
+- 决策：MAS 自动运行的最高 SLO 固定为“论文是否产生可验证增量”，而不是 worker 是否 live、controller 是否写 packet、gate audit 是否刷新。有效进度只认 canonical manuscript/table/figure/result 变化、submission source/current package freshness proof、AI reviewer judgement 更新、publication gate replay 后 owner 前进。live worker 超过 grace window 仍无 meaningful artifact delta 时，必须投影为 `live_no_paper_delta` / `paper_progress_stall`，并进入 controller-owned redrive 或 owner handoff。
+- 决策：Paper work unit 采用 transaction contract。每个 work unit 必须能在 `owner_callable_registry` / owner route / batch lifecycle 中解释 `owner`、`callable_surface`、`required_inputs`、`required_outputs`、`artifact_delta_predicate`、`gate_replay_target`、`idempotency_key` 与 `source_fingerprint`。terminal success 需要同时有 owner receipt、required output、artifact delta 或 gate replay result；repeat suppression 只能阻断重复派单，不能阻断 handoff 到下一 owner。
+- 决策：owner callable registry 是 owner 可执行性的机器锚点。当前注册 owner 包括 `MAS/controller`、`ai_reviewer`、`publication_gate`、`quality_repair_batch`、`gate_clearing_batch` 与 `delivery_sync`；`owner_callable_surface_missing` 只能成为 controller-consumable blocker 或 repo-level missing callable blocker，不能把 `requires_user_input=false` 的 `waiting_for_user` 投影成真实用户等待。
+- 理由：三篇论文的共同失败模式是控制面有活动但论文无增量。成熟控制面经验也指向同一结论：Kubernetes controller 通过 current/desired state reconcile 推进状态；AWS idempotent API 通过 caller intent token 让 retry 安全；Temporal Activity 要求可重试业务 activity 自身具备 idempotency。MAS 的对应落点是 owner route、idempotency key、source fingerprint、artifact delta predicate 与 gate replay proof。
+- 影响：DM002 的 submission/minimal refresh 必须走 `submission_minimal_refresh -> delivery_sync -> gate replay` 并忽略旧 MDS worktree 路径作为 current source；DM003 的 `blocked_turn_closeout_waiting_for_owner` 在 `requires_user_input=false` 时是 controller-consumable wait；Obesity 的 AI reviewer queue 必须由 callable `ai_reviewer` 消费，publishability 未放行前 delivery 缺失只能作为 downstream blocker 展示。所有用户可见 progress 必须包含 `actual_write_active`、`package_delivered`、`meaningful_artifact_delta`、`next_owner` 与 `why_not_progressing`。
+- 参考：[Kubernetes controller](https://kubernetes.io/docs/concepts/architecture/controller/)；[AWS idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)；[Temporal Activity definition](https://docs.temporal.io/activity-definition)。
+
 ## 2026-05-09：MAS 持有 supervision scheduler contract，local 成为默认 adapter
 
 - 决策：`MAS supervision scheduler contract` 是 outer supervision 的正式 owner；`local` 是默认 scheduler adapter，macOS 落到 MAS-owned LaunchAgent，`Hermes gateway cron` 只作为显式 `--manager hermes` optional adapter。MAS 的运行架构按 Runtime Core、Supervisor Scheduler、Product Projection 三层表达：Runtime Core 由 `MAS Runtime OS` / `mas_runtime_core` 持有；Supervisor Scheduler 只负责按 cadence 唤醒 MAS-owned tick、记录 job/run receipt、暴露 SLO / drift；Product Projection 只读展示进度、日志、阻塞和下一步。

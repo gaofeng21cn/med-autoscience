@@ -59,6 +59,9 @@ def test_study_progress_emits_canonical_user_visible_projection(monkeypatch, tmp
         "writer_state",
         "package_delivered",
         "actual_write_active",
+        "meaningful_artifact_delta",
+        "next_owner",
+        "why_not_progressing",
         "user_next",
         "user_action_required",
         "evidence",
@@ -81,6 +84,9 @@ def test_study_progress_emits_canonical_user_visible_projection(monkeypatch, tmp
         "macro_state_known": "true",
         "package_delivered": "false",
         "actual_write_active": "false",
+        "meaningful_artifact_delta": "false",
+        "next_owner": "false",
+        "why_not_progressing": "true",
         "blocked": "true",
         "next_action_known": "true",
         "evidence_available": "true",
@@ -223,6 +229,97 @@ def test_user_visible_projection_does_not_call_live_worker_active_without_artifa
     assert "实际 writer/run 正在推进" not in projection["state_summary"]
     condition = next(item for item in projection["conditions"] if item["type"] == "actual_write_active")
     assert condition["reason"] == "writer_inactive"
+
+
+def test_user_visible_projection_exposes_paper_progress_slo_fields() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "002-dm",
+            "active_run_id": "run-live-no-paper-delta",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "002-dm",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-live-no-paper-delta", "package_delivered": False},
+                "conditions": [],
+            },
+            "progress_freshness": {
+                "status": "stale",
+                "meaningful_artifact_delta_freshness": {
+                    "status": "missing",
+                    "latest_progress_at": None,
+                },
+                "activity_timeout": {
+                    "state": "timed_out",
+                    "breach_types": ["same_fingerprint_loop"],
+                    "active_run_id": "run-live-no-paper-delta",
+                },
+            },
+            "production_blocker_impact": {
+                "next_owner": "MAS/controller",
+                "why_not_running": "live worker has no meaningful paper artifact delta",
+            },
+            "supervision": {
+                "active_run_id": "run-live-no-paper-delta",
+                "health_status": "live",
+            },
+        }
+    )
+
+    assert projection["actual_write_active"] is False
+    assert projection["package_delivered"] is False
+    assert projection["meaningful_artifact_delta"] is False
+    assert projection["next_owner"] == "MAS/controller"
+    assert projection["why_not_progressing"] == "live worker has no meaningful paper artifact delta"
+    assert "meaningful_artifact_delta" in projection["answer_focus"]
+    assert "why_not_progressing" in projection["answer_focus"]
+
+
+def test_user_visible_projection_uses_interaction_arbitration_owner_and_reason() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "003-dpcc",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "003-dpcc",
+                "writer_state": "parked",
+                "user_next": "inspect",
+                "reason": "unknown",
+                "details": {"package_delivered": False},
+                "conditions": [],
+            },
+            "interaction_arbitration": {
+                "classification": "blocked_closeout_owner_redrive",
+                "action": "resume",
+                "requires_user_input": False,
+                "valid_blocking": False,
+                "next_owner": "MAS/controller",
+                "blocked_reason": "owner_callable_surface_missing",
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "missing",
+                    "summary": "no paper artifact delta observed",
+                }
+            },
+        }
+    )
+
+    assert projection["actual_write_active"] is False
+    assert projection["meaningful_artifact_delta"] is False
+    assert projection["next_owner"] == "MAS/controller"
+    assert projection["why_not_progressing"] == "owner_callable_surface_missing"
+    assert next(item for item in projection["conditions"] if item["type"] == "next_owner")["reason"] == (
+        "next_owner_present"
+    )
 
 
 def test_user_visible_projection_does_not_call_runtime_health_recovery_actual_write() -> None:

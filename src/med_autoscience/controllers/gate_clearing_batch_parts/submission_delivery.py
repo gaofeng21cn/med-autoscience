@@ -15,6 +15,7 @@ def append_delivery_sync_after_submission_refresh(
     unit_results: list[dict[str, Any]],
     execution_summary: dict[str, int],
     study_delivery_status: str,
+    selected_work_unit_id: str | None = None,
     paper_root: Path,
     profile: WorkspaceProfile,
     sync_submission_minimal_delivery: Callable[..., dict[str, Any]],
@@ -36,7 +37,8 @@ def append_delivery_sync_after_submission_refresh(
             non_empty_text(create_submission_unit_result.get("status"))
         )
     )
-    if not submission_minimal_refreshed or not study_delivery_status.startswith("stale"):
+    authority_sync_closure = selected_work_unit_id == "submission_authority_sync_closure"
+    if not submission_minimal_refreshed or not (study_delivery_status.startswith("stale") or authority_sync_closure):
         return
 
     embedded_delivery_sync = gate_clearing_batch_execution.reuse_embedded_submission_delivery_sync(

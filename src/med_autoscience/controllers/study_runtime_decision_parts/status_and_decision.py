@@ -878,6 +878,9 @@ def _status_state(
                     "controller_work_unit_pending_redrive": (
                         StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
                     ),
+                    "blocked_closeout_owner_redrive": (
+                        StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+                    ),
                 }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
                 result.set_decision(
                     StudyRuntimeDecision.RESUME,
