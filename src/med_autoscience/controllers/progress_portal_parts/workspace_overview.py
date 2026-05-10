@@ -160,7 +160,7 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
     if not studies:
         return ""
     rows = []
-    headers = ("论文线", "Live Console", "状态", "active_run_id", "运行健康", "监管心跳", "进度新鲜度", "论文阶段", "焦点/下一步")
+    headers = ("论文线", "运行控制台", "状态", "运行编号", "运行健康", "监管心跳", "进度新鲜度", "论文阶段", "焦点/下一步")
     for item in studies:
         selected_class = " selected" if bool(item.get("selected")) else ""
         study_id = display_text(item.get("study_id"), fallback="未知论文线", preserve_known_token=False)
@@ -188,12 +188,12 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
             + "</tr>"
         )
     return (
-        '<details class="panel wide study-overview field-details">'
-        "<summary>字段明细</summary>"
+        '<details class="panel wide study-overview field-details diagnostics-section">'
+        "<summary>系统字段与来源</summary>"
         '<div class="field-details-body">'
         '<div class="table-wrap"><table class="responsive-table">'
         "<thead><tr>"
-        "<th>论文线</th><th>Live Console</th><th>状态</th><th>active_run_id</th><th>运行健康</th>"
+        "<th>论文线</th><th>运行控制台</th><th>状态</th><th>运行编号</th><th>运行健康</th>"
         "<th>监管心跳</th><th>进度新鲜度</th><th>论文阶段</th><th>焦点/下一步</th>"
         "</tr></thead>"
         "<tbody>"
@@ -216,7 +216,7 @@ def render_workspace_dashboard_section(
             '<p class="muted">当前 workspace 尚未发现论文线。</p>'
             "</section>"
         )
-    cards = "".join(_study_card(item) for item in studies)
+    study_items = "".join(_study_item(item) for item in studies)
     return (
         '<section class="workspace-dashboard wide" aria-label="工作区总览">'
         + _attention_band(
@@ -226,8 +226,8 @@ def render_workspace_dashboard_section(
             freshness=freshness,
         )
         + "<h2>论文线工作台</h2>"
-        + '<div class="study-card-grid">'
-        + cards
+        + '<div class="study-list">'
+        + study_items
         + "</div></section>"
     )
 
@@ -263,7 +263,7 @@ def _attention_band(
     return (
         '<div class="attention-band">'
         '<div class="attention-summary">'
-        '<span class="eyebrow">Workspace attention</span>'
+        '<span class="eyebrow">工作区关注</span>'
         "<h2>需要关注的事项</h2>"
         f"<p>{escape(alert_text)}</p>"
         + alert_detail
@@ -288,7 +288,7 @@ def _metric_tile(label: str, value: str, *, tone: str) -> str:
     )
 
 
-def _study_card(item: Mapping[str, Any]) -> str:
+def _study_item(item: Mapping[str, Any]) -> str:
     study_id = display_text(item.get("study_id"), fallback="未知论文线", preserve_known_token=False)
     study_href = _non_empty_text(item.get("portal_href"))
     title = (
@@ -297,6 +297,11 @@ def _study_card(item: Mapping[str, Any]) -> str:
         else escape(study_id)
     )
     live_console = _study_live_console_link(study_id, href=_non_empty_text(item.get("live_console_href")))
+    detail_link = (
+        f'<a class="btn btn-outline" href="{escape(study_href, quote=True)}">打开详情</a>'
+        if study_href
+        else ""
+    )
     action = display_text(
         item.get("operator_focus") or item.get("next_system_action"),
         fallback="当前没有明确下一步投影。",
@@ -304,29 +309,34 @@ def _study_card(item: Mapping[str, Any]) -> str:
     )
     run_id = display_text(item.get("active_run_id"), fallback="无 live run", preserve_known_token=False)
     stage = display_text(item.get("paper_stage") or item.get("current_stage"), fallback="未提供")
-    selected_class = " study-card--selected" if bool(item.get("selected")) else ""
-    tone_class = " study-card--attention" if _study_needs_attention(item) else ""
-    return (
-        f'<article class="study-card{selected_class}{tone_class}">'
-        '<div class="study-card__header">'
-        f'<h3>{title}</h3>'
-        f'{status_chip(item.get("state_label") or "unknown")}'
-        "</div>"
-        '<dl class="study-card__meta">'
-        f"<div><dt>论文阶段</dt><dd>{escape(stage)}</dd></div>"
-        f"<div><dt>运行健康</dt><dd>{status_chip(item.get('runtime_health_status') or 'unknown')}</dd></div>"
-        f"<div><dt>监管心跳</dt><dd>{status_chip(item.get('supervisor_tick_status') or 'unknown')}</dd></div>"
-        f"<div><dt>进度新鲜度</dt><dd>{status_chip(item.get('progress_freshness_status') or 'unknown')}</dd></div>"
-        "</dl>"
-        '<div class="study-card__action">'
-        "<span>下一步重点</span>"
-        f"<p>{escape(action)}</p>"
-        "</div>"
-        '<div class="study-card__footer">'
-        f'<span class="run-id" title="{escape(run_id, quote=True)}">{escape(run_id)}</span>'
-        f'<span class="study-card__console">{live_console}</span>'
-        "</div>"
-        "</article>"
+    selected_class = " study-item--selected" if bool(item.get("selected")) else ""
+    tone_class = " study-item--attention" if _study_needs_attention(item) else ""
+    return "".join(
+        [
+            f'<article class="study-item{selected_class}{tone_class}">',
+            '<div class="study-info">',
+            f"<h3>{title}</h3>",
+            '<div class="study-meta">',
+            f"<span>论文阶段：<strong>{escape(stage)}</strong></span>",
+            f"<span>运行编号：<strong>{escape(run_id)}</strong></span>",
+            "</div>",
+            "</div>",
+            '<div class="study-status">',
+            status_chip(item.get("state_label") or "unknown"),
+            status_chip(item.get("runtime_health_status") or "unknown"),
+            status_chip(item.get("supervisor_tick_status") or "unknown"),
+            status_chip(item.get("progress_freshness_status") or "unknown"),
+            "</div>",
+            '<div class="study-action">',
+            '<span class="study-action-label">下一步重点</span>',
+            f'<p class="study-action-desc">{escape(action)}</p>',
+            "</div>",
+            '<div class="study-actions">',
+            detail_link,
+            live_console,
+            "</div>",
+            "</article>",
+        ]
     )
 
 
@@ -359,7 +369,7 @@ def _metric_tone(value: object) -> str:
 
 def _study_live_console_link(study_id: str, *, href: str | None = None) -> str:
     resolved_href = href or f"../live-console/index.html?study_id={quote(study_id, safe='')}"
-    return f'<a href="{escape(resolved_href, quote=True)}">Live Console</a>'
+    return f'<a href="{escape(resolved_href, quote=True)}">运行控制台</a>'
 
 
 def study_detail_href(study_id: str, *, from_study_page: bool = False) -> str:
