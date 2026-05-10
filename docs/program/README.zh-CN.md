@@ -2,9 +2,10 @@
 
 `docs/program/` 只保留当前开发计划层，不再承载所有 policy、reference、checklist、ledger 或历史 closeout。
 
-当前 active 入口固定为三件：
+当前 active 入口固定为四件：
 
 - [Program portfolio consolidation](./program_portfolio_consolidation.md)：唯一规划入口和执行队列。
+- [AI-first paper autonomy closure program](./ai_first_paper_autonomy_closure_program.md)：最高优先级 program，负责关闭医学论文从 AI reviewer finding 到自动修复、复评、路线决策和真实 paper soak 的闭环。
 - [MAS 单项目 MDS 吸收 program](./mas_single_project_mds_absorb_program.md)：MDS 退场、MAS 吸收、workspace layout 收敛、entry compatibility retirement 与 no-history physical absorb 的执行总计划。
 - [Runtime lifecycle SQLite 迁移 program](./runtime_lifecycle_sqlite_migration_program.md)：MAS absorb program 下的 runtime / Git / SQLite 子计划。
 

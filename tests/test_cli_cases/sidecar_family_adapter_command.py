@@ -14,6 +14,159 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
+    quest_root = study_root.parents[1] / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+    main_result_ref = str(quest_root / "artifacts" / "results" / "main_result.json")
+    manuscript_ref = str(study_root / "paper" / "manuscript.md")
+    study_charter_ref = str(study_root / "artifacts" / "controller" / "study_charter.json")
+    review_ledger_ref = str(study_root / "paper" / "review" / "review_ledger.json")
+    input_bundle = {
+        "manuscript": manuscript_ref,
+        "study_charter": study_charter_ref,
+        "evidence_ledger": str(study_root / "paper" / "evidence_ledger.json"),
+        "review_ledger": review_ledger_ref,
+        "medical_manuscript_blueprint": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+        "claim_evidence_map": str(study_root / "paper" / "claim_evidence_map.json"),
+        "medical_prose_review": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+        "publication_gate_projection": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+    }
+    rubric_scores = {
+        "clinical_significance": {
+            "status": "ready",
+            "rationale": "Clinical framing is stable.",
+            "evidence_refs": [study_charter_ref],
+        },
+        "evidence_strength": {
+            "status": "partial",
+            "rationale": "Bounded sensitivity analysis is still missing.",
+            "evidence_refs": [main_result_ref],
+        },
+        "novelty_positioning": {
+            "status": "ready",
+            "rationale": "Contribution boundary is defined.",
+            "evidence_refs": [study_charter_ref],
+        },
+        "medical_journal_prose_quality": {
+            "status": "partial",
+            "rationale": "The discussion overstates observational evidence.",
+            "evidence_refs": [manuscript_ref],
+        },
+        "human_review_readiness": {
+            "status": "ready",
+            "rationale": "Administrative human review can wait until repair is complete.",
+            "evidence_refs": [review_ledger_ref],
+        },
+    }
+    return {
+        "schema_version": 1,
+        "eval_id": "publication-eval::001-risk::quest-001::2026-05-10T00:00:00+00:00",
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "emitted_at": "2026-05-10T00:00:00+00:00",
+        "evaluation_scope": "publication",
+        "charter_context_ref": {
+            "ref": study_charter_ref,
+            "charter_id": "charter::001-risk::v1",
+            "publication_objective": "risk stratification external validation",
+        },
+        "runtime_context_refs": {
+            "runtime_escalation_ref": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
+            "main_result_ref": main_result_ref,
+        },
+        "delivery_context_refs": {
+            "paper_root_ref": str(study_root / "paper"),
+            "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+        },
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [manuscript_ref, main_result_ref],
+            "ai_reviewer_required": False,
+        },
+        "verdict": {
+            "overall_verdict": "blocked",
+            "primary_claim_status": "partial",
+            "summary": "Evidence strength and claim wording require repair.",
+            "stop_loss_pressure": "watch",
+        },
+        "quality_assessment": {
+            "clinical_significance": {
+                "status": "ready",
+                "summary": "Clinical framing is stable.",
+                "evidence_refs": [study_charter_ref],
+            },
+            "evidence_strength": {
+                "status": "partial",
+                "summary": "Main result supports direction but not final claim strength.",
+                "evidence_refs": [main_result_ref],
+                "reviewer_revision_advice": "Add bounded sensitivity analysis before acceptance.",
+            },
+            "novelty_positioning": {
+                "status": "ready",
+                "summary": "Contribution boundary is defined.",
+                "evidence_refs": [study_charter_ref],
+            },
+            "medical_journal_prose_quality": {
+                "status": "partial",
+                "summary": "Discussion wording is too strong for observational evidence.",
+                "evidence_refs": [manuscript_ref],
+                "reviewer_revision_advice": "Revise text to restrained association language.",
+            },
+            "human_review_readiness": {
+                "status": "ready",
+                "summary": "Human review can wait until evidence and prose repair are complete.",
+                "evidence_refs": [review_ledger_ref],
+            },
+        },
+        "reviewer_operating_system": {
+            "contract_id": "medical_publication_ai_reviewer_os_v1",
+            "input_bundle": input_bundle,
+            "rubric_scores": rubric_scores,
+            "decision_matrix": [
+                {
+                    "dimension": dimension,
+                    "status": score["status"],
+                    "rationale": score["rationale"],
+                }
+                for dimension, score in rubric_scores.items()
+            ],
+            "provenance_checks": {
+                "assessment_owner": "ai_reviewer",
+                "policy_id": "medical_publication_critique_v1",
+                "ai_reviewer_required": False,
+                "mechanical_projection_used_as_quality_authority": False,
+            },
+            "route_back_decision": {
+                "recommended_action": "route_back_same_line",
+                "rationale": "Repair before acceptance.",
+            },
+        },
+        "gaps": [
+            {
+                "gap_id": "claim-strength",
+                "gap_type": "claim",
+                "severity": "must_fix",
+                "summary": "Claim strength exceeds the current evidence ledger.",
+                "evidence_refs": [main_result_ref],
+            }
+        ],
+        "recommended_actions": [
+            {
+                "action_id": "route-back-claim-strength",
+                "action_type": "route_back_same_line",
+                "priority": "now",
+                "reason": "Repair claim wording within the same paper line.",
+                "route_target": "write",
+                "route_key_question": "Which claim sentence exceeds evidence strength?",
+                "route_rationale": "AI reviewer requires same-line manuscript repair before package advance.",
+                "evidence_refs": [main_result_ref],
+                "requires_controller_decision": True,
+            }
+        ],
+    }
+
+
 def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
@@ -64,6 +217,53 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert payload["pending_family_tasks"][0]["payload"]["study_id"] == "001-risk"
     assert payload["pending_family_tasks"][0]["requires_approval"] is False
     assert payload["pending_family_tasks"][0]["dedupe_key"].startswith("mas:nfpitnet:001-risk:autonomy-continuation:")
+
+
+def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "001-risk"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        _ai_reviewer_blocking_eval(study_root),
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    study = payload["studies"][0]
+    assert study["paper_autonomy_loop"]["status"] == "repair_recheck_ready"
+    assert study["paper_autonomy_loop"]["eligible_for_auto_dispatch"] is True
+    repair_tasks = [
+        task for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "paper_autonomy/repair-recheck"
+    ]
+    assert repair_tasks
+    first_task = repair_tasks[0]
+    assert first_task["payload"]["profile"] == str(profile_path)
+    assert first_task["payload"]["study_id"] == "001-risk"
+    assert first_task["payload"]["authority_boundary"] == "mas_owner_reconcile_only"
+    assert first_task["dispatch_owner"] == "med-autoscience"
+    unit = first_task["payload"]["repair_work_unit"]
+    assert unit["owner"] in {"quality_repair_batch", "ai_reviewer"}
+    assert unit["callable_surface"]
+    assert unit["gate_replay_target"] in {
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+    }
+    assert unit["direct_package_mutation_allowed"] is False
+    assert unit["current_package_mutation_allowed"] is False
+    assert unit["quality_authorization_allowed"] is False
+    assert unit["submission_authorization_allowed"] is False
+    assert unit["prohibited_outputs"] == [
+        "paper/current_package",
+        "manuscript/current_package",
+        "quality_override",
+        "submission_authorization",
+    ]
 
 
 def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_path: Path, capsys) -> None:

@@ -18,6 +18,10 @@ from med_autoscience.study_decision_record import StudyDecisionType
 from med_autoscience.controllers.revision_rebuttal_loop import (
     build_revision_rebuttal_loop_projection,
 )
+from med_autoscience.controllers.reviewer_refinement_loop_parts.repair_work_units import (
+    EXECUTION_CONTRACT,
+    build_repair_work_units,
+)
 
 
 __all__ = ["build_reviewer_refinement_loop_read_model"]
@@ -412,6 +416,7 @@ def _next_repair_loop_action(action_matrix: list[dict[str, Any]]) -> dict[str, s
 def _repair_loop_projection(
     *,
     publication_eval: Mapping[str, Any],
+    publication_eval_path: Path,
     worklog: list[dict[str, Any]],
 ) -> dict[str, Any]:
     review_refs = _review_refs_for_repair_loop(
@@ -419,12 +424,20 @@ def _repair_loop_projection(
         worklog=worklog,
     )
     action_matrix = _comment_matrix_for_worklog(worklog=worklog, review_refs=review_refs)
+    repair_work_units = build_repair_work_units(
+        publication_eval=publication_eval,
+        publication_eval_path=publication_eval_path,
+        worklog=worklog,
+        action_matrix=action_matrix,
+    )
     return {
         "mode": _REPAIR_PLANNING_MODE,
-        "status": "ready" if action_matrix else "blocked",
-        "blockers": [] if action_matrix else ["missing_reviewer_comments"],
+        "status": "executable_ready" if repair_work_units else "blocked",
+        "blockers": [] if repair_work_units else ["missing_executable_repair_work_units"],
         "comment_to_action_matrix": action_matrix,
+        "repair_work_units": repair_work_units,
         "repair_plan": _repair_plan(action_matrix),
+        "execution_contract": dict(EXECUTION_CONTRACT),
         "next_action": _next_repair_loop_action(action_matrix) if action_matrix else {
             "action": "collect_revision_intake",
             "reason": "missing_reviewer_comments",
@@ -491,20 +504,24 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         accepted=accepted,
         route_back=route_back,
     )
+    executable_repair_allowed = not accepted and not authority_blockers
     repair_loop = _repair_loop_projection(
         publication_eval=publication_eval,
+        publication_eval_path=publication_eval_path,
         worklog=worklog,
-    ) if not accepted else {
+    ) if executable_repair_allowed else {
         "mode": _ACCEPTED_MODE,
-        "status": "accepted",
-        "blockers": [],
+        "status": "accepted" if accepted else "blocked",
+        "blockers": [] if accepted else list(authority_blockers),
         "comment_to_action_matrix": [],
+        "repair_work_units": [],
         "repair_plan": {
             "analysis_repair_required": False,
             "text_repair_required": False,
             "ai_reviewer_recheck_required": False,
             "mechanical_projection_can_authorize_quality": False,
         },
+        "execution_contract": dict(EXECUTION_CONTRACT),
         "next_action": {
             "action": "none",
             "reason": "reviewer_refinement_accepted",
@@ -535,6 +552,7 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         "required_calibration_refs": required_calibration_refs,
         "calibration_learning": calibration_learning,
         "comment_to_action_matrix": repair_loop["comment_to_action_matrix"],
+        "repair_work_units": repair_loop["repair_work_units"],
         "repair_loop": repair_loop,
         "revert": {
             "required": not accepted,

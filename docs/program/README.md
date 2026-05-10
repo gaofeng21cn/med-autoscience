@@ -5,6 +5,7 @@
 Current active entry set:
 
 - [Program portfolio consolidation](./program_portfolio_consolidation.md): the only planning entry and execution queue.
+- [AI-first paper autonomy closure program](./ai_first_paper_autonomy_closure_program.md): the highest-priority program for closing the automated medical manuscript loop from AI reviewer findings to repair, re-evaluation, route decision, and real paper soak.
 - [MAS single-project MDS absorb program](./mas_single_project_mds_absorb_program.md): the execution plan for MDS retirement, MAS absorption, workspace layout convergence, entry compatibility retirement, and no-history physical absorb.
 - [Runtime lifecycle SQLite migration program](./runtime_lifecycle_sqlite_migration_program.md): the runtime / Git / SQLite subplan under the MAS absorb program.
 

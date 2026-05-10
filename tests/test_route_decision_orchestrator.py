@@ -388,6 +388,165 @@ def test_orchestrator_explicit_continue_is_not_allowed_under_high_stop_pressure(
     assert not decision_path.exists()
 
 
+def test_negative_result_materializes_analysis_direction_decision_and_claim_policy(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[_candidate("negative-line", 4)],
+        requested_action="select_line",
+        route_signals={
+            "claim_id": "claim.primary_mortality_signal",
+            "current_claim_status": "supported",
+            "expected_result": "higher risk in exposed group",
+            "observed_result": "no measurable association",
+            "result_alignment": "negative",
+            "evidence_refs": ["artifacts/evidence/primary_model.json"],
+            "failed_path_refs": ["artifacts/analysis/primary_model.json"],
+            "failure_reasons": ["effect_direction_not_reproduced"],
+            "alternative_routes": ["guideline-gap-line"],
+        },
+    )
+
+    decision_path = tmp_path / "study" / "artifacts" / "controller_decisions" / "latest.json"
+    assert projection["status"] == "ready"
+    assert projection["route_control_decision"] == "switch_line"
+    assert projection["route_decision"] == "switch_line"
+    assert projection["next_action"] == "switch_line"
+
+    analysis_decision = projection["analysis_direction_decision"]
+    assert projection["route_execution_plan"] == analysis_decision
+    assert analysis_decision["decision"] == "switch_line"
+    assert analysis_decision["action_type"] == "switch_line"
+    assert analysis_decision["claim_id"] == "claim.primary_mortality_signal"
+    assert analysis_decision["result_alignment"] == "negative"
+    assert analysis_decision["failed_path_evidence_refs"] == [
+        "artifacts/analysis/primary_model.json",
+        "artifacts/evidence/primary_model.json",
+    ]
+    assert analysis_decision["claim_policy"] == {
+        "claim_id": "claim.primary_mortality_signal",
+        "previous_status": "supported",
+        "supported": False,
+        "claim_downgrade_required": True,
+        "allowed_status": "downgraded",
+        "reason": "negative_result_cannot_support_original_claim",
+    }
+    assert set(analysis_decision["required_repairs"]) == {
+        "evidence_ledger",
+        "manuscript",
+        "review_ledger",
+        "analysis",
+    }
+    assert analysis_decision["controller_decision_ref"] == str(decision_path.resolve())
+    assert decision_path.is_file()
+
+    written = json.loads(decision_path.read_text(encoding="utf-8"))
+    assert written["analysis_direction_decision"] == analysis_decision
+    assert written["route_execution_plan"] == analysis_decision
+    assert written["analysis_direction_decision"]["claim_policy"]["supported"] is False
+
+
+def test_weak_blocked_result_uses_bounded_repair_without_supported_claim(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[_candidate("repair-line", 5)],
+        requested_action="select_line",
+        route_signals={
+            "claim_id": "claim.secondary_signal",
+            "claim_status": "supported",
+            "expected_result": "stable subgroup effect",
+            "observed_result": "imprecise subgroup estimate",
+            "result_alignment": "weak",
+            "evidence_refs": ["artifacts/evidence/subgroup.json"],
+            "failed_path_refs": ["artifacts/analysis/subgroup.json"],
+            "statistical_blockers": ["wide_confidence_interval"],
+            "failure_reasons": ["precision_ceiling_not_met"],
+        },
+    )
+
+    analysis_decision = projection["analysis_direction_decision"]
+    assert projection["status"] == "ready"
+    assert projection["route_control_decision"] == "bounded_repair"
+    assert projection["route_decision"] == "proceed_to_baseline"
+    assert projection["next_action"] == "enter_bounded_analysis"
+    assert analysis_decision["decision"] == "bounded_repair"
+    assert analysis_decision["action_type"] == "bounded_repair"
+    assert analysis_decision["claim_policy"]["supported"] is False
+    assert analysis_decision["claim_policy"]["claim_downgrade_required"] is True
+    assert analysis_decision["claim_policy"]["allowed_status"] == "pending_bounded_repair"
+    assert "manuscript" in analysis_decision["required_repairs"]
+    assert "analysis" in analysis_decision["required_repairs"]
+    assert projection["controller_decision"]["analysis_direction_decision"] == analysis_decision
+
+
+def test_contradictory_result_alignment_overrides_strong_evidence_state_continue_request(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[_candidate("contradictory-line", 5)],
+        requested_action="select_line",
+        route_signals={
+            "requested_route_control_decision": "continue",
+            "claim_id": "claim.primary_signal",
+            "claim_status": "supported",
+            "expected_result": "positive external validation",
+            "observed_result": "opposite-direction external validation",
+            "result_alignment": "contradictory",
+            "evidence_state": "strong",
+            "evidence_refs": ["artifacts/evidence/external_validation.json"],
+            "failed_path_refs": ["artifacts/analysis/external_validation.json"],
+            "failure_reasons": ["external_validation_contradicted_primary_claim"],
+            "exploration_depth_review": _complete_exploration_depth_review(),
+        },
+    )
+
+    assert projection["route_control_decision"] == "stop_loss"
+    assert projection["route_decision"] == "return_to_scout"
+    assert projection["next_action"] == "stop_loss"
+    assert projection["analysis_direction_decision"]["decision"] == "stop_loss"
+    assert projection["analysis_direction_decision"]["claim_policy"]["supported"] is False
+    assert projection["next_action"] not in {"enter_baseline", "continue"}
+
+
+def test_weak_result_alignment_overrides_strong_evidence_state_in_stoploss_memo(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[_candidate("weak-line", 5)],
+        requested_action="select_line",
+        route_signals={
+            "claim_id": "claim.weak_signal",
+            "claim_status": "supported",
+            "expected_result": "large stable effect",
+            "observed_result": "small unstable effect",
+            "result_alignment": "weak",
+            "evidence_state": "strong",
+            "evidence_refs": ["artifacts/evidence/weak_signal.json"],
+            "failed_path_refs": ["artifacts/analysis/weak_signal.json"],
+            "statistical_blockers": ["low_events_per_variable"],
+            "failure_reasons": ["effect_size_not_stable"],
+        },
+    )
+
+    assert projection["route_control_decision"] == "bounded_repair"
+    assert projection["route_control_memo"]["route_control_inputs"]["evidence_state"] == "weak"
+    assert projection["analysis_direction_decision"]["decision"] == "bounded_repair"
+    assert projection["analysis_direction_decision"]["claim_policy"]["supported"] is False
+
+
 def test_route_decision_rehearsal_materializes_required_decision_memo(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
 
