@@ -9,6 +9,7 @@ from med_autoscience.controllers import control_intent
 from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers import gate_clearing_batch_blockers
 from med_autoscience.controllers import gate_clearing_batch_currentness
+from med_autoscience.controllers import paper_repair_execution_evidence
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
@@ -683,14 +684,30 @@ def run_quality_repair_batch(
         if isinstance(gate_clearing_result.get("execution_summary"), Mapping)
         else None
     )
+    source_eval_artifact_path = str(
+        (resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve()
+    )
+    source_summary_artifact_path = str(_quality_summary_path(study_root=resolved_study_root).resolve())
+    repair_execution_evidence = paper_repair_execution_evidence.build_from_quality_repair_batch_result(
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=resolved_study_root,
+        source_eval_id=current_eval_id,
+        source_eval_artifact_path=source_eval_artifact_path,
+        source_summary_id=source_summary_id,
+        source_summary_artifact_path=source_summary_artifact_path,
+        gate_clearing_result=gate_clearing_result,
+    )
+    repair_execution_evidence_path = paper_repair_execution_evidence.write_repair_execution_evidence(
+        study_root=resolved_study_root,
+        evidence=repair_execution_evidence,
+    )
     record = {
         "schema_version": SCHEMA_VERSION,
         "source_eval_id": current_eval_id,
-        "source_eval_artifact_path": str(
-            (resolved_study_root / "artifacts" / "publication_eval" / "latest.json").resolve()
-        ),
+        "source_eval_artifact_path": source_eval_artifact_path,
         "source_summary_id": source_summary_id,
-        "source_summary_artifact_path": str(_quality_summary_path(study_root=resolved_study_root).resolve()),
+        "source_summary_artifact_path": source_summary_artifact_path,
         "status": _non_empty_text(gate_clearing_result.get("status")) or "executed",
         "ok": bool(gate_clearing_result.get("ok")),
         "quest_id": quest_id,
@@ -701,6 +718,8 @@ def run_quality_repair_batch(
         "gate_clearing_execution_summary": gate_clearing_execution_summary,
         "control_plane_route_gate": control_plane_route_gate,
         "paper_owner_surface_prepare": paper_owner_surface_prepare,
+        "repair_execution_evidence": repair_execution_evidence,
+        "repair_execution_evidence_path": str(repair_execution_evidence_path),
     }
     record_path = stable_quality_repair_batch_path(study_root=resolved_study_root)
     _write_json(record_path, record)
