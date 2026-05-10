@@ -79,7 +79,7 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     assert result["opl_handoff"]["deep_link"] == str(html_path)
     assert result["hosted_package"]["package_refs"]["hosted_package"] == str(hosted_package_path)
     assert html_path.read_text(encoding="utf-8").startswith("<!doctype html>")
-    assert "Route / Decision Trail" in html_path.read_text(encoding="utf-8")
+    assert "路线 / 决策" in html_path.read_text(encoding="utf-8")
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "controller_decisions").exists()
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "publication_eval").exists()
 

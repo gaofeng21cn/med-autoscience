@@ -127,7 +127,7 @@ def build_study_workbench_payload(
             {"id": "path_stage", "label": "路径/阶段", "status": _tab_status(path_stage)},
             {"id": "runtime", "label": "运行", "status": _tab_status(runtime_projection)},
             {"id": "artifacts", "label": "产物", "status": _artifact_tab_status(artifact_groups)},
-            {"id": "conversation", "label": "Conversation", "status": conversation["status"]},
+            {"id": "conversation", "label": "执行器对话", "status": conversation["status"]},
             {"id": "source_refs", "label": "来源", "status": "available" if refs else "missing"},
         ],
         "overview": overview,
@@ -530,8 +530,8 @@ def _conversation_projection(value: Mapping[str, Any] | None, study_id: str) -> 
         "status": "available" if items else "missing",
         "study_id": study_id,
         "read_model_ref": "artifacts/runtime/conversation_read_model/latest.json",
-        "timeline_summary": _mapping(payload.get("timeline_summary")),
-        "timeline_items": items[:12],
+        "timeline_summary": _conversation_timeline_summary(items),
+        "timeline_items": _visible_conversation_items(items),
         "source_refs": refs,
         "conditions": {"missing": missing},
         "authority": _conversation_authority(),
@@ -571,26 +571,99 @@ def _conversation_item(item: Mapping[str, Any]) -> dict[str, Any] | None:
 
 
 def _conversation_item_summary(item: Mapping[str, Any]) -> str:
-    parts = [_non_empty_text(item.get("item_kind")) or "conversation_item"]
+    kind = _non_empty_text(item.get("item_kind")) or "conversation_item"
+    parts = [_conversation_kind_label(kind)]
     if item.get("message_id"):
-        parts.append(f"message={item['message_id']}")
+        parts.append(f"消息={item['message_id']}")
     if item.get("message_status"):
-        parts.append(f"message_status={item['message_status']}")
+        parts.append(f"消息状态={item['message_status']}")
     if item.get("run_id"):
-        parts.append(f"run={item['run_id']}")
+        parts.append(f"运行={item['run_id']}")
     if item.get("turn_reason"):
-        parts.append(f"reason={item['turn_reason']}")
+        parts.append(f"原因={item['turn_reason']}")
     if item.get("turn_status"):
-        parts.append(f"status={item['turn_status']}")
+        parts.append(f"状态={item['turn_status']}")
     if item.get("event_name"):
-        parts.append(f"event={item['event_name']}")
+        parts.append(f"事件={item['event_name']}")
     for label in ("blocker_refs", "action_refs", "tool_refs"):
         refs = _string_list(item.get(label))
         if refs:
-            parts.append(f"{label}=" + "; ".join(refs[:3]))
+            parts.append(f"{_conversation_ref_label(label)}=" + "; ".join(refs[:3]))
     if item.get("source_ref"):
-        parts.append(f"source={item['source_ref']}")
+        parts.append(f"来源={item['source_ref']}")
     return " | ".join(parts)
+
+
+def _visible_conversation_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    priority = (
+        "user_message",
+        "turn_receipt",
+        "latest_turn_receipt_ref",
+        "runtime_control_ref",
+        "controller_action_intent_ref",
+        "action_or_blocker_ref",
+        "live_console_run_ref",
+        "live_console_event_ref",
+        "runtime_lifecycle_event",
+    )
+    selected: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    for kind in priority:
+        per_kind = [item for item in items if item.get("item_kind") == kind]
+        for item in per_kind[-3:]:
+            identity = id(item)
+            if identity in seen:
+                continue
+            selected.append(item)
+            seen.add(identity)
+    if len(selected) < 12:
+        for item in items[-(12 - len(selected)):]:
+            identity = id(item)
+            if identity in seen:
+                continue
+            selected.append(item)
+            seen.add(identity)
+    return sorted(
+        selected[:12],
+        key=lambda item: (
+            item.get("sequence") if isinstance(item.get("sequence"), int) else 10**9,
+            _non_empty_text(item.get("item_kind")) or "",
+        ),
+    )
+
+
+def _conversation_timeline_summary(items: list[dict[str, Any]]) -> dict[str, Any]:
+    counts: dict[str, int] = {}
+    for item in items:
+        kind = _non_empty_text(item.get("item_kind")) or "unknown"
+        counts[kind] = counts.get(kind, 0) + 1
+    return {
+        "item_count": len(items),
+        "counts_by_kind": counts,
+        "missing_field_item_count": 0,
+    }
+
+
+def _conversation_kind_label(kind: str) -> str:
+    return {
+        "user_message": "用户消息",
+        "turn_receipt": "执行回合",
+        "latest_turn_receipt_ref": "最近回合",
+        "runtime_control_ref": "运行控制",
+        "controller_action_intent_ref": "控制意图",
+        "action_or_blocker_ref": "动作/阻塞",
+        "live_console_run_ref": "运行控制台",
+        "live_console_event_ref": "控制台事件",
+        "runtime_lifecycle_event": "运行事件",
+    }.get(kind, kind)
+
+
+def _conversation_ref_label(label: str) -> str:
+    return {
+        "blocker_refs": "阻塞",
+        "action_refs": "动作",
+        "tool_refs": "工具",
+    }.get(label, label)
 
 
 def _conversation_refs(value: object) -> list[str]:
@@ -619,20 +692,41 @@ def _conversation_source_refs(payload: Mapping[str, Any], study_id: str) -> list
 
 def _conversation_section(conversation: Mapping[str, Any]) -> str:
     status = _non_empty_text(conversation.get("status")) or "missing"
+    summary = _conversation_summary_text(_mapping(conversation.get("timeline_summary")))
     items = [
         _non_empty_text(item.get("summary")) or _non_empty_text(item.get("item_kind")) or "conversation item"
         for item in _mapping_list(conversation.get("timeline_items"))
     ]
     refs = _string_list(conversation.get("source_refs"))
     return (
-        '<section class="panel wide"><h2>Conversation '
+        '<section class="panel wide"><h2>执行器对话 '
         + status_chip(status)
         + "</h2>"
+        + (f"<p>{escape(summary)}</p>" if summary else "")
         + list_html(items, empty_text="缺少执行器 conversation timeline。")
-        + "<h3>Conversation Source Refs</h3>"
+        + "<h3>对话来源</h3>"
         + list_html(refs, empty_text="缺少 conversation source refs。")
         + "</section>"
     )
+
+
+def _conversation_summary_text(summary: Mapping[str, Any]) -> str:
+    count = summary.get("item_count")
+    counts = _mapping(summary.get("counts_by_kind"))
+    parts: list[str] = []
+    if isinstance(count, int):
+        parts.append(f"共 {count} 条")
+    for key, label in (
+        ("user_message", "用户消息"),
+        ("turn_receipt", "执行回合"),
+        ("latest_turn_receipt_ref", "最近回合"),
+        ("runtime_control_ref", "运行控制"),
+        ("action_or_blocker_ref", "动作/阻塞"),
+    ):
+        value = counts.get(key)
+        if isinstance(value, int) and value:
+            parts.append(f"{label} {value} 条")
+    return "；".join(parts)
 
 
 def _key_value_section(title: str, values: Mapping[str, str]) -> str:

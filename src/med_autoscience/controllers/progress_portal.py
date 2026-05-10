@@ -350,11 +350,16 @@ def _materialize_study_pages(
         if selected_payload is not None and _non_empty_text(_mapping(selected_payload.get("study")).get("study_id")) == study_id:
             payload = dict(selected_payload)
         else:
+            progress = _study_progress_payload_for_materialized_page(
+                profile=profile,
+                study_id=study_id,
+                profile_ref=profile_ref,
+            )
             payload = build_progress_portal_payload(
                 profile=profile,
                 study_id=study_id,
                 profile_ref=profile_ref,
-                progress_payload=_progress_from_workspace_study_row(study),
+                progress_payload=progress or _progress_from_workspace_study_row(study),
                 cockpit_payload=cockpit_for_pages,
                 conversation_payload=_conversation_read_model_payload(
                     profile=profile,
@@ -390,6 +395,26 @@ def _materialize_study_pages(
             ),
         }
     return pages
+
+
+def _study_progress_payload_for_materialized_page(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    profile_ref: str | Path | None,
+) -> dict[str, Any]:
+    study_root = (profile.studies_root / study_id).expanduser().resolve()
+    if not (study_root / "study.yaml").is_file():
+        return {}
+    from med_autoscience.controllers import study_progress
+
+    return study_progress.read_study_progress(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        study_root=study_root,
+        sync_runtime_summary=False,
+    )
 
 
 def _cockpit_from_workspace_payload(payload: Mapping[str, Any]) -> dict[str, Any]:

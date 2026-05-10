@@ -170,7 +170,7 @@ def test_portal_console_soak_checks_user_parity_evidence_keys(tmp_path: Path) ->
     write_text(portal_html_path, "<!doctype html><title>Med Auto Science Progress Portal</title>")
     write_text(
         study_page_html,
-        "<!doctype html><title>Med Auto Science Study Workbench</title><h2>Conversation</h2><h3>Conversation Source Refs</h3>",
+        "<!doctype html><title>Med Auto Science Study Workbench</title><h2>执行器对话</h2><h3>对话来源</h3>",
     )
     write_text(console_html_path, "<!doctype html><title>Med Auto Science Live Console</title>")
     receipt_path = root / "artifacts" / "runtime" / "progress_portal" / "action_receipts" / "resume-001.json"

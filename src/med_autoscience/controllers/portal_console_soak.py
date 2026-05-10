@@ -781,7 +781,9 @@ def _conversation_panel_html_refs(
         if isinstance(page, Mapping)
     ]]:
         html = _read_text(path)
-        if "Conversation" in html and "Conversation Source Refs" in html:
+        if ("执行器对话" in html and "对话来源" in html) or (
+            "Conversation" in html and "Conversation Source Refs" in html
+        ):
             refs.append(str(path))
     return refs
 

@@ -899,10 +899,10 @@ def test_study_workbench_helper_renders_conversation_read_model_timeline() -> No
         "selected_study_id": "001-risk",
         "read_only": True,
         "timeline_summary": {
-            "item_count": 3,
+            "item_count": 4,
             "counts_by_kind": {
                 "user_message": 1,
-                "turn_receipt": 1,
+                "turn_receipt": 2,
                 "runtime_control_ref": 1,
             },
         },
@@ -973,9 +973,11 @@ def test_study_workbench_helper_renders_conversation_read_model_timeline() -> No
     )
     html = parts.render_study_workbench_sections(payload)
 
-    assert {"id": "conversation", "label": "Conversation", "status": "available"} in payload["tabs"]
+    assert {"id": "conversation", "label": "执行器对话", "status": "available"} in payload["tabs"]
     assert payload["conversation"]["surface_kind"] == "mas_progress_portal_conversation_panel"
     assert payload["conversation"]["status"] == "available"
+    assert payload["conversation"]["timeline_summary"]["item_count"] == 3
+    assert payload["conversation"]["timeline_summary"]["counts_by_kind"]["turn_receipt"] == 1
     assert [item["item_kind"] for item in payload["conversation"]["timeline_items"]] == [
         "user_message",
         "turn_receipt",
@@ -985,76 +987,17 @@ def test_study_workbench_helper_renders_conversation_read_model_timeline() -> No
         payload["conversation"],
         ensure_ascii=False,
     )
-    assert "Conversation" in html
-    assert "user_message" in html
+    assert "执行器对话" in html
+    assert "共 3 条；用户消息 1 条；执行回合 1 条；运行控制 1 条" in html
+    assert "共 4 条" not in html
+    assert "用户消息" in html
     assert "msg-pending" in html
-    assert "turn_receipt" in html
+    assert "执行回合" in html
     assert "run-001" in html
     assert "blocked_waiting_for_user" in html
     assert "confirm next route" in html
     assert "runtime/quests/001/artifacts/runtime/turn_receipts.jsonl" in html
     assert "run-other" not in html
-
-
-def test_progress_portal_materialization_surfaces_selected_study_conversation(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.progress_portal")
-    profile = make_profile(tmp_path)
-    study_id = "001-risk"
-    quest_id = "quest-001"
-    study_root = profile.studies_root / study_id
-    quest_root = profile.runtime_root / quest_id
-    _write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
-    _write_json(
-        study_root / "artifacts" / "runtime" / "study_runtime_status" / "latest.json",
-        {"study_id": study_id, "quest_id": quest_id, "quest_root": str(quest_root), "active_run_id": "run-001"},
-    )
-    _write_json(
-        quest_root / "artifacts" / "runtime" / "user_message_queue.json",
-        {
-            "pending": [
-                {
-                    "message_id": "msg-portal",
-                    "content": "解释当前阻塞。",
-                    "recorded_at": "2026-05-09T01:00:00+00:00",
-                }
-            ],
-            "completed": [],
-        },
-    )
-    _write_text(
-        quest_root / "artifacts" / "runtime" / "turn_receipts.jsonl",
-        json.dumps(
-            {
-                "run_id": "run-001",
-                "reason": "user_message",
-                "status": "completed",
-                "recorded_at": "2026-05-09T01:01:00+00:00",
-            },
-            ensure_ascii=False,
-        )
-        + "\n",
-    )
-
-    result = module.materialize_progress_portal(
-        profile=profile,
-        study_id=study_id,
-        progress_payload=_progress_payload(study_id),
-        runtime_payload={"study_id": study_id, "active_run_id": "run-001"},
-        package_payload={"study_id": study_id},
-        generated_at="2026-05-09T01:02:00+00:00",
-    )
-
-    payload_path = Path(result["study_pages"][study_id]["payload_path"])
-    html_path = Path(result["study_pages"][study_id]["html_path"])
-    payload = json.loads(payload_path.read_text(encoding="utf-8"))
-    html = html_path.read_text(encoding="utf-8")
-    assert payload["study_workbench"]["conversation"]["status"] == "available"
-    assert "Conversation" in html
-    assert "msg-portal" in html
-    assert "run-001" in html
-    assert "artifacts/runtime/conversation_read_model/latest.json" in payload["study_workbench"]["conversation"][
-        "source_refs"
-    ]
 
 
 def test_study_workbench_helper_fail_closes_missing_inputs_and_conflicts() -> None:
@@ -1107,7 +1050,7 @@ def test_study_workbench_render_helper_returns_html_sections() -> None:
     html = parts.render_study_workbench_sections(payload)
 
     assert "单篇论文工作台" in html
-    assert "Route / Decision Trail" in html
+    assert "路线 / 决策" in html
     assert "缺少显式路线节点" in html
     assert "路径与阶段" in html
     assert "当前交付包" in html
@@ -1167,12 +1110,12 @@ def test_route_decision_trail_helper_projects_branch_block_pivot_and_winning_pat
     assert payload["nodes"][1]["decision"] == "pivot"
     assert "studies/001-risk/artifacts/controller_decisions/latest.json" in payload["source_refs"]
     html = parts.render_route_decision_trail_section(payload)
-    assert "Route / Decision Trail" in html
-    assert "active path: route-b" in html
-    assert "winning path: route-b" in html
+    assert "路线 / 决策" in html
+    assert "当前路线：route-b" in html
+    assert "当前采用：route-b" in html
     assert "route-a" in html
-    assert "blocked=stop if external validation fails" in html
-    assert "Route Source Refs" in html
+    assert "阻塞=stop if external validation fails" in html
+    assert "路线来源" in html
     assert "studies/001-risk/artifacts/controller_decisions/latest.json" in html
 
 

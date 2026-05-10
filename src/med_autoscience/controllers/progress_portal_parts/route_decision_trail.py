@@ -5,7 +5,7 @@ from html import escape
 from typing import Any
 
 from .rendering import list_html, status_chip
-from .source_refs import source_refs
+from .source_refs import source_ref_allowed, source_refs
 from .status_display import display_text
 
 
@@ -24,14 +24,20 @@ def build_route_decision_trail_payload(
     resolved_study_id = _non_empty_text(study_id) or _non_empty_text(resolved_progress.get("study_id")) or "unknown-study"
     explicit = _explicit_trail(resolved_progress, resolved_runtime, resolved_package)
     controller = _controller_decision(resolved_progress)
+    intervention_lane = _mapping(resolved_progress.get("intervention_lane"))
     graph = _candidate_path_graph(resolved_progress, controller)
-    nodes = _route_nodes(explicit, controller, graph)
-    active_path = _active_path(explicit, controller, graph)
-    winning_path = _winning_path(explicit, controller, graph, active_path)
-    refs = source_refs(explicit, controller, graph)
+    nodes = _route_nodes(explicit, controller, intervention_lane, graph)
+    active_path = _active_path(explicit, controller, intervention_lane, graph)
+    winning_path = _winning_path(explicit, controller, intervention_lane, graph, active_path)
+    progress_refs = _mapping(resolved_progress.get("refs"))
+    refs = _dedupe_refs(
+        source_refs(explicit, controller, intervention_lane, graph, progress_refs)
+        + _route_source_refs(progress_refs)
+    )
     missing = _missing_route_conditions(
         explicit=explicit,
         controller=controller,
+        intervention_lane=intervention_lane,
         graph=graph,
         nodes=nodes,
         active_path=active_path,
@@ -71,6 +77,7 @@ def _missing_route_conditions(
     *,
     explicit: Mapping[str, Any],
     controller: Mapping[str, Any],
+    intervention_lane: Mapping[str, Any],
     graph: Mapping[str, Any],
     nodes: list[dict[str, Any]],
     active_path: str | None,
@@ -78,7 +85,7 @@ def _missing_route_conditions(
     refs: Iterable[str],
 ) -> list[str]:
     missing = []
-    if not explicit and not controller and not graph:
+    if not explicit and not controller and not intervention_lane and not graph:
         missing.append("route_decision_trail")
     if not nodes:
         missing.append("route_nodes")
@@ -86,7 +93,7 @@ def _missing_route_conditions(
         missing.append("active_path")
     if nodes and not winning_path:
         missing.append("winning_path")
-    if (explicit or controller or graph) and not list(refs):
+    if (explicit or controller or intervention_lane or graph) and not list(refs):
         missing.append("route_source_refs")
     return missing
 
@@ -99,9 +106,9 @@ def render_route_decision_trail_section(payload: Mapping[str, Any]) -> str:
     winning_path = _non_empty_text(payload.get("winning_path"))
     summary_items = []
     if active_path:
-        summary_items.append(f"active path: {active_path}")
+        summary_items.append(f"当前路线：{active_path}")
     if winning_path:
-        summary_items.append(f"winning path: {winning_path}")
+        summary_items.append(f"当前采用：{winning_path}")
     conditions = _mapping(payload.get("conditions"))
     missing = _string_list(conditions.get("missing"))
     if missing:
@@ -109,12 +116,12 @@ def render_route_decision_trail_section(payload: Mapping[str, Any]) -> str:
     return "\n".join(
         [
             '<section class="panel wide route-decision-trail">',
-            "<h2>Route / Decision Trail "
+            "<h2>路线 / 决策 "
             + status_chip(payload.get("status") or "missing")
             + "</h2>",
-            list_html(summary_items, empty_text="当前没有 active/winning path 投影。"),
+            list_html(summary_items, empty_text="当前没有路线投影。"),
             list_html(items, empty_text="缺少显式路线节点；Portal 不从 stage 文案或文件名猜测研究路线。"),
-            "<h3>Route Source Refs</h3>",
+            "<h3>路线来源</h3>",
             list_html(refs, empty_text="缺少路线 source refs；Portal 不推断路线来源。"),
             "</section>",
         ]
@@ -154,6 +161,7 @@ def _candidate_path_graph(progress: Mapping[str, Any], controller: Mapping[str, 
 def _route_nodes(
     explicit: Mapping[str, Any],
     controller: Mapping[str, Any],
+    intervention_lane: Mapping[str, Any],
     graph: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     explicit_nodes = _mapping_list(explicit.get("nodes")) or _mapping_list(explicit.get("route_nodes"))
@@ -164,6 +172,10 @@ def _route_nodes(
             nodes.append(_node_from_candidate(candidate, index=index + 1, controller=controller))
     if not nodes and controller:
         node = _node_from_controller(controller)
+        if node:
+            nodes.append(node)
+    if not nodes and intervention_lane:
+        node = _node_from_intervention_lane(intervention_lane)
         if node:
             nodes.append(node)
     return _dedupe_nodes(nodes)
@@ -217,12 +229,44 @@ def _node_from_controller(controller: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _active_path(explicit: Mapping[str, Any], controller: Mapping[str, Any], graph: Mapping[str, Any]) -> str | None:
+def _node_from_intervention_lane(intervention_lane: Mapping[str, Any]) -> dict[str, Any]:
+    route_id = _first_text(
+        intervention_lane.get("route_target"),
+        intervention_lane.get("lane_id"),
+        intervention_lane.get("recommended_action_id"),
+    )
+    if route_id is None:
+        return {}
+    return {
+        "route_id": route_id,
+        "label": _first_text(
+            intervention_lane.get("route_target_label"),
+            intervention_lane.get("title"),
+            intervention_lane.get("lane_id"),
+        )
+        or route_id,
+        "decision": _first_text(intervention_lane.get("repair_mode"), intervention_lane.get("recommended_action_id")),
+        "evidence_point": _first_text(intervention_lane.get("route_key_question"), intervention_lane.get("summary")),
+        "blocked_reason": _first_text(intervention_lane.get("blocked_reason"), intervention_lane.get("blocker")),
+        "pivot_rationale": _first_text(intervention_lane.get("route_summary"), intervention_lane.get("summary")),
+        "superseded_by": _non_empty_text(intervention_lane.get("superseded_by")),
+        "source": "intervention_lane",
+    }
+
+
+def _active_path(
+    explicit: Mapping[str, Any],
+    controller: Mapping[str, Any],
+    intervention_lane: Mapping[str, Any],
+    graph: Mapping[str, Any],
+) -> str | None:
     return _first_text(
         explicit.get("active_path"),
         explicit.get("active_route"),
         controller.get("route_target"),
         controller.get("selected_line_id"),
+        intervention_lane.get("route_target"),
+        intervention_lane.get("lane_id"),
         graph.get("selected_candidate_id"),
     )
 
@@ -230,6 +274,7 @@ def _active_path(explicit: Mapping[str, Any], controller: Mapping[str, Any], gra
 def _winning_path(
     explicit: Mapping[str, Any],
     controller: Mapping[str, Any],
+    intervention_lane: Mapping[str, Any],
     graph: Mapping[str, Any],
     active_path: str | None,
 ) -> str | None:
@@ -238,6 +283,7 @@ def _winning_path(
         explicit.get("winning_route"),
         controller.get("winning_path"),
         graph.get("winning_candidate_id"),
+        intervention_lane.get("winning_path"),
         active_path,
     )
 
@@ -249,20 +295,63 @@ def _node_label(node: Mapping[str, Any]) -> str:
     ]
     decision = _non_empty_text(node.get("decision"))
     if decision:
-        parts.append(f"decision={decision}")
+        parts.append(f"决策={decision}")
     evidence = _non_empty_text(node.get("evidence_point"))
     if evidence:
-        parts.append(f"evidence={evidence}")
+        parts.append(f"依据={evidence}")
     blocked = _non_empty_text(node.get("blocked_reason"))
     if blocked:
-        parts.append(f"blocked={blocked}")
+        parts.append(f"阻塞={blocked}")
     pivot = _non_empty_text(node.get("pivot_rationale"))
     if pivot:
-        parts.append(f"pivot={pivot}")
+        parts.append(f"切换理由={pivot}")
     superseded_by = _non_empty_text(node.get("superseded_by"))
     if superseded_by:
-        parts.append(f"superseded_by={superseded_by}")
+        parts.append(f"被替代为={superseded_by}")
     return " | ".join(parts)
+
+
+def _route_source_refs(progress_refs: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for key in (
+        "controller_decision",
+        "controller_decision_path",
+        "controller_decisions_path",
+        "route_decision_path",
+        "runtime_supervision_path",
+        "runtime_status_summary_path",
+        "study_truth_snapshot_path",
+    ):
+        refs.extend(_refs_from_ref_field(progress_refs.get(key)))
+    return [ref for ref in refs if source_ref_allowed(ref)]
+
+
+def _refs_from_ref_field(value: object) -> list[str]:
+    text = _non_empty_text(value)
+    if text is not None:
+        return [text]
+    if isinstance(value, Mapping):
+        result: list[str] = []
+        for item in value.values():
+            result.extend(_refs_from_ref_field(item))
+        return result
+    if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+        result: list[str] = []
+        for item in value:
+            result.extend(_refs_from_ref_field(item))
+        return result
+    return []
+
+
+def _dedupe_refs(values: Iterable[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
 
 
 def _dedupe_nodes(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:

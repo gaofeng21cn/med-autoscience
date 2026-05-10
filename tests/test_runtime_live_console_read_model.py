@@ -630,9 +630,11 @@ def test_portal_console_soak_materializes_read_only_evidence_without_truth_write
     assert evidence["portal_refresh"]["status"] == "passed"
     assert evidence["per_study_workbench"]["status"] == "passed"
     assert evidence["per_study_deep_link"]["status"] == "passed"
-    assert evidence["route_decision_trail"]["status"] == "blocked"
-    assert evidence["route_decision_trail"]["missing_count"] >= 1
-    assert "missing_route_nodes" in evidence["route_decision_trail"]["blockers"]
+    assert evidence["route_decision_trail"]["status"] == "passed"
+    assert evidence["route_decision_trail"]["missing_count"] == 0
+    assert evidence["route_decision_trail"]["active_paths"] == ["study_progress_gap"]
+    assert evidence["route_decision_trail"]["source_ref_count"] > 0
+    assert "missing_route_nodes" not in evidence["route_decision_trail"]["blockers"]
     assert evidence["conversation_read_model"]["status"] == "passed"
     assert evidence["conversation_read_model"]["surface_kind"] == "mas_runtime_conversation_read_model"
     assert evidence["study_scoped_console"]["status"] == "blocked"
