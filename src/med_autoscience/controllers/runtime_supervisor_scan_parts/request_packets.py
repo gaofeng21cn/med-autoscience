@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience.controllers import supervisor_action_request_lifecycle
 from med_autoscience.controllers import supervisor_action_requests
+from med_autoscience.controllers import stage_knowledge_entry
 
 
 def _text(value: object) -> str | None:
@@ -39,8 +40,10 @@ def publication_eval_source_action(publication_eval_payload: Mapping[str, Any]) 
 def materialize_request_packets(
     *,
     study_root: Path,
+    workspace_root: Path,
     study_id: str,
     quest_id: str | None,
+    quest_root: Path | None = None,
     publication_eval_payload: Mapping[str, Any],
     actions: list[dict[str, Any]],
 ) -> None:
@@ -65,6 +68,13 @@ def materialize_request_packets(
         )
     if "return_to_ai_reviewer_workflow" in action_types:
         reviewer_action = _first_action(actions, "return_to_ai_reviewer_workflow")
+        stage_entry = stage_knowledge_entry.materialize_stage_knowledge_entry(
+            study_id=study_id,
+            stage="review",
+            study_root=study_root,
+            workspace_root=workspace_root,
+            quest_root=quest_root,
+        )
         handoff_reason = _text(reviewer_action.get("reason"))
         route_back_target = (
             _text(reviewer_action.get("request_owner"))
@@ -91,6 +101,7 @@ def materialize_request_packets(
                 study_root=study_root,
             ),
         )
+        packet = stage_knowledge_entry.inject_stage_knowledge_entry(packet, stage_entry=stage_entry)
         packet["target_assessment_owner"] = "ai_reviewer"
         packet["may_authorize_quality_gate"] = False
         if handoff_reason:

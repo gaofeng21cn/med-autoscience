@@ -75,6 +75,11 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
+def _path_or_none(value: object) -> Path | None:
+    text = _text(value)
+    return Path(text).expanduser().resolve() if text else None
+
+
 resolve_supervisor_scan_study_ids = study_identity.resolve_supervisor_scan_study_ids
 
 
@@ -792,8 +797,10 @@ def _study_projection(
     if developer_mode.safe_actions_enabled:
         request_packets.materialize_request_packets(
             study_root=study_root,
+            workspace_root=profile.workspace_root,
             study_id=study_id,
             quest_id=resolved_quest_id,
+            quest_root=_path_or_none(status_payload.get("quest_root")),
             publication_eval_payload=publication_eval_payload,
             actions=actions,
         )
