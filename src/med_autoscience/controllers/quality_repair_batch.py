@@ -9,6 +9,7 @@ from med_autoscience.controllers import control_intent
 from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers import gate_clearing_batch_blockers
 from med_autoscience.controllers import gate_clearing_batch_currentness
+from med_autoscience.controllers import quality_repair_batch_upstream
 from med_autoscience.controllers import paper_repair_execution_evidence
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import study_runtime_router
@@ -512,6 +513,42 @@ def _apply_owner_handoff_to_publication_work_units(
     return payload
 
 
+def _selected_work_unit_id_from_gate_result(gate_clearing_result: Mapping[str, Any]) -> str | None:
+    for key in ("selected_publication_work_unit", "current_publication_work_unit", "explicit_publication_work_unit"):
+        payload = gate_clearing_result.get(key)
+        if isinstance(payload, Mapping):
+            text = _non_empty_text(payload.get("unit_id"))
+            if text:
+                return text
+    for item in gate_clearing_result.get("unit_results") or []:
+        if not isinstance(item, Mapping):
+            continue
+        text = _non_empty_text(item.get("unit_id"))
+        if text in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+            return text
+    return None
+
+
+def _merge_upstream_unit_result(
+    *,
+    gate_clearing_result: Mapping[str, Any],
+    upstream_unit_result: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    result = dict(gate_clearing_result)
+    if not isinstance(upstream_unit_result, Mapping):
+        return result
+    unit_results = [
+        dict(item)
+        for item in (result.get("unit_results") or [])
+        if isinstance(item, Mapping)
+    ]
+    unit_id = _non_empty_text(upstream_unit_result.get("unit_id"))
+    if unit_id and not any(_non_empty_text(item.get("unit_id")) == unit_id for item in unit_results):
+        unit_results.insert(0, dict(upstream_unit_result))
+    result["unit_results"] = unit_results
+    return result
+
+
 def build_quality_repair_batch_recommended_action(
     *,
     profile: WorkspaceProfile,
@@ -678,6 +715,18 @@ def run_quality_repair_batch(
         quest_id=quest_id,
         source=source,
         control_plane_route_context=resolved_route_context,
+    )
+    upstream_unit_result = quality_repair_batch_upstream.run_upstream_paper_repair_unit(
+        study_id=study_id,
+        quest_id=quest_id,
+        study_root=resolved_study_root,
+        gate_report=gate_report,
+        work_unit_id=_selected_work_unit_id_from_gate_result(gate_clearing_result),
+        source_eval_id=current_eval_id,
+    )
+    gate_clearing_result = _merge_upstream_unit_result(
+        gate_clearing_result=gate_clearing_result,
+        upstream_unit_result=upstream_unit_result,
     )
     gate_clearing_execution_summary = (
         dict(gate_clearing_result.get("execution_summary"))

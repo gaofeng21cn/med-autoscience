@@ -322,3 +322,196 @@ def test_run_quality_repair_batch_materializes_owner_surface_from_hydration_proj
     assert (canonical_paper_root / "claim_evidence_map.json").is_file()
     assert (canonical_paper_root / "figures" / "figure_catalog.json").is_file()
     assert not (canonical_paper_root / "submission_minimal" / "submission_manifest.json").exists()
+
+
+def test_quality_repair_batch_upstream_work_unit_writes_canonical_delta_and_ai_reviewer_request(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="descriptive",
+        manuscript_family="observational",
+    )
+    quest_id = "quest-001"
+    quest_root = profile.managed_runtime_quests_root / quest_id
+    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n", encoding="utf-8")
+    paper_root = study_root / "paper"
+    (paper_root / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+    (paper_root / "draft.md").write_text("# Draft\n\nClinical draft surface.\n", encoding="utf-8")
+    _write_json(
+        paper_root / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "cohort-boundary",
+                    "statement": "The study can support a bounded descriptive cohort claim.",
+                    "status": "partially_supported",
+                    "paper_role": "claim_guardrail",
+                    "display_bindings": ["F1"],
+                    "sections": ["results"],
+                    "evidence_items": [
+                        {
+                            "item_id": "cohort-flow",
+                            "support_level": "direct",
+                            "source_paths": ["paper/figures/figure_catalog.json"],
+                        }
+                    ],
+                    "limitations": ["Table 1 and quantitative result surfaces remain pending."],
+                }
+            ],
+        },
+    )
+    _write_json(
+        paper_root / "evidence_ledger.json",
+        {
+            "schema_version": 1,
+            "status": "analysis_claim_evidence_repair_f1_bound",
+            "claims": [
+                {
+                    "claim_id": "cohort-boundary",
+                    "statement": "The study can support a bounded descriptive cohort claim.",
+                    "status": "partially_supported",
+                    "submission_scope": "main_text_candidate_after_display_restoration",
+                    "evidence": [
+                        {
+                            "evidence_id": "cohort-flow",
+                            "kind": "display",
+                            "source_paths": ["paper/figures/figure_catalog.json"],
+                            "support_level": "direct",
+                            "summary": "F1 supports cohort-boundary wording.",
+                        }
+                    ],
+                    "gaps": [
+                        {
+                            "gap_id": "table1-active-display-missing",
+                            "description": "Baseline Table 1 is still pending.",
+                            "submission_impact": "Do not finalize table-supported Results prose.",
+                        }
+                    ],
+                    "recommended_actions": [
+                        {
+                            "action_id": "restore-table1",
+                            "priority": "before_release",
+                            "description": "Restore audited Table 1 before final Results prose.",
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(paper_root / "medical_manuscript_blueprint.json", {"schema_version": 1, "sections": []})
+    _write_json(paper_root / "medical_prose_review.json", {"schema_version": 1, "findings": []})
+    _write_json(paper_root / "results_narrative_map.json", {"schema_version": 1, "sections": []})
+    _write_json(paper_root / "figure_semantics_manifest.json", {"schema_version": 1, "figures": []})
+    _write_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _write_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    publication_eval_payload = _mark_publication_eval_as_specific_upstream_repair(
+        study_root,
+        _write_blocked_publication_eval(study_root, quest_id=quest_id),
+    )
+    _write_quality_summary(study_root)
+
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch.publication_gate,
+        "build_gate_report",
+        lambda _state: {
+            "status": "blocked",
+            "blockers": [
+                "medical_publication_surface_blocked",
+                "reviewer_first_concerns_unresolved",
+                "claim_evidence_consistency_failed",
+                "submission_hardening_incomplete",
+            ],
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": [
+                "reviewer_first_concerns_unresolved",
+                "claim_evidence_consistency_failed",
+                "submission_hardening_incomplete",
+            ],
+            "blocking_artifact_refs": [
+                {
+                    "blocker": "claim_evidence_consistency_failed",
+                    "artifact_path": str(paper_root / "claim_evidence_map.json"),
+                    "artifact_role": "claim_evidence_map",
+                    "source_path": str(paper_root / "claim_evidence_map.json"),
+                },
+                {
+                    "blocker": "reviewer_first_concerns_unresolved",
+                    "artifact_path": str(paper_root / "review" / "review_ledger.json"),
+                    "artifact_role": "review_ledger",
+                    "source_path": str(paper_root / "review" / "review_ledger.json"),
+                },
+            ],
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "gate_fingerprint": "publication-gate::blocked",
+        },
+    )
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **_: {
+            "ok": True,
+            "status": "executed",
+            "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
+            "selected_publication_work_unit": {"unit_id": "analysis_claim_evidence_repair"},
+            "gate_replay": {
+                "status": "blocked",
+                "report_json": str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+                "blockers": ["claim_evidence_consistency_failed"],
+            },
+            "unit_results": [
+                {
+                    "unit_id": "materialize_display_surface",
+                    "status": "already_current",
+                    "result": {"status": "already_current"},
+                }
+            ],
+        },
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        control_plane_route_context=_paper_write_supervisor_route_context(),
+    )
+
+    assert result["source_eval_id"] == publication_eval_payload["eval_id"]
+    evidence = result["repair_execution_evidence"]
+    assert evidence["canonical_artifact_delta"]["status"] == "fresh"
+    assert evidence["evidence_ledger_update_done"] is True
+    assert evidence["review_ledger_update_done"] is True
+    assert evidence["ai_reviewer_recheck_done"] is True
+    assert "canonical_artifact_delta_missing" not in evidence["blockers"]
+    changed_paths = {
+        Path(ref["path"]).relative_to(study_root).as_posix()
+        for ref in evidence["canonical_artifact_delta"]["artifact_refs"]
+    }
+    assert {
+        "paper/claim_evidence_map.json",
+        "paper/evidence_ledger.json",
+        "paper/review/review_ledger.json",
+    }.issubset(changed_paths)
+    review_ledger = json.loads((paper_root / "review" / "review_ledger.json").read_text(encoding="utf-8"))
+    assert review_ledger["schema_version"] == 1
+    assert review_ledger["concerns"][0]["status"] == "resolved"
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    assert request["request_owner"] == "ai_reviewer"
+    assert request["input_contract"]["required_refs"]["review_ledger"]["present"] is True

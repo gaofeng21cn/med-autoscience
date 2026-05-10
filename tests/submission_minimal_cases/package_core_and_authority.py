@@ -662,6 +662,65 @@ def test_resolve_compiled_pdf_path_skips_submission_surface_candidates(tmp_path:
     assert resolved == paper_root / "paper.pdf"
 
 
+def test_resolve_compiled_pdf_path_uses_present_compiled_pdf_asset_when_report_lacks_pdf_path(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    resolved = module.resolve_compiled_pdf_path(
+        workspace_root=paper_root.parent,
+        bundle_manifest={
+            "schema_version": 1,
+            "included_assets": [
+                {"path": "paper/figures/F1_main.pdf", "kind": "figure_export", "status": "present"},
+                {"path": "paper/paper.pdf", "kind": "compiled_pdf", "status": "present"},
+            ],
+        },
+        compile_report={},
+    )
+
+    assert resolved == paper_root / "paper.pdf"
+
+
+def test_create_submission_minimal_package_rebuilds_pdf_when_compile_report_lacks_pdf_candidate(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_paper_workspace(tmp_path)
+
+    dump_json(
+        paper_root / "build" / "compile_report.json",
+        {
+            "source_markdown_path": "paper/build/review_manuscript.md",
+        },
+    )
+    dump_json(
+        paper_root / "paper_bundle_manifest.json",
+        {
+            "schema_version": 1,
+            "draft_path": "paper/build/review_manuscript.md",
+            "compile_report_path": "paper/build/compile_report.json",
+            "bundle_inputs": {
+                "compile_report_path": "paper/build/compile_report.json",
+                "figure_catalog_path": "paper/figures/figure_catalog.json",
+                "table_catalog_path": "paper/tables/table_catalog.json",
+            },
+        },
+    )
+    (paper_root / "paper.pdf").unlink()
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    assert (paper_root / "submission_minimal" / "paper.pdf").exists()
+    assert manifest["manuscript"]["pdf_path"] == "paper/submission_minimal/paper.pdf"
+    assert manifest["input_compiled_pdf_path"] is None
+    assert manifest["input_compiled_pdf_status"] == "not_required_rebuilt_from_submission_source"
+
+
 def test_create_submission_minimal_package_skips_self_referential_compiled_sources(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal")
     paper_root = make_paper_workspace(tmp_path)

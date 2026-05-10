@@ -21,6 +21,11 @@ AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES = (
     Path("paper/manuscript.md"),
     Path("paper/build/review_manuscript.md"),
 )
+AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES = (
+    Path("artifacts/publication_eval/medical_prose_review.json"),
+    Path("paper/medical_prose_review.json"),
+    Path("paper/review/medical_prose_review.json"),
+)
 
 
 def _text(value: object) -> str | None:
@@ -51,11 +56,74 @@ def _first_existing_relative_path(*, study_root: Path, candidates: tuple[Path, .
     return candidates[0]
 
 
+def _ref_has_target(ref: Mapping[str, Any]) -> bool:
+    return bool(_text(ref.get("path")) or _text(ref.get("relative_path")) or _text(ref.get("ref")))
+
+
+def _candidate_ref_paths(*, study_root: Path, ref: Mapping[str, Any]) -> list[Path]:
+    paths: list[Path] = []
+    for key in ("path", "relative_path", "ref"):
+        target = _text(ref.get(key))
+        if not target:
+            continue
+        candidate = Path(target).expanduser()
+        if not candidate.is_absolute():
+            candidate = study_root / candidate
+        paths.append(candidate.resolve())
+    return paths
+
+
+def _existing_medical_prose_review_ref_payload(*, study_root: Path) -> dict[str, Any] | None:
+    for relative_path in AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES:
+        if (study_root / relative_path).exists():
+            return _ref_payload(
+                study_root=study_root,
+                surface="medical_prose_review",
+                relative_path=relative_path,
+            )
+    return None
+
+
+def _normalize_medical_prose_review_ref(
+    *,
+    study_root: Path,
+    ref: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(ref)
+    existing_targets = [path for path in _candidate_ref_paths(study_root=study_root, ref=payload) if path.exists()]
+    if existing_targets:
+        path = existing_targets[0]
+        try:
+            relative_path = path.relative_to(study_root).as_posix()
+        except ValueError:
+            relative_path = _text(payload.get("relative_path"))
+        payload.update(
+            {
+                "surface": "medical_prose_review",
+                "path": str(path),
+                "present": True,
+                "valid": True,
+            }
+        )
+        if relative_path:
+            payload["relative_path"] = relative_path
+        return payload
+
+    fallback = _existing_medical_prose_review_ref_payload(study_root=study_root)
+    if fallback is not None:
+        return fallback
+    return payload
+
+
 def default_ai_reviewer_request_input_refs(*, study_root: str | Path) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     manuscript_relative_path = _first_existing_relative_path(
         study_root=resolved_study_root,
         candidates=AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES,
+    )
+    medical_prose_review_relative_path = _first_existing_relative_path(
+        study_root=resolved_study_root,
+        candidates=AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES,
     )
     return {
         "manuscript": _ref_payload(
@@ -91,7 +159,7 @@ def default_ai_reviewer_request_input_refs(*, study_root: str | Path) -> dict[st
         "medical_prose_review": _ref_payload(
             study_root=resolved_study_root,
             surface="medical_prose_review",
-            relative_path=Path("artifacts/publication_eval/medical_prose_review.json"),
+            relative_path=medical_prose_review_relative_path,
         ),
         "publication_gate_projection": _ref_payload(
             study_root=resolved_study_root,
@@ -146,16 +214,49 @@ def _required_inputs(packet: Mapping[str, Any]) -> Mapping[str, Any]:
     return _mapping(_input_contract(packet).get("required_refs"))
 
 
-def _input_blockers(packet: Mapping[str, Any]) -> list[str]:
-    blockers: list[str] = []
+def _normalized_required_inputs(
+    packet: Mapping[str, Any],
+    *,
+    study_root: Path,
+) -> dict[str, dict[str, Any]]:
     refs = _required_inputs(packet)
+    normalized: dict[str, dict[str, Any]] = {}
+    for surface in AI_REVIEWER_REQUIRED_INPUT_SURFACES:
+        ref = dict(_mapping(refs.get(surface)))
+        if surface == "medical_prose_review":
+            ref = _normalize_medical_prose_review_ref(study_root=study_root, ref=ref)
+        normalized[surface] = ref
+    return normalized
+
+
+def _input_contract_with_normalized_refs(
+    packet: Mapping[str, Any],
+    *,
+    study_root: Path,
+) -> dict[str, Any]:
+    contract = dict(_input_contract(packet))
+    refs = _normalized_required_inputs(packet, study_root=study_root)
+    missing = [
+        surface
+        for surface, ref in refs.items()
+        if not _ref_has_target(ref) or ref.get("present") is False or ref.get("valid") is False
+    ]
+    contract["required_refs"] = refs
+    contract["required_surfaces"] = list(AI_REVIEWER_REQUIRED_INPUT_SURFACES)
+    contract["all_required_refs_present"] = not missing
+    contract["missing_or_invalid_refs"] = missing
+    return contract
+
+
+def _input_blockers(packet: Mapping[str, Any], *, study_root: Path) -> list[str]:
+    blockers: list[str] = []
+    refs = _normalized_required_inputs(packet, study_root=study_root)
     for surface in AI_REVIEWER_REQUIRED_INPUT_SURFACES:
         ref = _mapping(refs.get(surface))
         if not ref:
             blockers.append(f"{surface}_ref_missing")
             continue
-        has_ref_target = bool(_text(ref.get("path")) or _text(ref.get("relative_path")) or _text(ref.get("ref")))
-        if not has_ref_target:
+        if not _ref_has_target(ref):
             blockers.append(f"{surface}_ref_missing")
         elif ref.get("present") is False:
             blockers.append(f"{surface}_missing")
@@ -169,14 +270,15 @@ def project_ai_reviewer_request_lifecycle(
     study_root: str | Path,
     publication_eval_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
-    packet = read_ai_reviewer_request(study_root=study_root)
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    packet = read_ai_reviewer_request(study_root=resolved_study_root)
     if packet is None:
         return None
 
     requested_state = _text(_mapping(packet.get("request_lifecycle")).get("state")) or "requested"
     if requested_state not in AI_REVIEWER_REQUEST_STATES:
         requested_state = "requested"
-    input_blockers = _input_blockers(packet)
+    input_blockers = _input_blockers(packet, study_root=resolved_study_root)
     output_written = _publication_eval_ai_reviewer_owned(publication_eval_payload)
 
     if output_written:
@@ -199,7 +301,7 @@ def project_ai_reviewer_request_lifecycle(
         "allowed_states": list(AI_REVIEWER_REQUEST_STATES),
         "request_owner": packet.get("request_owner"),
         "assigned_to": _mapping(packet.get("request_lifecycle")).get("assigned_to"),
-        "input_contract": dict(_input_contract(packet)),
+        "input_contract": _input_contract_with_normalized_refs(packet, study_root=resolved_study_root),
         "required_output": dict(_mapping(packet.get("required_output") or packet.get("requested_artifact"))),
         "blockers": input_blockers or list(packet.get("blockers") if isinstance(packet.get("blockers"), list) else []),
         "assessment_written": output_written,
@@ -207,6 +309,6 @@ def project_ai_reviewer_request_lifecycle(
         "can_authorize_finalize": False,
         "can_authorize_submission": False,
         "refs": {
-            "request_path": str(stable_ai_reviewer_request_path(study_root=study_root)),
+            "request_path": str(stable_ai_reviewer_request_path(study_root=resolved_study_root)),
         },
     }

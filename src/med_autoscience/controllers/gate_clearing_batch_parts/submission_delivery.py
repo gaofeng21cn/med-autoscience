@@ -38,14 +38,21 @@ def append_delivery_sync_after_submission_refresh(
         )
     )
     authority_sync_closure = selected_work_unit_id == "submission_authority_sync_closure"
-    if not submission_minimal_refreshed or not (study_delivery_status.startswith("stale") or authority_sync_closure):
-        return
-
     embedded_delivery_sync = gate_clearing_batch_execution.reuse_embedded_submission_delivery_sync(
         create_submission_result=create_submission_unit_result.get("result")
         if isinstance(create_submission_unit_result, dict)
         else None,
     )
+    if (
+        not submission_minimal_refreshed
+        or not (
+            study_delivery_status.startswith("stale")
+            or authority_sync_closure
+            or (selected_work_unit_id == "submission_minimal_refresh" and embedded_delivery_sync is not None)
+        )
+    ):
+        return
+
     if embedded_delivery_sync is not None:
         _append_embedded_delivery_sync(
             unit_results=unit_results,

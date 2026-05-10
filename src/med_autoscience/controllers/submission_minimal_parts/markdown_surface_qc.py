@@ -281,7 +281,11 @@ def _append_rendered_surface_failures(
     docx_older_than_source_markdown: bool,
     pdf_older_than_source_markdown: bool,
 ) -> None:
-    if docx_stats["embedded_image_count"] < expected_main_figure_count:
+    docx_displayed_image_count = max(
+        int(docx_stats.get("embedded_image_count") or 0),
+        int(docx_stats.get("drawing_count") or 0),
+    )
+    if docx_displayed_image_count < expected_main_figure_count:
         failures.append(
             _failure_payload(
                 item_id="docx",

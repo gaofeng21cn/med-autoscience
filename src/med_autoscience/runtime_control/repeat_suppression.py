@@ -48,6 +48,7 @@ def scan_repeat_suppression(
     required_output_pending: bool = False,
 ) -> dict[str, Any]:
     key = repeat_key(owner_route)
+    route_signature = _route_signature(owner_route)
     if _owner_handoff_route(owner_route) or _external_supervisor_repair_route(owner_route):
         return _not_suppressed(key)
     if key is None or current_meaningful_artifact_delta or required_output_pending:
@@ -59,13 +60,22 @@ def scan_repeat_suppression(
         if meaningful_artifact_delta_observed(study_payload):
             return _not_suppressed(key)
         previous_route = _mapping(study_payload.get("owner_route"))
-        if repeat_key(previous_route) == key:
+        if (
+            repeat_key(previous_route) == key
+            and _route_signature(previous_route) == route_signature
+            and _study_owner_receipt_observed(study_payload)
+        ):
             return _suppressed(key, "previous_scan_same_work_unit_without_artifact_delta")
     for action in _list(_mapping(previous_payload).get("action_queue")):
         action_payload = _mapping(action)
         if _text(action_payload.get("study_id")) != study_id:
             continue
-        if repeat_key(action_payload) == key:
+        action_route = _mapping(action_payload.get("owner_route")) or _mapping(_mapping(action_payload.get("handoff_packet")).get("owner_route"))
+        if (
+            repeat_key(action_payload) == key
+            and _route_signature(action_route) == route_signature
+            and _action_owner_receipt_observed(action_payload)
+        ):
             return _suppressed(key, "previous_scan_action_same_work_unit_without_artifact_delta")
     return _not_suppressed(key)
 
@@ -89,7 +99,9 @@ def dispatch_repeat_suppression(
     if meaningful_artifact_delta_observed(current_study) or required_output_pending:
         return _not_suppressed(key)
     existing = _mapping(existing_dispatch)
-    if existing and _text(existing.get("dispatch_status")) in {"ready", "repeat_suppressed"} and repeat_key(existing) == key:
+    if existing and _text(existing.get("dispatch_status")) == "ready" and repeat_key(existing) == key:
+        return _not_suppressed(key)
+    if existing and _text(existing.get("dispatch_status")) == "repeat_suppressed" and repeat_key(existing) == key:
         return _suppressed(key, "existing_dispatch_same_work_unit_without_artifact_delta")
     return _not_suppressed(key)
 
@@ -151,6 +163,32 @@ def _external_supervisor_repair_route(owner_route: Mapping[str, Any]) -> bool:
         _text(route.get("next_owner")) == "external_supervisor"
         and _text(route.get("owner_reason")) == "runtime_recovery_not_authorized"
     )
+
+
+def _route_signature(owner_route: Mapping[str, Any] | None) -> tuple[str | None, str | None, tuple[str, ...]]:
+    route = _mapping(owner_route)
+    return (
+        _text(route.get("next_owner")),
+        _text(route.get("owner_reason")) or _text(route.get("failure_signature")),
+        tuple(item for value in route.get("allowed_actions") or [] if (item := _text(value)) is not None),
+    )
+
+
+def _study_owner_receipt_observed(study: Mapping[str, Any]) -> bool:
+    repeat = _mapping(study.get("repeat_suppression"))
+    if repeat.get("repeat_suppressed") is True:
+        return True
+    return _text(study.get("dispatch_status")) in {"ready", "applied", "executed", "repeat_suppressed"}
+
+
+def _action_owner_receipt_observed(action: Mapping[str, Any]) -> bool:
+    if _text(action.get("dispatch_status")) in {"ready", "applied", "executed", "repeat_suppressed"}:
+        return True
+    consumption_state = _text(_mapping(action.get("consumption")).get("state"))
+    if consumption_state in {"consumed", "picked_up", "dispatched"}:
+        return True
+    owner_pickup_state = _text(_mapping(action.get("owner_pickup")).get("state"))
+    return owner_pickup_state in {"picked_up", "consumed", "dispatched"}
 
 
 def _mapping(value: object) -> dict[str, Any]:

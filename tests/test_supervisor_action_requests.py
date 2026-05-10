@@ -139,6 +139,20 @@ def test_ai_reviewer_default_input_refs_use_existing_draft_manuscript_source(tmp
     assert refs["publication_gate_projection"]["relative_path"] == "artifacts/publication_eval/latest.json"
 
 
+def test_ai_reviewer_default_input_refs_fall_back_to_paper_medical_prose_review(tmp_path) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "obesity-atlas"
+    paper_root = study_root / "paper"
+    paper_root.mkdir(parents=True)
+    (paper_root / "draft.md").write_text("# Draft\n\nCurrent canonical manuscript.\n", encoding="utf-8")
+    (paper_root / "medical_prose_review.json").write_text('{"schema_version":1}\n', encoding="utf-8")
+
+    refs = default_ai_reviewer_request_input_refs(study_root=study_root)
+
+    assert refs["medical_prose_review"]["relative_path"] == "paper/medical_prose_review.json"
+    assert refs["medical_prose_review"]["present"] is True
+    assert refs["medical_prose_review"]["valid"] is True
+
+
 def test_ai_reviewer_publication_eval_request_packet_is_reviewer_owned_without_authority() -> None:
     packet = build_ai_reviewer_publication_eval_request(
         study_id="002-risk",
@@ -342,6 +356,60 @@ def test_ai_reviewer_request_lifecycle_projects_blocked_and_assessment_written(t
     assert assessment_written["assessment_written"] is True
     assert assessment_written["required_output"]["surface"] == "publication_eval/latest.json"
     assert assessment_written["can_authorize_finalize"] is False
+
+
+def test_ai_reviewer_request_lifecycle_resolves_stale_eval_review_ref_to_paper_review(tmp_path) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "obesity-atlas"
+    paper_root = study_root / "paper"
+    (paper_root / "review").mkdir(parents=True)
+    (paper_root / "draft.md").write_text("# Draft\n\nCurrent canonical manuscript.\n", encoding="utf-8")
+    (paper_root / "evidence_ledger.json").write_text('{"schema_version":1}\n', encoding="utf-8")
+    (paper_root / "review" / "review_ledger.json").write_text('{"schema_version":1}\n', encoding="utf-8")
+    (paper_root / "medical_manuscript_blueprint.json").write_text('{"schema_version":1}\n', encoding="utf-8")
+    (paper_root / "claim_evidence_map.json").write_text('{"schema_version":1}\n', encoding="utf-8")
+    (paper_root / "medical_prose_review.json").write_text('{"schema_version":1}\n', encoding="utf-8")
+    (study_root / "artifacts" / "controller").mkdir(parents=True)
+    (study_root / "artifacts" / "controller" / "study_charter.json").write_text(
+        '{"schema_version":1}\n',
+        encoding="utf-8",
+    )
+    (study_root / "artifacts" / "publication_eval").mkdir(parents=True)
+    (study_root / "artifacts" / "publication_eval" / "latest.json").write_text(
+        '{"schema_version":1}\n',
+        encoding="utf-8",
+    )
+    input_refs = default_ai_reviewer_request_input_refs(study_root=study_root)
+    input_refs["medical_prose_review"] = {
+        "surface": "medical_prose_review",
+        "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+        "relative_path": "artifacts/publication_eval/medical_prose_review.json",
+        "required": True,
+        "present": False,
+        "valid": False,
+    }
+    packet = build_ai_reviewer_publication_eval_request(
+        study_id="obesity-atlas",
+        quest_id="quest-obesity",
+        source_surface="quality_repair_batch",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "review_required"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+            "blockers": ["ai_reviewer_recheck_required"],
+        },
+        input_refs=input_refs,
+    )
+    materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+
+    lifecycle = project_ai_reviewer_request_lifecycle(study_root=study_root)
+
+    assert lifecycle is not None
+    assert lifecycle["state"] == "requested"
+    assert "medical_prose_review_missing" not in lifecycle["blockers"]
+    assert "medical_prose_review" not in lifecycle["input_contract"]["missing_or_invalid_refs"]
+    assert (
+        lifecycle["input_contract"]["required_refs"]["medical_prose_review"]["relative_path"]
+        == "paper/medical_prose_review.json"
+    )
 
 
 def test_request_builder_rejects_prepopulated_specificity_targets() -> None:

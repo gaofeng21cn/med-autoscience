@@ -79,6 +79,11 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         meaningful_artifact_delta=meaningful_artifact_delta,
         next_owner=next_owner,
     )
+    quality_owner_pending = _quality_owner_pending(
+        payload=payload,
+        package_delivered=package_delivered,
+        next_owner=next_owner,
+    )
     user_action_required = _user_action_required(
         user_next=user_next,
         reason=reason,
@@ -89,6 +94,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         user_next=user_next,
         reason=reason,
         package_delivered=package_delivered,
+        quality_owner_pending=quality_owner_pending,
     )
     current_blockers = _current_blockers(
         writer_state=writer_state,
@@ -96,6 +102,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         reason=reason,
         details=details,
         package_delivered=package_delivered,
+        quality_owner_pending=quality_owner_pending,
     )
     state_summary = _state_summary(
         state_label=state_label,
@@ -113,6 +120,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         reason=reason,
         package_delivered=package_delivered,
         details=details,
+        quality_owner_pending=quality_owner_pending,
     )
 
     return {
@@ -375,13 +383,36 @@ def _user_action_required(*, user_next: str, reason: str, package_delivered: boo
     return bool(package_delivered and user_next == "submit_info")
 
 
+def _quality_owner_pending(*, payload: Mapping[str, Any], package_delivered: bool, next_owner: str | None) -> bool:
+    if package_delivered:
+        return False
+    paper_progress = build_paper_progress_state(payload)
+    if _non_empty_text(paper_progress.get("state")) in {
+        "awaiting_callable_owner",
+        "awaiting_controller_redrive",
+        "downstream_only",
+    }:
+        return True
+    request_lifecycle = _mapping_copy(payload.get("ai_reviewer_request_lifecycle"))
+    if _non_empty_text(request_lifecycle.get("state")) in {"requested", "assigned"}:
+        return True
+    return bool(next_owner and next_owner not in {"external_supervisor", "user"})
+
+
 def _state_key(*, writer_state: str, user_next: str, reason: str) -> str:
     if writer_state == "conflict" or user_next == "inspect" and reason == "truth_conflict":
         return "inspect/conflict"
     return f"{writer_state}/{user_next}/{reason}"
 
 
-def _state_label(*, writer_state: str, user_next: str, reason: str, package_delivered: bool) -> str:
+def _state_label(
+    *,
+    writer_state: str,
+    user_next: str,
+    reason: str,
+    package_delivered: bool,
+    quality_owner_pending: bool = False,
+) -> str:
     if writer_state == "conflict" or reason == "truth_conflict":
         return "状态需要检查"
     if writer_state == "live":
@@ -390,6 +421,8 @@ def _state_label(*, writer_state: str, user_next: str, reason: str, package_deli
         return "投稿包已交付，等待外部投稿信息"
     if package_delivered and writer_state == "parked":
         return "投稿包已交付，自动停驻"
+    if quality_owner_pending:
+        return _QUALITY_REPAIR_LABEL
     if reason == "user_stop":
         return "用户暂停/手动停驻"
     if reason == "stop_loss":
@@ -443,6 +476,7 @@ def _current_blockers(
     reason: str,
     details: Mapping[str, Any],
     package_delivered: bool,
+    quality_owner_pending: bool = False,
 ) -> list[str]:
     if writer_state == "live":
         return []
@@ -457,6 +491,8 @@ def _current_blockers(
         return ["用户暂停或手动停驻，需显式恢复或新方案。"]
     if reason == "stop_loss":
         return ["当前论文线已止损/终止，需新计划或明确重开。"]
+    if quality_owner_pending:
+        return ["质量、artifact 或 runtime 修复 owner 已接管。"]
     if reason == "quality" or user_next in {"repair", "revise"}:
         return ["质量、artifact 或 runtime 修复 owner 已接管。"]
     if writer_state == "queued":
@@ -473,6 +509,7 @@ def _next_step(
     reason: str,
     package_delivered: bool,
     details: Mapping[str, Any],
+    quality_owner_pending: bool = False,
 ) -> str:
     if writer_state == "live":
         return "观察自动运行推进。"
@@ -484,6 +521,8 @@ def _next_step(
         return f"补齐外部投稿信息{suffix}。"
     if package_delivered:
         return "投稿包已交付；系统保持自动停驻。"
+    if quality_owner_pending:
+        return "等待质量修复/复审 owner 完成处理。"
     if reason == "user_stop":
         return "等待用户显式恢复或给出新方案。"
     if reason == "stop_loss":

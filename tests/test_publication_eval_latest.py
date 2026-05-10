@@ -264,6 +264,18 @@ def test_ai_reviewer_publication_eval_materializer_rejects_gate_projection_paylo
         module.materialize_ai_reviewer_publication_eval_latest(study_root=study_root, record=payload)
 
 
+def test_ai_reviewer_publication_eval_materializer_rejects_gate_source_kind(tmp_path: Path) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _minimal_payload(study_root)
+    payload["quality_assessment"] = _quality_assessment(study_root)
+    payload["reviewer_operating_system"] = _reviewer_operating_system(study_root)
+    payload["assessment_provenance"]["source_kind"] = "publication_gate_report"
+
+    with pytest.raises(ValueError, match="source_kind=publication_eval_ai_reviewer"):
+        module.materialize_ai_reviewer_publication_eval_latest(study_root=study_root, record=payload)
+
+
 def test_ai_reviewer_publication_eval_materializer_writes_review_backed_latest(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
@@ -276,6 +288,7 @@ def test_ai_reviewer_publication_eval_materializer_writes_review_backed_latest(t
     assert result["eval_id"] == payload["eval_id"]
     resolved = module.read_publication_eval_latest(study_root=study_root)
     assert resolved["assessment_provenance"]["owner"] == "ai_reviewer"
+    assert resolved["assessment_provenance"]["source_kind"] == "publication_eval_ai_reviewer"
     assert resolved["assessment_provenance"]["policy_id"] == "medical_publication_critique_v1"
     assert resolved["reviewer_operating_system"]["contract_id"] == "medical_publication_ai_reviewer_os_v1"
     assert resolved["quality_assessment"]["medical_journal_prose_quality"]["reviewer_revision_advice"] == (

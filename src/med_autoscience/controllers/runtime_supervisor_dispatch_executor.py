@@ -14,7 +14,8 @@ from med_autoscience.runtime_protocol import runtime_lifecycle_store
 
 from . import runtime_dispatch_cost, study_runtime_router
 from .runtime_supervisor_dispatch_executor_parts import action_execution
-from .runtime_supervisor_scan_parts import platform_current_controller
+from .runtime_supervisor_dispatch_executor_parts import controller_refresh
+from .runtime_supervisor_dispatch_executor_parts import output_readiness
 from .runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
 from .runtime_supervisor_consumer import (
     CONSUMER_LATEST_RELATIVE_PATH,
@@ -112,13 +113,6 @@ def _current_scan_study(profile: WorkspaceProfile, study_id: str) -> dict[str, A
 
 def _current_scan_stall(profile: WorkspaceProfile, study_id: str) -> dict[str, Any]:
     return _mapping(_mapping(_current_scan_study(profile, study_id)).get("paper_progress_stall"))
-
-
-def _required_output_pending(action_type: str, current_study: Mapping[str, Any] | None) -> bool:
-    if action_type != "return_to_ai_reviewer_workflow":
-        return False
-    assessment = _mapping(_mapping(current_study).get("ai_reviewer_assessment"))
-    return assessment.get("missing") is True
 
 
 def _current_consumer_dispatch_files(profile: WorkspaceProfile, study_id: str) -> list[Path]:
@@ -275,10 +269,17 @@ def _paper_progress_stall_block_reason(
     dispatch: Mapping[str, Any],
     current_study: Mapping[str, Any] | None,
     current_route: Mapping[str, Any] | None,
+    required_output_pending: bool,
 ) -> tuple[str | None, bool]:
     if action_type == "return_to_ai_reviewer_workflow" and owner_route_part.route_allows_action(
         action=dispatch,
         owner_route=current_route,
+    ):
+        return None, True
+    if (
+        action_type == "current_package_freshness_required"
+        and required_output_pending
+        and owner_route_part.route_allows_action(action=dispatch, owner_route=current_route)
     ):
         return None, True
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
@@ -307,7 +308,7 @@ def _terminal_stall_owner_handoff_allowed(
 ) -> bool:
     if action_type != "return_to_ai_reviewer_workflow":
         return False
-    if _required_output_pending(action_type, current_study):
+    if output_readiness.ai_reviewer_output_pending(current_study):
         return True
     owner_route = _dispatch_owner_route(dispatch)
     if _text(owner_route.get("failure_signature")) != "controller_work_unit_owner_handoff_required":
@@ -459,7 +460,7 @@ def _refresh_controller_decision_after_ai_reviewer_eval(
             "blocked_reason": "non_dispatching_controller_decision_materialization_failed",
             "error": str(exc),
         }
-    runtime_authorization = _authorize_current_controller_decision_after_refresh(
+    runtime_authorization = controller_refresh.authorize_current_controller_decision_after_refresh(
         profile=profile,
         study_id=study_id,
         study_root=study_root,
@@ -472,103 +473,6 @@ def _refresh_controller_decision_after_ai_reviewer_eval(
         **dict(refresh_result),
         "runtime_authorization": runtime_authorization,
     }
-
-
-def _authorize_current_controller_decision_after_refresh(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    study_root: Path,
-    status_payload: Mapping[str, Any],
-    tick_request: Mapping[str, Any],
-    source: str,
-) -> dict[str, Any]:
-    runtime_state_path = _runtime_state_path_for_status(profile=profile, status_payload=status_payload)
-    if runtime_state_path is None:
-        return {
-            "authorization_status": "skipped",
-            "skipped_reason": "runtime_state_path_unavailable",
-            "runtime_resume_status": "skipped",
-        }
-    publication_eval_payload = _publication_eval_payload_for_tick(tick_request)
-    if publication_eval_payload is None:
-        return {
-            "authorization_status": "skipped",
-            "skipped_reason": "publication_eval_payload_unavailable",
-            "runtime_state_path": str(runtime_state_path),
-            "runtime_resume_status": "skipped",
-        }
-    quest_id = _text(status_payload.get("quest_id"))
-    authorization = platform_current_controller.write_current_controller_authorization(
-        runtime_state_path=runtime_state_path,
-        study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
-        publication_eval_payload=publication_eval_payload,
-        read_json_object=_read_json_object,
-        write_json=_write_json,
-        append_json_line=_append_json_line,
-        continuation_reason="controller_work_unit_pending",
-        repair_clear_reason="ai_reviewer_controller_decision_refresh",
-        repair_extra={"controller_decision_refresh_source": source},
-    )
-    if authorization is None:
-        return {
-            "authorization_status": "skipped",
-            "skipped_reason": "current_controller_authorization_missing",
-            "runtime_state_path": str(runtime_state_path),
-            "runtime_resume_status": "skipped",
-        }
-    if authorization.get("written") is not True:
-        return {
-            "authorization_status": "blocked",
-            "blocked_reason": _text(authorization.get("reason")) or "current_controller_authorization_not_written",
-            "current_controller_authorization": authorization,
-            "runtime_resume_status": "skipped",
-        }
-    try:
-        resume_result = study_runtime_router.ensure_study_runtime(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            source=source,
-        )
-    except (OSError, TypeError, ValueError, RuntimeError) as exc:
-        return {
-            "authorization_status": "written",
-            "current_controller_authorization": authorization,
-            "runtime_resume_status": "blocked",
-            "runtime_resume_blocked_reason": "ensure_study_runtime_failed",
-            "error": str(exc),
-        }
-    return {
-        "authorization_status": "written",
-        "current_controller_authorization": authorization,
-        "runtime_resume_status": "requested",
-        "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
-    }
-
-
-def _runtime_state_path_for_status(
-    *,
-    profile: WorkspaceProfile,
-    status_payload: Mapping[str, Any],
-) -> Path | None:
-    quest_root = _text(status_payload.get("quest_root"))
-    if quest_root is not None:
-        return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
-    quest_id = _text(status_payload.get("quest_id"))
-    if quest_id is None:
-        return None
-    return Path(profile.runtime_root).expanduser().resolve() / quest_id / ".ds" / "runtime_state.json"
-
-
-def _publication_eval_payload_for_tick(tick_request: Mapping[str, Any]) -> dict[str, Any] | None:
-    publication_eval_ref = _mapping(tick_request.get("publication_eval_ref"))
-    publication_eval_path = _text(publication_eval_ref.get("artifact_path"))
-    if publication_eval_path is None:
-        return None
-    return _read_json_object(Path(publication_eval_path))
 
 
 def refresh_controller_decisions_for_current_publication_eval(
@@ -675,17 +579,24 @@ def _execute_dispatch(
     owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     current_study = _current_scan_study(profile, study_id)
+    required_output_pending = output_readiness.required_output_pending(
+        profile=profile,
+        study_id=study_id,
+        action_type=action_type,
+        current_study=current_study,
+    )
     stall_block_reason, stall_handoff_allowed = _paper_progress_stall_block_reason(
         action_type=action_type,
         dispatch=dispatch,
         current_study=current_study,
         current_route=current_route,
+        required_output_pending=required_output_pending,
     )
     repeat_guard = repeat_suppression.execution_repeat_suppression(
         dispatch={**dict(dispatch), "owner_route": _dispatch_owner_route(dispatch), "prompt_contract": prompt_contract},
         current_study=current_study,
         previous_execution_latest=_read_json_object(_execution_latest_path(profile, study_id)),
-        required_output_pending=_required_output_pending(action_type, current_study),
+        required_output_pending=required_output_pending,
     )
     execution = _dispatch_pre_execution_block(
         guard_ok=guard_ok,

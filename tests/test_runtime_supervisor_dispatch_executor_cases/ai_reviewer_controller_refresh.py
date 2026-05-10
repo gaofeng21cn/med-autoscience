@@ -291,6 +291,176 @@ def test_refresh_controller_decision_authorizes_runtime_and_requests_resume(
     assert resume_calls[0]["source"] == "runtime_supervisor_controller_decision_refresh"
 
 
+def test_refresh_controller_decision_redrives_existing_pending_user_messages(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "obesity_multicenter_phenotype_atlas"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    work_unit_fingerprint = "publication-blockers::obesity-current"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "publication-eval::obesity::current",
+            "study_id": study_id,
+            "quest_id": study_id,
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "policy_id": "medical_publication_critique_v1",
+                "source_refs": [str(study_root / "paper")],
+                "ai_reviewer_required": False,
+            },
+            "recommended_actions": [
+                {
+                    "action_type": "route_back_same_line",
+                    "work_unit_fingerprint": work_unit_fingerprint,
+                    "next_work_unit": {
+                        "unit_id": "analysis_claim_evidence_repair",
+                        "lane": "analysis-campaign",
+                    },
+                    "specificity_targets": [
+                        {
+                            "target_kind": "claim",
+                            "target_id": "claim_evidence_map",
+                            "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    _write_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "status": "waiting_for_user",
+            "quest_id": study_id,
+            "active_run_id": None,
+            "worker_running": False,
+            "pending_user_message_count": 9,
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "turn_closeout",
+            "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+            "retry_state": {"terminal": True},
+            "blocked_turn_closeout": {
+                "run_id": "old-obesity-run",
+                "blocked_reason": "owner_callable_surface_missing",
+                "next_owner": "MAS/controller",
+            },
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "decision": "blocked",
+        "reason": "quest_waiting_for_user",
+        "quest_status": "waiting_for_user",
+        "continuation_state": {
+            "pending_user_message_count": 9,
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "turn_closeout",
+            "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+        },
+    }
+    tick_request = {
+        "study_root": study_root,
+        "charter_ref": {
+            "charter_id": f"charter::{study_id}::v1",
+            "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+        },
+        "publication_eval_ref": {
+            "eval_id": "publication-eval::obesity::current",
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        },
+        "decision_type": "continue_same_line",
+        "route_target": "analysis-campaign",
+        "route_key_question": "Repair claim-evidence before package delivery.",
+        "route_rationale": "AI reviewer refreshed publication blockers.",
+        "source_route_key_question": None,
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "run_quality_repair_batch",
+                "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            }
+        ],
+        "reason": "AI reviewer refreshed publication blockers.",
+        "work_unit_fingerprint": work_unit_fingerprint,
+        "next_work_unit": {"unit_id": "analysis_claim_evidence_repair", "lane": "analysis-campaign"},
+        "blocking_work_units": [{"unit_id": "analysis_claim_evidence_repair"}],
+    }
+    resume_calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+
+    def fake_materialize_non_dispatching_outer_loop_decision(**_: object) -> dict[str, object]:
+        _write_json(
+            study_root / "artifacts" / "controller_decisions" / "latest.json",
+            {
+                "schema_version": 1,
+                "decision_id": "fresh-obesity-ai-reviewer-decision",
+                "study_id": study_id,
+                "quest_id": study_id,
+                "requires_human_confirmation": False,
+                "controller_actions": tick_request["controller_actions"],
+                "route_target": "analysis-campaign",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "next_work_unit": tick_request["next_work_unit"],
+            },
+        )
+        return {
+            "dispatch_status": "recorded_non_dispatching",
+            "study_decision_ref": {
+                "artifact_path": str(study_root / "artifacts" / "controller_decisions" / "latest.json")
+            },
+        }
+
+    def fake_ensure_study_runtime(**kwargs: object) -> dict[str, object]:
+        resume_calls.append(dict(kwargs))
+        runtime_state = module._read_json_object(quest_root / ".ds" / "runtime_state.json") or {}
+        assert runtime_state["continuation_policy"] == "auto"
+        assert runtime_state["continuation_anchor"] == "user_message_queue"
+        assert runtime_state["continuation_reason"] == "runtime_platform_repair_resume_existing_pending_user_message"
+        assert runtime_state["pending_user_message_count"] == 9
+        assert "retry_state" not in runtime_state
+        assert "blocked_turn_closeout" not in runtime_state
+        return {
+            "study_id": study_id,
+            "quest_id": study_id,
+            "decision": "resume",
+            "reason": "quest_waiting_user_message_redrive",
+            "quest_status": "running",
+        }
+
+    monkeypatch.setattr(
+        outer_loop,
+        "materialize_non_dispatching_outer_loop_decision",
+        fake_materialize_non_dispatching_outer_loop_decision,
+    )
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", fake_ensure_study_runtime)
+
+    result = module.refresh_controller_decisions_for_current_publication_eval(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    runtime_authorization = result["refreshes"][0]["runtime_authorization"]
+    assert runtime_authorization["authorization_status"] == "pending_user_message_redrive_marked"
+    assert runtime_authorization["current_controller_authorization"]["reason"] == "pending_user_messages_present"
+    assert runtime_authorization["existing_pending_user_message_resume"]["marked"] is True
+    assert runtime_authorization["runtime_resume_status"] == "requested"
+    assert len(resume_calls) == 1
+
+
 def test_refresh_controller_decision_preserves_live_worker_state(
     monkeypatch,
     tmp_path: Path,

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_supervisor_scan_parts import action_decorators
+from med_autoscience.controllers.runtime_supervisor_scan_parts import artifact_freshness
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
@@ -69,6 +70,18 @@ def action_queue(
         from med_autoscience.controllers.runtime_supervisor_scan_parts import publication_gate_actions
 
         actions.append(publication_gate_actions.action_payload(gate_specificity=gate_specificity))
+    artifact_action = _current_package_freshness_lifecycle_action(
+        progress=progress,
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if artifact_action is not None:
+        actions = [
+            action
+            for action in actions
+            if _text(action.get("action_type")) not in {"runtime_platform_repair", artifact_freshness.ACTION_TYPE}
+        ]
+        actions.insert(0, artifact_action)
     if ai_reviewer_assessment.get("missing") is True:
         actions.append(
             {
@@ -119,6 +132,45 @@ def _owner_handoff_action(status: Mapping[str, Any]) -> dict[str, Any] | None:
         "paper_package_mutation_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+
+
+def _current_package_freshness_lifecycle_action(
+    *,
+    progress: Mapping[str, Any],
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
+    if _text(lifecycle.get("state")) not in {"blocked", "external_supervisor_required"}:
+        return None
+    top_action = _mapping(lifecycle.get("top_action"))
+    if top_action.get("auto_apply_allowed") is not True and lifecycle.get("auto_apply_allowed") is not True:
+        return None
+    blocked_reason = _text(lifecycle.get("blocked_reason"))
+    if blocked_reason == artifact_freshness.ACTION_TYPE:
+        source_blocked_reason = blocked_reason
+    elif blocked_reason in {
+        "controller_decision_not_superseded",
+        "stale_specificity_terminal_gate_not_found",
+    } and _text(top_action.get("action_type")) == "runtime_platform_repair":
+        source_blocked_reason = blocked_reason
+    else:
+        return None
+    controller_route = current_truth_owner.current_controller_runtime_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if controller_route is None:
+        return None
+    if _text(controller_route.get("work_unit_id")) != "submission_minimal_refresh":
+        return None
+    if "run_gate_clearing_batch" not in set(_string_items(controller_route.get("controller_actions"))):
+        return None
+    return artifact_freshness.action_payload(
+        reason=artifact_freshness.ACTION_TYPE,
+        controller_route=controller_route,
+        source_blocked_reason=source_blocked_reason,
+    )
 
 
 def decorate_action(
@@ -258,6 +310,15 @@ def _external_supervisor_runtime_repair_reason(progress: Mapping[str, Any]) -> s
     ):
         return blocked_reason
     return None
+
+
+def _string_items(value: object) -> list[str]:
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if not isinstance(value, list | tuple | set):
+        return []
+    return list(dict.fromkeys(text for item in value if (text := _text(item)) is not None))
 
 
 def _text(value: object) -> str | None:

@@ -11,6 +11,20 @@ def assessment(
     publication_eval: Mapping[str, Any],
     blocking_reasons: list[str],
 ) -> dict[str, Any]:
+    request_lifecycle = _mapping(progress.get("ai_reviewer_request_lifecycle"))
+    request_state = _text(request_lifecycle.get("state"))
+    if request_state in {"requested", "assigned"}:
+        request_owner = _text(request_lifecycle.get("request_owner")) or "ai_reviewer"
+        return {
+            "present": False,
+            "owner": request_owner,
+            "required": True,
+            "missing": True,
+            "request_state": request_state,
+            "request_id": _text(request_lifecycle.get("request_id")),
+            "request_path": _text(_mapping(request_lifecycle.get("refs")).get("request_path")),
+            "blocked_reason": "ai_reviewer_assessment_required",
+        }
     provenance = _mapping(publication_eval.get("assessment_provenance"))
     owner = _text(provenance.get("owner"))
     reasons = set(blocking_reasons)

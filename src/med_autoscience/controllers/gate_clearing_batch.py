@@ -248,6 +248,46 @@ def _latest_batch_record(*, study_root: Path) -> dict[str, Any]:
     return _read_json(stable_gate_clearing_batch_path(study_root=study_root))
 
 
+def _gate_replay_report_payload(gate_replay: dict[str, Any]) -> dict[str, Any]:
+    report_path_text = _non_empty_text(gate_replay.get("report_json")) or _non_empty_text(
+        gate_replay.get("latest_gate_path")
+    )
+    if report_path_text is None:
+        return gate_replay
+    report_payload = _read_json(Path(report_path_text).expanduser())
+    if not report_payload:
+        return gate_replay
+    return {**gate_replay, **report_payload}
+
+
+def _freshness_gate_report_payload(*, gate_report: dict[str, Any], gate_replay: dict[str, Any]) -> dict[str, Any]:
+    replay_report = _gate_replay_report_payload(gate_replay)
+    if gate_clearing_batch_submission.study_delivery_status(replay_report) == "current":
+        return replay_report
+    return gate_report
+
+
+def _closed_batch_current_freshness_proof(
+    *,
+    latest_batch: dict[str, Any],
+    study_root: Path,
+    source_eval_id: str,
+) -> dict[str, Any] | None:
+    if isinstance(latest_batch.get("current_package_freshness_proof"), dict):
+        return dict(latest_batch["current_package_freshness_proof"])
+    gate_replay = latest_batch.get("gate_replay")
+    if not isinstance(gate_replay, dict):
+        return None
+    return gate_clearing_batch_package_freshness.write_current_package_freshness_proof(
+        study_root=study_root,
+        source_eval_id=source_eval_id,
+        gate_report=_gate_replay_report_payload(gate_replay),
+        unit_results=[],
+        clock=_clock_snapshot,
+        schema_version=SCHEMA_VERSION,
+    )
+
+
 def _latest_batch_closed_for_eval(latest_batch: dict[str, Any], current_eval_id: str | None) -> bool:
     return gate_clearing_batch_currentness.batch_closed_for_source_eval(latest_batch, source_eval_id=current_eval_id)
 
@@ -565,11 +605,17 @@ def run_gate_clearing_batch(
     current_eval_id = context.current_eval_id
     controller_decision_work_unit = context.controller_decision_work_unit
     if _latest_batch_closed_for_eval(latest_batch, current_eval_id):
+        current_package_freshness_proof = _closed_batch_current_freshness_proof(
+            latest_batch=latest_batch,
+            study_root=resolved_study_root,
+            source_eval_id=current_eval_id,
+        )
         return {
             "ok": True,
             "status": "skipped_duplicate_eval",
             "source_eval_id": current_eval_id,
             "latest_record_path": str(stable_gate_clearing_batch_path(study_root=resolved_study_root)),
+            "current_package_freshness_proof": current_package_freshness_proof,
         }
 
     paper_root = context.paper_root
@@ -768,7 +814,7 @@ def run_gate_clearing_batch(
     current_package_freshness_proof = gate_clearing_batch_package_freshness.write_current_package_freshness_proof(
         study_root=resolved_study_root,
         source_eval_id=current_eval_id,
-        gate_report=gate_report,
+        gate_report=_freshness_gate_report_payload(gate_report=gate_report, gate_replay=gate_replay),
         unit_results=unit_results,
         clock=_clock_snapshot,
         schema_version=SCHEMA_VERSION,

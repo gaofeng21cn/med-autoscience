@@ -481,6 +481,77 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
     assert sum(len(page.images) for page in pdf_reader.pages) >= 1
 
 
+def test_create_submission_minimal_package_uses_dict_figure_semantics_for_all_catalog_figures(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    paper_root = make_current_draft_workspace(tmp_path)
+    write_png(paper_root / "figures" / "F2_main.png")
+    dump_json(
+        paper_root / "figures" / "figure_catalog.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "paper_role": "main_text",
+                    "title": "First catalog-backed figure",
+                    "export_paths": ["paper/figures/F1_main.png"],
+                },
+                {
+                    "figure_id": "F2",
+                    "paper_role": "main_text",
+                    "title": "Second catalog-backed figure",
+                    "export_paths": ["paper/figures/F2_main.png"],
+                },
+            ],
+        },
+    )
+    dump_json(
+        paper_root / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": {
+                "F1": {
+                    "direct_message": "The first figure has a dict-backed semantic legend.",
+                },
+                "F2": {
+                    "direct_message": "The second figure has a dict-backed semantic legend.",
+                    "panel_level_messages": [
+                        {
+                            "panel_id": "A",
+                            "message": "The secondary panel message is also submission-facing.",
+                        }
+                    ],
+                    "glossary_terms": {"DPCC": "Diabetes primary-care cohort"},
+                    "threshold_or_stratification_caveats": [
+                        "The figure is descriptive rather than causal."
+                    ],
+                },
+            },
+        },
+    )
+
+    manifest = module.create_submission_minimal_package(
+        paper_root=paper_root,
+        publication_profile="general_medical_journal",
+    )
+
+    submission_markdown = (paper_root / "submission_minimal" / "manuscript_submission.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## Figure 1. First catalog-backed figure" in submission_markdown
+    assert "## Figure 2. Second catalog-backed figure" in submission_markdown
+    assert "The first figure has a dict-backed semantic legend." in submission_markdown
+    assert "The second figure has a dict-backed semantic legend." in submission_markdown
+    assert "Panel A: The secondary panel message is also submission-facing." in submission_markdown
+    assert "Abbreviations: DPCC, Diabetes primary-care cohort." in submission_markdown
+    assert "The figure is descriptive rather than causal." in submission_markdown
+    assert manifest["manuscript"]["surface_qc"]["status"] == "pass"
+    assert manifest["manuscript"]["surface_qc"]["source_markdown"]["figure_blocks_with_images"] == 2
+    assert manifest["manuscript"]["surface_qc"]["source_markdown"]["figure_blocks_with_legends"] == 2
+
+
 def test_create_submission_minimal_package_uses_catalog_backed_figures_when_main_figure_section_has_only_legends(
     tmp_path: Path,
     real_submission_exports,

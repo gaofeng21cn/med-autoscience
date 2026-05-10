@@ -10,7 +10,7 @@ belong in `docs/program/`, `docs/references/`, or `docs/history/`.
 | directory | purpose |
 | --- | --- |
 | [quality](./quality/) | Publication gate, AI-first quality, reviewer calibration, evidence review, and manuscript quality rules. |
-| [study-workflow](./study-workflow/) | Study route, data asset, research route, archetype, submission revision, and workspace workflow rules. |
+| [study-workflow](./study-workflow/) | Stage-led research autonomy, study route, data asset, research route, archetype, submission revision, and workspace workflow rules. |
 | [runtime-governance](./runtime-governance/) | Runtime operating model, external runtime dependency gate, MAS/MDS owner boundary, and runtime stabilization rules. |
 | [repo-ops](./repo-ops/) | Mainline integration, merge/cutover gates, and repository preflight rules. |
 

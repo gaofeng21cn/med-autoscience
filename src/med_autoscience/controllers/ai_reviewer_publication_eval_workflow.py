@@ -223,6 +223,7 @@ def _record_with_trace(
     payload["reviewer_operating_system"] = dict(trace)
     provenance = dict(_mapping(payload.get("assessment_provenance")))
     provenance["owner"] = "ai_reviewer"
+    provenance["source_kind"] = "publication_eval_ai_reviewer"
     provenance["policy_id"] = DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"]
     provenance["ai_reviewer_required"] = False
     payload["assessment_provenance"] = provenance

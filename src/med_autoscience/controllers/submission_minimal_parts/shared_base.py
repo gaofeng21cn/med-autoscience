@@ -316,20 +316,40 @@ def resolve_compiled_pdf_path(
     bundle_manifest: dict[str, Any],
     compile_report: dict[str, Any],
     excluded_roots: tuple[Path, ...] = (),
+    required: bool = True,
 ) -> Path:
+    candidate_values = [
+        compile_report.get("output_pdf"),
+        compile_report.get("pdf_path"),
+        bundle_manifest.get("pdf_path"),
+        *_compiled_pdf_asset_paths(bundle_manifest),
+    ]
+    if not required and not any(isinstance(value, str) and str(value).strip() for value in candidate_values):
+        return workspace_root / "paper" / "paper.pdf"
     return _resolve_compiled_surface_candidate(
         workspace_root=workspace_root,
-        candidate_values=[
-            compile_report.get("output_pdf"),
-            compile_report.get("pdf_path"),
-            bundle_manifest.get("pdf_path"),
-        ],
+        candidate_values=candidate_values,
         excluded_roots=excluded_roots,
         missing_error=(
-            "submission export could not resolve compiled pdf from "
-            "compile_report.output_pdf, compile_report.pdf_path, or bundle_manifest.pdf_path"
+            "submission export could not resolve compiled pdf from compile_report.output_pdf, "
+            "compile_report.pdf_path, bundle_manifest.pdf_path, or a present compiled_pdf asset"
         ),
     )
+
+
+def _compiled_pdf_asset_paths(bundle_manifest: dict[str, Any]) -> list[str]:
+    paths: list[str] = []
+    for item in bundle_manifest.get("included_assets") or []:
+        if not isinstance(item, dict):
+            continue
+        if _first_nonempty_string(item.get("kind")) != "compiled_pdf":
+            continue
+        if _first_nonempty_string(item.get("status")) not in {None, "present"}:
+            continue
+        path = _first_nonempty_string(item.get("path"))
+        if path is not None:
+            paths.append(path)
+    return paths
 
 
 def resolve_submission_compiled_source_excluded_roots(

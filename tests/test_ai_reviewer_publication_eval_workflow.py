@@ -145,6 +145,7 @@ def test_ai_reviewer_publication_eval_workflow_materializes_latest_with_reviewer
     assert result["status"] == "materialized"
     assert result["artifact_path"] == str(latest_path.resolve())
     assert latest["assessment_provenance"]["owner"] == "ai_reviewer"
+    assert latest["assessment_provenance"]["source_kind"] == "publication_eval_ai_reviewer"
     assert latest["assessment_provenance"]["ai_reviewer_required"] is False
     assert latest["emitted_at"] > "2026-05-04T00:00:00+00:00"
     assert latest["reviewer_operating_system"]["input_bundle"]["manuscript"] == refs["manuscript"]

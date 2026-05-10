@@ -339,11 +339,13 @@ def test_user_visible_projection_uses_current_delivery_read_model_for_package_de
                 "conditions": [],
             },
             "delivery_inspection": {
-                "status": "current",
                 "freshness": {
+                    "verdict": "current",
                     "delivery_status": "current",
                     "gate_freshness_handshake": {"status": "current"},
                 },
+                "status": "current",
+                "summary": "delivery status: current",
             },
         }
     )
@@ -351,6 +353,80 @@ def test_user_visible_projection_uses_current_delivery_read_model_for_package_de
     assert projection["package_delivered"] is True
     assert projection["paper_progress_state"]["state"] == "terminal_delivered"
     assert projection["paper_progress_state"]["package_delivered"] is True
+    assert projection["state_label"] == "投稿包已交付，自动停驻"
+    assert projection["current_blockers"] == []
+
+
+def test_terminal_delivery_correction_suppresses_stale_top_level_blockers() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection_payload_assembly")
+    study_root = Path("/tmp/studies/003-dpcc")
+
+    payload = module._apply_terminal_delivery_user_visible_status(
+        {
+            "study_id": "003-dpcc",
+            "study_root": str(study_root),
+            "quest_id": "quest-003",
+            "current_stage": "publication_supervision",
+            "current_stage_summary": "旧 publication eval 仍显示 QC blocker。",
+            "current_blockers": [
+                "submission_surface_qc_failure_present",
+                "论文叙事或方法/结果书写面仍有硬阻塞。",
+            ],
+            "next_system_action": "继续 repair packet。",
+            "needs_user_decision": True,
+            "needs_physician_decision": True,
+            "physician_decision_summary": "旧人工阻塞。",
+            "user_decision_summary": "旧人工阻塞。",
+            "status_narration_contract": {
+                "stage": {"current_stage": "publication_supervision"},
+                "readiness": {"needs_physician_decision": True},
+                "current_blockers": ["submission_surface_qc_failure_present"],
+                "latest_update": "stale",
+                "next_step": "stale",
+            },
+            "operator_status_card": {
+                "surface_kind": "study_operator_status_card",
+                "handling_state": "paper_surface_refresh_in_progress",
+                "human_surface_freshness": "stale",
+            },
+            "delivery_inspection": {
+                "status": "current",
+                "freshness": {
+                    "delivery_status": "current",
+                    "gate_freshness_handshake": {"status": "current"},
+                },
+            },
+            "gate_clearing_batch_followthrough": {
+                "gate_replay_status": "clear",
+                "failed_unit_count": 0,
+            },
+            "user_visible_projection": {
+                "current_stage": "parked",
+                "current_stage_summary": "投稿包已交付，系统保持自动停驻。",
+                "state_summary": "投稿包已交付，系统保持自动停驻。",
+                "state_label": "投稿包已交付，自动停驻",
+                "current_blockers": [],
+                "next_system_action": "投稿包已交付；系统保持自动停驻。",
+                "user_action_required": False,
+                "package_delivered": True,
+                "paper_progress_state": {
+                    "state": "terminal_delivered",
+                    "package_delivered": True,
+                },
+            },
+        }
+    )
+
+    assert payload["current_stage"] == "parked"
+    assert payload["current_blockers"] == []
+    assert payload["next_system_action"] == "投稿包已交付；系统保持自动停驻。"
+    assert payload["needs_user_decision"] is False
+    assert payload["needs_physician_decision"] is False
+    assert payload["physician_decision_summary"] is None
+    assert payload["operator_status_card"]["handling_state"] == "package_ready_handoff"
+    assert payload["operator_status_card"]["human_surface_freshness"] == "current"
+    assert payload["status_narration_contract"]["current_blockers"] == []
+    assert payload["status_narration_contract"]["readiness"]["needs_physician_decision"] is False
 
 
 def test_user_visible_projection_projects_supervisor_only_live_quality_repair_owner() -> None:

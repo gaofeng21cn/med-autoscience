@@ -408,34 +408,53 @@ def figure_id_aliases(figure_id: str) -> set[str]:
     if not normalized:
         return set()
     aliases = {normalized}
-    supplementary_match = re.match(r"^SupplementaryFigureS(\d+)$", normalized, flags=re.IGNORECASE)
+    supplementary_match = re.match(r"^Supplementary\s*Figure\s*S(\d+)$", normalized, flags=re.IGNORECASE)
     if supplementary_match:
+        aliases.add(f"Supplementary Figure S{supplementary_match.group(1)}")
+        aliases.add(f"SupplementaryFigureS{supplementary_match.group(1)}")
         aliases.add(f"FS{supplementary_match.group(1)}")
         return aliases
     supplementary_short_match = re.match(r"^FS(\d+)$", normalized, flags=re.IGNORECASE)
     if supplementary_short_match:
+        aliases.add(f"Supplementary Figure S{supplementary_short_match.group(1)}")
         aliases.add(f"SupplementaryFigureS{supplementary_short_match.group(1)}")
         return aliases
-    main_match = re.match(r"^Figure(\d+)$", normalized, flags=re.IGNORECASE)
+    main_match = re.match(r"^Figure\s*(\d+)$", normalized, flags=re.IGNORECASE)
     if main_match:
+        aliases.add(f"Figure {main_match.group(1)}")
+        aliases.add(f"Figure{main_match.group(1)}")
         aliases.add(f"F{main_match.group(1)}")
         return aliases
     main_short_match = re.match(r"^F(\d+)$", normalized, flags=re.IGNORECASE)
     if main_short_match:
+        aliases.add(f"Figure {main_short_match.group(1)}")
         aliases.add(f"Figure{main_short_match.group(1)}")
     return aliases
+
+
+def _iter_figure_semantics_items(figures_payload: object) -> list[dict[str, Any]]:
+    if isinstance(figures_payload, list):
+        return [item for item in figures_payload if isinstance(item, dict)]
+    if isinstance(figures_payload, dict):
+        items: list[dict[str, Any]] = []
+        for key, value in figures_payload.items():
+            if not isinstance(value, dict):
+                continue
+            item = dict(value)
+            item.setdefault("figure_id", str(key))
+            items.append(item)
+        return items
+    return []
 
 
 def load_figure_semantics_map(paper_root: Path) -> dict[str, dict[str, Any]]:
     path = paper_root / "figure_semantics_manifest.json"
     payload = load_json(path) if path.exists() else {}
-    figures = payload.get("figures") if isinstance(payload, dict) else None
-    if not isinstance(figures, list):
+    figures = _iter_figure_semantics_items(payload.get("figures") if isinstance(payload, dict) else None)
+    if not figures:
         return {}
     normalized: dict[str, dict[str, Any]] = {}
     for item in figures:
-        if not isinstance(item, dict):
-            continue
         figure_id = str(item.get("figure_id") or "").strip()
         for alias in figure_id_aliases(figure_id):
             normalized[alias] = item
@@ -533,6 +552,55 @@ def build_catalog_backed_submission_figure_image_map(*, paper_root: Path, submis
     return image_map
 
 
+def build_catalog_backed_figure_blocks(*, paper_root: Path, submission_root: Path, source_figures: str = "") -> str:
+    figure_catalog_path = paper_root / "figures" / "figure_catalog.json"
+    if not figure_catalog_path.exists():
+        return source_figures.strip()
+    payload = load_json(figure_catalog_path)
+    figures = payload.get("figures") if isinstance(payload, dict) else None
+    if not isinstance(figures, list):
+        return source_figures.strip()
+
+    source_blocks = {
+        parse_figure_id_from_heading(heading): (heading, block_body)
+        for heading, block_body in extract_main_figure_blocks(source_figures)
+        if parse_figure_id_from_heading(heading)
+    }
+    workspace_root = paper_root.parent
+    figure_blocks: list[str] = []
+    for entry in figures:
+        if not isinstance(entry, dict):
+            continue
+        if str(entry.get("paper_role") or "").strip().lower() != "main_text":
+            continue
+        figure_id = str(entry.get("figure_id") or "").strip()
+        if not figure_id:
+            continue
+        source_heading, source_body = source_blocks.get(figure_id, ("", ""))
+        image_source_rel = _select_submission_markdown_figure_source(entry)
+        image_line = ""
+        if image_source_rel:
+            image_source_path = resolve_relpath(workspace_root, image_source_rel)
+            if image_source_path.exists():
+                image_rel = os.path.relpath(image_source_path.resolve(), submission_root.resolve())
+                image_line = f"![]({image_rel})"
+        heading = source_heading or _build_catalog_figure_heading(
+            figure_id=figure_id,
+            title=str(entry.get("title") or ""),
+        )
+        legend = strip_image_lines(source_body) or str(entry.get("caption") or "").strip()
+        block_parts: list[str] = []
+        if legend:
+            block_parts.append(legend)
+        if image_line:
+            block_parts.append(image_line)
+        if block_parts:
+            figure_blocks.append(f"## {heading}\n\n" + "\n\n".join(block_parts))
+    if figure_blocks:
+        return "\n\n".join(figure_blocks).strip()
+    return source_figures.strip()
+
+
 def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: dict[str, Any] | None) -> str:
     legend_parts = [base_legend.strip()] if base_legend.strip() else []
     if not figure_semantics:
@@ -562,7 +630,7 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
     append_sentence(overall_sentences, str(figure_semantics.get("clinical_implication") or ""))
     append_sentence(overall_sentences, str(figure_semantics.get("interpretation_boundary") or ""))
 
-    panel_messages = figure_semantics.get("panel_messages")
+    panel_messages = figure_semantics.get("panel_messages") or figure_semantics.get("panel_level_messages")
     if isinstance(panel_messages, list) and panel_messages:
         for panel in panel_messages:
             if not isinstance(panel, dict):
@@ -576,6 +644,16 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
                     panel_sentences.append(normalize_sentence(f"Panel {panel_id}: {message}"))
 
     legend_glossary = figure_semantics.get("legend_glossary")
+    if isinstance(legend_glossary, dict):
+        legend_glossary = [
+            {"term": term, "explanation": explanation}
+            for term, explanation in legend_glossary.items()
+        ]
+    if not legend_glossary and isinstance(figure_semantics.get("glossary_terms"), dict):
+        legend_glossary = [
+            {"term": term, "explanation": explanation}
+            for term, explanation in figure_semantics["glossary_terms"].items()
+        ]
     if isinstance(legend_glossary, list) and legend_glossary:
         glossary_parts: list[str] = []
         for item in legend_glossary:
@@ -591,6 +669,10 @@ def merge_legend_with_figure_semantics(*, base_legend: str, figure_semantics: di
     append_sentence(boundary_sentences, str(figure_semantics.get("threshold_semantics") or ""))
     append_sentence(boundary_sentences, str(figure_semantics.get("stratification_basis") or ""))
     append_sentence(boundary_sentences, str(figure_semantics.get("recommendation_boundary") or ""))
+    caveats = figure_semantics.get("threshold_or_stratification_caveats")
+    if isinstance(caveats, list):
+        for caveat in caveats:
+            append_sentence(boundary_sentences, str(caveat or ""))
 
     existing_legend = " ".join(legend_parts)
     prose_blocks = [

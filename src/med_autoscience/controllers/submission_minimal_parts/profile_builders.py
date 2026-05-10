@@ -176,6 +176,14 @@ def build_general_medical_submission_markdown(
         )
         if main_figures.strip() and not figure_semantics_map:
             figure_semantics_map = load_figure_semantics_map(paper_root)
+    else:
+        main_figures = build_catalog_backed_figure_blocks(
+            paper_root=paper_root,
+            submission_root=submission_root,
+            source_figures=main_figures,
+        )
+        if main_figures.strip() and not figure_semantics_map:
+            figure_semantics_map = load_figure_semantics_map(paper_root)
 
     bibliography_rel = "references.bib"
     catalog_image_map = build_catalog_backed_submission_figure_image_map(

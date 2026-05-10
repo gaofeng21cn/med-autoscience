@@ -12,8 +12,13 @@ REQUIRED_OUTPUT_SURFACE = "artifacts/controller/gate_clearing_batch/latest.json"
 DISPLAY_REGISTRY_SURFACE = "paper/display_registry.json"
 
 
-def action_payload(*, reason: str | None = None) -> dict[str, Any]:
-    return {
+def action_payload(
+    *,
+    reason: str | None = None,
+    controller_route: Mapping[str, Any] | None = None,
+    source_blocked_reason: str | None = None,
+) -> dict[str, Any]:
+    payload = {
         "action_type": ACTION_TYPE,
         "authority": "observability_only",
         "owner": OWNER,
@@ -25,6 +30,11 @@ def action_payload(*, reason: str | None = None) -> dict[str, Any]:
         "controller_action_type": "run_gate_clearing_batch",
         "paper_package_mutation_allowed": False,
     }
+    if controller_route:
+        payload["controller_route"] = dict(controller_route)
+    if source_blocked_reason:
+        payload["source_blocked_reason"] = source_blocked_reason
+    return payload
 
 
 def blocked_action_from_gate_clearing(*, study_root: Path, publication_eval_payload: Mapping[str, Any]) -> dict[str, Any] | None:

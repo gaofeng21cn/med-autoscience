@@ -195,7 +195,7 @@ def test_supervisor_consume_apply_writes_only_consumer_handoff_surfaces(
     assert not (study_root / "manuscript").exists()
 
 
-def test_supervisor_consume_suppresses_repeated_ready_dispatch_without_artifact_delta(
+def test_supervisor_consume_keeps_repeated_ready_dispatch_without_artifact_delta_executable(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -267,11 +267,11 @@ def test_supervisor_consume_suppresses_repeated_ready_dispatch_without_artifact_
     )
 
     dispatch = result["default_executor_dispatches"][0]
-    assert dispatch["dispatch_status"] == "repeat_suppressed"
-    assert dispatch["repeat_suppressed"] is True
-    assert dispatch["why_not_applied"] == "repeat_suppressed"
-    assert dispatch["blocked_reason"] == "repeat_suppressed"
-    assert result["repeat_suppressed_count"] == 1
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["repeat_suppressed"] is False
+    assert dispatch["why_not_applied"] is None
+    assert dispatch["blocked_reason"] is None
+    assert result["repeat_suppressed_count"] == 0
     assert dispatch_path.read_text(encoding="utf-8").find('"dispatch_status": "ready"') != -1
 
 

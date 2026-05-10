@@ -309,3 +309,96 @@ def test_blocked_delivery_sync_clears_stale_current_package_freshness_proof(tmp_
 
     assert proof is None
     assert not proof_path.exists()
+
+
+def test_current_delivery_gate_report_writes_freshness_proof_without_resync(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_package_freshness")
+    study_root = tmp_path / "study"
+    proof = module.write_current_package_freshness_proof(
+        study_root=study_root,
+        source_eval_id="publication-eval::current-delivery",
+        gate_report={
+            "gate_fingerprint": "publication-gate::current-delivery",
+            "study_delivery_status": "current",
+            "submission_minimal_manifest_path": "/tmp/study/paper/submission_minimal/audit/submission_manifest.json",
+            "study_delivery_manifest_path": "/tmp/study/manuscript/delivery_manifest.json",
+            "study_delivery_current_package_root": "/tmp/study/manuscript/current_package",
+            "study_delivery_current_package_zip": "/tmp/study/manuscript/current_package.zip",
+            "study_delivery_evaluated_source_signature": "delivery::abc",
+            "study_delivery_authority_source_signature": "delivery::abc",
+        },
+        unit_results=[],
+        clock=lambda: (0, "2026-05-10T10:10:00+00:00"),
+        schema_version=1,
+    )
+
+    assert proof is not None
+    assert proof["status"] == "fresh"
+    assert proof["source_unit_id"] == "publication_gate_current_delivery"
+    assert proof["source_signature"] == "delivery::abc"
+    assert proof["authority_source_signature"] == "delivery::abc"
+    assert proof["current_package_zip"] == "/tmp/study/manuscript/current_package.zip"
+    assert module.stable_current_package_freshness_path(study_root=study_root).is_file()
+
+
+def test_gate_clearing_batch_prefers_replay_report_for_current_delivery_freshness(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    report_path = tmp_path / "publishability_gate" / "latest.json"
+    _write_json(
+        report_path,
+        {
+            "status": "clear",
+            "study_delivery_status": "current",
+            "submission_minimal_manifest_path": "/tmp/study/paper/submission_minimal/audit/submission_manifest.json",
+            "study_delivery_manifest_path": "/tmp/study/manuscript/delivery_manifest.json",
+            "study_delivery_current_package_root": "/tmp/study/manuscript/current_package",
+            "study_delivery_current_package_zip": "/tmp/study/manuscript/current_package.zip",
+            "study_delivery_evaluated_source_signature": "delivery::replay",
+            "study_delivery_authority_source_signature": "delivery::replay",
+        },
+    )
+
+    payload = module._freshness_gate_report_payload(
+        gate_report={"status": "blocked", "study_delivery_status": "stale_source_changed"},
+        gate_replay={"status": "clear", "report_json": str(report_path)},
+    )
+
+    assert payload["study_delivery_status"] == "current"
+    assert payload["study_delivery_current_package_zip"] == "/tmp/study/manuscript/current_package.zip"
+    assert payload["study_delivery_evaluated_source_signature"] == "delivery::replay"
+
+
+def test_closed_gate_clearing_batch_backfills_missing_freshness_proof_from_replay_report(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    study_root = tmp_path / "study"
+    report_path = tmp_path / "publishability_gate" / "latest.json"
+    _write_json(
+        report_path,
+        {
+            "status": "clear",
+            "study_delivery_status": "current",
+            "submission_minimal_manifest_path": "/tmp/study/paper/submission_minimal/audit/submission_manifest.json",
+            "study_delivery_manifest_path": "/tmp/study/manuscript/delivery_manifest.json",
+            "study_delivery_current_package_root": "/tmp/study/manuscript/current_package",
+            "study_delivery_current_package_zip": "/tmp/study/manuscript/current_package.zip",
+            "study_delivery_evaluated_source_signature": "delivery::closed",
+            "study_delivery_authority_source_signature": "delivery::closed",
+        },
+    )
+
+    proof = module._closed_batch_current_freshness_proof(
+        latest_batch={
+            "status": "executed",
+            "gate_replay": {"status": "clear", "report_json": str(report_path)},
+        },
+        study_root=study_root,
+        source_eval_id="publication-eval::closed",
+    )
+
+    assert proof is not None
+    assert proof["status"] == "fresh"
+    assert proof["source_unit_id"] == "publication_gate_current_delivery"
+    assert proof["source_signature"] == "delivery::closed"
+    assert (
+        study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
+    ).is_file()

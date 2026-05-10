@@ -746,7 +746,16 @@ def _study_projection(
         actions=actions,
         why_not_applied=why_not_applied,
     )
-    next_owner = block_state["next_owner"] or ("external_supervisor" if block_state["external_supervisor_required"] else None)
+    supervisor_only_live_quality_repair = (
+        _supervisor_only(status_payload, progress_payload)
+        and artifact_freshness.meaningful_artifact_delta_observed(progress_payload)
+        and _active_run_id(status_payload, progress_payload) is not None
+    )
+    next_owner = (
+        "supervisor_only/live_quality_repair"
+        if supervisor_only_live_quality_repair
+        else block_state["next_owner"] or ("external_supervisor" if block_state["external_supervisor_required"] else None)
+    )
     blocked_reason = block_state["blocked_reason"] or why_not_applied
     owner_route, actions = owner_route_part.route_and_decorate_actions(
         study_id=study_id,

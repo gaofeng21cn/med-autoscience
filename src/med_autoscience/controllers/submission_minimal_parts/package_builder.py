@@ -205,17 +205,16 @@ def create_submission_minimal_package(
         compile_report=compile_report,
         excluded_roots=excluded_compiled_source_roots,
     )
-    compiled_pdf_path = resolve_compiled_pdf_path(
+    input_compiled_pdf_path = resolve_compiled_pdf_path(
         workspace_root=workspace_root,
         bundle_manifest=bundle_manifest,
         compile_report=compile_report,
         excluded_roots=excluded_compiled_source_roots,
+        required=False,
     )
 
     if not compiled_markdown_path.exists():
         raise FileNotFoundError(f"missing compiled markdown: {compiled_markdown_path}")
-    if not compiled_pdf_path.exists():
-        raise FileNotFoundError(f"missing compiled pdf: {compiled_pdf_path}")
 
     compiled_markdown_text = compiled_markdown_path.read_text(encoding="utf-8")
     preserved_compiled_markdown_rel: Path | None = None
@@ -233,6 +232,7 @@ def create_submission_minimal_package(
         readme_path = staging_submission_root / "README.md"
         output_docx_path = staging_submission_root / "manuscript.docx"
         output_pdf_path = staging_submission_root / "paper.pdf"
+        compiled_pdf_path = output_pdf_path
 
         source_markdown_path = compiled_markdown_path
         supplementary_source_markdown_path: Path | None = None
@@ -502,6 +502,11 @@ def create_submission_minimal_package(
             "source_signature": source_contract["source_signature"],
             "source_contract": source_contract,
         }
+        if input_compiled_pdf_path.exists():
+            manifest["input_compiled_pdf_path"] = relpath_from_workspace(input_compiled_pdf_path, workspace_root)
+        else:
+            manifest["input_compiled_pdf_path"] = None
+            manifest["input_compiled_pdf_status"] = "not_required_rebuilt_from_submission_source"
         if references_manifest is not None:
             manifest["references"] = {
                 **references_manifest,

@@ -231,6 +231,108 @@ def test_supervisor_scan_clears_stale_runtime_relaunch_lifecycle_after_live_work
     assert not lifecycle_path.exists()
 
 
+def test_supervisor_scan_routes_requested_ai_reviewer_recheck_even_when_old_eval_is_ai_owned(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "obesity_multicenter_phenotype_atlas"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    ai_reviewer_eval = {
+        "schema_version": 1,
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_gate_report",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+        },
+        "recommended_actions": [],
+    }
+    _write_json(publication_eval_path, ai_reviewer_eval)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_id": study_id,
+            "quest_root": str(profile.runtime_root / study_id),
+            "quest_status": "waiting_for_user",
+            "active_run_id": None,
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "publication_eval": ai_reviewer_eval,
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch-obesity",
+                "source_signature": "truth-source-obesity",
+                "canonical_next_action": "observe",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module.study_progress,
+        "read_study_progress",
+        lambda **_: {
+            "study_id": study_id,
+            "current_stage": "auto_runtime_parked",
+            "paper_stage": "publishability_gate_blocked",
+            "refs": {"publication_eval_path": str(publication_eval_path)},
+            "supervision": {"active_run_id": None, "health_status": "parked"},
+            "quality_review_loop": {"closure_state": "quality_repair_required"},
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-05-10T10:56:23+00:00",
+                }
+            },
+            "ai_reviewer_request_lifecycle": {
+                "surface": "ai_reviewer_request_lifecycle",
+                "request_id": "return_to_ai_reviewer_workflow::obesity",
+                "request_kind": "return_to_ai_reviewer_workflow",
+                "state": "requested",
+                "request_owner": "ai_reviewer",
+                "refs": {
+                    "request_path": str(
+                        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+                    )
+                },
+            },
+            "ai_repair_lifecycle": {
+                "state": "external_supervisor_required",
+                "blocked_reason": "runtime_recovery_not_authorized",
+                "next_owner": "external_supervisor",
+                "external_supervisor_required": True,
+                "projection_only": True,
+            },
+        },
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["ai_reviewer_assessment"]["missing"] is True
+    assert study["ai_reviewer_assessment"]["request_state"] == "requested"
+    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
+    assert study["why_not_applied"] == "ai_reviewer_assessment_required"
+    assert study["blocked_reason"] == "ai_reviewer_assessment_required"
+    assert study["next_owner"] == "ai_reviewer"
+    assert study["external_supervisor_required"] is False
+    assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+
+
 def test_supervisor_scan_suppresses_projection_only_external_supervisor_after_live_worker_observed(
     monkeypatch,
     tmp_path: Path,

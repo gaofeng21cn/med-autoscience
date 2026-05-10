@@ -91,6 +91,8 @@ def materialize_ai_reviewer_publication_eval_latest(
     provenance = payload["assessment_provenance"]
     if provenance["owner"] != "ai_reviewer":
         raise ValueError("AI reviewer publication eval must declare assessment_provenance.owner=ai_reviewer")
+    if provenance["source_kind"] != "publication_eval_ai_reviewer":
+        raise ValueError("AI reviewer publication eval must declare assessment_provenance.source_kind=publication_eval_ai_reviewer")
     if provenance["ai_reviewer_required"] is not False:
         raise ValueError("AI reviewer publication eval cannot still require AI reviewer judgment")
     if provenance["policy_id"] != DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"]:
