@@ -1,0 +1,21 @@
+from __future__ import annotations
+
+AUTO_CONTINUE_DELAY_SECONDS = 0.2
+MAX_RETRY_ATTEMPTS = 3
+RETRY_BACKOFF_BASE_SECONDS = 1.0
+SAME_FINGERPRINT_AUTO_TURN_THRESHOLD = 3
+WORKER_LEASE_TTL_SECONDS = 3600
+BACKEND_ID = "mas_runtime_core"
+ENGINE_ID = "mas-runtime-core"
+TERMINAL_STATUSES = frozenset({"stopped", "paused", "completed", "failed", "error", "cancelled"})
+
+__all__ = [
+    "AUTO_CONTINUE_DELAY_SECONDS",
+    "BACKEND_ID",
+    "ENGINE_ID",
+    "MAX_RETRY_ATTEMPTS",
+    "RETRY_BACKOFF_BASE_SECONDS",
+    "SAME_FINGERPRINT_AUTO_TURN_THRESHOLD",
+    "TERMINAL_STATUSES",
+    "WORKER_LEASE_TTL_SECONDS",
+]
