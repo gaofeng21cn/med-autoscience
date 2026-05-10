@@ -117,7 +117,8 @@ def _collapse_duplicate_paper_segments(path: Path) -> Path:
 
 def _paper_suffix(path: Path) -> Path | None:
     parts = list(path.parts)
-    for index, part in enumerate(parts):
+    for index in range(len(parts) - 1, -1, -1):
+        part = parts[index]
         if part == "paper":
             suffix_parts = parts[index + 1 :]
             return Path(*suffix_parts) if suffix_parts else Path()
@@ -150,14 +151,10 @@ def _resolve_live_path(
     if not candidate.is_absolute():
         candidate = source_root / candidate
     candidate = _collapse_duplicate_paper_segments(candidate)
-    if not _is_under_path(candidate, target_root) and not _is_under_path(candidate, source_root):
-        paper_suffix = _paper_suffix(candidate)
-        if paper_suffix is not None:
-            candidate = target_root / paper_suffix
-    elif _is_under_path(candidate, source_root) and not _is_under_path(source_root, target_root):
-        paper_suffix = _paper_suffix(candidate)
-        if paper_suffix is not None:
-            candidate = target_root / paper_suffix
+    paper_target_root = target_root if target_root.name == "paper" else target_root / "paper"
+    paper_suffix = _paper_suffix(candidate)
+    if paper_suffix is not None:
+        candidate = paper_target_root / paper_suffix
     for legacy_root in legacy_workspace_roots:
         try:
             suffix = candidate.resolve(strict=False).relative_to(legacy_root.resolve(strict=False))

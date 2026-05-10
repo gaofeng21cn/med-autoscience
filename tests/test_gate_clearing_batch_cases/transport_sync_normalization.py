@@ -187,3 +187,29 @@ def test_repair_paper_live_paths_canonicalizes_absolute_paths_from_old_worktree(
 
     assert changed is True
     assert normalized["source_paths"] == ["figures/figure_catalog.json"]
+
+
+def test_repair_paper_live_paths_collapses_nested_study_paper_segments(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_parts.execution_helpers")
+    study_root = tmp_path / "workspace" / "studies" / "obesity_multicenter_phenotype_atlas"
+    paper_root = study_root / "paper"
+    stale_path = (
+        "studies/obesity_multicenter_phenotype_atlas/paper/"
+        "studies/obesity_multicenter_phenotype_atlas/paper/"
+        "study_charter.json"
+    )
+    payload = {"source_paths": [stale_path]}
+
+    normalized, changed = module._normalize_path_payload(
+        payload,
+        key=None,
+        source_root=paper_root,
+        target_root=study_root,
+        current_workspace_root=study_root,
+        legacy_workspace_roots=(),
+    )
+
+    assert changed is True
+    assert normalized["source_paths"] == ["paper/study_charter.json"]
