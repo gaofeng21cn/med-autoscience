@@ -27,11 +27,14 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 - `default_tick_shape`: MAS-owned supervision tick script
 - `default_tick_sequence`: `watch-runtime --max-ticks 1` -> `supervisor-scan` -> `supervisor-consume` -> `supervisor-execute-dispatch`
 
-2026-05-09 fresh assessment：当前差异不再是“MAS 还依赖 MDS 才能跑”，而是“MAS 选择了 durable / scheduler-bound / read-only-first 的 monolith 实现，和旧 MDS resident daemon + WebUI 的交互体验并不完全相同”。按机器矩阵复核，17 个行为面中：
+2026-05-10 Stage-Led Autonomy update：`memory / lesson store` 已从 generic autonomous memory service 缺口收敛为 `purpose_equivalent_with_authority_split`。MAS 通过 `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt` 和 `stage_recall_index` 保留 DeepScientist/MDS 的 stage memory/literature 目的，但 authority 分在 workspace、study、quest、evidence/review ledger、controller decision 和 human gate。真实 paper line 仍需继续 soak，证明 consumed refs、accepted/rejected writes、route impact 和 next owner 可见。
+
+2026-05-09 fresh assessment，经 2026-05-10 stage knowledge update 修订：当前差异不再是“MAS 还依赖 MDS 才能跑”，而是“MAS 选择了 durable / scheduler-bound / read-only-first / authority-split 的 monolith 实现，和旧 MDS resident daemon + WebUI 的交互体验并不完全相同”。按机器矩阵复核，17 个行为面中：
 
 - `2` 个已达到 `behavior_equivalent`：turn completion continuation、quest create/resume/pause/stop。
 - `6` 个是 `purpose_equivalent_with_different_timing`：daemon residency、supervision cadence、live worker/session tracking、crash recovery、WebUI/terminal observation、MCP surface。
-- `4` 个是 `partially_equivalent`：queued user messages/mailbox、progress visibility、memory/lesson store、artifact interaction handoff。
+- `1` 个是 `purpose_equivalent_with_authority_split`：memory/lesson store。
+- `3` 个是 `partially_equivalent`：queued user messages/mailbox、progress visibility、artifact interaction handoff。
 - `4` 个是 `not_equivalent_retired`：connector/channel background delivery、GitOps state management、MDS daemon lifecycle controls、workspace-local host service。
 - `1` 个是 `historical_fixture_only`：team/multi-agent coordination。
 
@@ -49,6 +52,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 - `behavior_equivalent`: 行为目标和默认用户影响等价。
 - `purpose_equivalent_with_different_timing`: 目标等价，但节奏、延迟或实现方式有显著差异。
+- `purpose_equivalent_with_authority_split`: 目标等价，但 MAS 将旧 MDS 的通用服务拆成 workspace / study / quest / evidence / review / controller owner surface；该分类不能授权质量、claim 或 publication readiness。
 - `partially_equivalent`: MAS 覆盖研究主流程，但旧 MDS 的部分 UX、交互或附属能力尚未完整落地为 MAS 默认体验。
 - `not_equivalent_retired`: 旧能力不再作为 MAS 默认能力保留。
 - `historical_fixture_only`: 只作为历史行为对照或回归 fixture。
@@ -59,7 +63,8 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 | --- | ---: |
 | `behavior_equivalent` | 2 |
 | `purpose_equivalent_with_different_timing` | 6 |
-| `partially_equivalent` | 4 |
+| `purpose_equivalent_with_authority_split` | 1 |
+| `partially_equivalent` | 3 |
 | `not_equivalent_retired` | 4 |
 | `historical_fixture_only` | 1 |
 
@@ -80,7 +85,7 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 | connector/channel background delivery | `not_equivalent_retired` | QQ/Slack/Discord/Telegram/Weixin/WhatsApp/Feishu background threads | durable handoff refs for external consumers | chat connector delivery is outside default MAS monolith operation |
 | MCP surface | `purpose_equivalent_with_different_timing` | daemon-backed MCP | MAS MCP calls owner surfaces directly | MAS truth/status/progress surfaces covered without MDS daemon |
 | GitOps state management | `not_equivalent_retired` | root Git / quest Git / diff reader | SQLite lifecycle + restore proof + plain quest dirs | intentional behavior change; Git no longer owns runtime lifecycle |
-| memory / lesson store | `partially_equivalent` | memory service / lesson store | portfolio research memory / incident learning read models | lessons are evidence/calibration, not autonomous quality authority |
+| memory / lesson store | `purpose_equivalent_with_authority_split` | memory service / lesson store | portfolio research memory、canonical literature、`stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`stage_recall_index` | stage 能在 entry 消费 memory/literature，在 closeout 提交受控写回；memory 仍不能授权质量、claim、route 或 publication readiness |
 | team / multi-agent coordination | `historical_fixture_only` | MDS team service | MAS owner_route/controller coordination | team behavior is reference fixture only |
 | artifact interaction handoff | `partially_equivalent` | daemon artifact interactions | Artifact OS locator / package handoff / controller refs | package discovery covered; interactive artifact mutation retired |
 | daemon lifecycle controls | `not_equivalent_retired` | start/stop/restart MDS daemon | register/remove MAS supervision scheduler job; default adapter is MAS-owned local scheduler, with Hermes cron as explicit optional adapter | no MAS-native MDS daemon control path is needed |
@@ -170,7 +175,7 @@ Guard 口径：
 | LLM dispatch cost visibility | 旧 MDS daemon 常驻并不等价于每次 tick 都调用 LLM；MAS 现在把动作显式分成 `observe_only`、`reconcile_dry_run`、`controller_apply`、`codex_worker_dispatch`。Portal/Console/supervisor/runtime_watch 均可显示 `will_start_llm` 和 dispatch counters。 | 用户能区分“页面刷新/监管 dry-run”与“真实启动 Codex worker”，避免把 300 秒 watchdog 误解成高频 LLM 花费。 | 已落地：重复 owner_route/action fingerprint 必须 no-op suppression；后续只在真实 cost telemetry 需要时扩展预算窗口。 |
 | queued mailbox / conversation view | 运行中追加 user message 已有 queue；旧 WebUI chat pane 可看 executor conversation/timeline。 | durable task intake、owner_route 和 runtime receipts 已能驱动研究；per-study Portal 已显示 Conversation panel，消费 user queue、turn receipts、runtime control/blocker 和 tool/action refs。 | P1：继续真实 workspace soak，增强 streaming transcript/source ref 可读性。 |
 | artifact interactive mutation | package locator、artifact refs、current package discovery 已由 Artifact OS 持有；旧 MDS interactive artifact API 没有默认保留。 | MAS 选择 canonical-source-first，避免 UI 或 legacy artifact API 绕过 paper/package authority。 | P2：仅在 Artifact OS authority 下增加 file browser / pickup / rebuild proof view；不恢复任意 mutation API。 |
-| memory/lesson service | MAS 有 incident learning、portfolio/research memory 和 calibration evidence，但不复刻 MDS autonomous memory service。 | 经验/记忆不能直接授权质量、投稿或 route。 | P2：把高价值 lessons 继续导入 Evaluation OS / research memory，保持 evidence-only。 |
+| memory/lesson service | Stage entry consumption 与 controlled closeout writeback 已落地；MAS 有 portfolio/research memory、canonical literature、stage packet、router receipt 和 calibration evidence，但不复刻 MDS generic free-form autonomous memory service。 | 经验/记忆不能直接授权质量、投稿、claim expansion 或 route；它必须经 evidence/review/controller surface 生效。 | 继续 real workspace soak，验证 stage consumed refs、router receipt、rejected writes、route impact 和 next owner 在 Progress/Portal 可见。 |
 
 后续完善顺序建议固定为：real-workspace `portal_console_soak` / source-ref polish -> route input completeness -> action receipt soak -> terminal attach owner soak。`portal-study-scoped-ia`、`portal-route-decision-trail`、`portal-stage-artifact-path`、visible `runtime-conversation-read-model` timeline、study-scoped Live Console、pause/resume/stop authorized apply 和 terminal attach owner gate 已有 repo contract；下一步重点是让真实多论文 workspace 的用户体验稳定，同时不让 UI、connector 或旧 daemon 重新成为 runtime owner。
 
@@ -196,8 +201,10 @@ Guard 口径：
 - 可以说：MAS 默认 operation / diagnostic / progress / artifact / quality surfaces 不再要求外部 MDS repo、daemon、runtime root 或 WebUI。
 - 可以说：MAS 以 capability supersede / rewrite / retire 方式完成 functional monolith closeout。
 - 可以说：Live Console 提供旧 MDS WebUI 观察类能力的 MAS-owned read-only purpose equivalence。
+- 可以说：MAS 已以 authority-split 方式保留 DeepScientist/MDS 的 stage memory/literature 目的：stage entry 读取，stage closeout 受控回写，controller/evidence/review surface 守边界。
 - 可以说：旧 MDS WebUI 的 per-project/per-quest 信息架构是后续 Portal UX parity 的 clean-room oracle，当前 Portal 仍有 per-study/per-paper drilldown 缺口。
 - 不能说：MAS 与旧 MDS resident daemon 行为完全等价。
+- 不能说：MAS 复刻了旧 MDS generic autonomous memory service，或 memory card 可以直接授权论文质量、claim、route、publication readiness。
 - 不能说：MAS 复刻了 MDS resident WebSocket terminal attach、connector background delivery、team service 或 GitOps runtime lifecycle。
 - 不能说：MDS resident WebSocket terminal attach 或 UI-issued runtime control 已经被放弃；准确口径是 Portal pause/resume/stop 已通过 MAS-native runtime owner apply 落地，terminal attach/input/resize/detach 通过 MAS-native safety / owner / audit gate，默认无 owner fail closed。
 - 不能把旧 workspace-local launchd/systemd/cron/docker service 当成当前可选运行面。

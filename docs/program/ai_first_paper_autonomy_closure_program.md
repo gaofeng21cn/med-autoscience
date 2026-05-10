@@ -33,6 +33,7 @@ Machine boundary: this is a human-readable program plan. Machine truth remains i
 | OPL/Hermes family runtime E2E queue | `partial` | MAS sidecar task schema 与 OPL family queue projection landed；真实 Hermes gateway cron/webhook restart soak、MAG/RCA parity 和 Full App packaging 不属于本 MAS commit 的完成范围。 |
 | Real paper soak | `read-only projection landed` | DM002、DM003、Obesity 可只读报告 artifact delta、AI reviewer re-eval、route decision、stop-loss、human gate、continuing repair 或 stable blocker；尚未把三篇都跑到 controlled live apply 的 submission-facing closure。 |
 | Medical quality/reporting guard | `existing guard plus loop integration` | 医学质量仍由 study charter、evidence/review ledger、AI reviewer-backed publication eval 和 publication gate 授权；repo loop 不能机械授权 quality ready。 |
+| Stage-led knowledge loop | `repo contract/read-model landed` | `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`stage_recall_index`、stage entry injection、Progress/Portal visibility 和 route materialization guard 已落地；真实 paper line 仍需 read-only / guarded apply soak 持续证明 consumed refs、accepted/rejected writes、route impact、progress delta 或 human gate。 |
 
 因此，当前可以说“MAS AI-first paper autonomy 的 repo callable loop 已落地并有文档/测试/只读真实 paper projection”，不能说“所有计划都已经完整产品化”。Full OPL App 携带 Hermes、MAG/RCA domain adapters、Hermes gateway 真实 24h restart soak、三篇论文 controlled live apply 到最终投稿级交付，仍是后续验收项。
 
@@ -270,6 +271,8 @@ MAS 应把这些纪律落到医学 domain truth：`study_charter`、`evidence_le
 
 目标：让 `scout`、`idea`、`analysis-campaign`、`review` 等会改变论文走向的 stage 自动消费 MAS 的 knowledge / literature / memory plane，并在 closeout 时把可复用 lesson、失败路径、引用缺口和研究方向判断写回正确层级。
 
+落地状态：repo surface 已落地；真实 paper soak 仍保持 evidence-gated。当前已固定 `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt` 和 `stage_recall_index`，并把 stage entry injection、typed closeout routing、Progress/Portal visibility、route materialization guard 接进 MAS-owned controller/read-model surface。
+
 这条 lane 解决的是旧 DeepScientist/MDS 里 `memory.search/list_recent` 和 quest literature shelf 的探索体验，在 MAS 中被 authority 分层后没有完全闭合的问题。正确方向不是恢复一个 generic memory truth source，而是把 memory 变成 stage packet 的输入和 closeout 的受控输出。
 
 落地要求：
@@ -343,161 +346,75 @@ stage closeout 的输出按下面规则分流：
 - Pydantic AI durable execution 的 graph persistence 思路映射为 typed stage state、durable packet schema 和可恢复 stage closeout。
 - 医学 reporting guideline 的前置约束映射为 stage packet 输入，而不是投稿包后置补救。
 
-## Development Plan To Land Stage Knowledge Plane
+## Stage Knowledge Plane Landed Scope And Remaining Soak
 
-这条计划应作为本 program 的 `Lane 7` 落地，不另建平行 program board。实现可以分 worktree 并行，但必须共享同一 schema 和验收 fixture。
+这条计划已经作为本 program 的 `Lane 7` 落地到 repo surface。当前完成口径是 contract、read model、entry injection、typed closeout routing、visibility 和 route materialization guard 已可用；真实 paper line 的效果仍必须继续通过 read-only / guarded apply soak 证明。
 
 ### T0: Contract freeze
 
-目标：冻结 stage knowledge plane 的 machine-readable contract。
+Status: `landed`
 
-改动范围：
-
-- 新增 schema / dataclass / JSON contract：`stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`stage_recall_index`。
-- 更新 `agent_entry_modes`：为 scout、idea、analysis-campaign、review 增加 knowledge input obligations 和 memory closeout obligations。
-- 更新 docs：本 program、stage-led policy、workspace knowledge/literature contract 的 cross-link。
-
-验收：
-
-- 每个 packet 有 `schema_version`、`study_id`、`stage`、`input_refs`、`source_fingerprint`、`authority_boundary`、`idempotency_key`。
-- packet 只能引用 durable surfaces，不允许引用聊天内容作为输入 authority。
-- `make test-meta` 或 focused contract tests 验证 schema、route obligations 和 docs semantic ID。
+- `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`stage_recall_index` 已作为 machine-readable contract 固定。
+- `agent_entry_modes` 已为 `scout`、`idea`、`analysis-campaign`、`review` 增加 knowledge input obligations 和 memory closeout obligations。
+- packet 必须带 `schema_version`、`study_id`、`stage`、`input_refs`、`source_fingerprint`、`authority_boundary`、`idempotency_key`，并禁止把聊天总结当作 authority。
 
 ### T1: Read model aggregator
 
-目标：实现进入 stage 前自动读取 memory/literature plane。
+Status: `landed`
 
-改动范围：
-
-- 新增 `stage_knowledge_packet` builder。
-- 读取 workspace research memory status、workspace literature status、study reference context、literature provider runtime、literature intelligence OS、evidence/review ledger、controller decision、route history。
-- 在 `study_progress`、runtime supervisor scan 或 owner-route packet 中投影 packet freshness 和 missing reason。
-
-验收：
-
-- fixture study 能为 scout/idea/analysis-campaign/review 生成不同 stage-specific packet。
-- 缺 workspace registry、study reference context、provider citation refs 或 stale citation freshness 时 fail-closed 到明确 missing reason。
-- packet 不写任何 truth surface，只做 read model。
+- `stage_knowledge_packet` builder 已只读聚合 workspace memory、workspace literature、study reference context、quest materialization、evidence/review ledgers、controller decisions 和 route history。
+- `scout`、`idea`、`analysis-campaign`、`review` 可生成 stage-specific packet；缺 registry、reference context 或 ledgers 时 fail-closed 到明确 `missing_reasons`。
+- packet 只做 read model，不写 study truth、publication truth 或 quality truth。
 
 ### T2: Prompt / stage entry injection
 
-目标：Codex CLI 进入 stage 时能自然使用 packet，而不是靠开发者手工提醒。
+Status: `landed`
 
-改动范围：
-
-- 在 agent entry / owner dispatch / runtime packet 中加入 stage knowledge packet ref。
-- stage packet 文案要求先读 `high_signal_memory`、`literature_gaps`、`failed_paths`、`citation_readiness`、`current_claim_boundary`。
-- 只对 scout、idea、analysis-campaign、review 强制启用；write/finalize 先读取已有 evidence/review/claim map，不做开放探索扩张。
-
-验收：
-
-- owner route 生成的执行 prompt/packet 包含 stage knowledge refs。
-- scout/idea/analysis-campaign/review 的 fixture prompt 都能看到不同的 memory/literature obligations。
-- supervisor-only 或 live runtime ownership 下不允许 foreground 旁路写 study-owned surfaces。
+- agent entry / owner dispatch / runtime packet 可注入 stage knowledge packet ref。
+- `review` stage 的 AI reviewer request packet 已带 `stage_knowledge_packet_ref`、status、missing reasons 和 required ref validity。
+- `write` / `finalize` 不开放扩大探索；它们继续读取 evidence/review/claim map。
 
 ### T3: Closeout packet and memory write router
 
-目标：stage 完成后自动把探索结果回写到正确层级。
+Status: `landed`
 
-改动范围：
-
-- 新增 closeout packet normalizer。
-- 新增 memory write router，只接收 typed closeout，不直接解析自由文本。
-- 支持写入或派发：
-  - workspace research memory proposed update
-  - workspace literature sync/hydration request
-  - study reference context update request
-  - evidence ledger / review ledger repair request
-  - failed-path history / controller decision
-  - human gate request
-- 每次写入产生 receipt，记录 accepted/rejected reason、source refs 和 idempotency key。
-
-验收：
-
-- reusable lesson 写入 workspace memory；single-study claim 不会误写 workspace memory。
-- citation gap 进入 literature repair/provider operation，不会变成 manuscript claim。
-- failed path 进入 failed-path/controller route，不会被后续 write 忽略。
-- duplicate closeout idempotent，不重复写同一 lesson / reference / route decision。
+- stage closeout 已通过 typed normalizer 进入 `stage_memory_closeout_packet`。
+- `memory_write_router` 只接受 typed closeout，不解析自由文本。
+- reusable lesson、citation gap、failed path、reference role、claim boundary、controller request 会分别进入 workspace memory proposal、literature provider repair、failed-path history、reference context owner、controller decision request 或 human gate owner。
+- duplicate closeout idempotent；single-study claim 不得误写为 workspace memory。
 
 ### T4: Route coupling for weak and negative results
 
-目标：memory closeout 与 route decision 真正联动。
+Status: `landed`
 
-改动范围：
-
-- analysis-campaign closeout 中的 weak/negative/contradictory result 必须触发 route decision candidate。
-- review closeout 中的 citation/evidence blocker 必须触发 repair work unit 或 human gate。
-- study recall index 记录 rejected alternatives、failed paths、stop rules 和 re-entry conditions。
-
-验收：
-
-- 弱结果 fixture 自动生成 claim downgrade、bounded repair、switch line、return to scout、stop-loss 或 human gate 之一。
-- review citation gap fixture 自动生成 literature provider repair 或 evidence ledger repair，不允许进入 finalize。
-- progress/Portal 能显示 stage memory consumed、closeout writes、route impact 和 next owner。
+- `study_line_decision_engine` 已标记为 `audit_comparator_only`，只比较 stage output，不拥有路线生成 authority。
+- `route_decision_orchestrator` 已固定为 `route_router_and_materializer`，缺 `stage_output_refs` 时会阻断 controller decision write。
+- winning path 必须回指 stage output、evidence refs、failed paths 和 controller decision；默认路径不能绕过 stage closeout 直接生成 winning path。
 
 ### T5: Real paper soak
 
-目标：证明这不是文档计划，而是能推动真实论文线。
+Status: `remaining evidence gate`
 
-改动范围：
-
-- 在 DM002、DM003、Obesity 或当前 active paper lines 上做 read-only / guarded apply soak。
-- 观察 scout/idea/analysis-campaign/review 是否在进入时消费 stage knowledge packet。
-- 观察 closeout 是否产生 workspace memory update、reference context update、evidence/review repair、route decision 或 human gate。
-
-验收：
-
-- 至少一个真实 paper line 展示 stage entry packet -> Codex execution -> closeout packet -> router receipt -> progress delta。
-- 若没有可继续推进的 paper line，必须展示 terminal blocker、human gate、publication gate 或 data/science stop，而不是静默 idle。
-- OPL/Hermes 只负责 queue/wakeup/notification/receipt，不写 MAS truth。
+- DM002、DM003、Obesity 或当前 active paper line 仍需继续展示 `stage entry packet -> Codex execution -> closeout packet -> router receipt -> progress delta / human gate / stop-loss`。
+- 若没有可继续推进的 paper line，必须展示 terminal blocker、human gate、publication gate 或 data/science stop。
+- OPL/Hermes 只负责 queue、wakeup、notification、receipt，不写 MAS truth。
 
 ### T6: Operator visibility and parity guard
 
-目标：让医生/PI 和维护者能看见 memory/literature 是否真的被用上。
+Status: `landed with continued workspace polish`
 
-改动范围：
-
-- Product Entry / Portal / Live Console 显示 stage knowledge freshness、consumed memory refs、literature gap、closeout receipt、rejected writes、next route。
-- MDS parity matrix 增加 DeepScientist memory/literature behavior 对照项：`purpose_equivalent_with_authority_split` 或 `gap_until_stage_injection_landed`。
-- Retained capability absorb 增加 no-regression guard：不能删除 stage memory/literature consumption。
-
-验收：
-
-- 用户能从 progress surface 看见“本 stage 用了哪些记忆/文献，写回了什么，为什么没写回”。
-- parity guard 能防止未来把 stage entry memory 重新退化成静态 docs 链接。
+- Product Entry / Progress Portal 可投影 stage knowledge freshness、consumed refs、closeout receipt、accepted/rejected writes、route impact 和 next owner。
+- MDS behavior matrix 已把 memory/literature 标记为 `purpose_equivalent_with_authority_split`：MAS 保留 DeepScientist/MDS 的 stage memory/literature 目的，但通过 workspace/study/quest/controller/evidence authority 分层实现。
+- 继续真实 workspace polish，防止 stage entry memory 退化成静态 docs 链接或聊天记忆。
 
 ### T7: Mechanical route cleanup and retirement
 
-目标：在 stage knowledge plane 和 stage-led prompt/skill contract 可用后，清理旧的程序化研究分流，避免它们作为第二套路线生成器继续污染论文思路。
+Status: `landed guard; cleanup discipline remains active`
 
-保留范围：
-
-- `study_line_decision_engine`、`route_decision_orchestrator`、bounded-analysis candidate board 继续作为 audit comparator、route router、controller decision materializer 或 rehearsal fixture。
-- runtime supervisor、owner route、repeat suppression、retry budget、publication gate、AI reviewer gate 继续作为 guard / recovery / quality owner。
-- Product Entry / Portal / Live Console 继续作为 read model 和 operator visibility。
-
-退役或降级范围：
-
-- 任何直接从固定评分维度生成研究问题的逻辑。
-- 任何绕过 stage packet 直接选择 winning path 的逻辑。
-- 任何把 nominal positive result 当作默认写作推进条件的逻辑。
-- 任何把 read-model projection 或 mechanical gate 当作论文质量授权的逻辑。
-- 任何在 `scout`、`idea`、`analysis-campaign`、`review` 之外隐藏候选路线、失败路径或转向理由的逻辑。
-
-执行顺序：
-
-1. 用 fixture 锁住当前有价值行为：candidate comparison、route decision materialization、negative-result rehearsal、owner route dispatch。
-2. 把 route generation 从程序逻辑迁回 stage/skill/prompt，程序只接收 stage closeout。
-3. 将旧入口改成 compatibility warning 或 internal helper，确保新路径有等价 receipt。
-4. 删除不再被 tests、runtime、docs、MCP、product-entry 消费的旧 generator。
-5. 在 parity matrix / retained capability absorb 中标记 `retired_mechanical_generator` 或 `converted_to_audit_router`。
-
-验收：
-
-- 没有一条研究路线由固定分流器单独生成并推进。
-- 所有 winning path 都能回指 stage output、evidence refs、failed path history 和 controller decision。
-- 旧分流代码被删除、降级或标记为 audit-only，且不再出现在默认 owner route 生成链路。
-- `make test-meta` 或 focused tests 能防止再次把 mechanical generator 接回默认路径。
+- `study_line_decision_engine` 保留为 audit comparator。
+- `route_decision_orchestrator` 保留为 route router / stop-loss / executable task materializer。
+- 固定分流器不能单独生成研究路线；所有 route decision 必须回指 stage output、evidence refs、failed path history 和 controller decision。
+- 后续删除旧入口时必须先保留 parity fixture，再清理不再被 tests、runtime、docs、MCP、product-entry 消费的旧 vocabulary，避免形成第二套研究路线污染源。
 
 ## Acceptance Criteria
 
@@ -547,7 +464,7 @@ DM002、DM003、Obesity 的 read-only/live verification 必须展示：
 
 ### Stage knowledge loop test
 
-给定一个 fixture study，MAS 必须能完成：
+repo contract 应继续证明：
 
 1. 为 `scout`、`idea`、`analysis-campaign`、`review` 生成 stage-specific `stage_knowledge_packet`；
 2. packet 引用 workspace memory、workspace literature、study reference context、provider literature runtime、evidence/review ledgers 和 controller decisions；
@@ -556,6 +473,7 @@ DM002、DM003、Obesity 的 read-only/live verification 必须展示：
 5. router 把 reusable lesson、citation gap、failed path、reference role update、evidence repair 和 human gate 分流到正确 owner；
 6. 产生 idempotent router receipt；
 7. progress surface 显示 memory consumed、writes accepted/rejected、route impact 和 next owner。
+8. Progress/Portal 或 recall index 显示 packet freshness、consumed refs、accepted/rejected writes 和 next owner。
 
 不通过条件：
 

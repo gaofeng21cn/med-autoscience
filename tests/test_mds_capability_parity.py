@@ -263,7 +263,8 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
         "surface_count": 17,
         "behavior_equivalent": 2,
         "purpose_equivalent_with_different_timing": 6,
-        "partially_equivalent": 4,
+        "purpose_equivalent_with_authority_split": 1,
+        "partially_equivalent": 3,
         "not_equivalent_retired": 4,
         "historical_fixture_only": 1,
         "fully_equivalent_to_mds_daemon": False,
@@ -368,6 +369,18 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert by_surface["connector_channel_background_delivery"]["paper_progress_degradation"]["classification"] == (
         "retired_non_goal"
     )
+    assert by_surface["memory_lesson_store"]["equivalence_class"] == "purpose_equivalent_with_authority_split"
+    assert by_surface["memory_lesson_store"]["mas_behavior"]["stage_knowledge_packet"] is True
+    assert by_surface["memory_lesson_store"]["mas_behavior"]["stage_memory_closeout_packet"] is True
+    assert by_surface["memory_lesson_store"]["mas_behavior"]["memory_write_router_receipt"] is True
+    assert by_surface["memory_lesson_store"]["mas_behavior"]["stage_recall_index"] is True
+    assert by_surface["memory_lesson_store"]["mas_behavior"]["quality_authority"] is False
+    assert "stage_knowledge_packet" in by_surface["memory_lesson_store"]["mas_contract"]
+    assert "memory_write_router_receipt" in by_surface["memory_lesson_store"]["mas_contract"]
+    assert by_surface["memory_lesson_store"]["remaining_gap_until_soak"] == (
+        "real-paper stage injection soak must keep proving consumed refs, accepted/rejected writes, route impact, and next owner in Progress/Portal surfaces."
+    )
+    assert by_surface["memory_lesson_store"]["paper_progress_degradation"]["classification"] == "production_risk"
     assert by_surface["turn_completion_continuation"]["paper_progress_degradation"]["classification"] == (
         "acceptable_design_difference"
     )

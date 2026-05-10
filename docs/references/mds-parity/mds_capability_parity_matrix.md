@@ -18,7 +18,7 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 
 2026-05-08 user-view WebUI parity review 进一步校准 `progress_visibility`：当前 MAS 有固定 Progress Portal、study rows、study-progress 和 cockpit，但默认 UX 仍偏 workspace overview，多篇论文会混在同一页解释，也还没有把研究路线、分支、失败/阻塞原因、转向理由和 active/winning path 投影成单篇论文 decision trail。旧 MDS WebUI 的 per-project/per-quest 信息架构应作为 clean-room UX oracle；后续 P0 是 per-study/per-paper Portal drilldown、deep link、Route/Decision Trail 和单篇论文 detail view。详见 [MDS WebUI User Parity Gap Review](./mds_webui_user_parity_gap_review.md)。
 
-2026-05-09 fresh assessment：当前 machine-readable behavior matrix 仍是 `17` 个 behavior surface，分类为 `2 behavior_equivalent / 6 purpose_equivalent_with_different_timing / 4 partially_equivalent / 4 not_equivalent_retired / 1 historical_fixture_only`，且 `fully_equivalent_to_mds_daemon=false`。这不是退回到外部 MDS 依赖；它表示 MAS monolith 已经承接默认日常运行，但仍保留可见 UX / terminal attach / scheduler cadence 的差异。后续能力补齐应聚焦真实 workspace per-study Portal soak、visible conversation panel polish 和 gated terminal attach；connector background delivery、GitOps lifecycle、MDS daemon lifecycle controls 与 workspace-local host service 仍保持 retired，不进入默认 backlog。
+2026-05-09 fresh assessment，2026-05-10 stage knowledge update 后：当前 machine-readable behavior matrix 仍是 `17` 个 behavior surface，分类为 `2 behavior_equivalent / 6 purpose_equivalent_with_different_timing / 1 purpose_equivalent_with_authority_split / 3 partially_equivalent / 4 not_equivalent_retired / 1 historical_fixture_only`，且 `fully_equivalent_to_mds_daemon=false`。这不是退回到外部 MDS 依赖；它表示 MAS monolith 已经承接默认日常运行，并以 authority-split 方式保留 stage memory/literature 目的，但仍保留可见 UX / terminal attach / scheduler cadence 的差异。后续能力补齐应聚焦真实 workspace per-study Portal soak、visible conversation panel polish、stage injection soak 和 gated terminal attach；connector background delivery、GitOps lifecycle、MDS daemon lifecycle controls 与 workspace-local host service 仍保持 retired，不进入默认 backlog。
 
 ## Capability Matrix
 
@@ -30,6 +30,8 @@ MDS 不能授权 medical quality。医学论文质量、publication readiness、
 | manuscript coverage | `fixture_only` | mechanical oracle | Quality OS | mechanical coverage fixtures with AI preflight required | blocked for MDS |
 | prompt stage discipline | `mas_owned` | behavior oracle | Quality OS | stage prompt contract parity and prompt-only gate audit | blocked for MDS |
 | memory / lesson store | `retire` | behavior oracle | Evaluation OS | lesson intake and incident learning parity fixtures | blocked for MDS |
+
+`memory / lesson store` 在 capability matrix 中仍保持 `retire`，因为旧 MDS generic memory service 不能作为 MAS authority surface 保留；对应 behavior surface `memory_lesson_store` 已在 behavior matrix 中标为 `purpose_equivalent_with_authority_split`，由 stage packet、typed closeout、router receipt 和 owner surfaces 承接目的。
 
 ## Remaining Surface Inventory
 
@@ -66,7 +68,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 | connector/channel background delivery | `not_equivalent_retired` | Retired from default MAS operation. |
 | MCP surface | `purpose_equivalent_with_different_timing` | Use MAS MCP adapter to owner surfaces. |
 | GitOps state management | `not_equivalent_retired` | Use SQLite lifecycle and restore proof. |
-| memory and lesson store | `partially_equivalent` | Use MAS memory / incident-learning read models. |
+| memory and lesson store | `purpose_equivalent_with_authority_split` | Use MAS stage knowledge packet, typed closeout, router receipt, stage recall index, memory and literature owner surfaces. |
 | team and multi-agent coordination | `historical_fixture_only` | Keep as historical fixture/reference. |
 | artifact interaction handoff | `partially_equivalent` | Use Artifact OS locator and handoff refs. |
 | daemon lifecycle controls | `not_equivalent_retired` | Use MAS supervision scheduler controls; Hermes cron is only an explicit optional adapter. |
@@ -80,6 +82,7 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 - `webui_websocket_terminal_streaming`: MAS 已实现 read-only purpose parity，并已把 Portal pause/resume/stop 接到 MAS runtime owner apply；差距是 interactive terminal attach/input/resize/detach。
 - `daemon_residency` / `supervision_cadence` / `crash_recovery_auto_resume`: MAS 已把正常 turn continuation 内生化；差距只剩 outer supervision / crash-stale recovery cadence。
 - `queued_user_messages_mailbox`: runtime user queue 与 durable task intake 已可用；差距是用户可读 conversation/timeline pane，而不是后台 chat connector。
+- `memory_lesson_store`: MAS 已用 `purpose_equivalent_with_authority_split` 保留 stage memory/literature 目的；差距是旧 MDS generic free-form memory service UX 和真实 paper stage injection soak。
 - `connector_channel_background_delivery`、`gitops_state_management`、`system_update_daemon_lifecycle_controls`、`workspace_local_host_service`: 这些是有意退役的旧行为，不属于当前 monolith 降级。
 
 ## Parity Proof Requirements
@@ -128,9 +131,9 @@ The behavior matrix is machine-readable as `mds_behavior_equivalence_matrix`. It
 
 ### memory / lesson store
 
-- MAS contract: MAS incident learning 持有 reusable lessons 与 operator-visible memory。
+- MAS contract: MAS stage knowledge packet、typed closeout、memory write router receipt、stage recall index、incident learning 和 research memory 持有 reusable lessons 与 operator-visible memory。
 - MDS oracle: MDS lessons 是 parity 和 regression case 的 intake material。
-- Proof: lesson 被作为 evidence 导入，不能作为 autonomous quality decision。
+- Proof: lesson 被作为 stage input、controlled writeback proposal 或 evidence 导入，不能作为 autonomous quality、claim、route 或 publication decision。
 
 ## Cutover Rule
 

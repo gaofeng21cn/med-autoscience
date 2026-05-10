@@ -10,6 +10,8 @@
 
 这不是未来目标，而是当前 `P1` 的正式完成态。
 
+Stage-Led Autonomy 已把本 contract 的 workspace / study / quest 分层作为 `stage_knowledge_packet` 的输入 authority。本文不定义 stage packet schema；本文只冻结 knowledge / literature truth 的 owner，以及 stage consumption / controlled writeback 边界。
+
 ## 2. Authority Boundary
 
 ### 2.1 Workspace 层
@@ -77,6 +79,9 @@ quest 只持有 runtime local materialization。
    - `study_reference_context`
    - `literature_records`
 4. quest hydration / literature hydration 只把选中的 records materialize 到 quest local surface
+5. stage entry builder 只读聚合 workspace canonical literature、portfolio research memory、study reference context、quest materialization、evidence/review ledgers、controller decisions 和 route history，生成 `stage_knowledge_packet`
+6. stage closeout 生成 typed `stage_memory_closeout_packet`，只提交 proposed writes，不直接写 workspace / study truth
+7. `memory_write_router_receipt` 记录 accepted / rejected / materialization / repair / human gate routing，并由对应 owner surface 决定后续动作
 
 因此，同一病种 workspace 下的研究记忆与文献资产已经是统一管理，而不是继续在每个 quest 各自持有一份 authority truth。
 
@@ -89,6 +94,9 @@ quest 只持有 runtime local materialization。
 - study reference context 缺失时，不得把当前 quest working set 误报成 study-approved anchor set
 - external research 报告只能沉淀回 workspace canonical layer，不能直接替代 workspace / study authority
 - `quest_root/literature/*` 可以为空，但它为空时表示“当前 materialization 为空”，不表示 workspace canonical literature 不存在
+- 缺 `stage_knowledge_packet` 时，不得用聊天总结、Markdown 文档链接或 operator memory 替代 stage input authority
+- `stage_memory_closeout_packet` 不能自由文本直写 workspace memory、workspace literature、study reference context、evidence ledger、review ledger 或 controller decision
+- provider projection、memory card、quest-local cache、stage recall index 不能授权 publication quality、claim expansion、finalize readiness 或 controller route
 
 ## 5. 当前完成状态
 
@@ -96,9 +104,11 @@ quest 只持有 runtime local materialization。
 
 - `P1 workspace canonical literature / knowledge truth` 已完成
 - 研究记忆与文献资产已经按 workspace-first 统一管理
-- 当前剩余工作不在 knowledge plane owner 本身；runtime default closeout 已由 MAS Runtime OS、MAS supervision scheduler contract 的 local default adapter 和 behavior-equivalence matrix 承接
+- Stage-Led Autonomy 的 stage consumption 和 controlled writeback surface 已落地：`stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`stage_recall_index`
+- 当前剩余工作不在 knowledge plane owner 本身，而在真实 paper soak 证明 stage consumption、closeout routing、progress visibility 和 route impact 持续有效
 
 所以，这条 contract 当前的重点不是“继续上提 literature”，而是：
 
 - 不让 workspace canonical literature 回退
 - 不让 study reference context 与 quest materialization 重新混叠
+- 不让 stage memory / literature writeback 绕过 owner proposal、router receipt、evidence ledger、review ledger、controller decision 或 human gate
