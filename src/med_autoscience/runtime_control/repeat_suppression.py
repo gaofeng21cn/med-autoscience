@@ -83,6 +83,9 @@ def dispatch_repeat_suppression(
     key = repeat_key(dispatch)
     if key is None:
         return _not_suppressed(None)
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    if _owner_handoff_route(owner_route) or _external_supervisor_repair_route(owner_route):
+        return _not_suppressed(key)
     if meaningful_artifact_delta_observed(current_study) or required_output_pending:
         return _not_suppressed(key)
     existing = _mapping(existing_dispatch)
@@ -104,6 +107,9 @@ def execution_repeat_suppression(
     key = repeat_key(dispatch)
     if key is None:
         return _not_suppressed(None)
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    if _owner_handoff_route(owner_route) or _external_supervisor_repair_route(owner_route):
+        return _not_suppressed(key)
     if meaningful_artifact_delta_observed(current_study) or required_output_pending:
         return _not_suppressed(key)
     for execution in _list(_mapping(previous_execution_latest).get("executions")):
