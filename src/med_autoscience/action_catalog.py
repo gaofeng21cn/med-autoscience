@@ -166,6 +166,30 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             "mcp_tool_name": "product_entry",
             "mcp_public_runtime": True,
         },
+        {
+            "action_id": "sidecar_export",
+            "title": "Export MAS sidecar bridge projection",
+            "summary": "Read-only MAS sidecar export for OPL/Hermes typed queue discovery.",
+            "effect": "read_only",
+            "command": "medautosci sidecar export --profile {profile} --format json",
+            "surface_kind": "mas_family_sidecar_export",
+            "workspace_locator_fields": ["profile_ref"],
+            "mcp_public_runtime": False,
+        },
+        {
+            "action_id": "sidecar_dispatch",
+            "title": "Receive MAS sidecar guarded dispatch receipt",
+            "summary": (
+                "MAS guarded dispatch receipt for OPL/Hermes typed queue control. "
+                "It records a domain control receipt only and does not authorize domain truth, "
+                "publication quality, artifact gate, or current package writes."
+            ),
+            "effect": "mutating",
+            "command": "medautosci sidecar dispatch --task <task.json> --format json",
+            "surface_kind": "mas_family_sidecar_dispatch_receipt",
+            "workspace_locator_fields": ["task_path"],
+            "mcp_public_runtime": False,
+        },
     )
     built: list[dict[str, Any]] = []
     for spec in actions:
