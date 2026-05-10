@@ -128,6 +128,8 @@ h2 { margin: 0 0 10px; font-size: 17px; letter-spacing: 0; }
 h3 { margin: 0; font-size: 16px; line-height: 1.3; letter-spacing: 0; }
 p { margin: 0 0 10px; line-height: 1.5; }
 .state { color: var(--muted); font-size: 18px; }
+.snapshot-meta { margin-top: 16px; }
+.snapshot-meta summary { display: inline-flex; cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 750; }
 .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 18px 0 0; }
 .meta div { border: 1px solid var(--line); background: var(--panel-alt); padding: 10px 12px; border-radius: 8px; min-width: 0; }
 dt { color: var(--muted); font-size: 12px; }
