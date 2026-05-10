@@ -45,6 +45,7 @@ from .route_map import (
     build_route_map_payload,
     render_route_map_section,
 )
+from .runtime_workbench_projection import build_runtime_workbench_projection
 from .live_console_shell import (
     LIVE_CONSOLE_HTML_REF,
     LIVE_CONSOLE_SERVE_COMMAND,
@@ -78,6 +79,7 @@ __all__ = [
     "ARTIFACT_GROUPS",
     "build_route_decision_trail_payload",
     "build_route_map_payload",
+    "build_runtime_workbench_projection",
     "build_study_workbench_payload",
     "condition_badge",
     "condition_section",

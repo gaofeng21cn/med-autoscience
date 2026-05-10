@@ -334,6 +334,35 @@
         "restore_archive"
       ]
     },
+    "mas-workbench-projection": {
+      "kind": "focused_mas_opl_runtime_workbench_projection_gate",
+      "paths": [
+        "tests/test_progress_portal.py"
+      ],
+      "docs": [
+        "docs/program/opl_app_mas_runtime_workbench_program.md"
+      ],
+      "overlap_policy": "allowed_with_regression",
+      "authority_boundary": "read_only_opl_app_projection_no_mas_truth_transfer",
+      "implementation_status": "landed_read_only_projection",
+      "surface_kind": "mas_opl_runtime_workbench_projection",
+      "truth_owner": "MedAutoScience",
+      "consumer_role": "opl_app_projection_consumer_and_action_transport_only",
+      "forbidden_authority_writes": [
+        "study_truth",
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "runtime_lifecycle.sqlite",
+        "terminal_commands",
+        "current_package",
+        "paper/current_package",
+        "manuscript/current_package",
+        "paper/submission_minimal",
+        "manuscript/submission_minimal",
+        "evidence_ledger",
+        "review_ledger"
+      ]
+    },
     "paper-progress-degradation-closeout": {
       "kind": "focused_paper_progress_degradation_closeout_gate",
       "paths": [
