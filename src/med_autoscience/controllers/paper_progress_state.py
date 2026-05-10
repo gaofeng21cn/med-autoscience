@@ -277,7 +277,7 @@ def _delivery_current(delivery: Mapping[str, Any]) -> bool:
 
 
 def _supervisor_only_live_quality_repair(payload: Mapping[str, Any]) -> bool:
-    if _mapping(payload.get("execution_owner_guard")).get("supervisor_only") is not True:
+    if not _supervisor_only(payload):
         return False
     if not _fresh_artifact_delta_present(payload):
         return False
@@ -287,6 +287,16 @@ def _supervisor_only_live_quality_repair(payload: Mapping[str, Any]) -> bool:
         or _text(_mapping(_mapping(payload.get("study_macro_state")).get("details")).get("active_run_id"))
     )
     return active_run_id is not None
+
+
+def _supervisor_only(payload: Mapping[str, Any]) -> bool:
+    if _mapping(payload.get("execution_owner_guard")).get("supervisor_only") is True:
+        return True
+    if "execution_owner_guard.supervisor_only" in _blocking_reasons(payload):
+        return True
+    control_plane = _mapping(payload.get("control_plane_snapshot"))
+    dispatch_gate = _mapping(control_plane.get("dispatch_gate"))
+    return "execution_owner_guard.supervisor_only" in _string_items(dispatch_gate.get("blocking_reasons"))
 
 
 def _normalize_owner(owner: str | None) -> str | None:

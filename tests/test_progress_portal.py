@@ -470,7 +470,7 @@ def test_progress_portal_hides_low_information_generic_status_diagnostic_when_st
     assert "状态需要检查。" not in html
     assert "无需自动推进" in html
     assert "not_required" not in html
-    assert "无 live run" in html
+    assert "无运行编号" in html
     assert ">none<" not in html
 
 

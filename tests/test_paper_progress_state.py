@@ -266,6 +266,50 @@ def test_obesity_supervisor_only_live_delta_projects_precise_owner() -> None:
     assert state["next_owner"] == "supervisor_only/live_quality_repair"
 
 
+def test_obesity_supervisor_only_live_delta_reads_control_plane_truth() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "obesity_multicenter_phenotype_atlas",
+            "active_run_id": "run-obesity",
+            "study_macro_state": {
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-obesity", "package_delivered": False},
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-05-10T08:15:00+00:00",
+                }
+            },
+            "study_truth_snapshot": {
+                "blocking_reasons": [
+                    "execution_owner_guard.supervisor_only",
+                    "publication_supervisor_state.bundle_tasks_downstream_only",
+                ]
+            },
+            "control_plane_snapshot": {
+                "dispatch_gate": {
+                    "blocking_reasons": [
+                        "execution_owner_guard.supervisor_only",
+                        "publication_supervisor_state.bundle_tasks_downstream_only",
+                    ]
+                }
+            },
+            "portable_supervisor_dashboard": {
+                "next_owner": "external_supervisor",
+                "external_supervisor_required": False,
+            },
+        }
+    )
+
+    assert state["state"] == "downstream_only"
+    assert state["actual_write_active"] is True
+    assert state["meaningful_artifact_delta"] is True
+    assert state["next_owner"] == "supervisor_only/live_quality_repair"
+
+
 def test_user_visible_projection_embeds_paper_progress_state() -> None:
     study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
 

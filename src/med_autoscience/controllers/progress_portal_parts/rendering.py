@@ -165,8 +165,8 @@ dd { margin: 3px 0 0; font-weight: 650; overflow-wrap: anywhere; }
 .command-code { display: block; background: var(--code); color: #f7faf9; border: 1px solid var(--code); border-radius: 8px; padding: 10px 12px; overflow-wrap: anywhere; font-size: 13px; line-height: 1.55; }
 .study-card-grid, .study-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }
 .study-card, .study-item { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; min-height: 250px; box-shadow: var(--shadow-soft); }
-.study-card--selected, .study-item.is-selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(11, 107, 92, .15), var(--shadow-soft); }
-.study-card--attention, .study-item.is-attention { border-left: 5px solid var(--warn); }
+.study-card--selected, .study-item--selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(11, 107, 92, .15), var(--shadow-soft); }
+.study-card--attention, .study-item--attention { border-left: 5px solid var(--warn); }
 .study-card__header { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
 .study-card__header a { color: var(--accent-ink); text-decoration: none; overflow-wrap: anywhere; }
 .study-card__header a:hover { text-decoration: underline; }

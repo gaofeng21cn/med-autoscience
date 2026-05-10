@@ -174,7 +174,7 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
             study_cell,
             _study_live_console_link(study_id, href=_non_empty_text(item.get("live_console_href"))),
             escape(display_text(item.get("state_label"), fallback="状态投影缺失", preserve_known_token=False)),
-            escape(display_text(item.get("active_run_id"), fallback="无 live run", preserve_known_token=False)),
+            escape(display_text(item.get("active_run_id"), fallback="无运行编号", preserve_known_token=False)),
             status_chip(item.get("runtime_health_status") or "unknown"),
             status_chip(item.get("supervisor_tick_status") or "unknown"),
             status_chip(item.get("progress_freshness_status") or "unknown"),
@@ -307,7 +307,7 @@ def _study_item(item: Mapping[str, Any]) -> str:
         fallback="当前没有明确下一步投影。",
         preserve_known_token=False,
     )
-    run_id = display_text(item.get("active_run_id"), fallback="无 live run", preserve_known_token=False)
+    run_id = display_text(item.get("active_run_id"), fallback="无运行编号", preserve_known_token=False)
     stage = display_text(item.get("paper_stage") or item.get("current_stage"), fallback="未提供")
     selected_class = " study-item--selected" if bool(item.get("selected")) else ""
     tone_class = " study-item--attention" if _study_needs_attention(item) else ""
@@ -530,7 +530,7 @@ def _state_label_from_health(*, health_status: str | None, worker_running: objec
         return "等待显式恢复"
     if active_run_id:
         return "有 run 投影但 worker 未确认"
-    return "无 live run"
+    return "无运行编号"
 
 
 def _localize_status_words(value: str) -> str:
