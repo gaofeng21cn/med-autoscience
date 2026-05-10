@@ -1,10 +1,18 @@
 # 关键决策记录
 
+## 2026-05-10：MAS 对齐 OPL provider-backed runtime，Temporal 为目标生产 substrate
+
+- 决策：MAS 与 OPL 的长期托管口径从 Hermes-first 更新为 provider-backed OPL family runtime：`OPL Runtime Manager / opl family-runtime -> configured family runtime provider -> MAS sidecar export/dispatch -> MAS domain entry/projection`。Temporal 是 OPL durable stage attempt 的目标生产 provider；Hermes-Agent 在迁移期只作为 legacy/optional provider、显式 hosted/proof backend、executor proof lane 或 Codex CLI fallback module。
+- 理由：MAS 需要长期自治、human gate、retry/dead-letter、route-back 和 progress projection，但医学研究 stage、AI reviewer、publication gate、evidence/review ledger、route decision 与 artifact/package authority 必须仍由 MAS 持有。Temporal/provider 可以改善运行可靠性，但不能成为第二研究 truth owner。
+- 影响：`medautosci sidecar export|dispatch` 继续是 OPL provider 到 MAS owner surface 的受控桥接；OPL/Temporal/Hermes/local provider 只能 enqueue、dispatch、signal、query、投影 attempt/receipt，不得写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package、evidence ledger、review ledger 或 artifact gate。2026-05-10 Hermes-first MAS sidecar bridge 决策保留为迁移背景，但后续新投入按 provider-backed / Temporal target 解释。
+
 ## 2026-05-10：Hermes-first OPL family runtime 与 MAS sidecar bridge
+
+- 状态：已被同日 provider-backed / Temporal target 决策 supersede。保留本段用于解释 Hermes-first sidecar bridge 的迁移背景和当前 legacy provider 口径。
 
 - 决策：OPL Full online runtime 采用 Hermes-first topology：外部 `Hermes-Agent` 由 OPL 管理，承担常驻 gateway、cron/webhook wakeup、session store、delivery/notification、approval transport 与 family queue tick；OPL 持有 typed family queue / dispatch contract；MAS 持有 study truth、publication judgment、quality gate、artifact/package authority 和 domain recovery decision。
 - 理由：此前 Hermes 在 MAS 侧主要被用成 `every 5m` cron carrier，未发挥在线 substrate 的完整价值。新的稳定设计把 24h 在线、跨仓唤醒、通知、恢复和队列放在 OPL+Hermes 层，把医学研究语义和质量判断保留在 MAS。
-- 影响：MAS 新增 `medautosci sidecar export --profile <profile> --format json` 与 `medautosci sidecar dispatch --task <task.json> --format json`，供 `opl family-runtime` 调用。sidecar export 会把非终局、非 hard human gate 的 `breach` / `parked` / recovery-ready 状态投影成 `pending_family_tasks`，由 OPL/Hermes 入 typed queue；sidecar dispatch 可在 MAS owner 内执行 `runtime-supervisor-reconcile --mode developer_apply_safe --apply`。该入口仍禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package 或 artifact gate；这些 truth 只能由对应 MAS owner surface 产生。MAS standalone/local diagnostics 仍可使用 MAS-owned local scheduler；Full online readiness 由 OPL 侧 Hermes gateway readiness 判定。
+- 影响：MAS 新增 `medautosci sidecar export --profile <profile> --format json` 与 `medautosci sidecar dispatch --task <task.json> --format json`，供 `opl family-runtime` 调用。sidecar export 会把非终局、非 hard human gate 的 `breach` / `parked` / recovery-ready 状态投影成 `pending_family_tasks`，由 OPL provider 入 typed queue；sidecar dispatch 可在 MAS owner 内执行 `runtime-supervisor-reconcile --mode developer_apply_safe --apply`。该入口仍禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package 或 artifact gate；这些 truth 只能由对应 MAS owner surface 产生。MAS standalone/local diagnostics 仍可使用 MAS-owned local scheduler；Full online readiness 由 OPL 侧 provider readiness 判定。
 
 ## 2026-05-10：MAS 作为 OPL stage-led framework 上的独立 domain agent
 
@@ -15,7 +23,7 @@
 ## 2026-05-10：Autonomy continuation ticket 成为 read-model 到执行闭环的桥
 
 - 决策：`slo_status=breach`、`runtime_liveness_status=parked`、`runtime_decision=blocked` 或 `safe_reconcile_ready` 不能只停留在 read model。只要 controller 未给出 `stop_loss` / terminal stop，且没有 hard human confirmation gate，MAS sidecar export 必须生成一条幂等 `pending_family_tasks[]`，默认 task kind 为 `runtime_supervisor/reconcile-apply`。
-- 理由：成熟长期 agent 工程的核心不是常驻进程本身，而是 durable identity、持久状态、可恢复 task、checkpoint、retry/dead-letter、human gate 与事件唤醒。Temporal 强调 crash-proof durable execution；Pydantic AI durable execution 明确面向 restart、long-running 和 human-in-the-loop；Cloudflare Agents 也把长期 agent 表达为 durable identity + SQLite state + schedules/fibers，而不是一直运行的进程。MAS 对应落点是把“发现了问题”转成 domain-owned executable ticket，再由 OPL/Hermes 在线底座唤醒、入队和派发。
+- 理由：成熟长期 agent 工程的核心不是常驻进程本身，而是 durable identity、持久状态、可恢复 task、checkpoint、retry/dead-letter、human gate 与事件唤醒。Temporal 强调 crash-proof durable execution；Pydantic AI durable execution 明确面向 restart、long-running 和 human-in-the-loop；Cloudflare Agents 也把长期 agent 表达为 durable identity + SQLite state + schedules/fibers，而不是一直运行的进程。MAS 对应落点是把“发现了问题”转成 domain-owned executable ticket，再由 OPL provider 在线底座唤醒、入队和派发。
 - 影响：`pending_family_tasks` 是 MAS 授权 OPL 入队的唯一跨仓自动推进桥。OPL 可以 enqueue / retry / dead-letter / notify / dispatch，但不能解释医学质量或直接写 truth。MAS sidecar dispatch 收到 `runtime_supervisor/reconcile-apply` 后，必须回到 MAS 自己的 `runtime_supervisor_reconcile` owner chain，执行 `scan -> consume -> execute-dispatch -> rescan`，并用 receipt 说明是否启动 Codex worker、是否 blocked、是否 no-op 或是否需要 human gate。
 
 ## 2026-05-10：Paper Progress SLO 成为自动推进闭环的最高运行目标
@@ -33,9 +41,9 @@
 
 ## 2026-05-09：MAS 持有 supervision scheduler contract，local 成为默认 adapter
 
-- 决策：`MAS supervision scheduler contract` 是 MAS standalone/local diagnostics 的 outer supervision owner；`local` 是 MAS 本地默认 scheduler adapter，macOS 落到 MAS-owned LaunchAgent。OPL Full online runtime 的 family-level wakeup 由 OPL-managed 外部 `Hermes-Agent` substrate 承担，Hermes 唤醒 `opl family-runtime tick` 后再通过 MAS sidecar dispatch 进入 domain owner surface。MAS 的运行架构按 Runtime Core、Supervisor Scheduler、Product Projection 三层表达：Runtime Core 由 `MAS Runtime OS` / `mas_runtime_core` 持有；Supervisor Scheduler 只负责按 cadence 唤醒 MAS-owned tick、记录 job/run receipt、暴露 SLO / drift；Product Projection 只读展示进度、日志、阻塞和下一步。
+- 决策：`MAS supervision scheduler contract` 是 MAS standalone/local diagnostics 的 outer supervision owner；`local` 是 MAS 本地默认 scheduler adapter，macOS 落到 MAS-owned LaunchAgent。OPL Full online runtime 的 family-level wakeup 由 OPL family runtime provider 承担，再通过 MAS sidecar dispatch 进入 domain owner surface。MAS 的运行架构按 Runtime Core、Supervisor Scheduler、Product Projection 三层表达：Runtime Core 由 `MAS Runtime OS` / `mas_runtime_core` 持有；Supervisor Scheduler 只负责按 cadence 唤醒 MAS-owned tick、记录 job/run receipt、暴露 SLO / drift；Product Projection 只读展示进度、日志、阻塞和下一步。
 - 理由：fresh repo 状态显示 scheduler 应承担单一、可替换的 adapter 工作：生成 tick script、注册/更新/触发/删除 job、提供 job registry/latest run/session projection 和 liveness。它不持有研究执行、turn continuation、publication judgment、quality authority 或 study truth。成熟工程实践也要求 scheduler 只生产可审计触发，幂等、并发、missed-run、receipt 和 migration 由系统 contract 明确表达。
-- 影响：`runtime-supervision-status`、`runtime-ensure-supervision` 与 `runtime-remove-supervision` 在 MAS standalone/local diagnostics 中默认走 MAS-owned `local` adapter；OPL Full package、runtime tray 和 installer 将 Hermes online substrate 作为 Full online readiness 前置条件。两层 readiness 必须分开显示，避免把 Hermes 写成 MAS study truth 或质量 owner。
+- 影响：`runtime-supervision-status`、`runtime-ensure-supervision` 与 `runtime-remove-supervision` 在 MAS standalone/local diagnostics 中默认走 MAS-owned `local` adapter；OPL Full package、runtime tray 和 installer 将 family runtime provider readiness 作为 Full online readiness 前置条件。两层 readiness 必须分开显示，避免把 provider 或 Hermes 写成 MAS study truth 或质量 owner。
 
 ## 2026-05-08：MAS monolith closeout 取代外部 MDS 默认运行依赖
 
@@ -151,7 +159,7 @@
 
 ## 2026-04-11：目标 runtime 方向优先于旧 substrate 延长线
 
-- 决策：后续新增投入默认服务“上游 `Hermes-Agent` 承担外层 runtime substrate”这条目标形态，而不是继续把旧默认 substrate 深磨成长期产品方向。
+- 决策：后续新增投入默认服务“OPL provider-backed family runtime，Temporal 作为目标生产 substrate”这条目标形态，而不是继续把旧默认 substrate 或 Hermes-first 路线深磨成长期产品方向。
 - 理由：历史基线和过渡实现仍然有价值，但它们应作为迁移桥、兼容层与回归基线存在，不能反向决定主线目标。
 - 影响：所有后续 tranche 都必须明确区分“当前 repo-verified baseline”与“长线目标”，并保持 display 独立支线不被主线误伤。
 
@@ -163,7 +171,7 @@
 
 ## 2026-04-12：固定 runtime substrate 与 research executor 分层
 
-- 决策：`Hermes-Agent` 在这条主线里优先承担 runtime substrate / orchestration owner，而不是替代 MAS-owned research owner surface 或把外部 MDS repo 重新变成默认执行脑。
+- 决策：外层 runtime substrate / orchestration owner 必须与 MAS-owned research owner surface 分层；当前目标由 OPL provider-backed family runtime 承担，Temporal 是生产 provider 候选，Hermes-Agent 只保留 legacy/optional provider 或 executor/proof lane，不得替代 MAS-owned research owner surface 或把外部 MDS repo 重新变成默认执行脑。
 - 理由：当前真正高风险的不是“没有统一执行脑”，而是“没有统一长期在线 runtime substrate”。若在外层 runtime ownership 尚未稳定前，就强制把 backend 内部的 `Codex + skills` 执行生态整体替掉，最容易出现功能降级。
 - 影响：后续继续学习 `MedDeepScientist` / DeepScientist 时，必须按 source provenance、executor route、owner boundary、contract 与 parity proof 决定是否吸收；不允许把“接入 Hermes”偷换成“已完成研究执行 owner 替换”。
 
