@@ -80,6 +80,10 @@ def _durable_evidence_refs(value: object) -> list[str]:
     return refs
 
 
+def _stage_output_refs(value: object) -> list[str]:
+    return _durable_evidence_refs(value)
+
+
 def _dimension_score(candidate_id: str, dimension: str, value: object) -> tuple[float | None, str]:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         return None, f"candidate_{candidate_id}_{dimension}_score_not_numeric"
@@ -104,6 +108,9 @@ def _validate_candidate(candidate: Mapping[str, Any], index: int) -> tuple[dict[
     evidence_refs = _durable_evidence_refs(candidate.get("evidence_refs"))
     if not evidence_refs:
         blockers.append({"candidate_id": candidate_id, "code": "candidate_missing_evidence_refs"})
+    stage_output_refs = _stage_output_refs(candidate.get("stage_output_refs"))
+    if not stage_output_refs:
+        blockers.append({"candidate_id": candidate_id, "code": "candidate_missing_stage_output_refs"})
 
     dimension_scores: dict[str, float] = {}
     for dimension in REQUIRED_DIMENSIONS:
@@ -132,6 +139,7 @@ def _validate_candidate(candidate: Mapping[str, Any], index: int) -> tuple[dict[
         "dimension_scores": dimension_scores,
         "total_score": total_score,
         "evidence_refs": evidence_refs,
+        "stage_output_refs": stage_output_refs,
         "status": "blocked" if blockers else "eligible",
         "blockers": blockers,
     }
@@ -173,6 +181,7 @@ def _route_candidate_summary(
         "dimension_scores": {key: dimension_scores.get(key) for key in BENEFIT_DIMENSIONS + ("risk_cost",)},
         "stop_threshold": _text(dimensions.get("stop_threshold")),
         "evidence_refs": list(_durable_evidence_refs(candidate.get("evidence_refs"))),
+        "stage_output_refs": list(_stage_output_refs(candidate.get("stage_output_refs"))),
         "blockers": list(candidate.get("blockers") or []),
     }
 
@@ -267,10 +276,14 @@ def summarize_study_line_decision(
     return {
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
+        "mechanical_route_role": "audit_comparator_only",
+        "route_generation_owner": "stage_output",
+        "can_generate_winning_path_without_stage_output": False,
         "status": _text(scorecard.get("status")),
         "selected_line_id": resolved_selected_line_id or None,
         "route_decision": resolved_route_decision,
         "controller_decision_ref": resolved_ref,
+        "stage_output_refs": _dedupe_stage_output_refs(ranked_candidates),
         **_route_projection(
             ranked_candidates=ranked_candidates,
             selected_line_id=resolved_selected_line_id or None,
@@ -331,12 +344,16 @@ def build_study_line_decision(
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
         "study_root": str(root),
+        "mechanical_route_role": "audit_comparator_only",
+        "route_generation_owner": "stage_output",
+        "can_generate_winning_path_without_stage_output": False,
         "status": "blocked" if blockers else "selected",
         "selected_line_id": selected_line_id,
         "discarded_lines": discarded_lines,
         "route_decision": resolved_route_decision,
         "controller_decision_ref": controller_decision_ref,
         "controller_decision_ref_suggestion": controller_decision_ref,
+        "stage_output_refs": _dedupe_stage_output_refs(ranked_candidates),
         **route_projection,
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
@@ -344,6 +361,13 @@ def build_study_line_decision(
         "blockers": blockers,
         "artifact_path": str(stable_study_line_decision_path(study_root=root)),
     }
+
+
+def _dedupe_stage_output_refs(candidates: list[Mapping[str, Any]]) -> list[str]:
+    refs: list[str] = []
+    for candidate in candidates:
+        refs.extend(_stage_output_refs(candidate.get("stage_output_refs")))
+    return list(dict.fromkeys(refs))
 
 
 def materialize_study_line_decision(

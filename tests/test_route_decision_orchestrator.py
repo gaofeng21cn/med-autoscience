@@ -12,6 +12,10 @@ def _candidate(line_id: str, score: float, *, risk_cost: float = 1.0) -> dict[st
         "question": f"Can {line_id} answer the locked research question?",
         "expected_artifact": f"artifacts/medical_paper/candidate_paths/{line_id}.json",
         "claim_boundary_change": "unchanged",
+        "stage_output_refs": [
+            f"artifacts/stage_knowledge/idea/closeouts/{line_id}.json",
+            "artifacts/stage_knowledge/idea/latest.json",
+        ],
         "dimensions": {
             "novelty": score,
             "clinical_relevance": score,
@@ -24,6 +28,29 @@ def _candidate(line_id: str, score: float, *, risk_cost: float = 1.0) -> dict[st
         },
         "evidence_refs": [f"artifacts/medical_paper/literature/{line_id}.json"],
     }
+
+
+def test_orchestrator_without_stage_output_refs_is_audit_only_and_does_not_write_controller_decision(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+    candidate = _candidate("mechanical-line", 5)
+    candidate.pop("stage_output_refs")
+    study_root = tmp_path / "study"
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=study_root,
+        candidates=[candidate],
+        requested_action="select_line",
+    )
+
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    assert projection["status"] == "blocked"
+    assert projection["mechanical_route_role"] == "route_router_and_materializer"
+    assert "stage_output_refs_required_for_route_materialization" in projection["blockers"]
+    assert projection["controller_decision"]["write_authorized"] is False
+    assert projection["controller_decision"]["stage_output_refs"] == []
+    assert decision_path.exists() is False
 
 
 def _complete_exploration_depth_review() -> dict[str, dict[str, object]]:

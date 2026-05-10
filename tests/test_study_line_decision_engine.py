@@ -33,6 +33,10 @@ def _candidate(
             f"artifacts/medical_paper/literature_scout/{line_id}.json",
             f"paper/data_dictionary/{line_id}.json",
         ],
+        "stage_output_refs": [
+            f"artifacts/stage_knowledge/idea/closeouts/{line_id}.json",
+            "artifacts/stage_knowledge/idea/latest.json",
+        ],
     }
 
 

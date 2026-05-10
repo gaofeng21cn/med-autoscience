@@ -114,17 +114,27 @@ def _controller_decision_payload(
     study_line_decision: Mapping[str, Any] | None = None,
     analysis_direction_decision: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    write_authorized = not blockers and route_decision != "human_gate"
+    stage_output_refs = _stage_output_refs_from_decisions(
+        study_line_decision=study_line_decision,
+        analysis_direction_decision=analysis_direction_decision,
+    )
+    stage_output_refs_present = bool(stage_output_refs)
+    write_authorized = not blockers and route_decision != "human_gate" and stage_output_refs_present
     payload: dict[str, Any] = {
         "surface": "controller_decision",
         "schema_version": SCHEMA_VERSION,
         "decision_type": "study_line_route_decision",
+        "mechanical_route_role": "route_router_and_materializer",
+        "route_generation_owner": "stage_output",
+        "can_generate_winning_path_without_stage_output": False,
         "requested_action": requested_action,
         "route_decision": route_decision,
         "route_control_decision": route_control_decision,
         "selected_line_id": selected_line_id,
         "route_target": selected_line_id,
         "write_authorized": write_authorized,
+        "stage_output_refs": stage_output_refs,
+        "stage_output_refs_present": stage_output_refs_present,
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
         "study_root": str(study_root),
@@ -221,10 +231,13 @@ def _candidate_path_required_blockers(
             "evidence_basis": _evidence_basis(source),
             "expected_artifact": _expected_artifact(source),
             "stop_rule": _stop_rule(source, ranked_candidate),
+            "stage_output_refs": _stage_output_refs(source, ranked_candidate),
         }
         for field in CANDIDATE_PATH_REQUIRED_FIELDS:
             if _explicitly_blank(source, field) or not resolved_fields[field]:
                 blockers.append(f"candidate_{candidate_id}_missing_{field}")
+        if not resolved_fields["stage_output_refs"]:
+            blockers.append(f"candidate_{candidate_id}_missing_stage_output_refs")
     return blockers
 
 
@@ -283,6 +296,7 @@ def _build_candidate_path_graph(
                 "evidence_basis": _evidence_basis(source),
                 "expected_artifact": _expected_artifact(source),
                 "stop_rule": _stop_rule(source, ranked_candidate),
+                "stage_output_refs": _stage_output_refs(source, ranked_candidate),
                 "decision": decision,
                 "controller_decision_ref": controller_decision_ref,
             }
@@ -319,6 +333,24 @@ def _claim_boundary_allows_pivot(candidates: list[Mapping[str, Any]], selected_l
     candidate = _candidate_by_id(candidates).get(selected_line_id, {})
     change = _text(candidate.get("claim_boundary_change")) or _text(candidate.get("claim_boundary_delta"))
     return change in {"", "unchanged", "same", "within_boundary", "not_expanded"}
+
+
+def _stage_output_refs(candidate: Mapping[str, Any], ranked_candidate: Mapping[str, Any] | None = None) -> list[str]:
+    refs = _text_list(candidate.get("stage_output_refs"))
+    if refs:
+        return refs
+    return _text_list(_mapping(ranked_candidate).get("stage_output_refs"))
+
+
+def _stage_output_refs_from_decisions(
+    *,
+    study_line_decision: Mapping[str, Any] | None,
+    analysis_direction_decision: Mapping[str, Any] | None,
+) -> list[str]:
+    refs: list[str] = []
+    refs.extend(_text_list(_mapping(study_line_decision).get("stage_output_refs")))
+    refs.extend(_text_list(_mapping(analysis_direction_decision).get("stage_output_refs")))
+    return list(dict.fromkeys(refs))
 
 
 def _route_control_decision(
@@ -571,6 +603,8 @@ def build_route_decision_orchestration(
         route_decision=route_decision if route_decision != "human_gate" else None,
     )
     blockers.extend(_scorecard_blockers(scorecard=scorecard, candidates=candidates))
+    if not _text_list(scorecard.get("stage_output_refs")):
+        blockers.append("stage_output_refs_required_for_route_materialization")
     route_decision, selected_line_id = _selected_route_after_blockers(
         candidates=candidates,
         scorecard=scorecard,
@@ -629,6 +663,9 @@ def build_route_decision_orchestration(
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
         "study_root": str(root),
+        "mechanical_route_role": "route_router_and_materializer",
+        "route_generation_owner": "stage_output",
+        "can_generate_winning_path_without_stage_output": False,
         "status": "blocked" if blockers else "ready",
         "requested_action": action,
         "route_decision": route_decision,

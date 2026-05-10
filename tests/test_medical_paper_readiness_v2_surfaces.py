@@ -111,6 +111,10 @@ def _route_candidate() -> dict[str, object]:
             "stop_threshold": "stop if external validation unavailable",
         },
         "evidence_refs": ["artifacts/medical_paper/literature_provider_runtime.json"],
+        "stage_output_refs": [
+            "artifacts/stage_knowledge/idea/closeouts/transportable-risk-model.json",
+            "artifacts/stage_knowledge/idea/latest.json",
+        ],
     }
 
 

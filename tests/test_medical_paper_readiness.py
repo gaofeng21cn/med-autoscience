@@ -247,6 +247,10 @@ def _complete_route_candidate(line_id: str = "primary-risk-model") -> dict[str, 
             "stop_threshold": "stop if transportability cannot be evaluated",
         },
         "evidence_refs": ["artifacts/medical_paper/literature_provider_runtime.json"],
+        "stage_output_refs": [
+            f"artifacts/stage_knowledge/idea/closeouts/{line_id}.json",
+            "artifacts/stage_knowledge/idea/latest.json",
+        ],
     }
 
 
@@ -582,11 +586,15 @@ def test_medical_paper_readiness_consumes_long_horizon_canonical_surfaces(tmp_pa
                     "journal_fit": 4,
                     "risk_cost": 1,
                     "stop_threshold": "poor calibration or no external validation",
-                },
-                "evidence_refs": ["artifacts/medical_paper/literature_intelligence_os.json"],
-            }
-        ],
-    )
+                    },
+                    "evidence_refs": ["artifacts/medical_paper/literature_intelligence_os.json"],
+                    "stage_output_refs": [
+                        "artifacts/stage_knowledge/idea/closeouts/primary-risk-model.json",
+                        "artifacts/stage_knowledge/idea/latest.json",
+                    ],
+                }
+            ],
+        )
     readiness_module.materialize_medical_paper_readiness_surface(
         study_root=study_root,
         surface_key="archetype_analysis_contract",
