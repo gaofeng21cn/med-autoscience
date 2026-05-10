@@ -9,6 +9,8 @@ from typing import Any, Mapping
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 from . import reviewer_refinement_loop
+from . import paper_repair_executor
+from . import runtime_supervisor_dispatch_executor
 from . import runtime_supervisor_reconcile
 
 
@@ -39,7 +41,10 @@ _ALLOWED_TASK_KINDS = {
     "runtime_supervisor/reconcile-apply": "runtime_supervisor_reconcile_apply",
     "runtime/reconcile-apply": "runtime_supervisor_reconcile_apply",
     "autonomy/continue": "runtime_supervisor_reconcile_apply",
-    "paper_autonomy/repair-recheck": "runtime_supervisor_reconcile_apply",
+    "paper_autonomy/repair-recheck": "paper_repair_executor_dispatch",
+    "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",
+    "paper_autonomy/gate-replay": "runtime_supervisor_reconcile_apply",
+    "paper_autonomy/route-decision": "runtime_supervisor_reconcile_apply",
     "safe_reconcile/dry-run": "safe_reconcile_dry_run",
     "study_progress/read": "study_progress_read",
     "status/read": "status_read",
@@ -478,6 +483,158 @@ def _execute_reconcile_apply(
     )
 
 
+def _execute_paper_repair(
+    *,
+    profile: WorkspaceProfile | None,
+    study_id: str | None,
+    task: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if profile is None or study_id is None:
+        return None
+    payload = _mapping(task.get("payload"))
+    work_unit = _mapping(payload.get("repair_work_unit"))
+    if not work_unit:
+        return {
+            "surface": "paper_repair_executor",
+            "accepted": False,
+            "execution_status": "blocked",
+            "typed_blocker": "owner_callable_surface_missing",
+            "blocked_reason": "repair_work_unit_missing",
+        }
+    return paper_repair_executor.dispatch_repair_work_unit(
+        study_id=study_id,
+        quest_id=_text(payload.get("quest_id")) or _text(work_unit.get("quest_id")) or f"quest-{study_id}",
+        study_root=profile.studies_root / study_id,
+        repair_work_unit=work_unit,
+        review_finding=_mapping(payload.get("review_finding")),
+        apply=True,
+    )
+
+
+def _execute_ai_reviewer_recheck(
+    *,
+    profile: WorkspaceProfile | None,
+    study_id: str | None,
+) -> dict[str, Any] | None:
+    if profile is None:
+        return None
+    return runtime_supervisor_dispatch_executor.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,) if study_id else (),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+
+def _base_dispatch_receipt(
+    *,
+    generated_at: str,
+    task_id: str,
+    task_kind: str,
+    task_path: Path,
+    action_type: str,
+    profile_ref: Path | None,
+    study_id: str | None,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_family_sidecar_dispatch_receipt",
+        "version": "mas-family-sidecar.v1",
+        "accepted": True,
+        "task_id": task_id,
+        "task_kind": task_kind,
+        "generated_at": generated_at,
+        "source_task_ref": str(task_path),
+        "will_start_llm_worker": False,
+        "dispatch": {
+            "action_type": action_type,
+            "study_id": study_id,
+            "recommended_domain_command": _recommended_command(action_type, profile_ref=profile_ref, study_id=study_id),
+            "execution_policy": "guarded_domain_control_receipt_only",
+        },
+        "authority_boundary": _authority_boundary_payload(),
+    }
+
+
+def _apply_dispatch_action(
+    *,
+    receipt: dict[str, Any],
+    action_type: str,
+    profile: WorkspaceProfile | None,
+    study_id: str | None,
+    task: Mapping[str, Any],
+) -> dict[str, Any]:
+    if action_type == "runtime_supervisor_reconcile_apply":
+        return _with_reconcile_apply(receipt=receipt, profile=profile, study_id=study_id)
+    if action_type == "paper_repair_executor_dispatch":
+        return _with_paper_repair(receipt=receipt, profile=profile, study_id=study_id, task=task)
+    if action_type == "ai_reviewer_recheck_execute_dispatch":
+        return _with_ai_reviewer_recheck(receipt=receipt, profile=profile, study_id=study_id)
+    return receipt
+
+
+def _with_reconcile_apply(
+    *,
+    receipt: dict[str, Any],
+    profile: WorkspaceProfile | None,
+    study_id: str | None,
+) -> dict[str, Any]:
+    result = _execute_reconcile_apply(profile=profile, study_id=study_id)
+    receipt["will_start_llm_worker"] = bool(_mapping(result).get("will_start_llm"))
+    receipt["dispatch"]["execution_policy"] = "mas_owner_reconcile_apply"
+    receipt["dispatch"]["result"] = result
+    return receipt
+
+
+def _with_paper_repair(
+    *,
+    receipt: dict[str, Any],
+    profile: WorkspaceProfile | None,
+    study_id: str | None,
+    task: Mapping[str, Any],
+) -> dict[str, Any]:
+    result = _execute_paper_repair(profile=profile, study_id=study_id, task=task)
+    receipt["will_start_llm_worker"] = False
+    receipt["dispatch"]["execution_policy"] = "mas_owner_paper_repair_execute"
+    receipt["dispatch"]["result"] = result
+    if _mapping(result).get("accepted") is False:
+        receipt["accepted"] = False
+        receipt["reason"] = _text(_mapping(result).get("typed_blocker")) or "paper_repair_executor_blocked"
+    return receipt
+
+
+def _with_ai_reviewer_recheck(
+    *,
+    receipt: dict[str, Any],
+    profile: WorkspaceProfile | None,
+    study_id: str | None,
+) -> dict[str, Any]:
+    result = _execute_ai_reviewer_recheck(profile=profile, study_id=study_id)
+    receipt["will_start_llm_worker"] = bool(_mapping(result).get("executed_count"))
+    receipt["dispatch"]["execution_policy"] = "mas_owner_ai_reviewer_execute_dispatch"
+    receipt["dispatch"]["result"] = result
+    return receipt
+
+
+def _write_dispatch_receipt(
+    *,
+    receipt: dict[str, Any],
+    profile: WorkspaceProfile | None,
+    task_id: str,
+) -> dict[str, Any]:
+    if profile is None:
+        return receipt
+    path = _receipt_path(profile=profile, task_id=task_id)
+    if path.exists():
+        existing = _read_json_object(path)
+        if existing is not None:
+            existing["idempotent_noop"] = True
+            return existing
+    receipt["receipt_ref"] = _workspace_relative(path, workspace_root=profile.workspace_root)
+    _write_json(path, receipt)
+    return receipt
+
+
 def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
     generated_at = _now_iso()
     try:
@@ -513,38 +670,23 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
         )
     profile, profile_ref = _profile_from_task(task)
     study_id = _text(_mapping(task.get("payload")).get("study_id"))
-    receipt = {
-        "surface_kind": "mas_family_sidecar_dispatch_receipt",
-        "version": "mas-family-sidecar.v1",
-        "accepted": True,
-        "task_id": task_id,
-        "task_kind": task_kind,
-        "generated_at": generated_at,
-        "source_task_ref": str(task_path),
-        "will_start_llm_worker": False,
-        "dispatch": {
-            "action_type": action_type,
-            "study_id": study_id,
-            "recommended_domain_command": _recommended_command(action_type, profile_ref=profile_ref, study_id=study_id),
-            "execution_policy": "guarded_domain_control_receipt_only",
-        },
-        "authority_boundary": _authority_boundary_payload(),
-    }
-    if action_type == "runtime_supervisor_reconcile_apply":
-        result = _execute_reconcile_apply(profile=profile, study_id=study_id)
-        receipt["will_start_llm_worker"] = bool(_mapping(result).get("will_start_llm"))
-        receipt["dispatch"]["execution_policy"] = "mas_owner_reconcile_apply"
-        receipt["dispatch"]["result"] = result
-    if profile is not None:
-        path = _receipt_path(profile=profile, task_id=task_id)
-        if path.exists():
-            existing = _read_json_object(path)
-            if existing is not None:
-                existing["idempotent_noop"] = True
-                return existing
-        receipt["receipt_ref"] = _workspace_relative(path, workspace_root=profile.workspace_root)
-        _write_json(path, receipt)
-    return receipt
+    receipt = _base_dispatch_receipt(
+        generated_at=generated_at,
+        task_id=task_id,
+        task_kind=task_kind,
+        task_path=task_path,
+        action_type=action_type,
+        profile_ref=profile_ref,
+        study_id=study_id,
+    )
+    receipt = _apply_dispatch_action(
+        receipt=receipt,
+        action_type=action_type,
+        profile=profile,
+        study_id=study_id,
+        task=task,
+    )
+    return _write_dispatch_receipt(receipt=receipt, profile=profile, task_id=task_id)
 
 
 def _dispatch_error(

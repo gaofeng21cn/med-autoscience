@@ -28,6 +28,18 @@ READ_ONLY_CONTRACT = {
         "publication_gate_write",
     ],
 }
+SOAK_PROJECTION_SURFACE = "real_paper_autonomy_soak_projection"
+SOAK_ACCEPTED_STATES = (
+    "artifact_delta",
+    "gate_replay",
+    "ai_reviewer_re_eval",
+    "route_decision",
+    "stop_loss",
+    "human_gate",
+    "stable_blocker",
+    "continuing_repair",
+    "unknown",
+)
 
 STATUS_SURFACE_REFS: tuple[str, ...] = (
     "artifacts/runtime/runtime_status_summary.json",
@@ -82,6 +94,203 @@ def build_real_paper_autonomy_soak_inventory(
             "real_workspace_mutation_allowed": False,
         },
     }
+
+
+def build_real_paper_autonomy_soak_projection(
+    *,
+    yang_root: str | Path = DEFAULT_YANG_ROOT,
+    profile_paths: Sequence[str | Path] | None = None,
+    target_studies: Sequence[str] = ("DM002", "DM003", "Obesity"),
+) -> dict[str, Any]:
+    paths = [Path(path).expanduser().resolve() for path in profile_paths] if profile_paths else discover_yang_profile_paths(yang_root)
+    targets = tuple(target_studies)
+    profiles = [_profile_soak_projection(path, target_studies=targets) for path in paths]
+    state_counts = {state: 0 for state in SOAK_ACCEPTED_STATES}
+    for profile in profiles:
+        for study in profile.get("studies", []):
+            state = _text(_mapping(study).get("final_projection")) or "unknown"
+            state_counts[state] = state_counts.get(state, 0) + 1
+    return {
+        "surface": SOAK_PROJECTION_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "mode": "read_only_soak_projection",
+        "read_only_contract": dict(READ_ONLY_CONTRACT, mode="read_only_soak_projection"),
+        "profile_count": len(profiles),
+        "profiles": profiles,
+        "summary": {
+            "target_studies": list(targets),
+            "accepted_state_counts": state_counts,
+            "writes_performed": False,
+            "real_workspace_mutation_allowed": False,
+        },
+    }
+
+
+def _profile_soak_projection(profile_path: Path, *, target_studies: Sequence[str]) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "profile_path": str(profile_path),
+        "profile_readable": False,
+        "profile_error": "",
+        "studies": [],
+    }
+    try:
+        profile = load_profile(profile_path)
+    except Exception as exc:  # pragma: no cover - exact parser errors are reported, not normalized.
+        base["profile_error"] = f"{type(exc).__name__}: {exc}"
+        return base
+    target_set = {str(study_id).strip() for study_id in target_studies if str(study_id).strip()}
+    studies = [
+        _study_soak_projection(study_root)
+        for study_root in _study_roots(profile)
+        if not target_set or _matches_target_study(study_root.name, target_set)
+    ]
+    base.update(
+        {
+            "profile_readable": True,
+            "profile_name": profile.name,
+            "workspace_root": str(profile.workspace_root),
+            "studies": studies,
+        }
+    )
+    return base
+
+
+def _matches_target_study(study_id: str, target_studies: set[str]) -> bool:
+    normalized = _normalize_study_id(study_id)
+    return any(normalized == _normalize_study_id(target) for target in target_studies)
+
+
+def _normalize_study_id(study_id: str) -> str:
+    text = str(study_id or "").strip().lower().replace("_", "-")
+    aliases = {
+        "dm002": "002",
+        "dm-002": "002",
+        "dm003": "003",
+        "dm-003": "003",
+        "obesity": "obesity",
+    }
+    if text in aliases:
+        return aliases[text]
+    if text.startswith("002-"):
+        return "002"
+    if text.startswith("003-"):
+        return "003"
+    if "obesity" in text:
+        return "obesity"
+    return text
+
+
+def _study_soak_projection(study_root: Path) -> dict[str, Any]:
+    surfaces = {
+        "sidecar_task": _latest_json_from_candidates(
+            study_root / "artifacts" / "runtime" / "opl_family_sidecar",
+            patterns=("exported_task.json", "*task*.json"),
+        ),
+        "dispatch_receipt": _latest_json_from_candidates(
+            study_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts",
+            patterns=("latest.json", "*.json"),
+        ),
+        "repair_execution_receipt": _read_json_mapping(
+            study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
+        ),
+        "repair_execution_evidence": _read_json_mapping(
+            study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"
+        ),
+        "gate_replay": _read_json_mapping(study_root / "artifacts" / "controller" / "gate_replay_requests" / "latest.json"),
+        "controller_decisions": _read_json_mapping(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+        "publication_eval": _read_json_mapping(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        "ai_reviewer_request": _read_json_mapping(
+            study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+        ),
+    }
+    lifecycle = _study_lifecycle([payload for payload in surfaces.values() if isinstance(payload, Mapping)])
+    final_projection = _final_projection(surfaces)
+    return {
+        "study_id": study_root.name,
+        "study_root": str(study_root),
+        "status": lifecycle["status"],
+        "reason": lifecycle["reason"],
+        "active_run_id": lifecycle["active_run_id"],
+        "final_projection": final_projection,
+        "next_owner": _next_owner(surfaces),
+        "source_refs": _soak_source_refs(study_root),
+        **surfaces,
+        "ai_reviewer_evidence": _ai_reviewer_evidence(surfaces["publication_eval"], surfaces["ai_reviewer_request"]),
+    }
+
+
+def _final_projection(surfaces: Mapping[str, Mapping[str, Any]]) -> str:
+    repair_evidence = _mapping(surfaces.get("repair_execution_evidence"))
+    if _mapping(repair_evidence.get("canonical_artifact_delta")).get("meaningful_artifact_delta") is True:
+        return "artifact_delta"
+    if repair_evidence.get("progress_delta_candidate") is True:
+        return "artifact_delta"
+    if _mapping(surfaces.get("publication_eval")).get("assessment_provenance"):
+        return "ai_reviewer_re_eval"
+    if _mapping(surfaces.get("gate_replay")):
+        return "gate_replay"
+    controller = _mapping(surfaces.get("controller_decisions"))
+    if _text(controller.get("route_decision")):
+        if _text(controller.get("route_decision")) in {"stop_loss", "terminal_stop"} or _text(controller.get("route_target")) == "stop":
+            return "stop_loss"
+        if controller.get("requires_human_confirmation") is True:
+            return "human_gate"
+        return "route_decision"
+    if _mapping(surfaces.get("dispatch_receipt")).get("accepted") is False:
+        return "stable_blocker"
+    if _mapping(surfaces.get("sidecar_task")):
+        return "continuing_repair"
+    return "unknown"
+
+
+def _next_owner(surfaces: Mapping[str, Mapping[str, Any]]) -> str | None:
+    repair_receipt = _mapping(surfaces.get("repair_execution_receipt"))
+    if repair_receipt.get("execution_status") == "executed":
+        return "ai_reviewer"
+    task = _mapping(surfaces.get("sidecar_task"))
+    payload = _mapping(task.get("payload"))
+    unit = _mapping(payload.get("repair_work_unit"))
+    if owner := _text(unit.get("owner")):
+        return owner
+    controller = _mapping(surfaces.get("controller_decisions"))
+    return _text(controller.get("next_owner") or controller.get("route_target"))
+
+
+def _ai_reviewer_evidence(publication_eval: Mapping[str, Any], ai_reviewer_request: Mapping[str, Any]) -> dict[str, Any]:
+    provenance = _mapping(publication_eval.get("assessment_provenance"))
+    return {
+        "owner": _text(provenance.get("owner")) or None,
+        "eval_id": _text(publication_eval.get("eval_id")) or None,
+        "request_id": _text(ai_reviewer_request.get("request_id")) or None,
+        "request_state": _text(_mapping(ai_reviewer_request.get("request_lifecycle")).get("state")) or None,
+    }
+
+
+def _soak_source_refs(study_root: Path) -> list[dict[str, Any]]:
+    refs = []
+    for relative_ref in (
+        "artifacts/runtime/opl_family_sidecar",
+        "artifacts/controller/repair_execution_receipts/latest.json",
+        "artifacts/controller/repair_execution_evidence/latest.json",
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+    ):
+        path = study_root / relative_ref
+        refs.append({"relative_ref": relative_ref, "path": str(path), "exists": path.exists()})
+    return refs
+
+
+def _latest_json_from_candidates(root: Path, *, patterns: Sequence[str]) -> dict[str, Any]:
+    if not root.exists():
+        return {}
+    candidates: list[Path] = []
+    for pattern in patterns:
+        candidates.extend(path for path in root.glob(pattern) if path.is_file())
+    if not candidates:
+        return {}
+    path = sorted(candidates, key=lambda item: item.stat().st_mtime_ns, reverse=True)[0]
+    payload = _read_json_mapping(path)
+    return {**dict(payload), "source_ref": str(path)} if payload else {}
 
 
 def _profile_report(profile_path: Path) -> dict[str, Any]:
@@ -178,6 +387,14 @@ def _surface_report(study_root: Path, relative_ref: str) -> dict[str, Any]:
     if not report["readable"]:
         report["error"] = "json payload is not an object"
     return report
+
+
+def _read_json_mapping(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
 
 
 def _study_lifecycle(payloads: Sequence[Mapping[str, Any]]) -> dict[str, str]:
@@ -282,3 +499,7 @@ def _truthy_nested(payload: Mapping[str, Any], keys: tuple[str, str]) -> bool:
 
 def _text(value: object) -> str:
     return str(value or "").strip()
+
+
+def _mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}

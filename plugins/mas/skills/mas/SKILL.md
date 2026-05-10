@@ -65,6 +65,8 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 - 数据资产变更要走 controller 命令和结构化 payload，不直接手改 registry
 - `sidecar export` 只给 OPL/Hermes family runtime 提供 MAS-owned read-only projection、pending family task 和 source ref；不得把该 projection 当作研究真相、质量结论或 artifact authority
 - `sidecar dispatch` 只接收 OPL typed queue 的 guarded task，并回到 MAS owner surface 产出 domain control receipt / recommended command；不得直接写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package、artifact gate 或 study truth
+- `paper_autonomy/repair-recheck` task 只能通过 MAS-owned repair executor 修改 canonical manuscript / evidence ledger / review ledger / revision log，并必须写 owner receipt、gate replay request、AI reviewer recheck request 和 package freshness proof；缺结构化 canonical patch 时返回 typed blocker，不把 repair note 写入正文
+- `paper_autonomy/ai-reviewer-recheck` task 只能触发 MAS supervisor executor 的 AI reviewer workflow；最终质量、publishability 或 submission-facing readiness 仍以 AI reviewer-backed `publication_eval/latest.json` 和 publication gate truth 为准
 - 保持 `MedAutoScience` 作为运行层，不要把 controller、profile、overlay、workspace 逻辑塌缩进 plugin 私有文件
 - 保持 CLI 和 controller 入口稳定，避免破坏其他 Agent 的兼容性
 - plugin-local MCP 通过当前 repo checkout 的 `uv run --directory <repo-root> --extra analysis medautosci-mcp` 启动

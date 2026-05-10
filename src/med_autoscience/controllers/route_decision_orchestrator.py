@@ -6,6 +6,9 @@ from typing import Any, Mapping, Sequence
 
 from med_autoscience.controllers import study_line_decision_engine
 from med_autoscience.controllers import route_control_stoploss
+from med_autoscience.controllers.route_decision_orchestrator_parts.executable_plan import (
+    build_analysis_direction_decision,
+)
 from med_autoscience.controllers.route_decision_orchestrator_parts.rehearsal import (
     ROUTE_DECISION_REHEARSAL_MEMO_PATH,
     build_route_decision_rehearsal,
@@ -36,8 +39,6 @@ NEXT_ACTION_BY_ROUTE = {
 CANDIDATE_PATH_DECISIONS = ("proceed", "refine", "pivot", "stop", "human_gate")
 CANDIDATE_PATH_REQUIRED_FIELDS = ("question", "evidence_basis", "expected_artifact", "stop_rule")
 ADVERSE_RESULT_ALIGNMENTS = frozenset({"weak", "contradictory", "blocked", "negative"})
-ANALYSIS_REQUIRED_REPAIRS = ("evidence_ledger", "manuscript", "review_ledger", "analysis")
-
 NEXT_ACTION_BY_ROUTE_CONTROL = {
     "continue": "enter_baseline",
     "route_back": "run_literature_scout",
@@ -535,114 +536,18 @@ def _route_control_projection(
     }
 
 
-def _dedupe_text(values: Sequence[str]) -> list[str]:
-    result: list[str] = []
-    seen: set[str] = set()
-    for value in values:
-        text = _text(value)
-        if not text or text in seen:
-            continue
-        seen.add(text)
-        result.append(text)
-    return result
-
-
-def _failed_path_evidence_refs(route_signals: Mapping[str, Any]) -> list[str]:
-    return _dedupe_text(
-        [
-            *_text_list(route_signals.get("failed_path_refs")),
-            *_text_list(route_signals.get("failed_path_evidence_refs")),
-            *_text_list(route_signals.get("evidence_refs")),
-        ]
-    )
-
-
-def _analysis_action_type(route_control_decision: str, result_alignment: str) -> str:
-    if route_control_decision == "route_back":
-        return "return_to_scout"
-    if route_control_decision in {"bounded_repair", "switch_line", "stop_loss", "human_gate"}:
-        return route_control_decision
-    if result_alignment in ADVERSE_RESULT_ALIGNMENTS:
-        return "claim_downgrade"
-    return ""
-
-
-def _claim_allowed_status(action_type: str) -> str:
-    if action_type == "bounded_repair":
-        return "pending_bounded_repair"
-    if action_type == "return_to_scout":
-        return "pending_scout_reassessment"
-    if action_type == "human_gate":
-        return "pending_human_gate"
-    return "downgraded"
-
-
-def _claim_policy(
-    *,
-    route_signals: Mapping[str, Any],
-    result_alignment: str,
-    action_type: str,
-) -> dict[str, Any]:
-    claim_id = _text(route_signals.get("claim_id")) or None
-    previous_status = (
-        _text(route_signals.get("claim_status"))
-        or _text(route_signals.get("current_claim_status"))
-        or None
-    )
-    return {
-        "claim_id": claim_id,
-        "previous_status": previous_status,
-        "supported": False,
-        "claim_downgrade_required": True,
-        "allowed_status": _claim_allowed_status(action_type),
-        "reason": f"{result_alignment}_result_cannot_support_original_claim",
-    }
-
-
 def _analysis_direction_decision(
     *,
     route_signals: Mapping[str, Any],
     route_control_decision: str,
     controller_decision_ref: str,
 ) -> dict[str, Any]:
-    result_alignment = _result_alignment(route_signals)
-    has_analysis_signal = bool(
-        result_alignment
-        or _text(route_signals.get("expected_result"))
-        or _text(route_signals.get("observed_result"))
-        or _text(route_signals.get("claim_id"))
-        or _text_list(route_signals.get("failed_path_refs"))
-        or _text_list(route_signals.get("statistical_blockers"))
+    return build_analysis_direction_decision(
+        route_signals=route_signals,
+        route_control_decision=route_control_decision,
+        controller_decision_ref=controller_decision_ref,
+        schema_version=SCHEMA_VERSION,
     )
-    if not has_analysis_signal:
-        return {}
-
-    action_type = _analysis_action_type(route_control_decision, result_alignment)
-    if not action_type:
-        return {}
-
-    normalized_alignment = result_alignment or "blocked"
-    return {
-        "surface": "analysis_direction_decision",
-        "schema_version": SCHEMA_VERSION,
-        "decision": action_type,
-        "action_type": action_type,
-        "result_alignment": normalized_alignment,
-        "claim_id": _text(route_signals.get("claim_id")) or None,
-        "expected_result": _text(route_signals.get("expected_result")) or None,
-        "observed_result": _text(route_signals.get("observed_result")) or None,
-        "failed_path_evidence_refs": _failed_path_evidence_refs(route_signals),
-        "failure_reasons": _route_failure_reasons(route_signals),
-        "statistical_blockers": _text_list(route_signals.get("statistical_blockers")),
-        "alternative_routes": _text_list(route_signals.get("alternative_routes")),
-        "claim_policy": _claim_policy(
-            route_signals=route_signals,
-            result_alignment=normalized_alignment,
-            action_type=action_type,
-        ),
-        "required_repairs": list(ANALYSIS_REQUIRED_REPAIRS),
-        "controller_decision_ref": controller_decision_ref,
-    }
 
 
 def build_route_decision_orchestration(

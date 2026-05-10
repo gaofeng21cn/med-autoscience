@@ -449,6 +449,85 @@ def test_negative_result_materializes_analysis_direction_decision_and_claim_poli
     assert written["analysis_direction_decision"]["claim_policy"]["supported"] is False
 
 
+def test_negative_result_outputs_analysis_slice_contract_and_executable_owner_tasks(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.route_decision_orchestrator")
+
+    projection = module.materialize_route_decision_orchestration(
+        study_root=tmp_path / "study",
+        candidates=[_candidate("negative-line", 4)],
+        requested_action="select_line",
+        route_signals={
+            "claim_id": "claim.primary_mortality_signal",
+            "current_claim_status": "supported",
+            "hypothesis": "Exposure increases mortality risk.",
+            "endpoint": "90-day mortality",
+            "method": "adjusted Cox model",
+            "expected_result": "higher risk in exposed group",
+            "observed_result": "no measurable association",
+            "result_alignment": "negative",
+            "interpretation": "The primary analysis failed to support the original claim.",
+            "evidence_refs": ["artifacts/evidence/primary_model.json"],
+            "failed_path_refs": ["artifacts/analysis/primary_model.json"],
+            "failure_reasons": ["effect_direction_not_reproduced"],
+            "alternative_routes": ["guideline-gap-line"],
+        },
+    )
+
+    decision_path = tmp_path / "study" / "artifacts" / "controller_decisions" / "latest.json"
+    analysis_decision = projection["analysis_direction_decision"]
+    slice_contract = analysis_decision["analysis_slice_contract"]
+
+    assert set(slice_contract) == {
+        "hypothesis",
+        "endpoint",
+        "method",
+        "expected_result",
+        "failure_criteria",
+        "actual_result",
+        "interpretation",
+        "route_impact",
+    }
+    assert slice_contract["hypothesis"] == "Exposure increases mortality risk."
+    assert slice_contract["endpoint"] == "90-day mortality"
+    assert slice_contract["method"] == "adjusted Cox model"
+    assert slice_contract["expected_result"] == "higher risk in exposed group"
+    assert slice_contract["failure_criteria"] == ["effect_direction_not_reproduced"]
+    assert slice_contract["actual_result"] == "no measurable association"
+    assert slice_contract["interpretation"] == "The primary analysis failed to support the original claim."
+    assert slice_contract["route_impact"] == "switch_line"
+
+    assert analysis_decision["claim_policy"]["supported"] is False
+    assert analysis_decision["failed_path_evidence_refs"] == [
+        "artifacts/analysis/primary_model.json",
+        "artifacts/evidence/primary_model.json",
+    ]
+
+    tasks = analysis_decision["executable_owner_tasks"]
+    assert [task["action"] for task in tasks] == ["claim_downgrade", "switch_line"]
+    for task in tasks:
+        assert task["owner"] == "MAS Route Decision Controller"
+        assert task["callable_surface"]
+        assert task["required_inputs"]
+        assert task["required_outputs"]
+        assert task["artifact_delta_predicate"]
+        assert task["gate_replay_target"] == str(decision_path.resolve())
+        assert task["idempotency_key"].startswith(
+            "analysis_direction_decision:claim.primary_mortality_signal:negative:"
+        )
+        assert task["source_fingerprint"] == (
+            "claim.primary_mortality_signal|negative|"
+            "artifacts/analysis/primary_model.json|artifacts/evidence/primary_model.json"
+        )
+
+    written = json.loads(decision_path.read_text(encoding="utf-8"))
+    assert written["analysis_direction_decision"]["analysis_slice_contract"] == slice_contract
+    assert written["analysis_direction_decision"]["executable_owner_tasks"] == tasks
+    assert written["quality_claim_authorized"] is False
+    assert written["mechanical_projection_can_authorize_quality"] is False
+
+
 def test_weak_blocked_result_uses_bounded_repair_without_supported_claim(
     tmp_path: Path,
 ) -> None:

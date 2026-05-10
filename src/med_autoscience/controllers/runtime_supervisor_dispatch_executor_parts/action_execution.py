@@ -322,7 +322,7 @@ def execute_ai_reviewer_workflow(
             record=record,
             additional_refs={
                 surface: ref
-                for surface, ref in required_refs.items()
+                for surface, ref in {**required_refs, **_ai_reviewer_optional_refs(request)}.items()
                 if surface not in {"manuscript", "evidence_ledger", "review_ledger", "study_charter"}
                 and ref is not None
             },
@@ -365,6 +365,16 @@ def _ai_reviewer_required_refs(request: Mapping[str, Any]) -> dict[str, str | No
             "claim_evidence_map",
             "medical_prose_review",
             "publication_gate_projection",
+        )
+    }
+
+
+def _ai_reviewer_optional_refs(request: Mapping[str, Any]) -> dict[str, str | None]:
+    return {
+        surface: _ref_path(request, surface)
+        for surface in (
+            "reporting_guideline",
+            "calibration_refs",
         )
     }
 

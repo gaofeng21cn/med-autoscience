@@ -344,6 +344,120 @@ def test_sidecar_dispatch_executes_reconcile_apply_inside_mas_owner(monkeypatch,
     assert payload["authority_boundary"]["writes_domain_truth"] is False
 
 
+def test_sidecar_dispatch_executes_paper_repair_work_unit_inside_mas_owner(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    write_profile(profile_path, workspace_root=workspace_root)
+    manuscript = study_root / "paper" / "manuscript.md"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "paper-task-001",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/repair-recheck",
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "repair_work_unit": {
+                    "unit_id": "unit-1",
+                    "work_unit_type": "text_repair",
+                    "owner": "quality_repair_batch",
+                    "callable_surface": "paper_repair_executor.dispatch_repair_work_unit",
+                    "source_fingerprint": "sha256:unit-1",
+                    "source_refs": ["artifacts/publication_eval/latest.json"],
+                    "gate_replay_target": "publication_eval/latest.json",
+                    "canonical_patch": {
+                        "target_text": "The original claim is supported.",
+                        "replacement_text": "The association is directionally consistent but requires restrained interpretation.",
+                    },
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["accepted"] is True
+    assert payload["dispatch"]["action_type"] == "paper_repair_executor_dispatch"
+    assert payload["will_start_llm_worker"] is False
+    paper_receipt = payload["dispatch"]["result"]
+    assert paper_receipt["execution_status"] == "executed"
+    assert paper_receipt["repair_execution_evidence"]["progress_delta_candidate"] is True
+    assert paper_receipt["owner_receipt"]["direct_current_package_write"] is False
+    assert (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").is_file()
+    assert (study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json").is_file()
+    assert not (study_root / "manuscript" / "current_package").exists()
+
+
+def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executor(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    calls: list[dict[str, object]] = []
+
+    def fake_execute_default_executor_dispatches(*, profile, study_ids, action_types, mode: str, apply: bool) -> dict[str, object]:
+        calls.append(
+            {
+                "profile": profile.name,
+                "study_ids": tuple(study_ids),
+                "action_types": tuple(action_types),
+                "mode": mode,
+                "apply": apply,
+            }
+        )
+        return {
+            "surface": "runtime_supervisor_default_executor_execution",
+            "executed_count": 1,
+            "blocked_count": 0,
+        }
+
+    monkeypatch.setattr(
+        adapter.runtime_supervisor_dispatch_executor,
+        "execute_default_executor_dispatches",
+        fake_execute_default_executor_dispatches,
+    )
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "paper-ai-reviewer-001",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/ai-reviewer-recheck",
+            "payload": {"profile": str(profile_path), "study_id": "001-risk"},
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["dispatch"]["action_type"] == "ai_reviewer_recheck_execute_dispatch"
+    assert payload["dispatch"]["result"]["executed_count"] == 1
+    assert calls == [
+        {
+            "profile": "nfpitnet",
+            "study_ids": ("001-risk",),
+            "action_types": ("return_to_ai_reviewer_workflow",),
+            "mode": "developer_apply_safe",
+            "apply": True,
+        }
+    ]
+
+
 def test_sidecar_export_does_not_auto_ticket_stop_loss_or_human_gate(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
