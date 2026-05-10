@@ -23,6 +23,7 @@ EXPECTED_ROUTE_IDS = {
     "experiment",
     "analysis-campaign",
     "write",
+    "review",
     "finalize",
     "decision",
     "journal-resolution",

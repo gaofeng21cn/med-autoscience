@@ -33,6 +33,19 @@ route_contracts:
       - evidence target stays ambiguous after scouting
       - study question changes materially during later routes
       - downstream review surfaces missing direction rationale
+    knowledge_input_obligations:
+      - stage_knowledge_packet_ref
+      - portfolio_memory.topic_landscape
+      - portfolio_memory.dataset_question_map
+      - portfolio_memory.venue_intelligence
+      - workspace_literature.coverage
+      - literature_provider_runtime.readiness
+    memory_closeout_obligations:
+      - stage_memory_closeout_packet
+      - clinical_question_framing
+      - literature_gap
+      - anchor_paper_role
+      - route_recommendation
   idea:
     route_id: idea
     display_name: Idea
@@ -62,6 +75,19 @@ route_contracts:
       - baseline readiness is still missing
       - chosen line conflicts with later evidence review
       - controller requests a different route bias
+    knowledge_input_obligations:
+      - stage_knowledge_packet_ref
+      - portfolio_memory.study_recall_index
+      - study_reference_context
+      - prior_candidate_or_failed_lines
+      - journal_neighbor_refs
+    memory_closeout_obligations:
+      - stage_memory_closeout_packet
+      - selected_line
+      - rejected_alternatives
+      - selection_rationale
+      - stop_rule
+      - memory_reuse_note
   baseline:
     route_id: baseline
     display_name: Baseline
@@ -149,6 +175,19 @@ route_contracts:
       - new gaps expand beyond bounded analysis scope
       - claim support weakens after follow-up analysis
       - reviewer-first scan requests a different baseline or study line
+    knowledge_input_obligations:
+      - stage_knowledge_packet_ref
+      - failed_path_history
+      - evidence_ledger
+      - citation_gaps
+      - bounded_frontier
+      - reviewer_concerns
+    memory_closeout_obligations:
+      - stage_memory_closeout_packet
+      - slice_ledger
+      - negative_or_weak_result_interpretation
+      - route_impact
+      - failed_path_lesson
   write:
     route_id: write
     display_name: Write
@@ -183,6 +222,51 @@ route_contracts:
       - first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing
       - manuscript narrative changes the claim boundary
       - foreground edits only touched `manuscript/current_package/` before MAS runtime reactivation or have not been reconciled into the canonical paper source
+  review:
+    route_id: review
+    display_name: Review
+    key_question: What should the strict AI reviewer send back before the line can advance?
+    goal: Convert reviewer pressure, citation gaps, and evidence concerns into route-safe repair or decision work.
+    enter_conditions:
+      - manuscript or manuscript-facing draft exists
+      - claim-evidence map or evidence package is readable
+      - study reference context and reviewer findings are available or explicitly missing
+    hard_success_gate:
+      - reviewer action matrix maps each concern to evidence, citation, text, analysis, route decision, or human gate work
+      - unsupported claims are downgraded or routed back before finalize
+      - citation and reference gaps have repair requests or explicit blockers
+      - reusable critique lessons are separated from study-specific truth
+    durable_outputs_minimum:
+      - reviewer action matrix tied to publication eval or review ledger refs
+      - evidence or citation repair request when literature grounding is insufficient
+      - reusable critique lesson when the finding should change future stage defaults
+      - explicit next route or human gate recommendation
+    human_gate_boundary:
+      - reviewer conclusion would change study boundary, external release, or submission authorization
+      - citation or evidence gap cannot be repaired inside the current charter
+    next_routes:
+      - analysis-campaign
+      - write
+      - finalize
+      - decision
+    route_back_triggers:
+      - active claim lacks direct evidence support
+      - novelty, rigor, or citation gap cannot be closed in writing
+      - AI reviewer requests a different baseline, analysis-campaign, or route decision
+    knowledge_input_obligations:
+      - stage_knowledge_packet_ref
+      - manuscript
+      - claim_evidence_map
+      - display_to_claim_map
+      - study_reference_context
+      - citation_ledger_refs
+      - ai_reviewer_calibration_memory
+      - prior_reviewer_findings
+    memory_closeout_obligations:
+      - stage_memory_closeout_packet
+      - reviewer_action_matrix
+      - evidence_or_citation_repair_request
+      - reusable_critique_lesson
   finalize:
     route_id: finalize
     display_name: Finalize

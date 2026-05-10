@@ -44,6 +44,10 @@ REQUIRED_ROUTE_CONTRACT_LIST_FIELDS = (
     "next_routes",
     "route_back_triggers",
 )
+OPTIONAL_ROUTE_CONTRACT_LIST_FIELDS = (
+    "knowledge_input_obligations",
+    "memory_closeout_obligations",
+)
 REQUIRED_EVIDENCE_REVIEW_LIST_FIELDS = (
     "minimum_proof_package",
     "reviewer_first_checks",
@@ -55,6 +59,7 @@ REQUIRED_CANONICAL_ROUTE_IDS = (
     "baseline",
     "analysis-campaign",
     "write",
+    "review",
     "finalize",
     "decision",
 )
@@ -207,6 +212,9 @@ def _route_contract_payload_map(value: object) -> dict[str, dict[str, Any]]:
             if field not in route_payload:
                 raise ValueError(f"route_contracts[{route_id}] missing required field: {field}")
             _string_tuple(route_payload[field], field)
+        for field in OPTIONAL_ROUTE_CONTRACT_LIST_FIELDS:
+            if field in route_payload:
+                _string_tuple(route_payload[field], field)
         declared_route_id = route_payload.get("route_id")
         if declared_route_id != route_id:
             raise ValueError(f"route_contracts[{route_id}] route_id must equal mapping key")

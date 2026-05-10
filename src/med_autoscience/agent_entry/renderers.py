@@ -71,6 +71,8 @@ def render_entry_modes_guide() -> str:
                 _render_list_line("human_gate_boundary", route_contract["human_gate_boundary"]),
                 _render_list_line("next_routes", route_contract["next_routes"]),
                 _render_list_line("route_back_triggers", route_contract["route_back_triggers"]),
+                _render_optional_list_line("knowledge_input_obligations", route_contract),
+                _render_optional_list_line("memory_closeout_obligations", route_contract),
             )
         )
 
@@ -243,6 +245,8 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
                 "  " + _render_list_line("next_routes", route_contract["next_routes"], inline=True),
                 "  "
                 + _render_list_line("route_back_triggers", route_contract["route_back_triggers"], inline=True),
+                "  " + _render_optional_list_line("knowledge_input_obligations", route_contract, inline=True),
+                "  " + _render_optional_list_line("memory_closeout_obligations", route_contract, inline=True),
             )
         )
 
@@ -386,3 +390,11 @@ def _render_list_line(field: str, value: object, *, inline: bool = False) -> str
     rendered = " | ".join(rendered_values) if rendered_values else "(none)"
     prefix = "" if inline else "- "
     return f"{prefix}{field}: {rendered}"
+
+
+def _render_optional_list_line(field: str, payload: dict[str, Any], *, inline: bool = False) -> str:
+    value = payload.get(field)
+    if not isinstance(value, list):
+        prefix = "" if inline else "- "
+        return f"{prefix}{field}: (none)"
+    return _render_list_line(field, value, inline=inline)
