@@ -120,6 +120,341 @@ def test_supervisor_scan_runtime_repair_routes_package_freshness_terminal_to_gat
     assert study["paper_package_mutated"] is False
 
 
+def test_supervisor_scan_routes_blocked_submission_refresh_lifecycle_to_artifact_owner(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    work_unit_fingerprint = "publication-blockers::submission-refresh"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::submission-refresh",
+        "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "next_work_unit": {
+                    "unit_id": "submission_minimal_refresh",
+                    "lane": "finalize",
+                    "summary": "Refresh stale submission_minimal and current delivery surfaces.",
+                },
+                "specificity_targets": [
+                    {
+                        "target_kind": "table",
+                        "target_id": "submission_minimal_authority",
+                        "source_path": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "claim",
+                        "target_id": "claim_evidence_map",
+                        "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "figure",
+                        "target_id": "figure_catalog",
+                        "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "metric",
+                        "target_id": "main_result_metrics",
+                        "source_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                    {
+                        "target_kind": "source_path",
+                        "target_id": "publication_gate_source_path",
+                        "source_path": str(quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"),
+                        "blocking_reason": "stale_submission_minimal_authority",
+                    },
+                ],
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "current-submission-refresh",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+            "route_target": "finalize",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "next_work_unit": {
+                "unit_id": "submission_minimal_refresh",
+                "lane": "finalize",
+                "summary": "Refresh stale submission_minimal and current delivery surfaces.",
+            },
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "decision": "blocked",
+        "reason": "quest_waiting_for_user",
+        "active_run_id": None,
+        "runtime_liveness_audit": {
+            "active_run_id": None,
+            "runtime_audit": {"worker_running": False, "active_run_id": None},
+        },
+        "runtime_health_snapshot": {
+            "canonical_runtime_action": "external_supervisor_required",
+            "attempt_state": "escalated",
+            "retry_budget_remaining": 0,
+            "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+        },
+        "continuation_state": {
+            "quest_status": "waiting_for_user",
+            "active_run_id": None,
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "turn_closeout",
+            "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+            "pending_user_message_count": 0,
+        },
+        "blocked_turn_closeout": {
+            "blocked_reason": "control_plane_route_blocked_bundle_build",
+            "next_owner": "MAS/controller route authorization owner for bundle_build_allowed on submission_minimal_refresh",
+        },
+        "publication_eval": publication_eval,
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-submission-refresh",
+            "source_signature": "truth-source-submission-refresh",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "bundle_stage_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "supervision": {"active_run_id": None, "health_status": "escalated"},
+        "ai_repair_lifecycle": {
+            "state": "blocked",
+            "blocked_reason": "controller_decision_not_superseded",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+            "auto_apply_allowed": True,
+            "top_action": {
+                "action_type": "runtime_platform_repair",
+                "repair_kind": "stale_specificity_terminal_gate_redrive",
+                "owner": "mas_controller",
+                "auto_apply_allowed": True,
+            },
+        },
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["current_package_freshness_required"]
+    assert [item["action_type"] for item in result["action_queue"]] == ["current_package_freshness_required"]
+    assert study["action_queue"][0]["owner"] == "artifact_os"
+    assert study["why_not_applied"] == "current_package_freshness_required"
+    assert study["blocked_reason"] == "current_package_freshness_required"
+    assert study["next_owner"] == "artifact_os"
+    assert study["external_supervisor_required"] is False
+    assert study["owner_route"]["next_owner"] == "artifact_os"
+    assert study["owner_route"]["owner_reason"] == "current_package_freshness_required"
+    assert study["owner_route"]["allowed_actions"] == ["current_package_freshness_required"]
+
+
+def test_supervisor_scan_routes_owner_callable_submission_qc_closeout_to_artifact_owner(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    work_unit_fingerprint = "publication-blockers::submission-qc"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm003::submission-qc",
+        "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "work_unit_fingerprint": work_unit_fingerprint,
+                "next_work_unit": {
+                    "unit_id": "submission_minimal_refresh",
+                    "lane": "finalize",
+                    "summary": "Refresh submission surfaces after submission QC failure.",
+                },
+                "specificity_targets": [
+                    {
+                        "target_kind": "claim",
+                        "target_id": "claim_evidence_map",
+                        "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        "blocking_reason": "submission_surface_qc_failure_present",
+                    },
+                    {
+                        "target_kind": "figure",
+                        "target_id": "figure_catalog",
+                        "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+                        "blocking_reason": "submission_surface_qc_failure_present",
+                    },
+                    {
+                        "target_kind": "table",
+                        "target_id": "submission_manifest",
+                        "source_path": str(study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"),
+                        "blocking_reason": "submission_surface_qc_failure_present",
+                    },
+                    {
+                        "target_kind": "metric",
+                        "target_id": "main_result_metrics",
+                        "source_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+                        "blocking_reason": "submission_surface_qc_failure_present",
+                    },
+                    {
+                        "target_kind": "source_path",
+                        "target_id": "publication_gate_source_path",
+                        "source_path": str(quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json"),
+                        "blocking_reason": "submission_surface_qc_failure_present",
+                    },
+                ],
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "current-submission-qc-refresh",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "run_gate_clearing_batch"}],
+            "route_target": "finalize",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "next_work_unit": {
+                "unit_id": "submission_minimal_refresh",
+                "lane": "finalize",
+                "summary": "Refresh submission surfaces after submission QC failure.",
+            },
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "decision": "blocked",
+        "reason": "quest_waiting_for_submission_metadata",
+        "active_run_id": None,
+        "runtime_liveness_audit": {
+            "active_run_id": None,
+            "runtime_audit": {"worker_running": False, "active_run_id": None},
+        },
+        "runtime_health_snapshot": {
+            "canonical_runtime_action": "await_explicit_resume",
+            "attempt_state": "awaiting_explicit_resume",
+            "retry_budget_remaining": 0,
+            "blocking_reasons": [],
+        },
+        "continuation_state": {
+            "quest_status": "waiting_for_user",
+            "active_run_id": None,
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "turn_closeout",
+            "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+            "pending_user_message_count": 9,
+        },
+        "blocked_turn_closeout": {
+            "blocked_reason": "owner_callable_surface_missing",
+            "next_owner": "MAS/controller",
+        },
+        "interaction_arbitration": {
+            "classification": "blocked_closeout_owner_wait",
+            "action": "block",
+            "reason_code": "blocked_turn_closeout_waiting_for_owner",
+            "requires_user_input": False,
+            "valid_blocking": True,
+            "blocked_reason": "owner_callable_surface_missing",
+            "next_owner": "MAS/controller",
+        },
+        "publication_eval": publication_eval,
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-submission-qc",
+            "source_signature": "truth-source-submission-qc",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "bundle_stage_blocked",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "ai_repair_lifecycle": {
+            "state": "blocked",
+            "blocked_reason": "stale_specificity_terminal_gate_not_found",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+            "auto_apply_allowed": True,
+            "top_action": {
+                "action_type": "runtime_platform_repair",
+                "repair_kind": "stale_specificity_terminal_gate_redrive",
+                "owner": "mas_controller",
+                "auto_apply_allowed": True,
+            },
+        },
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["current_package_freshness_required"]
+    assert study["action_queue"][0]["owner"] == "artifact_os"
+    assert study["why_not_applied"] == "current_package_freshness_required"
+    assert study["next_owner"] == "artifact_os"
+    assert study["external_supervisor_required"] is False
+    assert study["owner_route"]["allowed_actions"] == ["current_package_freshness_required"]
+
+
 def test_supervisor_scan_routes_failed_gate_clearing_display_unit_to_concrete_artifact_owner(
     monkeypatch,
     tmp_path: Path,
