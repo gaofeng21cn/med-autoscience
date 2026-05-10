@@ -10,6 +10,7 @@ PLUGIN_ROOT = REPO_ROOT / "plugins" / "mas"
 PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 PLUGIN_ICON_PATH = PLUGIN_ROOT / "assets" / "icon.png"
 PLUGIN_ICON_SOURCE_PATH = PLUGIN_ROOT / "assets" / "icon.svg"
+PLUGIN_SKILL_PATH = PLUGIN_ROOT / "skills" / "mas" / "SKILL.md"
 PLUGIN_SKILL_UI_METADATA_PATH = PLUGIN_ROOT / "skills" / "mas" / "agents" / "openai.yaml"
 MARKETPLACE_PATH = REPO_ROOT / ".agents" / "plugins" / "marketplace.json"
 MCP_SERVER_PATH = REPO_ROOT / "src" / "med_autoscience" / "mcp_server.py"
@@ -33,6 +34,28 @@ def test_codex_plugin_manifest_tracks_repo_metadata_and_skill_layout() -> None:
     assert PLUGIN_ICON_PATH.is_file()
     assert PLUGIN_ICON_SOURCE_PATH.is_file()
     assert PLUGIN_SKILL_UI_METADATA_PATH.is_file()
+
+
+def test_mas_plugin_skill_tracks_current_sidecar_and_doc_boundaries() -> None:
+    manifest = json.loads(PLUGIN_MANIFEST_PATH.read_text(encoding="utf-8"))
+    skill_text = PLUGIN_SKILL_PATH.read_text(encoding="utf-8")
+
+    assert "DeepScientist overlay workflow" not in manifest["interface"]["longDescription"]
+    assert "sidecar export" in skill_text
+    assert "sidecar dispatch" in skill_text
+    assert "OPL-managed" in skill_text
+    assert "docs/runtime/control/controllers.md" in skill_text
+    assert "docs/runtime/controllers.md" not in skill_text
+    assert "docs/references/codex_plugin.md" not in skill_text
+
+    for doc_path in (
+        "bootstrap/README.md",
+        "docs/runtime/control/controllers.md",
+        "docs/runtime/control/runtime_supervision_loop.md",
+        "docs/runtime/display/progress_portal.md",
+        "docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md",
+    ):
+        assert (REPO_ROOT / doc_path).is_file()
 
 
 def test_codex_plugin_marketplace_points_to_repo_local_plugin() -> None:

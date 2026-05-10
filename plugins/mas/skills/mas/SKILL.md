@@ -14,7 +14,8 @@ description: Use when Codex should operate MedAutoScience through its stable run
 - 不替代 `medautosci` CLI、controller contract，也不替代非 Codex 集成
 - skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`product-entry-status` 等命令是这个 app skill 的内部 command contract
 - `product-entry manifest` 暴露 MAS-owned `family_action_catalog`；CLI、MCP、skill command projection 与 product-entry action metadata 从同一份 action definition 派生，`OPL` 只做 discovery/export/parity
-- `OPL` handoff、product-entry manifest 和其他机器可读桥接属于集成层，不是这个 skill 的前台主语
+- `OPL` handoff、product-entry manifest、sidecar bridge 和其他机器可读桥接属于集成层，不是这个 skill 的前台主语
+- OPL Full online runtime 由 OPL-managed `Hermes-Agent` substrate 承担长期在线、唤醒、session/delivery/approval transport；MAS 通过 `sidecar export` / `sidecar dispatch` 暴露受控桥接，仍持有 study truth、publication quality、artifact gate 与 current package authority
 
 ## 核心规则
 
@@ -29,6 +30,8 @@ description: Use when Codex should operate MedAutoScience through its stable run
 - `medautosci runtime overlay-status --profile <profile>`
 - `medautosci runtime install-overlay --profile <profile>`
 - `medautosci doctor backend-audit --profile <profile> --refresh`
+- `medautosci sidecar export --profile <profile> --format json`
+- `medautosci sidecar dispatch --task <task.json> --format json`
 - plugin-local MCP launcher: `plugins/mas/bin/medautosci-mcp`
 
 如果 `medautosci` 不在 `PATH` 上，用模块入口：
@@ -60,6 +63,8 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 - 只要 `publication_supervisor_state.bundle_tasks_downstream_only=true`，就把 bundle/build/proofing 当作硬阻断，不得在前台抢跑
 - 当 `paper_contract_health` 给出 `recommended_next_stage` / `recommended_action` 时，默认只把它们解释为 paper-line local recommendation，除非 `publication_supervisor_state` 已明确进入对应全局阶段
 - 数据资产变更要走 controller 命令和结构化 payload，不直接手改 registry
+- `sidecar export` 只给 OPL/Hermes family runtime 提供 MAS-owned read-only projection、pending family task 和 source ref；不得把该 projection 当作研究真相、质量结论或 artifact authority
+- `sidecar dispatch` 只接收 OPL typed queue 的 guarded task，并回到 MAS owner surface 产出 domain control receipt / recommended command；不得直接写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package、artifact gate 或 study truth
 - 保持 `MedAutoScience` 作为运行层，不要把 controller、profile、overlay、workspace 逻辑塌缩进 plugin 私有文件
 - 保持 CLI 和 controller 入口稳定，避免破坏其他 Agent 的兼容性
 - plugin-local MCP 通过当前 repo checkout 的 `uv run --directory <repo-root> --extra analysis medautosci-mcp` 启动
@@ -68,8 +73,10 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 ## 首先应读的文件
 
 - `bootstrap/README.md`
-- `docs/runtime/controllers.md`
-- `docs/references/codex_plugin.md`
+- `docs/runtime/control/controllers.md`
+- `docs/runtime/control/runtime_supervision_loop.md`
+- `docs/runtime/display/progress_portal.md`
+- `docs/references/mds-parity/mds_behavior_equivalence_gap_matrix.md`
 
 ## 典型任务
 
