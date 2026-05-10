@@ -246,6 +246,8 @@ jobs:
         run: uv sync --frozen --group dev --no-install-project
 
       - name: Ensure study runtime analysis bundle
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
         run: |
           uv run python - <<'PY'
           import json

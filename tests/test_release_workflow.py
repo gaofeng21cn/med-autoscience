@@ -244,6 +244,8 @@ def test_advisory_workflow_only_prepares_study_runtime_analysis_bundle_for_displ
     assert "Ensure study runtime analysis bundle" not in family_workflow
     assert "Ensure study runtime analysis bundle" not in submission_workflow
     assert "Ensure study runtime analysis bundle" in display_workflow
+    ensure_bundle_step = _workflow_step(display_workflow, "Ensure study runtime analysis bundle")
+    assert 'PYTHONDONTWRITEBYTECODE: "1"' in ensure_bundle_step
     assert "Run regression advisory tests" in advisory_workflow
     assert "Run submission-heavy advisory tests" in advisory_workflow
     assert "Run display-heavy advisory tests" in advisory_workflow
