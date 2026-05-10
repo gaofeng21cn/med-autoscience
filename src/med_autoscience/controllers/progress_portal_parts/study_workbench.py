@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from html import escape
+from pathlib import Path
 from typing import Any
 
 from .rendering import list_html, status_chip
@@ -11,6 +12,7 @@ from .route_decision_trail import (
 )
 from .source_refs import source_ref_allowed, source_refs
 from .status_display import display_text
+from med_autoscience.controllers.stage_knowledge_visibility import build_stage_knowledge_visibility
 
 
 ARTIFACT_GROUPS = (
@@ -71,6 +73,7 @@ def build_study_workbench_payload(
         resolved_package,
         resolved_study_id,
     )
+    stage_knowledge = _stage_knowledge_projection(resolved_progress, resolved_study_id)
     conversation = _conversation_projection(conversation_payload, resolved_study_id)
     refs = source_refs(resolved_progress, resolved_cockpit, resolved_runtime, resolved_package)
     conditions = _conditions(
@@ -82,6 +85,7 @@ def build_study_workbench_payload(
         user_visible=user_visible,
         artifact_groups=artifact_groups,
         route_decision_trail=route_decision_trail,
+        stage_knowledge=stage_knowledge,
         source_refs=refs,
     )
     overview = {
@@ -124,6 +128,11 @@ def build_study_workbench_payload(
                 "label": "路线/决策",
                 "status": _non_empty_text(route_decision_trail.get("status")) or "missing",
             },
+            {
+                "id": "stage_knowledge",
+                "label": "Stage Knowledge",
+                "status": _non_empty_text(stage_knowledge.get("status")) or "missing",
+            },
             {"id": "path_stage", "label": "路径/阶段", "status": _tab_status(path_stage)},
             {"id": "runtime", "label": "运行", "status": _tab_status(runtime_projection)},
             {"id": "artifacts", "label": "产物", "status": _artifact_tab_status(artifact_groups)},
@@ -132,6 +141,7 @@ def build_study_workbench_payload(
         ],
         "overview": overview,
         "route_decision_trail": route_decision_trail,
+        "stage_knowledge": stage_knowledge,
         "path_stage": path_stage,
         "runtime": runtime_projection,
         "artifact_groups": artifact_groups,
@@ -144,6 +154,7 @@ def build_study_workbench_payload(
 def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
     overview = _mapping(payload.get("overview"))
     route_decision_trail = _mapping(payload.get("route_decision_trail"))
+    stage_knowledge = _mapping(payload.get("stage_knowledge"))
     path_stage = _mapping(payload.get("path_stage"))
     runtime = _mapping(payload.get("runtime"))
     artifact_groups = _mapping(payload.get("artifact_groups"))
@@ -159,6 +170,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
             + "</p>",
             "</section>",
             render_route_decision_trail_section(route_decision_trail),
+            _stage_knowledge_section(stage_knowledge),
             _key_value_section(
                 "路径与阶段",
                 {
@@ -222,6 +234,37 @@ def _runtime_projection(
         ),
         "worker_running": worker_liveness.get("worker_running") if "worker_running" in worker_liveness else None,
     }
+
+
+def _stage_knowledge_projection(progress: Mapping[str, Any], study_id: str) -> dict[str, Any]:
+    explicit = _mapping(progress.get("stage_knowledge_visibility"))
+    if explicit:
+        return explicit
+    study_root = _non_empty_text(progress.get("study_root")) or _non_empty_text(_mapping(progress.get("refs")).get("study_root"))
+    if study_root is None:
+        return {
+            "surface": "stage_knowledge_visibility",
+            "schema_version": 1,
+            "status": "missing",
+            "study_id": study_id,
+            "missing_reasons": ["missing_study_root_for_stage_knowledge_visibility"],
+            "stages": [],
+            "stage_knowledge_packet_refs": [],
+            "consumed_refs": [],
+            "closeout_receipt_refs": [],
+            "accepted_writes": [],
+            "rejected_writes": [],
+            "route_impact": [],
+            "next_owner": None,
+            "authority_boundary": {
+                "kind": "read_only_visibility",
+                "writes_authority_surface": False,
+                "can_authorize_publication_quality": False,
+                "can_replace_controller_decision": False,
+                "can_replace_evidence_ledger": False,
+            },
+        }
+    return build_stage_knowledge_visibility(study_root=Path(study_root), study_id=study_id)
 
 
 def _artifact_groups(
@@ -357,6 +400,7 @@ def _conditions(
     user_visible: Mapping[str, Any],
     artifact_groups: Mapping[str, Mapping[str, Any]],
     route_decision_trail: Mapping[str, Any],
+    stage_knowledge: Mapping[str, Any],
     source_refs: list[str],
 ) -> dict[str, list[str]]:
     missing: list[str] = []
@@ -377,6 +421,10 @@ def _conditions(
             missing.append(f"artifact_group:{group_name}")
     for item in _string_list(_mapping(route_decision_trail.get("conditions")).get("missing")):
         missing.append(f"route_decision_trail:{item}")
+    if _non_empty_text(stage_knowledge.get("status")) in {None, "missing"}:
+        missing.append("stage_knowledge_visibility")
+    for item in _string_list(stage_knowledge.get("missing_reasons")):
+        missing.append(f"stage_knowledge:{item}")
     freshness_status = _non_empty_text(_mapping(progress.get("progress_freshness")).get("status"))
     if freshness_status == "missing":
         missing.append("progress_freshness")
@@ -491,6 +539,50 @@ def _artifact_sections(groups: Mapping[str, Any]) -> str:
             + "</section>"
         )
     return "\n".join(sections)
+
+
+def _stage_knowledge_section(stage_knowledge: Mapping[str, Any]) -> str:
+    stage_items = [
+        f"{item.get('stage')}: {item.get('stage_knowledge_packet_ref')} ({item.get('status')})"
+        for item in stage_knowledge.get("stages") or []
+        if isinstance(item, Mapping)
+    ]
+    write_items = [
+        f"{item.get('write_id') or item.get('source_category')}: {item.get('destination')} -> {item.get('owner_target')}"
+        for item in stage_knowledge.get("accepted_writes") or []
+        if isinstance(item, Mapping)
+    ]
+    rejected_items = [
+        f"{item.get('write_id') or item.get('source_category')}: {item.get('reason')}"
+        for item in stage_knowledge.get("rejected_writes") or []
+        if isinstance(item, Mapping)
+    ]
+    route_items = [
+        f"{item.get('kind')}: {item.get('destination') or item.get('ref') or item.get('reason')} -> {item.get('next_owner')}"
+        for item in stage_knowledge.get("route_impact") or []
+        if isinstance(item, Mapping)
+    ]
+    return (
+        '<section class="panel wide"><h2>Stage Knowledge '
+        + status_chip(stage_knowledge.get("status") or "missing")
+        + "</h2>"
+        + _key_value_table(
+            {
+                "next_owner": display_text(stage_knowledge.get("next_owner"), fallback="缺失", preserve_known_token=True),
+                "packet_refs": ", ".join(_string_list(stage_knowledge.get("stage_knowledge_packet_refs"))) or "缺失",
+                "receipt_refs": ", ".join(_string_list(stage_knowledge.get("closeout_receipt_refs"))) or "缺失",
+            }
+        )
+        + "<h3>Stage packets</h3>"
+        + list_html(stage_items, empty_text="缺少 stage knowledge packet。")
+        + "<h3>Accepted writes</h3>"
+        + list_html(write_items, empty_text="没有 accepted write。")
+        + "<h3>Rejected writes</h3>"
+        + list_html(rejected_items, empty_text="没有 rejected write。")
+        + "<h3>Route impact</h3>"
+        + list_html(route_items, empty_text="没有 route impact。")
+        + "</section>"
+    )
 
 
 def _conversation_projection(value: Mapping[str, Any] | None, study_id: str) -> dict[str, Any]:
@@ -734,8 +826,15 @@ def _key_value_section(title: str, values: Mapping[str, str]) -> str:
         '<section class="panel wide"><h2>'
         + escape(title)
         + "</h2><dl>"
-        + "".join(f"<div><dt>{escape(key)}</dt><dd>{escape(value)}</dd></div>" for key, value in values.items())
+        + _key_value_table(values)
         + "</dl></section>"
+    )
+
+
+def _key_value_table(values: Mapping[str, object]) -> str:
+    return "".join(
+        f"<div><dt>{escape(str(key))}</dt><dd>{escape(str(value))}</dd></div>"
+        for key, value in values.items()
     )
 
 
