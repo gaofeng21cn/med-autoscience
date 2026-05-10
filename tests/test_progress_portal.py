@@ -831,7 +831,9 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
     )
 
     assert payload["surface_kind"] == "mas_progress_portal_study_workbench"
-    assert payload["tabs"][1] == {"id": "route_decision_trail", "label": "路线/决策", "status": "available"}
+    tabs_by_id = {item["id"]: item for item in payload["tabs"]}
+    assert tabs_by_id["route_map"] == {"id": "route_map", "label": "研究路线地图", "status": "available"}
+    assert tabs_by_id["route_decision_trail"] == {"id": "route_decision_trail", "label": "路线/决策", "status": "available"}
     assert payload["route_decision_trail"]["surface_kind"] == "mas_progress_portal_route_decision_trail"
     assert payload["route_decision_trail"]["active_path"] == "analysis-route-b"
     assert payload["route_decision_trail"]["winning_path"] == "analysis-route-b"
@@ -854,6 +856,11 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
         "artifact_authority",
         "controller_decision_authority",
     ]
+    assert payload["route_map"]["surface_kind"] == "mas_progress_portal_route_map"
+    assert payload["route_map"]["status"] == "available"
+    assert {node["kind"] for node in payload["route_map"]["nodes"]} >= {"stage", "route", "decision", "blocker"}
+    assert any(edge["kind"] == "blocked" for edge in payload["route_map"]["edges"])
+    assert payload["route_map"]["authority"]["writes_authority_surface"] is False
     assert payload["path_stage"]["current_stage"] == "quality_repair"
     assert payload["path_stage"]["paper_stage"] == "revision"
     assert payload["runtime"]["active_run_id"] == "run-001"
@@ -889,7 +896,7 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
     assert "artifact_group:review_proof" not in payload["conditions"]["missing"]
     assert "artifact_group:runtime_evidence" not in payload["conditions"]["missing"]
     assert "studies/001-risk/artifacts/controller_decisions/latest.json" in payload["source_refs"]
-    assert payload["tabs"][4] == {"id": "artifacts", "label": "产物", "status": "available"}
+    assert tabs_by_id["artifacts"] == {"id": "artifacts", "label": "产物", "status": "available"}
 
 
 def test_study_workbench_helper_renders_conversation_read_model_timeline() -> None:
@@ -1028,6 +1035,8 @@ def test_study_workbench_helper_fail_closes_missing_inputs_and_conflicts() -> No
         "artifact_group:runtime_evidence",
         "route_decision_trail:route_decision_trail",
         "route_decision_trail:route_nodes",
+        "stage_knowledge_visibility",
+        "stage_knowledge:missing_study_root_for_stage_knowledge_visibility",
     ]
     assert payload["conditions"]["conflict"] == [
         "runtime_study_id_mismatch",

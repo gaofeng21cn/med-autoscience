@@ -7,15 +7,15 @@ Related contracts: `live-console-parity`, `mds_behavior_equivalence_matrix`
 
 ## 结论
 
-当前 MAS Progress Portal / Live Console 已经解决了“有 MAS-owned 地方看进度和运行证据”的问题，并且 repo contract 已把 per-study 工作台、路线/决策、执行器对话面板、study-scoped Live Console、authorized action apply receipts 和 terminal attach owner gate 纳入 MAS-owned surface。2026-05-10 校准后，单篇页物化会优先读取 canonical study-progress，并在执行器对话中优先展示用户消息、执行回合和最近回合；这修正了“contract 已有但真实页面看不到路线/对话”的落差。用户视角的剩余差距主要转为真实 workspace polish、长期刷新 soak、source ref 可读性和 terminal attach owner soak。旧 MDS WebUI 的主路径是 project / quest scoped，用户按一篇论文或一个 quest 进入后看进度、stage、文件、执行对话和 terminal；MAS 现在应继续沿 per-study/per-paper shell 收敛，而不是恢复旧 WebUI 或旧 daemon 作为 owner。
+当前 MAS Progress Portal / Live Console 已经解决了“有 MAS-owned 地方看进度和运行证据”的问题，并且 repo contract 已把 per-study 工作台、路线/决策、研究路线地图、执行器对话时间线、study-scoped Live Console、authorized action apply receipts 和 terminal attach owner gate 纳入 MAS-owned surface。2026-05-10 校准后，单篇页物化会优先读取 canonical study-progress，并在执行器对话中优先展示用户消息、执行回合和最近回合；这修正了“contract 已有但真实页面看不到路线/对话”的落差。本轮进一步把路线/决策从文字面板升级为 SVG 研究路线地图，并把执行器对话升级为 timeline 视图。用户视角的剩余差距主要转为真实 workspace polish、长期刷新 soak、source ref 可读性和 terminal attach owner soak。旧 MDS WebUI 的主路径是 project / quest scoped，用户按一篇论文或一个 quest 进入后看进度、stage、文件、执行对话和 terminal；MAS 现在应继续沿 per-study/per-paper shell 收敛，而不是恢复旧 WebUI 或旧 daemon 作为 owner。
 
 因此当前口径应改为：
 
-- `progress_visibility`: `partially_equivalent`，但 repo contract 已前进。MAS 有固定 Portal、study-progress、cockpit、per-study page、source refs 和 `mas_progress_portal_route_decision_trail` read-only helper；真实 workspace 用户等价仍取决于多论文 workspace soak、route inputs 完整性和 UI polish。
+- `progress_visibility`: `partially_equivalent`，但 repo contract 已前进。MAS 有固定 Portal、study-progress、cockpit、per-study page、source refs、`mas_progress_portal_route_decision_trail` 和 `mas_progress_portal_route_map` read-only helper；真实 workspace 用户等价仍取决于多论文 workspace soak、route inputs 完整性和 UI polish。
 - `live_console_parity`: `landed_mas_native_terminal_attach_mvp`。MAS 有 session/run/terminal/log tail 的观察面；Progress Portal 在显式 `--serve --enable-actions` 下已有本机 pause/resume/stop 受控 apply。Terminal attach/input/resize/detach 现在由 MAS terminal attach owner gate 管理：无 owner 时 fail closed，owner available 时展示 attach/input/resize/detach UI/API。旧 MDS 的 resident WebSocket owner 仍不进入 MAS 默认运行。
 - `old_mds_webui_code`: 仍不导入。可借鉴旧 MDS WebUI 的行为规格、信息架构和 UX oracle，不能复制旧 React/WebSocket 代码、bundle、历史或产品身份。
 
-2026-05-10 fresh assessment：这个 gap review 仍然成立，但它的含义需要更精确。MAS Progress Portal / Live Console 的 repo 能力已经 landed，真实 workspace soak 也有 evidence；当前缺口是用户路径 polish 和 interactive terminal attach 深度，不是 MAS 默认还需要 MDS WebUI。对用户影响最大的是“真实多论文 workspace 中每篇论文是否稳定走 per-study 工作台”、“路线/决策是否有足够 controller/evidence/runtime lineage 输入”、“执行器对话是否覆盖真实用户消息和执行回合”和“MAS-native terminal attach/input owner 能否安全落地”。这些应作为 MAS-native UX / control lane 处理，不应通过重新启用旧 MDS daemon 或旧 WebUI 解决。
+2026-05-10 fresh assessment：这个 gap review 仍然成立，但它的含义需要更精确。MAS Progress Portal / Live Console 的 repo 能力已经 landed，真实 workspace soak 也有 evidence；当前缺口是用户路径 polish 和 interactive terminal attach 深度，不是 MAS 默认还需要 MDS WebUI。对用户影响最大的是“真实多论文 workspace 中每篇论文是否稳定走 per-study 工作台”、“研究路线地图是否有足够 controller/evidence/runtime lineage 输入”、“执行器对话时间线是否覆盖真实用户消息和执行回合”和“MAS-native terminal attach/input owner 能否安全落地”。这些应作为 MAS-native UX / control lane 处理，不应通过重新启用旧 MDS daemon 或旧 WebUI 解决。
 
 ## Evidence
 
@@ -36,7 +36,7 @@ Related contracts: `live-console-parity`, `mds_behavior_equivalence_matrix`
 - `runtime_live_console_ui.py` 能渲染 read-only Live Console HTML，展示 workspace/study/run 表、timeline、terminal stream tail、log stream tail、artifact/event refs。
 - `progress_portal_parts/live_console_shell.py` 提供 Portal 到 Live Console 的 thin link/ref，authority 是 `read_only_runtime_observation`。
 
-差距不在“有没有任何进度页”，而在“用户是否能以单篇论文为核心稳定理解系统正在做什么”。当前 MAS 已有 per-study workbench repo contract，Live Console 是运行证据页，不是论文进度主入口；执行器对话、terminal attach/control、stage/file path 仍需要真实 workspace polish 和更完整的用户路径。另一个原 P0 语义缺口已经有机器合同承接：旧 MDS WebUI 能让用户看到类似研究路线的演进，MAS 现在用 `focused_lanes.portal-route-decision-trail` 和 `mas_progress_portal_route_decision_trail` helper 固定 read-only projection，展示先尝试哪条分析/写作路径，哪一步因为证据、质量、数据或运行 blocker 走不通，为什么切换到另一条路线，以及最终哪条路线仍是 active / winning path。真实 workspace 若缺 controller decision、evidence/review ledger 或 runtime lifecycle lineage 输入，页面必须显示 missing，不得编造路线。
+差距不在“有没有任何进度页”，而在“用户是否能以单篇论文为核心稳定理解系统正在做什么”。当前 MAS 已有 per-study workbench repo contract，Live Console 是运行证据页，不是论文进度主入口；terminal attach/control、stage/file path 仍需要真实 workspace polish 和更完整的用户路径。另一个原 P0 语义缺口已经有机器合同承接：旧 MDS WebUI 能让用户看到类似研究路线的演进，MAS 现在用 `focused_lanes.portal-route-decision-trail`、`mas_progress_portal_route_decision_trail` 和 `mas_progress_portal_route_map` helper 固定 read-only projection，展示先尝试哪条分析/写作路径，哪一步因为证据、质量、数据或运行 blocker 走不通，为什么切换到另一条路线，以及最终哪条路线仍是 active / winning path。真实 workspace 若缺 controller decision、evidence/review ledger 或 runtime lifecycle lineage 输入，页面必须显示 missing，不得编造路线。
 
 ## User-View Parity Matrix
 
@@ -45,8 +45,8 @@ Related contracts: `live-console-parity`, `mds_behavior_equivalence_matrix`
 | 按论文/quest 进入 | `/projects/:projectId` 进入 project / quest workspace；之后的 canvas/stage/details/memory/terminal 都围绕同一 quest。 | `ops/mas/progress/index.html` 是 workspace 固定入口；study rows 可区分论文线，但默认叙事仍是 workspace overview。 | 需要 per-study/per-paper page、稳定 deep link 和默认选中逻辑，避免多论文混读。 | P0 |
 | 当前实时进度 | WebUI 从 resident daemon/API/WebSocket 读 live 状态，用户感知接近即时。 | Portal 读 MAS durable projection；Live Console snapshot/SSE 提供只读运行观察；outer supervision freshness 可见。 | 需要在每个 study 页直接显示 refresh age、latency/SLO、last event 和 blocked reason；长期 soak 证明刷新体验。 | P0 |
 | 论文路径 / stage | Stage surface 将 structured facts、history、files、download/open 与 quest selection 绑定。 | Portal 显示 paper/current stage 摘要和 artifact refs；没有完整 per-study path/stage/file workspace。 | 需要 study-scoped Path/Stage tab，把 stage、evidence、files、package refs 组织成单篇论文路线。 | P0 |
-| 研究路线 / 决策轨迹 | Canvas / stage / history 能体现路线演进、分叉、失败路径和后续转向。 | MAS 已有 `focused_lanes.portal-route-decision-trail` 与 `mas_progress_portal_route_decision_trail` read-only helper，消费 controller/evidence/runtime lineage/source refs，并把 `intervention_lane` 投影成用户可读路线。 | 需要真实 workspace soak/polish，确保每篇论文都有足够 route inputs 和可读 source refs。 | P0 landed contract / soak pending |
-| 执行器实时对话 | Quest connector/chat pane 有 transcript、streaming assistant message、user composer、stop run、older history。 | MAS per-study Portal 已显示执行器对话面板，消费 runtime conversation read model，把 user messages、turn receipts、runtime control/blocker、tool/action/source refs 按 study scope 展示，并优先显示用户消息和执行回合。 | 真实 workspace 长时间 soak 仍需验证覆盖度和 source ref 可读性；streaming assistant transcript 仍是增强项。 | P1 landed visible panel / soak pending |
+| 研究路线 / 决策轨迹 | Canvas / stage / history 能体现路线演进、分叉、失败路径和后续转向。 | MAS 已有 `focused_lanes.portal-route-decision-trail`、`mas_progress_portal_route_decision_trail` 与 `mas_progress_portal_route_map` read-only helper，消费 controller/evidence/runtime lineage/source refs，并把 `intervention_lane` 投影成用户可读路线地图。 | 需要真实 workspace soak/polish，确保每篇论文都有足够 route inputs 和可读 source refs。 | P0 landed visualization / soak pending |
+| 执行器实时对话 | Quest connector/chat pane 有 transcript、streaming assistant message、user composer、stop run、older history。 | MAS per-study Portal 已显示执行器对话时间线，消费 runtime conversation read model，把 user messages、turn receipts、runtime control/blocker、tool/action/source refs 按 study scope 展示，并优先显示用户消息和执行回合。 | 真实 workspace 长时间 soak 仍需验证覆盖度和 source ref 可读性；streaming assistant transcript 仍是增强项。 | P1 landed timeline / soak pending |
 | terminal/log 观察 | WebUI 可以看 bash tool operation、progress、logs，并通过 xterm/WebSocket attach 到 terminal。 | Live Console 展示 terminal/log tail refs 和 read-only tail；没有 interactive attach。 | read-only observation 已落地；interactive attach/input/resize/detach 需单独安全设计。 | P1 |
 | UI 控制运行 | WebUI 可发消息、stop run、terminal input、部分 daemon/system 操作。 | MAS Progress Portal `--serve --enable-actions` 已能对 `pause`、`resume`、`stop` 调 MAS runtime owner apply 并写 receipt/audit；`inspect` 和 `reconcile-dry-run` 仍 dry-run。 | terminal input/resize/detach 仍需 MAS-native owner gate；reconcile apply 仍应走 supervisor/controller dedicated surface。 | P2 partial landed / attach pending |
 | 多论文 workspace | 旧 WebUI 的 project/quest route 减少混淆；用户通常在单 quest 上操作。 | MAS workspace overview 会把所有 studies 放到同一表和同一页面上下文。 | 需要左侧 study list / attention queue + 单 study detail 主面；workspace overview 只作入口，不作主要解释页。 | P0 |
@@ -75,9 +75,9 @@ Progress Portal 后续应从“一个 workspace 大页面”调整为“workspac
 | Lane | Machine contract | Scope | Done criteria |
 | --- | --- | --- |
 | `portal-study-scoped-ia` | `portal-console-soak` evidence keys | 把 Portal 默认 UX 改成 workspace shell + per-study detail/deep link。 | 多论文 workspace 打开后不会混读；单 study 页能回答状态、路径、阻塞、下一步、artifact。 |
-| `portal-route-decision-trail` | `focused_lanes.portal-route-decision-trail` | 把 controller decisions、evidence/review ledgers 和 runtime lifecycle lineage/canvas 投影成单篇论文路线图。 | 用户能看到尝试过的路线、失败或阻塞原因、转向理由、superseded path、active/winning path 和对应 source refs；Portal 不重新解释医学质量。 |
+| `portal-route-decision-trail` | `focused_lanes.portal-route-decision-trail` | 把 controller decisions、evidence/review ledgers 和 runtime lifecycle lineage/canvas 投影成单篇论文路线图。 | 用户能看到尝试过的路线、失败或阻塞原因、转向理由、superseded path、active/winning path、route map node/edge 和对应 source refs；Portal 不重新解释医学质量。 |
 | `portal-stage-artifact-path` | `portal-console-soak` evidence keys | 做 study-scoped Path/Stage/Artifacts view。 | stage history、evidence/review/proof、draft/package/files 都按单篇论文组织。 |
-| `runtime-conversation-read-model` | `mas_runtime_conversation_read_model` + `mas_progress_portal_conversation_panel` | 从 MAS turn receipts、user queue、runner events、tool calls/source refs 生成 conversation/timeline read model，并挂到 per-study Portal。 | 用户能在单篇论文页看到执行器“说了什么、做了什么、为什么停、下一步是什么”。 |
+| `runtime-conversation-read-model` | `mas_runtime_conversation_read_model` + `mas_progress_portal_conversation_panel` | 从 MAS turn receipts、user queue、runner events、tool calls/source refs 生成 conversation/timeline read model，并挂到 per-study Portal。 | 用户能在单篇论文页以 timeline 看到执行器“说了什么、做了什么、为什么停、下一步是什么”。 |
 | `live-console-study-scope-polish` | `portal-console-soak.study_scoped_console` | Live Console 从 study deep link 进入，默认过滤单 study；显示 latency/SLO、stream source health、tail readability。 | Terminal/log tail 与 run identity 不再在多 study profile view 中混淆。 |
 | `interactive-terminal-attach-design` | `focused_lanes.terminal-attach-gate` | 设计 MAS-native authorized attach/control，不恢复旧 daemon 作为默认 owner。 | 当前 gate fail-closed；未来实现需 threat model、owner gate、idempotency/audit、token/lease、input/resize/detach contract。 |
 | `authorized-ui-control` | action receipts / enable-actions gate | UI action intent 到 controller-authorized apply 的最小安全链路。 | `pause`、`resume`、`stop` 已可审计执行；`inspect`、`reconcile-dry-run` 为 dry-run；terminal input 另行 gate。 |
@@ -88,9 +88,9 @@ Progress Portal 后续应从“一个 workspace 大页面”调整为“workspac
 | priority | gap | current user impact | next implementation shape |
 | --- | --- | --- | --- |
 | P0 landed contract / soak pending | `portal-study-scoped-ia` | 用户能打开一个固定 Portal；真实多论文 workspace 仍需验证默认路径不会混读。 | 继续真实 workspace user soak、source ref polish 和 IA 细节修正。 |
-| P0 landed read-only contract / soak pending | `portal-route-decision-trail` | 用户能看到 repo contract 中的路线图 projection；真实论文若缺 route inputs 会显示 missing。 | 补真实 controller/evidence/runtime lineage 输入质量，持续 soak Route / Decision Trail 可读性。 |
+| P0 landed visualization / soak pending | `portal-route-decision-trail` | 用户能看到 repo contract 中的路线图 projection 和 SVG 研究路线地图；真实论文若缺 route inputs 会显示 missing。 | 补真实 controller/evidence/runtime lineage 输入质量，持续 soak Route / Decision Trail 与 route map 可读性。 |
 | P0 landed contract / polish pending | `portal-stage-artifact-path` | 用户能看到 artifact refs 和 per-study grouping；真实 workspace 还需要路径可读性 polish。 | 在 per-study detail 里继续打磨 Path/Stage 与 Artifacts tabs。 |
-| P1 landed visible panel / polish pending | `runtime-conversation-read-model` | 用户能在 per-study Portal 直接看 conversation timeline；真实执行器对话覆盖度仍需长期 soak。 | 从 user message queue、turn receipts、tool/action refs 持续增强只读 conversation timeline。 |
+| P1 landed timeline / polish pending | `runtime-conversation-read-model` | 用户能在 per-study Portal 直接看 conversation timeline；真实执行器对话覆盖度仍需长期 soak。 | 从 user message queue、turn receipts、tool/action refs 持续增强只读 conversation timeline。 |
 | P1 landed capability / polish pending | `live-console-study-scope-polish` | Live Console profile view 可区分 study/run；Portal 深链已携带 study scope，仍需 tail/readability polish。 | 继续验证 Live Console 默认只展示该 study 的 run/log/terminal refs。 |
 | P2 partial landed / attach pending | `authorized-ui-control` | 用户可在显式本机 enable-actions 模式执行 pause/resume/stop；terminal input 与 reconcile apply 仍不在 Portal 默认能力内。 | 继续真实 workspace action receipt soak；terminal input/resize/detach 单独过 owner gate。 |
 | P2 | `interactive-terminal-attach-design` | 不能复刻旧 MDS WebSocket terminal attach 的交互体验。 | 先完成 threat model 与 owner gate，再决定是否实现 terminal input/resize/detach。 |
@@ -100,7 +100,7 @@ Progress Portal 后续应从“一个 workspace 大页面”调整为“workspac
 ## Wording Rules
 
 - 可以说：当前 MAS 已落地 read-only purpose parity，用户能通过 Portal / Live Console 看进度、study rows、session/run、terminal/log tail、runtime health、supervision freshness。
-- 可以说：研究路线 / decision trail 的 MAS read-only contract 已落地为 `focused_lanes.portal-route-decision-trail` 和 `mas_progress_portal_route_decision_trail`；真实 workspace route input 完整性、长期刷新和 UI 可读性仍是 P0 soak/polish。
+- 可以说：研究路线 / decision trail 的 MAS read-only contract 已落地为 `focused_lanes.portal-route-decision-trail`、`mas_progress_portal_route_decision_trail` 和 `mas_progress_portal_route_map`；真实 workspace route input 完整性、长期刷新和 UI 可读性仍是 P0 soak/polish。
 - 可以说：旧 MDS WebUI 的产品身份、代码、bundle、Git history 和 contributor footprint 不导入 MAS。
 - 不能说：旧 resident WebSocket terminal attach、terminal input/resize、UI 控制 daemon 已经 retired / 不复刻。
 - 应说：这些交互能力尚未落地在当前 read-only scope，属于后续 interactive parity candidate，落地前必须通过安全、owner、idempotency 和审计 gate。

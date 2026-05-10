@@ -41,6 +41,10 @@ from .route_decision_trail import (
     build_route_decision_trail_payload,
     render_route_decision_trail_section,
 )
+from .route_map import (
+    build_route_map_payload,
+    render_route_map_section,
+)
 from .live_console_shell import (
     LIVE_CONSOLE_HTML_REF,
     LIVE_CONSOLE_SERVE_COMMAND,
@@ -73,6 +77,7 @@ __all__ = [
     "LIVE_CONSOLE_SESSION_READ_MODEL_REF",
     "ARTIFACT_GROUPS",
     "build_route_decision_trail_payload",
+    "build_route_map_payload",
     "build_study_workbench_payload",
     "condition_badge",
     "condition_section",
@@ -93,6 +98,7 @@ __all__ = [
     "render_workspace_studies_section",
     "render_workspace_alerts_section",
     "render_route_decision_trail_section",
+    "render_route_map_section",
     "render_study_workbench_sections",
     "render_live_console_portal_link",
     "render_section_explanations_section",

@@ -85,6 +85,9 @@ def test_portal_route_decision_trail_and_terminal_attach_have_machine_contracts(
         "source_refs",
     ]
     assert set(route["required_display_fields"]) == {
+        "route_map",
+        "route_map_node",
+        "route_map_edge",
         "route_node",
         "decision_rationale",
         "blocked_reason",
@@ -97,6 +100,7 @@ def test_portal_route_decision_trail_and_terminal_attach_have_machine_contracts(
     assert "publication_eval/latest.json" in route["forbidden_authority_writes"]
     assert "controller_decisions/latest.json" in route["forbidden_authority_writes"]
     assert "tests/progress_portal_cases" in route["paths"]
+    assert "route_map_visualization" in soak["required_evidence_keys"]
     assert "route_decision_trail" in soak["required_evidence_keys"]
     assert "conversation_portal_panel" in soak["required_evidence_keys"]
     assert "authorized_action_apply_receipts" in soak["required_evidence_keys"]

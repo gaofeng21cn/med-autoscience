@@ -120,9 +120,9 @@ def render_route_decision_trail_section(payload: Mapping[str, Any]) -> str:
             + status_chip(payload.get("status") or "missing")
             + "</h2>",
             list_html(summary_items, empty_text="当前没有路线投影。"),
-            list_html(items, empty_text="缺少显式路线节点；Portal 不从 stage 文案或文件名猜测研究路线。"),
+            list_html(items, empty_text="缺少显式路线节点；本页面不从阶段摘要或文件名猜测研究路线。"),
             "<h3>路线来源</h3>",
-            list_html(refs, empty_text="缺少路线 source refs；Portal 不推断路线来源。"),
+            list_html(refs, empty_text="缺少路线来源；本页面不推断路线来源。"),
             "</section>",
         ]
     )

@@ -119,6 +119,11 @@ def build_portal_console_soak_report(
             portal_payload=portal_payload,
             portal_html_path=portal_html_path,
         ),
+        "route_map_visualization": _route_map_visualization(
+            portal_result=portal_result,
+            portal_payload=portal_payload,
+            portal_html_path=portal_html_path,
+        ),
         "route_decision_trail": _route_decision_trail(
             portal_result=portal_result,
             portal_payload=portal_payload,
@@ -257,7 +262,16 @@ def _per_study_workbench(
     workbench = _mapping(portal_payload.get("study_workbench"))
     tabs = _mapping_list(workbench.get("tabs"))
     tab_ids = {_text(item.get("id")) for item in tabs if _text(item.get("id"))}
-    expected_tabs = {"overview", "route_decision_trail", "path_stage", "runtime", "artifacts", "source_refs"}
+    expected_tabs = {
+        "overview",
+        "route_map",
+        "route_decision_trail",
+        "path_stage",
+        "runtime",
+        "artifacts",
+        "conversation",
+        "source_refs",
+    }
     materialized_pages = _materialized_study_page_refs(
         portal_result=portal_result,
         portal_html_path=portal_html_path,
@@ -318,6 +332,63 @@ def _route_decision_trail(
     }
 
 
+def _route_map_visualization(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_payload: Mapping[str, Any],
+    portal_html_path: Path,
+) -> dict[str, Any]:
+    maps = _portal_route_maps(portal_result=portal_result, portal_payload=portal_payload)
+    available = [
+        item
+        for item in maps
+        if item.get("surface_kind") == "mas_progress_portal_route_map" and item.get("status") == "available"
+    ]
+    node_kinds = sorted(
+        {
+            kind
+            for item in available
+            for node in _mapping_list(item.get("nodes"))
+            if (kind := _text(node.get("kind")))
+        }
+    )
+    edge_kinds = sorted(
+        {
+            kind
+            for item in available
+            for edge in _mapping_list(item.get("edges"))
+            if (kind := _text(edge.get("kind")))
+        }
+    )
+    source_refs = _dedupe_text(
+        ref
+        for item in available
+        for ref in _string_refs(item.get("source_refs"))
+    )
+    html_refs = _route_map_html_refs(portal_result=portal_result, portal_html_path=portal_html_path)
+    has_route_node = "route" in node_kinds
+    has_decision_node = "decision" in node_kinds
+    has_edges = bool(edge_kinds)
+    return {
+        "status": "passed" if available and has_route_node and has_decision_node and has_edges and source_refs and html_refs else "blocked",
+        "map_count": len(maps),
+        "available_count": len(available),
+        "node_kinds": node_kinds,
+        "edge_kinds": edge_kinds,
+        "source_refs": source_refs,
+        "html_refs": html_refs,
+        "blockers": _blockers(
+            ("missing_route_map_surface", not maps),
+            ("missing_available_route_map", bool(maps) and not available),
+            ("missing_route_map_route_node", bool(available) and not has_route_node),
+            ("missing_route_map_decision_node", bool(available) and not has_decision_node),
+            ("missing_route_map_edges", bool(available) and not has_edges),
+            ("missing_route_map_source_refs", bool(available) and not source_refs),
+            ("missing_route_map_html", bool(available) and not html_refs),
+        ),
+    }
+
+
 def _per_study_deep_link(
     *,
     portal_result: Mapping[str, Any],
@@ -375,11 +446,13 @@ def _conversation_read_model(*, conversation_payload: Mapping[str, Any]) -> dict
         or studies
         or conversation_payload.get("surface_kind") == "mas_runtime_conversation_read_model"
     )
+    timeline_kinds = sorted({kind for item in timeline if (kind := _text(item.get("item_kind")))})
     return {
         "status": "passed" if has_conversation_items and scoped and source_refs else "blocked",
         "surface_kind": _text(conversation_payload.get("surface_kind")),
         "selected_study_id": selected_study_id,
         "timeline_item_count": len(timeline),
+        "timeline_kinds": timeline_kinds,
         "study_count": len(studies),
         "source_refs": source_refs,
         "blockers": _blockers(
@@ -407,6 +480,14 @@ def _conversation_portal_panel(
         if panel.get("surface_kind") == "mas_progress_portal_conversation_panel"
         and panel.get("status") == "available"
     ]
+    timeline_kinds = sorted(
+        {
+            kind
+            for panel in available
+            for item in _mapping_list(panel.get("timeline_items"))
+            if (kind := _text(item.get("item_kind")))
+        }
+    )
     source_refs = [
         ref
         for panel in panels
@@ -416,6 +497,7 @@ def _conversation_portal_panel(
         "status": "passed" if available and visible_html_refs and source_refs else "blocked",
         "panel_count": len(panels),
         "available_panel_count": len(available),
+        "timeline_kinds": timeline_kinds,
         "html_refs": visible_html_refs,
         "source_refs": _dedupe_text(source_refs),
         "blockers": _blockers(
@@ -749,6 +831,27 @@ def _portal_route_trails(
     return trails
 
 
+def _portal_route_maps(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_payload: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    maps: list[dict[str, Any]] = []
+    workbench = _mapping(portal_payload.get("study_workbench"))
+    route_map = _mapping(workbench.get("route_map"))
+    if route_map:
+        maps.append(route_map)
+    for page in _mapping(portal_result.get("study_pages")).values():
+        if not isinstance(page, Mapping):
+            continue
+        payload_path = Path(str(page.get("payload_path") or ""))
+        page_payload = _read_json_object(payload_path)
+        page_map = _mapping(_mapping(page_payload.get("study_workbench")).get("route_map"))
+        if page_map:
+            maps.append(page_map)
+    return maps
+
+
 def _portal_conversation_panels(
     *,
     portal_result: Mapping[str, Any],
@@ -781,9 +884,24 @@ def _conversation_panel_html_refs(
         if isinstance(page, Mapping)
     ]]:
         html = _read_text(path)
-        if ("执行器对话" in html and "对话来源" in html) or (
-            "Conversation" in html and "Conversation Source Refs" in html
-        ):
+        if "执行器对话" in html and "对话来源" in html and "conversation-timeline" in html:
+            refs.append(str(path))
+    return refs
+
+
+def _route_map_html_refs(
+    *,
+    portal_result: Mapping[str, Any],
+    portal_html_path: Path,
+) -> list[str]:
+    refs: list[str] = []
+    for path in [portal_html_path, *[
+        Path(str(page.get("html_path") or ""))
+        for page in _mapping(portal_result.get("study_pages")).values()
+        if isinstance(page, Mapping)
+    ]]:
+        html = _read_text(path)
+        if "研究路线地图" in html and "route-map-svg" in html and "data-route-kind=\"route\"" in html:
             refs.append(str(path))
     return refs
 

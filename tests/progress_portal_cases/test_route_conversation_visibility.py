@@ -41,6 +41,7 @@ def test_study_workbench_projects_intervention_lane_as_readable_route_decision()
     html = parts.render_study_workbench_sections(payload)
 
     route = payload["route_decision_trail"]
+    route_map = payload["route_map"]
     assert route["status"] == "available"
     assert route["active_path"] == "write"
     assert route["winning_path"] == "write"
@@ -49,10 +50,124 @@ def test_study_workbench_projects_intervention_lane_as_readable_route_decision()
     assert route["nodes"][0]["decision"] == "same_line_route_back"
     assert route["nodes"][0]["evidence_point"] == "把 10 条用户意见映射到修订计划"
     assert route["nodes"][0]["pivot_rationale"] == "最新 task intake 已重开同一论文线，先回到写作与结果收紧。"
+    assert route_map["surface_kind"] == "mas_progress_portal_route_map"
+    assert route_map["status"] == "available"
+    assert {node["kind"] for node in route_map["nodes"]} >= {"stage", "route", "decision"}
+    assert any(edge["kind"] == "advance" for edge in route_map["edges"])
+    assert "studies/001-risk/artifacts/controller_decisions/latest.json" in route_map["source_refs"]
+    assert "route-map-svg" in html
+    assert "研究路线地图" in html
+    assert "data-route-kind=\"route\"" in html
+    assert "切换理由" in html
     assert "路线 / 决策" in html
     assert "当前路线：write" in html
     assert "论文写作与结果收紧" in html
     assert "最新 task intake 已重开同一论文线" in html
+
+
+def test_study_workbench_route_map_fails_closed_without_route_lineage() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+
+    payload = parts.build_study_workbench_payload(
+        progress=_progress_payload(),
+        cockpit={},
+        runtime={},
+        package={},
+        study_id="001-risk",
+    )
+    html = parts.render_study_workbench_sections(payload)
+
+    route_map = payload["route_map"]
+    assert route_map["status"] == "missing"
+    assert route_map["nodes"] == []
+    assert route_map["edges"] == []
+    assert route_map["conditions"]["missing"] == ["route_lineage"]
+    assert "缺少研究路线来源" in html
+    assert "本页面不从阶段文案、文件名或产物路径猜测路线。" in html
+
+
+def test_study_workbench_route_map_renders_clickable_node_details_and_conversation_anchors() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    conversation_payload = {
+        "surface_kind": "mas_runtime_conversation_read_model",
+        "selected_study_id": "001-risk",
+        "timeline": [
+            {
+                "sequence": 1,
+                "item_kind": "user_message",
+                "study_id": "001-risk",
+                "message_id": "msg-route-change",
+                "source_ref": "studies/001-risk/artifacts/runtime/user_message_queue.json",
+            },
+            {
+                "sequence": 2,
+                "item_kind": "turn_receipt",
+                "study_id": "001-risk",
+                "run_id": "run-route-001",
+                "turn_status": "completed",
+                "source_ref": "studies/001-risk/artifacts/runtime/turn_receipts.jsonl",
+            },
+        ],
+        "source_refs": [
+            {"study_id": "001-risk", "source_ref": "studies/001-risk/artifacts/runtime/turn_receipts.jsonl"}
+        ],
+    }
+
+    payload = parts.build_study_workbench_payload(
+        progress={
+            **_progress_payload(),
+            "route_decision_trail": {
+                "active_path": "analysis-route-b",
+                "winning_path": "analysis-route-b",
+                "nodes": [
+                    {
+                        "route_id": "analysis-route-a",
+                        "label": "旧路线",
+                        "evidence_point": "外部验证不足",
+                        "blocked_reason": "外部验证未通过",
+                        "superseded_by": "analysis-route-b",
+                    },
+                    {
+                        "route_id": "analysis-route-b",
+                        "label": "新路线",
+                        "decision": "continue",
+                        "evidence_point": "亚组证据更强",
+                    },
+                ],
+                "source_refs": ["studies/001-risk/artifacts/controller_decisions/latest.json"],
+            },
+            "artifact_locators": [
+                {
+                    "group": "draft",
+                    "label": "canonical manuscript draft",
+                    "ref": "studies/001-risk/paper/manuscript.md",
+                    "status": "fresh",
+                }
+            ],
+        },
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-route-001"},
+        package={"study_id": "001-risk"},
+        study_id="001-risk",
+        conversation_payload=conversation_payload,
+    )
+    html = parts.render_study_workbench_sections(payload)
+
+    edge_kinds = {edge["kind"] for edge in payload["route_map"]["edges"]}
+    assert {"advance", "blocked", "reroute", "artifact_generated"} <= edge_kinds
+    route_node = next(node for node in payload["route_map"]["nodes"] if node["id"] == "route-analysis-route-a")
+    assert "conversation-seq-1" in route_node["conversation_refs"]
+    run_node = next(node for node in payload["route_map"]["nodes"] if node["kind"] == "run")
+    assert run_node["conversation_refs"] == ["conversation-seq-2"]
+    assert 'class="route-node-link" href="#route-node-detail-route-analysis-route-a"' in html
+    assert 'id="route-node-detail-route-analysis-route-a"' in html
+    assert '<a href="#conversation-seq-1">conversation-seq-1</a>' in html
+    assert '<a href="#conversation-seq-2">conversation-seq-2</a>' in html
+    assert "产物：studies/001-risk/paper/manuscript.md" in html
+    assert "route-edge--reroute" in html
+    assert "route-edge--artifact-generated" in html
+    assert 'id="conversation-seq-1"' in html
+    assert 'id="conversation-seq-2"' in html
 
 
 def test_study_workbench_conversation_prioritizes_human_messages_and_turns_over_event_refs() -> None:
@@ -129,6 +244,10 @@ def test_study_workbench_conversation_prioritizes_human_messages_and_turns_over_
     assert "turn_receipt" in kinds
     assert "latest_turn_receipt_ref" in kinds
     assert payload["conversation"]["timeline_summary"]["counts_by_kind"]["user_message"] == 1
+    assert "conversation-timeline" in html
+    assert "conversation-item--user_message" in html
+    assert "conversation-item--turn_receipt" in html
+    assert "id=\"conversation-seq-31\"" in html
     assert "用户消息" in html
     assert "msg-reviewer-feedback" in html
     assert "执行回合" in html
@@ -256,3 +375,7 @@ def test_progress_portal_materialized_unselected_study_pages_use_canonical_progr
     assert f"studies/{unselected_id}/artifacts/controller_decisions/latest.json" in route["source_refs"]
     assert "论文写作与结果收紧" in html
     assert "workspace row fallback only" not in html
+    assert "切换论文线" in html
+    assert "论文线入口" not in html
+    assert f'href="../{selected_id}/index.html"' in html
+    assert f'href="../{unselected_id}/index.html"' in html

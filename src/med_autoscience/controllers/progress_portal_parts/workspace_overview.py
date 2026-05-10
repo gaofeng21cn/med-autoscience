@@ -374,7 +374,7 @@ def _study_live_console_link(study_id: str, *, href: str | None = None) -> str:
 
 def study_detail_href(study_id: str, *, from_study_page: bool = False) -> str:
     encoded = quote(study_id, safe="")
-    prefix = "" if from_study_page else "studies/"
+    prefix = "../" if from_study_page else "studies/"
     return f"{prefix}{encoded}/index.html"
 
 

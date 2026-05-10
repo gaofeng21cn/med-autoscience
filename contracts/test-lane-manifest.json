@@ -220,6 +220,9 @@
         "source_refs"
       ],
       "required_display_fields": [
+        "route_map",
+        "route_map_node",
+        "route_map_edge",
         "route_node",
         "decision_rationale",
         "blocked_reason",
@@ -297,6 +300,7 @@
       "required_evidence_keys": [
         "portal_refresh",
         "per_study_workbench",
+        "route_map_visualization",
         "route_decision_trail",
         "per_study_deep_link",
         "conversation_read_model",

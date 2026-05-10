@@ -190,7 +190,7 @@ def _navigation_section(payload: Mapping[str, Any]) -> str:
         return ""
     return (
         '<nav class="panel wide portal-nav" aria-label="论文线导航">'
-        "<h2>论文线入口</h2>"
+        "<h2>切换论文线</h2>"
         '<div class="live-console-link">'
         + "".join(links)
         + "</div></nav>"

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .rendering import list_html, status_chip
+from .route_map import build_route_map_payload, render_route_map_section
 from .route_decision_trail import (
     build_route_decision_trail_payload,
     render_route_decision_trail_section,
@@ -75,6 +76,20 @@ def build_study_workbench_payload(
     )
     stage_knowledge = _stage_knowledge_projection(resolved_progress, resolved_study_id)
     conversation = _conversation_projection(conversation_payload, resolved_study_id)
+    path_stage = {
+        "current_stage": _first_text(user_visible.get("current_stage"), cockpit_study.get("current_stage")),
+        "current_stage_summary": _non_empty_text(user_visible.get("current_stage_summary")),
+        "paper_stage": _first_text(user_visible.get("paper_stage"), cockpit_study.get("paper_stage")),
+        "paper_stage_summary": _non_empty_text(user_visible.get("paper_stage_summary")),
+        "progress_freshness": _mapping(resolved_progress.get("progress_freshness")),
+    }
+    route_map = build_route_map_payload(
+        route_decision_trail=route_decision_trail,
+        path_stage=path_stage,
+        artifact_groups=artifact_groups,
+        conversation=conversation,
+        study_id=resolved_study_id,
+    )
     refs = source_refs(resolved_progress, resolved_cockpit, resolved_runtime, resolved_package)
     conditions = _conditions(
         study_id=resolved_study_id,
@@ -104,13 +119,6 @@ def build_study_workbench_payload(
         ),
         "current_blockers": _string_list(user_visible.get("current_blockers")),
     }
-    path_stage = {
-        "current_stage": _first_text(user_visible.get("current_stage"), cockpit_study.get("current_stage")),
-        "current_stage_summary": _non_empty_text(user_visible.get("current_stage_summary")),
-        "paper_stage": _first_text(user_visible.get("paper_stage"), cockpit_study.get("paper_stage")),
-        "paper_stage_summary": _non_empty_text(user_visible.get("paper_stage_summary")),
-        "progress_freshness": _mapping(resolved_progress.get("progress_freshness")),
-    }
     runtime_projection = _runtime_projection(resolved_progress, resolved_runtime, cockpit_study)
     return {
         "schema_version": 1,
@@ -123,6 +131,7 @@ def build_study_workbench_payload(
         "study_id": resolved_study_id,
         "tabs": [
             {"id": "overview", "label": "概览", "status": _tab_status(overview)},
+            {"id": "route_map", "label": "研究路线地图", "status": _non_empty_text(route_map.get("status")) or "missing"},
             {
                 "id": "route_decision_trail",
                 "label": "路线/决策",
@@ -140,6 +149,7 @@ def build_study_workbench_payload(
             {"id": "source_refs", "label": "来源", "status": "available" if refs else "missing"},
         ],
         "overview": overview,
+        "route_map": route_map,
         "route_decision_trail": route_decision_trail,
         "stage_knowledge": stage_knowledge,
         "path_stage": path_stage,
@@ -153,6 +163,7 @@ def build_study_workbench_payload(
 
 def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
     overview = _mapping(payload.get("overview"))
+    route_map = _mapping(payload.get("route_map"))
     route_decision_trail = _mapping(payload.get("route_decision_trail"))
     stage_knowledge = _mapping(payload.get("stage_knowledge"))
     path_stage = _mapping(payload.get("path_stage"))
@@ -169,6 +180,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
             + escape(display_text(overview.get("state_label"), fallback="状态投影缺失", preserve_known_token=False))
             + "</p>",
             "</section>",
+            render_route_map_section(route_map),
             render_route_decision_trail_section(route_decision_trail),
             _stage_knowledge_section(stage_knowledge),
             _key_value_section(
@@ -785,21 +797,61 @@ def _conversation_source_refs(payload: Mapping[str, Any], study_id: str) -> list
 def _conversation_section(conversation: Mapping[str, Any]) -> str:
     status = _non_empty_text(conversation.get("status")) or "missing"
     summary = _conversation_summary_text(_mapping(conversation.get("timeline_summary")))
-    items = [
-        _non_empty_text(item.get("summary")) or _non_empty_text(item.get("item_kind")) or "conversation item"
-        for item in _mapping_list(conversation.get("timeline_items"))
-    ]
+    items = _mapping_list(conversation.get("timeline_items"))
     refs = _string_list(conversation.get("source_refs"))
     return (
         '<section class="panel wide"><h2>执行器对话 '
         + status_chip(status)
         + "</h2>"
         + (f"<p>{escape(summary)}</p>" if summary else "")
-        + list_html(items, empty_text="缺少执行器 conversation timeline。")
+        + _conversation_timeline_html(items)
         + "<h3>对话来源</h3>"
         + list_html(refs, empty_text="缺少 conversation source refs。")
         + "</section>"
     )
+
+
+def _conversation_timeline_html(items: list[dict[str, Any]]) -> str:
+    if not items:
+        return "<p>缺少执行器对话时间线。</p>"
+    rendered: list[str] = []
+    for item in items:
+        kind = _non_empty_text(item.get("item_kind")) or "conversation_item"
+        sequence = item.get("sequence") if isinstance(item.get("sequence"), int) else None
+        anchor = f"conversation-seq-{sequence}" if sequence is not None else f"conversation-{kind}"
+        meta: list[str] = []
+        if sequence is not None:
+            meta.append(f"#{sequence}")
+        occurred_at = _non_empty_text(item.get("occurred_at"))
+        if occurred_at:
+            meta.append(occurred_at)
+        run_id = _non_empty_text(item.get("run_id"))
+        if run_id:
+            meta.append(f"运行 {run_id}")
+        source_ref = _non_empty_text(item.get("source_ref"))
+        if source_ref:
+            meta.append(f"来源 {source_ref}")
+        summary = _non_empty_text(item.get("summary")) or kind
+        rendered.append(
+            '<li id="'
+            + escape(anchor, quote=True)
+            + '" class="conversation-item conversation-item--'
+            + escape(kind, quote=True)
+            + '" data-item-kind="'
+            + escape(kind, quote=True)
+            + '"'
+            + (f' data-sequence="{sequence}"' if sequence is not None else "")
+            + ">"
+            + '<div class="conversation-item__marker" aria-hidden="true"></div>'
+            + '<div class="conversation-item__body"><strong>'
+            + escape(_conversation_kind_label(kind))
+            + "</strong>"
+            + ("<span>" + escape(" / ".join(meta)) + "</span>" if meta else "")
+            + "<p>"
+            + escape(summary)
+            + "</p></div></li>"
+        )
+    return '<ol class="conversation-timeline">' + "".join(rendered) + "</ol>"
 
 
 def _conversation_summary_text(summary: Mapping[str, Any]) -> str:
