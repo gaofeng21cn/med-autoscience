@@ -341,6 +341,10 @@ def _study_needs_attention(item: Mapping[str, Any]) -> bool:
         "missing",
         "not_installed",
         "not_loaded",
+        "parked",
+        "awaiting_explicit_resume",
+        "await_explicit_resume",
+        "manual_hold",
     }
 
 
