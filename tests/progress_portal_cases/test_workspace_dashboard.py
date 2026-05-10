@@ -47,9 +47,13 @@ def test_progress_portal_html_renders_human_first_workspace_dashboard_without_lo
     assert "需要关注的事项" in html
     assert '<span class="metric-label">需关注</span><strong>1</strong>' in html
     assert "论文线工作台" in html
+    assert "论文线入口" not in html
+    assert "portal-nav" not in html
     assert "study-card" in html
     assert "study-card__action" in html
+    assert 'href="studies/001-dm-cvd-mortality-risk/index.html"' in html
     assert "Live Console" in html
+    assert "medautosci runtime live-console --profile &lt;profile&gt; --serve" not in html
     assert "字段明细" in html
     assert "workspace_cockpit.progress_freshness" in html
     assert "uv run python -m med_autoscience.cli runtime supervisor-reconcile --profile &lt;profile&gt;" in html

@@ -43,7 +43,6 @@ def render_live_console_portal_link(live_console: Mapping[str, Any]) -> str:
     if not live_console:
         return ""
     label = _non_empty_text(live_console.get("label")) or "运行控制台"
-    serve_command = _non_empty_text(live_console.get("serve_command")) or LIVE_CONSOLE_SERVE_COMMAND
     href = _non_empty_text(live_console.get("href")) or "../live-console/index.html"
     scope = _non_empty_text(live_console.get("scope")) or "profile"
     badge = _non_empty_text(live_console.get("capability_badge")) or (
@@ -55,7 +54,6 @@ def render_live_console_portal_link(live_console: Mapping[str, Any]) -> str:
             f'<a href="{escape(href, quote=True)}">运行控制台</a>'
             f'<span class="capability-badge">{escape(badge)}</span>'
             f"<span>scope={escape(scope)}</span>"
-            f"<span>{escape(serve_command)}</span>"
             "</div>"
         )
     reason = _non_empty_text(live_console.get("disabled_reason")) or "运行控制台不可用。"

@@ -139,7 +139,7 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
             )
             if workspace_overview_mode
             else "",
-            _navigation_section(payload),
+            _navigation_section(payload) if not workspace_overview_mode else "",
             render_workspace_studies_section(workspace_studies),
             '<section class="grid">',
             section("当前状态", current_status_paragraphs),
