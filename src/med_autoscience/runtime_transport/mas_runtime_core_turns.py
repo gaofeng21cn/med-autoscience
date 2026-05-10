@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 import json
-import threading
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +33,7 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_liveness import (
     reconcile_stale_liveness as reconcile_stale_liveness_impl,
     watchdog_projection as _watchdog_projection,
 )
+from med_autoscience.runtime_transport import mas_runtime_core_turn_timers as turn_timers
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     idempotency_key as make_idempotency_key,
     message_id as make_message_id,
@@ -47,23 +47,20 @@ from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import (
     terminate_worker_lease_for_run,
     terminate_worker_leases,
 )
-
-AUTO_CONTINUE_DELAY_SECONDS = 0.2
-MAX_RETRY_ATTEMPTS = 3
-RETRY_BACKOFF_BASE_SECONDS = 1.0
-SAME_FINGERPRINT_AUTO_TURN_THRESHOLD = 3
-WORKER_LEASE_TTL_SECONDS = 3600
-BACKEND_ID = "mas_runtime_core"
-ENGINE_ID = "mas-runtime-core"
-TERMINAL_STATUSES = frozenset({"stopped", "paused", "completed", "failed", "error", "cancelled"})
+from med_autoscience.runtime_transport.mas_runtime_core_turn_policy import (
+    AUTO_CONTINUE_DELAY_SECONDS,
+    BACKEND_ID,
+    ENGINE_ID,
+    MAX_RETRY_ATTEMPTS,
+    RETRY_BACKOFF_BASE_SECONDS,
+    SAME_FINGERPRINT_AUTO_TURN_THRESHOLD,
+    TERMINAL_STATUSES,
+    WORKER_LEASE_TTL_SECONDS,
+)
 
 
 _TURN_RUNNER: MasTurnRunner = CodexExecTurnRunner()
 _NOW: Callable[[], datetime] = lambda: datetime.now(UTC)
-_DELAYED_TIMERS_ENABLED = True
-_DELAYED_TIMERS: list[threading.Timer] = []
-
-
 def set_turn_runner_for_tests(runner: MasTurnRunner) -> None:
     global _TURN_RUNNER
     _TURN_RUNNER = runner
@@ -85,10 +82,7 @@ def reset_clock_for_tests() -> None:
 
 
 def set_delayed_timers_enabled_for_tests(enabled: bool) -> None:
-    global _DELAYED_TIMERS_ENABLED
-    _DELAYED_TIMERS_ENABLED = enabled
-    if not enabled:
-        _cancel_delayed_timers()
+    turn_timers.set_delayed_timers_enabled_for_tests(enabled)
 
 
 def utc_now() -> str:
@@ -750,29 +744,12 @@ def drain_due_delayed_turn(*, quest_root: Path, source: str) -> dict[str, Any] |
 
 
 def _arm_delayed_turn_timer(*, quest_root: Path, delay_seconds: float, source: str) -> None:
-    if not _DELAYED_TIMERS_ENABLED:
-        return
-
-    def _drain() -> None:
-        try:
-            drain_due_delayed_turn(quest_root=quest_root, source=f"{source}:timer")
-        finally:
-            _prune_completed_timers()
-
-    timer = threading.Timer(delay_seconds, _drain)
-    timer.daemon = True
-    _DELAYED_TIMERS.append(timer)
-    timer.start()
-
-
-def _cancel_delayed_timers() -> None:
-    for timer in list(_DELAYED_TIMERS):
-        timer.cancel()
-    _DELAYED_TIMERS.clear()
-
-
-def _prune_completed_timers() -> None:
-    _DELAYED_TIMERS[:] = [timer for timer in _DELAYED_TIMERS if timer.is_alive()]
+    turn_timers.arm_delayed_turn_timer(
+        quest_root=quest_root,
+        delay_seconds=delay_seconds,
+        source=source,
+        drain_due_delayed_turn=drain_due_delayed_turn,
+    )
 
 
 def _arm_runner_monitor(*, runtime_root: Path, quest_root: Path, quest_id: str, run_id: str, source: str) -> None:

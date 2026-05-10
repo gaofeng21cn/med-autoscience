@@ -12,6 +12,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_c
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_closeout_redrive
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_owner_handoff_redrive
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_pending_redrive
+from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_postcondition
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
@@ -49,13 +50,6 @@ CONCRETE_BUNDLE_STAGE_SUPERVISOR_PHASES = {
     "bundle_stage_blocked",
     "bundle_stage_ready",
     "write_stage_ready",
-}
-PACKAGE_FRESHNESS_TERMINAL_REASONS = platform_repair_closeout_redrive.PACKAGE_FRESHNESS_TERMINAL_REASONS
-DOWNSTREAM_PACKAGE_FRESHNESS_WORK_UNIT_IDS = {
-    "publication_gate_replay",
-    "submission_authority_sync_closure",
-    "submission_delivery_sync_closure",
-    "submission_minimal_refresh",
 }
 
 
@@ -100,16 +94,7 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
-def _next_work_unit_needs_specificity(value: object) -> bool:
-    return platform_repair_closeout_redrive._next_work_unit_needs_specificity(value)
 
-
-def _recommended_actions_need_specificity(value: object) -> bool:
-    return platform_repair_closeout_redrive._recommended_actions_need_specificity(value)
-
-
-def _publication_eval_specificity_targets_complete(publication_eval_payload: Mapping[str, Any]) -> bool:
-    return platform_repair_closeout_redrive.publication_eval_specificity_targets_complete(publication_eval_payload)
 
 
 def _runtime_state_path(quest_root: str | None) -> Path | None:
@@ -118,98 +103,7 @@ def _runtime_state_path(quest_root: str | None) -> Path | None:
     return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
 
 
-def _runtime_state_has_stale_specificity_terminal(runtime_state: Mapping[str, Any]) -> bool:
-    return platform_repair_closeout_redrive.runtime_state_has_stale_specificity_terminal(runtime_state)
 
-
-def _runtime_state_has_controller_terminal(runtime_state: Mapping[str, Any]) -> bool:
-    return platform_repair_closeout_redrive.runtime_state_has_controller_terminal(runtime_state)
-
-
-def _resume_result_active_run_id(resume_result: Mapping[str, Any]) -> str | None:
-    runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
-    runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
-    snapshot = _mapping(resume_result.get("snapshot"))
-    postcondition = _mapping(resume_result.get("resume_postcondition"))
-    for value in (
-        resume_result.get("active_run_id"),
-        postcondition.get("active_run_id"),
-        runtime_liveness.get("active_run_id"),
-        runtime_audit.get("active_run_id"),
-        snapshot.get("active_run_id"),
-    ):
-        if text := _text(value):
-            return text
-    return None
-
-
-def _resume_result_worker_running(resume_result: Mapping[str, Any]) -> bool:
-    runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
-    runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
-    postcondition = _mapping(resume_result.get("resume_postcondition"))
-    snapshot = _mapping(resume_result.get("snapshot"))
-    if postcondition.get("effective") is True and (
-        postcondition.get("started") is True
-        or postcondition.get("scheduled") is True
-        or postcondition.get("queued") is True
-        or _text(postcondition.get("active_run_id")) is not None
-    ):
-        return True
-    if snapshot.get("worker_running") is True:
-        return True
-    if runtime_audit.get("worker_running") is False:
-        return False
-    if runtime_liveness.get("worker_running") is False:
-        return False
-    return bool(runtime_audit.get("worker_running") or runtime_liveness.get("worker_running"))
-
-
-def _controller_authorization_points_to_upstream_work_unit(
-    controller_authorization: Mapping[str, Any] | None,
-) -> bool:
-    return platform_current_controller.controller_authorization_points_to_upstream_work_unit(
-        controller_authorization
-    )
-
-
-def _runtime_relaunch_postcondition_failure(
-    resume_result: Mapping[str, Any],
-    *,
-    controller_authorization: Mapping[str, Any] | None = None,
-) -> dict[str, Any] | None:
-    postcondition = _mapping(resume_result.get("resume_postcondition"))
-    terminal_markers = {
-        _text(resume_result.get("blocked_reason")),
-        _text(resume_result.get("terminal_reason")),
-        _text(postcondition.get("blocked_reason")),
-        _text(postcondition.get("terminal_reason")),
-    }
-    if any(marker in SPECIFICITY_WORK_UNIT_IDS for marker in terminal_markers):
-        return {
-            "reason": "publication_gate_specificity_required",
-            "resume_postcondition": postcondition or None,
-        }
-    if any(marker in PACKAGE_FRESHNESS_TERMINAL_REASONS for marker in terminal_markers):
-        if _controller_authorization_points_to_upstream_work_unit(controller_authorization):
-            return {
-                "reason": current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON,
-                "resume_postcondition": postcondition or None,
-            }
-        return {
-            "reason": "current_package_freshness_required",
-            "resume_postcondition": postcondition or None,
-        }
-    if postcondition and postcondition.get("effective") is not True:
-        return {
-            "reason": "runtime_relaunch_no_live_run_started",
-            "resume_postcondition": postcondition,
-        }
-    if _resume_result_active_run_id(resume_result) is None and not _resume_result_worker_running(resume_result):
-        return {
-            "reason": "runtime_relaunch_no_live_run_started",
-            "resume_postcondition": postcondition or None,
-        }
-    return None
 
 
 def _apply_abnormal_stopped_runtime_repair(
@@ -259,7 +153,7 @@ def _apply_abnormal_stopped_runtime_repair(
             "error": str(exc),
         }
     resume_payload = dict(resume_result) if isinstance(resume_result, Mapping) else {}
-    postcondition_failure = _runtime_relaunch_postcondition_failure(
+    postcondition_failure = platform_repair_postcondition.runtime_relaunch_postcondition_failure(
         resume_payload,
         controller_authorization=controller_authorization,
     )
@@ -561,7 +455,7 @@ def _apply_pending_runtime_platform_repair_redrive(
             "current_controller_authorization_written": True,
         }
     resume_payload = dict(resume_result) if isinstance(resume_result, Mapping) else {}
-    postcondition_failure = _runtime_relaunch_postcondition_failure(
+    postcondition_failure = platform_repair_postcondition.runtime_relaunch_postcondition_failure(
         resume_payload,
         controller_authorization=authorization,
     )
