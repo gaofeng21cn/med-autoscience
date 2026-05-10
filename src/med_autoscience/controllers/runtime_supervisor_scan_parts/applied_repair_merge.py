@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 
 
@@ -12,7 +13,7 @@ def merge_runtime_fact(
     progress: Mapping[str, Any],
     apply_result: Mapping[str, Any] | None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    if not _applied(apply_result):
+    if not applied(apply_result):
         return dict(status), dict(progress)
     resume_result = _mapping(_mapping(apply_result).get("resume_result"))
     active_run_id = runtime_facts.active_run_id(resume_result, progress)
@@ -75,7 +76,33 @@ def merge_runtime_fact(
     return merged_status, merged_progress
 
 
-def _applied(value: Mapping[str, Any] | None) -> bool:
+def merge_evidence_adoption_projection(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    apply_result: Mapping[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any], bool]:
+    if apply_result is None:
+        return dict(status), dict(progress), False
+    resume_result = _mapping(_mapping(apply_result).get("resume_result"))
+    if _text(resume_result.get("reason")) != evidence_adoption.ADOPTED_REASON:
+        return dict(status), dict(progress), False
+    next_route = _mapping(resume_result.get("controller_work_unit_next_route"))
+    if next_route.get("runtime_relaunch_required") is not False:
+        return dict(status), dict(progress), False
+    adoption = _mapping(resume_result.get("controller_work_unit_evidence_adoption"))
+    if not adoption:
+        return dict(status), dict(progress), False
+    merged_status = dict(status)
+    for key in ("quest_status", "decision", "reason", "active_run_id"):
+        if key in resume_result:
+            merged_status[key] = resume_result.get(key)
+    merged_status["controller_work_unit_next_route"] = next_route
+    merged_status["controller_work_unit_evidence_adoption"] = adoption
+    return merged_status, dict(progress), True
+
+
+def applied(value: Mapping[str, Any] | None) -> bool:
     return value is not None and _text(value.get("dispatch_status")) == "applied"
 
 
@@ -103,3 +130,9 @@ def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
 
+
+__all__ = [
+    "applied",
+    "merge_evidence_adoption_projection",
+    "merge_runtime_fact",
+]

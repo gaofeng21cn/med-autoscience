@@ -26,6 +26,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import paper_prog
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
+from med_autoscience.controllers.runtime_supervisor_scan_parts import scan_output
 from med_autoscience.controllers.runtime_supervisor_scan_parts import status_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_parking
 from med_autoscience.controllers.runtime_supervisor_scan_parts import submission_milestone_projection
@@ -463,104 +464,6 @@ def _apply_runtime_platform_repair_projection(
     return apply_result, lifecycle
 
 
-def _runtime_platform_repair_applied(value: Mapping[str, Any] | None) -> bool:
-    return value is not None and _text(value.get("dispatch_status")) == "applied"
-
-
-def _merge_platform_repair_evidence_adoption_projection(
-    *,
-    status: Mapping[str, Any],
-    progress: Mapping[str, Any],
-    apply_result: Mapping[str, Any] | None,
-) -> tuple[dict[str, Any], dict[str, Any], bool]:
-    if apply_result is None:
-        return dict(status), dict(progress), False
-    resume_result = _mapping(_mapping(apply_result).get("resume_result"))
-    if _text(resume_result.get("reason")) != evidence_adoption.ADOPTED_REASON:
-        return dict(status), dict(progress), False
-    next_route = _mapping(resume_result.get("controller_work_unit_next_route"))
-    if next_route.get("runtime_relaunch_required") is not False:
-        return dict(status), dict(progress), False
-    adoption = _mapping(resume_result.get("controller_work_unit_evidence_adoption"))
-    if not adoption:
-        return dict(status), dict(progress), False
-    merged_status = dict(status)
-    for key in ("quest_status", "decision", "reason", "active_run_id"):
-        if key in resume_result:
-            merged_status[key] = resume_result.get(key)
-    merged_status["controller_work_unit_next_route"] = next_route
-    merged_status["controller_work_unit_evidence_adoption"] = adoption
-    return merged_status, dict(progress), True
-
-
-def _merge_applied_platform_repair_runtime_fact(
-    *,
-    status: Mapping[str, Any],
-    progress: Mapping[str, Any],
-    apply_result: Mapping[str, Any] | None,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    if not _runtime_platform_repair_applied(apply_result):
-        return dict(status), dict(progress)
-    resume_result = _mapping(_mapping(apply_result).get("resume_result"))
-    active_run_id = _active_run_id(resume_result, progress)
-    runtime_liveness = _mapping(resume_result.get("runtime_liveness_audit"))
-    runtime_audit = _mapping(runtime_liveness.get("runtime_audit"))
-    worker_running = runtime_audit.get("worker_running") is True or runtime_liveness.get("worker_running") is True
-    merged_status = dict(status)
-    if text := _text(resume_result.get("quest_status")):
-        merged_status["quest_status"] = text
-    if text := _text(resume_result.get("decision")):
-        merged_status["decision"] = text
-    if text := _text(resume_result.get("reason")):
-        merged_status["reason"] = text
-    if active_run_id is not None:
-        merged_status["active_run_id"] = active_run_id
-        merged_status["runtime_liveness_audit"] = {
-            **_mapping(merged_status.get("runtime_liveness_audit")),
-            "active_run_id": active_run_id,
-            "runtime_audit": {
-                **_mapping(_mapping(merged_status.get("runtime_liveness_audit")).get("runtime_audit")),
-                "active_run_id": active_run_id,
-                "worker_running": worker_running,
-            },
-        }
-        runtime_health = _mapping(merged_status.get("runtime_health_snapshot"))
-        runtime_health.update(
-            {
-                "active_run_id": active_run_id,
-                "observed_quest_state": {
-                    "quest_status": _text(merged_status.get("quest_status")),
-                    "decision": _text(merged_status.get("decision")),
-                    "reason": _text(merged_status.get("reason")),
-                },
-                "canonical_runtime_action": "continue_supervising_runtime",
-                "attempt_state": "recovering",
-                "retry_budget_remaining": _runtime_repair_retry_budget(runtime_health),
-                "blocking_reasons": [
-                    reason
-                    for reason in _string_items(runtime_health.get("blocking_reasons"))
-                    if reason != "runtime_recovery_retry_budget_exhausted"
-                ],
-            }
-        )
-        merged_status["runtime_health_snapshot"] = runtime_health
-    merged_progress = dict(progress)
-    if active_run_id is not None:
-        merged_progress["supervision"] = {
-            **_mapping(merged_progress.get("supervision")),
-            "active_run_id": active_run_id,
-            "health_status": "recovering",
-        }
-    return merged_status, merged_progress
-
-
-def _runtime_repair_retry_budget(runtime_health: Mapping[str, Any]) -> int:
-    remaining = runtime_health.get("retry_budget_remaining")
-    if isinstance(remaining, int) and remaining > 0:
-        return remaining
-    return 3
-
-
 def _study_projection(
     *,
     profile: WorkspaceProfile,
@@ -705,7 +608,7 @@ def _study_projection(
     if platform_lifecycle is not None:
         lifecycle = _mapping(platform_lifecycle)
     adoption_projected = False
-    status_payload, progress_payload, adoption_projected = _merge_platform_repair_evidence_adoption_projection(
+    status_payload, progress_payload, adoption_projected = applied_repair_merge.merge_evidence_adoption_projection(
         status=status_payload,
         progress=progress_payload,
         apply_result=runtime_platform_repair_apply,
@@ -740,7 +643,7 @@ def _study_projection(
         )
         if developer_mode.mode == "external_observe":
             actions = []
-    if _runtime_platform_repair_applied(runtime_platform_repair_apply):
+    if applied_repair_merge.applied(runtime_platform_repair_apply):
         status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
             profile=profile,
             study_id=study_id,
@@ -791,7 +694,7 @@ def _study_projection(
         lifecycle=lifecycle,
     ):
         lifecycle = {}
-    if _runtime_platform_repair_applied(runtime_platform_repair_apply):
+    if applied_repair_merge.applied(runtime_platform_repair_apply):
         actions = block_state_part.remove_action_type(actions, "runtime_platform_repair")
     if (
         runtime_platform_repair_apply is not None
@@ -1018,59 +921,37 @@ def supervisor_scan(
         profile=profile,
         developer_mode=developer_mode,
     )
-    payload = {
-        "surface": "portable_runtime_supervisor_scan",
-        "schema_version": SCHEMA_VERSION,
-        "generated_at": generated_at,
-        "workspace_root": str(profile.workspace_root),
-        "scheduler_contract": {
-            "codex_app_heartbeat_required": False,
-            "scheduler_owner": "mas_supervision_scheduler",
-            "default_adapter": "local",
-            "optional_adapters": ["hermes_gateway_cron"],
-            "tick_contract": {
-                "command": "ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1",
-                "cadence_seconds": 300,
-                "resident_daemon": False,
-            },
-            "retired_workspace_local_schedulers": ["systemd_user", "cron", "launchd"],
-            "external_scheduler_role": "optional_adapter_caller_of_mas_cli_only",
-            "developer_supervisor_mode": developer_mode.to_dict(),
-        },
-        "developer_supervisor_mode": developer_mode.to_dict(),
-        "apply_safe_actions": developer_mode.safe_actions_enabled,
-        "apply_runtime_platform_repair": bool(apply_runtime_platform_repair),
-        "two_layer_ai_repair_policy": two_layer_ai_repair_policy_payload(),
-        "studies": studies,
-        "action_queue": action_queue,
-        "queue_history": queue_history,
-        "workspace_daemon_lifecycle": workspace_daemon_lifecycle,
-        "refs": {"latest_path": str(latest_path), "history_path": str(history_path)},
-    }
+    payload = scan_output.build_supervisor_scan_payload(
+        schema_version=SCHEMA_VERSION,
+        generated_at=generated_at,
+        workspace_root=profile.workspace_root,
+        developer_mode_payload=developer_mode.to_dict(),
+        safe_actions_enabled=developer_mode.safe_actions_enabled,
+        apply_runtime_platform_repair=apply_runtime_platform_repair,
+        two_layer_ai_repair_policy=two_layer_ai_repair_policy_payload(),
+        studies=studies,
+        action_queue=action_queue,
+        queue_history=queue_history,
+        workspace_daemon_lifecycle=workspace_daemon_lifecycle,
+        latest_path=latest_path,
+        history_path=history_path,
+    )
     if persist_surfaces:
-        _write_json(latest_path, payload)
-        for study in studies:
-            owner_route = _mapping(study.get("owner_route"))
-            if not owner_route:
-                continue
-            try:
-                study_root = Path(_text(study.get("study_root")) or _study_root(profile, _text(study.get("study_id")) or ""))
-                study["owner_route_lifecycle_index"] = runtime_lifecycle_store.record_owner_route_receipt(
-                    study_root=study_root,
-                    receipt=owner_route,
-                    receipt_path=latest_path,
-                )
-            except (OSError, TypeError, ValueError, RuntimeError):
-                continue
-        _write_json(latest_path, payload)
-        _append_json_line(
-            history_path,
-            {
-                "generated_at": generated_at,
-                "study_ids": list(resolved_study_ids),
-                "action_ids": [_text(action.get("action_id")) for action in action_queue],
-                "latest_action_count": len(action_queue),
-            },
+        scan_output.persist_supervisor_scan_payload(
+            payload=payload,
+            studies=studies,
+            action_queue=action_queue,
+            profile=profile,
+            latest_path=latest_path,
+            history_path=history_path,
+            generated_at=generated_at,
+            resolved_study_ids=resolved_study_ids,
+            runtime_lifecycle_store=runtime_lifecycle_store,
+            study_root_for_id=lambda value: _study_root(profile, value),
+            write_json=_write_json,
+            append_json_line=_append_json_line,
+            text=_text,
+            mapping=_mapping,
         )
     return payload
 

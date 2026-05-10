@@ -137,6 +137,8 @@ def test_runtime_supervisor_reconcile_command_runs_one_shot_and_writes_receipt(
     assert payload["will_start_llm"] is False
     assert payload["action_cost"]["action_class"] == "controller_apply"
     assert payload["action_cost"]["will_start_llm"] is False
+    assert payload["paper_progress_reconcile"]["surface"] == "paper_progress_reconcile_receipt"
+    assert payload["paper_progress_reconcile"]["decisions"][0]["current_state"]["surface"] == "paper_progress_state"
     assert payload["study_receipts"][0]["before"]["action_queue"][0]["action_type"] == "action-1"
     assert payload["study_receipts"][0]["after"]["why_not_applied"] == "publication_gate_blocked"
     assert payload["study_receipts"][0]["after"]["owner_forwarded"] is True
@@ -226,4 +228,6 @@ def test_runtime_supervisor_reconcile_dry_run_never_dispatches_llm(
     assert payload["codex_dispatch_count"] == 0
     assert payload["action_cost"]["action_class"] == "reconcile_dry_run"
     assert payload["action_cost"]["will_start_llm"] is False
+    assert payload["paper_progress_reconcile"]["dry_run"] is True
+    assert payload["paper_progress_reconcile"]["decisions"][0]["action_receipt"]["receipt_status"] == "dry_run_not_recorded"
     assert payload["executed_dispatch"]["executions"][0]["will_start_llm"] is False

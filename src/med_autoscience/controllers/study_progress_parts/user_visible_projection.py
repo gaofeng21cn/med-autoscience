@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.paper_progress_state import build_paper_progress_state
+
 from .shared import _mapping_copy, _non_empty_text
 
 USER_VISIBLE_PROJECTION_SURFACE = "study_progress_user_visible_projection"
@@ -111,6 +113,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         package_delivered=package_delivered,
         details=details,
     )
+    paper_progress_state = build_paper_progress_state(payload)
 
     return {
         "surface": USER_VISIBLE_PROJECTION_SURFACE,
@@ -146,6 +149,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         "needs_physician_decision": user_action_required,
         "study_macro_state": dict(macro_state),
         "supervision": _supervision_projection(payload),
+        "paper_progress_state": paper_progress_state,
         "evidence": evidence,
         "evidence_refs": dict(evidence["refs"]),
         "conditions": _projection_conditions(
