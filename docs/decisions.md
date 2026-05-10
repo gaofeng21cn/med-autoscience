@@ -4,7 +4,13 @@
 
 - 决策：OPL Full online runtime 采用 Hermes-first topology：外部 `Hermes-Agent` 由 OPL 管理，承担常驻 gateway、cron/webhook wakeup、session store、delivery/notification、approval transport 与 family queue tick；OPL 持有 typed family queue / dispatch contract；MAS 持有 study truth、publication judgment、quality gate、artifact/package authority 和 domain recovery decision。
 - 理由：此前 Hermes 在 MAS 侧主要被用成 `every 5m` cron carrier，未发挥在线 substrate 的完整价值。新的稳定设计把 24h 在线、跨仓唤醒、通知、恢复和队列放在 OPL+Hermes 层，把医学研究语义和质量判断保留在 MAS。
-- 影响：MAS 新增 `medautosci sidecar export --profile <profile> --format json` 与 `medautosci sidecar dispatch --task <task.json> --format json`，供 `opl family-runtime` 调用。sidecar dispatch 只写 MAS-owned domain control receipt / recommended command，禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package 或 artifact gate。MAS standalone/local diagnostics 仍可使用 MAS-owned local scheduler；Full online readiness 由 OPL 侧 Hermes gateway readiness 判定。
+- 影响：MAS 新增 `medautosci sidecar export --profile <profile> --format json` 与 `medautosci sidecar dispatch --task <task.json> --format json`，供 `opl family-runtime` 调用。sidecar export 会把非终局、非 hard human gate 的 `breach` / `parked` / recovery-ready 状态投影成 `pending_family_tasks`，由 OPL/Hermes 入 typed queue；sidecar dispatch 可在 MAS owner 内执行 `runtime-supervisor-reconcile --mode developer_apply_safe --apply`。该入口仍禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package 或 artifact gate；这些 truth 只能由对应 MAS owner surface 产生。MAS standalone/local diagnostics 仍可使用 MAS-owned local scheduler；Full online readiness 由 OPL 侧 Hermes gateway readiness 判定。
+
+## 2026-05-10：Autonomy continuation ticket 成为 read-model 到执行闭环的桥
+
+- 决策：`slo_status=breach`、`runtime_liveness_status=parked`、`runtime_decision=blocked` 或 `safe_reconcile_ready` 不能只停留在 read model。只要 controller 未给出 `stop_loss` / terminal stop，且没有 hard human confirmation gate，MAS sidecar export 必须生成一条幂等 `pending_family_tasks[]`，默认 task kind 为 `runtime_supervisor/reconcile-apply`。
+- 理由：成熟长期 agent 工程的核心不是常驻进程本身，而是 durable identity、持久状态、可恢复 task、checkpoint、retry/dead-letter、human gate 与事件唤醒。Temporal 强调 crash-proof durable execution；Pydantic AI durable execution 明确面向 restart、long-running 和 human-in-the-loop；Cloudflare Agents 也把长期 agent 表达为 durable identity + SQLite state + schedules/fibers，而不是一直运行的进程。MAS 对应落点是把“发现了问题”转成 domain-owned executable ticket，再由 OPL/Hermes 在线底座唤醒、入队和派发。
+- 影响：`pending_family_tasks` 是 MAS 授权 OPL 入队的唯一跨仓自动推进桥。OPL 可以 enqueue / retry / dead-letter / notify / dispatch，但不能解释医学质量或直接写 truth。MAS sidecar dispatch 收到 `runtime_supervisor/reconcile-apply` 后，必须回到 MAS 自己的 `runtime_supervisor_reconcile` owner chain，执行 `scan -> consume -> execute-dispatch -> rescan`，并用 receipt 说明是否启动 Codex worker、是否 blocked、是否 no-op 或是否需要 human gate。
 
 ## 2026-05-10：Paper Progress SLO 成为自动推进闭环的最高运行目标
 

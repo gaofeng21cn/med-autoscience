@@ -165,6 +165,14 @@ MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 poli
 
 这些策略同时投影到 `two_layer_ai_repair_policy`，由 `runtime supervisor-scan` 和 `runtime supervisor-consume` 输出。这样前台看到“AI reviewer 队列积压”时，能同时看到内置 AI repair 是否已接上、是否超时，以及下一层开发者 supervisor 是否已到接手阈值。
 
+2026-05-10 OPL/Hermes family runtime bridge closeout 把 read model 到执行队列的断点收口为正式 sidecar 合同：
+
+- `medautosci sidecar export --profile <profile> --format json` 会在每个 study projection 中输出 `autonomy_continuation`，并在顶层输出 `pending_family_tasks[]`。
+- 当 `slo_status.state=breach`、`runtime_supervision.runtime_decision=blocked`、`runtime_liveness_status=parked` 或 `recovery_intent.current_action=safe_reconcile_ready`，且 controller 没有 `stop_loss` / terminal stop / hard human gate 时，MAS 会生成幂等 task，默认 `task_kind=runtime_supervisor/reconcile-apply`。
+- OPL/Hermes 的职责是 hydration、dedupe、queue、retry、dead-letter、approval 和 local inbox notification；它只能消费 MAS 显式导出的 `pending_family_tasks[]`，不能从只读 projection 自行推断医学动作。
+- `medautosci sidecar dispatch --task <task.json> --format json` 收到 `runtime_supervisor/reconcile-apply` 后，回到 MAS owner 内调用 `runtime-supervisor-reconcile --mode developer_apply_safe --apply`，再由 MAS 自己的 `scan -> consume -> execute-dispatch -> rescan` gate 决定是否启动 Codex worker、no-op、blocked 或 human gate。
+- 这个桥仍禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、paper/current_package、submission package 或 artifact gate；它只把“发现了可自动处理的 blocker”转换成 durable executable ticket。
+
 当 `action_queue` 包含 `publication_gate_specificity_required` 或 `return_to_ai_reviewer_workflow` 时，supervisor scan 只能物化 request packet：
 
 - `publication_gate_specificity_required` 的 owner 是 `publication_gate`

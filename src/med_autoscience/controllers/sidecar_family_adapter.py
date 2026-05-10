@@ -8,6 +8,8 @@ from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
+from . import runtime_supervisor_reconcile
+
 
 _FORBIDDEN_PAYLOAD_FLAGS = (
     "domain_truth_write",
@@ -32,11 +34,15 @@ _ALLOWED_TASK_KINDS = {
     "runtime_supervision/recover": "runtime_supervisor_recover",
     "runtime_supervisor/recover": "runtime_supervisor_recover",
     "runtime/recover": "runtime_supervisor_recover",
+    "runtime_supervisor/reconcile-apply": "runtime_supervisor_reconcile_apply",
+    "runtime/reconcile-apply": "runtime_supervisor_reconcile_apply",
+    "autonomy/continue": "runtime_supervisor_reconcile_apply",
     "safe_reconcile/dry-run": "safe_reconcile_dry_run",
     "study_progress/read": "study_progress_read",
     "status/read": "status_read",
     "notification/receipt": "notification_receipt",
 }
+_AUTO_CONTINUATION_BLOCKING_DECISIONS = {"stop_loss", "terminal_stop", "completed"}
 
 
 def _now_iso() -> str:
@@ -118,6 +124,10 @@ def _study_projection(*, study_root: Path, profile: WorkspaceProfile) -> dict[st
     for _, relative_path, field_name in _STUDY_SOURCE_REFS:
         if field_name not in payload:
             payload[field_name] = _read_json_object(study_root / relative_path)
+    payload["autonomy_continuation"] = _autonomy_continuation_projection(
+        study=payload,
+        profile=profile,
+    )
     return payload
 
 
@@ -129,6 +139,7 @@ def _study_roots(profile: WorkspaceProfile) -> list[Path]:
 
 def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> dict[str, Any]:
     studies = [_study_projection(study_root=study_root, profile=profile) for study_root in _study_roots(profile)]
+    pending_tasks = _pending_family_tasks(studies=studies, profile=profile, profile_ref=profile_ref)
     generated_at = _now_iso()
     return {
         "surface_kind": "mas_family_sidecar_export",
@@ -184,8 +195,92 @@ def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> di
                 "forbidden_authorities": _authority_boundary_payload()["forbidden_authorities"],
             },
         },
+        "pending_family_tasks": pending_tasks,
         "studies": studies,
     }
+
+
+def _hard_human_gate_required(controller: Mapping[str, Any]) -> bool:
+    if bool(controller.get("requires_human_confirmation")):
+        return True
+    gates = controller.get("family_human_gates")
+    return isinstance(gates, list) and len(gates) > 0
+
+
+def _terminal_controller_decision(controller: Mapping[str, Any]) -> bool:
+    decision_type = _text(controller.get("decision_type"))
+    route_target = _text(controller.get("route_target"))
+    return decision_type in _AUTO_CONTINUATION_BLOCKING_DECISIONS or route_target == "stop"
+
+
+def _continuation_reason(study: Mapping[str, Any]) -> str | None:
+    slo = _mapping(study.get("slo_status"))
+    runtime = _mapping(study.get("runtime_supervision"))
+    recovery = _mapping(study.get("recovery_intent"))
+    controller = _mapping(study.get("controller_decisions"))
+    if _hard_human_gate_required(controller):
+        return None
+    if _terminal_controller_decision(controller):
+        return None
+    if _text(slo.get("state")) == "breach":
+        return _text(slo.get("breach_reason")) or "slo_breach"
+    if _text(runtime.get("runtime_decision")) == "blocked":
+        return _text(runtime.get("runtime_reason")) or "runtime_blocked"
+    if _text(runtime.get("runtime_liveness_status")) == "parked":
+        return _text(runtime.get("runtime_reason")) or "runtime_parked"
+    if _text(recovery.get("current_action")) == "safe_reconcile_ready":
+        return "safe_reconcile_ready"
+    return None
+
+
+def _autonomy_continuation_projection(*, study: Mapping[str, Any], profile: WorkspaceProfile) -> dict[str, Any]:
+    controller = _mapping(study.get("controller_decisions"))
+    reason = _continuation_reason(study)
+    return {
+        "surface_kind": "mas_autonomy_continuation_projection",
+        "eligible_for_auto_dispatch": reason is not None,
+        "blocked_by_human_gate": _hard_human_gate_required(controller),
+        "blocked_by_terminal_decision": _terminal_controller_decision(controller),
+        "reason": reason,
+        "recommended_task_kind": "runtime_supervisor/reconcile-apply" if reason is not None else None,
+        "recommended_domain_owner": "med-autoscience" if reason is not None else None,
+        "workspace_profile": profile.name,
+    }
+
+
+def _pending_family_tasks(
+    *,
+    studies: list[Mapping[str, Any]],
+    profile: WorkspaceProfile,
+    profile_ref: Path,
+) -> list[dict[str, Any]]:
+    tasks: list[dict[str, Any]] = []
+    for study in studies:
+        continuation = _mapping(study.get("autonomy_continuation"))
+        if not continuation.get("eligible_for_auto_dispatch"):
+            continue
+        study_id = _text(study.get("study_id"))
+        reason = _text(continuation.get("reason")) or "autonomy_continuation"
+        task_kind = _text(continuation.get("recommended_task_kind")) or "runtime_supervisor/reconcile-apply"
+        if study_id is None:
+            continue
+        tasks.append(
+            {
+                "domain_id": "medautoscience",
+                "task_kind": task_kind,
+                "priority": 50,
+                "source": "mas-sidecar-export",
+                "requires_approval": False,
+                "dedupe_key": f"mas:{profile.name}:{study_id}:autonomy-continuation:{reason}",
+                "payload": {
+                    "profile": str(profile_ref),
+                    "study_id": study_id,
+                    "continuation_reason": reason,
+                    "authority_boundary": "mas_owner_reconcile_only",
+                },
+            }
+        )
+    return tasks
 
 
 def _aggregate_slo_state(studies: list[Mapping[str, Any]]) -> str:
@@ -251,9 +346,26 @@ def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id
         return f"uv run python -m med_autoscience.cli runtime-supervisor-scan{profile_part}{study_part}"
     if action_type == "safe_reconcile_dry_run":
         return f"uv run python -m med_autoscience.cli runtime-supervisor-reconcile{profile_part}{study_part} --mode developer_apply_safe --dry-run"
+    if action_type == "runtime_supervisor_reconcile_apply":
+        return f"uv run python -m med_autoscience.cli runtime-supervisor-reconcile{profile_part}{study_part} --mode developer_apply_safe --apply"
     if action_type == "study_progress_read":
         return f"uv run python -m med_autoscience.cli study-progress{profile_part}{study_part} --format json"
     return f"uv run python -m med_autoscience.cli product-entry-status{profile_part} --format json"
+
+
+def _execute_reconcile_apply(
+    *,
+    profile: WorkspaceProfile | None,
+    study_id: str | None,
+) -> dict[str, Any] | None:
+    if profile is None:
+        return None
+    return runtime_supervisor_reconcile.supervisor_reconcile(
+        profile=profile,
+        study_ids=(study_id,) if study_id else (),
+        mode="developer_apply_safe",
+        apply=True,
+    )
 
 
 def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
@@ -308,6 +420,11 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
         },
         "authority_boundary": _authority_boundary_payload(),
     }
+    if action_type == "runtime_supervisor_reconcile_apply":
+        result = _execute_reconcile_apply(profile=profile, study_id=study_id)
+        receipt["will_start_llm_worker"] = bool(_mapping(result).get("will_start_llm"))
+        receipt["dispatch"]["execution_policy"] = "mas_owner_reconcile_apply"
+        receipt["dispatch"]["result"] = result
     if profile is not None:
         path = _receipt_path(profile=profile, task_id=task_id)
         if path.exists():
