@@ -185,7 +185,7 @@ def test_progress_portal_payload_projects_core_status_and_fail_closed_conditions
         "href": "../../../live-console/index.html?study_id=001-risk",
         "scope": "study",
         "study_id": "001-risk",
-        "capability_badge": "Study-scoped Live Console",
+        "capability_badge": "单篇运行控制台",
         "session_read_model_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
         "serve_command": "medautosci runtime live-console --profile <profile> --serve",
         "authority": "read_only_runtime_observation",
