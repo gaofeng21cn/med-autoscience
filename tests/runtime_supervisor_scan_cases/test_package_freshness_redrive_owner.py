@@ -11,7 +11,9 @@ def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-def test_supervisor_scan_keeps_upstream_quality_repair_owned_by_mas_controller_when_resume_reports_package_freshness(monkeypatch,
+
+def test_supervisor_scan_keeps_upstream_quality_repair_owned_by_mas_controller_when_resume_reports_package_freshness(
+    monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")

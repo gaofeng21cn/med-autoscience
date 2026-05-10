@@ -11,7 +11,9 @@ def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-def test_supervisor_scan_resumes_existing_pending_message_for_no_live_redrive(monkeypatch,
+
+def test_supervisor_scan_resumes_existing_pending_message_for_no_live_redrive(
+    monkeypatch,
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")

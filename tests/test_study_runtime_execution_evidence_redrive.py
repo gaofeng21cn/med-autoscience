@@ -12,7 +12,9 @@ from tests.test_study_runtime_execution_control_intent import (
     _write_runtime_state,
 )
 
-def test_execute_resume_runtime_decision_stops_after_work_unit_evidence_adoption(tmp_path: Path,
+
+def test_execute_resume_runtime_decision_stops_after_work_unit_evidence_adoption(
+    tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     auth_module = importlib.import_module(
