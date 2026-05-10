@@ -185,6 +185,22 @@ def _enable_explicit_user_wakeup_if_requested(
         )
         return
     if (
+        status.decision is StudyRuntimeDecision.RESUME
+        and status.reason is StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+        and status.quest_status is StudyRuntimeQuestStatus.WAITING_FOR_USER
+    ):
+        wakeup_record = _runtime_events.record_explicit_user_wakeup(
+            quest_root=context.quest_root,
+            source=context.source,
+        )
+        if wakeup_record is not None:
+            status._record_dict_extra("explicit_user_wakeup", wakeup_record)
+            _record_platform_repair_decision_redrive_status_projection(
+                status=status,
+                wakeup_record=wakeup_record,
+            )
+        return
+    if (
         status.decision is not StudyRuntimeDecision.BLOCKED
         or status.reason is not StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP
         or status.quest_status
@@ -294,7 +310,12 @@ def _run_runtime_preflight(
     if (
         status.decision == StudyRuntimeDecision.RESUME
         and context.source == "runtime_platform_repair"
-        and status.quest_status is StudyRuntimeQuestStatus.PAUSED
+        and status.quest_status
+        in {
+            StudyRuntimeQuestStatus.PAUSED,
+            StudyRuntimeQuestStatus.RUNNING,
+            StudyRuntimeQuestStatus.ACTIVE,
+        }
         and _runtime_events.has_delivered_human_package_surface(context.study_root)
     ):
         status.set_decision(

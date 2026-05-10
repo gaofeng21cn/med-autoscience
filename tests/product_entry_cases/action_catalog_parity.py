@@ -143,7 +143,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml"
     )
     assert descriptor["source_refs"]["knowledge_plane_contract_source"] == (
-        "med_autoscience.controllers.stage_knowledge_plane.stage_knowledge_plane_contract"
+        "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
     )
     assert descriptor["source_refs"]["packet_contract_surfaces"] == list(stage_contract["packet_contracts"])
 

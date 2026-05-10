@@ -100,6 +100,12 @@ def _apply_resume_postcondition(
     return False
 
 
+def _restore_explicit_user_wakeup_surface(status: StudyRuntimeStatus, pre_resume_wakeup: Any) -> None:
+    if "explicit_user_wakeup" in status.extras or not isinstance(pre_resume_wakeup, dict):
+        return
+    status._record_dict_extra("explicit_user_wakeup", pre_resume_wakeup)
+
+
 def _execute_create_runtime_decision(
     *,
     status: StudyRuntimeStatus,
@@ -235,12 +241,14 @@ def _execute_resume_runtime_decision(
 ) -> StudyRuntimeExecutionOutcome:
     router = router_module()
     outcome = StudyRuntimeExecutionOutcome()
+    pre_resume_wakeup = status.extras.get("explicit_user_wakeup")
     if adopt_controller_work_unit_evidence_for_current_authorization(status=status, context=context) is not None:
         status.set_decision(
             StudyRuntimeDecision.NOOP,
             StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,
         )
         outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
+        _restore_explicit_user_wakeup_surface(status, pre_resume_wakeup)
         return outcome
     create_payload = router._build_context_create_payload(context)
     startup_context_sync = router._sync_existing_quest_startup_context(
@@ -264,6 +272,7 @@ def _execute_resume_runtime_decision(
                 StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
             )
             outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
+            _restore_explicit_user_wakeup_surface(status, pre_resume_wakeup)
             return outcome
     _relay_controller_decision_authorization_if_required(status=status, context=context)
     if "controller_work_unit_evidence_adoption" in status.extras:
@@ -272,6 +281,7 @@ def _execute_resume_runtime_decision(
             StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,
         )
         outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
+        _restore_explicit_user_wakeup_surface(status, pre_resume_wakeup)
         return outcome
     force_live_controller_reroute_restart = _should_force_restart_for_live_controller_reroute(
         status=status,
@@ -327,14 +337,17 @@ def _execute_resume_runtime_decision(
             StudyRuntimeReason.RESUME_REQUEST_FAILED,
         )
         outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
+        _restore_explicit_user_wakeup_surface(status, pre_resume_wakeup)
         return outcome
     outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, resume_result)
     status.update_quest_runtime(
         quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
     )
     if not _apply_resume_postcondition(status=status, outcome=outcome):
+        _restore_explicit_user_wakeup_surface(status, pre_resume_wakeup)
         return outcome
     outcome.binding_last_action = StudyRuntimeBindingAction.RESUME
+    _restore_explicit_user_wakeup_surface(status, pre_resume_wakeup)
     return outcome
 
 

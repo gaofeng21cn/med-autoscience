@@ -7,7 +7,7 @@ import sqlite3
 from typing import Any
 
 from med_autoscience.agent_entry import load_entry_modes_payload
-from med_autoscience.controllers import stage_knowledge_plane
+from med_autoscience import stage_knowledge_contract
 
 from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
@@ -22,7 +22,7 @@ STAGE_LED_AUTONOMY_INVENTORY_REF = "docs/references/integration/stage_led_autono
 STAGE_LED_AUTONOMY_POLICY_REF = "docs/policies/study-workflow/stage_led_research_autonomy.md"
 AGENT_ENTRY_MODES_REF = "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml"
 STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
-    "med_autoscience.controllers.stage_knowledge_plane.stage_knowledge_plane_contract"
+    "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
 )
 
 FORBIDDEN_OPL_AUTHORITY_SURFACES = (
@@ -83,7 +83,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     entry_modes_payload = load_entry_modes_payload()
     route_contracts = _mapping(entry_modes_payload.get("route_contracts"))
     route_ids = list(route_contracts)
-    knowledge_contract = stage_knowledge_plane.stage_knowledge_plane_contract()
+    knowledge_contract = stage_knowledge_contract.stage_knowledge_plane_contract()
     packet_contracts = _mapping(knowledge_contract.get("packet_contracts"))
     packet_surfaces = list(packet_contracts)
     exploratory_stages = list(knowledge_contract.get("exploratory_stages") or [])
@@ -100,7 +100,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "route_contract_source": AGENT_ENTRY_MODES_REF,
             "knowledge_plane_contract_source": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "packet_contract_surfaces": packet_surfaces,
-            "stage_knowledge_root": str(stage_knowledge_plane.STAGE_KNOWLEDGE_ROOT),
+            "stage_knowledge_root": str(stage_knowledge_contract.STAGE_KNOWLEDGE_ROOT),
             "test_evidence": [
                 "tests/test_agent_entry_modes.py",
                 "tests/test_agent_entry_assets.py",
@@ -124,15 +124,15 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "packet_surfaces": packet_surfaces,
         },
         "stage_packets": {
-            "knowledge_packet": stage_knowledge_plane.KNOWLEDGE_PACKET_SURFACE,
-            "memory_closeout_packet": stage_knowledge_plane.MEMORY_CLOSEOUT_SURFACE,
-            "memory_write_router_receipt": stage_knowledge_plane.MEMORY_ROUTER_SURFACE,
-            "stage_recall_index": stage_knowledge_plane.RECALL_INDEX_SURFACE,
+            "knowledge_packet": stage_knowledge_contract.KNOWLEDGE_PACKET_SURFACE,
+            "memory_closeout_packet": stage_knowledge_contract.MEMORY_CLOSEOUT_SURFACE,
+            "memory_write_router_receipt": stage_knowledge_contract.MEMORY_ROUTER_SURFACE,
+            "stage_recall_index": stage_knowledge_contract.RECALL_INDEX_SURFACE,
         },
         "memory_control": {
-            "closeout_categories": list(stage_knowledge_plane.TYPED_CLOSEOUT_CATEGORIES),
-            "router_receipt_surface": stage_knowledge_plane.MEMORY_ROUTER_SURFACE,
-            "recall_index_surface": stage_knowledge_plane.RECALL_INDEX_SURFACE,
+            "closeout_categories": list(stage_knowledge_contract.TYPED_CLOSEOUT_CATEGORIES),
+            "router_receipt_surface": stage_knowledge_contract.MEMORY_ROUTER_SURFACE,
+            "recall_index_surface": stage_knowledge_contract.RECALL_INDEX_SURFACE,
             "can_promote_memory_to_evidence": False,
         },
         "quality_and_publication_surfaces": {
