@@ -27,6 +27,7 @@ def test_runtime_lifecycle_contract_exposes_shared_schema_and_authority_boundary
     assert "owner_route_receipts" in contract["sqlite_sidecar_tables"]
     assert "dispatch_receipts" in contract["sqlite_sidecar_tables"]
     assert "turn_receipts" in contract["sqlite_sidecar_tables"]
+    assert "paper_work_unit_receipts" in contract["sqlite_sidecar_tables"]
     assert "surface_refs" in contract["sqlite_sidecar_tables"]
     assert "apply" in contract["migration_run_modes"]
     assert "rollback_plan" in contract["migration_run_modes"]
@@ -44,6 +45,7 @@ def test_runtime_lifecycle_contract_declares_sidecar_index_not_macro_state_autho
         "owner_route_receipt",
         "dispatch_receipt",
         "turn_receipt",
+        "paper_work_unit_receipt",
         "surface_ref",
         "lineage_node",
         "lineage_edge",
@@ -57,6 +59,7 @@ def test_runtime_lifecycle_contract_declares_sidecar_index_not_macro_state_autho
     assert "study_macro_state/latest.json" in contract["file_authority_surfaces"]
     assert "runtime_supervisor_owner_route" in contract["file_authority_surfaces"]
     assert "runtime_supervisor_dispatch_receipt" in contract["file_authority_surfaces"]
+    assert "paper_work_unit_outbox_receipt" in contract["file_authority_surfaces"]
 
 
 def test_runtime_lifecycle_contract_declares_q1_q6_git_replacement_cutover() -> None:
@@ -263,6 +266,7 @@ def test_runtime_lifecycle_contract_declares_opl_family_adapter_surface() -> Non
             "owner_route_receipts",
             "dispatch_receipts",
             "turn_receipts",
+            "paper_work_unit_receipts",
             "surface_refs",
             "archive_refs",
             "report_index",

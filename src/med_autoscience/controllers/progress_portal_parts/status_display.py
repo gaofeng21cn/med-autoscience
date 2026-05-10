@@ -22,7 +22,7 @@ STATUS_LABELS = {
     "manual_hold": "手动暂停",
     "live_worker_meaningful_artifact_delta_timeout": "live worker 产物增量超时",
     "missing": "缺失",
-    "no_live_run": "无 live run",
+    "no_live_run": "无运行编号",
     "none": "无",
     "not_required": "无需自动推进",
     "not_installed": "未注册",

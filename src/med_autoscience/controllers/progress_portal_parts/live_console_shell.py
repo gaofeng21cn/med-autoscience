@@ -31,7 +31,7 @@ def live_console_projection(
         "href": href,
         "scope": "study" if scoped_study_id else "profile",
         "study_id": scoped_study_id,
-        "capability_badge": "Study-scoped Live Console" if scoped_study_id else "Profile Live Console",
+        "capability_badge": "单篇运行控制台" if scoped_study_id else "工作区运行控制台",
         "session_read_model_ref": LIVE_CONSOLE_SESSION_READ_MODEL_REF,
         "serve_command": LIVE_CONSOLE_SERVE_COMMAND,
         "authority": "read_only_runtime_observation",
@@ -43,19 +43,18 @@ def render_live_console_portal_link(live_console: Mapping[str, Any]) -> str:
     if not live_console:
         return ""
     label = _non_empty_text(live_console.get("label")) or "运行控制台"
-    serve_command = _non_empty_text(live_console.get("serve_command")) or LIVE_CONSOLE_SERVE_COMMAND
     href = _non_empty_text(live_console.get("href")) or "../live-console/index.html"
     scope = _non_empty_text(live_console.get("scope")) or "profile"
     badge = _non_empty_text(live_console.get("capability_badge")) or (
-        "Study-scoped Live Console" if scope == "study" else "Profile Live Console"
+        "单篇运行控制台" if scope == "study" else "工作区运行控制台"
     )
+    scope_label = "单篇" if scope == "study" else "工作区"
     if bool(live_console.get("available")):
         return (
             '<div class="live-console-link">'
             f'<a href="{escape(href, quote=True)}">运行控制台</a>'
             f'<span class="capability-badge">{escape(badge)}</span>'
-            f"<span>scope={escape(scope)}</span>"
-            f"<span>{escape(serve_command)}</span>"
+            f"<span>范围：{escape(scope_label)}</span>"
             "</div>"
         )
     reason = _non_empty_text(live_console.get("disabled_reason")) or "运行控制台不可用。"

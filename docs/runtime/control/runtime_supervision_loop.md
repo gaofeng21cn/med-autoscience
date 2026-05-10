@@ -149,6 +149,19 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 - submission authority / delivery closure 必须在同一个 work-unit transaction 中完成 source freshness proof、delivery sync 和 gate replay。来自旧 MDS worktree 的绝对 `paper/...` 路径只可规范到当前 paper root 的同后缀 source ref，不能作为 current source blocker。
 - DM002、DM003 和 Obesity 的 read-only validation 要把 `actual_write_active`、`package_delivered`、`meaningful_artifact_delta`、`next_owner`、`why_not_progressing` 同时展示；只要 publishability / AI reviewer / submission QC 未放行，就不得把 downstream package missing 写成论文进度。
 
+2026-05-10 Paper Progress Reconciler 重构把上面的目标接入同一个 outer-loop receipt：
+
+- `paper_progress_state` 是所有 paper-line 入口共享的 read model。它只从当前 study/runtime/progress/controller truth surfaces 推导七类公开状态：`progressing`、`awaiting_controller_redrive`、`blocked_controller_route`、`awaiting_callable_owner`、`awaiting_human`、`downstream_only`、`terminal_delivered`。
+- `paper_progress_reconciler` 是 level-triggered：每次 `runtime supervisor-reconcile` tick 都重新读取 before/after scan、consume 和 execute projection，输出 `desired_state`、`current_state`、`delta`、`decision`、`callable_contract` 与 `action_receipt`。它不信任旧 packet 的 stale conclusion，也不把 previous closeout 文案当作 current truth。
+- dry-run receipt 必须保持零 dispatch；apply receipt 只有在 owner callable contract 存在、`requires_user_input=false`、`source_fingerprint` 新鲜，并且当前 execution / controller route 能解释该 action 时，才允许写 outbox receipt。
+- `paper_work_unit_outbox` 是 work-unit transaction 的落账点。相同 `idempotency_key` 和相同 intent 返回 replay receipt；相同 key 不同 intent 写 `failed_closed/idempotency_key_intent_conflict`；同一 `source_fingerprint` 已启动 worker 时写 `duplicate_source_fingerprint`，不重复启动 worker。该 duplicate receipt 只阻止重复 worker start，不阻止下一 owner handoff、gate replay 或 registry repair。
+- outbox 同时写 JSONL receipt 和 SQLite sidecar `paper_work_unit_receipts` 索引。SQLite 只做 receipt/history/cursor projection，不成为 publication gate、controller decision、paper package、submission source 或 runtime-owned live truth。
+- retry-budget 语义现在按 paper progress contract 重判：`runtime_recovery_retry_budget_exhausted` 在 route、owner、fingerprint 和 gate 可解释时变成 `awaiting_controller_redrive` / `controller_redrive`；route 或 callable 缺失时变成 `blocked_controller_route` 或 `awaiting_callable_owner`，并暴露唯一 repo-level gap。
+- Obesity 这类 `execution_owner_guard.supervisor_only=true` 且 live worker 已有 artifact delta 的状态，用户面 next owner 显示 `supervisor_only/live_quality_repair`；delivery missing 保持 downstream-only，不抢跑 delivery package，也不伪造 `package_delivered=true`。
+- Progress Portal workspace dashboard 消费这些投影，显示 workspace attention、live paper-line count、freshness、每篇论文的阶段/运行健康/监管心跳/下一步和 source provenance；它只读展示，不执行 reconcile，不写 live paper artifact。
+
+该设计借鉴的外部工程模式是：Kubernetes controller 的 desired/current reconcile loop、AWS caller-provided idempotency token 与 retry/backoff/jitter、Temporal Activity timeout/heartbeat/retry contract，以及 SRE 将 SLO 贴近用户旅程的实践。MAS 不引入这些外部系统作为 runtime dependency；只吸收模式，把论文资产增量作为自己的用户旅程 SLO。
+
 MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 policy：
 
 - `executor_kind = codex_cli_default`

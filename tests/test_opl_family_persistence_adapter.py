@@ -142,6 +142,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "owner_route_receipts",
         "dispatch_receipts",
         "turn_receipts",
+        "paper_work_unit_receipts",
         "surface_refs",
         "archive_refs",
         "report_index",

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.paper_progress_state import build_paper_progress_state
+
 from .shared import _mapping_copy, _non_empty_text
 
 USER_VISIBLE_PROJECTION_SURFACE = "study_progress_user_visible_projection"
@@ -66,11 +68,12 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     user_next = _non_empty_text(macro_state.get("user_next")) or "inspect"
     reason = _non_empty_text(macro_state.get("reason")) or "truth_conflict"
     details = _mapping_copy(macro_state.get("details"))
-    package_delivered = bool(details.get("package_delivered"))
+    paper_progress_state = build_paper_progress_state(payload)
+    package_delivered = bool(details.get("package_delivered")) or bool(paper_progress_state.get("package_delivered"))
     actual_write_active = _actual_write_active(writer_state=writer_state, macro_state=macro_state, payload=payload)
     meaningful_artifact_delta = _meaningful_artifact_delta(payload)
-    next_owner = _next_owner(payload=payload, details=details)
-    why_not_progressing = _why_not_progressing(
+    next_owner = _non_empty_text(paper_progress_state.get("next_owner")) or _next_owner(payload=payload, details=details)
+    why_not_progressing = _non_empty_text(paper_progress_state.get("why_not_progressing")) or _why_not_progressing(
         payload=payload,
         actual_write_active=actual_write_active,
         meaningful_artifact_delta=meaningful_artifact_delta,
@@ -146,6 +149,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         "needs_physician_decision": user_action_required,
         "study_macro_state": dict(macro_state),
         "supervision": _supervision_projection(payload),
+        "paper_progress_state": paper_progress_state,
         "evidence": evidence,
         "evidence_refs": dict(evidence["refs"]),
         "conditions": _projection_conditions(

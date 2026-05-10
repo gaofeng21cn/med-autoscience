@@ -322,6 +322,81 @@ def test_user_visible_projection_uses_interaction_arbitration_owner_and_reason()
     )
 
 
+def test_user_visible_projection_uses_current_delivery_read_model_for_package_delivered() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "003-dpcc",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "003-dpcc",
+                "writer_state": "parked",
+                "user_next": "inspect",
+                "reason": "unknown",
+                "details": {"package_delivered": False},
+                "conditions": [],
+            },
+            "delivery_inspection": {
+                "status": "current",
+                "freshness": {
+                    "delivery_status": "current",
+                    "gate_freshness_handshake": {"status": "current"},
+                },
+            },
+        }
+    )
+
+    assert projection["package_delivered"] is True
+    assert projection["paper_progress_state"]["state"] == "terminal_delivered"
+    assert projection["paper_progress_state"]["package_delivered"] is True
+
+
+def test_user_visible_projection_projects_supervisor_only_live_quality_repair_owner() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "obesity",
+            "active_run_id": "run-obesity",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "obesity",
+                "writer_state": "live",
+                "user_next": "watch",
+                "reason": "runtime",
+                "details": {"active_run_id": "run-obesity", "package_delivered": False},
+                "conditions": [],
+            },
+            "progress_freshness": {
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_at": "2026-05-10T08:15:00+00:00",
+                }
+            },
+            "execution_owner_guard": {"supervisor_only": True},
+            "publication_supervisor_state": {"bundle_tasks_downstream_only": True},
+            "portable_supervisor_dashboard": {
+                "next_owner": "external_supervisor",
+                "external_supervisor_required": False,
+            },
+            "supervision": {
+                "active_run_id": "run-obesity",
+                "health_status": "live",
+            },
+        }
+    )
+
+    assert projection["actual_write_active"] is True
+    assert projection["meaningful_artifact_delta"] is True
+    assert projection["package_delivered"] is False
+    assert projection["next_owner"] == "supervisor_only/live_quality_repair"
+    assert projection["why_not_progressing"] == "publication_supervisor_state.bundle_tasks_downstream_only"
+    assert projection["paper_progress_state"]["state"] == "downstream_only"
+
+
 def test_user_visible_projection_does_not_call_runtime_health_recovery_actual_write() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress")
 
