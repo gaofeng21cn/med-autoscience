@@ -189,8 +189,8 @@ Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.y
 - human_gate_boundary: official go, stop, reroute, or direction-reset judgment is required | decision changes the study boundary or authorizes external release
 - next_routes: scout | baseline | analysis-campaign | write | finalize
 - route_back_triggers: new evidence invalidates the recorded judgment | human gate changes the study boundary | downstream route reports unmet assumptions from the decision record
-- knowledge_input_obligations: (none)
-- memory_closeout_obligations: (none)
+- knowledge_input_obligations: stage_knowledge_packet_ref | publication_route_memory_refs | failed_path_history | controller_decision_inputs | stop_loss_context
+- memory_closeout_obligations: stage_memory_closeout_packet | stop_or_pivot_lesson | route_impact | rejected_alternatives
 
 ### journal-resolution (Journal Resolution)
 - key_question: Which outlet or packaging path best preserves the current claim boundary?
