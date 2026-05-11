@@ -170,6 +170,7 @@ def _repair_candidates(
     study_root: Path,
     quest_id: str,
     gate_report: Mapping[str, Any],
+    publication_work_unit_payload: Mapping[str, Any] | None = None,
     include_downstream_delivery: bool = True,
 ) -> list[str]:
     candidates: list[str] = []
@@ -182,6 +183,17 @@ def _repair_candidates(
         candidates.append("scientific-anchor fields can be frozen from bounded-analysis output")
     if _repairable_medical_surface(gate_report):
         candidates.append("paper-facing display/reporting blockers are deterministic repair candidates")
+    next_work_unit = (
+        publication_work_unit_payload.get("next_work_unit")
+        if isinstance(publication_work_unit_payload, Mapping)
+        else None
+    )
+    if (
+        isinstance(next_work_unit, Mapping)
+        and _non_empty_text(next_work_unit.get("unit_id")) in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+        and "paper-facing display/reporting blockers are deterministic repair candidates" not in candidates
+    ):
+        candidates.append("paper-facing specificity targets are deterministic repair candidates")
     if include_downstream_delivery and "stale_study_delivery_mirror" in _gate_blockers(gate_report):
         candidates.append("study delivery mirror is stale but repairable through controller-owned replay")
     return candidates
@@ -681,11 +693,17 @@ def build_quality_repair_batch_recommended_action(
     ):
         return None
 
+    specificity_targets = publication_work_units.specificity_targets_from_publication_eval(publication_eval_payload)
+    publication_work_unit_payload = publication_work_units.derive_publication_work_units(
+        gate_report,
+        specificity_targets=specificity_targets,
+    )
     candidates = _repair_candidates(
         profile=profile,
         study_root=resolved_study_root,
         quest_id=quest_id,
         gate_report=gate_report,
+        publication_work_unit_payload=publication_work_unit_payload,
         include_downstream_delivery=not bool(gate_report.get("bundle_tasks_downstream_only")),
     )
     if not candidates:
@@ -699,7 +717,6 @@ def build_quality_repair_batch_recommended_action(
     if not summary_payload or not _quality_repair_required(summary_payload):
         return None
 
-    publication_work_unit_payload = publication_work_units.derive_publication_work_units(gate_report)
     publication_work_unit_payload = _apply_owner_handoff_to_publication_work_units(
         publication_work_unit_payload,
         owner_handoff=_latest_owner_handoff(
@@ -737,9 +754,12 @@ def build_quality_repair_batch_recommended_action(
         "quality_repair_batch_reason": "; ".join(reason_bits),
         "work_unit_fingerprint": publication_work_unit_payload.get("fingerprint"),
         "gate_fingerprint": gate_report.get("gate_fingerprint"),
-        "blocking_artifact_refs": gate_report.get("blocking_artifact_refs") or [],
+        "blocking_artifact_refs": publication_work_unit_payload.get("blocking_artifact_refs")
+        or gate_report.get("blocking_artifact_refs")
+        or [],
         "blocking_work_units": publication_work_unit_payload.get("blocking_work_units") or [],
         "next_work_unit": publication_work_unit_payload.get("next_work_unit"),
+        **({"specificity_targets": specificity_targets} if specificity_targets else {}),
         **(
             {"controller_work_unit_owner_handoff": publication_work_unit_payload["controller_work_unit_owner_handoff"]}
             if isinstance(publication_work_unit_payload.get("controller_work_unit_owner_handoff"), Mapping)

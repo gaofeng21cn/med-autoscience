@@ -7,6 +7,9 @@ from typing import Any
 
 from tests.study_runtime_test_helpers import make_profile, write_study
 
+from .test_quality_repair_batch_cases.specificity_targets import *  # noqa: F403,F401
+from .test_quality_repair_batch_cases.upstream_paper_owner_surface import *  # noqa: F403,F401
+
 
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -92,9 +95,6 @@ def _write_quality_summary(study_root: Path, *, relative_path: Path | None = Non
     }
     _write_json(study_root / (relative_path or Path("artifacts/evaluation_summary/latest.json")), payload)
     return payload
-from .test_quality_repair_batch_cases.upstream_paper_owner_surface import *  # noqa: F403,F401
-
-
 def test_build_quality_repair_batch_action_for_general_quality_repair_lane(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
     profile = make_profile(tmp_path)

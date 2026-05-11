@@ -131,6 +131,63 @@ def test_generic_claim_label_with_provenance_source_path_is_specific_enough_for_
     assert result["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
 
 
+def test_generic_surface_blocker_with_complete_specificity_targets_routes_to_claim_evidence_repair() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "blockers": ["medical_publication_surface_blocked"],
+            "medical_publication_surface_status": "blocked",
+            "bundle_tasks_downstream_only": True,
+        },
+        specificity_targets=[
+            {
+                "target_kind": "claim",
+                "target_id": "claim_evidence_map",
+                "source_path": "/tmp/study/paper/claim_evidence_map.json",
+                "blocking_reason": "medical_publication_surface_blocked",
+            },
+            {
+                "target_kind": "figure",
+                "target_id": "figure_catalog",
+                "source_path": "/tmp/study/paper/figures/figure_catalog.json",
+                "blocking_reason": "medical_publication_surface_blocked",
+            },
+            {
+                "target_kind": "metric",
+                "target_id": "main_result_metrics",
+                "source_path": "/tmp/quest/artifacts/results/main_result.json",
+                "blocking_reason": "medical_publication_surface_blocked",
+            },
+            {
+                "target_kind": "table",
+                "target_id": "submission_table_or_manifest",
+                "source_path": "/tmp/study/paper/submission_minimal/audit/submission_manifest.json",
+                "blocking_reason": "medical_publication_surface_blocked",
+            },
+            {
+                "target_kind": "source_path",
+                "target_id": "publication_gate_source_path",
+                "source_path": "/tmp/quest/artifacts/reports/medical_publication_surface/latest.json",
+                "blocking_reason": "medical_publication_surface_blocked",
+            },
+        ],
+    )
+
+    assert result["actionability_status"] == "actionable"
+    assert result["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert "non_executable_reason" not in result["next_work_unit"]
+    assert {ref["target_id"] for ref in result["blocking_artifact_refs"]} == {
+        "claim_evidence_map",
+        "figure_catalog",
+        "main_result_metrics",
+        "publication_gate_source_path",
+        "submission_table_or_manifest",
+    }
+
+
 def test_generic_display_label_with_display_ref_is_specific_enough_for_repair() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

@@ -11,6 +11,7 @@ from med_autoscience.study_decision_record import (
     StudyDecisionActionType,
     StudyDecisionType,
 )
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
 _GATE_NEEDS_SPECIFICITY_UNIT_ID = "gate_needs_specificity"
@@ -321,6 +322,8 @@ def _action_has_gate_needs_specificity_work_unit(action_payload: dict[str, Any])
 
 def _promote_gate_needs_specificity_action(action_payload: dict[str, Any]) -> dict[str, Any]:
     if not _action_has_gate_needs_specificity_work_unit(action_payload):
+        return action_payload
+    if specificity_target_status(action_payload.get("specificity_targets")).get("complete") is True:
         return action_payload
     promoted = dict(action_payload)
     prior_route_key_question = str(promoted.get("route_key_question") or "").strip()

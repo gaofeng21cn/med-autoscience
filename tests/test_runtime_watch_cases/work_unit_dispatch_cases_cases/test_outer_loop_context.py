@@ -171,6 +171,12 @@ def test_outer_loop_tick_request_carries_gate_specificity_targets(tmp_path: Path
     assert request is not None
     assert request["next_work_unit"]["unit_id"] == "gate_needs_specificity"
     assert request["specificity_targets"] == targets
+    assert request["controller_actions"] == [
+        {
+            "action_type": "request_gate_specificity",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
 
 
 def test_outer_loop_tick_request_backfills_targets_when_batch_action_promotes_specificity(
@@ -296,9 +302,16 @@ def test_outer_loop_tick_request_backfills_targets_when_batch_action_promotes_sp
     )
 
     assert request is not None
+    assert request["decision_type"] == "route_back_same_line"
     assert request["next_work_unit"]["unit_id"] == "gate_needs_specificity"
     assert request["specificity_targets"] == targets
     assert "non_executable_reason" not in request["next_work_unit"]
+    assert request["controller_actions"] == [
+        {
+            "action_type": "run_quality_repair_batch",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]
 
 
 def test_matching_controller_decision_requires_same_work_unit_context(tmp_path: Path) -> None:

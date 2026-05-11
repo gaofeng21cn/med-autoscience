@@ -484,6 +484,36 @@ def _append_gate_specificity_unit(units: list[dict[str, str]]) -> None:
     )
 
 
+def _append_specificity_target_repair_units(
+    units: list[dict[str, str]],
+    *,
+    target_status: Mapping[str, Any],
+) -> None:
+    if target_status.get("complete") is not True:
+        return
+    target_kinds = {
+        str(item.get("target_kind") or "").strip()
+        for item in target_status.get("targets") or []
+        if isinstance(item, Mapping)
+    }
+    if target_kinds & {"claim", "metric", "source_path", "table"}:
+        units.append(
+            _unit(
+                "analysis_claim_evidence_repair",
+                "analysis-campaign",
+                "Repair claim-evidence, story, figure, and results traceability blockers.",
+            )
+        )
+    if "figure" in target_kinds:
+        units.append(
+            _unit(
+                "figure_results_trace_repair",
+                "write",
+                "Repair figure and results traceability against the publication evidence surface.",
+            )
+        )
+
+
 def _label_only_blocker_needs_specificity(report: Mapping[str, Any], *, blocker_set: set[str]) -> bool:
     if not blocker_set:
         return False
@@ -553,6 +583,7 @@ def _derive_blocking_work_units(
     report: Mapping[str, Any],
     *,
     blockers: tuple[str, ...],
+    specificity_target_status_payload: Mapping[str, Any] | None = None,
 ) -> tuple[list[dict[str, str]], str, tuple[str, ...]]:
     blocker_set = set(blockers)
     units: list[dict[str, str]] = []
@@ -602,6 +633,18 @@ def _derive_blocking_work_units(
     ):
         _append_gate_specificity_unit(units)
         return units, "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
+    if (
+        specificity_target_status_payload
+        and specificity_target_status_payload.get("complete") is True
+        and blocker_set
+        and blocker_set.issubset(_GENERIC_SPECIFICITY_BLOCKERS)
+    ):
+        _append_specificity_target_repair_units(
+            units,
+            target_status=specificity_target_status_payload,
+        )
+        if units:
+            return units, "actionable", ()
     if _label_only_blocker_needs_specificity(report, blocker_set=blocker_set):
         _append_gate_specificity_unit(units)
         return units, "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
@@ -636,6 +679,7 @@ def derive_publication_work_units(
     specificity_targets: object = None,
 ) -> dict[str, Any]:
     blockers = _normalized_blockers(report)
+    target_status = specificity_target_status(specificity_targets)
     enriched_report = _report_with_specificity_targets(
         report,
         blockers=blockers,
@@ -644,6 +688,7 @@ def derive_publication_work_units(
     units, actionability_status, specificity_questions = _derive_blocking_work_units(
         enriched_report,
         blockers=blockers,
+        specificity_target_status_payload=target_status,
     )
     fingerprint_blockers = fingerprint_blockers_for_work_unit(blockers=blockers, next_work_unit=units[0])
     return {
