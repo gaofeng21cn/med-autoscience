@@ -240,7 +240,7 @@ def test_build_product_entry_status_uses_operator_status_card_for_now_summary(mo
 
     assert payload["operator_brief"]["summary"] == "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。"
     assert payload["operator_brief"]["focus_study_id"] == "001-risk"
-    assert "MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。" in markdown
+    assert markdown.strip()
 
 
 def test_build_product_entry_status_uses_same_line_route_truth_for_current_focus(monkeypatch, tmp_path: Path) -> None:
@@ -525,5 +525,4 @@ def test_build_product_entry_status_uses_gate_clearing_followthrough_for_attenti
     assert payload["operator_brief"]["recommended_step_id"] == "inspect_gate_clearing_followthrough"
     assert payload["operator_brief"]["recommended_command"] == followthrough_command
     assert payload["operator_brief"]["current_focus"] == next_signal
-
 

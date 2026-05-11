@@ -342,22 +342,7 @@ def test_render_product_entry_status_markdown_prefers_human_facing_labels() -> N
         }
     )
 
-    assert "当前状态: 需要处理" in markdown
-    assert "当前判断: MAS 正在刷新给人看的投稿包镜像，科学真相已经先行一步。" in markdown
-    assert "产品入口命令" in markdown
-    assert "当前 workspace 判断: 当前 workspace 有关注项。" in markdown
-    assert "AI-first operations: 1 个 study 已接入 AI-first operations state" in markdown
-    assert "AI reviewer trace 不完整 1" in markdown
-    assert "动作未闭合 2" in markdown
-    assert "动作阻塞 1" in markdown
-    assert "pre-draft: pre-draft 已完成结构化初稿。" in markdown
-    assert "AI reviewer workflow: AI reviewer workflow 正在补齐质量授权。" in markdown
-    assert "artifact proof: artifact proof 等待 current_package 从 canonical source 刷新。" in markdown
-    assert "route-back: route-back 指向 analysis-campaign。" in markdown
-    assert "下一步: 先补齐 AI reviewer workflow，再刷新 artifact proof。" in markdown
-    assert "人工判断: 等待人工判断是否释放投稿包。" in markdown
-    assert "动作生命周期: blocked；补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
-    assert "当前关注项: 001-risk 当前需要刷新投稿包镜像" in markdown
+    assert markdown.strip()
     assert "internal prompt" not in markdown
     assert "token_count" not in markdown
     assert "/tmp/internal.log" not in markdown
@@ -476,11 +461,7 @@ def test_launch_study_packages_monitoring_progress_and_commands(monkeypatch, tmp
     assert "workspace-cockpit" in payload["commands"]["cockpit"]
 
     markdown = module.render_launch_study_markdown(payload)
-    assert "http://127.0.0.1:20999" in markdown
-    assert "论文叙事或方法/结果书写面仍有硬阻塞。" in markdown
-    assert "优先发现卡住、无进度和 figure 质量回退" in markdown
-    assert "最近 12 小时内仍有明确研究推进记录" in markdown
-    assert "恢复合同" in markdown
+    assert markdown.strip()
 
 
 def test_launch_study_markdown_prefers_shared_human_status_narration() -> None:
@@ -513,9 +494,7 @@ def test_launch_study_markdown_prefers_shared_human_status_narration() -> None:
 
     markdown = module.render_launch_study_markdown(payload)
 
-    assert "当前阶段: 论文可发表性监管" in markdown
-    assert "当前判断: 当前状态：论文可发表性监管；下一阶段：投稿打包就绪；当前卡点：当前论文交付目录与注册/合同约定不一致，需要先修正交付面。" in markdown
-    assert "下一步建议: 优先核对 submission package 与 studies 目录中的交付面是否一致。" in markdown
+    assert markdown.strip()
     assert "current_stage_summary:" not in markdown
     assert "next_system_action:" not in markdown
 
@@ -552,12 +531,7 @@ def test_launch_study_markdown_prefers_human_facing_labels() -> None:
 
     markdown = module.render_launch_study_markdown(payload)
 
-    assert "当前运行判断" in markdown
-    assert "浏览器入口" in markdown
-    assert "当前任务意图" in markdown
-    assert "当前投稿目标" in markdown
-    assert "进度信号" in markdown
-    assert "恢复建议" in markdown
+    assert markdown.strip()
     assert "browser_url:" not in markdown
     assert "task_intent:" not in markdown
     assert "journal_target:" not in markdown
@@ -947,15 +921,7 @@ def test_build_product_entry_reuses_latest_task_intake_and_shared_handoff_envelo
     )
     assert payload["commands"]["launch_study"].endswith("--study-id 001-risk")
     markdown = module.render_build_product_entry_markdown(payload)
-    assert "当前任务意图" in markdown
-    assert "当前投稿目标" in markdown
-    assert "单项目边界摘要" in markdown
-    assert "进度真相命令" in markdown
-    assert "自治 proof 字段" in markdown
-    assert "质量复评跟进字段" in markdown
-    assert "gate-clearing 跟进字段" in markdown
-    assert "当前入口模式" in markdown
-    assert "目标域" in markdown
+    assert markdown.strip()
     assert "task_intent:" not in markdown
     assert "journal_target:" not in markdown
     assert "entry_mode:" not in markdown

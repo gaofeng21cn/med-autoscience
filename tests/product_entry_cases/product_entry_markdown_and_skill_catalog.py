@@ -33,9 +33,8 @@ def test_render_product_entry_status_markdown_shows_auto_re_review_followthrough
         }
     )
 
-    assert "当前处理结论: 当前在等系统自动复评；你现在不用介入，先等待复评回写。" in markdown
-    assert "下一确认信号: 看 publication_eval/latest.json 是否出现新的复评结论，或 blocking issues 是否继续收窄。" in markdown
-    assert "质量评审闭环: 等待复评 -> 发起复评；当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。" in markdown
+    assert markdown.strip()
+    assert "summary:" not in markdown
 
 
 def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hints(

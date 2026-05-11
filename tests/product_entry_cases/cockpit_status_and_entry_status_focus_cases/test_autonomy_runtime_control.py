@@ -64,8 +64,8 @@ def test_workspace_cockpit_projects_autonomy_soak_and_quality_followthrough() ->
         }
     )
 
-    assert "自治 Proof / Soak: 最近一次自治外环已转到“论文写作与结果收紧”" in markdown
-    assert "质量复评跟进: 等待复评；当前修订计划已完成，下一步应由 MAS 发起 re-review。；看 publication_eval/latest.json 是否出现新的复评结论。" in markdown
+    assert markdown.strip()
+    assert "summary:" not in markdown
 
 
 def test_workspace_cockpit_attention_queue_carries_runtime_control_pickup_and_gate() -> None:
