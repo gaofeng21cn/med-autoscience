@@ -181,3 +181,18 @@ The useful work now is:
 - preserve Codex CLI autonomy inside each stage.
 
 Do not implement a separate publication recipe engine until a route has matured into an audited capability with clear evidence obligations, tests, owner boundary, and failure behavior.
+
+## 2026-05-11 OPL Family Index Status
+
+Current OPL discovery sees MAS as the first resolved family memory descriptor:
+
+- OPL `domain-memory list` resolves `mas_publication_route_memory` from the MAS standard `domain_memory_descriptor`.
+- MAG/RCA currently expose domain-specific memory descriptor locators in their own repos, but they are not yet resolved by OPL's standard `family_domain_memory_ref.v1` index.
+- This makes MAS publication route memory the current reference implementation for family memory standardization, not a reason to move publication-route content into OPL.
+
+Remaining MAS-side proof:
+
+- run a real paper-line stage where `stage_knowledge_packet.publication_route_memory_refs` is consumed;
+- produce a typed closeout writeback proposal from that stage;
+- route the proposal through MAS `memory_write_router_receipt`;
+- show accepted/rejected writeback receipt refs in OPL/Aion workbench without exposing memory body text or authorizing publication claims.

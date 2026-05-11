@@ -13,6 +13,8 @@ Machine boundary: this is a human-readable policy. Machine truth remains in `stu
 
 2026-05-11 status calibration: Stage-Led Autonomy 的核心 operating surface 已经落地；机械分流层已经降级为 audit/router/materializer，但仍有兼容入口、historical reader、fixture 和旧命名残留。开发纪律是先确认默认路径不再调用、direct skill 与 OPL handoff 都能回到同一 MAS-owned stage/route surface，再删除旧 vocabulary 或迁入 history；不能为了“清干净”破坏 restore/provenance/parity 证据。
 
+2026-05-11 OPL integration calibration: OPL 现在可以把 MAS 识别为 aligned standard domain-agent skeleton、6-stage family stage plane，以及当前唯一 resolved family domain-memory descriptor。这个状态说明 stage-led autonomy 已具备被 OPL 托管的 descriptor / memory / sidecar 条件；它仍不等于真实 paper line 已完成 provider-hosted long-running soak。MAS 的研究判断、publication quality、claim boundary、artifact authority 继续只由 MAS durable truth surface 持有。
+
 ## 总目标与运行模型
 
 MAS 的总目标是长时间自治地完成高质量医学论文，而不是只自动运行一批分析脚本或拼接投稿包。
@@ -173,6 +175,13 @@ controller 不应该替 Codex 做科研思考。controller 的职责是：
 - explicit archive / restore / historical reader 中已经有新 MAS-owned reader 替代的入口。
 - 只能服务旧 mechanical route 的 product-entry 或 MCP projection。
 - 文档中把 `router`、`materializer` 或 `read model` 写成 route thinker / quality owner 的表述。
+
+与理想形态的剩余距离：
+
+- `scout / idea / analysis-campaign / review / decision` 的 stage contract 已具备 autonomy policy 和 memory 输入/closeout 机制，但还需要在真实 paper line 中证明 Codex CLI 长时间执行后能稳定生成 typed closeout。
+- `publication_route_memory` 已能作为 stage 输入和 closeout writeback proposal 载体，但还需要真实 reusable lesson 的 accepted/rejected receipt。
+- route decision / repair / gate replay 已经能作为 MAS owner callable surface 工作，但旧 mechanical vocabulary 和 historical compatibility reader 仍需按 parity gate 继续删除或归档。
+- OPL 托管路径还需要证明不降低 direct MAS app skill 路径的能力，不改变 MAS owner route，不绕过 AI reviewer / publication gate。
 
 ## 文献、引用与研究记忆平面
 

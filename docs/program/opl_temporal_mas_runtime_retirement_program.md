@@ -20,7 +20,9 @@ Master entry: OPL family framework 的总开发入口是 `/Users/gaofeng/workspa
 当前确定状态：
 
 - OPL Temporal provider code 已落地，包含 Temporal TypeScript SDK、`StageAttemptWorkflow`、activity、signal/query、CLI start/query/signal 和 provider receipt。
-- 真实 Temporal server/worker deployment、真实 Codex long-running activity runner、MAS paper-line soak 与 cutover 仍是 P2 当前工作。
+- OPL 侧实测读模型已经能把 MAS 作为 aligned standard domain-agent skeleton 和 6-stage control plane 发现；MAS 的 `mas_publication_route_memory` 也是当前唯一被 OPL 标准 `family_domain_memory_ref.v1` 解析为 resolved 的 domain memory descriptor。
+- MAS 侧 publication route memory 已从 seed fixture 推进到 workspace apply closure：repo 只保存 policy / seed / tests，真实 memory pack、migration receipt、writeback proposal 和 router receipt 属于 workspace/runtime artifact root。
+- 真实 Temporal server/worker deployment、真实 Codex long-running activity runner、MAS paper-line provider-hosted soak 与 cutover 仍是 P2 当前工作。
 - MAS 的 `local` supervision scheduler、one-shot `runtime-supervisor-reconcile`、workspace-local Portal / Live Console 在过渡期作为 local diagnostics、fallback 和 evidence surface 保留。
 - P2 的完成证据是 direct MAS skill path 与 OPL-hosted path 共享 MAS owner receipts，并且真实 provider soak 证明 OPL 只持有 framework receipt/ref/projection，不写 MAS forbidden truth surfaces。
 
@@ -105,6 +107,28 @@ MAS 的 SQLite runtime authority 只按 `framework_generic` / `mas_domain_specif
 - 本地 scheduler 退役不会降低 direct MAS diagnostics、offline development、explicit one-shot recovery 和 workspace evidence 可读性。
 - MAS SQLite/file lifecycle 经验已经完成 `framework_generic` / `mas_domain_specific` 分类，并有 OPL shared primitive 或明确保留理由。
 - MAS skeleton mapping 能把现有 stage、prompt/skill、knowledge、quality gate、contract、sidecar、receipt schema、projection builder 和 artifact locator contract 映射到 OPL standard domain-agent skeleton。
+
+## 2026-05-11 当前差距校准
+
+MAS 与 OPL 的结合已经从“文档定位”推进到可发现、可投影、可测试的 adapter 层，但还不能宣布生产级托管闭环完成。
+
+已完成：
+
+- MAS 作为独立医学研究 domain agent 的 owner split 已写入 AGENTS、status、invariants、OPL adoption 和 stage-led autonomy policy。
+- MAS stage plane 可被 OPL 只读发现，且 exploratory stage 已能携带 publication route memory `knowledge_refs`。
+- MAS sidecar export/dispatch 已能向 OPL typed family queue 暴露 paper autonomy task，并回到 MAS owner chain 写 receipt。
+- MAS publication route memory 已有 workspace apply closure、stage entry small-set refs、typed closeout writeback proposal 和 `memory_write_router_receipt`。
+- OPL App/Aion 可消费 MAS-owned runtime workbench projection 和 OPL stage attempt workbench，作为人用观察面。
+
+仍未完成：
+
+- 真实 Temporal worker 常驻后，由 OPL provider 启动 MAS stage attempt 并跑真实 Codex long-running activity。
+- 至少一条真实 paper line 的 read-only -> guarded apply soak：`OPL attempt -> Temporal/Codex activity -> MAS sidecar dispatch -> typed closeout -> MAS receipt -> progress delta / human gate / stop-loss`。
+- human gate / 用户插入修改要求 / resume token 从 OPL signal 到 MAS revision intake 的全链路 proof。
+- MAS local scheduler / Hermes / MDS / historical reader / compatibility vocabulary 的 active-path residue 清理。清理必须等上述 provider soak 和 direct skill parity 通过后执行。
+- MAS SQLite/file lifecycle 经验上收到 OPL framework 后，MAS retained domain truth 与 OPL framework_generic primitive 的边界还需要用真实 restore/retention proof 复核。
+
+因此，本文的状态是 `provider_ready_domain_adapter_landed_soak_pending`：MAS 侧已经具备被 OPL 托管的 descriptor、sidecar、memory、projection 和 owner-boundary 条件；生产级 runtime cutover 和旧面物理退役仍由真实 provider soak 决定。
 
 ## 模块处理矩阵
 
