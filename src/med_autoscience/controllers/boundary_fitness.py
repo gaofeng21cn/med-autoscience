@@ -20,6 +20,7 @@ DEFAULT_BASELINE = {
     "src/med_autoscience/controllers/study_runtime_execution.py": 1346,
     "src/med_autoscience/controllers/mainline_status.py": 1301,
     "src/med_autoscience/controllers/product_entry_parts/workspace_surfaces.py": 1292,
+    "src/med_autoscience/runtime_transport/mas_runtime_core.py": 1250,
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": 1289,
     "tests/product_entry_cases/repo_shell_and_handoff_templates.py": 1265,
     "src/med_autoscience/controllers/stage_knowledge_plane.py": 1199,
@@ -28,7 +29,6 @@ DEFAULT_BASELINE = {
     "src/med_autoscience/controllers/workspace_init.py": 1186,
     "tests/product_entry_cases/product_entry_preflight_and_task_submission.py": 1180,
     "src/med_autoscience/controllers/study_progress_parts/projection.py": 1155,
-    "src/med_autoscience/runtime_transport/med_deepscientist.py": 1146,
     "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py": 1122,
     "src/med_autoscience/controllers/time_to_event_direct_migration.py": 1094,
     "tests/study_progress_cases/markdown_and_followthrough_projection.py": 1075,
@@ -120,11 +120,11 @@ PROGRAM_BOUNDARIES = (
         ),
     },
     {
-        "boundary_id": "mds_runtime_interop",
-        "owner": "MAS/MDS boundary",
-        "path_markers": ("runtime_transport/med_deepscientist", "runtime_transport/"),
+        "boundary_id": "mas_runtime_core",
+        "owner": "MAS",
+        "path_markers": ("runtime_transport/mas_runtime_core", "runtime_transport/"),
         "recommended_split_direction": (
-            "Split by runtime protocol identity, compatibility transport, quest lifecycle, and failure taxonomy."
+            "Split by runtime protocol identity, MAS Runtime OS state, quest lifecycle, and failure taxonomy."
         ),
     },
     {

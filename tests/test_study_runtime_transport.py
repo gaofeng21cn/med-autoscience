@@ -4,8 +4,6 @@ import importlib
 from pathlib import Path
 from types import SimpleNamespace
 
-import pytest
-
 
 def test_study_runtime_transport_create_quest_uses_router_transport_binding(monkeypatch, tmp_path: Path) -> None:
     transport = importlib.import_module("med_autoscience.controllers.study_runtime_transport")
@@ -13,7 +11,7 @@ def test_study_runtime_transport_create_quest_uses_router_transport_binding(monk
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        router.med_deepscientist_transport,
+        router.managed_runtime_transport,
         "create_quest",
         lambda **kwargs: (seen.__setitem__("create_kwargs", kwargs) or {"ok": True}),
     )
@@ -25,7 +23,7 @@ def test_study_runtime_transport_create_quest_uses_router_transport_binding(monk
     assert result == {"ok": True}
 
 
-def test_study_runtime_transport_exposes_generic_managed_runtime_transport_alias(monkeypatch, tmp_path: Path) -> None:
+def test_study_runtime_transport_exposes_generic_managed_runtime_transport_binding(monkeypatch, tmp_path: Path) -> None:
     transport = importlib.import_module("med_autoscience.controllers.study_runtime_transport")
     router = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     seen: dict[str, object] = {}
@@ -38,7 +36,6 @@ def test_study_runtime_transport_exposes_generic_managed_runtime_transport_alias
 
     result = transport._create_quest(runtime_root=tmp_path / "runtime", payload={"quest_id": "quest-002"})
 
-    assert router.managed_runtime_transport is router.med_deepscientist_transport
     assert seen["create_kwargs"]["payload"] == {"quest_id": "quest-002"}
     assert result == {"ok": True}
 
@@ -62,20 +59,6 @@ def test_study_runtime_transport_accepts_generic_backend_only_router_shim(monkey
     assert result == {"ok": True, "shim": "generic"}
 
 
-def test_study_runtime_transport_rejects_legacy_alias_only_router_shim(monkeypatch, tmp_path: Path) -> None:
-    transport = importlib.import_module("med_autoscience.controllers.study_runtime_transport")
-    backend = SimpleNamespace(create_quest=lambda **kwargs: {"ok": True, "shim": "legacy-alias"})
-
-    monkeypatch.setattr(
-        transport,
-        "_router_module",
-        lambda: SimpleNamespace(med_deepscientist_transport=backend),
-    )
-
-    with pytest.raises(AttributeError, match="managed_runtime_transport"):
-        transport._create_quest(runtime_root=tmp_path / "runtime", payload={"quest_id": "quest-legacy"})
-
-
 def test_study_runtime_transport_update_startup_context_uses_router_transport_binding(
     monkeypatch,
     tmp_path: Path,
@@ -85,7 +68,7 @@ def test_study_runtime_transport_update_startup_context_uses_router_transport_bi
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        router.med_deepscientist_transport,
+        router.managed_runtime_transport,
         "update_quest_startup_context",
         lambda **kwargs: (
             seen.__setitem__("update_kwargs", kwargs)
@@ -127,7 +110,7 @@ def test_study_runtime_transport_update_startup_context_omits_requested_baseline
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
-        router.med_deepscientist_transport,
+        router.managed_runtime_transport,
         "update_quest_startup_context",
         lambda **kwargs: (
             seen.__setitem__("update_kwargs", kwargs)

@@ -112,7 +112,6 @@ def test_study_runtime_router_sync_completion_uses_router_artifact_complete_bind
         source="test",
     )
 
-    assert router.managed_runtime_transport is router.med_deepscientist_transport
     assert seen["completion_kwargs"] == {
         "runtime_root": tmp_path / "runtime",
         "quest_id": "quest-001",
@@ -133,7 +132,6 @@ def test_study_runtime_router_create_quest_uses_router_transport_binding(monkeyp
     payload = {"quest_id": "quest-001"}
     result = router._create_quest(runtime_root=tmp_path / "runtime", payload=payload)
 
-    assert router.managed_runtime_transport is router.med_deepscientist_transport
     assert seen["create_kwargs"]["payload"] == payload
     assert result == {"ok": True}
 

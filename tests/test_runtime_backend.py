@@ -301,6 +301,11 @@ def test_default_runtime_backend_contract_makes_external_mds_archive_only() -> N
     assert contract["external_mds_allowed_uses"] == ["source_provenance_ref", "historical_fixture_ref"]
 
 
+def test_runnable_mds_runtime_transport_module_is_retired() -> None:
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("med_autoscience.runtime_transport.med_deepscientist")
+
+
 def test_runtime_backend_resolves_registered_backend_from_engine_and_explicit_backend_id() -> None:
     module = importlib.import_module("med_autoscience.runtime_backend")
     fake_backend = _BackendStub(backend_id="demo_backend", engine_id="demo-engine")

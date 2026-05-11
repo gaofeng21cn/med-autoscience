@@ -358,9 +358,9 @@ wrapper 不应继续硬编码：
   - 管理 `.ds/user_message_queue.json`、interaction journal 与 pending message 计数
 - `med_autoscience.runtime_transport.hermes`
   - 管理 controller-facing outer substrate transport seam
-- `med_autoscience.runtime_transport.med_deepscientist`
-  - 只管理 legacy diagnostic / backend-audit / historical fixture 需要的 MDS-specific transport 读取
-  - 对 controller 默认 watch/status/execute/recovery 而言，它不是 active transport owner
+- MDS retained surfaces
+  - 只保留 source provenance、historical fixture、explicit archive import reference、upstream learning、parity oracle reference 与 read-only backend audit
+  - runnable `med_autoscience.runtime_transport.med_deepscientist` 已退役，不再管理 transport 读取或 controller 默认 watch/status/execute/recovery
 - `adapters.deepscientist.*`
   - 现在只保留兼容导出与 shim 角色
   - 不再是 runtime 布局、quest state、paper artifact、user message 或 transport 的真相源

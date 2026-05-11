@@ -66,9 +66,7 @@ def _write_manual_finish_contract(study_root: Path, manual_finish: dict[str, obj
 
 
 def _managed_runtime_transport(module: object):
-    transport = module.managed_runtime_transport
-    assert transport is module.med_deepscientist_transport
-    return transport
+    return module.managed_runtime_transport
 
 
 def _patch_decision_supervisor_tick_now(monkeypatch, decision_module: object, tick_factory) -> None:
@@ -569,8 +567,6 @@ def _write_native_runtime_event_for_status_test(*, quest_root: Path, quest_id: s
 
 
 __all__ = [name for name in globals() if not name.startswith("__")]
-
-
 
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import shlex
 from typing import Any
 
 import yaml
@@ -9,7 +10,6 @@ import yaml
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.med_deepscientist_repo_manifest import inspect_med_deepscientist_repo_manifest
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_transport.med_deepscientist_parts.daemon_launcher import _read_optional_config_env_value
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 
 
@@ -19,6 +19,30 @@ _PLACEHOLDER_LAUNCHER_MARKERS = ("ABS/PATH", "PATH/TO")
 
 def _collect_check_issues(checks: dict[str, bool], *, prefix: str) -> list[str]:
     return [f"{prefix}.{name}" for name, ok in checks.items() if not ok]
+
+
+def _read_optional_config_env_value(*, path: Path, key: str) -> str | None:
+    if not path.exists():
+        return None
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        lhs, rhs = stripped.split("=", 1)
+        normalized_key = lhs.removeprefix("export ").strip()
+        if normalized_key != key:
+            continue
+        value = rhs.strip()
+        if not value:
+            raise ValueError(f"{key} is empty in {path}")
+        try:
+            tokens = shlex.split(value, posix=True)
+        except ValueError as exc:
+            raise ValueError(f"invalid {key} assignment in {path}") from exc
+        if len(tokens) != 1 or not tokens[0].strip():
+            raise ValueError(f"{key} must resolve to one absolute path in {path}")
+        return tokens[0].strip()
+    return None
 
 
 def _normalize_override(item: object) -> tuple[dict[str, str] | None, list[str]]:

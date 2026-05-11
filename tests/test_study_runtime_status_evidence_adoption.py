@@ -8,9 +8,7 @@ from tests.study_runtime_test_helpers import _clear_readiness_report, make_profi
 
 
 def _managed_runtime_transport(module: object):
-    transport = module.managed_runtime_transport
-    assert transport is module.med_deepscientist_transport
-    return transport
+    return module.managed_runtime_transport
 
 
 def _write_controller_decision_authorization(

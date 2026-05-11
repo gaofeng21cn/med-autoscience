@@ -485,7 +485,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-audit --profile pro
 - 本仓默认写出 `runtime_backend_id = mas_runtime_core` / `runtime_engine_id = mas-runtime-core`
 - `Hermes gateway cron` 只负责 scheduler adapter 语义：job registry、cadence、latest cron session、gateway liveness 和调用 MAS tick script；不持有 study truth、runtime authority、session truth 或 publication authority
 - optional hosted Hermes target 必须通过 runtime backend contract、readiness proof 和 fail-closed gate 显式接入
-- `runtime_transport/med_deepscientist.py` 只能服务 historical fixture / explicit archive import reference / backend audit，不参与默认 watch/status/execute/recovery
+- MDS 只保留 frozen source archive、historical fixture、explicit archive import / provenance reference 和 read-only backend audit；runnable `runtime_transport/med_deepscientist.py` 已退役，不参与默认 watch/status/execute/recovery
 
 当前代码事实也限制了优化方式：`systemd|cron|launchd|docker` workspace-local service manager 已从公开 CLI choices 移除，只能作为内部 cleanup/audit evidence 返回 retired 状态，并不是可用替代 scheduler。本地默认运行已经由正式 `local` scheduler adapter 承担；后续只能扩展该 adapter 的 backend 覆盖面和同构 status / SLO，不能让用户或 workspace 重新维护旧 host service。
 
@@ -520,10 +520,9 @@ Phase 3 开始，transport 面也开始显式收口：
 - `med_autoscience.runtime_transport.hermes`
   - 只负责 optional hosted/runtime target 或 compatibility reference
   - 不作为默认 operation dependency
-- `med_autoscience.runtime_transport.med_deepscientist`
-  - 只负责 historical fixture / explicit archive import reference / backend audit 场景下的 daemon URL 解析和旧行为对照
-  - 允许优先读取 `<runtime_root>/runtime/daemon.json` 中的 live URL，并在缺失时回退到 `<runtime_root>/config/config.yaml`
-  - 不负责 quest state、artifact topology 或 user message queue 这些协议真相
+- MDS retained surfaces
+  - 只保留 source provenance、historical fixture、explicit archive import reference、upstream learning、parity oracle reference 与 read-only backend audit
+  - 不再提供 runnable MAS transport module，不负责 daemon URL 解析、quest lifecycle control、quest state、artifact topology 或 user message queue 协议真相
 
 production code 只允许依赖 `runtime_protocol` / `runtime_transport` 的 backend contract；不得因为旧 diagnostic transport 存在就恢复 MDS 默认 runtime dependency。
 

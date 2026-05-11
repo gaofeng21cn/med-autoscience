@@ -38,7 +38,6 @@ def _patch_router(monkeypatch, module, *, monitoring_url: str = "http://127.0.0.
         lambda: SimpleNamespace(
             managed_runtime_backend=managed_runtime_backend,
             managed_runtime_transport=managed_runtime_backend,
-            med_deepscientist_transport=managed_runtime_backend,
             _managed_runtime_backend_for_execution=lambda execution: managed_runtime_backend,
         ),
     )
@@ -134,13 +133,13 @@ def _write_runtime_state(quest_root: Path, payload: dict[str, object]) -> None:
     runtime_state_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def test_runtime_execution_router_patch_exposes_generic_managed_runtime_transport_alias(monkeypatch) -> None:
+def test_runtime_execution_router_patch_exposes_generic_managed_runtime_transport(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
     _patch_router(monkeypatch, module)
 
     router = module._router_module()
 
-    assert router.managed_runtime_transport is router.med_deepscientist_transport
+    assert hasattr(router, "managed_runtime_transport")
 
 
 def test_autonomous_runtime_notice_reports_live_runtime_only_when_liveness_is_strictly_live(monkeypatch) -> None:

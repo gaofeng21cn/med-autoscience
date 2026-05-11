@@ -290,7 +290,6 @@ def test_run_controller_stops_then_enqueues_route_message(tmp_path: Path, monkey
         min_reference_count=12,
     )
 
-    assert module.managed_runtime_transport is module.med_deepscientist_transport
     assert stopped == [
         (
             "http://127.0.0.1:20999",

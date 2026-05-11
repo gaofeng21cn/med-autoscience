@@ -27,7 +27,6 @@ managed_runtime_backend = runtime_backend_contract.get_managed_runtime_backend(
     runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
 )
 managed_runtime_transport = managed_runtime_backend
-med_deepscientist_transport = managed_runtime_transport
 
 
 RESOLVED_PATTERNS = [

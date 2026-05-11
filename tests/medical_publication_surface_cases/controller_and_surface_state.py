@@ -30,7 +30,6 @@ def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Pa
         daemon_url="http://127.0.0.1:20999",
     )
 
-    assert module.managed_runtime_transport is module.med_deepscientist_transport
     assert stopped == [
         (
             "http://127.0.0.1:20999",

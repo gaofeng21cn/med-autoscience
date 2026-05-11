@@ -969,7 +969,6 @@ def test_study_outer_loop_tick_dispatches_pause_runtime_action(monkeypatch, tmp_
         "quest_id": "quest-001",
         "source": "test-source",
     }
-    assert module.study_runtime_router.managed_runtime_transport is module.study_runtime_router.med_deepscientist_transport
     assert result["dispatch_status"] == "executed"
     assert result["executed_controller_action"]["action_type"] == "pause_runtime"
     assert result["executed_controller_action"]["result"]["status"] == "paused"

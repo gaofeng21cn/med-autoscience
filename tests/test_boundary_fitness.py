@@ -129,7 +129,7 @@ def test_current_repo_boundary_guard_has_no_blocking_findings() -> None:
 def test_program_boundary_map_prioritizes_natural_mas_mds_boundaries() -> None:
     module = _boundary_fitness_module()
     gate_path = "src/med_autoscience/controllers/gate_clearing_batch.py"
-    runtime_path = "src/med_autoscience/runtime_transport/med_deepscientist.py"
+    runtime_path = "src/med_autoscience/runtime_transport/mas_runtime_core.py"
     observability_path = "src/med_autoscience/controllers/study_cycle_profiler.py"
 
     boundary_map = module.build_program_boundary_map(
@@ -148,8 +148,8 @@ def test_program_boundary_map_prioritizes_natural_mas_mds_boundaries() -> None:
                 path=runtime_path,
                 kind="oversized_file",
                 severity="advisory",
-                message="large adapter",
-                recommendation="split by runtime protocol and compatibility responsibilities",
+                message="large runtime core",
+                recommendation="split by runtime protocol and MAS Runtime OS responsibilities",
                 line_count=1146,
                 limit=1000,
             ),
@@ -162,7 +162,7 @@ def test_program_boundary_map_prioritizes_natural_mas_mds_boundaries() -> None:
     assert "deterministic repair" in priorities[0]["recommended_split_direction"]
     assert {item["boundary_id"] for item in priorities} >= {
         "paper_quality_gate",
-        "mds_runtime_interop",
+        "mas_runtime_core",
         "observability_delivery_metrics",
     }
     split_text = " ".join(item["recommended_split_direction"].lower() for item in priorities)

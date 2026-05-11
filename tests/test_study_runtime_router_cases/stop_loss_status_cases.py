@@ -163,7 +163,7 @@ def test_task_intake_manual_hold_blocks_active_no_live_auto_repair(
         ),
     )
     monkeypatch.setattr(
-        module.med_deepscientist_transport,
+        module.managed_runtime_transport,
         "inspect_quest_live_execution",
         lambda *, runtime_root, quest_id: {
             "ok": True,

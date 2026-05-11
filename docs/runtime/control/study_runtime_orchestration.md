@@ -71,7 +71,7 @@
 - [`src/med_autoscience/controllers/study_runtime_transport.py`](../../../src/med_autoscience/controllers/study_runtime_transport.py)
   - 负责 `managed_runtime_transport` 相关的 transport I/O seam，把 MAS Runtime OS / managed backend 调用收口为独立内部层
   - 薄层 consumer / test shim 至少可以通过 `managed_runtime_transport` 或 `managed_runtime_backend` 绑定默认 backend
-  - `med_deepscientist_transport` 只作为 legacy compatibility alias 保留，用于旧测试、旧 fixture、explicit archive import 或 backend audit；它不再表示外部 MDS daemon 是默认 runtime owner
+  - 旧 `med_deepscientist_transport` alias 已退役；controller / router / test patch target 统一使用 `managed_runtime_transport`
 `study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 resolution / decision / startup / completion / execution / transport helper。
 因此既有调用面和现有 router monkeypatch 边界，不需要因为模块化拆分而改导入或改测试策略。
 

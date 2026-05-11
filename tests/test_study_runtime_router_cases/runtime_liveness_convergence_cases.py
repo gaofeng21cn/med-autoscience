@@ -10,9 +10,7 @@ from tests.study_runtime_test_helpers import _clear_readiness_report, make_profi
 
 
 def _managed_runtime_transport(module: object):
-    transport = module.managed_runtime_transport
-    assert transport is module.med_deepscientist_transport
-    return transport
+    return module.managed_runtime_transport
 
 
 def test_study_runtime_status_projects_active_no_live_stale_tick_as_recovery(

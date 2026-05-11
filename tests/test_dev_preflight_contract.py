@@ -260,7 +260,6 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "src/med_autoscience/controllers/study_runtime_router.py",
             "src/med_autoscience/controllers/runtime_watch.py",
             "src/med_autoscience/runtime_transport/hermes.py",
-            "src/med_autoscience/runtime_transport/med_deepscientist.py",
             "tests/test_profiles.py",
             "tests/test_runtime_backend.py",
             "tests/test_runtime_protocol_layout.py",

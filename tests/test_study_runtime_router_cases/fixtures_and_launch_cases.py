@@ -68,9 +68,7 @@ def _write_manual_finish_contract(study_root: Path, manual_finish: dict[str, obj
 
 
 def _managed_runtime_transport(module: object):
-    transport = module.managed_runtime_transport
-    assert transport is module.med_deepscientist_transport
-    return transport
+    return module.managed_runtime_transport
 
 
 def _materialize_bundle_only_remaining_evaluation_summary(*, study_root: Path, quest_root: Path) -> None:

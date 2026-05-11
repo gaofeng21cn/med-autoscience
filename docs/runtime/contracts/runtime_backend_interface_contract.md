@@ -78,7 +78,7 @@ managed runtime backend 必须显式暴露：
 - `get_quest_session`、`inspect_quest_live_runtime`、`inspect_quest_live_execution` 读取 MAS local state、runtime files 和 event refs，返回与 controller contract 对齐的 session/liveness projection。
 - `chat_quest`、`artifact_complete_quest`、`artifact_interact` 只记录 MAS runtime event / queue / artifact handoff，不调用 MDS HTTP API。
 
-因此，旧 MDS daemon 的长期价值被拆成两部分：controller-facing operation shape 由 `ManagedRuntimeBackend` contract 保留，运行状态与事件实现由 MAS Runtime OS 持有；旧 `runtime_transport/med_deepscientist.py` 只能服务 explicit archive import reference / historical fixture / backend audit，不参与 default watch/status/execute/recovery。
+因此，旧 MDS daemon 的长期价值被拆成两部分：controller-facing operation shape 由 `ManagedRuntimeBackend` contract 保留，运行状态与事件实现由 MAS Runtime OS 持有；MDS 只保留 frozen source archive、historical fixture、explicit archive import / provenance reference 和 read-only backend audit，不再保留 runnable MAS transport。
 
 ## 3.2 Registry validation
 
