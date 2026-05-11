@@ -31,7 +31,7 @@ MAS 侧已经落地：
 cutover 或物理退役前仍未完成：
 
 - OPL provider 的真实 Temporal server/worker residency；
-- OPL stage attempt 下真实 Codex long-running activity 或 MAS sidecar activity；
+- OPL stage attempt 下真实长时 domain activity soak；OPL Codex runner 的 repo/test harness 已具备 `dry_run`、`live_dry_run` 与 `codex_cli` process supervision，但 MAS paper-line provider-hosted 连续证据仍未完成；
 - 至少一条真实 MAS paper-line read-only -> guarded apply soak，链路为 OPL attempt -> MAS receipt -> artifact delta / gate replay / reviewer judgment / human gate / stop-loss / typed blocker；
 - human gate / user modification / resume token 从 OPL signal 进入 MAS revision 或 gate owner chain 的 proof；
 - provider parity 证明之后，清理 scheduler/Hermes/MDS/legacy compatibility 的 active-path residue。
