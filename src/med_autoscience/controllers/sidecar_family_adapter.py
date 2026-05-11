@@ -9,6 +9,7 @@ from typing import Any, Mapping
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 from . import reviewer_refinement_loop
+from . import opl_provider_ready_adapter
 from . import paper_repair_executor
 from . import runtime_supervisor_dispatch_executor
 from . import runtime_supervisor_reconcile
@@ -179,8 +180,14 @@ def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> di
             "entrypoint": "medautosci sidecar dispatch --task <task.json> --format json",
             "allowed_task_kinds": sorted(_ALLOWED_TASK_KINDS),
             "receipt_policy": "MAS writes a domain control receipt only; paper, publication, and package truth remain untouched.",
+            "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
         },
         "authority_boundary": _authority_boundary_payload(),
+        "provider_ready_adapter": opl_provider_ready_adapter.build_opl_provider_ready_contract(
+            profile=profile,
+            profile_ref=profile_ref,
+            allowed_task_kinds=_ALLOWED_TASK_KINDS,
+        ),
         "family_runtime_supervision": {
             "surface_kind": "family_runtime_supervision",
             "version": "family-runtime-supervision.v1",
@@ -430,14 +437,20 @@ def _load_task(task_path: Path) -> dict[str, Any]:
 
 
 def _forbidden_write_requested(task: Mapping[str, Any]) -> bool:
-    payload = _mapping(task.get("payload"))
-    if any(bool(payload.get(flag)) for flag in _FORBIDDEN_PAYLOAD_FLAGS):
-        return True
-    requested_writes = payload.get("requested_writes")
-    if isinstance(requested_writes, list):
-        forbidden = {"study_truth", "publication_eval", "controller_decisions", "current_package", "artifact_gate"}
-        return any(str(item) in forbidden for item in requested_writes)
-    return False
+    return bool(_forbidden_requested_writes(task))
+
+
+def _forbidden_requested_writes(task: Mapping[str, Any]) -> list[str]:
+    requested = opl_provider_ready_adapter.requested_writes_from_task(task)
+    forbidden = {
+        *_FORBIDDEN_PAYLOAD_FLAGS,
+        "study_truth",
+        "publication_eval",
+        "controller_decisions",
+        "current_package",
+        "artifact_gate",
+    }
+    return [item for item in requested if item in forbidden]
 
 
 def _profile_from_task(task: Mapping[str, Any]) -> tuple[WorkspaceProfile | None, Path | None]:
@@ -553,6 +566,12 @@ def _base_dispatch_receipt(
             "execution_policy": "guarded_domain_control_receipt_only",
         },
         "authority_boundary": _authority_boundary_payload(),
+        "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(
+            result="accepted_no_forbidden_writes",
+            task_id=task_id,
+            task_kind=task_kind,
+            requested_writes=(),
+        ),
     }
 
 
@@ -652,12 +671,15 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
             detail=f"MAS sidecar cannot dispatch domain {domain_id}",
         )
     if _forbidden_write_requested(task):
+        forbidden_requested_writes = _forbidden_requested_writes(task)
         return _dispatch_error(
             generated_at=generated_at,
             task_id=task_id,
             task_kind=task_kind,
             reason="domain_truth_or_artifact_gate_write_forbidden",
             forbidden_domain_truth_write=True,
+            requested_writes=opl_provider_ready_adapter.requested_writes_from_task(task),
+            forbidden_requested_writes=forbidden_requested_writes,
         )
     action_type = _ALLOWED_TASK_KINDS.get(task_kind)
     if action_type is None:
@@ -697,6 +719,8 @@ def _dispatch_error(
     task_kind: str | None = None,
     detail: str | None = None,
     forbidden_domain_truth_write: bool = False,
+    requested_writes: list[str] | None = None,
+    forbidden_requested_writes: list[str] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "surface_kind": "mas_family_sidecar_dispatch_receipt",
@@ -706,7 +730,15 @@ def _dispatch_error(
         "reason": reason,
         "forbidden_domain_truth_write": forbidden_domain_truth_write,
         "authority_boundary": _authority_boundary_payload(),
+        "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(
+            result="blocked" if forbidden_domain_truth_write else "not_evaluated",
+            task_id=task_id,
+            task_kind=task_kind,
+            requested_writes=requested_writes or forbidden_requested_writes or (),
+        ),
     }
+    if forbidden_requested_writes is not None:
+        payload["forbidden_requested_writes"] = forbidden_requested_writes
     if task_id is not None:
         payload["task_id"] = task_id
     if task_kind is not None:

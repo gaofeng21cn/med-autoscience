@@ -207,6 +207,18 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     ]
     assert payload["profile"]["profile_ref"] == str(profile_path)
     assert payload["workspace"]["workspace_root"] == str(workspace_root)
+    provider = payload["provider_ready_adapter"]
+    assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
+    assert provider["provider_topology"]["target_provider"] == "temporal"
+    assert provider["provider_topology"]["provider_attempt_is_truth"] is False
+    assert provider["direct_mas_path"]["status"] == "authoritative"
+    assert provider["truth_source_precedence"]["direct_mas_skill_path"] == "authoritative"
+    assert provider["truth_source_precedence"]["provider_completion_can_advance_paper_progress"] is False
+    assert provider["workspace_runtime_artifact_root_locator"]["repo_root_tracks_real_artifacts"] is False
+    assert provider["sidecar_contract"]["queue_hydration_source"] == "/pending_family_tasks"
+    assert payload["dispatch"]["receipt_refs"]["dispatch_receipt_root"] == (
+        "artifacts/runtime/opl_family_sidecar/dispatch_receipts"
+    )
     assert payload["studies"][0]["study_id"] == "001-risk"
     assert payload["studies"][0]["runtime_supervision"]["state"] == "running"
     assert payload["studies"][0]["slo_status"]["state"] == "breach"
@@ -300,6 +312,8 @@ def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_pat
     assert payload["dispatch"]["recommended_domain_command"].startswith("uv run python -m med_autoscience.cli runtime-supervisor-scan")
     assert payload["authority_boundary"]["writes_domain_truth"] is False
     assert payload["authority_boundary"]["writes_artifact_gate"] is False
+    assert payload["forbidden_write_guard_proof"]["result"] == "accepted_no_forbidden_writes"
+    assert payload["forbidden_write_guard_proof"]["can_write_domain_truth"] is False
 
 
 def test_sidecar_dispatch_executes_reconcile_apply_inside_mas_owner(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -513,3 +527,39 @@ def test_sidecar_dispatch_rejects_domain_truth_writes(tmp_path: Path, capsys) ->
     assert payload["accepted"] is False
     assert payload["forbidden_domain_truth_write"] is True
     assert payload["reason"] == "domain_truth_or_artifact_gate_write_forbidden"
+    assert payload["forbidden_requested_writes"] == ["domain_truth_write"]
+    guard = payload["forbidden_write_guard_proof"]
+    assert guard["surface_kind"] == "mas_opl_forbidden_write_guard_proof"
+    assert guard["result"] == "blocked"
+    assert guard["guard_mode"] == "fail_closed"
+    assert guard["can_write_domain_truth"] is False
+
+
+def test_sidecar_dispatch_rejects_opl_attempt_truth_substitution(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "attempt-substitution",
+            "domain_id": "medautoscience",
+            "task_kind": "runtime_supervision/recover",
+            "payload": {
+                "profile": "/tmp/profile.toml",
+                "study_id": "001-risk",
+                "requested_writes": ["controller_decisions", "publication_eval"],
+                "opl_attempt_status": "completed",
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["accepted"] is False
+    assert payload["reason"] == "domain_truth_or_artifact_gate_write_forbidden"
+    assert payload["forbidden_requested_writes"] == ["controller_decisions", "publication_eval"]
+    guard = payload["forbidden_write_guard_proof"]
+    assert guard["forbidden_requested_writes"] == ["controller_decisions", "publication_eval"]
+    assert guard["can_authorize_publication_quality"] is False

@@ -29,6 +29,7 @@ from .manifest_projection_compaction import (
     _manifest_open_auto_research_projection,
     _manifest_portable_supervisor_queue_dashboard,
 )
+from med_autoscience.controllers import opl_provider_ready_adapter
 
 
 def build_product_entry_manifest(
@@ -440,6 +441,26 @@ def build_product_entry_manifest(
         progress_projection=progress_projection,
         artifact_inventory=artifact_inventory,
     )
+    opl_provider_ready_contract = opl_provider_ready_adapter.build_opl_provider_ready_contract(
+        profile=profile,
+        profile_ref=profile_ref,
+        allowed_task_kinds=(
+            "runtime_supervision/recover",
+            "runtime_supervisor/recover",
+            "runtime/recover",
+            "runtime_supervisor/reconcile-apply",
+            "runtime/reconcile-apply",
+            "autonomy/continue",
+            "paper_autonomy/repair-recheck",
+            "paper_autonomy/ai-reviewer-recheck",
+            "paper_autonomy/gate-replay",
+            "paper_autonomy/route-decision",
+            "safe_reconcile/dry-run",
+            "study_progress/read",
+            "status/read",
+            "notification/receipt",
+        ),
+    )
     skill_catalog = _build_skill_catalog_surface(
         runtime=runtime,
         family_orchestration=family_orchestration,
@@ -548,6 +569,12 @@ def build_product_entry_manifest(
             "phase5_platform_target": phase5_platform_target,
             "opl_family_persistence_lifecycle_owner_route_adoption": (
                 opl_family_persistence_lifecycle_owner_route_adoption
+            ),
+            "opl_provider_ready_contract": opl_provider_ready_contract,
+            "opl_lifecycle_inventory": opl_provider_ready_contract["lifecycle_inventory"],
+            "opl_domain_agent_skeleton_mapping": opl_provider_ready_contract["domain_agent_skeleton_mapping"],
+            "workspace_runtime_artifact_root_locator": (
+                opl_provider_ready_contract["workspace_runtime_artifact_root_locator"]
             ),
             "family_stage_control_plane_descriptor": family_stage_control_plane_descriptor,
             "family_stage_control_plane": family_stage_control_plane,

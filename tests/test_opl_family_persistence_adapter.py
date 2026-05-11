@@ -158,3 +158,37 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert payload["lifecycle_ledger"]["actions"][0]["sha256"] == "0" * 64
     assert payload["owner_route"]["surface_kind"] == "family_owner_route"
     assert payload["owner_route"]["next_owner"] == "med-autoscience"
+    provider = payload["opl_provider_ready_contract"]
+    assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
+    assert provider["provider_topology"]["target_provider"] == "temporal"
+    assert provider["provider_topology"]["provider_attempt_owner"] == "one-person-lab"
+    assert provider["provider_topology"]["domain_action_owner"] == "med-autoscience"
+    assert provider["provider_topology"]["provider_attempt_is_truth"] is False
+    assert provider["truth_source_precedence"]["direct_mas_skill_path"] == "authoritative"
+    assert provider["truth_source_precedence"]["opl_provider_attempt_history"] == "transport_receipt_only"
+    assert provider["truth_source_precedence"]["paper_progress_requires_mas_artifact_delta_or_gate_owner"] is True
+    assert provider["workspace_runtime_artifact_root_locator"]["repo_root_tracks_real_artifacts"] is False
+    assert provider["workspace_runtime_artifact_root_locator"]["locators"]["publication_eval"] == (
+        "studies/<study_id>/artifacts/publication_eval/latest.json"
+    )
+    inventory = payload["opl_lifecycle_inventory"]
+    assert inventory == provider["lifecycle_inventory"]
+    assert {item["item_id"] for item in inventory["framework_generic"]} == {
+        "provider_stage_attempt",
+        "runtime_lifecycle_sidecar_index",
+        "artifact_locator_and_retention_projection",
+        "operator_projection_cache",
+    }
+    assert all(item["mas_exports_refs_only"] is True for item in inventory["framework_generic"])
+    assert {item["item_id"] for item in inventory["mas_domain_specific"]} == {
+        "study_truth_and_runtime_health",
+        "publication_quality_and_ai_reviewer",
+        "paper_package_and_artifact_authority",
+        "owner_route_and_domain_dispatch_receipts",
+    }
+    assert all(item["owner"] == "med-autoscience" for item in inventory["mas_domain_specific"])
+    skeleton = payload["opl_domain_agent_skeleton_mapping"]
+    assert skeleton == provider["domain_agent_skeleton_mapping"]
+    assert skeleton["mapping_mode"] == "contract_only_no_physical_artifact_move"
+    assert skeleton["repo_tracks_real_workspace_artifacts"] is False
+    assert "mas_family_sidecar_dispatch_receipt" in skeleton["skeleton"]["contracts/runtime/sidecar"]
