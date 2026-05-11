@@ -271,6 +271,74 @@ def test_stage_memory_closeout_router_writes_typed_destinations_and_rejects_cros
     assert len(failed_path.read_text(encoding="utf-8").splitlines()) == 1
 
 
+def test_accepted_workspace_reusable_lessons_are_promoted_to_route_memory_pack(tmp_path) -> None:
+    study_root = tmp_path / "study"
+    workspace_root = tmp_path / "workspace"
+    stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+        workspace_root=workspace_root,
+        seed_fixture_path=SEED_FIXTURE,
+    )
+    packet = stage_knowledge_plane.normalize_stage_memory_closeout_packet(
+        study_id="S1",
+        stage="decision",
+        study_root=study_root,
+        workspace_root=workspace_root,
+        closeout_payload={
+            "idempotency_key": "decision-route-memory-writeback",
+            "source_refs": ["stage:decision:turn-1"],
+            "reusable_lessons": [
+                {
+                    "write_id": "decision-stoploss-lesson",
+                    "scope": "workspace_reusable",
+                    "route_family": "negative_result_stoploss",
+                    "stage_applicability": ["decision"],
+                    "title": "Decision stop-loss route lesson",
+                    "lesson": "If endpoint evidence remains thin after bounded checks, preserve the stop-loss decision rather than expanding claims.",
+                    "failure_modes": ["claim_expansion_after_weak_endpoint_evidence"],
+                    "source_refs": ["stage:decision:turn-1"],
+                }
+            ],
+        },
+    )
+
+    receipt = stage_knowledge_plane.route_stage_memory_closeout(
+        closeout_packet=packet,
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+    replay = stage_knowledge_plane.route_stage_memory_closeout(
+        closeout_packet=packet,
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+
+    pack_path = stage_knowledge_plane.publication_route_memory_pack_path(workspace_root=workspace_root)
+    pack = json.loads(pack_path.read_text(encoding="utf-8"))
+    memory_ids = [card["memory_id"] for card in pack["cards"]]
+    assert memory_ids.count("publication_route_memory_writeback__decision-stoploss-lesson") == 1
+    assert "publication_route_memory_seed__negative_result_stoploss" in memory_ids
+    writeback_card = next(
+        card
+        for card in pack["cards"]
+        if card["memory_id"] == "publication_route_memory_writeback__decision-stoploss-lesson"
+    )
+    assert writeback_card["prose_summary"].startswith("If endpoint evidence remains thin")
+    assert writeback_card["source_receipt_ref"] == receipt["receipt_ref"]
+    assert writeback_card["authority_boundary"] == "context_only_not_publication_authority"
+    assert replay["idempotent_replay"] is True
+    assert len([card for card in pack["cards"] if card["memory_id"].startswith("publication_route_memory_writeback__")]) == 1
+
+    selected = stage_knowledge_plane.select_publication_route_memory_refs(
+        workspace_root=workspace_root,
+        stage="decision",
+        route_family_tags=["negative_result_stoploss"],
+        limit=5,
+    )
+    assert "publication_route_memory_writeback__decision-stoploss-lesson" in [
+        ref["memory_id"] for ref in selected
+    ]
+
+
 def test_stage_memory_closeout_router_rejects_free_text_only_closeout(tmp_path) -> None:
     study_root = tmp_path / "study"
     workspace_root = tmp_path / "workspace"

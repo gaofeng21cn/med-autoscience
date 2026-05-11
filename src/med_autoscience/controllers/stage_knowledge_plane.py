@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from med_autoscience.controllers import portfolio_memory, workspace_literature
+from med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_writeback import sync_accepted_publication_route_memory_cards as _sync_route_memory_cards
 from med_autoscience.stage_knowledge_contract import (
     EXPLORATORY_STAGES,
     KNOWLEDGE_PACKET_SURFACE,
@@ -372,6 +373,7 @@ def route_stage_memory_closeout(
     )
     receipt["receipt_refs"] = receipt_refs
     if apply:
+        _sync_route_memory_cards(receipt=receipt, pack_path=publication_route_memory_pack_path(workspace_root=resolved_workspace_root), receipt_ref=str(receipt_path), apply=apply)
         _write_json(receipt_path, receipt)
         _write_json(memory_pack_receipt_path, receipt)
     return {**receipt, "receipt_ref": str(receipt_path)}
@@ -758,7 +760,6 @@ def _route_proposed_writes(
             _append_jsonl_once(target_path, {**accepted_item, "write_id": write_id}, identity=write_id)
     return accepted, rejected
 
-
 def _target_path_for_destination(destination: str, *, study_root: Path, workspace_root: Path) -> Path | None:
     targets = {
         "workspace_research_memory_proposal": publication_route_memory_pack_root(workspace_root=workspace_root)
@@ -1092,7 +1093,6 @@ def _publication_route_memory_pack(
         "source_fingerprint": _fingerprint(normalized_cards),
         "authority_boundary": _authority_boundary(),
     }
-
 
 def _validate_stage(stage: str) -> str:
     resolved = _text(stage)

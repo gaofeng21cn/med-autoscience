@@ -159,6 +159,8 @@ MAS now exposes a thin `domain_memory_descriptor` in the product-entry manifest 
 - `memory_write_router_receipt` mirrored under `portfolio/research_memory/publication_route_memory/writeback_receipts`
 - `paper_soak_memory_apply_proof` under `artifacts/stage_knowledge/paper_soak_memory_apply_proof/latest.json` as the controlled read-only proof surface that links stage route-memory refs, typed closeout proposal refs, MAS router receipt refs, workspace writeback receipt refs, and OPL/Aion display receipt refs
 
+Accepted `workspace_reusable` lessons from typed stage closeout now update the workspace `publication_route_memory_pack` as natural-language memory cards. This makes a MAS-accepted lesson available to later stage-entry retrieval while preserving idempotent writeback receipts and the context-only authority boundary.
+
 The repo still tracks only policy, contracts, seed fixture, code and tests. Real memory packs, migration receipts, writeback proposals and router receipts belong to the MAS workspace or runtime artifact root. OPL may discover locator / freshness / receipt refs; it does not own memory bodies, apply migration, accept/reject writebacks, choose a publication route, or promote memory into evidence, review, controller, publication or artifact truth.
 
 Decision-stage availability is read-only context. `stage_knowledge_packet.authority_boundary.can_replace_controller_decision` remains `false`; controller decisions continue to cite current evidence, unresolved risk, Stop-loss Memo context, human-gate status, and downstream owner requirements before any route change is official.
