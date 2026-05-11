@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync, submission_minimal
+from med_autoscience.controllers import medical_literature_hygiene
 from med_autoscience.journal_requirements import (
     describe_journal_submission_package,
     journal_requirements_json_path,
@@ -188,6 +189,90 @@ def _canonicalize_medical_publication_surface_blockers(
     if invalid_blockers:
         _append_unique(blocker_ids, "invalid_blocker_payload")
     return blocker_ids, invalid_blockers
+
+
+_GATE_CRITICAL_LITERATURE_HYGIENE_BLOCKERS = frozenset(
+    {
+        "citation_key_sync_failed",
+        "duplicate_citation_keys",
+        "unsupported_citation_blockers_present",
+    }
+)
+
+
+def _deterministic_quality_blockers(
+    deterministic_quality_gates: dict[str, Any],
+) -> list[str]:
+    gate_payloads = deterministic_quality_gates.get("gates")
+    if not isinstance(gate_payloads, dict):
+        return []
+    citation_gate = gate_payloads.get("citation_grounding")
+    if not isinstance(citation_gate, dict):
+        return []
+    blockers: list[str] = []
+    for blocker in citation_gate.get("blockers") or []:
+        blocker_id = _non_empty_text(blocker)
+        if blocker_id in _GATE_CRITICAL_LITERATURE_HYGIENE_BLOCKERS:
+            _append_unique(blockers, blocker_id)
+    return blockers
+
+
+def _append_deterministic_quality_blocking_refs(
+    refs: list[dict[str, Any]],
+    *,
+    deterministic_quality_gates: dict[str, Any],
+    blocker_ids: set[str],
+) -> None:
+    if not blocker_ids:
+        return
+    gate_payloads = deterministic_quality_gates.get("gates")
+    if not isinstance(gate_payloads, dict):
+        return
+    for gate_key, gate_payload in gate_payloads.items():
+        if not isinstance(gate_payload, dict):
+            continue
+        gate_key_text = _non_empty_text(gate_key)
+        gate_blocker_ids = [_non_empty_text(item) for item in gate_payload.get("blockers") or []]
+        for blocker_id in gate_blocker_ids:
+            if blocker_id is None or blocker_id not in blocker_ids:
+                continue
+            payload: dict[str, Any] = {
+                "blocker": blocker_id,
+                "artifact_role": gate_key_text or "deterministic_quality_gate",
+            }
+            evidence_refs = gate_payload.get("evidence_refs")
+            if isinstance(evidence_refs, list):
+                for evidence_ref in evidence_refs:
+                    if not isinstance(evidence_ref, dict):
+                        continue
+                    hygiene_projection = evidence_ref.get("medical_literature_hygiene")
+                    if not isinstance(hygiene_projection, dict):
+                        continue
+                    hygiene_refs = hygiene_projection.get("refs")
+                    if not isinstance(hygiene_refs, dict):
+                        continue
+                    if blocker_id in {
+                        "citation_key_sync_failed",
+                        "duplicate_citation_keys",
+                        "unsupported_citation_blockers_present",
+                        "references_bib_missing",
+                        "references_bib_unreadable",
+                    }:
+                        source_path = _non_empty_text(hygiene_refs.get("references_bib_path"))
+                    elif blocker_id in {
+                        "evidence_ledger_missing",
+                        "evidence_ledger_unreadable",
+                        "evidence_ledger_invalid",
+                    }:
+                        source_path = _non_empty_text(hygiene_refs.get("evidence_ledger_path"))
+                    else:
+                        source_path = _non_empty_text(hygiene_refs.get("paper_root"))
+                    if source_path is not None:
+                        payload["source_path"] = source_path
+                        payload["artifact_path"] = source_path
+                    break
+            if payload not in refs:
+                refs.append(payload)
 
 
 def build_gate_report(state: GateState) -> dict[str, Any]:
@@ -369,6 +454,11 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         blockers.extend(medical_publication_surface_named_blockers)
         if invalid_medical_publication_surface_blockers:
             blockers.append("invalid_blocker_payload")
+    medical_literature_hygiene_projection = (
+        medical_literature_hygiene.build_medical_literature_hygiene_projection(paper_root=state.paper_root)
+        if state.paper_root is not None
+        else None
+    )
     if state.submission_surface_qc_failures:
         blockers.append("submission_surface_qc_failure_present")
     if state.manuscript_terminology_violations:
@@ -378,6 +468,41 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
             blockers.append("missing_journal_requirements")
         elif journal_package_state["status"] != "current":
             blockers.append("missing_journal_package")
+    publication_reporting_checklist = (state.latest_medical_publication_surface or {}).get("structured_reporting_checklist")
+    if not isinstance(publication_reporting_checklist, dict):
+        publication_reporting_checklist = None
+    submission_minimal_evaluated_source_signature = _non_empty_text(
+        submission_minimal_authority.get("source_signature")
+    )
+    submission_minimal_authority_source_signature = _non_empty_text(
+        submission_minimal_authority.get("recorded_source_signature")
+    )
+    study_delivery_source_signature = _non_empty_text(study_delivery.get("source_signature")) or _non_empty_text(
+        study_delivery.get("delivery_source_signature")
+    )
+    blocking_artifact_refs = build_blocking_artifact_refs(
+        blockers=blockers,
+        paper_root=state.paper_root,
+        submission_minimal_manifest_path=state.submission_minimal_manifest_path,
+        submission_minimal_authority_stale_reason=submission_minimal_authority_stale_reason,
+        study_delivery=study_delivery,
+        medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
+        invalid_medical_publication_surface_blockers=invalid_medical_publication_surface_blockers,
+        submission_surface_qc_failures=list(state.submission_surface_qc_failures),
+    )
+    deterministic_quality_gates = build_deterministic_quality_gate_projection_from_state(
+        state=state,
+        blockers=blockers,
+        medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
+        publication_reporting_checklist=publication_reporting_checklist,
+        blocking_artifact_refs=blocking_artifact_refs,
+        active_figure_count=active_figure_count,
+        prebundle_display_advisories=prebundle_display_advisories,
+        medical_literature_hygiene_projection=medical_literature_hygiene_projection,
+    )
+    deterministic_quality_gate_critical_blockers = _deterministic_quality_blockers(deterministic_quality_gates)
+    for blocker in deterministic_quality_gate_critical_blockers:
+        _append_unique(blockers, blocker)
     if state.anchor_kind == "main_result":
         allow_write = not blockers
     else:
@@ -385,6 +510,9 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
     if allow_write:
         paper_line_recommended_action = publication_gate_policy.CLEAR_RECOMMENDED_ACTION
         paper_line_blocking_reasons = []
+    else:
+        if paper_line_recommended_action == publication_gate_policy.CLEAR_RECOMMENDED_ACTION:
+            paper_line_recommended_action = publication_gate_policy.BLOCKED_RECOMMENDED_ACTION
     from .supervisor_and_cli import build_publication_supervisor_state
 
     supervisor_state = build_publication_supervisor_state(
@@ -416,47 +544,21 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         medical_publication_surface_raw_blockers=medical_publication_surface_raw_blockers,
         non_scientific_handoff_gaps=non_scientific_handoff_gaps,
     )
-    publication_reporting_checklist = (state.latest_medical_publication_surface or {}).get("structured_reporting_checklist")
-    if not isinstance(publication_reporting_checklist, dict):
-        publication_reporting_checklist = None
     controller_stage_note = _medical_publication_surface_stage_note(
         base_note=str(supervisor_state["controller_stage_note"]),
         named_blockers=medical_publication_surface_named_blockers,
         route_back_recommendation=medical_publication_surface_route_back_recommendation,
     )
-    submission_minimal_evaluated_source_signature = _non_empty_text(
-        submission_minimal_authority.get("source_signature")
-    )
-    submission_minimal_authority_source_signature = _non_empty_text(
-        submission_minimal_authority.get("recorded_source_signature")
-    )
-    study_delivery_source_signature = _non_empty_text(study_delivery.get("source_signature")) or _non_empty_text(
-        study_delivery.get("delivery_source_signature")
-    )
-    blocking_artifact_refs = build_blocking_artifact_refs(
-        blockers=blockers,
-        paper_root=state.paper_root,
-        submission_minimal_manifest_path=state.submission_minimal_manifest_path,
-        submission_minimal_authority_stale_reason=submission_minimal_authority_stale_reason,
-        study_delivery=study_delivery,
-        medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
-        invalid_medical_publication_surface_blockers=invalid_medical_publication_surface_blockers,
-        submission_surface_qc_failures=list(state.submission_surface_qc_failures),
+    _append_deterministic_quality_blocking_refs(
+        blocking_artifact_refs,
+        deterministic_quality_gates=deterministic_quality_gates,
+        blocker_ids=set(deterministic_quality_gate_critical_blockers),
     )
     gate_fingerprint = _publication_gate_fingerprint(
         blockers=blockers,
         authority_source_signature=submission_minimal_authority_source_signature,
         evaluated_source_signature=submission_minimal_evaluated_source_signature,
         study_delivery_source_signature=study_delivery_source_signature,
-    )
-    deterministic_quality_gates = build_deterministic_quality_gate_projection_from_state(
-        state=state,
-        blockers=blockers,
-        medical_publication_surface_named_blockers=medical_publication_surface_named_blockers,
-        publication_reporting_checklist=publication_reporting_checklist,
-        blocking_artifact_refs=blocking_artifact_refs,
-        active_figure_count=active_figure_count,
-        prebundle_display_advisories=prebundle_display_advisories,
     )
 
     return {

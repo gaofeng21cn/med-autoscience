@@ -282,6 +282,7 @@ def build_deterministic_quality_gate_projection_from_state(
     blocking_artifact_refs: list[dict[str, Any]],
     active_figure_count: int | None,
     prebundle_display_advisories: list[str],
+    medical_literature_hygiene_projection: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return build_deterministic_quality_gate_projection(
         blockers=blockers,
@@ -291,7 +292,7 @@ def build_deterministic_quality_gate_projection_from_state(
         submission_surface_qc_failures=list(state.submission_surface_qc_failures),
         manuscript_terminology_violations=list(state.manuscript_terminology_violations),
         blocking_artifact_refs=blocking_artifact_refs,
-        medical_literature_hygiene_projection=(
+        medical_literature_hygiene_projection=medical_literature_hygiene_projection or (
             medical_literature_hygiene.build_medical_literature_hygiene_projection(paper_root=state.paper_root)
             if state.paper_root is not None
             else None

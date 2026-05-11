@@ -51,7 +51,11 @@ def test_build_gate_report_exposes_authority_handshake_signatures_and_gate_finge
     assert report["submission_minimal_authority_source_signature"] == authority["source_signature"]
     assert report["authority_source_signature"] == authority["source_signature"]
     assert report["gate_fingerprint"].startswith("publication-gate::")
-    assert report["blocking_artifact_refs"] == []
+    assert "stale_submission_minimal_authority" not in report["blockers"]
+    assert all(
+        item.get("blocker") != "stale_submission_minimal_authority"
+        for item in report["blocking_artifact_refs"]
+    )
 
 
 def test_build_gate_report_includes_blocking_artifact_refs_for_stale_authority(

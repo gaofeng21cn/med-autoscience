@@ -14,12 +14,20 @@ _REQUIRED_DISPLAY_SURFACE_BLOCKERS = frozenset(
 )
 _CLAIM_EVIDENCE_BLOCKERS = frozenset(
     {
+        "citation_key_sync_failed",
         "claim_evidence_consistency_failed",
         "claim_evidence_map_missing",
         "claim_evidence_map_missing_or_incomplete",
+        "duplicate_citation_keys",
+        "evidence_ledger_invalid",
+        "evidence_ledger_missing",
+        "evidence_ledger_unreadable",
         "claim_evidence_trace_missing",
         "missing_publication_anchor",
         "missing_claim_evidence_map",
+        "references_bib_missing",
+        "references_bib_unreadable",
+        "unsupported_citation_blockers_present",
     }
 )
 _STORY_BLOCKERS = frozenset(
