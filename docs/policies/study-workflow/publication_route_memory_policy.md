@@ -157,10 +157,13 @@ MAS now exposes a thin `domain_memory_descriptor` in the product-entry manifest 
 - `publication_route_memory_apply_receipt` under `portfolio/research_memory/publication_route_memory/migration_receipts`
 - `stage_knowledge_packet.publication_route_memory_refs` as the small stage-entry retrieval set
 - `memory_write_router_receipt` mirrored under `portfolio/research_memory/publication_route_memory/writeback_receipts`
+- `paper_soak_memory_apply_proof` under `artifacts/stage_knowledge/paper_soak_memory_apply_proof/latest.json` as the controlled read-only proof surface that links stage route-memory refs, typed closeout proposal refs, MAS router receipt refs, workspace writeback receipt refs, and OPL/Aion display receipt refs
 
 The repo still tracks only policy, contracts, seed fixture, code and tests. Real memory packs, migration receipts, writeback proposals and router receipts belong to the MAS workspace or runtime artifact root. OPL may discover locator / freshness / receipt refs; it does not own memory bodies, apply migration, accept/reject writebacks, choose a publication route, or promote memory into evidence, review, controller, publication or artifact truth.
 
 Decision-stage availability is read-only context. `stage_knowledge_packet.authority_boundary.can_replace_controller_decision` remains `false`; controller decisions continue to cite current evidence, unresolved risk, Stop-loss Memo context, human-gate status, and downstream owner requirements before any route change is official.
+
+`paper_soak_memory_apply_proof` is also read-only. It can show that a paper-line stage consumed a small route-memory set, produced a typed writeback proposal, and received a MAS router accepted/rejected receipt. It must expose refs and counts, not memory card prose, paper artifact bodies, publication verdicts, or receipt instances stored in the repo.
 
 ## Migration Plan
 
@@ -196,7 +199,6 @@ Current OPL discovery sees MAS as the first resolved family memory descriptor:
 
 Remaining MAS-side proof:
 
-- run a real paper-line stage where `stage_knowledge_packet.publication_route_memory_refs` is consumed;
-- produce a typed closeout writeback proposal from that stage;
-- route the proposal through MAS `memory_write_router_receipt`;
-- show accepted/rejected writeback receipt refs in OPL/Aion workbench without exposing memory body text or authorizing publication claims.
+- run a real paper-line stage where `stage_knowledge_packet.publication_route_memory_refs` is consumed by runtime work;
+- use `paper_soak_memory_apply_proof` to publish only the ref-level chain from stage entry to typed closeout proposal, MAS `memory_write_router_receipt`, and OPL/Aion read-only receipt refs;
+- proceed to controlled apply only through MAS owner surfaces when the route-memory proof is paired with artifact delta, gate replay, reviewer judgment, route decision, human gate, stop-loss, or typed blocker evidence.
