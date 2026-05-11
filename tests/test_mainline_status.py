@@ -246,7 +246,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["platform_target"]["sequence_scope"] == "monorepo_landing_readiness"
     assert payload["platform_target"]["current_step_id"] == "functional_monolith_completion"
     assert payload["platform_target"]["completed_step_ids"] == [
-        "freeze_gateway_runtime_truth",
+        "freeze_stage_runtime_truth",
         "mds_no_history_absorb",
         "runtime_core_ingest",
         "functional_monolith_completion",
@@ -356,7 +356,7 @@ def test_render_mainline_status_markdown_surfaces_stage_and_next_focus() -> None
     assert "program:research_foundry_medical_mainline" not in markdown
     assert "reference:research_foundry_medical_phase_ladder" not in markdown
     assert "program_id:" not in markdown
-    assert "domain_gateway:" not in markdown
+    assert "domain_agent:" not in markdown
     assert "outer_runtime_substrate_owner:" not in markdown
     assert "entry_shape:" not in markdown
     assert "surface_kind:" not in markdown

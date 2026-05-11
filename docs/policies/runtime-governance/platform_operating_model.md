@@ -3,13 +3,13 @@
 `MedAutoScience` 默认按 `Agent-first, human-auditable` 的方式运行。
 
 对外，它是疾病研究与 manuscript-delivery 方向的独立 medical research domain agent。
-对内，`domain gateway / Domain Harness OS` 只作为 controller、runtime、eval、delivery 的边界层与执行层语言保留。
+对内，`Domain Harness OS` 只作为 controller、runtime、eval、delivery 的边界层与执行层语言保留；旧 `domain gateway` 语料只在历史/参考文档中解释。
 
 这不是一句 README 口号，而是平台级操作约束：
 
 - 人类主要负责提出研究任务、提供或更新数据、审核关键结果、做最终决策
 - `Codex` 这类 Agent 主要负责读取 workspace 状态、调用平台 controller、协调 MAS Runtime OS / Progress Portal / Artifact OS / Quality OS 与外挂工具、组织论文交付
-- `MedAutoScience` 自身负责提供稳定、可验证、可审计的 gateway 接口，而不是要求人手工维护底层状态文件
+- `MedAutoScience` 自身负责提供稳定、可验证、可审计的 domain-agent entry 接口，而不是要求人手工维护底层状态文件
 
 在 `OPL` 联邦链路里，推荐始终按下面这条理解：
 
@@ -22,11 +22,11 @@
 - `MAS Runtime OS` 是当前 MAS domain runtime owner；`MedDeepScientist` 只保留 frozen source archive、historical fixture、explicit archive import reference、backend audit、upstream intake 和 parity oracle。
 - OPL provider、Temporal、Hermes legacy provider 或 local scheduler 只能承载/唤醒/记录/派发 attempt，不持有 MAS study truth、publication quality、artifact authority 或 current package。
 
-更系统的定位说明见：[Domain Gateway And Harness OS](../../references/positioning/domain_gateway_harness_os.md)
+更系统的历史定位说明见：[Domain Gateway And Harness OS](../../references/positioning/domain_gateway_harness_os.md)。该参考文档保留旧定位语料；当前 active 口径以独立 medical research domain agent 与 OPL framework 托管边界为准。
 
-## Gateway 与 Harness OS 的分工
+## Domain Agent 与 Harness OS 的分工
 
-### Domain gateway 负责
+### Domain agent entry 负责
 
 - 暴露面向人类与 Agent 的正式 domain 入口
 - 固定 workspace / profile / controller / overlay / adapter 的稳定接口

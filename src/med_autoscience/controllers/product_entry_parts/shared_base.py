@@ -49,7 +49,11 @@ from opl_harness_shared.automation_companions import (
     build_automation_catalog as _build_shared_automation_catalog,
     build_automation_descriptor as _build_shared_automation_descriptor,
 )
-from opl_harness_shared.managed_runtime import build_managed_runtime_contract as _build_shared_managed_runtime_contract
+from opl_harness_shared.managed_runtime import (
+    ManagedRuntimeThreeLayerContract as _SharedManagedRuntimeThreeLayerContract,
+    read_bundled_managed_runtime_three_layer_contract as _read_shared_managed_runtime_contract,
+    build_managed_runtime_contract as _build_shared_managed_runtime_contract,
+)
 from opl_harness_shared.family_orchestration import (
     build_family_product_entry_orchestration as _build_shared_family_product_entry_orchestration,
 )
@@ -383,6 +387,7 @@ def _build_managed_runtime_contract(
     attention_queue_surface: str,
     recovery_contract_surface: str,
 ) -> dict[str, Any]:
+    shared_contract = _read_shared_managed_runtime_contract()
     return _build_shared_managed_runtime_contract(
         runtime_owner=MAS_RUNTIME_OWNER,
         domain_owner=domain_owner,
@@ -390,6 +395,13 @@ def _build_managed_runtime_contract(
         supervision_status_surface=supervision_status_surface,
         attention_queue_surface=attention_queue_surface,
         recovery_contract_surface=recovery_contract_surface,
+        contract=_SharedManagedRuntimeThreeLayerContract(
+            contract_ref="contracts/opl-framework/managed-runtime-three-layer-contract.json",
+            contract_id=shared_contract.contract_id,
+            required_owner_fields=shared_contract.required_owner_fields,
+            required_surface_locator_fields=shared_contract.required_surface_locator_fields,
+            canonical_fail_closed_rules=shared_contract.canonical_fail_closed_rules,
+        ),
     )
 
 

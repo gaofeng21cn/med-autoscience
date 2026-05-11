@@ -457,7 +457,7 @@ medautosci runtime supervisor-scan \
 - `consecutive_failure_count` 增长
 - 达到阈值后升级为 `external_supervisor_required`
 - 写 `runtime_escalation_record.json`
-- 前台和 Gateway/MAS 都必须看到明确的平台级 supervisor 介入信号
+- 前台、OPL framework handoff 和 MAS 都必须看到明确的平台级 supervisor 介入信号
 - control plane 不得继续把该状态伪装成 recovering dispatch
 
 ### 5.4 controller-owned finalize parking
@@ -576,7 +576,7 @@ medautosci runtime supervisor-scan \
 
 MAS 负责“这一跳应该怎么判、怎么恢复、怎么写 durable truth”。scheduler 只负责按周期调用，不持有医学或 runtime authority。
 
-这能保证未来无论宿主变成 Codex、Gateway 还是 managed web runtime，合同都不漂。
+这能保证未来无论宿主是 Codex、OPL framework handoff 还是 managed web runtime，合同都不漂。
 
 ## 9. 当前这条外环能恢复到哪里
 

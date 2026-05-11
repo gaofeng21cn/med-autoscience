@@ -166,7 +166,7 @@ def _mainline_header_lines(
         "",
         "## 理想目标",
         "",
-        f"- 域入口归属: {runtime_topology.get('domain_gateway') or 'none'}",
+        f"- domain agent: {runtime_topology.get('domain_agent') or 'none'}",
         f"- runtime owner: {runtime_topology.get('runtime_owner') or 'none'}",
         f"- runtime substrate: {runtime_topology.get('runtime_substrate') or 'none'}",
         f"- 研究后端: {runtime_topology.get('research_backend') or 'none'}",

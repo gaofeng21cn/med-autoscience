@@ -241,7 +241,7 @@ def make_pending_user_interaction_payload() -> dict[str, object]:
         "reply_mode": "blocking",
         "expects_reply": True,
         "allow_free_text": True,
-        "message": "[等待决策] 请由 Gateway 接管并转发给用户。",
+        "message": "[等待决策] 请由 OPL framework handoff 转发给用户。",
         "summary": "等待新的用户消息。",
         "reply_schema": {"type": "free_text"},
         "decision_type": None,

@@ -1,0 +1,30 @@
+{
+  "contract_id": "opl_managed_runtime_three_layer_contract",
+  "contract_kind": "opl_managed_runtime_three_layer_contract.v1",
+  "owner": "one-person-lab",
+  "consumer_domain": "med-autoscience",
+  "required_owner_fields": [
+    "runtime_owner",
+    "domain_owner",
+    "executor_owner"
+  ],
+  "required_surface_locator_fields": [
+    "supervision_status_surface",
+    "attention_queue_surface",
+    "recovery_contract_surface"
+  ],
+  "canonical_fail_closed_rules": [
+    "domain_supervision_cannot_bypass_runtime",
+    "executor_cannot_declare_global_gate_clear",
+    "runtime_cannot_invent_domain_publishability_truth"
+  ],
+  "authority_boundary": {
+    "runtime_framework_owner": "one-person-lab",
+    "domain_truth_owner": "MedAutoScience",
+    "executor_owner": "controlled_research_backend",
+    "framework_write_policy": "no_domain_truth_writes"
+  },
+  "supersedes_contract_ids": [
+    "opl_gateway_managed_runtime_three_layer_contract"
+  ]
+}

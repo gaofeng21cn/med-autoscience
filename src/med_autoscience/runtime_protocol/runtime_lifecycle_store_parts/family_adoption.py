@@ -15,7 +15,7 @@ ADOPTION_SURFACE_KIND = "mas_opl_family_persistence_lifecycle_owner_route_adopti
 FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND = "family_stage_control_plane_descriptor"
 FAMILY_STAGE_CONTROL_PLANE_KIND = "family_stage_control_plane"
 DOMAIN_MEMORY_DESCRIPTOR_KIND = "family_domain_memory_ref"
-SOURCE_CONTRACT_REF = "contracts/opl-gateway/family-contract-adoption.json"
+SOURCE_CONTRACT_REF = "contracts/opl-framework/family-contract-adoption.json"
 RUNTIME_LIFECYCLE_CONTRACT_REF = (
     "med_autoscience.runtime_protocol.runtime_lifecycle_contract.runtime_lifecycle_contract"
 )
@@ -471,7 +471,7 @@ def build_opl_family_adoption_surface(
             },
             "authority_boundary": {
                 "domain_truth_owner": "MedAutoScience",
-                "opl_role": "family-level discovery and indexing only",
+                "opl_role": "OPL stage-runtime discovery and indexing only",
                 "allowed_operation": "refs_payload_projection_only",
                 "forbidden_opl_authority_surfaces": list(FORBIDDEN_OPL_AUTHORITY_SURFACES),
             },
@@ -502,7 +502,7 @@ def build_product_entry_adoption_projection(
             },
             "authority_boundary": {
                 "domain_truth_owner": "MedAutoScience",
-                "opl_role": "family-level discovery and indexing only",
+                "opl_role": "OPL stage-runtime discovery and indexing only",
                 "allowed_operation": "refs_payload_projection_only",
                 "forbidden_opl_authority_surfaces": list(FORBIDDEN_OPL_AUTHORITY_SURFACES),
             },

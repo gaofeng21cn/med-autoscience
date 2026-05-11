@@ -43,7 +43,7 @@ def test_mas_plugin_skill_tracks_current_sidecar_and_doc_boundaries() -> None:
     assert "DeepScientist overlay workflow" not in manifest["interface"]["longDescription"]
     assert "sidecar export" in skill_text
     assert "sidecar dispatch" in skill_text
-    assert "OPL-managed" in skill_text
+    assert "OPL framework-managed" in skill_text
     assert "docs/runtime/control/controllers.md" in skill_text
     assert "docs/runtime/controllers.md" not in skill_text
     assert "docs/references/codex_plugin.md" not in skill_text

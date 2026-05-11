@@ -119,7 +119,7 @@ def _single_project_boundary() -> dict[str, Any]:
         ],
         "post_gate_only": [
             "new upstream intake from future MDS/DeepScientist snapshots",
-            "optional hosted/federated frontend work outside MAS truth authority",
+            "optional hosted/stage-runtime frontend work outside MAS truth authority",
         ],
         "not_now": [
             "treating MedDeepScientist as a second long-term owner",
@@ -309,7 +309,7 @@ def _active_tranche_owner_truth() -> dict[str, Any]:
 def _platform_target() -> dict[str, Any]:
     return _build_shared_platform_target(
         summary=(
-            "Phase 5 已完成 MAS functional monolith closeout；后续平台工作只剩 optional hosted/federated "
+            "Phase 5 已完成 MAS functional monolith closeout；后续平台工作只剩 optional hosted/stage-runtime "
             "frontend 与 future upstream intake，不再以 external MDS runtime core 为默认运行条件。"
         ),
         sequence_scope="monorepo_landing_readiness",
@@ -319,7 +319,7 @@ def _platform_target() -> dict[str, Any]:
             "external MDS 只保留 frozen archive / historical fixture / explicit archive import reference。"
         ),
         north_star_topology={
-            "domain_gateway": "Med Auto Science",
+            "domain_agent": "Med Auto Science",
             "runtime_owner": MAS_RUNTIME_OWNER,
             "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
             "controlled_research_backend": "MAS-owned Runtime OS / Artifact OS / Quality OS",
@@ -332,8 +332,8 @@ def _platform_target() -> dict[str, Any]:
         ],
         landing_sequence=[
             _build_shared_program_sequence_step(
-                step_id="freeze_gateway_runtime_truth",
-                title="Freeze gateway/runtime truth",
+                step_id="freeze_stage_runtime_truth",
+                title="Freeze stage-runtime truth",
                 status="completed",
                 phase_id="phase_1_mainline_established",
                 summary="mainline topology、product-entry companions 与 post-gate platform wording 已冻结成 repo-tracked truth。",
@@ -366,40 +366,40 @@ def _platform_target() -> dict[str, Any]:
                 step_id="mds_no_history_absorb",
                 title="MDS no-history absorb",
                 status="completed",
-                phase_id="phase_5_federation_platform_maturation",
+                phase_id="phase_5_stage_runtime_platform_maturation",
                 summary="MDS retained capability 已通过 no-history provenance、author guard、parity harness 和 external dependency retirement 收口到 MAS。",
             ),
             _build_shared_program_sequence_step(
                 step_id="runtime_core_ingest",
                 title="Runtime core ingest",
                 status="completed",
-                phase_id="phase_5_federation_platform_maturation",
+                phase_id="phase_5_stage_runtime_platform_maturation",
                 summary="默认 runtime core 已由 MAS Runtime OS 承接；external MDS daemon/runtime root 不再是默认运行或诊断依赖。",
             ),
             _build_shared_program_sequence_step(
                 step_id="functional_monolith_completion",
                 title="Functional monolith completion",
                 status="completed",
-                phase_id="phase_5_federation_platform_maturation",
+                phase_id="phase_5_stage_runtime_platform_maturation",
                 summary="MAS 默认 CLI/MCP/product-entry/workspace helper/Progress Portal/OPL handoff 都不要求外部 MDS repo、daemon 或 WebUI。",
             ),
             _build_shared_program_sequence_step(
                 step_id="optional_hosted_frontend_packaging",
                 title="Optional hosted frontend packaging",
                 status="pending",
-                phase_id="phase_5_federation_platform_maturation",
+                phase_id="phase_5_stage_runtime_platform_maturation",
                 summary="后续可把 MAS Progress Portal / OPL dashboard 打包成 hosted frontend，但不得重解释 MAS study truth。",
             ),
             _build_shared_program_sequence_step(
                 step_id="future_upstream_source_intake_review",
                 title="Future upstream source intake review",
                 status="pending",
-                phase_id="phase_5_federation_platform_maturation",
+                phase_id="phase_5_stage_runtime_platform_maturation",
                 summary="未来如需吸收 MDS/DeepScientist 新 snapshot，只能走 no-history provenance、author audit 和 MAS-owned capability proof。",
             ),
         ],
         completed_step_ids=[
-            "freeze_gateway_runtime_truth",
+            "freeze_stage_runtime_truth",
             "mds_no_history_absorb",
             "runtime_core_ingest",
             "functional_monolith_completion",
@@ -415,7 +415,7 @@ def _platform_target() -> dict[str, Any]:
             "phase_4_backend_deconstruction",
         ],
         recommended_phase_command=(
-            "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"
+            "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_stage_runtime_platform_maturation"
         ),
         land_now=[
             "repo-tracked product-entry shell and family orchestration companions",
@@ -858,20 +858,20 @@ def _phase_ladder() -> list[dict[str, Any]]:
             ],
         },
         {
-            "id": "phase_5_federation_platform_maturation",
-            "title": "Phase 5 federation and platform maturation",
+            "id": "phase_5_stage_runtime_platform_maturation",
+            "title": "Phase 5 stage-runtime integration and platform maturation",
             "status": "pending",
             "usable_now": True,
-            "summary": "MAS functional monolith 已落地；后续只考虑 optional hosted frontend、federation direct entry 和 future upstream intake。",
+            "summary": "MAS functional monolith 已落地；后续只考虑 optional hosted frontend、stage-runtime direct entry 和 future upstream intake。",
             "focus": [
-                "land broader federation-facing direct entry only after earlier phases hold",
+                "land broader stage-runtime-facing direct entry only after earlier phases hold",
                 "keep future source intake and hosted frontend work outside MAS truth authority",
             ],
             "entry_points": [
                 {
                     "name": "mainline_phase",
-                    "command": "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation",
-                    "purpose": "先看 federation / platform 这层现在仍然为什么是后置阶段。",
+                    "command": "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_stage_runtime_platform_maturation",
+                    "purpose": "先看 stage-runtime / platform 这层现在仍然为什么是后置阶段。",
                 },
                 {
                     "name": "mainline_status",
@@ -901,16 +901,16 @@ def read_mainline_status() -> dict[str, Any]:
         "generated_at": _utc_now(),
         "program_id": PROGRAM_ID,
         "federation_position": {
-            "opl": "top-level federation and gateway language",
+            "opl": "Codex-first stage-led runtime framework",
             "research_foundry": "generic Research Ops framework layer",
-            "med_autoscience": "medical domain gateway plus Domain Harness OS",
+            "med_autoscience": "independent medical research domain agent",
         },
         "ideal_state": {
             "north_star": (
                 "把医学研究稳定推进成 publication-grade evidence chain、稿件、交付与长期可监管运行。"
             ),
             "runtime_topology": {
-                "domain_gateway": "Med Auto Science",
+                "domain_agent": "Med Auto Science",
                 "runtime_owner": MAS_RUNTIME_OWNER,
                 "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
                 "research_backend": "MAS-owned Runtime OS / Artifact OS / Quality OS",
@@ -922,7 +922,7 @@ def read_mainline_status() -> dict[str, Any]:
             "product_shape": [
                 "用户能直接启动、下任务、看进度、看监管在线态",
                 "OPL 可把 domain handoff 送进 MAS，而不吞掉 MAS authority",
-                "MAS 持续做 gateway / outer-loop / publication judgment owner",
+                "MAS 持续做 domain entry / outer-loop / publication judgment owner",
             ],
         },
         "single_project_boundary": _single_project_boundary(),
@@ -959,7 +959,7 @@ def read_mainline_status() -> dict[str, Any]:
             {
                 "id": "positioning_frozen",
                 "title": "OPL / Research Foundry / MAS positioning frozen",
-                "summary": "MAS 已收口为 Research Foundry 的医学实现、domain gateway 与 Domain Harness OS。",
+                "summary": "MAS 已收口为 Research Foundry 的独立医学 domain agent 与 Domain Harness OS。",
             },
             {
                 "id": "f1_external_hermes_runtime_truth",
@@ -984,7 +984,7 @@ def read_mainline_status() -> dict[str, Any]:
         ],
         "remaining_gaps": [
             "mature standalone medical product entry is still not landed; the truthful surface is still the repo-tracked shell plus agent-operated CLI/MCP",
-            "OPL -> MAS handoff is documented and contract-shaped, but not yet a live federation front door",
+            "OPL stage-runtime handoff is documented and contract-shaped, but not yet a live hosted front door",
             "optional hosted-runtime clearance still needs broader host/workspace proof; current MAS default runtime does not depend on it",
             "active study blockers still need continued closeout at publication / completion / human-gate truth surfaces",
         ],
@@ -993,7 +993,7 @@ def read_mainline_status() -> dict[str, Any]:
             "quality: keep publication-grade route truth, same-line repair, bounded analysis, and submission readiness under MAS quality contracts",
             "single-project owner: keep MedDeepScientist pinned to archive / historical fixture / explicit archive import reference roles instead of second-owner language",
             "keep core status and runtime contracts aligned so OPL language, MAS role, and runtime truth do not drift",
-            "only move toward hosted/federated frontend work without changing MAS truth authority",
+            "only move toward hosted/stage-runtime frontend work without changing MAS truth authority",
         ],
         "explicitly_not_now": [
             "large platform rewrite without a separate owner/proof gate",

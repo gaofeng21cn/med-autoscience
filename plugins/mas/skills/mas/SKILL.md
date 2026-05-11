@@ -15,7 +15,7 @@ description: Use when Codex should operate MedAutoScience through its stable run
 - skill 入口只有一个；`workspace-cockpit`、`submit-study-task`、`launch-study`、`study-progress`、`product-entry-status` 等命令是这个 app skill 的内部 command contract
 - `product-entry manifest` 暴露 MAS-owned `family_action_catalog`；CLI、MCP、skill command projection 与 product-entry action metadata 从同一份 action definition 派生，`OPL` 只做 discovery/export/parity
 - `OPL` handoff、product-entry manifest、sidecar bridge 和其他机器可读桥接属于集成层，不是这个 skill 的前台主语
-- OPL Full online runtime 由 OPL-managed `Hermes-Agent` substrate 承担长期在线、唤醒、session/delivery/approval transport；MAS 通过 `sidecar export` / `sidecar dispatch` 暴露受控桥接，仍持有 study truth、publication quality、artifact gate 与 current package authority
+- OPL Full online runtime 由 OPL framework-managed provider substrate 承担长期在线、唤醒、session/delivery/approval transport；MAS 通过 `sidecar export` / `sidecar dispatch` 暴露受控桥接，仍持有 study truth、publication quality、artifact gate 与 current package authority
 
 ## 核心规则
 

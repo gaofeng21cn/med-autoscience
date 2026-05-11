@@ -213,7 +213,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
         prefix_paths=(
             "contracts/modules/",
-            "contracts/opl-gateway/",
+            "contracts/opl-framework/",
             "contracts/schemas/",
         ),
         commands=(
@@ -359,7 +359,7 @@ _DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
         exact_paths=("contracts/README.md",),
         prefix_paths=(
             "contracts/modules/",
-            "contracts/opl-gateway/",
+            "contracts/opl-framework/",
             "contracts/schemas/",
         ),
     ),
