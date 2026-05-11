@@ -22,6 +22,7 @@ DEFAULT_BASELINE = {
     "src/med_autoscience/controllers/product_entry_parts/workspace_surfaces.py": 1292,
     "tests/product_entry_cases/cockpit_status_and_entry_status_focus.py": 1289,
     "tests/product_entry_cases/repo_shell_and_handoff_templates.py": 1265,
+    "src/med_autoscience/controllers/stage_knowledge_plane.py": 1199,
     "tests/test_progress_portal.py": 1245,
     "src/med_autoscience/controllers/progress_portal.py": 1207,
     "src/med_autoscience/controllers/workspace_init.py": 1186,
