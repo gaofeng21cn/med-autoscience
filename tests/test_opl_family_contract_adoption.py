@@ -9,7 +9,7 @@ import pytest
 pytestmark = pytest.mark.meta
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CONTRACT_PATH = "contracts/opl-gateway/family-contract-adoption.json"
+CONTRACT_PATH = "contracts/opl-framework/family-contract-adoption.json"
 
 
 def _read(relative_path: str) -> str:

@@ -14,7 +14,7 @@ def _assert_managed_runtime_contract(*, module, payload, profile, profile_ref) -
     assert payload["runtime"]["executor_owner"] == "controlled_research_backend"
     assert payload["runtime"]["runtime_substrate"] == "mas_runtime_core"
     assert payload["managed_runtime_contract"] == {
-        "shared_contract_ref": "contracts/opl-gateway/managed-runtime-three-layer-contract.json",
+        "shared_contract_ref": "contracts/opl-framework/managed-runtime-three-layer-contract.json",
         "runtime_owner": "mas_runtime_os",
         "domain_owner": "med-autoscience",
         "executor_owner": "controlled_research_backend",

@@ -94,12 +94,12 @@ def test_lifecycle_store_builds_opl_family_adoption_surface_from_sidecar_refs(tm
     assert surface["surface_kind"] == "mas_opl_family_persistence_lifecycle_owner_route_adoption"
     assert surface["workspace_root"] == str(workspace_root.resolve())
     assert surface["refs"]["sqlite_sidecar"]["db_path"] == str(db_path.resolve())
-    assert surface["refs"]["source_contract"] == "contracts/opl-gateway/family-contract-adoption.json"
+    assert surface["refs"]["source_contract"] == "contracts/opl-framework/family-contract-adoption.json"
     assert surface["refs"]["runtime_lifecycle_contract"] == (
         "med_autoscience.runtime_protocol.runtime_lifecycle_contract.runtime_lifecycle_contract"
     )
     assert surface["refs"]["authority_boundary"]["domain_truth_owner"] == "MedAutoScience"
-    assert surface["refs"]["authority_boundary"]["opl_role"] == "family-level discovery and indexing only"
+    assert surface["refs"]["authority_boundary"]["opl_role"] == "OPL stage-runtime discovery and indexing only"
     assert surface["refs"]["authority_boundary"]["forbidden_opl_authority_surfaces"] == [
         "publication_eval/latest.json",
         "controller_decisions/latest.json",
@@ -128,7 +128,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
 
     adoption = payload["opl_family_persistence_lifecycle_owner_route_adoption"]
     assert adoption["surface_kind"] == "mas_opl_family_persistence_lifecycle_owner_route_adoption"
-    assert adoption["refs"]["source_contract"] == "contracts/opl-gateway/family-contract-adoption.json"
+    assert adoption["refs"]["source_contract"] == "contracts/opl-framework/family-contract-adoption.json"
     assert adoption["refs"]["sqlite_sidecar"]["workspace_relative_path"] == "artifacts/runtime/runtime_lifecycle.sqlite"
     assert adoption["payload"]["persistence"]["source_tables"] == [
         "lineage_nodes",

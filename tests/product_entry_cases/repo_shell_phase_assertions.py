@@ -188,7 +188,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
     phase5 = payload["phase5_platform_target"]
     assert phase5["surface_kind"] == "phase5_platform_target"
     assert phase5["summary"] == (
-        "Phase 5 已完成 MAS functional monolith closeout；后续平台工作只剩 optional hosted/federated "
+        "Phase 5 已完成 MAS functional monolith closeout；后续平台工作只剩 optional hosted/stage-runtime "
         "frontend 与 future upstream intake，不再以 external MDS runtime core 为默认运行条件。"
     )
     assert phase5["sequence_scope"] == "monorepo_landing_readiness"
@@ -197,7 +197,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "external MDS 只保留 frozen archive / historical fixture / explicit archive import reference。"
     )
     assert phase5["north_star_topology"] == {
-        "domain_gateway": "Med Auto Science",
+        "domain_agent": "Med Auto Science",
         "runtime_owner": "mas_runtime_os",
         "runtime_substrate": "mas_runtime_core",
         "controlled_research_backend": "MAS-owned Runtime OS / Artifact OS / Quality OS",
@@ -209,7 +209,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "eval_hygiene",
     ]
     assert [item["step_id"] for item in phase5["landing_sequence"]] == [
-        "freeze_gateway_runtime_truth",
+        "freeze_stage_runtime_truth",
         "stabilize_user_product_loop",
         "clear_multi_workspace_host_gate",
         "freeze_backend_deconstruction_boundary",
@@ -223,7 +223,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
     assert phase5["landing_sequence"][5]["status"] == "completed"
     assert phase5["landing_sequence"][6]["status"] == "completed"
     assert phase5["completed_step_ids"] == [
-        "freeze_gateway_runtime_truth",
+        "freeze_stage_runtime_truth",
         "mds_no_history_absorb",
         "runtime_core_ingest",
         "functional_monolith_completion",
@@ -249,7 +249,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "future upstream source intake beyond historical fixture/provenance refs",
     ]
     assert phase5["recommended_phase_command"] == (
-        "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_federation_platform_maturation"
+        "uv run python -m med_autoscience.cli mainline-phase --phase phase_5_stage_runtime_platform_maturation"
     )
     assert payload["product_entry_shell"]["workspace_cockpit"]["command"].endswith(
         "workspace-cockpit --profile " + str(profile_ref.resolve()) + " --format json"

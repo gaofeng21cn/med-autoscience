@@ -680,7 +680,7 @@ def test_study_progress_does_not_project_resume_arbitration_as_physician_decisio
                 "reply_mode": "blocking",
                 "expects_reply": True,
                 "allow_free_text": False,
-                "message": "这一步已经处理完，等待 Gateway 接管。",
+                "message": "这一步已经处理完，等待 OPL framework handoff。",
                 "summary": "运行时把 finalize 本地总结暂时停在这里。",
                 "reply_schema": {"type": "decision", "decision_type": "finalize_paper_line"},
                 "decision_type": "finalize_paper_line",

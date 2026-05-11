@@ -757,7 +757,7 @@ def _build_opl_runtime_manager_registration(
             "runtime_health_snapshot_index": "/runtime_inventory",
         },
         "native_helper_consumption": {
-            "protocol_ref": "contracts/opl-gateway/native-helper-contract.json",
+            "protocol_ref": "contracts/opl-framework/native-helper-contract.json",
             "language": "rust",
             "managed_by": "one-person-lab",
             "source_of_truth_rule": (

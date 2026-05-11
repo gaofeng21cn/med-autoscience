@@ -18,7 +18,7 @@ from med_autoscience.profiles import WorkspaceProfile, load_profile
 
 
 class MedAutoScienceDomainEntry:
-    """给 OPL / Gateway / CLI 复用的 service-safe structured entry。"""
+    """给 OPL framework、direct MAS skill 和 CLI 复用的 service-safe structured entry。"""
 
     def __init__(
         self,

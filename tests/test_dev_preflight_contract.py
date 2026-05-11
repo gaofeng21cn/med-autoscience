@@ -551,7 +551,7 @@ def test_classify_changed_files_matches_root_governance_contract_surface() -> No
         [
             "contracts/README.md",
             "contracts/modules/runtime/module_contract.yaml",
-            "contracts/opl-gateway/family-contract-adoption.json",
+            "contracts/opl-framework/family-contract-adoption.json",
             "contracts/schemas/v1/product-entry-manifest.schema.json",
             "tests/runtime/test_runtime_module_contract.py",
             "tests/test_opl_family_contract_adoption.py",

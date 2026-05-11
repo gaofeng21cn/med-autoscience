@@ -9,16 +9,16 @@
 - 哪些 typed surface 可以视为稳定机器接口
 - 哪些内容仍属于实现细节，不应被其他模块或 Agent 当成正式 contract
 
-在更高层定位上，这份文档描述的是 `MedAutoScience` 作为 `Research Ops` `Domain Harness OS` 时，runtime orchestration 这一层的最小稳定 contract，而不是整个 domain gateway 的全部语义。
+在更高层定位上，这份文档描述的是 `MedAutoScience` 作为独立 medical research domain agent 的 runtime orchestration 最小稳定 contract，而不是整个 domain agent 的全部语义。
 
 与长期在线 supervision owner 相关的当前真相是：
 
-- `Hermes-Agent`
-  - 持有长期运行、调度与托管能力
+- `OPL framework provider`
+  - 持有 Full online path 的长期运行、调度与托管能力；Hermes-Agent 只作为 legacy/optional provider 或 proof lane 出现
 - `MedAutoScience`
   - 持有 study/runtime supervision judgment、recovery policy 与前台 projection
-- `MedDeepScientist`
-  - 持有当前 concrete research execution
+- `Codex CLI`
+  - 是 MAS stage 内默认 concrete executor 和最小执行单元
 
 与 `stop / rerun / requires_human_confirmation` 相关的 outer-loop control semantics，现统一桥接到：
 
