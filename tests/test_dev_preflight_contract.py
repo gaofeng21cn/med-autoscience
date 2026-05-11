@@ -453,7 +453,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_files_matches_external_runtime_dependency_surface() -> None:
+def test_classify_changed_files_matches_optional_provider_archive_audit_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
@@ -464,7 +464,7 @@ def test_classify_changed_files_matches_external_runtime_dependency_surface() ->
         ]
     )
 
-    assert result.matched_categories == ("documentation_review_only", "external_runtime_dependency_surface")
+    assert result.matched_categories == ("documentation_review_only", "optional_provider_archive_audit_surface")
     assert result.unclassified_changes == ()
 
 
@@ -595,10 +595,10 @@ def test_plan_commands_for_documentation_review_only_do_not_run_pytest() -> None
     assert commands == []
 
 
-def test_plan_commands_for_external_runtime_dependency_surface_include_gate_proofs() -> None:
+def test_plan_commands_for_optional_provider_archive_audit_surface_include_gate_proofs() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
-    commands = module.plan_commands_for_categories(("external_runtime_dependency_surface",))
+    commands = module.plan_commands_for_categories(("optional_provider_archive_audit_surface",))
 
     assert "uv run pytest tests/test_med_deepscientist_repo_manifest.py -q" in commands
     assert "uv run pytest tests/test_workspace_contracts.py -q" in commands

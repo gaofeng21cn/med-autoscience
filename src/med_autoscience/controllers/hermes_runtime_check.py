@@ -49,8 +49,8 @@ def _determine_decision(external_runtime_check: dict[str, Any]) -> tuple[str, li
         actions.append("install_or_start_hermes_gateway_service")
         return "blocked_hermes_gateway_not_loaded", actions
 
-    actions.append("promote_repo_side_seam_to_real_adapter")
-    return "ready_for_adapter_cutover", actions
+    actions.append("record_optional_provider_diagnostic_proof")
+    return "optional_provider_diagnostic_ready", actions
 
 
 def run_hermes_runtime_check(

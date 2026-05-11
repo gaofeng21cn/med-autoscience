@@ -36,7 +36,7 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
             workspace_supervision_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
                 "drift_reasons": [],
             },
         ),

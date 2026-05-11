@@ -272,7 +272,7 @@ def test_product_entry_manifest_fails_closed_on_invalid_user_interaction_contrac
             workspace_supervision_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
                 "drift_reasons": [],
             },
         ),

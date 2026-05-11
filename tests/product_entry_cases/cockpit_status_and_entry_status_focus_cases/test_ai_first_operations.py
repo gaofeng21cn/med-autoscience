@@ -39,7 +39,7 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
             workspace_supervision_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
                 "drift_reasons": [],
             },
         ),
@@ -52,7 +52,7 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
             "status": "loaded",
             "loaded": True,
             "job_exists": True,
-            "summary": "Hermes-hosted runtime supervision 已在线。",
+            "summary": "MAS scheduler local adapter runtime supervision 已在线。",
             "drift_reasons": [],
         },
     )

@@ -38,7 +38,7 @@ def test_run_hermes_runtime_check_blocks_when_provider_not_configured(monkeypatc
     assert "install_or_start_hermes_gateway_service" in result["recommended_actions"]
 
 
-def test_run_hermes_runtime_check_reports_ready_for_adapter_cutover(monkeypatch, tmp_path: Path) -> None:
+def test_run_hermes_runtime_check_reports_optional_provider_diagnostic_ready(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.hermes_runtime_check")
 
     monkeypatch.setattr(
@@ -67,5 +67,5 @@ def test_run_hermes_runtime_check_reports_ready_for_adapter_cutover(monkeypatch,
         hermes_home_root=tmp_path / ".hermes",
     )
 
-    assert result["decision"] == "ready_for_adapter_cutover"
-    assert result["recommended_actions"] == ["promote_repo_side_seam_to_real_adapter"]
+    assert result["decision"] == "optional_provider_diagnostic_ready"
+    assert result["recommended_actions"] == ["record_optional_provider_diagnostic_proof"]

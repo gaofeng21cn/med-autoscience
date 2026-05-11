@@ -10,16 +10,14 @@ from .status_display import display_text, status_chip, status_label
 
 _LEGACY_OR_GENERIC_WORKSPACE_ALERTS = frozenset(
     {
-        "Hermes-hosted runtime supervision 尚未注册。",
-        "MAS scheduler runtime supervision 尚未注册。",
+        "MAS scheduler local adapter runtime supervision 尚未注册。",
         "Supervisor scheduler 尚未注册。",
         "状态需要检查。",
     }
 )
 _WORKSPACE_SUPERVISION_ALERTS = frozenset(
     {
-        "Hermes-hosted runtime supervision 尚未注册。",
-        "MAS scheduler runtime supervision 尚未注册。",
+        "MAS scheduler local adapter runtime supervision 尚未注册。",
         "Supervisor scheduler 尚未注册。",
         "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。",
     }
@@ -486,7 +484,7 @@ def _alert_item(text: str) -> dict[str, str | None]:
     if text in _WORKSPACE_SUPERVISION_ALERTS:
         source = "workspace_supervision.service.summary"
         if text != "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。":
-            text = "MAS scheduler runtime supervision 尚未注册。"
+            text = "MAS scheduler local adapter runtime supervision 尚未注册。"
         purpose = "说明 workspace 级 MAS scheduler job 尚未安装、未加载或存在漂移。"
         expected = "MAS scheduler local adapter 应注册并按计划触发 runtime supervision tick。"
         recommended_command = "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile <profile>"

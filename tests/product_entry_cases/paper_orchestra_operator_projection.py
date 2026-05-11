@@ -34,7 +34,7 @@ def test_product_entry_surfaces_paper_orchestra_operator_projection_without_runt
             workspace_supervision_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
                 "drift_reasons": [],
             },
         ),
@@ -47,7 +47,7 @@ def test_product_entry_surfaces_paper_orchestra_operator_projection_without_runt
             "status": "loaded",
             "loaded": True,
             "job_exists": True,
-            "summary": "Hermes-hosted runtime supervision 已在线。",
+            "summary": "MAS scheduler local adapter runtime supervision 已在线。",
             "drift_reasons": [],
         },
     )

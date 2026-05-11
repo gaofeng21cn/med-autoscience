@@ -46,10 +46,10 @@ DEFAULT_INTERVAL_SECONDS = 5 * 60
 _SILENT_PROMPT = (
     "A pre-run supervision script has already executed the MedAutoScience workspace supervision tick.\n"
     "If the script output shows returncode=0, respond exactly with:\n"
-    "[SILENT] Hermes-hosted MedAutoScience supervision tick completed.\n"
+    "[SILENT] MAS scheduler local adapter MedAutoScience supervision tick completed.\n"
     "If the script failed, report the failure briefly and include the failing command."
 )
-_SILENT_SUCCESS_RESPONSE = "[SILENT] Hermes-hosted MedAutoScience supervision tick completed."
+_SILENT_SUCCESS_RESPONSE = "[SILENT] MAS scheduler local adapter MedAutoScience supervision tick completed."
 _LEGACY_WATCH_RUNTIME_COMMAND = "run_medautosci watch"
 _CURRENT_WATCH_RUNTIME_COMMAND = "run_medautosci runtime watch"
 _DEVELOPER_SUPERVISOR_GITHUB_LOGIN = "gaofeng21cn"
@@ -553,11 +553,15 @@ def _status_summary(
             "MAS supervision scheduler contract；请运行 runtime-ensure-supervision 清理旧 host service "
             "并注册/刷新 local scheduler tick。"
         )
-    return _shared_status_summary(
+    summary = _shared_status_summary(
         status=status,
         gateway_service_loaded=gateway_service_loaded,
         job_present=job_present,
         drift_reasons=drift_reasons,
+    )
+    return summary.replace(
+        "Hermes-hosted runtime supervision",
+        "MAS scheduler local adapter runtime supervision",
     )
 
 
@@ -644,7 +648,7 @@ def read_supervision_status(
     if status == "execution_failed":
         latest_run_summary = str((latest_run or {}).get("summary") or "").strip()
         summary = (
-            "Hermes-hosted runtime supervision 已注册，但最近一次 cron 执行失败，workspace 级监管当前未真正在线。"
+            "MAS scheduler local adapter runtime supervision 已注册，但最近一次 cron 执行失败，workspace 级监管当前未真正在线。"
         )
         if latest_run_summary:
             summary = f"{summary} {latest_run_summary}"

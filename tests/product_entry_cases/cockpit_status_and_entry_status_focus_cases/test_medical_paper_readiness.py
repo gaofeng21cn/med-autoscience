@@ -28,7 +28,7 @@ def _ready_doctor_report() -> SimpleNamespace:
         workspace_supervision_contract={
             "status": "loaded",
             "loaded": True,
-            "summary": "Hermes-hosted runtime supervision 已在线。",
+            "summary": "MAS scheduler local adapter runtime supervision 已在线。",
             "drift_reasons": [],
         },
     )
@@ -40,7 +40,7 @@ def _ready_supervision() -> dict[str, object]:
         "status": "loaded",
         "loaded": True,
         "job_exists": True,
-        "summary": "Hermes-hosted runtime supervision 已在线。",
+        "summary": "MAS scheduler local adapter runtime supervision 已在线。",
         "drift_reasons": [],
     }
 

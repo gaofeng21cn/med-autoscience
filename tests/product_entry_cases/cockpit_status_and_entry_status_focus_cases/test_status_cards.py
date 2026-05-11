@@ -33,7 +33,7 @@ def test_workspace_cockpit_markdown_prefers_human_facing_labels() -> None:
         "workspace_supervision": {
             "summary": "当前需要盯住 runtime 监管与投稿包一致性。",
             "service": {
-                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
             },
             "study_counts": {
                 "supervisor_gap": 0,
@@ -192,7 +192,7 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
             workspace_supervision_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
                 "drift_reasons": [],
             },
         ),
@@ -205,7 +205,7 @@ def test_workspace_cockpit_projects_operator_status_card_into_study_items_and_at
             "status": "loaded",
             "loaded": True,
             "job_exists": True,
-            "summary": "Hermes-hosted runtime supervision 已在线。",
+            "summary": "MAS scheduler local adapter runtime supervision 已在线。",
             "drift_reasons": [],
         },
     )

@@ -329,7 +329,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             workspace_supervision_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
                 "drift_reasons": [],
             },
         ),
@@ -343,7 +343,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
             "status": "not_loaded",
             "loaded": False,
             "job_exists": True,
-            "summary": "Hermes-hosted runtime supervision 已注册，但当前未处于调度中。",
+            "summary": "MAS scheduler local adapter runtime supervision 已注册，但当前未处于调度中。",
         },
     )
     monkeypatch.setattr(
@@ -640,7 +640,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert payload["operator_brief"] == {
         "surface_kind": "workspace_operator_brief",
         "verdict": "attention_required",
-        "summary": "Hermes-hosted runtime supervision 已注册，但当前未处于调度中。",
+        "summary": "MAS scheduler local adapter runtime supervision 已注册，但当前未处于调度中。",
         "should_intervene_now": True,
         "focus_scope": "workspace",
         "focus_study_id": None,
@@ -730,7 +730,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
     assert "推荐动作命令" in markdown
     assert "图表推进陷入重复打磨循环" in markdown
     assert "The Lancet Digital Health" in markdown
-    assert "Hermes-hosted runtime supervision 已注册，但当前未处于调度中。" in markdown
+    assert "MAS scheduler local adapter runtime supervision 已注册，但当前未处于调度中。" in markdown
     assert "launch-study" in markdown
 
 
@@ -758,7 +758,7 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
             workspace_supervision_contract={
                 "status": "loaded",
                 "loaded": True,
-                "summary": "Hermes-hosted runtime supervision 已在线。",
+                "summary": "MAS scheduler local adapter runtime supervision 已在线。",
                 "drift_reasons": [],
             },
         ),
@@ -771,7 +771,7 @@ def test_workspace_cockpit_reads_study_progress_in_parallel_and_preserves_order(
             "status": "loaded",
             "loaded": True,
             "job_exists": True,
-            "summary": "Hermes-hosted runtime supervision 已在线。",
+            "summary": "MAS scheduler local adapter runtime supervision 已在线。",
             "drift_reasons": [],
         },
     )

@@ -67,7 +67,7 @@ def test_read_supervision_status_reports_loaded_hermes_job(monkeypatch, tmp_path
     assert result["job_id"] == "job-001"
     assert result["job_schedule_display"] == "every 5m"
     assert result["drift_reasons"] == []
-    assert "Hermes-hosted runtime supervision 已在线" in result["summary"]
+    assert "MAS scheduler local adapter runtime supervision 已在线" in result["summary"]
     slo = result["outer_supervision_slo"]
     assert slo["surface_kind"] == "outer_supervision_slo"
     assert slo["state"] == "missing"
@@ -772,6 +772,7 @@ def test_ensure_supervision_retired_manager_keeps_developer_supervisor_diagnosti
     )
 
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
     monkeypatch.setattr(module, "_codex_app_automation_path", lambda: automation_path)
 
     result = module.ensure_supervision(profile=profile, manager="systemd", trigger_now=False)
@@ -884,6 +885,7 @@ def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
     )
 
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "someone-else")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
     monkeypatch.setattr(module, "_codex_app_automation_path", lambda: automation_path)
 
     result = module.ensure_supervision(profile=profile, manager="cron", trigger_now=False)

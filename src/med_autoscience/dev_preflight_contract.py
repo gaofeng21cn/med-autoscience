@@ -160,7 +160,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
-        category_id="external_runtime_dependency_surface",
+        category_id="optional_provider_archive_audit_surface",
         exact_paths=(
             "src/med_autoscience/controllers/backend_audit.py",
             "src/med_autoscience/controllers/hermes_runtime_check.py",
