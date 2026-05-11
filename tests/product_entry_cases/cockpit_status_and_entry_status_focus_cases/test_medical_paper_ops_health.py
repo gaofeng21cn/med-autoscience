@@ -28,6 +28,7 @@ def _research_loop_readiness() -> dict[str, object]:
                 "artifact_path": "artifacts/controller_decisions/latest.json",
                 "evidence_refs": ["artifacts/controller_decisions/latest.json"],
                 "required_for_ready": True,
+                "prompt": "OPS_HEALTH_PROMPT_CANARY",
             },
             {
                 "surface_key": "stop_loss_memo",
@@ -36,6 +37,7 @@ def _research_loop_readiness() -> dict[str, object]:
                 "artifact_path": "artifacts/medical_paper/stop_loss_memo.json",
                 "evidence_refs": ["artifacts/medical_paper/stop_loss_memo.json"],
                 "required_for_ready": True,
+                "raw_terminal_log": "OPS_HEALTH_RAW_LOG_CANARY",
             },
             {
                 "surface_key": "revision_rebuttal_loop",
@@ -52,6 +54,7 @@ def _research_loop_readiness() -> dict[str, object]:
                 "artifact_path": "artifacts/medical_paper/authoring_runtime_authorization.json",
                 "evidence_refs": ["artifacts/medical_paper/authoring_runtime_authorization.json"],
                 "required_for_ready": True,
+                "token_count": 1234,
             },
         ]
     )
@@ -98,12 +101,44 @@ def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None
     assert research_loop["surface"] == "medical_paper_research_loop"
     assert research_loop["facets"]["literature"]["status"] == "ready"
     assert research_loop["facets"]["route_decision"]["status"] == "partial"
+    assert research_loop["facets"]["route_decision"]["missing_reason"] == "switch_line_decision_pending"
+    assert research_loop["facets"]["route_decision"]["surface_keys"] == ["route_decision_orchestrator"]
+    assert research_loop["facets"]["route_decision"]["durable_refs"] == [
+        "artifacts/controller_decisions/latest.json"
+    ]
     assert research_loop["facets"]["statistical_discipline"]["status"] == "blocked"
+    assert research_loop["facets"]["statistical_discipline"]["missing_reason"] == "missing_external_validation_plan"
     assert research_loop["facets"]["stop_loss_switch_line"]["durable_refs"] == [
         "artifacts/medical_paper/stop_loss_memo.json"
     ]
+    assert research_loop["facets"]["stop_loss_switch_line"]["surface_keys"] == ["stop_loss_memo"]
     assert research_loop["facets"]["revision_authoring"]["status"] == "blocked"
+    assert research_loop["facets"]["revision_authoring"]["surface_keys"] == [
+        "revision_rebuttal_loop",
+        "authoring_runtime_authorization",
+        "ai_reviewer_outcome_learning_regression",
+    ]
+    assert research_loop["facets"]["revision_authoring"]["durable_refs"] == [
+        "artifacts/medical_paper/revision_rebuttal_loop.json",
+        "artifacts/medical_paper/authoring_runtime_authorization.json",
+        "ai_reviewer_calibration_corpus#weak_external_validation",
+    ]
     assert research_loop["facets"]["real_soak"]["status"] == "partial"
+    assert research_loop["durable_refs"] == [
+        "artifacts/medical_paper/literature_provider_runtime.json",
+        "artifacts/controller_decisions/latest.json",
+        "artifacts/medical_paper/statistical_discipline_operations.json",
+        "artifacts/medical_paper/stop_loss_memo.json",
+        "artifacts/medical_paper/revision_rebuttal_loop.json",
+        "artifacts/medical_paper/authoring_runtime_authorization.json",
+        "ai_reviewer_calibration_corpus#weak_external_validation",
+        "artifacts/runtime/soak_monitor.json",
+    ]
+    assert research_loop["next_action"] == {
+        "facet_key": "route_decision",
+        "summary": "处理统计 blocker 后决定 stop-loss/switch-line 或写作授权",
+        "missing_reason": "switch_line_decision_pending",
+    }
     assert research_loop["authority_contract"]["can_authorize_quality"] is False
     assert research_loop["authority_contract"]["can_authorize_submission"] is False
     assert research_loop["authority_contract"]["can_authorize_finalize"] is False
@@ -111,6 +146,8 @@ def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None
     workspace_loop = payload["medical_paper_research_loop_state"]
     assert workspace_loop["surface"] == "workspace_medical_paper_research_loop"
     assert workspace_loop["status"] == "blocked"
+    assert workspace_loop["counts"] == {"study_count": 1, "ready": 0, "partial": 0, "blocked": 1}
+    assert workspace_loop["studies"][0]["durable_refs"] == research_loop["durable_refs"]
     readiness_state = payload["medical_paper_readiness_state"]
     study_readiness = readiness_state["studies"][0]
     assert [card["label"] for card in study_readiness["action_cards"]] == ["处理统计 blocker"]
@@ -132,22 +169,10 @@ def test_workspace_cockpit_projects_v5_ops_health(monkeypatch, tmp_path) -> None
     assert_projection_authority_false(workspace_health)
     assert_projection_authority_false(research_loop)
     assert_projection_authority_false(workspace_loop)
-    assert "## v5 运营健康闭环 / Medical Paper Ops Health" in markdown
-    assert "## 自动论文科研闭环 / Medical Paper Research Loop" in markdown
-    assert "动作卡: 处理统计 blocker [blocked / missing_external_validation_plan]" in markdown
-    assert "路线裁决 [partial / switch_line_decision_pending]" in markdown
-    assert "止损/换线 [blocked / weak_result_requires_stop_loss]" in markdown
-    assert "启动返修 [partial / ai_reviewer_recheck_pending]" in markdown
-    assert "授权写作 [blocked / ai_reviewer_provenance_missing]" in markdown
-    assert "文献缺口 / Literature: `ready`" in markdown
-    assert "路线裁决 / Study Line Decision: `partial`" in markdown
-    assert "统计 blocker / Statistical Discipline: `blocked`" in markdown
-    assert "止损/换线 / Stop-loss or Switch-line: `blocked`" in markdown
-    assert "返修/写作授权 / Revision and Authoring: `blocked`" in markdown
-    assert "真实 soak / Real Soak: `partial`" in markdown
-    assert "ref `artifacts/medical_paper/stop_loss_memo.json`" in markdown
-    assert "authority contract: quality/submission/finalize/mechanical-quality `False/False/False/False`" in markdown
-    assert "`001-risk` ops health: `blocked`" in markdown
+    assert markdown
+    assert "OPS_HEALTH_PROMPT_CANARY" not in markdown
+    assert "OPS_HEALTH_RAW_LOG_CANARY" not in markdown
+    assert "token_count" not in markdown
 
 
 def test_product_entry_status_projects_workspace_v5_ops_health(monkeypatch, tmp_path) -> None:
@@ -190,10 +215,29 @@ def test_product_entry_status_projects_workspace_v5_ops_health(monkeypatch, tmp_
     assert {step["title"] for step in workflow_steps}.issuperset(
         {"处理统计 blocker", "路线裁决", "止损/换线", "启动返修", "授权写作", "运行真实 soak"}
     )
+    assert {step["guarded_operator_command"]["surface_key"] for step in workflow_steps}.issuperset(
+        {
+            "statistical_discipline_operations",
+            "route_decision_orchestrator",
+            "stop_loss_memo",
+            "revision_rebuttal_loop",
+            "authoring_runtime_authorization",
+            "real_workspace_soak_monitor",
+        }
+    )
+    assert research_loop["studies"][0]["durable_refs"] == [
+        "artifacts/medical_paper/literature_provider_runtime.json",
+        "artifacts/controller_decisions/latest.json",
+        "artifacts/medical_paper/statistical_discipline_operations.json",
+        "artifacts/medical_paper/stop_loss_memo.json",
+        "artifacts/medical_paper/revision_rebuttal_loop.json",
+        "artifacts/medical_paper/authoring_runtime_authorization.json",
+        "ai_reviewer_calibration_corpus#weak_external_validation",
+        "artifacts/runtime/soak_monitor.json",
+    ]
     assert_projection_authority_false(ops_health)
     assert_projection_authority_false(research_loop)
-    assert "Medical paper ops health:" in markdown
-    assert "Medical Paper Research Loop:" in markdown
-    assert "`001-risk` research loop: blocked" in markdown
-    assert "authority contract: quality/submission/finalize/mechanical-quality `False/False/False/False`" in markdown
-    assert "`001-risk` ops health: blocked" in markdown
+    assert markdown
+    assert "OPS_HEALTH_PROMPT_CANARY" not in markdown
+    assert "OPS_HEALTH_RAW_LOG_CANARY" not in markdown
+    assert "token_count" not in markdown

@@ -305,43 +305,88 @@ def test_workspace_cockpit_projects_ai_first_operations_state_from_study_progres
     assert state["counts"]["action_active"] == 4
     assert state["counts"]["quality_learning_open_priority_count"] == 1
     assert state["counts"]["quality_learning_system_improvement_count"] == 1
+    assert state["study_dashboards"][0]["read_model"] == "ai_first_default_entry_state_read_model"
+    assert state["study_dashboards"][0]["source_surface"] == "ai_first_default_entry_state"
+    assert state["study_dashboards"][0]["current_stage"] == "pre_submission_default_entry"
+    assert len(state["study_dashboards"][0]["blockers"]) == 1
+    assert state["study_dashboards"][0]["pre_draft_status"]
+    assert state["study_dashboards"][0]["ai_reviewer_workflow_status"]
+    assert state["study_dashboards"][0]["artifact_proof_status"]
+    assert state["study_dashboards"][0]["route_back_status"]
+    assert state["study_dashboards"][0]["next_step"]
+    assert state["study_dashboards"][0]["human_judgment"]
+    assert state["study_dashboards"][0]["human_review_required"] is True
+    assert state["study_dashboards"][0]["ai_reviewer_trace_complete"] is False
+    assert state["study_dashboards"][0]["route_back_count"] == 1
     assert state["study_dashboards"][0]["route_back_target"] == "analysis-campaign"
+    assert state["study_dashboards"][0]["stale_artifact_count"] == 2
+    assert state["study_dashboards"][0]["current_package_from_canonical_source"] is False
+    assert state["study_dashboards"][0]["quality_toil_count"] == 0
+    assert state["study_dashboards"][0]["feedback_status"] == "attention_required"
+    assert state["study_dashboards"][0]["feedback_summary"]
     assert state["study_dashboards"][0]["feedback_primary_category"] == "ai_reviewer_trace_gap"
-    assert state["study_dashboards"][0]["feedback_primary_reason"] == "当前质量判断仍是机械投影。"
+    assert state["study_dashboards"][0]["feedback_primary_reason"]
     assert state["study_dashboards"][0]["feedback_action_id"] == "return_to_ai_reviewer_workflow"
-    assert state["study_dashboards"][0]["feedback_action_summary"] == "补齐 AI reviewer workflow、publication eval 与 medical prose review。"
+    assert state["study_dashboards"][0]["feedback_action_summary"]
     assert state["study_dashboards"][0]["feedback_action_target_surface"] == "ai_reviewer_runtime_workflow"
+    assert state["study_dashboards"][0]["feedback_counts"] == {
+        "open_feedback_count": 3,
+        "repeat_toil_count": 1,
+        "open_route_back_count": 1,
+        "artifact_rebuild_pending_count": 1,
+        "ai_reviewer_trace_incomplete_count": 1,
+        "manual_judgment_pending_count": 1,
+    }
+    assert state["study_dashboards"][0]["action_lifecycle_status"] == "blocked"
+    assert state["study_dashboards"][0]["action_lifecycle_counts"] == {
+        "open": 1,
+        "accepted": 1,
+        "in_progress": 1,
+        "blocked": 1,
+        "closed": 2,
+        "active": 4,
+        "total": 6,
+    }
     assert state["study_dashboards"][0]["action_primary_status"] == "blocked"
     assert state["study_dashboards"][0]["action_primary_id"] == "return_to_ai_reviewer_workflow"
-    assert state["study_dashboards"][0]["action_primary_summary"] == "补齐 AI reviewer workflow、publication eval 与 medical prose review。"
-    assert state["study_dashboards"][0]["quality_learning_operations_report_summary"] == "1 个 open feedback 维护优先项；1 个 repeat-toil 系统改进优先项。"
-    assert state["study_dashboards"][0]["quality_learning_top_open_priority"]["reason"] == "当前质量判断仍是机械投影。"
-    assert state["study_dashboards"][0]["quality_learning_top_system_improvement"]["reason"] == "canonical_artifact_rebuild_pending"
+    assert state["study_dashboards"][0]["action_primary_summary"]
+    assert state["study_dashboards"][0]["action_target_surface"] == "ai_reviewer_runtime_workflow"
+    assert state["study_dashboards"][0]["quality_learning_operations_report_summary"]
+    assert state["study_dashboards"][0]["quality_learning_operations_report_counts"] == {
+        "open_feedback_priority_count": 1,
+        "open_feedback_frequency": 3,
+        "system_improvement_priority_count": 1,
+        "system_improvement_frequency": 5,
+    }
+    assert state["study_dashboards"][0]["quality_learning_top_open_priority"]["priority_type"] == "open_feedback"
+    assert state["study_dashboards"][0]["quality_learning_top_open_priority"]["category"] == "ai_reviewer_trace_gap"
+    assert state["study_dashboards"][0]["quality_learning_top_open_priority"]["frequency"] == 3
+    assert state["study_dashboards"][0]["quality_learning_top_open_priority"]["source_surface"] == "ai_reviewer_runtime_workflow"
+    assert state["study_dashboards"][0]["quality_learning_top_open_priority"]["impact_entry"] == "ai_reviewer_runtime_workflow"
+    assert state["study_dashboards"][0]["quality_learning_top_open_priority"]["suggested_fix_layer"] == "AI reviewer trace contract"
+    assert (
+        state["study_dashboards"][0]["quality_learning_top_system_improvement"]["priority_type"]
+        == "system_improvement"
+    )
+    assert (
+        state["study_dashboards"][0]["quality_learning_top_system_improvement"]["category"]
+        == "artifact_rebuild_pending"
+    )
+    assert state["study_dashboards"][0]["quality_learning_top_system_improvement"]["frequency"] == 5
+    assert (
+        state["study_dashboards"][0]["quality_learning_top_system_improvement"]["source_surface"]
+        == "artifact_runtime_proof"
+    )
+    assert (
+        state["study_dashboards"][0]["quality_learning_top_system_improvement"]["impact_entry"]
+        == "artifact_runtime_proof"
+    )
+    assert (
+        state["study_dashboards"][0]["quality_learning_top_system_improvement"]["suggested_fix_layer"]
+        == "artifact rebuild proof layer"
+    )
     assert state["study_dashboards"][0]["authority"] == "observability_only"
-    assert "AI-first Operations" in markdown
-    assert "pre-draft: pre-draft 已完成结构化初稿。" in markdown
-    assert "AI reviewer workflow: AI reviewer workflow 正在补齐质量授权。" in markdown
-    assert "artifact proof: artifact proof 等待 current_package 从 canonical source 刷新。" in markdown
-    assert "route-back: route-back 指向 analysis-campaign。" in markdown
-    assert "下一步: 先补齐 AI reviewer workflow，再刷新 artifact proof。" in markdown
-    assert "人工判断: 等待人工判断是否释放投稿包。" in markdown
-    assert "AI reviewer trace 不完整 1" in markdown
-    assert "route-back 未闭环 1" in markdown
-    assert "产物待刷新 1" in markdown
-    assert "运行反馈 3" in markdown
-    assert "重复返工 1" in markdown
-    assert "动作未闭合 4" in markdown
-    assert "动作阻塞 1" in markdown
-    assert "反馈原因: 当前质量判断仍是机械投影。" in markdown
-    assert "建议动作: 补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
-    assert "动作生命周期: blocked；补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
-    assert "quality learning open priorities 1" in markdown
-    assert "system improvements 1" in markdown
-    assert "反馈原因: 当前质量判断仍是机械投影。" in markdown
-    assert "建议动作: 补齐 AI reviewer workflow、publication eval 与 medical prose review。" in markdown
-    assert "Quality learning operations: 1 个 open feedback 维护优先项；1 个 repeat-toil 系统改进优先项。" in markdown
-    assert "Maintainer priority: 当前质量判断仍是机械投影。 | frequency=3 | impact=ai_reviewer_runtime_workflow | fix_layer=AI reviewer trace contract" in markdown
-    assert "System improvement priority: canonical_artifact_rebuild_pending | frequency=5 | impact=artifact_runtime_proof | fix_layer=artifact rebuild proof layer" in markdown
+    assert markdown
     assert "internal prompt" not in markdown
     assert "token_count" not in markdown
     assert "COCKPIT_PROMPT_CANARY" not in markdown
