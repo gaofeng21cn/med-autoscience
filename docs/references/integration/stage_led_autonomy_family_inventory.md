@@ -22,6 +22,8 @@ MAS 当前的 Stage-Led Autonomy 已由以下 MAS-owned surfaces 承接：
 
 MAS 现在通过 product-entry manifest 暴露 MAS-owned 标准 `family_stage_control_plane` 和深度 `family_stage_control_plane_descriptor`。前者供 OPL `stages list|inspect` 直接发现，后者保留 route snapshot、packet surfaces、memory closeout/router/recall surface、evidence/review/controller/publication refs 和 `authority_boundary` 的深度来源；两者只用于 OPL family-level indexing / display / freshness / MAS-exported dispatch discovery，不派生 route，不授权质量或投稿 readiness。
 
+2026-05-11 update: 同一 manifest 现在也暴露 MAS-owned `domain_memory_descriptor`，其 `memory_ref_id=mas_publication_route_memory`。这个 descriptor 只提供 publication-route memory 的 policy seed、workspace locator、stage applicability、retrieval/writeback/receipt/recall refs、freshness 和 forbidden OPL authority；它不包含 memory 正文，不授权 OPL 选择论文路线，也不把 writeback 接受/拒绝、evidence/review/controller/publication 或 artifact authority 移出 MAS。
+
 ## Scope Guard
 
 本 inventory 固定以下边界：
@@ -42,6 +44,7 @@ MAS 现在通过 product-entry manifest 暴露 MAS-owned 标准 `family_stage_co
 | `src/med_autoscience/controllers/stage_knowledge_plane.py` | MAS controller/knowledge-plane owner | Machine surface for stage knowledge packets, typed closeout, memory routing receipts, and recall index | `map_to_descriptor`; descriptor mirrors surface metadata, required fields, owner, and authority boundary |
 | `product-entry-manifest.family_stage_control_plane` | MAS product-entry projection owner | OPL-standard stage plane for `stages list|inspect`, mapped to existing MAS routes and action catalog refs | `landed`; OPL may consume it as descriptor only |
 | `product-entry-manifest.family_stage_control_plane_descriptor` | MAS product-entry projection owner | Read-only deep family descriptor for `stage_led_autonomy` source refs, route snapshot, packet/read-model surfaces and authority boundary | `landed`; OPL may consume it as descriptor only |
+| `product-entry-manifest.domain_memory_descriptor` | MAS product-entry projection owner | Read-only `publication_route_memory` locator for OPL `domain-memory list|inspect`, stage `knowledge_refs`, and writeback receipt projection | `landed`; OPL may consume locator / freshness / receipt refs only |
 | `tests/test_stage_knowledge_plane.py` | MAS test owner | Verifies packet surface contract, exploratory stage obligations, missing reasons, typed closeout routing, idempotency, owner targets, and blockers | `keep`; OPL must not replace these MAS tests with family-level prose checks |
 | `tests/test_stage_knowledge_entry_injection.py` | MAS test owner | Verifies entry injection consumes stage knowledge surfaces in route materialization | `keep`; expose existence as descriptor evidence |
 | `tests/test_stage_knowledge_visibility.py` | MAS test owner | Verifies Progress/Portal visibility for stage knowledge and memory writeback surfaces | `map_to_descriptor`; family UI can consume visibility projection read-only |
@@ -73,6 +76,23 @@ MAS now exposes the family descriptor for this lane as `family_stage_control_pla
 - `source_refs_required`: policy ref, route contract ref, contract surface ref, test evidence ref, freshness/refingerprint if materialized
 
 This descriptor is generated against MAS-owned surfaces. It carries route IDs/counts as a snapshot from `agent_entry_modes.yaml`, but it does not define, add, remove, reorder or authorize routes. It should not hard-code route wording, stage counts, or Markdown paragraphs as a family truth source.
+
+## Domain Memory Descriptor Shape
+
+MAS exposes publication-route memory to OPL as `domain_memory_descriptor`:
+
+- `surface_kind`: `family_domain_memory_ref`
+- `memory_ref_id`: `mas_publication_route_memory`
+- `memory_family`: `publication_route_memory`
+- `memory_pack_ref`: policy seed plus workspace locator for MAS-owned route memory material
+- `stage_applicability`: `scout`, `idea`, `decision`, `analysis-campaign`, `review`
+- `retrieval_contract_ref`: `stage_knowledge_packet`
+- `writeback_contract_ref`: `stage_memory_closeout_packet`
+- `receipt_contract_ref`: `memory_write_router_receipt`
+- `recall_projection_ref`: `stage_recall_index`
+- `authority_boundary`: OPL is locator projection owner only; forbidden authorities include memory store, domain truth, quality verdict, artifact authority, publication route decision, publication readiness and submission readiness.
+
+The standard `family_stage_control_plane` now links route-sensitive stages to this descriptor through `knowledge_refs`. OPL may display and inject the ref into provider attempts; MAS still owns actual retrieval, closeout normalization, router receipt, accepted/rejected writes, and publication route decisions.
 
 ## Adoption Recommendations
 

@@ -149,11 +149,13 @@ The practical migration rule is: when a lesson helps Codex decide what to explor
 
 ## Current Implementation Posture
 
-This policy is intentionally ahead of any large memory-store implementation. The useful work now is:
+MAS now exposes a thin `domain_memory_descriptor` in the product-entry manifest for `publication_route_memory`. It is a locator / freshness / contract-ref surface for OPL family discovery; it does not contain route-memory card bodies and does not grant OPL memory-store, route-decision, publication-quality, submission-readiness, evidence, review, controller, or artifact authority.
+
+The useful work now is:
 
 - keep the route memory cards natural-language-first;
 - keep `stage_knowledge_packet`, `stage_memory_closeout_packet`, `memory_write_router_receipt`, and `stage_recall_index` as the small controlled retrieval/writeback surfaces;
-- record candidate memories and their owner boundaries in docs before moving them into runtime machinery;
+- expose candidate memory locators and owner boundaries through MAS-owned descriptor surfaces before moving them into runtime machinery;
 - preserve Codex CLI autonomy inside each stage.
 
 Do not implement a separate publication recipe engine until a route has matured into an audited capability with clear evidence obligations, tests, owner boundary, and failure behavior.

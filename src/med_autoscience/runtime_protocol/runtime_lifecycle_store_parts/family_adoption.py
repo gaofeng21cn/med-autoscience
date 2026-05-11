@@ -14,12 +14,15 @@ from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 ADOPTION_SURFACE_KIND = "mas_opl_family_persistence_lifecycle_owner_route_adoption"
 FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND = "family_stage_control_plane_descriptor"
 FAMILY_STAGE_CONTROL_PLANE_KIND = "family_stage_control_plane"
+DOMAIN_MEMORY_DESCRIPTOR_KIND = "family_domain_memory_ref"
 SOURCE_CONTRACT_REF = "contracts/opl-gateway/family-contract-adoption.json"
 RUNTIME_LIFECYCLE_CONTRACT_REF = (
     "med_autoscience.runtime_protocol.runtime_lifecycle_contract.runtime_lifecycle_contract"
 )
 STAGE_LED_AUTONOMY_INVENTORY_REF = "docs/references/integration/stage_led_autonomy_family_inventory.md"
 STAGE_LED_AUTONOMY_POLICY_REF = "docs/policies/study-workflow/stage_led_research_autonomy.md"
+PUBLICATION_ROUTE_MEMORY_POLICY_REF = "docs/policies/study-workflow/publication_route_memory_policy.md"
+STUDY_ARCHETYPES_REF = "docs/policies/study-workflow/study_archetypes.md"
 AGENT_ENTRY_MODES_REF = "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml"
 STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
     "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
@@ -174,6 +177,79 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     }
 
 
+def build_domain_memory_descriptor() -> dict[str, Any]:
+    knowledge_contract = stage_knowledge_contract.stage_knowledge_plane_contract()
+    exploratory_stages = list(knowledge_contract.get("exploratory_stages") or [])
+    stage_applicability = ["scout", "idea", "decision", "analysis-campaign", "review"]
+    return {
+        "surface_kind": DOMAIN_MEMORY_DESCRIPTOR_KIND,
+        "version": "family-domain-memory-ref.v1",
+        "memory_ref_id": "mas_publication_route_memory",
+        "target_domain_id": "med-autoscience",
+        "owner": "MedAutoScience",
+        "memory_family": "publication_route_memory",
+        "memory_pack_ref": {
+            "ref_kind": "repo_policy_and_workspace_locator",
+            "ref": PUBLICATION_ROUTE_MEMORY_POLICY_REF,
+            "role": "publication_route_memory_policy_seed",
+            "workspace_locator": "portfolio/research_memory/publication_route_memory",
+        },
+        "stage_applicability": stage_applicability,
+        "retrieval_contract_ref": {
+            "ref_kind": "surface_kind",
+            "ref": stage_knowledge_contract.KNOWLEDGE_PACKET_SURFACE,
+            "role": "stage_entry_retrieval_packet",
+        },
+        "writeback_contract_ref": {
+            "ref_kind": "surface_kind",
+            "ref": stage_knowledge_contract.MEMORY_CLOSEOUT_SURFACE,
+            "role": "typed_stage_closeout_proposal",
+        },
+        "receipt_contract_ref": {
+            "ref_kind": "surface_kind",
+            "ref": stage_knowledge_contract.MEMORY_ROUTER_SURFACE,
+            "role": "domain_router_receipt",
+        },
+        "recall_projection_ref": {
+            "ref_kind": "surface_kind",
+            "ref": stage_knowledge_contract.RECALL_INDEX_SURFACE,
+            "role": "stage_recall_projection",
+        },
+        "provenance_refs": [
+            {"ref_kind": "human_doc", "ref": PUBLICATION_ROUTE_MEMORY_POLICY_REF, "role": "policy"},
+            {"ref_kind": "human_doc", "ref": STUDY_ARCHETYPES_REF, "role": "first_generation_memory_seed"},
+            {"ref_kind": "python_symbol", "ref": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF, "role": "retrieval_writeback_contract"},
+        ],
+        "freshness": {
+            "status": "policy_seed",
+            "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+            "stage_knowledge_contract_schema_version": knowledge_contract.get("schema_version"),
+            "stage_knowledge_exploratory_stages": exploratory_stages,
+            "stale_if_policy_or_stage_contract_missing": True,
+        },
+        "status": "active",
+        "authority_boundary": {
+            "opl_role": "locator_projection_owner",
+            "domain_memory_owner": "MedAutoScience",
+            "domain_router_owner": "MedAutoScience",
+            "forbidden_opl_authority": [
+                "memory_store_owner",
+                "domain_truth_owner",
+                "quality_verdict_owner",
+                "artifact_authority",
+                "publication_route_decision_owner",
+                "publication_readiness_owner",
+            ],
+            "can_write_domain_truth": False,
+            "can_authorize_quality_verdict": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+            "can_promote_memory_to_evidence": False,
+            "can_write_artifacts": False,
+        },
+    }
+
+
 def build_family_stage_control_plane(*, family_action_catalog: Mapping[str, Any]) -> dict[str, Any]:
     descriptor = build_family_stage_control_plane_descriptor()
     action_ids = {
@@ -288,6 +364,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             },
             {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "progress_read_model"},
         ],
+        "knowledge_refs": _stage_knowledge_refs(stage),
         "skills": [
             {"ref_kind": "skill_id", "ref": "med-autoscience", "role": "domain_skill"},
             {"ref_kind": "skill_id", "ref": "mas", "role": "codex_app_skill"},
@@ -335,6 +412,18 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "can_authorize_submission_readiness": False,
         },
     }
+
+
+def _stage_knowledge_refs(stage: Mapping[str, Any]) -> list[dict[str, Any]]:
+    domain_stage_refs = {str(item) for item in stage.get("domain_stage_refs", [])}
+    descriptor = {
+        "ref_kind": "domain_memory_ref",
+        "ref": "mas_publication_route_memory",
+        "role": "publication_route_memory_locator",
+    }
+    if domain_stage_refs & {"scout", "idea", "analysis-campaign", "review", "decision"}:
+        return [descriptor]
+    return []
 
 
 def _stage_goal(stage: Mapping[str, Any], *, descriptor: Mapping[str, Any]) -> str:
@@ -646,8 +735,10 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 __all__ = [
     "ADOPTION_SURFACE_KIND",
+    "DOMAIN_MEMORY_DESCRIPTOR_KIND",
     "FAMILY_STAGE_CONTROL_PLANE_KIND",
     "FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND",
+    "build_domain_memory_descriptor",
     "build_family_stage_control_plane",
     "build_family_stage_control_plane_descriptor",
     "build_opl_family_adoption_surface",

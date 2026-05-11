@@ -56,6 +56,29 @@
       "repair_recommendation"
     ]
   },
+  "domain_memory_projection": {
+    "descriptor_surface": "product-entry-manifest.domain_memory_descriptor",
+    "memory_ref_id": "mas_publication_route_memory",
+    "memory_family": "publication_route_memory",
+    "source_surfaces": [
+      "docs/policies/study-workflow/publication_route_memory_policy.md",
+      "docs/policies/study-workflow/study_archetypes.md",
+      "stage_knowledge_packet",
+      "stage_memory_closeout_packet",
+      "memory_write_router_receipt",
+      "stage_recall_index"
+    ],
+    "maps_to_opl_contract": "family-domain-memory-ref.v1",
+    "authority_boundary": "OPL may index locator/freshness/receipt refs only; MAS owns memory content, retrieval, writeback accept/reject, publication route decision, evidence/review/controller truth, publication gate, and artifacts",
+    "forbidden_opl_authority": [
+      "memory_store_owner",
+      "domain_truth_owner",
+      "quality_verdict_owner",
+      "artifact_authority",
+      "publication_route_decision_owner",
+      "publication_readiness_owner"
+    ]
+  },
   "persistence_lifecycle_owner_route_projection": {
     "adoption_surface_kind": "mas_opl_family_persistence_lifecycle_owner_route_adoption",
     "required_shape": [

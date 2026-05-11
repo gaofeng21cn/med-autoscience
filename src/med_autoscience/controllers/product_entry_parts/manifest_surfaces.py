@@ -425,6 +425,7 @@ def build_product_entry_manifest(
     family_stage_control_plane_descriptor = dict(
         opl_family_persistence_lifecycle_owner_route_adoption["payload"]["family_stage_control_plane_descriptor"]
     )
+    domain_memory_descriptor = build_domain_memory_descriptor()
     persistence_policy = _build_family_persistence_policy_surface(
         adoption=opl_family_persistence_lifecycle_owner_route_adoption,
         progress_projection=progress_projection,
@@ -576,6 +577,7 @@ def build_product_entry_manifest(
             "workspace_runtime_artifact_root_locator": (
                 opl_provider_ready_contract["workspace_runtime_artifact_root_locator"]
             ),
+            "domain_memory_descriptor": domain_memory_descriptor,
             "family_stage_control_plane_descriptor": family_stage_control_plane_descriptor,
             "family_stage_control_plane": family_stage_control_plane,
         },
