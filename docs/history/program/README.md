@@ -6,6 +6,8 @@ Current program governance lives in:
 
 - [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md)
 - [AI-first Paper Autonomy Closure Program](../../program/ai_first_paper_autonomy_closure_program.md)
+- [OPL App MAS Runtime Workbench Program](../../program/opl_app_mas_runtime_workbench_program.md)
+- [OPL Temporal MAS Runtime Retirement Program](../../program/opl_temporal_mas_runtime_retirement_program.md)
 - [MAS Single-Project MDS Absorb Program](../../program/mas_single_project_mds_absorb_program.md)
 - [Runtime Lifecycle SQLite Migration Program](../../program/runtime_lifecycle_sqlite_migration_program.md)
 - [Plan Completion Ledger](../../references/verification/plan_completion_ledger.md)
@@ -21,7 +23,7 @@ Recurring support-lane snapshots:
 - [PaperOrchestra learning intake 2026-05-02](./paper_orchestra_learning_intake_2026_05_02.md)
 - [Research Harness learning intake 2026-05-11](./research_harness_learning_intake_2026_05_11.md)
 
-These snapshots do not create active backlog items by themselves. The corresponding recurring lanes remain active through `docs/status.md`, `docs/references/med-deepscientist/`, or the snapshot's own `Continued Learning Saturation Protocol`.
+These snapshots do not create active backlog items by themselves. The corresponding recurring lanes remain active only through `docs/status.md`, `docs/references/**`, or another current owner document. Snapshot-local protocols are dated provenance until promoted out of this archive.
 
 Landed closeouts and activation records:
 

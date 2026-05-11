@@ -91,10 +91,12 @@ Owner: `MedAutoScience`
 | recurring lane | active owner | dated records |
 | --- | --- | --- |
 | DeepScientist latest-update learning | `docs/status.md`, `docs/references/med-deepscientist/deepscientist_continuous_learning_policy.md`, `docs/references/med-deepscientist/deepscientist_latest_update_learning_protocol.md` | `docs/history/program/deepscientist_learning_intake_YYYY_MM_DD.md` |
-| external agent orchestration learning | `docs/status.md`, `docs/history/program/external_agent_orchestration_learning_intake_2026_04_30.md` saturation protocol | 后续同族 intake snapshot |
-| PaperOrchestra / adjacent writing-system learning | `docs/status.md`, `docs/history/program/paper_orchestra_learning_intake_2026_05_02.md` saturation protocol | 后续同族 intake snapshot |
-| open auto research learning | `docs/status.md`, `docs/history/program/open_auto_research_learning_intake_2026_05_04.md` saturation protocol | 后续同族 intake snapshot |
-| research-harness learning | `docs/status.md`, `docs/history/program/research_harness_learning_intake_2026_05_11.md` saturation protocol | 后续同族 intake snapshot |
+| external agent orchestration learning | `docs/status.md` | `docs/history/program/external_agent_orchestration_learning_intake_YYYY_MM_DD.md` |
+| PaperOrchestra / adjacent writing-system learning | `docs/status.md` | `docs/history/program/paper_orchestra_learning_intake_YYYY_MM_DD.md` |
+| open auto research learning | `docs/status.md` | `docs/history/program/open_auto_research_learning_intake_YYYY_MM_DD.md` |
+| research-harness learning | `docs/status.md` | `docs/history/program/research_harness_learning_intake_YYYY_MM_DD.md` |
+
+Snapshot-local saturation protocols are provenance until promoted into `docs/status.md`, `docs/references/**`, or another current owner document. A future repeated intake must first promote the durable trigger, scope, and absorption rule out of the dated record.
 
 ## Archive Rule
 

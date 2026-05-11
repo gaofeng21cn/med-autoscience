@@ -6,6 +6,8 @@
 
 - [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md)
 - [AI-first Paper Autonomy Closure Program](../../program/ai_first_paper_autonomy_closure_program.md)
+- [OPL App MAS Runtime Workbench Program](../../program/opl_app_mas_runtime_workbench_program.md)
+- [OPL Temporal MAS Runtime Retirement Program](../../program/opl_temporal_mas_runtime_retirement_program.md)
 - [MAS 单项目 MDS 吸收 Program](../../program/mas_single_project_mds_absorb_program.md)
 - [Runtime Lifecycle SQLite 迁移 Program](../../program/runtime_lifecycle_sqlite_migration_program.md)
 - [Plan Completion Ledger](../../references/verification/plan_completion_ledger.md)
@@ -21,7 +23,7 @@
 - [PaperOrchestra learning intake 2026-05-02](./paper_orchestra_learning_intake_2026_05_02.md)
 - [Research Harness learning intake 2026-05-11](./research_harness_learning_intake_2026_05_11.md)
 
-这些快照本身不再作为 active backlog 项重复追踪。对应的 recurring lane 仍由 `docs/status.md`、`docs/references/med-deepscientist/` 或快照内的 `Continued Learning Saturation Protocol` 触发。
+这些快照本身不再作为 active backlog 项重复追踪。对应的 recurring lane 只能由 `docs/status.md`、`docs/references/**` 或其他当前 owner 文档触发。快照内的协议只属于 dated provenance，除非被提升出历史归档层。
 
 已落地 closeout 与 activation 记录：
 

@@ -47,7 +47,7 @@ MAS 的 Progress Portal、Live Console、conversation read model 和 terminal at
 - Electron 官方安全建议强调：Electron 不是普通浏览器；加载本地/远端内容时必须限制 Node integration、启用 context isolation / sandbox，IPC 只暴露必要 API，避免把 Electron API 暴露给不可信内容。OPL App 内嵌 MAS 面板时应走 allowlisted IPC / local service bridge，不把 arbitrary file URL 当成高权限页面。参考：Electron [Security](https://www.electronjs.org/docs/latest/tutorial/security)、[Context Isolation](https://www.electronjs.org/docs/latest/tutorial/context-isolation) 和 [contextBridge](https://www.electronjs.org/docs/latest/api/context-bridge)。
 - VS Code Webview 模式适合“产品 shell 内嵌 domain-specific view”：Webview 可以显示自定义 UI，但脚本、资源和消息通道要受 CSP、message passing 和 local resource boundary 限制。OPL App 可以用同类思路承载 MAS workbench panel。参考：VS Code [Webview API](https://code.visualstudio.com/api/extension-guides/webview) 与 [Webview UX guidelines](https://code.visualstudio.com/api/ux-guidelines/webviews)。
 - xterm.js 是浏览器终端组件的事实标准；terminal 输入应走 `onData` / addon / fit 等浏览器终端模式，再转成 MAS terminal attach API 的 token/lease/idempotency/audit 请求，而不是在 UI 里暴露命令行。参考：xterm.js [Documentation](https://xtermjs.org/docs/) 和 [Using addons](https://xtermjs.org/docs/guides/using-addons/)。
-- Temporal / Cloudflare Durable Objects 的共同经验是：长运行任务要靠 durable identity、durable state、queue、checkpoint、schedule、recovery 和 human gate，而不是靠 UI 常驻进程。OPL App 是操作台，不能成为 MAS runtime truth；真正的恢复与执行仍要走 MAS/OPL/Hermes durable surfaces。参考：Temporal [Docs](https://docs.temporal.io/) 与 Cloudflare Durable Objects [overview](https://developers.cloudflare.com/durable-objects/) / [SQLite-backed storage](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)。
+- Temporal / Cloudflare Durable Objects 的共同经验是：长运行任务要靠 durable identity、durable state、queue、checkpoint、schedule、recovery 和 human gate，而不是靠 UI 常驻进程。OPL App 是操作台，不能成为 MAS runtime truth；真正的恢复与执行仍要走 MAS owner surface 与 OPL provider-backed runtime surface。参考：Temporal [Docs](https://docs.temporal.io/) 与 Cloudflare Durable Objects [overview](https://developers.cloudflare.com/durable-objects/) / [SQLite-backed storage](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)。
 - Kubernetes Operator 模式的核心是 controller 把 desired state 与 actual state 收敛。对应到本方案，OPL App 只展示 desired/current/reconcile hint 和触发受控 action；MAS controller 才能执行 domain reconcile。参考：Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)。
 
 ## 当前事实
@@ -67,7 +67,7 @@ MAS 侧已经具备这些 repo contract：
 OPL App 增加一个统一的 `Runtime Workbench`，在现有 OPL Runtime Manager / runtime tray 之上分三层：
 
 1. `Family Runtime Overview`
-   展示 OPL/Hermes online readiness、family-runtime queue、running / attention / recent 三类 item、domain filter、通知和 approval 状态。
+   展示 OPL provider readiness、family-runtime queue、running / attention / recent 三类 item、domain filter、通知和 approval 状态。
 
 2. `Domain Workspace Panel`
    选择 MAS/MAG/RCA 等 domain 后显示该 domain 的 workspace 列表、profile、health、freshness、source refs 和 attention queue。MAS workspace item 继续由 MAS `opl_handoff` / sidecar export / product-entry manifest 提供。
@@ -244,7 +244,7 @@ MAS 返回 typed receipt。OPL App 存储 App-level history 只作为 UI/audit c
 
 验收：存在 attach-capable live run 时，用户在 OPL App 中可像旧 MDS WebUI 一样查看和输入 terminal；无 owner 或无 live run 时显示明确原因。
 
-### Phase 4: OPL/Hermes online workbench
+### Phase 4: OPL provider online workbench
 
 - OPL Runtime Manager 把 MAS pending family tasks、provider readiness、family queue、notification、approval 和 MAS study workbench 合并为一个运行面。
 - OPL family runtime provider wakeup / tick 负责长期在线；MAS 继续持有 domain dispatch 和 paper truth。

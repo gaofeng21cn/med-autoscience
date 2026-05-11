@@ -72,15 +72,16 @@ Master entry: OPL family framework 的总开发入口是 `/Users/gaofeng/workspa
 
 ## Boundary
 
-本 program 的边界如下：
+本 program 的边界按 owner 固定：
 
-- MAS 保持独立医学研究 domain agent；OPL 持有 framework runtime，不吸收 MAS domain truth。
-- Temporal history、OPL attempt ledger 和 provider status 是 framework receipt/projection，不是医学研究 truth。
-- `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、evidence ledger、review ledger、artifact gate 和 study truth 由 MAS 写入。
-- MAS 的 SQLite runtime authority 只按 `framework_generic` / `mas_domain_specific` 分类上收经验；OPL 上收 lifecycle metadata、artifact locator、retention receipt、restore proof 和 migration ledger 等 framework primitives。
-- MAS、MAG、RCA 内部业务代码保持 domain-owned；对 OPL 暴露的 domain-agent skeleton、descriptor、sidecar、receipt schema、projection builder 和 artifact locator contract 需要同构。
-- 旧 MDS resident daemon、workspace-local host service、旧 GitOps runtime lifecycle 和旧 MDS WebUI default path 留在 archive/provenance/compatibility 语境。
-- Temporal provider 通过真实 soak 前，MAS 本地诊断和 fail-safe 入口保留。
+| owner | authority |
+| --- | --- |
+| `MAS` | 独立医学研究 domain agent；持有 study truth、publication quality、current package、evidence/review ledgers、artifact gate、controller decisions 和 runtime owner receipt。 |
+| `OPL` | framework runtime owner；持有 provider receipt、attempt ledger、queue/wakeup/retry/dead-letter、approval/human gate transport、projection 和 lifecycle/index primitives。 |
+| `Temporal-backed provider` | P2 目标生产 substrate；承载 durable workflow、activity retry/timeout、signal/query、history replay 和 recovery proof。 |
+| `Hermes / MDS / old local services` | archive、provenance、compatibility、legacy/optional proof 或 diagnostic 语境；默认 MAS 运行路径和目标在线 substrate 都回到 MAS + OPL provider 边界。 |
+
+MAS 的 SQLite runtime authority 只按 `framework_generic` / `mas_domain_specific` 分类上收经验；OPL 上收 lifecycle metadata、artifact locator、retention receipt、restore proof 和 migration ledger 等 framework primitives。Temporal provider 通过真实 soak 前，MAS 本地诊断和 fail-safe 入口保留。
 
 ## 退役原则
 
@@ -178,11 +179,11 @@ Temporal schedule/workflow
 | legacy restore/import diagnostics | `degrade_to_local_diagnostics` | MAS archive/provenance | 只服务旧 workspace 恢复，不进入默认 runtime。 |
 | old path readers / ignore / compat guards | `retire_after_parity` | MAS | 无 fixture/restore 依赖后删除。 |
 
-目标状态：MDS/DeepScientist 只剩 source provenance、historical fixture、explicit archive import、backend audit 和 parity oracle。任何默认 runtime/import path 都要消失。
+目标状态：MDS/DeepScientist 留作 source provenance、historical fixture、explicit archive import、backend audit 和 parity oracle。默认 runtime/import path 统一解析到 MAS-owned surfaces。
 
 ### 6. Domain truth / quality / artifact authority
 
-这些不得迁出 MAS：
+MAS authority surfaces:
 
 - `StudyTruthKernel`
 - `RuntimeHealthKernel`
