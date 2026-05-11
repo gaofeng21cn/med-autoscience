@@ -149,28 +149,35 @@ The practical migration rule is: when a lesson helps Codex decide what to explor
 
 ## Current Implementation Posture
 
-MAS now exposes a thin `domain_memory_descriptor` in the product-entry manifest for `publication_route_memory`. It is a locator / freshness / contract-ref surface for OPL family discovery; it does not contain route-memory card bodies and does not grant OPL memory-store, route-decision, publication-quality, submission-readiness, evidence, review, controller, or artifact authority.
+MAS now exposes a thin `domain_memory_descriptor` in the product-entry manifest for `publication_route_memory` and a MAS-owned workspace apply surface:
+
+- `publication_route_memory_pack` at `portfolio/research_memory/publication_route_memory/memory_pack.json`
+- `publication_route_memory_apply_receipt` under `portfolio/research_memory/publication_route_memory/migration_receipts`
+- `stage_knowledge_packet.publication_route_memory_refs` as the small stage-entry retrieval set
+- `memory_write_router_receipt` mirrored under `portfolio/research_memory/publication_route_memory/writeback_receipts`
+
+The repo still tracks only policy, contracts, seed fixture, code and tests. Real memory packs, migration receipts, writeback proposals and router receipts belong to the MAS workspace or runtime artifact root. OPL may discover locator / freshness / receipt refs; it does not own memory bodies, apply migration, accept/reject writebacks, choose a publication route, or promote memory into evidence, review, controller, publication or artifact truth.
 
 ## Migration Plan
 
-Current landed state is `migration_plan_ready_descriptor_only`.
+Current landed state is `workspace_apply_closure_ready`.
 
 MAS provides a repo-source seed fixture at `docs/policies/study-workflow/publication_route_memory_seed_fixture.json`. The fixture is not the memory store and is not a receipt instance. It exists to make the first migration shape reviewable: reusable publication-route lessons stay natural-language-first, carry minimal searchable metadata, and point back to policy/stage provenance.
 
-Actual migration must happen in a MAS-owned workspace or runtime artifact root:
+Actual migration happens in a MAS-owned workspace or runtime artifact root:
 
 - target memory pack: `portfolio/research_memory/publication_route_memory`
 - seed apply receipts: `portfolio/research_memory/publication_route_memory/migration_receipts`
 - stage closeout writeback receipts: `portfolio/research_memory/publication_route_memory/writeback_receipts`
 
-The migration owner is MAS. OPL may project `migration_plan_ref`, `seed_corpus_ref`, `writeback_receipt_locator_ref`, and readiness. OPL must not apply the migration, accept/reject writebacks, store memory body text, or promote memory into evidence, review, controller, publication, or artifact truth.
+The migration owner is MAS. OPL may project `migration_plan_ref`, `seed_corpus_ref`, `memory_pack_locator`, `migration_receipt_locator`, `writeback_receipt_locator_ref`, and readiness. OPL must not apply the migration, accept/reject writebacks, store memory body text, or promote memory into evidence, review, controller, publication, or artifact truth.
 
 The useful work now is:
 
 - keep the route memory cards natural-language-first;
 - keep `stage_knowledge_packet`, `stage_memory_closeout_packet`, `memory_write_router_receipt`, and `stage_recall_index` as the small controlled retrieval/writeback surfaces;
-- expose candidate memory locators and owner boundaries through MAS-owned descriptor surfaces before moving them into runtime machinery;
-- run the first real migration only through MAS-owned workspace apply and receipt paths;
+- expose candidate memory locators and owner boundaries through MAS-owned descriptor surfaces and workspace apply receipts;
+- run seed migration only through MAS-owned workspace apply and receipt paths;
 - preserve Codex CLI autonomy inside each stage.
 
 Do not implement a separate publication recipe engine until a route has matured into an audited capability with clear evidence obligations, tests, owner boundary, and failure behavior.

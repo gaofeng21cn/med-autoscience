@@ -153,10 +153,17 @@ def test_mas_domain_memory_projection_declares_domain_owned_migration_surface() 
     assert memory["writeback_receipt_locator_ref"] == (
         "portfolio/research_memory/publication_route_memory/writeback_receipts"
     )
+    assert memory["workspace_apply_surface"] == {
+        "seed_apply_receipt_surface": "publication_route_memory_apply_receipt",
+        "memory_pack_surface": "publication_route_memory_pack",
+        "memory_pack_locator": "portfolio/research_memory/publication_route_memory/memory_pack.json",
+        "migration_receipt_locator": "portfolio/research_memory/publication_route_memory/migration_receipts",
+        "repo_tracks_real_pack_or_receipts": False,
+    }
     assert memory["migration_readiness"] == {
-        "status": "migration_plan_ready_descriptor_only",
+        "status": "workspace_apply_closure_ready",
         "seed_fixture_status": "repo_source_fixture_available",
-        "memory_body_migration": "domain_owned_workspace_apply_required",
+        "memory_body_migration": "domain_owned_workspace_apply_available",
         "opl_apply_allowed": False,
     }
     assert "memory_store_owner" in memory["forbidden_opl_authority"]

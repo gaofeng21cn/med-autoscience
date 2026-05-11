@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+from pathlib import Path
 
 import pytest
 
@@ -10,6 +11,13 @@ from med_autoscience.controllers import portfolio_memory
 
 
 EXPLORATORY_STAGES = ("scout", "idea", "analysis-campaign", "review")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SEED_FIXTURE = REPO_ROOT / "docs" / "policies" / "study-workflow" / "publication_route_memory_seed_fixture.json"
+
+
+def _write_json(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload), encoding="utf-8")
 
 
 def test_stage_knowledge_plane_contract_exposes_required_packet_surfaces() -> None:
@@ -24,6 +32,9 @@ def test_stage_knowledge_plane_contract_exposes_required_packet_surfaces() -> No
         "stage_memory_closeout_packet",
         "memory_write_router_receipt",
         "stage_recall_index",
+        "publication_route_memory_pack",
+        "publication_route_memory_apply_receipt",
+        "paper_soak_memory_apply_proof",
     }
     for packet in contract["packet_contracts"].values():
         assert {
@@ -88,6 +99,71 @@ def test_stage_knowledge_packet_reports_stage_specific_missing_reasons(tmp_path)
     }
 
 
+def test_publication_route_memory_seed_apply_builds_workspace_pack_and_stage_entry_refs(tmp_path) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "S1"
+    workspace_root = tmp_path / "workspace"
+    portfolio_memory.init_portfolio_memory(workspace_root=workspace_root)
+    _write_json(study_root / "artifacts" / "reference_context" / "latest.json", {"status": "present"})
+
+    receipt = stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+        workspace_root=workspace_root,
+        seed_fixture_path=SEED_FIXTURE,
+    )
+    replay = stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+        workspace_root=workspace_root,
+        seed_fixture_path=SEED_FIXTURE,
+    )
+    packet = stage_knowledge_plane.build_stage_knowledge_packet(
+        study_id="S1",
+        stage="idea",
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+
+    assert receipt["surface"] == "publication_route_memory_apply_receipt"
+    assert receipt["status"] == "applied"
+    assert replay["idempotent_replay"] is True
+    assert receipt["accepted_memory_ids"] == [
+        "publication_route_memory_seed__external_validation_rescue",
+        "publication_route_memory_seed__negative_result_stoploss",
+    ]
+    pack_path = stage_knowledge_plane.publication_route_memory_pack_path(workspace_root=workspace_root)
+    pack = json.loads(pack_path.read_text(encoding="utf-8"))
+    assert pack["surface"] == "publication_route_memory_pack"
+    assert pack["state"] == "workspace_runtime_memory_pack"
+    assert pack["card_count"] == 2
+    assert [ref["memory_id"] for ref in packet["publication_route_memory_refs"]] == [
+        "publication_route_memory_seed__external_validation_rescue",
+    ]
+    assert packet["publication_route_memory_refs"][0]["authority_boundary"] == (
+        "context_only_not_publication_authority"
+    )
+
+
+def test_publication_route_memory_selection_uses_small_stage_relevant_set(tmp_path) -> None:
+    workspace_root = tmp_path / "workspace"
+    stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+        workspace_root=workspace_root,
+        seed_fixture_path=SEED_FIXTURE,
+    )
+
+    review_refs = stage_knowledge_plane.select_publication_route_memory_refs(
+        workspace_root=workspace_root,
+        stage="review",
+        limit=1,
+    )
+    decision_refs = stage_knowledge_plane.select_publication_route_memory_refs(
+        workspace_root=workspace_root,
+        stage="decision",
+    )
+
+    assert len(review_refs) == 1
+    assert review_refs[0]["memory_id"] == "publication_route_memory_seed__external_validation_rescue"
+    assert [ref["memory_id"] for ref in decision_refs] == [
+        "publication_route_memory_seed__negative_result_stoploss"
+    ]
+
+
 def test_stage_memory_closeout_router_writes_typed_destinations_and_rejects_cross_study_claim(tmp_path) -> None:
     study_root = tmp_path / "study"
     workspace_root = tmp_path / "workspace"
@@ -132,7 +208,7 @@ def test_stage_memory_closeout_router_writes_typed_destinations_and_rejects_cros
     assert [item["write_id"] for item in receipt["rejected_writes"]] == ["claim-specific"]
     accepted_by_id = {item["write_id"]: item for item in receipt["accepted_writes"]}
     assert accepted_by_id["workspace-lesson"]["target_path"].endswith(
-        "portfolio/research_memory/proposals/stage_memory_updates.jsonl"
+        "portfolio/research_memory/publication_route_memory/writeback_proposals/stage_memory_updates.jsonl"
     )
     assert accepted_by_id["citation-gap-1"]["target_path"].endswith(
         "artifacts/literature_provider/repair_requests/stage_memory_closeout.jsonl"
@@ -140,9 +216,18 @@ def test_stage_memory_closeout_router_writes_typed_destinations_and_rejects_cros
     assert accepted_by_id["failed-path-1"]["target_path"].endswith(
         "artifacts/controller/failed_path_history.jsonl"
     )
-    proposal_path = workspace_root / "portfolio" / "research_memory" / "proposals" / "stage_memory_updates.jsonl"
+    proposal_path = (
+        workspace_root
+        / "portfolio"
+        / "research_memory"
+        / "publication_route_memory"
+        / "writeback_proposals"
+        / "stage_memory_updates.jsonl"
+    )
+    pack_receipt_root = workspace_root / "portfolio" / "research_memory" / "publication_route_memory" / "writeback_receipts"
     failed_path = study_root / "artifacts" / "controller" / "failed_path_history.jsonl"
     assert len(proposal_path.read_text(encoding="utf-8").splitlines()) == 1
+    assert len(list(pack_receipt_root.glob("*.json"))) == 1
     assert len(failed_path.read_text(encoding="utf-8").splitlines()) == 1
 
 
@@ -173,7 +258,14 @@ def test_stage_memory_closeout_router_rejects_free_text_only_closeout(tmp_path) 
         "typed_closeout_missing",
         "free_text_field:summary",
     }
-    assert not (workspace_root / "portfolio" / "research_memory" / "proposals" / "stage_memory_updates.jsonl").exists()
+    assert not (
+        workspace_root
+        / "portfolio"
+        / "research_memory"
+        / "publication_route_memory"
+        / "writeback_proposals"
+        / "stage_memory_updates.jsonl"
+    ).exists()
 
 
 def test_stage_memory_closeout_router_assigns_owner_targets_for_repair_and_decision_surfaces(tmp_path) -> None:

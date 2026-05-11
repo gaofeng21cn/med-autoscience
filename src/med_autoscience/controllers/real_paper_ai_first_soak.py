@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from med_autoscience.controllers.ai_reviewer_calibration import REAL_STUDY_SOAK_STAGES
+from med_autoscience.stage_knowledge_contract import PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE
 
 
 SCHEMA_VERSION = 1
@@ -459,3 +460,133 @@ def validate_real_paper_ai_first_soak_observation(
         "issue_count": len(issues),
         "issues": issues,
     }
+
+
+def build_paper_soak_memory_apply_proof(
+    *,
+    opl_attempt: Mapping[str, Any],
+    sidecar_task: Mapping[str, Any],
+    typed_closeout: Mapping[str, Any],
+    mas_receipt: Mapping[str, Any],
+    progress_delta: Mapping[str, Any] | None = None,
+    human_gate: Mapping[str, Any] | None = None,
+    stop_loss: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    stage_closeout_ok = _text(typed_closeout.get("surface")) == "stage_memory_closeout_packet"
+    receipt_ok = (
+        _text(mas_receipt.get("surface")) == "memory_write_router_receipt"
+        and _text(mas_receipt.get("status")) in {"applied", "blocked", "dry_run"}
+    )
+    attempt_ref = _text(opl_attempt.get("attempt_id"))
+    sidecar_task_id = _text(sidecar_task.get("task_id"))
+    progress = _mapping(progress_delta)
+    gate = _mapping(human_gate)
+    stop = _mapping(stop_loss)
+    proof_steps = [
+        _proof_step(
+            "opl_attempt",
+            bool(attempt_ref),
+            attempt_ref or "missing_opl_attempt_id",
+            "OPL attempt is a provider/runtime receipt ref only.",
+        ),
+        _proof_step(
+            "codex_or_domain_sidecar",
+            bool(sidecar_task_id),
+            sidecar_task_id or "missing_sidecar_task_id",
+            "Sidecar task carries refs to MAS owner surface.",
+        ),
+        _proof_step(
+            "typed_stage_closeout",
+            stage_closeout_ok,
+            _text(typed_closeout.get("idempotency_key")) or "missing_closeout_idempotency_key",
+            "Stage closeout proposes typed writes; it is not a publication verdict.",
+        ),
+        _proof_step(
+            "mas_memory_router_receipt",
+            receipt_ok,
+            _text(mas_receipt.get("idempotency_key")) or "missing_mas_receipt_idempotency_key",
+            "MAS accepts, rejects, or blocks writeback through owner receipt.",
+        ),
+        _proof_step(
+            "progress_delta_or_guard",
+            bool(progress or gate or stop),
+            _text(progress.get("delta_id") or gate.get("gate_id") or stop.get("decision_id"))
+            or "missing_progress_delta_human_gate_or_stop_loss",
+            "Proof must end in progress delta, human gate, or stop-loss.",
+        ),
+    ]
+    complete = all(step["status"] == "present" for step in proof_steps)
+    return {
+        "surface": PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "study_id": _text(sidecar_task.get("study_id") or _mapping(sidecar_task.get("payload")).get("study_id") or "unknown"),
+        "stage": _text(typed_closeout.get("stage") or "all"),
+        "input_refs": _paper_soak_memory_source_refs(
+            opl_attempt=opl_attempt,
+            sidecar_task=sidecar_task,
+            typed_closeout=typed_closeout,
+            mas_receipt=mas_receipt,
+            progress_delta=progress,
+            human_gate=gate,
+            stop_loss=stop,
+        ),
+        "source_fingerprint": _text(mas_receipt.get("source_fingerprint")) or _text(typed_closeout.get("source_fingerprint")),
+        "idempotency_key": _text(mas_receipt.get("idempotency_key")) or _text(typed_closeout.get("idempotency_key")),
+        "proof_mode": "read_only_or_guarded_apply",
+        "overall_status": "complete" if complete else "partial",
+        "proof_steps": proof_steps,
+        "source_refs": _paper_soak_memory_source_refs(
+            opl_attempt=opl_attempt,
+            sidecar_task=sidecar_task,
+            typed_closeout=typed_closeout,
+            mas_receipt=mas_receipt,
+            progress_delta=progress,
+            human_gate=gate,
+            stop_loss=stop,
+        ),
+        "progress_delta": dict(progress),
+        "human_gate": dict(gate),
+        "stop_loss": dict(stop),
+        "authority_boundary": {
+            "opl_role": "attempt_transport_and_refs_only",
+            "mas_role": "memory_write_router_and_medical_truth_owner",
+            "can_write_real_paper_package": False,
+            "can_authorize_publication_quality": False,
+            "can_replace_publication_gate": False,
+        },
+    }
+
+
+def _proof_step(step: str, present: bool, ref: str, role: str) -> dict[str, Any]:
+    return {
+        "step": step,
+        "status": "present" if present else "missing",
+        "ref": ref,
+        "role": role,
+    }
+
+
+def _paper_soak_memory_source_refs(
+    *,
+    opl_attempt: Mapping[str, Any],
+    sidecar_task: Mapping[str, Any],
+    typed_closeout: Mapping[str, Any],
+    mas_receipt: Mapping[str, Any],
+    progress_delta: Mapping[str, Any],
+    human_gate: Mapping[str, Any],
+    stop_loss: Mapping[str, Any],
+) -> list[dict[str, str]]:
+    candidates = (
+        ("opl_attempt", opl_attempt.get("attempt_id") or opl_attempt.get("attempt_ref")),
+        ("sidecar_task", sidecar_task.get("task_id") or sidecar_task.get("task_ref")),
+        ("typed_stage_closeout", typed_closeout.get("idempotency_key") or typed_closeout.get("artifact_path")),
+        ("mas_memory_router_receipt", mas_receipt.get("receipt_ref") or mas_receipt.get("idempotency_key")),
+        ("progress_delta", progress_delta.get("delta_id") or progress_delta.get("ref")),
+        ("human_gate", human_gate.get("gate_id") or human_gate.get("ref")),
+        ("stop_loss", stop_loss.get("decision_id") or stop_loss.get("ref")),
+    )
+    return [
+        {"role": role, "ref": _text(ref)}
+        for role, ref in candidates
+        if _text(ref)
+    ]

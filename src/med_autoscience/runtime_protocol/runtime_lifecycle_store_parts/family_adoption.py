@@ -139,6 +139,10 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "closeout_categories": list(stage_knowledge_contract.TYPED_CLOSEOUT_CATEGORIES),
             "router_receipt_surface": stage_knowledge_contract.MEMORY_ROUTER_SURFACE,
             "recall_index_surface": stage_knowledge_contract.RECALL_INDEX_SURFACE,
+            "publication_route_memory_pack_surface": stage_knowledge_contract.PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
+            "publication_route_memory_apply_receipt_surface": (
+                stage_knowledge_contract.PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE
+            ),
             "can_promote_memory_to_evidence": False,
         },
         "quality_and_publication_surfaces": {
@@ -233,6 +237,13 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
             "ref": "portfolio/research_memory/publication_route_memory/writeback_receipts",
             "role": "domain_owned_router_receipts",
         },
+        "workspace_apply_surface": {
+            "seed_apply_receipt_surface": stage_knowledge_contract.PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE,
+            "memory_pack_surface": stage_knowledge_contract.PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
+            "memory_pack_locator": "portfolio/research_memory/publication_route_memory/memory_pack.json",
+            "migration_receipt_locator": "portfolio/research_memory/publication_route_memory/migration_receipts",
+            "repo_tracks_real_pack_or_receipts": False,
+        },
         "provenance_refs": [
             {"ref_kind": "human_doc", "ref": PUBLICATION_ROUTE_MEMORY_POLICY_REF, "role": "policy"},
             {"ref_kind": "repo_path", "ref": PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF, "role": "seed_fixture"},
@@ -247,9 +258,9 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
             "stale_if_policy_or_stage_contract_missing": True,
         },
         "migration_readiness": {
-            "status": "migration_plan_ready_descriptor_only",
+            "status": "workspace_apply_closure_ready",
             "seed_fixture_status": "repo_source_fixture_available",
-            "memory_body_migration": "domain_owned_workspace_apply_required",
+            "memory_body_migration": "domain_owned_workspace_apply_available",
             "writeback_receipt_locator_status": "workspace_locator_declared",
             "opl_apply_allowed": False,
         },

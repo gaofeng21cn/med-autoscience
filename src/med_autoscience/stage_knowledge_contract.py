@@ -10,6 +10,9 @@ KNOWLEDGE_PACKET_SURFACE = "stage_knowledge_packet"
 MEMORY_CLOSEOUT_SURFACE = "stage_memory_closeout_packet"
 MEMORY_ROUTER_SURFACE = "memory_write_router_receipt"
 RECALL_INDEX_SURFACE = "stage_recall_index"
+PUBLICATION_ROUTE_MEMORY_PACK_SURFACE = "publication_route_memory_pack"
+PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE = "publication_route_memory_apply_receipt"
+PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE = "paper_soak_memory_apply_proof"
 
 EXPLORATORY_STAGES = ("scout", "idea", "analysis-campaign", "review")
 STAGE_KNOWLEDGE_ROOT = Path("artifacts/stage_knowledge")
@@ -118,6 +121,11 @@ def stage_knowledge_plane_contract() -> dict[str, Any]:
             MEMORY_CLOSEOUT_SURFACE: _packet_contract(MEMORY_CLOSEOUT_SURFACE),
             MEMORY_ROUTER_SURFACE: _packet_contract(MEMORY_ROUTER_SURFACE),
             RECALL_INDEX_SURFACE: _packet_contract(RECALL_INDEX_SURFACE),
+            PUBLICATION_ROUTE_MEMORY_PACK_SURFACE: _packet_contract(PUBLICATION_ROUTE_MEMORY_PACK_SURFACE),
+            PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE: _packet_contract(
+                PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE
+            ),
+            PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE: _packet_contract(PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE),
         },
         "exploratory_stages": list(EXPLORATORY_STAGES),
         "stage_obligations": {
@@ -159,6 +167,9 @@ __all__ = [
     "KNOWLEDGE_PACKET_SURFACE",
     "MEMORY_CLOSEOUT_SURFACE",
     "MEMORY_ROUTER_SURFACE",
+    "PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE",
+    "PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE",
+    "PUBLICATION_ROUTE_MEMORY_PACK_SURFACE",
     "RECALL_INDEX_SURFACE",
     "SCHEMA_VERSION",
     "STAGE_KNOWLEDGE_ROOT",

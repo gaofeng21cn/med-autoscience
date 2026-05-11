@@ -92,7 +92,7 @@ Master entry: OPL family framework 的总开发入口是 `/Users/gaofeng/workspa
 - MAS direct skill path 与 OPL-hosted path 对同一 study owner route 结果等价。
 - MAS sidecar export 生成的 `pending_family_tasks[]` 能被 OPL queue hydration 幂等消费。
 - MAS sidecar dispatch 能回到 MAS owner chain 写 receipt，并证明未写 forbidden truth surfaces。
-- 至少一条真实 MAS paper line 完成 read-only 或 guarded apply soak，能看到 provider attempt、Codex activity、MAS owner receipt、artifact delta / gate replay / human gate / stop-loss。
+- 至少一条真实 MAS paper line 完成 read-only 或 guarded apply soak，能看到 provider attempt、Codex/domain sidecar、typed closeout、MAS owner receipt、progress delta / human gate / stop-loss；artifact delta / gate replay 仍只能由 MAS owner surface 授权。
 - 本地 scheduler 退役不会降低 direct MAS diagnostics、offline development、explicit one-shot recovery 和 workspace evidence 可读性。
 - MAS SQLite/file lifecycle 经验已经完成 `framework_generic` / `mas_domain_specific` 分类，并有 OPL shared primitive 或明确保留理由。
 - MAS skeleton mapping 能把现有 stage、prompt/skill、knowledge、quality gate、contract、sidecar、receipt schema、projection builder 和 artifact locator contract 映射到 OPL standard domain-agent skeleton。
@@ -230,7 +230,7 @@ docs/
 - 先做 skeleton mapping，不直接移动目录。
 - `agent/stages` 映射现有 `agent_entry_modes.yaml`、Stage-Led Autonomy route contract、bounded-analysis policy 和 route decision surface。
 - `agent/prompts` / `agent/skills` 映射 MAS app skill、stage prompt、review/repair prompt 和 Codex entry policy。
-- `agent/knowledge` 映射 stage knowledge packet、memory closeout packet、memory write router、recall index、literature/reference context，以及 natural-language-first publication route memory。该层只做检索、注入、provenance、freshness 和 writeback routing；不得把论文套路做成 OPL 或 MAS 的机械 recipe engine。
+- `agent/knowledge` 映射 stage knowledge packet、memory closeout packet、memory write router、recall index、literature/reference context，以及 natural-language-first publication route memory。`publication_route_memory_pack`、`publication_route_memory_apply_receipt` 和 writeback receipts 属 MAS workspace/runtime root；repo 只保存 schema、seed fixture 和 locator contract。该层只做检索、注入、provenance、freshness 和 writeback routing；不得把论文套路做成 OPL 或 MAS 的机械 recipe engine。
 - `agent/quality_gates` 映射 AI reviewer、publication gate、reporting guideline、claim-evidence/display-to-claim gates。
 - `runtime/sidecar` / `runtime/projection_builders` / `runtime/lifecycle_adapters` 映射 sidecar export/dispatch、Progress Portal、Live Console、OPL workbench projection，以及 workspace/runtime artifact locator、retention 和 restore-proof adapter。
 - workspace / runtime artifact root 继续保存 MAS study truth、publication eval、controller decisions、owner receipts、论文包、中间产物和最终交付物；开发仓 skeleton 只保存 schema、adapter、builder 和 locator contract。
@@ -317,7 +317,8 @@ docs/
 
 - 选择一条真实 paper line 做 read-only then guarded apply soak。
 - OPL 创建 stage attempt，Temporal Activity 调用 MAS sidecar dispatch。
-- MAS 执行 owner-route reconcile，产生 artifact delta、gate replay、AI reviewer recheck、human gate、stop-loss 或 typed blocker。
+- MAS 执行 owner-route reconcile 或 memory write router，产生 typed closeout receipt、progress delta、gate replay、AI reviewer recheck、human gate、stop-loss 或 typed blocker。
+- `paper_soak_memory_apply_proof` 作为 read-only proof surface 连接 OPL attempt、Codex/domain sidecar、typed closeout、MAS receipt 和 progress delta / human gate / stop-loss；它不写真实论文包，不授权 quality，不替代 publication gate。
 - OPL App / CLI 能展示 provider attempt、MAS source refs、receipt、next owner 和 blocker。
 
 验收：

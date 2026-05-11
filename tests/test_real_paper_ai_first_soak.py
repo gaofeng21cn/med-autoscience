@@ -405,3 +405,76 @@ def test_real_paper_ai_first_soak_validation_rejects_bypass_and_schema_drift() -
         "ai_reviewer_intervention_points_missing",
         "manual_gate_missing",
     }
+
+
+def test_paper_soak_memory_apply_proof_links_opl_attempt_sidecar_closeout_receipt_and_progress_guard() -> None:
+    module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
+
+    proof = module.build_paper_soak_memory_apply_proof(
+        opl_attempt={
+            "attempt_id": "opl-attempt-001",
+            "provider": "temporal",
+            "status": "completed",
+        },
+        sidecar_task={
+            "task_id": "sidecar-task-001",
+            "task_kind": "stage_memory/apply-closeout",
+        },
+        typed_closeout={
+            "surface": "stage_memory_closeout_packet",
+            "idempotency_key": "closeout-001",
+            "proposed_writes": [{"write_id": "lesson-1"}],
+        },
+        mas_receipt={
+            "surface": "memory_write_router_receipt",
+            "status": "applied",
+            "idempotency_key": "closeout-001",
+            "receipt_ref": "portfolio/research_memory/publication_route_memory/writeback_receipts/closeout-001.json",
+        },
+        progress_delta={
+            "delta_id": "progress-delta-001",
+            "delta_kind": "memory_writeback_applied",
+            "progress_changed": True,
+        },
+    )
+
+    assert proof["surface"] == "paper_soak_memory_apply_proof"
+    assert proof["proof_mode"] == "read_only_or_guarded_apply"
+    assert proof["overall_status"] == "complete"
+    assert [step["step"] for step in proof["proof_steps"]] == [
+        "opl_attempt",
+        "codex_or_domain_sidecar",
+        "typed_stage_closeout",
+        "mas_memory_router_receipt",
+        "progress_delta_or_guard",
+    ]
+    assert all(step["status"] == "present" for step in proof["proof_steps"])
+    assert proof["authority_boundary"]["can_write_real_paper_package"] is False
+    assert proof["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert {ref["role"] for ref in proof["source_refs"]} == {
+        "opl_attempt",
+        "sidecar_task",
+        "typed_stage_closeout",
+        "mas_memory_router_receipt",
+        "progress_delta",
+    }
+
+
+def test_paper_soak_memory_apply_proof_requires_progress_delta_human_gate_or_stop_loss() -> None:
+    module = importlib.import_module("med_autoscience.controllers.real_paper_ai_first_soak")
+
+    proof = module.build_paper_soak_memory_apply_proof(
+        opl_attempt={"attempt_id": "opl-attempt-001"},
+        sidecar_task={"task_id": "sidecar-task-001"},
+        typed_closeout={"surface": "stage_memory_closeout_packet", "idempotency_key": "closeout-001"},
+        mas_receipt={"surface": "memory_write_router_receipt", "status": "applied", "idempotency_key": "closeout-001"},
+    )
+
+    assert proof["overall_status"] == "partial"
+    by_step = {step["step"]: step for step in proof["proof_steps"]}
+    assert by_step["progress_delta_or_guard"] == {
+        "step": "progress_delta_or_guard",
+        "status": "missing",
+        "ref": "missing_progress_delta_human_gate_or_stop_loss",
+        "role": "Proof must end in progress delta, human gate, or stop-loss.",
+    }
