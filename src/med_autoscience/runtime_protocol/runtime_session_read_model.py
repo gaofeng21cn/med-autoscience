@@ -418,7 +418,7 @@ def _worker_running(*, source_priority: str, payload: Mapping[str, Any]) -> bool
         runtime_audit.get("worker_running"),
         liveness.get("worker_running"),
         payload.get("worker_running"),
-        _mapping(payload.get("mds_worker_activity")).get("worker_running"),
+        _mapping(payload.get("runtime_worker_activity")).get("worker_running"),
     ):
         if isinstance(value, bool):
             return value
@@ -438,7 +438,7 @@ def _worker_state(*, source_priority: str, payload: Mapping[str, Any]) -> str | 
         runtime_worker_liveness_state.get("state"),
         liveness.get("worker_state"),
         worker_liveness_state.get("state"),
-        _mapping(payload.get("mds_worker_activity")).get("activity_state"),
+        _mapping(payload.get("runtime_worker_activity")).get("activity_state"),
         payload.get("status") if source_priority == "historical_fixture_ref" else None,
         "running" if _worker_running(source_priority=source_priority, payload=payload) is True else None,
     )
@@ -451,7 +451,7 @@ def _observed_run_id(payload: Mapping[str, Any]) -> str | None:
         payload.get("active_run_id"),
         liveness.get("active_run_id"),
         runtime_audit.get("active_run_id"),
-        _mapping(payload.get("mds_worker_activity")).get("active_run_id"),
+        _mapping(payload.get("runtime_worker_activity")).get("active_run_id"),
         payload.get("last_known_run_id"),
     )
 

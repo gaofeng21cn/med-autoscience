@@ -112,6 +112,32 @@ def test_runtime_session_projection_includes_watchdog_fields_without_relaxing_st
     assert session["will_start_llm"] is False
 
 
+def test_runtime_session_projection_reads_runtime_worker_activity() -> None:
+    read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_session_read_model")
+    status_payload = {
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "runtime_liveness_status": "live",
+        "runtime_worker_activity": {
+            "activity_state": "running",
+            "heartbeat_state": "live",
+            "active_run_id": "run-live",
+            "worker_running": True,
+        },
+    }
+
+    projection = read_model.build_runtime_session_read_model(
+        study_runtime_status=status_payload,
+        generated_at="2026-05-08T00:10:00+00:00",
+    )
+
+    session = projection["runtime_session"]
+    assert session["active_run_id"] == "run-live"
+    assert session["last_known_run_id"] is None
+    assert session["worker_state"] == "running"
+    assert session["worker_running"] is True
+
+
 def test_runtime_session_projection_reads_latest_lifecycle_event_when_status_is_absent(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_session_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"

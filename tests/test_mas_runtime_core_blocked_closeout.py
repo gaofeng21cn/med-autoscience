@@ -118,7 +118,7 @@ def test_control_plane_facts_treat_blocked_closeout_as_parked() -> None:
     assert facts.active_run_id_source == "continuation_state.parked_closeout"
     assert facts.missing_live_session is False
     assert facts.recovery_pending is False
-    assert facts.to_mds_worker_activity()["activity_state"] == "parked"
+    assert facts.to_runtime_worker_activity()["activity_state"] == "parked"
 
 
 def test_active_no_live_runtime_absorbs_latest_blocked_closeout(tmp_path: Path) -> None:

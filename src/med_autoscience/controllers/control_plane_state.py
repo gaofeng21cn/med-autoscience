@@ -43,7 +43,7 @@ _STATE_SPECS: dict[str, dict[str, Any]] = {
         "operator_summary": "No active worker evidence is present yet; keep the study queued for controller-owned dispatch.",
     },
     "running": {
-        "owner": "mds_runtime_worker",
+        "owner": "runtime_worker",
         "auto_recovery_allowed": True,
         "resource_release_expected": False,
         "long_write_turn_allowed": False,
@@ -284,7 +284,7 @@ def build_control_plane_state_surface(profile_payload: Mapping[str, Any]) -> dic
         _state_from_runtime_failure(runtime_failure)
         or _state_from_auto_runtime_parked(auto_runtime_parked)
         or _state_from_control_plane_facts(facts)
-        or _state_from_worker_activity(_mapping(status_payload.get("mds_worker_activity")))
+        or _state_from_worker_activity(_mapping(status_payload.get("runtime_worker_activity")))
         or _state_from_current_summary(_mapping(status_payload.get("current_state_summary")))
         or _state_from_sli(_mapping(status_payload.get("sli_summary")))
         or "queued"

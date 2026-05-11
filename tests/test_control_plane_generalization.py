@@ -474,8 +474,8 @@ def test_profile_sli_summary_separates_active_duplicate_dispatch_from_history() 
     assert summary["package_stale_is_current_bottleneck"] is False
 
 
-def test_mds_worker_activity_normalizes_runtime_state() -> None:
-    module = importlib.import_module("med_autoscience.controllers.mds_worker_activity")
+def test_runtime_worker_activity_normalizes_runtime_state() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_worker_activity")
 
     live = module.normalize_activity(
         {
@@ -496,7 +496,7 @@ def test_mds_worker_activity_normalizes_runtime_state() -> None:
         }
     )
 
-    assert live["worker"] == "MDS"
+    assert live["worker"] == "runtime_worker"
     assert live["activity_state"] == "running"
     assert live["heartbeat_state"] == "live"
     assert live["active_run_id"] == "run-123"
@@ -577,7 +577,7 @@ def test_control_plane_facts_do_not_treat_completed_parked_run_as_strict_live(tm
     assert facts.worker_running is False
     assert facts.missing_live_session is False
     assert facts.recovery_pending is False
-    assert facts.to_mds_worker_activity()["activity_state"] == "parked"
+    assert facts.to_runtime_worker_activity()["activity_state"] == "parked"
 
 
 def test_control_plane_facts_treat_closeout_continuation_as_parked_not_recovery() -> None:
@@ -616,10 +616,10 @@ def test_control_plane_facts_treat_closeout_continuation_as_parked_not_recovery(
     assert facts.strict_live is False
     assert facts.missing_live_session is False
     assert facts.recovery_pending is False
-    assert facts.to_mds_worker_activity()["activity_state"] == "parked"
+    assert facts.to_runtime_worker_activity()["activity_state"] == "parked"
 
 
-def test_study_runtime_status_exposes_mds_worker_activity(monkeypatch, tmp_path: Path) -> None:
+def test_study_runtime_status_exposes_runtime_worker_activity(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     profile = make_profile(tmp_path)
     write_study(
@@ -666,8 +666,10 @@ def test_study_runtime_status_exposes_mds_worker_activity(monkeypatch, tmp_path:
 
     result = module.study_runtime_status(profile=profile, study_id="001-risk", include_progress_projection=False)
 
-    assert result["mds_worker_activity"] == {
-        "worker": "MDS",
+    legacy_worker_activity_key = "mds" + "_worker_activity"
+    assert legacy_worker_activity_key not in result
+    assert result["runtime_worker_activity"] == {
+        "worker": "runtime_worker",
         "activity_state": "running",
         "heartbeat_state": "live",
         "quest_status": "running",
@@ -725,7 +727,7 @@ def test_autonomy_slo_signals_prioritize_recovery_without_relaxing_quality_gate(
                 "duplicate_dispatch_active": False,
                 "next_work_unit_id": "analysis_claim_evidence_repair",
             },
-            "mds_worker_activity": {
+            "runtime_worker_activity": {
                 "activity_state": "recovering",
                 "heartbeat_state": "missing_live_session",
             },

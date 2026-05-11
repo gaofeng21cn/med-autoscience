@@ -673,7 +673,7 @@ def build_repair_orchestration(
             {
                 "action_type": "task_repair",
                 "repair_kind": "require_compact_evidence_and_meaningful_artifact_delta",
-                "owner": "mds_runtime_worker",
+                "owner": "runtime_worker",
                 "risk": "medium",
                 "auto_apply_allowed": True,
             }

@@ -49,7 +49,7 @@ def test_autonomy_slo_consumes_state_machine_and_platform_incident_loop() -> Non
         {
             "study_id": "003-dpcc",
             "quest_id": "quest-003",
-            "mds_worker_activity": {
+            "runtime_worker_activity": {
                 "activity_state": "recovering",
                 "heartbeat_state": "missing_live_session",
             },
@@ -80,7 +80,7 @@ def test_autonomy_slo_consumes_state_machine_and_platform_incident_loop() -> Non
     [
         (
             {
-                "mds_worker_activity": {
+                "runtime_worker_activity": {
                     "activity_state": "running",
                     "heartbeat_state": "live",
                 }
@@ -90,7 +90,7 @@ def test_autonomy_slo_consumes_state_machine_and_platform_incident_loop() -> Non
         ({}, "queued"),
         (
             {
-                "mds_worker_activity": {
+                "runtime_worker_activity": {
                     "quest_status": "running",
                     "heartbeat_state": "unknown",
                 }
@@ -103,7 +103,7 @@ def test_autonomy_slo_consumes_state_machine_and_platform_incident_loop() -> Non
         ),
         (
             {
-                "mds_worker_activity": {
+                "runtime_worker_activity": {
                     "activity_state": "recovering",
                     "heartbeat_state": "missing_live_session",
                 }

@@ -118,17 +118,17 @@ def _diagnosis_from_profile(profile_payload: Mapping[str, Any]) -> Mapping[str, 
         diagnosis = _mapping(profile_payload.get(key))
         if diagnosis:
             return diagnosis
-    mds_activity = _mapping(profile_payload.get("mds_worker_activity"))
+    runtime_activity = _mapping(profile_payload.get("runtime_worker_activity"))
     for key in ("mds_failure_diagnosis", "runtime_failure_diagnosis", "failure_diagnosis"):
-        diagnosis = _mapping(mds_activity.get(key))
+        diagnosis = _mapping(runtime_activity.get(key))
         if diagnosis:
             return diagnosis
-    diagnosis_code = _text(mds_activity.get("diagnosis_code"))
+    diagnosis_code = _text(runtime_activity.get("diagnosis_code"))
     if diagnosis_code is not None:
         return {
             "diagnosis_code": diagnosis_code,
-            "retriable": _bool(mds_activity.get("retriable")),
-            "problem": _text(mds_activity.get("problem")),
+            "retriable": _bool(runtime_activity.get("retriable")),
+            "problem": _text(runtime_activity.get("problem")),
         }
     return {}
 

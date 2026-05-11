@@ -111,7 +111,7 @@ class ControlPlaneFacts:
             "recovery_pending": self.recovery_pending,
         }
 
-    def to_mds_worker_activity(self) -> dict[str, Any]:
+    def to_runtime_worker_activity(self) -> dict[str, Any]:
         if self.strict_live:
             activity_state = "running"
             heartbeat_state = "live"
@@ -128,7 +128,7 @@ class ControlPlaneFacts:
             activity_state = "unknown"
             heartbeat_state = self.runtime_liveness_status or "unknown"
         return {
-            "worker": "MDS",
+            "worker": "runtime_worker",
             "activity_state": activity_state,
             "heartbeat_state": heartbeat_state,
             "quest_status": self.quest_status,

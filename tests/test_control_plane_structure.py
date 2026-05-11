@@ -7,7 +7,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 CONTROL_PLANE_MODULES = (
-    "src/med_autoscience/controllers/mds_worker_activity.py",
+    "src/med_autoscience/controllers/runtime_worker_activity.py",
     "src/med_autoscience/controllers/runtime_supervision.py",
     "src/med_autoscience/controllers/runtime_watch_parts/managed_wakeup.py",
     "src/med_autoscience/controllers/runtime_watch_recovery_policy.py",

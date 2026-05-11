@@ -14,4 +14,4 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 
 def normalize_activity(status_payload: Mapping[str, Any]) -> dict[str, Any]:
-    return resolve_control_plane_facts(status_payload).to_mds_worker_activity()
+    return resolve_control_plane_facts(status_payload).to_runtime_worker_activity()

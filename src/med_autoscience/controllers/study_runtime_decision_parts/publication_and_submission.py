@@ -12,8 +12,8 @@ from med_autoscience.controller_confirmation_summary import (
     stable_controller_confirmation_summary_path,
 )
 from med_autoscience.controllers import (
-    mds_worker_activity,
     publication_gate as publication_gate_controller,
+    runtime_worker_activity,
     runtime_supervision as runtime_supervision_controller,
     study_truth_kernel,
     study_runtime_interaction_arbitration as interaction_arbitration_controller,
@@ -720,8 +720,8 @@ def _record_quest_runtime_audits(
     return quest_runtime.runtime_liveness_status
 
 
-def _record_mds_worker_activity(status: StudyRuntimeStatus) -> None:
-    status["mds_worker_activity"] = mds_worker_activity.normalize_activity(status.to_dict())
+def _record_runtime_worker_activity(status: StudyRuntimeStatus) -> None:
+    status["runtime_worker_activity"] = runtime_worker_activity.normalize_activity(status.to_dict())
 
 
 def _record_auto_runtime_parked_projection(status: StudyRuntimeStatus) -> None:

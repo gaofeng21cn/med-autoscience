@@ -113,14 +113,14 @@ def _bottleneck_types(profile_payload: Mapping[str, Any]) -> list[str]:
 def _long_run_health(
     *,
     sli_summary: Mapping[str, Any],
-    mds_activity: Mapping[str, Any],
+    runtime_activity: Mapping[str, Any],
     incident_types: list[str],
 ) -> dict[str, Any]:
     live_ratio = _float(sli_summary.get("runtime_live_ratio"))
     recovery_observations = _int(sli_summary.get("runtime_recovery_observations"))
     flapping_transitions = _int(sli_summary.get("runtime_flapping_transitions"))
-    activity_state = _text(mds_activity.get("activity_state"))
-    heartbeat_state = _text(mds_activity.get("heartbeat_state"))
+    activity_state = _text(runtime_activity.get("activity_state"))
+    heartbeat_state = _text(runtime_activity.get("heartbeat_state"))
     if (
         "runtime_recovery_churn" in incident_types
         or activity_state == "recovering"
@@ -367,7 +367,7 @@ def _slo_execution_plan(
 def _efficiency_signals(
     *,
     sli_summary: Mapping[str, Any],
-    mds_activity: Mapping[str, Any],
+    runtime_activity: Mapping[str, Any],
     long_run_health: Mapping[str, Any],
     state_machine: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
@@ -375,7 +375,7 @@ def _efficiency_signals(
     duplicate_dispatch_active = bool(sli_summary.get("duplicate_dispatch_active"))
     package_stale = bool(sli_summary.get("package_stale_is_current_bottleneck"))
     flapping_transitions = _int(sli_summary.get("runtime_flapping_transitions"))
-    heartbeat_state = _text(mds_activity.get("heartbeat_state"))
+    heartbeat_state = _text(runtime_activity.get("heartbeat_state"))
     autonomy_state = _text(state_machine.get("current_state"))
     signals = [
         {
@@ -424,7 +424,7 @@ def _efficiency_signals(
         signals.append(
             {
                 "signal_id": "worker_heartbeat",
-                "source": "mds_worker_activity",
+                "source": "runtime_worker_activity",
                 "state": "breach" if heartbeat_state == "missing_live_session" else "met",
                 "value": heartbeat_state,
                 "target": "live",
@@ -436,12 +436,12 @@ def _efficiency_signals(
 def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, Any]:
     sli_summary = _mapping(profile_payload.get("sli_summary"))
     gate_summary = _mapping(profile_payload.get("gate_blocker_summary"))
-    mds_activity = _mapping(profile_payload.get("mds_worker_activity"))
+    runtime_activity = _mapping(profile_payload.get("runtime_worker_activity"))
     incident_types = _incident_types(profile_payload)
     bottleneck_types = _bottleneck_types(profile_payload)
     long_run_health = _long_run_health(
         sli_summary=sli_summary,
-        mds_activity=mds_activity,
+        runtime_activity=runtime_activity,
         incident_types=incident_types,
     )
     progress_health = _progress_health(
@@ -476,7 +476,7 @@ def build_autonomy_slo_signals(profile_payload: Mapping[str, Any]) -> dict[str, 
     top_action = (slo_execution_plan["steps"][0] if slo_execution_plan["steps"] else {})
     efficiency_signals = _efficiency_signals(
         sli_summary=sli_summary,
-        mds_activity=mds_activity,
+        runtime_activity=runtime_activity,
         long_run_health=long_run_health,
         state_machine=autonomy_state,
     )

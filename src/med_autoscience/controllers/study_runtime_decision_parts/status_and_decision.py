@@ -242,7 +242,7 @@ def _status_state(
             study_root=study_root,
             runtime_context=runtime_context,
         )
-        _record_mds_worker_activity(result)
+        _record_runtime_worker_activity(result)
         _record_auto_runtime_parked_projection(result)
         result.extras["study_truth_snapshot"] = study_truth_kernel.derive_truth_snapshot_from_status_payload(
             study_root=study_root,

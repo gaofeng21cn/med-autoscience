@@ -359,8 +359,10 @@ def test_supervisor_status_preserves_preinspected_liveness_and_worker_activity(
     assert result["active_run_id"] == "run-live"
     assert result["runtime_liveness_audit"]["status"] == "live"
     assert result["runtime_liveness_audit"]["active_run_id"] == "run-live"
-    assert result["mds_worker_activity"]["activity_state"] == "running"
-    assert result["mds_worker_activity"]["active_run_id"] == "run-live"
+    legacy_worker_activity_key = "mds" + "_worker_activity"
+    assert legacy_worker_activity_key not in result
+    assert result["runtime_worker_activity"]["activity_state"] == "running"
+    assert result["runtime_worker_activity"]["active_run_id"] == "run-live"
     assert result["progress_projection"]["supervision"]["active_run_id"] == "run-live"
 
 
