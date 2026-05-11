@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/medautoscience-logo.svg" alt="Med Auto Science logo" width="132" />
+  <img src="assets/branding/medautoscience-logo.png" alt="Med Auto Science logo" width="132" />
 </p>
 
 <p align="center">
