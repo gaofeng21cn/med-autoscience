@@ -13,7 +13,7 @@ Machine boundary: this is a human-readable policy. Machine truth remains in `stu
 
 2026-05-11 status calibration: Stage-Led Autonomy 的核心 operating surface 已经落地；机械分流层已经降级为 audit/router/materializer，但仍有兼容入口、historical reader、fixture 和旧命名残留。开发纪律是先确认默认路径不再调用、direct skill 与 OPL handoff 都能回到同一 MAS-owned stage/route surface，再删除旧 vocabulary 或迁入 history；不能为了“清干净”破坏 restore/provenance/parity 证据。
 
-2026-05-11 OPL integration calibration: OPL 现在可以把 MAS 识别为 aligned standard domain-agent skeleton、6-stage family stage plane，以及当前唯一 resolved family domain-memory descriptor。这个状态说明 stage-led autonomy 已具备被 OPL 托管的 descriptor / memory / sidecar 条件；它仍不等于真实 paper line 已完成 provider-hosted long-running soak。MAS 的研究判断、publication quality、claim boundary、artifact authority 继续只由 MAS durable truth surface 持有。
+2026-05-11 OPL integration calibration: OPL 现在可以把 MAS 识别为 aligned standard domain-agent skeleton、6-stage family stage plane，并把 `mas_publication_route_memory` 作为 MAS-owned resolved family domain-memory descriptor 解析；同一 OPL family index 也已能解析 MAG/RCA 的标准 domain-memory descriptor。这个状态说明 stage-led autonomy 已具备被 OPL 托管的 descriptor / memory / sidecar 条件；它仍不等于真实 paper line 已完成 provider-hosted long-running soak。MAS 的研究判断、publication quality、claim boundary、artifact authority 继续只由 MAS durable truth surface 持有。
 
 ## 总目标与运行模型
 

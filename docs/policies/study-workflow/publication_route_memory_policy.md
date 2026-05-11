@@ -191,11 +191,11 @@ Do not implement a separate publication recipe engine until a route has matured 
 
 ## 2026-05-11 OPL Family Index Status
 
-Current OPL discovery sees MAS as the first resolved family memory descriptor:
+Current OPL discovery sees MAS, MAG, and RCA as resolved family memory descriptors:
 
 - OPL `domain-memory list` resolves `mas_publication_route_memory` from the MAS standard `domain_memory_descriptor`.
-- MAG/RCA currently expose domain-specific memory descriptor locators in their own repos, but they are not yet resolved by OPL's standard `family_domain_memory_ref.v1` index.
-- This makes MAS publication route memory the current reference implementation for family memory standardization, not a reason to move publication-route content into OPL.
+- MAG/RCA now also expose standard `family_domain_memory_ref.v1` descriptors for their own grant-strategy and visual-pattern memory locators.
+- This makes MAS publication route memory the MAS-side reference implementation for natural-language, stage-consumed publication-route memory, not a reason to move publication-route content into OPL.
 
 Remaining MAS-side proof:
 
