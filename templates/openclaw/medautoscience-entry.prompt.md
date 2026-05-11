@@ -210,4 +210,4 @@ If a required capability is not exposed through those MAS contracts, stop and cl
 ## Revision Intake Rule
 Treat reviewer feedback, manuscript revision, mentor feedback, 审稿意见, 导师反馈, 论文修改, and Introduction/Methods/Results/Figure/Table feedback as `reviewer_revision` study task intake.
 Explicit user/reviewer manuscript feedback after a stopped, submission-ready, or finalize milestone reactivates the same study line; it is not permission to foreground-edit `manuscript/current_package`.
-After writing the durable task intake, relaunch/resume through MAS/MDS before editing canonical paper sources, and regenerate `current_package` from that authority.
+After writing the durable task intake, relaunch/resume through MAS-owned runtime before editing canonical paper sources, and regenerate `current_package` from that authority.

@@ -39,7 +39,6 @@ def test_stale_compatibility_terms_do_not_reenter_active_surfaces() -> None:
         repo_root / "tests",
         repo_root / "contracts",
         repo_root / "profiles",
-        repo_root / "docs",
     ]
     blocked_terms = (
         "backend-" + "upgrade",
@@ -48,17 +47,11 @@ def test_stale_compatibility_terms_do_not_reenter_active_surfaces() -> None:
         "codex_cli_" + "autonomous",
         "legacy_oracle_" + "backend_audit",
     )
-    allowed_doc_roots = {
-        repo_root / "docs" / "history",
-        repo_root / "docs" / "references",
-    }
     violations: list[str] = []
 
     for root in search_roots:
         for path in root.rglob("*"):
             if not path.is_file():
-                continue
-            if any(path.is_relative_to(allowed_root) for allowed_root in allowed_doc_roots):
                 continue
             try:
                 text = path.read_text(encoding="utf-8")

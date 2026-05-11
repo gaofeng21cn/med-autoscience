@@ -123,8 +123,8 @@ def render_entry_modes_guide() -> str:
             "and Introduction/Methods/Results/Figure/Table feedback as `reviewer_revision` study task intake.",
             "Explicit user/reviewer manuscript feedback after a stopped, submission-ready, or finalize milestone "
             "reactivates the same study line; it is not permission to foreground-edit `manuscript/current_package`.",
-            "After writing the durable task intake, relaunch/resume through MAS/MDS before editing canonical "
-            "paper sources, and regenerate `current_package` from that authority.",
+            "After writing the durable task intake, relaunch/resume through MAS-owned runtime before editing "
+            "canonical paper sources, and regenerate `current_package` from that authority.",
         )
     )
     return "\n".join(lines).rstrip() + "\n"
@@ -297,8 +297,8 @@ def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
             "and Introduction/Methods/Results/Figure/Table feedback as `reviewer_revision` study task intake.",
             "Explicit user/reviewer manuscript feedback after a stopped, submission-ready, or finalize milestone "
             "reactivates the same study line; it is not permission to foreground-edit `manuscript/current_package`.",
-            "After writing the durable task intake, relaunch/resume through MAS/MDS before editing canonical "
-            "paper sources, and regenerate `current_package` from that authority.",
+            "After writing the durable task intake, relaunch/resume through MAS-owned runtime before editing "
+            "canonical paper sources, and regenerate `current_package` from that authority.",
         )
     )
     return "\n".join(lines).rstrip() + "\n"

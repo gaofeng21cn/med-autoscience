@@ -808,8 +808,8 @@ def render_task_intake_markdown(payload: dict[str, Any]) -> str:
                 "## Revision Handoff Constraint",
                 "",
                 "- 明确用户、导师或审稿稿件反馈会重新激活同一 study；旧 stopped/submission-ready/finalize 状态不能作为前台直接修改 `manuscript/current_package/` 的许可。",
-                "- 先通过 MAS/MDS relaunch/resume 接管 canonical paper surface，再重新生成 `manuscript/current_package/`。",
-                "- 紧急 foreground overlay 只能作为 unreconciled handoff 标注，不能作为完成态或 MAS/MDS 已修订完成的证据。",
+                "- 先通过 MAS-owned launch/resume 接管 canonical paper surface，再重新生成 `manuscript/current_package/`。",
+                "- 紧急 foreground overlay 只能作为 unreconciled handoff 标注，不能作为完成态或 MAS 已修订完成的证据。",
             ]
         )
     lines.extend(render_manuscript_fast_lane_markdown_lines(payload))
@@ -850,7 +850,7 @@ def render_task_intake_runtime_context(payload: dict[str, Any]) -> str:
                 f"Revision checklist: {checklist}",
                 "Reviewer/user manuscript feedback reactivates the same study line.",
                 "A stopped milestone state is not foreground current_package edit permission.",
-                "Relaunch/resume MAS/MDS before editing canonical paper sources.",
+                "Relaunch/resume through MAS-owned runtime before editing canonical paper sources.",
                 "Regenerate manuscript/current_package from canonical authority after revision.",
             ]
         )

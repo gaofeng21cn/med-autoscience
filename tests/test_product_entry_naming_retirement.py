@@ -11,12 +11,9 @@ def test_retired_entry_status_name_is_absent_from_active_tracked_surfaces() -> N
         "product-" + "front" + "desk",
         "product_" + "front" + "desk",
     )
-    allowed_prefixes = (
-        "docs/history/",
-        "docs/references/verification/plan_completion_ledger.md",
-        "tests/test_product_entry_naming_retirement.py",
-    )
-    tracked = subprocess.check_output(["git", "ls-files"], cwd=repo_root, text=True).splitlines()
+    scanned_roots = ("src/", "contracts/", "profiles/", "templates/", "tests/")
+    allowed_prefixes = ("tests/test_product_entry_naming_retirement.py",)
+    tracked = subprocess.check_output(["git", "ls-files", *scanned_roots], cwd=repo_root, text=True).splitlines()
 
     offenders: list[str] = []
     for relative_path in tracked:

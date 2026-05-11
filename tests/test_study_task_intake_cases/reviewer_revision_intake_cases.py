@@ -152,12 +152,12 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
     assert "text revisions" in markdown
     assert "handoff/evidence surface" in markdown
     assert "stopped/submission-ready/finalize" in markdown
-    assert "先通过 MAS/MDS relaunch/resume 接管 canonical paper surface" in markdown
+    assert "先通过 MAS-owned launch/resume 接管 canonical paper surface" in markdown
 
     runtime_context = module.render_task_intake_runtime_context(payload)
     assert "Revision intake: reviewer_revision" in runtime_context
     assert "stopped milestone state is not foreground current_package edit permission" in runtime_context
-    assert "Relaunch/resume MAS/MDS before editing canonical paper sources." in runtime_context
+    assert "Relaunch/resume through MAS-owned runtime before editing canonical paper sources." in runtime_context
 
 
 def test_non_revision_intake_does_not_emit_revision_checklist() -> None:

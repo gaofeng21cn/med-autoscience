@@ -120,3 +120,15 @@ those surfaces, but they must not become a second truth source.
 Allowed machine uses of docs paths are limited to docs tooling, documentation
 classification, generated human links, or explicit semantic references such as
 `human_doc:*`, `runtime:*`, `program:*`, and `policy:*`.
+
+## Test Retirement Rule
+
+Tests must not scan README/docs prose to fail on legacy terms, headings, fixed
+phrases, narrative links, or Markdown placement. Retire those tests or move the
+guard to `src/`, `contracts/`, `profiles/`, generated templates, CLI/MCP/API
+payloads, schemas, manifests, or generated artifact structure.
+
+Legacy MDS / DeepScientist tests are only retained when they guard explicit
+archive import, source provenance, backend audit, historical fixtures, parity
+oracle behavior, restore diagnostics, or forbidden default authority. They must
+not preserve an external MDS dependency or old active product semantics.
