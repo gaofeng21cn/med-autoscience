@@ -13,6 +13,7 @@ from . import opl_provider_ready_adapter
 from . import paper_repair_executor
 from . import runtime_supervisor_dispatch_executor
 from . import runtime_supervisor_reconcile
+from . import stage_knowledge_plane
 
 
 _FORBIDDEN_PAYLOAD_FLAGS = (
@@ -135,6 +136,10 @@ def _study_projection(*, study_root: Path, profile: WorkspaceProfile) -> dict[st
         if field_name not in payload:
             payload[field_name] = _read_json_object(study_root / relative_path)
     payload["paper_autonomy_loop"] = _paper_autonomy_loop_projection(study_root=study_root)
+    payload["memory_paper_soak_proof"] = _memory_paper_soak_proof_projection(
+        study_root=study_root,
+        profile=profile,
+    )
     payload["autonomy_continuation"] = _autonomy_continuation_projection(
         study=payload,
         profile=profile,
@@ -308,6 +313,41 @@ def _paper_autonomy_loop_projection(*, study_root: Path) -> dict[str, Any]:
             {"role": "publication_eval", "ref": str(publication_eval_path), "exists": True},
         ],
         "authority_boundary": _authority_boundary_payload(),
+    }
+
+
+def _memory_paper_soak_proof_projection(*, study_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
+    proof_path = stage_knowledge_plane.paper_soak_memory_apply_proof_path(study_root=study_root)
+    proof = _read_json_object(proof_path)
+    if proof is None:
+        return {
+            "surface_kind": "mas_memory_paper_soak_proof_projection",
+            "status": "missing",
+            "proof_ref": _workspace_relative(proof_path, workspace_root=profile.workspace_root),
+            "receipt_refs": [],
+            "authority_boundary": _authority_boundary_payload(),
+            "read_only_display_policy": {
+                "consumer": "OPL/Aion",
+                "body_included": False,
+                "can_write_mas_truth": False,
+            },
+        }
+    receipt_refs = [
+        dict(ref)
+        for ref in proof.get("opl_aion_readonly_receipt_refs") or []
+        if isinstance(ref, Mapping)
+    ]
+    return {
+        "surface_kind": "mas_memory_paper_soak_proof_projection",
+        "status": _text(proof.get("status")) or "missing",
+        "proof_ref": _workspace_relative(proof_path, workspace_root=profile.workspace_root),
+        "receipt_refs": receipt_refs,
+        "route_memory_ref_count": len(_mapping(proof.get("stage_entry")).get("publication_route_memory_refs") or []),
+        "router_receipt_ref_count": len(proof.get("mas_router_receipt_refs") or []),
+        "writeback_proposal_ref_count": len(proof.get("typed_closeout_writeback_proposals") or []),
+        "source_fingerprint": _text(proof.get("source_fingerprint")),
+        "authority_boundary": _mapping(proof.get("authority_boundary")) or _authority_boundary_payload(),
+        "read_only_display_policy": _mapping(proof.get("read_only_display_policy")),
     }
 
 

@@ -358,3 +358,91 @@ def test_stage_memory_closeout_router_assigns_owner_targets_for_repair_and_decis
         study_root / "artifacts" / "controller_decisions" / "claim_boundary_requests.jsonl"
     ).read_text(encoding="utf-8").splitlines()
     assert [json.loads(line)["write_id"] for line in claim_boundary_rows] == ["claim-boundary-1"]
+
+
+def test_paper_soak_memory_apply_proof_projects_controlled_readonly_receipt_refs(tmp_path) -> None:
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "S1"
+    portfolio_memory.init_portfolio_memory(workspace_root=workspace_root)
+    stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+        workspace_root=workspace_root,
+        seed_fixture_path=SEED_FIXTURE,
+    )
+    stage_knowledge_plane.materialize_stage_knowledge_packet(
+        study_id="S1",
+        stage="decision",
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+    closeout = stage_knowledge_plane.materialize_stage_memory_closeout_packet(
+        study_id="S1",
+        stage="decision",
+        study_root=study_root,
+        workspace_root=workspace_root,
+        closeout_payload={
+            "idempotency_key": "paper-soak-closeout",
+            "source_refs": ["stage:decision:turn-1"],
+            "reusable_lessons": [
+                {
+                    "write_id": "route-memory-lesson",
+                    "scope": "workspace_reusable",
+                    "lesson": "Stop-loss was appropriate after route evidence stayed weak.",
+                }
+            ],
+            "failed_paths": [{"write_id": "route-failed-path", "reason": "Endpoint evidence remained thin."}],
+        },
+    )
+    router_receipt = stage_knowledge_plane.route_stage_memory_closeout(
+        closeout_packet=closeout,
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+    sidecar_receipt = workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts" / "r1.json"
+    _write_json(
+        sidecar_receipt,
+        {
+            "surface_kind": "mas_family_sidecar_dispatch_receipt",
+            "accepted": True,
+            "task_id": "task-1",
+            "task_kind": "study_progress/read",
+            "dispatch": {"study_id": "S1"},
+        },
+    )
+
+    proof = stage_knowledge_plane.materialize_paper_soak_memory_apply_proof(
+        study_id="S1",
+        stage="decision",
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+
+    assert proof["surface"] == "paper_soak_memory_apply_proof"
+    assert proof["status"] == "ready"
+    assert proof["missing_reasons"] == []
+    assert proof["stage_entry"]["route_memory_ref_count"] == 1
+    assert proof["stage_entry"]["publication_route_memory_refs"][0]["memory_id"] == (
+        "publication_route_memory_seed__negative_result_stoploss"
+    )
+    assert proof["typed_closeout_writeback_proposals"][0]["proposed_write_refs"][0] == {
+        "write_id": "route-memory-lesson",
+        "source_category": "reusable_lessons",
+        "destination": "workspace_research_memory_proposal",
+        "owner_target": "workspace_memory_owner",
+    }
+    assert proof["mas_router_receipt_refs"][0]["status"] == "applied"
+    assert proof["mas_router_receipt_refs"][0]["accepted_write_refs"][0]["write_id"] == "route-memory-lesson"
+    assert proof["mas_router_receipt_refs"][0]["rejected_write_refs"] == []
+    assert proof["workspace_writeback_receipt_refs"][0]["accepted_count"] == 2
+    assert {ref["ref_kind"] for ref in proof["opl_aion_readonly_receipt_refs"]} == {
+        "memory_write_router_receipt",
+        "publication_route_memory_writeback_receipt",
+        "mas_family_sidecar_dispatch_receipt",
+    }
+    assert all(ref["body_included"] is False for ref in proof["opl_aion_readonly_receipt_refs"])
+    assert proof["read_only_display_policy"]["repo_tracks_real_paper_artifacts"] is False
+    assert proof["read_only_display_policy"]["repo_tracks_memory_body"] is False
+    assert proof["read_only_display_policy"]["can_write_artifact_authority"] is False
+    assert proof["authority_boundary"]["can_authorize_publication_quality"] is False
+    rendered = json.dumps(proof, ensure_ascii=False)
+    assert "Stop-loss was appropriate" not in rendered
+    assert router_receipt["receipt_ref"] in rendered

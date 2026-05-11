@@ -239,6 +239,79 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert payload["pending_family_tasks"][0]["dedupe_key"].startswith("mas:nfpitnet:001-risk:autonomy-continuation:")
 
 
+def test_sidecar_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "001-risk"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        study_root / "artifacts" / "stage_knowledge" / "paper_soak_memory_apply_proof" / "latest.json",
+        {
+            "surface": "paper_soak_memory_apply_proof",
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "stage": "decision",
+            "status": "ready",
+            "stage_entry": {
+                "publication_route_memory_refs": [
+                    {
+                        "memory_id": "publication_route_memory_seed__negative_result_stoploss",
+                        "memory_pack_ref": "portfolio/research_memory/publication_route_memory/memory_pack.json",
+                    }
+                ]
+            },
+            "typed_closeout_writeback_proposals": [{"ref": "closeouts/decision.json", "body_included": False}],
+            "mas_router_receipt_refs": [{"ref": "router/r1.json", "status": "applied", "body_included": False}],
+            "opl_aion_readonly_receipt_refs": [
+                {
+                    "ref_kind": "memory_write_router_receipt",
+                    "ref": "router/r1.json",
+                    "status": "applied",
+                    "display_role": "receipt_ref_only",
+                    "consumer": "OPL/Aion",
+                    "body_included": False,
+                }
+            ],
+            "source_fingerprint": "proof-fp",
+            "authority_boundary": {"can_authorize_publication_quality": False},
+            "read_only_display_policy": {
+                "consumer_role": "OPL/Aion read-only display",
+                "repo_tracks_memory_body": False,
+                "repo_tracks_receipt_instances": False,
+                "can_write_study_truth": False,
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    projection = payload["studies"][0]["memory_paper_soak_proof"]
+    assert projection["surface_kind"] == "mas_memory_paper_soak_proof_projection"
+    assert projection["status"] == "ready"
+    assert projection["proof_ref"] == (
+        "studies/001-risk/artifacts/stage_knowledge/paper_soak_memory_apply_proof/latest.json"
+    )
+    assert projection["route_memory_ref_count"] == 1
+    assert projection["router_receipt_ref_count"] == 1
+    assert projection["writeback_proposal_ref_count"] == 1
+    assert projection["receipt_refs"] == [
+        {
+            "ref_kind": "memory_write_router_receipt",
+            "ref": "router/r1.json",
+            "status": "applied",
+            "display_role": "receipt_ref_only",
+            "consumer": "OPL/Aion",
+            "body_included": False,
+        }
+    ]
+    assert projection["read_only_display_policy"]["repo_tracks_memory_body"] is False
+    assert projection["read_only_display_policy"]["can_write_study_truth"] is False
+    assert "prose_summary" not in json.dumps(projection, ensure_ascii=False)
+
+
 def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"

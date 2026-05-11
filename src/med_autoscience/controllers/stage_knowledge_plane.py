@@ -11,6 +11,7 @@ from med_autoscience.stage_knowledge_contract import (
     KNOWLEDGE_PACKET_SURFACE,
     MEMORY_CLOSEOUT_SURFACE,
     MEMORY_ROUTER_SURFACE,
+    PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE,
     PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE,
     PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
     PUBLICATION_ROUTE_MEMORY_STAGES,
@@ -55,6 +56,15 @@ def memory_write_router_receipt_path(*, study_root: Path, idempotency_key: str) 
 
 def stage_recall_index_path(*, study_root: Path) -> Path:
     return Path(study_root).expanduser().resolve() / STAGE_KNOWLEDGE_ROOT / "stage_recall_index" / "latest.json"
+
+
+def paper_soak_memory_apply_proof_path(*, study_root: Path) -> Path:
+    return (
+        Path(study_root).expanduser().resolve()
+        / STAGE_KNOWLEDGE_ROOT
+        / "paper_soak_memory_apply_proof"
+        / "latest.json"
+    )
 
 
 def publication_route_memory_pack_root(*, workspace_root: Path) -> Path:
@@ -394,6 +404,114 @@ def materialize_stage_recall_index(*, study_id: str, study_root: Path) -> dict[s
     return {**index, "artifact_path": str(path)}
 
 
+def build_paper_soak_memory_apply_proof(
+    *,
+    study_id: str,
+    stage: str,
+    study_root: Path,
+    workspace_root: Path,
+) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
+    resolved_stage = _validate_publication_route_memory_stage(stage)
+    stage_packet_path = stage_knowledge_packet_path(study_root=resolved_study_root, stage=resolved_stage)
+    stage_packet = _read_json(stage_packet_path)
+    route_memory_refs = _readonly_route_memory_refs(
+        stage_packet.get("publication_route_memory_refs")
+        or select_publication_route_memory_refs(workspace_root=resolved_workspace_root, stage=resolved_stage)
+    )
+    closeout_proposal_refs = _closeout_proposal_refs(study_root=resolved_study_root)
+    router_receipt_refs = _router_receipt_refs(study_root=resolved_study_root)
+    writeback_receipt_refs = _workspace_writeback_receipt_refs(workspace_root=resolved_workspace_root)
+    sidecar_receipt_refs = _sidecar_dispatch_receipt_refs(
+        workspace_root=resolved_workspace_root,
+        study_id=_required_text("study_id", study_id),
+    )
+    opl_aion_refs = _opl_aion_readonly_receipt_refs(
+        router_receipt_refs=router_receipt_refs,
+        writeback_receipt_refs=writeback_receipt_refs,
+        sidecar_receipt_refs=sidecar_receipt_refs,
+    )
+    missing = _paper_soak_proof_missing_reasons(
+        route_memory_refs=route_memory_refs,
+        closeout_proposal_refs=closeout_proposal_refs,
+        router_receipt_refs=router_receipt_refs,
+        opl_aion_refs=opl_aion_refs,
+    )
+    input_refs = _dedupe_text(
+        [
+            str(stage_packet_path),
+            *[ref["ref"] for ref in closeout_proposal_refs if _text(ref.get("ref"))],
+            *[ref["ref"] for ref in router_receipt_refs if _text(ref.get("ref"))],
+            *[ref["ref"] for ref in writeback_receipt_refs if _text(ref.get("ref"))],
+            *[ref["ref"] for ref in sidecar_receipt_refs if _text(ref.get("ref"))],
+        ]
+    )
+    source_fingerprint = _fingerprint(
+        {
+            "stage": resolved_stage,
+            "route_memory_refs": route_memory_refs,
+            "closeout_proposal_refs": closeout_proposal_refs,
+            "router_receipt_refs": router_receipt_refs,
+            "writeback_receipt_refs": writeback_receipt_refs,
+            "sidecar_receipt_refs": sidecar_receipt_refs,
+        }
+    )
+    return {
+        "surface": PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "study_id": _required_text("study_id", study_id),
+        "stage": resolved_stage,
+        "status": "ready" if not missing else "missing",
+        "input_refs": input_refs,
+        "missing_reasons": missing,
+        "stage_entry": {
+            "stage_knowledge_packet_ref": str(stage_packet_path),
+            "publication_route_memory_refs": route_memory_refs,
+            "route_memory_ref_count": len(route_memory_refs),
+        },
+        "typed_closeout_writeback_proposals": closeout_proposal_refs,
+        "mas_router_receipt_refs": router_receipt_refs,
+        "workspace_writeback_receipt_refs": writeback_receipt_refs,
+        "opl_aion_readonly_receipt_refs": opl_aion_refs,
+        "source_fingerprint": source_fingerprint,
+        "authority_boundary": _authority_boundary(),
+        "read_only_display_policy": {
+            "projection_owner": "MedAutoScience",
+            "consumer_role": "OPL/Aion read-only display",
+            "repo_tracks_real_paper_artifacts": False,
+            "repo_tracks_memory_body": False,
+            "repo_tracks_receipt_instances": False,
+            "can_authorize_publication_quality": False,
+            "can_write_memory_body": False,
+            "can_write_study_truth": False,
+            "can_write_artifact_authority": False,
+        },
+        "idempotency_key": (
+            f"paper_soak_memory_apply_proof:{_required_text('study_id', study_id)}:"
+            f"{resolved_stage}:{source_fingerprint}"
+        ),
+    }
+
+
+def materialize_paper_soak_memory_apply_proof(
+    *,
+    study_id: str,
+    stage: str,
+    study_root: Path,
+    workspace_root: Path,
+) -> dict[str, Any]:
+    proof = build_paper_soak_memory_apply_proof(
+        study_id=study_id,
+        stage=stage,
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+    path = paper_soak_memory_apply_proof_path(study_root=Path(study_root))
+    _write_json(path, proof)
+    return {**proof, "artifact_path": str(path)}
+
+
 def _authority_boundary() -> dict[str, Any]:
     return authority_boundary()
 
@@ -723,6 +841,177 @@ def _memory_router_receipt(
     }
 
 
+def _readonly_route_memory_refs(refs: object) -> list[dict[str, Any]]:
+    sanitized = []
+    for ref in _mapping_list(refs):
+        sanitized.append(
+            {
+                "ref_kind": _text(ref.get("ref_kind")) or "workspace_memory_card_ref",
+                "memory_id": _text(ref.get("memory_id")),
+                "route_family": _text(ref.get("route_family")),
+                "stage_applicability": _text_list(ref.get("stage_applicability")),
+                "memory_pack_ref": _text(ref.get("memory_pack_ref")),
+                "source_receipt_ref": _text(ref.get("source_receipt_ref")),
+                "authority_boundary": _text(ref.get("authority_boundary"))
+                or "context_only_not_publication_authority",
+            }
+        )
+    return sanitized
+
+
+def _closeout_proposal_refs(*, study_root: Path) -> list[dict[str, Any]]:
+    refs = []
+    root = study_root / STAGE_KNOWLEDGE_ROOT
+    for path in sorted(root.glob("*/closeouts/*.json")):
+        payload = _read_json(path)
+        proposed = _mapping_list(payload.get("proposed_writes"))
+        refs.append(
+            {
+                "ref_kind": "stage_memory_closeout_packet",
+                "ref": str(path),
+                "stage": _text(payload.get("stage")),
+                "idempotency_key": _text(payload.get("idempotency_key")),
+                "source_fingerprint": _text(payload.get("source_fingerprint")),
+                "proposed_write_count": len(proposed),
+                "proposed_write_refs": [
+                    {
+                        "write_id": _text(item.get("write_id")),
+                        "source_category": _text(item.get("source_category")),
+                        "destination": _text(item.get("destination")),
+                        "owner_target": _text(item.get("owner_target")),
+                    }
+                    for item in proposed
+                ],
+                "typed_blocker_count": len(_mapping_list(payload.get("typed_blockers"))),
+                "body_included": False,
+            }
+        )
+    return refs
+
+
+def _router_receipt_refs(*, study_root: Path) -> list[dict[str, Any]]:
+    refs = []
+    receipt_root = study_root / STAGE_KNOWLEDGE_ROOT / "memory_write_router_receipts"
+    for path in sorted(receipt_root.glob("*.json")):
+        payload = _read_json(path)
+        refs.append(
+            {
+                "ref_kind": "memory_write_router_receipt",
+                "ref": str(path),
+                "stage": _text(payload.get("stage")),
+                "status": _text(payload.get("status")),
+                "idempotency_key": _text(payload.get("idempotency_key")),
+                "accepted_write_refs": _receipt_write_refs(payload.get("accepted_writes")),
+                "rejected_write_refs": _receipt_write_refs(payload.get("rejected_writes")),
+                "typed_blocker_count": len(_mapping_list(payload.get("typed_blockers"))),
+                "body_included": False,
+            }
+        )
+    return refs
+
+
+def _receipt_write_refs(value: object) -> list[dict[str, Any]]:
+    return [
+        {
+            "write_id": _text(item.get("write_id")),
+            "destination": _text(item.get("destination")),
+            "owner_target": _text(item.get("owner_target")),
+            "status": "rejected" if _text(item.get("reason")) else "accepted",
+            "reason": _text(item.get("reason")),
+            "proposal_ref": _text(item.get("proposal_ref")),
+            "receipt_ref": _text(item.get("receipt_ref")),
+        }
+        for item in _mapping_list(value)
+    ]
+
+
+def _workspace_writeback_receipt_refs(*, workspace_root: Path) -> list[dict[str, Any]]:
+    refs = []
+    receipt_root = publication_route_memory_pack_root(workspace_root=workspace_root) / "writeback_receipts"
+    for path in sorted(receipt_root.glob("*.json")):
+        payload = _read_json(path)
+        refs.append(
+            {
+                "ref_kind": "publication_route_memory_writeback_receipt",
+                "ref": str(path),
+                "status": _text(payload.get("status")),
+                "idempotency_key": _text(payload.get("idempotency_key")),
+                "accepted_count": len(_mapping_list(payload.get("accepted_writes"))),
+                "rejected_count": len(_mapping_list(payload.get("rejected_writes"))),
+                "body_included": False,
+            }
+        )
+    return refs
+
+
+def _sidecar_dispatch_receipt_refs(*, workspace_root: Path, study_id: str) -> list[dict[str, Any]]:
+    refs = []
+    receipt_root = workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts"
+    for path in sorted(receipt_root.glob("*.json")):
+        payload = _read_json(path)
+        dispatch = payload.get("dispatch") if isinstance(payload.get("dispatch"), Mapping) else {}
+        receipt_study_id = _text(dispatch.get("study_id"))
+        if receipt_study_id and receipt_study_id != study_id:
+            continue
+        refs.append(
+            {
+                "ref_kind": "mas_family_sidecar_dispatch_receipt",
+                "ref": str(path),
+                "task_id": _text(payload.get("task_id")),
+                "task_kind": _text(payload.get("task_kind")),
+                "accepted": payload.get("accepted") is True,
+                "reason": _text(payload.get("reason")),
+                "study_id": receipt_study_id,
+                "body_included": False,
+            }
+        )
+    return refs
+
+
+def _opl_aion_readonly_receipt_refs(
+    *,
+    router_receipt_refs: Sequence[Mapping[str, Any]],
+    writeback_receipt_refs: Sequence[Mapping[str, Any]],
+    sidecar_receipt_refs: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    refs = []
+    for source in (*router_receipt_refs, *writeback_receipt_refs, *sidecar_receipt_refs):
+        ref = _text(source.get("ref"))
+        if not ref:
+            continue
+        refs.append(
+            {
+                "ref_kind": _text(source.get("ref_kind")),
+                "ref": ref,
+                "status": _text(source.get("status")) or ("accepted" if source.get("accepted") is True else ""),
+                "display_role": "receipt_ref_only",
+                "consumer": "OPL/Aion",
+                "body_included": False,
+                "authority_boundary": "read_only_display_not_mas_truth_authority",
+            }
+        )
+    return refs
+
+
+def _paper_soak_proof_missing_reasons(
+    *,
+    route_memory_refs: Sequence[Mapping[str, Any]],
+    closeout_proposal_refs: Sequence[Mapping[str, Any]],
+    router_receipt_refs: Sequence[Mapping[str, Any]],
+    opl_aion_refs: Sequence[Mapping[str, Any]],
+) -> list[str]:
+    missing = []
+    if not route_memory_refs:
+        missing.append("missing_stage_entry_route_memory_refs")
+    if not closeout_proposal_refs:
+        missing.append("missing_typed_closeout_writeback_proposal")
+    if not router_receipt_refs:
+        missing.append("missing_mas_memory_router_receipt_ref")
+    if not opl_aion_refs:
+        missing.append("missing_opl_aion_readonly_receipt_refs")
+    return missing
+
+
 def _append_jsonl_once(path: Path, payload: Mapping[str, Any], *, identity: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
@@ -888,13 +1177,16 @@ __all__ = [
     "PUBLICATION_ROUTE_MEMORY_STAGES",
     "STAGE_OBLIGATIONS",
     "apply_publication_route_memory_seed_fixture",
+    "build_paper_soak_memory_apply_proof",
     "build_stage_knowledge_packet",
     "build_stage_recall_index",
+    "materialize_paper_soak_memory_apply_proof",
     "materialize_stage_knowledge_packet",
     "materialize_stage_memory_closeout_packet",
     "materialize_stage_recall_index",
     "memory_write_router_receipt_path",
     "normalize_stage_memory_closeout_packet",
+    "paper_soak_memory_apply_proof_path",
     "publication_route_memory_apply_receipt_path",
     "publication_route_memory_pack_path",
     "publication_route_memory_pack_root",
