@@ -365,6 +365,124 @@ def test_quality_repair_batch_builds_controller_route_for_submission_minimal_ref
     }
 
 
+def test_run_quality_repair_batch_uses_runtime_controller_authorization_for_submission_refresh(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="primary_care_gap",
+    )
+    quest_id = "quest-003"
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    _write_quality_summary(study_root)
+    route_context = {
+        "control_plane_snapshot": {
+            "surface": "control_plane_snapshot",
+            "control_state": "supervisor_gated",
+            "canonical_next_action": "resume_same_study_line",
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+            "dispatch_gate": {
+                "state": "blocked",
+                "blocking_reasons": [
+                    "execution_owner_guard.supervisor_only",
+                    "live_worker_meaningful_artifact_delta_timeout",
+                    "same_fingerprint_loop",
+                ],
+            },
+            "route_authorization": {
+                "authorized": False,
+                "paper_write_allowed": False,
+                "bundle_build_allowed": False,
+                "runtime_recovery_allowed": False,
+            },
+        },
+    }
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "return_to_publishability_gate",
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "submission_hardening_incomplete",
+        ],
+        "gate_fingerprint": "publication-gate::003",
+        "bundle_tasks_downstream_only": False,
+    }
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: {
+            "study_id": kwargs["study_id"],
+            "study_root": str(kwargs["study_root"]),
+            "quest_id": quest_id,
+            **route_context,
+            "last_controller_decision_authorization": {
+                "source": "runtime_supervisor_scan_platform_repair",
+                "decision_id": "decision-003-current",
+                "work_unit_id": "submission_minimal_refresh",
+                "work_unit_fingerprint": "publication-blockers::current",
+                "next_work_unit": {
+                    "unit_id": "submission_minimal_refresh",
+                    "lane": "finalize",
+                    "summary": "Refresh the stale submission_minimal package.",
+                },
+                "control_intent_identity": {
+                    "work_unit_id": "submission_minimal_refresh",
+                    "blocker_authority_fingerprint": "publication-blockers::current",
+                },
+            },
+        },
+    )
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_state", lambda _quest_root: object())
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_report", lambda _state: gate_report)
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **kwargs: (
+            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            {"ok": True, "status": "executed"},
+        )[1],
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        control_plane_route_context=module._runtime_control_plane_route_context(
+            profile=profile,
+            study_id=study_root.name,
+            study_root=study_root,
+            source_eval_id=publication_eval_payload["eval_id"],
+        ),
+    )
+
+    assert result["source_eval_id"] == publication_eval_payload["eval_id"]
+    assert result["control_plane_route_gate"]["allowed"] is True
+    assert result["control_plane_route_gate"]["action"] == "bundle_build"
+    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == (
+        "submission_minimal_refresh"
+    )
+    gate_context = seen["gate_context"]
+    assert isinstance(gate_context, dict)
+    assert gate_context["controller_route_context"]["control_surface"] == "quality_repair_batch"
+    assert gate_context["controller_route_context"]["controller_action_type"] == "run_quality_repair_batch"
+    assert gate_context["controller_route_context"]["work_unit_id"] == "submission_minimal_refresh"
+    assert gate_context["controller_route_context"]["source_eval_id"] == publication_eval_payload["eval_id"]
+    assert gate_context["controller_route_context"]["work_unit_fingerprint"] == "publication-blockers::current"
+
+
 def test_run_quality_repair_batch_wraps_gate_clearing_and_writes_record(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
     profile = make_profile(tmp_path)

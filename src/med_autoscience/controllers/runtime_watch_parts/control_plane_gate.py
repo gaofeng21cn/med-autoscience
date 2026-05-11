@@ -18,15 +18,6 @@ FAIL_CLOSED_BLOCKING_REASONS = frozenset(
         "runtime_recovery_retry_budget_exhausted",
     }
 )
-ACTION_AWARE_PAPER_REPAIR_BYPASS_REASONS = frozenset(
-    {
-        "live_worker_meaningful_artifact_delta_timeout",
-        "publication_supervisor_state.bundle_tasks_downstream_only",
-        "runtime_recovery_retry_budget_exhausted",
-        "same_fingerprint_loop",
-    }
-)
-OWNER_ACTIVE_BLOCKING_REASONS = frozenset({"execution_owner_guard.supervisor_only"})
 RUNTIME_RECOVERY_ACTIONS = frozenset(
     {
         "ensure_study_runtime",
@@ -135,14 +126,7 @@ def _authorized_dispatch_route(
     blocking_reasons: list[str],
 ) -> dict[str, Any] | None:
     route_action = _route_action_for_tick_request(tick_request)
-    if route_action != "paper_write":
-        return None
-    if route_payload.get("paper_write_allowed") is not True:
-        return None
-    reason_set = set(blocking_reasons)
-    if reason_set & OWNER_ACTIVE_BLOCKING_REASONS:
-        return None
-    if not reason_set or not reason_set <= ACTION_AWARE_PAPER_REPAIR_BYPASS_REASONS:
+    if route_action not in {"paper_write", "bundle_build"}:
         return None
     controller_route_context = _controller_route_context(tick_request)
     if controller_route_context is None:

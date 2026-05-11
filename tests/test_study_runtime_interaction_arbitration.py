@@ -258,3 +258,27 @@ def test_arbitrate_waiting_for_user_redrives_mas_controller_route_authorization_
     assert result["requires_user_input"] is False
     assert result["valid_blocking"] is False
     assert result["next_owner"] == "MAS/controller route authorization owner for bundle_build_allowed"
+
+
+def test_arbitrate_waiting_for_user_redrives_mas_controller_colon_owner() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        blocked_closeout={
+            "run_id": "run-blocked",
+            "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
+            "blocked_reason": "canonical_artifact_delta_missing",
+            "next_owner": (
+                "MAS/controller: redrive submission_minimal_refresh with a controller-owned "
+                "paper-facing artifact delta"
+            ),
+        },
+    )
+
+    assert result["classification"] == "blocked_closeout_owner_redrive"
+    assert result["action"] == "resume"
+    assert result["requires_user_input"] is False
+    assert result["valid_blocking"] is False

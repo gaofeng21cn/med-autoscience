@@ -32,6 +32,13 @@ from .runtime_event_relay import (
 )
 
 
+def _owner_token(value: str | None) -> str:
+    normalized = (value or "").strip().lower().replace("-", "_")
+    if ":" in normalized:
+        normalized = normalized.split(":", 1)[0].strip()
+    return normalized
+
+
 def clear_stale_platform_repair_redrive_after_pause(
     *,
     quest_root: Path,
@@ -300,7 +307,7 @@ def record_explicit_waiting_owner_wakeup(
     blocked_closeout = runtime_state.get("blocked_turn_closeout")
     if not isinstance(blocked_closeout, dict):
         return None
-    next_owner = str(blocked_closeout.get("next_owner") or "").strip().lower().replace("-", "_")
+    next_owner = _owner_token(str(blocked_closeout.get("next_owner") or ""))
     callable_owner_tokens = {
         str(owner).strip().lower().replace("-", "_")
         for owner in callable_owner_names()

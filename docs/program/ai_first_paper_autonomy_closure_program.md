@@ -275,9 +275,12 @@ MAS 应把这些纪律落到医学 domain truth：`study_charter`、`evidence_le
 
 这条 lane 解决的是旧 DeepScientist/MDS 里 `memory.search/list_recent` 和 quest literature shelf 的探索体验，在 MAS 中被 authority 分层后没有完全闭合的问题。正确方向不是恢复一个 generic memory truth source，而是把 memory 变成 stage packet 的输入和 closeout 的受控输出。
 
+2026-05-11 route-memory calibration：publication route experience should stay natural-language-first. High-yield paper routes such as classifier risk stratification, subtype reconstruction, external validation/model update, gray-zone triage, survey trend analysis, and mechanistic sidecar extension are `publication_route_memory`, not a rigid programmatic recipe engine. The implementation target is small retrieved memory cards plus minimal metadata and typed writeback, while Codex CLI remains responsible for stage-local exploration and route reasoning. The policy source is `docs/policies/study-workflow/publication_route_memory_policy.md`.
+
 落地要求：
 
 - 每个探索性 stage 进入前必须生成 `stage_knowledge_packet`，至少包含 workspace research memory summary、workspace canonical literature coverage、study reference context、literature provider/runtime readiness、recent failed-path lessons、citation gap status、active claim/evidence boundary 和 source fingerprint。
+- `stage_knowledge_packet` 可读取少量 stage-relevant publication route memory cards；这些 cards 只作为自然语言经验和路线提示，不作为 winning path、quality verdict 或 publication readiness authority。
 - `scout` 必须读取 topic landscape、dataset question map、venue intelligence、canonical literature coverage 和 provider literature readiness；输出 clinical question framing、literature gap、anchor paper role 和 route recommendation。
 - `idea` 必须读取 prior candidate/failed lines、study recall index、reference context 和 journal neighbor refs；输出 selected line、rejected alternatives、selection rationale、stop rule、memory reuse note。
 - `analysis-campaign` 必须读取 failed-path history、evidence ledger、citation gaps、provider literature refs、bounded frontier 和 reviewer concerns；输出 slice ledger、negative/weak-result interpretation、route impact、failed-path lesson。
@@ -294,6 +297,7 @@ MAS 应把这些纪律落到医学 domain truth：`study_charter`、`evidence_le
 1. `stage_knowledge_packet`
    - 进入 stage 前生成。
    - 只读聚合 workspace memory、workspace literature、study reference context、quest materialization、evidence/review ledgers、publication eval、controller decisions 和 route history。
+   - 可以聚合 small top-K publication route memory cards；cards 保持自然语言为主，metadata 只用于检索、provenance、stage applicability 和 freshness。
    - 作用是给 Codex stage 执行器足够上下文，避免每轮从零发现。
 2. `stage_memory_closeout_packet`
    - stage 完成时生成。
@@ -328,6 +332,7 @@ stage closeout 的输出按下面规则分流：
 | closeout 内容 | owner surface | 说明 |
 | --- | --- | --- |
 | 跨 study 可复用的临床方向、数据约束、venue 经验 | `portfolio/research_memory/*` | 只写可复用 lesson，不写单篇 paper 结论。 |
+| 跨 study 可复用的 publication route experience | publication route memory | 自然语言经验卡；只能帮助 stage 思考，不能决定 winning path 或授权质量。 |
 | 新增或修正的文献 record | workspace canonical literature | 必须有 DOI/PMID/PMCID/arXiv/url/local asset source，冲突 fail-closed。 |
 | 当前 study 的 anchor / competitor / neighbor 角色 | study reference context | 只改变本 study 选择和角色，不改变 workspace truth。 |
 | 引用缺口、reference gap、metadata gap | literature provider/runtime repair request | 进入 provider operation 或 medical literature audit。 |

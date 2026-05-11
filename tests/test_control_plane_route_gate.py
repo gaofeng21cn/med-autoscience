@@ -122,7 +122,7 @@ def test_route_gate_blocks_cleanup_apply_when_route_flag_false() -> None:
     assert "cleanup_apply_allowed_false" in gate["blocking_reasons"]
 
 
-def test_controller_owned_delivery_sync_route_cannot_override_supervisor_only_snapshot() -> None:
+def test_controller_owned_delivery_sync_route_can_override_runtime_only_supervisor_snapshot() -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
 
     gate = module.authorize_control_plane_route(
@@ -130,6 +130,39 @@ def test_controller_owned_delivery_sync_route_cannot_override_supervisor_only_sn
         {
             "control_plane_snapshot": _snapshot(
                 gate_state="blocked",
+                gate_blocking_reasons=[
+                    "execution_owner_guard.supervisor_only",
+                    "live_worker_meaningful_artifact_delta_timeout",
+                    "same_fingerprint_loop",
+                ],
+                bundle_build_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "quality_repair_batch",
+                "controller_action_type": "run_quality_repair_batch",
+                "work_unit_id": "submission_delivery_sync_closure",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::001::latest",
+            },
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert gate["controller_repair_authorization_ref"]["surface"] == "controller_repair_authorization"
+    assert gate["controller_repair_authorization_ref"]["authorized"] is True
+    assert gate["blocking_reasons"] == []
+
+
+def test_controller_owned_delivery_sync_route_does_not_override_downstream_only_bundle_gate() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "delivery_sync",
+        {
+            "control_plane_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
                 bundle_build_allowed=False,
             ),
             "controller_route_context": {
@@ -144,10 +177,41 @@ def test_controller_owned_delivery_sync_route_cannot_override_supervisor_only_sn
 
     assert gate["authorized"] is False
     assert gate["controller_route_gate"]["authorized"] is True
-    assert gate["controller_repair_authorization_ref"]["surface"] == "controller_repair_authorization"
-    assert gate["controller_repair_authorization_ref"]["authorized"] is True
     assert "dispatch_gate_blocked" in gate["blocking_reasons"]
+    assert "publication_supervisor_state.bundle_tasks_downstream_only" in gate["blocking_reasons"]
     assert "bundle_build_allowed_false" in gate["blocking_reasons"]
+
+
+def test_controller_owned_submission_materialize_route_can_override_runtime_only_supervisor_snapshot() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "submission_materialize",
+        {
+            "control_plane_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=[
+                    "execution_owner_guard.supervisor_only",
+                    "live_worker_meaningful_artifact_delta_timeout",
+                ],
+                paper_write_allowed=False,
+                bundle_build_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "gate_clearing_batch",
+                "controller_action_type": "run_gate_clearing_batch",
+                "work_unit_id": "submission_minimal_refresh",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::003::latest",
+                "work_unit_fingerprint": "submission-minimal::003",
+            },
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["route_authorization_flag"] == "paper_write_allowed"
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert gate["blocking_reasons"] == []
 
 
 def test_controller_owned_delivery_sync_route_allows_open_snapshot_with_repair_authorization() -> None:

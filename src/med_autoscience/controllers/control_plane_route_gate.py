@@ -38,6 +38,14 @@ _UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS = frozenset(
         "same_fingerprint_loop",
     }
 )
+_MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS = frozenset(
+    {
+        "execution_owner_guard.supervisor_only",
+        "live_worker_meaningful_artifact_delta_timeout",
+        "runtime_recovery_retry_budget_exhausted",
+        "same_fingerprint_loop",
+    }
+)
 
 _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "analysis_claim_evidence_repair": frozenset({"paper_write"}),
@@ -290,6 +298,8 @@ def _controller_route_can_bypass_dispatch_reasons(
         return False
     if _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action):
         return set(dispatch_gate_reasons) <= _UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS
+    if _controller_route_is_managed_publication_work_unit(controller_route_gate, action=action):
+        return set(dispatch_gate_reasons) <= _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS
     return set(dispatch_gate_reasons) <= {"runtime_recovery_retry_budget_exhausted"}
 
 
@@ -298,11 +308,13 @@ def _controller_route_can_bypass_action_authorization(
     controller_route_gate: Mapping[str, Any],
     dispatch_gate_reasons: list[str],
 ) -> bool:
-    return (
-        bool(dispatch_gate_reasons)
-        and _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action)
-        and set(dispatch_gate_reasons) <= _UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS
-    )
+    if not dispatch_gate_reasons:
+        return False
+    if _controller_route_is_upstream_publishability_repair(controller_route_gate, action=action):
+        return set(dispatch_gate_reasons) <= _UPSTREAM_PUBLISHABILITY_REPAIR_BYPASS_REASONS
+    if _controller_route_is_managed_publication_work_unit(controller_route_gate, action=action):
+        return set(dispatch_gate_reasons) <= _MANAGED_PUBLICATION_WORK_UNIT_BYPASS_REASONS
+    return False
 
 
 def _controller_route_is_upstream_publishability_repair(
@@ -314,6 +326,25 @@ def _controller_route_is_upstream_publishability_repair(
         action == "paper_write"
         and _text(controller_route_gate.get("work_unit_id")) in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
     )
+
+
+def _controller_route_is_managed_publication_work_unit(
+    controller_route_gate: Mapping[str, Any],
+    *,
+    action: str,
+) -> bool:
+    if action not in {
+        "bundle_build",
+        "delivery_sync",
+        "submission_materialize",
+        "submission_notice_materialize",
+    }:
+        return False
+    work_unit_id = _text(controller_route_gate.get("work_unit_id"))
+    if work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+        return False
+    allowed_actions = _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT.get(work_unit_id or "")
+    return allowed_actions is not None and action in allowed_actions
 
 
 def _controller_repair_authorization_ref(controller_route_gate: Mapping[str, Any]) -> dict[str, Any]:

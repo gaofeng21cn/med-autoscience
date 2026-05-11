@@ -115,6 +115,20 @@ def _load_json_dict(path: Path) -> dict[str, object]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _load_json_dict_with_error(path: Path) -> tuple[dict[str, object], str | None]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    except FileNotFoundError:
+        return {}, "missing"
+    except OSError:
+        return {}, "read_error"
+    except json.JSONDecodeError:
+        return {}, "invalid_json"
+    if not isinstance(payload, dict):
+        return {}, "not_json_object"
+    return payload, None
+
+
 def _runtime_state_path(quest_root: Path) -> Path:
     return Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
 

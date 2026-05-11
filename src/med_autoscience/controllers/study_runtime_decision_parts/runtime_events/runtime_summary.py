@@ -208,8 +208,8 @@ def _sync_runtime_summary_if_needed(
         else {}
     )
     launch_report_path = runtime_context.launch_report_path
-    launch_report_payload = _load_json_dict(launch_report_path) if launch_report_path.exists() else {}
     launch_report_exists = launch_report_path.exists()
+    launch_report_payload, launch_report_read_error = _load_json_dict_with_error(launch_report_path)
     launch_report_quest_status = str(launch_report_payload.get("quest_status") or "").strip() or None
     launch_report_active_run_id = str(launch_report_payload.get("active_run_id") or "").strip() or None
     launch_report_runtime_liveness_status = _launch_report_runtime_liveness_status(launch_report_payload)
@@ -227,7 +227,9 @@ def _sync_runtime_summary_if_needed(
         and launch_report_publication_supervisor_state == current_publication_supervisor_state
     )
     mismatch_reason: str | None = None
-    if not launch_report_exists:
+    if launch_report_read_error is not None:
+        mismatch_reason = f"launch_report_{launch_report_read_error}"
+    elif not launch_report_exists:
         mismatch_reason = "launch_report_missing"
     elif launch_report_quest_status != current_quest_status:
         mismatch_reason = "launch_report_quest_status_mismatch"

@@ -11,6 +11,8 @@
 
 它们不是所有课题的强制目标，而是默认优先进入主研究候选面的高产出论文套路。
 
+这些 archetype 是当前第一代 publication route memory seed。它们用于给 `scout`、`idea`、`decision`、`analysis-campaign` 等 stage 提供自然语言经验和路线偏置，不是机械 recipe engine，也不授权程序绕过 stage output 直接决定论文路线。详细边界见 [Publication Route Memory Policy](./publication_route_memory_policy.md)。
+
 补充 archetype：
 
 - `survey_trend_analysis`

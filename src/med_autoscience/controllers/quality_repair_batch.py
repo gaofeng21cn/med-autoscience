@@ -196,6 +196,7 @@ def _runtime_control_plane_route_context(
     profile: WorkspaceProfile,
     study_id: str,
     study_root: Path,
+    source_eval_id: str | None = None,
 ) -> dict[str, Any] | None:
     status_payload = study_runtime_router.study_runtime_status(
         profile=profile,
@@ -210,7 +211,65 @@ def _runtime_control_plane_route_context(
     control_plane_snapshot = status_payload.get("control_plane_snapshot")
     if not isinstance(control_plane_snapshot, Mapping):
         return None
-    return {"control_plane_snapshot": dict(control_plane_snapshot)}
+    route_context: dict[str, Any] = {"control_plane_snapshot": dict(control_plane_snapshot)}
+    controller_route_context = _controller_route_context_for_runtime_authorization(
+        status_payload,
+        source_eval_id=source_eval_id,
+    )
+    if controller_route_context is not None:
+        route_context.update(controller_route_context)
+    return route_context
+
+
+def _controller_route_context_for_runtime_authorization(
+    status_payload: Mapping[str, Any],
+    *,
+    source_eval_id: str | None,
+) -> dict[str, Any] | None:
+    authorization = status_payload.get("last_controller_decision_authorization")
+    if not isinstance(authorization, Mapping):
+        return None
+    if bool(authorization.get("requires_human_confirmation")):
+        return None
+    next_work_unit = authorization.get("next_work_unit")
+    next_work_unit_id = (
+        _non_empty_text(next_work_unit.get("unit_id"))
+        if isinstance(next_work_unit, Mapping)
+        else None
+    )
+    identity = authorization.get("control_intent_identity")
+    identity_work_unit_id = (
+        _non_empty_text(identity.get("work_unit_id"))
+        if isinstance(identity, Mapping)
+        else None
+    )
+    candidate_ids = [
+        text
+        for text in (
+            next_work_unit_id,
+            _non_empty_text(authorization.get("work_unit_id")),
+            identity_work_unit_id,
+        )
+        if text is not None
+    ]
+    if not candidate_ids:
+        return None
+    work_unit_id = candidate_ids[0]
+    if any(candidate_id != work_unit_id for candidate_id in candidate_ids):
+        return None
+    work_unit_fingerprint = _non_empty_text(authorization.get("work_unit_fingerprint"))
+    if work_unit_fingerprint is None and isinstance(identity, Mapping):
+        work_unit_fingerprint = _non_empty_text(identity.get("blocker_authority_fingerprint"))
+    return {
+        "controller_route_context": {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
+            "work_unit_id": work_unit_id,
+            "requires_human_confirmation": False,
+            "source_eval_id": source_eval_id,
+            "work_unit_fingerprint": work_unit_fingerprint,
+        }
+    }
 
 
 def _controller_route_context_for_gate(
@@ -295,6 +354,12 @@ def _merge_route_contexts(*contexts: Mapping[str, Any] | None) -> dict[str, Any]
         if isinstance(context, Mapping):
             merged.update(dict(context))
     return merged or None
+
+
+def _has_explicit_controller_route_context(route_context: Mapping[str, Any] | None) -> bool:
+    if not isinstance(route_context, Mapping):
+        return False
+    return any(isinstance(route_context.get(key), Mapping) for key in ("controller_route_context", "explicit_controller_route_context"))
 
 
 def _canonical_paper_owner_surface_complete(paper_root: Path) -> bool:
@@ -694,6 +759,8 @@ def run_quality_repair_batch(
     route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
+    publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
+    current_eval_id = _non_empty_text(publication_eval_payload.get("eval_id"))
     resolved_route_context = (
         control_plane_route_context
         or route_context
@@ -701,10 +768,9 @@ def run_quality_repair_batch(
             profile=profile,
             study_id=study_id,
             study_root=resolved_study_root,
+            source_eval_id=current_eval_id,
         )
     )
-    publication_eval_payload = read_publication_eval_latest(study_root=resolved_study_root)
-    current_eval_id = _non_empty_text(publication_eval_payload.get("eval_id"))
     quest_root = profile.managed_runtime_quests_root / quest_id
     gate_state = gate_clearing_batch.publication_gate.build_gate_state(quest_root)
     gate_report = gate_clearing_batch.publication_gate.build_gate_report(gate_state)
@@ -714,23 +780,26 @@ def run_quality_repair_batch(
         gate_report=gate_report,
         summary_payload=summary_payload,
     )
-    if _same_line_paper_repair_required(summary_payload):
-        controller_route_context = _controller_route_context_for_publication_work_unit(
-            gate_report=gate_report,
-            publication_eval_payload=publication_eval_payload,
-            source_eval_id=current_eval_id,
-        )
+    if _has_explicit_controller_route_context(resolved_route_context):
+        controller_route_context = None
     else:
-        controller_route_context = _controller_route_context_for_gate(
-            gate_report=gate_report,
-            source_eval_id=current_eval_id,
-        )
-        if controller_route_context is None:
+        if _same_line_paper_repair_required(summary_payload):
             controller_route_context = _controller_route_context_for_publication_work_unit(
                 gate_report=gate_report,
                 publication_eval_payload=publication_eval_payload,
                 source_eval_id=current_eval_id,
             )
+        else:
+            controller_route_context = _controller_route_context_for_gate(
+                gate_report=gate_report,
+                source_eval_id=current_eval_id,
+            )
+            if controller_route_context is None:
+                controller_route_context = _controller_route_context_for_publication_work_unit(
+                    gate_report=gate_report,
+                    publication_eval_payload=publication_eval_payload,
+                    source_eval_id=current_eval_id,
+                )
     resolved_route_context = _merge_route_contexts(
         resolved_route_context,
         controller_route_context,

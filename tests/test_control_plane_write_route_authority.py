@@ -676,6 +676,174 @@ def test_quality_repair_batch_uses_paper_route_for_upstream_repair_under_downstr
     assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == "analysis_claim_evidence_repair"
 
 
+def test_quality_repair_batch_uses_runtime_authorization_for_submission_refresh_under_supervisor_gate(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dpcc",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="primary_care_gap",
+    )
+    quest_id = "quest-003"
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::003-dpcc::quest-003::latest",
+        "study_id": study_root.name,
+        "quest_id": quest_id,
+        "emitted_at": "2026-04-22T08:00:00+00:00",
+        "evaluation_scope": "publication",
+        "charter_context_ref": {
+            "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            "charter_id": f"charter::{study_root.name}::v1",
+            "publication_objective": "primary care phenotype treatment gap",
+        },
+        "runtime_context_refs": {
+            "runtime_escalation_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            "main_result_ref": str(study_root / "artifacts" / "results" / "main_result.json"),
+        },
+        "delivery_context_refs": {
+            "paper_root_ref": str(study_root / "paper"),
+            "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+        },
+        "verdict": {
+            "overall_verdict": "blocked",
+            "primary_claim_status": "partial",
+            "summary": "Submission package authority refresh is still required.",
+            "stop_loss_pressure": "watch",
+        },
+        "gaps": [
+            {
+                "gap_id": "gap-submission-refresh",
+                "gap_type": "reporting",
+                "severity": "must_fix",
+                "summary": "stale_submission_minimal_authority",
+                "evidence_refs": [str(study_root / "paper" / "submission_minimal")],
+            }
+        ],
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::submission-refresh::latest",
+                "action_type": "route_back_same_line",
+                "priority": "now",
+                "reason": "Refresh generated submission surfaces through controller-owned work unit.",
+                "route_target": "finalize",
+                "route_key_question": "Which submission package authority surface is stale?",
+                "route_rationale": "The same study line needs deterministic submission package refresh.",
+                "evidence_refs": [str(study_root / "paper" / "submission_minimal")],
+                "requires_controller_decision": True,
+            }
+        ],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_json(
+        study_root / "artifacts" / "evaluation_summary" / "latest.json",
+        {
+            "schema_version": 1,
+            "summary_id": "evaluation-summary::003-dpcc::latest",
+            "quality_closure_truth": {"state": "quality_repair_required"},
+            "quality_execution_lane": {"lane_id": "general_quality_repair"},
+        },
+    )
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "return_to_publishability_gate",
+        "blockers": ["stale_submission_minimal_authority", "submission_hardening_incomplete"],
+        "gate_fingerprint": "publication-gate::003",
+        "bundle_tasks_downstream_only": False,
+    }
+    route_context = {
+        "control_plane_snapshot": {
+            "surface": "control_plane_snapshot",
+            "control_state": "supervisor_gated",
+            "canonical_next_action": "resume_same_study_line",
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+            "dispatch_gate": {
+                "state": "blocked",
+                "blocking_reasons": [
+                    "execution_owner_guard.supervisor_only",
+                    "live_worker_meaningful_artifact_delta_timeout",
+                    "same_fingerprint_loop",
+                ],
+            },
+            "route_authorization": {
+                "authorized": False,
+                "paper_write_allowed": False,
+                "bundle_build_allowed": False,
+                "runtime_recovery_allowed": False,
+            },
+        },
+        "last_controller_decision_authorization": {
+            "source": "runtime_supervisor_scan_platform_repair",
+            "decision_id": "decision-003-current",
+            "work_unit_id": "submission_minimal_refresh",
+            "work_unit_fingerprint": "publication-blockers::current",
+            "next_work_unit": {
+                "unit_id": "submission_minimal_refresh",
+                "lane": "finalize",
+                "summary": "Refresh the stale submission_minimal package.",
+            },
+            "control_intent_identity": {
+                "work_unit_id": "submission_minimal_refresh",
+                "blocker_authority_fingerprint": "publication-blockers::current",
+            },
+        },
+    }
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: {
+            "study_id": kwargs["study_id"],
+            "study_root": str(kwargs["study_root"]),
+            "quest_id": quest_id,
+            **route_context,
+        },
+    )
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_state", lambda _quest_root: object())
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_report", lambda _state: gate_report)
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **kwargs: (
+            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            {"ok": True, "status": "executed"},
+        )[1],
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+    )
+
+    assert result["control_plane_route_gate"]["allowed"] is True
+    assert result["control_plane_route_gate"]["action"] == "bundle_build"
+    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == (
+        "submission_minimal_refresh"
+    )
+    gate_context = seen["gate_context"]
+    assert isinstance(gate_context, dict)
+    assert gate_context["controller_route_context"] == {
+        "control_surface": "quality_repair_batch",
+        "controller_action_type": "run_quality_repair_batch",
+        "work_unit_id": "submission_minimal_refresh",
+        "requires_human_confirmation": False,
+        "source_eval_id": publication_eval_payload["eval_id"],
+        "work_unit_fingerprint": "publication-blockers::current",
+    }
+
+
 def test_fresh_snapshot_authorizes_submission_minimal_write(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

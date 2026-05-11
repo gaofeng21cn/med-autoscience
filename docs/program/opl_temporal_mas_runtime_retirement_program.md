@@ -230,7 +230,7 @@ docs/
 - 先做 skeleton mapping，不直接移动目录。
 - `agent/stages` 映射现有 `agent_entry_modes.yaml`、Stage-Led Autonomy route contract、bounded-analysis policy 和 route decision surface。
 - `agent/prompts` / `agent/skills` 映射 MAS app skill、stage prompt、review/repair prompt 和 Codex entry policy。
-- `agent/knowledge` 映射 stage knowledge packet、memory closeout packet、memory write router、recall index 和 literature/reference context。
+- `agent/knowledge` 映射 stage knowledge packet、memory closeout packet、memory write router、recall index、literature/reference context，以及 natural-language-first publication route memory。该层只做检索、注入、provenance、freshness 和 writeback routing；不得把论文套路做成 OPL 或 MAS 的机械 recipe engine。
 - `agent/quality_gates` 映射 AI reviewer、publication gate、reporting guideline、claim-evidence/display-to-claim gates。
 - `runtime/sidecar` / `runtime/projection_builders` / `runtime/lifecycle_adapters` 映射 sidecar export/dispatch、Progress Portal、Live Console、OPL workbench projection，以及 workspace/runtime artifact locator、retention 和 restore-proof adapter。
 - workspace / runtime artifact root 继续保存 MAS study truth、publication eval、controller decisions、owner receipts、论文包、中间产物和最终交付物；开发仓 skeleton 只保存 schema、adapter、builder 和 locator contract。

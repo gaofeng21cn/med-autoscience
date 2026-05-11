@@ -24,3 +24,13 @@ This is the active entry for the medical display capability family.
 
 Historical exemplars and retired briefs are provenance only unless a real MAS
 paper demand reopens them through the active board.
+
+## Memory Boundary
+
+Medical display has two different reuse layers:
+
+- audited templates, input schemas, renderer families, layout QC profiles, shell contracts, generated catalogs, and packaging manifests are strong display contracts;
+- paper-facing figure choice rationale, visual-audit lessons, recurring readability failures, article-level style tradeoffs, and route-selection caveats are natural-language experience memory candidates.
+
+The first layer belongs in this capability tree and source/contract surfaces.
+The second layer may be referenced by MAS stage knowledge packets and publication-route memory, but it must not replace rendered figure review or template/QC contracts.

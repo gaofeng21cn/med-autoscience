@@ -25,6 +25,13 @@ def _text(value: object) -> str | None:
     return normalized or None
 
 
+def _owner_token(value: str | None) -> str:
+    normalized = (value or "").strip().lower().replace("-", "_")
+    if ":" in normalized:
+        normalized = normalized.split(":", 1)[0].strip()
+    return normalized
+
+
 def _has_structured_reply_schema(reply_schema: dict[str, Any]) -> bool:
     if not reply_schema:
         return False
@@ -323,7 +330,7 @@ def _blocked_closeout_owner_wait(blocked_closeout: dict[str, Any] | None) -> dic
     next_owner = _text(blocked_closeout.get("next_owner"))
     if closeout_path is None and next_owner is None:
         return None
-    owner_token = (next_owner or "").lower().replace("-", "_")
+    owner_token = _owner_token(next_owner)
     if owner_token in _CALLABLE_OWNER_TOKENS or owner_token.startswith("mas/controller "):
         return {
             "classification": "blocked_closeout_owner_redrive",

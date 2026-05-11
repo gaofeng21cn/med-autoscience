@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import importlib
+import json
 import os
 from pathlib import Path
 import subprocess
 import sys
+import tomllib
 
 
 def test_codex_exec_runner_uses_quest_local_python_cache(monkeypatch, tmp_path: Path) -> None:
@@ -68,6 +70,40 @@ def test_worker_wrapper_isolates_codex_child_from_user_home(monkeypatch, tmp_pat
     prompt_path.write_text("continue", encoding="utf-8")
     user_home = tmp_path / "user-home"
     codex_home = user_home / ".codex"
+    codex_home.mkdir(parents=True)
+    (codex_home / "auth.json").write_text('{"OPENAI_API_KEY":"test-token"}\n', encoding="utf-8")
+    (codex_home / "config.toml").write_text(
+        "\n".join(
+            [
+                'model_provider = "gflab"',
+                'model = "gpt-5.5"',
+                'model_reasoning_effort = "medium"',
+                'sandbox_mode = "danger-full-access"',
+                'notify = ["osascript"]',
+                "",
+                "[model_providers.gflab]",
+                'name = "gflab"',
+                'base_url = "https://example.test/v1"',
+                'wire_api = "responses"',
+                'experimental_bearer_token = "secret-provider-token"',
+                "",
+                "[mcp_servers.sentrux]",
+                'command = "/opt/homebrew/bin/sentrux"',
+                'args = ["mcp"]',
+                "",
+                "[marketplaces.openai-bundled]",
+                'source = "builtin"',
+                "",
+                "[plugins.computer-use]",
+                "enabled = true",
+                "",
+                "[skills]",
+                'config = ["computer-use"]',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
     monkeypatch.setenv("HOME", str(user_home))
     seen = {}
 
@@ -100,15 +136,31 @@ def test_worker_wrapper_isolates_codex_child_from_user_home(monkeypatch, tmp_pat
     )
 
     assert result == 0
-    assert "--ignore-user-config" not in seen["args"]
     assert "--ephemeral" in seen["args"]
-    assert seen["env"]["HOME"] == str(quest_root / ".ds" / "codex_homes" / "run-001")
-    assert seen["env"]["CODEX_HOME"] == str(codex_home)
-    assert seen["env"]["XDG_CACHE_HOME"] == str(quest_root / ".ds" / "codex_homes" / "run-001" / ".cache")
-    assert seen["env"]["XDG_CONFIG_HOME"] == str(quest_root / ".ds" / "codex_homes" / "run-001" / ".config")
-    assert seen["env"]["XDG_DATA_HOME"] == str(quest_root / ".ds" / "codex_homes" / "run-001" / ".local" / "share")
-    assert seen["env"]["NPM_CONFIG_CACHE"] == str(quest_root / ".ds" / "codex_homes" / "run-001" / ".npm")
-    assert seen["env"]["UV_CACHE_DIR"] == str(quest_root / ".ds" / "codex_homes" / "run-001" / ".cache" / "uv")
+    assert "-c" not in seen["args"]
+    assert "mcp_servers={}" not in seen["args"]
+    assert "plugins={}" not in seen["args"]
+    assert "notify=[]" not in seen["args"]
+    assert "secret-provider-token" not in " ".join(seen["args"])
+    runtime_home = quest_root / ".ds" / "codex_homes" / "run-001"
+    runtime_codex_home = runtime_home / ".codex"
+    assert seen["env"]["HOME"] == str(runtime_home)
+    assert seen["env"]["CODEX_HOME"] == str(runtime_codex_home)
+    assert seen["env"]["XDG_CACHE_HOME"] == str(runtime_home / ".cache")
+    assert seen["env"]["XDG_CONFIG_HOME"] == str(runtime_home / ".config")
+    assert seen["env"]["XDG_DATA_HOME"] == str(runtime_home / ".local" / "share")
+    assert seen["env"]["NPM_CONFIG_CACHE"] == str(runtime_home / ".npm")
+    assert seen["env"]["UV_CACHE_DIR"] == str(runtime_home / ".cache" / "uv")
+    assert (runtime_codex_home / "auth.json").read_text(encoding="utf-8") == '{"OPENAI_API_KEY":"test-token"}\n'
+    config = tomllib.loads((runtime_codex_home / "config.toml").read_text(encoding="utf-8"))
+    assert config["model_provider"] == "gflab"
+    assert config["model"] == "gpt-5.5"
+    assert config["model_providers"]["gflab"]["experimental_bearer_token"] == "secret-provider-token"
+    assert "mcp_servers" not in config
+    assert "plugins" not in config
+    assert "notify" not in config
+    assert "marketplaces" not in config
+    assert "skills" not in config
 
 
 def test_worker_wrapper_preserves_host_nvm_codex_for_isolated_home(monkeypatch, tmp_path: Path) -> None:
@@ -127,6 +179,46 @@ def test_worker_wrapper_preserves_host_nvm_codex_for_isolated_home(monkeypatch, 
 
     assert env["HOME"] == str(quest_root / ".ds" / "codex_homes" / "run-001")
     assert env["CODEX_CANONICAL_BIN"] == str(host_codex)
+
+
+def test_launch_report_write_truncates_stale_tail(tmp_path: Path) -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    launch_report_path = tmp_path / "study" / "artifacts" / "runtime" / "last_launch_report.json"
+    launch_report_path.parent.mkdir(parents=True)
+    launch_report_path.write_text(
+        '{"schema_version":1,"old_payload":"' + ("x" * 5000) + '"}\n',
+        encoding="utf-8",
+    )
+
+    protocol.write_launch_report(
+        launch_report_path=launch_report_path,
+        status={
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "quest_status": "running",
+            "active_run_id": "run-001",
+            "runtime_liveness_status": "live",
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": "run-001",
+                "runtime_audit": {
+                    "status": "live",
+                    "active_run_id": "run-001",
+                    "worker_running": True,
+                },
+            },
+        },
+        source="study_runtime_status",
+        force=False,
+        startup_payload_path=None,
+        daemon_result=None,
+        recorded_at="2026-05-11T04:00:00+00:00",
+    )
+
+    payload = json.loads(launch_report_path.read_text(encoding="utf-8"))
+    assert payload["active_run_id"] == "run-001"
+    assert "old_payload" not in payload
 
 
 def test_codex_exec_runner_legacy_direct_mode_uses_quest_local_python_cache(monkeypatch, tmp_path: Path) -> None:
@@ -215,6 +307,20 @@ def test_worker_wrapper_command_uses_workspace_python_from_quest_root(tmp_path: 
     assert command[0] == str(workspace_python)
     assert command[0] != sys.executable
     assert command[1:3] == ["-m", "med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper"]
+
+
+def test_worker_wrapper_codex_command_disables_desktop_mcp_for_background_runs() -> None:
+    wrapper_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper")
+
+    command = wrapper_module._codex_exec_command(codex_binary="codex", prompt="continue")
+
+    assert command[:5] == ["codex", "exec", "--json", "--skip-git-repo-check", "--ephemeral"]
+    assert "--ignore-user-config" not in command
+    assert "continue" == command[-1]
+    assert "-c" not in command
+    assert "mcp_servers={}" not in command
+    assert "plugins={}" not in command
+    assert "notify=[]" not in command
 
 
 def test_worker_wrapper_runs_codex_with_quest_local_python_cache(monkeypatch, tmp_path: Path) -> None:

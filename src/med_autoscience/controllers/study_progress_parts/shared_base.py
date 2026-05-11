@@ -186,9 +186,12 @@ def _status_payload(result: Any) -> dict[str, Any]:
 def _read_json_object(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
-    payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    except (OSError, json.JSONDecodeError):
+        return None
     if not isinstance(payload, dict):
-        raise ValueError(f"expected JSON object at {path}")
+        return None
     return payload
 
 
