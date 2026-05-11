@@ -763,6 +763,7 @@ def test_supervisor_scan_downgrades_developer_mode_when_github_user_is_not_owner
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "someone-else")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "003-dpcc-primary-care-phenotype-treatment-gap", quest_id="quest-dpcc")
     repair_actions = study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json"

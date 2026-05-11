@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 DOWNSTREAM_PACKAGE_FRESHNESS_WORK_UNIT_IDS = {
     "publication_gate_replay",
@@ -139,7 +140,7 @@ def current_controller_authorization_payload(
         "route_target": text(decision.get("route_target")),
         "work_unit_id": text(work_unit.get("unit_id")),
         "work_unit_fingerprint": work_unit_fingerprint,
-        "next_work_unit": dict(work_unit),
+        "next_work_unit": _target_ready_next_work_unit(work_unit, publication_action),
         "controller_actions": sorted(controller_action_types(decision)),
         "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
         "authorized_at": utc_now(),
@@ -156,6 +157,22 @@ def current_controller_authorization_payload(
         if key in publication_action:
             authorization[key] = publication_action[key]
     return authorization
+
+
+def _target_ready_next_work_unit(
+    work_unit: Mapping[str, Any],
+    publication_action: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload = dict(work_unit)
+    if (
+        text(payload.get("unit_id")) in current_truth_owner.SPECIFICITY_WORK_UNIT_IDS
+        and specificity_target_status(publication_action.get("specificity_targets")).get("complete") is True
+    ):
+        payload.pop("non_executable_reason", None)
+        payload.pop("required_target_kinds", None)
+        if payload.get("controller_work_unit_executable") is False:
+            payload.pop("controller_work_unit_executable", None)
+    return payload
 
 
 def specificity_controller_runtime_route(

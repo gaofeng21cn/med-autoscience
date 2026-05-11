@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from med_autoscience.controllers.runtime_supervisor_scan_parts.owner_tokens import owner_token
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -17,13 +19,6 @@ def text(value: object) -> str | None:
 
 def mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
-
-
-def owner_token(value: object) -> str | None:
-    item = text(value)
-    if item is None:
-        return None
-    return item.lower().replace("/", "_").replace("-", "_")
 
 
 def clear_current_controller_owner_handoff(

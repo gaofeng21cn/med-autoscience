@@ -7,6 +7,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_s
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_specificity as gate_specificity_part
+from med_autoscience.controllers.runtime_supervisor_scan_parts.owner_tokens import owner_token
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 
 
@@ -163,7 +164,7 @@ def current_controller_owner_handoff_redrive_required(
         _text(continuation_state.get("continuation_policy")) == "wait_for_user_or_resume"
         and _text(continuation_state.get("continuation_anchor")) == "turn_closeout"
         and _text(continuation_state.get("continuation_reason")) == "blocked_turn_closeout_waiting_for_owner"
-        and _owner_token(blocked_closeout.get("next_owner")) == "mas_controller"
+        and owner_token(blocked_closeout.get("next_owner")) == "mas_controller"
         and current_truth_owner.current_controller_runtime_route(
             study_root=study_root,
             publication_eval_payload=publication_eval_payload,
@@ -273,7 +274,7 @@ def _publication_gate_closeout_targets_resolved_redrive_required(
         _text(continuation_state.get("continuation_policy")) == "wait_for_user_or_resume"
         and _text(continuation_state.get("continuation_anchor")) == "turn_closeout"
         and _text(continuation_state.get("continuation_reason")) == "blocked_turn_closeout_waiting_for_owner"
-        and _owner_token(blocked_closeout.get("next_owner")) in {"publication_gate", "mas_controller"}
+        and owner_token(blocked_closeout.get("next_owner")) in {"publication_gate", "mas_controller"}
         and _mapping(gate_specificity).get("specific_targets_present") is True
     )
 
@@ -348,13 +349,6 @@ def _progress_activity_timeout(progress: Mapping[str, Any]) -> dict[str, Any]:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
-
-
-def _owner_token(value: object) -> str | None:
-    text = _text(value)
-    if text is None:
-        return None
-    return text.lower().replace("/", "_").replace("-", "_")
 
 
 def _text(value: object) -> str | None:

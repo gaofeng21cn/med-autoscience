@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
+from med_autoscience.controllers.runtime_supervisor_scan_parts.owner_tokens import owner_token
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_current_controller
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
@@ -41,13 +42,6 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
-def _owner_token(value: object) -> str | None:
-    text = _text(value)
-    if text is None:
-        return None
-    return text.lower().replace("/", "_").replace("-", "_")
-
-
 def _read_json_object(path: Path) -> dict[str, Any] | None:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -78,7 +72,7 @@ def stale_publication_gate_closeout_targets_resolved(
     continuation_state = _mapping(status.get("continuation_state"))
     blocked_closeout = _mapping(status.get("blocked_turn_closeout"))
     runtime_blocked_closeout = _mapping(runtime_state.get("blocked_turn_closeout"))
-    next_owner = _owner_token(blocked_closeout.get("next_owner") or runtime_blocked_closeout.get("next_owner"))
+    next_owner = owner_token(blocked_closeout.get("next_owner") or runtime_blocked_closeout.get("next_owner"))
     return bool(
         _text(continuation_state.get("continuation_policy")) == "wait_for_user_or_resume"
         and _text(continuation_state.get("continuation_anchor")) == "turn_closeout"
@@ -109,7 +103,7 @@ def clear_stale_publication_gate_closeout(
     blocked_closeout = _mapping(runtime_state.get("blocked_turn_closeout"))
     if _text(runtime_state.get("continuation_reason")) != "blocked_turn_closeout_waiting_for_owner":
         return {"cleared": False, "reason": "blocked_turn_closeout_wait_not_found", "path": str(runtime_state_path)}
-    next_owner = _owner_token(blocked_closeout.get("next_owner"))
+    next_owner = owner_token(blocked_closeout.get("next_owner"))
     if next_owner == "publication_gate":
         pass
     elif next_owner == "mas_controller" and (
