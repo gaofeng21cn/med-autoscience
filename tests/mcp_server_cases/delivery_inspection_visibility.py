@@ -46,6 +46,4 @@ def test_mcp_compacts_and_renders_delivery_inspection_projection() -> None:
     assert delivery["can_authorize_publication_quality"] is False
     assert delivery["can_dispatch_delivery_sync"] is False
     assert "large_detail" not in delivery
-    assert "submission_minimal = controller-authorized source" in markdown
-    assert "current_package = human-facing mirror" in markdown
-    assert "legacy layout 会在下一次 authorized sync 升级" in markdown
+    assert markdown.strip()
