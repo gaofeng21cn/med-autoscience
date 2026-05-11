@@ -6,6 +6,8 @@ Owner: `MedAutoScience`
 Purpose: close the MAS loop for fully automated, high-quality medical manuscript progress after a study line is eligible for autonomous work.
 Machine boundary: this is a human-readable program plan. Machine truth remains in `study_charter`, `paper/evidence_ledger.json`, `paper/review_ledger.json`, `artifacts/publication_eval/latest.json`, `artifacts/controller_decisions/latest.json`, `study_runtime_status`, `runtime_watch`, runtime supervision receipts, owner-route dispatch receipts, manuscript/package rebuild proof, and live study artifact refs.
 
+Content lifecycle role: P0 target / acceptance owner. This document defines the MAS paper-autonomy outcome and live-soak acceptance criteria. Product workbench implementation belongs in P1, OPL framework/provider implementation belongs in P2, and monolith/runtime provenance evidence belongs in P3/P3a.
+
 ## 结论
 
 全自动推进高质量医学论文的卡点逻辑已经清晰：难点不是单纯“有没有 daemon / gateway / cron”，而是论文主循环是否能把研究方向、分析结果、AI reviewer 结论、稿件修复、gate replay、worker 恢复和转向止损都压成同一条可执行、可重放、可审计的 owner route。

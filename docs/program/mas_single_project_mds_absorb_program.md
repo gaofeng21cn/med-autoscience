@@ -1,8 +1,9 @@
 # MAS Single-Project MDS Absorb Program
 
-Status: `long-line execution program; workspace layout, quest/root Git retirement, profile/entry retirement, repo-level no-history physical absorb and functional monolith completion landed; future upstream source intake remains triggerable`
+Status: `landed foundation owner doc; monolith / MDS provenance / compatibility guard maintenance active`
 Date: `2026-05-10`
 Owner: `MedAutoScience`
+Content lifecycle role: P3 landed foundation. This document preserves the MAS monolith closeout, MDS retained-role decisions, workspace layout, no-history absorb, behavior-parity guard, and future upstream intake classification. Current readers should treat it as landed owner/provenance and guard evidence.
 
 ## 结论
 

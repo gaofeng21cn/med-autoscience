@@ -22,16 +22,16 @@ research teams.
 | Directory | Purpose |
 | --- | --- |
 | [runtime](./runtime/README.md) | Runtime contracts, control surfaces, projections, display contracts, and active designs. |
-| [program](./program/README.md) | Small active execution queue and program-level coordination. |
+| [program](./program/README.md) | Program lifecycle portfolio: paper-autonomy target, active product/framework enablers, landed foundation owner docs, and program-level coordination. |
 | [capabilities](./capabilities/README.md) | Capability-family documentation such as medical display. |
 | [references](./references/README.md) | Supporting references, positioning, integration notes, parity material, and verification records. |
 | [policies](./policies/README.md) | Stable internal rules and long-lived operating boundaries. |
 | [history](./history/README.md) | Dated snapshots, provenance, retired boards, archived plans, and process drafts. |
 
 Read this table as a lifecycle hierarchy. Core docs and runtime/policy owner
-surfaces carry current truth; `program` carries the small active execution
-queue and landed owner docs; `references` carry support context; `history`
-carries provenance and retired material.
+surfaces carry current truth; `program` carries target/enabler/foundation
+coordination; `references` carry support context; `history` carries provenance
+and retired material.
 
 ## Reading Rule
 

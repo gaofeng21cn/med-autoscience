@@ -4,6 +4,7 @@ Status: `active plan`
 Date: `2026-05-10`
 Owner: `MedAutoScience Product Projection + OPL Runtime Manager integration boundary`
 Machine boundary: `human-readable program plan; implementation must promote stable JSON/API contracts before UI code consumes new fields`
+Content lifecycle role: P1 product enabler. This document owns the App/workbench implementation path that makes the P0 paper-autonomy target visible, reviewable, and controllable for users.
 
 ## 结论
 
