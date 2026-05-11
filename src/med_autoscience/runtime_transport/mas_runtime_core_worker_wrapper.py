@@ -28,6 +28,7 @@ def quest_python_runtime_env(*, quest_root: Path, run_id: str | None = None) -> 
     env.pop("PYTHONDONTWRITEBYTECODE", None)
     _remove_active_python_virtualenv(env)
     if run_id:
+        _preserve_host_codex_canonical_bin(env)
         _apply_managed_runtime_home(env=env, quest_root=quest_root, run_id=run_id)
     return env
 
@@ -107,6 +108,63 @@ def _remove_active_python_virtualenv(env: dict[str, str]) -> None:
     env["PATH"] = os.pathsep.join(kept_entries)
 
 
+def _preserve_host_codex_canonical_bin(env: dict[str, str]) -> None:
+    existing = _non_empty_env_path(env.get("CODEX_CANONICAL_BIN"))
+    if existing is not None and _is_executable(existing):
+        env["CODEX_CANONICAL_BIN"] = str(existing)
+        return
+    for candidate in _host_codex_candidates(env):
+        if _is_executable(candidate):
+            env["CODEX_CANONICAL_BIN"] = str(candidate)
+            return
+    env.pop("CODEX_CANONICAL_BIN", None)
+
+
+def _host_codex_candidates(env: dict[str, str]) -> list[Path]:
+    roots: list[Path] = []
+    nvm_dir = _non_empty_env_path(env.get("NVM_DIR"))
+    if nvm_dir is not None:
+        roots.append(nvm_dir)
+    home = _non_empty_env_path(env.get("HOME"))
+    if home is not None:
+        home_nvm = home / ".nvm"
+        if all(not _same_path(home_nvm, root) for root in roots):
+            roots.append(home_nvm)
+
+    candidates: list[Path] = []
+    for root in roots:
+        candidates.extend(
+            [
+                root / "current" / "bin" / "codex",
+                root / "versions" / "node" / "v22.16.0" / "bin" / "codex",
+            ]
+        )
+        versions_root = root / "versions" / "node"
+        try:
+            version_candidates = sorted(
+                versions_root.glob("*/bin/codex"),
+                key=lambda path: path.parent.parent.name,
+                reverse=True,
+            )
+        except OSError:
+            version_candidates = []
+        candidates.extend(version_candidates)
+    deduped: list[Path] = []
+    for candidate in candidates:
+        if all(not _same_path(candidate, existing) for existing in deduped):
+            deduped.append(candidate)
+    return deduped
+
+
+def _non_empty_env_path(value: str | None) -> Path | None:
+    text = str(value or "").strip()
+    return Path(text).expanduser() if text else None
+
+
+def _is_executable(path: Path) -> bool:
+    return path.is_file() and os.access(path, os.X_OK)
+
+
 def _managed_runtime_home(*, quest_root: Path, run_id: str) -> Path:
     return quest_root / ".ds" / "codex_homes" / run_id
 
@@ -131,7 +189,6 @@ def _codex_exec_command(*, codex_binary: str, prompt: str) -> list[str]:
         "exec",
         "--json",
         "--skip-git-repo-check",
-        "--ignore-user-config",
         "--ephemeral",
         prompt,
     ]

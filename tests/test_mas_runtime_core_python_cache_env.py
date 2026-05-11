@@ -100,7 +100,7 @@ def test_worker_wrapper_isolates_codex_child_from_user_home(monkeypatch, tmp_pat
     )
 
     assert result == 0
-    assert "--ignore-user-config" in seen["args"]
+    assert "--ignore-user-config" not in seen["args"]
     assert "--ephemeral" in seen["args"]
     assert seen["env"]["HOME"] == str(quest_root / ".ds" / "codex_homes" / "run-001")
     assert seen["env"]["CODEX_HOME"] == str(codex_home)
@@ -109,6 +109,24 @@ def test_worker_wrapper_isolates_codex_child_from_user_home(monkeypatch, tmp_pat
     assert seen["env"]["XDG_DATA_HOME"] == str(quest_root / ".ds" / "codex_homes" / "run-001" / ".local" / "share")
     assert seen["env"]["NPM_CONFIG_CACHE"] == str(quest_root / ".ds" / "codex_homes" / "run-001" / ".npm")
     assert seen["env"]["UV_CACHE_DIR"] == str(quest_root / ".ds" / "codex_homes" / "run-001" / ".cache" / "uv")
+
+
+def test_worker_wrapper_preserves_host_nvm_codex_for_isolated_home(monkeypatch, tmp_path: Path) -> None:
+    wrapper_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
+    user_home = tmp_path / "user-home"
+    host_codex = user_home / ".nvm" / "versions" / "node" / "v22.16.0" / "bin" / "codex"
+    host_codex.parent.mkdir(parents=True)
+    host_codex.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    host_codex.chmod(0o755)
+    monkeypatch.setenv("HOME", str(user_home))
+    monkeypatch.setenv("NVM_DIR", str(user_home / ".nvm"))
+    monkeypatch.delenv("CODEX_CANONICAL_BIN", raising=False)
+
+    env = wrapper_module.quest_python_runtime_env(quest_root=quest_root, run_id="run-001")
+
+    assert env["HOME"] == str(quest_root / ".ds" / "codex_homes" / "run-001")
+    assert env["CODEX_CANONICAL_BIN"] == str(host_codex)
 
 
 def test_codex_exec_runner_legacy_direct_mode_uses_quest_local_python_cache(monkeypatch, tmp_path: Path) -> None:
