@@ -81,6 +81,8 @@ Recommended behavior by stage:
 
 The retrieved set should be small and stage-relevant. A practical default is top few cards, not the whole library.
 
+Current contract posture: `publication_route_memory_stages` includes `decision` in addition to the exploratory stages. This means the decision stage may read a small natural-language `publication_route_memory_refs` set through `stage_knowledge_packet` for route rationale, stop/pivot context, and rejected-alternative memory. It does not make route memory a controller decision source of authority: the official go, stop, reroute, human-gate judgment, downstream owner, and publication authority remain controller-owned and evidence-bound.
+
 ## Writeback
 
 New experience from a stage should be written back only when it is reusable beyond the current paper.
@@ -157,6 +159,8 @@ MAS now exposes a thin `domain_memory_descriptor` in the product-entry manifest 
 - `memory_write_router_receipt` mirrored under `portfolio/research_memory/publication_route_memory/writeback_receipts`
 
 The repo still tracks only policy, contracts, seed fixture, code and tests. Real memory packs, migration receipts, writeback proposals and router receipts belong to the MAS workspace or runtime artifact root. OPL may discover locator / freshness / receipt refs; it does not own memory bodies, apply migration, accept/reject writebacks, choose a publication route, or promote memory into evidence, review, controller, publication or artifact truth.
+
+Decision-stage availability is read-only context. `stage_knowledge_packet.authority_boundary.can_replace_controller_decision` remains `false`; controller decisions continue to cite current evidence, unresolved risk, Stop-loss Memo context, human-gate status, and downstream owner requirements before any route change is official.
 
 ## Migration Plan
 

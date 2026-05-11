@@ -13,6 +13,7 @@ from med_autoscience.stage_knowledge_contract import (
     MEMORY_ROUTER_SURFACE,
     PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE,
     PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
+    PUBLICATION_ROUTE_MEMORY_STAGES,
     RECALL_INDEX_SURFACE,
     SCHEMA_VERSION,
     STAGE_KNOWLEDGE_ROOT,
@@ -201,7 +202,7 @@ def select_publication_route_memory_refs(
     route_family_tags: Sequence[str] | None = None,
     limit: int = PUBLICATION_ROUTE_MEMORY_SELECTION_LIMIT,
 ) -> list[dict[str, Any]]:
-    resolved_stage = _validate_stage(stage) if stage != "decision" else "decision"
+    resolved_stage = _validate_publication_route_memory_stage(stage)
     pack_path = publication_route_memory_pack_path(workspace_root=workspace_root)
     pack = _read_json(pack_path)
     cards = _mapping_list(pack.get("cards"))
@@ -806,8 +807,15 @@ def _publication_route_memory_pack(
 
 def _validate_stage(stage: str) -> str:
     resolved = _text(stage)
-    if resolved not in EXPLORATORY_STAGES and resolved != "all":
+    if resolved not in PUBLICATION_ROUTE_MEMORY_STAGES and resolved != "all":
         raise ValueError(f"unsupported stage for stage knowledge plane: {resolved}")
+    return resolved
+
+
+def _validate_publication_route_memory_stage(stage: str) -> str:
+    resolved = _text(stage)
+    if resolved not in PUBLICATION_ROUTE_MEMORY_STAGES:
+        raise ValueError(f"unsupported publication route memory stage: {resolved}")
     return resolved
 
 
@@ -877,6 +885,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 __all__ = [
     "EXPLORATORY_STAGES",
     "PUBLICATION_ROUTE_MEMORY_ROOT",
+    "PUBLICATION_ROUTE_MEMORY_STAGES",
     "STAGE_OBLIGATIONS",
     "apply_publication_route_memory_seed_fixture",
     "build_stage_knowledge_packet",

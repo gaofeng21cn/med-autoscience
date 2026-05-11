@@ -15,6 +15,7 @@ PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE = "publication_route_memory_apply
 PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE = "paper_soak_memory_apply_proof"
 
 EXPLORATORY_STAGES = ("scout", "idea", "analysis-campaign", "review")
+PUBLICATION_ROUTE_MEMORY_STAGES = ("scout", "idea", "decision", "analysis-campaign", "review")
 STAGE_KNOWLEDGE_ROOT = Path("artifacts/stage_knowledge")
 
 TYPED_CLOSEOUT_CATEGORIES = (
@@ -109,6 +110,21 @@ STAGE_OBLIGATIONS: dict[str, dict[str, tuple[str, ...]]] = {
             "reusable_critique_lesson",
         ),
     },
+    "decision": {
+        "knowledge_input_obligations": (
+            "stage_knowledge_packet_ref",
+            "publication_route_memory_refs",
+            "controller_decision_inputs",
+            "failed_path_history",
+            "stop_loss_context",
+        ),
+        "memory_closeout_obligations": (
+            "stage_memory_closeout_packet",
+            "stop_or_pivot_lesson",
+            "route_impact",
+            "rejected_alternatives",
+        ),
+    },
 }
 
 
@@ -128,6 +144,7 @@ def stage_knowledge_plane_contract() -> dict[str, Any]:
             PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE: _packet_contract(PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE),
         },
         "exploratory_stages": list(EXPLORATORY_STAGES),
+        "publication_route_memory_stages": list(PUBLICATION_ROUTE_MEMORY_STAGES),
         "stage_obligations": {
             stage: {key: list(values) for key, values in obligations.items()}
             for stage, obligations in STAGE_OBLIGATIONS.items()
@@ -170,6 +187,7 @@ __all__ = [
     "PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE",
     "PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE",
     "PUBLICATION_ROUTE_MEMORY_PACK_SURFACE",
+    "PUBLICATION_ROUTE_MEMORY_STAGES",
     "RECALL_INDEX_SURFACE",
     "SCHEMA_VERSION",
     "STAGE_KNOWLEDGE_ROOT",

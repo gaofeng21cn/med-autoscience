@@ -11,6 +11,7 @@ from med_autoscience.controllers import portfolio_memory
 
 
 EXPLORATORY_STAGES = ("scout", "idea", "analysis-campaign", "review")
+PUBLICATION_ROUTE_MEMORY_STAGES = ("scout", "idea", "decision", "analysis-campaign", "review")
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SEED_FIXTURE = REPO_ROOT / "docs" / "policies" / "study-workflow" / "publication_route_memory_seed_fixture.json"
 
@@ -49,6 +50,8 @@ def test_stage_knowledge_plane_contract_exposes_required_packet_surfaces() -> No
         assert packet["authority_boundary"]["can_authorize_publication_quality"] is False
         assert packet["authority_boundary"]["can_replace_controller_decision"] is False
         assert packet["authority_boundary"]["can_use_chat_as_authority"] is False
+    assert contract["exploratory_stages"] == list(EXPLORATORY_STAGES)
+    assert contract["publication_route_memory_stages"] == list(PUBLICATION_ROUTE_MEMORY_STAGES)
 
 
 @pytest.mark.parametrize("stage", EXPLORATORY_STAGES)
@@ -59,6 +62,17 @@ def test_exploratory_route_contracts_require_stage_knowledge_and_closeout(stage:
     assert "knowledge_input_obligations" in route_contract
     assert "memory_closeout_obligations" in route_contract
     assert "stage_knowledge_packet_ref" in route_contract["knowledge_input_obligations"]
+    assert "stage_memory_closeout_packet" in route_contract["memory_closeout_obligations"]
+
+
+def test_decision_route_contract_requires_route_memory_stage_knowledge_and_closeout() -> None:
+    payload = importlib.import_module("med_autoscience.agent_entry").load_entry_modes_payload()
+    route_contract = payload["route_contracts"]["decision"]
+
+    assert route_contract["knowledge_input_obligations"][:2] == [
+        "stage_knowledge_packet_ref",
+        "publication_route_memory_refs",
+    ]
     assert "stage_memory_closeout_packet" in route_contract["memory_closeout_obligations"]
 
 
@@ -162,6 +176,32 @@ def test_publication_route_memory_selection_uses_small_stage_relevant_set(tmp_pa
     assert [ref["memory_id"] for ref in decision_refs] == [
         "publication_route_memory_seed__negative_result_stoploss"
     ]
+
+
+def test_decision_stage_knowledge_packet_reads_publication_route_memory_refs(tmp_path) -> None:
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "S1"
+    stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+        workspace_root=workspace_root,
+        seed_fixture_path=SEED_FIXTURE,
+    )
+
+    packet = stage_knowledge_plane.build_stage_knowledge_packet(
+        study_id="S1",
+        stage="decision",
+        study_root=study_root,
+        workspace_root=workspace_root,
+    )
+
+    assert packet["surface"] == "stage_knowledge_packet"
+    assert packet["stage"] == "decision"
+    assert packet["status"] == "ready"
+    assert packet["missing_reasons"] == []
+    assert [ref["memory_id"] for ref in packet["publication_route_memory_refs"]] == [
+        "publication_route_memory_seed__negative_result_stoploss"
+    ]
+    assert packet["stage_obligations"]["knowledge_input_obligations"][0] == "stage_knowledge_packet_ref"
+    assert packet["authority_boundary"]["can_replace_controller_decision"] is False
 
 
 def test_stage_memory_closeout_router_writes_typed_destinations_and_rejects_cross_study_claim(tmp_path) -> None:
