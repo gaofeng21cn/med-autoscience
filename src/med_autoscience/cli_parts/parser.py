@@ -10,6 +10,9 @@ from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_
 from med_autoscience.figure_routes import supported_required_route_help
 
 
+ACTIVE_SUPERVISION_MANAGERS = ("local", "hermes")
+
+
 def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="medautosci")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -59,7 +62,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_supervision_status_parser.add_argument("--interval-seconds", type=int, default=300)
     runtime_supervision_status_parser.add_argument(
         "--manager",
-        choices=("local", "hermes", "systemd", "cron", "launchd", "docker"),
+        choices=ACTIVE_SUPERVISION_MANAGERS,
         default="local",
     )
 
@@ -69,7 +72,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_ensure_supervision_parser.add_argument("--no-trigger-now", action="store_true")
     runtime_ensure_supervision_parser.add_argument(
         "--manager",
-        choices=("local", "hermes", "systemd", "cron", "launchd", "docker"),
+        choices=ACTIVE_SUPERVISION_MANAGERS,
         default="local",
     )
     runtime_ensure_supervision_parser.add_argument("--dry-run", action="store_true")
@@ -80,7 +83,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_remove_supervision_parser.add_argument("--interval-seconds", type=int, default=300)
     runtime_remove_supervision_parser.add_argument(
         "--manager",
-        choices=("local", "hermes", "systemd", "cron", "launchd", "docker"),
+        choices=ACTIVE_SUPERVISION_MANAGERS,
         default="local",
     )
 

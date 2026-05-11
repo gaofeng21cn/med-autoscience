@@ -162,6 +162,275 @@ def _paper_write_supervisor_route_context() -> dict[str, Any]:
         }
     }
 
+
+def test_run_quality_repair_batch_prefers_same_line_paper_repair_over_stale_bundle_gate(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm-china-us-mortality-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="mortality_attribution",
+    )
+    quest_id = "quest-002"
+    _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    _write_quality_summary(
+        study_root,
+        relative_path=Path("artifacts/eval_hygiene/evaluation_summary/latest.json"),
+    )
+    summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary["quality_closure_truth"] = {
+        **dict(summary.get("quality_closure_truth") or {}),
+        "state": "quality_repair_required",
+        "current_required_action": "return_to_analysis_campaign",
+        "route_target": "analysis-campaign",
+    }
+    summary["quality_execution_lane"] = {
+        **dict(summary.get("quality_execution_lane") or {}),
+        "lane_id": "general_quality_repair",
+        "route_target": "analysis-campaign",
+    }
+    _write_json(summary_path, summary)
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "complete_bundle_stage",
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "submission_hardening_incomplete",
+            "medical_publication_surface_blocked",
+            "claim_evidence_consistency_failed",
+        ],
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": [
+            "claim_evidence_map_missing_or_incomplete",
+        ],
+        "blocking_artifact_refs": [
+            {
+                "blocker": "claim_evidence_consistency_failed",
+                "claim_id": "mortality_attribution_claim",
+                "source_path": "paper/claim_evidence_map.json",
+            }
+        ],
+        "gate_fingerprint": "publication-gate::dm002",
+        "work_unit_fingerprint": "submission-minimal::dm002",
+    }
+    route_context = {
+        "control_plane_snapshot": {
+            "surface": "control_plane_snapshot",
+            "control_state": "blocked_runtime_escalation",
+            "canonical_next_action": "resume_same_study_line",
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+            "dispatch_gate": {
+                "state": "blocked",
+                "blocking_reasons": [
+                    "execution_owner_guard.supervisor_only",
+                    "runtime_recovery_retry_budget_exhausted",
+                ],
+            },
+            "route_authorization": {
+                "authorized": False,
+                "paper_write_allowed": True,
+                "bundle_build_allowed": False,
+                "runtime_recovery_allowed": False,
+            },
+        }
+    }
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: {
+            "study_id": kwargs["study_id"],
+            "study_root": str(kwargs["study_root"]),
+            "quest_id": quest_id,
+            **route_context,
+        },
+    )
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_state", lambda _quest_root: object())
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_report", lambda _state: gate_report)
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **kwargs: (
+            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            {"ok": True, "status": "executed", "unit_results": []},
+        )[1],
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+    )
+
+    assert result["control_plane_route_gate"]["allowed"] is True
+    assert result["control_plane_route_gate"]["action"] == "paper_write"
+    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == (
+        "analysis_claim_evidence_repair"
+    )
+    assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == "analysis_claim_evidence_repair"
+
+
+def test_run_quality_repair_batch_uses_task_intake_override_over_raw_bundle_summary(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm-china-us-mortality-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="mortality_attribution",
+    )
+    quest_id = "quest-002"
+    _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    _write_json(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
+        {
+            "schema_version": 1,
+            "summary_id": "evaluation-summary::002::bundle-only",
+            "study_id": study_root.name,
+            "quest_id": quest_id,
+            "emitted_at": "2026-05-10T16:19:41+00:00",
+            "quality_closure_truth": {
+                "state": "bundle_only_remaining",
+                "current_required_action": "continue_bundle_stage",
+                "route_target": "finalize",
+            },
+            "quality_execution_lane": {
+                "lane_id": "submission_hardening",
+                "route_target": "finalize",
+            },
+            "quality_review_loop": {
+                "closure_state": "bundle_only_remaining",
+                "blocking_issue_count": 2,
+            },
+            "study_quality_truth": {
+                "reviewer_first": {
+                    "ready": False,
+                    "status": "blocked",
+                    "open_concern_count": 1,
+                },
+            },
+            "quality_assessment": {"human_review_readiness": {"status": "blocked"}},
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {
+            "schema_version": 1,
+            "task_id": "study-task::002::reviewer-revision",
+            "study_id": study_root.name,
+            "emitted_at": "2026-04-27T02:05:48+00:00",
+            "entry_mode": "full_research",
+            "task_intent": (
+                "Reviewer revision: explicit user feedback reopens the same paper line and requires "
+                "补充分析 before any submission-ready/finalize closeout."
+            ),
+            "constraints": ["Do not keep previous submission-ready/finalize parking as current truth."],
+            "first_cycle_outputs": [
+                "paper/rebuttal/review_matrix.md and action_plan.md covering all reviewer feedback items."
+            ],
+        },
+    )
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "complete_bundle_stage",
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "submission_hardening_incomplete",
+            "medical_publication_surface_blocked",
+            "claim_evidence_consistency_failed",
+        ],
+        "medical_publication_surface_status": "blocked",
+        "medical_publication_surface_named_blockers": [
+            "claim_evidence_map_missing_or_incomplete",
+        ],
+        "blocking_artifact_refs": [
+            {
+                "blocker": "claim_evidence_consistency_failed",
+                "claim_id": "mortality_attribution_claim",
+                "source_path": "paper/claim_evidence_map.json",
+            }
+        ],
+        "gate_fingerprint": "publication-gate::dm002",
+        "work_unit_fingerprint": "submission-minimal::dm002",
+    }
+    route_context = {
+        "control_plane_snapshot": {
+            "surface": "control_plane_snapshot",
+            "control_state": "blocked_runtime_escalation",
+            "canonical_next_action": "resume_same_study_line",
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+            "dispatch_gate": {
+                "state": "blocked",
+                "blocking_reasons": [
+                    "execution_owner_guard.supervisor_only",
+                    "runtime_recovery_retry_budget_exhausted",
+                ],
+            },
+            "route_authorization": {
+                "authorized": False,
+                "paper_write_allowed": True,
+                "bundle_build_allowed": False,
+                "runtime_recovery_allowed": False,
+            },
+        }
+    }
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **kwargs: {
+            "study_id": kwargs["study_id"],
+            "study_root": str(kwargs["study_root"]),
+            "quest_id": quest_id,
+            **route_context,
+        },
+    )
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_state", lambda _quest_root: object())
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_report", lambda _state: gate_report)
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **kwargs: (
+            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            {"ok": True, "status": "executed", "unit_results": []},
+        )[1],
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+    )
+
+    assert result["control_plane_route_gate"]["allowed"] is True
+    assert result["control_plane_route_gate"]["action"] == "paper_write"
+    assert result["quality_closure_state"] == "quality_repair_required"
+    assert result["quality_execution_lane_id"] == "general_quality_repair"
+    assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == "analysis_claim_evidence_repair"
+
+
 def test_run_quality_repair_batch_materializes_canonical_paper_owner_surface_for_upstream_repair(
     tmp_path: Path,
 ) -> None:

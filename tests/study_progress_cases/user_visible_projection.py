@@ -357,6 +357,75 @@ def test_user_visible_projection_uses_current_delivery_read_model_for_package_de
     assert projection["current_blockers"] == []
 
 
+def test_user_visible_projection_does_not_auto_park_reactivated_same_line_delivery() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+
+    projection = module.build_user_visible_projection(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "study_macro_state": {
+                "surface": "study_macro_state",
+                "schema_version": 1,
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "writer_state": "parked",
+                "user_next": "inspect",
+                "reason": "unknown",
+                "details": {"paper_stage": "analysis-campaign"},
+                "conditions": [],
+            },
+            "delivery_inspection": {
+                "status": "current",
+                "freshness": {
+                    "delivery_status": "current",
+                    "gate_freshness_handshake": {"status": "current"},
+                },
+            },
+            "quality_closure_truth": {
+                "state": "quality_repair_required",
+                "current_required_action": "return_to_analysis_campaign",
+            },
+            "study_truth_snapshot": {
+                "canonical_next_action": "resume_same_study_line",
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "control_plane_snapshot": {
+                "control_state": "blocked_runtime_escalation",
+                "canonical_next_action": "resume_same_study_line",
+                "dispatch_gate": {
+                    "state": "blocked",
+                    "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+                },
+                "route_authorization": {
+                    "authorized": False,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": True,
+                    "runtime_recovery_allowed": False,
+                },
+            },
+            "interaction_arbitration": {
+                "requires_user_input": False,
+                "next_owner": "MAS/controller",
+                "blocked_reason": (
+                    "control_plane_route_blocked: bundle_build dispatch_gate_blocked "
+                    "during submission_minimal_refresh"
+                ),
+            },
+        }
+    )
+
+    assert projection["package_delivered"] is True
+    assert projection["paper_progress_state"]["state"] == "blocked_controller_route"
+    assert projection["state_label"] == "质量修复/复审中"
+    assert projection["why_not_progressing"].startswith("control_plane_route_blocked")
+    assert projection["current_blockers"] == ["质量、artifact 或 runtime 修复 owner 已接管。"]
+    assert projection["next_step"] == "等待质量修复/复审 owner 完成处理。"
+
+
 def test_terminal_delivery_correction_suppresses_stale_top_level_blockers() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_progress_parts.projection_payload_assembly")
     study_root = Path("/tmp/studies/003-dpcc")

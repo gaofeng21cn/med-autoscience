@@ -48,17 +48,9 @@ def _render_medautosci_shared(profile_relpath: Path) -> str:
         '  echo "Profile file not found: ${PROFILE_PATH}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
-        'MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN:-$(command -v uv || true)}"\n'
-        'if [[ -z "${MED_AUTOSCIENCE_UV_BIN}" ]]; then\n'
-        '  echo "uv is not available. Set MED_AUTOSCIENCE_UV_BIN in ${CONFIG_ENV_PATH} or install uv on PATH." >&2\n'
-        "  exit 1\n"
-        "fi\n\n"
-        'if [[ "${MED_AUTOSCIENCE_UV_BIN}" != /* ]]; then\n'
-        '  echo "MED_AUTOSCIENCE_UV_BIN must be an absolute path: ${MED_AUTOSCIENCE_UV_BIN}" >&2\n'
-        "  exit 1\n"
-        "fi\n\n"
-        'if [[ ! -x "${MED_AUTOSCIENCE_UV_BIN}" ]]; then\n'
-        '  echo "MED_AUTOSCIENCE_UV_BIN is not executable: ${MED_AUTOSCIENCE_UV_BIN}" >&2\n'
+        'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"\n'
+        'if [[ ! -x "${WORKSPACE_PYTHON}" ]]; then\n'
+        '  echo "Workspace Python is missing or not executable: ${WORKSPACE_PYTHON}" >&2\n'
         "  exit 1\n"
         "fi\n\n"
         'MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN:-$(command -v Rscript || true)}"\n'
@@ -87,7 +79,7 @@ def _render_medautosci_shared(profile_relpath: Path) -> str:
         'export MED_AUTOSCIENCE_NODE_BIN\n\n'
         "run_medautosci() {\n"
         "  PYTHONDONTWRITEBYTECODE=1 \\\n"
-        '  "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"\n'
+        '  "${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"\n'
         "}\n"
     )
 
@@ -209,11 +201,7 @@ def _render_install_watch_runtime_service_script() -> str:
         "  no --manager       register/refresh MAS scheduler contract local adapter\n\n"
         "Optional adapters:\n"
         "  --manager hermes    explicit Hermes gateway cron adapter\n\n"
-        "Retired diagnostic managers:\n"
-        "  --manager systemd   fail-closed; reports retired workspace-local service manager\n"
-        "  --manager cron      fail-closed; reports retired workspace-local service manager\n"
-        "  --manager launchd   fail-closed; reports retired workspace-local service manager\n"
-        "  --manager docker    fail-closed; MAS does not own container scheduler installation\n"
+        "Retired workspace-local service managers are cleanup evidence only and are not CLI options.\n"
         "EOF\n"
         "  exit 0\n"
         "fi\n\n"
@@ -243,7 +231,7 @@ def _render_mas_runtime_bridge_shared() -> str:
         "load_mas_runtime_bridge_contract() {\n"
         "  local payload_json\n"
         '  payload_json="$(\n'
-        '    "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - "${PROFILE_PATH}" <<'"'"'PY'"'"'\n'
+        '    PYTHONDONTWRITEBYTECODE=1 "${WORKSPACE_PYTHON}" - "${PROFILE_PATH}" <<'"'"'PY'"'"'\n'
         "import json\n"
         "import sys\n\n"
         "from med_autoscience.profiles import load_profile, profile_to_dict\n"
@@ -263,7 +251,7 @@ def _render_mas_runtime_bridge_shared() -> str:
         '  export MEDAUTOSCI_MAS_RUNTIME_BRIDGE_CONTRACT_JSON="${payload_json}"\n\n'
         "  local contract_lines\n"
         '  contract_lines="$(\n'
-        '    CONTRACT_JSON="${payload_json}" "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - <<'"'"'PY'"'"'\n'
+        '    CONTRACT_JSON="${payload_json}" PYTHONDONTWRITEBYTECODE=1 "${WORKSPACE_PYTHON}" - <<'"'"'PY'"'"'\n'
         "import json\n"
         "import os\n\n"
         'payload = json.loads(os.environ["CONTRACT_JSON"])\n'
@@ -304,7 +292,7 @@ def _render_mas_runtime_bridge_shared() -> str:
         "}\n\n"
         "render_mas_runtime_bridge_config_json() {\n"
         '  CONTRACT_JSON="${MEDAUTOSCI_MAS_RUNTIME_BRIDGE_CONTRACT_JSON}" \\\n'
-        '  python3 - <<'"'"'PY'"'"'\n'
+        '  PYTHONDONTWRITEBYTECODE=1 "${WORKSPACE_PYTHON}" - <<'"'"'PY'"'"'\n'
         "import json\n"
         "import os\n\n"
         'payload = json.loads(os.environ["CONTRACT_JSON"])\n'

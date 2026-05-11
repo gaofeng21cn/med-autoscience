@@ -17,6 +17,7 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_
 from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_latest import read_publication_eval_latest
+from med_autoscience import study_task_intake
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionType
 
 
@@ -92,6 +93,29 @@ def _read_quality_summary(*, study_root: Path) -> dict[str, Any]:
     return _read_json_object(_quality_summary_path(study_root=study_root))
 
 
+def _effective_quality_summary(
+    *,
+    study_root: Path,
+    gate_report: Mapping[str, Any],
+    summary_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    override = study_task_intake.build_task_intake_progress_override(
+        study_task_intake.read_latest_task_intake(study_root=study_root),
+        study_root=study_root,
+        publishability_gate_report=dict(gate_report),
+        evaluation_summary=dict(summary_payload),
+    )
+    if not isinstance(override, Mapping):
+        return dict(summary_payload)
+    return {
+        **dict(summary_payload),
+        "quality_closure_truth": dict(override.get("quality_closure_truth") or {}),
+        "quality_execution_lane": dict(override.get("quality_execution_lane") or {}),
+        "same_line_route_truth": dict(override.get("same_line_route_truth") or {}),
+        "same_line_route_surface": dict(override.get("same_line_route_surface") or {}),
+    }
+
+
 def _quality_repair_context(summary_payload: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     quality_closure_truth = (
         dict(summary_payload.get("quality_closure_truth") or {})
@@ -111,6 +135,21 @@ def _quality_repair_required(summary_payload: Mapping[str, Any]) -> bool:
     closure_state = _non_empty_text(quality_closure_truth.get("state"))
     lane_id = _non_empty_text(quality_execution_lane.get("lane_id"))
     return closure_state in _QUALITY_REPAIR_CLOSURE_STATES or lane_id in _QUALITY_REPAIR_LANES
+
+
+def _same_line_paper_repair_required(summary_payload: Mapping[str, Any]) -> bool:
+    quality_closure_truth, quality_execution_lane = _quality_repair_context(summary_payload)
+    if _non_empty_text(quality_closure_truth.get("state")) not in _QUALITY_REPAIR_CLOSURE_STATES:
+        return False
+    current_required_action = _non_empty_text(quality_closure_truth.get("current_required_action"))
+    route_target = (
+        _non_empty_text(quality_execution_lane.get("route_target"))
+        or _non_empty_text(quality_closure_truth.get("route_target"))
+    )
+    return current_required_action in {"return_to_analysis_campaign", "continue_write_stage"} or route_target in {
+        "analysis-campaign",
+        "write",
+    }
 
 
 def _gate_blockers(gate_report: Mapping[str, Any]) -> set[str]:
@@ -565,8 +604,6 @@ def build_quality_repair_batch_recommended_action(
 
     resolved_study_root = Path(study_root).expanduser().resolve()
     summary_payload = _read_quality_summary(study_root=resolved_study_root)
-    if not summary_payload or not _quality_repair_required(summary_payload):
-        return None
 
     current_eval_id = _non_empty_text(publication_eval_payload.get("eval_id"))
     latest_batch = _latest_batch_record(study_root=resolved_study_root)
@@ -587,6 +624,14 @@ def build_quality_repair_batch_recommended_action(
         include_downstream_delivery=not bool(gate_report.get("bundle_tasks_downstream_only")),
     )
     if not candidates:
+        return None
+
+    summary_payload = _effective_quality_summary(
+        study_root=resolved_study_root,
+        gate_report=gate_report,
+        summary_payload=summary_payload,
+    )
+    if not summary_payload or not _quality_repair_required(summary_payload):
         return None
 
     publication_work_unit_payload = publication_work_units.derive_publication_work_units(gate_report)
@@ -663,16 +708,29 @@ def run_quality_repair_batch(
     quest_root = profile.managed_runtime_quests_root / quest_id
     gate_state = gate_clearing_batch.publication_gate.build_gate_state(quest_root)
     gate_report = gate_clearing_batch.publication_gate.build_gate_report(gate_state)
-    controller_route_context = _controller_route_context_for_gate(
+    summary_payload = _read_quality_summary(study_root=resolved_study_root)
+    summary_payload = _effective_quality_summary(
+        study_root=resolved_study_root,
         gate_report=gate_report,
-        source_eval_id=current_eval_id,
+        summary_payload=summary_payload,
     )
-    if controller_route_context is None:
+    if _same_line_paper_repair_required(summary_payload):
         controller_route_context = _controller_route_context_for_publication_work_unit(
             gate_report=gate_report,
             publication_eval_payload=publication_eval_payload,
             source_eval_id=current_eval_id,
         )
+    else:
+        controller_route_context = _controller_route_context_for_gate(
+            gate_report=gate_report,
+            source_eval_id=current_eval_id,
+        )
+        if controller_route_context is None:
+            controller_route_context = _controller_route_context_for_publication_work_unit(
+                gate_report=gate_report,
+                publication_eval_payload=publication_eval_payload,
+                source_eval_id=current_eval_id,
+            )
     resolved_route_context = _merge_route_contexts(
         resolved_route_context,
         controller_route_context,
@@ -689,7 +747,6 @@ def run_quality_repair_batch(
         gate_state=gate_state,
         control_plane_route_gate=control_plane_route_gate,
     )
-    summary_payload = _read_quality_summary(study_root=resolved_study_root)
     quality_closure_truth, quality_execution_lane = _quality_repair_context(summary_payload)
     source_summary_id = _non_empty_text(summary_payload.get("summary_id"))
     latest_batch = _latest_batch_record(study_root=resolved_study_root)

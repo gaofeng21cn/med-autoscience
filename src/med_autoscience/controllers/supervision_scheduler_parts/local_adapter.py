@@ -84,13 +84,45 @@ def ensure(
         }
 
     before = _launchd_status(profile=profile, interval_seconds=interval_seconds)
-    script = _tick_script_path(profile) if dry_run else _ensure_tick_script(profile=profile, interval_seconds=interval_seconds)
+    script = _tick_script_path(profile)
     plist_path = _launch_agent_path(profile)
     plist_payload = _launch_agent_plist(profile=profile, interval_seconds=interval_seconds)
     command_outputs: list[dict[str, Any]] = []
     commands = _launchd_install_commands(profile)
     action = "dry_run" if dry_run else "installed"
+    if not dry_run and not _workspace_python_available(profile):
+        proof = _install_proof(
+            profile=profile,
+            adapter_id="local_launchd",
+            interval_seconds=interval_seconds,
+            status="blocked",
+            installed=False,
+            dry_run=False,
+            commands=commands,
+            command_outputs=command_outputs,
+            reason="workspace_python_missing_or_not_executable",
+        )
+        if write_install_proof:
+            _write_json(_install_proof_path(profile), proof)
+        after = _launchd_status(profile=profile, interval_seconds=interval_seconds)
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "surface_kind": "workspace_runtime_supervision_install_result",
+            "action": "blocked",
+            "manager": "local",
+            "scheduler_owner": SCHEDULER_OWNER,
+            "adapter_id": "local_launchd",
+            "before": before,
+            "after": after,
+            "script_path": str(script),
+            "launch_agent_path": str(plist_path),
+            "install_proof": proof,
+            "install_proof_path": str(_install_proof_path(profile)) if write_install_proof else None,
+            "command_outputs": command_outputs,
+            "dry_run": dry_run,
+        }
     if not dry_run:
+        script = _ensure_tick_script(profile=profile, interval_seconds=interval_seconds)
         plist_path.parent.mkdir(parents=True, exist_ok=True)
         plist_path.write_bytes(plistlib.dumps(plist_payload, sort_keys=True))
         command_outputs.extend(_load_launch_agent(plist_path=plist_path, label=_launchd_label(profile)))
@@ -330,7 +362,7 @@ def _render_tick_script(*, profile: WorkspaceProfile, interval_seconds: int) -> 
     history_receipt_json = json.dumps(str(_history_receipt_path(profile)))
     lock_path_json = json.dumps(str(_lock_path(profile)))
     return (
-        "#!/usr/bin/env python3\n"
+        f"#!{_workspace_python_path(profile)}\n"
         "from __future__ import annotations\n\n"
         "from datetime import datetime, timezone\n"
         "import json\n"
@@ -535,6 +567,15 @@ def _state_root(profile: WorkspaceProfile) -> Path:
 
 def _tick_script_path(profile: WorkspaceProfile) -> Path:
     return _state_root(profile) / "bin" / "watch_runtime_tick.py"
+
+
+def _workspace_python_path(profile: WorkspaceProfile) -> Path:
+    return profile.workspace_root / ".venv" / "bin" / "python3"
+
+
+def _workspace_python_available(profile: WorkspaceProfile) -> bool:
+    path = _workspace_python_path(profile)
+    return path.is_file() and os.access(path, os.X_OK)
 
 
 def _latest_receipt_path(profile: WorkspaceProfile) -> Path:

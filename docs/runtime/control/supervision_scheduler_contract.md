@@ -16,7 +16,9 @@ Date: `2026-05-09`
 
 `MAS supervision scheduler contract` 现在是默认 owner。`local` 是默认 adapter selection：macOS 本机落到 MAS-owned LaunchAgent，Linux / container 仍 fail-closed 为 no persistent local scheduler 并给出 one-shot reconcile 语义。`Hermes gateway cron` 保留为显式 `--manager hermes` optional adapter，不是架构中心，也不是 MAS runtime / session / research owner。
 
-2026-05-09 落地更新：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 已接到 `supervision_scheduler` façade，默认 `--manager local`。macOS local adapter 会生成 MAS-owned tick script、LaunchAgent plist、install proof 和 scheduler receipt；显式 `--manager hermes` 继续调用 Hermes adapter 并投影到同一 `scheduler_owner=mas_supervision_scheduler` 合同下。旧 `systemd|cron|launchd|docker` manager 仍是 retired fail-closed diagnostic，不作为 active shortcut。
+2026-05-09 落地更新：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 已接到 `supervision_scheduler` façade，默认 `--manager local`。macOS local adapter 会生成 MAS-owned tick script、LaunchAgent plist、install proof 和 scheduler receipt；显式 `--manager hermes` 继续调用 Hermes adapter 并投影到同一 `scheduler_owner=mas_supervision_scheduler` 合同下。
+
+2026-05-11 退役更新：旧 `systemd|cron|launchd|docker` manager 不再是公开 CLI 选项。内部 cleanup/audit surface 仍可报告 `retired_workspace_local_service_manager`，用于识别和清理旧 workspace-local service，但不得作为用户可选择的 runtime path。
 
 2026-05-09 bootstrap 修复：`workspace bootstrap --profile <profile>` 现在会作为显式 apply 入口调用默认 `local` scheduler 的 `runtime-ensure-supervision` 语义，刷新 LaunchAgent、tick script 与 install proof，但不立即触发 tick。`runtime-supervision-status`、`product-entry-status`、Progress Portal 与 Live Console 仍是 read/projection surface，不自动写入 OS scheduler；发现 drift 时必须显示 source 与 repair command，由 `workspace bootstrap` 或 `runtime-ensure-supervision` 执行幂等修复。
 
@@ -136,7 +138,7 @@ medautosci runtime-remove-supervision --profile <profile> --manager local
 | Linux without systemd user | explicit `cron` fallback | blocked until implemented；未来也只能通过 `local` adapter contract，不允许直接恢复旧 `--manager cron`。 |
 | container / CI | no persistent scheduler by default | 只支持 one-shot dry-run / reconcile；不得伪装成 installed scheduler。 |
 
-现有 `--manager systemd|cron|launchd|docker` 仍保持 retired/fail-closed，直到被新的 `local` adapter 取代。不要把旧 workspace-local host service scaffold 复活；新 adapter 的所有 state、receipt 和 proof 都归 MAS scheduler contract。
+旧 `systemd|cron|launchd|docker` manager 只保留为内部 cleanup/audit evidence，公开 CLI 不再暴露这些 manager。不要把旧 workspace-local host service scaffold 复活；新 adapter 的所有 state、receipt 和 proof 都归 MAS scheduler contract。
 
 ### Optional Adapter: `hermes_hosted`
 

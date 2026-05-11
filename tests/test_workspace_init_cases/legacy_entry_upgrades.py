@@ -84,8 +84,9 @@ def test_init_workspace_upgrades_legacy_runtime_entry_scripts_without_force(tmp_
 
     shared_text = shared.read_text(encoding="utf-8")
     watch_runtime_text = watch_runtime.read_text(encoding="utf-8")
-    assert "MED_AUTOSCIENCE_UV_BIN" in shared_text
-    assert "command -v uv" in shared_text
+    assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"' in shared_text
+    assert '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in shared_text
+    assert "command -v uv" not in shared_text
     assert 'python3 -m med_autoscience.cli' not in shared_text
     assert 'WORKSPACE_RUNTIME_ROOT="${WORKSPACE_ROOT}/runtime/quests"' in watch_runtime_text
     assert 'run_medautosci runtime watch \\' in watch_runtime_text
@@ -291,5 +292,6 @@ def test_init_workspace_upgrades_shared_script_that_still_invokes_bare_uv(tmp_pa
 
     assert str(shared) in result["upgraded_files"]
     shared_text = shared.read_text(encoding="utf-8")
-    assert "MED_AUTOSCIENCE_UV_BIN" in shared_text
-    assert '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"' in shared_text
+    assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"' in shared_text
+    assert '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in shared_text
+    assert 'run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli' not in shared_text

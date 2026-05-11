@@ -487,7 +487,7 @@ PYTHONPATH=src python3 -m med_autoscience.cli doctor backend-audit --profile pro
 - optional hosted Hermes target 必须通过 runtime backend contract、readiness proof 和 fail-closed gate 显式接入
 - `runtime_transport/med_deepscientist.py` 只能服务 historical fixture / explicit archive import reference / backend audit，不参与默认 watch/status/execute/recovery
 
-当前代码事实也限制了优化方式：`runtime-ensure-supervision --manager systemd|cron|launchd|docker` 仍是 retired fail-closed path，并不是可用替代 scheduler。本地默认运行已经由正式 `local` scheduler adapter 承担；后续只能扩展该 adapter 的 backend 覆盖面和同构 status / SLO，不能让用户或 workspace 重新维护旧 host service。
+当前代码事实也限制了优化方式：`systemd|cron|launchd|docker` workspace-local service manager 已从公开 CLI choices 移除，只能作为内部 cleanup/audit evidence 返回 retired 状态，并不是可用替代 scheduler。本地默认运行已经由正式 `local` scheduler adapter 承担；后续只能扩展该 adapter 的 backend 覆盖面和同构 status / SLO，不能让用户或 workspace 重新维护旧 host service。
 
 `behavior_equivalence_gate.yaml` 现在是 workspace 兼容和历史迁移 gate，不是声明 “MDS daemon 行为已经完全等价” 的口径。行为等价事实以 `mds_behavior_equivalence_matrix` 为准：MAS 默认运行不要求 MDS daemon，也不提供旧 MDS WebSocket terminal streaming / connector background delivery；这些差异必须显式展示，不能被 functional-monolith status 覆盖。
 

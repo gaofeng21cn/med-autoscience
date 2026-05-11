@@ -5,10 +5,18 @@ from pathlib import Path
 import subprocess
 
 
+def _write_workspace_python(quest_root: Path) -> None:
+    python_path = quest_root.parents[2] / ".venv" / "bin" / "python3"
+    python_path.parent.mkdir(parents=True, exist_ok=True)
+    python_path.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    python_path.chmod(0o755)
+
+
 def test_codex_exec_runner_prompt_requires_auditable_turn_closeout(monkeypatch, tmp_path: Path) -> None:
     runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
     runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
 
     class StartedProcess:
         pid = 12345
@@ -47,6 +55,7 @@ def test_codex_exec_runner_prompt_includes_active_controller_work_unit(monkeypat
     runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
     runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
     runtime_state_path.write_text(
@@ -109,6 +118,7 @@ def test_codex_exec_runner_default_turn_is_not_terminal_attach_capable(monkeypat
     runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
     runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
     popen_calls = []
 
     class StartedProcess:
@@ -144,6 +154,7 @@ def test_codex_exec_runner_explicit_terminal_attach_capability_uses_controlled_b
     runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
     runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
     popen_calls = []
 
     class StartedProcess:
@@ -184,6 +195,7 @@ def test_codex_exec_runner_prompt_maps_controller_action_to_callable_command(mon
     runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-002"
     runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
     runtime_state_path.write_text(
@@ -239,6 +251,7 @@ def test_codex_exec_runner_prompt_infers_quality_repair_command_from_blocking_wo
     runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-003"
     runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
     runtime_state_path.write_text(
@@ -287,6 +300,7 @@ def test_codex_exec_runner_prompt_maps_complete_specificity_request_to_quality_r
     runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-004"
     runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
     runtime_state_path.write_text(

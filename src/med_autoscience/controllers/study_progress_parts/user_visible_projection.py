@@ -70,6 +70,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     details = _mapping_copy(macro_state.get("details"))
     paper_progress_state = build_paper_progress_state(payload)
     package_delivered = bool(details.get("package_delivered")) or bool(paper_progress_state.get("package_delivered"))
+    terminal_delivery = _non_empty_text(paper_progress_state.get("state")) == "terminal_delivered"
     actual_write_active = _actual_write_active(writer_state=writer_state, macro_state=macro_state, payload=payload)
     meaningful_artifact_delta = _meaningful_artifact_delta(payload)
     next_owner = _non_empty_text(paper_progress_state.get("next_owner")) or _next_owner(payload=payload, details=details)
@@ -81,19 +82,20 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     )
     quality_owner_pending = _quality_owner_pending(
         payload=payload,
-        package_delivered=package_delivered,
+        terminal_delivery=terminal_delivery,
         next_owner=next_owner,
     )
     user_action_required = _user_action_required(
         user_next=user_next,
         reason=reason,
-        package_delivered=package_delivered,
+        terminal_delivery=terminal_delivery,
     )
     state_label = _state_label(
         writer_state=writer_state,
         user_next=user_next,
         reason=reason,
         package_delivered=package_delivered,
+        terminal_delivery=terminal_delivery,
         quality_owner_pending=quality_owner_pending,
     )
     current_blockers = _current_blockers(
@@ -101,7 +103,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         user_next=user_next,
         reason=reason,
         details=details,
-        package_delivered=package_delivered,
+        terminal_delivery=terminal_delivery,
         quality_owner_pending=quality_owner_pending,
     )
     state_summary = _state_summary(
@@ -118,7 +120,7 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
         writer_state=writer_state,
         user_next=user_next,
         reason=reason,
-        package_delivered=package_delivered,
+        terminal_delivery=terminal_delivery,
         details=details,
         quality_owner_pending=quality_owner_pending,
     )
@@ -375,16 +377,16 @@ def _why_not_progressing(
     )
 
 
-def _user_action_required(*, user_next: str, reason: str, package_delivered: bool) -> bool:
+def _user_action_required(*, user_next: str, reason: str, terminal_delivery: bool) -> bool:
     if user_next in {"submit_info", "revise"}:
         return True
     if reason in {"user_stop", "stop_loss"}:
         return True
-    return bool(package_delivered and user_next == "submit_info")
+    return bool(terminal_delivery and user_next == "submit_info")
 
 
-def _quality_owner_pending(*, payload: Mapping[str, Any], package_delivered: bool, next_owner: str | None) -> bool:
-    if package_delivered:
+def _quality_owner_pending(*, payload: Mapping[str, Any], terminal_delivery: bool, next_owner: str | None) -> bool:
+    if terminal_delivery:
         return False
     paper_progress = build_paper_progress_state(payload)
     if _non_empty_text(paper_progress.get("state")) in {
@@ -392,6 +394,8 @@ def _quality_owner_pending(*, payload: Mapping[str, Any], package_delivered: boo
         "awaiting_controller_redrive",
         "downstream_only",
     }:
+        return True
+    if _non_empty_text(paper_progress.get("state")) == "blocked_controller_route" and next_owner:
         return True
     request_lifecycle = _mapping_copy(payload.get("ai_reviewer_request_lifecycle"))
     if _non_empty_text(request_lifecycle.get("state")) in {"requested", "assigned"}:
@@ -411,6 +415,7 @@ def _state_label(
     user_next: str,
     reason: str,
     package_delivered: bool,
+    terminal_delivery: bool,
     quality_owner_pending: bool = False,
 ) -> str:
     if writer_state == "conflict" or reason == "truth_conflict":
@@ -419,10 +424,10 @@ def _state_label(
         return "自动运行中"
     if user_next == "submit_info" and reason == "external_info" and package_delivered:
         return "投稿包已交付，等待外部投稿信息"
-    if package_delivered and writer_state == "parked":
-        return "投稿包已交付，自动停驻"
     if quality_owner_pending:
         return _QUALITY_REPAIR_LABEL
+    if terminal_delivery and writer_state == "parked":
+        return "投稿包已交付，自动停驻"
     if reason == "user_stop":
         return "用户暂停/手动停驻"
     if reason == "stop_loss":
@@ -475,7 +480,7 @@ def _current_blockers(
     user_next: str,
     reason: str,
     details: Mapping[str, Any],
-    package_delivered: bool,
+    terminal_delivery: bool,
     quality_owner_pending: bool = False,
 ) -> list[str]:
     if writer_state == "live":
@@ -497,7 +502,7 @@ def _current_blockers(
         return ["质量、artifact 或 runtime 修复 owner 已接管。"]
     if writer_state == "queued":
         return ["系统已有明确 owner/action，等待处理。"]
-    if package_delivered:
+    if terminal_delivery:
         return []
     return ["状态需要检查。"]
 
@@ -507,7 +512,7 @@ def _next_step(
     writer_state: str,
     user_next: str,
     reason: str,
-    package_delivered: bool,
+    terminal_delivery: bool,
     details: Mapping[str, Any],
     quality_owner_pending: bool = False,
 ) -> str:
@@ -519,10 +524,10 @@ def _next_step(
         missing = _normalized_texts(details.get("missing_external_info"))
         suffix = f": {', '.join(missing)}" if missing else ""
         return f"补齐外部投稿信息{suffix}。"
-    if package_delivered:
-        return "投稿包已交付；系统保持自动停驻。"
     if quality_owner_pending:
         return "等待质量修复/复审 owner 完成处理。"
+    if terminal_delivery:
+        return "投稿包已交付；系统保持自动停驻。"
     if reason == "user_stop":
         return "等待用户显式恢复或给出新方案。"
     if reason == "stop_loss":

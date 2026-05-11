@@ -7,6 +7,14 @@ from pathlib import Path
 from tests.study_runtime_test_helpers import make_profile
 
 
+def _write_workspace_python(profile) -> Path:
+    python_path = profile.workspace_root / ".venv" / "bin" / "python3"
+    python_path.parent.mkdir(parents=True, exist_ok=True)
+    python_path.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    python_path.chmod(0o755)
+    return python_path
+
+
 def test_local_scheduler_dry_run_projects_launchd_without_hermes(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
     local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
@@ -35,6 +43,7 @@ def test_local_scheduler_apply_writes_tick_script_plist_and_receipt(monkeypatch,
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
     local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
     profile = make_profile(tmp_path)
+    workspace_python = _write_workspace_python(profile)
     launch_agents = tmp_path / "LaunchAgents"
     monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
     monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
@@ -82,6 +91,8 @@ def test_local_scheduler_apply_writes_tick_script_plist_and_receipt(monkeypatch,
     assert Path(result["launch_agent_path"]).is_file()
     assert Path(result["install_proof_path"]).is_file()
     script = Path(result["script_path"]).read_text(encoding="utf-8")
+    assert script.startswith(f"#!{workspace_python}\n")
+    assert "#!/usr/bin/env python3" not in script
     assert "watch-runtime" in script
     assert "supervisor-scan" in script
     assert "supervisor-consume" in script
@@ -94,10 +105,33 @@ def test_local_scheduler_apply_writes_tick_script_plist_and_receipt(monkeypatch,
     assert any(command and command[0].endswith("watch_runtime_tick.py") for command in commands)
 
 
+def test_local_scheduler_apply_blocks_when_workspace_python_missing(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
+    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
+    profile = make_profile(tmp_path)
+    launch_agents = tmp_path / "LaunchAgents"
+    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
+    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
+
+    result = module.ensure_supervision(
+        profile=profile,
+        manager="local",
+        trigger_now=True,
+        write_install_proof=True,
+    )
+
+    assert result["action"] == "blocked"
+    assert result["install_proof"]["status"] == "blocked"
+    assert result["install_proof"]["reason"] == "workspace_python_missing_or_not_executable"
+    assert not Path(result["script_path"]).exists()
+    assert not Path(result["launch_agent_path"]).exists()
+
+
 def test_local_scheduler_status_requires_launchd_loaded_probe(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
     local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
     profile = make_profile(tmp_path)
+    _write_workspace_python(profile)
     launch_agents = tmp_path / "LaunchAgents"
     monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
     monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))

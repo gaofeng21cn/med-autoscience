@@ -103,18 +103,20 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     med_shared_text = med_shared.read_text(encoding="utf-8")
     runtime_bridge_shared_text = runtime_bridge_shared.read_text(encoding="utf-8")
     runtime_bridge_config_text = runtime_bridge_config.read_text(encoding="utf-8")
-    assert 'MED_AUTOSCIENCE_UV_BIN="${MED_AUTOSCIENCE_UV_BIN:-$(command -v uv || true)}"' in med_shared_text
     assert 'MED_AUTOSCIENCE_RSCRIPT_BIN="${MED_AUTOSCIENCE_RSCRIPT_BIN:-$(command -v Rscript || true)}"' in med_shared_text
     assert 'MED_AUTOSCIENCE_NODE_BIN="${MED_AUTOSCIENCE_NODE_BIN:-$(command -v node || true)}"' in med_shared_text
-    assert '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"' in med_shared_text
+    assert 'WORKSPACE_PYTHON="${WORKSPACE_ROOT}/.venv/bin/python3"' in med_shared_text
+    assert '"${WORKSPACE_PYTHON}" -m med_autoscience.cli "$@"' in med_shared_text
+    assert 'run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli' not in med_shared_text
     assert (
-        '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - "${PROFILE_PATH}"'
+        'PYTHONDONTWRITEBYTECODE=1 "${WORKSPACE_PYTHON}" - "${PROFILE_PATH}"'
         in runtime_bridge_shared_text
     )
     assert (
-        'CONTRACT_JSON="${payload_json}" "${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python - <<'
+        'CONTRACT_JSON="${payload_json}" PYTHONDONTWRITEBYTECODE=1 "${WORKSPACE_PYTHON}" - <<'
         in runtime_bridge_shared_text
     )
+    assert 'PYTHONDONTWRITEBYTECODE=1 "${WORKSPACE_PYTHON}" - <<' in runtime_bridge_shared_text
     assert "MED_DEEPSCIENTIST_LAUNCHER" not in runtime_bridge_config_text
     assert "MED_DEEPSCIENTIST_LAUNCHER" not in runtime_bridge_shared_text
     assert "run_med_deepscientist_launcher" not in runtime_bridge_shared_text

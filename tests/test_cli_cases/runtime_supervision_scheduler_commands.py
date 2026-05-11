@@ -130,6 +130,31 @@ def test_runtime_ensure_supervision_command_allows_explicit_hermes_adapter(
     assert json.loads(captured.out)["adapter_id"] == "hermes_gateway_cron"
 
 
+def test_runtime_supervision_cli_rejects_retired_workspace_local_managers(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "runtime",
+                "ensure-supervision",
+                "--profile",
+                str(profile_path),
+                "--manager",
+                "cron",
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert excinfo.value.code == 2
+    assert "invalid choice" in captured.err
+    assert "cron" in captured.err
+    assert "local" in captured.err
+    assert "hermes" in captured.err
+
+
 def test_runtime_remove_supervision_command_defaults_to_local_manager(
     monkeypatch, tmp_path: Path, capsys
 ) -> None:

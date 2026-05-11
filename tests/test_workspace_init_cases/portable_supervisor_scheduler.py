@@ -63,11 +63,11 @@ def test_init_workspace_creates_watch_runtime_service_scripts(tmp_path: Path) ->
     assert "register/refresh MAS scheduler contract local adapter" in install_text
     assert "--manager hermes" in install_text
     assert "explicit Hermes gateway cron adapter" in install_text
-    assert "Retired diagnostic managers:" in install_text
-    assert "--manager systemd" in install_text
-    assert "--manager cron" in install_text
-    assert "--manager launchd" in install_text
-    assert "--manager docker" in install_text
+    assert "Retired workspace-local service managers are cleanup evidence only" in install_text
+    assert "--manager systemd" not in install_text
+    assert "--manager cron" not in install_text
+    assert "--manager launchd" not in install_text
+    assert "--manager docker" not in install_text
 
     status_text = service_status.read_text(encoding="utf-8")
     assert 'run_medautosci runtime supervision-status --profile "${PROFILE_PATH}" "$@"' in status_text

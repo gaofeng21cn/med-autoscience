@@ -10,6 +10,8 @@ from typing import Any, Protocol
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import wrapper_command
 from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import quest_python_runtime_env
+from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import workspace_python_available
+from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import workspace_python_path
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import command_available
 
 
@@ -65,6 +67,19 @@ class CodexExecTurnRunner:
                 "fail_closed": True,
                 "error": f"codex binary is not available: {self.codex_binary}",
             }
+        workspace_python = workspace_python_path(quest_root=quest_root)
+        if self.use_worker_wrapper and not workspace_python_available(quest_root=quest_root):
+            return {
+                "runner_kind": "codex_exec",
+                "start_mode": "worker_wrapper_subprocess",
+                "command": command,
+                "wrapper_command": None,
+                "available": True,
+                "live": False,
+                "fail_closed": True,
+                "error": "workspace_python_missing_or_not_executable",
+                "workspace_python": str(workspace_python) if workspace_python is not None else None,
+            }
         stdout_path = _run_root(quest_root=quest_root, run_id=run_id) / "stdout.jsonl"
         stderr_path = _run_root(quest_root=quest_root, run_id=run_id) / "stderr.txt"
         prompt_path = _run_root(quest_root=quest_root, run_id=run_id) / "prompt.md"
@@ -80,25 +95,33 @@ class CodexExecTurnRunner:
             ),
             encoding="utf-8",
         )
-        wrapper_cmd = wrapper_command(
-            runtime_root=runtime_root,
-            quest_root=quest_root,
-            quest_id=quest_id,
-            run_id=run_id,
-            prompt_path=prompt_path,
-            stdout_path=stdout_path,
-            stderr_path=stderr_path,
-            codex_binary=self.codex_binary,
-            terminal_attach_capable=terminal_attach_capable,
+        wrapper_cmd = (
+            wrapper_command(
+                runtime_root=runtime_root,
+                quest_root=quest_root,
+                quest_id=quest_id,
+                run_id=run_id,
+                prompt_path=prompt_path,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+                codex_binary=self.codex_binary,
+                terminal_attach_capable=terminal_attach_capable,
+            )
+            if self.use_worker_wrapper
+            else None
         )
         stdout_handle = stdout_path.open("w", encoding="utf-8")
         stderr_handle = stderr_path.open("w", encoding="utf-8")
         try:
-            popen_args = wrapper_cmd if self.use_worker_wrapper else [*command, prompt_path.read_text(encoding="utf-8")]
+            popen_args = wrapper_cmd if wrapper_cmd is not None else [*command, prompt_path.read_text(encoding="utf-8")]
+            env = quest_python_runtime_env(
+                quest_root=quest_root,
+                run_id=run_id if self.use_worker_wrapper else None,
+            )
             process = subprocess.Popen(
                 popen_args,
                 cwd=str(quest_root),
-                env=quest_python_runtime_env(quest_root=quest_root),
+                env=env,
                 text=True,
                 stdin=subprocess.DEVNULL,
                 stdout=stdout_handle,

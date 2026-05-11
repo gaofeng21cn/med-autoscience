@@ -389,6 +389,8 @@ def _legacy_medautoscience_shared_entry_reason(
             and '"${MED_AUTOSCIENCE_UV_BIN}" run --directory "${MED_AUTOSCIENCE_REPO_RESOLVED}" python -m med_autoscience.cli "$@"'
             in existing_content
         )
+        if looks_like_uv_entry or looks_like_managed_shared:
+            return "legacy_workspace_python_entry"
         if looks_like_managed_shared and "MED_AUTOSCIENCE_RSCRIPT_BIN" not in existing_content:
             return "legacy_rscript_entry"
         if looks_like_managed_shared and "MED_AUTOSCIENCE_NODE_BIN" not in existing_content:
@@ -436,7 +438,7 @@ def _legacy_watch_runtime_service_entry_reason(
             ("ops", "medautoscience", "bin", "install-watch-runtime-service"),
             (
                 "runtime ensure-supervision",
-                "Retired diagnostic managers:",
+                "Retired workspace-local service managers are cleanup evidence only",
                 "retired workspace-local service manager",
             ),
             "legacy_watch_runtime_service_install",

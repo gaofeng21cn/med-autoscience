@@ -391,7 +391,7 @@ uv run python scripts/real-paper-autonomy-soak-inventory.py \
 
 因此，repo capability 可以记录为 `paper_autonomy_stability_evidence=evidence_read_model_landed`；真实论文自治稳定性只能在后续 evidence 无 blocker 时单独 closeout 为 `paper_autonomy_stability=landed`。
 
-`medautosci runtime ensure-supervision` 默认注册或刷新 MAS-owned `local` adapter；macOS 会写入 LaunchAgent、tick script、install proof 和 scheduler receipt。显式 `--manager hermes` 会走 optional Hermes gateway cron adapter。如果显式传入 `--manager systemd|cron|launchd|docker`，命令必须 fail-closed 返回 `retired_workspace_local_service_manager`，不渲染模板、不给安装命令、不写旧 install proof。检测到旧 workspace-local host service 文件或 loaded 状态时，只能把它作为 `retired_cleanup_evidence` 清理，然后回到 MAS scheduler contract。
+`medautosci runtime ensure-supervision` 默认注册或刷新 MAS-owned `local` adapter；macOS 会写入 LaunchAgent、tick script、install proof 和 scheduler receipt。显式 `--manager hermes` 会走 optional Hermes gateway cron adapter。已退役的 `systemd|cron|launchd|docker` manager 不再是公开 CLI 选项；内部 cleanup/audit surface 仍可把旧 workspace-local host service 文件或 loaded 状态作为 `retired_cleanup_evidence` 读取，并返回 `retired_workspace_local_service_manager`，但不得渲染模板、给安装命令或写旧 install proof。清理后必须回到 MAS scheduler contract。
 
 Hermes 对本地运行的必要性已经从默认路径移除；后续只能扩展正式 local scheduler adapter 的 backend 覆盖面。新增 backend 必须调用同一个 MAS tick script、写出同构 status / latest-run / SLO projection，并满足与 Hermes adapter 相同的幂等、去重、失败可见性和 retired-service cleanup 规则；不能复活旧 workspace-local service 模板作为隐式旁路。
 

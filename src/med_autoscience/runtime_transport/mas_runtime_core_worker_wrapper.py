@@ -10,7 +10,6 @@ import pty
 import select
 import shlex
 import subprocess
-import sys
 import time
 import termios
 from pathlib import Path
@@ -20,7 +19,7 @@ from typing import Any
 HEARTBEAT_INTERVAL_SECONDS = 5
 
 
-def quest_python_runtime_env(*, quest_root: Path) -> dict[str, str]:
+def quest_python_runtime_env(*, quest_root: Path, run_id: str | None = None) -> dict[str, str]:
     cache_root = quest_root / ".ds" / "python_pycache"
     cache_root.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
@@ -28,6 +27,8 @@ def quest_python_runtime_env(*, quest_root: Path) -> dict[str, str]:
     env["PYTHONPYCACHEPREFIX"] = str(cache_root)
     env.pop("PYTHONDONTWRITEBYTECODE", None)
     _remove_active_python_virtualenv(env)
+    if run_id:
+        _apply_managed_runtime_home(env=env, quest_root=quest_root, run_id=run_id)
     return env
 
 
@@ -83,6 +84,18 @@ def _workspace_root_from_quest_root(quest_root: Path) -> Path | None:
     return None
 
 
+def workspace_python_path(*, quest_root: Path) -> Path | None:
+    workspace_root = _workspace_root_from_quest_root(quest_root)
+    if workspace_root is None:
+        return None
+    return workspace_root / ".venv" / "bin" / "python3"
+
+
+def workspace_python_available(*, quest_root: Path) -> bool:
+    python_path = workspace_python_path(quest_root=quest_root)
+    return python_path is not None and python_path.is_file() and os.access(python_path, os.X_OK)
+
+
 def _remove_active_python_virtualenv(env: dict[str, str]) -> None:
     virtual_env = env.pop("VIRTUAL_ENV", None)
     env.pop("__PYVENV_LAUNCHER__", None)
@@ -92,6 +105,36 @@ def _remove_active_python_virtualenv(env: dict[str, str]) -> None:
     path_entries = env.get("PATH", "").split(os.pathsep)
     kept_entries = [entry for entry in path_entries if not _same_path(Path(entry), virtualenv_bin)]
     env["PATH"] = os.pathsep.join(kept_entries)
+
+
+def _managed_runtime_home(*, quest_root: Path, run_id: str) -> Path:
+    return quest_root / ".ds" / "codex_homes" / run_id
+
+
+def _apply_managed_runtime_home(*, env: dict[str, str], quest_root: Path, run_id: str) -> None:
+    runtime_home = _managed_runtime_home(quest_root=quest_root, run_id=run_id)
+    runtime_home.mkdir(parents=True, exist_ok=True)
+    original_home = env.get("HOME")
+    if original_home:
+        env.setdefault("CODEX_HOME", str(Path(original_home) / ".codex"))
+    env["HOME"] = str(runtime_home)
+    env["XDG_CACHE_HOME"] = str(runtime_home / ".cache")
+    env["XDG_CONFIG_HOME"] = str(runtime_home / ".config")
+    env["XDG_DATA_HOME"] = str(runtime_home / ".local" / "share")
+    env["NPM_CONFIG_CACHE"] = str(runtime_home / ".npm")
+    env["UV_CACHE_DIR"] = str(runtime_home / ".cache" / "uv")
+
+
+def _codex_exec_command(*, codex_binary: str, prompt: str) -> list[str]:
+    return [
+        codex_binary,
+        "exec",
+        "--json",
+        "--skip-git-repo-check",
+        "--ignore-user-config",
+        "--ephemeral",
+        prompt,
+    ]
 
 
 def _same_path(left: Path, right: Path) -> bool:
@@ -111,8 +154,13 @@ def wrapper_command(
     codex_binary: str,
     terminal_attach_capable: bool = False,
 ) -> list[str]:
+    if not workspace_python_available(quest_root=quest_root):
+        raise RuntimeError("workspace_python_missing_or_not_executable")
+    workspace_python = workspace_python_path(quest_root=quest_root)
+    if workspace_python is None:
+        raise RuntimeError("workspace_python_missing_or_not_executable")
     command = [
-        sys.executable,
+        str(workspace_python),
         "-m",
         "med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper",
         "--runtime-root",
@@ -213,9 +261,9 @@ def run_wrapper(
     stderr_handle = stderr_path.open("a", encoding="utf-8")
     try:
         child = subprocess.Popen(
-            [codex_binary, "exec", "--json", "--skip-git-repo-check", prompt],
+            _codex_exec_command(codex_binary=codex_binary, prompt=prompt),
             cwd=str(quest_root),
-            env=quest_python_runtime_env(quest_root=quest_root),
+            env=quest_python_runtime_env(quest_root=quest_root, run_id=run_id),
             text=True,
             stdin=subprocess.DEVNULL,
             stdout=stdout_handle,
@@ -326,9 +374,9 @@ def _run_terminal_capable_wrapper(
     child: subprocess.Popen[bytes] | None = None
     try:
         child = subprocess.Popen(
-            [codex_binary, "exec", "--json", "--skip-git-repo-check", prompt],
+            _codex_exec_command(codex_binary=codex_binary, prompt=prompt),
             cwd=str(quest_root),
-            env=quest_python_runtime_env(quest_root=quest_root),
+            env=quest_python_runtime_env(quest_root=quest_root, run_id=run_id),
             stdin=slave_fd,
             stdout=slave_fd,
             stderr=slave_fd,
