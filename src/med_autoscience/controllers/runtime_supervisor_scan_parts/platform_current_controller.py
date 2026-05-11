@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
+from med_autoscience.controllers.runtime_supervisor_scan_parts import pending_user_messages
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 DOWNSTREAM_PACKAGE_FRESHNESS_WORK_UNIT_IDS = {
@@ -220,6 +221,7 @@ def write_current_controller_authorization(
     repair_clear_reason: str = "current_controller_authorization",
     repair_extra: Mapping[str, Any] | None = None,
     allow_specificity_work_unit: bool = False,
+    allow_pending_control_messages: bool = False,
     preserve_live_worker_state: bool = True,
 ) -> dict[str, Any] | None:
     authorization = current_controller_authorization_payload(
@@ -233,7 +235,13 @@ def write_current_controller_authorization(
     runtime_state = read_json_object(runtime_state_path)
     if runtime_state is None:
         return {"written": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
-    if int(runtime_state.get("pending_user_message_count") or 0) > 0:
+    if pending_user_messages.pending_count(runtime_state) > 0 and not (
+        allow_pending_control_messages
+        and pending_user_messages.only_control_plane_messages(
+            runtime_state_path=runtime_state_path,
+            expected_count=pending_user_messages.pending_count(runtime_state),
+        )
+    ):
         return {"written": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path)}
     preserved_active_run_id = text(runtime_state.get("active_run_id"))
     preserve_worker_state = (

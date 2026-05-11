@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts.owner_tokens import owner_token
+from med_autoscience.controllers.runtime_supervisor_scan_parts import pending_user_messages
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_current_controller
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
@@ -65,6 +66,7 @@ def stale_publication_gate_closeout_targets_resolved(
     *,
     status: Mapping[str, Any],
     runtime_state: Mapping[str, Any],
+    runtime_state_path: Path | None = None,
     gate_specificity: Mapping[str, Any] | None,
 ) -> bool:
     if _text(status.get("quest_status")) != "waiting_for_user":
@@ -77,11 +79,18 @@ def stale_publication_gate_closeout_targets_resolved(
         _text(continuation_state.get("continuation_policy")) == "wait_for_user_or_resume"
         and _text(continuation_state.get("continuation_anchor")) == "turn_closeout"
         and _text(continuation_state.get("continuation_reason")) == "blocked_turn_closeout_waiting_for_owner"
-        and int(continuation_state.get("pending_user_message_count") or 0) == 0
+        and (
+            int(continuation_state.get("pending_user_message_count") or 0) == 0
+            or _pending_queue_is_control_plane_only(
+                runtime_state=runtime_state,
+                runtime_state_path=runtime_state_path,
+            )
+        )
         and next_owner in {"publication_gate", "mas_controller"}
         and (
             next_owner == "publication_gate"
             or _runtime_authorization_stale_specificity(runtime_state)
+            or _runtime_authorization_target_ready_specificity(runtime_state)
             or not _mapping(runtime_state.get("last_controller_decision_authorization"))
         )
         and _mapping(gate_specificity).get("specific_targets_present") is True
@@ -94,11 +103,15 @@ def clear_stale_publication_gate_closeout(
     study_id: str,
     quest_id: str | None,
     source: str,
+    allow_pending_control_messages: bool = False,
 ) -> dict[str, Any]:
     runtime_state = _read_json_object(runtime_state_path)
     if runtime_state is None:
         return {"cleared": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
-    if int(runtime_state.get("pending_user_message_count") or 0) > 0:
+    if int(runtime_state.get("pending_user_message_count") or 0) > 0 and not (
+        allow_pending_control_messages
+        and _pending_queue_is_control_plane_only(runtime_state=runtime_state, runtime_state_path=runtime_state_path)
+    ):
         return {"cleared": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path)}
     blocked_closeout = _mapping(runtime_state.get("blocked_turn_closeout"))
     if _text(runtime_state.get("continuation_reason")) != "blocked_turn_closeout_waiting_for_owner":
@@ -108,6 +121,7 @@ def clear_stale_publication_gate_closeout(
         pass
     elif next_owner == "mas_controller" and (
         _runtime_authorization_stale_specificity(runtime_state)
+        or _runtime_authorization_target_ready_specificity(runtime_state)
         or not _mapping(runtime_state.get("last_controller_decision_authorization"))
     ):
         pass
@@ -177,6 +191,22 @@ def _runtime_authorization_stale_specificity(runtime_state: Mapping[str, Any]) -
         and _text(authorization.get("non_executable_reason")) == "gate_needs_specificity_without_targets"
         and authorization.get("controller_work_unit_executable") is False
         and _text(lifecycle.get("block_reason")) == "needs_specificity"
+    )
+
+
+def _runtime_authorization_target_ready_specificity(runtime_state: Mapping[str, Any]) -> bool:
+    authorization = _mapping(runtime_state.get("last_controller_decision_authorization"))
+    next_work_unit = _mapping(authorization.get("next_work_unit"))
+    return bool(
+        (
+            _text(authorization.get("work_unit_id")) in SPECIFICITY_WORK_UNIT_IDS
+            or _text(next_work_unit.get("unit_id")) in SPECIFICITY_WORK_UNIT_IDS
+        )
+        and specificity_target_status(authorization.get("specificity_targets")).get("complete") is True
+        and _text(authorization.get("non_executable_reason")) != "gate_needs_specificity_without_targets"
+        and _text(next_work_unit.get("non_executable_reason")) != "gate_needs_specificity_without_targets"
+        and authorization.get("controller_work_unit_executable") is not False
+        and next_work_unit.get("controller_work_unit_executable") is not False
     )
 
 
@@ -311,11 +341,18 @@ def clear_stale_controller_runtime_state(
     clear_reason: str,
     source: str,
     allow_pending_user_messages: bool = False,
+    allow_pending_control_messages: bool = False,
 ) -> dict[str, Any]:
     runtime_state = _read_json_object(runtime_state_path)
     if runtime_state is None:
         return {"cleared": False, "reason": "runtime_state_missing_or_invalid", "path": str(runtime_state_path)}
-    if int(runtime_state.get("pending_user_message_count") or 0) > 0 and not allow_pending_user_messages:
+    if int(runtime_state.get("pending_user_message_count") or 0) > 0 and not (
+        allow_pending_user_messages
+        or (
+            allow_pending_control_messages
+            and _pending_queue_is_control_plane_only(runtime_state=runtime_state, runtime_state_path=runtime_state_path)
+        )
+    ):
         return {"cleared": False, "reason": "pending_user_messages_present", "path": str(runtime_state_path)}
     if not runtime_state_has_controller_terminal(runtime_state):
         return {"cleared": False, "reason": "stale_controller_terminal_not_found", "path": str(runtime_state_path)}
@@ -377,6 +414,7 @@ def clear_stale_specificity_runtime_state(
     quest_id: str | None,
     source: str,
     allow_pending_user_messages: bool = False,
+    allow_pending_control_messages: bool = False,
 ) -> dict[str, Any]:
     runtime_state = _read_json_object(runtime_state_path)
     if runtime_state is None:
@@ -390,6 +428,7 @@ def clear_stale_specificity_runtime_state(
         clear_reason="stale_specificity_terminal",
         source=source,
         allow_pending_user_messages=allow_pending_user_messages,
+        allow_pending_control_messages=allow_pending_control_messages,
     )
 
 
@@ -450,14 +489,20 @@ def apply_if_targets_resolved(
     if not stale_publication_gate_closeout_targets_resolved(
         status=status,
         runtime_state=runtime_state,
+        runtime_state_path=runtime_state_path,
         gate_specificity=gate_specificity,
     ):
         return None
+    allow_pending_control_messages = _pending_queue_is_control_plane_only(
+        runtime_state=runtime_state,
+        runtime_state_path=runtime_state_path,
+    )
     clear_result = clear_stale_publication_gate_closeout(
         runtime_state_path=runtime_state_path,
         study_id=study_id,
         quest_id=quest_id,
         source=source,
+        allow_pending_control_messages=allow_pending_control_messages,
     )
     blocked_turn_closeout_clear = blocked_turn_closeout_clear_result(clear_result)
     if clear_result.get("cleared") is not True:
@@ -482,6 +527,7 @@ def apply_if_targets_resolved(
         repair_clear_reason="stale_publication_gate_closeout_targets_resolved",
         repair_extra={"cleared_keys": clear_result.get("cleared_keys")},
         allow_specificity_work_unit=True,
+        allow_pending_control_messages=allow_pending_control_messages,
     )
     if authorization is None:
         return {
@@ -554,6 +600,22 @@ def blocked_turn_closeout_clear_result(clear_result: Mapping[str, Any] | None) -
         "cleared_keys": [key for key in cleared_keys if key in {"blocked_turn_closeout", "last_liveness_reconcile_reason"}],
         "path": _text(clear_result.get("path")),
     }
+
+
+def _pending_queue_is_control_plane_only(
+    *,
+    runtime_state: Mapping[str, Any],
+    runtime_state_path: Path | None,
+) -> bool:
+    count = pending_user_messages.pending_count(runtime_state)
+    return bool(
+        count > 0
+        and runtime_state_path is not None
+        and pending_user_messages.only_control_plane_messages(
+            runtime_state_path=runtime_state_path,
+            expected_count=count,
+        )
+    )
 
 
 def _string_items(value: object) -> list[str]:

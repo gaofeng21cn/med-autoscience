@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
@@ -8,6 +9,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import completion
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.runtime_supervisor_scan_parts.owner_tokens import owner_token
+from med_autoscience.controllers.runtime_supervisor_scan_parts import pending_user_messages
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 
 
@@ -151,7 +153,7 @@ def current_controller_owner_handoff_redrive_required(
     if active_run_id(status, progress) is not None or worker_running(status):
         return False
     continuation_state = _mapping(status.get("continuation_state"))
-    if int(continuation_state.get("pending_user_message_count") or 0) > 0:
+    if _pending_user_messages_block_redrive(continuation_state):
         return False
     blocked_closeout = _mapping(status.get("blocked_turn_closeout"))
     if not blocked_closeout:
@@ -265,7 +267,7 @@ def _publication_gate_closeout_targets_resolved_redrive_required(
     if active_run_id(status, {}) is not None or worker_running(status):
         return False
     continuation_state = _mapping(status.get("continuation_state"))
-    if int(continuation_state.get("pending_user_message_count") or 0) > 0:
+    if _pending_user_messages_block_redrive(continuation_state):
         return False
     blocked_closeout = _mapping(status.get("blocked_turn_closeout"))
     if not blocked_closeout:
@@ -285,7 +287,7 @@ def _runtime_platform_repair_redrive_pending(status: Mapping[str, Any]) -> bool:
     if active_run_id(status, {}) is not None or worker_running(status):
         return False
     continuation_state = _mapping(status.get("continuation_state"))
-    if int(continuation_state.get("pending_user_message_count") or 0) > 0:
+    if _pending_user_messages_block_redrive(continuation_state):
         return False
     return bool(
         _text(continuation_state.get("continuation_policy")) == "auto"
@@ -335,6 +337,19 @@ def _string_items(value: object) -> list[str]:
     if not isinstance(value, Iterable) or isinstance(value, Mapping | bytes):
         return []
     return list(dict.fromkeys(text for item in value if (text := _text(item)) is not None))
+
+
+def _pending_user_messages_block_redrive(continuation_state: Mapping[str, Any]) -> bool:
+    count = pending_user_messages.pending_count(continuation_state)
+    if count <= 0:
+        return False
+    runtime_state_path = _text(continuation_state.get("runtime_state_path"))
+    if runtime_state_path is None:
+        return True
+    return not pending_user_messages.only_control_plane_messages(
+        runtime_state_path=Path(runtime_state_path),
+        expected_count=count,
+    )
 
 
 def _progress_activity_timeout(progress: Mapping[str, Any]) -> dict[str, Any]:

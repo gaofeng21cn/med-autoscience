@@ -638,6 +638,7 @@ def _clear_stale_controller_runtime_state(
     quest_id: str | None,
     clear_reason: str,
     allow_pending_user_messages: bool = False,
+    allow_pending_control_messages: bool = False,
 ) -> dict[str, Any]:
     return platform_repair_closeout_redrive.clear_stale_controller_runtime_state(
         runtime_state_path=runtime_state_path,
@@ -646,6 +647,7 @@ def _clear_stale_controller_runtime_state(
         clear_reason=clear_reason,
         source=RUNTIME_PLATFORM_REPAIR_SOURCE,
         allow_pending_user_messages=allow_pending_user_messages,
+        allow_pending_control_messages=allow_pending_control_messages,
     )
 
 
@@ -655,6 +657,7 @@ def _clear_stale_specificity_runtime_state(
     study_id: str,
     quest_id: str | None,
     allow_pending_user_messages: bool = False,
+    allow_pending_control_messages: bool = False,
 ) -> dict[str, Any]:
     return platform_repair_closeout_redrive.clear_stale_specificity_runtime_state(
         runtime_state_path=runtime_state_path,
@@ -662,6 +665,7 @@ def _clear_stale_specificity_runtime_state(
         quest_id=quest_id,
         source=RUNTIME_PLATFORM_REPAIR_SOURCE,
         allow_pending_user_messages=allow_pending_user_messages,
+        allow_pending_control_messages=allow_pending_control_messages,
     )
 
 
