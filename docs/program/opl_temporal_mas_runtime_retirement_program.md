@@ -14,7 +14,7 @@ Master entry: OPL family framework 的总开发入口是 `/Users/gaofeng/workspa
 
 按 OPL 新定位，MAS 已验证的 SQLite 持久化、file lifecycle、artifact index、retention、restore proof、migration ledger 和 workspace lifecycle 经验，应拆成两层：`framework_generic` 能力上收到 OPL framework，`mas_domain_specific` truth 留在 MAS。MAS 不应长期独自维护其他 domain 也需要的智能体运行外围能力。
 
-当前必须保持诚实边界：Temporal 现在是 OPL family runtime provider 的生产目标和 contract-ready skeleton，不是已经替换 MAS 本地 scheduler 的 live provider。MAS 的 `local` supervision scheduler、one-shot `runtime-supervisor-reconcile`、workspace-local Portal / Live Console 在过渡期仍有价值，但它们的长期身份应降级为 local diagnostics / fallback / evidence surface。
+当前必须保持诚实边界：OPL Temporal provider code 已落地，包含 Temporal TypeScript SDK、`StageAttemptWorkflow`、activity、signal/query、CLI start/query/signal 和 provider receipt；但它还不是已经替换 MAS 本地 scheduler 的 live provider。真实 Temporal server/worker deployment、真实 Codex long-running activity runner、MAS paper-line soak 与 cutover 仍未完成。MAS 的 `local` supervision scheduler、one-shot `runtime-supervisor-reconcile`、workspace-local Portal / Live Console 在过渡期仍有价值，但它们的长期身份应降级为 local diagnostics / fallback / evidence surface。
 
 目标 owner split 固定为：
 
@@ -248,7 +248,7 @@ docs/
 
 执行顺序必须跟 OPL master plan 对齐：
 
-1. OPL master P1/P2 先证明 Temporal provider skeleton 与 Codex stage activity runner 可以运行 fixture。
+1. OPL master P1 已证明 Temporal provider core 可在 repo/test 面表达 workflow/activity/signal/query；后续先补真实 Temporal worker/server deployment 与 Codex long-running activity runner。
 2. OPL master P2b 先把 MAS lifecycle/file-management 经验抽象为 framework primitive，MAS 侧完成 `framework_generic` / `mas_domain_specific` 清单。
 3. OPL master P2c 冻结 standard domain-agent skeleton，MAS 先做 mapping/adapters，再考虑物理目录重组。
 4. MAS 只在 sidecar export/dispatch、owner receipt、stage closeout 和 forbidden-write gate 已对齐后进入真实 paper-line guarded soak。
@@ -262,7 +262,7 @@ docs/
 交付：
 
 - 本 program 成为 OPL/Temporal 成熟后 MAS runtime 退役的 active plan。
-- MAS docs 明确 Temporal 未完全落地，不能把目标状态写成现实状态。
+- MAS docs 明确 OPL Temporal provider code 已落地，但真实 live provider cutover / MAS scheduler 替换未完成，不能把目标状态写成现实状态。
 - OPL/framework-level 新 runtime 能力默认采用 TypeScript；MAS domain research 能力继续采用 Python owner surface，通过 typed contract 连接。
 - `runtime_supervision_loop`、`supervision_scheduler_contract`、`status` 后续更新时必须把 local scheduler 写成 diagnostics / transitional fail-safe。
 - 搜索 Hermes-first、watchdog、scheduler、daemon、LaunchAgent、local service wording，分成 active / legacy / diagnostics / retired。
@@ -292,13 +292,14 @@ docs/
 
 ### Phase 2: Temporal provider pilot
 
-目标：让 OPL provider 真正承接 stage attempt，而不是只停留在 contract。
+目标：让 OPL provider 从已落地 code path 进入真实运行环境，真正承接 MAS stage attempt。
 
 交付：
 
-- OPL `temporal` provider 能运行 fixture `StageAttemptWorkflow`。
-- Activity 包括 `CodexStageActivity` 和 `MasSidecarDispatchActivity`。
-- Signal 包括 human gate、user modification intake、pause/resume/stop。
+- 已完成：OPL `temporal` provider 具备 `StageAttemptWorkflow`、Codex / domain sidecar activity、human gate / user instruction / resume signal 和 query surface。
+- 待完成：真实 Temporal server/worker deployment 能运行 MAS stage attempt。
+- 待完成：Codex activity 从 stub 升级为真实 long-running runner，domain sidecar activity 调用 MAS owner dispatch。
+- 待完成：human gate、user modification intake、pause/resume/stop 信号进入真实 MAS revision / gate owner chain。
 - Query 返回 attempt status、freshness、blocked reason、MAS source refs。
 - Provider history 写 OPL attempt ledger；MAS truth 仍由 MAS 写。
 
