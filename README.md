@@ -29,7 +29,7 @@
 </table>
 
 <p align="center">
-  <img src="assets/branding/medautoscience-hero.png" alt="Med Auto Science hero" width="100%" />
+  <img src="assets/branding/medautoscience-overview.png" alt="Med Auto Science overview" width="100%" />
 </p>
 
 > `Med Auto Science` is for teams already doing real medical research. It keeps topic framing, data preparation, evidence progression, progress reporting, and manuscript-facing delivery on the same line.

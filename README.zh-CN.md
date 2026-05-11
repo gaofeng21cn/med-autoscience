@@ -29,7 +29,7 @@
 </table>
 
 <p align="center">
-  <img src="assets/branding/medautoscience-hero.png" alt="Med Auto Science 主示意图" width="100%" />
+  <img src="assets/branding/medautoscience-overview.png" alt="Med Auto Science 主示意图" width="100%" />
 </p>
 
 > `Med Auto Science` 面向已经进入真实研究阶段的团队。它把选题、数据整理、证据推进、进度反馈和论文相关文件放在同一条主线上，便于持续推进和审阅。
