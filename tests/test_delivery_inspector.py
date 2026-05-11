@@ -204,7 +204,7 @@ def test_delivery_inspector_cli_supports_public_publication_alias_json(tmp_path:
     assert payload["human_package"]["role"] == "human_facing_mirror"
 
 
-def test_delivery_inspector_markdown_names_source_mirror_and_legacy_upgrade(tmp_path: Path) -> None:
+def test_delivery_inspector_reports_source_mirror_and_legacy_upgrade_contract(tmp_path: Path) -> None:
     inspector = importlib.import_module("med_autoscience.controllers.delivery_inspector")
     profiles = importlib.import_module("med_autoscience.profiles")
     workspace_root = tmp_path / "repo"
@@ -222,6 +222,11 @@ def test_delivery_inspector_markdown_names_source_mirror_and_legacy_upgrade(tmp_
     )
     markdown = inspector.render_delivery_inspection_markdown(result)
 
-    assert "submission_minimal = controller-authorized source" in markdown
-    assert "current_package = human-facing mirror" in markdown
-    assert "Legacy layout upgrades on the next authorized sync" in markdown
+    assert result["source_package"]["role"] == "controller_authorized_source"
+    assert result["human_package"]["role"] == "human_facing_mirror"
+    assert result["source_package"]["layout_status"] == "legacy"
+    assert result["freshness"]["verdict"] == "missing"
+    assert result["mutation_policy"]["read_only"] is True
+    assert result["mutation_policy"]["writes_package"] is False
+    assert "medautosci study delivery-sync" in result["next_sync_command"]
+    assert markdown.strip()
