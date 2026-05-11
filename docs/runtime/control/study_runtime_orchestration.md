@@ -69,13 +69,13 @@
 - [`src/med_autoscience/controllers/study_runtime_resolution.py`](../../../src/med_autoscience/controllers/study_runtime_resolution.py)
   - 负责 study YAML 读取、study root / study id 解析，以及 execution payload 归一化
 - [`src/med_autoscience/controllers/study_runtime_transport.py`](../../../src/med_autoscience/controllers/study_runtime_transport.py)
-  - 负责 `managed_runtime_transport` 相关的 transport I/O seam，把 daemon 调用绑定收口为独立内部层
+  - 负责 `managed_runtime_transport` 相关的 transport I/O seam，把 MAS Runtime OS / managed backend 调用收口为独立内部层
   - 薄层 consumer / test shim 至少可以通过 `managed_runtime_transport` 或 `managed_runtime_backend` 绑定默认 backend
-  - `med_deepscientist_transport` 仍只作为兼容别名保留，避免旧测试和旧内部入口立即断裂
+  - `med_deepscientist_transport` 只作为 legacy compatibility alias 保留，用于旧测试、旧 fixture、explicit archive import 或 backend audit；它不再表示外部 MDS daemon 是默认 runtime owner
 `study_runtime_router.py` 继续对外 re-export typed surface，并显式 re-export 仍被测试约束的私有 resolution / decision / startup / completion / execution / transport helper。
 因此既有调用面和现有 router monkeypatch 边界，不需要因为模块化拆分而改导入或改测试策略。
 
-当前 controller 侧对 `MedDeepScientist` 的最小稳定 transport 依赖，应收敛在显式 contract 上：
+当前 controller 侧对 managed runtime backend 的最小稳定 transport 依赖，应收敛在显式 contract 上：
 
 - quest create success 至少返回 `ok + snapshot.quest_id`
 - quest control success 至少返回 `ok + quest_id + action + status + snapshot`
@@ -86,14 +86,14 @@
 
 对于会修改 runtime durable state 的 transport，当前主线额外固定：
 
-- `PATCH /api/quests/{id}/startup-context` 只允许 daemon 单一路径写入
-- `POST /api/quests/{id}/control` 的 `pause` / `stop` 只允许 daemon 单一路径写入
-- daemon 不可达时，这些写入口直接 fail-closed
+- `PATCH /api/quests/{id}/startup-context` 只允许 MAS managed runtime owner path 写入
+- `POST /api/quests/{id}/control` 的 `pause` / `stop` 只允许 MAS managed runtime owner path 写入
+- managed runtime backend 不可达时，这些写入口直接 fail-closed
 - 不再允许 controller 通过本地 quest YAML / runtime_state 文件做写旁路
 
 对 `startup_contract` 的 authoritative ownership 也已明确：
 
-- `MedDeepScientist` runtime-owned subset：
+- `MAS Runtime OS` runtime-owned subset：
   - `schema_version`
   - `user_language`
   - `need_research_paper`
@@ -130,7 +130,7 @@
   - `reporting_guideline_family`
   - `submission_targets`
 
-这些 controller-owned extension 仍保持 flat `startup_contract` 形态；runtime 需要保证 durable persistence / stable echo / snapshot roundtrip，但不把它们升级成 runtime core authoritative schema。
+这些 controller-owned extension 仍保持 flat `startup_contract` 形态；runtime 需要保证 durable persistence / stable echo / snapshot roundtrip，但不把它们升级成 runtime core authoritative schema。旧 MDS/DeepScientist 对这些字段的命名与回显行为只作为 provenance、parity oracle 或 explicit archive import reference 保留。
 
 对 `requested_baseline_ref` 的跨 repo 语义也应按两阶段理解：
 

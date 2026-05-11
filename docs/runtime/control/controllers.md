@@ -65,12 +65,12 @@
 - `data_asset_updates`
   - 负责统一的 Agent mutation 入口、mutation log 写入，以及 mutation 后的 refresh 汇总
 
-对于 `MedDeepScientist` 运行时升级，当前 controller 采取的是“先审计、后升级”的策略：
+对于 `MedDeepScientist` / MDS 相关能力，当前 controller 采取的是“先审计、后吸收或归档”的策略：
 
 - `backend_audit`
-  - 不直接执行升级
-  - 先统一检查 repo 配置、Git 状态、workspace contract 和医学 overlay 状态
-  - 输出机器可读 decision，供 Agent 判断是否进入真实升级流程
+  - 不直接执行升级或把外部 MDS 恢复成默认 runtime
+  - 统一检查 repo 配置、Git 状态、workspace contract、医学 overlay 状态和 legacy compatibility surface
+  - 输出机器可读 decision，供 Agent 判断是否进入 explicit archive import、backend audit、parity check、upstream intake 或 MAS-side capability absorption
 
 对于 managed study runtime，当前 controller 已明确分成两层：
 
@@ -87,10 +87,10 @@ MAS sidecar bridge 是 `OPL` provider-backed family runtime 进入 MAS owner sur
 
 后续优先顺序：
 
-1. MedDeepScientist runtime protocol / transport 分层
-2. policy/config 外置化
-3. workspace-local thin entry scripts
-4. publication profile 驱动更细粒度规则
+1. MAS Runtime OS / managed runtime transport 的 owner-path 收敛和 compatibility guard
+2. OPL framework migration：stage descriptor、sidecar receipt、artifact locator、authority refs 与 direct / hosted path 等价
+3. policy/config 外置化和 publication profile 驱动的细粒度规则
+4. legacy MDS / Hermes / workspace-local manager surface 的显式降级、归档或 parity-only 保留
 
 ## 完整交付契约
 

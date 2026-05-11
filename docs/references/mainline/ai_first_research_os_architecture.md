@@ -7,7 +7,7 @@
 ## Target
 
 - MAS 是唯一 research owner、quality owner、publication owner、artifact owner 与用户可见 truth owner。
-- MDS 收敛为 replaceable backend / behavior oracle / upstream intake buffer。
+- MDS / DeepScientist 收敛为 source provenance、historical fixture、explicit archive import、backend audit、upstream intake 与 parity oracle reference；它不再被写成未来默认 backend。
 - 机械系统只持有 evidence、status、completeness、blocker、projection 与 replay。
 - AI reviewer workflow 持有科学质量、医学写作质量、publishability 与 submission-facing readiness。
 
@@ -31,7 +31,7 @@
 4. Artifact OS：从 canonical source 重建 manuscript、figures、tables 与 submission package。
 5. Evaluation OS：把历史返工转成 calibration corpus、quality regression 与 AI-first drift audit；当前属于目标层，需由真实论文 soak 与质量回归证据逐步证明。
 6. Observability OS：面向维护者暴露 drift、trace、route-back、cache freshness、artifact stale 和 runtime recovery。
-7. MDS Deconstruction：能力按 parity proof 吸收，不按目录搬迁。
+7. MDS Deconstruction：能力按 MAS-side consumer contract、parity proof、quality non-regression 和 rollback surface 吸收；原 MDS corpus 保留 archive/reference/oracle 角色，不按目录搬迁，也不回流为默认 runtime。
 
 ## External Basis
 
@@ -46,7 +46,7 @@
 
 ## Absorb Gate
 
-任何 MDS 能力进入 MAS 前必须满足：MAS-side consumer contract 存在、parity proof 存在、质量门槛不降级、rollback surface 存在、旧 MDS surface 不持有质量 authority。
+任何 MDS 能力进入 MAS 前必须满足：MAS-side consumer contract 存在、parity proof 存在、质量门槛不降级、rollback surface 存在、旧 MDS surface 不持有质量 authority、runtime authority、publication authority 或 artifact authority。
 
 ## Non-Goals
 

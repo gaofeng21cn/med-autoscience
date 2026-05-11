@@ -54,7 +54,7 @@ Progress Portal 采用双层形态：
 
 ## OPL App 集成结论
 
-同一目的集成到 OPL App 进度看板的最优形态是分层消费，而不是把 MAS Portal 搬进 OPL 重新解释：
+同一目的集成到 OPL App 进度看板的最优形态是分层消费，而不是把 MAS Portal 搬进 OPL 重新解释。本文只固定 MAS-owned Progress Portal projection contract；OPL App 的 product/workbench 细节归 [Progress Portal OPL App Integration](../../references/integration/progress_portal_opl_app_integration.md) 和 [OPL App MAS Runtime Workbench Program](../../program/opl_app_mas_runtime_workbench_program.md) 持有：
 
 - `MAS` 负责 domain-owned progress portal payload 和 HTML，生成 `artifacts/runtime/progress_portal/latest.json` 与 `ops/mas/progress/index.html`。
 - `MAS` 还负责 hosted packaging manifest，生成 `artifacts/runtime/progress_portal/hosted_package.json`。这个 manifest 只打包 MAS-owned workspace truth packaging，不消费 MDS WebUI，也不写任何 authority surface。
