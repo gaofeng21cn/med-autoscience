@@ -10,13 +10,13 @@ Full historical record: [2026-05-10 AI-first paper autonomy full record](../hist
 
 ## Current Role
 
-This document is P0 in the MAS program portfolio. P0 is the target and acceptance contract for AI-first paper autonomy. It is not the product workbench plan, not the OPL provider migration plan, and not the old MAS/MDS absorb plan.
+This document is P0 in the MAS program portfolio. P0 is the target and acceptance contract for AI-first paper autonomy. It states the research outcome MAS must deliver and the evidence that can prove progress on a real paper line.
 
 P0 was created before the current OPL framework split was clear. During implementation, the target proved larger than a MAS-only runtime problem. The current answer is:
 
 - `MAS` owns medical research truth, paper quality, publication judgment, reviewer repair, route decisions, evidence/review ledgers, and canonical manuscript/package authority.
 - `OPL` owns the Codex-first, stage-led agent runtime framework that can host MAS as a domain agent: stage attempt, queue, wakeup, receipt, recovery, approval/human gate transport, lifecycle primitives, projection, and shared indexes.
-- P0 remains the MAS target. P1 and P2 are the implementation dependencies that make the target usable as a product and durable as a framework-backed runtime.
+- P0 remains the MAS target. P1 and P2 are the implementation dependencies that make the target usable as a product and durable as a framework-backed runtime. P3 and P3a are completed foundations that keep the MAS monolith, provenance, runtime lifecycle, and restore-proof boundary stable.
 
 ## Current State
 
@@ -47,6 +47,18 @@ MAS paper autonomy is accepted only when a real eligible paper line can repeated
 
 Worker liveness, queue existence, status refresh, or provider attempt completion are supporting evidence. They do not count as paper progress by themselves.
 
+## Program Relationship
+
+| layer | current role | relationship to P0 |
+| --- | --- | --- |
+| P0 | paper autonomy target and acceptance | defines outcome, quality boundary, and live-soak proof |
+| P1 | OPL App MAS Runtime Workbench | turns P0 progress, blockers, route decisions, artifacts, terminal/logs, and safe actions into a user-facing product surface |
+| P2 | OPL stage-led/provider runtime alignment | gives P0 durable stage attempt, queue, wakeup, recovery, approval, receipt, lifecycle, and projection support through OPL |
+| P3 | MAS monolith / MDS absorb landed foundation | keeps MAS as the single default medical-research owner and keeps MDS as provenance/audit/reference |
+| P3a | runtime lifecycle / SQLite / Git-retirement landed foundation | keeps runtime lifecycle authority, archive/restore proof, and legacy workspace drift handling stable |
+
+Implementation details should live with the layer that owns them: P1 for App/workbench, P2 for OPL framework/provider, P3/P3a for landed foundation guards, and P0 for paper-loop acceptance.
+
 ## Active Responsibilities
 
 P0 currently owns these responsibilities:
@@ -57,11 +69,11 @@ P0 currently owns these responsibilities:
 - Keep publication-route memory as experience cards and writeback receipts, not a rigid recipe engine and not a quality authority.
 - Keep quality authority in MAS-owned study charter, evidence ledger, review ledger, AI reviewer, publication gate, controller decisions, and canonical paper sources.
 
-P0 does not own these responsibilities:
+Related responsibilities live in these owner documents:
 
-- OPL App UI, terminal panels, action sheets, or runtime workbench layout. Those belong to [P1](./opl_app_mas_runtime_workbench_program.md).
-- OPL provider, Temporal worker, family queue, stage attempt ledger, retry/dead-letter, shared lifecycle primitive, or domain-agent skeleton migration. Those belong to [P2](./opl_temporal_mas_runtime_retirement_program.md) and OPL master docs.
-- MDS provenance, monolith closeout, workspace layout, root/quest Git retirement, restore proof, or old workspace drift. Those belong to [P3/P3a](./mas_single_project_mds_absorb_program.md) and [Runtime Lifecycle SQLite Migration](./runtime_lifecycle_sqlite_migration_program.md).
+- OPL App UI, terminal panels, action sheets, and runtime workbench layout belong to [P1](./opl_app_mas_runtime_workbench_program.md).
+- OPL provider, Temporal worker, family queue, stage attempt ledger, retry/dead-letter, shared lifecycle primitive, and domain-agent skeleton migration belong to [P2](./opl_temporal_mas_runtime_retirement_program.md) and OPL master docs.
+- MDS provenance, monolith closeout, workspace layout, root/quest Git retirement, restore proof, and old workspace drift belong to [P3/P3a](./mas_single_project_mds_absorb_program.md) and [Runtime Lifecycle SQLite Migration](./runtime_lifecycle_sqlite_migration_program.md).
 
 ## Current Verification
 

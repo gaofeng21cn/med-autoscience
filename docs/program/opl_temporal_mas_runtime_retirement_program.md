@@ -1,6 +1,6 @@
 # OPL Temporal MAS Runtime Retirement Program
 
-Status: `active plan`
+Status: `active framework enabler`
 Date: `2026-05-11`
 Owner: `MedAutoScience Runtime OS + OPL Runtime Manager integration boundary`
 Purpose: `development_plan`
@@ -11,11 +11,18 @@ Master entry: OPL family framework 的总开发入口是 `/Users/gaofeng/workspa
 
 ## 结论
 
-当 OPL 成为完整智能体运行框架，并且 Temporal-backed provider 通过真实 MAS paper-line soak 后，MAS 内部应退役一大批“在线底座 / watchdog / scheduler / daemon 兼容”能力。退役目标不是削弱 MAS，而是把 MAS 收敛成医学研究 domain agent：MAS 只持有研究真相、质量判断、owner route、artifact authority 和受控 domain action；OPL/Temporal 持有长期在线、stage attempt、wakeup、retry、signal/query、approval、dead-letter、operator projection 和跨 domain runtime。
+本文是 P2。P2 的任务是把 P0 论文自治目标依托到 OPL Codex-first、stage-led framework：MAS 作为医学研究 domain agent 暴露 stage descriptor、sidecar export/dispatch、receipt schema、projection builder、artifact locator 和 authority refs；OPL 提供 durable stage attempt、queue、wakeup、retry/dead-letter、approval/human gate transport、provider receipt、projection、shared lifecycle/index primitives。
+
+当 OPL framework 和 Temporal-backed provider 通过真实 MAS paper-line soak 后，MAS 内部一批“在线底座 / watchdog / scheduler / daemon 兼容”能力进入退役或降级。目标形态是 MAS 专注医学研究 domain agent 职责：研究真相、质量判断、owner route、artifact authority 和受控 domain action；OPL/Temporal 持有长期在线、stage attempt、wakeup、retry、signal/query、approval、dead-letter、operator projection 和跨 domain runtime。
 
 按 OPL 新定位，MAS 已验证的 SQLite 持久化、file lifecycle、artifact index、retention、restore proof、migration ledger 和 workspace lifecycle 经验，应拆成两层：`framework_generic` 能力上收到 OPL framework，`mas_domain_specific` truth 留在 MAS。MAS 不应长期独自维护其他 domain 也需要的智能体运行外围能力。
 
-当前必须保持诚实边界：OPL Temporal provider code 已落地，包含 Temporal TypeScript SDK、`StageAttemptWorkflow`、activity、signal/query、CLI start/query/signal 和 provider receipt；但它还不是已经替换 MAS 本地 scheduler 的 live provider。真实 Temporal server/worker deployment、真实 Codex long-running activity runner、MAS paper-line soak 与 cutover 仍未完成。MAS 的 `local` supervision scheduler、one-shot `runtime-supervisor-reconcile`、workspace-local Portal / Live Console 在过渡期仍有价值，但它们的长期身份应降级为 local diagnostics / fallback / evidence surface。
+当前确定状态：
+
+- OPL Temporal provider code 已落地，包含 Temporal TypeScript SDK、`StageAttemptWorkflow`、activity、signal/query、CLI start/query/signal 和 provider receipt。
+- 真实 Temporal server/worker deployment、真实 Codex long-running activity runner、MAS paper-line soak 与 cutover 仍是 P2 当前工作。
+- MAS 的 `local` supervision scheduler、one-shot `runtime-supervisor-reconcile`、workspace-local Portal / Live Console 在过渡期作为 local diagnostics、fallback 和 evidence surface 保留。
+- P2 的完成证据是 direct MAS skill path 与 OPL-hosted path 共享 MAS owner receipts，并且真实 provider soak 证明 OPL 只持有 framework receipt/ref/projection，不写 MAS forbidden truth surfaces。
 
 目标 owner split 固定为：
 
@@ -23,7 +30,7 @@ Master entry: OPL family framework 的总开发入口是 `/Users/gaofeng/workspa
 - `MAS`：study truth、RuntimeHealth / StudyTruth reducer、paper progress SLO、owner-route reconcile、AI reviewer、publication gate、evidence/review ledger、canonical manuscript/package authority、sidecar export/dispatch owner receipt。
 - `OPL framework lifecycle primitives`：lifecycle ledger、artifact locator/index、retention policy、restore proof、migration ledger、workspace lifecycle metadata、attempt receipt 和 provider cache cleanup；这些只保存 refs/proof/receipt，不保存医学 truth。
 - `Codex CLI`：默认 concrete executor，作为 Temporal Activity 或 MAS direct path 内的执行器；不持有 domain truth。
-- `Hermes`：迁移期 `hermes_legacy` provider、optional executor/proof lane 或 compatibility diagnostic；不再作为目标在线 substrate。
+- `Hermes`：迁移期 `hermes_legacy` provider、optional executor/proof lane 或 compatibility diagnostic。
 - `MDS / DeepScientist`：historical fixture、explicit archive import、backend audit、parity oracle；不作为默认 runtime 或第二 owner。
 
 ## 执行语言结论
@@ -63,17 +70,17 @@ Master entry: OPL family framework 的总开发入口是 `/Users/gaofeng/workspa
 - 跨语言边界只能通过 JSON schema、typed receipt、CLI/API/MCP command 或 sidecar export/dispatch；不得通过 Markdown、日志文本、路径惯例或隐式 import 当机器接口。
 - 任何语言迁移都必须证明 owner 不变、truth surface 不变、direct skill path 与 OPL-hosted path 等价。
 
-## 非目标
+## Boundary
 
-本 program 不做以下事情：
+本 program 的边界如下：
 
-- 不把 MAS 改写成 OPL 内部模块。
-- 不把 Temporal history、OPL attempt ledger 或 provider status 升级为医学研究 truth。
-- 不让 OPL/Temporal 写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、evidence ledger、review ledger、artifact gate 或 study truth。
-- 不把 MAS 的 SQLite runtime authority 原样迁成 OPL study truth；OPL 只能上收 framework-generic lifecycle metadata、artifact locator、retention receipt、restore proof 和 migration ledger。
-- 不要求 MAS、MAG、RCA 内部业务代码完全同构；只要求对 OPL 暴露的 domain-agent skeleton、descriptor、sidecar、receipt schema、projection builder 和 artifact locator contract 同构。
-- 不恢复旧 MDS resident daemon、workspace-local host service、旧 GitOps runtime lifecycle 或旧 MDS WebUI default path。
-- 不在 Temporal provider 尚未通过真实 soak 前删除 MAS 本地诊断和 fail-safe 入口。
+- MAS 保持独立医学研究 domain agent；OPL 持有 framework runtime，不吸收 MAS domain truth。
+- Temporal history、OPL attempt ledger 和 provider status 是 framework receipt/projection，不是医学研究 truth。
+- `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、evidence ledger、review ledger、artifact gate 和 study truth 由 MAS 写入。
+- MAS 的 SQLite runtime authority 只按 `framework_generic` / `mas_domain_specific` 分类上收经验；OPL 上收 lifecycle metadata、artifact locator、retention receipt、restore proof 和 migration ledger 等 framework primitives。
+- MAS、MAG、RCA 内部业务代码保持 domain-owned；对 OPL 暴露的 domain-agent skeleton、descriptor、sidecar、receipt schema、projection builder 和 artifact locator contract 需要同构。
+- 旧 MDS resident daemon、workspace-local host service、旧 GitOps runtime lifecycle 和旧 MDS WebUI default path 留在 archive/provenance/compatibility 语境。
+- Temporal provider 通过真实 soak 前，MAS 本地诊断和 fail-safe 入口保留。
 
 ## 退役原则
 

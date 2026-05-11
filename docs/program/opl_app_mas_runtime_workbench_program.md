@@ -1,7 +1,7 @@
 # OPL App MAS Runtime Workbench Program
 
-Status: `active plan`
-Date: `2026-05-10`
+Status: `active product enabler`
+Date: `2026-05-11`
 Owner: `MedAutoScience Product Projection + OPL Runtime Manager integration boundary`
 Machine boundary: `human-readable program plan; implementation must promote stable JSON/API contracts before UI code consumes new fields`
 Content lifecycle role: P1 product enabler. This document owns the App/workbench implementation path that makes the P0 paper-autonomy target visible, reviewable, and controllable for users.
@@ -10,12 +10,21 @@ Content lifecycle role: P1 product enabler. This document owns the App/workbench
 
 MAS 的 Progress Portal、Live Console、conversation read model 和 terminal attach gate 不应继续以 CLI 或 workspace-local HTML 作为主要用户体验。最合理的目标形态是接入 `OPL App`，由 OPL App 提供统一运行工作台，把 OPL 自身运行状态、family-runtime queue、domain attention queue、MAS 单篇论文运行状态和 terminal/log 交互放到同一产品界面里。
 
-这不是把 MAS 做成 OPL 内部模块。边界固定为：
+本文是 P1。P1 的任务是把 P0 论文自治目标做成用户可理解、可审阅、可控制的产品界面；P0 继续定义论文自治的质量验收，P2 继续提供 OPL stage-led framework 和 provider runtime 依托。
+
+当前确定状态：
+
+- MAS 已经有 Progress Portal、Live Console、conversation read model、terminal attach gate、OPL handoff 和 owner action receipt 等 repo surface。
+- 当前缺口是产品入口：医生、PI 或普通用户仍需要跨 CLI、workspace-local HTML、loopback service 和文件面理解系统状态。
+- OPL App Runtime Workbench 是 P1 的目标用户界面；MAS local Portal / Live Console 保留为 fallback、debug 和 evidence surface。
+- P1 的完成证据是 App 中稳定呈现 MAS study progress、route decision、executor conversation、terminal/log、artifact refs 和 safe action receipts。
+
+边界固定为：
 
 - `OPL App` / `OPL Runtime Manager` 持有产品级工作台、导航、通知、queue、approval transport、窗口与 WebView/terminal 组件。
 - `MAS` 持有 study truth、publication judgment、paper/package authority、runtime owner surface、terminal attach owner gate、action receipt 和 source refs。
 - OPL family runtime provider 负责长期在线、stage attempt、唤醒、delivery、approval transport 和 family queue tick；Temporal 是目标生产 provider，Hermes-Agent 只作为迁移期 legacy/optional provider 或 executor/proof lane。
-- OPL App 只消费 MAS domain-owned projection 和调用 MAS owner endpoint；它不能重算医学状态、质量裁决、投稿 readiness 或 current package authority。
+- OPL App 消费 MAS domain-owned projection 并调用 MAS owner endpoint；医学状态、质量裁决、投稿 readiness 和 current package authority 仍由 MAS owner surfaces 持有。
 
 ## 为什么接到 OPL App
 
@@ -51,7 +60,7 @@ MAS 侧已经具备这些 repo contract：
 - Terminal attach gate：有 attach/input/resize/detach owner gate，默认 fail closed；当存在 attach-capable live run 时，可暴露 loopback attach/input/resize/detach API。
 - OPL handoff：Progress Portal payload 已投影 `opl_handoff`，OPL runtime tray 已消费 `portal_path`、`portal_url`、`portal_payload_ref`、`portal_freshness` 和 `portal_source_refs`。
 
-缺口是产品形态：这些能力仍散在 CLI、workspace-local HTML、loopback service 和 read-model 文件中。对医生/PI 或普通用户来说，这仍像“给 AI/operator 用的工具”，不是自然的 App 体验。
+缺口是产品形态：这些能力仍散在 CLI、workspace-local HTML、loopback service 和 read-model 文件中。对医生/PI 或普通用户来说，当前入口仍像维护者工具；P1 把这些 read model 和 action receipt 组合成自然的 App 体验。
 
 ## 目标信息架构
 
@@ -297,14 +306,14 @@ Real workspace soak：
 - 一个 action receipt case；
 - 一个 stale/freshness warning case。
 
-## Non-goals
+## Boundary
 
-- 不恢复旧 MDS WebUI / React bundle / WebSocket owner。
-- 不让 OPL App 写 MAS truth surface。
-- 不把 MAS workspace-local Portal 删除；它继续作为 fallback 和 evidence。
-- 不把 terminal input 合并到 generic chat。
-- 不引入新的 MAS runtime daemon。
-- 不要求 Phase 1 立刻支持交互 terminal；先把人类可见读面接到 App。
+- 旧 MDS WebUI / React bundle / WebSocket owner 留在历史和 provenance 语境。
+- OPL App 通过 MAS typed projection 和 owner endpoint 工作，MAS truth surface 仍由 MAS 写入。
+- MAS workspace-local Portal 保留为 fallback 和 evidence。
+- Terminal input 保持 terminal attach owner gate，不并入 generic chat。
+- P1 使用既有 MAS runtime owner surface，不新增 MAS runtime daemon。
+- Phase 1 先把人类可见读面接到 App，交互 terminal 进入 Phase 3。
 
 ## Open Decisions
 
