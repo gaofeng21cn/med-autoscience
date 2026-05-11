@@ -151,6 +151,46 @@ def test_runner_completion_rejects_closeout_that_only_marks_repair_packet_as_mea
     ]
 
 
+def test_runner_completion_rejects_closeout_that_only_marks_delivery_surfaces_as_meaningful_delta(
+    tmp_path: Path,
+) -> None:
+    quest_root = tmp_path / "quest-001"
+    refs = [
+        "artifacts/reports/publishability_gate/2026-05-11T133207Z.json",
+        "../../../studies/001-paper/artifacts/controller/quality_repair_batch/latest.json",
+        "../../../studies/001-paper/artifacts/controller/current_package_freshness/latest.json",
+        "../../../studies/001-paper/paper/submission_minimal/audit/submission_manifest.json",
+        "../../../studies/001-paper/manuscript/delivery_manifest.json",
+        "../../../studies/001-paper/manuscript/current_package.zip",
+    ]
+    _write_closeout(
+        quest_root=quest_root,
+        run_id="run-001",
+        payload={
+            "quest_id": "quest-001",
+            "run_id": "run-001",
+            "status": "completed",
+            "meaningful_artifact_delta": True,
+            "artifact_refs": refs,
+        },
+    )
+    _write_stdout(
+        quest_root=quest_root,
+        run_id="run-001",
+        events=[
+            {"type": "item.started", "item": {"id": "item-1"}},
+            {"type": "item.completed", "item": {"id": "item-1"}},
+        ],
+    )
+
+    result = inspect_runner_completion(quest_root=quest_root, run_id="run-001", runner_status="succeeded")
+
+    assert result["state"] == "incomplete"
+    assert result["reason"] == "invalid_meaningful_artifact_delta"
+    assert result["normalized_runner_status"] == "runner_incomplete"
+    assert result["invalid_artifact_refs"] == refs
+
+
 def test_logical_turn_completion_reports_stale_nonterminal_receipt(tmp_path: Path) -> None:
     quest_root = tmp_path / "quest-001"
     _write_closeout(quest_root=quest_root, run_id="run-001")

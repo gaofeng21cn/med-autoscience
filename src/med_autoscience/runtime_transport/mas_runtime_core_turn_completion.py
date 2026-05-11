@@ -286,22 +286,26 @@ def _invalid_meaningful_delta_refs(closeout: Mapping[str, Any]) -> list[str]:
 
 
 def _is_bookkeeping_artifact_ref(ref: str) -> bool:
-    normalized = ref.strip().lstrip("./")
-    bookkeeping_prefixes = (
-        "artifacts/autonomy/",
-        "artifacts/controller/gate_clearing_batch/",
-        "artifacts/controller/quality_repair_batch/",
-        "artifacts/reports/",
-        "artifacts/runtime/owner_progress_requests/",
-        "artifacts/runtime/turn_closeouts/",
-        "artifacts/runtime/turn_receipts",
-        "artifacts/runtime/latest_turn_receipt",
-        "artifacts/runtime/mas_runtime_events",
-        "artifacts/runtime/user_message_queue",
-        "artifacts/runtime/runtime_lifecycle.",
-        "artifacts/supervision/",
+    normalized = ref.strip().replace("\\", "/").lstrip("./")
+    parts = tuple(part.lower() for part in normalized.split("/") if part not in {"", "."})
+    if "current_package" in parts or "submission_minimal" in parts:
+        return True
+    if parts and parts[-1] in {"current_package.zip", "current_package.tar.gz", "delivery_manifest.json"}:
+        return True
+    bookkeeping_subpaths = (
+        ("artifacts", "autonomy"),
+        ("artifacts", "controller"),
+        ("artifacts", "reports"),
+        ("artifacts", "runtime"),
+        ("artifacts", "supervision"),
     )
-    return normalized.startswith(bookkeeping_prefixes)
+    return any(_contains_subpath(parts, subpath) for subpath in bookkeeping_subpaths)
+
+
+def _contains_subpath(parts: tuple[str, ...], subpath: tuple[str, ...]) -> bool:
+    if len(parts) < len(subpath):
+        return False
+    return any(parts[index : index + len(subpath)] == subpath for index in range(len(parts) - len(subpath) + 1))
 
 
 def _read_json(path: Path) -> dict[str, Any]:

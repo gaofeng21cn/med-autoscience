@@ -14,6 +14,14 @@ STABLE_REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = Path(
 )
 
 _CURRENT_PACKAGE_BLOCKER = "current_package_ref_not_canonical_delta"
+_CONTROLLER_PROGRESS_WORK_UNIT_IDS = frozenset(
+    {
+        "publication_gate_replay",
+        "submission_authority_sync_closure",
+        "submission_delivery_sync_closure",
+        "submission_minimal_refresh",
+    }
+)
 _AUTHORITY_CLAIM_BLOCKERS = {
     "quality_authorized": "quality_override_not_allowed",
     "quality_ready_authorized": "quality_override_not_allowed",
@@ -51,6 +59,7 @@ def build_repair_execution_evidence(
     review_ledger_ref: object | None = None,
     gate_replay_target: str | None = None,
     gate_replay_refs: Iterable[object] | None = None,
+    controller_progress_refs: Iterable[object] | None = None,
     ai_reviewer_recheck_request_ref: object | None = None,
     authority_claims: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -58,14 +67,12 @@ def build_repair_execution_evidence(
     work_unit = _mapping(repair_work_unit)
     finding = _mapping(review_finding)
     blockers: list[str] = []
+    work_unit_id = _text(work_unit.get("unit_id")) or _text(work_unit.get("work_unit_id")) or "repair_work_unit"
     valid_changed_refs, excluded_refs, ref_blockers = _canonical_changed_refs(
         study_root=resolved_study_root,
         changed_artifact_refs=changed_artifact_refs,
     )
-    blockers.extend(ref_blockers)
     meaningful_delta = bool(valid_changed_refs)
-    if not meaningful_delta:
-        blockers.append("canonical_artifact_delta_missing")
 
     resolved_gate_replay_target = (
         _text(gate_replay_target)
@@ -73,11 +80,21 @@ def build_repair_execution_evidence(
         or _text(work_unit.get("gate_replay_surface"))
     )
     normalized_gate_refs = _reference_list(gate_replay_refs or ())
+    normalized_controller_progress_refs = _reference_list(controller_progress_refs or ())
     normalized_source_refs = _reference_list(source_refs)
     normalized_revision_log_ref = _first_reference(revision_log_ref)
     normalized_evidence_ledger_ref = _first_reference(evidence_ledger_ref)
     normalized_review_ledger_ref = _first_reference(review_ledger_ref) or normalized_revision_log_ref
     normalized_ai_recheck_ref = _first_reference(ai_reviewer_recheck_request_ref)
+    controller_progress_delta = (
+        not meaningful_delta
+        and work_unit_id in _CONTROLLER_PROGRESS_WORK_UNIT_IDS
+        and bool(normalized_controller_progress_refs)
+    )
+    if meaningful_delta or not controller_progress_delta:
+        blockers.extend(ref_blockers)
+    if not meaningful_delta and not controller_progress_delta:
+        blockers.append("canonical_artifact_delta_missing")
 
     evidence_ledger_required = meaningful_delta
     review_ledger_required = meaningful_delta
@@ -88,7 +105,7 @@ def build_repair_execution_evidence(
     if review_ledger_required and not review_ledger_done:
         blockers.append("review_ledger_update_missing")
 
-    gate_replay_required = meaningful_delta and resolved_gate_replay_target is not None
+    gate_replay_required = (meaningful_delta or controller_progress_delta) and resolved_gate_replay_target is not None
     gate_replay_done = gate_replay_required and bool(normalized_gate_refs)
     if gate_replay_required and not gate_replay_done:
         blockers.append("gate_replay_missing")
@@ -107,7 +124,6 @@ def build_repair_execution_evidence(
         changed_refs=valid_changed_refs,
         gate_replay_refs=normalized_gate_refs,
     )
-    work_unit_id = _text(work_unit.get("unit_id")) or _text(work_unit.get("work_unit_id")) or "repair_work_unit"
     idempotency_key = (
         f"paper-repair-execution::{study_id}::{quest_id}::{work_unit_id}::{source_fingerprint.removeprefix('sha256:')[:16]}"
     )
@@ -120,10 +136,12 @@ def build_repair_execution_evidence(
     progress_delta_candidate = meaningful_delta and gate_replay_done
     status = (
         "blocked"
-        if not meaningful_delta
+        if not meaningful_delta and not controller_progress_delta
         else "pending"
         if any(blocker in required_missing for blocker in blockers)
         else "progress_delta_candidate"
+        if meaningful_delta
+        else "controller_progress_delta_candidate"
     )
     return {
         "surface": SURFACE,
@@ -154,6 +172,12 @@ def build_repair_execution_evidence(
         "gate_replay_required": gate_replay_required,
         "gate_replay_done": gate_replay_done,
         "gate_replay_refs": normalized_gate_refs,
+        "controller_progress_delta": {
+            "status": "fresh" if controller_progress_delta else "not_applicable",
+            "controller_progress_delta_candidate": controller_progress_delta,
+            "artifact_refs": normalized_controller_progress_refs,
+        },
+        "controller_progress_delta_candidate": controller_progress_delta,
         "ai_reviewer_recheck_required": ai_reviewer_recheck_required,
         "ai_reviewer_recheck_done": ai_reviewer_recheck_done,
         "ai_reviewer_recheck_request_ref": normalized_ai_recheck_ref,
@@ -202,6 +226,10 @@ def build_from_quality_repair_batch_result(
         review_ledger_ref=_default_review_ledger_ref(resolved_study_root),
         gate_replay_target=_text(work_unit.get("gate_replay_target")) or ("publication_gate" if gate_replay else None),
         gate_replay_refs=gate_replay_refs,
+        controller_progress_refs=_controller_progress_refs(
+            gate_replay=gate_replay,
+            gate_clearing_result=gate_clearing_result,
+        ),
         ai_reviewer_recheck_request_ref=_default_ai_reviewer_recheck_ref(resolved_study_root),
         authority_claims=_authority_claims_from_unit_results(gate_clearing_result.get("unit_results")),
     )
@@ -316,6 +344,30 @@ def _gate_replay_refs(*, gate_replay: Mapping[str, Any], gate_clearing_result: M
     result_record = gate_clearing_result.get("record_path")
     if result_record:
         refs.append(result_record)
+    return refs
+
+
+def _controller_progress_refs(
+    *,
+    gate_replay: Mapping[str, Any],
+    gate_clearing_result: Mapping[str, Any],
+) -> list[object]:
+    refs: list[object] = []
+    refs.extend(_gate_replay_refs(gate_replay=gate_replay, gate_clearing_result=gate_clearing_result))
+    freshness = _mapping(gate_clearing_result.get("current_package_freshness_proof"))
+    proof_path = _text(freshness.get("proof_path"))
+    if proof_path and _text(freshness.get("status")) == "fresh":
+        refs.append(proof_path)
+    for item in gate_clearing_result.get("unit_results") or []:
+        payload = _mapping(item)
+        if _text(payload.get("unit_id")) != "sync_submission_minimal_delivery":
+            continue
+        if _text(payload.get("status")) in {"control_plane_route_blocked", "failed", "missing", "skipped_failed_dependency"}:
+            continue
+        result = _mapping(payload.get("result"))
+        for key in ("delivery_manifest_path", "current_package_zip", "current_package_root"):
+            if value := _text(result.get(key)):
+                refs.append(value)
     return refs
 
 

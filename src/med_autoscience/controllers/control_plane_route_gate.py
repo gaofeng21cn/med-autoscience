@@ -57,7 +57,7 @@ _CONTROLLER_ROUTE_ALLOWED_ACTIONS_BY_WORK_UNIT = {
     "local_architecture_overview_repair": frozenset({"bundle_build"}),
     "manuscript_story_repair": frozenset({"paper_write"}),
     "publication_gate_replay": frozenset(
-        {"bundle_build", "delivery_sync", "submission_notice_materialize"}
+        {"bundle_build", "delivery_sync", "submission_materialize", "submission_notice_materialize"}
     ),
     "submission_delivery_sync_closure": frozenset(
         {"bundle_build", "delivery_sync", "submission_notice_materialize"}

@@ -264,6 +264,39 @@ def test_publication_gate_replay_route_authorizes_delivery_sync() -> None:
     assert gate["blocking_reasons"] == []
 
 
+def test_publication_gate_replay_route_authorizes_submission_materialize_under_runtime_supervision() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "submission_materialize",
+        {
+            "control_plane_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=[
+                    "execution_owner_guard.supervisor_only",
+                    "live_worker_meaningful_artifact_delta_timeout",
+                ],
+                paper_write_allowed=False,
+                bundle_build_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "gate_clearing_batch",
+                "controller_action_type": "run_gate_clearing_batch",
+                "work_unit_id": "publication_gate_replay",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::002::latest",
+                "work_unit_fingerprint": "publication-blockers::002",
+            },
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["route_authorization_flag"] == "paper_write_allowed"
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert gate["controller_repair_authorization_ref"]["work_unit_id"] == "publication_gate_replay"
+    assert gate["blocking_reasons"] == []
+
+
 def test_publication_gate_replay_route_authorizes_delivery_sync_without_snapshot() -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
 

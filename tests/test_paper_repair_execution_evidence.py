@@ -132,6 +132,72 @@ def test_current_package_delta_and_quality_override_are_not_accepted(tmp_path: P
     assert evidence["current_package_write_authorized"] is False
 
 
+def test_publication_gate_replay_delivery_progress_is_not_canonical_paper_delta(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
+    study_root = tmp_path / "studies" / "002-dm"
+    gate_record = _write_json(
+        study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
+        {"schema_version": 1},
+    )
+    gate_report = _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {"eval_id": "publication-eval::002::latest"},
+    )
+    freshness = _write_json(
+        study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json",
+        {"status": "fresh"},
+    )
+    current_package_root = study_root / "manuscript" / "current_package"
+    current_package_root.mkdir(parents=True, exist_ok=True)
+
+    evidence = module.build_from_quality_repair_batch_result(
+        study_id="002-dm",
+        quest_id="quest-002",
+        study_root=study_root,
+        source_eval_id="publication-eval::002::latest",
+        source_eval_artifact_path=str(gate_report),
+        source_summary_id="quality-summary::002",
+        source_summary_artifact_path=str(
+            _write_json(study_root / "artifacts" / "quality" / "summary.json", {"summary_id": "quality-summary::002"})
+        ),
+        gate_clearing_result={
+            "ok": True,
+            "status": "executed",
+            "record_path": str(gate_record),
+            "selected_publication_work_unit": {
+                "unit_id": "publication_gate_replay",
+                "gate_replay_target": "publication_gate",
+            },
+            "gate_replay": {
+                "status": "blocked",
+                "report_json": str(gate_report),
+            },
+            "current_package_freshness_proof": {
+                "status": "fresh",
+                "proof_path": str(freshness),
+            },
+            "unit_results": [
+                {
+                    "unit_id": "sync_submission_minimal_delivery",
+                    "status": "synced",
+                    "result": {"current_package_root": str(current_package_root)},
+                }
+            ],
+        },
+    )
+
+    assert evidence["status"] == "controller_progress_delta_candidate"
+    assert evidence["progress_delta_candidate"] is False
+    assert evidence["canonical_artifact_delta"]["meaningful_artifact_delta"] is False
+    assert evidence["changed_artifact_refs"] == []
+    assert evidence["controller_progress_delta_candidate"] is True
+    assert evidence["controller_progress_delta"]["status"] == "fresh"
+    assert str(freshness.resolve()) in evidence["controller_progress_delta"]["artifact_refs"]
+    assert str(gate_record.resolve()) in evidence["controller_progress_delta"]["artifact_refs"]
+    assert "canonical_artifact_delta_missing" not in evidence["blockers"]
+    assert "current_package_ref_not_canonical_delta" not in evidence["blockers"]
+
+
 def test_quality_repair_batch_writes_repair_execution_evidence(monkeypatch, tmp_path: Path) -> None:
     quality_module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
     evidence_module = importlib.import_module("med_autoscience.controllers.paper_repair_execution_evidence")
