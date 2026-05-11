@@ -5,6 +5,11 @@ import re
 from med_autoscience import display_registry
 from med_autoscience import figure_renderer_contract
 from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key
+from med_autoscience.policies.numeric_trace_contract import (
+    NUMERIC_TRACE_BASENAME,
+    validate_claim_evidence_numeric_trace_refs,
+    validate_numeric_trace,
+)
 
 from med_autoscience.policies.medical_manuscript_draft_quality import (
     ANALYSIS_PLANE_JARGON_PATTERN_SPECS,
@@ -451,7 +456,7 @@ def validate_claim_evidence_map(payload: object) -> list[str]:
                 return [
                     f"missing claims[{index}].evidence_items[{evidence_index}] fields: {', '.join(missing_evidence_fields)}"
                 ]
-    return []
+    return validate_claim_evidence_numeric_trace_refs(payload)
 
 
 def validate_evidence_ledger(payload: object) -> list[str]:

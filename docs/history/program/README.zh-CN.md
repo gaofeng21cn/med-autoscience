@@ -18,6 +18,7 @@
 - [External agent orchestration learning intake 2026-04-30](./external_agent_orchestration_learning_intake_2026_04_30.md)
 - [Open auto research learning intake 2026-05-04](./open_auto_research_learning_intake_2026_05_04.md)
 - [PaperOrchestra learning intake 2026-05-02](./paper_orchestra_learning_intake_2026_05_02.md)
+- [Research Harness learning intake 2026-05-11](./research_harness_learning_intake_2026_05_11.md)
 
 这些快照本身不再作为 active backlog 项重复追踪。对应的 recurring lane 仍由 `docs/status.md`、`docs/references/med-deepscientist/` 或快照内的 `Continued Learning Saturation Protocol` 触发。
 

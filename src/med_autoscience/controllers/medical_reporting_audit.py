@@ -128,6 +128,12 @@ def _medical_story_contract_blockers(paper_root: Path) -> list[str]:
             "missing_claim_evidence_map",
             "invalid_claim_evidence_map",
         ),
+        (
+            paper_root / medical_surface_policy.NUMERIC_TRACE_BASENAME,
+            medical_surface_policy.validate_numeric_trace,
+            "missing_numeric_trace",
+            "invalid_numeric_trace",
+        ),
     )
     blockers: list[str] = []
     for path, validator, missing_blocker, invalid_blocker in required_contracts:
@@ -153,6 +159,8 @@ def _medical_story_contract_validation_blockers(contract_name: str, validation_e
             normalized = error.lower()
             if "required_exports missing registered export formats" in normalized and "pdf" in normalized:
                 blockers.append("figure_semantics_manifest_missing_pdf_export")
+    if contract_name == medical_surface_policy.NUMERIC_TRACE_BASENAME:
+        blockers.append("numeric_trace_missing_or_incomplete")
     return blockers
 
 

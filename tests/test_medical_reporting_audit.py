@@ -85,6 +85,7 @@ def _write_valid_medical_story_contracts(paper_root: Path, *, figure_required_ex
         ),
         encoding="utf-8",
     )
+    _write_valid_numeric_trace(paper_root, claim_id="cohort-accounting", trace_id="trace-cohort-n")
 
 
 def _write_keyed_medical_story_contracts(paper_root: Path) -> None:
@@ -168,6 +169,32 @@ def _write_keyed_medical_story_contracts(paper_root: Path) -> None:
                                 "source_paths": ["paper/results_narrative_map.json"],
                             }
                         ],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    _write_valid_numeric_trace(paper_root, claim_id="external-validation-boundary", trace_id="trace-validation-n")
+
+
+def _write_valid_numeric_trace(paper_root: Path, *, claim_id: str, trace_id: str) -> None:
+    (paper_root / "numeric_trace.json").write_text(
+        json.dumps(
+            {
+                "traces": [
+                    {
+                        "trace_id": trace_id,
+                        "claim_id": claim_id,
+                        "reported_value": "n=1,240",
+                        "statistic_kind": "sample_size",
+                        "source_paths": ["paper/tables/table1.json"],
+                        "source_field": "analytic_n",
+                        "rounding_rule": "integer_count_no_rounding",
+                        "manuscript_refs": ["results:study-population"],
+                        "verification_status": "verified",
+                        "evidence_refs": ["cohort-flow"],
                     }
                 ]
             },
@@ -475,6 +502,7 @@ def test_medical_reporting_audit_blocks_missing_medical_story_contract(tmp_path:
         "missing_results_narrative_map",
         "missing_figure_semantics_manifest",
         "missing_claim_evidence_map",
+        "missing_numeric_trace",
     ]
 
 

@@ -1,6 +1,7 @@
 from .shared_base import *
 from .shared_base import _write_review_ledger
 from .medical_writing_surfaces import write_medical_manuscript_blueprint_fixture, write_medical_prose_review_fixture
+from .quest_factory_numeric_trace import write_numeric_trace_fixture
 from .statistical_disclosure_fixtures import write_statistical_reviewer_audit_fixture, write_structured_disclosure_audit_fixture
 def make_quest(
     tmp_path: Path,
@@ -569,6 +570,8 @@ def make_quest(
                 ],
             },
         )
+    if medicalized:
+        write_numeric_trace_fixture(paper_root)
 
     if include_evidence_ledger:
         dump_json(

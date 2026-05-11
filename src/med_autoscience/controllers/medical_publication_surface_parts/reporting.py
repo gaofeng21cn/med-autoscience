@@ -155,6 +155,12 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         label="claim evidence map",
         payload_override=claim_evidence_map_payload,
     )
+    numeric_trace_valid, numeric_trace_hits = inspect_required_json_contract(
+        path=state.numeric_trace_path,
+        validator=medical_surface_policy.validate_numeric_trace,
+        pattern_id="numeric_trace",
+        label="numeric trace",
+    )
     evidence_ledger_valid, evidence_ledger_hits = inspect_required_json_contract(
         path=state.evidence_ledger_path,
         validator=medical_surface_policy.validate_evidence_ledger,
@@ -480,6 +486,7 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
     hits.extend(endpoint_note_hits)
     hits.extend(undefined_methodology_label_hits)
     hits.extend(results_narration_hits)
+    hits.extend(numeric_trace_hits)
     hits.extend(analysis_plane_jargon_hits)
     hits.extend(publication_surface_residue_hits)
     hits.extend(medical_journal_prose_hits)
@@ -534,6 +541,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         blockers.append("figure_layout_sidecar_missing_or_incomplete")
     if not claim_evidence_map_valid:
         blockers.append("claim_evidence_map_missing_or_incomplete")
+    if not numeric_trace_valid:
+        blockers.append("numeric_trace_missing_or_incomplete")
     if not evidence_ledger_valid:
         blockers.append("evidence_ledger_missing_or_incomplete")
     if not derived_analysis_valid:
@@ -662,6 +671,9 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "claim_evidence_map_path": str(state.claim_evidence_map_path),
         "claim_evidence_map_present": state.claim_evidence_map_path.exists(),
         "claim_evidence_map_valid": claim_evidence_map_valid,
+        "numeric_trace_path": str(state.numeric_trace_path),
+        "numeric_trace_present": state.numeric_trace_path.exists(),
+        "numeric_trace_valid": numeric_trace_valid,
         "evidence_ledger_path": str(state.evidence_ledger_path),
         "evidence_ledger_present": state.evidence_ledger_path.exists(),
         "evidence_ledger_valid": evidence_ledger_valid,

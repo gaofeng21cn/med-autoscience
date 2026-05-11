@@ -533,4 +533,3 @@ def test_build_report_accepts_review_with_relative_subsection_levels(tmp_path: P
     assert "introduction_structure_missing_or_incomplete" not in report["blockers"]
     assert "methods_section_structure_missing_or_incomplete" not in report["blockers"]
     assert "results_section_structure_missing_or_incomplete" not in report["blockers"]
-

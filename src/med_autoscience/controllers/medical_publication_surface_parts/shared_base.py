@@ -58,6 +58,7 @@ class SurfaceState:
     results_narrative_map_path: Path
     figure_semantics_manifest_path: Path
     claim_evidence_map_path: Path
+    numeric_trace_path: Path
     evidence_ledger_path: Path
     derived_analysis_manifest_path: Path
     reproducibility_supplement_path: Path
@@ -258,6 +259,7 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
         results_narrative_map_path=paper_root / medical_surface_policy.RESULTS_NARRATIVE_MAP_BASENAME,
         figure_semantics_manifest_path=paper_root / medical_surface_policy.FIGURE_SEMANTICS_MANIFEST_BASENAME,
         claim_evidence_map_path=paper_root / medical_surface_policy.CLAIM_EVIDENCE_MAP_BASENAME,
+        numeric_trace_path=paper_root / medical_surface_policy.NUMERIC_TRACE_BASENAME,
         evidence_ledger_path=paper_root / medical_surface_policy.EVIDENCE_LEDGER_BASENAME,
         derived_analysis_manifest_path=paper_root / medical_surface_policy.DERIVED_ANALYSIS_MANIFEST_BASENAME,
         reproducibility_supplement_path=paper_root / medical_surface_policy.REPRODUCIBILITY_SUPPLEMENT_BASENAME,
