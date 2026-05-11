@@ -28,6 +28,11 @@ research teams.
 | [policies](./policies/README.md) | Stable internal rules and long-lived operating boundaries. |
 | [history](./history/README.md) | Dated snapshots, provenance, retired boards, archived plans, and process drafts. |
 
+Read this table as a lifecycle hierarchy. Core docs and runtime/policy owner
+surfaces carry current truth; `program` carries the small active execution
+queue and landed owner docs; `references` carry support context; `history`
+carries provenance and retired material.
+
 ## Reading Rule
 
 Read the core docs first, then enter the relevant directory index. Detailed file

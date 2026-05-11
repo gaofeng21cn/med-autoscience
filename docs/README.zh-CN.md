@@ -26,6 +26,8 @@
 | [policies](./policies/README.md) | 稳定内部规则和长期运行边界。 |
 | [history](./history/README.zh-CN.md) | dated snapshot、provenance、退役 board、归档计划和过程稿。 |
 
+这张表是生命周期层级。核心文档与 runtime / policy owner surface 承担当前真相；`program` 承担精简的当前执行队列和 landed owner doc；`references` 承担支撑上下文；`history` 承担 provenance 和退役材料。
+
 ## 阅读规则
 
 先读核心文档，再进入对应子目录索引。详细文件清单由各子目录 README 承担，本页只保留短导航。

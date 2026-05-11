@@ -6,6 +6,8 @@
 
 ## 工作方式
 
+- `Med Auto Science` 是独立医学研究 domain agent，也可以作为 `OPL` Codex-first、stage-led 智能体运行框架中的 admitted domain agent 被托管。`Stage` 表示大型研究步骤，`Codex CLI` 是 stage 内默认最小执行单元；MAS 持有医学研究 truth、quality verdict、runtime owner 和 artifact authority。
+- `MDS / DeepScientist` 的当前角色是 MAS 显式声明的 source provenance、historical fixture、explicit archive import、backend audit、upstream learning 和 parity oracle reference。
 - 保持变更可审查、可回退，避免不必要的大范围改动。
 - 能删就别加；能复用现有模式就别新起抽象；没有明确必要不要新增依赖。
 - 不采用降级处理、兜底方案、临时补丁、启发式方法、局部稳定化手段，避免以非严谨通用算法的后处理补救作为主策略。
@@ -37,9 +39,11 @@
 - `README*` 与 `docs/README*` 是默认对外与默认入口文档。
 - `docs/docs_portfolio_consolidation.md` 是当前文档组合治理入口；维护者应先读核心五件套，再按该文件判断新增、更新、归档或 tombstone。
 - 每份长期文档都必须能说明 `owner`、`purpose`、`state`、`machine boundary`；缺少任一信号时，先补入口或归位，再继续扩写。
+- 文档治理按内容生命周期判断，文件名和目录名只作为辅助信号；同一文档内的当前事实、活跃 program、support lane、closeout evidence 与历史叙事应分别归入当前 owner doc、program/support/reference 层或 history/tombstone 语境。
+- 入口文档应先呈现当前状态、活跃层级、新旧关系和下一跳；已完成计划、旧校准记录和历史路线进入 evidence/provenance 层。
 - 对外文档保持中英双语；内部技术、规划、备忘文档默认中文，除非明确提升到双语公开面。
 - `docs/capabilities/`：能力族/专题面（如 medical display）。
-- `docs/program/`：tranche、freeze、hardening、cleanup、intake 等程序阶段材料。
+- `docs/program/`：当前 program 组合入口、P0/P1/P2 活跃 program，以及 P3/P3a landed owner docs。
 - `docs/runtime/`：runtime contracts、control surfaces、read models、implementation plans 与待归档 history candidates；完成或退役的实现计划应迁入 `docs/history/runtime/`。
 - `docs/references/`：背景、定位、审计与非活跃参考。
 - `docs/history/`：历史归档，仅作历史参考入口。
