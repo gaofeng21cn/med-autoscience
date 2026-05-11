@@ -71,7 +71,7 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 - 保持 `MedAutoScience` 作为运行层，不要把 controller、profile、overlay、workspace 逻辑塌缩进 plugin 私有文件
 - 保持 CLI 和 controller 入口稳定，避免破坏其他 Agent 的兼容性
 - plugin-local MCP 通过当前 repo checkout 的 `uv run --directory <repo-root> --extra analysis medautosci-mcp` 启动
-- 旧 `med-deepscientist-*` overlay 目录名和 `doctor med-deepscientist-upgrade` 只保留为 internal compatibility surface
+- 旧 `deepscientist-*` / `med-deepscientist-*` overlay 目录名和 `doctor med-deepscientist-upgrade` 只保留为 internal compatibility surface；workspace project skill 可见面应清理旧 `deepscientist-*` 目录，避免与 `medical-research-*` 双暴露
 
 ## 首先应读的文件
 
