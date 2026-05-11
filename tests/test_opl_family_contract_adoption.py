@@ -25,7 +25,35 @@ def test_mas_declares_thin_opl_family_contract_adoption() -> None:
 
     assert contract["contract_kind"] == "mas_opl_family_contract_adoption.v1"
     assert contract["domain_id"] == "med-autoscience"
-    assert contract["opl_role"] == "family-level projection consumer only"
+    assert contract["opl_role"] == (
+        "Codex-first stage-led provider-backed runtime framework and family-level projection consumer"
+    )
+    framework = contract["opl_framework_contract"]
+    assert framework["owner"] == "one-person-lab"
+    assert framework["framework_role"] == "codex_first_stage_led_provider_backed_runtime_framework"
+    assert framework["stage_semantics"] == "human_expert_large_task_stage"
+    assert framework["minimal_executor"] == "Codex CLI"
+    assert framework["provider_abstraction"] == "opl_family_runtime_provider"
+    assert framework["target_production_provider"] == "Temporal"
+    assert framework["legacy_optional_providers"] == ["Hermes-Agent"]
+    assert set(framework["allowed_framework_authority"]) == {
+        "stage_attempt",
+        "queue",
+        "wakeup",
+        "retry",
+        "dead_letter",
+        "human_gate_signal",
+        "attempt_receipt",
+        "projection",
+        "cross_domain_skeleton",
+    }
+    assert set(framework["forbidden_framework_authority"]) == {
+        "study_truth",
+        "publication_quality",
+        "quality_gate",
+        "artifact_authority",
+        "paper_package",
+    }
 
 
 def test_mas_runtime_projection_maps_to_existing_runtime_truth_surfaces() -> None:

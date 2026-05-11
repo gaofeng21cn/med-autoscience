@@ -83,7 +83,7 @@
 
 - `docs/runtime/control/study_runtime_orchestration.md`
 
-MAS sidecar bridge 是 `OPL` / external `Hermes-Agent` family online substrate 的受控入口，不是新的 controller truth owner。`sidecar export` 只把 MAS-owned runtime/status/source refs 投影给 typed family queue；`sidecar dispatch` 只接受 allowlisted task，回到 MAS controller/runtime owner chain 产出 dispatch receipt。它不得写 study truth、publication quality verdict、artifact gate、paper package、`study_runtime_status` 或 `runtime_watch`。这条边界的机器合同由 `contracts/test-lane-manifest.json` 的 `focused_lanes.mas-entry-boundary` 持有；本文件只做人读导航。
+MAS sidecar bridge 是 `OPL` provider-backed family runtime 进入 MAS owner surface 的受控入口，不是新的 controller truth owner。`sidecar export` 只把 MAS-owned runtime/status/source refs 投影给 typed family queue；`sidecar dispatch` 只接受 allowlisted task，回到 MAS controller/runtime owner chain 产出 dispatch receipt。OPL provider 可以承载 stage attempt、queue/wakeup、retry/dead-letter、human-gate signal、attempt receipt 和 projection，但不得写 study truth、publication quality verdict、artifact gate、paper package、`study_runtime_status` 或 `runtime_watch`。这条边界的机器合同由 `contracts/test-lane-manifest.json` 的 `focused_lanes.mas-entry-boundary` 持有；本文件只做人读导航。
 
 后续优先顺序：
 

@@ -477,10 +477,17 @@
         "docs_role": "human_navigation_and_boundary_explanation_only",
         "contract_lane": "focused_lanes.mas-entry-boundary"
       },
-      "family_online_substrate": {
+      "family_runtime_framework": {
         "owner": "one-person-lab",
-        "substrate": "Hermes-Agent",
-        "role": "family_online_wakeup_queue_session_delivery_approval_transport",
+        "framework_role": "codex_first_stage_led_provider_backed_runtime_framework",
+        "stage_semantics": "human_expert_large_task_stage",
+        "minimal_executor": "Codex CLI",
+        "provider_abstraction": "opl_family_runtime_provider",
+        "target_production_provider": "Temporal",
+        "legacy_optional_providers": [
+          "Hermes-Agent"
+        ],
+        "role": "stage_attempt_queue_wakeup_retry_dead_letter_human_gate_receipt_projection_transport",
         "not_authority_for": [
           "study_truth",
           "publication_quality",

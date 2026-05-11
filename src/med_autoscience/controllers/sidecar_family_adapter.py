@@ -89,7 +89,8 @@ def _workspace_relative(path: Path, *, workspace_root: Path) -> str:
 
 def _authority_boundary_payload() -> dict[str, Any]:
     return {
-        "online_runtime_substrate_owner": "opl_managed_hermes",
+        "family_runtime_framework_owner": "one-person-lab",
+        "online_runtime_provider_owner": "opl_family_runtime_provider",
         "typed_dispatch_owner": "one-person-lab",
         "domain_truth_owner": "med-autoscience",
         "quality_gate_owner": "med-autoscience",
@@ -169,11 +170,15 @@ def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> di
             "workspace_exists": profile.workspace_root.exists(),
             "studies_root_exists": profile.studies_root.exists(),
         },
-        "online_runtime_substrate": {
-            "owner": "opl_managed_hermes",
-            "provider": "Hermes-Agent",
-            "hermes_runtime_provider": "required_for_online_family_runtime",
-            "role": "wakeup_session_store_delivery_approval_transport",
+        "online_runtime_framework": {
+            "owner": "one-person-lab",
+            "framework_role": "codex_first_stage_led_provider_backed_runtime_framework",
+            "stage_semantics": "human_expert_large_task_stage",
+            "minimal_executor": "Codex CLI",
+            "provider_abstraction": "opl_family_runtime_provider",
+            "target_production_provider": "Temporal",
+            "legacy_optional_providers": ["Hermes-Agent"],
+            "role": "stage_attempt_queue_wakeup_retry_dead_letter_human_gate_receipt_projection_transport",
             "not_authority_for": ["study_truth", "publication_quality", "artifact_gate", "paper_package"],
         },
         "dispatch": {
@@ -193,7 +198,7 @@ def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> di
             "version": "family-runtime-supervision.v1",
             "target_domain_id": "medautoscience",
             "supervision_id": f"{profile.name}_mas_family_runtime_supervision",
-            "adapter_id": "opl_managed_hermes_wakeup_to_mas_sidecar",
+            "adapter_id": "opl_family_runtime_provider_wakeup_to_mas_sidecar",
             "cadence": {"interval_seconds": 60},
             "lease_freshness": {"state": "unknown", "observed_at": generated_at, "max_age_seconds": 180},
             "slo_state": {
@@ -201,7 +206,7 @@ def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> di
                 "summary": "MAS exposes SLO state as read-only projection for OPL family-runtime indexing.",
             },
             "repair_command": f"medautosci runtime ensure-supervision --profile {profile_ref}",
-            "safe_reconcile_hint": "Use medautosci sidecar dispatch; OPL/Hermes must not write study or publication truth.",
+            "safe_reconcile_hint": "Use medautosci sidecar dispatch; OPL providers must not write study or publication truth.",
             "domain_owned_source_refs": _aggregate_domain_refs(studies),
             "read_only_authority_boundary": {
                 "projection_owner": "one-person-lab",

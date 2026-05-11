@@ -197,8 +197,16 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     payload = json.loads(captured.out)
     assert payload["surface_kind"] == "mas_family_sidecar_export"
     assert payload["target_domain_id"] == "medautoscience"
-    assert payload["online_runtime_substrate"]["owner"] == "opl_managed_hermes"
+    framework = payload["online_runtime_framework"]
+    assert framework["owner"] == "one-person-lab"
+    assert framework["framework_role"] == "codex_first_stage_led_provider_backed_runtime_framework"
+    assert framework["stage_semantics"] == "human_expert_large_task_stage"
+    assert framework["minimal_executor"] == "Codex CLI"
+    assert framework["provider_abstraction"] == "opl_family_runtime_provider"
+    assert framework["target_production_provider"] == "Temporal"
+    assert framework["legacy_optional_providers"] == ["Hermes-Agent"]
     assert payload["authority_boundary"]["domain_truth_owner"] == "med-autoscience"
+    assert payload["authority_boundary"]["online_runtime_provider_owner"] == "opl_family_runtime_provider"
     assert payload["authority_boundary"]["forbidden_authorities"] == [
         "study_truth_write",
         "publication_quality_verdict",
@@ -293,7 +301,7 @@ def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_pat
             "attempts": 1,
             "source": "opl_family_runtime",
             "authority_boundary": {
-                "hermes": "online_runtime_substrate_only",
+                "provider": "online_runtime_transport_only",
                 "opl": "typed_queue_and_dispatch_only",
                 "domain": "truth_quality_artifact_gate_owner",
             },

@@ -85,11 +85,16 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
         "contract_lane": "focused_lanes.mas-entry-boundary",
     }
 
-    substrate = lane["family_online_substrate"]
-    assert substrate["owner"] == "one-person-lab"
-    assert substrate["substrate"] == "Hermes-Agent"
-    assert substrate["role"] == "family_online_wakeup_queue_session_delivery_approval_transport"
-    assert set(substrate["not_authority_for"]) == {
+    framework = lane["family_runtime_framework"]
+    assert framework["owner"] == "one-person-lab"
+    assert framework["framework_role"] == "codex_first_stage_led_provider_backed_runtime_framework"
+    assert framework["stage_semantics"] == "human_expert_large_task_stage"
+    assert framework["minimal_executor"] == "Codex CLI"
+    assert framework["provider_abstraction"] == "opl_family_runtime_provider"
+    assert framework["target_production_provider"] == "Temporal"
+    assert framework["legacy_optional_providers"] == ["Hermes-Agent"]
+    assert framework["role"] == "stage_attempt_queue_wakeup_retry_dead_letter_human_gate_receipt_projection_transport"
+    assert set(framework["not_authority_for"]) == {
         "study_truth",
         "publication_quality",
         "quality_gate",
