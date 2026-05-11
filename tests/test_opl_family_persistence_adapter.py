@@ -192,3 +192,42 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert skeleton["mapping_mode"] == "contract_only_no_physical_artifact_move"
     assert skeleton["repo_tracks_real_workspace_artifacts"] is False
     assert "mas_family_sidecar_dispatch_receipt" in skeleton["skeleton"]["contracts/runtime/sidecar"]
+    standard_skeleton = payload["standard_domain_agent_skeleton"]
+    assert standard_skeleton["surface_kind"] == "standard_domain_agent_skeleton"
+    assert standard_skeleton["version"] == "standard-domain-agent-skeleton.v1"
+    assert standard_skeleton["skeleton_id"] == "mas.standard_domain_agent_skeleton.v1"
+    assert standard_skeleton["target_domain_id"] == "med-autoscience"
+    assert standard_skeleton["mapping_mode"] == "contract_only_no_physical_artifact_move"
+    assert standard_skeleton["repo_tracks_real_workspace_artifacts"] is False
+    assert standard_skeleton["repo_source_boundary"]["required_dirs"] == [
+        "agent",
+        "contracts",
+        "runtime",
+        "docs",
+    ]
+    assert standard_skeleton["repo_source_boundary"]["forbidden_dirs"] == ["artifacts"]
+    assert standard_skeleton["skeleton"]["agent/stages"] == skeleton["skeleton"]["agent/stages"]
+    assert (
+        "workspace_runtime_artifact_root_locator"
+        in standard_skeleton["skeleton"]["contracts/runtime/lifecycle_adapters"]
+    )
+    assert standard_skeleton["artifact_boundary"]["repo_contains_real_artifacts"] is False
+    assert standard_skeleton["artifact_boundary"]["artifact_roots_are_locators"] is True
+    assert standard_skeleton["artifact_boundary"]["workspace_artifact_locator_refs"] == [
+        "/product_entry_manifest/workspace_runtime_artifact_root_locator"
+    ]
+    assert standard_skeleton["workspace_runtime_artifact_root_locator_ref"] == (
+        "/product_entry_manifest/workspace_runtime_artifact_root_locator"
+    )
+    assert payload["workspace_runtime_artifact_root_locator"]["surface_kind"] == (
+        "workspace_runtime_artifact_root_locator"
+    )
+    assert payload["workspace_runtime_artifact_root_locator"]["repo_root_tracks_real_artifacts"] is False
+    assert payload["workspace_runtime_artifact_root_locator"]["locators"]["study_artifact_root"] == (
+        "studies/<study_id>/artifacts"
+    )
+    assert standard_skeleton["authority_boundary"]["opl"] == "framework_transport_and_projection_only"
+    assert standard_skeleton["authority_boundary"]["domain_agent"] == "truth_quality_artifact_owner"
+    assert "domain_truth" in standard_skeleton["authority_boundary"]["forbidden_opl_authority"]
+    assert "quality_verdict" in standard_skeleton["authority_boundary"]["forbidden_opl_authority"]
+    assert "canonical_artifact_blob" in standard_skeleton["authority_boundary"]["forbidden_opl_authority"]

@@ -223,6 +223,46 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
     }
 
 
+def build_standard_domain_agent_skeleton_surface() -> dict[str, Any]:
+    mapping = build_domain_agent_skeleton_mapping_surface()
+    return {
+        "surface_kind": "standard_domain_agent_skeleton",
+        "version": "standard-domain-agent-skeleton.v1",
+        "skeleton_id": "mas.standard_domain_agent_skeleton.v1",
+        "target_domain_id": DOMAIN_OWNER,
+        "mapping_mode": mapping["mapping_mode"],
+        "repo_tracks_real_workspace_artifacts": mapping["repo_tracks_real_workspace_artifacts"],
+        "repo_source_boundary": {
+            "required_dirs": ["agent", "contracts", "runtime", "docs"],
+            "forbidden_dirs": ["artifacts"],
+        },
+        "skeleton": mapping["skeleton"],
+        "workspace_runtime_artifact_root_locator_ref": (
+            "/product_entry_manifest/workspace_runtime_artifact_root_locator"
+        ),
+        "artifact_boundary": {
+            "repo_contains_real_artifacts": False,
+            "artifact_roots_are_locators": True,
+            "workspace_artifact_locator_refs": [
+                "/product_entry_manifest/workspace_runtime_artifact_root_locator"
+            ],
+            "runtime_artifact_locator_refs": [
+                "/product_entry_manifest/workspace_runtime_artifact_root_locator"
+            ],
+        },
+        "authority_boundary": {
+            "opl": "framework_transport_and_projection_only",
+            "domain_agent": "truth_quality_artifact_owner",
+            "forbidden_opl_authority": [
+                "domain_truth",
+                "quality_verdict",
+                "canonical_artifact_blob",
+                "publication_or_export_gate",
+            ],
+        },
+    }
+
+
 def receipt_refs_for_profile(profile: WorkspaceProfile) -> dict[str, Any]:
     return {
         "surface_kind": "mas_opl_sidecar_receipt_refs",
@@ -343,6 +383,7 @@ __all__ = [
     "build_forbidden_write_guard_proof",
     "build_opl_lifecycle_inventory_surface",
     "build_opl_provider_ready_contract",
+    "build_standard_domain_agent_skeleton_surface",
     "receipt_refs_for_profile",
     "requested_writes_from_task",
 ]

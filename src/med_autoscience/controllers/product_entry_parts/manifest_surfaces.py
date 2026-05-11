@@ -462,6 +462,9 @@ def build_product_entry_manifest(
             "notification/receipt",
         ),
     )
+    standard_domain_agent_skeleton = (
+        opl_provider_ready_adapter.build_standard_domain_agent_skeleton_surface()
+    )
     skill_catalog = _build_skill_catalog_surface(
         runtime=runtime,
         family_orchestration=family_orchestration,
@@ -574,6 +577,7 @@ def build_product_entry_manifest(
             "opl_provider_ready_contract": opl_provider_ready_contract,
             "opl_lifecycle_inventory": opl_provider_ready_contract["lifecycle_inventory"],
             "opl_domain_agent_skeleton_mapping": opl_provider_ready_contract["domain_agent_skeleton_mapping"],
+            "standard_domain_agent_skeleton": standard_domain_agent_skeleton,
             "workspace_runtime_artifact_root_locator": (
                 opl_provider_ready_contract["workspace_runtime_artifact_root_locator"]
             ),
