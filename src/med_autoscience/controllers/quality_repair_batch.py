@@ -15,6 +15,9 @@ from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers.gate_clearing_batch_work_units import UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
 from med_autoscience.controllers.control_plane_route_gate import assert_control_plane_route_authorized
+from med_autoscience.controllers.study_runtime_execution_parts.controller_authorization_context import (
+    _load_controller_decision_authorization_context,
+)
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.publication_eval_latest import read_publication_eval_latest
 from med_autoscience import study_task_intake
@@ -224,7 +227,10 @@ def _runtime_control_plane_route_context(
     if not isinstance(control_plane_snapshot, Mapping):
         return None
     route_context: dict[str, Any] = {"control_plane_snapshot": dict(control_plane_snapshot)}
-    controller_route_context = _controller_route_context_for_runtime_authorization(
+    controller_route_context = _controller_route_context_for_latest_controller_decision(
+        study_root=study_root,
+        source_eval_id=source_eval_id,
+    ) or _controller_route_context_for_runtime_authorization(
         status_payload,
         source_eval_id=source_eval_id,
     )
@@ -233,12 +239,54 @@ def _runtime_control_plane_route_context(
     return route_context
 
 
+def _controller_route_context_for_latest_controller_decision(
+    *,
+    study_root: Path,
+    source_eval_id: str | None,
+) -> dict[str, Any] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    decision_payload = _read_json_object(resolved_study_root / "artifacts" / "controller_decisions" / "latest.json")
+    decision_eval_ref = decision_payload.get("publication_eval_ref")
+    decision_eval_id = (
+        _non_empty_text(decision_eval_ref.get("eval_id"))
+        if isinstance(decision_eval_ref, Mapping)
+        else None
+    )
+    if source_eval_id is not None and decision_eval_id != source_eval_id:
+        return None
+    authorization = _load_controller_decision_authorization_context(study_root=resolved_study_root)
+    if not isinstance(authorization, Mapping):
+        return None
+    controller_actions = {
+        text
+        for action in (authorization.get("controller_actions") or ())
+        if (text := _non_empty_text(action)) is not None
+    }
+    if StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value not in controller_actions:
+        return None
+    return _controller_route_context_for_authorization(
+        authorization,
+        source_eval_id=source_eval_id,
+    )
+
+
 def _controller_route_context_for_runtime_authorization(
     status_payload: Mapping[str, Any],
     *,
     source_eval_id: str | None,
 ) -> dict[str, Any] | None:
     authorization = status_payload.get("last_controller_decision_authorization")
+    return _controller_route_context_for_authorization(
+        authorization,
+        source_eval_id=source_eval_id,
+    )
+
+
+def _controller_route_context_for_authorization(
+    authorization: object,
+    *,
+    source_eval_id: str | None,
+) -> dict[str, Any] | None:
     if not isinstance(authorization, Mapping):
         return None
     if bool(authorization.get("requires_human_confirmation")):

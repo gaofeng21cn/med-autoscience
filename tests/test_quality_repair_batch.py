@@ -789,6 +789,7 @@ def test_run_quality_repair_batch_uses_specificity_targets_for_missing_publicati
     )
     assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == "analysis_claim_evidence_repair"
 
+
 def test_run_quality_repair_batch_reruns_same_eval_after_failed_gate_clearing_batch(
     monkeypatch,
     tmp_path: Path,
