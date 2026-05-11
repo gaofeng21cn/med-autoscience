@@ -20,13 +20,13 @@
 | 目录 | 用途 |
 | --- | --- |
 | [runtime](./runtime/README.md) | 运行时合同、控制面、读模型、展示合同和活跃设计。 |
-| [program](./program/README.zh-CN.md) | 精简的当前执行队列和 program 级协调。 |
+| [program](./program/README.zh-CN.md) | Program 生命周期组合：论文自治目标、产品化/框架化实现依托、已落地基础 owner 文档和 program 级协调。 |
 | [capabilities](./capabilities/README.zh-CN.md) | 能力族文档，例如 medical display。 |
 | [references](./references/README.zh-CN.md) | 支撑参考、定位、集成说明、parity 材料和验证记录。 |
 | [policies](./policies/README.md) | 稳定内部规则和长期运行边界。 |
 | [history](./history/README.zh-CN.md) | dated snapshot、provenance、退役 board、归档计划和过程稿。 |
 
-这张表是生命周期层级。核心文档与 runtime / policy owner surface 承担当前真相；`program` 承担精简的当前执行队列和 landed owner doc；`references` 承担支撑上下文；`history` 承担 provenance 和退役材料。
+这张表是生命周期层级。核心文档与 runtime / policy owner surface 承担当前真相；`program` 承担目标、实现依托和已落地基础的组合治理；`references` 承担支撑上下文；`history` 承担 provenance 和退役材料。
 
 ## 阅读规则
 

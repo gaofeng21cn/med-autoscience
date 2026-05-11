@@ -43,7 +43,7 @@
 - 入口文档应先呈现当前状态、活跃层级、新旧关系和下一跳；已完成计划、旧校准记录和历史路线进入 evidence/provenance 层。
 - 对外文档保持中英双语；内部技术、规划、备忘文档默认中文，除非明确提升到双语公开面。
 - `docs/capabilities/`：能力族/专题面（如 medical display）。
-- `docs/program/`：当前 program 组合入口、P0/P1/P2 活跃 program，以及 P3/P3a landed owner docs。
+- `docs/program/`：当前 program 组合入口；P0 是目标与验收合同，P1/P2 是产品化与框架化实现依托，P3/P3a 是 landed foundation owner docs。
 - `docs/runtime/`：runtime contracts、control surfaces、read models、implementation plans 与待归档 history candidates；完成或退役的实现计划应迁入 `docs/history/runtime/`。
 - `docs/references/`：背景、定位、审计与非活跃参考。
 - `docs/history/`：历史归档，仅作历史参考入口。

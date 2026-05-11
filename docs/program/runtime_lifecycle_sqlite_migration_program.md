@@ -1,8 +1,9 @@
 # Runtime Lifecycle SQLite Migration Program
 
-Status: `repo-level SQLite lineage/read-model/plain materializer/inventory/diagnostic/cutover surfaces landed; current workspace restore-proof storage migration applied; current-project active-path quest Git and workspace root Git retired`
+Status: `landed foundation owner doc; runtime lifecycle / restore-proof guard maintenance active`
 Date: `2026-05-08`
 Owner: `MedAutoScience Runtime OS`
+Content lifecycle role: P3a landed foundation. This document preserves the SQLite/file authority model, runtime lifecycle ledgers, quest/root Git retirement proof, restore-proof archive rules, and drift-handling process. It is a guard/provenance owner under P3.
 
 ## 2026-05-08 portfolio calibration after modularity refactor
 

@@ -79,7 +79,7 @@ MAS adapts mature documentation practice this way:
 | --- | --- | --- |
 | `docs/` root | short technical entry plus core truth | Only root README, core five, and this governance file stay here. |
 | `docs/runtime/` | runtime contracts, control, projections, display, active designs | Completed implementation plans move to `docs/history/runtime/`. |
-| `docs/program/` | active execution queue | Keep small: program README, portfolio entry, P0/P1/P2 active programs, and P3/P3a landed owner docs. |
+| `docs/program/` | program lifecycle portfolio | Keep small: program README, portfolio entry, the P0 target/acceptance owner, P1/P2 active enablers, and P3/P3a landed foundation owner docs. |
 | `docs/capabilities/` | capability-family docs | Each family owns its board, contracts, catalogs, plans, provenance, and history links. |
 | `docs/references/` | support references | Group by `mainline`, `integration`, `mds-parity`, `positioning`, `verification`, `workspace`, and `med-deepscientist`. |
 | `docs/policies/` | stable internal rules | Group by `quality`, `study-workflow`, `runtime-governance`, and `repo-ops`; do not store one-off plans here. |
@@ -134,6 +134,23 @@ Before moving or deleting a document:
 3. If code/tests depend on prose paths, replace that dependency with a semantic
    ID, schema, source path, or durable JSON surface unless it is docs tooling.
 4. Run `git diff --check` and the relevant path/contract tests.
+
+## Program Portfolio Rule
+
+`docs/program/` is read as a target/enabler/foundation map:
+
+| role | current MAS document role |
+| --- | --- |
+| `target_acceptance` | `ai_first_paper_autonomy_closure_program.md` defines the paper-autonomy outcome contract and live-soak acceptance criteria. |
+| `product_enabler` | `opl_app_mas_runtime_workbench_program.md` turns the target into an OPL App Runtime Workbench experience. |
+| `framework_enabler` | `opl_temporal_mas_runtime_retirement_program.md` aligns MAS runtime-adjacent obligations with the OPL Codex-first, stage-led framework. |
+| `landed_foundation` | `mas_single_project_mds_absorb_program.md` and `runtime_lifecycle_sqlite_migration_program.md` preserve monolith, MDS provenance, runtime lifecycle, restore-proof, and compatibility guard evidence. |
+
+When a program document contains mixed material, split the content role before
+editing: current target language stays in the target owner, implementation
+dependencies move to P1/P2 or OPL, landed evidence stays as guard/provenance,
+recurring support moves to references plus dated history snapshots, and retired
+route narratives move to history/tombstones.
 
 ## Machine Boundary
 
