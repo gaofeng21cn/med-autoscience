@@ -2,7 +2,7 @@
 
 ## 目标
 
-MAS/MDS 的医学论文初稿不能只是研究执行日志、结果汇总或投稿包清单。初稿在生成时就必须是医学期刊可读的 manuscript-shaped prose，并且在写作前绑定研究类型、报告规范、证据边界和读者问题。
+MAS 的医学论文初稿不能只是研究执行日志、结果汇总或投稿包清单。初稿在生成时就必须是医学期刊可读的 manuscript-shaped prose，并且在写作前绑定研究类型、报告规范、证据边界和读者问题。历史 MDS / DeepScientist 只能作为 stage discipline、fixture 或 provenance 参考，不能作为初稿质量 owner。
 
 ## 外部规范基座
 
@@ -11,7 +11,7 @@ MAS/MDS 的医学论文初稿不能只是研究执行日志、结果汇总或投
 - TRIPOD / TRIPOD+AI: prediction-model manuscripts must define target population, prediction timepoint, outcome horizon, intended use, predictors, missing data, model specification, validation, calibration, and clinical utility before drafting.
 - STROBE: observational manuscripts must define design, setting, participants, variables, data sources, bias, missing data, statistical methods, limitations, and generalizability.
 
-## MAS/MDS 合同层
+## MAS 合同层
 
 `study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` is the upstream owner for first-draft quality. It now carries two mandatory parts:
 

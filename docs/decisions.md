@@ -20,6 +20,12 @@
 - 理由：MAS 的价值在医学研究自治与论文质量闭环。如果把研究路线、质量判断或 publication readiness 上收到 OPL，会制造第二 truth owner，也会削弱 Codex CLI 在 MAS stage 内的自主探索能力。OPL 应提供 durable framework 能力，不能成为 MAS 的领域大脑。
 - 影响：direct MAS skill path 保持一等入口；经 OPL 调用时必须回到同一套 MAS-owned CLI/MCP/product-entry/controller/stage surface。后续流程优化优先改 MAS stage policy、prompt、skill、AI reviewer、quality gate 和 route/decision receipt；不得把医学研究思路写成 OPL 机械脚本分流。
 
+## 2026-05-11：OPL 是完整 stage-led 智能体运行框架，MAS 是医学论文 domain agent
+
+- 决策：OPL 的新定位固定为完整智能体运行框架，而不是只做入口聚合或 product-entry facade。OPL 可以作为外部依赖承载 MAS：它负责 stage attempt、provider abstraction、queue/wakeup、retry/dead-letter、human-gate signal/query、attempt receipt、projection、shared lifecycle/index/restore primitives 和跨 domain skeleton。`Stage` 是大型任务步骤；`Codex CLI` 是 stage 内默认 concrete executor 和最小执行单元。
+- 理由：MAS 已经在 monolith closeout 中验证了医学论文 domain 的 runtime、lifecycle、artifact、restore、stage knowledge 和质量闭环经验，但这些“智能体运行外围”不应长期由 MAS 私有维护。上收 OPL 能减少 MAS/MAG/RCA 重复底座，同时保持 MAS 对医学研究、论文质量和交付 authority 的唯一所有权。
+- 影响：MAS 文档必须把 OPL 作为可依赖运行框架表达，同时继续禁止 OPL/Temporal/Hermes/local provider 写 MAS study truth、publication judgement、quality gate、current package、evidence/review ledger 或 artifact authority。MAS 是 OPL family 中的医学论文/研究 domain agent；旧 MDS/DeepScientist/Hermes-first/外部 runtime 完善线只能作为 history、provenance、optional provider、backend audit、upstream intake 或 parity reference 出现。
+
 ## 2026-05-10：Autonomy continuation ticket 成为 read-model 到执行闭环的桥
 
 - 决策：`slo_status=breach`、`runtime_liveness_status=parked`、`runtime_decision=blocked` 或 `safe_reconcile_ready` 不能只停留在 read model。只要 controller 未给出 `stop_loss` / terminal stop，且没有 hard human confirmation gate，MAS sidecar export 必须生成一条幂等 `pending_family_tasks[]`，默认 task kind 为 `runtime_supervisor/reconcile-apply`。

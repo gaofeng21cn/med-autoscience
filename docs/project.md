@@ -1,13 +1,13 @@
 # 项目概览
 
-`Med Auto Science` 是可被通用 agent 直接调用的独立 medical research domain agent，外层由单一 MAS app skill 承接稳定 callable surface。它也可以作为 OPL Codex-first、stage-led family agent framework 上的 admitted domain agent 被托管、唤醒和投影，但医学研究 stage、质量判断、study truth 和论文交付 authority 始终由 MAS 持有。它把研究问题、工作区语境、证据推进、人话进度和论文相关文件放在同一条研究线上，帮助团队把真实研究持续推进到可交付状态。
+`Med Auto Science` 是可被通用 agent 直接调用的独立 medical research domain agent，外层由单一 MAS app skill 承接稳定 callable surface。它也可以作为 `OPL` 完整智能体运行框架中的 admitted domain agent 被托管、唤醒和投影；OPL 是 Codex-first、stage-led 的外层框架，`Stage` 表示大型任务步骤，`Codex CLI` 是 stage 内默认 concrete executor 和最小执行单元。医学研究 stage、质量判断、study truth 和论文交付 authority 始终由 MAS 持有。它把研究问题、工作区语境、证据推进、人话进度和论文相关文件放在同一条研究线上，帮助团队把真实研究持续推进到可交付状态。
 
 ## 当前结构
 
 - 用户层：研究问题、工作区、进度反馈、交付文件都统一由 `Med Auto Science` 这条 domain agent 主线承载；对外第一主语是独立 domain agent，其后是单一 MAS app skill。
 - 操作与集成层：`CLI`、`MCP`、`controller`，以及 repo-tracked 的 workspace commands / scripts / contracts，共同构成 MAS 对外稳定 capability surface；`product-entry manifest`、`OPL handoff` 与其他机器可读桥接只做 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不接管研究 owner 身份。
 - Stage-led family framework 层：OPL 可以读取 MAS stage/action/projection descriptor，负责任务唤醒、队列、handoff、receipt、human gate transport、retry/dead-letter 和跨域可见性；MAS 继续负责 `scout`、`idea`、`analysis-campaign`、`review`、`decision` 等医学研究 stage 语义、prompt/skill、AI reviewer、publication gate、study truth reducer 和 artifact authority。
-- OPL 运行管理层：目标形态中，`OPL Runtime Manager` 位于 OPL product entry / family orchestration 与 family runtime provider 之间，只负责 provider profile/provisioning、task registration hydration、runtime status projection、doctor/repair/resume、native helper catalog 与高频状态索引；Temporal 是目标生产 provider，Hermes 是迁移期 legacy/optional provider 或 executor/proof lane。它不成为 MAS 的研究 truth、scheduler kernel、session store、memory store 或 concrete executor。
+- OPL 运行管理层：目标形态中，`OPL Runtime Manager` 位于 OPL product entry / family orchestration 与 family runtime provider 之间，只负责 provider profile/provisioning、task registration hydration、runtime status projection、doctor/repair/resume、native helper catalog 与高频状态索引；Temporal 是目标生产 provider，Hermes 是迁移期 legacy/optional provider 或 executor/proof lane。它不成为 MAS 的研究 truth、scheduler kernel、session store、memory store 或 domain quality owner。
 - 运行时层：`Med Auto Science` 已完成 monolith closeout，持有课题与工作区权威语义、默认运行、默认诊断、进度入口以及发表判断；默认执行继续继承本机 `Codex` 配置；`Hermes-Agent` 只作为可选 hosted runtime target / reference-layer 运行载体或 legacy provider/proof lane，并可由 OPL Runtime Manager 管理其 family-level adapter/projection；`MedDeepScientist` 不再是默认 operation / diagnostic / runtime root / WebUI 依赖，只保留为显式 backend audit、source provenance、historical fixture、explicit archive import reference、behavior parity oracle 与 upstream intake source。
 
 ## 当前目标

@@ -9,9 +9,11 @@
 ## 默认目标
 
 - 以 Q2+ 医学论文为第一目标
-- MedDeepScientist 做执行层
-- Codex 做总协调和外层治理
+- MAS 做医学研究 domain owner
+- Codex CLI 做 stage 内默认 concrete executor
+- OPL 可以作为外层 stage-led runtime framework 承担唤醒、队列、恢复、审批和投影
 - ToolUniverse 只在功能分析 / 知识检索需要时挂接
+- MedDeepScientist / DeepScientist 只作为历史来源、显式归档导入、backend audit、upstream intake 或 parity oracle，不作为默认运行或诊断依赖
 
 ## 默认约束
 

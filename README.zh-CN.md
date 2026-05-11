@@ -56,22 +56,16 @@
 - AI 助手推进数据整理、分析执行、证据组织和进度反馈。
 - 工作区持续保存任务、文件、进度和交付物，方便回看和审阅。
 
-## 当前边界
+## 当前定位与边界
 
-- `Med Auto Science` 是独立的 medical research domain agent，可被 Codex 或其他通用 agent 直接调用。
-- 它的单一 MAS app skill 是对外稳定的前台入口，承接 repo-tracked skill surface。
-- 它对外稳定暴露的 capability surface 是本地 CLI、MCP tools、product-entry surface、controller-authorized workspace commands / scripts、durable surface 与 repo-tracked contract。
-- 具名 product-entry、cockpit 与 progress 命令都是这个单一 app skill 下的内部 command contract，不是独立的对外第一主语。
-- AI-first 线是运行模型，不是文档 wording gate：当前落点是 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 和真实论文 soak。
-- `OPL` handoff、product-entry manifest 以及其他机器可读桥接载荷都只保留在集成或参考层。
-- 它负责课题接收、工作区语境、证据推进、进度投影和面向论文的交付。
-- `OPL` 只负责 family-level session/runtime/projection 编排和 shared modules/contracts/indexes，不把 MAS 改写成内部模块。
-- 在 stage-led OPL family framework 中，MAS 持有医学研究 stage pack、prompt、skill、质量 gate、study truth reducer 和 publication/package authority。OPL 可以提供 wakeup、queue、handoff、receipt 和进度投影支撑；除非 MAS route 显式选择其他执行器，stage 内默认 concrete executor 仍是 `Codex CLI`。
-- Provider-backed OPL family topology 下，`OPL Runtime Manager` 与 `opl family-runtime` 会在已配置的 OPL family runtime provider 之上索引 MAS task/runtime/artifact projection。Temporal 是 durable stage attempt 的目标生产 substrate；Hermes 在迁移期只作为 legacy/optional provider 或 executor/proof lane。MAS 继续持有 study truth、publication judgment、quality gate 和 paper/package authority。
-- MAS 暴露 `medautosci sidecar export` 与 `medautosci sidecar dispatch` 给 OPL family queue 使用。这个 sidecar 只负责 wakeup、recovery、notification receipt 和只读 supervision projection 的受控桥接，不写 domain truth。
-- `MedDeepScientist` 不再是 MAS 默认运行、默认诊断、runtime root 或 WebUI 依赖；只保留为显式可选的 backend audit target、source-provenance reference、historical fixture、explicit archive-import reference、upstream intake source 和 parity oracle。
-- MAS 当前不提供面向用户安装的 standalone GitHub Release 或独立 installer 叙事；OPL 管理模块安装当前走 git checkout / sibling repo 路径，后续可消费 OPL Packages/GHCR-backed module 坐标。
-- 临床问题界定、结论采用和投稿决策由研究者与课题负责人把关。
+- `Med Auto Science` 是医学研究领域智能体，可以由 Codex 直接调用，也可以接入 `OPL` 的统一智能体运行框架。
+- MAS 负责医学研究本身：课题进入、工作区语境、证据推进、进度说明、论文质量判断和稿件交付。
+- `OPL` 是上层运行框架：负责任务阶段、队列、唤醒、恢复、审批、记录和跨领域状态展示；它不替 MAS 判断医学结论，也不接管论文质量和投稿判断。
+- 在 OPL 框架里，`Stage` 表示一次较大的研究步骤，例如选题、分析、写作、审稿修复或交付；`Codex CLI` 是 stage 内默认的最小执行单元。
+- MAS 已完成单仓收敛。`MedDeepScientist` / `DeepScientist` 不再是默认运行、默认诊断、默认进度页面或默认质量依赖，只作为历史来源、显式归档导入、后端审计、上游学习和能力对照材料保留。
+- `Hermes-Agent` 不再是 MAS 默认在线底座。长期在线能力按 OPL 的 provider-backed runtime 方向推进，Temporal 是目标生产 provider；Hermes 只保留为迁移期可选 provider、证明线或历史兼容材料。
+- 论文质量不能由状态面板、脚本检查或历史 MDS 覆盖率替代。科学质量、医学写作质量和投稿前判断仍由 MAS 的 study charter、证据账本、审阅账本、AI reviewer、publication gate 和控制面记录共同约束。
+- 临床问题界定、结论采用和最终投稿决策由研究者与课题负责人把关。
 - 期刊投稿和外部系统交互由人工监督完成。
 
 ## 这个仓库应该怎么读

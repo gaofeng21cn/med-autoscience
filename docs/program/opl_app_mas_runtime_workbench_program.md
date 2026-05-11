@@ -13,7 +13,7 @@ MAS 的 Progress Portal、Live Console、conversation read model 和 terminal at
 
 - `OPL App` / `OPL Runtime Manager` 持有产品级工作台、导航、通知、queue、approval transport、窗口与 WebView/terminal 组件。
 - `MAS` 持有 study truth、publication judgment、paper/package authority、runtime owner surface、terminal attach owner gate、action receipt 和 source refs。
-- `Hermes-Agent` 仍是 OPL Full online runtime 的外部在线 substrate，负责长期在线、唤醒、delivery、approval transport 和 family queue tick。
+- OPL family runtime provider 负责长期在线、stage attempt、唤醒、delivery、approval transport 和 family queue tick；Temporal 是目标生产 provider，Hermes-Agent 只作为迁移期 legacy/optional provider 或 executor/proof lane。
 - OPL App 只消费 MAS domain-owned projection 和调用 MAS owner endpoint；它不能重算医学状态、质量裁决、投稿 readiness 或 current package authority。
 
 ## 为什么接到 OPL App
@@ -28,7 +28,7 @@ MAS 的 Progress Portal、Live Console、conversation read model 和 terminal at
 - terminal 可交互时能不能像普通 Web terminal 一样输入；
 - 产物在哪里。
 
-如果 MAS 自己继续做一套完整 WebUI，而 OPL App 又已有 OPL 运行状态、Hermes readiness、family queue、domain task dispatch 和 App-first 首启路径，就会形成两套状态入口和两套操作体验。更稳定的设计是把 MAS 的 domain projection 接到 OPL App 的运行工作台，MAS 保留 workspace-local Portal / Live Console 作为 fallback、debug 和 no-App 环境入口。
+如果 MAS 自己继续做一套完整 WebUI，而 OPL App 又已有 OPL 运行状态、provider readiness、family queue、domain task dispatch 和 App-first 首启路径，就会形成两套状态入口和两套操作体验。更稳定的设计是把 MAS 的 domain projection 接到 OPL App 的运行工作台，MAS 保留 workspace-local Portal / Live Console 作为 fallback、debug 和 no-App 环境入口。
 
 ## 外部工程参照
 
@@ -236,8 +236,8 @@ MAS 返回 typed receipt。OPL App 存储 App-level history 只作为 UI/audit c
 
 ### Phase 4: OPL/Hermes online workbench
 
-- OPL Runtime Manager 把 MAS pending family tasks、Hermes readiness、family queue、notification、approval 和 MAS study workbench 合并为一个运行面。
-- Hermes wakeup / family-runtime tick 负责长期在线；MAS 继续持有 domain dispatch 和 paper truth。
+- OPL Runtime Manager 把 MAS pending family tasks、provider readiness、family queue、notification、approval 和 MAS study workbench 合并为一个运行面。
+- OPL family runtime provider wakeup / tick 负责长期在线；MAS 继续持有 domain dispatch 和 paper truth。
 - OPL App 显示 queue item 与对应 MAS study 的关联。
 
 验收：一个 OPL App 页面回答“OPL 在线 substrate 是否健康、MAS 哪篇论文在跑、为什么停、下一步谁负责、我能点什么”。

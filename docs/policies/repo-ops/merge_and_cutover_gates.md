@@ -5,7 +5,7 @@
 - 什么时候当前 repo-side tranche 可以吸收到 `main`
 - 什么时候一个正在运行中的医学项目可以平滑迁到更大的 integration harness / cutover surface
 
-另见：[`../runtime-governance/external_runtime_dependency_gate.md`](../runtime-governance/external_runtime_dependency_gate.md)，用于把当前 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 收口成 repo-side canonical blocker package。
+另见：[`../runtime-governance/external_runtime_dependency_gate.md`](../runtime-governance/external_runtime_dependency_gate.md)。该文档现在是 optional provider / historical backend / explicit archive import / parity audit gate，用来保留旧 cutover blocker 语义；它不再表示 MAS 默认运行被 external runtime 阻塞。
 
 它不讨论“是否值得做 `med-deepscientist`”；这个决策已经做完。这里讨论的是何时可以安全收口。
 
@@ -20,19 +20,21 @@
 
 `merge gate` 通过，不自动意味着 `runtime cutover gate` 通过。
 
-## 2026-04-11 / 当前位置
+## 2026-04-11 历史位置与 2026-05-11 当前读法
 
-截至 `2026-04-11`，当前已知事实应按下面这条顺序理解：
+截至 `2026-04-11`，当时已知事实按下面这条顺序理解：
 
 1. `P0` / `P1` / `P2` 与 `real-study relaunch and verify` 已 absorbed 到 `main`
 2. `integration harness activation package` 已 absorbed 到 `main`
 3. `external runtime dependency gate` 已作为 canonical blocker package 固定下来
-4. 当前 broader cutover 的正式停车终态继续是 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
+4. 当时 broader cutover 的正式停车终态是 `EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB`
 5. 当前 repo-side 仍允许继续推进一个更窄的 same-repo tranche：
    - `Hermes backend continuation board`
    - `Hermes backend activation package`
    - `MedDeepScientist deconstruction map`
 6. 这条 same-repo tranche 的目标不是 reopening cutover，而是把“上游 `Hermes-Agent` 目标 + repo-side outer-runtime seam”压成可吸收的 repo-side truth
+
+2026-05-11 当前读法：MAS monolith closeout 已经完成默认运行、默认诊断、默认进度面和默认质量入口的收回；旧 external blocker 只能用于 optional provider、historical backend audit、explicit archive import 或 parity gate。新的 Full online cutover 必须按 OPL provider-backed stage-led framework 判断，不能沿用 2026-04-11 Hermes-first 停车口径作为 MAS 默认状态。
 
 ## Merge Gate
 
@@ -106,12 +108,12 @@
 
 只要这道门没过，就不应该宣称运行面已经完成切换。
 
-### 3. external `Hermes` runtime truth 已就位
+### 3. OPL provider / optional Hermes runtime truth 已就位
 
 至少要确认：
 
-- external `Hermes` runtime repo / workspace / daemon truth 已被独立验证
-- 当前 repo-side `Hermes` outer substrate contract 与 external runtime 实际部署语义一致
+- OPL provider 或 optional Hermes runtime repo / workspace / daemon truth 已被独立验证
+- 当前 repo-side provider / Hermes legacy contract 与 external runtime 实际部署语义一致
 - 不再需要把 repo 内兼容 wiring 误写成 external runtime cutover 既成事实
 
 ### 4. workspace contract 全绿
@@ -152,6 +154,12 @@
 - `runtime cutover gate` 还没有完成
 - 当前 external blocker 的 repo-side canonical package 见 `../runtime-governance/external_runtime_dependency_gate.md`
 
+以 `2026-05-11` 当前状态看：
+
+- MAS 默认路径不再等待 external MDS、旧 MDS WebUI 或 Hermes-first runtime cutover。
+- OPL provider / Temporal / optional Hermes readiness 只决定 OPL-hosted Full online path，不决定 MAS direct skill path 是否可读、可诊断或可推进。
+- 真实论文推进仍以 MAS owner receipts、artifact delta、gate replay、AI reviewer judgment、human gate 或 stop-loss 为准。
+
 原因是：
 
 - repo-side contract 已完成 authority / delivery / real-study 的收口，并已把默认 outer-runtime seam label 切到 `hermes` 以指向上游目标
@@ -175,6 +183,6 @@
 
 - controlled fork 固定
 - `behavior_equivalence_gate.yaml` 放行
-- external `Hermes` runtime truth 已独立就位
+- OPL provider 或 optional Hermes runtime truth 已独立就位
 - 至少 1 个真实项目完成 create / resume / pause + controller 落盘 + paper 交付热身
 - external workspace-side blocker 不再要求 repo 继续越权 widening

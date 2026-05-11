@@ -13,13 +13,14 @@
 
 在 `OPL` 联邦链路里，推荐始终按下面这条理解：
 
-`Human / Agent -> MAS app skill / MedAutoScience domain-agent entry -> controlled runtime backend -> runtime / eval / delivery surfaces`
+`Human / Agent -> OPL stage-led framework or direct MAS skill -> MedAutoScience domain-agent entry -> MAS controller/runtime/quality/artifact surfaces`
 
 这意味着：
 
-- `OPL Gateway` 不替代 `MedAutoScience`
-- `MAS Runtime OS` 是当前默认 runtime owner / substrate；`MedDeepScientist` 只保留 frozen source archive、historical fixture 和 explicit archive import reference / provenance reference
-- future monorepo 的 `controller_charter / runtime / eval_hygiene` 应被理解为 harness OS 内部主模块，而不是对外 gateway 的替代品
+- `OPL` 是完整智能体运行框架，可托管 stage attempt、queue、wakeup、retry/dead-letter、approval、projection 和 shared lifecycle/index 能力；它不替代 `MedAutoScience` 的医学研究 owner 身份。
+- `Stage` 是一次大型任务步骤；`Codex CLI` 是 stage 内默认 concrete executor 和最小执行单元。
+- `MAS Runtime OS` 是当前 MAS domain runtime owner；`MedDeepScientist` 只保留 frozen source archive、historical fixture、explicit archive import reference、backend audit、upstream intake 和 parity oracle。
+- OPL provider、Temporal、Hermes legacy provider 或 local scheduler 只能承载/唤醒/记录/派发 attempt，不持有 MAS study truth、publication quality、artifact authority 或 current package。
 
 更系统的定位说明见：[Domain Gateway And Harness OS](../../references/positioning/domain_gateway_harness_os.md)
 
@@ -54,10 +55,11 @@
 - 调用 controller 和 overlay 完成数据治理、门控、交付同步与实验编排
 - 在弱结果方向上尽快止损，而不是默认把整条线做完
 
-### MedDeepScientist
+### OPL / Codex 执行层
 
-- 作为底层自动科研执行引擎，负责 scout、idea、experiment、write、finalize 等任务推进
-- 由 `MedAutoScience` 的 domain-agent 控制面注入医学特化 overlay、研究偏置和论文门控
+- `OPL` 提供 stage-led runtime framework、provider abstraction、queue、signal/query、receipt 和跨 domain projection。
+- `Codex CLI` 在 MAS stage 内承担默认具体执行：读取 stage packet、调用 MAS controller/工具、产出修复、分析、写作和验证结果。
+- `MedDeepScientist` / `DeepScientist` 只作为历史来源、显式归档导入、backend audit、upstream intake 或 parity oracle；不再作为 MAS 默认执行层。
 
 ### ToolUniverse 与公开数据侧挂
 
@@ -76,8 +78,8 @@
   - `CLI`：默认 formal entry
   - `MCP`：supported protocol layer
   - `controller`：internal control surface
-- overlay
-  - 把医学前验约束前移到 `MedDeepScientist` 的关键 stage
+- stage / overlay
+  - 把医学前验、stage packet、质量约束和 route-back 规则前移到 MAS stage
 - portfolio / studies / runtime artifacts
   - 作为人类审核面和长期审计面
 
@@ -98,8 +100,8 @@
 2. Agent 检查数据资产状态，包括私有版本、公开数据机会、startup readiness。
 3. Agent 按研究偏置策略，优先选择高可塑性、易形成医学证据包的课题 archetype。
 4. Agent 为当前 quest 安装或重覆写医学 overlay，把门控与写作约束前移到执行阶段。
-5. `MedDeepScientist` 负责实验、写作和交付主链推进。
-6. `MedAutoScience` 在关键节点执行 publication gate、data-asset gate、medical publication surface 等外层治理。
+5. `Codex CLI` 在 MAS stage packet 约束内执行实验、写作、修复和交付准备。
+6. `MedAutoScience` 在关键节点执行 publication gate、data-asset gate、AI reviewer、medical publication surface 等治理。
 7. 若主线结果偏弱，Agent 应尽快止损、改题、补 sidecar 或切换路线，而不是继续空转。
 8. 当证据面足够时，平台导出投稿包，并同步到 study 的正式交付路径。
 

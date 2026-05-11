@@ -80,6 +80,28 @@ snapshot, retired board, superseded roadmap, activation package, or process
 draft. The archived file must be reachable through `docs/history/**/README*`
 and must point readers back to the current owner surface when needed.
 
+## Monolith And OPL Alignment Rule
+
+After the MAS monolith closeout, documentation updates must classify legacy
+runtime material by current lifecycle role before editing prose:
+
+- Active MAS docs may describe MDS / DeepScientist only as historical fixture,
+  explicit archive import, backend audit, upstream intake, source provenance, or
+  parity reference.
+- Active MAS docs may describe Hermes only as a legacy/optional provider,
+  executor/proof lane, or historical migration context unless OPL provider
+  evidence promotes a newer role.
+- OPL should be described as the Codex-first, stage-led agent runtime framework:
+  it owns stage attempts, queue/wakeup, retry/dead-letter, approval transport,
+  receipt/projection, and shared lifecycle/index primitives; it does not own MAS
+  medical truth.
+- MAS remains the medical paper/research domain agent. `Stage` means a large
+  task step, and `Codex CLI` remains the default concrete executor inside MAS
+  stages unless a MAS route selects another executor.
+- Old WebUI, daemon, external-runtime cutover, and development-plan material
+  that is no longer active belongs in `docs/history/**` or `docs/references/**`
+  with a pointer back to the current owner surface.
+
 Before moving or deleting a document:
 
 1. Search inbound references with `rg`.

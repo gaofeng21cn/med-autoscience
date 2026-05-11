@@ -9,6 +9,14 @@ History is read-only context. It does not own active backlog, runtime truth,
 controller decisions, publication readiness, artifact authority, or policy
 truth.
 
+After the MAS monolith closeout, old MDS / DeepScientist / Hermes-first /
+external-runtime cutover / WebUI / daemon documents without an explicit active
+owner belong here or under `docs/references/` as provenance, parity, explicit
+archive import, backend audit, or historical decision material. For current
+state, start from `docs/status.md`, `docs/architecture.md`, `docs/decisions.md`,
+`docs/program/program_portfolio_consolidation.md`, and durable
+runtime/controller surfaces.
+
 | archive | contents |
 | --- | --- |
 | [program](./program/README.md) | Closeouts, activation packages, retired boards, and dated intake snapshots. |

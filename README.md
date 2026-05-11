@@ -56,22 +56,16 @@ You can start with prompts like:
 - The AI operator moves the study forward through data preparation, analysis, evidence organization, and progress reporting.
 - The workspace keeps tasks, files, progress, and delivery artifacts together so the whole line stays reviewable.
 
-## Current Boundary
+## Current Position And Boundary
 
-- `Med Auto Science` is an independent medical research domain agent that can be called directly by Codex or other general-purpose agents.
-- Its single MAS app skill is the stable front door for callers that want the repo-tracked skill surface.
-- Under that skill, the stable callable surface is the local CLI, MCP tools, product-entry surfaces, controller-authorized workspace commands/scripts, durable surfaces, and repo-tracked contracts.
-- Named product-entry, cockpit, and progress commands are internal command contracts under that single app skill; they are not a separate public first subject.
-- The AI-first line is an operating model, not a documentation wording gate: current work centers on pre-draft quality runtime, AI reviewer workflow, artifact rebuild proof, operations state, and real-paper soak.
-- `OPL` handoff, the product-entry manifest, and other machine-readable bridge payloads belong to the integration or reference layer.
-- It owns study intake, workspace context, evidence progression, progress reporting, and manuscript-facing delivery.
-- `OPL` stays at family-level session/runtime/projection orchestration and shared modules/contracts/indexes; it does not redefine MAS as an internal module.
-- In the stage-led OPL family framework, MAS owns the medical stage pack, prompts, skills, quality gates, study truth reducers, and publication/package authority. OPL may host wakeup, queue, handoff, receipts, and progress projection, while `Codex CLI` remains the default concrete executor inside MAS stages unless a MAS route explicitly selects another executor.
-- In the provider-backed OPL family topology, `OPL Runtime Manager` and `opl family-runtime` index MAS task/runtime/artifact projections over the configured OPL family runtime provider. Temporal is the target production substrate for durable stage attempts; Hermes is a legacy/optional provider or executor/proof lane during migration. MAS remains the owner of study truth, publication judgment, quality gates, and paper/package authority.
-- MAS exposes `medautosci sidecar export` and `medautosci sidecar dispatch` for that family queue. The sidecar is a guarded bridge for wakeup, recovery, notification receipts, and read-only supervision projection; it is not a domain-truth writer.
-- `MedDeepScientist` is no longer a default MAS runtime dependency; it remains only as an explicit optional backend audit target, source-provenance reference, historical fixture, explicit archive-import reference, upstream intake source, and parity oracle.
-- User-installable MAS standalone GitHub Release or installer stories are not the current distribution contract; OPL-managed module installation currently uses git checkout / sibling repo paths and may later consume OPL Packages/GHCR-backed module coordinates.
-- Clinical framing, claim acceptance, and submission decisions stay with researchers and PIs.
+- `Med Auto Science` is a medical research domain agent. It can be called directly by Codex, and it can also run under the `OPL` agent runtime framework.
+- MAS owns the medical work itself: study intake, workspace context, evidence progression, progress explanation, manuscript quality judgment, and manuscript-facing delivery.
+- `OPL` is the upper runtime framework. It owns stage attempts, queues, wakeups, recovery, approvals, receipts, and cross-domain projection; it does not make MAS medical conclusions or own manuscript quality.
+- In the OPL framework, a `Stage` is a large task step such as scouting, analysis, writing, reviewer repair, or delivery. `Codex CLI` is the default smallest execution unit inside a stage.
+- MAS has completed monolith closeout. `MedDeepScientist` / `DeepScientist` is no longer a default runtime, diagnostic, progress UI, or quality dependency; it remains only as provenance, explicit archive import, backend audit, upstream learning, and parity reference.
+- `Hermes-Agent` is not the default MAS online substrate. Long-running online execution now follows the OPL provider-backed direction, with Temporal as the target production provider; Hermes remains legacy/optional provider, proof lane, or historical compatibility material.
+- Manuscript quality cannot be replaced by status panels, script checks, or historical MDS coverage. Scientific quality, medical writing quality, and submission-facing judgment remain constrained by MAS study charters, evidence ledgers, review ledgers, AI reviewer workflow, publication gates, and controller records.
+- Clinical framing, claim acceptance, and final submission decisions stay with researchers and PIs.
 - Journal submission and external system interaction stay under human supervision.
 
 ## How To Read This Repository
