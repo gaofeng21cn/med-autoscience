@@ -122,6 +122,8 @@ def _platform_repair_redrive_without_live_worker(
         }
     ):
         return False
+    if continuation_state.continuation_reason == "runtime_platform_repair_redrive":
+        return True
     runtime_state = _load_json_dict(Path(continuation_state.runtime_state_path))
     platform_repair = runtime_state.get("last_runtime_platform_repair")
     authorization = runtime_state.get("last_controller_decision_authorization")

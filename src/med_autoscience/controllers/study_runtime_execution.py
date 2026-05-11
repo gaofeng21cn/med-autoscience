@@ -168,17 +168,35 @@ def _enable_explicit_user_wakeup_if_requested(
                 StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
             )
             return
-        wakeup_record = _runtime_events.record_explicit_user_wakeup(
-            quest_root=context.quest_root,
-            source=context.source,
-        )
+        wakeup_record = _record_explicit_user_wakeup_projection(status=status, context=context)
         if wakeup_record is None:
             return
-        status._record_dict_extra("explicit_user_wakeup", wakeup_record)
-        _record_platform_repair_decision_redrive_status_projection(
-            status=status,
-            wakeup_record=wakeup_record,
+        status.set_decision(
+            StudyRuntimeDecision.RESUME,
+            StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
         )
+        return
+    if (
+        status.decision is StudyRuntimeDecision.BLOCKED
+        and status.reason is StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA
+        and status.quest_status is StudyRuntimeQuestStatus.WAITING_FOR_USER
+        and _explicit_wakeup_can_release_submission_metadata_projection(status)
+    ):
+        if not status.startup_boundary_allows_compute_stage:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+            )
+            return
+        if not status.runtime_reentry_allows_runtime_entry:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+            )
+            return
+        wakeup_record = _record_explicit_user_wakeup_projection(status=status, context=context)
+        if wakeup_record is None:
+            return
         status.set_decision(
             StudyRuntimeDecision.RESUME,
             StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
@@ -189,16 +207,19 @@ def _enable_explicit_user_wakeup_if_requested(
         and status.reason is StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
         and status.quest_status is StudyRuntimeQuestStatus.WAITING_FOR_USER
     ):
-        wakeup_record = _runtime_events.record_explicit_user_wakeup(
-            quest_root=context.quest_root,
-            source=context.source,
-        )
-        if wakeup_record is not None:
-            status._record_dict_extra("explicit_user_wakeup", wakeup_record)
-            _record_platform_repair_decision_redrive_status_projection(
-                status=status,
-                wakeup_record=wakeup_record,
+        if not status.startup_boundary_allows_compute_stage:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
             )
+            return
+        if not status.runtime_reentry_allows_runtime_entry:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+            )
+            return
+        _record_explicit_user_wakeup_projection(status=status, context=context)
         return
     if (
         status.decision is not StudyRuntimeDecision.BLOCKED
@@ -239,6 +260,46 @@ def _enable_explicit_user_wakeup_if_requested(
             StudyRuntimeDecision.RESUME,
             StudyRuntimeReason.QUEST_PAUSED,
         )
+
+
+def _record_explicit_user_wakeup_projection(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+) -> dict[str, Any] | None:
+    wakeup_record = _runtime_events.record_explicit_user_wakeup(
+        quest_root=context.quest_root,
+        source=context.source,
+    )
+    if wakeup_record is None:
+        return None
+    status._record_dict_extra("explicit_user_wakeup", wakeup_record)
+    _record_platform_repair_decision_redrive_status_projection(
+        status=status,
+        wakeup_record=wakeup_record,
+    )
+    return wakeup_record
+
+
+def _explicit_wakeup_can_release_submission_metadata_projection(
+    status: StudyRuntimeStatus,
+) -> bool:
+    interaction_arbitration = status.extras.get("interaction_arbitration")
+    if isinstance(interaction_arbitration, dict):
+        classification = str(interaction_arbitration.get("classification") or "").strip()
+        action = str(interaction_arbitration.get("action") or "").strip()
+        if action == "resume" and classification in {
+            "blocked_closeout_owner_redrive",
+            "controller_work_unit_pending_redrive",
+            "platform_repair_decision_redrive",
+            "pending_user_message_redrive",
+            "invalid_blocking",
+        }:
+            return True
+    truth = status.extras.get("study_truth_snapshot")
+    if isinstance(truth, dict):
+        return str(truth.get("canonical_next_action") or "").strip() == "resume_same_study_line"
+    return False
 
 
 def _record_platform_repair_decision_redrive_status_projection(

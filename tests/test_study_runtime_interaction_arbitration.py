@@ -236,3 +236,25 @@ def test_arbitrate_waiting_for_user_blocks_unknown_blocked_closeout_owner_withou
     assert result["requires_user_input"] is False
     assert result["valid_blocking"] is True
     assert result["next_owner"] == "unknown_external_owner"
+
+
+def test_arbitrate_waiting_for_user_redrives_mas_controller_route_authorization_owner() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        blocked_closeout={
+            "run_id": "run-blocked",
+            "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
+            "blocked_reason": "control_plane_route_blocked_bundle_build",
+            "next_owner": "MAS/controller route authorization owner for bundle_build_allowed",
+        },
+    )
+
+    assert result["classification"] == "blocked_closeout_owner_redrive"
+    assert result["action"] == "resume"
+    assert result["requires_user_input"] is False
+    assert result["valid_blocking"] is False
+    assert result["next_owner"] == "MAS/controller route authorization owner for bundle_build_allowed"

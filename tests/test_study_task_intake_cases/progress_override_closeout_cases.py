@@ -249,3 +249,57 @@ def test_reviewer_revision_intake_yields_to_blocked_deterministic_submission_clo
         publishability_gate_report=gate_report,
         evaluation_summary=evaluation_summary,
     ) is None
+
+
+def test_reviewer_revision_intake_does_not_yield_to_submission_closeout_with_open_review_ledger_concerns() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "emitted_at": "2026-04-25T04:10:49+00:00",
+        "task_intent": "Reviewer revision: absorb reviewer feedback and revise manuscript tables and figures.",
+        "constraints": ["Do not keep previous submission-ready/finalize parking as current truth."],
+        "first_cycle_outputs": ["revised manuscript package"],
+    }
+    gate_report = {
+        "emitted_at": "2026-05-09T22:39:41+00:00",
+        "status": "blocked",
+        "blockers": ["submission_surface_qc_failure_present"],
+        "paper_line_open_supplementary_count": 0,
+        "medical_publication_surface_status": "clear",
+        "medical_publication_surface_current": True,
+    }
+    evaluation_summary = {
+        "emitted_at": "2026-05-09T22:39:45+00:00",
+        "quality_closure_truth": {
+            "state": "bundle_only_remaining",
+            "current_required_action": "complete_bundle_stage",
+            "route_target": "finalize",
+        },
+        "quality_review_loop": {
+            "closure_state": "bundle_only_remaining",
+            "blocking_issue_count": 2,
+        },
+        "study_quality_truth": {
+            "reviewer_first": {
+                "ready": False,
+                "status": "blocked",
+                "open_concern_count": 1,
+                "resolved_concern_count": 4,
+            }
+        },
+        "quality_assessment": {
+            "human_review_readiness": {
+                "status": "blocked",
+            }
+        },
+    }
+
+    override = module.build_task_intake_progress_override(
+        payload,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
+    )
+
+    assert override is not None
+    assert override["quality_closure_truth"]["state"] == "quality_repair_required"
+    assert override["paper_stage"] == "write"

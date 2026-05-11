@@ -30,6 +30,8 @@
 - `Hermes-Agent` 继续只出现在可选 hosted runtime target、reference-layer、legacy provider 或 executor/proof lane 语境，不改写 MAS 的稳定 capability surface 或研究 owner 语义；Temporal/provider 也不得写 MAS truth。
 - `MedDeepScientist` 不再承载默认运行、默认诊断、runtime root、WebUI 依赖或第二 owner 语义；保留价值只通过 MAS 显式声明的 backend audit、source provenance、historical fixture、explicit archive import reference、upstream intake 和 parity oracle surface 出现。
 - `MAS AI-first Research OS` 是长线目标架构。当前可用落点是 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 与真实论文 soak 的逐步闭合；真实论文 soak 仍是证据缺口。
+- `Stage-Led Autonomy` 已有 MAS-owned operating surface：stage entry 通过 `stage_knowledge_packet` 读取 memory/literature/evidence/review/claim boundary，stage closeout 通过 `stage_memory_closeout_packet` 和 `memory_write_router_receipt` 做受控写回，`stage_recall_index` 只作为 read model。`study_line_decision_engine` 与 `route_decision_orchestrator` 当前只承担 audit comparator、route router、stop-loss 和 executable task materializer 角色；它们不得绕过 stage output 生成研究路线或授权论文质量。
+- 旧程序/脚本控制的退役口径按默认权威判断，而不是按文件是否存在判断：默认运行、诊断、进度、publication/package、stage-led paper loop 已迁到 MAS-owned surface；explicit archive import、historical fixture、restore diagnostic、compat import facade 和 parity oracle 可保留到对应替代面验证后再删除。保留期间它们必须 fail-closed 到非 authority。
 
 ## 当前非目标
 

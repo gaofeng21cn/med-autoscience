@@ -324,7 +324,7 @@ def _blocked_closeout_owner_wait(blocked_closeout: dict[str, Any] | None) -> dic
     if closeout_path is None and next_owner is None:
         return None
     owner_token = (next_owner or "").lower().replace("-", "_")
-    if owner_token in _CALLABLE_OWNER_TOKENS:
+    if owner_token in _CALLABLE_OWNER_TOKENS or owner_token.startswith("mas/controller "):
         return {
             "classification": "blocked_closeout_owner_redrive",
             "action": "resume",

@@ -306,7 +306,11 @@ def record_explicit_waiting_owner_wakeup(
         for owner in callable_owner_names()
         if str(owner).strip()
     }
-    if next_owner not in callable_owner_tokens and next_owner not in {"mas_controller", "controller"}:
+    if (
+        next_owner not in callable_owner_tokens
+        and next_owner not in {"mas_controller", "controller"}
+        and not next_owner.startswith("mas/controller ")
+    ):
         return None
     if not isinstance(runtime_state.get("last_controller_decision_authorization"), dict):
         return None

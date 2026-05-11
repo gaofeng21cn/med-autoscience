@@ -168,6 +168,9 @@ def _status_state(
             publication_gate_report=publication_gate_report,
         )
     task_intake_releases_manual_finish_parking = manual_finish_state["task_intake_releases_manual_finish_parking"]
+    reviewer_revision_open_blockers_release_manual_finish_parking = manual_finish_state[
+        "reviewer_revision_open_blockers_release_manual_finish_parking"
+    ]
     submission_metadata_only_manual_finish = manual_finish_state["submission_metadata_only_manual_finish"]
     task_intake_yields_to_submission_closeout = manual_finish_state["task_intake_yields_to_submission_closeout"]
     manual_hold_task_intake = manual_finish_state["manual_hold_task_intake"]
@@ -472,6 +475,9 @@ def _status_state(
             return _finalize_result()
         if _should_park_delivered_or_redriven_package_without_live_worker(
             result, study_root=study_root, audit_status=audit_status, manual_finish_compatibility_guard=manual_finish_compatibility_guard
+        ) and (
+            not reviewer_revision_open_blockers_release_manual_finish_parking
+            or task_intake_yields_to_submission_closeout
         ):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -699,17 +705,11 @@ def _status_state(
             )
         return _finalize_result()
 
-    if quest_status == StudyRuntimeQuestStatus.STOPPED:
+    if quest_status in {StudyRuntimeQuestStatus.STOPPED, StudyRuntimeQuestStatus.FAILED}:
         if _user_pause_contract_without_live_worker(result):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
-            )
-            return _finalize_result()
-        if submission_metadata_only_manual_finish or bundle_only_manual_finish:
-            result.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
             )
             return _finalize_result()
         stopped_recovery_context = _stopped_controller_owned_auto_recovery_context(
@@ -718,6 +718,27 @@ def _status_state(
             publication_gate_report=publication_gate_report,
         )
         interaction_arbitration = result.extras.get("interaction_arbitration")
+        failed_task_intake_resume_allowed = (
+            quest_status is StudyRuntimeQuestStatus.FAILED
+            and task_intake_releases_manual_finish_parking
+            and not task_intake_yields_to_submission_closeout
+            and (
+                isinstance(stopped_recovery_context, dict)
+                or (
+                    isinstance(interaction_arbitration, dict)
+                    and str(interaction_arbitration.get("action") or "").strip() == "resume"
+                )
+            )
+        )
+        if (
+            (submission_metadata_only_manual_finish or bundle_only_manual_finish)
+            and not failed_task_intake_resume_allowed
+        ):
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+            )
+            return _finalize_result()
         if (
             isinstance(stopped_recovery_context, dict)
             and str(stopped_recovery_context.get("recovery_mode") or "").strip() == "controller_guard"

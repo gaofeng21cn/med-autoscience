@@ -38,6 +38,10 @@ from med_autoscience.study_task_intake_revision import (
     task_intake_is_reviewer_revision,
     task_intake_requests_submission_package_refresh,
 )
+from med_autoscience.study_task_intake_reviewer_quality import (
+    evaluation_summary_has_open_reviewer_first_blockers as _evaluation_summary_has_open_reviewer_first_blockers,
+    reviewer_revision_has_open_reviewer_first_blockers,
+)
 from med_autoscience.submission_revision_operating_contract import build_submission_revision_operating_contract
 
 SCHEMA_VERSION = 1
@@ -604,6 +608,15 @@ def task_intake_yields_to_deterministic_submission_closeout(
             evaluation_summary=evaluation_summary,
         ):
             return True
+        if _task_intake_yields_to_verified_bundle_only_closeout(
+            payload=payload,
+            study_root=study_root,
+            publishability_gate_report=publishability_gate_report,
+            evaluation_summary=evaluation_summary,
+        ):
+            return True
+        if _evaluation_summary_has_open_reviewer_first_blockers(evaluation_summary):
+            return False
         if (
             blocked_submission_closeout
             and _evaluation_summary_reports_bundle_only_remaining(evaluation_summary)
@@ -612,13 +625,6 @@ def task_intake_yields_to_deterministic_submission_closeout(
                 publishability_gate_report,
                 evaluation_summary,
             )
-        ):
-            return True
-        if _task_intake_yields_to_verified_bundle_only_closeout(
-            payload=payload,
-            study_root=study_root,
-            publishability_gate_report=publishability_gate_report,
-            evaluation_summary=evaluation_summary,
         ):
             return True
         return _task_intake_yields_to_reviewer_bundle_stage_closeout(

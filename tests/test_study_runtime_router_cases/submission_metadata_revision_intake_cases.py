@@ -631,3 +631,300 @@ def test_paused_runtime_platform_repair_redrive_does_not_resume_reviewer_revisio
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["auto_runtime_parked"]["parked"] is True
+
+
+def test_waiting_submission_metadata_reviewer_revision_with_open_concerns_resumes_after_explicit_wakeup(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "waiting_for_user",
+                "active_run_id": None,
+                "worker_running": False,
+                "pending_user_message_count": 0,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "turn_closeout",
+                "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+                "blocked_turn_closeout": {
+                    "run_id": "run-blocked",
+                    "blocked_reason": "control_plane_route_blocked_bundle_build",
+                    "next_owner": "MAS/controller route authorization owner for bundle_build_allowed",
+                    "closeout_path": str(quest_root / "artifacts" / "runtime" / "turn_closeouts" / "run-blocked.json"),
+                },
+                "last_controller_decision_authorization": {
+                    "decision_id": "decision-current-paper-work",
+                    "work_unit_id": "submission_minimal_refresh",
+                    "work_unit_fingerprint": "publication-blockers::current",
+                },
+            }
+        )
+        + "\n",
+    )
+    write_submission_metadata_only_bundle(
+        quest_root,
+        blocking_item_ids=[
+            "author_metadata",
+            "ethics_statement",
+            "human_subjects_consent_statement",
+            "ai_declaration",
+        ],
+    )
+    write_synced_submission_delivery(study_root, quest_root)
+    write_text(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "emitted_at": "2026-04-25T03:00:00+00:00",
+                "entry_mode": "full_research",
+                "task_intent": "Reviewer revision: absorb reviewer feedback and revise manuscript tables and figures.",
+                "constraints": [
+                    "Treat this as explicit user wakeup after submission-package parking.",
+                    "Do not keep the previous submission-ready/finalize parking state as current truth.",
+                ],
+                "first_cycle_outputs": ["revised manuscript package"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    _materialize_bundle_only_remaining_evaluation_summary(study_root=study_root, quest_root=quest_root)
+    evaluation_summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    evaluation_summary = json.loads(evaluation_summary_path.read_text(encoding="utf-8"))
+    evaluation_summary["emitted_at"] = "2026-05-09T22:39:45+00:00"
+    evaluation_summary["quality_closure_truth"] = {
+        **dict(evaluation_summary.get("quality_closure_truth") or {}),
+        "state": "bundle_only_remaining",
+        "current_required_action": "complete_bundle_stage",
+        "route_target": "finalize",
+    }
+    quality_review_loop = dict(evaluation_summary.get("quality_review_loop") or {})
+    quality_review_loop["closure_state"] = "bundle_only_remaining"
+    quality_review_loop["blocking_issue_count"] = 2
+    evaluation_summary["quality_review_loop"] = quality_review_loop
+    quality_assessment = dict(evaluation_summary.get("quality_assessment") or {})
+    quality_assessment["human_review_readiness"] = {
+        **dict(quality_assessment.get("human_review_readiness") or {}),
+        "status": "blocked",
+    }
+    evaluation_summary["quality_assessment"] = quality_assessment
+    study_quality_truth = dict(evaluation_summary.get("study_quality_truth") or {})
+    study_quality_truth["reviewer_first"] = {
+        **dict(study_quality_truth.get("reviewer_first") or {}),
+        "ready": False,
+        "status": "blocked",
+        "open_concern_count": 1,
+    }
+    evaluation_summary["study_quality_truth"] = study_quality_truth
+    write_text(evaluation_summary_path, json.dumps(evaluation_summary, ensure_ascii=False, indent=2) + "\n")
+    write_text(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "quest_id": "001-risk",
+                "emitted_at": "2026-05-09T22:39:45+00:00",
+                "assessment_provenance": {"owner": "ai_reviewer"},
+                "verdict": {"overall_verdict": "blocked"},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    calls: list[str] = []
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
+        or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-explicit"}},
+    )
+
+    status = module.study_runtime_status(
+        profile=profile,
+        study_id="001-risk",
+        include_progress_projection=False,
+    )
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id="001-risk",
+        explicit_user_wakeup=True,
+        source="user_explicit_wakeup",
+    )
+
+    assert status["decision"] == "resume"
+    assert status["reason"] == "quest_waiting_platform_repair_redrive"
+    assert status["interaction_arbitration"]["classification"] == "blocked_closeout_owner_redrive"
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_waiting_platform_repair_redrive"
+    assert result["quest_status"] == "running"
+    assert result["explicit_user_wakeup"]["status"] == "recorded"
+    assert calls == ["sync_context", "resume"]
+
+
+def test_failed_submission_metadata_reviewer_revision_with_controller_owner_relaunches_same_line(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around CVD-related mortality.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "failed",
+                "active_run_id": None,
+                "worker_running": False,
+                "pending_user_message_count": 0,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "turn_closeout",
+                "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+                "blocked_turn_closeout": {
+                    "run_id": "run-blocked",
+                    "blocked_reason": "control_plane_route_blocked_bundle_build",
+                    "next_owner": "MAS/controller route authorization owner for bundle_build_allowed",
+                    "closeout_path": str(quest_root / "artifacts" / "runtime" / "turn_closeouts" / "run-blocked.json"),
+                },
+                "last_controller_decision_authorization": {
+                    "source": "runtime_supervisor_scan_platform_repair",
+                    "work_unit_id": "submission_minimal_refresh",
+                    "work_unit_fingerprint": "publication-blockers::current",
+                },
+            }
+        )
+        + "\n",
+    )
+    write_submission_metadata_only_bundle(
+        quest_root,
+        blocking_item_ids=["author_metadata", "ethics_statement"],
+    )
+    write_synced_submission_delivery(study_root, quest_root)
+    write_text(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "study_id": "001-risk",
+                "emitted_at": "2026-04-25T03:00:00+00:00",
+                "entry_mode": "full_research",
+                "task_intent": "Reviewer revision: absorb reviewer feedback and revise manuscript tables and figures.",
+                "constraints": [
+                    "Treat this as explicit user wakeup after submission-package parking.",
+                    "Do not keep the previous submission-ready/finalize parking state as current truth.",
+                ],
+                "first_cycle_outputs": ["revised manuscript package"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    _materialize_bundle_only_remaining_evaluation_summary(study_root=study_root, quest_root=quest_root)
+    evaluation_summary_path = study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    evaluation_summary = json.loads(evaluation_summary_path.read_text(encoding="utf-8"))
+    study_quality_truth = dict(evaluation_summary.get("study_quality_truth") or {})
+    study_quality_truth["reviewer_first"] = {
+        **dict(study_quality_truth.get("reviewer_first") or {}),
+        "ready": False,
+        "status": "blocked",
+        "open_concern_count": 1,
+    }
+    evaluation_summary["study_quality_truth"] = study_quality_truth
+    write_text(evaluation_summary_path, json.dumps(evaluation_summary, ensure_ascii=False, indent=2) + "\n")
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+    calls: list[str] = []
+    monkeypatch.setattr(
+        _managed_runtime_transport(module),
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
+        or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-relaunched"}},
+    )
+
+    status = module.study_runtime_status(
+        profile=profile,
+        study_id="001-risk",
+        include_progress_projection=False,
+    )
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="runtime_watch")
+
+    assert status["decision"] == "resume"
+    assert status["reason"] == "quest_waiting_on_invalid_blocking"
+    assert result["decision"] == "resume"
+    assert result["quest_status"] == "running"
+    assert calls == ["sync_context", "resume"]

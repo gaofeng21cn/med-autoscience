@@ -76,12 +76,11 @@ def _paper_state(
     requires_user_input: bool,
     blocking_reasons: list[str],
 ) -> str:
-    if package_delivered:
-        return "terminal_delivered"
     if requires_user_input:
         return "awaiting_human"
     if _is_downstream_only(payload, blocking_reasons):
         return "downstream_only"
+    same_line_reactivation = _same_line_reactivation_active(payload)
     if (
         _RUNTIME_RETRY_EXHAUSTED in blocking_reasons
         and next_owner == "MAS/controller"
@@ -92,6 +91,8 @@ def _paper_state(
         return "blocked_controller_route"
     if _owner_callable_surface_missing(payload, next_owner):
         return "awaiting_callable_owner"
+    if package_delivered and not same_line_reactivation:
+        return "terminal_delivered"
     if actual_write_active and meaningful_artifact_delta:
         return "progressing"
     if next_owner:
@@ -192,7 +193,7 @@ def _why_not_progressing(
 ) -> str | None:
     if state == "progressing" and actual_write_active and meaningful_artifact_delta:
         return None
-    if package_delivered:
+    if package_delivered and state == "terminal_delivered":
         return "package_delivered"
     if state == "downstream_only":
         return _DOWNSTREAM_ONLY
@@ -240,6 +241,20 @@ def _controller_route_blocked(payload: Mapping[str, Any], blocking_reasons: list
     if _text(control_plane.get("control_state")) in {"blocked_controller_decision", "blocked_ledger", "needs_reconcile"}:
         return True
     return any(reason.startswith("controller_") or reason.startswith("ledger.") for reason in blocking_reasons)
+
+
+def _same_line_reactivation_active(payload: Mapping[str, Any]) -> bool:
+    quality_truth = _mapping(payload.get("quality_closure_truth"))
+    if _text(quality_truth.get("state")) == "quality_repair_required":
+        return True
+    study_truth = _mapping(payload.get("study_truth_snapshot"))
+    if _text(study_truth.get("canonical_next_action")) == "resume_same_study_line":
+        return True
+    task_intake = _mapping(payload.get("task_intake"))
+    revision_intake = _mapping(task_intake.get("revision_intake"))
+    if _text(revision_intake.get("status")) == "active" and revision_intake.get("reactivation_required") is True:
+        return True
+    return False
 
 
 def _is_downstream_only(payload: Mapping[str, Any], blocking_reasons: list[str]) -> bool:

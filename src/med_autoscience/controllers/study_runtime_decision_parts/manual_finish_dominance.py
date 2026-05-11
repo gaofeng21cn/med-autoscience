@@ -7,6 +7,27 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
     _load_json_dict = _publication_and_submission._load_json_dict
 
 
+def _reviewer_revision_open_blockers_release_manual_finish_parking(
+    *,
+    quest_status: StudyRuntimeQuestStatus,
+    task_intake_payload: dict[str, object] | None,
+    evaluation_summary_payload: dict[str, object],
+) -> bool:
+    if quest_status not in {
+        StudyRuntimeQuestStatus.RUNNING,
+        StudyRuntimeQuestStatus.RETRYING,
+        StudyRuntimeQuestStatus.ACTIVE,
+        StudyRuntimeQuestStatus.WAITING_FOR_USER,
+        StudyRuntimeQuestStatus.STOPPED,
+        StudyRuntimeQuestStatus.FAILED,
+    }:
+        return False
+    return reviewer_revision_has_open_reviewer_first_blockers(
+        task_intake_payload,
+        evaluation_summary=evaluation_summary_payload,
+    )
+
+
 def _derive_manual_finish_dominance_state(
     *,
     quest_exists: bool,
@@ -40,10 +61,10 @@ def _derive_manual_finish_dominance_state(
     delivered_package_manual_finish = quest_exists and _delivered_submission_package_manual_finish_active(
         study_root=study_root,
     )
+    summary_payload = _load_json_dict(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
+    )
     if task_intake_overrides_auto_manual_finish and bundle_only_manual_finish:
-        summary_payload = _load_json_dict(
-            study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
-        )
         task_intake_yields_to_submission_closeout = task_intake_yields_to_deterministic_submission_closeout(
             task_intake_payload,
             publishability_gate_report=None,
@@ -58,9 +79,23 @@ def _derive_manual_finish_dominance_state(
             publication_gate_report=publication_gate_report,
         )
     )
-    if task_intake_releases_manual_finish_parking and _task_intake_release_blocked_by_current_closeout(
-        study_root=study_root,
-        publication_gate_report=publication_gate_report,
+    reviewer_revision_open_blockers_release_manual_finish_parking = (
+        _reviewer_revision_open_blockers_release_manual_finish_parking(
+            quest_status=quest_status,
+            task_intake_payload=task_intake_payload,
+            evaluation_summary_payload=summary_payload,
+        )
+    )
+    current_closeout_blocks_task_intake_release = (
+        not reviewer_revision_open_blockers_release_manual_finish_parking
+        and _task_intake_release_blocked_by_current_closeout(
+            study_root=study_root,
+            publication_gate_report=publication_gate_report,
+        )
+    )
+    if (
+        task_intake_releases_manual_finish_parking
+        and current_closeout_blocks_task_intake_release
     ):
         task_intake_releases_manual_finish_parking = False
         task_intake_yields_to_submission_closeout = True
@@ -93,6 +128,7 @@ def _derive_manual_finish_dominance_state(
     return {
         "task_intake_overrides_auto_manual_finish": task_intake_overrides_auto_manual_finish,
         "task_intake_releases_manual_finish_parking": task_intake_releases_manual_finish_parking,
+        "reviewer_revision_open_blockers_release_manual_finish_parking": reviewer_revision_open_blockers_release_manual_finish_parking,
         "submission_metadata_only_manual_finish": submission_metadata_only_manual_finish,
         "task_intake_yields_to_submission_closeout": task_intake_yields_to_submission_closeout,
         "manual_hold_task_intake": manual_hold_task_intake,

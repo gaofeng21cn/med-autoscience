@@ -192,6 +192,67 @@ def test_current_delivery_inspection_counts_as_package_delivered() -> None:
     assert state["why_not_progressing"] == "package_delivered"
 
 
+def test_current_delivery_does_not_terminal_deliver_reactivated_same_line_repair() -> None:
+    state = _module().build_paper_progress_state(
+        {
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "study_macro_state": {
+                "writer_state": "parked",
+                "user_next": "inspect",
+                "reason": "unknown",
+                "details": {"paper_stage": "analysis-campaign"},
+            },
+            "delivery_inspection": {
+                "status": "current",
+                "freshness": {
+                    "delivery_status": "current",
+                    "gate_freshness_handshake": {"status": "current"},
+                },
+            },
+            "quality_closure_truth": {
+                "state": "quality_repair_required",
+                "current_required_action": "return_to_analysis_campaign",
+            },
+            "study_truth_snapshot": {
+                "canonical_next_action": "resume_same_study_line",
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "control_plane_snapshot": {
+                "control_state": "blocked_runtime_escalation",
+                "canonical_next_action": "resume_same_study_line",
+                "dispatch_gate": {
+                    "state": "blocked",
+                    "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+                },
+                "route_authorization": {
+                    "authorized": False,
+                    "paper_write_allowed": True,
+                    "bundle_build_allowed": True,
+                    "runtime_recovery_allowed": False,
+                },
+            },
+            "interaction_arbitration": {
+                "requires_user_input": False,
+                "next_owner": "MAS/controller",
+                "blocked_reason": (
+                    "control_plane_route_blocked: bundle_build dispatch_gate_blocked "
+                    "during submission_minimal_refresh"
+                ),
+            },
+        }
+    )
+
+    assert state["state"] == "blocked_controller_route"
+    assert state["package_delivered"] is True
+    assert state["next_owner"] == "MAS/controller"
+    assert state["why_not_progressing"].startswith("control_plane_route_blocked")
+
+
 def test_obesity_live_artifact_delta_missing_downstream_delivery_is_downstream_only() -> None:
     state = _module().build_paper_progress_state(
         {

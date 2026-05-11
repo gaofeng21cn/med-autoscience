@@ -9,6 +9,8 @@ Machine boundary: this is a human-readable policy. Machine truth remains in `stu
 
 2026-05-10 update: Stage-Led Autonomy 已由 `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt` 和 `stage_recall_index` 承接为 MAS-owned operating surface。它们给 stage 提供 memory/literature 输入、typed closeout 和受控写回，但不授权论文质量、claim 扩大或 publication readiness。
 
+2026-05-11 status calibration: Stage-Led Autonomy 的核心 operating surface 已经落地；机械分流层已经降级为 audit/router/materializer，但仍有兼容入口、historical reader、fixture 和旧命名残留。开发纪律是先确认默认路径不再调用、direct skill 与 OPL handoff 都能回到同一 MAS-owned stage/route surface，再删除旧 vocabulary 或迁入 history；不能为了“清干净”破坏 restore/provenance/parity 证据。
+
 ## 总目标与运行模型
 
 MAS 的总目标是长时间自治地完成高质量医学论文，而不是只自动运行一批分析脚本或拼接投稿包。
@@ -155,6 +157,20 @@ controller 不应该替 Codex 做科研思考。controller 的职责是：
 - 用 read model 或 projection 直接替代 Codex stage 的研究判断。
 
 已有代码中如果存在“替 Codex 决定研究思路”的分流逻辑，应逐步退役、降级或重构为 guard / router / audit / read-model。清理时必须先保留行为 parity fixture，再把主动权迁回 stage/skill/prompt，最后删除旧入口，避免形成第二套污染源。
+
+当前已完成的降级口径：
+
+- `study_line_decision_engine` 只能比较 stage 产出的候选路线，角色是 `audit_comparator_only`。
+- `route_decision_orchestrator` 只能把 stage output、evidence refs、failed paths 和 controller inputs 物化成 owner route、stop-loss 或 executable task，角色是 `route_router_and_materializer`。
+- controller decision 必须带 `route_generation_owner=stage_output`，且 `can_generate_winning_path_without_stage_output=false`。
+- 缺少 `stage_output_refs` 时，route decision write 应 fail-closed，而不是由程序从评分表直接生成 winning path。
+
+仍需持续清理的对象：
+
+- 只为历史 MDS / DeepScientist parity 保留的 compat vocabulary。
+- explicit archive / restore / historical reader 中已经有新 MAS-owned reader 替代的入口。
+- 只能服务旧 mechanical route 的 product-entry 或 MCP projection。
+- 文档中把 `router`、`materializer` 或 `read model` 写成 route thinker / quality owner 的表述。
 
 ## 文献、引用与研究记忆平面
 

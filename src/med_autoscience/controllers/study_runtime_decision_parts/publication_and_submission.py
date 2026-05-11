@@ -84,6 +84,7 @@ from med_autoscience.study_manual_finish import (
 )
 from med_autoscience.study_task_intake import (
     read_latest_task_intake,
+    reviewer_revision_has_open_reviewer_first_blockers,
     task_intake_requests_manual_hold,
     task_intake_overrides_auto_manual_finish,
     task_intake_yields_to_deterministic_submission_closeout,
