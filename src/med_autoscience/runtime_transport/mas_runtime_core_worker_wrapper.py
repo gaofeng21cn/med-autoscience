@@ -8,7 +8,6 @@ import json
 import os
 import pty
 import select
-import shlex
 import shutil
 import subprocess
 import time
@@ -16,6 +15,12 @@ import termios
 import tomllib
 from pathlib import Path
 from typing import Any
+
+from med_autoscience.runtime_transport.mas_runtime_core_worker_env import (
+    load_workspace_mas_config_env,
+    prepend_configured_tool_dirs_to_path,
+    workspace_root_from_quest_root,
+)
 
 
 HEARTBEAT_INTERVAL_SECONDS = 5
@@ -33,70 +38,19 @@ def quest_python_runtime_env(*, quest_root: Path, run_id: str | None = None) -> 
     cache_root = quest_root / ".ds" / "python_pycache"
     cache_root.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
-    _load_workspace_mas_config_env(quest_root=quest_root, env=env)
+    load_workspace_mas_config_env(quest_root=quest_root, env=env)
     env["PYTHONPYCACHEPREFIX"] = str(cache_root)
     env.pop("PYTHONDONTWRITEBYTECODE", None)
     _remove_active_python_virtualenv(env)
+    prepend_configured_tool_dirs_to_path(env)
     if run_id:
         _preserve_host_codex_canonical_bin(env)
         _apply_managed_runtime_home(env=env, quest_root=quest_root, run_id=run_id)
     return env
 
 
-def _load_workspace_mas_config_env(*, quest_root: Path, env: dict[str, str]) -> None:
-    workspace_root = _workspace_root_from_quest_root(quest_root)
-    if workspace_root is None:
-        return
-    config_env_path = workspace_root / "ops" / "medautoscience" / "config.env"
-    if not config_env_path.is_file():
-        return
-    env.setdefault("WORKSPACE_ROOT", str(workspace_root))
-    for raw_line in config_env_path.read_text(encoding="utf-8").splitlines():
-        stripped = raw_line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        lhs, rhs = stripped.split("=", 1)
-        key = lhs.removeprefix("export ").strip()
-        if key not in _WORKSPACE_MAS_ENV_KEYS or env.get(key):
-            continue
-        value = _parse_config_env_value(raw_value=rhs)
-        if value is None:
-            continue
-        env[key] = value.replace("${WORKSPACE_ROOT}", str(workspace_root))
-
-
-_WORKSPACE_MAS_ENV_KEYS = frozenset(
-    {
-        "MED_AUTOSCIENCE_REPO",
-        "MED_AUTOSCIENCE_UV_BIN",
-        "MED_AUTOSCIENCE_PROFILE",
-        "MED_AUTOSCIENCE_RSCRIPT_BIN",
-        "MED_AUTOSCIENCE_NODE_BIN",
-    }
-)
-
-
-def _parse_config_env_value(*, raw_value: str) -> str | None:
-    try:
-        tokens = shlex.split(raw_value.strip(), posix=True)
-    except ValueError:
-        return None
-    if len(tokens) != 1 or not tokens[0].strip():
-        return None
-    return tokens[0].strip()
-
-
-def _workspace_root_from_quest_root(quest_root: Path) -> Path | None:
-    resolved = Path(quest_root).expanduser().resolve()
-    parts = resolved.parts
-    for index in range(len(parts) - 2):
-        if tuple(parts[index : index + 2]) == ("runtime", "quests"):
-            return Path(*parts[:index])
-    return None
-
-
 def workspace_python_path(*, quest_root: Path) -> Path | None:
-    workspace_root = _workspace_root_from_quest_root(quest_root)
+    workspace_root = workspace_root_from_quest_root(quest_root)
     if workspace_root is None:
         return None
     return workspace_root / ".venv" / "bin" / "python3"

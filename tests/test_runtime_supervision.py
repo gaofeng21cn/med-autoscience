@@ -123,6 +123,96 @@ def test_runtime_supervision_marks_first_live_after_recovery_as_stabilizing(tmp_
     assert payload["flapping_circuit_breaker"] is False
 
 
+def test_runtime_supervision_materializes_runtime_health_snapshot_from_live_status(tmp_path: Path) -> None:
+    runtime_health_kernel = importlib.import_module("med_autoscience.controllers.runtime_health_kernel")
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervision")
+
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+    _write_json(
+        runtime_health_kernel.runtime_health_snapshot_path(study_root=study_root),
+        {
+            "schema_version": 1,
+            "surface": "runtime_health_snapshot",
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "attempt_state": "escalated",
+            "canonical_runtime_action": "external_supervisor_required",
+            "active_run_id": None,
+            "worker_liveness_state": {"state": "missing_live_session", "worker_running": False},
+            "blocking_reasons": ["quest_marked_running_but_no_live_session"],
+        },
+    )
+
+    payload = module.materialize_runtime_supervision(
+        study_root=study_root,
+        status_payload=_managed_status_payload(
+            study_root=study_root,
+            quest_root=quest_root,
+            status="live",
+            worker_running=True,
+            active_run_id="run-live",
+            decision="noop",
+            reason="quest_already_running",
+        ),
+        recorded_at="2026-04-21T08:05:00+00:00",
+        apply=True,
+    )
+
+    persisted = json.loads(runtime_health_kernel.runtime_health_snapshot_path(study_root=study_root).read_text(encoding="utf-8"))
+    assert payload is not None
+    assert payload["health_status"] == "live"
+    assert payload["runtime_health_snapshot"]["active_run_id"] == "run-live"
+    assert persisted["attempt_state"] == "live"
+    assert persisted["canonical_runtime_action"] == "continue_supervising_runtime"
+    assert persisted["active_run_id"] == "run-live"
+    assert persisted["worker_liveness_state"]["state"] == "live"
+    assert persisted["worker_liveness_state"]["worker_running"] is True
+    assert persisted["blocking_reasons"] == []
+
+
+def test_runtime_supervision_does_not_persist_runtime_health_snapshot_when_not_apply(tmp_path: Path) -> None:
+    runtime_health_kernel = importlib.import_module("med_autoscience.controllers.runtime_health_kernel")
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervision")
+
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
+    snapshot_path = runtime_health_kernel.runtime_health_snapshot_path(study_root=study_root)
+    previous_snapshot = {
+        "schema_version": 1,
+        "surface": "runtime_health_snapshot",
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "attempt_state": "escalated",
+        "canonical_runtime_action": "external_supervisor_required",
+        "active_run_id": None,
+        "worker_liveness_state": {"state": "missing_live_session", "worker_running": False},
+        "blocking_reasons": ["quest_marked_running_but_no_live_session"],
+    }
+    _write_json(snapshot_path, previous_snapshot)
+
+    payload = module.materialize_runtime_supervision(
+        study_root=study_root,
+        status_payload=_managed_status_payload(
+            study_root=study_root,
+            quest_root=quest_root,
+            status="live",
+            worker_running=True,
+            active_run_id="run-live",
+            decision="noop",
+            reason="quest_already_running",
+        ),
+        recorded_at="2026-04-21T08:05:00+00:00",
+        apply=False,
+    )
+
+    persisted = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    assert payload is not None
+    assert payload["health_status"] == "live"
+    assert payload["runtime_health_snapshot"]["active_run_id"] == "run-live"
+    assert persisted == previous_snapshot
+
+
 def test_runtime_supervision_marks_live_stable_after_required_consecutive_observations(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_supervision")
 

@@ -330,17 +330,29 @@ def materialize_runtime_supervision(
     strict_live = bool(facts["strict_live"])
     recovery_pending = needs_recovery_projection(status_payload, strict_live=strict_live)
     explicit_resume_required = runtime_reason == "quest_stopped_requires_explicit_rerun"
-    runtime_health_snapshot = (
-        runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
-            study_root=resolved_study_root,
-            study_id=study_id,
-            quest_id=quest_id,
-            status_payload=status_payload,
-            recorded_at=recorded_at,
-        )
-        if quest_id is not None
-        else None
-    )
+    runtime_health_snapshot = None
+    if quest_id is not None:
+        if apply:
+            runtime_health_reconcile = runtime_health_kernel.reconcile_runtime_health_snapshot_from_status_payload(
+                study_root=resolved_study_root,
+                study_id=study_id,
+                quest_id=quest_id,
+                status_payload=status_payload,
+                recorded_at=recorded_at,
+            )
+            runtime_health_snapshot = (
+                runtime_health_reconcile.get("snapshot")
+                if isinstance(runtime_health_reconcile.get("snapshot"), dict)
+                else None
+            )
+        else:
+            runtime_health_snapshot = runtime_health_kernel.derive_runtime_health_snapshot_from_status_payload(
+                study_root=resolved_study_root,
+                study_id=study_id,
+                quest_id=quest_id,
+                status_payload=status_payload,
+                recorded_at=recorded_at,
+            )
     runtime_health_action = _non_empty_text((runtime_health_snapshot or {}).get("canonical_runtime_action"))
     runtime_health_attempt_state = _non_empty_text((runtime_health_snapshot or {}).get("attempt_state"))
     runtime_health_retry_budget_remaining = (

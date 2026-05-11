@@ -145,6 +145,14 @@ def reconcile_stale_liveness(
     append_runtime_event: Callable[..., None],
 ) -> dict[str, Any] | None:
     lifecycle = inspect_turn_lifecycle(quest_root=quest_root)
+    _clear_stale_blocked_closeout_for_live_run(
+        quest_root=quest_root,
+        lifecycle=lifecycle,
+        source=source,
+        text=text,
+        load_state=load_state,
+        persist_state=persist_state,
+    )
     stale_run_id = text(lifecycle.get("stale_active_run_id"))
     stale_reason = "worker_lease_not_live"
     logical_completion = inspect_logical_turn_completion(
@@ -510,6 +518,66 @@ def _persist_reconciled_state(
         source=source,
         event_name="stale_turn_reconciled",
     )
+
+
+def _clear_stale_blocked_closeout_for_live_run(
+    *,
+    quest_root: Path,
+    lifecycle: Mapping[str, Any],
+    source: str,
+    text: Callable[[object], str | None],
+    load_state: Callable[..., dict[str, Any]],
+    persist_state: Callable[..., dict[str, Any]],
+) -> dict[str, Any] | None:
+    active_run_id = text(lifecycle.get("active_run_id"))
+    if active_run_id is None:
+        return None
+    if lifecycle.get("worker_running") is not True:
+        return None
+    state = load_state(quest_root=quest_root)
+    blocked_closeout = state.get("blocked_turn_closeout")
+    if not isinstance(blocked_closeout, Mapping):
+        return None
+    blocked_run_id = text(blocked_closeout.get("run_id"))
+    if blocked_run_id is None or blocked_run_id == active_run_id:
+        return None
+    cleared_keys = [
+        key
+        for key in (
+            "blocked_turn_closeout",
+            "last_liveness_reconcile_reason",
+        )
+        if key in state
+    ]
+    if not cleared_keys:
+        return None
+    repaired = persist_state(
+        quest_root=quest_root,
+        updates={
+            "status": "running",
+            "active_run_id": active_run_id,
+            "worker_running": True,
+            "continuation_policy": "auto",
+            "continuation_anchor": "live_run",
+            "continuation_reason": "stale_blocked_turn_closeout_superseded_by_live_run",
+            "last_stale_blocked_closeout_clear": {
+                "active_run_id": active_run_id,
+                "cleared_run_id": blocked_run_id,
+                "cleared_keys": cleared_keys,
+                "source": source,
+            },
+        },
+        source=source,
+        event_name="stale_blocked_turn_closeout_cleared",
+        delete_keys=cleared_keys,
+    )
+    return {
+        "cleared": True,
+        "active_run_id": active_run_id,
+        "cleared_run_id": blocked_run_id,
+        "cleared_keys": cleared_keys,
+        "state": repaired,
+    }
 
 
 def _blocked_closeout_state(

@@ -411,6 +411,49 @@ def test_quest_python_runtime_env_loads_workspace_mas_config_for_checkout_bound_
     assert "MED_AUTOSCIENCE_NODE_BIN" not in env
 
 
+def test_quest_python_runtime_env_adds_configured_tool_dirs_to_path(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    wrapper_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper")
+    workspace_root = tmp_path / "workspace"
+    quest_root = workspace_root / "runtime" / "quests" / "quest-001"
+    repo_root = tmp_path / "med-autoscience"
+    uv_bin = tmp_path / "tools" / "uv-bin" / "uv"
+    node_bin = tmp_path / "tools" / "node-bin" / "node"
+    for binary in (uv_bin, node_bin):
+        binary.parent.mkdir(parents=True, exist_ok=True)
+        binary.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+        binary.chmod(0o755)
+    config_env = workspace_root / "ops" / "medautoscience" / "config.env"
+    config_env.parent.mkdir(parents=True)
+    config_env.write_text(
+        "\n".join(
+            [
+                f'MED_AUTOSCIENCE_REPO="{repo_root}"',
+                f'MED_AUTOSCIENCE_UV_BIN="{uv_bin}"',
+                f'MED_AUTOSCIENCE_NODE_BIN="{node_bin}"',
+                'MED_AUTOSCIENCE_PROFILE="${WORKSPACE_ROOT}/profile.toml"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    existing_bin = tmp_path / "existing-bin"
+    existing_bin.mkdir()
+    monkeypatch.setenv("PATH", str(existing_bin))
+    monkeypatch.delenv("MED_AUTOSCIENCE_UV_BIN", raising=False)
+    monkeypatch.delenv("MED_AUTOSCIENCE_NODE_BIN", raising=False)
+
+    env = wrapper_module.quest_python_runtime_env(quest_root=quest_root)
+
+    path_entries = env["PATH"].split(os.pathsep)
+    assert path_entries[:2] == [str(uv_bin.parent), str(node_bin.parent)]
+    assert str(existing_bin) in path_entries
+    assert env["MED_AUTOSCIENCE_UV_BIN"] == str(uv_bin)
+    assert env["MED_AUTOSCIENCE_NODE_BIN"] == str(node_bin)
+
+
 def test_quest_python_runtime_env_removes_development_virtualenv(monkeypatch, tmp_path: Path) -> None:
     wrapper_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"

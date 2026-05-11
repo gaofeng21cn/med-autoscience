@@ -147,6 +147,71 @@ def test_active_no_live_runtime_absorbs_latest_blocked_closeout(tmp_path: Path) 
     assert state["blocked_turn_closeout"]["next_owner"] == "ai_reviewer"
 
 
+def test_live_run_clears_stale_blocked_closeout_from_superseded_run(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    turn_lifecycle = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turns")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    quest_root = runtime_root / "quests" / "quest-001"
+    _write_running_state(quest_root=quest_root, active_run_id="run-live")
+    state_path = quest_root / ".ds" / "runtime_state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    state.update(
+        {
+            "continuation_policy": "wait_for_user_or_resume",
+            "continuation_anchor": "turn_closeout",
+            "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+            "last_liveness_reconcile_reason": "blocked_turn_closeout_waiting_for_owner",
+            "blocked_turn_closeout": {
+                "run_id": "run-old",
+                "blocked_reason": "old worker could not resolve uv",
+                "next_owner": "mas/controller",
+            },
+        }
+    )
+    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    try:
+        turn_lifecycle.set_clock_for_tests(
+            lambda: turn_lifecycle.datetime.fromisoformat("2026-05-09T12:00:00+00:00")
+        )
+        lease_path = turn_lifecycle.worker_lease_path(quest_root=quest_root, run_id="run-live")
+        lease_path.parent.mkdir(parents=True, exist_ok=True)
+        lease_path.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "quest_id": "quest-001",
+                    "run_id": "run-live",
+                    "heartbeat_at": "2026-05-09T12:00:00+00:00",
+                    "monitor_state": "live",
+                },
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        result = module.inspect_quest_live_runtime(runtime_root=runtime_root, quest_id="quest-001")
+    finally:
+        turn_lifecycle.reset_clock_for_tests()
+
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    assert result["status"] == "live"
+    assert result["active_run_id"] == "run-live"
+    assert "blocked_turn_closeout" not in state
+    assert "last_liveness_reconcile_reason" not in state
+    assert state["status"] == "running"
+    assert state["active_run_id"] == "run-live"
+    assert state["worker_running"] is True
+    assert state["continuation_policy"] == "auto"
+    assert state["continuation_anchor"] == "live_run"
+    assert state["continuation_reason"] == "stale_blocked_turn_closeout_superseded_by_live_run"
+    assert state["last_stale_blocked_closeout_clear"]["active_run_id"] == "run-live"
+    assert state["last_stale_blocked_closeout_clear"]["cleared_run_id"] == "run-old"
+
+
 def test_quest_runtime_snapshot_adopts_reconciled_liveness_status() -> None:
     quest_state = importlib.import_module("med_autoscience.runtime_protocol.quest_state")
     snapshot = quest_state.QuestRuntimeSnapshot(quest_exists=True, quest_status="active")

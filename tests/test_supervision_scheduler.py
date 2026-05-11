@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 from tests.study_runtime_test_helpers import make_profile
 
@@ -13,6 +16,15 @@ def _write_workspace_python(profile) -> Path:
     python_path.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     python_path.chmod(0o755)
     return python_path
+
+
+def _write_successful_tick_commands(profile) -> None:
+    bin_dir = profile.workspace_root / "ops" / "medautoscience" / "bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    for name in ("watch-runtime", "supervisor-scan", "supervisor-consume", "supervisor-execute-dispatch"):
+        command = bin_dir / name
+        command.write_text("#!/bin/sh\necho '{\"ok\": true}'\nexit 0\n", encoding="utf-8")
+        command.chmod(0o755)
 
 
 def test_local_scheduler_dry_run_projects_launchd_without_hermes(monkeypatch, tmp_path: Path) -> None:
@@ -103,6 +115,35 @@ def test_local_scheduler_apply_writes_tick_script_plist_and_receipt(monkeypatch,
     assert any(command[:2] == ["launchctl", "bootstrap"] for command in commands)
     assert any(command[:2] == ["launchctl", "print"] for command in commands)
     assert any(command and command[0].endswith("watch_runtime_tick.py") for command in commands)
+
+
+def test_generated_tick_script_clears_stale_pid_lock_and_continues(tmp_path: Path) -> None:
+    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
+    profile = make_profile(tmp_path)
+    _write_successful_tick_commands(profile)
+    script = local._ensure_tick_script(profile=profile, interval_seconds=300)
+    lock_path = local._lock_path(profile)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    stale_pid = 999999
+    try:
+        os.kill(stale_pid, 0)
+    except ProcessLookupError:
+        pass
+    except PermissionError:
+        stale_pid = 999998
+    lock_path.write_text(str(stale_pid), encoding="utf-8")
+
+    completed = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, check=False)
+
+    assert completed.returncode == 0
+    receipt = json.loads(local._latest_receipt_path(profile).read_text(encoding="utf-8"))
+    assert receipt["outcome"] == "succeeded"
+    assert receipt["lock_status"] == "cleared_stale_lock"
+    assert receipt["cleared_stale_lock"] is True
+    assert receipt["stale_lock_pid"] == stale_pid
+    assert receipt["stale_lock_reason"] == "lock_pid_not_running"
+    assert receipt["tick_sequence"]
+    assert not lock_path.exists()
 
 
 def test_local_scheduler_apply_blocks_when_workspace_python_missing(monkeypatch, tmp_path: Path) -> None:

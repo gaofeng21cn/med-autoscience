@@ -160,10 +160,14 @@ def persist_state(
     updates: Mapping[str, Any],
     source: str,
     event_name: str,
+    delete_keys: list[str] | tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     now = utc_now()
+    previous = load_state(quest_root=quest_root)
+    for key in delete_keys or ():
+        previous.pop(key, None)
     payload = {
-        **load_state(quest_root=quest_root),
+        **previous,
         **dict(updates),
         "quest_id": quest_root.name,
         "runtime_backend_id": BACKEND_ID,

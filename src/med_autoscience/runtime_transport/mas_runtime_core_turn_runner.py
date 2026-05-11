@@ -425,8 +425,9 @@ def _controller_action_command(*, action_name: str, quest_id: str) -> str | None
     if action_name != "run_quality_repair_batch":
         return None
     return (
-        "uv run python -m med_autoscience.cli quality-repair-batch "
-        "--profile <workspace MAS profile> --study-id <study_id> "
+        '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}" '
+        "python -m med_autoscience.cli quality-repair-batch "
+        '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --study-id <study_id> '
         f"--quest-id {quest_id}"
     )
 
