@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from med_autoscience.controllers.gate_clearing_batch_work_units import (
+    UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -66,6 +69,12 @@ def build_gate_clearing_batch_context(
         quest_id=quest_id,
         source_eval_id=current_eval_id,
     )
+    route_context_work_unit = _controller_route_context_publication_work_unit(
+        resolved_route_context,
+        source_eval_id=current_eval_id,
+    )
+    if route_context_work_unit is not None:
+        controller_decision_work_unit = route_context_work_unit
     if latest_batch_closed_for_eval(latest_batch, current_eval_id):
         return GateClearingBatchContext(
             resolved_route_context=resolved_route_context,
@@ -167,3 +176,28 @@ def build_gate_clearing_batch_context(
         authority_settle_delivery_redrive_requested=authority_settle_delivery_redrive_requested,
         work_unit_selection=work_unit_selection,
     )
+
+
+def _controller_route_context_publication_work_unit(
+    route_context: dict[str, Any] | None,
+    *,
+    source_eval_id: str | None,
+) -> dict[str, str] | None:
+    if not isinstance(route_context, dict):
+        return None
+    controller_route_context = route_context.get("controller_route_context")
+    if not isinstance(controller_route_context, dict):
+        return None
+    if bool(controller_route_context.get("requires_human_confirmation")):
+        return None
+    if str(controller_route_context.get("control_surface") or "").strip() != "quality_repair_batch":
+        return None
+    if str(controller_route_context.get("controller_action_type") or "").strip() != "run_quality_repair_batch":
+        return None
+    context_eval_id = str(controller_route_context.get("source_eval_id") or "").strip()
+    if source_eval_id and context_eval_id and context_eval_id != source_eval_id:
+        return None
+    work_unit_id = str(controller_route_context.get("work_unit_id") or "").strip()
+    if work_unit_id not in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
+        return None
+    return {"unit_id": work_unit_id}
