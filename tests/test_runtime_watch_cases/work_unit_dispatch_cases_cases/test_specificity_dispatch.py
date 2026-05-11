@@ -282,3 +282,123 @@ def test_watch_runtime_records_specificity_request_without_outer_loop_dispatch(
     assert [item["message_id"] for item in message_queue["completed"]] == ["msg-controller-old"]
     assert message_queue["completed"][0]["status"] == "superseded_by_gate_specificity"
     assert [event["event_type"] for event in ledger_events] == ["needs_specificity"]
+
+
+def test_watch_runtime_carries_specificity_targets_into_authorization_and_wakeup(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    helpers = importlib.import_module("tests.study_runtime_test_helpers")
+    profile = helpers.make_profile(tmp_path)
+    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.runtime_root / "quest-001"
+    _write_charter(study_root)
+    status_payload = {
+        **make_study_runtime_status_payload(
+            study_id="001-risk",
+            decision="blocked",
+            reason="study_completion_publishability_gate_blocked",
+        ),
+        "study_root": str(study_root),
+        "quest_id": "quest-001",
+        "quest_root": str(quest_root),
+        "quest_status": "running",
+    }
+    next_work_unit = {
+        "unit_id": "gate_needs_specificity",
+        "lane": "controller",
+        "summary": "Specific gate targets are available.",
+    }
+    publication_eval_ref = _write_publication_eval(
+        study_root,
+        quest_root,
+        action_type="return_to_controller",
+        work_unit_fingerprint="publication-blockers::specific",
+        next_work_unit=next_work_unit,
+    )
+    specificity_targets = [
+        {
+            "target_kind": "claim",
+            "target_id": "primary_claim",
+            "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+            "blocking_reason": "Primary claim needs a concrete evidence anchor.",
+        },
+        {
+            "target_kind": "figure",
+            "target_id": "figure_2",
+            "source_path": str(study_root / "paper" / "figures" / "figure_2.png"),
+            "blocking_reason": "Figure 2 needs a concrete blocker reference.",
+        },
+        {
+            "target_kind": "table",
+            "target_id": "table_1",
+            "source_path": str(study_root / "paper" / "tables" / "table_1.csv"),
+            "blocking_reason": "Table 1 needs denominator provenance.",
+        },
+        {
+            "target_kind": "metric",
+            "target_id": "c_statistic",
+            "source_path": str(study_root / "artifacts" / "results" / "model_performance.json"),
+            "blocking_reason": "Metric needs a result source path.",
+        },
+        {
+            "target_kind": "source_path",
+            "target_id": "external_validation_dataset",
+            "source_path": str(study_root / "artifacts" / "results" / "external_validation.json"),
+            "blocking_reason": "External validation source path is missing.",
+        },
+    ]
+    tick_request = {
+        "study_root": study_root,
+        "charter_ref": _write_charter(study_root),
+        "publication_eval_ref": publication_eval_ref,
+        "decision_type": "return_to_controller",
+        "route_target": "controller",
+        "route_key_question": "gate_needs_specificity: concrete targets are available.",
+        "route_rationale": "Publication gate provided concrete blocker targets for repair.",
+        "requires_human_confirmation": False,
+        "controller_actions": [
+            {
+                "action_type": "request_gate_specificity",
+                "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+            }
+        ],
+        "reason": "Publication gate provided concrete blocker targets for repair.",
+        "work_unit_fingerprint": "publication-blockers::specific",
+        "next_work_unit": next_work_unit,
+        "specificity_targets": specificity_targets,
+    }
+    dump_json(
+        quest_root / ".ds" / "runtime_state.json",
+        {
+            "quest_id": "quest-001",
+            "status": "running",
+            "active_run_id": "run-1",
+            "worker_running": True,
+        },
+    )
+
+    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", lambda **_: tick_request)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **_: status_payload)
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", lambda **_: status_payload)
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+
+    result = module.run_watch_for_runtime(
+        runtime_root=profile.runtime_root,
+        controller_runners={},
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+    )
+    wakeup_latest = json.loads(
+        (study_root / "artifacts" / "runtime" / "runtime_watch_wakeup" / "latest.json").read_text(encoding="utf-8")
+    )
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    authorization = runtime_state["last_controller_decision_authorization"]
+
+    assert result["managed_study_no_op_suppressions"][0]["outcome"] == "needs_specificity"
+    assert wakeup_latest["specificity_targets"] == specificity_targets
+    assert authorization["specificity_targets"] == specificity_targets
+    assert authorization["controller_work_unit_executable"] is True
+    assert "non_executable_reason" not in authorization

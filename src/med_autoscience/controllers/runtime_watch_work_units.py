@@ -26,6 +26,16 @@ _MEANINGFUL_RESULT_ARTIFACT_KEYS = (
     "publication_eval_latest",
     "publication_gate_latest",
 )
+_WORK_UNIT_TARGET_CONTEXT_KEYS = (
+    "specificity_targets",
+    "work_unit_targets",
+    "blocking_artifact_refs",
+    "blocker_details",
+    "gate_blocker_details",
+    "gaps",
+    "source_path",
+)
+_DECISION_PAYLOAD_CONTEXT_KEYS = (*_WORK_UNIT_TARGET_CONTEXT_KEYS, "specificity_questions")
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -432,8 +442,16 @@ def context_payload(tick_request: Mapping[str, Any], *, work_unit_dispatch_key: 
     specificity_questions = tick_request.get("specificity_questions")
     if isinstance(specificity_questions, list):
         payload["specificity_questions"] = [str(item) for item in specificity_questions if str(item).strip()]
+    for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
+        value = tick_request.get(key)
+        if value not in (None, "", [], {}):
+            payload[key] = value
     return payload
 
 
 def strip_context(tick_request: Mapping[str, Any]) -> dict[str, Any]:
-    return dict(tick_request)
+    return {
+        key: value
+        for key, value in tick_request.items()
+        if key not in _DECISION_PAYLOAD_CONTEXT_KEYS
+    }

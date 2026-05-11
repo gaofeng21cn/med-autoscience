@@ -82,6 +82,7 @@ from med_autoscience.controller_confirmation_summary import (
 from med_autoscience.human_gate_policy import require_controller_human_gate_allowed
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
 from med_autoscience.runtime.autonomy_governance import build_autonomy_governance_contract
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
@@ -94,12 +95,88 @@ from med_autoscience.study_decision_record import (
     StudyDecisionType,
 )
 
+_WORK_UNIT_TARGET_CONTEXT_KEYS = (
+    "specificity_targets",
+    "work_unit_targets",
+    "blocking_artifact_refs",
+    "blocker_details",
+    "gate_blocker_details",
+    "gaps",
+    "source_path",
+)
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
 def _decision_id(*, study_id: str, quest_id: str, decision_type: str, recorded_at: str) -> str:
     return f"study-decision::{study_id}::{quest_id}::{decision_type}::{recorded_at}"
+
+
+def _action_next_work_unit(action_payload: dict[str, Any]) -> dict[str, Any]:
+    next_work_unit = action_payload.get("next_work_unit")
+    return dict(next_work_unit) if isinstance(next_work_unit, dict) else {}
+
+
+def _action_work_unit_id(action_payload: dict[str, Any]) -> str | None:
+    text = str(_action_next_work_unit(action_payload).get("unit_id") or "").strip()
+    return text or None
+
+
+def _action_work_unit_fingerprint(action_payload: dict[str, Any]) -> str | None:
+    text = str(action_payload.get("work_unit_fingerprint") or "").strip()
+    if text:
+        return text
+    next_work_unit = _action_next_work_unit(action_payload)
+    text = str(next_work_unit.get("fingerprint") or "").strip()
+    return text or None
+
+
+def _specificity_target_context_from_publication_eval(
+    *,
+    publication_eval_payload: dict[str, Any],
+    recommended_action: dict[str, Any],
+) -> dict[str, Any]:
+    recommended_fingerprint = _action_work_unit_fingerprint(recommended_action)
+    recommended_unit_id = _action_work_unit_id(recommended_action)
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return {}
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        action_fingerprint = _action_work_unit_fingerprint(action)
+        action_unit_id = _action_work_unit_id(action)
+        fingerprint_matches = (
+            recommended_fingerprint is not None
+            and action_fingerprint is not None
+            and action_fingerprint == recommended_fingerprint
+        )
+        unit_matches = recommended_fingerprint is None and recommended_unit_id is not None and action_unit_id == recommended_unit_id
+        if not fingerprint_matches and not unit_matches:
+            continue
+        if specificity_target_status(action.get("specificity_targets")).get("complete") is not True:
+            continue
+        return {
+            key: action[key]
+            for key in _WORK_UNIT_TARGET_CONTEXT_KEYS
+            if key in action
+        }
+    return {}
+
+
+def _target_ready_next_work_unit(next_work_unit: dict[str, Any] | None, target_context: dict[str, Any]) -> dict[str, Any] | None:
+    if not isinstance(next_work_unit, dict):
+        return None
+    if specificity_target_status(target_context.get("specificity_targets")).get("complete") is not True:
+        return dict(next_work_unit)
+    sanitized = dict(next_work_unit)
+    sanitized.pop("non_executable_reason", None)
+    sanitized.pop("required_target_kinds", None)
+    if sanitized.get("controller_work_unit_executable") is False:
+        sanitized.pop("controller_work_unit_executable", None)
+    return sanitized
 
 
 def build_runtime_watch_outer_loop_tick_request(
@@ -209,6 +286,16 @@ def build_runtime_watch_outer_loop_tick_request(
     if recommended_action is None:
         return None
     recommended_action = _promote_gate_needs_specificity_action(recommended_action)
+    work_unit_target_context = {
+        key: recommended_action[key]
+        for key in _WORK_UNIT_TARGET_CONTEXT_KEYS
+        if key in recommended_action
+    }
+    if not work_unit_target_context:
+        work_unit_target_context = _specificity_target_context_from_publication_eval(
+            publication_eval_payload=publication_eval_payload,
+            recommended_action=recommended_action,
+        )
     decision_type = _autonomous_decision_type_for_publication_eval_action(recommended_action)
     if decision_type is None:
         return None
@@ -240,6 +327,12 @@ def build_runtime_watch_outer_loop_tick_request(
         action_type=controller_action_type,
         payload_ref=str((resolved_study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
     ).to_dict()
+    next_work_unit = (
+        dict(recommended_action.get("next_work_unit") or {})
+        if isinstance(recommended_action.get("next_work_unit"), dict)
+        else None
+    )
+    next_work_unit = _target_ready_next_work_unit(next_work_unit, work_unit_target_context)
     return {
         "study_root": resolved_study_root,
         "charter_ref": charter_ref,
@@ -271,8 +364,9 @@ def build_runtime_watch_outer_loop_tick_request(
         "reason": str(recommended_action.get("reason") or "").strip()
         or "publication eval requests an autonomous controller decision for the current line.",
         "work_unit_fingerprint": str(recommended_action.get("work_unit_fingerprint") or "").strip() or None,
-        "next_work_unit": dict(recommended_action.get("next_work_unit") or {}) if isinstance(recommended_action.get("next_work_unit"), dict) else None,
+        "next_work_unit": next_work_unit,
         "blocking_work_units": list(recommended_action.get("blocking_work_units") or []),
+        **work_unit_target_context,
     }
 
 def _execute_controller_action(

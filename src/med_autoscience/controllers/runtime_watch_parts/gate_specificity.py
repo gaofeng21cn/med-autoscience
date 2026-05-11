@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.controllers import control_intent, runtime_watch_work_units
 from med_autoscience.controllers.runtime_watch_parts.managed_wakeup import _candidate_path, _non_empty_text
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.publication_eval_latest import read_publication_eval_latest
 from med_autoscience.runtime_protocol import quest_state
 
@@ -48,6 +49,20 @@ def _gate_specificity_non_executable_contract() -> dict[str, Any]:
         "non_executable_reason": "gate_needs_specificity_without_targets",
         "required_target_kinds": list(_REQUIRED_SPECIFICITY_TARGET_KINDS),
     }
+
+
+def _gate_specificity_target_contract(tick_request: Mapping[str, Any]) -> dict[str, Any]:
+    target_status = specificity_target_status(tick_request.get("specificity_targets"))
+    if target_status.get("complete") is True:
+        return {
+            "controller_work_unit_executable": True,
+            "specificity_targets": [
+                dict(item)
+                for item in target_status.get("targets") or []
+                if isinstance(item, Mapping)
+            ],
+        }
+    return _gate_specificity_non_executable_contract()
 
 
 def _specificity_control_intent_identity(
@@ -195,7 +210,7 @@ def _materialize_specificity_controller_state(
         "delivery_mode": "controller_terminal_projection",
         "message_id": None,
         "source": _MANAGED_STUDY_OUTER_LOOP_WAKEUP_SOURCE,
-        **_gate_specificity_non_executable_contract(),
+        **_gate_specificity_target_contract(tick_request),
         "controller_work_unit_lifecycle": {
             "lifecycle_state": str(lifecycle.get("lifecycle_state") or "needs_specificity"),
             "latest_event_type": lifecycle.get("latest_event_type"),
@@ -231,7 +246,7 @@ def _specificity_terminal_status_payload(
             for item in (tick_request.get("blocking_work_units") or [])
             if isinstance(item, dict)
         ],
-        **_gate_specificity_non_executable_contract(),
+        **_gate_specificity_target_contract(tick_request),
         "controller_work_unit_lifecycle": {
             "lifecycle_state": "needs_specificity",
             "latest_event_type": "needs_specificity",
