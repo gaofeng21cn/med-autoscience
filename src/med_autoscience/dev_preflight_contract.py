@@ -49,7 +49,7 @@ class PreflightCoverageAudit:
 GENERIC_PYTHON_REGRESSION_CATEGORY = "generic_python_regression_surface"
 DOCUMENTATION_REVIEW_CATEGORY = "documentation_review_only"
 
-_DOC_ONLY_PREFIX_PATHS = ("docs/", "bootstrap/")
+_DOC_ONLY_PREFIX_PATHS = ("docs/", "bootstrap/", "assets/branding/")
 _DOC_ONLY_ROOT_FILE_PATTERNS = ("README*.md",)
 
 
@@ -435,6 +435,8 @@ def is_generic_python_change(path: str) -> bool:
 def is_documentation_review_only_change(path: str) -> bool:
     normalized_path = _normalize_changed_file(path)
     if "/" not in normalized_path and normalized_path.startswith("README") and normalized_path.endswith(".md"):
+        return True
+    if normalized_path.startswith("assets/branding/"):
         return True
     return normalized_path.startswith(_DOC_ONLY_PREFIX_PATHS) and normalized_path.endswith(".md")
 

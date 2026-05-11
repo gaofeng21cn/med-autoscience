@@ -108,7 +108,7 @@ def test_preflight_contract_report_lists_categories_and_planned_commands() -> No
     doc_review = categories[module.DOCUMENTATION_REVIEW_CATEGORY]
     assert doc_review["category"] == module.DOCUMENTATION_REVIEW_CATEGORY
     assert doc_review["exact_paths"] == []
-    assert doc_review["prefix_paths"] == ["docs/", "bootstrap/"]
+    assert doc_review["prefix_paths"] == ["docs/", "bootstrap/", "assets/branding/"]
     assert doc_review["root_file_patterns"] == ["README*.md"]
     assert doc_review["owner_surface"] == {
         "exact_paths": doc_review["exact_paths"],
@@ -278,6 +278,19 @@ def test_classify_changed_files_routes_display_docs_to_review_only() -> None:
     result = module.classify_changed_files(
         [
             "docs/capabilities/example-capability-guide.md",
+        ]
+    )
+
+    assert result.matched_categories == ("documentation_review_only",)
+    assert result.unclassified_changes == ()
+
+
+def test_classify_changed_files_routes_branding_assets_to_review_only() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "assets/branding/medautoscience-overview.png",
         ]
     )
 
