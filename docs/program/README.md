@@ -1,6 +1,6 @@
 # Program Directory
 
-`docs/program/` is the MAS program-lifecycle layer. It holds the current paper-autonomy target, the active product/framework enablers, and the landed foundation owner docs that still carry provenance or guard obligations.
+`docs/program/` is the MAS program-lifecycle layer. It holds the current paper-autonomy target, the active product/framework enablers, and the landed foundation owner docs that still carry provenance or guard obligations. It is not a flat backlog.
 
 ## Current Entry
 
@@ -10,13 +10,15 @@
 
 | Layer | document | current role |
 | --- | --- | --- |
-| Target / acceptance | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | Defines the MAS paper-autonomy outcome contract: reviewer findings, repair units, gate replay, route decisions, stage knowledge/memory, live paper soak, and quality boundaries. |
+| Target / acceptance | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | Defines the current MAS paper-autonomy target and acceptance contract: reviewer findings, repair units, gate replay, route decisions, stage knowledge/memory, live paper soak, and quality boundaries. |
 | Product enabler | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | Active productization lane for making the P0 target visible and controllable through the OPL App Runtime Workbench. |
 | Framework enabler | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | Active framework-alignment lane for moving shared runtime obligations to the OPL Codex-first, stage-led framework while MAS keeps domain truth. |
-| Landed foundation | [MAS single-project MDS absorb program](./mas_single_project_mds_absorb_program.md) | Landed monolith/provenance owner doc. It preserves the monolith closeout, MDS retained roles, workspace layout, and compatibility guard evidence. |
-| Landed foundation | [Runtime lifecycle SQLite migration program](./runtime_lifecycle_sqlite_migration_program.md) | Landed runtime-lifecycle guard doc. It preserves SQLite/file authority, quest/root Git retirement, restore proof, and drift handling. |
+| Landed foundation | [MAS single-project MDS absorb program](./mas_single_project_mds_absorb_program.md) | Landed monolith/provenance owner doc. It now preserves the current boundary and guard rules; the full historical record lives in `docs/history/program/`. |
+| Landed foundation | [Runtime lifecycle SQLite migration program](./runtime_lifecycle_sqlite_migration_program.md) | Landed runtime-lifecycle guard doc. It now preserves the current SQLite/file authority, quest/root Git retirement, and drift rules; the full historical record lives in `docs/history/program/`. |
 
 The current execution reading is: P0 supplies the target and acceptance criteria, P1/P2 supply the product and framework implementation paths, and P3/P3a supply landed foundation evidence and maintenance guardrails.
+
+P0 was started first, but its current implementation dependency now lives at the OPL framework layer. MAS keeps medical research, paper quality, and artifact authority; OPL provides the Codex-first, stage-led agent framework that hosts, wakes, recovers, and projects MAS as a domain agent.
 
 ## Support And History
 

@@ -5,6 +5,7 @@
 当前 program 治理入口是：
 
 - [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md)
+- [AI-first Paper Autonomy Closure Program](../../program/ai_first_paper_autonomy_closure_program.md)
 - [MAS 单项目 MDS 吸收 Program](../../program/mas_single_project_mds_absorb_program.md)
 - [Runtime Lifecycle SQLite 迁移 Program](../../program/runtime_lifecycle_sqlite_migration_program.md)
 - [Plan Completion Ledger](../../references/verification/plan_completion_ledger.md)
@@ -24,11 +25,14 @@
 
 已落地 closeout 与 activation 记录：
 
+- [AI-first paper autonomy full record 2026-05-10](./ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md)
 - [AI-first closeout handoff governance](./ai_first_closeout_handoff_governance.md)
 - [AI-first operationalization closeout](./ai_first_operationalization_closeout.md)
 - [AI-first usable closeout projection](./ai_first_usable_closeout_projection.md)
 - [Hermes backend activation package](./hermes_backend_activation_package.md)
 - [Integration harness activation package](./integration_harness_activation_package.md)
+- [MAS/MDS absorb full record 2026-05-10](./mas_single_project_mds_absorb_program_2026_05_10_full_record.md)
+- [Runtime lifecycle SQLite migration full record 2026-05-08](./runtime_lifecycle_sqlite_migration_program_2026_05_08_full_record.md)
 
 已退役或被新主线覆盖的 board / plan：
 
