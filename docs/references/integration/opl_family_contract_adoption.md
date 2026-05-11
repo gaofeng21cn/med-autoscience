@@ -33,6 +33,12 @@
 
 `MAS` 通过 `product-entry-status`、`workspace-cockpit`、`study-progress` 与 `build-product-entry.return_surface_contract` 映射 `opl_family_product_operator_projection.v1`。这些投影必须保留 source refs、freshness、owner split、next surface ref、human gate reason、autonomy_slo、ai_doctor_state 和 repair_recommendation。
 
+## Domain Memory Descriptor
+
+`MAS` 通过 product-entry manifest 的 `domain_memory_descriptor` 暴露 `publication_route_memory` 的 OPL family locator。这个 descriptor 指向 MAS-owned policy seed、workspace memory locator、`stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt` 和 `stage_recall_index`。
+
+`OPL` 可以读取、索引、投影和携带这个 locator 进入 stage attempt；MAS 继续持有 route-memory 正文、retrieval、writeback accept/reject、publication route decision、evidence/review/controller truth、publication gate 和 artifact/package authority。
+
 ## Monolith And Companion Retirement Projection
 
 `MAS` 已完成 no-history physical absorb 与 default-runtime-retirement closeout。OPL family contract adoption 读取的是 MAS-owned projections 和 retained capability surfaces，不要求外部 `med-deepscientist` checkout 作为默认运行依赖。
@@ -50,6 +56,7 @@ MDS / DeepScientist 相关引用只能作为以下显式 refs 暴露：
 
 - `OPL` 只消费 MAS projection，不持有 study truth。
 - `OPL` 不关闭 `publication_eval/latest.json`。
+- `OPL` 不拥有 `publication_route_memory` 正文，也不接受或拒绝 memory writeback。
 - `OPL` 不替代 evidence ledger、review ledger 或 medical reviewer judgment。
 - `Hermes-Agent`、Symphony scheduler、Linear 或外部 issue tracker 都不是 MAS 必需入口。
 - 外部 `med-deepscientist` checkout 也不是 MAS 默认 operation 依赖；只保留 MAS 显式声明的 diagnostic / intake / oracle refs。

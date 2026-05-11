@@ -205,3 +205,54 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["handoff"]["next_owner"] == "MedAutoScience"
         assert stage["freshness"]["stale_if_source_refs_missing"] is True
         assert any(ref["role"] == "deep_descriptor" for ref in stage["source_refs"])
+
+
+def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_path: Path) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    descriptor = manifest["domain_memory_descriptor"]
+
+    assert descriptor["surface_kind"] == "family_domain_memory_ref"
+    assert descriptor["version"] == "family-domain-memory-ref.v1"
+    assert descriptor["memory_ref_id"] == "mas_publication_route_memory"
+    assert descriptor["target_domain_id"] == "med-autoscience"
+    assert descriptor["owner"] == "MedAutoScience"
+    assert descriptor["memory_family"] == "publication_route_memory"
+    assert descriptor["memory_pack_ref"]["ref"] == "docs/policies/study-workflow/publication_route_memory_policy.md"
+    assert descriptor["memory_pack_ref"]["workspace_locator"] == "portfolio/research_memory/publication_route_memory"
+    assert descriptor["stage_applicability"] == ["scout", "idea", "decision", "analysis-campaign", "review"]
+    assert descriptor["retrieval_contract_ref"]["ref"] == "stage_knowledge_packet"
+    assert descriptor["writeback_contract_ref"]["ref"] == "stage_memory_closeout_packet"
+    assert descriptor["receipt_contract_ref"]["ref"] == "memory_write_router_receipt"
+    assert descriptor["recall_projection_ref"]["ref"] == "stage_recall_index"
+    assert descriptor["freshness"]["refresh_policy"] == "rebuild_product_entry_manifest_before_opl_discovery"
+
+    authority = descriptor["authority_boundary"]
+    assert authority["opl_role"] == "locator_projection_owner"
+    assert authority["domain_memory_owner"] == "MedAutoScience"
+    assert "memory_store_owner" in authority["forbidden_opl_authority"]
+    assert "publication_route_decision_owner" in authority["forbidden_opl_authority"]
+    assert authority["can_write_domain_truth"] is False
+    assert authority["can_authorize_quality_verdict"] is False
+    assert authority["can_authorize_publication_quality"] is False
+    assert authority["can_authorize_submission_readiness"] is False
+    assert authority["can_promote_memory_to_evidence"] is False
+    assert authority["can_write_artifacts"] is False
+
+    stage_plane = manifest["family_stage_control_plane"]
+    stages_with_route_memory = {
+        stage["stage_id"]
+        for stage in stage_plane["stages"]
+        if any(ref["ref"] == "mas_publication_route_memory" for ref in stage.get("knowledge_refs", []))
+    }
+    assert {
+        "direction_and_route_selection",
+        "bounded_analysis_campaign",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff",
+    } <= stages_with_route_memory
+    assert "baseline_and_evidence_setup" not in stages_with_route_memory

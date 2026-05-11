@@ -617,6 +617,10 @@ def build_family_stage_control_plane(*, family_action_catalog: Mapping[str, Any]
     )
 
 
+def build_domain_memory_descriptor() -> dict[str, Any]:
+    return family_adoption.build_domain_memory_descriptor()
+
+
 def inspect_lifecycle_store(db_path: Path) -> dict[str, Any]:
     resolved_db_path = Path(db_path).expanduser().resolve()
     if not resolved_db_path.exists():
@@ -952,6 +956,7 @@ __all__ = [
     "DEFAULT_DB_FILENAME",
     "SCHEMA_VERSION",
     "SURFACE_KIND",
+    "build_domain_memory_descriptor",
     "build_opl_family_adoption_surface",
     "build_family_stage_control_plane",
     "build_product_entry_adoption_projection",
