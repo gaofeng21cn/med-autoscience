@@ -339,6 +339,44 @@ def test_accepted_workspace_reusable_lessons_are_promoted_to_route_memory_pack(t
     ]
 
 
+def test_route_memory_writeback_fails_closed_on_corrupt_existing_pack(tmp_path) -> None:
+    study_root = tmp_path / "study"
+    workspace_root = tmp_path / "workspace"
+    pack_path = stage_knowledge_plane.publication_route_memory_pack_path(workspace_root=workspace_root)
+    pack_path.parent.mkdir(parents=True, exist_ok=True)
+    pack_path.write_text("{", encoding="utf-8")
+    packet = stage_knowledge_plane.normalize_stage_memory_closeout_packet(
+        study_id="S1",
+        stage="decision",
+        study_root=study_root,
+        workspace_root=workspace_root,
+        closeout_payload={
+            "idempotency_key": "decision-route-memory-corrupt-pack",
+            "source_refs": ["stage:decision:turn-1"],
+            "reusable_lessons": [
+                {
+                    "write_id": "decision-corrupt-pack-lesson",
+                    "scope": "workspace_reusable",
+                    "lesson": "A reusable route lesson should not overwrite a corrupt memory pack.",
+                }
+            ],
+        },
+    )
+
+    with pytest.raises(json.JSONDecodeError):
+        stage_knowledge_plane.route_stage_memory_closeout(
+            closeout_packet=packet,
+            study_root=study_root,
+            workspace_root=workspace_root,
+        )
+
+    assert pack_path.read_text(encoding="utf-8") == "{"
+    assert not stage_knowledge_plane.memory_write_router_receipt_path(
+        study_root=study_root,
+        idempotency_key="decision-route-memory-corrupt-pack",
+    ).exists()
+
+
 def test_stage_memory_closeout_router_rejects_free_text_only_closeout(tmp_path) -> None:
     study_root = tmp_path / "study"
     workspace_root = tmp_path / "workspace"

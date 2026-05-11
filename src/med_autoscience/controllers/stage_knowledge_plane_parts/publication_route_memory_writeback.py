@@ -32,7 +32,7 @@ def sync_accepted_publication_route_memory_cards(
     ]
     if not accepted_cards:
         return
-    existing_pack = _read_json(pack_path)
+    existing_pack = _read_json(pack_path, required=pack_path.exists())
     existing_cards = _mapping_list(existing_pack.get("cards"))
     by_memory_id = {_text(card.get("memory_id")): dict(card) for card in existing_cards if _text(card.get("memory_id"))}
     for card in accepted_cards:
@@ -136,13 +136,14 @@ def _fingerprint(payload: object) -> str:
     return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
 
 
-def _read_json(path: Path) -> dict[str, Any]:
+def _read_json(path: Path, *, required: bool = False) -> dict[str, Any]:
     if not path.exists() or not path.is_file():
+        if required:
+            raise ValueError(f"publication route memory pack is missing: {path}")
         return {}
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if required and not isinstance(payload, Mapping):
+        raise ValueError(f"publication route memory pack must be a JSON object: {path}")
     return dict(payload) if isinstance(payload, Mapping) else {}
 
 
