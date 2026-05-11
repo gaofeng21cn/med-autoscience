@@ -8,13 +8,14 @@ Owner: `MedAutoScience`
 
 `docs/program/` 现在承载仍需要 program 级阅读顺序、owner gate、closeout evidence 或 landed provenance 的文档。
 
-当前 MAS program 组合按目标、依托、基础三层阅读，不能按文件名、立项时间或 P0/P1/P2/P3 编号理解成并列待办队列：
+当前 MAS program 组合按目标、框架优先执行、产品化、基础 guard 四层阅读，不能按文件名、立项时间或 P0/P1/P2/P3 编号理解成并列待办队列：
 
 1. **目标层**：AI-first paper autonomy 是 MAS 的论文自治目标合同。它定义 MAS 要达到的闭环：AI reviewer finding、repair work unit、gate replay、reviewer re-eval、route decision、stage knowledge/memory、真实 paper soak，以及 artifact delta / human gate / stop-loss 的验收口径。
-2. **实现依托层**：P0 的目标现在由 MAS + OPL 共同支撑。P1 负责把 MAS 的运行状态、对话、产物、terminal/log 和受控 action 接到 OPL App Runtime Workbench；P2 负责把 MAS stage、sidecar、receipt、projection、lifecycle 和本地诊断逐步接入 OPL Codex-first、stage-led framework 与 provider-backed runtime。
-3. **已落地基础层**：P3 和 P3a 已完成主要实施，当前角色是 owner/provenance/guard。它们保留在 `docs/program/`，是因为仍承载 monolith、MDS provenance、restore proof、runtime lifecycle、quest/root Git retirement 和后续兼容判断的当前 owner 文档，不再代表活跃实现队列。
+2. **框架优先执行层**：P2 是当前执行优先级。它先完成 OPL 完整智能体框架，再把 MAS 迁移为 OPL-admitted domain agent，并把新旧功能分类迁移、分层、沉淀或退役。
+3. **产品化层**：P1 负责把迁移后的 MAS/OPL 状态、对话、产物、terminal/log 和受控 action 接到 OPL App Runtime Workbench。
+4. **已落地基础层**：P3 和 P3a 已完成主要实施，当前角色是 owner/provenance/guard。它们保留在 `docs/program/`，是因为仍承载 monolith、MDS provenance、restore proof、runtime lifecycle、quest/root Git retirement 和后续兼容判断的当前 owner 文档，不再代表活跃实现队列。
 
-因此，当前真实执行逻辑是：**P0 提供目标和验收口径，P1/P2 提供产品化与框架化实现路径，P3/P3a 提供已完成基础和 guard 证据**。
+因此，当前真实执行逻辑是：**P0 提供目标和验收口径，P2 先完成 OPL framework 与 MAS 迁移/分层/退役收口，P1 把迁移后的状态产品化，最后用 P0 做真实 paper autonomy 验收；P3/P3a 提供已完成基础和 guard 证据**。具体执行时先读 [MAS Current Development Lines](./current_development_lines.md)，按内容块选择当前线路，不按整份旧计划推进。
 
 ## 当前事实
 
@@ -28,9 +29,10 @@ Owner: `MedAutoScience`
 
 | layer | document | current state | role now | next handling |
 | --- | --- | --- | --- | --- |
+| Execution map | [MAS Current Development Lines](./current_development_lines.md) | `active_content_level_development_map` | 汇总 framework-first 内容级线路、过时/降级材料、合并吸收规则、优先级和 done signal。 | 执行旧 program 内容前先读；新内容先映射到 OPL framework、MAS migration、feature retirement、P1 productization、P0 final soak、P3/P3a/support。 |
 | Goal / acceptance | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | `outcome_contract; repo_loop_landed; live_soak_active` | 定义论文自治闭环、质量边界、stage knowledge/memory、repair/review/gate/route 的目标和验收。 | 保留为目标 owner。新增实现细节应先判断属于 MAS paper loop、P1 workbench，还是 P2 OPL framework。 |
-| Product enabler | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | `active_enabler` | 把 MAS progress、conversation、Live Console、terminal attach、安全 action 和 artifacts 产品化到 OPL App。 | 作为 P0 用户可见闭环的主要产品化 lane 推进。 |
-| Framework enabler | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | `active_enabler; gated_by_opl_framework` | 把 MAS scheduler/watchdog/legacy provider/local diagnostics、sidecar、domain-agent skeleton 和 lifecycle primitives 对齐 OPL stage-led framework。 | 跟随 OPL master roadmap 和真实 MAS paper-line soak；不把目标 provider cutover 写成已完成。 |
+| Framework enabler | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | `active_enabler; framework_first` | 先完成 OPL framework foundation，再把 MAS scheduler/watchdog/legacy provider/local diagnostics、sidecar、domain-agent skeleton 和 lifecycle primitives 对齐 OPL stage-led framework，并执行旧面退役收口。 | 跟随 OPL master roadmap；真实 MAS paper-line soak 放在 framework/migration/retirement 收口之后，不把目标 provider cutover 写成已完成。 |
+| Product enabler | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | `active_enabler; follows_framework_migration` | 把迁移后的 MAS progress、conversation、Live Console、terminal attach、安全 action、provider attempt refs 和 artifacts 产品化到 OPL App。 | 作为迁移后用户可见闭环的主要产品化 lane 推进。 |
 | Landed foundation | [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md) | `landed_owner_doc; provenance_guard` | 记录当前 MAS monolith、MDS retained roles、workspace layout、entry compatibility、functional monolith 和 behavior parity 边界；完整历史记录在 `docs/history/program/`。 | 只维护 guard、provenance 和后续 source intake 分类；新增默认运行能力不回到 MDS absorb 旧路线。 |
 | Landed foundation | [Runtime Lifecycle SQLite Migration Program](./runtime_lifecycle_sqlite_migration_program.md) | `landed_owner_doc; maintenance_guard` | 记录当前 runtime lifecycle authority、SQLite/file truth boundary、quest/root Git retirement、restore proof 和 migration ledger；完整历史记录在 `docs/history/program/`。 | 维护新 drift、restore diagnostic 和 explicit archive import。 |
 
@@ -38,12 +40,13 @@ Owner: `MedAutoScience`
 
 | order | lane | owner doc | current meaning | closeout signal |
 | --- | --- | --- | --- | --- |
-| `1` | `p0_live_paper_autonomy_acceptance` | `ai_first_paper_autonomy_closure_program.md` | 用真实 study / paper line 验证 repo callable loop 是否持续产生 artifact delta、gate replay、AI reviewer judgment、route decision、human gate、stop-loss 或 typed blocker。 | controlled live apply 或 read-only evidence 明确显示 progress delta / blocker；worker live、queue task 或 repo test 只作为支撑证据。 |
-| `2` | `p1_opl_app_runtime_workbench` | `opl_app_mas_runtime_workbench_program.md` | 产品化 P0 的用户可见面，让用户在 OPL App 直接看到论文状态、路线、执行器对话、terminal/log、产物和受控 action receipt。 | `mas_opl_runtime_workbench_projection`、safe action receipt、terminal attach owner gate 和 OPL App drilldown 有稳定 contract / UI evidence。 |
-| `3` | `p2_opl_stage_runtime_provider_alignment` | `opl_temporal_mas_runtime_retirement_program.md` plus OPL master roadmap | 把 P0 所需的 durable stage attempt、queue/wakeup、retry/dead-letter、approval/human gate、receipt/projection 和 lifecycle primitive 交给 OPL framework。 | direct MAS skill path 与 OPL-hosted path 共享 MAS owner receipts；真实 provider soak 证明没有 forbidden truth writes。 |
-| `4` | `p3_foundation_guard` | `mas_single_project_mds_absorb_program.md`, `runtime_lifecycle_sqlite_migration_program.md` | 对 monolith、MDS provenance、runtime lifecycle、restore proof 和 old workspace drift 做 guard 维护。 | 新 drift 有 explicit inventory / restore proof / provenance classification；不新增默认 MDS dependency 或 Git lifecycle。 |
+| `1` | `p2_opl_framework_foundation` | `opl_temporal_mas_runtime_retirement_program.md` plus OPL master roadmap | 先完成 OPL 作为完整智能体框架的 stage attempt、provider runtime、queue/wakeup、retry/dead-letter、approval transport、receipt/projection 和 shared lifecycle/index primitives。 | OPL provider/framework 能承载 MAS stage attempt，并只持有 framework receipt/ref/projection。 |
+| `2` | `p2_mas_framework_migration_and_retirement` | `opl_temporal_mas_runtime_retirement_program.md`, `mas_single_project_mds_absorb_program.md`, `runtime_lifecycle_sqlite_migration_program.md` | MAS 迁移到 OPL framework，新旧功能分类迁移/分层/沉淀，过时模块和旧兼容面按替代证据退役清理。 | direct MAS skill path 与 OPL-hosted path 共享 MAS owner receipts；旧默认依赖无 default caller / no fixture requirement / replacement proof。 |
+| `3` | `p1_opl_app_runtime_workbench` | `opl_app_mas_runtime_workbench_program.md` | 产品化迁移后的用户可见面，让用户在 OPL App 直接看到论文状态、路线、执行器对话、terminal/log、产物和受控 action receipt。 | `mas_opl_runtime_workbench_projection`、safe action receipt、terminal attach owner gate 和 OPL App drilldown 有稳定 contract / UI evidence。 |
+| `4` | `p0_live_paper_autonomy_acceptance` | `ai_first_paper_autonomy_closure_program.md` | 在 framework-first 目标形态下，用真实 study / paper line 验证 artifact delta、gate replay、AI reviewer judgment、route decision、human gate、stop-loss 或 typed blocker。 | controlled live apply 或 read-only evidence 明确显示 progress delta / blocker；worker live、queue task 或 repo test 只作为支撑证据。 |
+| `5` | `p3_foundation_guard` | `mas_single_project_mds_absorb_program.md`, `runtime_lifecycle_sqlite_migration_program.md` | 对 monolith、MDS provenance、runtime lifecycle、restore proof 和 old workspace drift 做 guard 维护。 | 新 drift 有 explicit inventory / restore proof / provenance classification；不新增默认 MDS dependency 或 Git lifecycle。 |
 
-当前统一表达为：P0 是目标和验收面；P1/P2 是让 P0 走向可用产品和通用框架的当前实现路径；P3/P3a 是已完成基础的守护面。
+当前统一表达为：P0 是目标和验收面，但执行顺序不是 P0-first；P2 先完成 OPL framework 和 MAS 迁移/退役收口，P1 产品化迁移后的可见面，P0 最后做真实 paper autonomy 验收，P3/P3a 贯穿提供 foundation guard。[MAS Current Development Lines](./current_development_lines.md) 是这些层级的内容级执行地图。
 
 ## 已收口状态
 
@@ -67,9 +70,10 @@ Owner: `MedAutoScience`
 | document | current content role | disposition |
 | --- | --- | --- |
 | `program_portfolio_consolidation.md` | 当前 program 组合总控、执行顺序、生命周期处置 | 保持当前 owner；每次新增 program 先更新本文。 |
+| `current_development_lines.md` | 当前内容级开发线路图、过时/降级材料表、合并吸收规则和优先级 | 保留为执行地图。执行旧计划前先用它判断内容块归属；不作为 runtime、paper 或 publication truth。 |
 | `ai_first_paper_autonomy_closure_program.md` | P0 目标合同、repo loop current state、真实 paper soak 验收 | 保留在 program。MAS paper loop 由本文持有；历史 full record 已移入 `docs/history/program/`；OPL provider 与 App UI 实现细节分别进入 P2/P1。 |
-| `opl_app_mas_runtime_workbench_program.md` | P1 产品化 enabler | 保留为 active program。它把 P0 状态变成人用的 OPL App Runtime Workbench。 |
-| `opl_temporal_mas_runtime_retirement_program.md` | P2 framework/runtime enabler | 保留为 active program，并持续对齐 OPL master roadmap。目标 provider cutover 必须由真实 soak 证明。 |
+| `opl_app_mas_runtime_workbench_program.md` | P1 产品化 enabler owner | 保留为精简 active owner doc。完整旧记录已移入 `docs/history/program/`；当前跟随 framework migration 执行 read-only workbench、action receipt、terminal attach、provider join 等内容级 lane。 |
+| `opl_temporal_mas_runtime_retirement_program.md` | P2 framework/runtime enabler owner | 保留为精简 active owner doc。完整旧记录已移入 `docs/history/program/`；当前先执行 OPL framework foundation、MAS framework migration、framework-generic lift、legacy retirement，再进入 final paper-line soak。 |
 | `mas_single_project_mds_absorb_program.md` | P3 landed foundation、MDS provenance、monolith guard current owner | 保留在 program 作为精简 landed owner doc；历史 full record 已移入 `docs/history/program/`；后续只维护 provenance、classification、compat/restore guard。 |
 | `runtime_lifecycle_sqlite_migration_program.md` | P3a landed foundation、runtime lifecycle / Git retirement guard current owner | 保留在 program 作为精简 landed owner doc；历史 full record 已移入 `docs/history/program/`；后续只处理 drift、restore diagnostic、explicit archive import。 |
 | `docs/history/program/*` | dated closeout、activation package、recurring intake snapshot、superseded plan | 留在 history。活跃触发规则进入 `docs/status.md`、`docs/references/**` 或本文。 |
@@ -114,8 +118,8 @@ Snapshot-local saturation protocols are provenance until promoted into `docs/sta
 
 当前 portfolio 的完成标准是：
 
-- 读者能一眼看出 P0 是目标/验收，P1/P2 是当前实现依托，P3/P3a 是已完成基础和 guard。
+- 读者能一眼看出 P0 是目标/验收，P2 是当前 framework-first 执行优先级，P1 是迁移后的产品化入口，P3/P3a 是已完成基础和 guard。
 - 后续 Agent 能先读本文决定新内容落在目标层、active enabler、landed foundation、reference、policy 还是 history。
 - 已落地 closeout 留在 landed owner doc、reference 或 history 层。
-- OPL framework 相关实现进入 P2 或 OPL master roadmap，MAS paper autonomy 质量和 artifact authority 仍回到 P0 / MAS owner surfaces。
+- OPL framework 相关实现、MAS framework migration、功能分层和旧面退役进入 P2 或 OPL master roadmap；MAS paper autonomy 质量和 artifact authority 仍回到 P0 / MAS owner surfaces。
 - 真实 paper closure 仍以 live MAS truth surface 为准，不用文档状态、repo tests 或 queue receipt 伪装成投稿级完成。

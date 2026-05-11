@@ -141,6 +141,7 @@ Before moving or deleting a document:
 
 | role | current MAS document role |
 | --- | --- |
+| `content_level_execution_map` | `current_development_lines.md` maps the framework-first execution order, current content lines, downgraded/outdated material, merge/absorb rules, priority, and done signals. |
 | `target_acceptance` | `ai_first_paper_autonomy_closure_program.md` defines the paper-autonomy outcome contract and live-soak acceptance criteria. |
 | `product_enabler` | `opl_app_mas_runtime_workbench_program.md` turns the target into an OPL App Runtime Workbench experience. |
 | `framework_enabler` | `opl_temporal_mas_runtime_retirement_program.md` aligns MAS runtime-adjacent obligations with the OPL Codex-first, stage-led framework. |

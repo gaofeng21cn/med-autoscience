@@ -5,6 +5,7 @@ This directory contains dated records, not a single "retired only" bucket. It in
 Current program governance lives in:
 
 - [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md)
+- [MAS Current Development Lines](../../program/current_development_lines.md)
 - [AI-first Paper Autonomy Closure Program](../../program/ai_first_paper_autonomy_closure_program.md)
 - [OPL App MAS Runtime Workbench Program](../../program/opl_app_mas_runtime_workbench_program.md)
 - [OPL Temporal MAS Runtime Retirement Program](../../program/opl_temporal_mas_runtime_retirement_program.md)
@@ -34,6 +35,8 @@ Landed closeouts and activation records:
 - [Hermes backend activation package](./hermes_backend_activation_package.md)
 - [Integration harness activation package](./integration_harness_activation_package.md)
 - [MAS/MDS absorb full record 2026-05-10](./mas_single_project_mds_absorb_program_2026_05_10_full_record.md)
+- [OPL App MAS Runtime Workbench full record 2026-05-11](./opl_app_mas_runtime_workbench_program_2026_05_11_full_record.md)
+- [OPL Temporal MAS Runtime Retirement full record 2026-05-11](./opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md)
 - [Runtime lifecycle SQLite migration full record 2026-05-08](./runtime_lifecycle_sqlite_migration_program_2026_05_08_full_record.md)
 
 Retired or superseded boards and plans:
