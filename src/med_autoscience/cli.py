@@ -106,6 +106,7 @@ reference_papers_controller = _LazyModuleProxy(lambda: _load_controller("referen
 runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
 sidecar_provider_controller = _LazyModuleProxy(lambda: _load_controller("sidecar_provider"))
 sidecar_family_adapter = _LazyModuleProxy(lambda: _load_controller("sidecar_family_adapter"))
+stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
@@ -149,6 +150,13 @@ def _load_json_payload_from_args(args: argparse.Namespace) -> dict[str, object]:
         payload = json.loads(payload_json)
     if not isinstance(payload, dict):
         raise SystemExit("JSON payload must be an object")
+    return payload
+
+
+def _load_json_object_file(path: str | Path) -> dict[str, object]:
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise SystemExit("JSON payload file must contain an object")
     return payload
 
 
@@ -255,6 +263,69 @@ def _render_portal_console_soak_text(result: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _handle_stage_memory_command(args: argparse.Namespace, *, parser: argparse.ArgumentParser) -> int | None:
+    if args.command == "publication-route-memory-apply-seed":
+        result = stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+            workspace_root=Path(args.workspace_root),
+            seed_fixture_path=Path(args.seed_fixture),
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "stage-knowledge-packet":
+        result = stage_knowledge_plane.materialize_stage_knowledge_packet(
+            study_id=args.study_id,
+            stage=args.stage,
+            study_root=Path(args.study_root),
+            workspace_root=Path(args.workspace_root),
+            quest_root=Path(args.quest_root) if args.quest_root else None,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "stage-memory-closeout-route":
+        if args.closeout_packet:
+            closeout_packet = _load_json_object_file(args.closeout_packet)
+            closeout_packet_ref = str(Path(args.closeout_packet))
+        else:
+            if not args.materialize_closeout_packet:
+                parser.error("--closeout-payload requires --materialize-closeout-packet")
+            if not args.study_id or not args.stage:
+                parser.error("--closeout-payload requires --study-id and --stage")
+            closeout_packet = stage_knowledge_plane.materialize_stage_memory_closeout_packet(
+                study_id=args.study_id,
+                stage=args.stage,
+                study_root=Path(args.study_root),
+                workspace_root=Path(args.workspace_root),
+                closeout_payload=_load_json_object_file(args.closeout_payload),
+            )
+            closeout_packet_ref = str(closeout_packet.get("artifact_path") or "")
+
+        result = stage_knowledge_plane.route_stage_memory_closeout(
+            closeout_packet=closeout_packet,
+            study_root=Path(args.study_root),
+            workspace_root=Path(args.workspace_root),
+            apply=bool(args.apply),
+        )
+        if closeout_packet_ref:
+            result = {**result, "closeout_packet_ref": closeout_packet_ref}
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "paper-soak-memory-proof":
+        result = stage_knowledge_plane.materialize_paper_soak_memory_apply_proof(
+            study_id=args.study_id,
+            stage=args.stage,
+            study_root=Path(args.study_root),
+            workspace_root=Path(args.workspace_root),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    return None
+
+
 
 def build_parser() -> argparse.ArgumentParser:
     return _build_cli_parser(study_cycle_profiler=study_cycle_profiler)
@@ -349,6 +420,10 @@ def main(argv: list[str] | None = None) -> int:
         result = dev_preflight_contract.build_preflight_contract_report()
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
+
+    stage_memory_result = _handle_stage_memory_command(args, parser=parser)
+    if stage_memory_result is not None:
+        return stage_memory_result
 
     if args.command == "backend-audit":
         profile = load_profile(args.profile)
