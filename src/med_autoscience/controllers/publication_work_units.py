@@ -369,6 +369,13 @@ def _unit(unit_id: str, lane: str, summary: str, **extra: Any) -> dict[str, Any]
     return payload
 
 
+def _append_unit_once(units: list[dict[str, str]], unit: dict[str, str]) -> None:
+    unit_id = str(unit.get("unit_id") or "").strip()
+    if unit_id and any(str(existing.get("unit_id") or "").strip() == unit_id for existing in units):
+        return
+    units.append(unit)
+
+
 def _mapping_has_actionable_object_ref(
     payload: Mapping[str, Any],
     *,
@@ -497,20 +504,22 @@ def _append_specificity_target_repair_units(
         if isinstance(item, Mapping)
     }
     if target_kinds & {"claim", "metric", "source_path", "table"}:
-        units.append(
+        _append_unit_once(
+            units,
             _unit(
                 "analysis_claim_evidence_repair",
                 "analysis-campaign",
                 "Repair claim-evidence, story, figure, and results traceability blockers.",
-            )
+            ),
         )
     if "figure" in target_kinds:
-        units.append(
+        _append_unit_once(
+            units,
             _unit(
                 "figure_results_trace_repair",
                 "write",
                 "Repair figure and results traceability against the publication evidence surface.",
-            )
+            ),
         )
 
 
@@ -536,7 +545,7 @@ def _append_blocker_rule_units(
         if skip_when_mixed and mixed_controller_repair:
             continue
         if blocker_set & blocker_group:
-            units.append(_unit(unit_id, lane, summary))
+            _append_unit_once(units, _unit(unit_id, lane, summary))
 
 
 def _append_submission_refresh_unit(
@@ -645,6 +654,15 @@ def _derive_blocking_work_units(
         )
         if units:
             return units, "actionable", ()
+    if (
+        specificity_target_status_payload
+        and specificity_target_status_payload.get("complete") is True
+        and blocker_set & _GENERIC_SPECIFICITY_BLOCKERS
+    ):
+        _append_specificity_target_repair_units(
+            units,
+            target_status=specificity_target_status_payload,
+        )
     if _label_only_blocker_needs_specificity(report, blocker_set=blocker_set):
         _append_gate_specificity_unit(units)
         return units, "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
