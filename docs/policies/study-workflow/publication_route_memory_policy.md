@@ -151,11 +151,26 @@ The practical migration rule is: when a lesson helps Codex decide what to explor
 
 MAS now exposes a thin `domain_memory_descriptor` in the product-entry manifest for `publication_route_memory`. It is a locator / freshness / contract-ref surface for OPL family discovery; it does not contain route-memory card bodies and does not grant OPL memory-store, route-decision, publication-quality, submission-readiness, evidence, review, controller, or artifact authority.
 
+## Migration Plan
+
+Current landed state is `migration_plan_ready_descriptor_only`.
+
+MAS provides a repo-source seed fixture at `docs/policies/study-workflow/publication_route_memory_seed_fixture.json`. The fixture is not the memory store and is not a receipt instance. It exists to make the first migration shape reviewable: reusable publication-route lessons stay natural-language-first, carry minimal searchable metadata, and point back to policy/stage provenance.
+
+Actual migration must happen in a MAS-owned workspace or runtime artifact root:
+
+- target memory pack: `portfolio/research_memory/publication_route_memory`
+- seed apply receipts: `portfolio/research_memory/publication_route_memory/migration_receipts`
+- stage closeout writeback receipts: `portfolio/research_memory/publication_route_memory/writeback_receipts`
+
+The migration owner is MAS. OPL may project `migration_plan_ref`, `seed_corpus_ref`, `writeback_receipt_locator_ref`, and readiness. OPL must not apply the migration, accept/reject writebacks, store memory body text, or promote memory into evidence, review, controller, publication, or artifact truth.
+
 The useful work now is:
 
 - keep the route memory cards natural-language-first;
 - keep `stage_knowledge_packet`, `stage_memory_closeout_packet`, `memory_write_router_receipt`, and `stage_recall_index` as the small controlled retrieval/writeback surfaces;
 - expose candidate memory locators and owner boundaries through MAS-owned descriptor surfaces before moving them into runtime machinery;
+- run the first real migration only through MAS-owned workspace apply and receipt paths;
 - preserve Codex CLI autonomy inside each stage.
 
 Do not implement a separate publication recipe engine until a route has matured into an audited capability with clear evidence obligations, tests, owner boundary, and failure behavior.

@@ -229,7 +229,23 @@ def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_
     assert descriptor["writeback_contract_ref"]["ref"] == "stage_memory_closeout_packet"
     assert descriptor["receipt_contract_ref"]["ref"] == "memory_write_router_receipt"
     assert descriptor["recall_projection_ref"]["ref"] == "stage_recall_index"
+    assert descriptor["migration_plan_ref"]["ref"] == (
+        "docs/policies/study-workflow/publication_route_memory_policy.md#migration-plan"
+    )
+    assert descriptor["migration_plan_ref"]["role"] == "domain_owned_migration_plan"
+    assert descriptor["seed_corpus_ref"]["ref"] == (
+        "docs/policies/study-workflow/publication_route_memory_seed_fixture.json"
+    )
+    assert descriptor["seed_corpus_ref"]["role"] == "repo_source_seed_fixture"
+    assert descriptor["writeback_receipt_locator_ref"]["ref"] == (
+        "portfolio/research_memory/publication_route_memory/writeback_receipts"
+    )
+    assert descriptor["writeback_receipt_locator_ref"]["role"] == "domain_owned_router_receipts"
     assert descriptor["freshness"]["refresh_policy"] == "rebuild_product_entry_manifest_before_opl_discovery"
+    assert descriptor["migration_readiness"]["status"] == "migration_plan_ready_descriptor_only"
+    assert descriptor["migration_readiness"]["seed_fixture_status"] == "repo_source_fixture_available"
+    assert descriptor["migration_readiness"]["memory_body_migration"] == "domain_owned_workspace_apply_required"
+    assert descriptor["migration_readiness"]["opl_apply_allowed"] is False
 
     authority = descriptor["authority_boundary"]
     assert authority["opl_role"] == "locator_projection_owner"

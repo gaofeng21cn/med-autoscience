@@ -22,6 +22,9 @@ RUNTIME_LIFECYCLE_CONTRACT_REF = (
 STAGE_LED_AUTONOMY_INVENTORY_REF = "docs/references/integration/stage_led_autonomy_family_inventory.md"
 STAGE_LED_AUTONOMY_POLICY_REF = "docs/policies/study-workflow/stage_led_research_autonomy.md"
 PUBLICATION_ROUTE_MEMORY_POLICY_REF = "docs/policies/study-workflow/publication_route_memory_policy.md"
+PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF = (
+    "docs/policies/study-workflow/publication_route_memory_seed_fixture.json"
+)
 STUDY_ARCHETYPES_REF = "docs/policies/study-workflow/study_archetypes.md"
 AGENT_ENTRY_MODES_REF = "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml"
 STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
@@ -215,8 +218,24 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
             "ref": stage_knowledge_contract.RECALL_INDEX_SURFACE,
             "role": "stage_recall_projection",
         },
+        "migration_plan_ref": {
+            "ref_kind": "human_doc",
+            "ref": f"{PUBLICATION_ROUTE_MEMORY_POLICY_REF}#migration-plan",
+            "role": "domain_owned_migration_plan",
+        },
+        "seed_corpus_ref": {
+            "ref_kind": "repo_path",
+            "ref": PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF,
+            "role": "repo_source_seed_fixture",
+        },
+        "writeback_receipt_locator_ref": {
+            "ref_kind": "workspace_locator",
+            "ref": "portfolio/research_memory/publication_route_memory/writeback_receipts",
+            "role": "domain_owned_router_receipts",
+        },
         "provenance_refs": [
             {"ref_kind": "human_doc", "ref": PUBLICATION_ROUTE_MEMORY_POLICY_REF, "role": "policy"},
+            {"ref_kind": "repo_path", "ref": PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF, "role": "seed_fixture"},
             {"ref_kind": "human_doc", "ref": STUDY_ARCHETYPES_REF, "role": "first_generation_memory_seed"},
             {"ref_kind": "python_symbol", "ref": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF, "role": "retrieval_writeback_contract"},
         ],
@@ -226,6 +245,13 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
             "stage_knowledge_contract_schema_version": knowledge_contract.get("schema_version"),
             "stage_knowledge_exploratory_stages": exploratory_stages,
             "stale_if_policy_or_stage_contract_missing": True,
+        },
+        "migration_readiness": {
+            "status": "migration_plan_ready_descriptor_only",
+            "seed_fixture_status": "repo_source_fixture_available",
+            "memory_body_migration": "domain_owned_workspace_apply_required",
+            "writeback_receipt_locator_status": "workspace_locator_declared",
+            "opl_apply_allowed": False,
         },
         "status": "active",
         "authority_boundary": {

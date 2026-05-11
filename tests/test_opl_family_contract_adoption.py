@@ -136,3 +136,28 @@ def test_mas_persistence_lifecycle_owner_route_projection_is_refs_payload_only()
         "paper/manuscript/current_package",
         "current_package.zip",
     ]
+
+
+def test_mas_domain_memory_projection_declares_domain_owned_migration_surface() -> None:
+    contract = _contract()
+    memory = contract["domain_memory_projection"]
+
+    assert memory["descriptor_surface"] == "product-entry-manifest.domain_memory_descriptor"
+    assert memory["memory_ref_id"] == "mas_publication_route_memory"
+    assert memory["migration_plan_ref"] == (
+        "docs/policies/study-workflow/publication_route_memory_policy.md#migration-plan"
+    )
+    assert memory["seed_corpus_ref"] == (
+        "docs/policies/study-workflow/publication_route_memory_seed_fixture.json"
+    )
+    assert memory["writeback_receipt_locator_ref"] == (
+        "portfolio/research_memory/publication_route_memory/writeback_receipts"
+    )
+    assert memory["migration_readiness"] == {
+        "status": "migration_plan_ready_descriptor_only",
+        "seed_fixture_status": "repo_source_fixture_available",
+        "memory_body_migration": "domain_owned_workspace_apply_required",
+        "opl_apply_allowed": False,
+    }
+    assert "memory_store_owner" in memory["forbidden_opl_authority"]
+    assert "publication_route_decision_owner" in memory["forbidden_opl_authority"]

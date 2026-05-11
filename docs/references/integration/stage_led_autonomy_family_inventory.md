@@ -22,7 +22,7 @@ MAS 当前的 Stage-Led Autonomy 已由以下 MAS-owned surfaces 承接：
 
 MAS 现在通过 product-entry manifest 暴露 MAS-owned 标准 `family_stage_control_plane` 和深度 `family_stage_control_plane_descriptor`。前者供 OPL `stages list|inspect` 直接发现，后者保留 route snapshot、packet surfaces、memory closeout/router/recall surface、evidence/review/controller/publication refs 和 `authority_boundary` 的深度来源；两者只用于 OPL family-level indexing / display / freshness / MAS-exported dispatch discovery，不派生 route，不授权质量或投稿 readiness。
 
-2026-05-11 update: 同一 manifest 现在也暴露 MAS-owned `domain_memory_descriptor`，其 `memory_ref_id=mas_publication_route_memory`。这个 descriptor 只提供 publication-route memory 的 policy seed、workspace locator、stage applicability、retrieval/writeback/receipt/recall refs、freshness 和 forbidden OPL authority；它不包含 memory 正文，不授权 OPL 选择论文路线，也不把 writeback 接受/拒绝、evidence/review/controller/publication 或 artifact authority 移出 MAS。
+2026-05-11 update: 同一 manifest 现在也暴露 MAS-owned `domain_memory_descriptor`，其 `memory_ref_id=mas_publication_route_memory`。这个 descriptor 只提供 publication-route memory 的 policy seed、workspace locator、stage applicability、retrieval/writeback/receipt/recall refs、migration plan ref、seed corpus ref、writeback receipt locator、freshness 和 forbidden OPL authority；它不包含 memory 正文，不授权 OPL 选择论文路线，也不把 writeback 接受/拒绝、evidence/review/controller/publication 或 artifact authority 移出 MAS。
 
 ## Scope Guard
 
@@ -90,6 +90,10 @@ MAS exposes publication-route memory to OPL as `domain_memory_descriptor`:
 - `writeback_contract_ref`: `stage_memory_closeout_packet`
 - `receipt_contract_ref`: `memory_write_router_receipt`
 - `recall_projection_ref`: `stage_recall_index`
+- `migration_plan_ref`: `docs/policies/study-workflow/publication_route_memory_policy.md#migration-plan`
+- `seed_corpus_ref`: `docs/policies/study-workflow/publication_route_memory_seed_fixture.json`
+- `writeback_receipt_locator_ref`: `portfolio/research_memory/publication_route_memory/writeback_receipts`
+- `migration_readiness`: `migration_plan_ready_descriptor_only`; real memory body migration remains MAS workspace-owned
 - `authority_boundary`: OPL is locator projection owner only; forbidden authorities include memory store, domain truth, quality verdict, artifact authority, publication route decision, publication readiness and submission readiness.
 
 The standard `family_stage_control_plane` now links route-sensitive stages to this descriptor through `knowledge_refs`. OPL may display and inject the ref into provider attempts; MAS still owns actual retrieval, closeout normalization, router receipt, accepted/rejected writes, and publication route decisions.

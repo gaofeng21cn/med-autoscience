@@ -1,0 +1,63 @@
+{
+  "surface_kind": "publication_route_memory_seed_fixture",
+  "schema_version": 1,
+  "memory_family": "publication_route_memory",
+  "owner": "MedAutoScience",
+  "state": "repo_source_seed_fixture",
+  "purpose": "Provide non-authoritative starter examples for MAS-owned publication-route memory migration without storing real study artifacts or accepted memory entries in the repo.",
+  "authority_boundary": {
+    "domain_memory_owner": "MedAutoScience",
+    "opl_role": "locator_projection_only",
+    "repo_fixture_is_memory_store": false,
+    "can_authorize_publication_route": false,
+    "can_authorize_quality_verdict": false,
+    "can_write_study_truth": false
+  },
+  "workspace_targets": {
+    "memory_pack_locator": "portfolio/research_memory/publication_route_memory",
+    "seed_apply_receipts": "portfolio/research_memory/publication_route_memory/migration_receipts",
+    "writeback_receipts": "portfolio/research_memory/publication_route_memory/writeback_receipts"
+  },
+  "seed_cards": [
+    {
+      "memory_id": "publication_route_memory_seed__external_validation_rescue",
+      "status": "draft_seed",
+      "route_family": "external_validation_or_model_update",
+      "stage_applicability": ["scout", "idea", "analysis-campaign", "review"],
+      "title": "Weak internal effect can still be publishable when external validation or model update is clinically grounded.",
+      "prose_summary": "Consider whether a route can shift from claiming discovery to validating transportability, recalibration, or clinically interpretable updating when the primary effect is weak but the endpoint, cohort, and clinical decision point remain relevant.",
+      "failure_modes": [
+        "No independent cohort or temporal split can support transportability.",
+        "Calibration or clinical utility evidence is absent.",
+        "The revised claim still reads as discovery rather than validation."
+      ],
+      "source_refs": [
+        {
+          "ref_kind": "human_doc",
+          "ref": "docs/policies/study-workflow/publication_route_memory_policy.md",
+          "role": "policy_seed"
+        }
+      ]
+    },
+    {
+      "memory_id": "publication_route_memory_seed__negative_result_stoploss",
+      "status": "draft_seed",
+      "route_family": "weak_or_negative_result_handling",
+      "stage_applicability": ["decision", "analysis-campaign", "review"],
+      "title": "Negative or unstable main analysis should trigger claim downgrade, bounded repair, route switch, or stop-loss rather than positive-story inflation.",
+      "prose_summary": "When a bounded analysis campaign returns unstable, reversed, or non-identifiable evidence, preserve failed paths and let the controller decide whether to downgrade the claim, repair a bounded evidence gap, switch route, return to scouting, ask for a human gate, or stop.",
+      "failure_modes": [
+        "The proposed memory repeats a single-study result instead of a reusable route lesson.",
+        "The proposed writeback tries to replace evidence or review ledgers.",
+        "The revised paper narrative hides the failed path."
+      ],
+      "source_refs": [
+        {
+          "ref_kind": "human_doc",
+          "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
+          "role": "stage_policy"
+        }
+      ]
+    }
+  ]
+}
