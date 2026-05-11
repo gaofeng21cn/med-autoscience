@@ -139,11 +139,11 @@
 - 理由：这能先获得长期托管、唤醒、健康检查和跨域状态索引的收益，同时保留 MAS 自己的 study authority、publication gate 与 evidence/review ledger。若未来需要自有长期常驻 sidecar，也能沿 Runtime Manager 的 adapter/projection contract promotion，而不重写 MAS domain truth。
 - 影响：后续涉及 OPL handoff、runtime_control、product-entry manifest、status projection、sidecar export/dispatch 或 hosted lane 的文案，都必须明确 `OPL Runtime Manager` 是 OPL 侧 thin manager over external substrate；MAS durable truth surface 仍是唯一研究真相。
 
-## 2026-04-21：公开主语固定为独立 domain agent，单一 app skill 承接稳定 surface，OPL 只做上层 federation
+## 2026-04-21：公开主语固定为独立 domain agent，单一 app skill 承接稳定 surface
 
 - 决策：`Med Auto Science` 的对外第一身份固定为“可被 Codex 或其他通用 agent 直接调用的独立 medical research domain agent”；其单一 MAS app skill 承接稳定 callable surface；`OPL` 只承担 OPL stage-runtime session/runtime/projection 编排与 shared modules/contracts/indexes。
 - 理由：公开主语直接决定用户入口与 owner 语义。将 MAS 固定为独立 domain agent，并把稳定 surface 收口到单一 app skill，才能避免把 MAS 误写成 OPL 内部模块，也避免把桥接载荷写成第一主语。
-- 影响：README 与核心 docs 必须明确 domain agent、单一 app skill、CLI/workspace commands 和 durable surface 的主次关系；`OPL handoff`、`product-entry manifest` 与 `gateway / harness` 术语保留为内部集成或架构边界语言，不作为对外第一身份。
+- 影响：README 与核心 docs 必须明确 domain agent、单一 app skill、CLI/workspace commands 和 durable surface 的主次关系；`OPL handoff`、`product-entry manifest` 与 OPL stage-led framework 术语只作为集成和运行框架边界，不作为对外第一身份。
 
 ## 2026-04-11：统一 docs 骨架与分层
 

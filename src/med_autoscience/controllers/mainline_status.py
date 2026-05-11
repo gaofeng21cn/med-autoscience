@@ -900,8 +900,8 @@ def read_mainline_status() -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
         "program_id": PROGRAM_ID,
-        "federation_position": {
-            "opl": "Codex-first stage-led runtime framework",
+        "framework_position": {
+            "opl": "Codex-first stage-led agent runtime framework",
             "research_foundry": "generic Research Ops framework layer",
             "med_autoscience": "independent medical research domain agent",
         },
@@ -915,8 +915,8 @@ def read_mainline_status() -> dict[str, Any]:
                 "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
                 "research_backend": "MAS-owned Runtime OS / Artifact OS / Quality OS",
                 "entry_shape": (
-                    "compatible Med Auto Science product entry plus OPL handoff over the same substrate, "
-                    "without replacing domain authority"
+                    "Med Auto Science direct skill path plus OPL stage handoff over the same MAS-owned "
+                    "stage/controller/durable truth surfaces, without replacing domain authority"
                 ),
             },
             "product_shape": [

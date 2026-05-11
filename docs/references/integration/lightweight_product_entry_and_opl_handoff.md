@@ -20,15 +20,13 @@ repo 内已经把一层 shared-envelope shell 落成 machine-readable surface：
 - direct path：
   `User/Agent -> Med Auto Science -> single MAS app skill -> runtime/session surfaces`
 
-- OPL integration handoff：
-  `User/Agent -> OPL Entry -> OPL session/runtime/projection orchestration -> MAS handoff envelope -> Med Auto Science`
-
-`gateway / harness` 术语继续保留为内部架构边界语言，不作为 MAS 的对外第一身份。
+- OPL stage handoff：
+  `User/Agent -> OPL stage runtime -> stage attempt / queue / receipt / projection -> MAS handoff envelope -> Med Auto Science`
 
 这意味着：
 
 - `Med Auto Science` 是独立 medical research domain agent，可直连调用。
-- `OPL` 负责 family-level session/runtime/projection 编排与 shared modules/contracts/indexes，不承担研究 owner。
+- `OPL` 负责 family-level stage attempt、queue/wakeup、receipt、projection 与 shared modules/contracts/indexes，不承担研究 owner。
 - 两条集成路径共享同一套 `study semantics`、authority boundary 与 return surface contract。
 
 ## 3. 为什么这一层只保留为参考
@@ -67,7 +65,7 @@ repo 内已经把一层 shared-envelope shell 落成 machine-readable surface：
 
 ## 5. 与 runtime 主线、display 支线的关系
 
-这份产品入口文档只属于 runtime 主线，不属于 display 独立支线；其中 `gateway / harness` 仅用于内部架构边界说明。
+这份产品入口文档只属于 runtime 主线，不属于 display 独立支线；其中 OPL 只表示 stage-led framework handoff，不表示 MAS 的对外第一身份。
 
 必须同时保持：
 

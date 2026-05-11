@@ -22,7 +22,7 @@
 - `MAS Runtime OS` 是当前 MAS domain runtime owner；`MedDeepScientist` 只保留 frozen source archive、historical fixture、explicit archive import reference、backend audit、upstream intake 和 parity oracle。
 - OPL provider、Temporal、Hermes legacy provider 或 local scheduler 只能承载/唤醒/记录/派发 attempt，不持有 MAS study truth、publication quality、artifact authority 或 current package。
 
-更系统的历史定位说明见：[Domain Gateway And Harness OS](../../references/positioning/domain_gateway_harness_os.md)。该参考文档保留旧定位语料；当前 active 口径以独立 medical research domain agent 与 OPL framework 托管边界为准。
+旧定位说明已归档到 [Historical Framework Positioning](../../history/runtime/historical_framework_positioning.md)。当前 active 口径以独立 medical research domain agent 与 OPL stage-led framework 托管边界为准。
 
 ## Domain Agent 与 Harness OS 的分工
 

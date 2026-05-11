@@ -23,8 +23,5 @@
     "domain_truth_owner": "MedAutoScience",
     "executor_owner": "controlled_research_backend",
     "framework_write_policy": "no_domain_truth_writes"
-  },
-  "supersedes_contract_ids": [
-    "opl_gateway_managed_runtime_three_layer_contract"
-  ]
+  }
 }

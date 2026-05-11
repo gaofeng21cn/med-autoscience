@@ -1,4 +1,4 @@
-# Domain Gateway And Harness OS
+# Historical Domain Gateway And Harness OS
 
 这份文档把 `MedAutoScience` 当前更准确的定位固定下来：
 

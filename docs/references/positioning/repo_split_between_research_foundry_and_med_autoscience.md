@@ -69,7 +69,7 @@
 - controller / runtime / eval / delivery 的边界 contract
 - workspace / study / quest 这类长期对象模型中的通用层
 - delivery family 的通用投影骨架
-- gateway / harness 的通用入口约束
+- OPL stage-led framework 的通用入口、stage attempt、receipt 与 projection 约束
 
 ### 结合当前主线，最可能先上提的对象
 

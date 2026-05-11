@@ -242,9 +242,10 @@ def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_
     )
     assert descriptor["writeback_receipt_locator_ref"]["role"] == "domain_owned_router_receipts"
     assert descriptor["freshness"]["refresh_policy"] == "rebuild_product_entry_manifest_before_opl_discovery"
-    assert descriptor["migration_readiness"]["status"] == "migration_plan_ready_descriptor_only"
+    assert descriptor["migration_readiness"]["status"] == "workspace_apply_closure_ready"
     assert descriptor["migration_readiness"]["seed_fixture_status"] == "repo_source_fixture_available"
-    assert descriptor["migration_readiness"]["memory_body_migration"] == "domain_owned_workspace_apply_required"
+    assert descriptor["migration_readiness"]["memory_body_migration"] == "domain_owned_workspace_apply_available"
+    assert descriptor["migration_readiness"]["writeback_receipt_locator_status"] == "workspace_locator_declared"
     assert descriptor["migration_readiness"]["opl_apply_allowed"] is False
 
     authority = descriptor["authority_boundary"]
