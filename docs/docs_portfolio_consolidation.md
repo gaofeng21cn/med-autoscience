@@ -1,7 +1,7 @@
 # Documentation Portfolio Governance v2
 
 Status: `active docs governance`
-Date: `2026-05-09`
+Date: `2026-05-11`
 Owner: `MedAutoScience`
 
 ## Decision
@@ -37,6 +37,31 @@ Every long-lived document must be classifiable by four signals:
 If any signal is missing, first add the signal or move the document to the
 correct lifecycle layer before expanding it.
 
+## Content-Level Consolidation Rule
+
+Documentation lifecycle decisions are content-level decisions. A file can stay
+in place while individual sections move to a current owner doc, a policy, a
+reference page, or a history record. A file can also be archived while one
+still-current section is merged into the active owner surface first.
+
+Maintainers should review documents in this order:
+
+1. Identify the current factual claims, landed evidence, active work, recurring
+   support lanes, and historical narrative inside the document.
+2. Merge current factual claims into the relevant core doc or owner doc.
+3. Keep active work in `docs/program/` only when it still needs execution order,
+   owner gates, or closeout evidence.
+4. Move recurring learning/support material to `docs/references/` plus dated
+   `docs/history/program/` snapshots.
+5. Archive superseded plans, date-stamped calibration notes, and retired boards
+   after inbound link review.
+
+Public and core entry docs should lead with current state and owner roles. Use
+positive wording such as "MAS owns...", "OPL provides...", and "MDS is retained
+as..." before adding boundary constraints. Long lists of retired roles belong
+in history/reference material or in contract sections that genuinely need a
+guardrail.
+
 ## Practice Map
 
 MAS adapts mature documentation practice this way:
@@ -54,7 +79,7 @@ MAS adapts mature documentation practice this way:
 | --- | --- | --- |
 | `docs/` root | short technical entry plus core truth | Only root README, core five, and this governance file stay here. |
 | `docs/runtime/` | runtime contracts, control, projections, display, active designs | Completed implementation plans move to `docs/history/runtime/`. |
-| `docs/program/` | active execution queue | Keep small: program README, portfolio queue, MAS absorb program, runtime lifecycle SQLite program. |
+| `docs/program/` | active execution queue | Keep small: program README, portfolio entry, P0/P1/P2 active programs, and P3/P3a landed owner docs. |
 | `docs/capabilities/` | capability-family docs | Each family owns its board, contracts, catalogs, plans, provenance, and history links. |
 | `docs/references/` | support references | Group by `mainline`, `integration`, `mds-parity`, `positioning`, `verification`, `workspace`, and `med-deepscientist`. |
 | `docs/policies/` | stable internal rules | Group by `quality`, `study-workflow`, `runtime-governance`, and `repo-ops`; do not store one-off plans here. |
@@ -85,16 +110,16 @@ and must point readers back to the current owner surface when needed.
 After the MAS monolith closeout, documentation updates must classify legacy
 runtime material by current lifecycle role before editing prose:
 
-- Active MAS docs may describe MDS / DeepScientist only as historical fixture,
-  explicit archive import, backend audit, upstream intake, source provenance, or
-  parity reference.
-- Active MAS docs may describe Hermes only as a legacy/optional provider,
-  executor/proof lane, or historical migration context unless OPL provider
-  evidence promotes a newer role.
+- Active MAS docs describe MDS / DeepScientist as historical fixture, explicit
+  archive import, backend audit, upstream intake, source provenance, or parity
+  reference.
+- Active MAS docs describe Hermes as a legacy/optional provider, executor/proof
+  lane, or historical migration context unless OPL provider evidence promotes a
+  newer role.
 - OPL should be described as the Codex-first, stage-led agent runtime framework:
   it owns stage attempts, queue/wakeup, retry/dead-letter, approval transport,
-  receipt/projection, and shared lifecycle/index primitives; it does not own MAS
-  medical truth.
+  receipt/projection, and shared lifecycle/index primitives; MAS owns medical
+  truth, quality verdicts, and artifact authority.
 - MAS remains the medical paper/research domain agent. `Stage` means a large
   task step, and `Codex CLI` remains the default concrete executor inside MAS
   stages unless a MAS route selects another executor.

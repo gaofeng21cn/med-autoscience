@@ -60,11 +60,11 @@ You can start with prompts like:
 
 - `Med Auto Science` is a medical research domain agent. It can be called directly by Codex, and it can also run under the `OPL` agent runtime framework.
 - MAS owns the medical work itself: study intake, workspace context, evidence progression, progress explanation, manuscript quality judgment, and manuscript-facing delivery.
-- `OPL` is the upper runtime framework. It owns stage attempts, queues, wakeups, recovery, approvals, receipts, and cross-domain projection; it does not make MAS medical conclusions or own manuscript quality.
+- `OPL` is the upper runtime framework. It owns stage attempts, queues, wakeups, recovery, approvals, receipts, and cross-domain projection. MAS keeps medical conclusions, manuscript quality, and submission-facing judgment.
 - In the OPL framework, a `Stage` is a large task step such as scouting, analysis, writing, reviewer repair, or delivery. `Codex CLI` is the default smallest execution unit inside a stage.
-- MAS has completed monolith closeout. `MedDeepScientist` / `DeepScientist` is no longer a default runtime, diagnostic, progress UI, or quality dependency; it remains only as provenance, explicit archive import, backend audit, upstream learning, and parity reference.
-- `Hermes-Agent` is not the default MAS online substrate. Long-running online execution now follows the OPL provider-backed direction, with Temporal as the target production provider; Hermes remains legacy/optional provider, proof lane, or historical compatibility material.
-- Manuscript quality cannot be replaced by status panels, script checks, or historical MDS coverage. Scientific quality, medical writing quality, and submission-facing judgment remain constrained by MAS study charters, evidence ledgers, review ledgers, AI reviewer workflow, publication gates, and controller records.
+- MAS has completed monolith closeout. `MedDeepScientist` / `DeepScientist` remains available as provenance, explicit archive import, backend audit, upstream learning, and parity reference.
+- Long-running online execution follows the OPL provider-backed direction, with Temporal as the target production provider. `Hermes-Agent` remains available during migration as an optional provider, proof lane, or historical compatibility reference.
+- Manuscript quality is governed by MAS study charters, evidence ledgers, review ledgers, AI reviewer workflow, publication gates, and controller records. Status panels, script checks, and historical MDS coverage provide supporting evidence.
 - Clinical framing, claim acceptance, and final submission decisions stay with researchers and PIs.
 - Journal submission and external system interaction stay under human supervision.
 
@@ -83,10 +83,10 @@ You can start with prompts like:
 - If you need to bootstrap or take over a disease workspace, read [Bootstrap](./bootstrap/README.md) next. It explains the workspace-first model and the `init-workspace -> doctor -> show-profile -> bootstrap` path.
 - Treat [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md) as the repo-tracked human-readable truth set before changing runtime or docs.
 - The current operator entry surfaces are `CLI`, `MCP`, `product-entry`, and `controller`. Product-entry and runtime contracts live under `docs/runtime/` and `docs/program/`, so an agent can start there instead of reverse-engineering the codebase; the stable callable surface remains the local CLI, MCP tools, product-entry surfaces, controller-authorized workspace commands/scripts, durable surfaces, and repo-tracked contracts.
-- MAS can be invoked directly through its Codex app skill or through OPL. Both routes must converge on the same MAS-owned stage, controller, durable truth, and artifact surfaces; OPL framework metadata must not become a second medical research truth source.
+- MAS can be invoked directly through its Codex app skill or through OPL. Both routes use the same MAS-owned stage, controller, durable truth, and artifact surfaces; OPL framework metadata stays at the runtime-framework layer for indexing, wakeup, recovery, and projection.
 - New disease workspaces are no-root-Git / no-quest-Git by default. Runtime lifecycle status is read from file authority, `artifacts/runtime/runtime_lifecycle.sqlite`, `artifacts/runtime/lifecycle_migration`, `runtime/quests` manifests, and `runtime/restore_index`, not from Git history.
 - When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns the single MAS app skill, the underlying command contracts, and a machine-readable `runtime_continuity` envelope projected from existing runtime/session/progress/artifact surfaces.
-- For OPL Full online runtime integration, use `medautosci sidecar export --profile <profile> --format json` and `medautosci sidecar dispatch --task <task.json> --format json`. Local CLI/status/manifest reads can still run without the OPL provider and should report degraded online readiness rather than silently claiming Full online readiness.
+- For OPL Full online runtime integration, use `medautosci sidecar export --profile <profile> --format json` and `medautosci sidecar dispatch --task <task.json> --format json`. Local CLI/status/manifest reads can diagnose provider readiness; when the OPL provider is unavailable, status surfaces should report degraded online readiness explicitly.
 
 </details>
 
