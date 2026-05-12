@@ -169,7 +169,7 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
         {
             "action_id": "sidecar_export",
             "title": "Export MAS sidecar bridge projection",
-            "summary": "Read-only MAS sidecar export for OPL/Hermes typed queue discovery.",
+            "summary": "Read-only MAS sidecar export for OPL provider queue discovery; Hermes references are optional diagnostics/provenance only.",
             "effect": "read_only",
             "command": "medautosci sidecar export --profile {profile} --format json",
             "surface_kind": "mas_family_sidecar_export",
@@ -180,9 +180,10 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             "action_id": "sidecar_dispatch",
             "title": "Receive MAS sidecar guarded dispatch receipt",
             "summary": (
-                "MAS guarded dispatch receipt for OPL/Hermes typed queue control. "
+                "MAS guarded dispatch receipt for OPL provider queue control. "
                 "It records a domain control receipt only and does not authorize domain truth, "
-                "publication quality, artifact gate, or current package writes."
+                "publication quality, artifact gate, or current package writes; Hermes paths are "
+                "optional diagnostics/provenance or retire-after-parity only."
             ),
             "effect": "mutating",
             "command": "medautosci sidecar dispatch --task <task.json> --format json",

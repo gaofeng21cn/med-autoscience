@@ -80,6 +80,7 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
     assert payload["skills"][0]["domain_projection"]["skill_entry"] == "mas"
     assert payload["skills"][0]["domain_projection"]["recommended_shell"] == "workspace_cockpit"
     runtime_manager_registration = payload["skills"][0]["domain_projection"]["opl_runtime_manager_registration"]
+    assert payload["skills"][0]["domain_projection"]["opl_stage_runtime_registration"] == runtime_manager_registration
     assert runtime_manager_registration["surface_kind"] == "opl_runtime_manager_domain_registration"
     assert runtime_manager_registration["registration_id"] == "mas.opl_runtime_manager.registration.v1"
     assert runtime_manager_registration["domain_id"] == "medautoscience"
@@ -107,6 +108,8 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
         "/runtime_inventory",
     ]
     assert proof_surface["product_entry_surface_refs"] == [
+        "/skill_catalog/skills/0/domain_projection/opl_stage_runtime_registration/domain_entry_surface",
+        "/skill_catalog/skills/0/domain_projection/opl_stage_runtime_registration/registration_surface",
         "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration/domain_entry_surface",
         "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration/registration_surface",
         "/artifact_inventory/artifact_surface",

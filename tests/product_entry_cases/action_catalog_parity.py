@@ -98,7 +98,8 @@ def test_mas_action_catalog_projects_sidecar_bridge_without_new_mcp_tool(tmp_pat
     assert sidecar_dispatch["command"] == "medautosci sidecar dispatch --task <task.json> --format json"
     assert sidecar_dispatch["surface_kind"] == "mas_family_sidecar_dispatch_receipt"
     assert "guarded dispatch receipt" in sidecar_dispatch["summary"]
-    assert "OPL/Hermes typed queue" in sidecar_dispatch["summary"]
+    assert "OPL provider queue" in sidecar_dispatch["summary"]
+    assert "retire-after-parity" in sidecar_dispatch["summary"]
     assert "does not authorize domain truth" in sidecar_dispatch["summary"]
     assert "publication quality" in sidecar_dispatch["summary"]
     assert "artifact gate" in sidecar_dispatch["summary"]

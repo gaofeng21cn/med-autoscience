@@ -32,6 +32,7 @@ MAS 侧已经落地：
 - `real-paper-autonomy-guarded-apply-proof` 已把 read-only proof 推进为 MAS-owned guarded apply proof surface：已有 MAS owner apply receipt 时可承认真实 workspace mutation；没有 owner receipt 或 human/live gate 不允许时输出 typed blocker / receipt，并保持 no-forbidden-write proof；
 - `standard_domain_agent_skeleton` 现在包含 `physical_skeleton_layout_audit`，把 repo-source physical skeleton slot 映射到现有 `docs/`、`templates/`、`src/`、`plugins/` 路径，同时把 workspace artifacts 固定为 locator-only；
 - MAS local scheduler、one-shot reconcile、Portal 和 Live Console 仍是有效 local diagnostics 与 evidence surface。
+- 默认 caller 已从 Hermes scheduler / hosted runtime 路径移走；Hermes 相关 surface 当前只作为 explicit optional diagnostics、proof/provenance 或 `retire_after_parity` 读法保留。本轮不要求真实 Hermes/Claude production soak，adapter smoke 与 receipt/fail-closed proof 足以关闭接入能力验收。
 
 cutover 或物理退役前仍未完成：
 
