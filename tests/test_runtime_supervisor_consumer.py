@@ -4,7 +4,14 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 from tests.study_runtime_test_helpers import make_profile, write_study
+
+
+@pytest.fixture(autouse=True)
+def _isolated_opl_state_dir(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
 
 
 def _write_json(path: Path, payload: dict) -> None:

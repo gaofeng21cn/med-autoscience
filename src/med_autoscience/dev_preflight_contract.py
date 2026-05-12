@@ -204,6 +204,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="root_governance_contract_surface",
         exact_paths=(
+            "AGENTS.md",
             "contracts/README.md",
             "tests/controller_charter/test_controller_charter_module_contract.py",
             "tests/eval_hygiene/test_eval_hygiene_module_contract.py",
@@ -254,6 +255,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="control_plane_surface",
         exact_paths=(
+            "scripts/real-paper-autonomy-soak-inventory.py",
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
             "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
             "src/med_autoscience/controllers/control_identity.py",

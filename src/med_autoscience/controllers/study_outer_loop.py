@@ -239,14 +239,7 @@ def build_runtime_watch_outer_loop_tick_request(
         startup_freshness_gate = startup_freshness_requires_gate_clearing(status_payload)
         gate_is_blocked = str(gate_report.get("status") or "").strip() == "blocked"
         if profile is not None and (task_intake_action is None or startup_freshness_gate or gate_is_blocked):
-            batch_action = quality_repair_batch.build_quality_repair_batch_recommended_action(
-                profile=profile,
-                study_root=resolved_study_root,
-                quest_id=quest_id,
-                publication_eval_payload=publication_eval_payload,
-                gate_report=gate_report,
-            )
-            if batch_action is None and (task_intake_action is None or startup_freshness_gate):
+            if startup_freshness_gate:
                 batch_action = gate_clearing_batch.build_gate_clearing_batch_recommended_action(
                     profile=profile,
                     study_root=resolved_study_root,
@@ -254,6 +247,22 @@ def build_runtime_watch_outer_loop_tick_request(
                     publication_eval_payload=publication_eval_payload,
                     gate_report=gate_report,
                     prefer_startup_freshness_work_unit=startup_freshness_gate,
+                )
+            if batch_action is None:
+                batch_action = quality_repair_batch.build_quality_repair_batch_recommended_action(
+                    profile=profile,
+                    study_root=resolved_study_root,
+                    quest_id=quest_id,
+                    publication_eval_payload=publication_eval_payload,
+                    gate_report=gate_report,
+                )
+            if batch_action is None and task_intake_action is None:
+                batch_action = gate_clearing_batch.build_gate_clearing_batch_recommended_action(
+                    profile=profile,
+                    study_root=resolved_study_root,
+                    quest_id=quest_id,
+                    publication_eval_payload=publication_eval_payload,
+                    gate_report=gate_report,
                 )
         if gate_clearing_preempts_task_intake(
             status_payload=status_payload,
@@ -285,17 +294,26 @@ def build_runtime_watch_outer_loop_tick_request(
                 recommended_action = batch_action
     if recommended_action is None:
         return None
+    work_unit_target_context = {
+        key: recommended_action[key]
+        for key in _WORK_UNIT_TARGET_CONTEXT_KEYS
+        if key in recommended_action
+    }
+    if specificity_target_status(work_unit_target_context.get("specificity_targets")).get("complete") is not True:
+        matched_target_context = _specificity_target_context_from_publication_eval(
+            publication_eval_payload=publication_eval_payload,
+            recommended_action=recommended_action,
+        )
+        if matched_target_context:
+            work_unit_target_context = matched_target_context
+    if work_unit_target_context:
+        recommended_action = {**recommended_action, **work_unit_target_context}
     recommended_action = _promote_gate_needs_specificity_action(recommended_action)
     work_unit_target_context = {
         key: recommended_action[key]
         for key in _WORK_UNIT_TARGET_CONTEXT_KEYS
         if key in recommended_action
     }
-    if not work_unit_target_context:
-        work_unit_target_context = _specificity_target_context_from_publication_eval(
-            publication_eval_payload=publication_eval_payload,
-            recommended_action=recommended_action,
-        )
     decision_type = _autonomous_decision_type_for_publication_eval_action(recommended_action)
     if decision_type is None:
         return None
