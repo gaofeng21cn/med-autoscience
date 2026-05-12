@@ -32,6 +32,11 @@ MEDICAL_RUNTIME_CONTRACT_PATHS = (
     "paper/reporting_guideline_checklist.json",
 )
 OVERLAY_PREFIX = "medical-research"
+OVERLAY_TEMPLATE_ROOT = Path(__file__).resolve().parents[1] / "src" / "med_autoscience" / "overlay" / "templates"
+STAGE_SKILL_TEMPLATE_FILES = {
+    "baseline": "medical-research-baseline.SKILL.md",
+    "experiment": "medical-research-experiment.SKILL.md",
+}
 
 
 def write_skill(root: Path, skill_id: str, body: str) -> Path:
@@ -89,6 +94,44 @@ def test_stage_skill_surface_token_renders_machine_derived_block() -> None:
     assert "- Stage: `baseline` / Baseline" in rendered
     assert "statistical_analysis_pack" in rendered
     assert "- Publication readiness authority: `false`" in rendered
+
+
+@pytest.mark.parametrize("skill_id", ("baseline", "experiment"))
+def test_stage_skill_surface_templates_are_complete_human_readable_surfaces(skill_id: str) -> None:
+    skill_path = OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES[skill_id]
+    skill_text = skill_path.read_text(encoding="utf-8")
+
+    assert skill_text.startswith("---\n")
+    assert f"name: {skill_id}" in skill_text
+    assert "description:" in skill_text
+    assert "{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}" in skill_text
+    assert "Stage card ref:" in skill_text
+    assert "Route contract ref:" in skill_text
+    assert "## Knowledge obligations" in skill_text
+    assert "## Quality pack refs" in skill_text
+    assert "## Allowed MAS owner tools" in skill_text
+    assert "## Forbidden actions" in skill_text
+    assert "## Closeout packet" in skill_text
+    assert "## Route back and human gate" in skill_text
+    assert "## OPL boundary" in skill_text
+    assert "## Clean-room boundary" in skill_text
+
+
+def test_baseline_skill_surface_binds_route_bias_and_archetype_tokens() -> None:
+    skill_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES["baseline"]).read_text(encoding="utf-8")
+
+    assert "{{MED_AUTOSCIENCE_ROUTE_BIAS}}" in skill_text
+    assert "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}" in skill_text
+    assert "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}" not in skill_text
+
+
+def test_experiment_skill_surface_binds_runtime_route_and_archetype_tokens() -> None:
+    skill_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES["experiment"]).read_text(encoding="utf-8")
+
+    assert "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}" in skill_text
+    assert "{{MED_AUTOSCIENCE_ROUTE_BIAS}}" in skill_text
+    assert "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}" in skill_text
+
 
 
 def test_overlay_status_reports_not_installed_for_global_targets(tmp_path: Path) -> None:
