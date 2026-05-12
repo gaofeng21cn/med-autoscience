@@ -269,6 +269,23 @@ def test_bootstrap_detects_workspace_sibling_owner_from_nested_worktree_layout(
     assert (fake_repo_root / "nested-worktree-helper.txt").read_text(encoding="utf-8") == "opl_harness_shared"
 
 
+def test_bootstrap_considers_main_checkout_venv_from_nested_worktree_layout(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    fake_repo_root = tmp_path / "med-autoscience" / ".worktrees" / "mas-stage-provider-soak"
+    fake_repo_root.mkdir(parents=True)
+    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
+    roots = module._candidate_repo_site_packages_roots()
+
+    assert (
+        fake_repo_root / ".venv" / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"
+    ) in roots
+    assert (
+        tmp_path / "med-autoscience" / ".venv" / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"
+    ) in roots
+
+
 def test_bootstrap_makes_required_shared_entrypoints_importable_from_sibling_owner(
     monkeypatch,
     tmp_path: Path,

@@ -29,15 +29,23 @@ def _repo_root() -> Path:
 
 def _candidate_repo_site_packages_roots() -> tuple[Path, ...]:
     repo_root = _repo_root()
-    venv_root = repo_root / ".venv"
-    versioned_site_packages = (
-        venv_root / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"
-    )
-    windows_site_packages = venv_root / "Lib" / "site-packages"
-    return (
-        versioned_site_packages,
-        windows_site_packages,
-    )
+    repo_roots = [repo_root]
+    for ancestor in repo_root.parents:
+        if ancestor.name in {".worktrees", "worktrees"}:
+            main_checkout_root = ancestor.parent
+            if main_checkout_root not in repo_roots:
+                repo_roots.append(main_checkout_root)
+            break
+    roots: list[Path] = []
+    for candidate_repo_root in repo_roots:
+        venv_root = candidate_repo_root / ".venv"
+        roots.extend(
+            (
+                venv_root / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages",
+                venv_root / "Lib" / "site-packages",
+            )
+        )
+    return tuple(dict.fromkeys(roots))
 
 
 def _candidate_shared_src_roots() -> tuple[Path, ...]:

@@ -12,6 +12,9 @@ VERSION = "mas-opl-provider-ready.v1"
 TARGET_DOMAIN_ID = "medautoscience"
 DOMAIN_OWNER = "med-autoscience"
 OPL_OWNER = "one-person-lab"
+DEFAULT_PROVIDER_GUARDED_SOAK_TARGETS = ("DM002", "DM003", "Obesity")
+PROVIDER_HOSTED_PROOF_SURFACE = "real_paper_autonomy_provider_hosted_paper_proof"
+GUARDED_APPLY_PROOF_SURFACE = "real_paper_autonomy_guarded_apply_proof"
 
 FORBIDDEN_AUTHORITY_WRITES = (
     "study_truth_write",
@@ -70,6 +73,9 @@ def build_opl_provider_ready_contract(
             task_kind=None,
             requested_writes=(),
         ),
+        "provider_guarded_soak_read_model": build_provider_guarded_soak_read_model(
+            provider_available=False,
+        ),
         "workspace_runtime_artifact_root_locator": _workspace_runtime_artifact_root_locator(profile=profile),
         "lifecycle_inventory": build_opl_lifecycle_inventory_surface(),
         "domain_agent_skeleton_mapping": build_domain_agent_skeleton_mapping_surface(),
@@ -121,6 +127,99 @@ def build_forbidden_write_guard_proof(
                 "role": "receipt_authority_boundary",
             },
         ],
+    }
+
+
+def build_provider_guarded_soak_read_model(
+    *,
+    provider_available: bool,
+    target_studies: Iterable[str] = DEFAULT_PROVIDER_GUARDED_SOAK_TARGETS,
+) -> dict[str, Any]:
+    targets = tuple(str(item) for item in target_studies if str(item or "").strip())
+    no_forbidden_write_proof = build_forbidden_write_guard_proof(
+        result=(
+            "configured"
+            if provider_available
+            else "blocked_provider_completion_is_not_paper_closure"
+        ),
+        task_id="provider-guarded-soak-read-model:no-forbidden-write-proof",
+        task_kind="provider_guarded_soak_read_model",
+        requested_writes=("current_package_write", "publication_quality_verdict", "study_truth_write"),
+    )
+    no_forbidden_write_proof.update(
+        {
+            "provider_completion_is_paper_closure": False,
+            "queue_completion_is_paper_closure": False,
+            "paper_closure_requires_mas_owner_receipt": True,
+            "only_mas_owner_receipt_can_prove_mutation": True,
+        }
+    )
+    return {
+        "surface_kind": "provider_guarded_soak_read_model",
+        "version": "provider-guarded-soak-read-model.v1",
+        "mode": "descriptor_read_model",
+        "target_studies": list(targets),
+        "expected_surface_shape": {
+            "provider_proof_surface": PROVIDER_HOSTED_PROOF_SURFACE,
+            "guarded_apply_surface": GUARDED_APPLY_PROOF_SURFACE,
+            "closeout_packet_surface": "domain_stage_closeout_packet",
+            "typed_blocker_surface": "mas_provider_guarded_soak_typed_blocker",
+        },
+        "provider_availability": _provider_availability(provider_available=provider_available),
+        "target_coverage": [
+            _provider_guarded_soak_target_coverage(target) for target in targets
+        ],
+        "provider_completion_semantics": {
+            "provider_completion_is_paper_closure": False,
+            "queue_completion_is_paper_closure": False,
+            "paper_closure_requires_mas_owner_receipt": True,
+            "mutation_proof_surface": "MAS owner receipt",
+        },
+        "no_forbidden_write_proof": no_forbidden_write_proof,
+        "authority_boundary": {
+            "provider_attempt_owner": OPL_OWNER,
+            "domain_truth_owner": DOMAIN_OWNER,
+            "provider_completion_is_truth": False,
+            "queue_completion_is_paper_closure": False,
+            "can_write_domain_truth": False,
+            "can_write_current_package": False,
+            "can_authorize_publication_quality": False,
+        },
+    }
+
+
+def _provider_availability(*, provider_available: bool) -> dict[str, Any]:
+    if provider_available:
+        return {
+            "status": "available",
+            "provider_attempt_available": True,
+        }
+    return {
+        "status": "typed_blocker",
+        "provider_attempt_available": False,
+        "blocker": {
+            "surface_kind": "mas_provider_guarded_soak_typed_blocker",
+            "blocker_id": "provider_guarded_soak_provider_unavailable",
+            "owner": OPL_OWNER,
+            "reason": "real provider attempt surface is unavailable to MAS projection",
+            "required_owner_surface": "OPL provider attempt receipt / guarded soak provider proof",
+            "write_permitted": False,
+        },
+    }
+
+
+def _provider_guarded_soak_target_coverage(target_study: str) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_provider_guarded_soak_typed_blocker",
+        "target_study": target_study,
+        "status": "typed_blocker",
+        "blocker_id": f"provider_guarded_soak_evidence_unavailable:{target_study}",
+        "expected_provider_proof_surface": PROVIDER_HOSTED_PROOF_SURFACE,
+        "expected_guarded_apply_surface": GUARDED_APPLY_PROOF_SURFACE,
+        "write_permitted": False,
+        "provider_completion_is_paper_closure": False,
+        "paper_closure_requires_mas_owner_receipt": True,
+        "required_owner_surface": "MAS owner receipt",
     }
 
 
@@ -513,6 +612,7 @@ __all__ = [
     "build_opl_lifecycle_inventory_surface",
     "build_opl_provider_ready_contract",
     "build_physical_skeleton_layout_audit_surface",
+    "build_provider_guarded_soak_read_model",
     "build_standard_domain_agent_skeleton_surface",
     "receipt_refs_for_profile",
     "requested_writes_from_task",

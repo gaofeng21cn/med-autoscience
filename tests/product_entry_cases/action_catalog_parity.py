@@ -156,6 +156,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     stage_knowledge_plane = importlib.import_module("med_autoscience.controllers.stage_knowledge_plane")
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
     stage_quality_contract = importlib.import_module("med_autoscience.stage_quality_contract")
+    stage_skill_surface_projection = importlib.import_module(
+        "med_autoscience.stage_skill_surface_projection"
+    )
 
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
@@ -189,6 +192,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "mas_stage_quality_pack_contract",
         "stage_quality_pack_projection",
     ]
+    assert descriptor["source_refs"]["stage_skill_surface_projection_source"] == (
+        "med_autoscience.stage_skill_surface_projection.build_stage_skill_surface_projection"
+    )
 
     snapshot = descriptor["route_contract_snapshot"]
     assert snapshot["route_ids"] == list(route_payload["route_contracts"])
@@ -217,6 +223,50 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
         "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
         "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+    }
+    stage_skill_projection = stage_skill_surface_projection.build_stage_skill_surface_projection()
+    assert descriptor["stage_skill_surface_projection"] == stage_skill_projection
+    assert manifest["stage_skill_surface_projection"] == stage_skill_projection
+    assert set(stage_skill_projection) == {
+        "surface_kind",
+        "version",
+        "skill_locator",
+        "freshness",
+        "quality_pack_refs",
+        "stage_card_ref",
+        "authority_boundary",
+    }
+    assert stage_skill_projection["surface_kind"] == "stage_skill_surface_projection"
+    assert stage_skill_projection["skill_locator"] == {
+        "ref_kind": "json_pointer",
+        "ref": "/skill_catalog/skills/0",
+        "role": "mas_domain_skill_descriptor",
+    }
+    assert stage_skill_projection["quality_pack_refs"] == list(
+        stage_quality_contract.REQUIRED_STAGE_QUALITY_PACK_IDS
+    )
+    assert stage_skill_projection["stage_card_ref"]["ref"] == (
+        "/product_entry_manifest/family_stage_control_plane/stages"
+    )
+    assert stage_skill_projection["freshness"]["refresh_policy"] == (
+        "rebuild_product_entry_manifest_before_opl_discovery"
+    )
+    assert stage_skill_projection["authority_boundary"] == {
+        "truth_owner": "MedAutoScience",
+        "quality_owner": "MedAutoScience",
+        "publication_readiness_owner": "MedAutoScience",
+        "opl_role": "descriptor_ref_freshness_locator_consumer",
+        "allowed_fields": [
+            "skill_locator",
+            "freshness",
+            "quality_pack_refs",
+            "stage_card_ref",
+            "authority_boundary",
+        ],
+        "can_write_mas_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_close_paper": False,
     }
     assert manifest["stage_quality_pack_contract"] == quality_pack_contract
     assert quality_pack_contract["authority_boundary"]["pack_role"] == "quality_input_and_reviewer_rubric"
@@ -292,7 +342,71 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["quality_pack_projection"]["locator_ref"] == (
             "/product_entry_manifest/stage_quality_pack_contract/pack_locators"
         )
+        assert stage["stage_skill_surface_projection"]["surface_kind"] == "stage_skill_surface_projection"
+        assert stage["stage_skill_surface_projection"]["stage_card_ref"]["ref"] == (
+            f"/product_entry_manifest/family_stage_control_plane/stages/{stage['stage_id']}"
+        )
+        assert set(stage["stage_skill_surface_projection"]) == set(stage_skill_projection)
+        assert stage["stage_skill_surface_projection"]["authority_boundary"]["can_close_paper"] is False
         assert stage["authority_boundary"]["can_authorize_publication_quality"] is False
+
+
+def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_typed_blockers(
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    provider_contract = manifest["opl_provider_ready_contract"]
+    read_model = manifest["provider_guarded_soak_read_model"]
+
+    assert read_model == provider_contract["provider_guarded_soak_read_model"]
+    assert read_model["surface_kind"] == "provider_guarded_soak_read_model"
+    assert read_model["version"] == "provider-guarded-soak-read-model.v1"
+    assert read_model["mode"] == "descriptor_read_model"
+    assert read_model["target_studies"] == ["DM002", "DM003", "Obesity"]
+    assert read_model["expected_surface_shape"] == {
+        "provider_proof_surface": "real_paper_autonomy_provider_hosted_paper_proof",
+        "guarded_apply_surface": "real_paper_autonomy_guarded_apply_proof",
+        "closeout_packet_surface": "domain_stage_closeout_packet",
+        "typed_blocker_surface": "mas_provider_guarded_soak_typed_blocker",
+    }
+    assert read_model["provider_availability"]["status"] == "typed_blocker"
+    assert read_model["provider_availability"]["provider_attempt_available"] is False
+    assert read_model["provider_availability"]["blocker"]["blocker_id"] == (
+        "provider_guarded_soak_provider_unavailable"
+    )
+    assert read_model["provider_completion_semantics"] == {
+        "provider_completion_is_paper_closure": False,
+        "queue_completion_is_paper_closure": False,
+        "paper_closure_requires_mas_owner_receipt": True,
+        "mutation_proof_surface": "MAS owner receipt",
+    }
+
+    coverage = {item["target_study"]: item for item in read_model["target_coverage"]}
+    assert set(coverage) == {"DM002", "DM003", "Obesity"}
+    assert all(item["status"] == "typed_blocker" for item in coverage.values())
+    assert all(item["write_permitted"] is False for item in coverage.values())
+    assert all(item["provider_completion_is_paper_closure"] is False for item in coverage.values())
+    assert all(item["paper_closure_requires_mas_owner_receipt"] is True for item in coverage.values())
+
+    proof = read_model["no_forbidden_write_proof"]
+    assert proof["surface_kind"] == "mas_opl_forbidden_write_guard_proof"
+    assert proof["result"] == "blocked_provider_completion_is_not_paper_closure"
+    assert proof["provider_completion_is_paper_closure"] is False
+    assert proof["queue_completion_is_paper_closure"] is False
+    assert proof["paper_closure_requires_mas_owner_receipt"] is True
+    assert proof["only_mas_owner_receipt_can_prove_mutation"] is True
+    assert proof["can_write_domain_truth"] is False
+    assert proof["can_write_current_package"] is False
+    assert proof["can_authorize_publication_quality"] is False
+
+    assert manifest["skill_catalog"]["skills"][0]["domain_projection"][
+        "stage_skill_surface_projection"
+    ] == manifest["stage_skill_surface_projection"]
 
 
 def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_path: Path) -> None:

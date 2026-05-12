@@ -9,6 +9,7 @@ from typing import Any
 from med_autoscience.agent_entry import load_entry_modes_payload
 from med_autoscience import stage_knowledge_contract
 from med_autoscience import stage_quality_contract
+from med_autoscience import stage_skill_surface_projection
 
 from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
@@ -32,6 +33,7 @@ STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
     "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
 )
 STAGE_QUALITY_PACK_CONTRACT_REF = stage_quality_contract.CONTRACT_REF
+STAGE_SKILL_SURFACE_PROJECTION_REF = stage_skill_surface_projection.CONTRACT_REF
 
 FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "publication_eval/latest.json",
@@ -108,6 +110,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "route_contract_source": AGENT_ENTRY_MODES_REF,
             "knowledge_plane_contract_source": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "quality_pack_contract_source": STAGE_QUALITY_PACK_CONTRACT_REF,
+            "stage_skill_surface_projection_source": STAGE_SKILL_SURFACE_PROJECTION_REF,
             "packet_contract_surfaces": packet_surfaces,
             "quality_pack_contract_surfaces": list(stage_quality_contract.QUALITY_PACK_CONTRACT_SURFACES),
             "stage_knowledge_root": str(stage_knowledge_contract.STAGE_KNOWLEDGE_ROOT),
@@ -151,6 +154,9 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "can_promote_memory_to_evidence": False,
         },
         "quality_pack_contract": stage_quality_contract.build_stage_quality_pack_projection(),
+        "stage_skill_surface_projection": (
+            stage_skill_surface_projection.build_stage_skill_surface_projection()
+        ),
         "quality_and_publication_surfaces": {
             "evidence_ledger": "paper/evidence/evidence_ledger.json",
             "review_ledger": "paper/review/review_ledger.json",
@@ -416,6 +422,9 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         "quality_pack_refs": stage_quality_contract.quality_pack_ids_for_stages(stage["domain_stage_refs"]),
         "quality_pack_projection": stage_quality_contract.build_stage_quality_pack_ref_projection(
             stage["domain_stage_refs"]
+        ),
+        "stage_skill_surface_projection": stage_skill_surface_projection.build_stage_skill_surface_projection(
+            stage_id=str(stage["stage_id"])
         ),
         "skills": [
             {"ref_kind": "skill_id", "ref": "med-autoscience", "role": "domain_skill"},

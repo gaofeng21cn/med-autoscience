@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from med_autoscience import stage_skill_surface_projection
 from med_autoscience.controllers import mainline_status
 
 from . import shared as _shared
@@ -865,6 +866,9 @@ def _build_skill_catalog_surface(
                 "shell_commands": command_catalog,
                 "action_catalog_projection": skill_action_projection,
                 "runtime_continuity": runtime_continuity,
+                "stage_skill_surface_projection": (
+                    stage_skill_surface_projection.build_stage_skill_surface_projection()
+                ),
                 "opl_stage_runtime_registration": opl_runtime_manager_registration,
                 "opl_runtime_manager_registration": opl_runtime_manager_registration,
             },
