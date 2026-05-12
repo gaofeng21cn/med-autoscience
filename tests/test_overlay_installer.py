@@ -58,6 +58,8 @@ EXISTING_FULL_STAGE_SKILL_IDS = (
     "journal-resolution",
 )
 NEW_FULL_STAGE_SKILL_IDS = ("baseline", "experiment", "analysis-campaign", "review")
+FULL_STAGE_IDS = tuple(STAGE_SKILL_TEMPLATE_FILES)
+APPEND_STAGE_IDS = ("intake-audit", "rebuttal")
 
 
 def write_skill(root: Path, skill_id: str, body: str) -> Path:
@@ -312,7 +314,7 @@ def test_install_medical_overlay_writes_skill_and_manifest(tmp_path: Path) -> No
         assert manifest["source_fingerprint_before_overlay"] != manifest["overlay_fingerprint"]
         assert (target_root / "SKILL.md").read_text(encoding="utf-8") == module.load_overlay_skill_text(
             skill_id,
-            base_text=original[skill_id] if skill_id in DEFAULT_SKILL_IDS and skill_id not in {"scout", "idea", "decision", "write", "finalize"} else None,
+            base_text=original[skill_id] if skill_id in APPEND_STAGE_IDS else None,
         )
 
 
@@ -434,7 +436,7 @@ def test_install_medical_overlay_seeds_workspace_targets_from_runtime_repo_skill
     runtime_repo_root = tmp_path / "med-deepscientist"
     quest_root = tmp_path / "workspace"
     for skill_id in SKILL_IDS:
-        if skill_id in DEFAULT_SKILL_IDS and skill_id not in {"scout", "idea", "decision", "write", "finalize", "figure-polish"}:
+        if skill_id in APPEND_STAGE_IDS:
             write_runtime_skill(runtime_repo_root, skill_id, f"runtime {skill_id}\n")
 
     result = module.install_medical_overlay(
@@ -448,7 +450,7 @@ def test_install_medical_overlay_seeds_workspace_targets_from_runtime_repo_skill
         assert skill_path.exists(), skill_path
         assert skill_path.read_text(encoding="utf-8") == module.load_overlay_skill_text(
             skill_id,
-            base_text=f"runtime {skill_id}\n" if skill_id in DEFAULT_SKILL_IDS and skill_id not in {"scout", "idea", "decision", "write", "finalize", "figure-polish"} else None,
+            base_text=f"runtime {skill_id}\n" if skill_id in APPEND_STAGE_IDS else None,
         )
 
 

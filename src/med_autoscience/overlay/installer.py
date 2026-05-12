@@ -50,20 +50,20 @@ FRONTLOAD_STAGE_IDS = frozenset(
     {"intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign"}
 )
 FULL_TEMPLATE_MAP = {
+    "analysis-campaign": "medical-research-analysis-campaign.SKILL.md",
+    "baseline": "medical-research-baseline.SKILL.md",
     "scout": "medical-research-scout.SKILL.md",
     "idea": "medical-research-idea.SKILL.md",
     "decision": "medical-research-decision.SKILL.md",
+    "experiment": "medical-research-experiment.SKILL.md",
     "figure-polish": "medical-research-figure-polish.SKILL.md",
     "write": "medical-research-write.SKILL.md",
+    "review": "medical-research-review.SKILL.md",
     "finalize": "medical-research-finalize.SKILL.md",
     "journal-resolution": "medical-research-journal-resolution.SKILL.md",
 }
 APPEND_BLOCK_TEMPLATE_MAP = {
     "intake-audit": "medical-research-intake-audit.block.md",
-    "baseline": "medical-research-baseline.block.md",
-    "experiment": "medical-research-experiment.block.md",
-    "analysis-campaign": "medical-research-analysis-campaign.block.md",
-    "review": "medical-research-review.block.md",
     "rebuttal": "medical-research-rebuttal.block.md",
 }
 
