@@ -76,7 +76,11 @@ def build_study_workbench_payload(
         resolved_study_id,
     )
     stage_knowledge = _stage_knowledge_projection(resolved_progress, resolved_study_id)
-    stage_review_index = build_stage_review_index(resolved_progress, study_id=resolved_study_id)
+    stage_review_index = build_stage_review_index(
+        resolved_progress,
+        study_id=resolved_study_id,
+        study_root=_first_text(resolved_progress.get("study_root"), _mapping(resolved_progress.get("refs")).get("study_root")),
+    )
     conversation = _conversation_projection(conversation_payload, resolved_study_id)
     path_stage = {
         "current_stage": _first_text(user_visible.get("current_stage"), cockpit_study.get("current_stage")),

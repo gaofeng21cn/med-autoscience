@@ -96,6 +96,13 @@ def build_progress_portal_payload(
             entry_mode=entry_mode,
             sync_runtime_summary=sync_runtime_summary,
         )
+    if not workspace_overview_mode:
+        progress = _progress_with_study_root(
+            progress,
+            profile=profile,
+            study_id=resolved_study_id,
+            study_root=study_root,
+        )
     cockpit = dict(cockpit_payload or {})
     if not cockpit and profile is not None and progress_payload is None:
         from med_autoscience.controllers.product_entry_parts.workspace_cockpit.cockpit_payload import (
@@ -474,6 +481,28 @@ def _progress_from_workspace_study_row(study: Mapping[str, Any]) -> dict[str, An
         },
         "refs": {},
     }
+
+
+def _progress_with_study_root(
+    progress: Mapping[str, Any],
+    *,
+    profile: WorkspaceProfile | None,
+    study_id: str | None,
+    study_root: Path | None,
+) -> dict[str, Any]:
+    resolved = dict(progress)
+    if _non_empty_text(resolved.get("study_root")) is not None:
+        return resolved
+    root = study_root
+    if root is None and profile is not None and _non_empty_text(study_id) is not None:
+        root = profile.studies_root / str(study_id)
+    if root is None:
+        return resolved
+    resolved["study_root"] = str(root.expanduser().resolve())
+    refs = _mapping(resolved.get("refs"))
+    refs.setdefault("study_root", resolved["study_root"])
+    resolved["refs"] = refs
+    return resolved
 
 
 def render_progress_portal_html(payload: Mapping[str, Any]) -> str:

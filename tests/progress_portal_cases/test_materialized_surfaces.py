@@ -117,6 +117,66 @@ def test_materialized_study_page_renders_stage_review_table_without_writing_trut
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "publication_eval").exists()
 
 
+def test_materialized_study_page_reads_existing_stage_review_locator_without_writing_truth(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    profile = make_profile(tmp_path)
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "study.yaml", "study_id: 001-risk\n")
+    write_text(
+        study_root / "artifacts" / "stage_reviews" / "write" / "latest.md",
+        "# Write Stage Review\n\n人工审阅页正文留在 workspace artifact。\n",
+    )
+    write_text(
+        study_root / "artifacts" / "stage_reviews" / "index.json",
+        json.dumps(
+            {
+                "surface_kind": "mas_stage_deliverable_index",
+                "study_id": "001-risk",
+                "stage": "write",
+                "review_page_ref": "artifacts/stage_reviews/write/latest.md",
+                "source_refs": ["studies/001-risk/artifacts/controller_decisions/latest.json"],
+                "claim_trace": {"impact_state": "strengthened"},
+                "freshness_signal": {"state": "green_current"},
+                "human_review": {"state": "annotated"},
+                "next_owner": {"owner": "MedAutoScience", "next_routes": ["review"]},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    result = module.materialize_progress_portal(
+        profile=profile,
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    study_payload_path = (
+        profile.workspace_root
+        / "artifacts"
+        / "runtime"
+        / "progress_portal"
+        / "studies"
+        / "001-risk"
+        / "latest.json"
+    )
+    payload = json.loads(study_payload_path.read_text(encoding="utf-8"))
+    review = payload["study_workbench"]["stage_review_index"]
+    assert review["status"] == "available"
+    assert review["latest_review_page"]["body_included"] is False
+    assert review["rows"][0]["latest_review_page_proof"]["status"] == "available"
+    assert review["rows"][0]["paper_line_index_proof"]["index_surface_kind"] == "mas_stage_deliverable_index"
+    assert review["rows"][0]["claim_impact"]["impact_state"] == "strengthened"
+    assert "studies/001-risk/artifacts/stage_reviews/write/latest.md" in Path(result["html_path"]).read_text(
+        encoding="utf-8"
+    )
+    assert (study_root / "artifacts" / "stage_reviews" / "index.json").exists()
+    assert (study_root / "artifacts" / "stage_reviews" / "write" / "latest.md").exists()
+    assert not (study_root / "artifacts" / "publication_eval").exists()
+
+
 def test_materialize_progress_portal_can_open_static_entry(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
     profile = make_profile(tmp_path)

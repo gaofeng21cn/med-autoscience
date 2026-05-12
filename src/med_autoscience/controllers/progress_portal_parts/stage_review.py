@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from copy import deepcopy
 from html import escape
+import json
+from pathlib import Path
 from typing import Any
 
 from med_autoscience.stage_surface_contract import build_stage_surface_contract
@@ -16,9 +18,15 @@ def build_stage_review_index(
     progress: Mapping[str, Any] | None,
     *,
     study_id: str,
+    study_root: str | Path | None = None,
 ) -> dict[str, Any]:
     resolved_progress = _mapping(progress)
-    explicit = _explicit_stage_review(resolved_progress)
+    locator_projection = _stage_review_locator_projection(
+        resolved_progress,
+        study_id=study_id,
+        study_root=study_root,
+    )
+    explicit = locator_projection or _explicit_stage_review(resolved_progress)
     user_visible = _mapping(resolved_progress.get("user_visible_projection"))
     stage = (
         _non_empty_text(explicit.get("stage"))
@@ -56,6 +64,7 @@ def build_stage_review_index(
                 source_refs=source_refs,
                 stage_card=stage_card,
                 progress=resolved_progress,
+                locator_projection=locator_projection,
             )
         ]
         if status == "available"
@@ -75,6 +84,7 @@ def build_stage_review_index(
         "deliverable_index_ref": deliverable_index_ref,
         "rows": rows,
         "source_refs": source_refs,
+        "locator_projection": locator_projection,
         "conditions": {
             "missing": missing,
             "stale": stale,
@@ -156,6 +166,7 @@ def _stage_review_row(
     source_refs: list[str],
     stage_card: Mapping[str, Any],
     progress: Mapping[str, Any],
+    locator_projection: Mapping[str, Any],
 ) -> dict[str, Any]:
     deliverable_index = deepcopy(_mapping(stage_card.get("deliverable_index")))
     paper_asset_delta = _paper_asset_delta(explicit)
@@ -188,8 +199,96 @@ def _stage_review_row(
         "blockers": blockers,
         "continue_state": continue_state,
         "source_refs": source_refs,
+        "latest_review_page_proof": _mapping(locator_projection.get("latest_review_page_proof")),
+        "paper_line_index_proof": _mapping(locator_projection.get("paper_line_index_proof")),
         "authority": _authority_boundary(),
     }
+
+
+def _stage_review_locator_projection(
+    progress: Mapping[str, Any],
+    *,
+    study_id: str,
+    study_root: str | Path | None,
+) -> dict[str, Any]:
+    explicit = _explicit_stage_review(progress)
+    explicit_locator = _mapping(explicit.get("artifact_locator"))
+    explicit_index_ref = _non_empty_text(explicit.get("deliverable_index_ref"))
+    resolved_study_root = _study_root(progress, study_root)
+    index_ref = (
+        _non_empty_text(explicit_locator.get("stage_deliverable_index"))
+        or _non_empty_text(explicit_locator.get("stage_deliverable_index_ref"))
+        or explicit_index_ref
+        or "artifacts/stage_reviews/index.json"
+    )
+    index_path = _resolve_locator_path(index_ref, study_root=resolved_study_root, study_id=study_id)
+    if index_path is None or not index_path.is_file():
+        return {}
+    try:
+        index_payload = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return {}
+    if not isinstance(index_payload, Mapping):
+        return {}
+    index = dict(index_payload)
+    index_study_id = _non_empty_text(index.get("study_id"))
+    if index_study_id and index_study_id != study_id:
+        return {
+            "study_id": index_study_id,
+            "deliverable_index_ref": _workspace_ref(index_path, study_root=resolved_study_root),
+            "paper_line_index_proof": _paper_line_index_proof(
+                index,
+                index_path=index_path,
+                study_root=resolved_study_root,
+                status="conflict",
+            ),
+        }
+    latest_review_page_ref = _review_page_ref(index) or _non_empty_text(
+        _mapping(index.get("artifact_locator")).get("latest_review_page")
+    )
+    latest_review_page_path = _resolve_locator_path(
+        latest_review_page_ref,
+        study_root=resolved_study_root,
+        study_id=study_id,
+    )
+    normalized: dict[str, Any] = {
+        **index,
+        "stage": _non_empty_text(index.get("stage")) or _non_empty_text(index.get("current_stage")),
+        "review_page_ref": _workspace_ref(latest_review_page_path, study_root=resolved_study_root)
+        if latest_review_page_path is not None
+        else latest_review_page_ref,
+        "deliverable_index_ref": _workspace_ref(index_path, study_root=resolved_study_root),
+        "source_refs": _dedupe_refs(
+            [
+                *_string_list(index.get("source_refs")),
+                _workspace_ref(index_path, study_root=resolved_study_root),
+                _workspace_ref(latest_review_page_path, study_root=resolved_study_root)
+                if latest_review_page_path is not None
+                else latest_review_page_ref,
+            ]
+        ),
+        "paper_line_index_proof": _paper_line_index_proof(
+            index,
+            index_path=index_path,
+            study_root=resolved_study_root,
+            status="available",
+        ),
+        "latest_review_page_proof": _latest_review_page_proof(
+            latest_review_page_path,
+            latest_review_page_ref=latest_review_page_ref,
+            study_root=resolved_study_root,
+        ),
+        "artifact_locator": {
+            "study_root": str(resolved_study_root) if resolved_study_root is not None else None,
+            "stage_deliverable_index": _workspace_ref(index_path, study_root=resolved_study_root),
+            "latest_review_page": _workspace_ref(latest_review_page_path, study_root=resolved_study_root)
+            if latest_review_page_path is not None
+            else latest_review_page_ref,
+            "body_included": False,
+            "read_only": True,
+        },
+    }
+    return normalized
 
 
 def _explicit_stage_review(progress: Mapping[str, Any]) -> dict[str, Any]:
@@ -202,6 +301,103 @@ def _explicit_stage_review(progress: Mapping[str, Any]) -> dict[str, Any]:
         if value:
             return value
     return {}
+
+
+def _study_root(progress: Mapping[str, Any], study_root: str | Path | None) -> Path | None:
+    if study_root is not None:
+        return Path(study_root).expanduser().resolve()
+    refs = _mapping(progress.get("refs"))
+    for value in (
+        progress.get("study_root"),
+        refs.get("study_root"),
+        refs.get("quest_root"),
+    ):
+        text = _non_empty_text(value)
+        if text is not None:
+            return Path(text).expanduser().resolve()
+    return None
+
+
+def _resolve_locator_path(
+    ref: str | None,
+    *,
+    study_root: Path | None,
+    study_id: str,
+) -> Path | None:
+    if ref is None:
+        return None
+    path = Path(ref).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    if study_root is None:
+        return None
+    parts = path.parts
+    if len(parts) >= 2 and parts[0] == "studies" and parts[1] == study_id:
+        return (study_root.parent.parent / path).resolve()
+    if parts and parts[0] == "artifacts":
+        return (study_root / path).resolve()
+    return (study_root / path).resolve()
+
+
+def _workspace_ref(path: Path | None, *, study_root: Path | None) -> str | None:
+    if path is None:
+        return None
+    if study_root is None:
+        return str(path)
+    try:
+        return str(path.resolve().relative_to(study_root.parent.parent.resolve()))
+    except ValueError:
+        try:
+            return str(path.resolve().relative_to(study_root.resolve()))
+        except ValueError:
+            return str(path)
+
+
+def _paper_line_index_proof(
+    index: Mapping[str, Any],
+    *,
+    index_path: Path,
+    study_root: Path | None,
+    status: str,
+) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_stage_deliverable_index_locator_proof",
+        "status": status,
+        "index_ref": _workspace_ref(index_path, study_root=study_root),
+        "index_surface_kind": _non_empty_text(index.get("surface_kind")),
+        "stage": _non_empty_text(index.get("stage")) or _non_empty_text(index.get("current_stage")),
+        "source_refs": _dedupe_refs(_string_list(index.get("source_refs"))),
+        "body_included": False,
+        "read_only": True,
+        "writes_authority_surface": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_submission_readiness": False,
+        "can_authorize_artifact_authority": False,
+    }
+
+
+def _latest_review_page_proof(
+    latest_review_page_path: Path | None,
+    *,
+    latest_review_page_ref: str | None,
+    study_root: Path | None,
+) -> dict[str, Any]:
+    ref = (
+        _workspace_ref(latest_review_page_path, study_root=study_root)
+        if latest_review_page_path is not None
+        else latest_review_page_ref
+    )
+    return {
+        "surface_kind": "mas_stage_deliverable_review_page_locator_proof",
+        "status": "available" if latest_review_page_path is not None and latest_review_page_path.is_file() else "missing",
+        "latest_review_page_ref": ref,
+        "body_included": False,
+        "read_only": True,
+        "writes_authority_surface": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_submission_readiness": False,
+        "can_authorize_artifact_authority": False,
+    }
 
 
 def _review_page_ref(value: Mapping[str, Any]) -> str | None:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
 
 from tests.test_progress_portal import _progress_payload
 
@@ -60,6 +62,53 @@ def _stage_review_payload() -> dict[str, object]:
             "blockers": ["主文结果段尚未同步 Table 1 数值"],
         },
     }
+
+
+def _write_stage_review_index(study_root: Path) -> None:
+    latest = study_root / "artifacts" / "stage_reviews" / "write" / "latest.md"
+    latest.parent.mkdir(parents=True, exist_ok=True)
+    latest.write_text("# Write Stage Review\n\n人工审阅页正文留在 workspace artifact。\n", encoding="utf-8")
+    index = {
+        "surface_kind": "mas_stage_deliverable_index",
+        "study_id": "001-risk",
+        "stage": "write",
+        "review_page_ref": "artifacts/stage_reviews/write/latest.md",
+        "source_refs": [
+            "studies/001-risk/artifacts/publication_eval/latest.json",
+            "studies/001-risk/artifacts/controller_decisions/latest.json",
+        ],
+        "paper_asset_delta": {
+            "delta_types": ["manuscript", "figure"],
+            "refs": [
+                "studies/001-risk/paper/manuscript.md",
+                "studies/001-risk/paper/figures/figure1.png",
+            ],
+            "summary": "主文与 Figure 1 已刷新。",
+        },
+        "claim_trace": {
+            "impact_state": "changed_scope",
+            "claim_refs": ["secondary-endpoint-claim"],
+        },
+        "freshness_signal": {
+            "state": "yellow_refresh_recommended",
+            "source_refs": ["studies/001-risk/artifacts/stage_reviews/index.json"],
+        },
+        "human_review": {
+            "state": "annotated",
+            "reviewer_notes": "需要人工复核 Figure 1 caption。",
+        },
+        "next_owner": {
+            "owner": "ai_reviewer",
+            "next_routes": ["review"],
+            "source_ref": "studies/001-risk/artifacts/controller_decisions/latest.json",
+        },
+        "blockers": [],
+    }
+    (study_root / "artifacts" / "stage_reviews").mkdir(parents=True, exist_ok=True)
+    (study_root / "artifacts" / "stage_reviews" / "index.json").write_text(
+        json.dumps(index, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def test_study_workbench_projects_stage_review_page_index_as_human_audit_table() -> None:
@@ -132,6 +181,46 @@ def test_study_workbench_projects_stage_review_page_index_as_human_audit_table()
     assert "needs_revision" in html
     assert "主文结果段尚未同步 Table 1 数值" in html
     assert "质量 verdict" in html
+
+
+def test_study_workbench_reads_stage_review_page_and_index_from_artifact_locator(tmp_path: Path) -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_stage_review_index(study_root)
+
+    payload = parts.build_study_workbench_payload(
+        progress={
+            **_progress_payload(),
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+        },
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
+        package={"study_id": "001-risk"},
+        study_id="001-risk",
+    )
+    html = parts.render_study_workbench_sections(payload)
+
+    review = payload["stage_review_index"]
+    row = review["rows"][0]
+    assert review["status"] == "available"
+    assert review["deliverable_index_ref"] == "studies/001-risk/artifacts/stage_reviews/index.json"
+    assert review["latest_review_page"]["ref"] == "studies/001-risk/artifacts/stage_reviews/write/latest.md"
+    assert review["locator_projection"]["artifact_locator"]["read_only"] is True
+    assert row["paper_line_index_proof"]["surface_kind"] == "mas_stage_deliverable_index_locator_proof"
+    assert row["paper_line_index_proof"]["index_surface_kind"] == "mas_stage_deliverable_index"
+    assert row["paper_line_index_proof"]["body_included"] is False
+    assert row["latest_review_page_proof"]["status"] == "available"
+    assert row["latest_review_page_proof"]["body_included"] is False
+    assert row["paper_asset_delta"]["delta_types"] == ["manuscript", "figure"]
+    assert row["claim_impact"]["impact_state"] == "changed_scope"
+    assert row["human_review_annotation"]["state"] == "annotated"
+    assert row["next_owner"]["owner"] == "ai_reviewer"
+    assert row["authority"]["can_authorize_artifact_authority"] is False
+    assert "studies/001-risk/artifacts/stage_reviews/index.json" in review["source_refs"]
+    assert "studies/001-risk/artifacts/stage_reviews/write/latest.md" in review["source_refs"]
+    assert "studies/001-risk/artifacts/stage_reviews/write/latest.md" in html
+    assert "changed_scope" in html
 
 
 def test_study_workbench_stage_review_fails_closed_without_explicit_review_ref() -> None:
