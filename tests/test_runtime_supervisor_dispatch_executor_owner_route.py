@@ -462,10 +462,17 @@ def test_execute_dispatch_blocks_unsupported_executor_kind_fail_closed(
     assert execution["blocked_reason"] == "unsupported_executor_kind"
     assert execution["dispatch_contract_valid"] is False
     assert execution["executor_boundary"] == {
+        "adapter_owner": "med-autoscience",
+        "executor_requirement_owner": "one-person-lab",
+        "mas_executor_adapter_policy": "codex_cli_default_only",
         "supported_executor_kind": "codex_cli_default",
+        "default_executor_kind": "codex_cli_default",
         "received_executor_kind": "hermes_agent",
         "unsupported_executor_policy": "fail_closed",
         "local_codex_cli_scope": "standalone_diagnostics_only",
+        "external_executor_opt_in_owner": "one-person-lab",
+        "external_executor_opt_in_policy": "typed_closeout_or_domain_task_receipt_only",
+        "mas_owned_hermes_or_claude_executor": False,
     }
 
 
