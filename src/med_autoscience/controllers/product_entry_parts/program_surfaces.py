@@ -692,6 +692,8 @@ def _build_opl_native_helper_proof_surface() -> dict[str, Any]:
             "/runtime_inventory",
         ],
         "product_entry_surface_refs": [
+            "/skill_catalog/skills/0/domain_projection/opl_stage_runtime_registration/domain_entry_surface",
+            "/skill_catalog/skills/0/domain_projection/opl_stage_runtime_registration/registration_surface",
             "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration/domain_entry_surface",
             "/skill_catalog/skills/0/domain_projection/opl_runtime_manager_registration/registration_surface",
             "/artifact_inventory/artifact_surface",
@@ -863,6 +865,7 @@ def _build_skill_catalog_surface(
                 "shell_commands": command_catalog,
                 "action_catalog_projection": skill_action_projection,
                 "runtime_continuity": runtime_continuity,
+                "opl_stage_runtime_registration": opl_runtime_manager_registration,
                 "opl_runtime_manager_registration": opl_runtime_manager_registration,
             },
         ),
