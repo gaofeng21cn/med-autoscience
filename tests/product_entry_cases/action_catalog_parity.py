@@ -155,6 +155,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     agent_entry = importlib.import_module("med_autoscience.agent_entry")
     stage_knowledge_plane = importlib.import_module("med_autoscience.controllers.stage_knowledge_plane")
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    stage_quality_contract = importlib.import_module("med_autoscience.stage_quality_contract")
 
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
@@ -180,7 +181,14 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["source_refs"]["knowledge_plane_contract_source"] == (
         "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
     )
+    assert descriptor["source_refs"]["quality_pack_contract_source"] == (
+        "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract"
+    )
     assert descriptor["source_refs"]["packet_contract_surfaces"] == list(stage_contract["packet_contracts"])
+    assert descriptor["source_refs"]["quality_pack_contract_surfaces"] == [
+        "mas_stage_quality_pack_contract",
+        "stage_quality_pack_projection",
+    ]
 
     snapshot = descriptor["route_contract_snapshot"]
     assert snapshot["route_ids"] == list(route_payload["route_contracts"])
@@ -197,6 +205,43 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "stage_recall_index": "stage_recall_index",
     }
     assert descriptor["memory_control"]["can_promote_memory_to_evidence"] is False
+    quality_pack_contract = stage_quality_contract.build_stage_quality_pack_contract()
+    assert descriptor["quality_pack_contract"] == {
+        "surface_kind": "stage_quality_pack_projection",
+        "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "pack_ids": list(stage_quality_contract.REQUIRED_STAGE_QUALITY_PACK_IDS),
+        "pack_count": len(stage_quality_contract.REQUIRED_STAGE_QUALITY_PACK_IDS),
+        "pack_role": "quality_input_and_reviewer_rubric",
+        "publication_readiness_authority": False,
+        "quality_verdict_authority": False,
+        "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
+        "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
+        "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+    }
+    assert manifest["stage_quality_pack_contract"] == quality_pack_contract
+    assert quality_pack_contract["authority_boundary"]["pack_role"] == "quality_input_and_reviewer_rubric"
+    assert quality_pack_contract["authority_boundary"]["publication_readiness_authority"] is False
+    assert quality_pack_contract["authority_boundary"]["opl_can_write_mas_truth"] is False
+    assert quality_pack_contract["freshness"]["refresh_policy"] == (
+        "rebuild_product_entry_manifest_before_opl_discovery"
+    )
+    assert {
+        "medical_claim_evidence_pack",
+        "statistical_analysis_pack",
+        "reporting_guideline_pack",
+        "display_to_claim_pack",
+        "route_memory_pack",
+        "stop_loss_pack",
+        "artifact_freshness_pack",
+        "human_gate_pack",
+    } == set(quality_pack_contract["pack_ids"])
+    reporting_pack = {
+        pack["pack_id"]: pack for pack in quality_pack_contract["packs"]
+    }["reporting_guideline_pack"]
+    ai_ml_selection = {
+        selection["study_archetype"]: selection for selection in reporting_pack["guideline_selection"]
+    }["ai_ml_medical_study"]
+    assert ai_ml_selection["requires_clinical_base_guideline"] is True
     assert "dispatch_mas_exported_task" in descriptor["allowed_family_actions"]
     assert "replace_route_contract" in descriptor["forbidden_family_actions"]
 
@@ -240,6 +285,14 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["handoff"]["next_owner"] == "MedAutoScience"
         assert stage["freshness"]["stale_if_source_refs_missing"] is True
         assert any(ref["role"] == "deep_descriptor" for ref in stage["source_refs"])
+        assert set(stage["quality_pack_refs"]) <= set(quality_pack_contract["pack_ids"])
+        assert stage["quality_pack_projection"]["role"] == "quality_input_and_reviewer_rubric"
+        assert stage["quality_pack_projection"]["publication_readiness_authority"] is False
+        assert stage["quality_pack_projection"]["quality_verdict_authority"] is False
+        assert stage["quality_pack_projection"]["locator_ref"] == (
+            "/product_entry_manifest/stage_quality_pack_contract/pack_locators"
+        )
+        assert stage["authority_boundary"]["can_authorize_publication_quality"] is False
 
 
 def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_path: Path) -> None:
@@ -308,3 +361,33 @@ def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_
         "finalize_and_publication_handoff",
     } <= stages_with_route_memory
     assert "baseline_and_evidence_setup" not in stages_with_route_memory
+
+
+def test_standard_domain_agent_skeleton_projects_quality_pack_locator_without_authority(tmp_path: Path) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    skeleton = manifest["standard_domain_agent_skeleton"]
+
+    quality_locator = skeleton["quality_pack_locator"]
+    assert quality_locator == {
+        "ref_kind": "json_pointer",
+        "ref": "/product_entry_manifest/stage_quality_pack_contract",
+        "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
+        "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
+        "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+        "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
+        "can_write_mas_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+    }
+    assert "src/med_autoscience/stage_quality_contract.py" in skeleton["skeleton"]["agent/quality_gates"]
+    assert skeleton["authority_boundary"]["forbidden_opl_authority"] == [
+        "domain_truth",
+        "quality_verdict",
+        "canonical_artifact_blob",
+        "publication_or_export_gate",
+    ]

@@ -30,6 +30,7 @@ from .manifest_projection_compaction import (
     _manifest_portable_supervisor_queue_dashboard,
 )
 from med_autoscience.controllers import opl_provider_ready_adapter
+from med_autoscience.stage_quality_contract import build_stage_quality_pack_contract
 
 
 def _build_product_positioning() -> dict[str, Any]:
@@ -453,6 +454,7 @@ def build_product_entry_manifest(
     family_stage_control_plane_descriptor = dict(
         opl_family_persistence_lifecycle_owner_route_adoption["payload"]["family_stage_control_plane_descriptor"]
     )
+    stage_quality_pack_contract = build_stage_quality_pack_contract()
     domain_memory_descriptor = build_domain_memory_descriptor()
     persistence_policy = _build_family_persistence_policy_surface(
         adoption=opl_family_persistence_lifecycle_owner_route_adoption,
@@ -610,6 +612,7 @@ def build_product_entry_manifest(
             "workspace_runtime_artifact_root_locator": (
                 opl_provider_ready_contract["workspace_runtime_artifact_root_locator"]
             ),
+            "stage_quality_pack_contract": stage_quality_pack_contract,
             "domain_memory_descriptor": domain_memory_descriptor,
             "family_stage_control_plane_descriptor": family_stage_control_plane_descriptor,
             "family_stage_control_plane": family_stage_control_plane,

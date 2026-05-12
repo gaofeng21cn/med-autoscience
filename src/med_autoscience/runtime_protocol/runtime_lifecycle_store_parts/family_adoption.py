@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.agent_entry import load_entry_modes_payload
 from med_autoscience import stage_knowledge_contract
+from med_autoscience import stage_quality_contract
 
 from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
@@ -30,6 +31,7 @@ AGENT_ENTRY_MODES_REF = "src/med_autoscience/agent_entry/resources/agent_entry_m
 STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
     "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
 )
+STAGE_QUALITY_PACK_CONTRACT_REF = stage_quality_contract.CONTRACT_REF
 
 FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "publication_eval/latest.json",
@@ -105,7 +107,9 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "policy": STAGE_LED_AUTONOMY_POLICY_REF,
             "route_contract_source": AGENT_ENTRY_MODES_REF,
             "knowledge_plane_contract_source": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
+            "quality_pack_contract_source": STAGE_QUALITY_PACK_CONTRACT_REF,
             "packet_contract_surfaces": packet_surfaces,
+            "quality_pack_contract_surfaces": list(stage_quality_contract.QUALITY_PACK_CONTRACT_SURFACES),
             "stage_knowledge_root": str(stage_knowledge_contract.STAGE_KNOWLEDGE_ROOT),
             "test_evidence": [
                 "tests/test_agent_entry_modes.py",
@@ -113,6 +117,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
                 "tests/test_stage_knowledge_plane.py",
                 "tests/test_stage_knowledge_entry_injection.py",
                 "tests/test_stage_knowledge_visibility.py",
+                "tests/test_stage_quality_contract.py",
             ],
         },
         "route_contract_snapshot": {
@@ -145,6 +150,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             ),
             "can_promote_memory_to_evidence": False,
         },
+        "quality_pack_contract": stage_quality_contract.build_stage_quality_pack_projection(),
         "quality_and_publication_surfaces": {
             "evidence_ledger": "paper/evidence/evidence_ledger.json",
             "review_ledger": "paper/review/review_ledger.json",
@@ -368,6 +374,11 @@ def _plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
             "role": "stage_knowledge_plane_contract",
         },
         {
+            "ref_kind": "python_symbol",
+            "ref": STAGE_QUALITY_PACK_CONTRACT_REF,
+            "role": "quality_pack_contract",
+        },
+        {
             "ref_kind": "repo_path",
             "ref": STAGE_LED_AUTONOMY_INVENTORY_REF,
             "role": "inventory_reference",
@@ -402,6 +413,10 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "progress_read_model"},
         ],
         "knowledge_refs": _stage_knowledge_refs(stage),
+        "quality_pack_refs": stage_quality_contract.quality_pack_ids_for_stages(stage["domain_stage_refs"]),
+        "quality_pack_projection": stage_quality_contract.build_stage_quality_pack_ref_projection(
+            stage["domain_stage_refs"]
+        ),
         "skills": [
             {"ref_kind": "skill_id", "ref": "med-autoscience", "role": "domain_skill"},
             {"ref_kind": "skill_id", "ref": "mas", "role": "codex_app_skill"},

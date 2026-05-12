@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from med_autoscience import stage_quality_contract
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -220,6 +221,7 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
                 "controller_decisions/latest.json",
                 "AI reviewer workflow",
                 "claim-evidence and submission package gates",
+                stage_quality_contract.REPO_PATH,
             ],
             "contracts/runtime/sidecar": [
                 "mas_family_sidecar_export",
@@ -257,6 +259,7 @@ def build_standard_domain_agent_skeleton_surface() -> dict[str, Any]:
         "workspace_runtime_artifact_root_locator_ref": (
             "/product_entry_manifest/workspace_runtime_artifact_root_locator"
         ),
+        "quality_pack_locator": stage_quality_contract.build_stage_quality_pack_locator_projection(),
         "artifact_boundary": {
             "repo_contains_real_artifacts": False,
             "artifact_roots_are_locators": True,
@@ -316,6 +319,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
         _physical_skeleton_slot(
             "agent/quality_gates",
             repo_paths=[
+                stage_quality_contract.REPO_PATH,
                 "src/med_autoscience/controllers/publication_gate.py",
                 "src/med_autoscience/controllers/ai_reviewer_publication_eval.py",
                 "src/med_autoscience/controllers/paper_repair_executor.py",
