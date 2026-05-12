@@ -61,6 +61,7 @@ def build_publication_route_memory_inventory(
             for card in filtered_cards
         ],
         "receipt_summary": _publication_route_memory_receipt_summary(pack_root=pack_root),
+        "opl_aion_receipt_inventory": _publication_route_memory_opl_aion_receipt_inventory(pack_root=pack_root),
         "locator_refs": {
             "memory_pack": str(pack_path),
             "migration_receipts": str(pack_root / "migration_receipts"),
@@ -119,6 +120,130 @@ def _publication_route_memory_receipt_summary(*, pack_root: Path) -> dict[str, A
     }
 
 
+def _publication_route_memory_opl_aion_receipt_inventory(*, pack_root: Path) -> dict[str, Any]:
+    migration_receipts = [
+        _receipt_inventory_entry(path=path, receipt_kind="migration_receipt")
+        for path in sorted((pack_root / "migration_receipts").glob("*.json"))
+    ]
+    writeback_receipts = [
+        _receipt_inventory_entry(path=path, receipt_kind="writeback_receipt")
+        for path in sorted((pack_root / "writeback_receipts").glob("*.json"))
+    ]
+    receipts = [*migration_receipts, *writeback_receipts]
+    return {
+        "surface": "publication_route_memory_receipt_inventory",
+        "read_only": True,
+        "consumer": "OPL/Aion",
+        "body_included": False,
+        "receipt_count": len(receipts),
+        "receipts": receipts,
+        "display_policy": {
+            "projection_owner": "MedAutoScience",
+            "display_role": "receipt_ref_only",
+            "can_read_memory_body": False,
+            "can_write_memory_body": False,
+            "can_score_winning_route": False,
+            "can_authorize_publication_quality": False,
+        },
+    }
+
+
+def _receipt_inventory_entry(*, path: Path, receipt_kind: str) -> dict[str, Any]:
+    payload = _read_json(path)
+    return {
+        "ref_kind": "publication_route_memory_receipt",
+        "receipt_kind": receipt_kind,
+        "ref": str(path),
+        "study_id": _text(payload.get("study_id")),
+        "stage": _text(payload.get("stage")),
+        "receipt_status": _text(payload.get("status")) or ("missing" if not path.exists() else "unknown"),
+        "reason": _receipt_reason(payload),
+        "freshness": _receipt_freshness(path),
+        "accepted_refs": _receipt_accepted_refs(payload),
+        "rejected_refs": _receipt_rejected_refs(payload),
+        "typed_blocker_count": len(_mapping_list(payload.get("typed_blockers"))),
+        "body_included": False,
+        "authority_boundary": "read_only_display_not_mas_truth_authority",
+    }
+
+
+def _receipt_reason(payload: Mapping[str, Any]) -> str:
+    typed_blockers = _mapping_list(payload.get("typed_blockers"))
+    if typed_blockers:
+        return _text(typed_blockers[0].get("reason")) or _text(typed_blockers[0].get("blocker_id"))
+    return _text(payload.get("reason"))
+
+
+def _receipt_freshness(path: Path) -> dict[str, Any]:
+    stat = path.stat() if path.exists() else None
+    return {
+        "exists": path.exists(),
+        "mtime_epoch": stat.st_mtime if stat is not None else None,
+        "size_bytes": stat.st_size if stat is not None else 0,
+    }
+
+
+def _receipt_accepted_refs(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    accepted_writes = _mapping_list(payload.get("accepted_writes"))
+    if accepted_writes:
+        return [
+            {
+                "write_id": _text(item.get("write_id")),
+                "memory_id": _memory_id_for_write(item),
+                "destination": _text(item.get("destination")),
+                "owner_target": _text(item.get("owner_target")),
+                "reason": "",
+                "status": "accepted",
+            }
+            for item in accepted_writes
+            if _text(item.get("destination")) == "workspace_research_memory_proposal"
+        ]
+    return [
+        {
+            "memory_id": memory_id,
+            "reason": "",
+            "status": "accepted",
+        }
+        for memory_id in _text_list(payload.get("accepted_memory_ids"))
+    ]
+
+
+def _receipt_rejected_refs(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    rejected_writes = _mapping_list(payload.get("rejected_writes"))
+    rejected_cards = _mapping_list(payload.get("rejected_cards"))
+    refs = [
+        _drop_empty(
+            {
+                "write_id": _text(item.get("write_id")),
+                "destination": _text(item.get("destination")),
+                "owner_target": _text(item.get("owner_target")),
+                "reason": _text(item.get("reason")),
+                "status": "rejected",
+            }
+        )
+        for item in rejected_writes
+    ]
+    refs.extend(
+        _drop_empty(
+            {
+                "memory_id": _text(item.get("memory_id")),
+                "reason": _text(item.get("reason")),
+                "status": "rejected",
+            }
+        )
+        for item in rejected_cards
+    )
+    return refs
+
+
+def _memory_id_for_write(write: Mapping[str, Any]) -> str:
+    payload = write.get("payload") if isinstance(write.get("payload"), Mapping) else {}
+    if isinstance(payload, Mapping) and _text(payload.get("memory_id")):
+        return _text(payload.get("memory_id"))
+    write_id = _text(write.get("write_id"))
+    return f"publication_route_memory_writeback__{_safe_key(write_id)}" if write_id else ""
+
+
 def _validate_publication_route_memory_stage(stage: str | None) -> str:
     resolved = _text(stage)
     if resolved not in PUBLICATION_ROUTE_MEMORY_STAGES:
@@ -140,6 +265,18 @@ def _text_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [_text(item) for item in value if _text(item)]
+
+
+def _drop_empty(payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in payload.items()
+        if value is not None and value != "" and value != []
+    }
+
+
+def _safe_key(key: str) -> str:
+    return "".join(char if char.isalnum() or char in {"-", "_", "."} else "_" for char in key)[:180]
 
 
 def _read_json(path: Path) -> dict[str, Any]:

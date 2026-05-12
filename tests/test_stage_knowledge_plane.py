@@ -426,6 +426,129 @@ def test_accepted_workspace_reusable_lessons_are_promoted_to_route_memory_pack(t
     ]
 
 
+def test_publication_route_memory_inventory_projects_body_free_receipts_across_paper_lines(tmp_path) -> None:
+    inventory_module = importlib.import_module(
+        "med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"
+    )
+    workspace_root = tmp_path / "workspace"
+    stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+        workspace_root=workspace_root,
+        seed_fixture_path=SEED_FIXTURE,
+    )
+
+    first_study_root = workspace_root / "studies" / "S1"
+    first_packet = stage_knowledge_plane.normalize_stage_memory_closeout_packet(
+        study_id="S1",
+        stage="decision",
+        study_root=first_study_root,
+        workspace_root=workspace_root,
+        closeout_payload={
+            "idempotency_key": "decision-route-memory-s1",
+            "source_refs": ["stage:decision:s1"],
+            "reusable_lessons": [
+                {
+                    "write_id": "s1-route-back-lesson",
+                    "scope": "workspace_reusable",
+                    "route_family": "route_back_repair",
+                    "stage_applicability": ["decision", "review"],
+                    "title": "Route-back repair lesson",
+                    "lesson": "Route back before rebuilding claims when reviewer evidence is underpowered.",
+                    "source_refs": ["stage:decision:s1"],
+                },
+                {
+                    "write_id": "s1-local-claim",
+                    "scope": "study_specific_claim",
+                    "lesson": "This claim only applies to S1.",
+                },
+            ],
+        },
+    )
+    first_receipt = stage_knowledge_plane.route_stage_memory_closeout(
+        closeout_packet=first_packet,
+        study_root=first_study_root,
+        workspace_root=workspace_root,
+    )
+    second_study_root = workspace_root / "studies" / "S2"
+    second_packet = stage_knowledge_plane.normalize_stage_memory_closeout_packet(
+        study_id="S2",
+        stage="review",
+        study_root=second_study_root,
+        workspace_root=workspace_root,
+        closeout_payload={
+            "idempotency_key": "review-route-memory-s2",
+            "source_refs": ["stage:review:s2"],
+            "reusable_lessons": [
+                {
+                    "write_id": "s2-review-lesson",
+                    "scope": "workspace_reusable",
+                    "route_family": "review_response_repair",
+                    "stage_applicability": ["review"],
+                    "title": "Review repair lesson",
+                    "lesson": "Keep response evidence scoped to the accepted analysis line.",
+                    "source_refs": ["stage:review:s2"],
+                }
+            ],
+        },
+    )
+    second_receipt = stage_knowledge_plane.route_stage_memory_closeout(
+        closeout_packet=second_packet,
+        study_root=second_study_root,
+        workspace_root=workspace_root,
+    )
+
+    inventory = inventory_module.build_publication_route_memory_inventory(workspace_root=workspace_root)
+
+    receipt_inventory = inventory["opl_aion_receipt_inventory"]
+    assert receipt_inventory["body_included"] is False
+    assert receipt_inventory["consumer"] == "OPL/Aion"
+    assert receipt_inventory["receipt_count"] == 3
+    by_ref = {receipt["ref"]: receipt for receipt in receipt_inventory["receipts"]}
+    seed_receipt = next(receipt for receipt in by_ref.values() if receipt["receipt_kind"] == "migration_receipt")
+    assert seed_receipt["accepted_refs"] == [
+        {
+            "memory_id": "publication_route_memory_seed__external_validation_rescue",
+            "reason": "",
+            "status": "accepted",
+        },
+        {
+            "memory_id": "publication_route_memory_seed__negative_result_stoploss",
+            "reason": "",
+            "status": "accepted",
+        },
+    ]
+    first_projection = by_ref[first_receipt["receipt_refs"][1]]
+    assert first_projection["receipt_kind"] == "writeback_receipt"
+    assert first_projection["study_id"] == "S1"
+    assert first_projection["stage"] == "decision"
+    assert first_projection["receipt_status"] == "applied"
+    assert first_projection["freshness"]["exists"] is True
+    assert first_projection["accepted_refs"] == [
+        {
+            "write_id": "s1-route-back-lesson",
+            "memory_id": "publication_route_memory_writeback__s1-route-back-lesson",
+            "destination": "workspace_research_memory_proposal",
+            "owner_target": "workspace_memory_owner",
+            "reason": "",
+            "status": "accepted",
+        }
+    ]
+    assert first_projection["rejected_refs"] == [
+        {
+            "write_id": "s1-local-claim",
+            "destination": "workspace_research_memory_proposal",
+            "owner_target": "workspace_memory_owner",
+            "reason": "study_specific_claim_not_workspace_memory",
+            "status": "rejected",
+        }
+    ]
+    second_projection = by_ref[second_receipt["receipt_refs"][1]]
+    assert second_projection["study_id"] == "S2"
+    assert second_projection["accepted_refs"][0]["memory_id"] == "publication_route_memory_writeback__s2-review-lesson"
+    rendered = json.dumps(inventory, ensure_ascii=False)
+    assert "Route back before rebuilding claims" not in rendered
+    assert "Keep response evidence scoped" not in rendered
+
+
 def test_route_memory_writeback_fails_closed_on_corrupt_existing_pack(tmp_path) -> None:
     study_root = tmp_path / "study"
     workspace_root = tmp_path / "workspace"
