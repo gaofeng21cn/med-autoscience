@@ -9,6 +9,7 @@ from med_autoscience.controllers.real_paper_autonomy_soak_inventory import (
     DEFAULT_YANG_ROOT,
     build_real_paper_autonomy_soak_inventory,
     build_real_paper_autonomy_soak_closeout_projection,
+    build_real_paper_autonomy_provider_hosted_paper_proof,
     build_real_paper_autonomy_soak_projection,
 )
 
@@ -30,9 +31,9 @@ def main() -> int:
     )
     parser.add_argument(
         "--mode",
-        choices=("inventory", "projection", "closeout"),
+        choices=("inventory", "projection", "closeout", "provider-proof"),
         default="inventory",
-        help="Read-only output mode. closeout emits OPL-ingestable typed closeout packets.",
+        help="Read-only output mode. provider-proof emits OPL provider-hosted closeout proof.",
     )
     args = parser.parse_args()
 
@@ -44,6 +45,8 @@ def main() -> int:
         payload = build_real_paper_autonomy_soak_projection(**kwargs)
     elif args.mode == "closeout":
         payload = build_real_paper_autonomy_soak_closeout_projection(**kwargs)
+    elif args.mode == "provider-proof":
+        payload = build_real_paper_autonomy_provider_hosted_paper_proof(**kwargs)
     else:
         payload = build_real_paper_autonomy_soak_inventory(**kwargs)
     print(json.dumps(payload, ensure_ascii=False, indent=2))

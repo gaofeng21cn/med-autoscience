@@ -84,6 +84,11 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     soak_projection_parser.add_argument("--profile", action="append", dest="profiles")
     soak_projection_parser.add_argument("--target-study", action="append", dest="target_studies")
 
+    provider_proof_parser = subparsers.add_parser("real-paper-autonomy-provider-hosted-paper-proof")
+    provider_proof_parser.add_argument("--yang-root", default="/Users/gaofeng/workspace/Yang")
+    provider_proof_parser.add_argument("--profile", action="append", dest="profiles")
+    provider_proof_parser.add_argument("--target-study", action="append", dest="target_studies")
+
     watch_parser = subparsers.add_parser("watch")
     watch_parser.add_argument("--quest-root", type=str)
     watch_parser.add_argument("--runtime-root", type=str)

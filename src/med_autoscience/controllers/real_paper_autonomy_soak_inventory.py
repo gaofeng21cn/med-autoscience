@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import opl_provider_ready_adapter
 from med_autoscience.controllers import stage_knowledge_plane
 from med_autoscience.profiles import WorkspaceProfile, load_profile, profile_to_dict
 
@@ -31,6 +32,7 @@ READ_ONLY_CONTRACT = {
 }
 SOAK_PROJECTION_SURFACE = "real_paper_autonomy_soak_projection"
 SOAK_CLOSEOUT_SURFACE = "real_paper_autonomy_soak_closeout_projection"
+PROVIDER_HOSTED_PROOF_SURFACE = "real_paper_autonomy_provider_hosted_paper_proof"
 SOAK_ACCEPTED_STATES = (
     "artifact_delta",
     "gate_replay",
@@ -195,6 +197,80 @@ def build_real_paper_autonomy_soak_closeout_projection(
                 "writes_performed": source_summary.get("writes_performed"),
                 "real_workspace_mutation_allowed": source_summary.get("real_workspace_mutation_allowed"),
             },
+        },
+    }
+
+
+def build_real_paper_autonomy_provider_hosted_paper_proof(
+    *,
+    yang_root: str | Path = DEFAULT_YANG_ROOT,
+    profile_paths: Sequence[str | Path] | None = None,
+    target_studies: Sequence[str] = ("DM002", "DM003", "Obesity"),
+) -> dict[str, Any]:
+    closeout_projection = build_real_paper_autonomy_soak_closeout_projection(
+        yang_root=yang_root,
+        profile_paths=profile_paths,
+        target_studies=target_studies,
+    )
+    closeout_packets = [dict(_mapping(packet)) for packet in closeout_projection.get("closeout_packets", [])]
+    memory_refs = _dedupe_text(
+        ref
+        for packet in closeout_packets
+        for ref in packet.get("consumed_memory_refs", [])
+    )
+    writeback_receipt_refs = _dedupe_text(
+        ref
+        for packet in closeout_packets
+        for ref in packet.get("writeback_receipt_refs", [])
+    )
+    forbidden_guard = _provider_forbidden_write_guard(closeout_packets=closeout_packets)
+    return {
+        "surface": PROVIDER_HOSTED_PROOF_SURFACE,
+        "schema_version": SCHEMA_VERSION,
+        "mode": "read_only_provider_hosted_paper_proof",
+        "provider_hosted_status": "readonly_closeout_packet_ready_guarded_apply_pending",
+        "target_studies": list(target_studies),
+        "provider_attempt_projection": {
+            "attempt_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+            "attempt_kind": "opl_provider_hosted_stage_attempt",
+            "attempt_receipt_policy": "transport_receipt_only_no_domain_truth_authority",
+            "typed_closeout_packet_count": len(closeout_packets),
+            "can_advance_paper_progress_without_mas_owner_receipt": False,
+            "guarded_apply_performed": False,
+        },
+        "typed_closeout_packets": closeout_packets,
+        "publication_route_memory": {
+            "consumed_refs": memory_refs,
+            "writeback_receipt_refs": writeback_receipt_refs,
+            "body_included": False,
+            "writeback_acceptance_owner": "med-autoscience",
+            "opl_can_read_memory_body": False,
+            "opl_can_accept_or_reject_writeback": False,
+        },
+        "forbidden_write_guard": forbidden_guard,
+        "summary": {
+            "target_study_count": closeout_projection["summary"]["target_study_count"],
+            "typed_closeout_packet_count": len(closeout_packets),
+            "typed_blocker_count": closeout_projection["summary"]["typed_blocker_count"],
+            "memory_consumed_ref_count": len(memory_refs),
+            "writeback_receipt_ref_count": len(writeback_receipt_refs),
+            "forbidden_write_guard_result": forbidden_guard["aggregate_result"],
+            "writes_performed": False,
+            "real_workspace_mutation_allowed": False,
+            "guarded_apply_performed": False,
+        },
+        "authority_boundary": _closeout_authority_boundary()
+        | {
+            "provider_attempt_owner": "one-person-lab",
+            "provider_attempt_is_truth": False,
+            "provider_completion_is_publication_quality": False,
+        },
+        "source_closeout_projection_summary": {
+            "surface": closeout_projection.get("surface"),
+            "schema_version": closeout_projection.get("schema_version"),
+            "mode": closeout_projection.get("mode"),
+            "summary": dict(_mapping(closeout_projection.get("summary"))),
         },
     }
 
@@ -431,6 +507,41 @@ def _memory_writeback_refs(study: Mapping[str, Any]) -> list[str]:
             if ref:
                 refs.append(ref)
     return list(dict.fromkeys(refs))
+
+
+def _provider_forbidden_write_guard(*, closeout_packets: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    packet_guards = [
+        opl_provider_ready_adapter.build_forbidden_write_guard_proof(
+            result="accepted_no_forbidden_writes",
+            task_id=_text(packet.get("closeout_id")),
+            task_kind="domain_stage_closeout_packet",
+            requested_writes=(),
+        )
+        for packet in closeout_packets
+    ]
+    blocked_probe = opl_provider_ready_adapter.build_forbidden_write_guard_proof(
+        result="blocked",
+        task_id="provider-hosted-paper-proof:forbidden-write-probe",
+        task_kind="provider_hosted_paper_proof",
+        requested_writes=opl_provider_ready_adapter.FORBIDDEN_AUTHORITY_WRITES,
+    )
+    return {
+        "surface_kind": "mas_provider_hosted_forbidden_write_guard_summary",
+        "aggregate_result": "fail_closed_no_forbidden_writes",
+        "guard_mode": "fail_closed",
+        "packet_guard_count": len(packet_guards),
+        "packet_guards": packet_guards,
+        "blocked_probe": blocked_probe,
+        "can_write_domain_truth": False,
+        "can_write_current_package": False,
+        "can_authorize_publication_quality": False,
+        "can_write_memory_body": False,
+        "can_accept_memory_writeback": False,
+    }
+
+
+def _dedupe_text(values: Iterable[object]) -> list[str]:
+    return list(dict.fromkeys(_text(value) for value in values if _text(value)))
 
 
 def _dedupe_ref_records(refs: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:

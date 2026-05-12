@@ -333,6 +333,15 @@ def _handle_stage_memory_command(args: argparse.Namespace, *, parser: argparse.A
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "real-paper-autonomy-provider-hosted-paper-proof":
+        result = real_paper_autonomy_soak_inventory.build_real_paper_autonomy_provider_hosted_paper_proof(
+            yang_root=Path(args.yang_root),
+            profile_paths=[Path(path) for path in args.profiles] if args.profiles else None,
+            target_studies=tuple(args.target_studies or ("DM002", "DM003", "Obesity")),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     return None
 
 

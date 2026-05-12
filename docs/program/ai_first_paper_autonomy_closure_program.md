@@ -42,6 +42,7 @@ The important distinction is that `repo surface landed` means MAS has the callab
 - Obesity currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=artifact_delta` and `next_owner=write`.
 - DM002 also proves a publication-route memory read/writeback ref chain: consumed memory ref `publication_route_memory_seed__negative_result_stoploss` plus MAS-owned stage/router writeback receipt refs.
 - The calibration is read-only: `writes_performed=false`, `writes_real_workspace=false`, and OPL is forbidden from writing publication eval, controller decisions, current package, publication quality verdict, artifact authority, or memory body.
+- The repo-level provider-hosted proof surface is now callable as `real-paper-autonomy-provider-hosted-paper-proof`. It packages the three typed closeout packets with OPL attempt-owner context, publication-route memory consumed/writeback receipt refs, and a fail-closed forbidden-write guard proof. This is still a read-only proof surface: `guarded_apply_performed=false`.
 
 This means the current three-paper evidence has crossed the read-only acceptance threshold. It still has not crossed the production-hosted guarded-apply threshold.
 
