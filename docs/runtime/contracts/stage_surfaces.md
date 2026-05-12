@@ -63,6 +63,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
 - Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
 - Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Source map ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_source_map, ref_kind=durable_surface, role=source_map
+- Page-block anchor ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_page_block_anchors, ref_kind=durable_surface, role=page_block_anchors
+- Figure-near-claim ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_figure_near_claim_refs, ref_kind=durable_surface, role=figure_near_claim_refs
+- Paper presentation note: body_included=False, can_authorize_publication_readiness=False, can_authorize_quality_verdict=False, can_authorize_submission_readiness=False, can_write_mas_truth=False, evidence_spine_required=True, mode=optional_deliverable_note, projection_kind=evidence_spine_presentation
 - Next owner: next_routes=['baseline', 'write', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
 
 ### One-Page Paper Review
@@ -136,6 +140,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
 - Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
 - Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Source map ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_source_map, ref_kind=durable_surface, role=source_map
+- Page-block anchor ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_page_block_anchors, ref_kind=durable_surface, role=page_block_anchors
+- Figure-near-claim ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_figure_near_claim_refs, ref_kind=durable_surface, role=figure_near_claim_refs
+- Paper presentation note: body_included=False, can_authorize_publication_readiness=False, can_authorize_quality_verdict=False, can_authorize_submission_readiness=False, can_write_mas_truth=False, evidence_spine_required=True, mode=optional_deliverable_note, projection_kind=evidence_spine_presentation
 - Next owner: next_routes=['baseline', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
 
 ### One-Page Paper Review
@@ -208,6 +216,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
 - Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
 - Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Source map ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_source_map, ref_kind=durable_surface, role=source_map
+- Page-block anchor ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_page_block_anchors, ref_kind=durable_surface, role=page_block_anchors
+- Figure-near-claim ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_figure_near_claim_refs, ref_kind=durable_surface, role=figure_near_claim_refs
+- Paper presentation note: body_included=False, can_authorize_publication_readiness=False, can_authorize_quality_verdict=False, can_authorize_submission_readiness=False, can_write_mas_truth=False, evidence_spine_required=True, mode=optional_deliverable_note, projection_kind=evidence_spine_presentation
 - Next owner: next_routes=['analysis-campaign', 'write', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
 
 ### One-Page Paper Review
@@ -280,6 +292,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
 - Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
 - Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Source map ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_source_map, ref_kind=durable_surface, role=source_map
+- Page-block anchor ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_page_block_anchors, ref_kind=durable_surface, role=page_block_anchors
+- Figure-near-claim ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_figure_near_claim_refs, ref_kind=durable_surface, role=figure_near_claim_refs
+- Paper presentation note: body_included=False, can_authorize_publication_readiness=False, can_authorize_quality_verdict=False, can_authorize_submission_readiness=False, can_write_mas_truth=False, evidence_spine_required=True, mode=optional_deliverable_note, projection_kind=evidence_spine_presentation
 - Next owner: next_routes=['analysis-campaign', 'write', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
 
 ### One-Page Paper Review
@@ -354,6 +370,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
 - Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
 - Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Source map ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_source_map, ref_kind=durable_surface, role=source_map
+- Page-block anchor ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_page_block_anchors, ref_kind=durable_surface, role=page_block_anchors
+- Figure-near-claim ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_figure_near_claim_refs, ref_kind=durable_surface, role=figure_near_claim_refs
+- Paper presentation note: body_included=False, can_authorize_publication_readiness=False, can_authorize_quality_verdict=False, can_authorize_submission_readiness=False, can_write_mas_truth=False, evidence_spine_required=True, mode=optional_deliverable_note, projection_kind=evidence_spine_presentation
 - Next owner: next_routes=['write', 'finalize', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
 
 ### One-Page Paper Review
@@ -429,6 +449,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
 - Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
 - Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Source map ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_source_map, ref_kind=durable_surface, role=source_map
+- Page-block anchor ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_page_block_anchors, ref_kind=durable_surface, role=page_block_anchors
+- Figure-near-claim ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_figure_near_claim_refs, ref_kind=durable_surface, role=figure_near_claim_refs
+- Paper presentation note: body_included=False, can_authorize_publication_readiness=False, can_authorize_quality_verdict=False, can_authorize_submission_readiness=False, can_write_mas_truth=False, evidence_spine_required=True, mode=optional_deliverable_note, projection_kind=evidence_spine_presentation
 - Next owner: next_routes=['finalize', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
 
 ### One-Page Paper Review
@@ -502,6 +526,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
 - Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
 - Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Source map ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_source_map, ref_kind=durable_surface, role=source_map
+- Page-block anchor ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_page_block_anchors, ref_kind=durable_surface, role=page_block_anchors
+- Figure-near-claim ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_figure_near_claim_refs, ref_kind=durable_surface, role=figure_near_claim_refs
+- Paper presentation note: body_included=False, can_authorize_publication_readiness=False, can_authorize_quality_verdict=False, can_authorize_submission_readiness=False, can_write_mas_truth=False, evidence_spine_required=True, mode=optional_deliverable_note, projection_kind=evidence_spine_presentation
 - Next owner: next_routes=['analysis-campaign', 'write', 'finalize', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
 
 ### One-Page Paper Review
@@ -574,6 +602,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
 - Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
 - Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Source map ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_source_map, ref_kind=durable_surface, role=source_map
+- Page-block anchor ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_page_block_anchors, ref_kind=durable_surface, role=page_block_anchors
+- Figure-near-claim ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_figure_near_claim_refs, ref_kind=durable_surface, role=figure_near_claim_refs
+- Paper presentation note: body_included=False, can_authorize_publication_readiness=False, can_authorize_quality_verdict=False, can_authorize_submission_readiness=False, can_write_mas_truth=False, evidence_spine_required=True, mode=optional_deliverable_note, projection_kind=evidence_spine_presentation
 - Next owner: next_routes=['decision', 'write'], owner=MedAutoScience, source_ref=route_contract.next_routes
 
 ### One-Page Paper Review
@@ -647,6 +679,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
 - Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
 - Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Source map ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_source_map, ref_kind=durable_surface, role=source_map
+- Page-block anchor ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_page_block_anchors, ref_kind=durable_surface, role=page_block_anchors
+- Figure-near-claim ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_figure_near_claim_refs, ref_kind=durable_surface, role=figure_near_claim_refs
+- Paper presentation note: body_included=False, can_authorize_publication_readiness=False, can_authorize_quality_verdict=False, can_authorize_submission_readiness=False, can_write_mas_truth=False, evidence_spine_required=True, mode=optional_deliverable_note, projection_kind=evidence_spine_presentation
 - Next owner: next_routes=['scout', 'baseline', 'analysis-campaign', 'write', 'finalize'], owner=MedAutoScience, source_ref=route_contract.next_routes
 
 ### One-Page Paper Review
@@ -719,6 +755,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
 - Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
 - Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Source map ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_source_map, ref_kind=durable_surface, role=source_map
+- Page-block anchor ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_page_block_anchors, ref_kind=durable_surface, role=page_block_anchors
+- Figure-near-claim ref: body_included=False, can_write_mas_truth=False, owner=MedAutoScience, ref=stage_review_figure_near_claim_refs, ref_kind=durable_surface, role=figure_near_claim_refs
+- Paper presentation note: body_included=False, can_authorize_publication_readiness=False, can_authorize_quality_verdict=False, can_authorize_submission_readiness=False, can_write_mas_truth=False, evidence_spine_required=True, mode=optional_deliverable_note, projection_kind=evidence_spine_presentation
 - Next owner: next_routes=['write', 'finalize', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
 
 ### One-Page Paper Review

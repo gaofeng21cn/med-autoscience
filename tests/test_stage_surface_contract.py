@@ -138,6 +138,16 @@ def test_stage_surface_contract_exposes_deliverable_index_for_human_audit_and_op
         assert deliverable_index["human_review_policy_ref"] == "/human_review_policy"
         assert deliverable_index["review_page_policy_ref"] == "/stage_deliverable_index/review_page_policy"
         assert deliverable_index["authority_boundary"]["human_review_blocks_auto_advance_by_default"] is False
+        assert deliverable_index["source_map_ref"]["role"] == "source_map"
+        assert deliverable_index["source_map_ref"]["body_included"] is False
+        assert deliverable_index["page_block_anchor_ref"]["role"] == "page_block_anchors"
+        assert deliverable_index["figure_near_claim_ref"]["role"] == "figure_near_claim_refs"
+        presentation = deliverable_index["paper_presentation_note"]
+        assert presentation["mode"] == "optional_deliverable_note"
+        assert presentation["projection_kind"] == "evidence_spine_presentation"
+        assert presentation["can_authorize_quality_verdict"] is False
+        assert presentation["can_authorize_publication_readiness"] is False
+        assert presentation["can_authorize_submission_readiness"] is False
 
 
 def test_stage_surface_contract_exposes_one_page_paper_review_template() -> None:
@@ -174,6 +184,13 @@ def test_stage_surface_contract_exposes_one_page_paper_review_template() -> None
         ]
         assert review_page["paper_asset_delta_policy"]["body_included"] is False
         assert review_page["paper_asset_delta_policy"]["can_authorize_artifact_authority"] is False
+        assert review_page["source_grounding_policy"]["requires_source_map"] is True
+        assert review_page["source_grounding_policy"]["requires_page_block_anchors"] is True
+        assert review_page["source_grounding_policy"]["requires_figure_near_claim_refs"] is True
+        assert review_page["source_grounding_policy"]["can_write_mas_truth"] is False
+        assert review_page["paper_presentation_policy"]["mode"] == "optional_deliverable_note"
+        assert review_page["paper_presentation_policy"]["evidence_spine_required"] is True
+        assert review_page["paper_presentation_policy"]["can_authorize_publication_readiness"] is False
         assert review_page["claim_trace_policy"]["cross_stage_trace"] is True
         assert review_page["claim_trace_policy"]["can_authorize_quality_verdict"] is False
         assert review_page["freshness_signal_policy"]["status_kind"] == "traffic_light"

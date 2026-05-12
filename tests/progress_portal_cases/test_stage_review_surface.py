@@ -25,6 +25,16 @@ def _stage_review_payload() -> dict[str, object]:
                     "studies/001-risk/paper/tables/table1.csv",
                 ],
             },
+            "source_grounding": {
+                "source_map_refs": ["studies/001-risk/artifacts/source_maps/write/latest.json"],
+                "page_block_anchor_refs": ["studies/001-risk/artifacts/source_maps/write/page-blocks.json"],
+                "figure_near_claim_refs": ["studies/001-risk/artifacts/source_maps/write/figure-near-claims.json"],
+            },
+            "paper_presentation_note": {
+                "ref": "studies/001-risk/artifacts/presentations/write/evidence-spine.pptx",
+                "evidence_spine_refs": ["studies/001-risk/artifacts/presentations/write/evidence-spine.json"],
+                "summary": "主结果、Table 1 和 Figure 2 按 evidence spine 排列。",
+            },
             "claim_trace": {
                 "impact_state": "strengthened",
                 "claim_refs": ["primary-outcome-claim"],
@@ -84,6 +94,22 @@ def test_study_workbench_projects_stage_review_page_index_as_human_audit_table()
     assert review["rows"][0]["deliverable_index"]["quality_gate_ref"]["ref"] == "publication_eval/latest.json"
     assert review["rows"][0]["paper_asset_delta"]["delta_types"] == ["manuscript", "table"]
     assert review["rows"][0]["paper_asset_delta"]["body_included"] is False
+    assert review["rows"][0]["source_grounding"]["source_map_refs"] == [
+        "studies/001-risk/artifacts/source_maps/write/latest.json"
+    ]
+    assert review["rows"][0]["source_grounding"]["page_block_anchor_refs"] == [
+        "studies/001-risk/artifacts/source_maps/write/page-blocks.json"
+    ]
+    assert review["rows"][0]["source_grounding"]["figure_near_claim_refs"] == [
+        "studies/001-risk/artifacts/source_maps/write/figure-near-claims.json"
+    ]
+    assert review["rows"][0]["source_grounding"]["can_write_mas_truth"] is False
+    assert review["rows"][0]["paper_presentation_note"]["mode"] == "optional_deliverable_note"
+    assert review["rows"][0]["paper_presentation_note"]["evidence_spine_refs"] == [
+        "studies/001-risk/artifacts/presentations/write/evidence-spine.json"
+    ]
+    assert review["rows"][0]["paper_presentation_note"]["can_authorize_quality_verdict"] is False
+    assert review["rows"][0]["paper_presentation_note"]["can_authorize_publication_readiness"] is False
     assert review["rows"][0]["claim_impact"]["impact_state"] == "strengthened"
     assert review["rows"][0]["claim_impact"]["can_authorize_quality_verdict"] is False
     assert review["rows"][0]["freshness_signal"]["state"] == "green_current"
@@ -100,6 +126,8 @@ def test_study_workbench_projects_stage_review_page_index_as_human_audit_table()
     assert "最新审阅页" in html
     assert "studies/001-risk/artifacts/stage_reviews/write/latest.md" in html
     assert "manuscript, table" in html
+    assert "studies/001-risk/artifacts/source_maps/write/latest.json" in html
+    assert "studies/001-risk/artifacts/presentations/write/evidence-spine.pptx" in html
     assert "strengthened" in html
     assert "needs_revision" in html
     assert "主文结果段尚未同步 Table 1 数值" in html
@@ -149,6 +177,19 @@ def test_progress_portal_opl_projection_indexes_stage_review_refs_without_author
     assert stage_review["deliverable_index_ref"] == "studies/001-risk/artifacts/stage_reviews/index.json"
     assert stage_review["freshness_state"] == "green_current"
     assert stage_review["paper_asset_delta_types"] == ["manuscript", "table"]
+    assert stage_review["source_map_refs"] == ["studies/001-risk/artifacts/source_maps/write/latest.json"]
+    assert stage_review["page_block_anchor_refs"] == [
+        "studies/001-risk/artifacts/source_maps/write/page-blocks.json"
+    ]
+    assert stage_review["figure_near_claim_refs"] == [
+        "studies/001-risk/artifacts/source_maps/write/figure-near-claims.json"
+    ]
+    assert stage_review["paper_presentation_note_ref"] == (
+        "studies/001-risk/artifacts/presentations/write/evidence-spine.pptx"
+    )
+    assert stage_review["paper_presentation_evidence_spine_refs"] == [
+        "studies/001-risk/artifacts/presentations/write/evidence-spine.json"
+    ]
     assert stage_review["claim_impact_state"] == "strengthened"
     assert stage_review["human_review_state"] == "needs_revision"
     assert stage_review["next_owner"] == "MedAutoScience"
@@ -158,6 +199,8 @@ def test_progress_portal_opl_projection_indexes_stage_review_refs_without_author
     assert stage_review["can_mark_publication_ready"] is False
     assert "studies/001-risk/artifacts/stage_reviews/write/latest.md" in study["links"]["artifact_refs"]
     assert "studies/001-risk/artifacts/stage_reviews/index.json" in study["links"]["artifact_refs"]
+    assert "studies/001-risk/artifacts/source_maps/write/latest.json" in study["links"]["artifact_refs"]
+    assert "studies/001-risk/artifacts/presentations/write/evidence-spine.pptx" in study["links"]["artifact_refs"]
     assert "stage_review_page" not in projection["conditions"]["missing"]
 
 

@@ -50,6 +50,10 @@ DELIVERABLE_INDEX_SOURCE_REFS = (
     "controller_decisions/latest.json",
     "package_freshness_proof",
     "artifact_delta_proof",
+    "source_map",
+    "page_block_anchors",
+    "figure_near_claim_refs",
+    "paper_presentation_evidence_spine",
 )
 HUMAN_REVIEW_ALLOWED_STATES = (
     {
@@ -411,6 +415,10 @@ def _render_stage_card(card: dict[str, Any]) -> list[str]:
         _render_ref_list_line("Ledger refs", deliverable_index["ledger_refs"]),
         _render_mapping_line("Quality gate ref", deliverable_index["quality_gate_ref"]),
         _render_mapping_line("Package/artifact delta ref", deliverable_index["package_artifact_delta_ref"]),
+        _render_mapping_line("Source map ref", deliverable_index["source_map_ref"]),
+        _render_mapping_line("Page-block anchor ref", deliverable_index["page_block_anchor_ref"]),
+        _render_mapping_line("Figure-near-claim ref", deliverable_index["figure_near_claim_ref"]),
+        _render_mapping_line("Paper presentation note", deliverable_index["paper_presentation_note"]),
         _render_mapping_line("Next owner", deliverable_index["next_owner"]),
         "",
         "### One-Page Paper Review",
@@ -493,6 +501,31 @@ def _build_deliverable_index(
             "owner": "MedAutoScience",
             "body_included": False,
         },
+        "source_map_ref": {
+            "ref_kind": "durable_surface",
+            "ref": "stage_review_source_map",
+            "role": "source_map",
+            "owner": "MedAutoScience",
+            "body_included": False,
+            "can_write_mas_truth": False,
+        },
+        "page_block_anchor_ref": {
+            "ref_kind": "durable_surface",
+            "ref": "stage_review_page_block_anchors",
+            "role": "page_block_anchors",
+            "owner": "MedAutoScience",
+            "body_included": False,
+            "can_write_mas_truth": False,
+        },
+        "figure_near_claim_ref": {
+            "ref_kind": "durable_surface",
+            "ref": "stage_review_figure_near_claim_refs",
+            "role": "figure_near_claim_refs",
+            "owner": "MedAutoScience",
+            "body_included": False,
+            "can_write_mas_truth": False,
+        },
+        "paper_presentation_note": _paper_presentation_policy(),
         "next_owner": {
             "owner": "MedAutoScience",
             "next_routes": list(next_routes),
@@ -522,6 +555,8 @@ def _build_human_review_page(
             human_gate_boundary=_required_string_list(route_payload, "human_gate_boundary")
         ),
         "paper_asset_delta_policy": _paper_asset_delta_policy(),
+        "source_grounding_policy": _source_grounding_policy(),
+        "paper_presentation_policy": _paper_presentation_policy(),
         "claim_trace_policy": _claim_trace_policy(),
         "freshness_signal_policy": _freshness_signal_policy(),
         "sections": [
@@ -615,6 +650,33 @@ def _paper_asset_delta_policy() -> dict[str, object]:
         ],
         "delta_types_are_human_review_projection": True,
         "can_authorize_artifact_authority": False,
+    }
+
+
+def _source_grounding_policy() -> dict[str, object]:
+    return {
+        "mode": "source_grounded_reader_projection",
+        "requires_source_map": True,
+        "requires_page_block_anchors": True,
+        "requires_figure_near_claim_refs": True,
+        "body_included": False,
+        "can_write_mas_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_submission_readiness": False,
+    }
+
+
+def _paper_presentation_policy() -> dict[str, object]:
+    return {
+        "mode": "optional_deliverable_note",
+        "projection_kind": "evidence_spine_presentation",
+        "evidence_spine_required": True,
+        "body_included": False,
+        "can_write_mas_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_submission_readiness": False,
     }
 
 

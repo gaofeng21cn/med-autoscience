@@ -211,6 +211,11 @@ def _stage_review_artifact_refs(stage_review: Mapping[str, Any]) -> list[str]:
     refs = [
         _non_empty_text(stage_review.get("latest_review_page_ref")),
         _non_empty_text(stage_review.get("deliverable_index_ref")),
+        *_string_list(stage_review.get("source_map_refs")),
+        *_string_list(stage_review.get("page_block_anchor_refs")),
+        *_string_list(stage_review.get("figure_near_claim_refs")),
+        _non_empty_text(stage_review.get("paper_presentation_note_ref")),
+        *_string_list(stage_review.get("paper_presentation_evidence_spine_refs")),
     ]
     result: list[str] = []
     for ref in refs:

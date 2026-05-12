@@ -90,6 +90,8 @@ def runtime_stage_review_summary(value: Mapping[str, Any] | None) -> dict[str, A
     latest = _mapping(review_index.get("latest_review_page"))
     freshness = _mapping(row.get("freshness_signal"))
     paper_asset_delta = _mapping(row.get("paper_asset_delta"))
+    source_grounding = _mapping(row.get("source_grounding"))
+    presentation_note = _mapping(row.get("paper_presentation_note"))
     claim_impact = _mapping(row.get("claim_impact"))
     human_review = _mapping(row.get("human_review_annotation"))
     next_owner = _mapping(row.get("next_owner"))
@@ -100,6 +102,11 @@ def runtime_stage_review_summary(value: Mapping[str, Any] | None) -> dict[str, A
         "deliverable_index_ref": _non_empty_text(review_index.get("deliverable_index_ref")),
         "freshness_state": _non_empty_text(freshness.get("state")),
         "paper_asset_delta_types": _string_list(paper_asset_delta.get("delta_types")),
+        "source_map_refs": _string_list(source_grounding.get("source_map_refs")),
+        "page_block_anchor_refs": _string_list(source_grounding.get("page_block_anchor_refs")),
+        "figure_near_claim_refs": _string_list(source_grounding.get("figure_near_claim_refs")),
+        "paper_presentation_note_ref": _non_empty_text(presentation_note.get("ref")),
+        "paper_presentation_evidence_spine_refs": _string_list(presentation_note.get("evidence_spine_refs")),
         "claim_impact_state": _non_empty_text(claim_impact.get("impact_state")),
         "human_review_state": _non_empty_text(human_review.get("state")),
         "next_owner": _non_empty_text(next_owner.get("owner")),
@@ -152,6 +159,8 @@ def _stage_review_row(
 ) -> dict[str, Any]:
     deliverable_index = deepcopy(_mapping(stage_card.get("deliverable_index")))
     paper_asset_delta = _paper_asset_delta(explicit)
+    source_grounding = _source_grounding(explicit)
+    presentation_note = _paper_presentation_note(explicit)
     claim_impact = _claim_impact(explicit)
     freshness_signal = _freshness_signal(explicit, progress)
     human_review = _human_review_annotation(explicit)
@@ -170,6 +179,8 @@ def _stage_review_row(
         "deliverable_index_ref": deliverable_index_ref,
         "deliverable_index": deliverable_index,
         "paper_asset_delta": paper_asset_delta,
+        "source_grounding": source_grounding,
+        "paper_presentation_note": presentation_note,
         "claim_impact": claim_impact,
         "freshness_signal": freshness_signal,
         "human_review_annotation": human_review,
@@ -257,6 +268,36 @@ def _paper_asset_delta(value: Mapping[str, Any]) -> dict[str, Any]:
         "summary": _non_empty_text(delta.get("summary")),
         "body_included": False,
         "can_authorize_artifact_authority": False,
+    }
+
+
+def _source_grounding(value: Mapping[str, Any]) -> dict[str, Any]:
+    grounding = _mapping(value.get("source_grounding"))
+    return {
+        "source_map_refs": _dedupe_refs(_string_list(grounding.get("source_map_refs"))),
+        "page_block_anchor_refs": _dedupe_refs(_string_list(grounding.get("page_block_anchor_refs"))),
+        "figure_near_claim_refs": _dedupe_refs(_string_list(grounding.get("figure_near_claim_refs"))),
+        "body_included": False,
+        "can_write_mas_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_submission_readiness": False,
+    }
+
+
+def _paper_presentation_note(value: Mapping[str, Any]) -> dict[str, Any]:
+    note = _mapping(value.get("paper_presentation_note"))
+    return {
+        "mode": "optional_deliverable_note",
+        "projection_kind": "evidence_spine_presentation",
+        "ref": _non_empty_text(note.get("ref")),
+        "evidence_spine_refs": _dedupe_refs(_string_list(note.get("evidence_spine_refs"))),
+        "summary": _non_empty_text(note.get("summary")),
+        "body_included": False,
+        "can_write_mas_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_submission_readiness": False,
     }
 
 
@@ -367,18 +408,39 @@ def _authority_boundary() -> dict[str, Any]:
 
 def _row_html(row: Mapping[str, Any]) -> str:
     paper_asset_delta = _mapping(row.get("paper_asset_delta"))
+    source_grounding = _mapping(row.get("source_grounding"))
+    presentation_note = _mapping(row.get("paper_presentation_note"))
     claim_impact = _mapping(row.get("claim_impact"))
     freshness = _mapping(row.get("freshness_signal"))
     human_review = _mapping(row.get("human_review_annotation"))
     next_owner = _mapping(row.get("next_owner"))
     continue_state = _mapping(row.get("continue_state"))
     blockers = _string_list(row.get("blockers"))
+    grounding_refs = [
+        *_string_list(source_grounding.get("source_map_refs")),
+        *_string_list(source_grounding.get("page_block_anchor_refs")),
+        *_string_list(source_grounding.get("figure_near_claim_refs")),
+    ]
+    presentation_refs = [
+        _non_empty_text(presentation_note.get("ref")),
+        *_string_list(presentation_note.get("evidence_spine_refs")),
+    ]
     return (
         "<tr>"
         + _td("Stage", display_text(row.get("stage"), fallback="缺失", preserve_known_token=False))
         + _td("最新审阅页", _non_empty_text(row.get("latest_review_page_ref")) or "缺失")
         + _td("新鲜度", _non_empty_text(freshness.get("state")) or "缺失")
-        + _td("论文资产变化", ", ".join(_string_list(paper_asset_delta.get("delta_types"))) or "缺失")
+        + _td(
+            "论文资产变化",
+            _join_parts(
+                [
+                    ", ".join(_string_list(paper_asset_delta.get("delta_types"))),
+                    "source: " + "; ".join(grounding_refs) if grounding_refs else None,
+                    "presentation: " + "; ".join(ref for ref in presentation_refs if ref) if any(presentation_refs) else None,
+                ]
+            )
+            or "缺失",
+        )
         + _td("Claim 影响", _non_empty_text(claim_impact.get("impact_state")) or "缺失")
         + _td("人工判断", _non_empty_text(human_review.get("state")) or "未记录")
         + _td("下一 owner", _non_empty_text(next_owner.get("owner")) or "缺失")
@@ -389,6 +451,10 @@ def _row_html(row: Mapping[str, Any]) -> str:
 
 def _td(label: str, value: str) -> str:
     return f'<td data-label="{escape(label, quote=True)}">{escape(value)}</td>'
+
+
+def _join_parts(values: Iterable[str | None]) -> str:
+    return "; ".join(value for value in values if value)
 
 
 def _condition_list(payload: Mapping[str, Any]) -> str:
