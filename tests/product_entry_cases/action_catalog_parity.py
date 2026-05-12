@@ -226,6 +226,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "human_review_page_refs": stage_surface["stage_deliverable_index"]["human_review_page_refs"],
         "source_refs": stage_surface["stage_deliverable_index"]["source_refs"],
         "human_review_policy": stage_surface["stage_deliverable_index"]["human_review_policy"],
+        "review_page_policy": stage_surface["stage_deliverable_index"]["review_page_policy"],
         "authority_boundary": stage_surface["stage_deliverable_index"]["authority_boundary"],
         "opl_projection_boundary": "read_only_locator_no_truth_write",
         "auto_advance_boundary": {
@@ -242,6 +243,15 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert descriptor["stage_deliverable_index"]["human_review_policy"]["annotation_can_authorize_quality_verdict"] is False
     assert descriptor["stage_deliverable_index"]["human_review_policy"][
         "annotation_can_authorize_submission_readiness"
+    ] is False
+    assert descriptor["stage_deliverable_index"]["review_page_policy"]["paper_asset_delta_policy"][
+        "can_authorize_artifact_authority"
+    ] is False
+    assert descriptor["stage_deliverable_index"]["review_page_policy"]["claim_trace_policy"][
+        "can_authorize_quality_verdict"
+    ] is False
+    assert descriptor["stage_deliverable_index"]["review_page_policy"]["freshness_signal_policy"][
+        "freshness_signal_can_authorize_submission_readiness"
     ] is False
     quality_pack_contract = stage_quality_contract.build_stage_quality_pack_contract()
     assert descriptor["quality_pack_contract"] == {

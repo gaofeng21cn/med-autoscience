@@ -70,8 +70,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - stage_inputs: 本阶段输入
 - work_completed: 本阶段完成的工作
 - manuscript_or_artifact_delta: 论文资产变化
+- claim_trace: 跨阶段 claim 影响
 - evidence_and_citation_basis: 证据与引用依据
 - quality_judgment: 质量判断
+- freshness_signal: stale / freshness 红黄绿
 - advance_decision: 是否进入下一阶段
 - route_back_or_human_gate: 退回原因或人工决策点
 
@@ -141,8 +143,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - stage_inputs: 本阶段输入
 - work_completed: 本阶段完成的工作
 - manuscript_or_artifact_delta: 论文资产变化
+- claim_trace: 跨阶段 claim 影响
 - evidence_and_citation_basis: 证据与引用依据
 - quality_judgment: 质量判断
+- freshness_signal: stale / freshness 红黄绿
 - advance_decision: 是否进入下一阶段
 - route_back_or_human_gate: 退回原因或人工决策点
 
@@ -211,8 +215,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - stage_inputs: 本阶段输入
 - work_completed: 本阶段完成的工作
 - manuscript_or_artifact_delta: 论文资产变化
+- claim_trace: 跨阶段 claim 影响
 - evidence_and_citation_basis: 证据与引用依据
 - quality_judgment: 质量判断
+- freshness_signal: stale / freshness 红黄绿
 - advance_decision: 是否进入下一阶段
 - route_back_or_human_gate: 退回原因或人工决策点
 
@@ -281,8 +287,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - stage_inputs: 本阶段输入
 - work_completed: 本阶段完成的工作
 - manuscript_or_artifact_delta: 论文资产变化
+- claim_trace: 跨阶段 claim 影响
 - evidence_and_citation_basis: 证据与引用依据
 - quality_judgment: 质量判断
+- freshness_signal: stale / freshness 红黄绿
 - advance_decision: 是否进入下一阶段
 - route_back_or_human_gate: 退回原因或人工决策点
 
@@ -353,8 +361,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - stage_inputs: 本阶段输入
 - work_completed: 本阶段完成的工作
 - manuscript_or_artifact_delta: 论文资产变化
+- claim_trace: 跨阶段 claim 影响
 - evidence_and_citation_basis: 证据与引用依据
 - quality_judgment: 质量判断
+- freshness_signal: stale / freshness 红黄绿
 - advance_decision: 是否进入下一阶段
 - route_back_or_human_gate: 退回原因或人工决策点
 
@@ -426,8 +436,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - stage_inputs: 本阶段输入
 - work_completed: 本阶段完成的工作
 - manuscript_or_artifact_delta: 论文资产变化
+- claim_trace: 跨阶段 claim 影响
 - evidence_and_citation_basis: 证据与引用依据
 - quality_judgment: 质量判断
+- freshness_signal: stale / freshness 红黄绿
 - advance_decision: 是否进入下一阶段
 - route_back_or_human_gate: 退回原因或人工决策点
 
@@ -497,8 +509,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - stage_inputs: 本阶段输入
 - work_completed: 本阶段完成的工作
 - manuscript_or_artifact_delta: 论文资产变化
+- claim_trace: 跨阶段 claim 影响
 - evidence_and_citation_basis: 证据与引用依据
 - quality_judgment: 质量判断
+- freshness_signal: stale / freshness 红黄绿
 - advance_decision: 是否进入下一阶段
 - route_back_or_human_gate: 退回原因或人工决策点
 
@@ -567,8 +581,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - stage_inputs: 本阶段输入
 - work_completed: 本阶段完成的工作
 - manuscript_or_artifact_delta: 论文资产变化
+- claim_trace: 跨阶段 claim 影响
 - evidence_and_citation_basis: 证据与引用依据
 - quality_judgment: 质量判断
+- freshness_signal: stale / freshness 红黄绿
 - advance_decision: 是否进入下一阶段
 - route_back_or_human_gate: 退回原因或人工决策点
 
@@ -638,8 +654,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - stage_inputs: 本阶段输入
 - work_completed: 本阶段完成的工作
 - manuscript_or_artifact_delta: 论文资产变化
+- claim_trace: 跨阶段 claim 影响
 - evidence_and_citation_basis: 证据与引用依据
 - quality_judgment: 质量判断
+- freshness_signal: stale / freshness 红黄绿
 - advance_decision: 是否进入下一阶段
 - route_back_or_human_gate: 退回原因或人工决策点
 
@@ -708,8 +726,10 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - stage_inputs: 本阶段输入
 - work_completed: 本阶段完成的工作
 - manuscript_or_artifact_delta: 论文资产变化
+- claim_trace: 跨阶段 claim 影响
 - evidence_and_citation_basis: 证据与引用依据
 - quality_judgment: 质量判断
+- freshness_signal: stale / freshness 红黄绿
 - advance_decision: 是否进入下一阶段
 - route_back_or_human_gate: 退回原因或人工决策点
 
