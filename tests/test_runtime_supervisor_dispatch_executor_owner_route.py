@@ -403,6 +403,72 @@ def test_execute_dispatch_action_type_requires_current_consumer_dispatch(
     assert result["executed_count"] == 0
 
 
+def test_execute_dispatch_blocks_unsupported_executor_kind_fail_closed(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        action_type="runtime_platform_repair",
+        owner="external_engineering_agent",
+    )
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="runtime_platform_repair",
+        owner="external_engineering_agent",
+        required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
+        owner_route=route,
+    )
+    dispatch_payload["executor_kind"] = "hermes_agent"
+    dispatch_payload["executor_name"] = "Hermes-Agent"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "runtime_platform_repair.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch_payload)
+    monkeypatch.setattr(
+        module,
+        "_execute_runtime_platform_repair",
+        lambda **_: {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "should_not_run_for_unsupported_executor_kind",
+        },
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("runtime_platform_repair",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["execution_count"] == 1
+    assert result["blocked_count"] == 1
+    assert result["executed_count"] == 0
+    assert result["codex_dispatch_count"] == 0
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "unsupported_executor_kind"
+    assert execution["dispatch_contract_valid"] is False
+    assert execution["executor_boundary"] == {
+        "supported_executor_kind": "codex_cli_default",
+        "received_executor_kind": "hermes_agent",
+        "unsupported_executor_policy": "fail_closed",
+        "local_codex_cli_scope": "standalone_diagnostics_only",
+    }
+
+
 def test_execute_dispatch_suppresses_repeat_when_no_meaningful_artifact_delta_and_indexes_receipt(
     monkeypatch,
     tmp_path: Path,

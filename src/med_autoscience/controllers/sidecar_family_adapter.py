@@ -99,6 +99,14 @@ def _authority_boundary_payload() -> dict[str, Any]:
         "domain_truth_owner": "med-autoscience",
         "quality_gate_owner": "med-autoscience",
         "artifact_authority_owner": "med-autoscience",
+        "mas_domain_authority": [
+            "study_truth",
+            "runtime_health_truth",
+            "publication_quality_verdict",
+            "artifact_authority",
+            "owner_route_decision",
+        ],
+        "opl_receipt_policy": "transport_receipt_only_no_domain_truth_authority",
         "writes_domain_truth": False,
         "writes_artifact_gate": False,
         "forbidden_authorities": [
@@ -185,7 +193,23 @@ def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> di
             "minimal_executor": "Codex CLI",
             "provider_abstraction": "opl_family_runtime_provider",
             "target_production_provider": "Temporal",
-            "legacy_optional_providers": ["Hermes-Agent"],
+            "executor_adapter_requirement": {
+                "owner": "one-person-lab",
+                "required_capability": "opl_executor_adapter_receipt",
+                "mas_accepts": "typed_closeout_or_domain_task_receipt",
+                "mas_does_not_provide": [
+                    "hosted_executor",
+                    "hermes_executor_adapter",
+                    "claude_executor_adapter",
+                ],
+            },
+            "diagnostic_providers": [
+                {
+                    "provider": "Hermes-Agent",
+                    "classification": "optional_diagnostics",
+                    "retirement_policy": "retire_after_parity",
+                }
+            ],
             "role": "stage_attempt_queue_wakeup_retry_dead_letter_human_gate_receipt_projection_transport",
             "not_authority_for": ["study_truth", "publication_quality", "artifact_gate", "paper_package"],
         },

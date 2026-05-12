@@ -48,6 +48,13 @@ def build_opl_provider_ready_contract(
             "publication, quality, and artifact truth remain in workspace artifacts."
         ),
         "provider_topology": _provider_topology(),
+        "executor_requirements": {
+            "adapter_owner": "one-person-lab",
+            "required_adapter": "opl_executor_adapter",
+            "accepted_receipts": ["opl_provider_attempt_receipt", "typed_closeout_receipt"],
+            "domain_action_authority": DOMAIN_OWNER,
+            "mas_builtin_executor_adapter": False,
+        },
         "direct_mas_path": _direct_mas_path(profile_ref_text),
         "sidecar_contract": _sidecar_contract(profile=profile, profile_ref_text=profile_ref_text),
         "forbidden_write_guard": build_forbidden_write_guard_proof(

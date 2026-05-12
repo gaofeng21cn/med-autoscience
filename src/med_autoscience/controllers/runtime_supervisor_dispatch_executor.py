@@ -209,6 +209,15 @@ def _dispatch_contract_error(dispatch: Mapping[str, Any]) -> str | None:
     return None
 
 
+def _executor_boundary(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "supported_executor_kind": "codex_cli_default",
+        "received_executor_kind": _text(dispatch.get("executor_kind")),
+        "unsupported_executor_policy": "fail_closed",
+        "local_codex_cli_scope": "standalone_diagnostics_only",
+    }
+
+
 def _prompt_contract_error(prompt_contract: Mapping[str, Any]) -> str | None:
     for key in ("prompt_budget", "compact_evidence_packet_ref", "do_not_repeat", "repeat_suppression_key"):
         if key not in prompt_contract:
@@ -751,6 +760,7 @@ def _dispatch_execution_payload(
         "dispatch_path": str(dispatch_path),
         "dispatch_contract_valid": guard_ok,
         "dispatch_contract_blocked_reason": guard_reason,
+        "executor_boundary": _executor_boundary(dispatch),
         "owner_route": _dispatch_owner_route(dispatch) or None,
         "owner_route_current": owner_route_block_reason is None if guard_ok else None,
         "current_owner_route": current_route,
