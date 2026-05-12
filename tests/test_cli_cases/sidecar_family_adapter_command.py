@@ -206,8 +206,13 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert framework["target_production_provider"] == "Temporal"
     assert framework["executor_adapter_requirement"] == {
         "owner": "one-person-lab",
+        "generic_executor_adapter_owner": "one-person-lab",
+        "default_executor_kind": "codex_cli_default",
         "required_capability": "opl_executor_adapter_receipt",
         "mas_accepts": "typed_closeout_or_domain_task_receipt",
+        "mas_local_codex_cli_scope": "standalone_diagnostics_only",
+        "external_executor_opt_in_policy": "explicit_opl_opt_in_then_typed_receipt_only",
+        "mas_owned_hermes_or_claude_executor": False,
         "mas_does_not_provide": ["hosted_executor", "hermes_executor_adapter", "claude_executor_adapter"],
     }
     assert framework["diagnostic_providers"] == [
@@ -215,6 +220,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
             "provider": "Hermes-Agent",
             "classification": "optional_diagnostics",
             "retirement_policy": "retire_after_parity",
+            "executor_policy": "not_a_mas_executor_adapter",
         }
     ]
     assert payload["authority_boundary"]["domain_truth_owner"] == "med-autoscience"
@@ -239,12 +245,21 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
     assert provider["provider_topology"]["target_provider"] == "temporal"
     assert provider["provider_topology"]["provider_attempt_is_truth"] is False
+    assert provider["provider_topology"]["legacy_provider_classification"] == (
+        "optional_diagnostics_or_retire_after_parity"
+    )
     assert provider["executor_requirements"] == {
         "adapter_owner": "one-person-lab",
+        "generic_executor_adapter_owner": "one-person-lab",
+        "default_executor_kind": "codex_cli_default",
         "required_adapter": "opl_executor_adapter",
         "accepted_receipts": ["opl_provider_attempt_receipt", "typed_closeout_receipt"],
         "domain_action_authority": "med-autoscience",
         "mas_builtin_executor_adapter": False,
+        "mas_local_codex_cli_scope": "standalone_diagnostics_only",
+        "non_default_executor_opt_in_owner": "one-person-lab",
+        "non_default_executor_opt_in_policy": "explicit_opt_in_only_receipt_to_mas",
+        "mas_owned_hermes_or_claude_executor": False,
     }
     assert provider["direct_mas_path"]["status"] == "authoritative"
     assert provider["truth_source_precedence"]["direct_mas_skill_path"] == "authoritative"

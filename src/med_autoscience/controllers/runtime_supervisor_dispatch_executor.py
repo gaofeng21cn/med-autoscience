@@ -211,10 +211,17 @@ def _dispatch_contract_error(dispatch: Mapping[str, Any]) -> str | None:
 
 def _executor_boundary(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     return {
+        "adapter_owner": "med-autoscience",
+        "executor_requirement_owner": "one-person-lab",
+        "mas_executor_adapter_policy": "codex_cli_default_only",
         "supported_executor_kind": "codex_cli_default",
+        "default_executor_kind": "codex_cli_default",
         "received_executor_kind": _text(dispatch.get("executor_kind")),
         "unsupported_executor_policy": "fail_closed",
         "local_codex_cli_scope": "standalone_diagnostics_only",
+        "external_executor_opt_in_owner": "one-person-lab",
+        "external_executor_opt_in_policy": "typed_closeout_or_domain_task_receipt_only",
+        "mas_owned_hermes_or_claude_executor": False,
     }
 
 

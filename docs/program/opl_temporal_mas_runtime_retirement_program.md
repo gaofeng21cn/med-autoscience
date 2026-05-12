@@ -12,8 +12,9 @@ Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full rec
 本文是 MAS program portfolio 的 P2，也是当前执行顺序的第一优先级。P2 不是针对每个 scheduler、Hermes、MDS、Portal 或 SQLite 相关 surface 的整包退役清单。它持有内容级 framework transition：
 
 - MAS 暴露 domain-agent descriptor、stage/control-plane metadata、sidecar export/dispatch、owner receipt、projection、artifact locator 和 authority refs。
-- OPL 提供 Codex-first、stage-led framework 层：durable stage attempt、queue、wakeup、retry/dead-letter、approval/human gate transport、provider receipt、projection、shared lifecycle/index primitives。
+- OPL 提供 Codex-first、stage-led framework 层：generic executor adapter、durable stage attempt、queue、wakeup、retry/dead-letter、approval/human gate transport、provider receipt、projection、shared lifecycle/index primitives。
 - MAS 保留 study truth、paper quality、publication verdict、owner route、runtime owner decision 和 artifact authority。
+- MAS 只声明 executor requirement、接收 OPL typed closeout / domain-task receipt；MAS 本地 `codex_cli_default` 只保留 standalone diagnostics，不扩展成 Hermes/Claude 执行器。
 
 详细 module matrix 和旧 phase checklist 已归档在 full record。当前执行应选择下面的内容 lane，而不是把旧文档当成一个大计划整体执行。
 
@@ -80,11 +81,13 @@ cutover 或物理退役前仍未完成：
 
 OPL/Temporal 可以持有：
 
-- stage attempt identity、queue state、activity status、retry/dead-letter state、approval/human-gate transport state、provider history、query/projection、framework lifecycle/index/cache metadata。
+- generic executor adapter、Codex CLI default selection、Hermes/Claude explicit opt-in executor routing、stage attempt identity、queue state、activity status、retry/dead-letter state、approval/human-gate transport state、provider history、query/projection、framework lifecycle/index/cache metadata。
 
 MAS 必须持有：
 
 - study truth、runtime health truth、paper progress SLO、owner-route decision、AI reviewer verdict、publication gate、evidence/review ledgers、canonical manuscript/package authority、terminal attach owner gate 和 MAS action receipts。
+
+MAS sidecar/dispatcher/readiness 只能表达 OPL executor requirement 或接收 OPL receipt。`executor_kind` 的 MAS-owned 支持面保持 `codex_cli_default`，并且仅用于 standalone diagnostics；Hermes scheduler / hosted runtime 文字统一按 optional diagnostics/provenance 或 `retire_after_parity` 处理。
 
 Provider attempt completion、queue hydration 或 worker liveness 只是支撑证据。只有 MAS owner surfaces 显示 artifact delta、gate owner progress、AI reviewer judgment update、route decision、stop-loss、human gate 或 typed blocker 时，才算 paper progress。
 

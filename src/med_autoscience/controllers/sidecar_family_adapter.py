@@ -195,8 +195,13 @@ def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> di
             "target_production_provider": "Temporal",
             "executor_adapter_requirement": {
                 "owner": "one-person-lab",
+                "generic_executor_adapter_owner": "one-person-lab",
+                "default_executor_kind": "codex_cli_default",
                 "required_capability": "opl_executor_adapter_receipt",
                 "mas_accepts": "typed_closeout_or_domain_task_receipt",
+                "mas_local_codex_cli_scope": "standalone_diagnostics_only",
+                "external_executor_opt_in_policy": "explicit_opl_opt_in_then_typed_receipt_only",
+                "mas_owned_hermes_or_claude_executor": False,
                 "mas_does_not_provide": [
                     "hosted_executor",
                     "hermes_executor_adapter",
@@ -208,6 +213,7 @@ def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> di
                     "provider": "Hermes-Agent",
                     "classification": "optional_diagnostics",
                     "retirement_policy": "retire_after_parity",
+                    "executor_policy": "not_a_mas_executor_adapter",
                 }
             ],
             "role": "stage_attempt_queue_wakeup_retry_dead_letter_human_gate_receipt_projection_transport",
