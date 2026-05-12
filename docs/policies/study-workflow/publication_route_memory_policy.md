@@ -1,7 +1,7 @@
 # Publication Route Memory Policy
 
 Status: `active policy`
-Date: `2026-05-11`
+Date: `2026-05-12`
 Owner: `MedAutoScience`
 Purpose: keep reusable publication-route experience available to Codex-led stages without turning it into a mechanical recipe engine.
 State: `active operating policy`
@@ -13,10 +13,10 @@ Publication routes such as clinical classifier / risk stratification, subtype re
 
 They are not a programmatic recipe engine. Their role is to remind Codex CLI of reusable medical publication experience at the right stage, then let the stage produce context-specific research judgment, candidate routes, failed paths, and next actions.
 
-The correct shape is:
+The landed MAS shape is:
 
-- lightweight route memory cards
-- minimal searchable metadata
+- rich natural-language route memory cards
+- minimal searchable metadata for retrieval and governance
 - stage-specific retrieval and injection
 - typed closeout writeback
 - controller/evidence guards around claims and publication authority
@@ -44,17 +44,22 @@ Therefore route memory should preserve rich prose, caveats, examples, and failur
 
 ## Route Memory Card Shape
 
-Each reusable route memory card should remain readable as prose. A useful card normally contains:
+Each reusable route memory card should remain readable as prose. A useful card is not just a route name plus two sentences. The current MAS seed/apply surface requires a maintainer-useful card body with:
 
 - title and route family
 - short description of the publication pattern
-- when it is worth considering
-- data signals that make it promising
-- common evidence package
-- common figures/tables or display routes
-- common failure modes and stop/pivot signals
-- examples or prior study refs when available
-- notes on journal/reviewer fit
+- `best_fit`: when it is worth considering
+- `poor_fit`: when the route is likely misleading or weak
+- `minimum_evidence_package`: the evidence package a stage should look for
+- `analysis_pattern`: common analysis shape, still non-binding
+- `table_figure_pattern`: common tables, figures, or display routes
+- `claim_boundary`: what the route can and cannot claim
+- `reviewer_risks`: recurring reviewer objections
+- `pivot_or_stop_rules`: when to repair, reroute, downgrade, or stop
+- `codex_stage_guidance`: short per-stage guidance for `scout`, `idea`, `decision`, `analysis-campaign`, and `review`
+- `example_signals`: optional data signals that make the route promising
+- `failure_modes`: common reasons the route fails
+- `source_refs`: policy, prior card, receipt, or study provenance refs
 
 Metadata should be minimal:
 
@@ -65,7 +70,9 @@ Metadata should be minimal:
 - status such as `draft`, `active`, `paper_proven`, `deprecated`
 - freshness or review date
 
-The metadata supports retrieval. It does not decide the research route.
+The metadata supports retrieval. The rich prose supports Codex CLI reasoning. Neither decides the research route.
+
+Thin cards are rejected at seed apply time. This is a quality contract for memory usefulness, not a recipe engine. The required fields prevent the library from degrading into a list of labels; they do not prescribe exact code, model choice, statistical path, route score, or final manuscript claim.
 
 ## Stage Use
 
@@ -122,9 +129,19 @@ Controller and quality surfaces remain responsible for boundaries, evidence, own
 
 ## Relationship To Existing Archetypes
 
-Existing `preferred_study_archetypes` and `research_route_bias_policy` are the first generation of route memory. They should be treated as high-level memory seeds and stage bias, not as exhaustive or binding route definitions.
+Existing `preferred_study_archetypes` and `research_route_bias_policy` are the first generation of route memory. In the earlier MAS implementation they were used as route bias and contract input, not as a full publication-route memory library.
 
-Future migration may move them into a richer route-memory library, but the migration should preserve natural-language prose and executor-level autonomy. It should not turn each archetype into a hard-coded workflow unless a specific route has matured into a separate audited capability with its own evidence, tests, and owner boundary.
+The actual code path is:
+
+- profiles carry `preferred_study_archetypes`;
+- study payloads may carry `study_archetype` or `preferred_study_archetype`;
+- `_medical_contract_support.resolve_study_archetype()` selects the archetype from study payload or profile;
+- `medical_analysis_contract`, `medical_reporting_contract`, `medical_paper_readiness`, `medical_quality_operating_system`, and `statistical_discipline_runtime` use that archetype to choose or check analysis/reporting/readiness expectations;
+- `overlay/installer.py` renders the archetype prose into the local overlay prompt/context through `render_archetype_block()`.
+
+That means `study_archetypes.md` and `med_autoscience.policies.study_archetypes` were useful first-generation route hints, but they were not a memory body store, did not support workspace-specific accepted/rejected lessons, did not carry receipt provenance, and did not provide route-memory inventory/writeback management.
+
+Current migration has moved those archetypes into the richer seed fixture as full natural-language route memory cards while preserving executor-level autonomy. They should not become hard-coded workflows unless a specific route matures into a separate audited capability with its own evidence, tests, owner boundary, and failure behavior.
 
 ## OPL Boundary
 
@@ -151,18 +168,30 @@ The practical migration rule is: when a lesson helps Codex decide what to explor
 
 ## Current Implementation Posture
 
-MAS now exposes a thin `domain_memory_descriptor` in the product-entry manifest for `publication_route_memory` and a MAS-owned workspace apply surface:
+MAS now exposes `publication_route_memory` as a MAS-owned domain memory surface:
 
 - `publication_route_memory_pack` at `portfolio/research_memory/publication_route_memory/memory_pack.json`
 - `publication_route_memory_apply_receipt` under `portfolio/research_memory/publication_route_memory/migration_receipts`
 - `publication_route_memory_inventory` through `medautosci publication route-memory-inventory --workspace-root <workspace>` as the read-only, body-free-by-default inventory/export surface
-- `stage_knowledge_packet.publication_route_memory_refs` as the small stage-entry retrieval set
+- `stage_knowledge_packet.publication_route_memory_refs` as the small stage-entry retrieval set; it carries ids, route family, title, locator, receipt ref, authority boundary, and a concise `route_memory_summary`, not the whole card body
 - `memory_write_router_receipt` mirrored under `portfolio/research_memory/publication_route_memory/writeback_receipts`
 - `paper_soak_memory_apply_proof` under `artifacts/stage_knowledge/paper_soak_memory_apply_proof/latest.json` as the controlled read-only proof surface that links stage route-memory refs, typed closeout proposal refs, MAS router receipt refs, workspace writeback receipt refs, and OPL/Aion display receipt refs
 
-Accepted `workspace_reusable` lessons from typed stage closeout now update the workspace `publication_route_memory_pack` as natural-language memory cards. This makes a MAS-accepted lesson available to later stage-entry retrieval while preserving idempotent writeback receipts and the context-only authority boundary.
+The repo seed fixture now contains nine rich seed cards:
 
-MAS exposes these as callable owner surfaces through `publication-route-memory-apply-seed`, `publication-route-memory-inventory`, `stage-knowledge-packet`, `stage-memory-closeout-route`, and `paper-soak-memory-proof`. These commands are domain-owned execution/read/receipt surfaces; they do not make OPL the memory body owner or publication quality authority. The grouped public form for the inventory is `medautosci publication route-memory-inventory --workspace-root <workspace>`. By default it returns card metadata, locator refs, filters, receipt counts, and authority boundary while excluding `prose_summary` and `failure_modes`; `--include-card-body` is reserved for maintainer review.
+- `publication_route_memory_seed__clinical_classifier`
+- `publication_route_memory_seed__clinical_subtype_reconstruction`
+- `publication_route_memory_seed__negative_result_stoploss`
+- `publication_route_memory_seed__external_validation_model_update`
+- `publication_route_memory_seed__gray_zone_triage`
+- `publication_route_memory_seed__llm_agent_clinical_task`
+- `publication_route_memory_seed__mechanistic_sidecar_extension`
+- `publication_route_memory_seed__survey_trend_analysis`
+- `publication_route_memory_seed__external_validation_rescue`
+
+Accepted `workspace_reusable` lessons from typed stage closeout update the workspace `publication_route_memory_pack` as natural-language memory cards. When closeout payloads include rich card sections, MAS preserves those fields in the promoted card. This makes a MAS-accepted lesson available to later stage-entry retrieval while preserving idempotent writeback receipts and the context-only authority boundary.
+
+MAS exposes these as callable owner surfaces through `publication-route-memory-apply-seed`, `publication-route-memory-inventory`, `stage-knowledge-packet`, `stage-memory-closeout-route`, and `paper-soak-memory-proof`. These commands are domain-owned execution/read/receipt surfaces; they do not make OPL the memory body owner or publication quality authority. The grouped public form for the inventory is `medautosci publication route-memory-inventory --workspace-root <workspace>`. By default it returns card metadata, locator refs, filters, receipt counts, and authority boundary while excluding the rich body. `--include-card-body` is reserved for maintainer review and returns the prose sections such as `best_fit`, `minimum_evidence_package`, `table_figure_pattern`, `claim_boundary`, `reviewer_risks`, `pivot_or_stop_rules`, and `failure_modes`.
 
 2026-05-12 fresh paper-line proof: DM002 read-only closeout consumed `publication_route_memory_seed__negative_result_stoploss` and carried MAS-owned writeback receipt refs under both the study stage-knowledge artifact root and workspace `portfolio/research_memory/publication_route_memory/writeback_receipts`. The `real-paper-autonomy-guarded-apply-proof` surface now promotes this into a final ref-level memory proof for DM002: consumed route-memory refs and MAS router/workspace/OPL-Aion receipt refs are visible, `body_included=false`, and missing live apply permission remains a typed blocker rather than an artifact delta claim. `paper_autonomy/guarded-apply` can now write a MAS sidecar dispatch receipt that carries the same DM002 ref chain plus provider attempt id, idempotency key, source fingerprint, no-forbidden-write proof, and typed blocker refs. This proves the ref chain is usable for OPL/Aion projection and provider-hosted receipt closure. It does not let OPL read memory prose, accept/reject writebacks, or mutate workspace truth.
 
@@ -195,7 +224,9 @@ Current route memories are intentionally split by authority:
 - card ids: `publication_route_memory_seed__external_validation_rescue`, `publication_route_memory_seed__negative_result_stoploss`, `publication_route_memory_writeback__dm002-route-memory-proof`
 - supporting files: `migration_receipts/publication_route_memory_seed_apply_a2e037207a33f455.json`, `writeback_proposals/stage_memory_updates.jsonl`, `writeback_receipts/dm002-paper-soak-memory-proof-20260512.json`
 
-This is human-readable enough for maintainers today: cards contain prose, route family, stage applicability, status, provenance, and failure modes. It is not yet a polished human management UI. The next low-risk management surface should be a read-only inventory/export grouped by workspace, stage applicability, route family, status, source refs, and receipt refs. Write/edit should continue to go through MAS owner surfaces until an audited editor with receipt generation exists.
+After applying the current seed fixture to a workspace, maintainers get a rich starting library of nine cards, not only the three DM002-era workspace cards. Existing workspaces may still show the older three-card pack until the seed fixture is re-applied or refreshed through MAS owner surfaces.
+
+This is human-readable enough for maintainers today: cards contain prose, route family, stage applicability, status, provenance, fit/poor-fit guidance, minimum evidence package, common analysis/display patterns, claim boundaries, reviewer risks, pivot/stop rules, and failure modes. It is not yet a polished human management UI. The next low-risk management surface should be a read-only inventory/export grouped by workspace, stage applicability, route family, status, source refs, and receipt refs. Write/edit should continue to go through MAS owner surfaces until an audited editor with receipt generation exists.
 
 The read-only CLI inventory is now that first management surface. Use it as the default operator and OPL/Aion ingestion entrypoint because it gives stable metadata, locator refs, and receipt summaries without copying the memory body:
 
@@ -207,7 +238,7 @@ medautosci publication route-memory-inventory --workspace-root <workspace> --rou
 
 The first two forms are suitable for body-free projection. The `--include-card-body` form is for MAS maintainers inspecting or repairing the natural-language memory card itself.
 
-Manual JSON editing is allowed only as maintainer-level repair. It must preserve stable `memory_id`, route family, stage applicability, source/provenance refs, status/freshness, and receipt traceability. It must not add current-paper claims, publication readiness, evidence verdicts, review findings, or artifact state as route memory.
+Manual JSON editing is allowed only as maintainer-level repair. It must preserve stable `memory_id`, route family, stage applicability, source/provenance refs, status/freshness, receipt traceability, and the rich natural-language body. It must not add current-paper claims, publication readiness, evidence verdicts, review findings, or artifact state as route memory.
 
 ## Migration Plan
 

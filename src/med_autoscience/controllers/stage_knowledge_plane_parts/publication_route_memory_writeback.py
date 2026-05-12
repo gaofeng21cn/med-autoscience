@@ -14,6 +14,16 @@ from med_autoscience.stage_knowledge_contract import (
 
 
 DEFAULT_WRITEBACK_STAGE_APPLICABILITY = ("scout", "idea", "decision", "analysis-campaign", "review")
+PUBLICATION_ROUTE_MEMORY_RICH_LIST_FIELDS = (
+    "best_fit",
+    "poor_fit",
+    "minimum_evidence_package",
+    "analysis_pattern",
+    "table_figure_pattern",
+    "reviewer_risks",
+    "pivot_or_stop_rules",
+    "example_signals",
+)
 
 
 def sync_accepted_publication_route_memory_cards(
@@ -48,7 +58,7 @@ def sync_accepted_publication_route_memory_cards(
 def _publication_route_memory_card_from_write(write: Mapping[str, Any], *, receipt_ref: str) -> dict[str, Any]:
     payload = _mapping(write.get("payload"))
     write_id = _required_text("write_id", write.get("write_id"))
-    return {
+    card = {
         "memory_id": f"publication_route_memory_writeback__{_safe_key(write_id)}",
         "status": _text(payload.get("status")) or "active",
         "route_family": _text(payload.get("route_family")) or "stage_memory_writeback",
@@ -56,11 +66,18 @@ def _publication_route_memory_card_from_write(write: Mapping[str, Any], *, recei
         or list(DEFAULT_WRITEBACK_STAGE_APPLICABILITY),
         "title": _text(payload.get("title")) or _text(payload.get("lesson"))[:80] or write_id,
         "prose_summary": _text(payload.get("prose_summary")) or _text(payload.get("lesson")),
+        "claim_boundary": _text(payload.get("claim_boundary")),
+        "codex_stage_guidance": _mapping(payload.get("codex_stage_guidance")),
         "failure_modes": _text_list(payload.get("failure_modes")),
         "source_refs": _text_list(write.get("source_refs")) or _text_list(payload.get("source_refs")),
         "source_receipt_ref": receipt_ref,
         "authority_boundary": "context_only_not_publication_authority",
     }
+    for field in PUBLICATION_ROUTE_MEMORY_RICH_LIST_FIELDS:
+        values = _text_list(payload.get(field))
+        if values:
+            card[field] = values
+    return card
 
 
 def _publication_route_memory_pack_from_cards(

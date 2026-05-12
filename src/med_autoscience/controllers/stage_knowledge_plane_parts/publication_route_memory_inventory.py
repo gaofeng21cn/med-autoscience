@@ -61,6 +61,7 @@ def build_publication_route_memory_inventory(
             for card in filtered_cards
         ],
         "receipt_summary": _publication_route_memory_receipt_summary(pack_root=pack_root),
+        "opl_aion_receipt_inventory": _opl_aion_receipt_inventory(pack_root=pack_root),
         "locator_refs": {
             "memory_pack": str(pack_path),
             "migration_receipts": str(pack_root / "migration_receipts"),
@@ -101,6 +102,16 @@ def _publication_route_inventory_card(card: Mapping[str, Any], *, include_body: 
     }
     if include_body:
         inventory_card["prose_summary"] = _text(card.get("prose_summary"))
+        inventory_card["best_fit"] = _text_list(card.get("best_fit"))
+        inventory_card["poor_fit"] = _text_list(card.get("poor_fit"))
+        inventory_card["minimum_evidence_package"] = _text_list(card.get("minimum_evidence_package"))
+        inventory_card["analysis_pattern"] = _text_list(card.get("analysis_pattern"))
+        inventory_card["table_figure_pattern"] = _text_list(card.get("table_figure_pattern"))
+        inventory_card["claim_boundary"] = _text(card.get("claim_boundary"))
+        inventory_card["reviewer_risks"] = _text_list(card.get("reviewer_risks"))
+        inventory_card["pivot_or_stop_rules"] = _text_list(card.get("pivot_or_stop_rules"))
+        inventory_card["codex_stage_guidance"] = _mapping(card.get("codex_stage_guidance"))
+        inventory_card["example_signals"] = _text_list(card.get("example_signals"))
         inventory_card["failure_modes"] = _text_list(card.get("failure_modes"))
     return inventory_card
 
@@ -119,6 +130,72 @@ def _publication_route_memory_receipt_summary(*, pack_root: Path) -> dict[str, A
     }
 
 
+def _opl_aion_receipt_inventory(*, pack_root: Path) -> dict[str, Any]:
+    receipt_paths = [
+        *sorted((pack_root / "migration_receipts").glob("*.json")),
+        *sorted((pack_root / "writeback_receipts").glob("*.json")),
+    ]
+    receipts = [_receipt_ref_projection(path) for path in receipt_paths]
+    return {
+        "body_included": False,
+        "read_only": True,
+        "receipt_count": len(receipts),
+        "receipts": receipts,
+    }
+
+
+def _receipt_ref_projection(path: Path) -> dict[str, Any]:
+    payload = _read_json(path)
+    return {
+        "ref": str(path),
+        "receipt_status": _text(payload.get("status")),
+        "receipt_kind": _text(payload.get("surface")) or _text(payload.get("surface_kind")),
+        "accepted_refs": _accepted_receipt_refs(payload),
+        "rejected_refs": _rejected_receipt_refs(payload),
+        "typed_blocker_count": len(_mapping_list(payload.get("typed_blockers"))),
+        "body_included": False,
+    }
+
+
+def _accepted_receipt_refs(payload: Mapping[str, Any]) -> list[dict[str, str]]:
+    accepted_memory_ids = _text_list(payload.get("accepted_memory_ids"))
+    if accepted_memory_ids:
+        return [{"memory_id": memory_id, "reason": "", "status": "accepted"} for memory_id in accepted_memory_ids]
+    refs = []
+    for write in _mapping_list(payload.get("accepted_writes")):
+        refs.append(
+            {
+                "write_id": _text(write.get("write_id")),
+                "reason": _text(write.get("reason")),
+                "status": "accepted",
+            }
+        )
+    return refs
+
+
+def _rejected_receipt_refs(payload: Mapping[str, Any]) -> list[dict[str, str]]:
+    rejected_cards = _mapping_list(payload.get("rejected_cards"))
+    if rejected_cards:
+        return [
+            {
+                "memory_id": _text(card.get("memory_id")),
+                "reason": _text(card.get("reason")),
+                "status": "rejected",
+            }
+            for card in rejected_cards
+        ]
+    refs = []
+    for write in _mapping_list(payload.get("rejected_writes")):
+        refs.append(
+            {
+                "write_id": _text(write.get("write_id")),
+                "reason": _text(write.get("reason")),
+                "status": "rejected",
+            }
+        )
+    return refs
+
+
 def _validate_publication_route_memory_stage(stage: str | None) -> str:
     resolved = _text(stage)
     if resolved not in PUBLICATION_ROUTE_MEMORY_STAGES:
@@ -130,6 +207,10 @@ def _mapping_list(value: object) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
     return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
 
 
 def _text(value: object) -> str:
