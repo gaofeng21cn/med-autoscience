@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any, Callable
+
+from med_autoscience.stable_json import write_stable_json
 
 
 STABLE_CURRENT_PACKAGE_FRESHNESS_RELATIVE_PATH = Path("artifacts/controller/current_package_freshness/latest.json")
@@ -182,6 +183,5 @@ def write_current_package_freshness_proof(
             stable_current_package_freshness_path(study_root=study_root).unlink(missing_ok=True)
         return None
     proof_path = stable_current_package_freshness_path(study_root=study_root)
-    proof_path.parent.mkdir(parents=True, exist_ok=True)
-    proof_path.write_text(json.dumps(proof, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_stable_json(proof_path, proof)
     return proof

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.stable_json import write_stable_json
 from med_autoscience.controllers.medical_reporting_guidelines import build_guideline_quality_gate_expectation
 from med_autoscience.policies.medical_manuscript_draft_quality import (
     build_medical_manuscript_blueprint_contract,
@@ -618,8 +619,7 @@ def materialize_study_charter(
             "downstream_contract_roles": dict(DOWNSTREAM_CONTRACT_ROLES),
         },
     }
-    charter_path.parent.mkdir(parents=True, exist_ok=True)
-    charter_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_stable_json(charter_path, payload)
     return {
         "charter_id": str(payload["charter_id"]),
         "artifact_path": str(charter_path),

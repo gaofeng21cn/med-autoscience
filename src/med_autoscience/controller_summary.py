@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.stable_json import write_stable_json
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 
 __all__ = [
@@ -138,8 +139,7 @@ def materialize_controller_summary(
         },
     )
     summary_path = stable_controller_summary_path(study_root=study_root)
-    summary_path.parent.mkdir(parents=True, exist_ok=True)
-    summary_path.write_text(json.dumps(normalized_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_stable_json(summary_path, normalized_payload)
     return {
         "summary_id": str(normalized_payload["summary_id"]),
         "artifact_path": str(summary_path),
