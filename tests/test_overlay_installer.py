@@ -33,9 +33,15 @@ MEDICAL_RUNTIME_CONTRACT_PATHS = (
 )
 OVERLAY_PREFIX = "medical-research"
 OVERLAY_TEMPLATE_ROOT = Path(__file__).resolve().parents[1] / "src" / "med_autoscience" / "overlay" / "templates"
+STAGE_SKILL_SURFACE_TOKEN = "{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}"
+ROUTE_BIAS_TOKEN = "{{MED_AUTOSCIENCE_ROUTE_BIAS}}"
+STUDY_ARCHETYPES_TOKEN = "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}"
+MEDICAL_RUNTIME_CONTRACT_TOKEN = "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}"
 STAGE_SKILL_TEMPLATE_FILES = {
+    "analysis-campaign": "medical-research-analysis-campaign.SKILL.md",
     "baseline": "medical-research-baseline.SKILL.md",
     "experiment": "medical-research-experiment.SKILL.md",
+    "review": "medical-research-review.SKILL.md",
 }
 
 
@@ -89,48 +95,69 @@ def test_stage_skill_surface_token_renders_machine_derived_block() -> None:
         default_citation_style=None,
     )
 
-    assert "{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}" not in rendered
+    assert STAGE_SKILL_SURFACE_TOKEN not in rendered
     assert "## MAS stage surface" in rendered
     assert "- Stage: `baseline` / Baseline" in rendered
     assert "statistical_analysis_pack" in rendered
     assert "- Publication readiness authority: `false`" in rendered
 
 
-@pytest.mark.parametrize("skill_id", ("baseline", "experiment"))
+@pytest.mark.parametrize("skill_id", tuple(STAGE_SKILL_TEMPLATE_FILES))
 def test_stage_skill_surface_templates_are_complete_human_readable_surfaces(skill_id: str) -> None:
-    skill_path = OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES[skill_id]
-    skill_text = skill_path.read_text(encoding="utf-8")
+    skill_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES[skill_id]).read_text(encoding="utf-8")
 
     assert skill_text.startswith("---\n")
     assert f"name: {skill_id}" in skill_text
     assert "description:" in skill_text
-    assert "{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}" in skill_text
+    assert STAGE_SKILL_SURFACE_TOKEN in skill_text
     assert "Stage card ref:" in skill_text
     assert "Route contract ref:" in skill_text
-    assert "## Knowledge obligations" in skill_text
-    assert "## Quality pack refs" in skill_text
-    assert "## Allowed MAS owner tools" in skill_text
-    assert "## Forbidden actions" in skill_text
-    assert "## Closeout packet" in skill_text
-    assert "## Route back and human gate" in skill_text
-    assert "## OPL boundary" in skill_text
-    assert "## Clean-room boundary" in skill_text
+    assert "stage_knowledge_contract.py" in skill_text
+    assert "stage_quality_contract.py" in skill_text
+    assert "Allowed MAS owner tools" in skill_text
+    assert "OPL Boundary" in skill_text
+    assert "no RH dependency" in skill_text
 
 
 def test_baseline_skill_surface_binds_route_bias_and_archetype_tokens() -> None:
     skill_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES["baseline"]).read_text(encoding="utf-8")
 
-    assert "{{MED_AUTOSCIENCE_ROUTE_BIAS}}" in skill_text
-    assert "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}" in skill_text
-    assert "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}" not in skill_text
+    assert ROUTE_BIAS_TOKEN in skill_text
+    assert STUDY_ARCHETYPES_TOKEN in skill_text
+    assert MEDICAL_RUNTIME_CONTRACT_TOKEN not in skill_text
 
 
 def test_experiment_skill_surface_binds_runtime_route_and_archetype_tokens() -> None:
     skill_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES["experiment"]).read_text(encoding="utf-8")
 
-    assert "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}" in skill_text
-    assert "{{MED_AUTOSCIENCE_ROUTE_BIAS}}" in skill_text
-    assert "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}" in skill_text
+    assert MEDICAL_RUNTIME_CONTRACT_TOKEN in skill_text
+    assert ROUTE_BIAS_TOKEN in skill_text
+    assert STUDY_ARCHETYPES_TOKEN in skill_text
+
+
+def test_analysis_campaign_and_review_full_skill_templates_are_stage_surfaces() -> None:
+    analysis_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES["analysis-campaign"]).read_text(
+        encoding="utf-8"
+    )
+    review_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES["review"]).read_text(encoding="utf-8")
+
+    assert MEDICAL_RUNTIME_CONTRACT_TOKEN in analysis_text
+    assert MEDICAL_RUNTIME_CONTRACT_TOKEN in review_text
+    assert ROUTE_BIAS_TOKEN in analysis_text
+    assert STUDY_ARCHETYPES_TOKEN in analysis_text
+    assert "Bounded Analysis Candidate Board" in analysis_text
+    assert "Statistical Discipline" in analysis_text
+    assert "Claim-Evidence And Display Repair" in analysis_text
+    assert "Route-Back Discipline" in analysis_text
+
+    assert ROUTE_BIAS_TOKEN not in review_text
+    assert STUDY_ARCHETYPES_TOKEN not in review_text
+    assert "Adversarial Review" in review_text
+    assert "review_signal_only" in review_text
+    assert "Claim Downgrade" in review_text
+    assert "Citation Repair" in review_text
+    assert "Reusable Critique Lessons" in review_text
+    assert "Route-Back Closeout" in review_text
 
 
 

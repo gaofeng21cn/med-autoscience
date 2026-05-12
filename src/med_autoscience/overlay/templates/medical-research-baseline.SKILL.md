@@ -74,7 +74,7 @@ The core lane renderer injects the generated stage skill surface here.
 - Route back: baseline result cannot support the active claim, comparator or cohort definition changes materially, or reviewer-first scan finds missing baseline proof
 - Human gate: comparator, cohort, or endpoint redefinition changes the active claim boundary, or the baseline readout points to a stop decision or direction reset
 
-## OPL boundary
+## OPL Boundary
 
 - OPL may project, dispatch, and read refs.
 - OPL must not write MAS truth, authorize quality verdicts, own canonical artifacts, or accept memory writeback.
@@ -82,5 +82,5 @@ The core lane renderer injects the generated stage skill surface here.
 ## Clean-room boundary
 
 - Treat source, gap, numeric trace, and claim-evidence material as MAS-owned inputs or gates only.
-- Do not import Research Harness runtime, database, dashboard, MCP, runner, or verdict authority.
+- no RH dependency: do not import Research Harness runtime, database, dashboard, MCP, runner, or verdict authority.
 

@@ -76,7 +76,7 @@ The core lane renderer injects the generated stage skill surface here.
 - Route back: run outcome invalidates the current study line, result quality or reproducibility gaps block downstream review, or the controller boundary changes before interpretation stabilizes
 - Human gate: the primary experiment target changes the locked study boundary or main claim family, or result interpretation would authorize a new externally visible claim
 
-## OPL boundary
+## OPL Boundary
 
 - OPL may project, dispatch, and read refs.
 - OPL must not write MAS truth, authorize quality verdicts, own canonical artifacts, or accept memory writeback.
@@ -84,5 +84,5 @@ The core lane renderer injects the generated stage skill surface here.
 ## Clean-room boundary
 
 - Treat source, gap, numeric trace, and claim-evidence material as MAS-owned inputs or gates only.
-- Do not import Research Harness runtime, database, dashboard, MCP, runner, or verdict authority.
+- no RH dependency: do not import Research Harness runtime, database, dashboard, MCP, runner, or verdict authority.
 
