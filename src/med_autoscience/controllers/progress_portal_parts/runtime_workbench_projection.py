@@ -164,6 +164,12 @@ def _selected_workbench_study(
         or _non_empty_text(runtime.get("active_run_id"))
     )
     stage_review = runtime_stage_review_summary(_mapping(study_workbench.get("stage_review_index")))
+    reference_projection = _reference_projection(
+        progress=progress,
+        runtime=runtime,
+        freshness=freshness,
+        stage_review=stage_review,
+    )
     return {
         "study_id": study_id,
         "display_title": study_id,
@@ -185,6 +191,298 @@ def _selected_workbench_study(
         "actions": _workbench_actions(),
         "workbench": dict(study_workbench),
         "stage_review": stage_review,
+        "reference_projection": reference_projection,
+    }
+
+
+def _reference_projection(
+    *,
+    progress: Mapping[str, Any],
+    runtime: Mapping[str, Any],
+    freshness: Mapping[str, Any],
+    stage_review: Mapping[str, Any],
+) -> dict[str, Any]:
+    provider_attempt = _provider_attempt_lane(progress)
+    guarded_apply = _guarded_apply_lane(progress)
+    memory_receipt = _memory_receipt_lane(progress)
+    freshness_lane = _freshness_lane(freshness=freshness, stage_review=stage_review)
+    action_receipts = _safety_action_receipt_lane(progress=progress, runtime=runtime)
+    lanes = {
+        "provider_attempt": provider_attempt,
+        "guarded_apply": guarded_apply,
+        "stage_review_index": _stage_review_lane(stage_review),
+        "memory_receipt": memory_receipt,
+        "freshness": freshness_lane,
+        "safety_action_receipts": action_receipts,
+    }
+    return {
+        "surface_kind": "mas_opl_workbench_reference_projection",
+        "schema_version": 1,
+        "mode": "read_only_drilldown",
+        "lanes": lanes,
+        "source_refs": _dedupe_refs(
+            ref
+            for lane in lanes.values()
+            for ref in _string_list(_mapping(lane).get("source_refs"))
+        ),
+        "typed_blockers": [
+            blocker
+            for lane in lanes.values()
+            for blocker in [_mapping(_mapping(lane).get("typed_blocker"))]
+            if blocker
+        ],
+        "pending_lanes": [
+            lane_id
+            for lane_id, lane in lanes.items()
+            if _non_empty_text(_mapping(lane).get("status")) == "pending"
+        ],
+        "authority": _reference_authority(),
+    }
+
+
+def _provider_attempt_lane(progress: Mapping[str, Any]) -> dict[str, Any]:
+    attempt = _first_mapping(
+        progress.get("provider_attempt_projection"),
+        progress.get("provider_attempt"),
+        progress.get("provider_attempt_receipt"),
+        progress.get("provider_hosted_attempt"),
+    )
+    attempt_id = _first_non_empty_text(
+        attempt.get("attempt_id"),
+        attempt.get("provider_attempt_id"),
+        progress.get("provider_attempt_id"),
+    )
+    source_refs = _projection_source_refs(attempt)
+    if attempt_id is None:
+        return _typed_blocker_lane(
+            lane_id="provider_attempt",
+            blocker_id="provider_attempt_proof_missing",
+            summary="缺少真实 provider attempt proof；OPL App 只能显示 pending lane。",
+            required_surface="provider_attempt_receipt",
+            source_refs=source_refs,
+        )
+    return {
+        "lane_id": "provider_attempt",
+        "status": "observed",
+        "attempt_id": attempt_id,
+        "attempt_owner": _first_non_empty_text(attempt.get("attempt_owner"), attempt.get("owner")),
+        "provider_attempt_is_truth": bool(attempt.get("provider_attempt_is_truth")) is True,
+        "provider_attempt_wrote_workspace": bool(attempt.get("provider_attempt_wrote_workspace")) is True,
+        "source_refs": source_refs,
+        "authority": _lane_authority(),
+    }
+
+
+def _guarded_apply_lane(progress: Mapping[str, Any]) -> dict[str, Any]:
+    proof = _first_mapping(
+        progress.get("guarded_apply_projection"),
+        progress.get("guarded_apply_proof"),
+        progress.get("provider_hosted_guarded_apply_receipt"),
+        progress.get("real_paper_autonomy_guarded_apply_proof"),
+    )
+    guarded_status = _first_non_empty_text(proof.get("guarded_apply_status"), proof.get("status"))
+    receipt_refs = _dedupe_refs(
+        [
+            *_projection_source_refs(proof),
+            *_receipt_refs(proof.get("guarded_apply_receipts")),
+            *_receipt_refs(proof.get("guarded_apply_receipt_refs")),
+        ]
+    )
+    if guarded_status is None and not receipt_refs:
+        return _pending_lane(
+            lane_id="guarded_apply",
+            summary="等待 MAS owner guarded apply proof；provider attempt 不能证明 paper progress 已推进。",
+            required_surface="real_paper_autonomy_guarded_apply_proof",
+        )
+    performed = bool(_mapping(proof.get("summary")).get("guarded_apply_performed")) or bool(
+        proof.get("guarded_apply_performed")
+    )
+    return {
+        "lane_id": "guarded_apply",
+        "status": "observed" if performed else "typed_blocker",
+        "guarded_apply_status": guarded_status,
+        "guarded_apply_performed": performed,
+        "paper_closure_authorized": False,
+        "source_refs": receipt_refs,
+        "typed_blocker": None
+        if performed
+        else {
+            "blocker_id": "mas_owner_apply_receipt_missing",
+            "required_owner_surface": "MAS owner guarded apply receipt",
+        },
+        "authority": _lane_authority(),
+    }
+
+
+def _stage_review_lane(stage_review: Mapping[str, Any]) -> dict[str, Any]:
+    refs = _dedupe_refs(
+        [
+            _non_empty_text(stage_review.get("latest_review_page_ref")),
+            _non_empty_text(stage_review.get("deliverable_index_ref")),
+        ]
+    )
+    status = _non_empty_text(stage_review.get("status")) or "missing"
+    if status != "available":
+        return _pending_lane(
+            lane_id="stage_review_index",
+            summary="缺少显式 Stage Review Page / Deliverable Index；不能从文件名或 stage 文案推断。",
+            required_surface="mas_progress_portal_stage_review_index",
+            source_refs=refs,
+        )
+    return {
+        "lane_id": "stage_review_index",
+        "status": "observed",
+        "current_stage": _non_empty_text(stage_review.get("current_stage")),
+        "latest_review_page_ref": _non_empty_text(stage_review.get("latest_review_page_ref")),
+        "deliverable_index_ref": _non_empty_text(stage_review.get("deliverable_index_ref")),
+        "source_refs": refs,
+        "can_authorize_publication_readiness": False,
+        "authority": _lane_authority(),
+    }
+
+
+def _memory_receipt_lane(progress: Mapping[str, Any]) -> dict[str, Any]:
+    receipt = _first_mapping(
+        progress.get("memory_receipt_projection"),
+        progress.get("publication_route_memory_final_proof"),
+        progress.get("paper_soak_memory_apply_proof"),
+    )
+    refs = _dedupe_refs(
+        [
+            *_projection_source_refs(receipt),
+            *_receipt_refs(receipt.get("writeback_receipt_refs")),
+            *_receipt_refs(receipt.get("mas_router_receipt_refs")),
+            *_receipt_refs(receipt.get("workspace_writeback_receipt_refs")),
+            *_receipt_refs(receipt.get("opl_aion_readonly_receipt_refs")),
+        ]
+    )
+    if not refs:
+        return _pending_lane(
+            lane_id="memory_receipt",
+            summary="缺少 domain-owned memory receipt locator；OPL 不能写 memory body。",
+            required_surface="memory_write_router_receipt",
+        )
+    return {
+        "lane_id": "memory_receipt",
+        "status": "observed",
+        "receipt_status": _first_non_empty_text(receipt.get("status"), receipt.get("receipt_status")),
+        "writeback_receipt_refs": refs,
+        "source_refs": refs,
+        "can_write_memory_body": False,
+        "authority": _lane_authority(),
+    }
+
+
+def _freshness_lane(*, freshness: Mapping[str, Any], stage_review: Mapping[str, Any]) -> dict[str, Any]:
+    portal_status = _non_empty_text(freshness.get("status")) or "missing"
+    refs = _dedupe_refs(
+        [
+            _non_empty_text(stage_review.get("latest_review_page_ref")),
+            _non_empty_text(stage_review.get("deliverable_index_ref")),
+        ]
+    )
+    return {
+        "lane_id": "freshness",
+        "status": "observed" if portal_status not in {"missing", "unknown"} else "pending",
+        "portal_freshness_status": portal_status,
+        "portal_freshness_summary": _non_empty_text(freshness.get("summary")),
+        "latest_event_at": _non_empty_text(freshness.get("latest_event_at")),
+        "stage_review_freshness_state": _non_empty_text(stage_review.get("freshness_state")),
+        "source_refs": refs,
+        "can_authorize_publication_readiness": False,
+        "authority": _lane_authority(),
+    }
+
+
+def _safety_action_receipt_lane(
+    *,
+    progress: Mapping[str, Any],
+    runtime: Mapping[str, Any],
+) -> dict[str, Any]:
+    receipts = _first_non_empty_list(
+        progress.get("safety_action_receipts"),
+        progress.get("authorized_action_receipts"),
+        progress.get("action_receipts"),
+        runtime.get("action_receipts"),
+    )
+    refs = _receipt_refs(receipts)
+    if not refs:
+        return _pending_lane(
+            lane_id="safety_action_receipts",
+            summary="尚未观察到安全 action receipt；UI 只能显示动作入口为 MAS-owned。",
+            required_surface="mas_progress_portal_action_receipt",
+            source_refs=["artifacts/runtime/progress_portal/action_receipts"],
+        )
+    return {
+        "lane_id": "safety_action_receipts",
+        "status": "observed",
+        "receipt_refs": refs,
+        "source_refs": refs,
+        "direct_execution_intents": [],
+        "can_execute_without_mas_receipt": False,
+        "authority": _lane_authority(),
+    }
+
+
+def _typed_blocker_lane(
+    *,
+    lane_id: str,
+    blocker_id: str,
+    summary: str,
+    required_surface: str,
+    source_refs: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "lane_id": lane_id,
+        "status": "typed_blocker",
+        "summary": summary,
+        "source_refs": list(source_refs or []),
+        "typed_blocker": {
+            "blocker_id": blocker_id,
+            "required_surface": required_surface,
+            "opl_can_override": False,
+        },
+        "authority": _lane_authority(),
+    }
+
+
+def _pending_lane(
+    *,
+    lane_id: str,
+    summary: str,
+    required_surface: str,
+    source_refs: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "lane_id": lane_id,
+        "status": "pending",
+        "summary": summary,
+        "source_refs": list(source_refs or []),
+        "pending_lane": {
+            "required_surface": required_surface,
+            "display_only": True,
+        },
+        "authority": _lane_authority(),
+    }
+
+
+def _reference_authority() -> dict[str, Any]:
+    return {
+        "opl_role": "read_model_drilldown_consumer_only",
+        "writes_mas_truth": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_quality_verdict": False,
+        "can_apply_guarded_mutation": False,
+        "can_write_memory_body": False,
+    }
+
+
+def _lane_authority() -> dict[str, Any]:
+    return {
+        "writes_authority_surface": False,
+        "display_and_drilldown_only": True,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_quality_verdict": False,
     }
 
 
@@ -282,4 +580,57 @@ def _string_list(value: object) -> list[str]:
     for item in value:
         if isinstance(item, str) and item.strip():
             result.append(item.strip())
+    return result
+
+
+def _first_mapping(*values: object) -> dict[str, Any]:
+    for value in values:
+        if isinstance(value, Mapping) and value:
+            return dict(value)
+    return {}
+
+
+def _first_non_empty_list(*values: object) -> list[Any]:
+    for value in values:
+        if isinstance(value, Iterable) and not isinstance(value, (str, bytes, Mapping)):
+            items = list(value)
+            if items:
+                return items
+    return []
+
+
+def _projection_source_refs(value: Mapping[str, Any]) -> list[str]:
+    return _dedupe_refs(
+        [
+            *_string_list(value.get("source_refs")),
+            *_string_list(value.get("evidence_refs")),
+            _non_empty_text(value.get("source_ref")),
+            _non_empty_text(value.get("receipt_ref")),
+            _non_empty_text(value.get("audit_ref")),
+            _non_empty_text(value.get("ref")),
+        ]
+    )
+
+
+def _receipt_refs(value: object) -> list[str]:
+    refs: list[str] = []
+    if isinstance(value, str):
+        text = _non_empty_text(value)
+        return [text] if text is not None else []
+    if isinstance(value, Mapping):
+        refs.extend(_projection_source_refs(value))
+        for key in ("refs", "receipt_refs", "writeback_receipt_refs"):
+            refs.extend(_receipt_refs(value.get(key)))
+    elif isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+        for item in value:
+            refs.extend(_receipt_refs(item))
+    return _dedupe_refs(refs)
+
+
+def _dedupe_refs(values: Iterable[object]) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        text = _non_empty_text(value)
+        if text is not None and text not in result:
+            result.append(text)
     return result

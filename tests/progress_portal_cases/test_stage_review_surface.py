@@ -293,6 +293,112 @@ def test_progress_portal_opl_projection_indexes_stage_review_refs_without_author
     assert "stage_review_page" not in projection["conditions"]["missing"]
 
 
+def test_progress_portal_opl_projection_exposes_reference_lanes_as_read_only_drilldown() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    progress = {
+        **_stage_review_payload(),
+        "provider_attempt_projection": {
+            "attempt_id": "opl-attempt-dm002-001",
+            "attempt_owner": "one-person-lab",
+            "provider_attempt_is_truth": False,
+            "provider_attempt_wrote_workspace": False,
+            "source_refs": ["artifacts/provider_attempts/opl-attempt-dm002-001.json"],
+        },
+        "guarded_apply_proof": {
+            "guarded_apply_status": "mas_owner_apply_receipt_observed",
+            "summary": {"guarded_apply_performed": True},
+            "guarded_apply_receipts": [
+                {"ref": "artifacts/autonomy/guarded_apply/receipt-001.json"}
+            ],
+        },
+        "publication_route_memory_final_proof": {
+            "status": "final_ref_chain_proven",
+            "writeback_receipt_refs": [
+                "portfolio/research_memory/publication_route_memory/writeback_receipts/receipt-001.json"
+            ],
+        },
+        "safety_action_receipts": [
+            {"audit_ref": "artifacts/runtime/progress_portal/action_receipts/resume-001.json"}
+        ],
+    }
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        profile_ref="/workspace/ops/medautoscience/profiles/diabetes.toml",
+        study_id="001-risk",
+        progress_payload=progress,
+        runtime_payload={"study_id": "001-risk", "active_run_id": "run-runtime-001"},
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    reference = payload["mas_opl_runtime_workbench_projection"]["studies"][0]["reference_projection"]
+    assert reference["surface_kind"] == "mas_opl_workbench_reference_projection"
+    assert reference["mode"] == "read_only_drilldown"
+    assert reference["authority"] == {
+        "opl_role": "read_model_drilldown_consumer_only",
+        "writes_mas_truth": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_quality_verdict": False,
+        "can_apply_guarded_mutation": False,
+        "can_write_memory_body": False,
+    }
+    lanes = reference["lanes"]
+    assert lanes["provider_attempt"]["status"] == "observed"
+    assert lanes["provider_attempt"]["attempt_id"] == "opl-attempt-dm002-001"
+    assert lanes["provider_attempt"]["provider_attempt_is_truth"] is False
+    assert lanes["guarded_apply"]["status"] == "observed"
+    assert lanes["guarded_apply"]["guarded_apply_performed"] is True
+    assert lanes["guarded_apply"]["paper_closure_authorized"] is False
+    assert lanes["stage_review_index"]["status"] == "observed"
+    assert lanes["memory_receipt"]["status"] == "observed"
+    assert lanes["memory_receipt"]["can_write_memory_body"] is False
+    assert lanes["freshness"]["can_authorize_publication_readiness"] is False
+    assert lanes["safety_action_receipts"]["can_execute_without_mas_receipt"] is False
+    assert "artifacts/provider_attempts/opl-attempt-dm002-001.json" in reference["source_refs"]
+    assert "artifacts/autonomy/guarded_apply/receipt-001.json" in reference["source_refs"]
+    assert "portfolio/research_memory/publication_route_memory/writeback_receipts/receipt-001.json" in reference[
+        "source_refs"
+    ]
+    assert "artifacts/runtime/progress_portal/action_receipts/resume-001.json" in reference["source_refs"]
+    assert reference["typed_blockers"] == []
+
+
+def test_progress_portal_opl_projection_fails_closed_when_reference_proofs_are_missing() -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+
+    payload = module.build_progress_portal_payload(
+        profile_name="diabetes",
+        workspace_root="/workspace",
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        runtime_payload={"study_id": "001-risk", "active_run_id": "run-runtime-001"},
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    reference = payload["mas_opl_runtime_workbench_projection"]["studies"][0]["reference_projection"]
+    lanes = reference["lanes"]
+    assert lanes["provider_attempt"]["status"] == "typed_blocker"
+    assert lanes["provider_attempt"]["typed_blocker"] == {
+        "blocker_id": "provider_attempt_proof_missing",
+        "required_surface": "provider_attempt_receipt",
+        "opl_can_override": False,
+    }
+    assert lanes["guarded_apply"]["status"] == "pending"
+    assert lanes["stage_review_index"]["status"] == "pending"
+    assert lanes["memory_receipt"]["status"] == "pending"
+    assert lanes["safety_action_receipts"]["status"] == "pending"
+    assert reference["pending_lanes"] == [
+        "guarded_apply",
+        "stage_review_index",
+        "memory_receipt",
+        "safety_action_receipts",
+    ]
+    assert reference["typed_blockers"][0]["blocker_id"] == "provider_attempt_proof_missing"
+    assert reference["authority"]["writes_mas_truth"] is False
+    assert reference["authority"]["can_authorize_publication_readiness"] is False
+
+
 def test_progress_portal_opl_projection_prefers_selected_study_stage_review_over_workspace_row() -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
 
