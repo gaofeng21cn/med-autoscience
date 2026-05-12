@@ -35,7 +35,7 @@ MAS 侧已经落地：
 
 cutover 或物理退役前仍未完成：
 
-- OPL provider 的真实 Temporal server/worker residency；
+- OPL provider 的真实 Temporal server/worker residency；Temporal 是 OPL production online runtime 的必需依赖，未安装、未配置或 worker 未 ready 时应作为 install/repair blocker 处理，而不是退回 local provider 宣称 Full online 可用；
 - OPL stage attempt 下真实长时 domain activity soak；OPL Codex runner 的 repo/test harness 已具备 `dry_run`、`live_dry_run` 与 `codex_cli` process supervision，但 MAS paper-line provider-hosted 连续运行证据仍未完成；
 - 至少一条真实 MAS paper-line provider-hosted guarded apply soak 仍要在 live workspace gate 允许时闭合：链路为 OPL attempt -> MAS owner receipt -> artifact delta / gate replay / reviewer judgment / human gate / stop-loss / typed blocker；
 - human gate / user modification / resume token 从 OPL signal 进入 MAS revision 或 gate owner chain 的 proof；
@@ -45,7 +45,7 @@ cutover 或物理退役前仍未完成：
 
 | priority | lane | 当前范围 | output |
 | --- | --- | --- | --- |
-| `P2.1` | `opl_framework_foundation` | 先完成 OPL 完整智能体框架所需的 stage attempt、provider runtime、queue/wakeup、retry/dead-letter、approval/human gate transport、receipt/projection、shared lifecycle/index primitive。 | OPL framework/provider readiness evidence |
+| `P2.1` | `opl_framework_foundation` | 先完成 OPL 完整智能体框架所需的 stage attempt、Temporal-backed production runtime、queue/wakeup、retry/dead-letter、approval/human gate transport、receipt/projection、shared lifecycle/index primitive。 | OPL framework/provider readiness evidence |
 | `P2.2` | `mas_framework_migration` | MAS 作为 OPL-admitted domain agent 暴露 domain skeleton、stage descriptor、sidecar export/dispatch、owner receipts、projection builder、artifact locator 和 authority refs。 | MAS direct path / OPL-hosted path receipt equivalence |
 | `P2.3` | `framework_generic_lifecycle_lift` | 把 MAS runtime lifecycle、artifact locator、retention、restore-proof、migration-ledger 经验分类为 OPL framework-generic primitive 与 MAS-domain truth。 | OPL primitive candidates plus MAS retained-domain list |
 | `P2.4` | `legacy_retirement_after_replacement` | 有替代证据后，删除或降级 scheduler/Hermes/MDS/legacy manager/UI wording 与代码；当前 active contract 已把 Hermes 表述收窄为 explicit optional executor adapter，把旧 manager 表述保留为 retired cleanup evidence。 | retired path evidence 和更新后的 diagnostics/fallback docs |
@@ -83,7 +83,7 @@ cutover 或物理退役前仍未完成：
 
 OPL/Temporal 可以持有：
 
-- generic executor adapter、Codex CLI default selection、Hermes/Claude explicit opt-in executor routing、stage attempt identity、queue state、activity status、retry/dead-letter state、approval/human-gate transport state、provider history、query/projection、framework lifecycle/index/cache metadata。
+- generic executor adapter、Codex CLI default selection、Hermes/Claude explicit opt-in executor routing、stage attempt identity、queue state、activity status、retry/dead-letter state、approval/human-gate transport state、provider history、query/projection、framework lifecycle/index/cache metadata。Temporal readiness 是 OPL-hosted production path 的前置条件；local provider 只保留 MAS direct/local diagnostics、OPL dev/CI/offline baseline 和 fixture proof。
 
 MAS 必须持有：
 

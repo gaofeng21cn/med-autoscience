@@ -75,7 +75,7 @@
 - `OPL Framework` 是上层 stage-led 框架：负责任务阶段、队列、唤醒、恢复、审批、记录和跨领域状态展示；医学结论、论文质量、runtime owner 语义、artifact authority 和投稿判断由 MAS 的医学研究面继续持有。
 - 在 OPL 框架里，`Stage` 表示一次较大的研究步骤，例如选题、分析、写作、审稿修复或交付；Agent executor 是 stage 内最小执行单位，`Codex CLI` 是当前第一公民 executor。
 - MAS 已完成单仓收敛。`MedDeepScientist` / `DeepScientist` 现在作为历史来源、显式归档导入、后端审计、上游学习和能力对照材料保留。
-- 长期在线能力按 OPL 的 provider-backed runtime 方向推进，Temporal 是目标生产 provider；`Hermes-Agent` 不再是目标 session/wakeup substrate，但可作为显式 Agent executor adapter / proof lane 保留。当前只保证能接入、能回执、可审计，不保证行为或质量效果与 `Codex CLI` 等价。
+- OPL 托管的长期在线生产能力按 Temporal-backed runtime 推进。Temporal 是 OPL durable stage attempt、signal/query、retry/dead-letter 和 workflow history 的生产必需 provider；`Hermes-Agent` 不再是目标 session/wakeup substrate，但可作为显式 Agent executor adapter / proof lane 保留。当前只保证能接入、能回执、可审计，不保证行为或质量效果与 `Codex CLI` 等价。
 
 </details>
 
@@ -96,7 +96,7 @@
 - 当前正式 operator entry surfaces 是 `CLI`、`MCP`、`product-entry` 和 `controller`。产品入口与运行时合同主要放在 `docs/runtime/` 和 `docs/program/`，Agent 可以直接从这些文档切入，不必先通读代码；稳定可调用面继续是本地 CLI、MCP tools、product-entry surface、controller-authorized workspace commands / scripts、durable surface 与 repo-tracked contract。
 - MAS 可以通过 Codex app skill 直接调用，也可以通过 OPL 托管调用。两条路径共同使用 MAS-owned stage、controller、durable truth 和 artifact surface；OPL framework metadata 只作为运行框架层的索引、唤醒、恢复和投影信息。
 - 如果外部 agent 需要直接读取 repo-tracked 的 MAS skill surface，用 `medautosci product skill-catalog --profile <profile> --format json`；返回的是单一 MAS app skill、底层 command contracts，以及由现有 runtime/session/progress/artifact surface 投影出的 machine-readable `runtime_continuity` envelope。
-- OPL Full online runtime 集成使用 `medautosci sidecar export --profile <profile> --format json` 和 `medautosci sidecar dispatch --task <task.json> --format json`。本地 CLI/status/manifest 可用于诊断 provider readiness；OPL provider 暂不可用时，状态面应明确报告 degraded online readiness。
+- OPL Full online runtime 集成使用 `medautosci sidecar export --profile <profile> --format json` 和 `medautosci sidecar dispatch --task <task.json> --format json`。本地 CLI/status/manifest 可用于诊断 provider readiness；Temporal 暂不可用时，状态面应明确报告 OPL production required dependency blocker。
 
 </details>
 

@@ -75,7 +75,7 @@ You can start with prompts like:
 - `OPL Framework` is the upper stage-led framework. It owns stage attempts, queues, wakeups, recovery, approvals, receipts, and cross-domain projection. MAS keeps medical conclusions, manuscript quality, runtime owner semantics, artifact authority, and submission-facing judgment.
 - In the OPL framework, a `Stage` is a large task step such as scouting, analysis, writing, reviewer repair, or delivery. An Agent executor is the minimum execution unit inside a stage; `Codex CLI` is the current first-class executor.
 - MAS has completed monolith closeout. `MedDeepScientist` / `DeepScientist` remains available as provenance, explicit archive import, backend audit, upstream learning, and parity reference.
-- Long-running online execution follows the OPL provider-backed direction, with Temporal as the target production provider. `Hermes-Agent` is not the target session/wakeup substrate, but it remains available as an explicit Agent executor adapter / proof lane that promises connectivity and auditability, not behavior or quality equivalence with `Codex CLI`.
+- Long-running OPL-hosted production execution is Temporal-backed. Temporal is the required production provider for OPL durable stage attempts, signal/query, retry/dead-letter, and workflow history. `Hermes-Agent` is not the target session/wakeup substrate, but it remains available as an explicit Agent executor adapter / proof lane that promises connectivity and auditability, not behavior or quality equivalence with `Codex CLI`.
 
 </details>
 
@@ -97,7 +97,7 @@ You can start with prompts like:
 - MAS can be invoked directly through its Codex app skill or through OPL. Both routes use the same MAS-owned stage, controller, durable truth, and artifact surfaces; OPL framework metadata stays at the runtime-framework layer for indexing, wakeup, recovery, and projection.
 - New disease workspaces are no-root-Git / no-quest-Git by default. Runtime lifecycle status is read from file authority, `artifacts/runtime/runtime_lifecycle.sqlite`, `artifacts/runtime/lifecycle_migration`, `runtime/quests` manifests, and `runtime/restore_index`, not from Git history.
 - When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns the single MAS app skill, the underlying command contracts, and a machine-readable `runtime_continuity` envelope projected from existing runtime/session/progress/artifact surfaces.
-- For OPL Full online runtime integration, use `medautosci sidecar export --profile <profile> --format json` and `medautosci sidecar dispatch --task <task.json> --format json`. Local CLI/status/manifest reads can diagnose provider readiness; when the OPL provider is unavailable, status surfaces should report degraded online readiness explicitly.
+- For OPL Full online runtime integration, use `medautosci sidecar export --profile <profile> --format json` and `medautosci sidecar dispatch --task <task.json> --format json`. Local CLI/status/manifest reads can diagnose provider readiness; when Temporal is unavailable, status surfaces should report a required OPL production dependency blocker explicitly.
 
 </details>
 
