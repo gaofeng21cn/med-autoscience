@@ -24,7 +24,6 @@ from med_autoscience.controllers.hermes_supervision_parts.legacy_services import
 from med_autoscience.controllers.hermes_supervision_parts.job_runs import (
     latest_job_run as _shared_latest_job_run,
 )
-from med_autoscience.developer_supervisor_mode import current_github_user_gate, resolve_developer_supervisor_mode
 from med_autoscience.hermes_runtime_contract import inspect_hermes_runtime_contract
 from med_autoscience.profiles import WorkspaceProfile
 from opl_harness_shared.hermes_supervision import (
@@ -53,7 +52,6 @@ _SILENT_PROMPT = (
 _SILENT_SUCCESS_RESPONSE = "[SILENT] MAS scheduler local adapter MedAutoScience supervision tick completed."
 _LEGACY_WATCH_RUNTIME_COMMAND = "run_medautosci watch"
 _CURRENT_WATCH_RUNTIME_COMMAND = "run_medautosci runtime watch"
-_DEVELOPER_SUPERVISOR_GITHUB_LOGIN = "gaofeng21cn"
 _DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS = (
     "--apply-safe-actions",
     "--apply-runtime-platform-repair",
@@ -61,8 +59,6 @@ _DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS = (
     "developer_apply_safe",
 )
 _DEVELOPER_SUPERVISOR_SAFE_ACTION_TEXT = " ".join(_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS)
-_DEVELOPER_SUPERVISOR_RECONCILE_ARGS = ("--mode", "developer_apply_safe", "--apply")
-_DEVELOPER_SUPERVISOR_RECONCILE_TEXT = " ".join(_DEVELOPER_SUPERVISOR_RECONCILE_ARGS)
 
 
 def _utc_now() -> str:
@@ -171,88 +167,12 @@ def _codex_app_automation_path() -> Path:
     return Path.home() / ".codex" / "automations" / "mas" / "automation.toml"
 
 
-def _github_user_login_check() -> dict[str, Any]:
-    gate = current_github_user_gate(expected_login=_DEVELOPER_SUPERVISOR_GITHUB_LOGIN)
-    return {
-        "command": ["gh", "api", "user", "--jq", ".login"],
-        "status": "ok" if gate.get("allowed") else "failed",
-        "login": gate.get("login"),
-        "expected_login": gate.get("expected_login"),
-        "matches_expected": gate.get("allowed") is True,
-        "details": gate.get("reason"),
-        "gate": gate,
-    }
-
-
 def _codex_app_automation_prompt_check(*, automation_path: Path | None = None) -> dict[str, Any]:
     return _shared_codex_app_automation_prompt_check(automation_path or _codex_app_automation_path())
 
 
 def _canonical_codex_app_automation_prompt() -> str:
     return _shared_canonical_codex_app_automation_prompt()
-
-
-def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager: str, interval_seconds: int) -> dict[str, Any]:
-    github_user = _github_user_login_check()
-    codex_app_prompt = _codex_app_automation_prompt_check()
-    unsupported_manager = manager == "docker"
-    resolved_mode = resolve_developer_supervisor_mode(
-        profile=profile,
-        requested_mode="developer_apply_safe",
-        apply_safe_actions=True,
-        scheduler_owner=f"retired_{manager}_scheduler",
-    )
-    developer_mode_payload = resolved_mode.to_dict()
-    developer_mode_enabled = resolved_mode.developer_mode_enabled and not unsupported_manager
-    supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
-    supervisor_reconcile = _workspace_supervisor_reconcile_entry_path(profile)
-    supervisor_consume = _workspace_supervisor_consume_entry_path(profile)
-    supervisor_execute_dispatch = _workspace_supervisor_execute_dispatch_entry_path(profile)
-    scheduler_owner = f"retired_{manager}_scheduler"
-    expected_artifacts = [
-        str(profile.workspace_root / "artifacts" / "supervision" / "reconcile" / "latest.json"),
-        str(profile.workspace_root / "artifacts" / "supervision" / "reconcile" / "history.jsonl"),
-        str(profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json"),
-        str(profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json"),
-        str(profile.workspace_root / "artifacts" / "supervision" / "consumer" / "history.jsonl"),
-        str(profile.studies_root / "<study_id>" / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json"),
-    ]
-    status_check_commands = [
-        [str(supervisor_reconcile), *_DEVELOPER_SUPERVISOR_RECONCILE_ARGS],
-        [str(supervisor_scan), *_DEVELOPER_SUPERVISOR_SAFE_ACTION_ARGS],
-        [str(supervisor_consume), "--mode", "developer_apply_safe", "--apply"],
-        [str(supervisor_execute_dispatch), "--mode", "developer_apply_safe", "--apply"],
-    ]
-    return {
-        "mode": "developer_apply_safe" if developer_mode_enabled else "external_observe",
-        "requested_mode": "developer_apply_safe",
-        "mode_source": "retired_workspace_local_service_manager" if unsupported_manager else resolved_mode.mode_source,
-        "developer_mode_enabled": developer_mode_enabled,
-        "safe_actions_enabled": developer_mode_enabled,
-        "repo_level_repair_authority": developer_mode_enabled,
-        "scheduler_owner": scheduler_owner,
-        "github_user": github_user,
-        "github_user_gate": developer_mode_payload["github_user_gate"],
-        "opl_family_user_config": developer_mode_payload["opl_family_user_config"],
-        "authority_gate": developer_mode_payload["authority_gate"],
-        "blocked_reason": "retired_workspace_local_service_manager" if unsupported_manager else developer_mode_payload["blocked_reason"],
-        "codex_app_automation_prompt": codex_app_prompt,
-        "codex_app_heartbeat_required": False,
-        "install_proof": {
-            "manager": manager,
-            "status": "unsupported_container_scheduler" if unsupported_manager else (
-                "ready" if developer_mode_enabled else "developer_mode_disabled"
-            ),
-            "status_check_commands": status_check_commands,
-            "expected_artifacts": expected_artifacts,
-            "freshness": {
-                "projection": "portable_scheduler_tick_refreshes_supervisor_scan_artifacts",
-                "interval_seconds": interval_seconds,
-                "max_expected_artifact_age_seconds": interval_seconds * 2,
-                "codex_app_heartbeat_required": False,
-            },
-        },
-    }
 
 
 def _install_proof_path(profile: WorkspaceProfile) -> Path:
@@ -262,139 +182,6 @@ def _install_proof_path(profile: WorkspaceProfile) -> Path:
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def _portable_install_proof(
-    *,
-    profile: WorkspaceProfile,
-    manager: str,
-    scheduler_owner: str,
-    install_commands: list[str],
-    status_check_commands: list[list[str]],
-    expected_artifacts: list[str],
-    freshness: dict[str, Any],
-    safe_action_mode: str,
-    github_gate: dict[str, Any] | None,
-    host_service_claim: str,
-    status: str,
-) -> dict[str, Any]:
-    proof_path = _install_proof_path(profile)
-    generated_at = _utc_now()
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "surface_kind": "portable_scheduler_install_proof",
-        "generated_at": generated_at,
-        "manager": manager,
-        "scheduler_owner": scheduler_owner,
-        "install_commands": install_commands,
-        "status_check_commands": status_check_commands,
-        "expected_artifacts": expected_artifacts,
-        "artifact_path": str(proof_path),
-        "last_scan_time": generated_at,
-        "freshness": freshness,
-        "safe_action_mode": safe_action_mode,
-        "github_gate": dict(github_gate or {}),
-        "host_service_claim": host_service_claim,
-        "status": status,
-        "installed": False,
-    }
-
-
-def _portable_supervisor_instruction(
-    *,
-    profile: WorkspaceProfile,
-    manager: str,
-    interval_seconds: int,
-    write_install_proof: bool = False,
-) -> dict[str, Any]:
-    supervisor_scan = _workspace_supervisor_scan_entry_path(profile)
-    supervisor_reconcile = _workspace_supervisor_reconcile_entry_path(profile)
-    supervisor_consume = _workspace_supervisor_consume_entry_path(profile)
-    supervisor_execute_dispatch = _workspace_supervisor_execute_dispatch_entry_path(profile)
-    manager_key = manager.strip().lower()
-    developer_supervisor_mode = _developer_supervisor_mode_projection(
-        profile=profile,
-        manager=manager_key,
-        interval_seconds=interval_seconds,
-    )
-    host_service_claim = "retired_not_installed_by_mas"
-    install_commands: list[str] = []
-    install_proof = _portable_install_proof(
-        profile=profile,
-        manager=manager_key,
-        scheduler_owner=f"retired_{manager_key}_scheduler",
-        install_commands=install_commands,
-        status_check_commands=developer_supervisor_mode["install_proof"]["status_check_commands"],
-        expected_artifacts=developer_supervisor_mode["install_proof"]["expected_artifacts"],
-        freshness=developer_supervisor_mode["install_proof"]["freshness"],
-        safe_action_mode=developer_supervisor_mode["mode"],
-        github_gate=developer_supervisor_mode["github_user_gate"],
-        host_service_claim=host_service_claim,
-        status="retired_fail_closed",
-    )
-    return {
-        "action": "retired_workspace_local_service_manager",
-        "status": "retired_fail_closed",
-        "manager": manager_key,
-        "mode": developer_supervisor_mode["mode"],
-        "requested_mode": developer_supervisor_mode["requested_mode"],
-        "mode_source": developer_supervisor_mode["mode_source"],
-        "developer_mode_enabled": developer_supervisor_mode["developer_mode_enabled"],
-        "safe_actions_enabled": developer_supervisor_mode["safe_actions_enabled"],
-        "repo_level_repair_authority": developer_supervisor_mode["repo_level_repair_authority"],
-        "scheduler_owner": f"retired_{manager_key}_scheduler",
-        "github_user": developer_supervisor_mode["github_user"],
-        "github_user_gate": developer_supervisor_mode["github_user_gate"],
-        "opl_family_user_config": developer_supervisor_mode["opl_family_user_config"],
-        "authority_gate": developer_supervisor_mode["authority_gate"],
-        "blocked_reason": developer_supervisor_mode["blocked_reason"],
-        "installed": False,
-        "canonical_owner": "hermes_gateway_cron",
-        "retired_reason": "workspace_local_host_services_are_no_longer_active_mas_runtime_owners",
-        "recommended_command": [
-            "medautosci",
-            "runtime-ensure-supervision",
-            "--profile",
-            str(profile.workspace_root / "ops" / "medautoscience" / "profiles"),
-        ],
-        "profile": str(profile.workspace_root / "ops" / "medautoscience" / "profiles"),
-        "interval_seconds": interval_seconds,
-        "supervisor_scan_entry": {
-            "path": str(supervisor_scan),
-            "exists": supervisor_scan.is_file(),
-            "executable": supervisor_scan.is_file() and os.access(supervisor_scan, os.X_OK),
-        },
-        "supervisor_reconcile_entry": {
-            "path": str(supervisor_reconcile),
-            "exists": supervisor_reconcile.is_file(),
-            "executable": supervisor_reconcile.is_file() and os.access(supervisor_reconcile, os.X_OK),
-        },
-        "supervisor_consume_entry": {
-            "path": str(supervisor_consume),
-            "exists": supervisor_consume.is_file(),
-            "executable": supervisor_consume.is_file() and os.access(supervisor_consume, os.X_OK),
-        },
-        "supervisor_execute_dispatch_entry": {
-            "path": str(supervisor_execute_dispatch),
-            "exists": supervisor_execute_dispatch.is_file(),
-            "executable": supervisor_execute_dispatch.is_file() and os.access(supervisor_execute_dispatch, os.X_OK),
-        },
-        "command": [],
-        "templates": {},
-        "install_commands": install_commands,
-        "install_proof": install_proof,
-        "install_proof_path": None,
-        "write_install_proof_requested": bool(write_install_proof),
-        "write_install_proof_supported": False,
-        "status_check_commands": install_proof["status_check_commands"],
-        "expected_artifacts": install_proof["expected_artifacts"],
-        "freshness": install_proof["freshness"],
-        "developer_supervisor_mode": developer_supervisor_mode,
-        "codex_app_automation_prompt": developer_supervisor_mode["codex_app_automation_prompt"],
-        "codex_app_heartbeat_required": False,
-        "host_service_claim": host_service_claim,
-        "container_policy": "MAS does not own a Docker image, Kubernetes CronJob, or workspace-local host service runtime owner.",
-    }
 
 
 def _repair_legacy_workspace_watch_runtime_entry(profile: WorkspaceProfile) -> dict[str, Any]:
@@ -718,12 +505,7 @@ def ensure_supervision(
     write_install_proof: bool = False,
 ) -> dict[str, Any]:
     if manager != "hermes":
-        return _portable_supervisor_instruction(
-            profile=profile,
-            manager=manager,
-            interval_seconds=interval_seconds,
-            write_install_proof=write_install_proof,
-        )
+        raise ValueError(f"unsupported Hermes supervision adapter manager: {manager}")
     _ensure_script_file(profile, interval_seconds=interval_seconds)
     watch_runtime_repair = _repair_legacy_workspace_watch_runtime_entry(profile)
     before = read_supervision_status(profile=profile, interval_seconds=interval_seconds)

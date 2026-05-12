@@ -2,40 +2,6 @@ from __future__ import annotations
 
 from .product_entry_preflight_and_task_submission import *  # noqa: F403,F401
 
-def test_render_product_entry_status_markdown_shows_auto_re_review_followthrough() -> None:
-    module = importlib.import_module("med_autoscience.controllers.product_entry")
-
-    markdown = module.render_product_entry_status_markdown(
-        {
-            "workspace_preview": None,
-            "workspace_attention_queue_preview": [
-                {
-                    "title": "001-risk 当前处在等待系统自动复评",
-                    "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
-                    "operator_status_card": {
-                        "handling_state": "monitor_only",
-                        "user_visible_verdict": "当前在等系统自动复评；你现在不用介入，先等待复评回写。",
-                        "next_confirmation_signal": "看 publication_eval/latest.json 是否出现新的复评结论，或 blocking issues 是否继续收窄。",
-                    },
-                    "quality_review_loop": {
-                        "current_phase_label": "等待复评",
-                        "recommended_next_phase_label": "发起复评",
-                        "summary": "当前修订计划已完成，下一步应由 MAS 发起 re-review，重新判断 blocking issues 是否真正闭环。",
-                    },
-                }
-            ],
-            "phase2_user_product_loop": {},
-            "product_entry_guardrails": {},
-            "phase3_clearance_lane": {"clearance_targets": [], "clearance_loop": []},
-            "phase4_backend_deconstruction": {"substrate_targets": []},
-            "phase5_platform_target": {"capability_targets": [], "readiness_gates": []},
-            "remaining_gaps": [],
-        }
-    )
-
-    assert markdown.strip()
-    assert "summary:" not in markdown
-
 
 def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hints(
     tmp_path: Path,

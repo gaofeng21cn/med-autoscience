@@ -189,8 +189,8 @@ Guard 口径：
 - 新 workspace 不渲染 `ops/medautoscience/supervisor/systemd/*`。
 - 新 workspace 不渲染 `ops/medautoscience/supervisor/cron/*`。
 - 新 workspace 不渲染 `ops/medautoscience/supervisor/launchd/README.md`。
-- `runtime-ensure-supervision --manager systemd|cron|launchd|docker` fail-closed 为 `retired_workspace_local_service_manager`。
-- 检测到旧 service file 或 loaded state 时，只作为 `retired_cleanup_evidence`，由 `runtime-ensure-supervision` 清理后回到 MAS scheduler contract 的默认 local adapter。
+- `runtime-ensure-supervision --manager systemd|cron|launchd|docker` 已不再是可调用入口；CLI parser 和 controller façade 均拒绝这些 manager。
+- 检测到旧 service file 或 loaded state 时，只作为 Hermes optional adapter status 中的 `retired_cleanup_evidence`，由 `runtime-ensure-supervision --manager hermes` 清理后回到 MAS scheduler contract 的默认 local adapter。
 
 历史上这些 service 曾作为迁移桥和真实 workspace 排障证据存在。当前 active docs/code/scaffold 不应把它们写成可选 scheduler；历史记录只服务 debug。
 
