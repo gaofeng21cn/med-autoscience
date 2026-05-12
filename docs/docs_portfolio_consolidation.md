@@ -145,6 +145,7 @@ Before moving or deleting a document:
 | `target_acceptance` | `ai_first_paper_autonomy_closure_program.md` defines the paper-autonomy outcome contract and live-soak acceptance criteria. |
 | `product_enabler` | `opl_app_mas_runtime_workbench_program.md` turns the target into an OPL App Runtime Workbench experience. |
 | `framework_enabler` | `opl_temporal_mas_runtime_retirement_program.md` aligns MAS runtime-adjacent obligations with the OPL Codex-first, stage-led framework. |
+| `cross_cutting_stage_form` | `stage_surface_standardization_program.md` keeps stage prompts, skills, tools, knowledge packets, closeout memory, quality packs, and OPL stage descriptors in one maintainable form. |
 | `landed_foundation` | `mas_single_project_mds_absorb_program.md` and `runtime_lifecycle_sqlite_migration_program.md` preserve monolith, MDS provenance, runtime lifecycle, restore-proof, and compatibility guard evidence. |
 
 When a program document contains mixed material, split the content role before

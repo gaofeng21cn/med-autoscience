@@ -6,6 +6,7 @@
 
 - [Program Portfolio Consolidation](./program_portfolio_consolidation.md)：当前 program 组合总入口。先读这份文档，理解目标层、framework-first 执行层、产品化层、已落地基础层、内容级处置表和归档规则。
 - [MAS Current Development Lines](./current_development_lines.md)：当前内容级开发线路图。执行或评估旧 program 内容前，先用它判断内容块属于 OPL framework、MAS migration、feature retirement、P1 productization、P0 final soak、P3/P3a/support 的哪一条线。
+- [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)：横向 stage 形式统一计划。修改 stage prompt、skill、tool、knowledge packet、closeout memory、quality pack 或 OPL stage descriptor 前先读这份文档。
 
 ## 当前 program 层次
 
@@ -13,6 +14,7 @@
 | --- | --- | --- |
 | 目标 / 验收 | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | 定义当前 MAS 论文自治目标和最终验收合同：reviewer finding、repair work unit、gate replay、路线决策、stage knowledge/memory、真实 paper soak 和质量边界。 |
 | 当前执行优先级 | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | framework-first 迁移线路：先完成 OPL 完整智能体框架，再迁移 MAS、分层沉淀新旧功能、退役旧默认依赖和兼容面。 |
+| 横向 stage 形式 | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | 统一每个 MAS stage 的 stage card、route contract、prompt/skill、tool surface、knowledge packet、closeout obligation、quality gate 和 OPL projection boundary。 |
 | 产品化依托 | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | 跟随 framework migration 的产品化路径，把迁移后的 MAS/OPL 状态变成 OPL App Runtime Workbench 中可见、可审阅、可受控的用户体验。 |
 | 已落地基础 | [MAS 单项目 MDS 吸收 program](./mas_single_project_mds_absorb_program.md) | 已落地的 monolith / provenance owner 文档，只保存当前边界和 guard；完整历史记录在 `docs/history/program/`。 |
 | 已落地基础 | [Runtime lifecycle SQLite 迁移 program](./runtime_lifecycle_sqlite_migration_program.md) | 已落地的 runtime lifecycle guard 文档，只保存当前 SQLite/file authority、quest/root Git retirement 和 drift 维护规则；完整历史记录在 `docs/history/program/`。 |
