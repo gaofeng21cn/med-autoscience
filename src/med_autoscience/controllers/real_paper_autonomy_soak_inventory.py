@@ -5,9 +5,13 @@ from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import opl_provider_ready_adapter
 from med_autoscience.controllers import stage_knowledge_plane
-from med_autoscience.controllers.real_paper_autonomy_soak_inventory_parts import apply_evidence, guarded_apply
+from med_autoscience.controllers.real_paper_autonomy_soak_inventory_parts import (
+    apply_evidence,
+    forbidden_write_guard,
+    guarded_apply,
+    provider_guarded_apply,
+)
 from med_autoscience.profiles import WorkspaceProfile, load_profile, profile_to_dict
 
 
@@ -35,6 +39,7 @@ SOAK_PROJECTION_SURFACE = "real_paper_autonomy_soak_projection"
 SOAK_CLOSEOUT_SURFACE = "real_paper_autonomy_soak_closeout_projection"
 PROVIDER_HOSTED_PROOF_SURFACE = "real_paper_autonomy_provider_hosted_paper_proof"
 GUARDED_APPLY_PROOF_SURFACE = "real_paper_autonomy_guarded_apply_proof"
+PROVIDER_HOSTED_GUARDED_APPLY_RECEIPT_SURFACE = "real_paper_autonomy_provider_hosted_guarded_apply_receipt"
 SOAK_ACCEPTED_STATES = (
     "artifact_delta", "gate_replay", "ai_reviewer_re_eval", "route_decision",
     "stop_loss", "human_gate", "stable_blocker", "continuing_repair", "unknown",
@@ -205,7 +210,7 @@ def build_real_paper_autonomy_provider_hosted_paper_proof(
         for packet in closeout_packets
         for ref in packet.get("writeback_receipt_refs", [])
     )
-    forbidden_guard = _provider_forbidden_write_guard(closeout_packets=closeout_packets)
+    forbidden_guard = forbidden_write_guard.build_provider_forbidden_write_guard(closeout_packets=closeout_packets)
     return {
         "surface": PROVIDER_HOSTED_PROOF_SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -273,6 +278,28 @@ def build_real_paper_autonomy_guarded_apply_proof(
         schema_version=SCHEMA_VERSION,
         surface=GUARDED_APPLY_PROOF_SURFACE,
         target_studies=target_studies,
+    )
+
+
+def build_real_paper_autonomy_provider_hosted_guarded_apply_receipt(
+    *,
+    profile_path: str | Path,
+    provider_attempt_id: str,
+    idempotency_key: str,
+    target_studies: Sequence[str],
+) -> dict[str, Any]:
+    targets = tuple(_text(study_id) for study_id in target_studies if _text(study_id))
+    proof = build_real_paper_autonomy_guarded_apply_proof(
+        profile_paths=[Path(profile_path)],
+        target_studies=targets,
+    )
+    return provider_guarded_apply.build_provider_hosted_guarded_apply_receipt_from_proof(
+        proof=proof,
+        schema_version=SCHEMA_VERSION,
+        surface=PROVIDER_HOSTED_GUARDED_APPLY_RECEIPT_SURFACE,
+        provider_attempt_id=provider_attempt_id,
+        idempotency_key=idempotency_key,
+        target_studies=targets,
     )
 
 
@@ -519,37 +546,6 @@ def _memory_writeback_refs(study: Mapping[str, Any]) -> list[str]:
             if ref:
                 refs.append(ref)
     return list(dict.fromkeys(refs))
-
-
-def _provider_forbidden_write_guard(*, closeout_packets: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-    packet_guards = [
-        opl_provider_ready_adapter.build_forbidden_write_guard_proof(
-            result="accepted_no_forbidden_writes",
-            task_id=_text(packet.get("closeout_id")),
-            task_kind="domain_stage_closeout_packet",
-            requested_writes=(),
-        )
-        for packet in closeout_packets
-    ]
-    blocked_probe = opl_provider_ready_adapter.build_forbidden_write_guard_proof(
-        result="blocked",
-        task_id="provider-hosted-paper-proof:forbidden-write-probe",
-        task_kind="provider_hosted_paper_proof",
-        requested_writes=opl_provider_ready_adapter.FORBIDDEN_AUTHORITY_WRITES,
-    )
-    return {
-        "surface_kind": "mas_provider_hosted_forbidden_write_guard_summary",
-        "aggregate_result": "fail_closed_no_forbidden_writes",
-        "guard_mode": "fail_closed",
-        "packet_guard_count": len(packet_guards),
-        "packet_guards": packet_guards,
-        "blocked_probe": blocked_probe,
-        "can_write_domain_truth": False,
-        "can_write_current_package": False,
-        "can_authorize_publication_quality": False,
-        "can_write_memory_body": False,
-        "can_accept_memory_writeback": False,
-    }
 
 
 def _dedupe_text(values: Iterable[object]) -> list[str]:

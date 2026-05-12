@@ -30,6 +30,7 @@ MAS 侧已经落地：
 - 三篇真实 paper line 已完成 read-only closeout projection：DM002 -> `ai_reviewer_re_eval`，DM003 -> `artifact_delta`，Obesity -> `artifact_delta`，且 `writes_performed=false`；
 - DM002 read-only proof 已显示 publication-route memory consumed ref 和 MAS workspace/runtime writeback receipt refs，OPL/Aion 只能显示 refs；
 - `real-paper-autonomy-guarded-apply-proof` 已把 read-only proof 推进为 MAS-owned guarded apply proof surface：已有 MAS owner apply receipt 时可承认真实 workspace mutation；没有 owner receipt 或 human/live gate 不允许时输出 typed blocker / receipt，并保持 no-forbidden-write proof；
+- `medautosci sidecar dispatch` 已支持 `paper_autonomy/guarded-apply`，只写 MAS sidecar dispatch receipt 和 `real_paper_autonomy_provider_hosted_guarded_apply_receipt` 嵌套结果；OPL/provider 仍不能写 publication eval、controller decisions、current package、paper package、artifact gate、memory body、evidence ledger 或 review ledger；
 - `standard_domain_agent_skeleton` 现在包含 `physical_skeleton_layout_audit`，把 repo-source physical skeleton slot 映射到现有 `docs/`、`templates/`、`src/`、`plugins/` 路径，同时把 workspace artifacts 固定为 locator-only；
 - MAS local scheduler、one-shot reconcile、Portal 和 Live Console 仍是有效 local diagnostics 与 evidence surface。
 - 默认 caller 已从 Hermes scheduler / hosted runtime 路径移走；Hermes 相关 surface 当前只作为 explicit optional diagnostics、proof/provenance 或 `retire_after_parity` 读法保留。本轮不要求真实 Hermes/Claude production soak，adapter smoke 与 receipt/fail-closed proof 足以关闭接入能力验收。
@@ -51,7 +52,7 @@ cutover 或物理退役前仍未完成：
 | `P2.2` | `mas_framework_migration` | MAS 作为 OPL-admitted domain agent 暴露 domain skeleton、stage descriptor、sidecar export/dispatch、owner receipts、projection builder、artifact locator 和 authority refs。 | MAS direct path / OPL-hosted path receipt equivalence |
 | `P2.3` | `framework_generic_lifecycle_lift` | 把 MAS runtime lifecycle、artifact locator、retention、restore-proof、migration-ledger 经验分类为 OPL framework-generic primitive 与 MAS-domain truth。 | OPL primitive candidates plus MAS retained-domain list |
 | `P2.4` | `legacy_retirement_after_replacement` | 有替代证据后，删除或降级 scheduler/Hermes/MDS/legacy manager/UI wording 与代码；当前 active contract 已把 Hermes 表述收窄为 explicit optional executor adapter，把旧 manager 表述保留为 retired cleanup evidence。 | retired path evidence 和更新后的 diagnostics/fallback docs |
-| `P2.5` | `final_paper_line_guarded_soak` | read-only proof 已覆盖 DM002/DM003/Obesity；MAS-owned guarded apply proof surface 已能承认 MAS owner receipt 或返回 typed blocker。下一步是在 provider-hosted live apply 中证明真实 paper line 可经 OPL attempt + MAS owner chain 前进或明确阻塞。 | MAS truth surface 中的 attempt query、owner receipt、progress delta、gate replay、reviewer update、human gate、stop-loss 或 typed blocker |
+| `P2.5` | `final_paper_line_guarded_soak` | read-only proof 已覆盖 DM002/DM003/Obesity；MAS-owned guarded apply proof 与 sidecar dispatch receipt closure surface 已能承认 MAS owner receipt 或返回 typed blocker。下一步是在 provider-hosted live apply 中证明真实 paper line 可经 OPL attempt + MAS owner chain 前进或明确阻塞。 | MAS truth surface 中的 attempt query、owner receipt、progress delta、gate replay、reviewer update、human gate、stop-loss 或 typed blocker |
 
 这些是内容线。后续变更可以只实现其中一条，不需要触碰整个 P2 surface。
 

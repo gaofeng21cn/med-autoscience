@@ -11,6 +11,7 @@ from med_autoscience.profiles import WorkspaceProfile, load_profile
 from . import reviewer_refinement_loop
 from . import opl_provider_ready_adapter
 from . import paper_repair_executor
+from . import real_paper_autonomy_soak_inventory
 from . import runtime_supervisor_dispatch_executor
 from . import runtime_supervisor_reconcile
 from . import stage_knowledge_plane
@@ -48,6 +49,7 @@ _ALLOWED_TASK_KINDS = {
     "autonomy/continue": "runtime_supervisor_reconcile_apply",
     "paper_autonomy/repair-recheck": "paper_repair_executor_dispatch",
     "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",
+    "paper_autonomy/guarded-apply": "paper_autonomy_guarded_apply",
     "paper_autonomy/gate-replay": "runtime_supervisor_reconcile_apply",
     "paper_autonomy/route-decision": "runtime_supervisor_reconcile_apply",
     "safe_reconcile/dry-run": "safe_reconcile_dry_run",
@@ -524,15 +526,7 @@ def _forbidden_requested_writes(task: Mapping[str, Any]) -> list[str]:
     requested = opl_provider_ready_adapter.requested_writes_from_task(task)
     forbidden = {
         *_FORBIDDEN_PAYLOAD_FLAGS,
-        "study_truth",
-        "publication_eval",
-        "controller_decisions",
-        "current_package",
-        "artifact_gate",
-        "memory_body_write",
-        "publication_route_memory_body",
-        "publication_route_memory_writeback_accept",
-        "memory_write_router_accept",
+        *opl_provider_ready_adapter.FORBIDDEN_AUTHORITY_WRITES,
     }
     return [item for item in requested if item in forbidden]
 
@@ -624,6 +618,36 @@ def _execute_ai_reviewer_recheck(
     )
 
 
+def _execute_guarded_apply(
+    *,
+    profile_ref: Path | None,
+    study_id: str | None,
+    task_id: str,
+    task: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if profile_ref is None or study_id is None:
+        return None
+    payload = _mapping(task.get("payload"))
+    provider_attempt_id = (
+        _text(payload.get("provider_attempt_id"))
+        or _text(payload.get("attempt_id"))
+        or task_id
+    )
+    idempotency_key = _text(payload.get("idempotency_key")) or f"{task_id}:guarded_apply"
+    target_studies = payload.get("target_studies")
+    targets = (
+        [str(item) for item in target_studies if _text(item)]
+        if isinstance(target_studies, list)
+        else [study_id]
+    )
+    return real_paper_autonomy_soak_inventory.build_real_paper_autonomy_provider_hosted_guarded_apply_receipt(
+        profile_path=profile_ref,
+        provider_attempt_id=provider_attempt_id,
+        idempotency_key=idempotency_key,
+        target_studies=targets,
+    )
+
+
 def _base_dispatch_receipt(
     *,
     generated_at: str,
@@ -664,6 +688,7 @@ def _apply_dispatch_action(
     receipt: dict[str, Any],
     action_type: str,
     profile: WorkspaceProfile | None,
+    profile_ref: Path | None,
     study_id: str | None,
     task: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -673,6 +698,13 @@ def _apply_dispatch_action(
         return _with_paper_repair(receipt=receipt, profile=profile, study_id=study_id, task=task)
     if action_type == "ai_reviewer_recheck_execute_dispatch":
         return _with_ai_reviewer_recheck(receipt=receipt, profile=profile, study_id=study_id)
+    if action_type == "paper_autonomy_guarded_apply":
+        return _with_guarded_apply(
+            receipt=receipt,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            task=task,
+        )
     return receipt
 
 
@@ -715,6 +747,25 @@ def _with_ai_reviewer_recheck(
     result = _execute_ai_reviewer_recheck(profile=profile, study_id=study_id)
     receipt["will_start_llm_worker"] = bool(_mapping(result).get("executed_count"))
     receipt["dispatch"]["execution_policy"] = "mas_owner_ai_reviewer_execute_dispatch"
+    receipt["dispatch"]["result"] = result
+    return receipt
+
+
+def _with_guarded_apply(
+    *,
+    receipt: dict[str, Any],
+    profile_ref: Path | None,
+    study_id: str | None,
+    task: Mapping[str, Any],
+) -> dict[str, Any]:
+    result = _execute_guarded_apply(
+        profile_ref=profile_ref,
+        study_id=study_id,
+        task_id=str(receipt.get("task_id") or "unknown_task"),
+        task=task,
+    )
+    receipt["will_start_llm_worker"] = False
+    receipt["dispatch"]["execution_policy"] = "mas_owner_provider_hosted_guarded_apply"
     receipt["dispatch"]["result"] = result
     return receipt
 
@@ -789,6 +840,7 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
         receipt=receipt,
         action_type=action_type,
         profile=profile,
+        profile_ref=profile_ref,
         study_id=study_id,
         task=task,
     )
