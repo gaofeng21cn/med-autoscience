@@ -39,6 +39,7 @@
 - deterministic gate 可以继续阻断可验证事实缺口，例如缺文件、schema 不完整、claim-evidence 缺失、submission 包 stale、内部控制术语泄漏或 provenance 损坏。
 - 不得用 hidden templates、heuristic-only reviewer verdict、scorecard-only ready verdict 或程序化正文/论文质量判断替代 AI reviewer artifact。
 - 需要新增可调用面时，优先挂在现有 controller / publication-eval surface 下，不新增第二前台入口。
+- 外部 skill/workflow 材料只能作为 clean-room 学习背景。reviewer response、data、Figure/display、source-grounded deliverable patterns 必须吸收到 MAS stage quality pack、AI reviewer、evidence/review ledgers、publication gate、controller decisions、Stage Deliverable Review Page / Index 或 Portal read model；不得把 vendor prompt、runtime、HTML exporter、citation UI、skill runner 或 checklist 写成质量 owner、publication authority、default skill source 或外部 runtime dependency。当前 nature-skills intake 见 [Nature-skills Learning Intake](../../references/mainline/nature_skills_learning_intake.md)。
 
 ## AI-first drift audit
 

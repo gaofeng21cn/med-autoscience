@@ -282,6 +282,12 @@ Reporting guideline selection should be explicit:
 - 不新增 Markdown-only 规则来替代 `agent_entry_modes.yaml`、stage knowledge plane、stage quality contract、publication gate、AI reviewer artifact、evidence/review ledger 或 controller decision。
 - 不把 quality pack、rubric score、candidate ranking、contradiction flag 或 read-only projection 写成 publication readiness authority。
 
+## Nature-skills Clean-room Pattern Intake
+
+nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clean-room pattern absorption。MAS 只采用 reviewer response、data deliverable、Figure/display 和 source-grounded deliverable 这类可验证工作模式，并把它们落回 stage quality pack、AI reviewer、evidence/review ledgers、publication gate、controller decisions、Stage Deliverable Review Page / Index 与 Portal read model。citation HTML / export UX 只作为 watch 项；如未来落地，也只能消费 MAS source refs、publication profile、artifact locator 和 read-only Portal / Workbench projection。
+
+明确拒绝的边界是：不新增 vendor/runtime dependency，不把外部 skill runner 写成 MAS provider、Agent executor adapter、default skill source 或 publication authority，不复制外部代码、prompt、schema、HTML 模板或目录布局。详细 intake 与 expected evidence 见 [Nature-skills Learning Intake](../references/mainline/nature_skills_learning_intake.md)。
+
 ## 执行计划
 
 | priority | status | task | output | validation |
@@ -292,6 +298,7 @@ Reporting guideline selection should be explicit:
 | `P1` | `landed` | 补齐 knowledge / closeout obligations | 更新 `stage_knowledge_contract.py` 与 canonical YAML 中的 obligations | `tests/test_stage_knowledge_plane.py` + `tests/test_agent_entry_assets.py` |
 | `P2` | `landed` | 抽出 reporting guideline quality pack 和 stage quality pack contract | `stage_quality_contract.py` + generated product-entry / family descriptor refs | `tests/test_stage_quality_contract.py` + product-entry action catalog parity |
 | `P2` | `landed` | 对齐 OPL descriptor 中的 stage/skill/quality locator | product-entry manifest / skeleton mapping update | product-entry / OPL family adapter tests |
+| `P2` | `documented` | 记录 nature-skills clean-room pattern absorption | `docs/references/mainline/nature_skills_learning_intake.md` + 本 program closeout note | `git diff --check` |
 | `P3` | `pending` | 退役旧 compat vocabulary 或移入 history/reference | no default caller + replacement proof | `rg` stale scan + focused compatibility tests |
 | `P4` | `provider_live_apply_pending` | 用真实 paper-line provider-hosted live apply 验证 | OPL attempt -> MAS owner receipt -> artifact delta / gate replay / blocker | real paper-line guarded apply evidence |
 

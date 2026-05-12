@@ -86,6 +86,8 @@ canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_m
 
 proof package 不能只靠聊天总结、memory 或 terminal prose，也不能把 screenshot-style QA 当成证据面。聊天、memory、terminal prose 和截图式 QA 只能辅助定位上下文，不能替代 evidence ledger、review ledger、publication eval、controller decision 或 manuscript/package 引用。
 
+外部 skill/workflow 材料中的 source-grounded deliverable、reviewer response、data/table 和 Figure/display pattern 只能 clean-room 吸收到 MAS proof package 规则中。它们可以提高 source refs、figure refs、data refs、reviewer concern closure 和 response-action trace 的表达质量，但不能把外部 vendor、runtime、HTML/export UI、citation helper 或 skill source 升格为 evidence authority。nature-skills 相关记录见 [Nature-skills Learning Intake](../../references/mainline/nature_skills_learning_intake.md)。
+
 ### Medical QA Feedback Loop
 
 医学版本的 QA feedback loop 只接受三类状态：
