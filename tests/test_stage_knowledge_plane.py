@@ -8,10 +8,91 @@ import pytest
 
 from med_autoscience.controllers import stage_knowledge_plane
 from med_autoscience.controllers import portfolio_memory
+from med_autoscience.stage_knowledge_contract import STAGE_OBLIGATIONS
 
 
 EXPLORATORY_STAGES = ("scout", "idea", "analysis-campaign", "review")
 PUBLICATION_ROUTE_MEMORY_STAGES = ("scout", "idea", "decision", "analysis-campaign", "review")
+STAGE_OBLIGATION_GAP_REQUIREMENTS = {
+    "baseline": {
+        "knowledge_input_obligations": {
+            "data_source_contract",
+            "cohort_definition_and_inclusion_exclusion",
+            "endpoint_definition_and_measurement_window",
+            "comparator_definition_and_reference_baseline",
+            "startup_run_context",
+            "prior_result_lineage",
+            "failed_comparator_history",
+        },
+        "memory_closeout_obligations": {
+            "baseline_cohort_endpoint_comparator_snapshot",
+            "baseline_effect_size_or_feasibility_readout",
+            "failed_comparator_lesson",
+            "continue_reroute_or_stop_recommendation",
+        },
+    },
+    "experiment": {
+        "knowledge_input_obligations": {
+            "approved_experiment_protocol",
+            "data_contract_and_cohort_lock",
+            "endpoint_and_comparator_lock",
+            "statistical_analysis_plan",
+            "startup_run_context",
+            "prior_result_lineage",
+            "failed_comparator_history",
+        },
+        "memory_closeout_obligations": {
+            "primary_result_with_run_context",
+            "result_lineage_update",
+            "endpoint_or_comparator_deviation",
+            "negative_or_failed_comparator_lesson",
+        },
+    },
+    "write": {
+        "knowledge_input_obligations": {
+            "claim_evidence_map",
+            "reporting_guideline_pack",
+            "journal_neighbor_refs",
+            "display_to_claim_map",
+        },
+        "memory_closeout_obligations": {
+            "writing_experience_lesson",
+            "claim_wording_boundary_decision",
+            "reporting_guideline_gap",
+            "display_to_claim_repair_request",
+            "journal_neighbor_positioning_lesson",
+        },
+    },
+    "finalize": {
+        "knowledge_input_obligations": {
+            "publication_eval_latest",
+            "controller_decision_latest",
+            "package_freshness_proof",
+            "declarations_and_ethics_checklist",
+            "human_gate_status",
+        },
+        "memory_closeout_obligations": {
+            "package_readiness_decision",
+            "package_freshness_or_staleness_lesson",
+            "declaration_or_ethics_blocker",
+            "human_gate_request_or_clearance",
+        },
+    },
+    "journal-resolution": {
+        "knowledge_input_obligations": {
+            "official_author_guideline",
+            "outlet_profile",
+            "exporter_profile_constraints",
+            "blocked_profile_evidence",
+        },
+        "memory_closeout_obligations": {
+            "selected_outlet_or_profile_rationale",
+            "exporter_constraint_lesson",
+            "blocked_profile_decision",
+            "reporting_guideline_delta",
+        },
+    },
+}
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SEED_FIXTURE = REPO_ROOT / "docs" / "policies" / "study-workflow" / "publication_route_memory_seed_fixture.json"
 
@@ -76,12 +157,18 @@ def test_decision_route_contract_requires_route_memory_stage_knowledge_and_close
     assert "stage_memory_closeout_packet" in route_contract["memory_closeout_obligations"]
 
 
-def test_non_exploratory_write_route_does_not_force_open_exploration_memory_loop() -> None:
-    payload = importlib.import_module("med_autoscience.agent_entry").load_entry_modes_payload()
-    route_contract = payload["route_contracts"]["write"]
+def test_stage_knowledge_contract_covers_stage_surface_program_obligation_gaps() -> None:
+    contract = stage_knowledge_plane.stage_knowledge_plane_contract()
+    obligations = contract["stage_obligations"]
 
-    assert "knowledge_input_obligations" not in route_contract
-    assert "memory_closeout_obligations" not in route_contract
+    assert set(STAGE_OBLIGATION_GAP_REQUIREMENTS).issubset(obligations)
+    for stage, expected_by_field in STAGE_OBLIGATION_GAP_REQUIREMENTS.items():
+        stage_obligations = obligations[stage]
+        assert stage_obligations["knowledge_input_obligations"][0] == "stage_knowledge_packet_ref"
+        assert stage_obligations["memory_closeout_obligations"][0] == "stage_memory_closeout_packet"
+        for field, expected_items in expected_by_field.items():
+            assert expected_items.issubset(set(stage_obligations[field]))
+            assert set(stage_obligations[field]) == set(STAGE_OBLIGATIONS[stage][field])
 
 
 def test_stage_knowledge_packet_reports_stage_specific_missing_reasons(tmp_path) -> None:

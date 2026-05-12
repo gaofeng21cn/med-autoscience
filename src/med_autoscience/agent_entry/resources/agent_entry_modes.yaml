@@ -116,6 +116,21 @@ route_contracts:
       - baseline result cannot support the active claim
       - comparator or cohort definition changes materially
       - reviewer-first scan finds missing baseline proof
+    knowledge_input_obligations:
+      - stage_knowledge_packet_ref
+      - data_source_contract
+      - cohort_definition_and_inclusion_exclusion
+      - endpoint_definition_and_measurement_window
+      - comparator_definition_and_reference_baseline
+      - startup_run_context
+      - prior_result_lineage
+      - failed_comparator_history
+    memory_closeout_obligations:
+      - stage_memory_closeout_packet
+      - baseline_cohort_endpoint_comparator_snapshot
+      - baseline_effect_size_or_feasibility_readout
+      - failed_comparator_lesson
+      - continue_reroute_or_stop_recommendation
   experiment:
     route_id: experiment
     display_name: Experiment
@@ -144,6 +159,21 @@ route_contracts:
       - run outcome invalidates the current study line
       - result quality or reproducibility gaps block downstream review
       - controller boundary changes before interpretation stabilizes
+    knowledge_input_obligations:
+      - stage_knowledge_packet_ref
+      - approved_experiment_protocol
+      - data_contract_and_cohort_lock
+      - endpoint_and_comparator_lock
+      - statistical_analysis_plan
+      - startup_run_context
+      - prior_result_lineage
+      - failed_comparator_history
+    memory_closeout_obligations:
+      - stage_memory_closeout_packet
+      - primary_result_with_run_context
+      - result_lineage_update
+      - endpoint_or_comparator_deviation
+      - negative_or_failed_comparator_lesson
   analysis-campaign:
     route_id: analysis-campaign
     display_name: Analysis Campaign
@@ -222,6 +252,19 @@ route_contracts:
       - first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing
       - manuscript narrative changes the claim boundary
       - foreground edits only touched `manuscript/current_package/` before MAS runtime reactivation or have not been reconciled into the canonical paper source
+    knowledge_input_obligations:
+      - stage_knowledge_packet_ref
+      - claim_evidence_map
+      - reporting_guideline_pack
+      - journal_neighbor_refs
+      - display_to_claim_map
+    memory_closeout_obligations:
+      - stage_memory_closeout_packet
+      - writing_experience_lesson
+      - claim_wording_boundary_decision
+      - reporting_guideline_gap
+      - display_to_claim_repair_request
+      - journal_neighbor_positioning_lesson
   review:
     route_id: review
     display_name: Review
@@ -295,6 +338,19 @@ route_contracts:
       - final audit finds missing proof or inconsistent claims
       - submission bundle surfaces unresolved reviewer-level concerns
       - package assembly changes the meaning of any active claim
+    knowledge_input_obligations:
+      - stage_knowledge_packet_ref
+      - publication_eval_latest
+      - controller_decision_latest
+      - package_freshness_proof
+      - declarations_and_ethics_checklist
+      - human_gate_status
+    memory_closeout_obligations:
+      - stage_memory_closeout_packet
+      - package_readiness_decision
+      - package_freshness_or_staleness_lesson
+      - declaration_or_ethics_blocker
+      - human_gate_request_or_clearance
   decision:
     route_id: decision
     display_name: Decision
@@ -330,8 +386,8 @@ route_contracts:
     knowledge_input_obligations:
       - stage_knowledge_packet_ref
       - publication_route_memory_refs
-      - failed_path_history
       - controller_decision_inputs
+      - failed_path_history
       - stop_loss_context
     memory_closeout_obligations:
       - stage_memory_closeout_packet
@@ -366,6 +422,18 @@ route_contracts:
       - journal requirements expose missing evidence or structure gaps
       - target outlet changes the claim framing materially
       - packaging constraints require a different delivery plan
+    knowledge_input_obligations:
+      - stage_knowledge_packet_ref
+      - official_author_guideline
+      - outlet_profile
+      - exporter_profile_constraints
+      - blocked_profile_evidence
+    memory_closeout_obligations:
+      - stage_memory_closeout_packet
+      - selected_outlet_or_profile_rationale
+      - exporter_constraint_lesson
+      - blocked_profile_decision
+      - reporting_guideline_delta
 evidence_review_contract:
   minimum_proof_package:
     - active study charter boundary, current route recommendation, and cited evidence refs must be readable together

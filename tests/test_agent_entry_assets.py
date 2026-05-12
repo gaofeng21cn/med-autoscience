@@ -15,6 +15,7 @@ from med_autoscience.agent_entry.renderers import (
     render_public_yaml,
     sync_agent_entry_assets,
 )
+from med_autoscience.stage_knowledge_contract import STAGE_OBLIGATIONS
 
 EXPECTED_ROUTE_IDS = {
     "scout",
@@ -50,6 +51,7 @@ def test_sync_agent_entry_assets_writes_public_files(tmp_path) -> None:
 def test_repo_public_agent_entry_assets_match_renderers() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     expected_assets = {
+        repo_root / "docs" / "runtime" / "contracts" / "agent_entry_modes.md": render_entry_modes_guide(),
         repo_root / "templates" / "agent_entry_modes.yaml": render_public_yaml(),
         repo_root / "templates" / "codex" / "medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         repo_root / "templates" / "openclaw" / "medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
@@ -140,6 +142,17 @@ def test_canonical_payload_includes_global_route_and_evidence_review_contracts()
     ):
         assert field in evidence_review_contract
         assert isinstance(evidence_review_contract[field], list)
+
+
+def test_route_contract_stage_obligations_match_stage_knowledge_contract() -> None:
+    payload = render_entry_modes_payload()
+    route_contracts = payload["route_contracts"]
+
+    assert isinstance(route_contracts, dict)
+    for stage, obligations in STAGE_OBLIGATIONS.items():
+        route_payload = route_contracts[stage]
+        for field, expected_values in obligations.items():
+            assert route_payload[field] == list(expected_values)
 
 
 def test_route_contracts_include_literature_scout_line_selection_candidate_board_and_stop_loss_contracts() -> None:

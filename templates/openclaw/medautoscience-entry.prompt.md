@@ -93,8 +93,8 @@ Runtime modes: lightweight, managed
   human_gate_boundary: comparator, cohort, or endpoint redefinition changes the active claim boundary | baseline readout points to a stop decision or a direction reset
   next_routes: analysis-campaign | write | decision
   route_back_triggers: baseline result cannot support the active claim | comparator or cohort definition changes materially | reviewer-first scan finds missing baseline proof
-  knowledge_input_obligations: (none)
-  memory_closeout_obligations: (none)
+  knowledge_input_obligations: stage_knowledge_packet_ref | data_source_contract | cohort_definition_and_inclusion_exclusion | endpoint_definition_and_measurement_window | comparator_definition_and_reference_baseline | startup_run_context | prior_result_lineage | failed_comparator_history
+  memory_closeout_obligations: stage_memory_closeout_packet | baseline_cohort_endpoint_comparator_snapshot | baseline_effect_size_or_feasibility_readout | failed_comparator_lesson | continue_reroute_or_stop_recommendation
 - experiment: Experiment
   key_question: Does the primary result answer the current study question?
   goal: Run a primary managed experiment when the study line needs fresh main-result execution.
@@ -104,8 +104,8 @@ Runtime modes: lightweight, managed
   human_gate_boundary: primary experiment target changes the locked study boundary or main claim family | result interpretation would authorize a new externally visible claim
   next_routes: analysis-campaign | write | decision
   route_back_triggers: run outcome invalidates the current study line | result quality or reproducibility gaps block downstream review | controller boundary changes before interpretation stabilizes
-  knowledge_input_obligations: (none)
-  memory_closeout_obligations: (none)
+  knowledge_input_obligations: stage_knowledge_packet_ref | approved_experiment_protocol | data_contract_and_cohort_lock | endpoint_and_comparator_lock | statistical_analysis_plan | startup_run_context | prior_result_lineage | failed_comparator_history
+  memory_closeout_obligations: stage_memory_closeout_packet | primary_result_with_run_context | result_lineage_update | endpoint_or_comparator_deviation | negative_or_failed_comparator_lesson
 - analysis-campaign: Analysis Campaign
   key_question: Have the bounded evidence gaps been closed?
   goal: Close the bounded evidence gaps that still block claim acceptance or reviewer pressure.
@@ -126,8 +126,8 @@ Runtime modes: lightweight, managed
   human_gate_boundary: manuscript claims expand beyond the current evidence package or locked study objective | draft is ready for external circulation or submission-facing release
   next_routes: finalize | decision
   route_back_triggers: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing | manuscript narrative changes the claim boundary | foreground edits only touched `manuscript/current_package/` before MAS runtime reactivation or have not been reconciled into the canonical paper source
-  knowledge_input_obligations: (none)
-  memory_closeout_obligations: (none)
+  knowledge_input_obligations: stage_knowledge_packet_ref | claim_evidence_map | reporting_guideline_pack | journal_neighbor_refs | display_to_claim_map
+  memory_closeout_obligations: stage_memory_closeout_packet | writing_experience_lesson | claim_wording_boundary_decision | reporting_guideline_gap | display_to_claim_repair_request | journal_neighbor_positioning_lesson
 - review: Review
   key_question: What should the strict AI reviewer send back before the line can advance?
   goal: Convert reviewer pressure, citation gaps, and evidence concerns into route-safe repair or decision work.
@@ -148,8 +148,8 @@ Runtime modes: lightweight, managed
   human_gate_boundary: submission-ready judgment or external delivery authorization is required | final package changes the claim, limitation, or outlet boundary materially
   next_routes: decision | write
   route_back_triggers: final audit finds missing proof or inconsistent claims | submission bundle surfaces unresolved reviewer-level concerns | package assembly changes the meaning of any active claim
-  knowledge_input_obligations: (none)
-  memory_closeout_obligations: (none)
+  knowledge_input_obligations: stage_knowledge_packet_ref | publication_eval_latest | controller_decision_latest | package_freshness_proof | declarations_and_ethics_checklist | human_gate_status
+  memory_closeout_obligations: stage_memory_closeout_packet | package_readiness_decision | package_freshness_or_staleness_lesson | declaration_or_ethics_blocker | human_gate_request_or_clearance
 - decision: Decision
   key_question: Should the current study line continue, route back, stop, or enter a human gate?
   goal: Record the official go, stop, reroute, or human-gate judgment for the active study line.
@@ -159,7 +159,7 @@ Runtime modes: lightweight, managed
   human_gate_boundary: official go, stop, reroute, or direction-reset judgment is required | decision changes the study boundary or authorizes external release
   next_routes: scout | baseline | analysis-campaign | write | finalize
   route_back_triggers: new evidence invalidates the recorded judgment | human gate changes the study boundary | downstream route reports unmet assumptions from the decision record
-  knowledge_input_obligations: stage_knowledge_packet_ref | publication_route_memory_refs | failed_path_history | controller_decision_inputs | stop_loss_context
+  knowledge_input_obligations: stage_knowledge_packet_ref | publication_route_memory_refs | controller_decision_inputs | failed_path_history | stop_loss_context
   memory_closeout_obligations: stage_memory_closeout_packet | stop_or_pivot_lesson | route_impact | rejected_alternatives
 - journal-resolution: Journal Resolution
   key_question: Which outlet or packaging path best preserves the current claim boundary?
@@ -170,8 +170,8 @@ Runtime modes: lightweight, managed
   human_gate_boundary: outlet choice changes the claim framing, delivery plan, or submission commitments | journal selection requires external release or submission authorization
   next_routes: write | finalize | decision
   route_back_triggers: journal requirements expose missing evidence or structure gaps | target outlet changes the claim framing materially | packaging constraints require a different delivery plan
-  knowledge_input_obligations: (none)
-  memory_closeout_obligations: (none)
+  knowledge_input_obligations: stage_knowledge_packet_ref | official_author_guideline | outlet_profile | exporter_profile_constraints | blocked_profile_evidence
+  memory_closeout_obligations: stage_memory_closeout_packet | selected_outlet_or_profile_rationale | exporter_constraint_lesson | blocked_profile_decision | reporting_guideline_delta
 
 ## Evidence And Review Contract
 - minimum_proof_package: active study charter boundary, current route recommendation, and cited evidence refs must be readable together | every route must leave a durable artifact or durable reference path for the next route | writing and finalize routes must carry a current claim-evidence traceability surface

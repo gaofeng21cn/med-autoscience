@@ -75,6 +75,44 @@ STAGE_OBLIGATIONS: dict[str, dict[str, tuple[str, ...]]] = {
             "memory_reuse_note",
         ),
     },
+    "baseline": {
+        "knowledge_input_obligations": (
+            "stage_knowledge_packet_ref",
+            "data_source_contract",
+            "cohort_definition_and_inclusion_exclusion",
+            "endpoint_definition_and_measurement_window",
+            "comparator_definition_and_reference_baseline",
+            "startup_run_context",
+            "prior_result_lineage",
+            "failed_comparator_history",
+        ),
+        "memory_closeout_obligations": (
+            "stage_memory_closeout_packet",
+            "baseline_cohort_endpoint_comparator_snapshot",
+            "baseline_effect_size_or_feasibility_readout",
+            "failed_comparator_lesson",
+            "continue_reroute_or_stop_recommendation",
+        ),
+    },
+    "experiment": {
+        "knowledge_input_obligations": (
+            "stage_knowledge_packet_ref",
+            "approved_experiment_protocol",
+            "data_contract_and_cohort_lock",
+            "endpoint_and_comparator_lock",
+            "statistical_analysis_plan",
+            "startup_run_context",
+            "prior_result_lineage",
+            "failed_comparator_history",
+        ),
+        "memory_closeout_obligations": (
+            "stage_memory_closeout_packet",
+            "primary_result_with_run_context",
+            "result_lineage_update",
+            "endpoint_or_comparator_deviation",
+            "negative_or_failed_comparator_lesson",
+        ),
+    },
     "analysis-campaign": {
         "knowledge_input_obligations": (
             "stage_knowledge_packet_ref",
@@ -90,6 +128,23 @@ STAGE_OBLIGATIONS: dict[str, dict[str, tuple[str, ...]]] = {
             "negative_or_weak_result_interpretation",
             "route_impact",
             "failed_path_lesson",
+        ),
+    },
+    "write": {
+        "knowledge_input_obligations": (
+            "stage_knowledge_packet_ref",
+            "claim_evidence_map",
+            "reporting_guideline_pack",
+            "journal_neighbor_refs",
+            "display_to_claim_map",
+        ),
+        "memory_closeout_obligations": (
+            "stage_memory_closeout_packet",
+            "writing_experience_lesson",
+            "claim_wording_boundary_decision",
+            "reporting_guideline_gap",
+            "display_to_claim_repair_request",
+            "journal_neighbor_positioning_lesson",
         ),
     },
     "review": {
@@ -110,6 +165,23 @@ STAGE_OBLIGATIONS: dict[str, dict[str, tuple[str, ...]]] = {
             "reusable_critique_lesson",
         ),
     },
+    "finalize": {
+        "knowledge_input_obligations": (
+            "stage_knowledge_packet_ref",
+            "publication_eval_latest",
+            "controller_decision_latest",
+            "package_freshness_proof",
+            "declarations_and_ethics_checklist",
+            "human_gate_status",
+        ),
+        "memory_closeout_obligations": (
+            "stage_memory_closeout_packet",
+            "package_readiness_decision",
+            "package_freshness_or_staleness_lesson",
+            "declaration_or_ethics_blocker",
+            "human_gate_request_or_clearance",
+        ),
+    },
     "decision": {
         "knowledge_input_obligations": (
             "stage_knowledge_packet_ref",
@@ -123,6 +195,22 @@ STAGE_OBLIGATIONS: dict[str, dict[str, tuple[str, ...]]] = {
             "stop_or_pivot_lesson",
             "route_impact",
             "rejected_alternatives",
+        ),
+    },
+    "journal-resolution": {
+        "knowledge_input_obligations": (
+            "stage_knowledge_packet_ref",
+            "official_author_guideline",
+            "outlet_profile",
+            "exporter_profile_constraints",
+            "blocked_profile_evidence",
+        ),
+        "memory_closeout_obligations": (
+            "stage_memory_closeout_packet",
+            "selected_outlet_or_profile_rationale",
+            "exporter_constraint_lesson",
+            "blocked_profile_decision",
+            "reporting_guideline_delta",
         ),
     },
 }
