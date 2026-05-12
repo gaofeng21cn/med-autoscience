@@ -335,8 +335,17 @@ def _stage_review_lane(stage_review: Mapping[str, Any]) -> dict[str, Any]:
         "current_stage": _non_empty_text(stage_review.get("current_stage")),
         "latest_review_page_ref": _non_empty_text(stage_review.get("latest_review_page_ref")),
         "deliverable_index_ref": _non_empty_text(stage_review.get("deliverable_index_ref")),
+        "freshness_state": _non_empty_text(stage_review.get("freshness_state")),
+        "paper_asset_delta_types": _string_list(stage_review.get("paper_asset_delta_types")),
+        "claim_impact_state": _non_empty_text(stage_review.get("claim_impact_state")),
+        "human_review_state": _non_empty_text(stage_review.get("human_review_state")),
+        "next_owner": _non_empty_text(stage_review.get("next_owner")),
+        "blockers": _string_list(stage_review.get("blockers")),
+        "continue_state": _non_empty_text(stage_review.get("continue_state")),
         "source_refs": refs,
         "can_authorize_publication_readiness": False,
+        "can_authorize_quality_verdict": False,
+        "can_mark_publication_ready": False,
         "authority": _lane_authority(),
     }
 

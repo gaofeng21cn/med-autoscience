@@ -11,6 +11,7 @@ from med_autoscience.stage_surface_contract import build_stage_surface_contract
 
 from .rendering import list_html, status_chip
 from .source_refs import source_ref_allowed
+from .stage_review_parts import materialize_stage_review_deliverable_index
 from .status_display import display_text
 
 
@@ -40,6 +41,7 @@ def build_stage_review_index(
             *_string_list(explicit.get("source_refs")),
             review_page_ref,
             deliverable_index_ref,
+            *_paper_line_workspace_proof_refs(_mapping(explicit.get("paper_line_workspace_proof"))),
         ]
     )
     stage_card = _stage_card(stage)
@@ -50,6 +52,9 @@ def build_stage_review_index(
         source_refs=source_refs,
         stage_card=stage_card,
     )
+    paper_line_workspace_proof = _mapping(explicit.get("paper_line_workspace_proof"))
+    if paper_line_workspace_proof and not _paper_line_workspace_proof_available(paper_line_workspace_proof):
+        missing.append("paper_line_workspace_proof_refs")
     stale = _stale_conditions(explicit)
     conflict = _conflict_conditions(explicit, study_id=study_id)
     status = "available" if not missing and not conflict else "missing"
@@ -85,6 +90,11 @@ def build_stage_review_index(
         "rows": rows,
         "source_refs": source_refs,
         "locator_projection": locator_projection,
+        "paper_line_summary": _paper_line_summary(
+            explicit=explicit,
+            progress=resolved_progress,
+            normalized_rows=rows,
+        ),
         "conditions": {
             "missing": missing,
             "stale": stale,
@@ -105,6 +115,7 @@ def runtime_stage_review_summary(value: Mapping[str, Any] | None) -> dict[str, A
     claim_impact = _mapping(row.get("claim_impact"))
     human_review = _mapping(row.get("human_review_annotation"))
     next_owner = _mapping(row.get("next_owner"))
+    continue_state = _mapping(row.get("continue_state"))
     return {
         "status": _non_empty_text(review_index.get("status")) or "missing",
         "current_stage": _non_empty_text(review_index.get("current_stage")),
@@ -121,6 +132,7 @@ def runtime_stage_review_summary(value: Mapping[str, Any] | None) -> dict[str, A
         "human_review_state": _non_empty_text(human_review.get("state")),
         "next_owner": _non_empty_text(next_owner.get("owner")),
         "blockers": _string_list(row.get("blockers")),
+        "continue_state": _non_empty_text(continue_state.get("state")),
         "opl_projection_boundary": "read_only_locator_no_truth_write",
         "can_authorize_quality_verdict": False,
         "can_authorize_submission_readiness": False,
@@ -201,6 +213,7 @@ def _stage_review_row(
         "source_refs": source_refs,
         "latest_review_page_proof": _mapping(locator_projection.get("latest_review_page_proof")),
         "paper_line_index_proof": _mapping(locator_projection.get("paper_line_index_proof")),
+        "paper_line_workspace_proof": _mapping(explicit.get("paper_line_workspace_proof")),
         "authority": _authority_boundary(),
     }
 
@@ -251,6 +264,21 @@ def _stage_review_locator_projection(
         study_root=resolved_study_root,
         study_id=study_id,
     )
+    paper_line_workspace_proof = _paper_line_workspace_proof(
+        _mapping(index.get("paper_line_workspace_proof")),
+        study_root=resolved_study_root,
+        study_id=study_id,
+    )
+    normalized_source_refs = _dedupe_refs(
+        [
+            *_string_list(index.get("source_refs")),
+            _workspace_ref(index_path, study_root=resolved_study_root),
+            _workspace_ref(latest_review_page_path, study_root=resolved_study_root)
+            if latest_review_page_path is not None
+            else latest_review_page_ref,
+            *_paper_line_workspace_proof_refs(paper_line_workspace_proof),
+        ]
+    )
     normalized: dict[str, Any] = {
         **index,
         "stage": _non_empty_text(index.get("stage")) or _non_empty_text(index.get("current_stage")),
@@ -258,15 +286,7 @@ def _stage_review_locator_projection(
         if latest_review_page_path is not None
         else latest_review_page_ref,
         "deliverable_index_ref": _workspace_ref(index_path, study_root=resolved_study_root),
-        "source_refs": _dedupe_refs(
-            [
-                *_string_list(index.get("source_refs")),
-                _workspace_ref(index_path, study_root=resolved_study_root),
-                _workspace_ref(latest_review_page_path, study_root=resolved_study_root)
-                if latest_review_page_path is not None
-                else latest_review_page_ref,
-            ]
-        ),
+        "source_refs": normalized_source_refs,
         "paper_line_index_proof": _paper_line_index_proof(
             index,
             index_path=index_path,
@@ -288,6 +308,8 @@ def _stage_review_locator_projection(
             "read_only": True,
         },
     }
+    if paper_line_workspace_proof:
+        normalized["paper_line_workspace_proof"] = paper_line_workspace_proof
     return normalized
 
 
@@ -400,6 +422,74 @@ def _latest_review_page_proof(
     }
 
 
+def _paper_line_workspace_proof(
+    proof: Mapping[str, Any],
+    *,
+    study_root: Path | None,
+    study_id: str,
+) -> dict[str, Any]:
+    if not proof:
+        return {}
+    locators = {
+        "evidence_ledger": _proof_locator(proof, "evidence_ledger_ref", study_root=study_root, study_id=study_id),
+        "review_ledger": _proof_locator(proof, "review_ledger_ref", study_root=study_root, study_id=study_id),
+        "publication_eval": _proof_locator(proof, "publication_eval_ref", study_root=study_root, study_id=study_id),
+        "controller_decision": _proof_locator(proof, "controller_decision_ref", study_root=study_root, study_id=study_id),
+        "artifact_freshness": _proof_locator(proof, "artifact_freshness_ref", study_root=study_root, study_id=study_id),
+        "package_proof": _proof_locator(proof, "package_proof_ref", study_root=study_root, study_id=study_id),
+    }
+    missing = [role for role, locator in locators.items() if locator["status"] != "available"]
+    return {
+        "surface_kind": "mas_paper_line_workspace_locator_proof",
+        "schema_version": 1,
+        "status": "available" if not missing else "missing",
+        "missing": missing,
+        "locators": locators,
+        "source_refs": _dedupe_refs(locator["ref"] for locator in locators.values()),
+        "body_included": False,
+        "read_only": True,
+        "authority": _authority_boundary(),
+    }
+
+
+def _proof_locator(
+    proof: Mapping[str, Any],
+    key: str,
+    *,
+    study_root: Path | None,
+    study_id: str,
+) -> dict[str, Any]:
+    ref = _non_empty_text(proof.get(key))
+    path = _resolve_locator_path(ref, study_root=study_root, study_id=study_id)
+    normalized_ref = _workspace_ref(path, study_root=study_root) if path is not None else ref
+    return {
+        "ref": normalized_ref,
+        "status": "available" if path is not None and path.is_file() else "missing",
+        "body_included": False,
+        "read_only": True,
+        "writes_authority_surface": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_submission_readiness": False,
+        "can_authorize_artifact_authority": False,
+    }
+
+
+def _paper_line_workspace_proof_refs(proof: Mapping[str, Any]) -> list[str]:
+    locators = _mapping(proof.get("locators"))
+    if locators:
+        return [
+            ref
+            for locator in locators.values()
+            for ref in [_non_empty_text(_mapping(locator).get("ref"))]
+            if ref is not None
+        ]
+    return _string_list(proof.get("source_refs"))
+
+
+def _paper_line_workspace_proof_available(proof: Mapping[str, Any]) -> bool:
+    return _non_empty_text(proof.get("status")) == "available" and not _string_list(proof.get("missing"))
+
+
 def _review_page_ref(value: Mapping[str, Any]) -> str | None:
     latest = _mapping(value.get("latest_review_page"))
     return (
@@ -498,7 +588,7 @@ def _paper_presentation_note(value: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _claim_impact(value: Mapping[str, Any]) -> dict[str, Any]:
-    claim_trace = _mapping(value.get("claim_trace"))
+    claim_trace = _mapping(value.get("claim_trace")) or _mapping(value.get("claim_impact"))
     return {
         "impact_state": _non_empty_text(claim_trace.get("impact_state")) or "no_claim_change",
         "claim_refs": _string_list(claim_trace.get("claim_refs")),
@@ -531,7 +621,7 @@ def _progress_freshness_signal(progress: Mapping[str, Any]) -> str:
 
 
 def _human_review_annotation(value: Mapping[str, Any]) -> dict[str, Any]:
-    review = _mapping(value.get("human_review"))
+    review = _mapping(value.get("human_review")) or _mapping(value.get("human_review_annotation"))
     state = _non_empty_text(review.get("state")) or "not_recorded"
     boundary_triggered = bool(review.get("human_gate_boundary_triggered"))
     blocks_auto_advance = state == "human_gate_required" and boundary_triggered
@@ -602,6 +692,128 @@ def _authority_boundary() -> dict[str, Any]:
     }
 
 
+def _paper_line_summary(
+    *,
+    explicit: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    normalized_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    raw_rows = _paper_line_stage_reviews(explicit, progress)
+    rows: list[dict[str, Any]]
+    if raw_rows:
+        rows = [_summary_row(_mapping(item)) for item in raw_rows if isinstance(item, Mapping)]
+    else:
+        rows = [_summary_row_from_normalized(row) for row in normalized_rows]
+    rows = [row for row in rows if row]
+    freshness_states = [_non_empty_text(_mapping(row.get("freshness_signal")).get("state")) for row in rows]
+    human_reviews = [_mapping(row.get("human_review_annotation")) for row in rows]
+    return {
+        "surface_kind": "mas_stage_review_paper_line_summary",
+        "stage_count": len(rows),
+        "claim_impact_by_state": _claim_impact_by_state(rows),
+        "paper_asset_delta_types": _sorted_unique(
+            delta_type
+            for row in rows
+            for delta_type in _string_list(_mapping(row.get("paper_asset_delta")).get("delta_types"))
+        ),
+        "freshness_rollup": {
+            "state": _freshness_rollup_state(freshness_states),
+            "stage_states": _stage_state_pairs(rows, "freshness_signal"),
+            "blocks_auto_advance_by_default": False,
+            "can_authorize_submission_readiness": False,
+        },
+        "human_review_rollup": {
+            "states": _sorted_unique(
+                _non_empty_text(review.get("state")) or "not_recorded" for review in human_reviews
+            ),
+            "blocks_auto_advance": any(bool(review.get("blocks_auto_advance")) for review in human_reviews),
+            "default_blocks_auto_advance": False,
+            "can_authorize_quality_verdict": False,
+            "can_mark_publication_ready": False,
+        },
+        "blockers": _sorted_unique(blocker for row in rows for blocker in _string_list(row.get("blockers"))),
+        "authority": _authority_boundary(),
+    }
+
+
+def _paper_line_stage_reviews(explicit: Mapping[str, Any], progress: Mapping[str, Any]) -> list[object]:
+    explicit_rows = _list_items(explicit.get("paper_line_stage_reviews"))
+    if explicit_rows:
+        return explicit_rows
+    for key in ("stage_review_index", "stage_deliverable_review", "stage_review_page"):
+        rows = _list_items(_mapping(progress.get(key)).get("paper_line_stage_reviews"))
+        if rows:
+            return rows
+    return []
+
+
+def _summary_row(value: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "stage": _non_empty_text(value.get("stage")) or _non_empty_text(value.get("current_stage")),
+        "paper_asset_delta": _paper_asset_delta(value),
+        "claim_impact": _claim_impact(value),
+        "freshness_signal": _freshness_signal(value, {}),
+        "human_review_annotation": _human_review_annotation(value),
+        "blockers": _string_list(value.get("blockers")),
+    }
+
+
+def _summary_row_from_normalized(value: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "stage": _non_empty_text(value.get("stage")),
+        "paper_asset_delta": _mapping(value.get("paper_asset_delta")),
+        "claim_impact": _mapping(value.get("claim_impact")),
+        "freshness_signal": _mapping(value.get("freshness_signal")),
+        "human_review_annotation": _mapping(value.get("human_review_annotation")),
+        "blockers": _string_list(value.get("blockers")),
+    }
+
+
+def _claim_impact_by_state(rows: list[Mapping[str, Any]]) -> dict[str, list[str]]:
+    by_state: dict[str, list[str]] = {}
+    for row in rows:
+        claim = _mapping(row.get("claim_impact"))
+        state = _non_empty_text(claim.get("impact_state")) or "no_claim_change"
+        refs = _string_list(claim.get("claim_refs")) or ["unreferenced_claim"]
+        by_state.setdefault(state, [])
+        for ref in refs:
+            if ref not in by_state[state]:
+                by_state[state].append(ref)
+    return {key: sorted(values) for key, values in sorted(by_state.items())}
+
+
+def _freshness_rollup_state(states: Iterable[str | None]) -> str:
+    observed = [state for state in states if state is not None]
+    if "red_stale_or_inconsistent" in observed:
+        return "red_stale_or_inconsistent"
+    if "yellow_refresh_recommended" in observed:
+        return "yellow_refresh_recommended"
+    if "green_current" in observed:
+        return "green_current"
+    return "missing"
+
+
+def _stage_state_pairs(rows: list[Mapping[str, Any]], field: str) -> list[dict[str, str | None]]:
+    result: list[dict[str, str | None]] = []
+    for row in rows:
+        result.append(
+            {
+                "stage": _non_empty_text(row.get("stage")),
+                "state": _non_empty_text(_mapping(row.get(field)).get("state")),
+            }
+        )
+    return result
+
+
+def _sorted_unique(values: Iterable[object]) -> list[str]:
+    result: set[str] = set()
+    for value in values:
+        text = _non_empty_text(value)
+        if text is not None:
+            result.add(text)
+    return sorted(result)
+
+
 def _row_html(row: Mapping[str, Any]) -> str:
     paper_asset_delta = _mapping(row.get("paper_asset_delta"))
     source_grounding = _mapping(row.get("source_grounding"))
@@ -621,6 +833,7 @@ def _row_html(row: Mapping[str, Any]) -> str:
         _non_empty_text(presentation_note.get("ref")),
         *_string_list(presentation_note.get("evidence_spine_refs")),
     ]
+    paper_line_workspace_proof_refs = _paper_line_workspace_proof_refs(_mapping(row.get("paper_line_workspace_proof")))
     return (
         "<tr>"
         + _td("Stage", display_text(row.get("stage"), fallback="缺失", preserve_known_token=False))
@@ -633,6 +846,9 @@ def _row_html(row: Mapping[str, Any]) -> str:
                     ", ".join(_string_list(paper_asset_delta.get("delta_types"))),
                     "source: " + "; ".join(grounding_refs) if grounding_refs else None,
                     "presentation: " + "; ".join(ref for ref in presentation_refs if ref) if any(presentation_refs) else None,
+                    "paper-line workspace proof: " + "; ".join(paper_line_workspace_proof_refs)
+                    if paper_line_workspace_proof_refs
+                    else None,
                 ]
             )
             or "缺失",
@@ -689,6 +905,12 @@ def _string_list(value: object) -> list[str]:
     return result
 
 
+def _list_items(value: object) -> list[object]:
+    if not isinstance(value, Iterable) or isinstance(value, (str, bytes, Mapping)):
+        return []
+    return list(value)
+
+
 def _non_empty_text(value: object) -> str | None:
     if not isinstance(value, str):
         return None
@@ -698,6 +920,7 @@ def _non_empty_text(value: object) -> str | None:
 
 __all__ = [
     "build_stage_review_index",
+    "materialize_stage_review_deliverable_index",
     "render_stage_review_section",
     "runtime_stage_review_summary",
 ]

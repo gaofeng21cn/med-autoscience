@@ -177,6 +177,166 @@ def test_materialized_study_page_reads_existing_stage_review_locator_without_wri
     assert not (study_root / "artifacts" / "publication_eval").exists()
 
 
+def test_materialized_study_page_projects_real_paper_line_workspace_proof_as_read_only_locators(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    profile = make_profile(tmp_path)
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "study.yaml", "study_id: 001-risk\n")
+    write_text(study_root / "artifacts" / "stage_reviews" / "write" / "latest.md", "# Write Stage Review\n")
+    write_text(
+        study_root / "artifacts" / "stage_reviews" / "index.json",
+        json.dumps(
+            {
+                "surface_kind": "mas_stage_deliverable_index",
+                "study_id": "001-risk",
+                "stage": "write",
+                "review_page_ref": "artifacts/stage_reviews/write/latest.md",
+                "source_refs": [
+                    "studies/001-risk/artifacts/evidence/ledger.jsonl",
+                    "studies/001-risk/artifacts/review/ledger.jsonl",
+                    "studies/001-risk/artifacts/publication_eval/latest.json",
+                    "studies/001-risk/artifacts/controller_decisions/latest.json",
+                    "studies/001-risk/artifacts/package_freshness/latest.json",
+                ],
+                "paper_line_workspace_proof": {
+                    "evidence_ledger_ref": "artifacts/evidence/ledger.jsonl",
+                    "review_ledger_ref": "artifacts/review/ledger.jsonl",
+                    "publication_eval_ref": "artifacts/publication_eval/latest.json",
+                    "controller_decision_ref": "artifacts/controller_decisions/latest.json",
+                    "artifact_freshness_ref": "artifacts/package_freshness/latest.json",
+                    "package_proof_ref": "paper/current_package/proof.json",
+                },
+                "paper_asset_delta": {
+                    "delta_types": ["manuscript", "package"],
+                    "refs": ["paper/manuscript.md", "paper/current_package/current_package.zip"],
+                },
+                "freshness_signal": {"state": "green_current"},
+                "human_review": {"state": "annotated"},
+                "next_owner": {"owner": "MedAutoScience", "next_routes": ["review"]},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    for ref in (
+        "artifacts/evidence/ledger.jsonl",
+        "artifacts/review/ledger.jsonl",
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+        "artifacts/package_freshness/latest.json",
+        "paper/current_package/proof.json",
+    ):
+        write_text(study_root / ref, "{}\n")
+
+    result = module.materialize_progress_portal(
+        profile=profile,
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    payload = json.loads(
+        (
+            profile.workspace_root
+            / "artifacts"
+            / "runtime"
+            / "progress_portal"
+            / "studies"
+            / "001-risk"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    html = Path(result["html_path"]).read_text(encoding="utf-8")
+    review = payload["study_workbench"]["stage_review_index"]
+    proof = review["rows"][0]["paper_line_workspace_proof"]
+    assert review["status"] == "available"
+    assert proof["surface_kind"] == "mas_paper_line_workspace_locator_proof"
+    assert proof["status"] == "available"
+    assert proof["body_included"] is False
+    assert proof["read_only"] is True
+    assert proof["authority"]["writes_authority_surface"] is False
+    assert proof["authority"]["can_authorize_quality_verdict"] is False
+    assert proof["authority"]["can_authorize_submission_readiness"] is False
+    assert proof["authority"]["can_authorize_artifact_authority"] is False
+    assert proof["locators"]["publication_eval"]["ref"] == "studies/001-risk/artifacts/publication_eval/latest.json"
+    assert proof["locators"]["controller_decision"]["ref"] == (
+        "studies/001-risk/artifacts/controller_decisions/latest.json"
+    )
+    assert proof["locators"]["package_proof"]["ref"] == "studies/001-risk/paper/current_package/proof.json"
+    assert all(item["body_included"] is False for item in proof["locators"].values())
+    assert "studies/001-risk/artifacts/evidence/ledger.jsonl" in review["source_refs"]
+    assert "studies/001-risk/artifacts/review/ledger.jsonl" in review["source_refs"]
+    assert "studies/001-risk/artifacts/publication_eval/latest.json" in review["source_refs"]
+    assert "studies/001-risk/artifacts/controller_decisions/latest.json" in review["source_refs"]
+    assert "studies/001-risk/artifacts/package_freshness/latest.json" in review["source_refs"]
+    assert "studies/001-risk/paper/current_package/proof.json" in review["source_refs"]
+    assert "paper-line workspace proof" in html
+    assert "studies/001-risk/artifacts/publication_eval/latest.json" in html
+    assert "studies/001-risk/paper/current_package/proof.json" in html
+    assert "{}" not in html
+
+
+def test_materialized_study_page_fails_closed_when_paper_line_workspace_proof_refs_are_missing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    profile = make_profile(tmp_path)
+    study_root = profile.workspace_root / "studies" / "001-risk"
+    write_text(study_root / "study.yaml", "study_id: 001-risk\n")
+    write_text(study_root / "artifacts" / "stage_reviews" / "write" / "latest.md", "# Write Stage Review\n")
+    write_text(
+        study_root / "artifacts" / "stage_reviews" / "index.json",
+        json.dumps(
+            {
+                "surface_kind": "mas_stage_deliverable_index",
+                "study_id": "001-risk",
+                "stage": "write",
+                "review_page_ref": "artifacts/stage_reviews/write/latest.md",
+                "source_refs": ["studies/001-risk/artifacts/publication_eval/latest.json"],
+                "paper_line_workspace_proof": {
+                    "evidence_ledger_ref": "artifacts/evidence/ledger.jsonl",
+                    "publication_eval_ref": "artifacts/publication_eval/latest.json",
+                    "controller_decision_ref": "artifacts/controller_decisions/latest.json",
+                    "package_proof_ref": "paper/current_package/proof.json",
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(study_root / "artifacts" / "evidence" / "ledger.jsonl", "{}\n")
+    write_text(study_root / "artifacts" / "publication_eval" / "latest.json", "{}\n")
+    write_text(study_root / "artifacts" / "controller_decisions" / "latest.json", "{}\n")
+    write_text(study_root / "paper" / "current_package" / "proof.json", "{}\n")
+
+    module.materialize_progress_portal(
+        profile=profile,
+        study_id="001-risk",
+        progress_payload=_progress_payload(),
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    payload = json.loads(
+        (
+            profile.workspace_root
+            / "artifacts"
+            / "runtime"
+            / "progress_portal"
+            / "studies"
+            / "001-risk"
+            / "latest.json"
+        ).read_text(encoding="utf-8")
+    )
+    review = payload["study_workbench"]["stage_review_index"]
+    assert review["status"] == "missing"
+    assert review["rows"] == []
+    assert "paper_line_workspace_proof_refs" in review["conditions"]["missing"]
+
+
 def test_materialize_progress_portal_can_open_static_entry(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.progress_portal")
     profile = make_profile(tmp_path)

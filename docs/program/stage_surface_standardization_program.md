@@ -77,7 +77,7 @@ Stage card
 - `stage_quality_pack_contract` 已把 stage-selectable quality packs、reporting guideline selection、locator、freshness 和 authority boundary 落成 machine-readable contract。
 - `standard_domain_agent_skeleton.physical_skeleton_layout_audit` 已把 stage、prompt、skill、knowledge、quality gate、sidecar、projection builder 和 artifact locator 映射到现有 repo paths。
 - `family_stage_control_plane_descriptor` 与 product-entry manifest 已把 route contract、stage knowledge plane、stage quality pack contract、quality/publication refs 和 authority boundary 投影给 OPL。
-- `Stage Deliverable Review Page` 与 `Stage Deliverable Index` 已进入 generated stage surface contract 和 OPL/product-entry descriptor locator；machine truth 仍必须来自 MAS owner receipts、ledgers、publication eval、controller decisions 和 workspace artifact locator refs。人工判断策略已明确为 `optional human review annotation`：默认不阻塞自动推进，只有 MAS human-gate boundary 被触发时才成为阻塞。Review page contract 也已固定论文资产变化类型、跨阶段 claim trace 状态和 stale/freshness 红黄绿状态，供后续 Portal / Workbench 直接展示。
+- `Stage Deliverable Review Page` 与 `Stage Deliverable Index` 已从 contract / locator 推进到 repo-level workspace locator proof：stage closeout 可以物化一页式 review page 和 paper-line index，Progress Portal 与 OPL Workbench 能只读展示 latest review page、deliverable index、freshness、论文资产变化、claim impact、人工注释、next owner 和 blocker。machine truth 仍必须来自 MAS owner receipts、ledgers、publication eval、controller decisions 和 workspace artifact locator refs。人工判断策略已明确为 `optional human review annotation`：默认不阻塞自动推进，只有 MAS human-gate boundary 被触发时才成为阻塞。
 
 本轮已经落地的部分：
 
@@ -88,6 +88,7 @@ Stage card
 | stage-selectable quality packs | `stage_quality_contract.py` + product-entry / family descriptor projections | `tests/test_stage_quality_contract.py` + product-entry action catalog parity |
 | independent stage skill surfaces | `baseline` / `experiment` / `analysis-campaign` / `review` skill surfaces + existing stage skill updates | overlay / agent-entry asset validation |
 | provider projection and typed blocker proof | `real-paper-autonomy-provider-hosted-paper-proof` + `real-paper-autonomy-guarded-apply-proof` | read-only three-paper proof + MAS-owned guarded apply typed blocker surface |
+| stage review / index workspace locator proof | MAS stage review materialization + Progress Portal / OPL Workbench read-only locator projection | stage review focused tests + materialized surface tests |
 
 当前不足：
 
@@ -96,7 +97,7 @@ Stage card
 | Production provider-hosted live apply 仍未闭合 | 只能说 stage skill surfaces landed、descriptor / adapter ready、provider projection 与 typed blocker proof landed；不能说 production-hosted paper automation 已完成。 | 真实 provider attempt 在 paper line 上留下 `attempt query -> typed closeout -> MAS owner receipt -> artifact delta / gate replay / human gate / stop-loss / typed blocker`。 |
 | OPL production provider residency 仍缺长期运行证据 | 当前 OPL/MAS 对齐达到 descriptor-level aligned / adapter-ready；Temporal-backed production residency、restart/re-query、retry/dead-letter 和长时 Codex/domain activity soak 仍未证明。 | OPL production worker residency ledger、restart/re-query proof、dead-letter/retry proof 和 MAS sidecar dispatch receipt 串联。 |
 | Stage prompt、policy、quality rubric 仍需要持续守住 owner boundary | 新增或修改 skill 时必须继续消费 stage card、canonical route contract、stage knowledge obligations、quality pack refs、RH clean-room gates 和 MAS owner closeout packet，不能回退为 Markdown-only 规则。 | overlay / agent-entry asset validation 加上 focused route/knowledge/quality contract tests；新增 stage skill 必须带 machine-derived surface block。 |
-| `Stage Deliverable Review Page` / `Stage Deliverable Index` 已进入生成器和 product-entry locator，但尚未在真实 paper-line workspace artifact 与 Progress Portal / Workbench UI 中闭合 | 人工审阅者能从 generated contract 看到统一审阅字段；真实论文线仍需留下 latest review page、owner receipt、freshness 和人工判断 proof，Portal / Workbench 仍需把这些 refs 展成一张人看的 stage review table。 | 至少一条真实 paper line 生成每个关键 stage 的 latest review page，并由 index 汇总 refs、freshness、quality gate state、human review annotation 和 next owner。 |
+| Stage review / index 的 production provider live apply 尚未闭合 | repo-level workspace locator proof 已能物化 review page / index 并由 Portal / Workbench 只读展示；仍不能说 production provider-hosted paper automation 已自动生成真实论文线 closeout。 | provider-hosted attempt 在真实 paper line 上触发 MAS owner closeout，并留下 owner receipt、review/index locator、artifact freshness、gate replay 或 typed blocker。 |
 | publication-route memory 仍需更多真实 receipt 泛化 | DM002 已证明 consumed ref / writeback receipt refs 可被 OPL/Aion 只读展示；更多 accepted / rejected reusable lessons 仍需从真实论文线进入 workspace memory pack。 | 多 paper-line `stage-memory-closeout-route -> memory_write_router_receipt -> inventory/export` proof，覆盖 accepted、rejected 和 route-back lessons。 |
 | repo-source skeleton 仍是最小 physical mapping | `standard_domain_agent_skeleton.physical_skeleton_layout_audit` 已能映射现有路径，但未来 family skeleton 目录尚未物理标准化。 | 在不破坏现有 facade 的前提下，逐步把新 stage/prompt/skill/knowledge/quality material 放入标准 slot，并保留 locator/audit parity。 |
 | 旧 MDS / Hermes / local scheduler residue 仍有 compat vocabulary | 容易让读者误以为旧 runtime、旧 WebUI 或 local scheduler 仍是默认运行形态。 | `rg` stale scan、no default caller proof、replacement proof 和必要 focused compatibility tests 后移入 history/reference 或删除。 |
@@ -111,9 +112,9 @@ Stage card
 | --- | --- | --- |
 | Stage form / skill authoring | `near_target` | 已可按统一模板维护；风险是新增 skill 绕过 machine-derived refs 或把 prose 写成 truth。 |
 | Knowledge / memory / quality contract | `usable_with_more_real_receipts_needed` | contract 与 CLI owner entry 已可用；仍需要更多真实 paper-line accepted/rejected receipt 扩展 route memory，而不是引入 recipe engine。 |
-| Stage deliverable review / index | `contract_landed_projection_only` | 字段和 locator 已有；还缺真实 workspace review pages / index 与 Portal / Workbench 展示 proof。 |
+| Stage deliverable review / index | `repo_workspace_locator_proof_landed` | 可物化 review page / index，Portal / Workbench 可只读展示 refs、freshness、asset delta、claim impact、human annotation、next owner 和 blocker；production provider-hosted live apply 仍需单独 soak。 |
 | OPL-hosted execution | `adapter_ready_live_apply_pending` | descriptor、sidecar、typed closeout 和 forbidden-write proof 已有；还缺 production provider residency 与 provider-hosted guarded apply soak。 |
-| User-facing operation | `read_model_landed_app_polish_pending` | MAS Progress Portal / OPL descriptor 能读；理想态是 OPL App / Workbench 直接展示 stage review table、freshness、action receipt 和 blocker。 |
+| User-facing operation | `stage_review_table_landed_provider_soak_pending` | MAS Progress Portal / OPL descriptor 能读 stage review table、freshness、action receipt 和 blocker；理想态还需要 production provider live apply 持续产出这些 refs。 |
 | Legacy cleanup | `bounded_cleanup_pending` | 默认路径已迁走；旧词汇和 compat surface 要按替代证据清理，避免误导后续维护者。 |
 
 因此，开发者的理解可以调整为：在 stage 内部，确实应主要维护自然语言 skill、stage prompt、知识包、工具边界和质控；但在 stage 与运行框架、workspace artifact、publication authority、human gate、provider live apply 的交界处，仍必须关心程序 contract、owner receipt 和验证证据。理想的分工不是“开发者完全不关心程序”，而是“日常科研语义维护尽量落在人读 stage surface，跨边界动作必须由 machine-owned MAS / OPL contract 兜住”。
@@ -207,9 +208,9 @@ Index 最少应包含：
 - 当前全局 next route、route back、human gate、stop-loss 或 finalize readiness；
 - 明确说明 OPL 只能展示和索引这些 refs，不能接受人工判断写回为 MAS truth，也不能把人工判断转成 publication ready 或 quality verdict。
 
-当前状态是：review page / index 已进入 `stage_surface_contract.py` 的 generated machine contract，`docs/runtime/contracts/stage_surfaces.md` 已渲染统一的人读字段，product-entry / OPL descriptor 已暴露只读 locator。下一步应在真实 paper line 上证明每个 stage 能产出 latest review page，并由 index 串成一页式人工审阅入口；该 proof 仍不得替代 MAS owner receipts、quality verdict、publication readiness 或 artifact authority，也不得把人工审阅变成默认人工审批流。
+当前状态是：review page / index 已进入 generated machine contract，product-entry / OPL descriptor 已暴露只读 locator，repo-level workspace locator proof 已能把 latest review page 与 paper-line index 落到 workspace artifact locator，并由 Progress Portal / OPL Workbench 直接展示。该 proof 仍不得替代 MAS owner receipts、quality verdict、publication readiness 或 artifact authority，也不得把人工审阅变成默认人工审批流。
 
-Portal / Workbench 接入仍是下一层产品化任务：人工审阅者最终不应翻 JSON、ledger 或 package proof，而应在 Progress Portal / OPL Workbench 里看到 current stage、latest review page、freshness traffic-light、paper asset delta type、claim impact、human review annotation、next owner 和 blocker。该 UI 只能消费本 contract 和 MAS owner refs，不得把 UI 状态写回为 MAS truth。
+Portal / Workbench 接入现在作为只读审阅入口落地：人工审阅者不需要翻 JSON、ledger 或 package proof，就能看到 current stage、latest review page、freshness traffic-light、paper asset delta type、claim impact、human review annotation、next owner 和 blocker。该 UI 只能消费本 contract 和 MAS owner refs，不得把 UI 状态写回为 MAS truth。剩余产品闭环是 production provider-hosted live apply 在真实 paper line 上持续触发 MAS owner closeout 并产生同一组 locator proof。
 
 ## Stage 统一目标表
 
@@ -310,13 +311,13 @@ nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clea
 | --- | --- | --- | --- | --- |
 | `provider_residency` | `pending` | OPL production provider / Temporal-backed runtime | 证明真实 Temporal server/worker residency、worker restart/re-query、retry/dead-letter、长时 Codex/domain activity soak；MAS 只消费 sidecar task 和 typed receipt。 | OPL ledger 显示 provider 长驻、attempt 可查询、失败可重试/进 dead letter，且没有 MAS forbidden write。 |
 | `provider_guarded_apply_soak` | `pending` | MAS paper owner surface + OPL attempt receipt | 在 DM002、DM003、Obesity 或下一条真实 paper line 上执行 provider-hosted guarded apply；写入只允许经 MAS owner receipt；无 owner receipt 时必须返回 typed blocker。 | 每条 proof 都包含 attempt id、typed closeout、MAS owner receipt、artifact delta / gate replay / reviewer update / route decision / human gate / stop-loss / typed blocker、no-forbidden-write proof。 |
-| `stage_review_index_workspace_proof` | `pending` | MAS artifact locator + review/index projection | 将 latest stage review page 和 paper-line Stage Deliverable Index 落到真实 workspace artifact locator；Progress Portal / OPL Workbench 只读展示 refs、freshness、claim impact、human annotation 和 next owner。 | 至少一条真实 paper line 可以从 index 打开 latest review page，并能追到 MAS owner refs；UI 不写 truth。 |
+| `stage_review_index_workspace_proof` | `landed_repo_locator_proof` | MAS artifact locator + review/index projection | 保持 latest stage review page 和 paper-line Stage Deliverable Index 的 workspace locator proof；后续 provider live apply 继续消费同一 contract。 | repo-level proof 可以从 index 打开 latest review page，并追到 evidence/review ledger、publication eval、controller decision、artifact freshness 和 package proof refs；UI 不写 truth。 |
 | `publication_route_memory_receipt_scaleout` | `active_next` | MAS stage knowledge plane / workspace memory pack | 从更多真实论文线收集 accepted / rejected route lessons；默认 body-free inventory 给 OPL/Aion，维护者显式请求时才看 card body。 | `publication-route-memory-inventory` 显示多条真实 receipt，OPL/Aion 只显示 refs/reasons/freshness，不持有 memory body 或 acceptance authority。 |
 | `skill_change_guard` | `ongoing` | overlay installer + stage route/knowledge/quality contracts | 对后续任何 stage skill 变更保持 machine-derived stage surface block、canonical route refs、knowledge obligations、quality pack refs、closeout refs 和 forbidden actions。 | overlay / agent-entry focused tests 通过，且新增 prose 没有替代 machine truth。 |
 | `legacy_residue_retirement` | `pending` | P2 migration / P3 provenance guard | 扫描旧 MDS、Hermes、local scheduler、hosted runtime、binding wording；有替代证据且无 default caller 的进入 history/tombstone 或删除；仍需 parity/provenance 的保留 reference。 | stale scan + no-default-caller proof + focused compatibility tests；文档不再暗示旧 runtime 是默认形态。 |
 | `standard_skeleton_physicalization` | `later` | standard domain agent skeleton / repo source layout | 新增 surface 默认按 standard slot 落位；旧路径保留 facade 和 locator，避免一次性大搬迁。 | skeleton audit 能解释标准 slot 与实际路径；无破坏性目录重组。 |
 
-推荐执行顺序是：先做 `provider_residency` 与 `provider_guarded_apply_soak`，因为它们决定是否真的进入 OPL-hosted MAS；并行推进 `stage_review_index_workspace_proof` 与 `publication_route_memory_receipt_scaleout`，因为它们只读消费 MAS owner refs；最后用 `legacy_residue_retirement` 和 `standard_skeleton_physicalization` 收口可维护性。`skill_change_guard` 是所有后续 stage 修改的常驻门槛。
+推荐执行顺序是：先做 `provider_residency` 与 `provider_guarded_apply_soak`，因为它们决定是否真的进入 OPL-hosted MAS；并行推进 `publication_route_memory_receipt_scaleout`，同时把 `stage_review_index_workspace_proof` 作为常驻只读 guard 继续覆盖后续真实 paper line；最后用 `legacy_residue_retirement` 和 `standard_skeleton_physicalization` 收口可维护性。`skill_change_guard` 是所有后续 stage 修改的常驻门槛。
 
 每条线的验证下限：
 

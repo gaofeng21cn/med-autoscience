@@ -223,6 +223,216 @@ def test_study_workbench_reads_stage_review_page_and_index_from_artifact_locator
     assert "changed_scope" in html
 
 
+def test_stage_review_materializer_writes_review_page_and_machine_index(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.stage_review")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+
+    result = module.materialize_stage_review_deliverable_index(
+        study_root=study_root,
+        study_id="001-risk",
+        stage="write",
+        payload={
+            "owner_receipt_refs": [
+                "artifacts/stage_knowledge/memory_write_router_receipts/write-closeout.json",
+            ],
+            "ledger_refs": [
+                "artifacts/evidence_ledger/latest.json",
+                "artifacts/review_ledger/latest.json",
+            ],
+            "quality_refs": [
+                "artifacts/publication_eval/latest.json",
+                "artifacts/controller_decisions/latest.json",
+            ],
+            "artifact_refs": [
+                "artifacts/stage_knowledge/write/latest.json",
+                "artifacts/stage_knowledge/write/closeouts/write-closeout.json",
+            ],
+            "paper_asset_delta": {
+                "delta_types": ["manuscript", "table"],
+                "refs": ["paper/manuscript.md", "paper/tables/table1.csv"],
+                "summary": "Manuscript and Table 1 locator refs changed; bodies are not embedded.",
+            },
+            "claim_trace": {
+                "impact_state": "strengthened",
+                "claim_refs": ["primary-outcome-claim"],
+                "summary": "Primary claim now links to refreshed evidence refs.",
+            },
+            "freshness_signal": {
+                "state": "green_current",
+                "summary": "Owner receipt, ledgers, and quality refs are from the same closeout batch.",
+                "source_refs": ["artifacts/publication_eval/latest.json"],
+            },
+            "human_review": {
+                "state": "needs_revision",
+                "reviewer_notes": "Result paragraph still needs a numeric sync pass.",
+            },
+            "next_owner": {
+                "owner": "MedAutoScience",
+                "next_routes": ["review"],
+                "source_ref": "artifacts/controller_decisions/latest.json",
+            },
+        },
+        generated_at="2026-05-12T10:30:00+08:00",
+    )
+
+    review_page_path = study_root / "artifacts" / "stage_reviews" / "write" / "latest.md"
+    index_path = study_root / "artifacts" / "stage_reviews" / "index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    review_page = review_page_path.read_text(encoding="utf-8")
+
+    assert result["status"] == "available"
+    assert result["review_page_path"] == str(review_page_path)
+    assert result["index_path"] == str(index_path)
+    assert index["surface_kind"] == "mas_stage_deliverable_index"
+    assert index["study_id"] == "001-risk"
+    assert index["stage"] == "write"
+    assert index["status"] == "available"
+    assert index["review_page_ref"] == "artifacts/stage_reviews/write/latest.md"
+    assert index["deliverable_index_ref"] == "artifacts/stage_reviews/index.json"
+    assert index["conditions"]["missing"] == []
+    assert index["deliverable_index"]["source_refs"] == index["source_refs"]
+    assert index["paper_asset_delta"]["delta_types"] == ["manuscript", "table"]
+    assert index["paper_asset_delta"]["body_included"] is False
+    assert index["claim_trace"]["impact_state"] == "strengthened"
+    assert index["freshness_signal"]["state"] == "green_current"
+    assert index["human_review"]["state"] == "needs_revision"
+    assert index["next_owner"]["owner"] == "MedAutoScience"
+    assert index["authority"]["writes_authority_surface"] is False
+    assert index["authority"]["can_authorize_quality_verdict"] is False
+    assert index["authority"]["can_authorize_submission_readiness"] is False
+    assert "artifacts/publication_eval/latest.json" in index["source_refs"]
+    assert "artifacts/controller_decisions/latest.json" in index["source_refs"]
+    assert review_page.startswith("# Stage Review: write\n")
+    assert "Manuscript and Table 1 locator refs changed" in review_page
+    assert "paper/manuscript.md" in review_page
+    assert not (study_root / "artifacts" / "publication_eval").exists()
+    assert not (study_root / "artifacts" / "controller_decisions").exists()
+    assert not (study_root / ".ds").exists()
+
+
+def test_stage_review_materializer_fails_closed_when_required_refs_are_missing(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal_parts.stage_review")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+
+    result = module.materialize_stage_review_deliverable_index(
+        study_root=study_root,
+        study_id="001-risk",
+        stage="write",
+        payload={
+            "paper_asset_delta": {"delta_types": ["manuscript"]},
+            "claim_trace": {"impact_state": "strengthened"},
+            "freshness_signal": {"state": "green_current"},
+            "next_owner": {"owner": "MedAutoScience", "next_routes": ["review"]},
+        },
+        generated_at="2026-05-12T10:40:00+08:00",
+    )
+
+    index_path = study_root / "artifacts" / "stage_reviews" / "index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8"))
+    review_page = (study_root / "artifacts" / "stage_reviews" / "write" / "latest.md").read_text(encoding="utf-8")
+
+    assert result["status"] == "missing"
+    assert index["status"] == "missing"
+    assert index["conditions"]["missing"] == [
+        "owner_receipt_refs",
+        "ledger_refs",
+        "quality_refs",
+        "artifact_refs",
+    ]
+    assert index["paper_asset_delta"]["delta_types"] == []
+    assert index["claim_trace"]["impact_state"] == "no_claim_change"
+    assert index["freshness_signal"]["state"] == "red_stale_or_inconsistent"
+    assert index["human_review"]["state"] == "not_recorded"
+    assert "Missing conditions" in review_page
+    assert "owner_receipt_refs" in review_page
+    assert "strengthened" not in review_page
+    assert not (study_root / "artifacts" / "publication_eval").exists()
+    assert not (study_root / "artifacts" / "controller_decisions").exists()
+
+
+def test_stage_review_index_summarizes_cross_stage_paper_judgment_without_authority_transfer() -> None:
+    parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
+
+    payload = parts.build_study_workbench_payload(
+        progress={
+            **_stage_review_payload(),
+            "stage_review_index": {
+                "surface_kind": "mas_stage_deliverable_index",
+                "study_id": "001-risk",
+                "stage": "review",
+                "review_page_ref": "studies/001-risk/artifacts/stage_reviews/review/latest.md",
+                "deliverable_index_ref": "studies/001-risk/artifacts/stage_reviews/index.json",
+                "source_refs": ["studies/001-risk/artifacts/stage_reviews/index.json"],
+                "paper_line_stage_reviews": [
+                    {
+                        "stage": "write",
+                        "review_page_ref": "studies/001-risk/artifacts/stage_reviews/write/latest.md",
+                        "paper_asset_delta": {"delta_types": ["manuscript", "table"]},
+                        "claim_trace": {
+                            "impact_state": "strengthened",
+                            "claim_refs": ["primary-outcome-claim"],
+                        },
+                        "freshness_signal": {"state": "green_current"},
+                        "human_review": {"state": "accept_for_next_stage"},
+                        "next_owner": {"owner": "ai_reviewer"},
+                    },
+                    {
+                        "stage": "review",
+                        "review_page_ref": "studies/001-risk/artifacts/stage_reviews/review/latest.md",
+                        "paper_asset_delta": {"delta_types": ["review_record"]},
+                        "claim_trace": {
+                            "impact_state": "newly_blocked",
+                            "claim_refs": ["secondary-endpoint-claim"],
+                        },
+                        "freshness_signal": {"state": "red_stale_or_inconsistent"},
+                        "human_review": {
+                            "state": "human_gate_required",
+                            "human_gate_boundary_triggered": True,
+                        },
+                        "blockers": ["secondary endpoint evidence ledger stale"],
+                        "next_owner": {"owner": "MedAutoScience controller"},
+                    },
+                    {
+                        "stage": "finalize",
+                        "review_page_ref": "studies/001-risk/artifacts/stage_reviews/finalize/latest.md",
+                        "paper_asset_delta": {"delta_types": ["package_delivery"]},
+                        "claim_impact": {
+                            "impact_state": "weakened",
+                            "claim_refs": ["sensitivity-claim"],
+                        },
+                        "freshness_signal": {"state": "yellow_refresh_recommended"},
+                        "human_review_annotation": {"state": "route_back"},
+                        "blockers": ["final package proof needs refresh"],
+                        "next_owner": {"owner": "MedAutoScience controller"},
+                    },
+                ],
+            },
+        },
+        cockpit={},
+        runtime={"study_id": "001-risk", "active_run_id": "run-001"},
+        package={"study_id": "001-risk"},
+        study_id="001-risk",
+    )
+
+    summary = payload["stage_review_index"]["paper_line_summary"]
+    assert summary["surface_kind"] == "mas_stage_review_paper_line_summary"
+    assert summary["stage_count"] == 3
+    assert summary["claim_impact_by_state"] == {
+        "newly_blocked": ["secondary-endpoint-claim"],
+        "strengthened": ["primary-outcome-claim"],
+        "weakened": ["sensitivity-claim"],
+    }
+    assert summary["paper_asset_delta_types"] == ["manuscript", "package_delivery", "review_record", "table"]
+    assert summary["freshness_rollup"]["state"] == "red_stale_or_inconsistent"
+    assert summary["human_review_rollup"]["states"] == ["accept_for_next_stage", "human_gate_required", "route_back"]
+    assert summary["human_review_rollup"]["blocks_auto_advance"] is True
+    assert summary["blockers"] == ["final package proof needs refresh", "secondary endpoint evidence ledger stale"]
+    assert summary["authority"]["writes_authority_surface"] is False
+    assert summary["authority"]["can_authorize_quality_verdict"] is False
+    assert summary["authority"]["can_authorize_submission_readiness"] is False
+    assert summary["authority"]["can_mark_publication_ready"] is False
+
+
 def test_study_workbench_stage_review_fails_closed_without_explicit_review_ref() -> None:
     parts = importlib.import_module("med_autoscience.controllers.progress_portal_parts")
 
@@ -351,6 +561,15 @@ def test_progress_portal_opl_projection_exposes_reference_lanes_as_read_only_dri
     assert lanes["guarded_apply"]["guarded_apply_performed"] is True
     assert lanes["guarded_apply"]["paper_closure_authorized"] is False
     assert lanes["stage_review_index"]["status"] == "observed"
+    assert lanes["stage_review_index"]["freshness_state"] == "green_current"
+    assert lanes["stage_review_index"]["paper_asset_delta_types"] == ["manuscript", "table"]
+    assert lanes["stage_review_index"]["claim_impact_state"] == "strengthened"
+    assert lanes["stage_review_index"]["human_review_state"] == "needs_revision"
+    assert lanes["stage_review_index"]["next_owner"] == "MedAutoScience"
+    assert lanes["stage_review_index"]["blockers"] == ["主文结果段尚未同步 Table 1 数值"]
+    assert lanes["stage_review_index"]["continue_state"] == "stage_review_attention_required"
+    assert lanes["stage_review_index"]["can_authorize_quality_verdict"] is False
+    assert lanes["stage_review_index"]["can_mark_publication_ready"] is False
     assert lanes["memory_receipt"]["status"] == "observed"
     assert lanes["memory_receipt"]["can_write_memory_body"] is False
     assert lanes["freshness"]["can_authorize_publication_readiness"] is False
