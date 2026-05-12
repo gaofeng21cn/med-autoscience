@@ -317,16 +317,19 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert quality_pack_contract["freshness"]["refresh_policy"] == (
         "rebuild_product_entry_manifest_before_opl_discovery"
     )
-    assert {
-        "medical_claim_evidence_pack",
-        "statistical_analysis_pack",
-        "reporting_guideline_pack",
-        "display_to_claim_pack",
-        "route_memory_pack",
-        "stop_loss_pack",
-        "artifact_freshness_pack",
-        "human_gate_pack",
-    } == set(quality_pack_contract["pack_ids"])
+    assert set(stage_quality_contract.REQUIRED_STAGE_QUALITY_PACK_IDS) == set(quality_pack_contract["pack_ids"])
+    journal_pack = {
+        pack["pack_id"]: pack for pack in quality_pack_contract["packs"]
+    }["journal_response_pack"]
+    assert journal_pack["clean_room_absorption"] == {
+        "source_project": "nature-skills",
+        "absorbed_as": "mas_native_contract_pattern",
+        "vendor_dependency": False,
+        "runtime_dependency": False,
+        "publication_authority": False,
+        "default_skill_source": False,
+    }
+    assert journal_pack["authority_boundary"]["can_write_domain_truth"] is False
     reporting_pack = {
         pack["pack_id"]: pack for pack in quality_pack_contract["packs"]
     }["reporting_guideline_pack"]

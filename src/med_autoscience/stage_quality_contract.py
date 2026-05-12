@@ -18,10 +18,25 @@ REQUIRED_STAGE_QUALITY_PACK_IDS: tuple[str, ...] = (
     "statistical_analysis_pack",
     "reporting_guideline_pack",
     "display_to_claim_pack",
+    "journal_response_pack",
+    "data_availability_fair_pack",
+    "citation_integrity_pack",
+    "figure_evidence_contract_pack",
+    "paper_reader_grounding_pack",
+    "paper_presentation_pack",
     "route_memory_pack",
     "stop_loss_pack",
     "artifact_freshness_pack",
     "human_gate_pack",
+)
+
+JOURNAL_FAMILY_QUALITY_PACK_IDS: tuple[str, ...] = (
+    "journal_response_pack",
+    "data_availability_fair_pack",
+    "citation_integrity_pack",
+    "figure_evidence_contract_pack",
+    "paper_reader_grounding_pack",
+    "paper_presentation_pack",
 )
 
 QUALITY_PACK_CONTRACT_SURFACES: tuple[str, ...] = (SURFACE_KIND, PROJECTION_KIND)
@@ -61,6 +76,12 @@ _PACK_STAGE_MAP: dict[str, tuple[str, ...]] = {
     "statistical_analysis_pack": ("baseline", "experiment", "analysis-campaign"),
     "reporting_guideline_pack": ("write", "review", "finalize", "journal-resolution"),
     "display_to_claim_pack": ("analysis-campaign", "write", "review"),
+    "journal_response_pack": ("review", "finalize", "journal-resolution"),
+    "data_availability_fair_pack": ("write", "review", "finalize", "journal-resolution"),
+    "citation_integrity_pack": ("write", "review", "finalize", "journal-resolution"),
+    "figure_evidence_contract_pack": ("analysis-campaign", "write", "review", "finalize"),
+    "paper_reader_grounding_pack": ("scout", "review", "finalize", "decision"),
+    "paper_presentation_pack": ("finalize", "delivery_sync"),
     "route_memory_pack": ("scout", "idea", "analysis-campaign", "review", "decision"),
     "stop_loss_pack": ("idea", "baseline", "experiment", "analysis-campaign", "review", "decision"),
     "artifact_freshness_pack": ("write", "finalize", "delivery_sync"),
@@ -84,6 +105,12 @@ _PACK_STUDY_ARCHETYPE_MAP: dict[str, tuple[str, ...]] = {
         "diagnostic_accuracy",
         "ai_ml_medical_study",
     ),
+    "journal_response_pack": ("all_revision_or_response_candidates",),
+    "data_availability_fair_pack": ("all_submission_or_delivery_candidates",),
+    "citation_integrity_pack": ("all_clinical_manuscripts",),
+    "figure_evidence_contract_pack": ("all_figure_supported_manuscripts",),
+    "paper_reader_grounding_pack": ("all_source_grounded_paper_lines",),
+    "paper_presentation_pack": ("all_human_facing_paper_deliverables",),
     "route_memory_pack": DEFAULT_STUDY_ARCHETYPES,
     "stop_loss_pack": DEFAULT_STUDY_ARCHETYPES,
     "artifact_freshness_pack": ("all_submission_or_delivery_candidates",),
@@ -199,6 +226,9 @@ def _build_pack(pack_id: str) -> dict[str, Any]:
     }
     if pack_id == "reporting_guideline_pack":
         pack["guideline_selection"] = _reporting_guideline_selection()
+    if pack_id in JOURNAL_FAMILY_QUALITY_PACK_IDS:
+        pack["journal_family_patterns"] = list(_JOURNAL_FAMILY_PATTERNS[pack_id])
+        pack["clean_room_absorption"] = _clean_room_absorption()
     return pack
 
 
@@ -264,11 +294,28 @@ def _ref(ref_kind: str, ref: str, role: str) -> dict[str, str]:
     return {"ref_kind": ref_kind, "ref": ref, "role": role}
 
 
+def _clean_room_absorption() -> dict[str, object]:
+    return {
+        "source_project": "nature-skills",
+        "absorbed_as": "mas_native_contract_pattern",
+        "vendor_dependency": False,
+        "runtime_dependency": False,
+        "publication_authority": False,
+        "default_skill_source": False,
+    }
+
+
 _PACK_TITLES = {
     "medical_claim_evidence_pack": "Medical claim evidence pack",
     "statistical_analysis_pack": "Statistical analysis pack",
     "reporting_guideline_pack": "Reporting guideline pack",
     "display_to_claim_pack": "Display to claim pack",
+    "journal_response_pack": "Journal response pack",
+    "data_availability_fair_pack": "Data availability and FAIR pack",
+    "citation_integrity_pack": "Citation integrity pack",
+    "figure_evidence_contract_pack": "Figure evidence contract pack",
+    "paper_reader_grounding_pack": "Paper reader grounding pack",
+    "paper_presentation_pack": "Paper presentation pack",
     "route_memory_pack": "Route memory pack",
     "stop_loss_pack": "Stop-loss pack",
     "artifact_freshness_pack": "Artifact freshness pack",
@@ -292,6 +339,33 @@ _PACK_OWNER_REFS = {
     "display_to_claim_pack": [
         _ref("surface_kind", "display_contract", "display_owner"),
         _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "claim_evidence_map"),
+    ],
+    "journal_response_pack": [
+        _ref("workspace_locator", "paper/review/review_ledger.json", "review_ledger"),
+        _ref("surface_kind", "revision_rebuttal_loop", "response_projection_owner"),
+        _ref("workspace_locator", "artifacts/publication_eval/latest.json", "ai_reviewer_source"),
+    ],
+    "data_availability_fair_pack": [
+        _ref("surface_kind", "data_assets_readiness", "data_asset_owner"),
+        _ref("workspace_locator", "portfolio/data_assets", "data_asset_registry"),
+        _ref("workspace_locator", "paper/submission_minimal", "submission_statement_source"),
+    ],
+    "citation_integrity_pack": [
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "claim_evidence_source"),
+        _ref("surface_kind", "citation_integrity_projection", "citation_review_owner"),
+    ],
+    "figure_evidence_contract_pack": [
+        _ref("surface_kind", "figure_renderer_contract", "renderer_contract_owner"),
+        _ref("surface_kind", "publication_display_contract", "display_contract_owner"),
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "source_data_trace"),
+    ],
+    "paper_reader_grounding_pack": [
+        _ref("surface_kind", "stage_deliverable_review_page", "source_grounded_reader_projection"),
+        _ref("surface_kind", "stage_deliverable_index", "stage_review_index_owner"),
+    ],
+    "paper_presentation_pack": [
+        _ref("surface_kind", "stage_deliverable_index", "presentation_source_index"),
+        _ref("surface_kind", "paper_presentation_projection", "human_facing_projection_owner"),
     ],
     "route_memory_pack": [
         _ref("surface_kind", "stage_knowledge_packet", "route_memory_retrieval"),
@@ -329,6 +403,33 @@ _PACK_REQUIRED_REFS = {
         _ref("surface_kind", "display_contract", "required_rubric"),
         _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "claim_evidence_map"),
     ],
+    "journal_response_pack": [
+        _ref("surface_kind", "revision_rebuttal_loop", "response_read_model"),
+        _ref("workspace_locator", "paper/review/review_ledger.json", "reviewer_comment_source"),
+        _ref("workspace_locator", "artifacts/publication_eval/latest.json", "ai_reviewer_trace"),
+    ],
+    "data_availability_fair_pack": [
+        _ref("surface_kind", "data_assets_readiness", "dataset_location_mapping"),
+        _ref("workspace_locator", "portfolio/data_assets", "repository_identifier_source"),
+        _ref("workspace_locator", "paper/submission_minimal", "data_availability_statement"),
+    ],
+    "citation_integrity_pack": [
+        _ref("surface_kind", "citation_integrity_projection", "claim_segment_review"),
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "claim_evidence_refs"),
+    ],
+    "figure_evidence_contract_pack": [
+        _ref("surface_kind", "figure_renderer_contract", "figure_contract_before_plotting"),
+        _ref("surface_kind", "publication_display_contract", "display_to_claim_trace"),
+        _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "source_data_refs"),
+    ],
+    "paper_reader_grounding_pack": [
+        _ref("surface_kind", "stage_deliverable_review_page", "source_map_refs"),
+        _ref("surface_kind", "stage_deliverable_index", "figure_near_claim_refs"),
+    ],
+    "paper_presentation_pack": [
+        _ref("surface_kind", "paper_presentation_projection", "evidence_spine_projection"),
+        _ref("surface_kind", "stage_deliverable_index", "presentation_source_refs"),
+    ],
     "route_memory_pack": [
         _ref("surface_kind", "stage_knowledge_packet", "required_memory_refs"),
         _ref("surface_kind", "stage_recall_index", "recall_projection"),
@@ -347,10 +448,56 @@ _PACK_REQUIRED_REFS = {
     ],
 }
 
+_JOURNAL_FAMILY_PATTERNS: dict[str, tuple[str, ...]] = {
+    "journal_response_pack": (
+        "stable_comment_ids",
+        "comment_response_tracker",
+        "action_mapping",
+        "missing_author_input_flags",
+        "readiness_state",
+    ),
+    "data_availability_fair_pack": (
+        "dataset_to_location_mapping",
+        "restricted_data_access_route",
+        "repository_identifier",
+        "datacite_style_dataset_citation",
+        "fair_metadata_checklist",
+    ),
+    "citation_integrity_pack": (
+        "claim_segment_id",
+        "candidate_citation_refs",
+        "support_grade",
+        "metadata_only_review_required",
+        "reference_manager_export_note",
+    ),
+    "figure_evidence_contract_pack": (
+        "core_claim",
+        "evidence_chain",
+        "panel_role",
+        "source_data_refs",
+        "statistics_refs",
+        "export_contract",
+        "qa_risks",
+    ),
+    "paper_reader_grounding_pack": (
+        "source_map",
+        "page_block_anchors",
+        "figure_near_claim_refs",
+        "source_grounded_followup",
+    ),
+    "paper_presentation_pack": (
+        "evidence_spine",
+        "selected_figure_assets",
+        "speaker_notes_context",
+        "optional_human_facing_deliverable",
+    ),
+}
+
 
 __all__ = [
     "CLINICAL_BASE_GUIDELINES",
     "CONTRACT_REF",
+    "JOURNAL_FAMILY_QUALITY_PACK_IDS",
     "PACK_ROLE",
     "PROJECTION_KIND",
     "QUALITY_PACK_CONTRACT_SURFACES",

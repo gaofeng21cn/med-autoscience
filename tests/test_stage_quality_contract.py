@@ -71,3 +71,72 @@ def test_reporting_guideline_selection_covers_required_families_and_clinical_bas
         "STARD",
         "CARE",
     }
+
+
+def test_journal_family_quality_packs_are_projection_only_clean_room_absorptions() -> None:
+    contract = build_stage_quality_pack_contract()
+    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+
+    expected_journal_packs = {
+        "journal_response_pack",
+        "data_availability_fair_pack",
+        "citation_integrity_pack",
+        "figure_evidence_contract_pack",
+        "paper_reader_grounding_pack",
+        "paper_presentation_pack",
+    }
+    assert expected_journal_packs <= set(REQUIRED_STAGE_QUALITY_PACK_IDS)
+    assert expected_journal_packs <= set(packs)
+
+    for pack_id in expected_journal_packs:
+        pack = packs[pack_id]
+        assert pack["role"] == "quality_input_and_reviewer_rubric"
+        assert pack["publication_readiness_authority"] is False
+        assert pack["quality_verdict_authority"] is False
+        assert pack["authority_boundary"]["can_authorize_publication_readiness"] is False
+        assert pack["authority_boundary"]["can_write_domain_truth"] is False
+        assert pack["clean_room_absorption"]["source_project"] == "nature-skills"
+        assert pack["clean_room_absorption"]["vendor_dependency"] is False
+        assert pack["clean_room_absorption"]["runtime_dependency"] is False
+        assert pack["clean_room_absorption"]["publication_authority"] is False
+        assert pack["clean_room_absorption"]["absorbed_as"] == "mas_native_contract_pattern"
+        assert pack["required_refs"]
+
+    response_pack = packs["journal_response_pack"]
+    assert response_pack["journal_family_patterns"] == [
+        "stable_comment_ids",
+        "comment_response_tracker",
+        "action_mapping",
+        "missing_author_input_flags",
+        "readiness_state",
+    ]
+    assert "review" in response_pack["applies_to"]["stages"]
+
+    data_pack = packs["data_availability_fair_pack"]
+    assert data_pack["journal_family_patterns"] == [
+        "dataset_to_location_mapping",
+        "restricted_data_access_route",
+        "repository_identifier",
+        "datacite_style_dataset_citation",
+        "fair_metadata_checklist",
+    ]
+
+    citation_pack = packs["citation_integrity_pack"]
+    assert citation_pack["journal_family_patterns"] == [
+        "claim_segment_id",
+        "candidate_citation_refs",
+        "support_grade",
+        "metadata_only_review_required",
+        "reference_manager_export_note",
+    ]
+
+    figure_pack = packs["figure_evidence_contract_pack"]
+    assert figure_pack["journal_family_patterns"] == [
+        "core_claim",
+        "evidence_chain",
+        "panel_role",
+        "source_data_refs",
+        "statistics_refs",
+        "export_contract",
+        "qa_risks",
+    ]
