@@ -15,6 +15,13 @@ OPL_OWNER = "one-person-lab"
 DEFAULT_PROVIDER_GUARDED_SOAK_TARGETS = ("DM002", "DM003", "Obesity")
 PROVIDER_HOSTED_PROOF_SURFACE = "real_paper_autonomy_provider_hosted_paper_proof"
 GUARDED_APPLY_PROOF_SURFACE = "real_paper_autonomy_guarded_apply_proof"
+PROVIDER_RESIDENCY_SURFACE = "provider_runtime_residency_read_model"
+PRODUCTION_RESIDENCY_CHECKS = (
+    "temporal_production_residency",
+    "worker_restart_requery",
+    "retry_dead_letter",
+    "long_soak_receipt",
+)
 
 FORBIDDEN_AUTHORITY_WRITES = (
     "study_truth_write",
@@ -76,6 +83,9 @@ def build_opl_provider_ready_contract(
         "provider_guarded_soak_read_model": build_provider_guarded_soak_read_model(
             provider_available=False,
         ),
+        "provider_residency_read_model": build_provider_residency_read_model(
+            provider_available=False,
+        ),
         "workspace_runtime_artifact_root_locator": _workspace_runtime_artifact_root_locator(profile=profile),
         "lifecycle_inventory": build_opl_lifecycle_inventory_surface(),
         "domain_agent_skeleton_mapping": build_domain_agent_skeleton_mapping_surface(),
@@ -86,6 +96,74 @@ def build_opl_provider_ready_contract(
             "opl_runtime_projection": "read_only_index_only",
             "provider_completion_can_advance_paper_progress": False,
             "paper_progress_requires_mas_artifact_delta_or_gate_owner": True,
+        },
+    }
+
+
+def build_provider_residency_read_model(
+    *,
+    provider_available: bool,
+    receipt_refs: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    receipts = dict(receipt_refs or {})
+    checks = [
+        _provider_residency_check(
+            check_id=check_id,
+            provider_available=provider_available,
+            receipt_ref=receipts.get(check_id),
+        )
+        for check_id in PRODUCTION_RESIDENCY_CHECKS
+    ]
+    missing = [item["check_id"] for item in checks if item["status"] != "receipt_observed"]
+    status = "ready" if provider_available and not missing else "typed_blocker"
+    return {
+        "surface_kind": PROVIDER_RESIDENCY_SURFACE,
+        "version": "provider-runtime-residency-read-model.v1",
+        "mode": "opl_owned_read_model_refs_only",
+        "target_provider": "temporal",
+        "provider_owner": OPL_OWNER,
+        "domain_owner": DOMAIN_OWNER,
+        "status": status,
+        "provider_available": bool(provider_available),
+        "checks": checks,
+        "required_evidence": list(PRODUCTION_RESIDENCY_CHECKS),
+        "accepted_receipt_surfaces": [
+            "opl_provider_attempt_receipt",
+            "opl_provider_worker_lifecycle_receipt",
+            "opl_provider_retry_dead_letter_receipt",
+            "opl_provider_long_soak_receipt",
+            "typed_closeout_receipt",
+        ],
+        "typed_blocker": (
+            None
+            if status == "ready"
+            else {
+                "surface_kind": "mas_provider_residency_typed_blocker",
+                "blocker_id": "production_provider_residency_evidence_missing",
+                "owner": OPL_OWNER,
+                "missing_evidence": missing,
+                "reason": (
+                    "MAS can consume OPL provider sidecar tasks and typed receipts, but production "
+                    "Temporal residency is not proven by the required OPL-owned receipts."
+                ),
+                "required_owner_surface": "OPL production provider residency receipt bundle",
+                "write_permitted": False,
+            }
+        ),
+        "consumer_contract": {
+            "mas_consumes": ["sidecar_task", "typed_receipt", "receipt_refs"],
+            "mas_owned_provider_kernel": False,
+            "provider_completion_is_paper_closure": False,
+            "queue_completion_is_paper_closure": False,
+            "paper_progress_requires_mas_owner_receipt": True,
+        },
+        "authority_boundary": {
+            "provider_attempt_owner": OPL_OWNER,
+            "domain_truth_owner": DOMAIN_OWNER,
+            "can_write_domain_truth": False,
+            "can_write_current_package": False,
+            "can_authorize_publication_quality": False,
+            "can_write_memory_body": False,
         },
     }
 
@@ -221,6 +299,34 @@ def _provider_guarded_soak_target_coverage(target_study: str) -> dict[str, Any]:
         "paper_closure_requires_mas_owner_receipt": True,
         "required_owner_surface": "MAS owner receipt",
     }
+
+
+def _provider_residency_check(
+    *,
+    check_id: str,
+    provider_available: bool,
+    receipt_ref: object,
+) -> dict[str, Any]:
+    receipt_text = str(receipt_ref or "").strip()
+    status = "receipt_observed" if provider_available and receipt_text else "typed_blocker"
+    return {
+        "check_id": check_id,
+        "status": status,
+        "receipt_ref": receipt_text or None,
+        "owner": OPL_OWNER,
+        "body_included": False,
+        "write_permitted": False,
+        "required_surface": _provider_residency_required_surface(check_id),
+    }
+
+
+def _provider_residency_required_surface(check_id: str) -> str:
+    return {
+        "temporal_production_residency": "OPL Temporal production residency receipt",
+        "worker_restart_requery": "OPL worker restart and re-query receipt",
+        "retry_dead_letter": "OPL retry policy and dead-letter receipt",
+        "long_soak_receipt": "OPL long soak receipt",
+    }.get(check_id, "OPL provider residency receipt")
 
 
 def build_opl_lifecycle_inventory_surface() -> dict[str, Any]:
@@ -613,6 +719,7 @@ __all__ = [
     "build_opl_provider_ready_contract",
     "build_physical_skeleton_layout_audit_surface",
     "build_provider_guarded_soak_read_model",
+    "build_provider_residency_read_model",
     "build_standard_domain_agent_skeleton_surface",
     "receipt_refs_for_profile",
     "requested_writes_from_task",

@@ -494,6 +494,7 @@ def build_product_entry_manifest(
         ),
     )
     provider_guarded_soak_read_model = opl_provider_ready_contract["provider_guarded_soak_read_model"]
+    provider_residency_read_model = opl_provider_ready_contract["provider_residency_read_model"]
     standard_domain_agent_skeleton = (
         opl_provider_ready_adapter.build_standard_domain_agent_skeleton_surface()
     )
@@ -617,6 +618,7 @@ def build_product_entry_manifest(
             "stage_quality_pack_contract": stage_quality_pack_contract,
             "stage_skill_surface_projection": build_stage_skill_surface_projection(),
             "provider_guarded_soak_read_model": provider_guarded_soak_read_model,
+            "provider_residency_read_model": provider_residency_read_model,
             "domain_memory_descriptor": domain_memory_descriptor,
             "family_stage_control_plane_descriptor": family_stage_control_plane_descriptor,
             "family_stage_control_plane": family_stage_control_plane,

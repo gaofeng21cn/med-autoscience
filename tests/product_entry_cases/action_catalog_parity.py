@@ -463,6 +463,86 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
     ] == manifest["stage_skill_surface_projection"]
 
 
+def test_product_entry_manifest_exposes_provider_residency_typed_blocker(
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    provider_contract = manifest["opl_provider_ready_contract"]
+    read_model = manifest["provider_residency_read_model"]
+
+    assert read_model == provider_contract["provider_residency_read_model"]
+    assert read_model["surface_kind"] == "provider_runtime_residency_read_model"
+    assert read_model["version"] == "provider-runtime-residency-read-model.v1"
+    assert read_model["status"] == "typed_blocker"
+    assert read_model["provider_owner"] == "one-person-lab"
+    assert read_model["domain_owner"] == "med-autoscience"
+    assert read_model["provider_available"] is False
+    assert read_model["required_evidence"] == [
+        "temporal_production_residency",
+        "worker_restart_requery",
+        "retry_dead_letter",
+        "long_soak_receipt",
+    ]
+    assert {item["check_id"] for item in read_model["checks"]} == set(read_model["required_evidence"])
+    assert all(item["status"] == "typed_blocker" for item in read_model["checks"])
+    assert all(item["body_included"] is False for item in read_model["checks"])
+    assert all(item["write_permitted"] is False for item in read_model["checks"])
+    assert read_model["typed_blocker"]["blocker_id"] == "production_provider_residency_evidence_missing"
+    assert read_model["typed_blocker"]["missing_evidence"] == read_model["required_evidence"]
+    assert read_model["consumer_contract"]["mas_owned_provider_kernel"] is False
+    assert read_model["consumer_contract"]["provider_completion_is_paper_closure"] is False
+    assert read_model["consumer_contract"]["queue_completion_is_paper_closure"] is False
+    assert read_model["consumer_contract"]["paper_progress_requires_mas_owner_receipt"] is True
+    assert read_model["authority_boundary"]["can_write_domain_truth"] is False
+    assert read_model["authority_boundary"]["can_write_current_package"] is False
+    assert read_model["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert read_model["authority_boundary"]["can_write_memory_body"] is False
+
+
+def test_provider_residency_read_model_requires_all_opl_receipts() -> None:
+    adapter = importlib.import_module("med_autoscience.controllers.opl_provider_ready_adapter")
+
+    payload = adapter.build_provider_residency_read_model(
+        provider_available=True,
+        receipt_refs={
+            "temporal_production_residency": "opl://provider/temporal-residency.json",
+            "worker_restart_requery": "opl://provider/worker-restart.json",
+            "retry_dead_letter": "opl://provider/retry-dead-letter.json",
+            "long_soak_receipt": "opl://provider/long-soak.json",
+        },
+    )
+
+    assert payload["status"] == "ready"
+    assert payload["typed_blocker"] is None
+    assert all(item["status"] == "receipt_observed" for item in payload["checks"])
+    assert all(item["body_included"] is False for item in payload["checks"])
+    assert payload["consumer_contract"]["mas_consumes"] == [
+        "sidecar_task",
+        "typed_receipt",
+        "receipt_refs",
+    ]
+    assert payload["authority_boundary"]["can_write_domain_truth"] is False
+    assert payload["authority_boundary"]["can_authorize_publication_quality"] is False
+
+    missing = adapter.build_provider_residency_read_model(
+        provider_available=True,
+        receipt_refs={
+            "temporal_production_residency": "opl://provider/temporal-residency.json",
+        },
+    )
+    assert missing["status"] == "typed_blocker"
+    assert missing["typed_blocker"]["missing_evidence"] == [
+        "worker_restart_requery",
+        "retry_dead_letter",
+        "long_soak_receipt",
+    ]
+
+
 def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_path: Path) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
 
