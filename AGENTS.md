@@ -6,7 +6,7 @@
 
 ## 工作方式
 
-- `Med Auto Science` 是独立医学研究 domain agent，也可以作为 `OPL` Codex-first、stage-led 智能体运行框架中的 admitted domain agent 被托管。`Stage` 表示大型研究步骤，`Codex CLI` 是 stage 内默认最小执行单元；MAS 持有医学研究 truth、quality verdict、runtime owner 和 artifact authority。
+- `Med Auto Science` 是独立医学研究 domain agent，也可以作为 `OPL` stage-led 智能体运行框架中的 admitted domain agent 被托管。`Stage` 表示大型研究步骤，Agent executor 是 stage 内最小执行单位；`Codex CLI` 是当前第一公民 executor，其他 executor adapter 只能显式接入且不承诺行为效果等价。MAS 持有医学研究 truth、quality verdict、runtime owner 和 artifact authority。
 - `MDS / DeepScientist` 的当前角色是 MAS 显式声明的 source provenance、historical fixture、explicit archive import、backend audit、upstream learning 和 parity oracle reference。
 - 保持变更可审查、可回退，避免不必要的大范围改动。
 - 能删就别加；能复用现有模式就别新起抽象；没有明确必要不要新增依赖。

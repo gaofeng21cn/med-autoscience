@@ -8,7 +8,7 @@
 
 <h1 align="center">Med Auto Science 医学自动科研平台</h1>
 
-<p align="center"><strong>可被直接调用的独立医学研究 domain agent 与单一 MAS app skill，用来把数据、课题和证据持续推进到论文交付</strong></p>
+<p align="center"><strong>医学研究 Foundry Agent，也是 built on OPL Framework 的 OPL-compatible package；可通过 MAS app skill 直接把数据、课题和证据持续推进到论文交付</strong></p>
 <p align="center">专病研究 · 证据组织 · 论文交付</p>
 
 <table>
@@ -58,15 +58,26 @@
 
 ## 当前定位与边界
 
-- `Med Auto Science` 是医学研究领域智能体，可以由 Codex 直接调用，也可以接入 `OPL` 的统一智能体运行框架。
-- MAS 负责医学研究本身：课题进入、工作区语境、证据推进、进度说明、论文质量判断和稿件交付。
-- `OPL` 是上层运行框架：负责任务阶段、队列、唤醒、恢复、审批、记录和跨领域状态展示；医学结论、论文质量和投稿判断由 MAS 的医学研究面继续持有。
-- 在 OPL 框架里，`Stage` 表示一次较大的研究步骤，例如选题、分析、写作、审稿修复或交付；`Codex CLI` 是 stage 内默认的最小执行单元。
-- MAS 已完成单仓收敛。`MedDeepScientist` / `DeepScientist` 现在作为历史来源、显式归档导入、后端审计、上游学习和能力对照材料保留。
-- 长期在线能力按 OPL 的 provider-backed runtime 方向推进，Temporal 是目标生产 provider；`Hermes-Agent` 在迁移期作为可选 provider、证明线或历史兼容材料保留。
+- `Med Auto Science` 对外定位为医学研究 `Foundry Agent`：独立 domain agent，负责把专病数据、研究问题、证据和论文工作收在同一条可治理研究线上。
+- MAS 也是 `built on OPL Framework` 的 `OPL-compatible package`。OPL 可以发现 MAS 的 stage descriptor、action metadata、handoff contract、receipt 和 projection；医学研究 owner 仍然是 MAS。
+- MAS 的 direct app skill path 仍是一等入口。直接调用 MAS 与经 OPL 托管 handoff，最终都回到同一套 MAS-owned stage、controller、durable truth、review 和 artifact surface。
+- MAS 独立持有 medical research truth、quality verdict、runtime owner、artifact authority 和 publication authority；OPL Framework metadata 不替代这些 owner surface。
+- 这次定位不新增 runtime 机制。Hermes-Agent、MedDeepScientist/MDS 和 MAS local scheduler 仍是显式 optional / provenance / diagnostic surface，不是默认公开目标。
 - 论文质量由 MAS 的 study charter、证据账本、审阅账本、AI reviewer、publication gate 和控制面记录共同约束；状态面板、脚本检查和历史 MDS 覆盖率只提供辅助证据。
 - 临床问题界定、结论采用和最终投稿决策由研究者与课题负责人把关。
 - 期刊投稿和外部系统交互由人工监督完成。
+
+<details>
+  <summary><strong>给技术操作者看的边界说明</strong></summary>
+
+- `Med Auto Science` 是医学研究领域智能体和 Foundry Agent，可以由 Codex 直接调用，也可以作为 OPL-compatible package 被 `OPL Framework` 发现和托管。
+- MAS 负责医学研究本身：课题进入、工作区语境、证据推进、进度说明、论文质量判断、runtime owner surface、artifact authority 和稿件交付。
+- `OPL Framework` 是上层 stage-led 框架：负责任务阶段、队列、唤醒、恢复、审批、记录和跨领域状态展示；医学结论、论文质量、runtime owner 语义、artifact authority 和投稿判断由 MAS 的医学研究面继续持有。
+- 在 OPL 框架里，`Stage` 表示一次较大的研究步骤，例如选题、分析、写作、审稿修复或交付；Agent executor 是 stage 内最小执行单位，`Codex CLI` 是当前第一公民 executor。
+- MAS 已完成单仓收敛。`MedDeepScientist` / `DeepScientist` 现在作为历史来源、显式归档导入、后端审计、上游学习和能力对照材料保留。
+- 长期在线能力按 OPL 的 provider-backed runtime 方向推进，Temporal 是目标生产 provider；`Hermes-Agent` 不再是目标 session/wakeup substrate，但可作为显式 Agent executor adapter / proof lane 保留。当前只保证能接入、能回执、可审计，不保证行为或质量效果与 `Codex CLI` 等价。
+
+</details>
 
 ## 这个仓库应该怎么读
 

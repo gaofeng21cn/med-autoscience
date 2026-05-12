@@ -2,7 +2,7 @@
 
 ## 2026-05-10：MAS 对齐 OPL provider-backed runtime，Temporal 为目标生产 substrate
 
-- 决策：MAS 与 OPL 的长期托管口径从 Hermes-first 更新为 provider-backed OPL family runtime：`OPL Runtime Manager / opl family-runtime -> configured family runtime provider -> MAS sidecar export/dispatch -> MAS domain entry/projection`。Temporal 是 OPL durable stage attempt 的目标生产 provider；Hermes-Agent 在迁移期只作为 legacy/optional provider、显式 hosted/proof backend、executor proof lane 或 Codex CLI fallback module。
+- 决策：MAS 与 OPL 的长期托管口径从 Hermes-first 更新为 provider-backed OPL family runtime：`OPL Runtime Manager / opl family-runtime -> configured family runtime provider -> MAS sidecar export/dispatch -> MAS domain entry/projection`。Temporal 是 OPL durable stage attempt 的目标生产 provider；Hermes-Agent 迁移后作为可选 Agent executor adapter、显式 hosted/proof backend 或可选安装模块保留，不再作为目标 24h session/wakeup substrate。
 - 理由：MAS 需要长期自治、human gate、retry/dead-letter、route-back 和 progress projection，但医学研究 stage、AI reviewer、publication gate、evidence/review ledger、route decision 与 artifact/package authority 必须仍由 MAS 持有。Temporal/provider 可以改善运行可靠性，但不能成为第二研究 truth owner。
 - 影响：`medautosci sidecar export|dispatch` 继续是 OPL provider 到 MAS owner surface 的受控桥接；OPL/Temporal/Hermes/local provider 只能 enqueue、dispatch、signal、query、投影 attempt/receipt，不得写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package、evidence ledger、review ledger 或 artifact gate。2026-05-10 Hermes-first MAS sidecar bridge 决策保留为迁移背景，但后续新投入按 provider-backed / Temporal target 解释。
 
@@ -16,15 +16,15 @@
 
 ## 2026-05-10：MAS 作为 OPL stage-led framework 上的独立 domain agent
 
-- 决策：MAS 的 OPL 对齐口径固定为：MAS 是可直接由 Codex App skill 调用、也可由 OPL Codex-first stage-led family framework 托管的独立 medical research domain agent。OPL 只持有 stage descriptor discovery、typed queue、wakeup、handoff、receipt、approval/retry/dead-letter、trace/projection 和 parity；MAS 持有医学 stage pack、prompt/skill、study truth reducer、evidence/review ledger、AI reviewer、publication gate、route decision 和 artifact/package authority。
+- 决策：MAS 的 OPL 对齐口径固定为：MAS 是可直接由 Codex App skill 调用、也可由 OPL stage-led family framework 托管的独立 medical research domain agent。OPL 只持有 stage descriptor discovery、typed queue、wakeup、handoff、receipt、approval/retry/dead-letter、trace/projection 和 parity；MAS 持有医学 stage pack、prompt/skill、study truth reducer、evidence/review ledger、AI reviewer、publication gate、route decision 和 artifact/package authority。
 - 理由：MAS 的价值在医学研究自治与论文质量闭环。如果把研究路线、质量判断或 publication readiness 上收到 OPL，会制造第二 truth owner，也会削弱 Codex CLI 在 MAS stage 内的自主探索能力。OPL 应提供 durable framework 能力，不能成为 MAS 的领域大脑。
 - 影响：direct MAS skill path 保持一等入口；经 OPL 调用时必须回到同一套 MAS-owned CLI/MCP/product-entry/controller/stage surface。后续流程优化优先改 MAS stage policy、prompt、skill、AI reviewer、quality gate 和 route/decision receipt；不得把医学研究思路写成 OPL 机械脚本分流。
 
 ## 2026-05-11：OPL 是完整 stage-led 智能体运行框架，MAS 是医学论文 domain agent
 
-- 决策：OPL 的新定位固定为完整智能体运行框架，而不是只做入口聚合或 product-entry facade。OPL 可以作为外部依赖承载 MAS：它负责 stage attempt、provider abstraction、queue/wakeup、retry/dead-letter、human-gate signal/query、attempt receipt、projection、shared lifecycle/index/restore primitives 和跨 domain skeleton。`Stage` 是大型任务步骤；`Codex CLI` 是 stage 内默认 concrete executor 和最小执行单元。
+- 决策：OPL 的新定位固定为完整智能体运行框架，而不是只做入口聚合或 product-entry facade。OPL 可以作为外部依赖承载 MAS：它负责 stage attempt、provider abstraction、queue/wakeup、retry/dead-letter、human-gate signal/query、attempt receipt、projection、shared lifecycle/index/restore primitives 和跨 domain skeleton。`Stage` 是大型任务步骤；Agent executor 是 stage 内最小执行单位，`Codex CLI` 是当前第一公民 concrete executor。
 - 理由：MAS 已经在 monolith closeout 中验证了医学论文 domain 的 runtime、lifecycle、artifact、restore、stage knowledge 和质量闭环经验，但这些“智能体运行外围”不应长期由 MAS 私有维护。上收 OPL 能减少 MAS/MAG/RCA 重复底座，同时保持 MAS 对医学研究、论文质量和交付 authority 的唯一所有权。
-- 影响：MAS 文档必须把 OPL 作为可依赖运行框架表达，同时继续禁止 OPL/Temporal/Hermes/local provider 写 MAS study truth、publication judgement、quality gate、current package、evidence/review ledger 或 artifact authority。MAS 是 OPL family 中的医学论文/研究 domain agent；旧 MDS/DeepScientist/Hermes-first/外部 runtime 完善线只能作为 history、provenance、optional provider、backend audit、upstream intake 或 parity reference 出现。
+- 影响：MAS 文档必须把 OPL 作为可依赖运行框架表达，同时继续禁止 OPL/Temporal/Hermes/local provider 写 MAS study truth、publication judgement、quality gate、current package、evidence/review ledger 或 artifact authority。MAS 是 OPL family 中的医学论文/研究 domain agent；旧 MDS/DeepScientist/Hermes-first/外部 runtime 完善线只能作为 history、provenance、optional executor/provider adapter、backend audit、upstream intake 或 parity reference 出现。
 
 ## 2026-05-10：Autonomy continuation ticket 成为 read-model 到执行闭环的桥
 
@@ -135,7 +135,7 @@
 
 ## 2026-04-26：OPL Runtime Manager 作为薄运行管理层接入 MAS projection
 
-- 决策：MAS 与 OPL 的长线对齐采用 `OPL Runtime Manager / opl family-runtime -> external Hermes-Agent online substrate -> MAS sidecar export/dispatch -> MAS domain entry/projection` 的分层口径。MAS 只暴露 task registration、runtime_control projection、status/artifact locator、approval/wakeup boundary、sidecar guarded dispatch 与现有 durable truth surface；`OPL Runtime Manager` 只负责上层管理、索引、doctor/repair/resume 与 native helper catalog，不成为 MAS 研究 truth 或执行器 owner。
+- 决策：MAS 与 OPL 的长线对齐采用 `OPL Runtime Manager / opl family-runtime -> configured family runtime provider -> MAS sidecar export/dispatch -> MAS domain entry/projection` 的分层口径。MAS 只暴露 task registration、runtime_control projection、status/artifact locator、approval/wakeup boundary、sidecar guarded dispatch 与现有 durable truth surface；`OPL Runtime Manager` 只负责上层管理、索引、doctor/repair/resume 与 native helper catalog，不成为 MAS 研究 truth 或执行器 owner。历史 Hermes online substrate 口径只作为迁移背景；Hermes-Agent 当前是可选 Agent executor adapter / proof lane。
 - 理由：这能先获得长期托管、唤醒、健康检查和跨域状态索引的收益，同时保留 MAS 自己的 study authority、publication gate 与 evidence/review ledger。若未来需要自有长期常驻 sidecar，也能沿 Runtime Manager 的 adapter/projection contract promotion，而不重写 MAS domain truth。
 - 影响：后续涉及 OPL handoff、runtime_control、product-entry manifest、status projection、sidecar export/dispatch 或 hosted lane 的文案，都必须明确 `OPL Runtime Manager` 是 OPL 侧 thin manager over external substrate；MAS durable truth surface 仍是唯一研究真相。
 
@@ -177,7 +177,7 @@
 
 ## 2026-04-12：固定 runtime substrate 与 research executor 分层
 
-- 决策：外层 runtime substrate / orchestration owner 必须与 MAS-owned research owner surface 分层；当前目标由 OPL provider-backed family runtime 承担，Temporal 是生产 provider 候选，Hermes-Agent 只保留 legacy/optional provider 或 executor/proof lane，不得替代 MAS-owned research owner surface 或把外部 MDS repo 重新变成默认执行脑。
+- 决策：外层 runtime substrate / orchestration owner 必须与 MAS-owned research owner surface 分层；当前目标由 OPL provider-backed family runtime 承担，Temporal 是生产 provider 候选，Hermes-Agent 只保留为可选 Agent executor adapter 或 executor/proof lane，不得替代 MAS-owned research owner surface 或把外部 MDS repo 重新变成默认执行脑。
 - 理由：当前真正高风险的不是“没有统一执行脑”，而是“没有统一长期在线 runtime substrate”。若在外层 runtime ownership 尚未稳定前，就强制把 backend 内部的 `Codex + skills` 执行生态整体替掉，最容易出现功能降级。
 - 影响：后续继续学习 `MedDeepScientist` / DeepScientist 时，必须按 source provenance、executor route、owner boundary、contract 与 parity proof 决定是否吸收；不允许把“接入 Hermes”偷换成“已完成研究执行 owner 替换”。
 

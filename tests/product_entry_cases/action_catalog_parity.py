@@ -116,6 +116,40 @@ def test_mas_action_catalog_projects_sidecar_bridge_without_new_mcp_tool(tmp_pat
     assert {"sidecar_export", "sidecar_dispatch"}.isdisjoint(mcp_tool_names)
 
 
+def test_product_entry_manifest_exposes_foundry_agent_product_positioning(tmp_path: Path) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    positioning = manifest["product_positioning"]
+
+    assert positioning["surface_kind"] == "mas_product_positioning"
+    assert positioning["public_role"] == "Foundry Agent"
+    assert positioning["package_role"] == "OPL-compatible package built on OPL Framework"
+    assert positioning["framework"] == "OPL Framework"
+    assert positioning["direct_app_skill_path"] is True
+    assert positioning["authority_boundary"] == {
+        "medical_research_truth_owner": "MedAutoScience",
+        "quality_verdict_owner": "MedAutoScience",
+        "runtime_owner": "MedAutoScience",
+        "artifact_publication_authority_owner": "MedAutoScience",
+        "opl_role": "framework_package_host_and_projection_consumer",
+        "opl_is_runtime_kernel": False,
+        "can_write_domain_truth": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
+    }
+    assert set(positioning["non_goals"]) == {
+        "no_new_runtime_mechanism",
+        "not_an_opl_runtime_kernel_claim",
+        "not_a_default_hermes_target",
+        "not_a_default_mds_target",
+        "not_a_default_local_scheduler_target",
+    }
+
+
 def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descriptor(tmp_path: Path) -> None:
     agent_entry = importlib.import_module("med_autoscience.agent_entry")
     stage_knowledge_plane = importlib.import_module("med_autoscience.controllers.stage_knowledge_plane")

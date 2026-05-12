@@ -8,7 +8,7 @@
 
 <h1 align="center">Med Auto Science</h1>
 
-<p align="center"><strong>An independent medical research domain agent with a single MAS app skill for turning data, study questions, and evidence into manuscript-ready work</strong></p>
+<p align="center"><strong>A medical research Foundry Agent and OPL-compatible package built on OPL Framework, with a direct MAS app skill for turning data, study questions, and evidence into manuscript-ready work</strong></p>
 <p align="center">Disease Studies · Evidence Organization · Manuscript Delivery</p>
 
 <table>
@@ -58,15 +58,26 @@ You can start with prompts like:
 
 ## Current Position And Boundary
 
-- `Med Auto Science` is a medical research domain agent. It can be called directly by Codex, and it can also run under the `OPL` agent runtime framework.
-- MAS owns the medical work itself: study intake, workspace context, evidence progression, progress explanation, manuscript quality judgment, and manuscript-facing delivery.
-- `OPL` is the upper runtime framework. It owns stage attempts, queues, wakeups, recovery, approvals, receipts, and cross-domain projection. MAS keeps medical conclusions, manuscript quality, and submission-facing judgment.
-- In the OPL framework, a `Stage` is a large task step such as scouting, analysis, writing, reviewer repair, or delivery. `Codex CLI` is the default smallest execution unit inside a stage.
-- MAS has completed monolith closeout. `MedDeepScientist` / `DeepScientist` remains available as provenance, explicit archive import, backend audit, upstream learning, and parity reference.
-- Long-running online execution follows the OPL provider-backed direction, with Temporal as the target production provider. `Hermes-Agent` remains available during migration as an optional provider, proof lane, or historical compatibility reference.
+- `Med Auto Science` is publicly positioned as a medical research `Foundry Agent`: an independent domain agent for turning disease data, study questions, evidence, and manuscript work into one governed research line.
+- MAS is also an `OPL-compatible package built on OPL Framework`. OPL can discover MAS stage descriptors, action metadata, handoff contracts, receipts, and projections; MAS remains the medical research owner.
+- MAS keeps the direct app skill path as a first-class entry. Direct MAS activation and OPL-hosted handoff return to the same MAS-owned stage, controller, durable truth, review, and artifact surfaces.
+- MAS owns medical research truth, quality verdicts, runtime ownership, artifact authority, and publication authority. OPL Framework metadata does not replace those owner surfaces.
+- This positioning adds no new runtime mechanism. Hermes-Agent, MedDeepScientist/MDS, and the MAS local scheduler remain explicit optional/provenance/diagnostic surfaces, not default public targets.
 - Manuscript quality is governed by MAS study charters, evidence ledgers, review ledgers, AI reviewer workflow, publication gates, and controller records. Status panels, script checks, and historical MDS coverage provide supporting evidence.
 - Clinical framing, claim acceptance, and final submission decisions stay with researchers and PIs.
 - Journal submission and external system interaction stay under human supervision.
+
+<details>
+  <summary><strong>Technical boundary for operators</strong></summary>
+
+- `Med Auto Science` is a medical research domain agent and Foundry Agent. It can be called directly by Codex, and it can also be discovered and hosted as an OPL-compatible package under `OPL Framework`.
+- MAS owns the medical work itself: study intake, workspace context, evidence progression, progress explanation, manuscript quality judgment, runtime owner surfaces, artifact authority, and manuscript-facing delivery.
+- `OPL Framework` is the upper stage-led framework. It owns stage attempts, queues, wakeups, recovery, approvals, receipts, and cross-domain projection. MAS keeps medical conclusions, manuscript quality, runtime owner semantics, artifact authority, and submission-facing judgment.
+- In the OPL framework, a `Stage` is a large task step such as scouting, analysis, writing, reviewer repair, or delivery. An Agent executor is the minimum execution unit inside a stage; `Codex CLI` is the current first-class executor.
+- MAS has completed monolith closeout. `MedDeepScientist` / `DeepScientist` remains available as provenance, explicit archive import, backend audit, upstream learning, and parity reference.
+- Long-running online execution follows the OPL provider-backed direction, with Temporal as the target production provider. `Hermes-Agent` is not the target session/wakeup substrate, but it remains available as an explicit Agent executor adapter / proof lane that promises connectivity and auditability, not behavior or quality equivalence with `Codex CLI`.
+
+</details>
 
 ## How To Read This Repository
 
