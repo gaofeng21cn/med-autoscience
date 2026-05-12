@@ -342,6 +342,99 @@ def test_startup_data_readiness_excludes_rejected_public_datasets_from_opportuni
     assert result["recommendations"] == ["startup_data_ready"]
 
 
+def test_startup_data_readiness_summarizes_data_availability_and_fair_blockers(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
+    workspace_root = tmp_path / "workspace"
+    ready_root = workspace_root / "datasets" / "ready" / "v2026-05-10"
+    blocked_root = workspace_root / "datasets" / "blocked" / "v2026-05-10"
+    ready_root.mkdir(parents=True, exist_ok=True)
+    blocked_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        ready_root / "dataset_manifest.yaml",
+        dataset_id="ready_dataset",
+        version="v2026-05-10",
+        raw_snapshot="restricted_source",
+        generated_by="pipeline/ready.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        release_contract={
+            "data_availability": {
+                "restricted_data": True,
+                "access_route": "controlled access committee",
+                "repository_identifier": "doi:10.5061/dryad.ready",
+                "datacite": {
+                    "identifier": "10.5061/dryad.ready",
+                    "identifier_type": "DOI",
+                    "creators": ["MAS Data Team"],
+                    "title": "Ready release",
+                    "publisher": "Dryad",
+                    "publication_year": "2026",
+                    "resource_type": "Dataset",
+                },
+                "fair_checklist": {
+                    "findable": True,
+                    "accessible": True,
+                    "interoperable": True,
+                    "reusable": True,
+                },
+            }
+        },
+    )
+    write_private_release_manifest(
+        blocked_root / "dataset_manifest.yaml",
+        dataset_id="blocked_dataset",
+        version="v2026-05-10",
+        raw_snapshot="restricted_source",
+        generated_by="pipeline/blocked.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        release_contract={
+            "data_availability": {
+                "restricted_data": True,
+                "repository_identifier": "doi:10.5061/dryad.blocked",
+                "datacite": {"identifier": "10.5061/dryad.blocked", "identifier_type": "DOI"},
+                "fair_checklist": {"findable": True, "accessible": False},
+            }
+        },
+    )
+    (ready_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    (blocked_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_study_manifest(
+        workspace_root / "studies" / "001-ready" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="ready_dataset",
+        relative_path="../../../datasets/ready/v2026-05-10/analysis.csv",
+    )
+    write_study_manifest(
+        workspace_root / "studies" / "002-blocked" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="blocked_dataset",
+        relative_path="../../../datasets/blocked/v2026-05-10/analysis.csv",
+    )
+
+    result = module.startup_data_readiness(workspace_root=workspace_root)
+
+    assert result["status"] == "attention_needed"
+    assert result["data_availability_summary"]["release_count"] == 2
+    assert result["data_availability_summary"]["ready_release_count"] == 1
+    assert result["data_availability_summary"]["blocked_release_count"] == 1
+    assert result["data_availability_summary"]["blocked_releases"] == [
+        {
+            "family_id": "blocked",
+            "version_id": "v2026-05-10",
+            "dataset_id": "blocked_dataset",
+            "blockers": [
+                "restricted_data_missing_access_route",
+                "datacite_missing_creators",
+                "datacite_missing_title",
+                "datacite_missing_publisher",
+                "datacite_missing_publication_year",
+                "datacite_missing_resource_type",
+                "fair_accessible_not_confirmed",
+                "fair_interoperable_not_confirmed",
+                "fair_reusable_not_confirmed",
+            ],
+        }
+    ]
+    assert "complete_data_availability_fair_and_datacite_metadata" in result["recommendations"]
+
+
 def test_startup_data_readiness_flags_unresolved_private_contracts(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.startup_data_readiness")
     workspace_root = tmp_path / "workspace"

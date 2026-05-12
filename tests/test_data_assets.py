@@ -420,6 +420,71 @@ def test_assess_data_asset_impact_projects_semantic_readiness_to_study_inputs(tm
     assert "cohort_accounting:missing_cohort_flow" in dataset["semantic_readiness"]["errors"]
 
 
+def test_assess_data_asset_impact_projects_data_availability_and_fair_contract(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.data_assets")
+    workspace_root = tmp_path / "workspace"
+    version_root = workspace_root / "datasets" / "master" / "v2026-05-10"
+    version_root.mkdir(parents=True, exist_ok=True)
+    write_private_release_manifest(
+        version_root / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        version="v2026-05-10",
+        raw_snapshot="restricted_clinical_source",
+        generated_by="pipeline/build_release.py",
+        main_outputs={"analysis_csv": "analysis.csv"},
+        release_contract={
+            "access_tier": "publication_ready_standardized",
+            "data_availability": {
+                "restricted_data": True,
+                "access_route": "controlled workspace request via institutional DUA",
+                "repository_identifier": "doi:10.5061/dryad.mas001",
+                "repository_url": "https://doi.org/10.5061/dryad.mas001",
+                "datacite": {
+                    "identifier": "10.5061/dryad.mas001",
+                    "identifier_type": "DOI",
+                    "creators": ["MAS Data Team"],
+                    "title": "NF-PitNET deidentified analysis release",
+                    "publisher": "Dryad",
+                    "publication_year": "2026",
+                    "resource_type": "Dataset",
+                },
+                "fair_checklist": {
+                    "findable": True,
+                    "accessible": True,
+                    "interoperable": True,
+                    "reusable": True,
+                },
+            },
+        },
+    )
+    (version_root / "analysis.csv").write_text("id\n1\n", encoding="utf-8")
+    write_dataset_manifest(
+        workspace_root / "studies" / "004-paperflow" / "data_input" / "dataset_manifest.yaml",
+        dataset_id="nfpitnet_master",
+        relative_path="../../../datasets/master/v2026-05-10/analysis.csv",
+    )
+
+    result = module.assess_data_asset_impact(workspace_root=workspace_root)
+
+    availability = result["studies"][0]["dataset_inputs"][0]["data_availability"]
+    assert availability["authority_scope"] == "submission_compliance_reviewer_input"
+    assert availability["dataset_location"]["dataset_id"] == "nfpitnet_master"
+    assert availability["dataset_location"]["family_id"] == "master"
+    assert availability["dataset_location"]["version_id"] == "v2026-05-10"
+    assert availability["dataset_location"]["main_outputs"] == {"analysis_csv": "analysis.csv"}
+    assert availability["access"]["restricted_data"] is True
+    assert availability["access"]["route"] == "controlled workspace request via institutional DUA"
+    assert availability["repository"]["identifier"] == "doi:10.5061/dryad.mas001"
+    assert availability["datacite"]["identifier_type"] == "DOI"
+    assert availability["fair_checklist"] == {
+        "findable": True,
+        "accessible": True,
+        "interoperable": True,
+        "reusable": True,
+    }
+    assert availability["blockers"] == []
+
+
 def test_build_private_release_diff_writes_delta_report(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_assets")
     workspace_root = tmp_path / "workspace"

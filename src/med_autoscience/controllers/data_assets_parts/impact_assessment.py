@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from med_autoscience.controllers.data_availability_projection import project_release_data_availability
+
 
 def private_version_status(
     *,
@@ -127,6 +129,13 @@ def dataset_asset_impact_report(
                 bound_release.get("semantic_readiness")
                 if isinstance(bound_release, dict)
                 else None
+            ),
+            "data_availability": project_release_data_availability(
+                release=bound_release,
+                dataset_id=dataset_id,
+                family_id=family_id,
+                version_id=version_id,
+                source_path=source_path,
             ),
             "public_support_count": len(public_matches),
             "public_support_dataset_ids": [item.get("dataset_id") for item in public_matches],

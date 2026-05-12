@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import data_assets
+from med_autoscience.controllers.data_availability_projection import summarize_release_data_availability
 
 
 STARTUP_READINESS_SCHEMA_VERSION = 1
@@ -305,6 +306,7 @@ def _recommendations(
     study_summary: dict[str, Any],
     valid_public_dataset_count: int,
     private_semantic_readiness: dict[str, Any],
+    data_availability_summary: dict[str, Any],
 ) -> list[str]:
     recommendations: list[str] = []
     if private_release_count == 0:
@@ -315,6 +317,8 @@ def _recommendations(
         recommendations.append("materialize_standardized_analysis_release")
     if study_summary.get("semantic_readiness_blocked_study_ids") or private_semantic_readiness["blocked_release_count"]:
         recommendations.append("complete_data_dictionary_codebook_and_cohort_flow")
+    if data_availability_summary["blocked_release_count"]:
+        recommendations.append("complete_data_availability_fair_and_datacite_metadata")
     if study_summary["outdated_private_release_study_ids"]:
         recommendations.append("reassess_studies_against_latest_private_release")
     if valid_public_dataset_count > 0:
@@ -341,6 +345,7 @@ def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
     actionable_public_datasets = _actionable_public_datasets(public_validation)
     study_summary = _study_summary(impact_report, actionable_public_datasets=actionable_public_datasets)
     private_semantic_readiness = _private_semantic_readiness(releases)
+    data_availability_summary = summarize_release_data_availability(releases)
     public_summary = {
         "dataset_count": public_validation["dataset_count"],
         "valid_dataset_count": public_validation["valid_dataset_count"],
@@ -357,6 +362,7 @@ def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
         study_summary=study_summary,
         valid_public_dataset_count=public_summary["actionable_dataset_count"],
         private_semantic_readiness=private_semantic_readiness,
+        data_availability_summary=data_availability_summary,
     )
     report = {
         "schema_version": STARTUP_READINESS_SCHEMA_VERSION,
@@ -369,11 +375,13 @@ def startup_data_readiness(*, workspace_root: Path) -> dict[str, Any]:
             or bool(study_summary.get("standardization_blocked_study_ids"))
             or bool(study_summary.get("semantic_readiness_blocked_study_ids"))
             or bool(private_semantic_readiness["blocked_release_count"])
+            or bool(data_availability_summary["blocked_release_count"])
             else "clear"
         ),
         "private_release_count": len(releases),
         "latest_private_releases_by_family": _latest_private_releases_by_family(releases),
         "private_semantic_readiness": private_semantic_readiness,
+        "data_availability_summary": data_availability_summary,
         "study_summary": study_summary,
         "public_summary": public_summary,
         "public_opportunities": _public_opportunities(public_validation),
