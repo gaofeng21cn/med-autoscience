@@ -7,6 +7,7 @@
 - [Program Portfolio Consolidation](./program_portfolio_consolidation.md): the current portfolio entry. Read it first for the target, framework-first execution, productization, landed foundation, content-level disposition, and archive rules.
 - [MAS Current Development Lines](./current_development_lines.md): the current content-level development map. Use it before executing or evaluating old program content to decide whether a block belongs to OPL framework, MAS migration, feature retirement, P1 productization, P0 final soak, P3/P3a, or support.
 - [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md): the cross-cutting stage-form program. Use it when changing stage prompts, skills, tools, knowledge packets, closeout memory, quality packs, or OPL stage descriptors.
+- [MAS Stage Surfaces](../runtime/contracts/stage_surfaces.md): generated human-readable stage cards for the main MAS routes. Treat the Markdown as a rendered view from `src/med_autoscience/stage_surface_contract.py` plus the canonical route contract, not as machine truth.
 
 ## Current Program Layers
 

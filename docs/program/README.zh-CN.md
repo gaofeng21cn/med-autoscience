@@ -7,6 +7,7 @@
 - [Program Portfolio Consolidation](./program_portfolio_consolidation.md)：当前 program 组合总入口。先读这份文档，理解目标层、framework-first 执行层、产品化层、已落地基础层、内容级处置表和归档规则。
 - [MAS Current Development Lines](./current_development_lines.md)：当前内容级开发线路图。执行或评估旧 program 内容前，先用它判断内容块属于 OPL framework、MAS migration、feature retirement、P1 productization、P0 final soak、P3/P3a/support 的哪一条线。
 - [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)：横向 stage 形式统一计划。修改 stage prompt、skill、tool、knowledge packet、closeout memory、quality pack 或 OPL stage descriptor 前先读这份文档。
+- [MAS Stage Surfaces](../runtime/contracts/stage_surfaces.md)：主 MAS routes 的生成人读 stage cards。该 Markdown 只是 `src/med_autoscience/stage_surface_contract.py` 与 canonical route contract 的渲染面，不是机器真相。
 
 ## 当前 program 层次
 

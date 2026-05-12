@@ -167,7 +167,7 @@ Reporting guideline selection should be explicit:
 | priority | task | output | validation |
 | --- | --- | --- | --- |
 | `P0` | 冻结 stage surface template | 本文 + program/README/current lines 引用 | `git diff --check` |
-| `P1` | 为所有主 stage 生成 stage card | `agent/stages` 或现有 docs/policies 下的 stage card facade | route contract path spot check + agent entry tests |
+| `P1` | 为所有主 stage 生成 stage card | `src/med_autoscience/stage_surface_contract.py` + `docs/runtime/contracts/stage_surfaces.md` generated facade | `tests/test_stage_surface_contract.py` + route contract path spot check |
 | `P1` | 把 append block 主 stage 升级为独立可读 skill surface | baseline / experiment / analysis-campaign / review stage skill/card | overlay installer tests + agent entry asset tests |
 | `P1` | 补齐 knowledge / closeout obligations | 更新 `stage_knowledge_contract.py` 与 canonical YAML 中的 obligations | `tests/test_stage_knowledge_plane.py` + `tests/test_agent_entry_assets.py` |
 | `P2` | 抽出 reporting guideline quality pack | policy / contract / generated prompt block | focused quality/reporting tests |
@@ -180,6 +180,7 @@ Reporting guideline selection should be explicit:
 - 不把 publication route memory 做成固定 recipe engine。
 - 不让 OPL 选择医学研究路线、接受 memory writeback、授权 publication readiness 或写 MAS truth。
 - 不用 Markdown prose 当机器接口；需要机器约束时进入 schema、contract、CLI/MCP payload、manifest 或 durable JSON。
+- `docs/runtime/contracts/stage_surfaces.md` 是由 `src/med_autoscience/stage_surface_contract.py` 从 canonical route contract 和 machine source refs 渲染的人读面；更新语义时先改 machine surface 或 renderer，不手写 Markdown 作为第二真相源。
 - 不因为形式统一而一次性搬大目录；先统一 owner、字段、模板、tests，再做低风险物理迁移。
 - 不把真实 provider-hosted soak 未完成的状态写成 production automation 已完成。
 
