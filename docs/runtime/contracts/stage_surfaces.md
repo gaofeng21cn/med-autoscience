@@ -143,9 +143,9 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Boundary: `controller_authorized_surfaces_only`
 
 ### Knowledge
-- Status: not_declared_in_canonical_route_contract
+- Status: declared_in_canonical_route_contract
 - Machine source refs: stage_knowledge_packet | stage_recall_index | publication_route_memory_pack | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: (none)
+- Obligations: stage_knowledge_packet_ref | data_source_contract | cohort_definition_and_inclusion_exclusion | endpoint_definition_and_measurement_window | comparator_definition_and_reference_baseline | startup_run_context | prior_result_lineage | failed_comparator_history
 
 ### Outputs
 - baseline artifact set or equivalent reproducible baseline record
@@ -158,9 +158,9 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Route success gate: baseline or comparator setup is reproducible and scoped to the active claim | baseline readout reveals whether the line is strong enough to continue | unresolved blockers are small enough for analysis-campaign or decision
 
 ### Closeout
-- Status: not_declared_in_canonical_route_contract
+- Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: (none)
+- Obligations: stage_memory_closeout_packet | baseline_cohort_endpoint_comparator_snapshot | baseline_effect_size_or_feasibility_readout | failed_comparator_lesson | continue_reroute_or_stop_recommendation
 
 ### Route Back / Human Gate
 - Route back: baseline result cannot support the active claim | comparator or cohort definition changes materially | reviewer-first scan finds missing baseline proof
@@ -195,9 +195,9 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Boundary: `controller_authorized_surfaces_only`
 
 ### Knowledge
-- Status: not_declared_in_canonical_route_contract
+- Status: declared_in_canonical_route_contract
 - Machine source refs: stage_knowledge_packet | stage_recall_index | publication_route_memory_pack | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: (none)
+- Obligations: stage_knowledge_packet_ref | approved_experiment_protocol | data_contract_and_cohort_lock | endpoint_and_comparator_lock | statistical_analysis_plan | startup_run_context | prior_result_lineage | failed_comparator_history
 
 ### Outputs
 - primary result artifact set with run context
@@ -210,9 +210,9 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Route success gate: primary experiment result is recorded with reproducible run context | result answers the intended study question for the current line | next step is clear between analysis-campaign, write, and decision
 
 ### Closeout
-- Status: not_declared_in_canonical_route_contract
+- Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: (none)
+- Obligations: stage_memory_closeout_packet | primary_result_with_run_context | result_lineage_update | endpoint_or_comparator_deviation | negative_or_failed_comparator_lesson
 
 ### Route Back / Human Gate
 - Route back: run outcome invalidates the current study line | result quality or reproducibility gaps block downstream review | controller boundary changes before interpretation stabilizes
@@ -302,9 +302,9 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Boundary: `controller_authorized_surfaces_only`
 
 ### Knowledge
-- Status: not_declared_in_canonical_route_contract
+- Status: declared_in_canonical_route_contract
 - Machine source refs: stage_knowledge_packet | stage_recall_index | publication_route_memory_pack | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: (none)
+- Obligations: stage_knowledge_packet_ref | claim_evidence_map | reporting_guideline_pack | journal_neighbor_refs | display_to_claim_map
 
 ### Outputs
 - manuscript draft or section update tied to current claim scope
@@ -319,9 +319,9 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Route success gate: manuscript line states claims that match cited evidence | first-draft quality scan has checked underused data-asset dimensions before calling the draft ready | open gaps, caveats, and next actions are explicit in the writing surface | draft is ready for finalize or route-back with named reasons | explicit user/reviewer manuscript feedback after a stopped or submission-ready milestone has been handled as same-line revision reactivation, not as direct `current_package` editing
 
 ### Closeout
-- Status: not_declared_in_canonical_route_contract
+- Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: (none)
+- Obligations: stage_memory_closeout_packet | writing_experience_lesson | claim_wording_boundary_decision | reporting_guideline_gap | display_to_claim_repair_request | journal_neighbor_positioning_lesson
 
 ### Route Back / Human Gate
 - Route back: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing | manuscript narrative changes the claim boundary | foreground edits only touched `manuscript/current_package/` before MAS runtime reactivation or have not been reconciled into the canonical paper source
@@ -409,9 +409,9 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Boundary: `controller_authorized_surfaces_only`
 
 ### Knowledge
-- Status: not_declared_in_canonical_route_contract
+- Status: declared_in_canonical_route_contract
 - Machine source refs: stage_knowledge_packet | stage_recall_index | publication_route_memory_pack | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: (none)
+- Obligations: stage_knowledge_packet_ref | publication_eval_latest | controller_decision_latest | package_freshness_proof | declarations_and_ethics_checklist | human_gate_status
 
 ### Outputs
 - final package checklist or equivalent delivery record
@@ -424,9 +424,9 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Route success gate: final package is internally consistent across claim, evidence, and limitations | required review artifacts are complete enough for final audit | route recommendation is explicit between submit-ready and route-back | no unreconciled foreground `current_package` revision overlay remains
 
 ### Closeout
-- Status: not_declared_in_canonical_route_contract
+- Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: (none)
+- Obligations: stage_memory_closeout_packet | package_readiness_decision | package_freshness_or_staleness_lesson | declaration_or_ethics_blocker | human_gate_request_or_clearance
 
 ### Route Back / Human Gate
 - Route back: final audit finds missing proof or inconsistent claims | submission bundle surfaces unresolved reviewer-level concerns | package assembly changes the meaning of any active claim
@@ -463,7 +463,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ### Knowledge
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_knowledge_packet | stage_recall_index | publication_route_memory_pack | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: stage_knowledge_packet_ref | publication_route_memory_refs | failed_path_history | controller_decision_inputs | stop_loss_context
+- Obligations: stage_knowledge_packet_ref | publication_route_memory_refs | controller_decision_inputs | failed_path_history | stop_loss_context
 
 ### Outputs
 - controller-facing decision record or equivalent durable judgment
@@ -514,9 +514,9 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Boundary: `controller_authorized_surfaces_only`
 
 ### Knowledge
-- Status: not_declared_in_canonical_route_contract
+- Status: declared_in_canonical_route_contract
 - Machine source refs: stage_knowledge_packet | stage_recall_index | publication_route_memory_pack | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: (none)
+- Obligations: stage_knowledge_packet_ref | official_author_guideline | outlet_profile | exporter_profile_constraints | blocked_profile_evidence
 
 ### Outputs
 - journal choice note or outlet-resolution record
@@ -529,9 +529,9 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Route success gate: target outlet or packaging rule is chosen with reasons | manuscript bundle requirements are reflected in the active draft plan | remaining journal-facing gaps are explicit
 
 ### Closeout
-- Status: not_declared_in_canonical_route_contract
+- Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
-- Obligations: (none)
+- Obligations: stage_memory_closeout_packet | selected_outlet_or_profile_rationale | exporter_constraint_lesson | blocked_profile_decision | reporting_guideline_delta
 
 ### Route Back / Human Gate
 - Route back: journal requirements expose missing evidence or structure gaps | target outlet changes the claim framing materially | packaging constraints require a different delivery plan
