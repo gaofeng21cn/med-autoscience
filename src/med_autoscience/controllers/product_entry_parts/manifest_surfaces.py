@@ -32,6 +32,34 @@ from .manifest_projection_compaction import (
 from med_autoscience.controllers import opl_provider_ready_adapter
 
 
+def _build_product_positioning() -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_product_positioning",
+        "public_role": "Foundry Agent",
+        "package_role": "OPL-compatible package built on OPL Framework",
+        "framework": "OPL Framework",
+        "direct_app_skill_path": True,
+        "authority_boundary": {
+            "medical_research_truth_owner": "MedAutoScience",
+            "quality_verdict_owner": "MedAutoScience",
+            "runtime_owner": "MedAutoScience",
+            "artifact_publication_authority_owner": "MedAutoScience",
+            "opl_role": "framework_package_host_and_projection_consumer",
+            "opl_is_runtime_kernel": False,
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+        },
+        "non_goals": [
+            "no_new_runtime_mechanism",
+            "not_an_opl_runtime_kernel_claim",
+            "not_a_default_hermes_target",
+            "not_a_default_mds_target",
+            "not_a_default_local_scheduler_target",
+        ],
+    }
+
+
 def build_product_entry_manifest(
     *,
     profile: WorkspaceProfile,
@@ -571,31 +599,7 @@ def build_product_entry_manifest(
             "phase3_clearance_lane": phase3_clearance_lane,
             "phase4_backend_deconstruction": phase4_backend_deconstruction,
             "phase5_platform_target": phase5_platform_target,
-            "product_positioning": {
-                "surface_kind": "mas_product_positioning",
-                "public_role": "Foundry Agent",
-                "package_role": "OPL-compatible package built on OPL Framework",
-                "framework": "OPL Framework",
-                "direct_app_skill_path": True,
-                "authority_boundary": {
-                    "medical_research_truth_owner": "MedAutoScience",
-                    "quality_verdict_owner": "MedAutoScience",
-                    "runtime_owner": "MedAutoScience",
-                    "artifact_publication_authority_owner": "MedAutoScience",
-                    "opl_role": "framework_package_host_and_projection_consumer",
-                    "opl_is_runtime_kernel": False,
-                    "can_write_domain_truth": False,
-                    "can_authorize_publication_quality": False,
-                    "can_authorize_submission_readiness": False,
-                },
-                "non_goals": [
-                    "no_new_runtime_mechanism",
-                    "not_an_opl_runtime_kernel_claim",
-                    "not_a_default_hermes_target",
-                    "not_a_default_mds_target",
-                    "not_a_default_local_scheduler_target",
-                ],
-            },
+            "product_positioning": _build_product_positioning(),
             "opl_family_persistence_lifecycle_owner_route_adoption": (
                 opl_family_persistence_lifecycle_owner_route_adoption
             ),
