@@ -48,6 +48,24 @@ It is a cross-cutting control skill that should be used whenever the quest must 
 
 {{MED_AUTOSCIENCE_AUTOMATION_READY}}
 
+{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
+
+## Research Harness clean-room boundary
+
+Research Harness is only a clean-room template lesson for this skill.
+It is not a MedAutoScience dependency, runner, database, dashboard, MCP surface, or verdict authority.
+Use any RH-derived lesson only to sharpen MAS-owned stage surfaces, blocker wording, and durable artifact expectations.
+
+## Stop-loss and human checkpoint authority
+
+`decision` may record stop-loss thresholds, abandonment criteria, branch conditions, and human checkpoints, but controller and human-gate authority remain explicit.
+Use stop-loss when durable evidence shows that a line has lost its credible path, repeated work would mainly package weakness, or the next cost no longer has defensible information gain.
+Use a human checkpoint only for an authority-owned strategic preference, credential, external secret, or explicit user-held constraint that MAS cannot infer from durable state.
+
+This skill records route decisions and blockers.
+It does not produce a `paper-ready` verdict, a `submission-ready` verdict, or any publication-quality verdict.
+When paper adequacy is at issue, route to `write` or `finalize` with the exact blocker or gate that must be closed.
+
 ## Use when
 
 - the next stage is not obvious

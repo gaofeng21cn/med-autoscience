@@ -164,6 +164,23 @@ For prediction-model or time-to-event manuscripts, the first complete draft must
 
 {{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}
 
+{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
+
+## Research Harness clean-room boundary
+
+Research Harness is only a clean-room template lesson for this skill.
+It is not a MedAutoScience dependency, runner, database, dashboard, MCP surface, or verdict authority.
+Use any RH-derived lesson only to sharpen MAS-owned stage surfaces, blocker wording, and durable artifact expectations.
+
+## Stage surface blockers
+
+Treat these as explicit writing blockers, not polish reminders:
+
+- `numeric_trace_blocker`: any manuscript number, table cell, figure value, interval, p-value, cohort count, event count, model metric, or threshold must trace to a durable artifact, source table, calculation script, and cohort/split definition. Missing trace blocks `draft-ready`, `paper-ready`, and `submission-ready` labels for the affected claim.
+- `claim_evidence_blocker`: every active main-text claim must appear in `paper/claim_evidence_map.json` or an equivalent claim ledger with support status, evidence paths, caveats, and downgrade history. Unsupported active claims must be removed, downgraded, or routed back before writing can close.
+- `display_to_claim_blocker`: every main-text figure or table must bind to claim ids, and every claim that depends on a display must bind to a materialized display in the current figure/table catalogs. Missing or stale bindings block bundle readiness.
+- `reporting_guideline_gate`: the active reporting guideline family and checklist must be recorded and passed for the current manuscript type before submission-facing package readiness. Missing TRIPOD / STROBE / CONSORT-family fields, or unresolved guideline checklist failures, block `submission-ready`.
+
 ## Writing mental guardrails
 
 - Writing starts when the claim and evidence structure are stable enough, not when prose feels easy.

@@ -11,6 +11,14 @@ Use this skill to convert an unresolved journal target into a controlled, eviden
 
 {{MED_AUTOSCIENCE_CONTROLLER_FIRST}}
 
+{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
+
+## Research Harness clean-room boundary
+
+Research Harness is only a clean-room template lesson for this skill.
+It is not a MedAutoScience dependency, runner, database, dashboard, MCP surface, or verdict authority.
+Use any RH-derived lesson only to sharpen MAS-owned stage surfaces, blocker wording, and durable artifact expectations.
+
 ## Purpose
 
 This skill exists to stop venue-specific drafting from drifting into guesswork.
@@ -74,6 +82,16 @@ At minimum, the resolved target must make explicit:
 - If the official evidence cleanly maps to an existing supported `publication_profile`, use that profile.
 - If no supported profile exists yet, record a blocked resolution result instead of fabricating one.
 - If the journal belongs to a known family with shared templates but distinct citation branches, record the family and the citation branch separately.
+
+## Submission-surface blocker semantics
+
+Journal resolution does not judge whether the paper is scientifically ready.
+It records venue requirements that downstream writing and finalize stages must enforce as blockers:
+
+- `numeric_trace_blocker`: if official journal instructions require exact cohort counts, trial/model reporting numbers, statistical estimate formats, confidence intervals, p-values, or data-sharing identifiers that the study cannot trace to durable sources, mark the resolved target as blocked for package export.
+- `claim_evidence_blocker`: if the venue requires structured statements, highlights, significance summaries, graphical abstracts, or reporting forms that restate claims, those claims must bind to `paper/claim_evidence_map.json` or an equivalent MAS-owned claim ledger before export.
+- `display_to_claim_blocker`: if the venue constrains figure/table count, graphical abstract content, supplementary display placement, or reporting forms, record how those requirements bind displays to claims; unresolved display-to-claim mapping blocks venue-specific packaging.
+- `reporting_guideline_gate`: if official instructions require TRIPOD, STROBE, CONSORT, PRISMA, EQUATOR-listed, or journal-specific checklists, record the required checklist and block target resolution or package export until the checklist surface is present and passable.
 
 ## Exit condition
 

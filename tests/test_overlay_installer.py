@@ -40,9 +40,24 @@ MEDICAL_RUNTIME_CONTRACT_TOKEN = "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}"
 STAGE_SKILL_TEMPLATE_FILES = {
     "analysis-campaign": "medical-research-analysis-campaign.SKILL.md",
     "baseline": "medical-research-baseline.SKILL.md",
+    "decision": "medical-research-decision.SKILL.md",
     "experiment": "medical-research-experiment.SKILL.md",
+    "finalize": "medical-research-finalize.SKILL.md",
+    "idea": "medical-research-idea.SKILL.md",
+    "journal-resolution": "medical-research-journal-resolution.SKILL.md",
     "review": "medical-research-review.SKILL.md",
+    "scout": "medical-research-scout.SKILL.md",
+    "write": "medical-research-write.SKILL.md",
 }
+EXISTING_FULL_STAGE_SKILL_IDS = (
+    "scout",
+    "idea",
+    "decision",
+    "write",
+    "finalize",
+    "journal-resolution",
+)
+NEW_FULL_STAGE_SKILL_IDS = ("baseline", "experiment", "analysis-campaign", "review")
 
 
 def write_skill(root: Path, skill_id: str, body: str) -> Path:
@@ -103,13 +118,19 @@ def test_stage_skill_surface_token_renders_machine_derived_block() -> None:
 
 
 @pytest.mark.parametrize("skill_id", tuple(STAGE_SKILL_TEMPLATE_FILES))
-def test_stage_skill_surface_templates_are_complete_human_readable_surfaces(skill_id: str) -> None:
+def test_stage_skill_surface_templates_expose_stage_surface_token(skill_id: str) -> None:
     skill_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES[skill_id]).read_text(encoding="utf-8")
 
     assert skill_text.startswith("---\n")
     assert f"name: {skill_id}" in skill_text
     assert "description:" in skill_text
     assert STAGE_SKILL_SURFACE_TOKEN in skill_text
+
+
+@pytest.mark.parametrize("skill_id", NEW_FULL_STAGE_SKILL_IDS)
+def test_new_stage_skill_surface_templates_are_complete_human_readable_surfaces(skill_id: str) -> None:
+    skill_text = (OVERLAY_TEMPLATE_ROOT / STAGE_SKILL_TEMPLATE_FILES[skill_id]).read_text(encoding="utf-8")
+
     assert "Stage card ref:" in skill_text
     assert "Route contract ref:" in skill_text
     assert "stage_knowledge_contract.py" in skill_text
@@ -158,6 +179,59 @@ def test_analysis_campaign_and_review_full_skill_templates_are_stage_surfaces() 
     assert "Citation Repair" in review_text
     assert "Reusable Critique Lessons" in review_text
     assert "Route-Back Closeout" in review_text
+
+
+def test_existing_full_stage_skill_templates_keep_rh_clean_room_boundary() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    forbidden_authority_terms = (
+        "runner",
+        "database",
+        "dashboard",
+        "MCP surface",
+        "verdict authority",
+    )
+    for skill_id in EXISTING_FULL_STAGE_SKILL_IDS:
+        skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP[skill_id])
+
+        assert "Research Harness is only a clean-room template lesson" in skill_text
+        assert "It is not a MedAutoScience dependency" in skill_text
+        for term in forbidden_authority_terms:
+            assert term in skill_text
+
+
+def test_existing_full_stage_skill_templates_include_stage_specific_blocker_terms() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    expected_terms_by_skill = {
+        "scout": ("source_readiness", "provider_provenance", "citation_readiness"),
+        "idea": ("candidate path", "gap ranking", "Controller decisions and human gates"),
+        "decision": ("stop-loss", "human checkpoints", "does not produce a `paper-ready` verdict"),
+        "write": (
+            "numeric_trace_blocker",
+            "claim_evidence_blocker",
+            "display_to_claim_blocker",
+            "reporting_guideline_gate",
+        ),
+        "finalize": (
+            "numeric_trace_blocker",
+            "claim_evidence_blocker",
+            "display_to_claim_blocker",
+            "reporting_guideline_gate",
+        ),
+        "journal-resolution": (
+            "numeric_trace_blocker",
+            "claim_evidence_blocker",
+            "display_to_claim_blocker",
+            "reporting_guideline_gate",
+        ),
+    }
+
+    for skill_id, expected_terms in expected_terms_by_skill.items():
+        skill_text = module._load_template_text(module.FULL_TEMPLATE_MAP[skill_id])
+
+        for term in expected_terms:
+            assert term in skill_text
 
 
 

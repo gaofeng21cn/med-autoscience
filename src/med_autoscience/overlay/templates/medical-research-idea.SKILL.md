@@ -47,6 +47,33 @@ After reporting a completed idea package, continue into the next justified stage
 
 {{MED_AUTOSCIENCE_REFERENCE_PAPERS}}
 
+{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
+
+## Research Harness clean-room boundary
+
+Research Harness is only a clean-room template lesson for this skill.
+It is not a MedAutoScience dependency, runner, database, dashboard, MCP surface, or verdict authority.
+Use any RH-derived lesson only to sharpen MAS-owned stage surfaces, blocker wording, and durable artifact expectations.
+
+## Candidate path, stop rule, and gap ranking
+
+Every serious idea candidate needs a durable candidate path before promotion:
+
+- foundation or active branch/run used as the starting point
+- limitation or gap targeted
+- closest prior overlap and novelty or research-value risk
+- smallest credible implementation and falsification path
+- expected evidence package needed before the claim could later be written
+- selected, rejected, parked, or blocked status with a reason
+
+Rank gaps before ranking ideas.
+Use a compact gap ranking that separates publication-strength gaps, evidence gaps, feasibility gaps, claim-defensibility gaps, and preference-sensitive route gaps.
+The winning idea should target the highest-leverage gap that is still testable under the active study contract.
+
+Stop the idea stage when the candidate path is clear enough to select, branch, reject, or route back.
+If no candidate survives the literature, feasibility, or defensibility gates, record a blocked or rejected idea outcome instead of extending brainstorming.
+Controller decisions and human gates own strategic stop/continue choices; `idea` records the evidence and recommended route, but it does not bypass controller authority or convert a human checkpoint into an implicit approval.
+
 When the quest disables research-paper delivery, keep manuscript defensibility secondary to:
 
 - algorithmic value

@@ -47,6 +47,24 @@ If one of these layers is still missing, say so explicitly.
 
 {{MED_AUTOSCIENCE_CONTROLLER_FIRST}}
 
+{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
+
+## Research Harness clean-room boundary
+
+Research Harness is only a clean-room template lesson for this skill.
+It is not a MedAutoScience dependency, runner, database, dashboard, MCP surface, or verdict authority.
+Use any RH-derived lesson only to sharpen MAS-owned stage surfaces, blocker wording, and durable artifact expectations.
+
+## Source, provider, and citation readiness
+
+Before routing out of `scout`, record readiness for three surfaces:
+
+- `source_readiness`: the task frame, dataset or cohort source, metric contract, closest papers, official repos, and public sidecars are traced to primary or durable local sources, or the missing source class is named as a blocker.
+- `provider_provenance`: each retained source notes whether it came from user material, MAS durable artifacts, primary papers, official docs or repos, public registries, community notes, or open-web discovery; secondary providers can aid discovery but cannot become provenance authority.
+- `citation_readiness`: every citation candidate promoted beyond watchlist status has an identifier when available, a resolvable URL or DOI/arXiv/publisher source, the claim or route it supports, and a retained / rejected / watchlist status.
+
+If source readiness, provider provenance, or citation readiness is insufficient for a downstream baseline, idea, or writing claim, treat that as a scout blocker and record the blocked route explicitly.
+
 ## Non-negotiable rules
 
 - Do not let `scout` become endless exploration.

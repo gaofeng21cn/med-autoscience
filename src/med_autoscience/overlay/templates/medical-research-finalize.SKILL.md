@@ -106,6 +106,23 @@ Do not finalize from chat memory alone.
 
 {{MED_AUTOSCIENCE_SUBMISSION_TARGETS}}
 
+{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}
+
+## Research Harness clean-room boundary
+
+Research Harness is only a clean-room template lesson for this skill.
+It is not a MedAutoScience dependency, runner, database, dashboard, MCP surface, or verdict authority.
+Use any RH-derived lesson only to sharpen MAS-owned stage surfaces, blocker wording, and durable artifact expectations.
+
+## Closure blocker semantics
+
+Finalize must name blockers instead of converting an incomplete paper surface into a closure label:
+
+- `numeric_trace_blocker`: any final claim, table, figure, abstract number, cohort count, event count, interval, p-value, model metric, or threshold without a durable numeric trace blocks paper-bundle closure for that claim.
+- `claim_evidence_blocker`: if `paper/claim_evidence_map.json` or the equivalent final claim ledger is missing, stale, or still contains unsupported active main-text claims, finalize records a blocked closure and routes back through `decision` or `write`.
+- `display_to_claim_blocker`: if main-text displays and active claims are not mutually bound through current figure/table catalogs and claim ids, finalize cannot label the bundle paper-ready or submission-ready.
+- `reporting_guideline_gate`: if the required reporting checklist is absent or failed, finalize records the failed guideline gate and does not recommend submission-ready closure.
+
 ## Required durable outputs
 
 The finalize stage should usually leave behind:
