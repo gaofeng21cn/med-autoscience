@@ -311,6 +311,34 @@ def test_blocked_delivery_sync_clears_stale_current_package_freshness_proof(tmp_
     assert not proof_path.exists()
 
 
+def test_skipped_matching_delivery_unit_without_result_does_not_write_freshness_proof(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_package_freshness")
+    study_root = tmp_path / "study"
+
+    proof = module.write_current_package_freshness_proof(
+        study_root=study_root,
+        source_eval_id="publication-eval::skipped-no-result",
+        gate_report={
+            "gate_fingerprint": "publication-gate::skipped-no-result",
+            "submission_minimal_manifest_path": "/tmp/study/paper/submission_minimal/audit/submission_manifest.json",
+            "study_delivery_current_package_zip": "/tmp/study/manuscript/current_package.zip",
+            "study_delivery_evaluated_source_signature": "source::abc",
+            "study_delivery_authority_source_signature": "source::abc",
+        },
+        unit_results=[
+            {
+                "unit_id": "sync_submission_minimal_delivery",
+                "status": "skipped_matching_unit_fingerprint",
+            }
+        ],
+        clock=lambda: (0, "2026-05-12T10:00:00+00:00"),
+        schema_version=1,
+    )
+
+    assert proof is None
+    assert not module.stable_current_package_freshness_path(study_root=study_root).exists()
+
+
 def test_current_delivery_gate_report_writes_freshness_proof_without_resync(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_package_freshness")
     study_root = tmp_path / "study"

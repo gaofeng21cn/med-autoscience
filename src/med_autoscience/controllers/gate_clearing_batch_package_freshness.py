@@ -52,7 +52,9 @@ def build_current_package_freshness_proof(
         status = _non_empty_text(item.get("status"))
         if status in _BLOCKING_SYNC_STATUSES:
             continue
-        result = item.get("result") if isinstance(item.get("result"), dict) else {}
+        result = item.get("result") if isinstance(item.get("result"), dict) else None
+        if not result:
+            continue
         _started_ns, recorded_at = clock()
         return {
             "schema_version": schema_version,
@@ -62,31 +64,31 @@ def build_current_package_freshness_proof(
             "recorded_at": recorded_at,
             "unit_status": status,
             "submission_manifest_path": _first_non_empty_text(
-                (result or {}).get("submission_manifest_path"),
+                result.get("submission_manifest_path"),
                 gate_report.get("submission_minimal_manifest_path"),
             ),
             "delivery_manifest_path": _first_non_empty_text(
-                (result or {}).get("delivery_manifest_path"),
+                result.get("delivery_manifest_path"),
                 gate_report.get("study_delivery_manifest_path"),
             ),
             "current_package_root": _first_non_empty_text(
-                (result or {}).get("current_package_root"),
+                result.get("current_package_root"),
                 item.get("current_package_root"),
                 gate_report.get("study_delivery_current_package_root"),
             ),
             "current_package_zip": _first_non_empty_text(
-                (result or {}).get("current_package_zip"),
+                result.get("current_package_zip"),
                 item.get("current_package_zip"),
                 gate_report.get("study_delivery_current_package_zip"),
             ),
             "source_signature": _first_non_empty_text(
-                (result or {}).get("source_signature"),
-                (result or {}).get("evaluated_source_signature"),
+                result.get("source_signature"),
+                result.get("evaluated_source_signature"),
                 gate_report.get("study_delivery_evaluated_source_signature"),
                 gate_report.get("submission_minimal_evaluated_source_signature"),
             ),
             "authority_source_signature": _first_non_empty_text(
-                (result or {}).get("authority_source_signature"),
+                result.get("authority_source_signature"),
                 gate_report.get("study_delivery_authority_source_signature"),
                 gate_report.get("submission_minimal_authority_source_signature"),
             ),

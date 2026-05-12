@@ -74,28 +74,41 @@ CURRENT_PACKAGE_JSON_VOLATILE_TOP_LEVEL_KEYS: dict[Path, frozenset[str]] = {
 }
 
 
-def _submission_projection_target_path(*, relative_path: Path, current_package_root: Path) -> Path:
+def _submission_projection_target_relative_path(relative_path: Path) -> Path:
     if relative_path == Path("submission_manifest.json"):
-        return audit_path(current_package_root, "submission_manifest")
+        return Path("audit") / "submission_manifest.json"
     if relative_path == Path("evidence_ledger.json"):
-        return audit_path(current_package_root, "evidence_ledger")
+        return Path("audit") / "evidence_ledger.json"
     if relative_path == Path("review") / "review_ledger.json":
-        return audit_path(current_package_root, "review_ledger")
+        return Path("audit") / "review_ledger.json"
     if relative_path == Path("controller") / "study_charter.json":
-        return audit_path(current_package_root, "study_charter")
+        return Path("audit") / "study_charter.json"
     if relative_path == Path("reproducibility") / "source_signature.json":
-        return reproducibility_path(current_package_root, "source_signature")
+        return Path("reproducibility") / "source_signature.json"
     if relative_path == Path("reproducibility") / "source_relative_paths.json":
-        return reproducibility_path(current_package_root, "source_relative_paths")
+        return Path("reproducibility") / "source_relative_paths.json"
     if relative_path == Path("reproducibility") / "analysis_manifest.json":
-        return reproducibility_path(current_package_root, "analysis_manifest")
-    return current_package_root / relative_path
+        return Path("reproducibility") / "analysis_manifest.json"
+    return relative_path
+
+
+def _submission_projection_target_path(*, relative_path: Path, current_package_root: Path) -> Path:
+    return current_package_root / _submission_projection_target_relative_path(relative_path)
 
 
 def _submission_source_relative_paths(*, paper_root: Path, source_root: Path) -> tuple[Path, ...]:
     resolved_paper_root = Path(paper_root).expanduser().resolve()
     resolved_source_root = Path(source_root).expanduser().resolve()
-    relative_paths = list(_iter_relative_files(resolved_source_root))
+    canonical_target_paths = {
+        _submission_projection_target_relative_path(relative_path)
+        for relative_path in FORMAL_PAPER_DELIVERY_RELATIVE_PATHS
+        if (resolved_paper_root / relative_path).exists()
+    }
+    relative_paths = [
+        relative_path
+        for relative_path in _iter_relative_files(resolved_source_root)
+        if _submission_projection_target_relative_path(relative_path) not in canonical_target_paths
+    ]
     relative_paths.extend(
         relative_path
         for relative_path in FORMAL_PAPER_DELIVERY_RELATIVE_PATHS

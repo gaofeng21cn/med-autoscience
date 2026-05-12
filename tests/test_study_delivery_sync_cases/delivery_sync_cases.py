@@ -91,6 +91,38 @@ def test_sync_study_delivery_uses_delivery_layout_v2_for_current_package(tmp_pat
     assert "audit/study_charter.json" in names
 
 
+def test_describe_submission_delivery_ignores_stale_submission_evidence_snapshot_for_current_package(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
+    paper_root, study_root = make_delivery_workspace(tmp_path)
+    stale_submission_ledger = paper_root / "submission_minimal" / "audit" / "evidence_ledger.json"
+    dump_json(
+        stale_submission_ledger,
+        {
+            "schema_version": 1,
+            "claims": [{"claim_id": "stale", "status": "superseded"}],
+        },
+    )
+
+    module.sync_study_delivery(
+        paper_root=paper_root,
+        stage="submission_minimal",
+    )
+    status = module.describe_submission_delivery(paper_root=paper_root)
+    current_package_ledger = (
+        study_root / "manuscript" / "current_package" / "audit" / "evidence_ledger.json"
+    )
+
+    assert status["status"] == "current"
+    assert json.loads(current_package_ledger.read_text(encoding="utf-8")) == json.loads(
+        (paper_root / "evidence_ledger.json").read_text(encoding="utf-8")
+    )
+    delivery_manifest = json.loads((study_root / "manuscript" / "delivery_manifest.json").read_text(encoding="utf-8"))
+    assert "evidence_ledger.json" in delivery_manifest["source_relative_paths"]
+    assert "audit/evidence_ledger.json" not in delivery_manifest["source_relative_paths"]
+
+
 def test_sync_study_delivery_route_gate_blocks_current_package_projection(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
     paper_root, study_root = make_delivery_workspace(tmp_path)

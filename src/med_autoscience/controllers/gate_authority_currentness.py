@@ -180,6 +180,8 @@ def sync_completed_current_package(unit_results: list[dict[str, Any]] | None) ->
         if status is None or status in _SYNC_BLOCKING_STATUSES:
             continue
         result = _mapping(item.get("result"))
+        if not result:
+            continue
         source_signature = _first_non_empty_text(
             result.get("source_signature"),
             result.get("evaluated_source_signature"),
