@@ -124,7 +124,7 @@ Controller and quality surfaces remain responsible for boundaries, evidence, own
 
 Existing `preferred_study_archetypes` and `research_route_bias_policy` are the first generation of route memory. They should be treated as high-level memory seeds and stage bias, not as exhaustive or binding route definitions.
 
-Future migration may move them into a richer route-memory library, but the migration should preserve natural-language prose and Codex-first autonomy. It should not turn each archetype into a hard-coded workflow unless a specific route has matured into a separate audited capability with its own evidence, tests, and owner boundary.
+Future migration may move them into a richer route-memory library, but the migration should preserve natural-language prose and executor-level autonomy. It should not turn each archetype into a hard-coded workflow unless a specific route has matured into a separate audited capability with its own evidence, tests, and owner boundary.
 
 ## OPL Boundary
 
@@ -171,6 +171,33 @@ Decision-stage availability is read-only context. `stage_knowledge_packet.author
 
 `paper_soak_memory_apply_proof` is also read-only. It can show that a paper-line stage consumed a small route-memory set, produced a typed writeback proposal, and received a MAS router accepted/rejected receipt. It must expose refs and counts, not memory card prose, paper artifact bodies, publication verdicts, or receipt instances stored in the repo.
 
+## Human Inventory And Maintenance
+
+The human-facing entrypoint is `docs/policies/study-workflow/README.md`. It points to the governing policy, first-generation archetype prose, repo seed fixture, workspace memory pack locator, and receipt/proposal locators.
+
+Current route memories are intentionally split by authority:
+
+| inventory item | location | authority |
+| --- | --- | --- |
+| first-generation route prose | `docs/policies/study-workflow/study_archetypes.md` | non-binding policy seed |
+| seed card fixture | `docs/policies/study-workflow/publication_route_memory_seed_fixture.json` | repo-source migration fixture, not the memory store |
+| active workspace cards | `portfolio/research_memory/publication_route_memory/memory_pack.json` | MAS workspace-owned memory pack |
+| seed apply receipts | `portfolio/research_memory/publication_route_memory/migration_receipts` | MAS workspace-owned migration audit |
+| typed writeback proposals | `portfolio/research_memory/publication_route_memory/writeback_proposals/stage_memory_updates.jsonl` | stage closeout proposal log |
+| accepted/rejected writeback receipts | `portfolio/research_memory/publication_route_memory/writeback_receipts` | MAS router receipt authority |
+
+2026-05-12 fresh workspace inventory example:
+
+- workspace: `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk`
+- memory pack: `portfolio/research_memory/publication_route_memory/memory_pack.json`
+- card count: `3`
+- card ids: `publication_route_memory_seed__external_validation_rescue`, `publication_route_memory_seed__negative_result_stoploss`, `publication_route_memory_writeback__dm002-route-memory-proof`
+- supporting files: `migration_receipts/publication_route_memory_seed_apply_a2e037207a33f455.json`, `writeback_proposals/stage_memory_updates.jsonl`, `writeback_receipts/dm002-paper-soak-memory-proof-20260512.json`
+
+This is human-readable enough for maintainers today: cards contain prose, route family, stage applicability, status, provenance, and failure modes. It is not yet a polished human management UI. The next low-risk management surface should be a read-only inventory/export grouped by workspace, stage applicability, route family, status, source refs, and receipt refs. Write/edit should continue to go through MAS owner surfaces until an audited editor with receipt generation exists.
+
+Manual JSON editing is allowed only as maintainer-level repair. It must preserve stable `memory_id`, route family, stage applicability, source/provenance refs, status/freshness, and receipt traceability. It must not add current-paper claims, publication readiness, evidence verdicts, review findings, or artifact state as route memory.
+
 ## Migration Plan
 
 Current landed state is `workspace_apply_closure_ready`.
@@ -195,16 +222,40 @@ The useful work now is:
 
 Do not implement a separate publication recipe engine until a route has matured into an audited capability with clear evidence obligations, tests, owner boundary, and failure behavior.
 
-## 2026-05-11 OPL Family Index Status
+## 2026-05-12 OPL Family Index Status
 
 Current OPL discovery sees MAS, MAG, and RCA as resolved family memory descriptors:
 
-- OPL `domain-memory list` resolves `mas_publication_route_memory` from the MAS standard `domain_memory_descriptor`.
-- MAG/RCA now also expose standard `family_domain_memory_ref.v1` descriptors for their own grant-strategy and visual-pattern memory locators.
-- This makes MAS publication route memory the MAS-side reference implementation for natural-language, stage-consumed publication-route memory, not a reason to move publication-route content into OPL.
+- OPL `agents list --json` currently reports `aligned_count=3`, `missing_count=0`, `drift_detected_count=0`, `blocked_count=0`, and `production_closure_gap_count=15`.
+- OPL `stages list --json` currently reports `resolved_planes_count=3` and `stages_count=18`.
+- OPL `domain-memory list --json` currently reports `resolved_memory_descriptor_count=3` and `missing_memory_descriptor_count=0`.
+- OPL `domain-memory inspect --domain mas --json` resolves `mas_publication_route_memory` from the MAS standard `domain_memory_descriptor`, with `opl_role=locator_projection_owner` and forbidden OPL authority over memory store, domain truth, quality verdict, artifact authority, route decision, and publication readiness.
+- MAG/RCA also expose standard `family_domain_memory_ref.v1` descriptors for their grant-strategy and visual-pattern memory locators.
+- This makes MAS publication route memory the MAS-side reference implementation for natural-language, stage-consumed publication-route memory, not a reason to move publication-route content into OPL or to build an OPL-owned recipe runtime.
 
 Remaining MAS-side proof:
 
 - keep DM002's real paper-line consumed-memory proof as the current read-only baseline and guarded-apply final ref proof;
 - use provider-hosted guarded apply to publish only the ref-level chain from stage entry to typed closeout proposal, MAS `memory_write_router_receipt`, OPL/Aion read-only receipt refs, and MAS owner apply receipt / typed blocker refs;
 - proceed to controlled apply only through MAS owner surfaces when the route-memory proof is paired with artifact delta, gate replay, reviewer judgment, route decision, human gate, stop-loss, or typed blocker evidence.
+
+## Now / Next / Defer
+
+Now:
+
+- maintain the policy/index/seed/workspace locator documentation as the single human entrypoint;
+- keep writing accepted reusable lessons into workspace `memory_pack.json` through MAS router receipts;
+- keep OPL projection ref-only and body-free;
+- add read-only inventory/export if operator visibility becomes the blocker.
+
+Next:
+
+- run provider-hosted guarded apply proof for MAS paper lines using the same memory ref/writeback receipt chain;
+- generalize accepted/rejected writeback receipt evidence beyond DM002;
+- add App/workbench grouping by workspace, stage, route family, status, and receipt refs.
+
+Defer:
+
+- recipe engine, winning-route scorer, or hard schema for all publication routes;
+- OPL-owned memory content store;
+- full human editor until receipt generation, provenance, deprecation, and stale-memory review are audited.

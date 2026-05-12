@@ -22,7 +22,7 @@
 
 当前真实执行顺序是：P0 给出目标和验收口径；P2 先完成 OPL framework foundation、MAS framework migration、功能分层沉淀和旧面退役；P1 产品化迁移后的可见面；P0 最后做真实 paper-line soak / App E2E 验收；P3/P3a 贯穿提供已完成基础和后续 guard 证据。
 
-P0 立项最早，但当前实现依托已经上升到 OPL framework 层。MAS 继续持有医学研究、论文质量和 artifact authority；OPL 提供 Codex-first、stage-led 的智能体运行框架，让 MAS 作为 domain agent 被托管、唤醒、恢复和投影。
+P0 立项最早，但当前实现依托已经上升到 OPL framework 层。MAS 继续持有医学研究、论文质量和 artifact authority；OPL 提供 stage-led、以 Agent executor 为最小执行单位的智能体运行框架，让 MAS 作为 domain agent 被托管、唤醒、恢复和投影。
 
 实际开发按内容块推进，不按整份旧文档推进。P1/P2 的完整旧记录已经归档；当前文件只保留 owner 边界、优先级和可执行内容线。
 

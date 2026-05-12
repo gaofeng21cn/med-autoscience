@@ -116,7 +116,7 @@ runtime material by current lifecycle role before editing prose:
 - Active MAS docs describe Hermes as a legacy/optional provider, executor/proof
   lane, or historical migration context unless OPL provider evidence promotes a
   newer role.
-- OPL should be described as the Codex-first, stage-led agent runtime framework:
+- OPL should be described as the stage-led runtime framework with Agent executors as the minimum execution unit:
   it owns stage attempts, queue/wakeup, retry/dead-letter, approval transport,
   receipt/projection, and shared lifecycle/index primitives; MAS owns medical
   truth, quality verdicts, and artifact authority.
@@ -144,7 +144,7 @@ Before moving or deleting a document:
 | `content_level_execution_map` | `current_development_lines.md` maps the framework-first execution order, current content lines, downgraded/outdated material, merge/absorb rules, priority, and done signals. |
 | `target_acceptance` | `ai_first_paper_autonomy_closure_program.md` defines the paper-autonomy outcome contract and live-soak acceptance criteria. |
 | `product_enabler` | `opl_app_mas_runtime_workbench_program.md` turns the target into an OPL App Runtime Workbench experience. |
-| `framework_enabler` | `opl_temporal_mas_runtime_retirement_program.md` aligns MAS runtime-adjacent obligations with the OPL Codex-first, stage-led framework. |
+| `framework_enabler` | `opl_temporal_mas_runtime_retirement_program.md` aligns MAS runtime-adjacent obligations with the OPL stage-led framework with Agent executors as the minimum execution unit. |
 | `cross_cutting_stage_form` | `stage_surface_standardization_program.md` keeps stage prompts, skills, tools, knowledge packets, closeout memory, quality packs, and OPL stage descriptors in one maintainable form. |
 | `landed_foundation` | `mas_single_project_mds_absorb_program.md` and `runtime_lifecycle_sqlite_migration_program.md` preserve monolith, MDS provenance, runtime lifecycle, restore-proof, and compatibility guard evidence. |
 

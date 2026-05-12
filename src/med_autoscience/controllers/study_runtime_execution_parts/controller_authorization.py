@@ -114,6 +114,7 @@ def _relay_controller_decision_authorization_if_required(
             record_controller_work_unit_evidence_adoption(
                 status=status,
                 study_root=context.study_root,
+                quest_root=context.quest_root,
                 identity=identity,
                 authorization_context=authorization_context,
                 evidence_adoption=evidence_adoption,
@@ -304,6 +305,7 @@ def adopt_controller_work_unit_evidence_for_current_authorization(
     record_controller_work_unit_evidence_adoption(
         status=status,
         study_root=context.study_root,
+        quest_root=context.quest_root,
         identity=identity,
         authorization_context=authorization_context,
         evidence_adoption=evidence_adoption,

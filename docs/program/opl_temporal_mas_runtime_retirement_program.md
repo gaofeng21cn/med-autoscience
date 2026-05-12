@@ -3,7 +3,7 @@
 Status: `adapter/boundary landed; production soak pending; content-level owner doc`
 Date: `2026-05-11`
 Owner: `MedAutoScience Runtime OS + OPL Runtime Manager integration boundary`
-Purpose: 定义当前 P2 框架对齐线路：MAS 与 OPL Codex-first、stage-led runtime framework 之间的边界、优先级和退役门槛。
+Purpose: 定义当前 P2 框架对齐线路：MAS 与 OPL stage-led、以 Agent executor 为最小执行单位 runtime framework 之间的边界、优先级和退役门槛。
 Machine boundary: 本文是人读 program owner。机器真相继续归 MAS controller/runtime surfaces、OPL provider contracts、sidecar receipts、attempt ledgers、durable schemas、CLI/API behavior 和 live workspace evidence。
 Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full record](../history/program/opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md).
 
@@ -12,7 +12,7 @@ Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full rec
 本文是 MAS program portfolio 的 P2，也是当前执行顺序的第一优先级。P2 不是针对每个 scheduler、Hermes、MDS、Portal 或 SQLite 相关 surface 的整包退役清单。它持有内容级 framework transition：
 
 - MAS 暴露 domain-agent descriptor、stage/control-plane metadata、sidecar export/dispatch、owner receipt、projection、artifact locator 和 authority refs。
-- OPL 提供 Codex-first、stage-led framework 层：generic executor adapter、durable stage attempt、queue、wakeup、retry/dead-letter、approval/human gate transport、provider receipt、projection、shared lifecycle/index primitives。
+- OPL 提供 stage-led、以 Agent executor 为最小执行单位的 framework 层：generic executor adapter、durable stage attempt、queue、wakeup、retry/dead-letter、approval/human gate transport、provider receipt、projection、shared lifecycle/index primitives。
 - MAS 保留 study truth、paper quality、publication verdict、owner route、runtime owner decision 和 artifact authority。
 - MAS 只声明 executor requirement、接收 OPL typed closeout / domain-task receipt；MAS 本地 `codex_cli_default` 只保留 standalone diagnostics，不扩展成 Hermes/Claude 执行器。
 

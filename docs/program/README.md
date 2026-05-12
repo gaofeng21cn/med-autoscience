@@ -22,7 +22,7 @@
 
 The current execution reading is: P0 supplies the target and acceptance criteria; P2 first delivers the OPL framework foundation, MAS framework migration, capability partitioning, and legacy retirement; P1 productizes the migrated state; P0 then runs final paper-line soak / App E2E acceptance; P3/P3a supply landed foundation evidence and maintenance guardrails throughout.
 
-P0 was started first, but its current implementation dependency now lives at the OPL framework layer. MAS keeps medical research, paper quality, and artifact authority; OPL provides the Codex-first, stage-led agent framework that hosts, wakes, recovers, and projects MAS as a domain agent.
+P0 was started first, but its current implementation dependency now lives at the OPL framework layer. MAS keeps medical research, paper quality, and artifact authority; OPL provides the stage-led framework with Agent executors as the minimum execution unit that hosts, wakes, recovers, and projects MAS as a domain agent.
 
 Actual development now proceeds by content block, not by completing every section of an old whole-file plan. The full old P1/P2 records are archived; the current files keep owner boundaries, priority, and active content lanes.
 

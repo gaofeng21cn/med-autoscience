@@ -24,7 +24,7 @@ Owner: `MedAutoScience`
 - MDS / DeepScientist 的当前角色是 source provenance、historical fixture、explicit archive import、backend audit、upstream learning 和 parity oracle reference。
 - Runtime lifecycle / quest Git / workspace root Git retirement 已进入 landed guard 口径；新 workspace 默认使用 MAS-owned layout 和 SQLite/file truth authority。
 - AI-first paper autonomy repo callable loop 已落地；真实论文线仍必须通过 live MAS truth surface 证明 artifact delta、gate replay、AI reviewer judgment、route decision、human gate、stop-loss 或 stable blocker。
-- OPL 已上升为 Codex-first、stage-led 的完整智能体运行框架。MAS 作为医学研究 domain agent 暴露 stage descriptor、sidecar export/dispatch、receipt schema、projection builder、artifact locator 和 authority refs；OPL 持有 framework-level stage attempt、queue/wakeup、retry/dead-letter、approval transport、projection 和 shared lifecycle/index primitives。
+- OPL 已上升为 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架。MAS 作为医学研究 domain agent 暴露 stage descriptor、sidecar export/dispatch、receipt schema、projection builder、artifact locator 和 authority refs；OPL 持有 framework-level stage attempt、queue/wakeup、retry/dead-letter、approval transport、projection 和 shared lifecycle/index primitives。
 
 ## Program Map
 

@@ -151,6 +151,12 @@ def test_execute_noop_runtime_decision_adopts_analysis_repair_report_without_rel
     assert adoption["recommended_next_route"] == "return_to_publication_gate_recheck"
     deduped = status_payload["controller_decision_authorization_deduped"]
     assert deduped["lifecycle"]["artifact_delta_observed"] is True
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    marker = runtime_state["last_controller_decision_authorization"]
+    assert marker["active_run_id"] == "run-live-001"
+    assert marker["delivery_mode"] == "controller_work_unit_evidence_adoption"
+    assert marker["source"] == "medautosci-test"
+    assert marker["controller_work_unit_lifecycle"]["lifecycle_state"] == "artifact_written"
 
     module._execute_runtime_decision(status=status, context=context)
     events_after_replay = control_intent.read_events(study_root=study_root)

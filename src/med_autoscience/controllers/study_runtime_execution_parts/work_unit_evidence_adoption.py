@@ -31,6 +31,16 @@ _ANALYSIS_REPAIR_CONTROL_PACKET_STATUS = "completed_as_current_run_repair_contro
 _ANALYSIS_REPAIR_SOURCE_REPAIR_KIND = "analysis_claim_evidence_source_repair"
 _ANALYSIS_REPAIR_SOURCE_REPAIR_STATUS = "completed"
 _ANALYSIS_REPAIR_RETRY_BACKOFF_HANDOFF_REPORT_TYPE = "analysis_claim_evidence_retry_backoff_dedupe_handoff"
+_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
+_WORK_UNIT_TARGET_CONTEXT_KEYS = (
+    "specificity_targets",
+    "work_unit_targets",
+    "blocking_artifact_refs",
+    "blocker_details",
+    "gate_blocker_details",
+    "gaps",
+    "source_path",
+)
 
 
 def _text(value: object) -> str | None:
@@ -44,6 +54,11 @@ def _read_json_mapping(path: Path) -> dict[str, Any]:
     except (OSError, TypeError, ValueError):
         return {}
     return dict(payload) if isinstance(payload, dict) else {}
+
+
+def _write_json_mapping(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _int_value(value: object) -> int | None:
@@ -616,10 +631,66 @@ def existing_controller_work_unit_evidence_adoption(
     }
 
 
+def _controller_work_unit_lifecycle_projection(lifecycle: dict[str, Any] | None) -> dict[str, Any]:
+    payload = lifecycle if isinstance(lifecycle, dict) else {}
+    return {
+        "lifecycle_state": str(payload.get("lifecycle_state") or "new").strip() or "new",
+        "latest_event_type": payload.get("latest_event_type"),
+        "delivery_blocked": bool(payload.get("delivery_blocked")),
+        "block_reason": payload.get("block_reason"),
+        "terminal_consumed": bool(payload.get("terminal_consumed")),
+    }
+
+
+def _mark_controller_work_unit_evidence_adopted(
+    *,
+    quest_root: Path,
+    authorization_context: dict[str, Any],
+    evidence_adoption: dict[str, Any],
+    lifecycle: dict[str, Any],
+) -> None:
+    runtime_state_path = Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
+    runtime_state = _read_json_mapping(runtime_state_path)
+    runtime_state[_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY] = {
+        "decision_id": str(authorization_context.get("decision_id") or "").strip(),
+        "route_target": str(authorization_context.get("route_target") or "").strip(),
+        "route_key_question": str(authorization_context.get("route_key_question") or "").strip(),
+        "source_route_key_question": str(authorization_context.get("source_route_key_question") or "").strip() or None,
+        "work_unit_id": str(authorization_context.get("work_unit_id") or "").strip() or None,
+        "work_unit_fingerprint": str(authorization_context.get("work_unit_fingerprint") or "").strip() or None,
+        "next_work_unit": dict(authorization_context.get("next_work_unit") or {}),
+        "blocking_work_units": list(authorization_context.get("blocking_work_units") or []),
+        "control_intent_key": str(authorization_context.get("control_intent_key") or "").strip() or None,
+        "control_intent_identity": dict(authorization_context.get("control_intent_identity") or {}),
+        "active_run_id": _text(evidence_adoption.get("active_run_id")),
+        "delivery_mode": "controller_work_unit_evidence_adoption",
+        "message_id": None,
+        "source": _text(evidence_adoption.get("source")),
+        "evidence_adoption": {
+            key: evidence_adoption.get(key)
+            for key in (
+                "report_ref",
+                "created_at",
+                "recommended_next_route",
+                "status",
+                "artifact_kind",
+                "already_recorded",
+            )
+            if key in evidence_adoption
+        },
+        "controller_work_unit_lifecycle": _controller_work_unit_lifecycle_projection(lifecycle),
+    }
+    for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
+        if key in authorization_context:
+            runtime_state[_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY][key] = authorization_context[key]
+    _write_json_mapping(runtime_state_path, runtime_state)
+
+
 def record_controller_work_unit_evidence_adoption(
     *,
     status: Any,
     study_root: Path,
+    quest_root: Path | None = None,
     identity: control_intent.ControlIntentIdentity,
     authorization_context: dict[str, Any],
     evidence_adoption: dict[str, Any],
@@ -650,6 +721,13 @@ def record_controller_work_unit_evidence_adoption(
     }
     if next_work_unit is not None:
         status.extras["controller_work_unit_next_route"]["next_work_unit"] = next_work_unit
+    if quest_root is not None:
+        _mark_controller_work_unit_evidence_adopted(
+            quest_root=quest_root,
+            authorization_context=authorization_context,
+            evidence_adoption=evidence_adoption,
+            lifecycle=lifecycle,
+        )
 
 
 def _has_prior_delivery_or_duplicate(

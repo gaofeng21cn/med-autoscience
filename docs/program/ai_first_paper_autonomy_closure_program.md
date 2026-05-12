@@ -15,7 +15,7 @@ This document is P0 in the MAS program portfolio. P0 is the target and acceptanc
 P0 was created before the current OPL framework split was clear. During implementation, the target proved larger than a MAS-only runtime problem. The current answer is:
 
 - `MAS` owns medical research truth, paper quality, publication judgment, reviewer repair, route decisions, evidence/review ledgers, and canonical manuscript/package authority.
-- `OPL` owns the Codex-first, stage-led agent runtime framework that can host MAS as a domain agent: stage attempt, queue, wakeup, receipt, recovery, approval/human gate transport, lifecycle primitives, projection, and shared indexes.
+- `OPL` owns the stage-led runtime framework with Agent executors as the minimum execution unit that can host MAS as a domain agent: stage attempt, queue, wakeup, receipt, recovery, approval/human gate transport, lifecycle primitives, projection, and shared indexes.
 - P0 remains the MAS target. P1 and P2 are the implementation dependencies that make the target usable as a product and durable as a framework-backed runtime. P3 and P3a are completed foundations that keep the MAS monolith, provenance, runtime lifecycle, and restore-proof boundary stable.
 
 ## Current State
