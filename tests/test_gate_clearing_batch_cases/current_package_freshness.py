@@ -143,6 +143,8 @@ def test_current_authority_stale_delivery_syncs_then_closes_gate_replay(
 
     assert skipped["status"] == "skipped_stale_gate_replay_closed"
     assert skipped["selected_publication_work_unit"]["unit_id"] == "submission_delivery_sync_closure"
+    assert skipped["current_package_freshness_proof"]["source_signature"] == "source::abc"
+    assert skipped["current_package_freshness_proof"]["source_unit_id"] == "sync_submission_minimal_delivery"
 
 
 def test_explicit_gate_specificity_does_not_block_actionable_stale_delivery_sync(

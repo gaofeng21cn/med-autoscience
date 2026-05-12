@@ -687,10 +687,14 @@ def run_gate_clearing_batch(
     if (
         isinstance(selected_publication_work_unit, dict)
         and _non_empty_text(selected_publication_work_unit.get("unit_id"))
-        in {"publication_gate_replay", "submission_delivery_sync_closure"}
+        in {
+            "publication_gate_replay",
+            "submission_delivery_sync_closure",
+            "submission_delivery_terminal_blocker",
+        }
         and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)
     ):
-        return gate_clearing_batch_currentness.stale_gate_replay_closed_result(
+        skipped_closed_result = gate_clearing_batch_currentness.stale_gate_replay_closed_result(
             source_eval_id=current_eval_id,
             latest_record_path=stable_gate_clearing_batch_path(study_root=resolved_study_root),
             latest_batch=latest_batch,
@@ -699,6 +703,14 @@ def run_gate_clearing_batch(
             current_publication_work_unit_payload=current_publication_work_unit_payload,
             work_unit_currentness=work_unit_currentness,
         )
+        current_package_freshness_proof = _closed_batch_current_freshness_proof(
+            latest_batch=latest_batch,
+            study_root=resolved_study_root,
+            source_eval_id=current_eval_id,
+        )
+        if current_package_freshness_proof is not None:
+            skipped_closed_result["current_package_freshness_proof"] = current_package_freshness_proof
+        return skipped_closed_result
 
     repair_units = repair_plan.build_gate_clearing_repair_units(
         repair_unit_cls=GateClearingRepairUnit,

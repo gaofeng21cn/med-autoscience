@@ -18,6 +18,7 @@ from med_autoscience.study_decision_record import StudyDecisionRecord
 
 GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID = "gate_needs_specificity"
 ANALYSIS_CLAIM_EVIDENCE_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
+SUBMISSION_DELIVERY_TERMINAL_BLOCKER_WORK_UNIT_ID = "submission_delivery_terminal_blocker"
 _BATCH_OPEN_UNIT_STATUSES = frozenset(
     {
         "control_plane_route_blocked",
@@ -251,7 +252,8 @@ def publication_work_unit_selection(
         selected_publication_work_unit = dict(current_next_work_unit)
         selected_work_unit_id = current_work_unit_id
     if (
-        selected_work_unit_id == GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID
+        selected_work_unit_id
+        in {GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID, SUBMISSION_DELIVERY_TERMINAL_BLOCKER_WORK_UNIT_ID}
         and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)
     ):
         selected_publication_work_unit = submission_delivery_sync_closure_work_unit()
