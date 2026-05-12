@@ -633,6 +633,13 @@ def test_standard_domain_agent_skeleton_projects_quality_pack_locator_without_au
         "can_authorize_publication_readiness": False,
     }
     assert "src/med_autoscience/stage_quality_contract.py" in skeleton["skeleton"]["agent/quality_gates"]
+    assert skeleton["default_new_surface_slots"]["quality"] == "agent/quality_gates"
+    quality_slot = {
+        item["slot_id"]: item for item in skeleton["physical_skeleton_layout_audit"]["slots"]
+    }["agent/quality_gates"]
+    assert quality_slot["surface_class"] == "quality"
+    assert quality_slot["default_for_new_surfaces"] is True
+    assert quality_slot["repo_paths"][0] == "src/med_autoscience/stage_quality_contract.py"
     assert skeleton["authority_boundary"]["forbidden_opl_authority"] == [
         "domain_truth",
         "quality_verdict",
