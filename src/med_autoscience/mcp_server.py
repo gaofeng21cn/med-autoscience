@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import sys
+from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from med_autoscience import __version__
 from med_autoscience.action_catalog import (
@@ -15,38 +16,6 @@ from med_autoscience.control_plane_command_catalog import (
     CONTROL_PLANE_OPERATION_COMMANDS_BY_MCP_MODE,
     build_control_plane_product_entry_mode_schema,
     product_entry_description_modes_text,
-)
-from med_autoscience.controllers import (
-    artifact_lifecycle_operations_report,
-    control_plane_backfill_apply,
-    control_plane_cleanup_apply,
-    control_plane_migration_audit,
-    continuous_soak_summary,
-    data_assets,
-    backend_audit,
-    external_research,
-    hermes_runtime_check,
-    medical_literature_audit,
-    medical_reporting_audit,
-    open_auto_research_soak,
-    portfolio_memory,
-    product_entry,
-    runtime_watch,
-    study_progress,
-    startup_data_readiness as startup_data_readiness_controller,
-    study_runtime_router,
-    workspace_literature,
-    workspace_init,
-)
-from med_autoscience.doctor import build_doctor_report, overlay_request_from_profile, render_doctor_report, render_profile
-from med_autoscience.overlay import installer as overlay_installer
-from med_autoscience.profiles import load_profile
-from med_autoscience.mcp_server_parts.projection_adapters import (
-    render_open_auto_research_soak_result,
-    render_serialized_study_runtime_result,
-    render_study_progress_result,
-    render_study_runtime_status_result,
-    serialize_study_runtime_result,
 )
 from med_autoscience.mcp_server_parts.handler_adapter import (
     ToolHandler,
@@ -66,6 +35,55 @@ from med_autoscience.mcp_server_parts.tool_registry import build_tool_registry, 
 
 PROTOCOL_VERSION = "2025-03-26"
 SERVER_NAME = "med-autoscience"
+
+
+class _LazyModuleProxy:
+    def __init__(self, loader: Callable[[], Any]) -> None:
+        object.__setattr__(self, "_loader", loader)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(object.__getattribute__(self, "_loader")(), name)
+
+
+def _load_controller(module_name: str) -> Any:
+    return import_module(f"med_autoscience.controllers.{module_name}")
+
+
+def _load_doctor_module() -> Any:
+    return import_module("med_autoscience.doctor")
+
+
+def _load_overlay_installer() -> Any:
+    return import_module("med_autoscience.overlay.installer")
+
+
+def _load_profiles_module() -> Any:
+    return import_module("med_autoscience.profiles")
+
+
+artifact_lifecycle_operations_report = _LazyModuleProxy(lambda: _load_controller("artifact_lifecycle_operations_report"))
+backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
+control_plane_backfill_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_backfill_apply"))
+control_plane_cleanup_apply = _LazyModuleProxy(lambda: _load_controller("control_plane_cleanup_apply"))
+control_plane_migration_audit = _LazyModuleProxy(lambda: _load_controller("control_plane_migration_audit"))
+continuous_soak_summary = _LazyModuleProxy(lambda: _load_controller("continuous_soak_summary"))
+data_assets = _LazyModuleProxy(lambda: _load_controller("data_assets"))
+external_research = _LazyModuleProxy(lambda: _load_controller("external_research"))
+hermes_runtime_check = _LazyModuleProxy(lambda: _load_controller("hermes_runtime_check"))
+medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_literature_audit"))
+medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
+open_auto_research_soak = _LazyModuleProxy(lambda: _load_controller("open_auto_research_soak"))
+portfolio_memory = _LazyModuleProxy(lambda: _load_controller("portfolio_memory"))
+product_entry = _LazyModuleProxy(lambda: _load_controller("product_entry"))
+runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
+startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
+study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
+study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_router"))
+workspace_init = _LazyModuleProxy(lambda: _load_controller("workspace_init"))
+workspace_literature = _LazyModuleProxy(lambda: _load_controller("workspace_literature"))
+doctor = _LazyModuleProxy(_load_doctor_module)
+overlay_installer = _LazyModuleProxy(_load_overlay_installer)
+profiles = _LazyModuleProxy(_load_profiles_module)
 _PRODUCT_ENTRY_CONTRACT_GAP_TEXT = PRODUCT_ENTRY_CONTRACT_GAP_TEXT
 ACTION_CATALOG = build_mas_action_catalog()
 TOOL_REGISTRY = build_tool_registry(
@@ -85,6 +103,8 @@ def _json_text(payload: dict[str, Any]) -> str:
 
 
 def _serialize_study_runtime_result(result: dict[str, Any]) -> dict[str, Any]:
+    from med_autoscience.mcp_server_parts.projection_adapters import serialize_study_runtime_result
+
     return serialize_study_runtime_result(result)
 
 
@@ -97,9 +117,9 @@ def build_tool_manifest() -> list[dict[str, Any]]:
 
 
 def _call_doctor_report(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile = load_profile(_require_string(arguments, "profile_path"))
-    report = build_doctor_report(profile)
-    text = render_doctor_report(report)
+    profile = profiles.load_profile(_require_string(arguments, "profile_path"))
+    report = doctor.build_doctor_report(profile)
+    text = doctor.render_doctor_report(report)
     structured = {
         "profile": profile.name,
         "workspace_root": str(profile.workspace_root),
@@ -110,8 +130,8 @@ def _call_doctor_report(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_show_profile(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile = load_profile(_require_string(arguments, "profile_path"))
-    text = render_profile(profile)
+    profile = profiles.load_profile(_require_string(arguments, "profile_path"))
+    text = doctor.render_profile(profile)
     structured = {
         "name": profile.name,
         "workspace_root": str(profile.workspace_root),
@@ -127,8 +147,8 @@ def _call_overlay_status(arguments: dict[str, Any]) -> dict[str, Any]:
     if bool(profile_path) == bool(quest_root):
         raise ValueError("Specify exactly one of profile_path or quest_root")
     if isinstance(profile_path, str):
-        profile = load_profile(profile_path)
-        result = overlay_installer.describe_medical_overlay(**overlay_request_from_profile(profile))
+        profile = profiles.load_profile(profile_path)
+        result = overlay_installer.describe_medical_overlay(**doctor.overlay_request_from_profile(profile))
     else:
         result = overlay_installer.describe_medical_overlay(quest_root=Path(_require_string(arguments, "quest_root")))
     return _tool_text_result(_json_text(result), structured=result)
@@ -199,13 +219,15 @@ def _call_startup_data_readiness(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_backend_audit(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile = load_profile(_require_string(arguments, "profile_path"))
+    profile = profiles.load_profile(_require_string(arguments, "profile_path"))
     result = backend_audit.run_backend_audit(profile, refresh=_optional_bool(arguments, "refresh"))
     return _tool_text_result(_json_text(result), structured=result)
 
 
 def _call_study_runtime_status(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile = load_profile(_require_string(arguments, "profile_path"))
+    from med_autoscience.mcp_server_parts.projection_adapters import render_study_runtime_status_result
+
+    profile = profiles.load_profile(_require_string(arguments, "profile_path"))
     result = study_runtime_router.study_runtime_status(
         profile=profile,
         study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
@@ -217,7 +239,9 @@ def _call_study_runtime_status(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile = load_profile(_require_string(arguments, "profile_path"))
+    from med_autoscience.mcp_server_parts.projection_adapters import render_study_progress_result
+
+    profile = profiles.load_profile(_require_string(arguments, "profile_path"))
     result = study_progress.read_study_progress(
         profile=profile,
         study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
@@ -229,7 +253,9 @@ def _call_study_progress(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_open_auto_research_soak(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile = load_profile(_require_string(arguments, "profile_path"))
+    from med_autoscience.mcp_server_parts.projection_adapters import render_open_auto_research_soak_result
+
+    profile = profiles.load_profile(_require_string(arguments, "profile_path"))
     result = open_auto_research_soak.run_open_auto_research_soak(
         profile=profile,
         study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
@@ -244,7 +270,9 @@ def _call_open_auto_research_soak(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _call_ensure_study_runtime(arguments: dict[str, Any]) -> dict[str, Any]:
-    profile = load_profile(_require_string(arguments, "profile_path"))
+    from med_autoscience.mcp_server_parts.projection_adapters import render_serialized_study_runtime_result
+
+    profile = profiles.load_profile(_require_string(arguments, "profile_path"))
     result = study_runtime_router.ensure_study_runtime(
         profile=profile,
         study_id=arguments.get("study_id") if isinstance(arguments.get("study_id"), str) else None,
@@ -297,42 +325,42 @@ def _call_medical_reporting_audit(arguments: dict[str, Any]) -> dict[str, Any]:
 
 def _call_workspace_cockpit(arguments: dict[str, Any]) -> dict[str, Any]:
     profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = load_profile(str(profile_path))
+    profile = profiles.load_profile(str(profile_path))
     result = product_entry.read_workspace_cockpit(profile=profile, profile_ref=profile_path)
     return _tool_text_result(product_entry.render_workspace_cockpit_markdown(result), structured=result)
 
 
 def _call_product_entry_status(arguments: dict[str, Any]) -> dict[str, Any]:
     profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = load_profile(str(profile_path))
+    profile = profiles.load_profile(str(profile_path))
     result = product_entry.build_product_entry_status(profile=profile, profile_ref=profile_path)
     return _tool_text_result(product_entry.render_product_entry_status_markdown(result), structured=result)
 
 
 def _call_product_preflight(arguments: dict[str, Any]) -> dict[str, Any]:
     profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = load_profile(str(profile_path))
+    profile = profiles.load_profile(str(profile_path))
     result = product_entry.build_product_entry_preflight(profile=profile, profile_ref=profile_path)
     return _tool_text_result(product_entry.render_product_entry_preflight_markdown(result), structured=result)
 
 
 def _call_product_start(arguments: dict[str, Any]) -> dict[str, Any]:
     profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = load_profile(str(profile_path))
+    profile = profiles.load_profile(str(profile_path))
     result = product_entry.build_product_entry_start(profile=profile, profile_ref=profile_path)
     return _tool_text_result(product_entry.render_product_entry_start_markdown(result), structured=result)
 
 
 def _call_product_manifest(arguments: dict[str, Any]) -> dict[str, Any]:
     profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = load_profile(str(profile_path))
+    profile = profiles.load_profile(str(profile_path))
     result = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_path)
     return _tool_text_result(product_entry.render_product_entry_manifest_markdown(result), structured=result)
 
 
 def _call_build_product_entry(arguments: dict[str, Any]) -> dict[str, Any]:
     profile_path = Path(_require_string(arguments, "profile_path"))
-    profile = load_profile(str(profile_path))
+    profile = profiles.load_profile(str(profile_path))
     result = product_entry.build_product_entry(
         profile=profile,
         profile_ref=profile_path,
@@ -451,7 +479,7 @@ def _call_doctor_audit(arguments: dict[str, Any]) -> dict[str, Any]:
         hermes_agent_repo_root = handler_arguments.get("hermes_agent_repo_root")
         if not isinstance(profile_path, str) and not isinstance(hermes_agent_repo_root, str):
             raise ValueError("doctor_audit hermes_runtime requires profile_path or hermes_agent_repo_root")
-        profile = load_profile(profile_path) if isinstance(profile_path, str) else None
+        profile = profiles.load_profile(profile_path) if isinstance(profile_path, str) else None
         result = hermes_runtime_check.run_hermes_runtime_check(
             profile=profile,
             hermes_agent_repo_root=Path(hermes_agent_repo_root) if isinstance(hermes_agent_repo_root, str) else None,

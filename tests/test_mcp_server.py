@@ -1,12 +1,40 @@
 from __future__ import annotations
 
+import builtins
 import importlib
+import sys
 from pathlib import Path
 
 import pytest
 
 from tests.mcp_server_cases.delivery_inspection_visibility import *
 from tests.mcp_server_cases.open_auto_research_projection import *
+
+
+def test_mcp_server_tool_registry_import_is_lightweight(monkeypatch: pytest.MonkeyPatch) -> None:
+    original_import = builtins.__import__
+    blocked_roots = {"pypdf", "matplotlib"}
+
+    def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):  # type: ignore[no-untyped-def]
+        if name.split(".", 1)[0] in blocked_roots:
+            raise ModuleNotFoundError(f"No module named {name!r}")
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    sys.modules.pop("med_autoscience.mcp_server", None)
+
+    module = importlib.import_module("med_autoscience.mcp_server")
+
+    assert [tool["name"] for tool in module.list_tools()] == [
+        "doctor_audit",
+        "workspace_readiness",
+        "research_assets",
+        "study_runtime",
+        "study_progress",
+        "open_auto_research_soak",
+        "publication_status",
+        "product_entry",
+    ]
 
 
 def write_profile(path: Path) -> None:

@@ -79,3 +79,38 @@ def test_codex_plugin_installer_script_skip_tools_only_syncs_plugin_paths(tmp_pa
     assert not (home_dir / ".agents" / "skills" / "mas").exists()
     assert not (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
     assert (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
+
+
+def test_plugin_local_mcp_launcher_execs_repo_root_uv_run(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "fake-bin"
+    fake_bin.mkdir()
+    capture_path = tmp_path / "uv-argv.txt"
+    (fake_bin / "uv").write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$@\" > \"$UV_ARGV_CAPTURE\"\n",
+        encoding="utf-8",
+    )
+    (fake_bin / "uv").chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env["UV_ARGV_CAPTURE"] = str(capture_path)
+
+    result = subprocess.run(
+        [str(REPO_ROOT / "plugins" / "mas" / "bin" / "medautosci-mcp")],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert capture_path.read_text(encoding="utf-8").splitlines() == [
+        "run",
+        "--directory",
+        str(REPO_ROOT),
+        "--extra",
+        "analysis",
+        "medautosci-mcp",
+    ]
