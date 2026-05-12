@@ -4,7 +4,7 @@ Status: `active cross-cutting program`
 Date: `2026-05-12`
 Owner: `MedAutoScience Stage-Led Autonomy + Quality OS`
 Purpose: 定义 MAS 在 OPL stage-led framework 下更理想、更统一、更易维护的 stage 表达形态，并记录当前差距、统一模板与后续执行计划。
-State: `active plan; docs-owner surface`
+State: `partially landed; docs-owner surface; skill-surface migration pending`
 Machine boundary: 本文是人读规划与维护合同。机器真相继续归 `agent_entry_modes.yaml`、stage knowledge plane contracts、MAS controller/runtime surfaces、product-entry manifest、sidecar receipts、AI reviewer artifacts、publication gate、evidence/review ledgers 和真实 workspace artifact proof。
 
 ## 结论
@@ -64,21 +64,32 @@ Stage card
 
 - `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml` 已是 stage / route contract 的 canonical source。
 - `docs/runtime/contracts/agent_entry_modes.md`、`templates/agent_entry_modes.yaml`、Codex/OpenClaw entry prompt 都由 canonical payload 派生。
+- `src/med_autoscience/stage_surface_contract.py` 已为 `scout`、`idea`、`baseline`、`experiment`、`analysis-campaign`、`write`、`review`、`finalize`、`decision` 和 `journal-resolution` 生成同构 stage card contract。
+- `docs/runtime/contracts/stage_surfaces.md` 是 stage card 的生成人读 facade；它从 machine source 渲染，不持有第二份 truth。
 - `scout`、`idea`、`write`、`finalize`、`decision`、`journal-resolution` 和 `figure-polish` 已有独立 skill template。
 - `baseline`、`experiment`、`analysis-campaign`、`review`、`rebuttal`、`intake-audit` 当前以 append block 注入。
 - `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`stage_recall_index`、`publication_route_memory_pack` 和 `paper_soak_memory_apply_proof` 已是 MAS-owned operating surface。
+- `baseline`、`experiment`、`write`、`finalize` 和 `journal-resolution` 的 knowledge / closeout obligations 已进入 `stage_knowledge_contract.py` 与 canonical entry-mode payload。
 - `publication_route_memory` 已按 natural-language-first memory card 落地为小集合检索、typed closeout writeback 和 router receipt，不是机械 recipe engine。
+- `stage_quality_pack_contract` 已把 stage-selectable quality packs、reporting guideline selection、locator、freshness 和 authority boundary 落成 machine-readable contract。
 - `standard_domain_agent_skeleton.physical_skeleton_layout_audit` 已把 stage、prompt、skill、knowledge、quality gate、sidecar、projection builder 和 artifact locator 映射到现有 repo paths。
-- `family_stage_control_plane_descriptor` 已把 route contract、stage knowledge plane、quality/publication refs 和 authority boundary 投影给 OPL。
+- `family_stage_control_plane_descriptor` 与 product-entry manifest 已把 route contract、stage knowledge plane、stage quality pack contract、quality/publication refs 和 authority boundary 投影给 OPL。
+
+本轮已经落地的部分：
+
+| landed slice | owner surface | proof surface |
+| --- | --- | --- |
+| stage card generated facade | `stage_surface_contract.py` + `docs/runtime/contracts/stage_surfaces.md` | `tests/test_stage_surface_contract.py` |
+| missing knowledge / closeout obligations | `stage_knowledge_contract.py` + canonical entry-mode assets | `tests/test_stage_knowledge_plane.py` + `tests/test_agent_entry_assets.py` |
+| stage-selectable quality packs | `stage_quality_contract.py` + product-entry / family descriptor projections | `tests/test_stage_quality_contract.py` + product-entry action catalog parity |
 
 当前不足：
 
 | gap | impact |
 | --- | --- |
 | `baseline`、`experiment`、`analysis-campaign`、`review` 仍主要是 append block | 人读面不够统一；开发者不容易快速看到完整 stage contract、工具、知识和质控。 |
-| `baseline`、`experiment`、`write`、`finalize`、`journal-resolution` 缺少显式 knowledge / closeout obligations | stage 之间经验回写不均衡，容易让写作、finalize 或 baseline 的失败经验留在局部 artifact 中。 |
-| Stage prompt、policy、quality rubric 分散在 overlay、policy、controller、program 文档里 | 新开发者需要跨多个目录拼接上下文，维护成本高。 |
-| reporting guideline pack 仍是局部规则，不是统一 stage-selectable quality pack | 不同研究类型对 STROBE、TRIPOD、CONSORT、PRISMA、STARD、TRIPOD-AI 等要求的触发方式还不够清楚。 |
+| Stage prompt、policy、quality rubric 仍分散在 overlay、policy、controller、program 和生成文档里 | 新开发者能通过 stage card 看到主线 contract，但深入维护 prompt / skill / rubric 时仍需要跨目录拼接上下文。 |
+| `stage_quality_pack_contract` 已存在，但独立 stage skill 还没有逐一消费这些 pack | 质量包已经可发现、可投影；下一步要把具体 stage skill 的自然语言工作面和 pack refs 对齐。 |
 | OPL descriptor 已对齐，但 production provider-hosted long-running soak 未闭合 | 只能说 descriptor / adapter ready，不能说 production-hosted paper automation fully landed。 |
 | 旧 MDS / Hermes / local scheduler residue 仍有 compat vocabulary | 容易让读者误以为旧 runtime 或旧 WebUI 仍是默认运行形态。 |
 
@@ -124,16 +135,16 @@ Machine boundary:
 
 | stage | current surface | target standardization |
 | --- | --- | --- |
-| `scout` | independent skill + route contract + knowledge obligations | 保留独立 skill；补 stage card；让 literature scout OS、public data discovery、venue intelligence 的 output shape 更紧凑。 |
-| `idea` | independent skill + route contract + knowledge obligations | 保留独立 skill；把 candidate frontier、selection scorecard、stop rule 和 publication route memory 使用写成 stage card。 |
-| `baseline` | append block + route contract | 升级为独立 stage card / skill；补 knowledge obligations：baseline refresh history、cohort/endpoint definitions、comparator refs、failed comparator paths。 |
-| `experiment` | append block + route contract | 升级为独立 stage card / skill；补 knowledge obligations：data contract、evaluation contract、prior result lineage、startup boundary、method constraints。 |
-| `analysis-campaign` | append block + bounded analysis policy | 升级为独立 stage card / skill；保持 candidate board；补 closeout categories 与 statistical discipline pack。 |
-| `write` | independent skill + rich writing contract | 保留独立 skill；补 knowledge obligations：claim-evidence map、display-to-claim map、reporting guideline pack、journal neighbor memory。 |
-| `review` | append block + AI reviewer workflow | 升级为独立 stage card / skill；把 reviewer action matrix、citation repair、claim downgrade 和 reusable critique lesson 写成统一 closeout。 |
-| `finalize` | independent skill + package/readiness rules | 保留独立 skill；补 knowledge obligations：publication eval、controller decision、package freshness proof、declarations、human gate status。 |
+| `scout` | independent skill + route contract + generated stage card + knowledge obligations | 保留独立 skill；让 literature scout OS、public data discovery、venue intelligence 的 output shape 更紧凑。 |
+| `idea` | independent skill + route contract + generated stage card + knowledge obligations | 保留独立 skill；把 candidate frontier、selection scorecard、stop rule 和 publication route memory 使用继续收敛到 stage card / skill。 |
+| `baseline` | append block + route contract + generated stage card + knowledge / closeout obligations | 升级为独立 stage skill；让 cohort、endpoint、comparator、startup context 和 failed comparator lesson 在人读面中同构可见。 |
+| `experiment` | append block + route contract + generated stage card + knowledge / closeout obligations | 升级为独立 stage skill；让 data contract、analysis plan、run lineage、endpoint/comparator deviation 和 negative-result lesson 在人读面中同构可见。 |
+| `analysis-campaign` | append block + bounded analysis policy + generated stage card + knowledge obligations | 升级为独立 stage skill；保持 candidate board；把 closeout categories 与 statistical discipline pack 显式接到 stage work rules。 |
+| `write` | independent skill + rich writing contract + generated stage card + knowledge / closeout obligations | 保留独立 skill；把 claim-evidence map、display-to-claim map、reporting guideline pack、journal neighbor memory 和质量包 refs 对齐。 |
+| `review` | append block + AI reviewer workflow + generated stage card + knowledge / closeout obligations | 升级为独立 stage skill；把 reviewer action matrix、citation repair、claim downgrade 和 reusable critique lesson 写成统一 closeout。 |
+| `finalize` | independent skill + package/readiness rules + generated stage card + knowledge / closeout obligations | 保留独立 skill；把 publication eval、controller decision、package freshness proof、declarations、human gate status 和 artifact freshness pack 对齐。 |
 | `decision` | independent skill + stop-loss rules | 保留独立 skill；继续作为 official go/stop/reroute/human gate surface；强化 Stop-loss Memo 与 rejected-alternative memory closeout。 |
-| `journal-resolution` | independent skill | 保留独立 skill；补知识输入：official guidelines, selected journal evidence, supported exporter profiles；blocked profile 不得被写成 ready。 |
+| `journal-resolution` | independent skill + generated stage card + knowledge / closeout obligations | 保留独立 skill；让 official guidelines、selected journal evidence、supported exporter profiles 和 blocked-profile evidence 显式进入 stage skill。 |
 
 ## 质量包分层
 
@@ -164,16 +175,16 @@ Reporting guideline selection should be explicit:
 
 ## 执行计划
 
-| priority | task | output | validation |
-| --- | --- | --- | --- |
-| `P0` | 冻结 stage surface template | 本文 + program/README/current lines 引用 | `git diff --check` |
-| `P1` | 为所有主 stage 生成 stage card | `src/med_autoscience/stage_surface_contract.py` + `docs/runtime/contracts/stage_surfaces.md` generated facade | `tests/test_stage_surface_contract.py` + route contract path spot check |
-| `P1` | 把 append block 主 stage 升级为独立可读 skill surface | baseline / experiment / analysis-campaign / review stage skill/card | overlay installer tests + agent entry asset tests |
-| `P1` | 补齐 knowledge / closeout obligations | 更新 `stage_knowledge_contract.py` 与 canonical YAML 中的 obligations | `tests/test_stage_knowledge_plane.py` + `tests/test_agent_entry_assets.py` |
-| `P2` | 抽出 reporting guideline quality pack | policy / contract / generated prompt block | focused quality/reporting tests |
-| `P2` | 对齐 OPL descriptor 中的 stage/skill/quality locator | product-entry manifest / skeleton mapping update | product-entry / OPL family adapter tests |
-| `P3` | 退役旧 compat vocabulary 或移入 history/reference | no default caller + replacement proof | `rg` stale scan + focused compatibility tests |
-| `P4` | 用真实 paper-line provider-hosted soak 验证 | OPL attempt -> MAS owner receipt -> artifact delta / gate replay / blocker | real paper-line read-only/guarded apply evidence |
+| priority | status | task | output | validation |
+| --- | --- | --- | --- | --- |
+| `P0` | `landed` | 冻结 stage surface template | 本文 + program/README/current lines 引用 | `git diff --check` |
+| `P1` | `landed` | 为所有主 stage 生成 stage card | `src/med_autoscience/stage_surface_contract.py` + `docs/runtime/contracts/stage_surfaces.md` generated facade | `tests/test_stage_surface_contract.py` + route contract path spot check |
+| `P1` | `pending` | 把 append block 主 stage 升级为独立可读 skill surface | baseline / experiment / analysis-campaign / review stage skill | overlay installer tests + agent entry asset tests |
+| `P1` | `landed` | 补齐 knowledge / closeout obligations | 更新 `stage_knowledge_contract.py` 与 canonical YAML 中的 obligations | `tests/test_stage_knowledge_plane.py` + `tests/test_agent_entry_assets.py` |
+| `P2` | `landed` | 抽出 reporting guideline quality pack 和 stage quality pack contract | `stage_quality_contract.py` + generated product-entry / family descriptor refs | `tests/test_stage_quality_contract.py` + product-entry action catalog parity |
+| `P2` | `landed` | 对齐 OPL descriptor 中的 stage/skill/quality locator | product-entry manifest / skeleton mapping update | product-entry / OPL family adapter tests |
+| `P3` | `pending` | 退役旧 compat vocabulary 或移入 history/reference | no default caller + replacement proof | `rg` stale scan + focused compatibility tests |
+| `P4` | `pending` | 用真实 paper-line provider-hosted soak 验证 | OPL attempt -> MAS owner receipt -> artifact delta / gate replay / blocker | real paper-line read-only/guarded apply evidence |
 
 ## 不做的事
 

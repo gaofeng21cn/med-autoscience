@@ -1,7 +1,7 @@
 # MAS 当前开发线路
 
 Status: `active content-level development map`
-Date: `2026-05-11`
+Date: `2026-05-12`
 Owner: `MedAutoScience`
 Purpose: 在 MAS monolith closeout 和 OPL stage-led framework 新定位之后，给出当前内容级开发线路图。
 Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtime/controller/artifact surfaces、OPL provider/framework contracts、product-entry manifest、sidecar receipt、测试和真实 workspace evidence。
@@ -17,7 +17,7 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 1. 先把 OPL 做成完整的 Codex-first、stage-led 智能体框架，具备 durable stage attempt、queue/wakeup、retry/dead-letter、approval/human gate、receipt/projection、shared lifecycle/index primitive 和 provider-backed runtime。
 2. 再把 MAS 迁移到这个框架：MAS 暴露 domain-agent skeleton、stage descriptor、sidecar export/dispatch、owner receipt、artifact locator、projection builder 和 authority refs；OPL 承载框架运行外围。
 3. 同步把新旧功能逐块分类、迁移、分层或沉淀：domain truth 留在 MAS，framework-generic lifecycle/index/restore/retention 能力上收到 OPL，local diagnostics 和 evidence surface 显式降级。
-4. 同步推进 stage surface 形式统一：每个主 stage 都应有同构 stage card、route contract、prompt/skill、tool surface、knowledge packet、closeout obligation、quality pack 与 OPL projection boundary。横向 owner 见 [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)。
+4. 同步推进 stage surface 形式统一：主 stage card、生成人读 facade、缺失 knowledge / closeout obligations、stage-selectable quality packs 和 OPL descriptor locator 已落地；剩余重点是把 append-block 主 stage 升级为独立可读 skill surface，并用真实 provider-hosted paper-line soak 证明目标形态。横向 owner 见 [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)。
 5. 过时模块、Hermes/MDS/default-compat path、旧 manager wording 和重复 UI 入口在替代证据存在后进入退役清理；这属于迁移收口条件，不应无限期后置。
 6. 最后再做真实 E2E / paper-line soak / App workbench 验收，证明新框架下 MAS paper autonomy 能产生 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 typed blocker。
 
@@ -30,7 +30,7 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 | `1` | `opl_framework_foundation` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) + OPL master docs | `framework_control_plane_landed; temporal_required_production_residency_pending` | 先完成 OPL 智能体框架能力：stage attempt、Temporal-backed production runtime、queue/wakeup、retry/dead-letter、approval transport、receipt/projection、shared lifecycle/index primitive。当前已有 provider/runner repo-test harness；真实 Temporal server/worker 长驻运维证明、长时 Codex/domain activity soak 和 production cutover 仍待完成。 |
 | `2` | `mas_framework_migration` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | `domain_adapter_landed; migration_active; memory_soak_readonly_proof_landed` | MAS 迁移为 OPL-admitted domain agent：sidecar/receipt contract、stage descriptor、domain skeleton、artifact locator、authority refs、direct path / hosted path receipt equivalence；publication-route memory 的 DM002 paper-line proof 已能把 stage route-memory refs、typed closeout proposal、MAS router receipt refs 和 OPL/Aion receipt refs 串成 MAS-owned ref-only surface，OPL 不能写 MAS memory body 或 router acceptance。 |
 | `3` | `feature_partition_and_retirement` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md), [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md), [Runtime Lifecycle SQLite Migration Program](./runtime_lifecycle_sqlite_migration_program.md) | `classification_and_cleanup_active` | 新旧功能逐块分类为 retain/move/lift/degrade/retire；退役旧默认依赖、legacy compat、重复 UI 和过时 manager surface。 |
-| `4` | `stage_surface_standardization` | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | `active_cross_cutting_program` | 统一 stage card、route contract、prompt/skill、tool surface、knowledge packet、closeout obligation、quality pack 和 OPL projection boundary；优先补齐 append-block stage 与缺失 knowledge/closeout obligation。 |
+| `4` | `stage_surface_standardization` | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | `partially_landed; skill_surface_migration_pending` | 已落地 generated stage cards、缺失 knowledge/closeout obligations、stage quality pack contract、product-entry / family descriptor locator；下一步升级 `baseline`、`experiment`、`analysis-campaign`、`review` 等 append-block 主 stage 为独立可读 skill surface，并继续退役旧 compat vocabulary。 |
 | `5` | `app_runtime_workbench` | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | `read_only_projection_landed; app_productization_active` | 在 OPL App 中产品化迁移后的 MAS 状态、route、conversation、terminal/log、artifact、action receipt；不重新定义 runtime truth。 |
 | `6` | `paper_autonomy_acceptance` | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | `repo_loop_landed; provider_hosted_readonly_paper_proof_landed; mas_guarded_apply_proof_surface_landed; live_provider_apply_pending` | 在 OPL framework + migrated MAS 形态下做真实 paper-line soak；当前 guarded apply proof 已覆盖 DM002/DM003/Obesity typed closeout、DM002 memory/writeback/receipt refs、MAS owner receipt gate 和 fail-closed forbidden-write guard。下一步仍是 live provider-hosted guarded apply 下的 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。 |
 | `7` | `recurring_learning_support` | `docs/status.md`, `docs/references/**` | `triggered_support` | DeepScientist / external harness / adjacent framework intake 只在触发时执行，dated snapshot 留在 history。 |
@@ -80,7 +80,7 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 | `opl_framework_foundation` | OPL provider/framework 能稳定承载 stage attempt、queue/wakeup、retry/dead-letter、approval/human gate、receipt/projection 和 shared lifecycle/index primitive。 |
 | `mas_framework_migration` | MAS direct skill path 与 OPL-hosted path 使用同一 MAS owner receipts，且 OPL 不写 forbidden MAS truth surface。 |
 | `feature_partition_and_retirement` | 旧默认依赖、legacy compat、重复 UI、过时 manager surface 完成分类、替代和退役清理；保留项都有明确 owner 和用途。 |
-| `stage_surface_standardization` | 每个主 stage 都有同构人读 surface；缺失的 knowledge/closeout obligations 已补齐或明确不适用；quality pack 可按 stage / study archetype 组合；OPL projection boundary 保持 read-only / dispatch-only。 |
+| `stage_surface_standardization` | 当前完成信号已覆盖 generated stage card、route contract、knowledge/closeout obligations、quality pack contract 和 OPL projection boundary；最终完成还要求 append-block 主 stage 迁移为独立 skill surface，并用 provider-hosted paper-line soak 证明 stage closeout / memory / quality / artifact delta 沿 MAS owner surface 闭合。 |
 | `app_runtime_workbench` | 用户在 OPL App 看到 MAS study progress、route、conversation、terminal/log、artifacts、source refs 和 safe action receipts，不必依赖 CLI 或 local HTML。 |
 | `paper_autonomy_acceptance` | Read-only evidence 已要求三篇真实论文线各有 typed closeout projection，且至少一篇带 memory consumed/writeback receipt refs；guarded apply proof surface 已要求 MAS owner receipt gate，不允许 provider 直接写 workspace truth。Production evidence 还要求 provider-hosted live apply 能反复产出 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 MAS owner surface 下的 typed blocker。 |
 | `monolith_and_mds_foundation_guard` | 后续 MDS/DeepScientist 引用被分类，不能成为默认 runtime、quality 或 artifact authority。 |
