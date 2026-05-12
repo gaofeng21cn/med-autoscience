@@ -155,6 +155,7 @@ def test_mas_domain_memory_projection_declares_domain_owned_migration_surface() 
     assert memory["migration_plan_ref"] == (
         "docs/policies/study-workflow/publication_route_memory_policy.md#migration-plan"
     )
+    assert memory["canonical_body_ref"] == "docs/policies/study-workflow/publication_route_memory_library.md"
     assert memory["seed_corpus_ref"] == (
         "docs/policies/study-workflow/publication_route_memory_seed_fixture.json"
     )
@@ -170,7 +171,8 @@ def test_mas_domain_memory_projection_declares_domain_owned_migration_surface() 
     }
     assert memory["migration_readiness"] == {
         "status": "workspace_apply_closure_ready",
-        "seed_fixture_status": "repo_source_fixture_available",
+        "canonical_body_status": "markdown_source_available",
+        "seed_index_status": "repo_source_index_available",
         "memory_body_migration": "domain_owned_workspace_apply_available",
         "opl_apply_allowed": False,
     }

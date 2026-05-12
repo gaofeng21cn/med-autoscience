@@ -303,6 +303,7 @@ def build_provider_availability_from_opl_proof(
             "observed_provider_kind": provider_kind or None,
             "observed_closeout_status": closeout_status or None,
             "missing_checks": missing_checks,
+            "evidence_status": opl_production_proof.get("evidence_status"),
         },
     }
 
@@ -551,6 +552,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             "agent/knowledge",
             repo_paths=[
                 "docs/policies/study-workflow/publication_route_memory_policy.md",
+                "docs/policies/study-workflow/publication_route_memory_library.md",
                 "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
             ],
         ),

@@ -19,3 +19,5 @@ belong in `docs/program/`, `docs/references/`, or `docs/history/`.
 Policies may be referenced by code, tests, or manifests only through stable
 semantic IDs or explicit policy paths. They must not become active backlog or
 runtime truth.
+
+Natural-language domain memory follows [Domain Memory Markdown-First Policy](./domain_memory_markdown_first_policy.md): Markdown is the canonical human/Codex-readable body; JSON is allowed only for indexes, generated workspace packs, receipts, provenance, tests, runtime truth, or body-free projections.

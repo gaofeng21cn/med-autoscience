@@ -25,6 +25,7 @@ RUNTIME_LIFECYCLE_CONTRACT_REF = (
 STAGE_LED_AUTONOMY_INVENTORY_REF = "docs/references/integration/stage_led_autonomy_family_inventory.md"
 STAGE_LED_AUTONOMY_POLICY_REF = "docs/policies/study-workflow/stage_led_research_autonomy.md"
 PUBLICATION_ROUTE_MEMORY_POLICY_REF = "docs/policies/study-workflow/publication_route_memory_policy.md"
+PUBLICATION_ROUTE_MEMORY_LIBRARY_REF = "docs/policies/study-workflow/publication_route_memory_library.md"
 PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF = (
     "docs/policies/study-workflow/publication_route_memory_seed_fixture.json"
 )
@@ -245,10 +246,16 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
             "ref": f"{PUBLICATION_ROUTE_MEMORY_POLICY_REF}#migration-plan",
             "role": "domain_owned_migration_plan",
         },
+        "canonical_body_ref": {
+            "ref_kind": "human_doc",
+            "ref": PUBLICATION_ROUTE_MEMORY_LIBRARY_REF,
+            "role": "markdown_first_memory_body",
+            "opl_body_owner": False,
+        },
         "seed_corpus_ref": {
             "ref_kind": "repo_path",
             "ref": PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF,
-            "role": "repo_source_seed_fixture",
+            "role": "repo_source_seed_index",
         },
         "writeback_receipt_locator_ref": {
             "ref_kind": "workspace_locator",
@@ -264,7 +271,8 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
         },
         "provenance_refs": [
             {"ref_kind": "human_doc", "ref": PUBLICATION_ROUTE_MEMORY_POLICY_REF, "role": "policy"},
-            {"ref_kind": "repo_path", "ref": PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF, "role": "seed_fixture"},
+            {"ref_kind": "human_doc", "ref": PUBLICATION_ROUTE_MEMORY_LIBRARY_REF, "role": "canonical_markdown_body"},
+            {"ref_kind": "repo_path", "ref": PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF, "role": "seed_index"},
             {"ref_kind": "human_doc", "ref": STUDY_ARCHETYPES_REF, "role": "first_generation_memory_seed"},
             {"ref_kind": "python_symbol", "ref": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF, "role": "retrieval_writeback_contract"},
         ],
@@ -277,7 +285,8 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
         },
         "migration_readiness": {
             "status": "workspace_apply_closure_ready",
-            "seed_fixture_status": "repo_source_fixture_available",
+            "canonical_body_status": "markdown_source_available",
+            "seed_index_status": "repo_source_index_available",
             "memory_body_migration": "domain_owned_workspace_apply_available",
             "writeback_receipt_locator_status": "workspace_locator_declared",
             "opl_apply_allowed": False,

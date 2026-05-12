@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 
 from .shared import *  # noqa: F403,F401
 
@@ -365,7 +366,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     assert quality_pack_contract["freshness"]["refresh_policy"] == (
         "rebuild_product_entry_manifest_before_opl_discovery"
     )
-    assert set(stage_quality_contract.REQUIRED_STAGE_QUALITY_PACK_IDS) == set(quality_pack_contract["pack_ids"])
+    assert set(stage_quality_contract.REQUIRED_STAGE_QUALITY_PACK_IDS) == set(
+        quality_pack_contract["pack_ids"]
+    )
     journal_pack = {
         pack["pack_id"]: pack for pack in quality_pack_contract["packs"]
     }["journal_response_pack"]
@@ -581,17 +584,23 @@ def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_
         "docs/policies/study-workflow/publication_route_memory_policy.md#migration-plan"
     )
     assert descriptor["migration_plan_ref"]["role"] == "domain_owned_migration_plan"
+    assert descriptor["canonical_body_ref"]["ref"] == (
+        "docs/policies/study-workflow/publication_route_memory_library.md"
+    )
+    assert descriptor["canonical_body_ref"]["role"] == "markdown_first_memory_body"
+    assert descriptor["canonical_body_ref"]["opl_body_owner"] is False
     assert descriptor["seed_corpus_ref"]["ref"] == (
         "docs/policies/study-workflow/publication_route_memory_seed_fixture.json"
     )
-    assert descriptor["seed_corpus_ref"]["role"] == "repo_source_seed_fixture"
+    assert descriptor["seed_corpus_ref"]["role"] == "repo_source_seed_index"
     assert descriptor["writeback_receipt_locator_ref"]["ref"] == (
         "portfolio/research_memory/publication_route_memory/writeback_receipts"
     )
     assert descriptor["writeback_receipt_locator_ref"]["role"] == "domain_owned_router_receipts"
     assert descriptor["freshness"]["refresh_policy"] == "rebuild_product_entry_manifest_before_opl_discovery"
     assert descriptor["migration_readiness"]["status"] == "workspace_apply_closure_ready"
-    assert descriptor["migration_readiness"]["seed_fixture_status"] == "repo_source_fixture_available"
+    assert descriptor["migration_readiness"]["canonical_body_status"] == "markdown_source_available"
+    assert descriptor["migration_readiness"]["seed_index_status"] == "repo_source_index_available"
     assert descriptor["migration_readiness"]["memory_body_migration"] == "domain_owned_workspace_apply_available"
     assert descriptor["migration_readiness"]["writeback_receipt_locator_status"] == "workspace_locator_declared"
     assert descriptor["migration_readiness"]["opl_apply_allowed"] is False

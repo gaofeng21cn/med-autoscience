@@ -16,6 +16,13 @@ SEED_FIXTURE = (
     / "study-workflow"
     / "publication_route_memory_seed_fixture.json"
 )
+SEED_LIBRARY = (
+    Path(__file__).resolve().parents[2]
+    / "docs"
+    / "policies"
+    / "study-workflow"
+    / "publication_route_memory_library.md"
+)
 
 
 def _write_json(path: Path, payload: dict[str, object]) -> None:
@@ -64,6 +71,31 @@ def test_publication_route_memory_apply_seed_cli_dispatches_controller(tmp_path:
     assert "publication_route_memory_seed__clinical_classifier" in payload["accepted_memory_ids"]
     assert "publication_route_memory_seed__external_validation_rescue" in payload["accepted_memory_ids"]
     assert "publication_route_memory_seed__negative_result_stoploss" in payload["accepted_memory_ids"]
+    assert Path(payload["memory_pack_ref"]).exists()
+
+
+def test_publication_route_memory_apply_seed_cli_accepts_markdown_library(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+
+    exit_code = cli.main(
+        [
+            "publication-route-memory-apply-seed",
+            "--workspace-root",
+            str(workspace_root),
+            "--seed-library",
+            str(SEED_LIBRARY),
+            "--apply",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["surface"] == "publication_route_memory_apply_receipt"
+    assert payload["status"] == "applied"
+    assert payload["canonical_body_ref"].endswith("publication_route_memory_library.md")
+    assert "publication_route_memory_seed__clinical_classifier" in payload["accepted_memory_ids"]
     assert Path(payload["memory_pack_ref"]).exists()
 
 

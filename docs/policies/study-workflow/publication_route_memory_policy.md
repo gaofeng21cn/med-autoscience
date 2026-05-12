@@ -141,7 +141,7 @@ The actual code path is:
 
 That means `study_archetypes.md` and `med_autoscience.policies.study_archetypes` were useful first-generation route hints, but they were not a memory body store, did not support workspace-specific accepted/rejected lessons, did not carry receipt provenance, and did not provide route-memory inventory/writeback management.
 
-Current migration has moved those archetypes into the richer seed fixture as full natural-language route memory cards while preserving executor-level autonomy. They should not become hard-coded workflows unless a specific route matures into a separate audited capability with its own evidence, tests, owner boundary, and failure behavior.
+Current migration has moved those archetypes into the richer Markdown library as full natural-language route memory cards while preserving executor-level autonomy. The seed fixture only indexes that Markdown body. These cards should not become hard-coded workflows unless a specific route matures into a separate audited capability with its own evidence, tests, owner boundary, and failure behavior.
 
 ## OPL Boundary
 
@@ -177,7 +177,7 @@ MAS now exposes `publication_route_memory` as a MAS-owned domain memory surface:
 - `memory_write_router_receipt` mirrored under `portfolio/research_memory/publication_route_memory/writeback_receipts`
 - `paper_soak_memory_apply_proof` under `artifacts/stage_knowledge/paper_soak_memory_apply_proof/latest.json` as the controlled read-only proof surface that links stage route-memory refs, typed closeout proposal refs, MAS router receipt refs, workspace writeback receipt refs, and OPL/Aion display receipt refs
 
-The repo seed fixture now contains nine rich seed cards:
+The canonical repo memory body now lives in Markdown at `docs/policies/study-workflow/publication_route_memory_library.md`. It contains nine rich seed cards:
 
 - `publication_route_memory_seed__clinical_classifier`
 - `publication_route_memory_seed__clinical_subtype_reconstruction`
@@ -189,13 +189,15 @@ The repo seed fixture now contains nine rich seed cards:
 - `publication_route_memory_seed__survey_trend_analysis`
 - `publication_route_memory_seed__external_validation_rescue`
 
-Accepted `workspace_reusable` lessons from typed stage closeout update the workspace `publication_route_memory_pack` as natural-language memory cards. When closeout payloads include rich card sections, MAS preserves those fields in the promoted card. This makes a MAS-accepted lesson available to later stage-entry retrieval while preserving idempotent writeback receipts and the context-only authority boundary.
+The companion `publication_route_memory_seed_fixture.json` is now a seed index / locator. It lists stable ids, route families, stage applicability, titles, status, and Markdown anchors. It is not the human-maintained memory body.
+
+Accepted `workspace_reusable` lessons from typed stage closeout update the workspace `publication_route_memory_pack` as natural-language memory cards. When closeout payloads include rich card sections, MAS preserves those fields in the promoted card. This makes a MAS-accepted lesson available to later stage-entry retrieval while preserving idempotent writeback receipts and the context-only authority boundary. The workspace pack is generated/applied MAS state, not the first editing surface for maintainers.
 
 MAS exposes these as callable owner surfaces through `publication-route-memory-apply-seed`, `publication-route-memory-inventory`, `stage-knowledge-packet`, `stage-memory-closeout-route`, and `paper-soak-memory-proof`. These commands are domain-owned execution/read/receipt surfaces; they do not make OPL the memory body owner or publication quality authority. The grouped public form for the inventory is `medautosci publication route-memory-inventory --workspace-root <workspace>`. By default it returns card metadata, locator refs, filters, receipt counts, and authority boundary while excluding the rich body. `--include-card-body` is reserved for maintainer review and returns the prose sections such as `best_fit`, `minimum_evidence_package`, `table_figure_pattern`, `claim_boundary`, `reviewer_risks`, `pivot_or_stop_rules`, and `failure_modes`.
 
 2026-05-12 fresh paper-line proof: DM002 read-only closeout consumed `publication_route_memory_seed__negative_result_stoploss` and carried MAS-owned writeback receipt refs under both the study stage-knowledge artifact root and workspace `portfolio/research_memory/publication_route_memory/writeback_receipts`. The `real-paper-autonomy-guarded-apply-proof` surface now promotes this into a final ref-level memory proof for DM002: consumed route-memory refs and MAS router/workspace/OPL-Aion receipt refs are visible, `body_included=false`, and missing live apply permission remains a typed blocker rather than an artifact delta claim. `paper_autonomy/guarded-apply` can now write a MAS sidecar dispatch receipt that carries the same DM002 ref chain plus provider attempt id, idempotency key, source fingerprint, no-forbidden-write proof, and typed blocker refs. This proves the ref chain is usable for OPL/Aion projection and provider-hosted receipt closure. It does not let OPL read memory prose, accept/reject writebacks, or mutate workspace truth.
 
-The repo still tracks only policy, contracts, seed fixture, code and tests. Real memory packs, migration receipts, writeback proposals and router receipts belong to the MAS workspace or runtime artifact root. OPL may discover locator / freshness / receipt refs; it does not own memory bodies, apply migration, accept/reject writebacks, choose a publication route, or promote memory into evidence, review, controller, publication or artifact truth.
+The repo still tracks only policy, contracts, Markdown canonical memory body, seed index, code and tests. Real memory packs, migration receipts, writeback proposals and router receipts belong to the MAS workspace or runtime artifact root. OPL may discover locator / freshness / receipt refs; it does not own memory bodies, apply migration, accept/reject writebacks, choose a publication route, or promote memory into evidence, review, controller, publication or artifact truth.
 
 Decision-stage availability is read-only context. `stage_knowledge_packet.authority_boundary.can_replace_controller_decision` remains `false`; controller decisions continue to cite current evidence, unresolved risk, Stop-loss Memo context, human-gate status, and downstream owner requirements before any route change is official.
 
@@ -203,15 +205,16 @@ Decision-stage availability is read-only context. `stage_knowledge_packet.author
 
 ## Human Inventory And Maintenance
 
-The human-facing entrypoint is `docs/policies/study-workflow/README.md`. It points to the governing policy, first-generation archetype prose, repo seed fixture, workspace memory pack locator, and receipt/proposal locators.
+The human-facing entrypoint is `docs/policies/study-workflow/README.md`. It points to the governing policy, Markdown canonical library, first-generation archetype prose, repo seed index, workspace memory pack locator, and receipt/proposal locators.
 
 Current route memories are intentionally split by authority:
 
 | inventory item | location | authority |
 | --- | --- | --- |
 | first-generation route prose | `docs/policies/study-workflow/study_archetypes.md` | non-binding policy seed |
-| seed card fixture | `docs/policies/study-workflow/publication_route_memory_seed_fixture.json` | repo-source migration fixture, not the memory store |
-| active workspace cards | `portfolio/research_memory/publication_route_memory/memory_pack.json` | MAS workspace-owned memory pack |
+| canonical route memory body | `docs/policies/study-workflow/publication_route_memory_library.md` | maintainer-editable Markdown-first memory body |
+| seed card index | `docs/policies/study-workflow/publication_route_memory_seed_fixture.json` | repo-source index and locator, not the memory body |
+| active workspace cards | `portfolio/research_memory/publication_route_memory/memory_pack.json` | generated MAS workspace-owned memory pack |
 | seed apply receipts | `portfolio/research_memory/publication_route_memory/migration_receipts` | MAS workspace-owned migration audit |
 | typed writeback proposals | `portfolio/research_memory/publication_route_memory/writeback_proposals/stage_memory_updates.jsonl` | stage closeout proposal log |
 | accepted/rejected writeback receipts | `portfolio/research_memory/publication_route_memory/writeback_receipts` | MAS router receipt authority |
@@ -224,9 +227,9 @@ Current route memories are intentionally split by authority:
 - card ids: `publication_route_memory_seed__external_validation_rescue`, `publication_route_memory_seed__negative_result_stoploss`, `publication_route_memory_writeback__dm002-route-memory-proof`
 - supporting files: `migration_receipts/publication_route_memory_seed_apply_a2e037207a33f455.json`, `writeback_proposals/stage_memory_updates.jsonl`, `writeback_receipts/dm002-paper-soak-memory-proof-20260512.json`
 
-After applying the current seed fixture to a workspace, maintainers get a rich starting library of nine cards, not only the three DM002-era workspace cards. Existing workspaces may still show the older three-card pack until the seed fixture is re-applied or refreshed through MAS owner surfaces.
+After applying the current Markdown library to a workspace, maintainers get a rich starting library of nine cards, not only the three DM002-era workspace cards. Existing workspaces may still show the older three-card pack until the library is re-applied or refreshed through MAS owner surfaces.
 
-This is human-readable enough for maintainers today: cards contain prose, route family, stage applicability, status, provenance, fit/poor-fit guidance, minimum evidence package, common analysis/display patterns, claim boundaries, reviewer risks, pivot/stop rules, and failure modes. It is not yet a polished human management UI. The next low-risk management surface should be a read-only inventory/export grouped by workspace, stage applicability, route family, status, source refs, and receipt refs. Write/edit should continue to go through MAS owner surfaces until an audited editor with receipt generation exists.
+This is maintainable today because the canonical cards are Markdown prose. Cards contain route family, stage applicability, status, provenance, fit/poor-fit guidance, minimum evidence package, common analysis/display patterns, claim boundaries, reviewer risks, pivot/stop rules, and failure modes. It is not yet a polished human management UI. The next low-risk management surface should be a read-only inventory/export grouped by workspace, stage applicability, route family, status, source refs, and receipt refs. Write/edit of canonical repo experience happens in Markdown; workspace apply/writeback still goes through MAS owner surfaces until an audited editor with receipt generation exists.
 
 The read-only CLI inventory is now that first management surface. Use it as the default operator and OPL/Aion ingestion entrypoint because it gives stable metadata, locator refs, and receipt summaries without copying the memory body:
 
@@ -238,13 +241,13 @@ medautosci publication route-memory-inventory --workspace-root <workspace> --rou
 
 The first two forms are suitable for body-free projection. The `--include-card-body` form is for MAS maintainers inspecting or repairing the natural-language memory card itself.
 
-Manual JSON editing is allowed only as maintainer-level repair. It must preserve stable `memory_id`, route family, stage applicability, source/provenance refs, status/freshness, receipt traceability, and the rich natural-language body. It must not add current-paper claims, publication readiness, evidence verdicts, review findings, or artifact state as route memory.
+Manual JSON editing is allowed only as maintainer-level repair for generated workspace packs, indexes, or receipts. It must preserve stable `memory_id`, route family, stage applicability, source/provenance refs, status/freshness, and receipt traceability. It must not become the primary way to edit natural-language experience, and it must not add current-paper claims, publication readiness, evidence verdicts, review findings, or artifact state as route memory.
 
 ## Migration Plan
 
 Current landed state is `workspace_apply_closure_ready`.
 
-MAS provides a repo-source seed fixture at `docs/policies/study-workflow/publication_route_memory_seed_fixture.json`. The fixture is not the memory store and is not a receipt instance. It exists to make the first migration shape reviewable: reusable publication-route lessons stay natural-language-first, carry minimal searchable metadata, and point back to policy/stage provenance.
+MAS provides a repo-source Markdown library at `docs/policies/study-workflow/publication_route_memory_library.md` and a small seed index at `docs/policies/study-workflow/publication_route_memory_seed_fixture.json`. The Markdown library is the canonical body. The JSON index is not the memory store and is not a receipt instance. It exists to make migration and retrieval reviewable: reusable publication-route lessons stay natural-language-first, carry minimal searchable metadata, and point back to policy/stage provenance.
 
 Actual migration happens in a MAS-owned workspace or runtime artifact root:
 

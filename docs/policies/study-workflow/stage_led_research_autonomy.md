@@ -9,7 +9,7 @@ Machine boundary: this is a human-readable policy. Machine truth remains in `stu
 
 2026-05-10 update: Stage-Led Autonomy 已由 `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt` 和 `stage_recall_index` 承接为 MAS-owned operating surface。它们给 stage 提供 memory/literature 输入、typed closeout 和受控写回，但不授权论文质量、claim 扩大或 publication readiness。
 
-2026-05-11 memory apply update: `publication_route_memory` 已从 descriptor/seed fixture 推进到 workspace apply closure。MAS 可把 repo seed fixture 应用到 workspace-owned `publication_route_memory_pack`，stage entry 只消费小集合 `publication_route_memory_refs`，stage closeout 生成 typed writeback proposal，`memory_write_router_receipt` 负责接受、拒绝或阻断并写入 workspace receipt locator。repo 不保存真实 pack 或 receipt 实例；真实 artifact 仍属于 workspace/runtime root。
+2026-05-11 memory apply update，2026-05-12 Markdown-first 校准：`publication_route_memory` 已从 descriptor/seed index 推进到 workspace apply closure。MAS 可把 repo Markdown canonical library 应用到 workspace-owned `publication_route_memory_pack`，stage entry 只消费小集合 `publication_route_memory_refs`，stage closeout 生成 typed writeback proposal，`memory_write_router_receipt` 负责接受、拒绝或阻断并写入 workspace receipt locator。repo seed JSON 只做 locator/index；repo 不保存真实 pack 或 receipt 实例；真实 artifact 仍属于 workspace/runtime root。
 
 2026-05-11 status calibration: Stage-Led Autonomy 的核心 operating surface 已经落地；机械分流层已经降级为 audit/router/materializer，但仍有兼容入口、historical reader、fixture 和旧命名残留。开发纪律是先确认默认路径不再调用、direct skill 与 OPL handoff 都能回到同一 MAS-owned stage/route surface，再删除旧 vocabulary 或迁入 history；不能为了“清干净”破坏 restore/provenance/parity 证据。
 

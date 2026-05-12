@@ -6,11 +6,11 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from med_autoscience.controllers import portfolio_memory, workspace_literature
-from med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_cards import (
-    normalize_publication_route_card as _normalize_publication_route_card,
+from med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_seed import (
+    apply_publication_route_memory_seed_fixture as _apply_publication_route_memory_seed_fixture,
 )
-from med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_cards import (
-    publication_seed_blockers as _publication_seed_blockers,
+from med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_seed import (
+    default_seed_fixture_path as _default_publication_route_seed_fixture_path,
 )
 from med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_writeback import sync_accepted_publication_route_memory_cards as _sync_route_memory_cards
 from med_autoscience.stage_knowledge_contract import (
@@ -19,8 +19,6 @@ from med_autoscience.stage_knowledge_contract import (
     MEMORY_CLOSEOUT_SURFACE,
     MEMORY_ROUTER_SURFACE,
     PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE,
-    PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE,
-    PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
     PUBLICATION_ROUTE_MEMORY_STAGES,
     RECALL_INDEX_SURFACE,
     SCHEMA_VERSION,
@@ -156,60 +154,32 @@ def apply_publication_route_memory_seed_fixture(
     *,
     workspace_root: Path,
     seed_fixture_path: Path,
+    seed_library_path: Path | None = None,
     apply: bool = True,
 ) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_fixture_path = Path(seed_fixture_path).expanduser().resolve()
-    fixture = _read_json(resolved_fixture_path)
-    seed_cards = _mapping_list(fixture.get("seed_cards"))
-    source_fingerprint = _fingerprint({"fixture_path": str(resolved_fixture_path), "seed_cards": seed_cards})
-    idempotency_key = f"publication_route_memory_seed_apply:{source_fingerprint}"
-    receipt_path = publication_route_memory_apply_receipt_path(
+    return _apply_publication_route_memory_seed_fixture(
         workspace_root=resolved_workspace_root,
-        idempotency_key=idempotency_key,
+        seed_fixture_path=seed_fixture_path,
+        seed_library_path=seed_library_path,
+        pack_path=publication_route_memory_pack_path(workspace_root=resolved_workspace_root),
+        receipt_path_for_idempotency_key=publication_route_memory_apply_receipt_path,
+        apply=apply,
     )
-    receipt_ref = str(receipt_path)
-    if apply and receipt_path.exists():
-        existing = _read_json(receipt_path)
-        if existing:
-            return {**existing, "idempotent_replay": True, "receipt_ref": str(receipt_path)}
 
-    pack_path = publication_route_memory_pack_path(workspace_root=resolved_workspace_root)
-    typed_blockers = _publication_seed_blockers(fixture=fixture, seed_cards=seed_cards)
-    accepted_cards = [] if typed_blockers else [_normalize_publication_route_card(card) for card in seed_cards]
-    receipt = {
-        "surface": PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE,
-        "schema_version": SCHEMA_VERSION,
-        "study_id": "workspace",
-        "stage": "all",
-        "memory_family": "publication_route_memory",
-        "status": "blocked" if typed_blockers else ("applied" if apply else "dry_run"),
-        "apply": apply,
-        "input_refs": [str(resolved_fixture_path)],
-        "source_refs": [
-            {
-                "ref_kind": "repo_path",
-                "ref": str(PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF),
-                "resolved_path": str(resolved_fixture_path),
-                "role": "repo_source_seed_fixture",
-            }
-        ],
-        "source_fingerprint": source_fingerprint,
-        "idempotency_key": idempotency_key,
-        "accepted_memory_ids": [card["memory_id"] for card in accepted_cards],
-        "rejected_cards": [],
-        "typed_blockers": typed_blockers,
-        "memory_pack_ref": str(pack_path),
-        "receipt_ref": receipt_ref,
-        "authority_boundary": _authority_boundary(),
-    }
-    if apply:
-        if not typed_blockers:
-            pack = _publication_route_memory_pack(cards=accepted_cards, receipt=receipt)
-            receipt["memory_pack_fingerprint"] = pack["source_fingerprint"]
-            _write_json(pack_path, pack)
-        _write_json(receipt_path, receipt)
-    return {**receipt, "receipt_ref": str(receipt_path)}
+
+def apply_publication_route_memory_seed_library(
+    *,
+    workspace_root: Path,
+    seed_library_path: Path,
+    apply: bool = True,
+) -> dict[str, Any]:
+    return apply_publication_route_memory_seed_fixture(
+        workspace_root=workspace_root,
+        seed_fixture_path=_default_publication_route_seed_fixture_path(),
+        seed_library_path=seed_library_path,
+        apply=apply,
+    )
 
 
 def select_publication_route_memory_refs(
@@ -1034,38 +1004,6 @@ def _append_jsonl_once(path: Path, payload: Mapping[str, Any], *, identity: str)
         handle.write(json.dumps(dict(payload), ensure_ascii=False, sort_keys=True) + "\n")
 
 
-def _publication_route_memory_pack(
-    *,
-    cards: Sequence[Mapping[str, Any]],
-    receipt: Mapping[str, Any],
-) -> dict[str, Any]:
-    receipt_ref = _text(receipt.get("receipt_ref"))
-    normalized_cards = []
-    for card in cards:
-        normalized_cards.append(
-            {
-                **dict(card),
-                "source_receipt_ref": receipt_ref,
-                "authority_boundary": "context_only_not_publication_authority",
-            }
-        )
-    return {
-        "surface": PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
-        "schema_version": SCHEMA_VERSION,
-        "study_id": "workspace",
-        "stage": "all",
-        "memory_family": "publication_route_memory",
-        "owner": "MedAutoScience",
-        "state": "workspace_runtime_memory_pack",
-        "input_refs": [receipt_ref] if receipt_ref else [],
-        "cards": normalized_cards,
-        "card_count": len(normalized_cards),
-        "source_apply_receipt_ref": receipt_ref,
-        "idempotency_key": _text(receipt.get("idempotency_key")) or f"publication_route_memory_pack:{_fingerprint(normalized_cards)}",
-        "source_fingerprint": _fingerprint(normalized_cards),
-        "authority_boundary": _authority_boundary(),
-    }
-
 def _validate_stage(stage: str) -> str:
     resolved = _text(stage)
     if resolved not in PUBLICATION_ROUTE_MEMORY_STAGES and resolved != "all":
@@ -1149,6 +1087,7 @@ __all__ = [
     "PUBLICATION_ROUTE_MEMORY_STAGES",
     "STAGE_OBLIGATIONS",
     "apply_publication_route_memory_seed_fixture",
+    "apply_publication_route_memory_seed_library",
     "build_paper_soak_memory_apply_proof",
     "build_stage_knowledge_packet",
     "build_stage_recall_index",

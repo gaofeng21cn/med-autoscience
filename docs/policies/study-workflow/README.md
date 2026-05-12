@@ -8,6 +8,8 @@ Purpose: 作为 MAS 研究路线、研究记忆、论文套路、数据资产和
 
 - [Stage-Led Research Autonomy Policy](./stage_led_research_autonomy.md)
 - [Publication Route Memory Policy](./publication_route_memory_policy.md)
+- [Publication Route Memory Library](./publication_route_memory_library.md)
+- [Domain Memory Markdown-First Policy](../domain_memory_markdown_first_policy.md)
 - [Study Archetypes](./study_archetypes.md)
 - [Research Route Bias Policy](./research_route_bias_policy.md)
 - [Study Route Contract](./study_route_contract.md)
@@ -38,13 +40,14 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 | 层级 | 位置 | 用途 |
 | --- | --- | --- |
 | 规则入口 | [Publication Route Memory Policy](./publication_route_memory_policy.md) | 解释自然语言 memory card 的维护规则、OPL/MAS 边界、writeback 规则和迁移计划。 |
+| 正文入口 | [Publication Route Memory Library](./publication_route_memory_library.md) | 维护者直接查看和编辑的论文套路经验库正文；Markdown 是 canonical body。 |
 | 第一代路线种子 | [Study Archetypes](./study_archetypes.md) | 旧 MAS 使用的 route bias / contract input prose，不是完整经验库。 |
-| repo seed fixture | [publication_route_memory_seed_fixture.json](./publication_route_memory_seed_fixture.json) | 查看 9 张富文本 seed cards；每张卡包含 fit/poor-fit、minimum evidence package、analysis/display pattern、claim boundary、reviewer risks、pivot/stop rules 和 stage guidance。它不是真实 memory store。 |
-| workspace memory pack | `portfolio/research_memory/publication_route_memory/memory_pack.json` | 查看某个 MAS workspace 内真正可检索的论文套路 memory cards。 |
+| repo seed index | [publication_route_memory_seed_fixture.json](./publication_route_memory_seed_fixture.json) | 9 张 seed card 的机器索引和 Markdown locator；不是 memory 正文，也不是真实 memory store。 |
+| workspace memory pack | `portfolio/research_memory/publication_route_memory/memory_pack.json` | 某个 MAS workspace 内应用/回写后的可检索 memory pack；它是生成面，不是维护者第一编辑面。 |
 | receipts/proposals | `portfolio/research_memory/publication_route_memory/{migration_receipts,writeback_proposals,writeback_receipts}` | 查看 seed apply、typed closeout proposal 和 MAS router 接受/拒绝记录。 |
 | 只读 CLI inventory | `medautosci publication route-memory-inventory --workspace-root <workspace>` | 按 workspace/stage/route family/status 查看 card 元数据、locator 和 receipt summary；默认不输出 memory 正文。维护者显式加 `--include-card-body` 时才输出 rich body sections。 |
 
-`study_archetypes.md` 不是论文套路 domain memory 的完整存储位置。它是第一代入口，旧 MAS 通过 profile / study payload 的 `preferred_study_archetypes`、`study_archetype` 或 `preferred_study_archetype` 选择分析和报告合同；真正的 domain memory 管理入口现在是 `publication_route_memory_seed_fixture.json`、workspace `memory_pack.json`、`stage_knowledge_packet.publication_route_memory_refs`、`stage-memory-closeout-route` 和 `route-memory-inventory`。
+`study_archetypes.md` 不是论文套路 domain memory 的完整存储位置。它是第一代入口，旧 MAS 通过 profile / study payload 的 `preferred_study_archetypes`、`study_archetype` 或 `preferred_study_archetype` 选择分析和报告合同；真正的人类维护入口现在是 `publication_route_memory_library.md`。`publication_route_memory_seed_fixture.json` 只做索引和 locator，workspace `memory_pack.json`、`stage_knowledge_packet.publication_route_memory_refs`、`stage-memory-closeout-route` 和 `route-memory-inventory` 是应用、检索、回写与审计面。
 
 当前真实样例在 DM-CVD workspace：
 
@@ -61,7 +64,7 @@ medautosci publication route-memory-inventory --workspace-root /Users/gaofeng/wo
 medautosci publication route-memory-inventory --workspace-root /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk --stage decision
 ```
 
-2026-05-12 fresh output 显示 DM-CVD workspace 的旧 pack 共有 `3` 张 card；`--stage decision` 过滤后有 `2` 张，分别是 `publication_route_memory_seed__negative_result_stoploss` 和 `publication_route_memory_writeback__dm002-route-memory-proof`。当前 repo seed fixture 已扩展为 `9` 张富文本 seed cards；新 workspace 或重新应用 seed 后会得到完整 seed library。默认输出不含 memory 正文，适合 OPL/Aion 和维护者快速查 inventory；审查正文时才使用 `--include-card-body`。
+2026-05-12 fresh output 显示 DM-CVD workspace 的旧 pack 共有 `3` 张 card；`--stage decision` 过滤后有 `2` 张，分别是 `publication_route_memory_seed__negative_result_stoploss` 和 `publication_route_memory_writeback__dm002-route-memory-proof`。当前 repo Markdown library 已扩展为 `9` 张富文本 seed cards，seed fixture 只做索引；新 workspace 或重新应用 seed 后会得到完整 seed library。默认输出不含 memory 正文，适合 OPL/Aion 和维护者快速查 inventory；审查正文时才使用 `--include-card-body`。
 
 ## 现阶段边界
 

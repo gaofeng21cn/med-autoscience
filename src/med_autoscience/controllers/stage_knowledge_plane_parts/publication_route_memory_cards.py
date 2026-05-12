@@ -29,6 +29,21 @@ RICH_LIST_FIELDS = (
     "example_signals",
     "failure_modes",
 )
+MARKDOWN_LIST_SECTIONS = {
+    "Best Fit": "best_fit",
+    "Poor Fit": "poor_fit",
+    "Minimum Evidence Package": "minimum_evidence_package",
+    "Analysis Pattern": "analysis_pattern",
+    "Table Figure Pattern": "table_figure_pattern",
+    "Reviewer Risks": "reviewer_risks",
+    "Pivot Or Stop Rules": "pivot_or_stop_rules",
+    "Example Signals": "example_signals",
+    "Failure Modes": "failure_modes",
+}
+MARKDOWN_TEXT_SECTIONS = {
+    "Summary": "prose_summary",
+    "Claim Boundary": "claim_boundary",
+}
 
 
 def publication_seed_blockers(
@@ -66,6 +81,57 @@ def publication_seed_blockers(
     return blockers
 
 
+def publication_route_cards_from_markdown(markdown: str) -> list[dict[str, Any]]:
+    cards: list[dict[str, Any]] = []
+    current_card: dict[str, Any] | None = None
+    current_section = ""
+    section_lines: list[str] = []
+
+    def flush_section() -> None:
+        nonlocal section_lines
+        if current_card is None or not current_section:
+            section_lines = []
+            return
+        field = MARKDOWN_TEXT_SECTIONS.get(current_section)
+        if field:
+            current_card[field] = _paragraph(section_lines)
+        elif current_section in MARKDOWN_LIST_SECTIONS:
+            current_card[MARKDOWN_LIST_SECTIONS[current_section]] = _markdown_list(section_lines)
+        elif current_section == "Codex Stage Guidance":
+            current_card["codex_stage_guidance"] = _markdown_keyed_list(section_lines)
+        elif current_section == "Source Refs":
+            current_card["source_refs"] = _markdown_source_refs(section_lines)
+        section_lines = []
+
+    def flush_card() -> None:
+        if current_card and _text(current_card.get("memory_id")).startswith("publication_route_memory_"):
+            cards.append(dict(current_card))
+
+    for raw_line in markdown.splitlines():
+        line = raw_line.rstrip()
+        if line.startswith("## "):
+            flush_section()
+            flush_card()
+            current_card = {"memory_id": line[3:].strip()}
+            current_section = ""
+            section_lines = []
+            continue
+        if current_card is None:
+            continue
+        if line.startswith("### "):
+            flush_section()
+            current_section = line[4:].strip()
+            continue
+        if current_section:
+            section_lines.append(line)
+            continue
+        _parse_metadata_line(current_card, line)
+
+    flush_section()
+    flush_card()
+    return cards
+
+
 def normalize_publication_route_card(card: Mapping[str, Any]) -> dict[str, Any]:
     normalized = {
         "memory_id": _required_text("memory_id", card.get("memory_id")),
@@ -81,6 +147,50 @@ def normalize_publication_route_card(card: Mapping[str, Any]) -> dict[str, Any]:
     for field in RICH_LIST_FIELDS:
         normalized[field] = _text_list(card.get(field))
     return normalized
+
+
+def _parse_metadata_line(card: dict[str, Any], line: str) -> None:
+    if line.startswith("Status:"):
+        card["status"] = line.removeprefix("Status:").strip()
+    elif line.startswith("Route family:"):
+        card["route_family"] = line.removeprefix("Route family:").strip()
+    elif line.startswith("Stage applicability:"):
+        stages = line.removeprefix("Stage applicability:").split(",")
+        card["stage_applicability"] = [_text(stage) for stage in stages if _text(stage)]
+    elif line.startswith("Title:"):
+        card["title"] = line.removeprefix("Title:").strip()
+
+
+def _paragraph(lines: Sequence[str]) -> str:
+    return " ".join(line.strip() for line in lines if line.strip()).strip()
+
+
+def _markdown_list(lines: Sequence[str]) -> list[str]:
+    return [line.strip()[2:].strip() for line in lines if line.strip().startswith("- ") and line.strip()[2:].strip()]
+
+
+def _markdown_keyed_list(lines: Sequence[str]) -> dict[str, str]:
+    guidance: dict[str, str] = {}
+    for item in _markdown_list(lines):
+        key, separator, value = item.partition(":")
+        if separator and _text(key) and _text(value):
+            guidance[_text(key)] = _text(value)
+    return guidance
+
+
+def _markdown_source_refs(lines: Sequence[str]) -> list[dict[str, str]]:
+    refs = []
+    for item in _markdown_list(lines):
+        parts = [_text(part) for part in item.split("|")]
+        if len(parts) >= 2:
+            refs.append(
+                {
+                    "ref_kind": parts[0],
+                    "ref": parts[1],
+                    "role": parts[2] if len(parts) >= 3 else "",
+                }
+            )
+    return refs
 
 
 def _publication_route_card_field_present(card: Mapping[str, Any], field: str) -> bool:
@@ -121,4 +231,8 @@ def _text_list(value: object) -> list[str]:
     return [_text(item) for item in value if _text(item)]
 
 
-__all__ = ["normalize_publication_route_card", "publication_seed_blockers"]
+__all__ = [
+    "normalize_publication_route_card",
+    "publication_route_cards_from_markdown",
+    "publication_seed_blockers",
+]

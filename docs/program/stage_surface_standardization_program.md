@@ -42,7 +42,7 @@ Stage card
 | `deliverable review page` | 每个 stage 的最终人读交付物统一收敛成一页 `Stage Deliverable Review Page`，供论文人工审阅者判断该 stage 是否能进入下一步；它是可选人工审阅记录，不是默认卡点。 |
 | `deliverable index` | 每条 paper line 有一个 `Stage Deliverable Index`，按 stage 列出最新 review page、源 artifact refs、owner receipt、freshness、人工判断状态和下一步；索引只做 locator/projection，不改 MAS truth。 |
 | `quality gate` | 每个 stage 都有医学、统计、证据、写作或投稿质控 rubric；ready / done / pass 只能由对应 MAS owner truth surface 支撑。 |
-| `artifact locator` | repo 只保存 contract、prompt、policy、schema、seed fixture 和 locator；真实 workspace artifact body 留在 workspace/runtime root。 |
+| `artifact locator` | repo 只保存 contract、prompt、policy、schema、Markdown memory body、seed index 和 locator；真实 workspace artifact body 留在 workspace/runtime root。 |
 | `OPL projection` | OPL 只消费 descriptor、refs、freshness、attempt receipt 和 source locator；不生成医学 truth、不接受 memory writeback、不授权 publication readiness。 |
 
 ### 理想目录口径
@@ -54,7 +54,7 @@ Stage card
 | `agent/stages/` | MAS Stage-Led Autonomy | stage cards、route summaries、stage-to-route map。 |
 | `agent/prompts/` | MAS overlay / agent entry | Codex/OpenClaw/other executor prompt projections。 |
 | `agent/skills/` | MAS app skill / overlay | 每个主 stage 的 human-readable skill surface。 |
-| `agent/knowledge/` | MAS domain memory owner | publication route memory policy、seed fixture、locator contract、writeback rules。 |
+| `agent/knowledge/` | MAS domain memory owner | publication route memory policy、Markdown library、seed index、locator contract、writeback rules。 |
 | `agent/quality_gates/` | Quality OS | AI reviewer policy、publication gate、reporting guideline pack、stage quality rubrics。 |
 | `contracts/runtime/sidecar/` | Runtime OS + OPL bridge | sidecar export/dispatch、guarded task receipt、forbidden-write proof。 |
 | `runtime/artifact_locator/` | Artifact OS | workspace/runtime artifact root locator refs，不保存 artifact body。 |

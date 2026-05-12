@@ -96,6 +96,7 @@
     "memory_family": "publication_route_memory",
     "source_surfaces": [
       "docs/policies/study-workflow/publication_route_memory_policy.md",
+      "docs/policies/study-workflow/publication_route_memory_library.md",
       "docs/policies/study-workflow/study_archetypes.md",
       "publication_route_memory_pack",
       "publication_route_memory_apply_receipt",
@@ -105,6 +106,7 @@
       "stage_recall_index"
     ],
     "migration_plan_ref": "docs/policies/study-workflow/publication_route_memory_policy.md#migration-plan",
+    "canonical_body_ref": "docs/policies/study-workflow/publication_route_memory_library.md",
     "seed_corpus_ref": "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
     "writeback_receipt_locator_ref": "portfolio/research_memory/publication_route_memory/writeback_receipts",
     "workspace_apply_surface": {
@@ -116,7 +118,8 @@
     },
     "migration_readiness": {
       "status": "workspace_apply_closure_ready",
-      "seed_fixture_status": "repo_source_fixture_available",
+      "canonical_body_status": "markdown_source_available",
+      "seed_index_status": "repo_source_index_available",
       "memory_body_migration": "domain_owned_workspace_apply_available",
       "opl_apply_allowed": false
     },

@@ -267,11 +267,18 @@ def _render_portal_console_soak_text(result: dict[str, Any]) -> str:
 
 def _handle_stage_memory_command(args: argparse.Namespace, *, parser: argparse.ArgumentParser) -> int | None:
     if args.command == "publication-route-memory-apply-seed":
-        result = stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
-            workspace_root=Path(args.workspace_root),
-            seed_fixture_path=Path(args.seed_fixture),
-            apply=bool(args.apply),
-        )
+        if args.seed_library:
+            result = stage_knowledge_plane.apply_publication_route_memory_seed_library(
+                workspace_root=Path(args.workspace_root),
+                seed_library_path=Path(args.seed_library),
+                apply=bool(args.apply),
+            )
+        else:
+            result = stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+                workspace_root=Path(args.workspace_root),
+                seed_fixture_path=Path(args.seed_fixture),
+                apply=bool(args.apply),
+            )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

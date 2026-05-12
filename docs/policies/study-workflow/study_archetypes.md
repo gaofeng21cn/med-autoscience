@@ -13,7 +13,7 @@
 
 这些 archetype 是旧 MAS 已实现的第一代 route bias / contract input。它们会从 profile 或 study payload 进入 `study_archetype` 解析，然后影响 medical analysis contract、medical reporting contract、medical paper readiness、statistical discipline runtime 和 overlay prompt 的路线/报告期望。它们不是完整的论文套路经验库，也不是 workspace memory store，没有 writeback proposal、accepted/rejected receipt、workspace pack 或 inventory。
 
-完整的论文套路 domain memory 现在由 [Publication Route Memory Policy](./publication_route_memory_policy.md) 管理，repo seed 位于 [publication_route_memory_seed_fixture.json](./publication_route_memory_seed_fixture.json)，真实 workspace memory pack 位于 `portfolio/research_memory/publication_route_memory/memory_pack.json`。当前 seed fixture 已把这些 archetype 扩展为富文本 natural-language memory cards；每张卡包含 fit/poor-fit、minimum evidence package、analysis/display pattern、claim boundary、reviewer risks、pivot/stop rules 和 stage guidance。这里保留的是第一代人读索引，方便理解旧字段和旧调用链。
+完整的论文套路 domain memory 现在由 [Publication Route Memory Policy](./publication_route_memory_policy.md) 管理，维护者直接编辑 [Publication Route Memory Library](./publication_route_memory_library.md)，repo seed index 位于 [publication_route_memory_seed_fixture.json](./publication_route_memory_seed_fixture.json)，真实 workspace memory pack 位于 `portfolio/research_memory/publication_route_memory/memory_pack.json`。当前 Markdown library 已把这些 archetype 扩展为富文本 natural-language memory cards；每张卡包含 fit/poor-fit、minimum evidence package、analysis/display pattern、claim boundary、reviewer risks、pivot/stop rules 和 stage guidance。这里保留的是第一代人读索引，方便理解旧字段和旧调用链。
 
 补充 archetype：
 

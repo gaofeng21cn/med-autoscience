@@ -95,11 +95,24 @@ STAGE_OBLIGATION_GAP_REQUIREMENTS = {
 }
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SEED_FIXTURE = REPO_ROOT / "docs" / "policies" / "study-workflow" / "publication_route_memory_seed_fixture.json"
+SEED_LIBRARY = REPO_ROOT / "docs" / "policies" / "study-workflow" / "publication_route_memory_library.md"
 
 
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_publication_route_memory_seed_fixture_is_markdown_first_index() -> None:
+    fixture = json.loads(SEED_FIXTURE.read_text(encoding="utf-8"))
+    fixture_text = json.dumps(fixture, ensure_ascii=False)
+
+    assert fixture["canonical_body_ref"] == "docs/policies/study-workflow/publication_route_memory_library.md"
+    assert "seed_cards" not in fixture
+    assert "prose_summary" not in fixture_text
+    assert "best_fit" not in fixture_text
+    assert "minimum_evidence_package" not in fixture_text
+    assert SEED_LIBRARY.exists()
 
 
 def test_stage_knowledge_plane_contract_exposes_required_packet_surfaces() -> None:
@@ -309,25 +322,39 @@ def test_decision_stage_knowledge_packet_reads_publication_route_memory_refs(tmp
 def test_publication_route_memory_seed_rejects_thin_cards(tmp_path) -> None:
     workspace_root = tmp_path / "workspace"
     thin_fixture = tmp_path / "thin_publication_route_seed.json"
+    thin_library = tmp_path / "thin_publication_route_library.md"
     _write_json(
         thin_fixture,
         {
             "surface_kind": "publication_route_memory_seed_fixture",
             "schema_version": 1,
             "memory_family": "publication_route_memory",
-            "seed_cards": [
-                {
-                    "memory_id": "thin-route",
-                    "status": "draft_seed",
-                    "route_family": "thin",
-                    "stage_applicability": ["idea"],
-                    "title": "Too thin",
-                    "prose_summary": "A name and two sentences are not enough.",
-                    "failure_modes": ["thin_card"],
-                    "source_refs": [],
-                }
-            ],
+            "canonical_body_ref": str(thin_library),
         },
+    )
+    thin_library.write_text(
+        "\n".join(
+            [
+                "# Thin Publication Route Memory Library",
+                "",
+                "## publication_route_memory_seed__thin_route",
+                "",
+                "Status: draft_seed",
+                "Route family: thin",
+                "Stage applicability: idea",
+                "Title: Too thin",
+                "",
+                "### Summary",
+                "",
+                "A name and two sentences are not enough.",
+                "",
+                "### Failure Modes",
+                "",
+                "- thin_card",
+                "",
+            ]
+        ),
+        encoding="utf-8",
     )
 
     receipt = stage_knowledge_plane.apply_publication_route_memory_seed_fixture(

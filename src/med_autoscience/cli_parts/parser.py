@@ -48,7 +48,9 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
 
     seed_parser = subparsers.add_parser("publication-route-memory-apply-seed")
     seed_parser.add_argument("--workspace-root", required=True)
-    seed_parser.add_argument("--seed-fixture", required=True)
+    seed_source = seed_parser.add_mutually_exclusive_group(required=True)
+    seed_source.add_argument("--seed-fixture")
+    seed_source.add_argument("--seed-library")
     seed_apply_mode = seed_parser.add_mutually_exclusive_group(required=True)
     seed_apply_mode.add_argument("--apply", action="store_true")
     seed_apply_mode.add_argument("--dry-run", action="store_true")

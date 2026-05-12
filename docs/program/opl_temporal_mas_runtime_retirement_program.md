@@ -28,7 +28,7 @@ MAS 侧已经落地：
 
 - MAS 可被 OPL 发现为 aligned domain-agent skeleton 和 stage control plane；
 - MAS sidecar export/dispatch 可暴露并消费 typed paper-autonomy task；
-- MAS publication-route memory 已有 policy、seed fixtures、workspace apply closure、locator refs、typed writeback proposal 和 router receipt boundary；
+- MAS publication-route memory 已有 policy、Markdown canonical library、seed index、workspace apply closure、locator refs、typed writeback proposal 和 router receipt boundary；
 - 三篇真实 paper line 已完成 read-only closeout projection：DM002 -> `ai_reviewer_re_eval`，DM003 -> `artifact_delta`，Obesity -> `artifact_delta`，且 `writes_performed=false`；
 - DM002 read-only proof 已显示 publication-route memory consumed ref 和 MAS workspace/runtime writeback receipt refs，OPL/Aion 只能显示 refs；
 - `real-paper-autonomy-guarded-apply-proof` 已把 read-only proof 推进为 MAS-owned guarded apply proof surface：已有 MAS owner apply receipt 时可承认真实 workspace mutation；没有 owner receipt 或 human/live gate 不允许时输出 typed blocker / receipt，并保持 no-forbidden-write proof；

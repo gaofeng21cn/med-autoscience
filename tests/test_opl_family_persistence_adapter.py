@@ -237,6 +237,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert by_slot["agent/stages"]["status"] == "mapped_to_existing_repo_paths"
     assert by_slot["agent/knowledge"]["repo_paths"] == [
         "docs/policies/study-workflow/publication_route_memory_policy.md",
+        "docs/policies/study-workflow/publication_route_memory_library.md",
         "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
     ]
     assert by_slot["contracts/runtime/sidecar"]["repo_paths"] == [
