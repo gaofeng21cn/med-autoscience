@@ -290,3 +290,43 @@ def test_resolve_style_roles_rejects_missing_required_time_dependent_roc_panel_r
         assert "reference_line" in str(exc)
     else:
         raise AssertionError("expected missing time-dependent ROC panel style role to be rejected")
+
+
+def test_figure_semantics_manifest_rejects_evidence_renderer_contract_without_display_to_claim_fields() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
+
+    errors = module.validate_figure_semantics_manifest(
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "F1",
+                    "story_role": "primary_evidence",
+                    "research_question": "Does the primary figure support the manuscript claim?",
+                    "direct_message": "The model signal supports the bounded claim.",
+                    "clinical_implication": "Supports clinical interpretation without readiness authorization.",
+                    "interpretation_boundary": "This display is QA input and does not authorize publication readiness.",
+                    "panel_messages": [{"panel_id": "A", "message": "Primary evidence panel."}],
+                    "legend_glossary": [{"term": "AUC", "explanation": "Discrimination summary."}],
+                    "threshold_semantics": "Thresholds are descriptive only.",
+                    "stratification_basis": "Predefined cohort strata.",
+                    "recommendation_boundary": "No treatment recommendation is authorized.",
+                    "renderer_contract": {
+                        "figure_semantics": "evidence",
+                        "renderer_family": "r_ggplot2",
+                        "template_id": "roc_curve_binary",
+                        "selection_rationale": "The locked R renderer is the audited source for this figure.",
+                        "layout_qc_profile": "publication_evidence_curve",
+                        "required_exports": ["png", "pdf"],
+                        "fallback_on_failure": False,
+                        "failure_action": "block_and_fix_environment",
+                    },
+                }
+            ],
+        }
+    )
+
+    assert errors
+    assert "figures[0].renderer_contract invalid" in errors[0]
+    assert "core_claim" in errors[0]
+    assert "publication readiness" not in errors[0]

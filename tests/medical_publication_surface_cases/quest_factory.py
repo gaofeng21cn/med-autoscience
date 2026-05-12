@@ -1,7 +1,10 @@
 from .shared_base import *
 from .shared_base import _write_review_ledger
+from .endpoint_provenance_fixture import write_endpoint_provenance_note_fixture
+from .figure_contract_fixtures import default_threshold_renderer_contract, evidence_renderer_display_to_claim_fields
 from .medical_writing_surfaces import write_medical_manuscript_blueprint_fixture, write_medical_prose_review_fixture
 from .quest_factory_numeric_trace import write_numeric_trace_fixture
+from .reproducibility_fixture import write_reproducibility_supplement_fixture
 from .statistical_disclosure_fixtures import write_statistical_reviewer_audit_fixture, write_structured_disclosure_audit_fixture
 def make_quest(
     tmp_path: Path,
@@ -489,19 +492,7 @@ def make_quest(
         )
 
     if include_figure_semantics_manifest:
-        renderer_contract = {
-            "figure_semantics": "evidence",
-            "renderer_family": "r_ggplot2",
-            "template_id": "roc_curve_binary",
-            "selection_rationale": (
-                "This result figure is regenerated from the locked R analysis stack so the plotted "
-                "evidence remains coupled to the audited statistical outputs."
-            ),
-            "layout_qc_profile": "publication_evidence_curve",
-            "required_exports": ["png", "pdf"],
-            "fallback_on_failure": False,
-            "failure_action": "block_and_fix_environment",
-        }
+        renderer_contract = default_threshold_renderer_contract()
         if renderer_contract_override is not None:
             renderer_contract.update(renderer_contract_override)
         dump_json(
@@ -636,34 +627,12 @@ def make_quest(
         )
 
     if include_reproducibility_supplement:
-        dump_json(
-            paper_root / "manuscript_safe_reproducibility_supplement.json",
-            {
-                "schema_version": 1,
-                "software_versions": [
-                    {"package": "python", "version": "3.12"},
-                    {"package": "scikit-learn", "version": "1.5.0"},
-                ],
-                "random_seed_policy": "Fixed seeds across repeated nested validation with the manifest recorded in the experiment package.",
-                "key_hyperparameters": [
-                    {"model_id": "M1", "parameters": {"max_depth": 3, "learning_rate": 0.05}}
-                ],
-                "missing_data_strategy": "Median imputation plus missingness indicators where prespecified.",
-                "missing_data_policy_id": reproducibility_missing_data_policy_id,
-                "metric_definitions": [
-                    {"metric": "AUC", "definition": "Area under the ROC curve."},
-                    {"metric": "Net benefit", "definition": "Decision-curve net benefit across prespecified thresholds."},
-                ],
-            },
+        write_reproducibility_supplement_fixture(
+            paper_root,
+            missing_data_policy_id=reproducibility_missing_data_policy_id,
         )
     if include_endpoint_provenance_note:
-        (paper_root / "endpoint_provenance_note.md").write_text(
-            "# Endpoint Provenance Note\n\n"
-            "- endpoint_name: removal_rate\n"
-            "- provenance_caveat: In the frozen cohort, `removal_rate` is treated as a working early residual / non-GTR label and retains an explicit 3-month MRI provenance caveat.\n"
-            "- manuscript_required_statement: The endpoint was based on the audited removal_rate field and should be interpreted as a working proxy for early residual status with an explicit 3-month MRI provenance caveat.\n",
-            encoding="utf-8",
-        )
+        write_endpoint_provenance_note_fixture(paper_root)
     if include_medical_manuscript_blueprint:
         write_medical_manuscript_blueprint_fixture(paper_root)
     if include_medical_prose_review:
@@ -862,6 +831,12 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
                 "selection_rationale": "The validation panel stays on the audited direct-migration template.",
                 "layout_qc_profile": "publication_evidence_curve",
                 "required_exports": ["png", "pdf"],
+                **evidence_renderer_display_to_claim_fields(
+                    figure_id="F2",
+                    core_claim="Primary endpoint discrimination and grouped calibration support the manuscript validation claim.",
+                    panel_role="performance_validation",
+                    qa_risk="Discrimination and calibration could be read as transport evidence without the stated boundary.",
+                ),
                 "fallback_on_failure": False,
                 "failure_action": "block_and_fix_environment",
             },
@@ -885,6 +860,12 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
                 "selection_rationale": "The manuscript requires the audited two-panel tertile summary rather than a grouped KM fallback.",
                 "layout_qc_profile": "publication_survival_curve",
                 "required_exports": ["png", "pdf"],
+                **evidence_renderer_display_to_claim_fields(
+                    figure_id="F3",
+                    core_claim="Risk tertile summaries support the bounded risk-layering interpretation.",
+                    panel_role="risk_stratification",
+                    qa_risk="Risk-group separation could be mistaken for a treatment rule.",
+                ),
                 "fallback_on_failure": False,
                 "failure_action": "block_and_fix_environment",
             },
@@ -908,6 +889,12 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
                 "selection_rationale": "The horizon-aware decision curve stays on the audited direct-migration template.",
                 "layout_qc_profile": "publication_decision_curve",
                 "required_exports": ["png", "pdf"],
+                **evidence_renderer_display_to_claim_fields(
+                    figure_id="F4",
+                    core_claim="Decision-curve evidence supports threshold-aware clinical utility interpretation.",
+                    panel_role="clinical_utility",
+                    qa_risk="Net benefit curves could be overread as recommending a single operating threshold.",
+                ),
                 "fallback_on_failure": False,
                 "failure_action": "block_and_fix_environment",
             },
@@ -934,6 +921,12 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
                     "selection_rationale": "The center-level overview remains on the audited multicenter template.",
                     "layout_qc_profile": "publication_multicenter_overview",
                     "required_exports": ["png", "pdf"],
+                    **evidence_renderer_display_to_claim_fields(
+                        figure_id="F5",
+                        core_claim="Center-level summaries support cautious internal generalizability framing.",
+                        panel_role="generalizability",
+                        qa_risk="Internal center alignment could be overread as external transport validation.",
+                    ),
                     "fallback_on_failure": False,
                     "failure_action": "block_and_fix_environment",
                 },

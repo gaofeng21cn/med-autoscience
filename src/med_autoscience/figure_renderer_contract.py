@@ -33,6 +33,45 @@ def _normalize_string(value: object) -> str:
     return str(value or "").strip().lower()
 
 
+def _normalize_display_string(value: object) -> str:
+    return str(value or "").strip()
+
+
+def _normalize_non_empty_string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [_normalize_display_string(item) for item in value if _normalize_display_string(item)]
+
+
+def _validate_evidence_display_to_claim_fields(payload: dict[str, object]) -> list[str]:
+    errors: list[str] = []
+    required_string_fields = (
+        ("core_claim", "core_claim must be non-empty for evidence figure renderer contracts"),
+        ("panel_role", "panel_role must be non-empty for evidence figure renderer contracts"),
+    )
+    for field_name, error_message in required_string_fields:
+        if not _normalize_display_string(payload.get(field_name)):
+            errors.append(error_message)
+
+    required_list_fields = (
+        ("evidence_chain", "evidence_chain must contain at least one reference for evidence figure renderer contracts"),
+        (
+            "source_data_refs",
+            "source_data_refs must contain at least one reference for evidence figure renderer contracts",
+        ),
+        ("statistics_refs", "statistics_refs must contain at least one reference for evidence figure renderer contracts"),
+        ("qa_risks", "qa_risks must contain at least one risk for evidence figure renderer contracts"),
+    )
+    for field_name, error_message in required_list_fields:
+        if not _normalize_non_empty_string_list(payload.get(field_name)):
+            errors.append(error_message)
+
+    export_contract = payload.get("export_contract")
+    if not isinstance(export_contract, dict) or not export_contract:
+        errors.append("export_contract must be a non-empty object for evidence figure renderer contracts")
+    return errors
+
+
 def allowed_renderer_families(figure_semantics: str) -> tuple[str, ...]:
     normalized = _normalize_string(figure_semantics)
     if normalized not in _ALLOWED_RENDERERS_BY_SEMANTICS:
@@ -115,6 +154,9 @@ def validate_renderer_contract(payload: object, *, label: str = "renderer_contra
     elif failure_action != FAILURE_ACTION_BLOCK_AND_FIX_ENVIRONMENT:
         errors.append(f"failure_action must be `{FAILURE_ACTION_BLOCK_AND_FIX_ENVIRONMENT}`")
 
+    if figure_semantics == FIGURE_SEMANTICS_EVIDENCE:
+        errors.extend(_validate_evidence_display_to_claim_fields(payload))
+
     if figure_semantics == FIGURE_SEMANTICS_EVIDENCE and template_id:
         if not display_registry.is_evidence_figure_template(template_id):
             errors.append(f"template_id `{template_id}` is not a registered evidence figure template")
@@ -168,7 +210,7 @@ def normalize_renderer_contract(payload: object) -> dict[str, object]:
     if errors:
         raise ValueError("; ".join(errors))
     assert isinstance(payload, dict)
-    return {
+    normalized = {
         "figure_semantics": _normalize_string(payload.get("figure_semantics")),
         "renderer_family": _normalize_string(payload.get("renderer_family")),
         "template_id": str(payload.get("template_id") or "").strip(),
@@ -182,3 +224,16 @@ def normalize_renderer_contract(payload: object) -> dict[str, object]:
         "fallback_on_failure": False,
         "failure_action": FAILURE_ACTION_BLOCK_AND_FIX_ENVIRONMENT,
     }
+    if normalized["figure_semantics"] == FIGURE_SEMANTICS_EVIDENCE:
+        normalized.update(
+            {
+                "core_claim": _normalize_display_string(payload.get("core_claim")),
+                "evidence_chain": _normalize_non_empty_string_list(payload.get("evidence_chain")),
+                "panel_role": _normalize_display_string(payload.get("panel_role")),
+                "source_data_refs": _normalize_non_empty_string_list(payload.get("source_data_refs")),
+                "statistics_refs": _normalize_non_empty_string_list(payload.get("statistics_refs")),
+                "export_contract": dict(payload.get("export_contract") or {}),
+                "qa_risks": _normalize_non_empty_string_list(payload.get("qa_risks")),
+            }
+        )
+    return normalized

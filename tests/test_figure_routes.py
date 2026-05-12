@@ -40,6 +40,8 @@ def test_supported_required_route_help_mentions_explicit_prefixes() -> None:
 
     assert "figure_script_fix:<figure-id>" in text
     assert "figure_illustration_program:<figure-id>" in text
+    assert "display-to-claim QA input" in text
+    assert "does not authorize publication readiness" in text
 
 
 def test_normalize_required_route_rejects_removed_autofigure_route() -> None:

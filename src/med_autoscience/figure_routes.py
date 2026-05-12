@@ -127,5 +127,6 @@ def supported_required_route_help() -> str:
     return (
         "Supported forms: plain mainline routes such as `literature_scout`, plus explicit figure routes "
         "`figure_script_fix:<figure-id>` and `figure_illustration_program:<figure-id>`. "
+        "Figure route metadata is display-to-claim QA input and does not authorize publication readiness. "
         "The ambiguous legacy form `sidecar:<figure-id>` is rejected."
     )
