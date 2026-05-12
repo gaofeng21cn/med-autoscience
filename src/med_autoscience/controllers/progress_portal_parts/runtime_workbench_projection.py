@@ -4,6 +4,8 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from .stage_review import runtime_stage_review_summary
+
 
 PROGRESS_PORTAL_PAYLOAD_REF = "artifacts/runtime/progress_portal/latest.json"
 PROGRESS_PORTAL_STUDY_PAYLOAD_REF_TEMPLATE = "artifacts/runtime/progress_portal/studies/{study_id}/latest.json"
@@ -38,18 +40,24 @@ def build_runtime_workbench_projection(
         for row in workspace_study_rows
         if _non_empty_text(row.get("study_id")) is not None
     ]
-    if not workspace_overview_mode and not any(item["study_id"] == study_id for item in studies):
-        studies.append(
-            _selected_workbench_study(
-                study_id=study_id,
-                user_visible=user_visible,
-                progress=progress,
-                runtime=runtime,
-                freshness=freshness,
-                source_refs=source_refs,
-                study_workbench=study_workbench,
-            )
+    if not workspace_overview_mode:
+        selected_study = _selected_workbench_study(
+            study_id=study_id,
+            user_visible=user_visible,
+            progress=progress,
+            runtime=runtime,
+            freshness=freshness,
+            source_refs=source_refs,
+            study_workbench=study_workbench,
         )
+        replaced = False
+        for index, item in enumerate(studies):
+            if item["study_id"] == study_id:
+                studies[index] = selected_study
+                replaced = True
+                break
+        if not replaced:
+            studies.append(selected_study)
     return {
         "surface_kind": "mas_opl_runtime_workbench_projection",
         "schema_version": 1,
@@ -155,6 +163,7 @@ def _selected_workbench_study(
         or _non_empty_text(_mapping(progress.get("supervision")).get("active_run_id"))
         or _non_empty_text(runtime.get("active_run_id"))
     )
+    stage_review = runtime_stage_review_summary(_mapping(study_workbench.get("stage_review_index")))
     return {
         "study_id": study_id,
         "display_title": study_id,
@@ -172,13 +181,19 @@ def _selected_workbench_study(
         "blocker_summary": "; ".join(_string_list(user_visible.get("current_blockers"))) or None,
         "next_action_summary": _non_empty_text(user_visible.get("next_system_action")),
         "source_refs": source_refs[:12],
-        "links": _workbench_links(study_id, selected=True),
+        "links": _workbench_links(study_id, selected=True, artifact_refs=_stage_review_artifact_refs(stage_review)),
         "actions": _workbench_actions(),
         "workbench": dict(study_workbench),
+        "stage_review": stage_review,
     }
 
 
-def _workbench_links(study_id: str, *, selected: bool) -> dict[str, Any]:
+def _workbench_links(
+    study_id: str,
+    *,
+    selected: bool,
+    artifact_refs: list[str] | None = None,
+) -> dict[str, Any]:
     return {
         "progress_payload_ref": (
             PROGRESS_PORTAL_PAYLOAD_REF
@@ -188,8 +203,20 @@ def _workbench_links(study_id: str, *, selected: bool) -> dict[str, Any]:
         "conversation_read_model_ref": "artifacts/runtime/conversation_read_model/latest.json",
         "live_console_read_model_ref": "artifacts/runtime/live_console/session_read_model/latest.json",
         "terminal_attach_status_ref": "artifacts/runtime/terminal_attach/read_model/latest.json",
-        "artifact_refs": [],
+        "artifact_refs": list(artifact_refs or []),
     }
+
+
+def _stage_review_artifact_refs(stage_review: Mapping[str, Any]) -> list[str]:
+    refs = [
+        _non_empty_text(stage_review.get("latest_review_page_ref")),
+        _non_empty_text(stage_review.get("deliverable_index_ref")),
+    ]
+    result: list[str] = []
+    for ref in refs:
+        if ref is not None and ref not in result:
+            result.append(ref)
+    return result
 
 
 def _workbench_actions() -> dict[str, dict[str, Any]]:

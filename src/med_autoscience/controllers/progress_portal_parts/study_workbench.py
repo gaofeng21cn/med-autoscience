@@ -12,6 +12,7 @@ from .route_decision_trail import (
     render_route_decision_trail_section,
 )
 from .source_refs import source_ref_allowed, source_refs
+from .stage_review import build_stage_review_index, render_stage_review_section
 from .status_display import display_text
 from med_autoscience.controllers.stage_knowledge_visibility import build_stage_knowledge_visibility
 
@@ -75,6 +76,7 @@ def build_study_workbench_payload(
         resolved_study_id,
     )
     stage_knowledge = _stage_knowledge_projection(resolved_progress, resolved_study_id)
+    stage_review_index = build_stage_review_index(resolved_progress, study_id=resolved_study_id)
     conversation = _conversation_projection(conversation_payload, resolved_study_id)
     path_stage = {
         "current_stage": _first_text(user_visible.get("current_stage"), cockpit_study.get("current_stage")),
@@ -142,6 +144,11 @@ def build_study_workbench_payload(
                 "label": "Stage Knowledge",
                 "status": _non_empty_text(stage_knowledge.get("status")) or "missing",
             },
+            {
+                "id": "stage_review",
+                "label": "Stage 交付审阅",
+                "status": _non_empty_text(stage_review_index.get("status")) or "missing",
+            },
             {"id": "path_stage", "label": "路径/阶段", "status": _tab_status(path_stage)},
             {"id": "runtime", "label": "运行", "status": _tab_status(runtime_projection)},
             {"id": "artifacts", "label": "产物", "status": _artifact_tab_status(artifact_groups)},
@@ -152,6 +159,7 @@ def build_study_workbench_payload(
         "route_map": route_map,
         "route_decision_trail": route_decision_trail,
         "stage_knowledge": stage_knowledge,
+        "stage_review_index": stage_review_index,
         "path_stage": path_stage,
         "runtime": runtime_projection,
         "artifact_groups": artifact_groups,
@@ -166,6 +174,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
     route_map = _mapping(payload.get("route_map"))
     route_decision_trail = _mapping(payload.get("route_decision_trail"))
     stage_knowledge = _mapping(payload.get("stage_knowledge"))
+    stage_review_index = _mapping(payload.get("stage_review_index"))
     path_stage = _mapping(payload.get("path_stage"))
     runtime = _mapping(payload.get("runtime"))
     artifact_groups = _mapping(payload.get("artifact_groups"))
@@ -183,6 +192,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
             render_route_map_section(route_map),
             render_route_decision_trail_section(route_decision_trail),
             _stage_knowledge_section(stage_knowledge),
+            render_stage_review_section(stage_review_index),
             _key_value_section(
                 "路径与阶段",
                 {

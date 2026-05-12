@@ -6,6 +6,7 @@ from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile, write_text
 from tests.test_progress_portal import _progress_payload
+from tests.progress_portal_cases.test_stage_review_surface import _stage_review_payload
 
 
 def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_path: Path) -> None:
@@ -80,6 +81,38 @@ def test_materialize_progress_portal_writes_only_read_model_and_static_html(tmp_
     assert result["hosted_package"]["package_refs"]["hosted_package"] == str(hosted_package_path)
     assert html_path.read_text(encoding="utf-8").startswith("<!doctype html>")
     assert "路线 / 决策" in html_path.read_text(encoding="utf-8")
+    assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "controller_decisions").exists()
+    assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "publication_eval").exists()
+
+
+def test_materialized_study_page_renders_stage_review_table_without_writing_truth(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    profile = make_profile(tmp_path)
+    write_text(profile.workspace_root / "studies" / "001-risk" / "study.yaml", "study_id: 001-risk\n")
+
+    result = module.materialize_progress_portal(
+        profile=profile,
+        study_id="001-risk",
+        progress_payload=_stage_review_payload(),
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    study_payload_path = (
+        profile.workspace_root
+        / "artifacts"
+        / "runtime"
+        / "progress_portal"
+        / "studies"
+        / "001-risk"
+        / "latest.json"
+    )
+    html = Path(result["html_path"]).read_text(encoding="utf-8")
+    payload = json.loads(study_payload_path.read_text(encoding="utf-8"))
+    assert payload["study_workbench"]["stage_review_index"]["status"] == "available"
+    assert "Stage 交付审阅" in html
+    assert "studies/001-risk/artifacts/stage_reviews/write/latest.md" in html
+    assert "质量 verdict" in html
+    assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "stage_reviews").exists()
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "controller_decisions").exists()
     assert not (profile.workspace_root / "studies" / "001-risk" / "artifacts" / "publication_eval").exists()
 
