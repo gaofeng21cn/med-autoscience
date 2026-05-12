@@ -49,6 +49,8 @@ The important distinction is that `repo surface landed` means MAS has the callab
 
 This means the current three-paper evidence has crossed the read-only acceptance threshold and now has a MAS-owned guarded apply proof and dispatch receipt closure surface. It still has not proven production-hosted paper completion; production evidence requires MAS owner receipts with real artifact/gate/reviewer/route progress or explicit typed blockers from live workspace gates.
 
+2026-05-12 production closure wording: the current acceptable claim is that MAS has provider-guarded apply receipt surfaces, a DM002 route-memory consumed/writeback receipt chain, and three-paper guarded proof surfaces ready for OPL-hosted attempts. The remaining claim requires live provider-hosted guarded apply soak: each paper line must produce a MAS owner receipt with artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or a typed blocker from the live owner/gate.
+
 ## Acceptance Contract
 
 MAS paper autonomy is accepted only when a real eligible paper line can repeatedly show one of the following outcomes after an autonomous work unit:

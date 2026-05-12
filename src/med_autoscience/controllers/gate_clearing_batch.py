@@ -288,6 +288,79 @@ def _closed_batch_current_freshness_proof(
     )
 
 
+def _base_publication_work_unit(value: object) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        key: item
+        for key, item in value.items()
+        if key not in {"lifecycle", "lifecycle_status", "retry", "status"}
+    }
+
+
+def _closed_batch_lifecycle_record(
+    *,
+    latest_batch: dict[str, Any],
+    study_id: str,
+    quest_id: str,
+    source_eval_id: str,
+) -> dict[str, Any] | None:
+    selected_work_unit = _base_publication_work_unit(latest_batch.get("selected_publication_work_unit"))
+    if selected_work_unit is None:
+        existing_lifecycle = latest_batch.get("publication_work_unit_lifecycle")
+        if isinstance(existing_lifecycle, dict):
+            selected_work_unit = _base_publication_work_unit(existing_lifecycle.get("work_unit"))
+    unit_results = [
+        dict(item)
+        for item in (latest_batch.get("unit_results") or [])
+        if isinstance(item, dict)
+    ]
+    gate_replay = dict(latest_batch.get("gate_replay") or {})
+    if selected_work_unit is None or not unit_results:
+        return None
+    return publication_work_unit_lifecycle.build_lifecycle_record(
+        source_eval_id=source_eval_id,
+        study_id=study_id,
+        quest_id=quest_id,
+        selected_work_unit=selected_work_unit,
+        unit_results=unit_results,
+        gate_replay=gate_replay,
+    )
+
+
+def _normalize_closed_batch_lifecycle_surface(
+    *,
+    latest_batch: dict[str, Any],
+    study_root: Path,
+    study_id: str,
+    quest_id: str,
+    source_eval_id: str,
+) -> tuple[dict[str, Any] | None, bool]:
+    lifecycle_record = _closed_batch_lifecycle_record(
+        latest_batch=latest_batch,
+        study_id=study_id,
+        quest_id=quest_id,
+        source_eval_id=source_eval_id,
+    )
+    if lifecycle_record is None:
+        return None, False
+    lifecycle_path = publication_work_unit_lifecycle.stable_publication_work_unit_lifecycle_path(
+        study_root=study_root
+    )
+    current_record = _read_json(lifecycle_path)
+    current_status = _non_empty_text(current_record.get("status"))
+    current_source_eval_id = _non_empty_text(current_record.get("source_eval_id"))
+    normalized_status = _non_empty_text(lifecycle_record.get("status"))
+    if (
+        current_source_eval_id == source_eval_id
+        and current_status == normalized_status
+        and ("retry" in current_record) == ("retry" in lifecycle_record)
+    ):
+        return dict(current_record), False
+    _write_json(lifecycle_path, lifecycle_record)
+    return lifecycle_record, True
+
+
 def _latest_batch_closed_for_eval(latest_batch: dict[str, Any], current_eval_id: str | None) -> bool:
     return gate_clearing_batch_currentness.batch_closed_for_source_eval(latest_batch, source_eval_id=current_eval_id)
 
@@ -605,18 +678,29 @@ def run_gate_clearing_batch(
     current_eval_id = context.current_eval_id
     controller_decision_work_unit = context.controller_decision_work_unit
     if _latest_batch_closed_for_eval(latest_batch, current_eval_id):
+        lifecycle_record, lifecycle_normalized = _normalize_closed_batch_lifecycle_surface(
+            latest_batch=latest_batch,
+            study_root=resolved_study_root,
+            study_id=study_id,
+            quest_id=quest_id,
+            source_eval_id=current_eval_id,
+        )
         current_package_freshness_proof = _closed_batch_current_freshness_proof(
             latest_batch=latest_batch,
             study_root=resolved_study_root,
             source_eval_id=current_eval_id,
         )
-        return {
+        result = {
             "ok": True,
             "status": "skipped_duplicate_eval",
             "source_eval_id": current_eval_id,
             "latest_record_path": str(stable_gate_clearing_batch_path(study_root=resolved_study_root)),
             "current_package_freshness_proof": current_package_freshness_proof,
         }
+        if lifecycle_record is not None:
+            result["publication_work_unit_lifecycle"] = lifecycle_record
+            result["publication_work_unit_lifecycle_normalized"] = lifecycle_normalized
+        return result
 
     paper_root = context.paper_root
     if paper_root is None:

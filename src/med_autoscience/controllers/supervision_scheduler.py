@@ -12,7 +12,6 @@ SCHEDULER_OWNER = "mas_supervision_scheduler"
 HERMES_ADAPTER_ID = "hermes_gateway_cron"
 DEFAULT_MANAGER = "local"
 DEFAULT_INTERVAL_SECONDS = local_adapter.DEFAULT_INTERVAL_SECONDS
-RETIRED_MANAGERS = {"systemd", "cron", "launchd", "docker"}
 
 
 def read_supervision_status(
@@ -26,8 +25,6 @@ def read_supervision_status(
         payload = local_adapter.status(profile=profile, interval_seconds=interval_seconds)
     elif manager_key == "hermes":
         payload = _hermes_status(profile=profile, interval_seconds=interval_seconds)
-    elif manager_key in RETIRED_MANAGERS:
-        payload = _retired_manager_status(profile=profile, interval_seconds=interval_seconds, manager=manager_key)
     else:
         raise ValueError(f"unsupported supervision scheduler manager: {manager}")
     return _with_scheduler_contract(
@@ -66,26 +63,6 @@ def ensure_supervision(
             write_install_proof=write_install_proof,
         )
         return _project_hermes_result(payload)
-    if manager_key in RETIRED_MANAGERS:
-        payload = hermes_supervision.ensure_supervision(
-            profile=profile,
-            interval_seconds=interval_seconds,
-            trigger_now=False,
-            manager=manager_key,
-            write_install_proof=False,
-        )
-        projected = dict(payload)
-        projected.update(
-            {
-                "schema_version": SCHEMA_VERSION,
-                "surface_kind": "workspace_runtime_supervision_install_result",
-                "scheduler_owner": SCHEDULER_OWNER,
-                "adapter_id": _adapter_id_for_manager(manager_key),
-                "manager": manager_key,
-                "installed": False,
-            }
-        )
-        return projected
     raise ValueError(f"unsupported supervision scheduler manager: {manager}")
 
 
@@ -101,21 +78,6 @@ def remove_supervision(
     if manager_key == "hermes":
         payload = hermes_supervision.remove_supervision(profile=profile, interval_seconds=interval_seconds)
         return _project_hermes_result(payload)
-    if manager_key in RETIRED_MANAGERS:
-        before = read_supervision_status(profile=profile, interval_seconds=interval_seconds, manager=manager_key)
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "surface_kind": "workspace_runtime_supervision_remove_result",
-            "scheduler_owner": SCHEDULER_OWNER,
-            "adapter_id": _adapter_id_for_manager(manager_key),
-            "manager": manager_key,
-            "action": "retired_manager_fail_closed",
-            "status": "retired_fail_closed",
-            "before": before,
-            "after": before,
-            "removed": False,
-            "removed_job_ids": [],
-        }
     raise ValueError(f"unsupported supervision scheduler manager: {manager}")
 
 
@@ -177,34 +139,6 @@ def _hermes_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict[
     return payload
 
 
-def _retired_manager_status(*, profile: WorkspaceProfile, interval_seconds: int, manager: str) -> dict[str, Any]:
-    payload = dict(
-        hermes_supervision.ensure_supervision(
-            profile=profile,
-            interval_seconds=interval_seconds,
-            trigger_now=False,
-            manager=manager,
-            write_install_proof=False,
-        )
-    )
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "surface_kind": "workspace_runtime_supervision",
-        "scheduler_owner": SCHEDULER_OWNER,
-        "owner": SCHEDULER_OWNER,
-        "adapter_id": _adapter_id_for_manager(manager),
-        "manager": manager,
-        "status": "retired_fail_closed",
-        "loaded": False,
-        "summary": payload.get("retired_reason") or "retired workspace-local service manager",
-        "runtime_contract_ready": True,
-        "runtime_contract_issues": ["retired_workspace_local_service_manager"],
-        "drift_reasons": ["retired_workspace_local_service_manager"],
-        "watch_command": payload.get("command") or [],
-        "legacy_service_role": "retired_cleanup_evidence",
-    }
-
-
 def _project_hermes_result(payload: dict[str, Any]) -> dict[str, Any]:
     projected = dict(payload)
     projected.setdefault("schema_version", SCHEMA_VERSION)
@@ -231,7 +165,7 @@ def _adapter_id_for_manager(manager: str) -> str:
         return HERMES_ADAPTER_ID
     if manager == "local":
         return local_adapter.local_backend_id()
-    return f"retired_{manager}_scheduler"
+    raise ValueError(f"unsupported supervision scheduler manager: {manager}")
 
 
 def _workspace_key_from_hermes(payload: dict[str, Any]) -> str | None:

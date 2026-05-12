@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.stable_json import write_stable_json
 from med_autoscience.controllers import gate_clearing_batch_replay_closure
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import publication_work_unit_lifecycle
@@ -24,10 +25,10 @@ _BATCH_OPEN_UNIT_STATUSES = frozenset(
         "control_plane_route_blocked",
         "failed",
         "missing",
-        "skipped_authority_not_settled",
         "skipped_failed_dependency",
     }
 )
+_TRANSIENT_OPEN_UNIT_STATUSES = frozenset({"skipped_authority_not_settled"})
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -318,16 +319,21 @@ def terminal_publication_work_unit(selection: dict[str, Any]) -> dict[str, Any]:
 
 
 def _write_json(path: Path, payload: object) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_stable_json(path, payload)
 
 
 def _unit_results_have_open_failures(batch_payload: dict[str, Any]) -> bool:
     unit_results = batch_payload.get("unit_results")
     if not isinstance(unit_results, list):
         return False
+    if _gate_replay_closed(batch_payload):
+        return any(
+            isinstance(item, dict) and _non_empty_text(item.get("status")) in _BATCH_OPEN_UNIT_STATUSES
+            for item in unit_results
+        )
     return any(
-        isinstance(item, dict) and _non_empty_text(item.get("status")) in _BATCH_OPEN_UNIT_STATUSES
+        isinstance(item, dict)
+        and _non_empty_text(item.get("status")) in (_BATCH_OPEN_UNIT_STATUSES | _TRANSIENT_OPEN_UNIT_STATUSES)
         for item in unit_results
     )
 

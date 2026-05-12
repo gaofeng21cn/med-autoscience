@@ -391,3 +391,142 @@ def test_publication_gate_replay_selects_current_submission_authority_closure() 
     assert selection["explicit_next_work_unit"]["unit_id"] == "publication_gate_replay"
     assert selection["current_next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
     assert selection["selected_publication_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+
+
+def test_clear_gate_replay_closes_transient_authority_settle_skip() -> None:
+    currentness = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_currentness")
+    lifecycle = importlib.import_module("med_autoscience.controllers.publication_work_unit_lifecycle")
+    source_eval_id = "publication-eval::004-invasive-architecture::quest-004::2026-05-12T12:00:00+00:00"
+    unit_results = [
+        {"unit_id": "create_submission_minimal_package", "status": "ok"},
+        {
+            "unit_id": "sync_submission_minimal_delivery",
+            "status": "skipped_authority_not_settled",
+            "retry_reason": "authority_not_settled",
+            "retry_after": "2026-05-12T12:00:30+00:00",
+            "retry_after_seconds": 5,
+        },
+    ]
+    gate_replay = {"status": "clear", "allow_write": True, "blockers": []}
+
+    lifecycle_record = lifecycle.build_lifecycle_record(
+        source_eval_id=source_eval_id,
+        study_id="004-invasive-architecture",
+        quest_id="quest-004",
+        selected_work_unit={
+            "unit_id": "submission_authority_sync_closure",
+            "lane": "controller",
+        },
+        unit_results=unit_results,
+        gate_replay=gate_replay,
+    )
+
+    assert lifecycle_record["status"] == "done"
+    assert "retry" not in lifecycle_record
+    assert currentness.batch_closed_for_source_eval(
+        {
+            "source_eval_id": source_eval_id,
+            "status": "executed",
+            "unit_results": unit_results,
+            "gate_replay": gate_replay,
+        },
+        source_eval_id=source_eval_id,
+    )
+
+
+def test_duplicate_closed_gate_batch_normalizes_stale_lifecycle(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "004-invasive-architecture",
+        study_archetype="clinical_classifier",
+        endpoint_type="binary",
+        manuscript_family="observational_study",
+    )
+    quest_id = "quest-004"
+    quest_root = profile.managed_runtime_home / "quests" / quest_id
+    paper_root = quest_root / ".ds" / "worktrees" / "paper-run-004" / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    source_eval_id = "publication-eval::004-invasive-architecture::quest-004::2026-05-12T12:00:00+00:00"
+    publication_eval_payload = _write_bundle_stage_publication_eval(study_root, quest_id=quest_id)
+    publication_eval_payload["eval_id"] = source_eval_id
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    unit_results = [
+        {"unit_id": "create_submission_minimal_package", "status": "ok"},
+        {
+            "unit_id": "sync_submission_minimal_delivery",
+            "status": "skipped_authority_not_settled",
+            "retry_reason": "authority_not_settled",
+            "retry_after": "2026-05-12T12:00:30+00:00",
+            "retry_after_seconds": 5,
+        },
+    ]
+    gate_replay = {"status": "clear", "allow_write": True, "blockers": []}
+    _write_json(
+        module.stable_gate_clearing_batch_path(study_root=study_root),
+        {
+            "schema_version": 1,
+            "source_eval_id": source_eval_id,
+            "status": "executed",
+            "selected_publication_work_unit": {
+                "unit_id": "submission_authority_sync_closure",
+                "lane": "controller",
+                "lifecycle_status": "blocked",
+                "retry": {"reason": "authority_not_settled"},
+            },
+            "unit_results": unit_results,
+            "gate_replay": gate_replay,
+        },
+    )
+    lifecycle_path = (
+        study_root
+        / "artifacts"
+        / "controller"
+        / "publication_work_unit_lifecycle"
+        / "latest.json"
+    )
+    _write_json(
+        lifecycle_path,
+        {
+            "schema_version": 1,
+            "source_eval_id": source_eval_id,
+            "study_id": "004-invasive-architecture",
+            "quest_id": quest_id,
+            "status": "blocked",
+            "work_unit": {"unit_id": "submission_authority_sync_closure", "lane": "controller"},
+            "unit_statuses": [
+                {"unit_id": "sync_submission_minimal_delivery", "status": "skipped_authority_not_settled"}
+            ],
+            "gate_replay_status": "clear",
+            "retry": {"reason": "authority_not_settled"},
+        },
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_state",
+        lambda _quest_root: type("GateState", (), {"paper_root": paper_root})(),
+    )
+    monkeypatch.setattr(
+        module.publication_gate,
+        "build_gate_report",
+        lambda _state: {"status": "clear", "blockers": []},
+    )
+
+    result = module.run_gate_clearing_batch(
+        profile=profile,
+        study_id="004-invasive-architecture",
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+    )
+
+    lifecycle_record = json.loads(lifecycle_path.read_text(encoding="utf-8"))
+    assert result["status"] == "skipped_duplicate_eval"
+    assert result["publication_work_unit_lifecycle_normalized"] is True
+    assert result["publication_work_unit_lifecycle"]["status"] == "done"
+    assert lifecycle_record["status"] == "done"
+    assert "retry" not in lifecycle_record

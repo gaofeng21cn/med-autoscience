@@ -6,6 +6,12 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from med_autoscience.controllers import portfolio_memory, workspace_literature
+from med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_cards import (
+    normalize_publication_route_card as _normalize_publication_route_card,
+)
+from med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_cards import (
+    publication_seed_blockers as _publication_seed_blockers,
+)
 from med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_writeback import sync_accepted_publication_route_memory_cards as _sync_route_memory_cards
 from med_autoscience.stage_knowledge_contract import (
     EXPLORATORY_STAGES,
@@ -232,6 +238,7 @@ def select_publication_route_memory_refs(
                 "memory_id": _text(card.get("memory_id")),
                 "route_family": route_family,
                 "title": _text(card.get("title")),
+                "route_memory_summary": _text(card.get("prose_summary")),
                 "stage_applicability": _text_list(card.get("stage_applicability")),
                 "memory_pack_ref": str(pack_path),
                 "source_receipt_ref": _text(card.get("source_receipt_ref")),
@@ -850,6 +857,7 @@ def _readonly_route_memory_refs(refs: object) -> list[dict[str, Any]]:
                 "ref_kind": _text(ref.get("ref_kind")) or "workspace_memory_card_ref",
                 "memory_id": _text(ref.get("memory_id")),
                 "route_family": _text(ref.get("route_family")),
+                "route_memory_summary": _text(ref.get("route_memory_summary")),
                 "stage_applicability": _text_list(ref.get("stage_applicability")),
                 "memory_pack_ref": _text(ref.get("memory_pack_ref")),
                 "source_receipt_ref": _text(ref.get("source_receipt_ref")),
@@ -1024,42 +1032,6 @@ def _append_jsonl_once(path: Path, payload: Mapping[str, Any], *, identity: str)
                 return
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(dict(payload), ensure_ascii=False, sort_keys=True) + "\n")
-
-
-def _publication_seed_blockers(*, fixture: Mapping[str, Any], seed_cards: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
-    blockers: list[dict[str, Any]] = []
-    if fixture.get("surface_kind") != "publication_route_memory_seed_fixture":
-        blockers.append({"blocker_id": "seed_fixture_surface_invalid", "owner_target": "domain_memory_owner"})
-    if _text(fixture.get("memory_family")) != "publication_route_memory":
-        blockers.append({"blocker_id": "seed_fixture_memory_family_invalid", "owner_target": "domain_memory_owner"})
-    if not seed_cards:
-        blockers.append({"blocker_id": "seed_fixture_cards_missing", "owner_target": "domain_memory_owner"})
-    for index, card in enumerate(seed_cards):
-        if not _text(card.get("memory_id")):
-            blockers.append(
-                {"blocker_id": f"seed_card:{index + 1}:memory_id_missing", "owner_target": "domain_memory_owner"}
-            )
-        if not _text_list(card.get("stage_applicability")):
-            blockers.append(
-                {
-                    "blocker_id": f"seed_card:{index + 1}:stage_applicability_missing",
-                    "owner_target": "domain_memory_owner",
-                }
-            )
-    return blockers
-
-
-def _normalize_publication_route_card(card: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "memory_id": _required_text("memory_id", card.get("memory_id")),
-        "status": _text(card.get("status")) or "active",
-        "route_family": _text(card.get("route_family")),
-        "stage_applicability": _text_list(card.get("stage_applicability")),
-        "title": _text(card.get("title")),
-        "prose_summary": _text(card.get("prose_summary")),
-        "failure_modes": _text_list(card.get("failure_modes")),
-        "source_refs": _mapping_list(card.get("source_refs")),
-    }
 
 
 def _publication_route_memory_pack(

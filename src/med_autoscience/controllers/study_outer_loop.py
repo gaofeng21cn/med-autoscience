@@ -71,6 +71,7 @@ from med_autoscience.controllers.study_outer_loop_parts.runtime_state import (
     _runtime_status_text,
 )
 from med_autoscience.controllers.study_outer_loop_parts.owner_priority import (
+    bundle_stage_publication_eval_preempts_task_intake,
     gate_clearing_preempts_task_intake,
     startup_freshness_requires_gate_clearing,
 )
@@ -235,10 +236,19 @@ def build_runtime_watch_outer_loop_tick_request(
             publishability_gate_report=gate_report,
             evaluation_summary=evaluation_summary,
         )
+        bundle_stage_finalize_preempts_task_intake = bundle_stage_publication_eval_preempts_task_intake(
+            status_payload=status_payload,
+            gate_report=gate_report,
+            publication_eval_payload=publication_eval_payload,
+        )
+        if bundle_stage_finalize_preempts_task_intake:
+            task_intake_action = None
         batch_action = None
         startup_freshness_gate = startup_freshness_requires_gate_clearing(status_payload)
         gate_is_blocked = str(gate_report.get("status") or "").strip() == "blocked"
-        if profile is not None and (task_intake_action is None or startup_freshness_gate or gate_is_blocked):
+        if profile is not None and not bundle_stage_finalize_preempts_task_intake and (
+            task_intake_action is None or startup_freshness_gate or gate_is_blocked
+        ):
             if startup_freshness_gate:
                 batch_action = gate_clearing_batch.build_gate_clearing_batch_recommended_action(
                     profile=profile,

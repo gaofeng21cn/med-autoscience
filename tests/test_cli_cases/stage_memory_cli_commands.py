@@ -60,10 +60,10 @@ def test_publication_route_memory_apply_seed_cli_dispatches_controller(tmp_path:
     payload = json.loads(captured.out)
     assert payload["surface"] == "publication_route_memory_apply_receipt"
     assert payload["status"] == "applied"
-    assert payload["accepted_memory_ids"] == [
-        "publication_route_memory_seed__external_validation_rescue",
-        "publication_route_memory_seed__negative_result_stoploss",
-    ]
+    assert len(payload["accepted_memory_ids"]) >= 9
+    assert "publication_route_memory_seed__clinical_classifier" in payload["accepted_memory_ids"]
+    assert "publication_route_memory_seed__external_validation_rescue" in payload["accepted_memory_ids"]
+    assert "publication_route_memory_seed__negative_result_stoploss" in payload["accepted_memory_ids"]
     assert Path(payload["memory_pack_ref"]).exists()
 
 
@@ -99,18 +99,27 @@ def test_publication_route_memory_inventory_cli_lists_cards_without_body_by_defa
     assert payload["status"] == "ready"
     assert payload["read_only"] is True
     assert payload["body_included"] is False
-    assert payload["card_count_total"] == 2
-    assert payload["card_count_filtered"] == 1
-    assert [card["memory_id"] for card in payload["cards"]] == [
-        "publication_route_memory_seed__negative_result_stoploss"
+    assert payload["card_count_total"] >= 9
+    assert payload["card_count_filtered"] >= 3
+    assert [card["memory_id"] for card in payload["cards"]][:3] == [
+        "publication_route_memory_seed__clinical_classifier",
+        "publication_route_memory_seed__clinical_subtype_reconstruction",
+        "publication_route_memory_seed__negative_result_stoploss",
     ]
     assert payload["receipt_summary"]["migration_receipt_count"] == 1
     assert payload["opl_aion_receipt_inventory"]["body_included"] is False
     assert payload["opl_aion_receipt_inventory"]["receipt_count"] == 1
     assert payload["opl_aion_receipt_inventory"]["receipts"][0]["receipt_status"] == "applied"
-    assert payload["opl_aion_receipt_inventory"]["receipts"][0]["accepted_refs"] == [
+    accepted_refs = payload["opl_aion_receipt_inventory"]["receipts"][0]["accepted_refs"]
+    assert len(accepted_refs) == payload["card_count_total"]
+    assert accepted_refs[:3] == [
         {
-            "memory_id": "publication_route_memory_seed__external_validation_rescue",
+            "memory_id": "publication_route_memory_seed__clinical_classifier",
+            "reason": "",
+            "status": "accepted",
+        },
+        {
+            "memory_id": "publication_route_memory_seed__clinical_subtype_reconstruction",
             "reason": "",
             "status": "accepted",
         },
@@ -158,6 +167,10 @@ def test_publication_route_memory_inventory_cli_can_include_body_for_maintainers
     assert payload["card_count_filtered"] == 1
     assert payload["cards"][0]["route_family"] == "weak_or_negative_result_handling"
     assert "prose_summary" in payload["cards"][0]
+    assert "best_fit" in payload["cards"][0]
+    assert "minimum_evidence_package" in payload["cards"][0]
+    assert "table_figure_pattern" in payload["cards"][0]
+    assert "claim_boundary" in payload["cards"][0]
     assert "failure_modes" in payload["cards"][0]
     assert "When a bounded analysis campaign returns" in captured.out
 
@@ -205,8 +218,10 @@ def test_stage_knowledge_packet_cli_materializes_packet(tmp_path: Path, capsys) 
     assert payload["artifact_path"].endswith("artifacts/stage_knowledge/idea/latest.json")
     assert Path(payload["artifact_path"]).exists()
     assert payload["publication_route_memory_refs"][0]["memory_id"] == (
-        "publication_route_memory_seed__external_validation_rescue"
+        "publication_route_memory_seed__clinical_classifier"
     )
+    assert "route_memory_summary" in payload["publication_route_memory_refs"][0]
+    assert "minimum_evidence_package" not in payload["publication_route_memory_refs"][0]
     assert payload["authority_boundary"]["can_replace_controller_decision"] is False
 
 
@@ -409,7 +424,7 @@ def test_paper_soak_memory_proof_cli_materializes_readonly_proof(tmp_path: Path,
     assert payload["artifact_path"].endswith(
         "artifacts/stage_knowledge/paper_soak_memory_apply_proof/latest.json"
     )
-    assert payload["stage_entry"]["route_memory_ref_count"] == 1
+    assert payload["stage_entry"]["route_memory_ref_count"] == 3
     assert payload["read_only_display_policy"]["consumer_role"] == "OPL/Aion read-only display"
     assert payload["read_only_display_policy"]["can_write_memory_body"] is False
     assert all(ref["body_included"] is False for ref in payload["opl_aion_readonly_receipt_refs"])

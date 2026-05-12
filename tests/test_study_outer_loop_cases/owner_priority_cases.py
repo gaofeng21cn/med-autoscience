@@ -310,3 +310,155 @@ def test_runtime_watch_outer_loop_routes_startup_freshness_gate_before_publicati
     ]
     assert request["route_target"] == "finalize"
     assert request["next_work_unit"]["unit_id"] == "submission_minimal_refresh"
+
+
+def test_runtime_watch_outer_loop_routes_bundle_stage_ready_before_stale_task_intake(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "002-dm-china-us-mortality-attribution")
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
+    runtime_escalation_ref = _write_runtime_escalation_record(
+        module,
+        quest_root,
+        study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_id="quest-002",
+    )
+    _write_charter(study_root)
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": (
+                "publication-eval::002-dm-china-us-mortality-attribution::quest-002::"
+                "2026-05-12T13:24:00+00:00"
+            ),
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "quest-002",
+            "emitted_at": "2026-05-12T13:24:00+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                "charter_id": "charter::002-dm-china-us-mortality-attribution::v1",
+                "publication_objective": "mortality attribution manuscript",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str(study_root / "paper"),
+                "submission_minimal_ref": str(
+                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+                ),
+            },
+            "verdict": {
+                "overall_verdict": "promising",
+                "primary_claim_status": "supported",
+                "summary": "Gate replay is clear; bundle-stage authority sync is now the critical path.",
+                "stop_loss_pressure": "none",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-submission-authority",
+                    "gap_type": "delivery",
+                    "severity": "important",
+                    "summary": "submission_authority_sync_closure",
+                    "evidence_refs": [str(publication_eval_path)],
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::route_back_same_line::submission-authority",
+                    "action_type": "route_back_same_line",
+                    "priority": "now",
+                    "reason": "Continue bundle-stage submission authority sync.",
+                    "route_target": "finalize",
+                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                    "route_rationale": "The publication gate is clear and bundle-stage authority sync is current critical path.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "work_unit_fingerprint": "publication-blockers::submission-authority",
+                    "next_work_unit": {
+                        "unit_id": "submission_authority_sync_closure",
+                        "lane": "finalize",
+                        "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+                    },
+                    "blocking_work_units": [
+                        {
+                            "unit_id": "submission_authority_sync_closure",
+                            "lane": "finalize",
+                            "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+                        }
+                    ],
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
+    )
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="002-dm-china-us-mortality-attribution",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent="旧 reviewer revision intake 要求回到补充统计分析；这是 gate replay clear 之前的旧任务。",
+        constraints=("不得绕过 publication gate。",),
+        evidence_boundary=("统计扩展限于旧 task intake 指定范围。",),
+        first_cycle_outputs=("完成旧分层统计分析并写回 manuscript。",),
+    )
+    gate_report = {
+        "generated_at": "2026-05-12T13:24:00+00:00",
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+        "medical_publication_surface_status": "clear",
+        "submission_minimal_authority_status": "current",
+    }
+    monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
+    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "build_gate_clearing_batch_recommended_action",
+        lambda **_: pytest.fail("clear bundle-stage gate should use publication eval route, not replay gate-clearing"),
+    )
+    monkeypatch.setattr(
+        module.quality_repair_batch,
+        "build_quality_repair_batch_recommended_action",
+        lambda **_: pytest.fail("clear bundle-stage gate should not dispatch quality repair"),
+    )
+
+    request = module.build_runtime_watch_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload={
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "quest_id": "quest-002",
+            "quest_status": "active",
+            "runtime_liveness_status": "live",
+            "active_run_id": "mas-run-002",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+                "publication_gate_allows_direct_write": True,
+            },
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+
+    assert request is not None
+    assert request["decision_type"] == "route_back_same_line"
+    assert request["route_target"] == "finalize"
+    assert request["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert request["controller_actions"] == [
+        {
+            "action_type": "ensure_study_runtime",
+            "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
+        }
+    ]

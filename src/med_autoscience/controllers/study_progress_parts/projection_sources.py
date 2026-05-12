@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import autonomy_ai_doctor, control_plane_facts
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.profiles import WorkspaceProfile
 
 from .shared import _mapping_copy, _non_empty_text, _read_json_object
@@ -120,6 +121,7 @@ def _read_or_materialize_autonomy_slo_status(
 def _read_gate_specificity_request(
     *,
     study_root: Path,
+    publication_eval_payload: dict[str, Any] | None = None,
 ) -> tuple[Path, dict[str, Any] | None]:
     request_path = (
         study_root
@@ -129,6 +131,8 @@ def _read_gate_specificity_request(
         / "publication_gate_specificity"
         / "latest.json"
     )
+    if _publication_eval_has_complete_specificity_targets(publication_eval_payload):
+        return request_path, None
     payload = _read_json_object(request_path)
     if payload is None or payload.get("surface") != "supervisor_action_request":
         return request_path, None
@@ -163,3 +167,14 @@ def _read_gate_specificity_request(
         "paper_package_mutation_allowed": bool(payload.get("paper_package_mutation_allowed")),
         "medical_claim_authoring_allowed": bool(payload.get("medical_claim_authoring_allowed")),
     }
+
+
+def _publication_eval_has_complete_specificity_targets(payload: dict[str, Any] | None) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    for action in payload.get("recommended_actions") or []:
+        if not isinstance(action, dict):
+            continue
+        if specificity_target_status(action.get("specificity_targets")).get("complete") is True:
+            return True
+    return False

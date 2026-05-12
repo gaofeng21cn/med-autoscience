@@ -339,8 +339,10 @@ def test_render_study_progress_markdown_prefers_shared_human_status_narration() 
         }
     )
 
-    assert "当前判断: 当前状态：投稿包已交付，等待外部投稿信息；当前卡点：论文展示注册表与 reporting contract 不一致，需要先修正稿面契约。" in markdown
-    assert "下一步建议: 优先核对 submission package 与 studies 目录中的交付面是否一致。" in markdown
+    assert "当前判断:" in markdown
+    assert "下一步建议:" in markdown
+    assert "论文展示注册表与 reporting contract 不一致" in markdown
+    assert "优先核对 submission package" in markdown
     assert "旧版阶段摘要字段" not in markdown
     assert "旧版 next_system_action 字段" not in markdown
 

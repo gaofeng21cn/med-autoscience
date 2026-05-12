@@ -102,6 +102,16 @@ def _publication_route_inventory_card(card: Mapping[str, Any], *, include_body: 
     }
     if include_body:
         inventory_card["prose_summary"] = _text(card.get("prose_summary"))
+        inventory_card["best_fit"] = _text_list(card.get("best_fit"))
+        inventory_card["poor_fit"] = _text_list(card.get("poor_fit"))
+        inventory_card["minimum_evidence_package"] = _text_list(card.get("minimum_evidence_package"))
+        inventory_card["analysis_pattern"] = _text_list(card.get("analysis_pattern"))
+        inventory_card["table_figure_pattern"] = _text_list(card.get("table_figure_pattern"))
+        inventory_card["claim_boundary"] = _text(card.get("claim_boundary"))
+        inventory_card["reviewer_risks"] = _text_list(card.get("reviewer_risks"))
+        inventory_card["pivot_or_stop_rules"] = _text_list(card.get("pivot_or_stop_rules"))
+        inventory_card["codex_stage_guidance"] = _mapping(card.get("codex_stage_guidance"))
+        inventory_card["example_signals"] = _text_list(card.get("example_signals"))
         inventory_card["failure_modes"] = _text_list(card.get("failure_modes"))
     return inventory_card
 
@@ -255,6 +265,10 @@ def _mapping_list(value: object) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
     return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
 
 
 def _text(value: object) -> str:

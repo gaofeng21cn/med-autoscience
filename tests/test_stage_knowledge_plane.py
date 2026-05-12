@@ -224,21 +224,32 @@ def test_publication_route_memory_seed_apply_builds_workspace_pack_and_stage_ent
     assert receipt["surface"] == "publication_route_memory_apply_receipt"
     assert receipt["status"] == "applied"
     assert replay["idempotent_replay"] is True
-    assert receipt["accepted_memory_ids"] == [
-        "publication_route_memory_seed__external_validation_rescue",
-        "publication_route_memory_seed__negative_result_stoploss",
-    ]
+    assert len(receipt["accepted_memory_ids"]) >= 9
+    assert "publication_route_memory_seed__clinical_classifier" in receipt["accepted_memory_ids"]
+    assert "publication_route_memory_seed__external_validation_rescue" in receipt["accepted_memory_ids"]
+    assert "publication_route_memory_seed__negative_result_stoploss" in receipt["accepted_memory_ids"]
     pack_path = stage_knowledge_plane.publication_route_memory_pack_path(workspace_root=workspace_root)
     pack = json.loads(pack_path.read_text(encoding="utf-8"))
     assert pack["surface"] == "publication_route_memory_pack"
     assert pack["state"] == "workspace_runtime_memory_pack"
-    assert pack["card_count"] == 2
+    assert pack["card_count"] == len(receipt["accepted_memory_ids"])
+    clinical_classifier_card = next(
+        card for card in pack["cards"] if card["memory_id"] == "publication_route_memory_seed__clinical_classifier"
+    )
+    assert "best_fit" in clinical_classifier_card
+    assert "minimum_evidence_package" in clinical_classifier_card
+    assert "table_figure_pattern" in clinical_classifier_card
+    assert "claim_boundary" in clinical_classifier_card
     assert [ref["memory_id"] for ref in packet["publication_route_memory_refs"]] == [
-        "publication_route_memory_seed__external_validation_rescue",
+        "publication_route_memory_seed__clinical_classifier",
+        "publication_route_memory_seed__clinical_subtype_reconstruction",
+        "publication_route_memory_seed__external_validation_model_update",
     ]
     assert packet["publication_route_memory_refs"][0]["authority_boundary"] == (
         "context_only_not_publication_authority"
     )
+    assert "route_memory_summary" in packet["publication_route_memory_refs"][0]
+    assert "best_fit" not in packet["publication_route_memory_refs"][0]
 
 
 def test_publication_route_memory_selection_uses_small_stage_relevant_set(tmp_path) -> None:
@@ -259,9 +270,11 @@ def test_publication_route_memory_selection_uses_small_stage_relevant_set(tmp_pa
     )
 
     assert len(review_refs) == 1
-    assert review_refs[0]["memory_id"] == "publication_route_memory_seed__external_validation_rescue"
+    assert review_refs[0]["memory_id"] == "publication_route_memory_seed__clinical_classifier"
     assert [ref["memory_id"] for ref in decision_refs] == [
-        "publication_route_memory_seed__negative_result_stoploss"
+        "publication_route_memory_seed__clinical_classifier",
+        "publication_route_memory_seed__clinical_subtype_reconstruction",
+        "publication_route_memory_seed__negative_result_stoploss",
     ]
 
 
@@ -285,10 +298,48 @@ def test_decision_stage_knowledge_packet_reads_publication_route_memory_refs(tmp
     assert packet["status"] == "ready"
     assert packet["missing_reasons"] == []
     assert [ref["memory_id"] for ref in packet["publication_route_memory_refs"]] == [
-        "publication_route_memory_seed__negative_result_stoploss"
+        "publication_route_memory_seed__clinical_classifier",
+        "publication_route_memory_seed__clinical_subtype_reconstruction",
+        "publication_route_memory_seed__negative_result_stoploss",
     ]
     assert packet["stage_obligations"]["knowledge_input_obligations"][0] == "stage_knowledge_packet_ref"
     assert packet["authority_boundary"]["can_replace_controller_decision"] is False
+
+
+def test_publication_route_memory_seed_rejects_thin_cards(tmp_path) -> None:
+    workspace_root = tmp_path / "workspace"
+    thin_fixture = tmp_path / "thin_publication_route_seed.json"
+    _write_json(
+        thin_fixture,
+        {
+            "surface_kind": "publication_route_memory_seed_fixture",
+            "schema_version": 1,
+            "memory_family": "publication_route_memory",
+            "seed_cards": [
+                {
+                    "memory_id": "thin-route",
+                    "status": "draft_seed",
+                    "route_family": "thin",
+                    "stage_applicability": ["idea"],
+                    "title": "Too thin",
+                    "prose_summary": "A name and two sentences are not enough.",
+                    "failure_modes": ["thin_card"],
+                    "source_refs": [],
+                }
+            ],
+        },
+    )
+
+    receipt = stage_knowledge_plane.apply_publication_route_memory_seed_fixture(
+        workspace_root=workspace_root,
+        seed_fixture_path=thin_fixture,
+    )
+
+    assert receipt["status"] == "blocked"
+    blocker_ids = {item["blocker_id"] for item in receipt["typed_blockers"]}
+    assert "seed_card:1:best_fit_missing" in blocker_ids
+    assert "seed_card:1:minimum_evidence_package_missing" in blocker_ids
+    assert not stage_knowledge_plane.publication_route_memory_pack_path(workspace_root=workspace_root).exists()
 
 
 def test_stage_memory_closeout_router_writes_typed_destinations_and_rejects_cross_study_claim(tmp_path) -> None:
@@ -381,6 +432,10 @@ def test_accepted_workspace_reusable_lessons_are_promoted_to_route_memory_pack(t
                     "stage_applicability": ["decision"],
                     "title": "Decision stop-loss route lesson",
                     "lesson": "If endpoint evidence remains thin after bounded checks, preserve the stop-loss decision rather than expanding claims.",
+                    "best_fit": ["bounded repair has already been attempted"],
+                    "minimum_evidence_package": ["failed-path evidence", "controller decision request"],
+                    "table_figure_pattern": ["failed-path matrix"],
+                    "claim_boundary": "Do not expand positive claims after weak endpoint evidence.",
                     "failure_modes": ["claim_expansion_after_weak_endpoint_evidence"],
                     "source_refs": ["stage:decision:turn-1"],
                 }
@@ -410,6 +465,10 @@ def test_accepted_workspace_reusable_lessons_are_promoted_to_route_memory_pack(t
         if card["memory_id"] == "publication_route_memory_writeback__decision-stoploss-lesson"
     )
     assert writeback_card["prose_summary"].startswith("If endpoint evidence remains thin")
+    assert writeback_card["best_fit"] == ["bounded repair has already been attempted"]
+    assert writeback_card["minimum_evidence_package"] == ["failed-path evidence", "controller decision request"]
+    assert writeback_card["table_figure_pattern"] == ["failed-path matrix"]
+    assert writeback_card["claim_boundary"] == "Do not expand positive claims after weak endpoint evidence."
     assert writeback_card["source_receipt_ref"] == receipt["receipt_ref"]
     assert writeback_card["authority_boundary"] == "context_only_not_publication_authority"
     assert replay["idempotent_replay"] is True
@@ -504,18 +563,21 @@ def test_publication_route_memory_inventory_projects_body_free_receipts_across_p
     assert receipt_inventory["receipt_count"] == 3
     by_ref = {receipt["ref"]: receipt for receipt in receipt_inventory["receipts"]}
     seed_receipt = next(receipt for receipt in by_ref.values() if receipt["receipt_kind"] == "migration_receipt")
-    assert seed_receipt["accepted_refs"] == [
-        {
-            "memory_id": "publication_route_memory_seed__external_validation_rescue",
-            "reason": "",
-            "status": "accepted",
-        },
-        {
-            "memory_id": "publication_route_memory_seed__negative_result_stoploss",
-            "reason": "",
-            "status": "accepted",
-        },
-    ]
+    accepted_seed_refs = {
+        ref["memory_id"]: ref
+        for ref in seed_receipt["accepted_refs"]
+    }
+    assert len(accepted_seed_refs) >= 9
+    assert accepted_seed_refs["publication_route_memory_seed__external_validation_rescue"] == {
+        "memory_id": "publication_route_memory_seed__external_validation_rescue",
+        "reason": "",
+        "status": "accepted",
+    }
+    assert accepted_seed_refs["publication_route_memory_seed__negative_result_stoploss"] == {
+        "memory_id": "publication_route_memory_seed__negative_result_stoploss",
+        "reason": "",
+        "status": "accepted",
+    }
     first_projection = by_ref[first_receipt["receipt_refs"][1]]
     assert first_projection["receipt_kind"] == "writeback_receipt"
     assert first_projection["study_id"] == "S1"
@@ -735,10 +797,12 @@ def test_paper_soak_memory_apply_proof_projects_controlled_readonly_receipt_refs
     assert proof["surface"] == "paper_soak_memory_apply_proof"
     assert proof["status"] == "ready"
     assert proof["missing_reasons"] == []
-    assert proof["stage_entry"]["route_memory_ref_count"] == 1
-    assert proof["stage_entry"]["publication_route_memory_refs"][0]["memory_id"] == (
-        "publication_route_memory_seed__negative_result_stoploss"
-    )
+    assert proof["stage_entry"]["route_memory_ref_count"] == 3
+    assert [ref["memory_id"] for ref in proof["stage_entry"]["publication_route_memory_refs"]] == [
+        "publication_route_memory_seed__clinical_classifier",
+        "publication_route_memory_seed__clinical_subtype_reconstruction",
+        "publication_route_memory_seed__negative_result_stoploss",
+    ]
     assert proof["typed_closeout_writeback_proposals"][0]["proposed_write_refs"][0] == {
         "write_id": "route-memory-lesson",
         "source_category": "reusable_lessons",

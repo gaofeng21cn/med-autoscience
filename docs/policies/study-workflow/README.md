@@ -22,7 +22,7 @@ MAS 的论文套路经验库已经按 `publication_route_memory` 落地为可检
 
 当前可用形态是：
 
-- small-set route memory cards
+- rich natural-language route memory cards
 - minimal metadata
 - read-only inventory/export
 - stage packet retrieval
@@ -38,11 +38,13 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 | 层级 | 位置 | 用途 |
 | --- | --- | --- |
 | 规则入口 | [Publication Route Memory Policy](./publication_route_memory_policy.md) | 解释自然语言 memory card 的维护规则、OPL/MAS 边界、writeback 规则和迁移计划。 |
-| 第一代路线种子 | [Study Archetypes](./study_archetypes.md) | 查看当前高产出论文套路的 prose 入口：`clinical_classifier`、`clinical_subtype_reconstruction`、`external_validation_model_update`、`gray_zone_triage`、`llm_agent_clinical_task`、`mechanistic_sidecar_extension`、`survey_trend_analysis`。 |
-| repo seed fixture | [publication_route_memory_seed_fixture.json](./publication_route_memory_seed_fixture.json) | 查看首批可迁移 seed card 示例；它不是真实 memory store。 |
+| 第一代路线种子 | [Study Archetypes](./study_archetypes.md) | 旧 MAS 使用的 route bias / contract input prose，不是完整经验库。 |
+| repo seed fixture | [publication_route_memory_seed_fixture.json](./publication_route_memory_seed_fixture.json) | 查看 9 张富文本 seed cards；每张卡包含 fit/poor-fit、minimum evidence package、analysis/display pattern、claim boundary、reviewer risks、pivot/stop rules 和 stage guidance。它不是真实 memory store。 |
 | workspace memory pack | `portfolio/research_memory/publication_route_memory/memory_pack.json` | 查看某个 MAS workspace 内真正可检索的论文套路 memory cards。 |
 | receipts/proposals | `portfolio/research_memory/publication_route_memory/{migration_receipts,writeback_proposals,writeback_receipts}` | 查看 seed apply、typed closeout proposal 和 MAS router 接受/拒绝记录。 |
-| 只读 CLI inventory | `medautosci publication route-memory-inventory --workspace-root <workspace>` | 按 workspace/stage/route family/status 查看 card 元数据、locator 和 receipt summary；默认不输出 memory 正文。维护者显式加 `--include-card-body` 时才输出 prose / failure modes。 |
+| 只读 CLI inventory | `medautosci publication route-memory-inventory --workspace-root <workspace>` | 按 workspace/stage/route family/status 查看 card 元数据、locator 和 receipt summary；默认不输出 memory 正文。维护者显式加 `--include-card-body` 时才输出 rich body sections。 |
+
+`study_archetypes.md` 不是论文套路 domain memory 的完整存储位置。它是第一代入口，旧 MAS 通过 profile / study payload 的 `preferred_study_archetypes`、`study_archetype` 或 `preferred_study_archetype` 选择分析和报告合同；真正的 domain memory 管理入口现在是 `publication_route_memory_seed_fixture.json`、workspace `memory_pack.json`、`stage_knowledge_packet.publication_route_memory_refs`、`stage-memory-closeout-route` 和 `route-memory-inventory`。
 
 当前真实样例在 DM-CVD workspace：
 
@@ -50,7 +52,7 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 - 当前包含 `3` 张 card：`publication_route_memory_seed__external_validation_rescue`、`publication_route_memory_seed__negative_result_stoploss`、`publication_route_memory_writeback__dm002-route-memory-proof`
 - 对应 receipt/proposal 位于同目录下的 `migration_receipts/`、`writeback_proposals/`、`writeback_receipts/`
 
-这些 JSON 现在已经方便维护者阅读和审计，但还不是面向普通用户的编辑 UI。安全管理路径应优先使用 MAS owner CLI/controller surface 生成 pack、proposal 和 receipt；手工编辑 workspace pack 只应作为 maintainer-level 修复，并保持 `memory_id`、stage applicability、source/provenance、status 和 receipt refs 可追溯。
+这些 JSON 现在已经方便维护者阅读和审计，但还不是面向普通用户的编辑 UI。安全管理路径应优先使用 MAS owner CLI/controller surface 生成 pack、proposal 和 receipt；手工编辑 workspace pack 只应作为 maintainer-level 修复，并保持 `memory_id`、stage applicability、source/provenance、status、rich body 和 receipt refs 可追溯。
 
 当前推荐查看方式：
 
@@ -59,11 +61,11 @@ medautosci publication route-memory-inventory --workspace-root /Users/gaofeng/wo
 medautosci publication route-memory-inventory --workspace-root /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk --stage decision
 ```
 
-2026-05-12 fresh output 显示 DM-CVD workspace 共有 `3` 张 card；`--stage decision` 过滤后有 `2` 张，分别是 `publication_route_memory_seed__negative_result_stoploss` 和 `publication_route_memory_writeback__dm002-route-memory-proof`。默认输出不含 memory 正文，适合 OPL/Aion 和维护者快速查 inventory；审查正文时才使用 `--include-card-body`。
+2026-05-12 fresh output 显示 DM-CVD workspace 的旧 pack 共有 `3` 张 card；`--stage decision` 过滤后有 `2` 张，分别是 `publication_route_memory_seed__negative_result_stoploss` 和 `publication_route_memory_writeback__dm002-route-memory-proof`。当前 repo seed fixture 已扩展为 `9` 张富文本 seed cards；新 workspace 或重新应用 seed 后会得到完整 seed library。默认输出不含 memory 正文，适合 OPL/Aion 和维护者快速查 inventory；审查正文时才使用 `--include-card-body`。
 
 ## 现阶段边界
 
-当前已经落地的是 thin but real 的 MAS memory surface。OPL 平台也已经从 descriptor-only 往前推进：family agent / stage / domain-memory 三个索引都能解析 MAS/MAG/RCA，Temporal provider core、attempt start/query/signal、residency proof 和 Codex runner harness 已进入 OPL 仓。与理想形态的差距主要在：
+当前已经落地的是 MAS-owned rich natural-language memory surface。OPL 平台也已经从 descriptor-only 往前推进：family agent / stage / domain-memory 三个索引都能解析 MAS/MAG/RCA，Temporal provider core、attempt start/query/signal、residency proof 和 Codex runner harness 已进入 OPL 仓。与理想形态的差距主要在：
 
 - 外部 production Temporal provider residency 和 managed worker 长驻
 - 真实 paper-line 长时 soak

@@ -14,13 +14,23 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _write_runtime_escalation_record(module: object, quest_root: Path, study_root: Path) -> dict[str, str]:
+def _write_runtime_escalation_record(
+    module: object,
+    quest_root: Path,
+    study_root: Path,
+    *,
+    study_id: str = "001-risk",
+    quest_id: str = "quest-001",
+) -> dict[str, str]:
     protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
     record = protocol.RuntimeEscalationRecord(
         schema_version=1,
-        record_id="runtime-escalation::001-risk::quest-001::startup_boundary_not_ready_for_resume::2026-04-05T05:55:00+00:00",
-        study_id="001-risk",
-        quest_id="quest-001",
+        record_id=(
+            f"runtime-escalation::{study_id}::{quest_id}::"
+            "startup_boundary_not_ready_for_resume::2026-04-05T05:55:00+00:00"
+        ),
+        study_id=study_id,
+        quest_id=quest_id,
         emitted_at="2026-04-05T05:55:00+00:00",
         trigger=protocol.RuntimeEscalationTrigger(
             trigger_id="startup_boundary_not_ready_for_resume",
@@ -158,7 +168,6 @@ def _write_publication_eval(study_root: Path, quest_root: Path) -> dict[str, str
         "eval_id": payload["eval_id"],
         "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
     }
-
 
 
 

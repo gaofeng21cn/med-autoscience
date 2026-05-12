@@ -18,7 +18,7 @@ Date: `2026-05-09`
 
 2026-05-09 落地更新：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 已接到 `supervision_scheduler` façade，默认 `--manager local`。macOS local adapter 会生成 MAS-owned tick script、LaunchAgent plist、install proof 和 scheduler receipt；显式 `--manager hermes` 继续调用 Hermes adapter 并投影到同一 `scheduler_owner=mas_supervision_scheduler` 合同下。
 
-2026-05-11 退役更新：旧 `systemd|cron|launchd|docker` manager 不再是公开 CLI 选项。内部 cleanup/audit surface 仍可报告 `retired_workspace_local_service_manager`，用于识别和清理旧 workspace-local service，但不得作为用户可选择的 runtime path。
+2026-05-12 退役更新：旧 `systemd|cron|launchd|docker` manager 不再是 CLI 或 controller 可调用 manager。`supervision_scheduler` 和 Hermes adapter 只接受 `local` 与显式 `hermes`；旧 workspace-local service 只作为 Hermes optional adapter status 里的 `retired_cleanup_evidence` 被观察和清理，不再有单独 runtime payload、安装建议或 direct-call 兼容层。
 
 2026-05-09 bootstrap 修复：`workspace bootstrap --profile <profile>` 现在会作为显式 apply 入口调用默认 `local` scheduler 的 `runtime-ensure-supervision` 语义，刷新 LaunchAgent、tick script 与 install proof，但不立即触发 tick。`runtime-supervision-status`、`product-entry-status`、Progress Portal 与 Live Console 仍是 read/projection surface，不自动写入 OS scheduler；发现 drift 时必须显示 source 与 repair command，由 `workspace bootstrap` 或 `runtime-ensure-supervision` 执行幂等修复。
 
@@ -57,7 +57,7 @@ Date: `2026-05-09`
 | [Temporal Schedule](https://docs.temporal.io/schedule) | Schedule 有独立 identity；Action 与 Spec 分开；支持 pause、backfill、overlap policy、catchup window、pause-on-failure。 | MAS job identity 独立于 study/run；contract 拆成 schedule spec、tick action、policy、receipt；支持 pause/resume/trigger-now 和 catchup/skip 策略。 |
 | [APScheduler](https://apscheduler.readthedocs.io/en/stable/userguide.html) | 持久 job store 需要稳定 job id 与 replace-existing；限制并发实例；用 misfire grace time 控制迟到触发。 | Local adapter 必须有 stable job id、upsert 而非重复创建、single active tick lock、misfire grace / stale SLO。 |
 | [Celery periodic tasks](https://docs.celeryq.dev/en/3.1/userguide/periodic-tasks.html) | 同一 schedule 只能有一个 scheduler，否则会产生重复任务；集中 schedule state 可避免同步和锁问题。 | 每个 workspace-key 同一时间只能有一个 primary scheduler adapter；迁移时必须先 disable old adapter 或证明不会双调度。 |
-| [Apple launchd timed jobs](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/ScheduledJobs.html) | macOS 推荐 launchd 管理 timed jobs；cron 仍支持但不建议程序化写共享 crontab；sleep/offline 行为需要明确。 | macOS local adapter 优先 LaunchAgent；cron 只作显式 fallback；status 必须说明 sleep/offline catchup 语义。 |
+| [Apple launchd timed jobs](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/ScheduledJobs.html) | macOS 推荐 launchd 管理 timed jobs；cron 仍支持但不建议程序化写共享 crontab；sleep/offline 行为需要明确。 | macOS local adapter 优先 LaunchAgent；cron 不作为 MAS-owned fallback manager 暴露；status 必须说明 sleep/offline catchup 语义。 |
 
 共同结论：scheduler 的核心不是“谁能定时执行命令”，而是围绕同一个 job identity 提供幂等安装、单实例运行、missed-run 策略、失败 receipt、状态投影和安全迁移。
 
@@ -135,10 +135,10 @@ medautosci runtime-remove-supervision --profile <profile> --manager local
 | --- | --- | --- |
 | macOS user desktop | `launchd` LaunchAgent | landed；不写共享 crontab；生成 MAS tick script、plist、receipt 和 install proof。 |
 | Linux with user systemd | `systemd --user` timer | blocked until implemented；不得回退到旧 workspace-local scaffold。 |
-| Linux without systemd user | explicit `cron` fallback | blocked until implemented；未来也只能通过 `local` adapter contract，不允许直接恢复旧 `--manager cron`。 |
+| Linux without systemd user | no persistent local backend yet | blocked until implemented；未来也只能通过 `local` adapter contract，不允许直接恢复旧 `--manager cron`。 |
 | container / CI | no persistent scheduler by default | 只支持 one-shot dry-run / reconcile；不得伪装成 installed scheduler。 |
 
-旧 `systemd|cron|launchd|docker` manager 只保留为内部 cleanup/audit evidence，公开 CLI 不再暴露这些 manager。不要把旧 workspace-local host service scaffold 复活；新 adapter 的所有 state、receipt 和 proof 都归 MAS scheduler contract。
+旧 `systemd|cron|launchd|docker` manager 已退役为历史/debug 语境；active controller 不返回这些 manager 的兼容 payload。不要把旧 workspace-local host service scaffold 复活；新 adapter 的所有 state、receipt 和 proof 都归 MAS scheduler contract。
 
 ### Optional Adapter: `hermes_hosted`
 

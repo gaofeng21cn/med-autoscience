@@ -473,4 +473,116 @@ def test_study_progress_reads_gate_specificity_request_surface(
     assert result["refs"]["publication_gate_specificity_request_path"] == str(request_path)
 
 
+def test_study_progress_suppresses_stale_gate_specificity_request_after_targets_resolve(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
+    request_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "requests"
+        / "publication_gate_specificity"
+        / "latest.json"
+    )
+    _write_json(
+        request_path,
+        {
+            "surface": "supervisor_action_request",
+            "schema_version": 1,
+            "request_id": "publication_gate_specificity_required::002-risk::quest-002",
+            "request_kind": "publication_gate_specificity_required",
+            "study_id": "002-risk",
+            "quest_id": "quest-002",
+            "authority": "observability_only",
+            "request_owner": "controller",
+            "gate_owner": "publication_gate",
+            "requested_target_types": ["claim", "figure", "table", "metric", "source_path"],
+            "missing_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+            "owner_visible_checklist": [{"target_kind": "claim", "status": "missing"}],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::specificity-resolved",
+                    "action_type": "return_to_controller",
+                    "specificity_targets": [
+                        {
+                            "target_kind": "claim",
+                            "target_id": "claim_evidence_map",
+                            "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                            "blocking_reason": "claim_evidence_consistency_failed",
+                        },
+                        {
+                            "target_kind": "figure",
+                            "target_id": "figure_catalog",
+                            "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+                            "blocking_reason": "medical_publication_surface_blocked",
+                        },
+                        {
+                            "target_kind": "table",
+                            "target_id": "submission_minimal_authority",
+                            "source_path": str(
+                                study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+                            ),
+                            "blocking_reason": "submission_hardening_incomplete",
+                        },
+                        {
+                            "target_kind": "metric",
+                            "target_id": "main_result_metrics",
+                            "source_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+                            "blocking_reason": "medical_publication_surface_blocked",
+                        },
+                        {
+                            "target_kind": "source_path",
+                            "target_id": "publication_gate_source_path",
+                            "source_path": str(
+                                quest_root
+                                / "artifacts"
+                                / "reports"
+                                / "medical_publication_surface"
+                                / "latest.json"
+                            ),
+                            "blocking_reason": "medical_publication_surface_blocked",
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+    _write_runtime_watch(quest_root)
+    _write_bash_summary(quest_root)
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "002-risk",
+            "study_root": str(study_root),
+            "quest_id": "quest-002",
+            "quest_root": str(quest_root),
+            "quest_status": "running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "phase_owner": "publication_gate",
+                "bundle_tasks_downstream_only": True,
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="002-risk")
+
+    assert result["publication_gate_specificity_request"] is None
+    assert result["refs"]["publication_gate_specificity_request_path"] is None
+
+
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]
