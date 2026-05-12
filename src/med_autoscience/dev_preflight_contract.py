@@ -299,7 +299,6 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/stage_knowledge_contract.py",
             "src/med_autoscience/stage_surface_contract.py",
             "tests/test_stage_knowledge_plane.py",
-            "tests/test_opl_family_contract_adoption.py",
         ),
         prefix_paths=(
             "src/med_autoscience/controllers/stage_knowledge_plane_parts/",
