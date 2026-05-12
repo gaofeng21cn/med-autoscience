@@ -32,6 +32,7 @@ def build_provider_hosted_guarded_apply_receipt_from_proof(
     ]
     memory_proof = _mapping(proof.get("publication_route_memory_final_proof"))
     status = "applied" if accepted_receipts and not typed_blockers else "typed_blocker"
+    attempt_state = "mas_owner_receipt_present" if status == "applied" else "mas_owner_receipt_missing"
     source_fingerprint = _fingerprint(
         {
             "provider_attempt_id": provider_attempt_id,
@@ -49,6 +50,8 @@ def build_provider_hosted_guarded_apply_receipt_from_proof(
         "provider_attempt": {
             "attempt_id": _text(provider_attempt_id),
             "attempt_owner": "one-person-lab",
+            "attempt_state": attempt_state,
+            "attempt_ready": True,
             "provider_attempt_is_truth": False,
             "provider_attempt_wrote_workspace": False,
         },
@@ -63,6 +66,8 @@ def build_provider_hosted_guarded_apply_receipt_from_proof(
         "summary": {
             **dict(_mapping(proof.get("summary"))),
             "status": status,
+            "provider_attempt_state": attempt_state,
+            "provider_attempt_ready": True,
             "provider_attempt_wrote_workspace": False,
             "writes_performed_by_this_receipt": False,
             "receipt_wrote_forbidden_surfaces": False,
@@ -75,6 +80,88 @@ def build_provider_hosted_guarded_apply_receipt_from_proof(
             "guarded_apply_status": proof.get("guarded_apply_status"),
             "summary": dict(_mapping(proof.get("summary"))),
         },
+    }
+
+
+def build_provider_unavailable_guarded_apply_receipt(
+    *,
+    schema_version: int,
+    surface: str,
+    provider_attempt_id: str,
+    idempotency_key: str,
+    target_studies: Sequence[str],
+    reason: str,
+) -> dict[str, Any]:
+    blocker_id = f"provider_guarded_apply_unavailable:{_fingerprint([provider_attempt_id, idempotency_key, target_studies, reason])}"
+    typed_blocker = {
+        "blocker_id": blocker_id,
+        "owner": "one-person-lab",
+        "reason": _text(reason) or "provider guarded apply request cannot be evaluated by MAS sidecar",
+        "required_owner_surface": "OPL provider ready contract / MAS sidecar guarded-apply task",
+        "write_permitted": False,
+    }
+    source_fingerprint = _fingerprint(
+        {
+            "provider_attempt_id": provider_attempt_id,
+            "idempotency_key": idempotency_key,
+            "target_studies": list(target_studies),
+            "typed_blocker": typed_blocker,
+        }
+    )
+    return {
+        "surface": surface,
+        "schema_version": schema_version,
+        "status": "typed_blocker",
+        "target_studies": list(target_studies),
+        "provider_attempt": {
+            "attempt_id": _text(provider_attempt_id),
+            "attempt_owner": "one-person-lab",
+            "attempt_state": "provider_unavailable",
+            "attempt_ready": False,
+            "provider_attempt_is_truth": False,
+            "provider_attempt_wrote_workspace": False,
+        },
+        "idempotency_key": _text(idempotency_key),
+        "source_fingerprint": source_fingerprint,
+        "guarded_apply_status": "provider_unavailable",
+        "guarded_apply_receipts": [],
+        "typed_blockers": [typed_blocker],
+        "publication_route_memory_final_proof": {
+            "status": "typed_blocker_provider_unavailable",
+            "body_included": False,
+            "memory_body_included": False,
+            "opl_can_read_memory_body": False,
+            "opl_can_accept_or_reject_writeback": False,
+        },
+        "forbidden_write_guard": {
+            "aggregate_result": "fail_closed_provider_unavailable",
+            "can_write_domain_truth": False,
+            "can_write_current_package": False,
+        },
+        "source_refs": [],
+        "summary": {
+            "status": "typed_blocker",
+            "provider_attempt_state": "provider_unavailable",
+            "provider_attempt_ready": False,
+            "provider_attempt_wrote_workspace": False,
+            "writes_performed": False,
+            "real_workspace_mutation_allowed": False,
+            "writes_performed_by_this_receipt": False,
+            "receipt_wrote_forbidden_surfaces": False,
+            "typed_blocker_count": 1,
+        },
+        "authority_boundary": {
+            "provider_attempt_owner": "one-person-lab",
+            "domain_truth_owner": "med-autoscience",
+            "quality_gate_owner": "med-autoscience",
+            "artifact_authority_owner": "med-autoscience",
+            "provider_attempt_is_truth": False,
+            "provider_completion_is_publication_quality": False,
+            "opl_can_write_mas_truth": False,
+            "opl_can_write_artifact_authority": False,
+            "opl_can_write_memory_body": False,
+        },
+        "source_guarded_apply_proof_summary": None,
     }
 
 
@@ -110,4 +197,7 @@ def _fingerprint(payload: object) -> str:
     return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
 
 
-__all__ = ["build_provider_hosted_guarded_apply_receipt_from_proof"]
+__all__ = [
+    "build_provider_hosted_guarded_apply_receipt_from_proof",
+    "build_provider_unavailable_guarded_apply_receipt",
+]
