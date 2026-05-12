@@ -153,6 +153,7 @@ def _relay_controller_decision_authorization_if_required(
     lifecycle = _controller_decision_authorization_lifecycle(
         study_root=context.study_root,
         authorization_context=authorization_context,
+        active_run_id=active_run_id,
     )
     authorization_context["controller_work_unit_lifecycle"] = lifecycle
     marker_lacks_target_context = _controller_authorization_marker_lacks_target_context(

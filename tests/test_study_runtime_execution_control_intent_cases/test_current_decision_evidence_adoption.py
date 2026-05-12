@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from tests.test_study_runtime_execution_control_intent import (
+from tests.test_study_runtime_execution_control_intent_cases.helpers import (
     _base_status_payload,
     _write_controller_decision_authorization,
     _write_publication_eval_work_unit_authority,

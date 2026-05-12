@@ -478,7 +478,7 @@ def test_execute_noop_runtime_decision_deduplicates_controller_authorization_for
     assert "controller_decision_authorization_relay" not in status.to_dict()
 
 
-def test_execute_noop_runtime_decision_deduplicates_controller_authorization_across_run_attempts(
+def test_execute_noop_runtime_decision_redelivers_controller_authorization_for_new_active_run(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
@@ -509,9 +509,12 @@ def test_execute_noop_runtime_decision_deduplicates_controller_authorization_acr
     status_payload["quest_root"] = str(quest_root)
     status = module.StudyRuntimeStatus.from_payload(status_payload)
 
+    chats: list[dict[str, object]] = []
+
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            raise AssertionError("same business controller intent must not be delivered again for a new active_run_id")
+            chats.append({"quest_id": quest_id, "text": text, "source": source})
+            return {"ok": True, "message": {"id": "msg-auth-002"}}
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -522,9 +525,13 @@ def test_execute_noop_runtime_decision_deduplicates_controller_authorization_acr
     )
 
     outcome = module._execute_runtime_decision(status=status, context=context)
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert "controller_decision_authorization_relay" not in status.to_dict()
+    assert len(chats) == 1
+    assert "controller_decision_authorization_relay" in status.to_dict()
+    assert runtime_state["last_controller_decision_authorization"]["active_run_id"] == "run-live-002"
+    assert runtime_state["last_controller_decision_authorization"]["message_id"] == "msg-auth-002"
 
 
 def test_controller_authorization_identity_ignores_volatile_eval_and_escalation_ids(tmp_path: Path) -> None:
@@ -561,7 +568,7 @@ def test_controller_authorization_identity_ignores_volatile_eval_and_escalation_
     assert first["control_intent_key"] == second["control_intent_key"]
 
 
-def test_execute_noop_runtime_decision_deduplicates_controller_authorization_from_intent_ledger(
+def test_execute_noop_runtime_decision_redelivers_ledger_authorization_for_new_active_run(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
@@ -603,9 +610,12 @@ def test_execute_noop_runtime_decision_deduplicates_controller_authorization_fro
     status_payload["quest_root"] = str(quest_root)
     status = module.StudyRuntimeStatus.from_payload(status_payload)
 
+    chats: list[dict[str, object]] = []
+
     class FakeBackend:
         def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
-            raise AssertionError("ledger-delivered control intent must not be delivered again")
+            chats.append({"quest_id": quest_id, "text": text, "source": source})
+            return {"ok": True, "message": {"id": "msg-auth-002"}}
 
     context = SimpleNamespace(
         study_root=study_root,
@@ -616,9 +626,12 @@ def test_execute_noop_runtime_decision_deduplicates_controller_authorization_fro
     )
 
     outcome = module._execute_runtime_decision(status=status, context=context)
+    runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
 
     assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
-    assert "controller_decision_authorization_relay" not in status.to_dict()
+    assert len(chats) == 1
+    assert status.to_dict()["controller_decision_authorization_relay"]["message_id"] == "msg-auth-002"
+    assert runtime_state["last_controller_decision_authorization"]["active_run_id"] == "run-live-002"
 
 
 def test_execute_noop_runtime_decision_fallback_tags_controller_authorization_with_dedupe_key(

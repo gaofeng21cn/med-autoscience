@@ -63,6 +63,10 @@ def _controller_decision_authorization_already_relayed(
     marker = runtime_state.get(_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
     if not isinstance(marker, dict):
         return False
+    current_active_run_id = _text(active_run_id)
+    marker_active_run_id = _text(marker.get("active_run_id"))
+    if current_active_run_id is not None and marker_active_run_id != current_active_run_id:
+        return False
     if not _controller_target_context_matches(marker=marker, authorization_context=authorization_context):
         return False
     intent_match = _controller_intent_key_match(marker=marker, authorization_context=authorization_context)
@@ -125,11 +129,13 @@ def _controller_decision_authorization_lifecycle(
     *,
     study_root: Path,
     authorization_context: dict[str, Any],
+    active_run_id: str | None = None,
 ) -> dict[str, Any]:
     return lifecycle_for_authorization(
         study_root=study_root,
         identity=_controller_decision_authorization_identity(authorization_context),
         authorization_context=authorization_context,
+        active_run_id=active_run_id,
     )
 
 

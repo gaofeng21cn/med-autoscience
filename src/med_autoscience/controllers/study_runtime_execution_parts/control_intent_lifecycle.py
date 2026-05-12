@@ -16,6 +16,7 @@ def lifecycle_for_authorization(
     study_root: Path,
     identity: control_intent.ControlIntentIdentity,
     authorization_context: dict[str, Any],
+    active_run_id: str | None = None,
 ) -> dict[str, Any]:
     decision_emitted_at = _text(authorization_context.get("decision_emitted_at"))
     if decision_emitted_at is not None:
@@ -23,5 +24,10 @@ def lifecycle_for_authorization(
             study_root=study_root,
             identity=identity,
             recorded_at=decision_emitted_at,
+            active_run_id=active_run_id,
         )
-    return control_intent.lifecycle_state(study_root=study_root, identity=identity)
+    return control_intent.lifecycle_state(
+        study_root=study_root,
+        identity=identity,
+        active_run_id=active_run_id,
+    )

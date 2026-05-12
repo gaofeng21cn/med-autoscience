@@ -386,6 +386,34 @@ def events_for_business_key_since(
     ]
 
 
+def _event_active_run_id(event: Mapping[str, Any]) -> str | None:
+    payload = event.get("payload")
+    if not isinstance(payload, Mapping):
+        return None
+    return _text(payload.get("active_run_id"))
+
+
+def _events_for_active_run(
+    events: list[dict[str, Any]],
+    *,
+    active_run_id: str | None,
+) -> list[dict[str, Any]]:
+    resolved_active_run_id = _text(active_run_id)
+    if resolved_active_run_id is None:
+        return events
+    scoped_events = [event for event in events if _event_active_run_id(event) in {None, resolved_active_run_id}]
+    filtered_events: list[dict[str, Any]] = []
+    delivery_anchor_seen = False
+    for event in scoped_events:
+        event_type = _event_type(event)
+        if event_type == "skipped_duplicate" and not delivery_anchor_seen:
+            continue
+        filtered_events.append(event)
+        if event_type in _DELIVERY_ANCHOR_EVENT_TYPES:
+            delivery_anchor_seen = True
+    return filtered_events
+
+
 def artifact_delta_observed(events: list[dict[str, Any]]) -> bool:
     anchor_index = -1
     for index, event in enumerate(events):
@@ -401,10 +429,16 @@ def artifact_delta_observed(events: list[dict[str, Any]]) -> bool:
     return False
 
 
-def lifecycle_state(*, study_root: Path, identity: ControlIntentIdentity) -> dict[str, Any]:
+def lifecycle_state(
+    *,
+    study_root: Path,
+    identity: ControlIntentIdentity,
+    active_run_id: str | None = None,
+) -> dict[str, Any]:
     return lifecycle_state_from_events(
         events=events_for_business_key(study_root=study_root, business_key=identity.business_key),
         identity=identity,
+        active_run_id=active_run_id,
     )
 
 
@@ -413,6 +447,7 @@ def lifecycle_state_since(
     study_root: Path,
     identity: ControlIntentIdentity,
     recorded_at: object,
+    active_run_id: str | None = None,
 ) -> dict[str, Any]:
     return lifecycle_state_from_events(
         events=events_for_business_key_since(
@@ -421,6 +456,7 @@ def lifecycle_state_since(
             recorded_at=recorded_at,
         ),
         identity=identity,
+        active_run_id=active_run_id,
     )
 
 
@@ -428,8 +464,10 @@ def lifecycle_state_from_events(
     *,
     events: list[dict[str, Any]],
     identity: ControlIntentIdentity,
+    active_run_id: str | None = None,
 ) -> dict[str, Any]:
-    if not events:
+    scoped_events = _events_for_active_run(events, active_run_id=active_run_id)
+    if not scoped_events:
         return {
             "schema_version": _SCHEMA_VERSION,
             "business_key": identity.business_key,
@@ -440,9 +478,9 @@ def lifecycle_state_from_events(
             "delivery_blocked": False,
             "block_reason": None,
         }
-    latest = events[-1]
+    latest = scoped_events[-1]
     latest_type = _event_type(latest)
-    has_artifact_delta = artifact_delta_observed(events)
+    has_artifact_delta = artifact_delta_observed(scoped_events)
     delivery_blocked = latest_type in _CONSUMED_BLOCKING_EVENT_TYPES
     block_reason: str | None = None
     if latest_type in _DIRECT_BLOCK_REASON_EVENT_TYPES:
