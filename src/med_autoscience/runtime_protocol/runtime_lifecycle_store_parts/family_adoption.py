@@ -497,9 +497,18 @@ def _stage_deliverable_index_projection(stage_surface: Mapping[str, Any]) -> dic
         "stage_count": index.get("stage_count"),
         "locator_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
         "stage_refs": list(index.get("stage_refs") or []),
+        "human_review_page_refs": list(index.get("human_review_page_refs") or []),
         "source_refs": list(index.get("source_refs") or []),
+        "human_review_policy": _mapping(index.get("human_review_policy")),
+        "review_page_policy": _mapping(index.get("review_page_policy")),
         "authority_boundary": _mapping(index.get("authority_boundary")),
         "opl_projection_boundary": "read_only_locator_no_truth_write",
+        "auto_advance_boundary": {
+            "default_blocks_auto_advance": False,
+            "blocking_only_when": "mas_human_gate_boundary_triggered",
+            "opl_can_block_auto_advance": False,
+            "opl_can_mark_publication_ready": False,
+        },
     }
 
 
@@ -512,6 +521,8 @@ def _stage_deliverable_index_ref() -> dict[str, Any]:
         "can_write_domain_truth": False,
         "can_authorize_publication_quality": False,
         "can_authorize_submission_readiness": False,
+        "human_review_blocks_auto_advance_by_default": False,
+        "blocking_only_when": "mas_human_gate_boundary_triggered",
     }
 
 

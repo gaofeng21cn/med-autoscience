@@ -49,6 +49,11 @@ def test_stage_surface_contract_builds_cards_from_canonical_route_contracts() ->
         "artifact_authority",
         "runtime_owner",
     ]
+    assert surface["human_review_policy"]["mode"] == "optional_human_review_annotation"
+    assert surface["human_review_policy"]["default_blocks_auto_advance"] is False
+    assert surface["human_review_policy"]["blocking_only_when"] == "route_contract.human_gate_boundary_triggered"
+    assert surface["human_review_policy"]["annotation_can_authorize_quality_verdict"] is False
+    assert surface["human_review_policy"]["annotation_can_authorize_submission_readiness"] is False
 
     cards = surface["stage_cards"]
     assert isinstance(cards, list)
@@ -83,6 +88,34 @@ def test_stage_surface_contract_exposes_deliverable_index_for_human_audit_and_op
     assert surface["stage_deliverable_index"]["role"] == "human_audit_and_opl_locator"
     assert surface["stage_deliverable_index"]["authority_boundary"]["can_write_mas_truth"] is False
     assert surface["stage_deliverable_index"]["authority_boundary"]["can_authorize_quality_verdict"] is False
+    assert surface["stage_deliverable_index"]["human_review_policy"]["default_blocks_auto_advance"] is False
+    assert surface["stage_deliverable_index"]["review_page_policy"]["paper_asset_delta_policy"][
+        "allowed_delta_types"
+    ] == [
+        "manuscript",
+        "table",
+        "figure",
+        "supplement",
+        "reference",
+        "response_letter",
+        "analysis_record",
+        "review_record",
+        "package_or_delivery",
+        "no_paper_asset_body_delta",
+    ]
+    assert surface["stage_deliverable_index"]["review_page_policy"]["claim_trace_policy"]["allowed_impact_states"] == [
+        "strengthened",
+        "weakened",
+        "rewritten",
+        "removed",
+        "unsupported",
+        "newly_blocked",
+        "no_claim_change",
+    ]
+    assert surface["stage_deliverable_index"]["review_page_policy"]["freshness_signal_policy"]["status_kind"] == (
+        "traffic_light"
+    )
+    assert len(surface["stage_deliverable_index"]["human_review_page_refs"]) == len(surface["stage_cards"])
 
     for card in surface["stage_cards"]:
         route_id = card["route_id"]
@@ -102,6 +135,9 @@ def test_stage_surface_contract_exposes_deliverable_index_for_human_audit_and_op
         assert deliverable_index["next_owner"]["owner"] == "MedAutoScience"
         assert deliverable_index["next_owner"]["next_routes"] == card["next_routes"]
         assert deliverable_index["human_review_page_ref"] == f"/stage_cards/{route_id}/human_review_page"
+        assert deliverable_index["human_review_policy_ref"] == "/human_review_policy"
+        assert deliverable_index["review_page_policy_ref"] == "/stage_deliverable_index/review_page_policy"
+        assert deliverable_index["authority_boundary"]["human_review_blocks_auto_advance_by_default"] is False
 
 
 def test_stage_surface_contract_exposes_one_page_paper_review_template() -> None:
@@ -115,18 +151,66 @@ def test_stage_surface_contract_exposes_one_page_paper_review_template() -> None
         assert review_page["stage"] == card["route_id"]
         assert review_page["role"] == "one_page_paper_audit_surface"
         assert review_page["deliverable_index_ref"] == f"/stage_cards/{card['route_id']}/deliverable_index"
+        assert review_page["review_annotation_policy"]["mode"] == "optional_human_review_annotation"
+        assert review_page["review_annotation_policy"]["default_blocks_auto_advance"] is False
+        assert review_page["review_annotation_policy"]["blocking_state"] == "human_gate_required"
+        assert review_page["review_annotation_policy"]["blocking_only_when"] == (
+            "route_contract.human_gate_boundary_triggered"
+        )
+        assert review_page["review_annotation_policy"]["annotation_can_authorize_quality_verdict"] is False
+        assert review_page["review_annotation_policy"]["annotation_can_authorize_submission_readiness"] is False
+        assert review_page["review_annotation_policy"]["annotation_can_mark_publication_ready"] is False
+        assert review_page["paper_asset_delta_policy"]["allowed_delta_types"] == [
+            "manuscript",
+            "table",
+            "figure",
+            "supplement",
+            "reference",
+            "response_letter",
+            "analysis_record",
+            "review_record",
+            "package_or_delivery",
+            "no_paper_asset_body_delta",
+        ]
+        assert review_page["paper_asset_delta_policy"]["body_included"] is False
+        assert review_page["paper_asset_delta_policy"]["can_authorize_artifact_authority"] is False
+        assert review_page["claim_trace_policy"]["cross_stage_trace"] is True
+        assert review_page["claim_trace_policy"]["can_authorize_quality_verdict"] is False
+        assert review_page["freshness_signal_policy"]["status_kind"] == "traffic_light"
+        assert review_page["freshness_signal_policy"]["freshness_signal_blocks_auto_advance_by_default"] is False
+        assert review_page["freshness_signal_policy"]["freshness_signal_can_authorize_submission_readiness"] is False
+        states = {item["state"]: item for item in review_page["review_annotation_policy"]["allowed_states"]}
+        assert set(states) == {
+            "accept_for_next_stage",
+            "needs_revision",
+            "route_back",
+            "stop_or_pivot",
+            "human_gate_required",
+        }
+        assert states["human_gate_required"]["blocks_auto_advance"] is True
+        assert all(
+            state["blocks_auto_advance"] is False
+            for state_id, state in states.items()
+            if state_id != "human_gate_required"
+        )
         assert section_ids == [
             "paper_question",
             "stage_inputs",
             "work_completed",
             "manuscript_or_artifact_delta",
+            "claim_trace",
             "evidence_and_citation_basis",
             "quality_judgment",
+            "freshness_signal",
             "advance_decision",
             "route_back_or_human_gate",
         ]
+        assert {section["human_judgment"] for section in review_page["sections"]} == {"optional_annotation"}
+        assert {section["blocks_auto_advance"] for section in review_page["sections"]} == {False}
         assert review_page["authority_boundary"]["can_authorize_quality_verdict"] is False
         assert review_page["authority_boundary"]["can_authorize_submission_readiness"] is False
+        assert review_page["authority_boundary"]["can_mark_publication_ready"] is False
+        assert review_page["authority_boundary"]["can_override_auto_advance"] is False
 
 
 def test_render_stage_surfaces_markdown_is_generated_from_contract() -> None:

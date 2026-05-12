@@ -223,10 +223,26 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "stage_count": len(stage_surface["stage_cards"]),
         "locator_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
         "stage_refs": stage_surface["stage_deliverable_index"]["stage_refs"],
+        "human_review_page_refs": stage_surface["stage_deliverable_index"]["human_review_page_refs"],
         "source_refs": stage_surface["stage_deliverable_index"]["source_refs"],
+        "human_review_policy": stage_surface["stage_deliverable_index"]["human_review_policy"],
         "authority_boundary": stage_surface["stage_deliverable_index"]["authority_boundary"],
         "opl_projection_boundary": "read_only_locator_no_truth_write",
+        "auto_advance_boundary": {
+            "default_blocks_auto_advance": False,
+            "blocking_only_when": "mas_human_gate_boundary_triggered",
+            "opl_can_block_auto_advance": False,
+            "opl_can_mark_publication_ready": False,
+        },
     }
+    assert descriptor["stage_deliverable_index"]["human_review_policy"]["mode"] == (
+        "optional_human_review_annotation"
+    )
+    assert descriptor["stage_deliverable_index"]["human_review_policy"]["default_blocks_auto_advance"] is False
+    assert descriptor["stage_deliverable_index"]["human_review_policy"]["annotation_can_authorize_quality_verdict"] is False
+    assert descriptor["stage_deliverable_index"]["human_review_policy"][
+        "annotation_can_authorize_submission_readiness"
+    ] is False
     quality_pack_contract = stage_quality_contract.build_stage_quality_pack_contract()
     assert descriptor["quality_pack_contract"] == {
         "surface_kind": "stage_quality_pack_projection",
@@ -360,6 +376,8 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
             "can_write_domain_truth": False,
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
+            "human_review_blocks_auto_advance_by_default": False,
+            "blocking_only_when": "mas_human_gate_boundary_triggered",
         }
         assert set(stage["quality_pack_refs"]) <= set(quality_pack_contract["pack_ids"])
         assert stage["quality_pack_projection"]["role"] == "quality_input_and_reviewer_rubric"

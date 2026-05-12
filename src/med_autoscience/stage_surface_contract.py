@@ -51,6 +51,88 @@ DELIVERABLE_INDEX_SOURCE_REFS = (
     "package_freshness_proof",
     "artifact_delta_proof",
 )
+HUMAN_REVIEW_ALLOWED_STATES = (
+    {
+        "state": "accept_for_next_stage",
+        "label": "can enter next stage",
+        "blocks_auto_advance": False,
+    },
+    {
+        "state": "needs_revision",
+        "label": "needs revision",
+        "blocks_auto_advance": False,
+    },
+    {
+        "state": "route_back",
+        "label": "route back",
+        "blocks_auto_advance": False,
+    },
+    {
+        "state": "stop_or_pivot",
+        "label": "stop or pivot",
+        "blocks_auto_advance": False,
+    },
+    {
+        "state": "human_gate_required",
+        "label": "human gate required",
+        "blocks_auto_advance": True,
+    },
+)
+HUMAN_GATE_BOUNDARY_EXAMPLES = (
+    "direction_reset",
+    "claim_boundary_expansion",
+    "stop_or_reopen_decision",
+    "submission_or_external_release",
+    "ethics_authorship_or_data_permission",
+)
+PAPER_ASSET_DELTA_TYPES = (
+    "manuscript",
+    "table",
+    "figure",
+    "supplement",
+    "reference",
+    "response_letter",
+    "analysis_record",
+    "review_record",
+    "package_or_delivery",
+    "no_paper_asset_body_delta",
+)
+CLAIM_IMPACT_STATES = (
+    "strengthened",
+    "weakened",
+    "rewritten",
+    "removed",
+    "unsupported",
+    "newly_blocked",
+    "no_claim_change",
+)
+FRESHNESS_SIGNAL_STATES = (
+    {
+        "state": "green_current",
+        "label": "新鲜一致",
+        "review_color": "green",
+        "blocks_auto_advance": False,
+    },
+    {
+        "state": "yellow_refresh_recommended",
+        "label": "建议刷新",
+        "review_color": "yellow",
+        "blocks_auto_advance": False,
+    },
+    {
+        "state": "red_stale_or_inconsistent",
+        "label": "过期或不一致",
+        "review_color": "red",
+        "blocks_auto_advance": False,
+    },
+)
+FRESHNESS_EVALUATED_REFS = (
+    "evidence_ledger",
+    "review_ledger",
+    "manuscript_or_package_ref",
+    "publication_eval/latest.json",
+    "controller_decisions/latest.json",
+)
 ALLOWED_OWNER_TOOLS = (
     "MAS controller-authorized CLI/MCP/product-entry/runtime surfaces",
     "stage-knowledge-packet",
@@ -99,6 +181,7 @@ def build_stage_surface_contract(payload: dict[str, object] | None = None) -> di
                 "runtime_owner",
             ],
         },
+        "human_review_policy": _human_review_policy(),
         "stage_deliverable_index": _stage_deliverable_index_summary(cards),
         "stage_cards": cards,
         "validation": {
@@ -352,7 +435,12 @@ def _stage_deliverable_index_summary(cards: list[dict[str, object]]) -> dict[str
         "role": "human_audit_and_opl_locator",
         "stage_count": len(cards),
         "stage_refs": [f"/stage_cards/{_string(card['route_id'], 'route_id')}/deliverable_index" for card in cards],
+        "human_review_page_refs": [
+            f"/stage_cards/{_string(card['route_id'], 'route_id')}/human_review_page" for card in cards
+        ],
         "source_refs": list(DELIVERABLE_INDEX_SOURCE_REFS),
+        "human_review_policy": _human_review_policy(),
+        "review_page_policy": _review_page_policy(),
         "authority_boundary": _deliverable_authority_boundary(),
     }
 
@@ -411,6 +499,8 @@ def _build_deliverable_index(
             "source_ref": "route_contract.next_routes",
         },
         "human_review_page_ref": f"/stage_cards/{route_id}/human_review_page",
+        "human_review_policy_ref": "/human_review_policy",
+        "review_page_policy_ref": "/stage_deliverable_index/review_page_policy",
         "authority_boundary": _deliverable_authority_boundary(),
     }
 
@@ -428,6 +518,12 @@ def _build_human_review_page(
         "display_name": _string(route_payload["display_name"], "display_name"),
         "paper_question": _string(route_payload["key_question"], "key_question"),
         "deliverable_index_ref": f"/stage_cards/{route_id}/deliverable_index",
+        "review_annotation_policy": _human_review_policy(
+            human_gate_boundary=_required_string_list(route_payload, "human_gate_boundary")
+        ),
+        "paper_asset_delta_policy": _paper_asset_delta_policy(),
+        "claim_trace_policy": _claim_trace_policy(),
+        "freshness_signal_policy": _freshness_signal_policy(),
         "sections": [
             _review_section("paper_question", "本阶段要回答的论文问题", [_string(route_payload["key_question"], "key_question")]),
             _review_section("stage_inputs", "本阶段输入", _required_string_list(route_payload, "enter_conditions")),
@@ -438,11 +534,21 @@ def _build_human_review_page(
                 _required_string_list(route_payload, "durable_outputs_minimum"),
             ),
             _review_section(
+                "claim_trace",
+                "跨阶段 claim 影响",
+                list(CLAIM_IMPACT_STATES),
+            ),
+            _review_section(
                 "evidence_and_citation_basis",
                 "证据与引用依据",
                 _optional_string_list(route_payload, "knowledge_input_obligations"),
             ),
             _review_section("quality_judgment", "质量判断", _required_string_list(route_payload, "hard_success_gate")),
+            _review_section(
+                "freshness_signal",
+                "stale / freshness 红黄绿",
+                [str(item["state"]) for item in FRESHNESS_SIGNAL_STATES],
+            ),
             _review_section("advance_decision", "是否进入下一阶段", _required_string_list(route_payload, "next_routes")),
             _review_section(
                 "route_back_or_human_gate",
@@ -456,6 +562,8 @@ def _build_human_review_page(
         "authority_boundary": {
             "can_authorize_quality_verdict": False,
             "can_authorize_submission_readiness": False,
+            "can_mark_publication_ready": False,
+            "can_override_auto_advance": False,
             "can_write_domain_truth": False,
             "truth_owner": "MedAutoScience",
         },
@@ -467,7 +575,67 @@ def _review_section(section_id: str, title: str, source_items: list[str]) -> dic
         "section_id": section_id,
         "title": title,
         "source_items": source_items,
-        "human_judgment": "required",
+        "human_judgment": "optional_annotation",
+        "blocks_auto_advance": False,
+    }
+
+
+def _human_review_policy(*, human_gate_boundary: list[str] | None = None) -> dict[str, object]:
+    return {
+        "mode": "optional_human_review_annotation",
+        "default_blocks_auto_advance": False,
+        "allowed_states": list(HUMAN_REVIEW_ALLOWED_STATES),
+        "blocking_state": "human_gate_required",
+        "blocking_only_when": "route_contract.human_gate_boundary_triggered",
+        "human_gate_boundary": list(human_gate_boundary or []),
+        "human_gate_boundary_examples": list(HUMAN_GATE_BOUNDARY_EXAMPLES),
+        "annotation_can_authorize_quality_verdict": False,
+        "annotation_can_authorize_submission_readiness": False,
+        "annotation_can_mark_publication_ready": False,
+        "auto_advance_owner": "MedAutoScience controller/runtime owner surfaces",
+    }
+
+
+def _review_page_policy() -> dict[str, object]:
+    return {
+        "paper_asset_delta_policy": _paper_asset_delta_policy(),
+        "claim_trace_policy": _claim_trace_policy(),
+        "freshness_signal_policy": _freshness_signal_policy(),
+    }
+
+
+def _paper_asset_delta_policy() -> dict[str, object]:
+    return {
+        "allowed_delta_types": list(PAPER_ASSET_DELTA_TYPES),
+        "body_included": False,
+        "required_ref_roles": [
+            "artifact_delta_proof",
+            "package_freshness_proof",
+            "owner_receipt",
+        ],
+        "delta_types_are_human_review_projection": True,
+        "can_authorize_artifact_authority": False,
+    }
+
+
+def _claim_trace_policy() -> dict[str, object]:
+    return {
+        "allowed_impact_states": list(CLAIM_IMPACT_STATES),
+        "requires_claim_refs": True,
+        "cross_stage_trace": True,
+        "supports_quality_review_only": True,
+        "can_authorize_quality_verdict": False,
+    }
+
+
+def _freshness_signal_policy() -> dict[str, object]:
+    return {
+        "status_kind": "traffic_light",
+        "allowed_states": list(FRESHNESS_SIGNAL_STATES),
+        "evaluated_refs": list(FRESHNESS_EVALUATED_REFS),
+        "stale_or_inconsistent_means_refresh_required_for_human_review": True,
+        "freshness_signal_can_authorize_submission_readiness": False,
+        "freshness_signal_blocks_auto_advance_by_default": False,
     }
 
 
@@ -479,6 +647,7 @@ def _deliverable_authority_boundary() -> dict[str, object]:
         "can_authorize_quality_verdict": False,
         "can_authorize_publication_readiness": False,
         "can_authorize_submission_readiness": False,
+        "human_review_blocks_auto_advance_by_default": False,
         "body_included": False,
     }
 
