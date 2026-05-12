@@ -35,6 +35,16 @@ The repo-level MAS paper loop is implemented enough to be called, tested, and in
 
 The important distinction is that `repo surface landed` means MAS has the callable contracts, owners, receipts, and tests needed for the loop. It does not mean every real paper line has already reached submission-facing closure.
 
+2026-05-12 fresh live-soak calibration:
+
+- DM002 currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=ai_reviewer_re_eval`, MAS-owned publication gate / controller decision / repair evidence refs, and `next_owner=analysis-campaign`.
+- DM003 currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=artifact_delta` and `next_owner=write`.
+- Obesity currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=artifact_delta` and `next_owner=write`.
+- DM002 also proves a publication-route memory read/writeback ref chain: consumed memory ref `publication_route_memory_seed__negative_result_stoploss` plus MAS-owned stage/router writeback receipt refs.
+- The calibration is read-only: `writes_performed=false`, `writes_real_workspace=false`, and OPL is forbidden from writing publication eval, controller decisions, current package, publication quality verdict, artifact authority, or memory body.
+
+This means the current three-paper evidence has crossed the read-only acceptance threshold. It still has not crossed the production-hosted guarded-apply threshold.
+
 ## Acceptance Contract
 
 MAS paper autonomy is accepted only when a real eligible paper line can repeatedly show one of the following outcomes after an autonomous work unit:
@@ -83,6 +93,7 @@ Use these evidence levels in order:
 2. MAS owner receipts: repair execution, route decision, gate replay request, AI reviewer recheck request, stage memory closeout and write-router receipts.
 3. Repo contract tests: sidecar/repair/reviewer/route/stage-memory focused tests and `make test-meta`.
 4. OPL/provider evidence: stage attempt and queue receipts only after they reference MAS owner receipts and do not write forbidden MAS truth surfaces.
+5. Production hosted evidence: provider attempt query, Codex/domain activity receipt, typed closeout, MAS owner receipt, no-forbidden-write proof, and an artifact delta / gate replay / reviewer update / route decision / human gate / stop-loss / typed blocker in MAS truth surfaces.
 
 Docs, queue tasks, provider status, and worktree activity are never publication-quality proof.
 

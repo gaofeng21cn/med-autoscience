@@ -19,20 +19,22 @@ Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full rec
 
 ## 当前状态
 
-当前状态是 `provider_ready_domain_adapter_landed_soak_pending`。
+当前状态是 `provider_ready_domain_adapter_landed_readonly_paper_proof_landed_guarded_apply_pending`。
 
 MAS 侧已经落地：
 
 - MAS 可被 OPL 发现为 aligned domain-agent skeleton 和 stage control plane；
 - MAS sidecar export/dispatch 可暴露并消费 typed paper-autonomy task；
 - MAS publication-route memory 已有 policy、seed fixtures、workspace apply closure、locator refs、typed writeback proposal 和 router receipt boundary；
+- 三篇真实 paper line 已完成 read-only closeout projection：DM002 -> `ai_reviewer_re_eval`，DM003 -> `artifact_delta`，Obesity -> `artifact_delta`，且 `writes_performed=false`；
+- DM002 read-only proof 已显示 publication-route memory consumed ref 和 MAS workspace/runtime writeback receipt refs，OPL/Aion 只能显示 refs；
 - MAS local scheduler、one-shot reconcile、Portal 和 Live Console 仍是有效 local diagnostics 与 evidence surface。
 
 cutover 或物理退役前仍未完成：
 
 - OPL provider 的真实 Temporal server/worker residency；
 - OPL stage attempt 下真实长时 domain activity soak；OPL Codex runner 的 repo/test harness 已具备 `dry_run`、`live_dry_run` 与 `codex_cli` process supervision，但 MAS paper-line provider-hosted 连续证据仍未完成；
-- 至少一条真实 MAS paper-line read-only -> guarded apply soak，链路为 OPL attempt -> MAS receipt -> artifact delta / gate replay / reviewer judgment / human gate / stop-loss / typed blocker；
+- 至少一条真实 MAS paper-line provider-hosted guarded apply soak，链路为 OPL attempt -> MAS receipt -> artifact delta / gate replay / reviewer judgment / human gate / stop-loss / typed blocker；
 - human gate / user modification / resume token 从 OPL signal 进入 MAS revision 或 gate owner chain 的 proof；
 - provider parity 证明之后，清理 scheduler/Hermes/MDS/legacy compatibility 的 active-path residue。
 
@@ -44,7 +46,7 @@ cutover 或物理退役前仍未完成：
 | `P2.2` | `mas_framework_migration` | MAS 作为 OPL-admitted domain agent 暴露 domain skeleton、stage descriptor、sidecar export/dispatch、owner receipts、projection builder、artifact locator 和 authority refs。 | MAS direct path / OPL-hosted path receipt equivalence |
 | `P2.3` | `framework_generic_lifecycle_lift` | 把 MAS runtime lifecycle、artifact locator、retention、restore-proof、migration-ledger 经验分类为 OPL framework-generic primitive 与 MAS-domain truth。 | OPL primitive candidates plus MAS retained-domain list |
 | `P2.4` | `legacy_retirement_after_replacement` | 有替代证据后，删除或降级 scheduler/Hermes/MDS/legacy manager/UI wording 与代码。 | retired path evidence 和更新后的 diagnostics/fallback docs |
-| `P2.5` | `final_paper_line_guarded_soak` | framework foundation、MAS migration、legacy retirement 收口后，证明真实 paper line 可经 OPL attempt + MAS owner chain 前进或明确阻塞。 | MAS truth surface 中的 progress delta、gate replay、reviewer update、human gate、stop-loss 或 typed blocker |
+| `P2.5` | `final_paper_line_guarded_soak` | read-only proof 已覆盖 DM002/DM003/Obesity；下一步是在 provider-hosted guarded apply 中证明真实 paper line 可经 OPL attempt + MAS owner chain 前进或明确阻塞。 | MAS truth surface 中的 attempt query、owner receipt、progress delta、gate replay、reviewer update、human gate、stop-loss 或 typed blocker |
 
 这些是内容线。后续变更可以只实现其中一条，不需要触碰整个 P2 surface。
 
@@ -70,7 +72,7 @@ cutover 或物理退役前仍未完成：
 2. 再把 MAS 迁移成 OPL-admitted domain agent，并冻结 sidecar/receipt/authority/ref 边界；
 3. 同步把 MAS 已验证的通用 lifecycle/index/restore pattern 上收到 OPL framework；
 4. 用替代证据清理旧 local/Hermes/MDS/default-compat surface，不把旧兼容性无限期保留；
-5. 最后做真实 MAS paper-line soak，验证迁移后的目标形态。
+5. 最后做真实 MAS paper-line guarded apply soak，验证迁移后的目标形态；当前 read-only soak 已是进入该步骤的前置证据，不是最终完成证据。
 
 因此，当前优先级不是先 paper soak，也不是先物理删除。清理属于迁移收口条件：删除前必须证明无 default caller、无 fixture/provenance 必需、已有 replacement diagnostic/history link。
 
@@ -93,8 +95,8 @@ P2 证据按层级判断：
 1. Focused MAS sidecar/export/dispatch tests 和 forbidden-write tests；
 2. OPL provider attempt/queue/signal/query tests；
 3. Direct MAS skill path 与 OPL-hosted path 的 receipt equivalence；
-4. guarded apply 前先做 real paper-line read-only soak；
-5. guarded apply evidence 必须写明 attempt id、MAS owner receipt、idempotency key、source fingerprint、source refs、artifact delta / blocker；
+4. guarded apply 前先做 real paper-line read-only soak；当前 DM002/DM003/Obesity 已满足该前置条件；
+5. guarded apply evidence 必须写明 attempt id、MAS owner receipt、idempotency key、source fingerprint、source refs、artifact delta / blocker 和 no-forbidden-write proof；
 6. 退役验证必须证明无 default CLI/MCP/product-entry/skill caller、无 OPL active reference、无 fixture/provenance dependency，并有 replacement diagnostic/history link。
 
 Docs-only P2 更新需要 `git diff --check` 和 link/path spot check。Contract/runtime 更新需要 focused tests 加 repo-native verification。

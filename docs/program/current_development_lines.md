@@ -10,6 +10,8 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 
 `docs/program/` 现在按内容线阅读，不按整份旧计划阅读。旧文档里的部分内容仍有效，但当前任务不是“把每个旧计划从头到尾做完”。
 
+当前执行优先级应是 framework-first，但 2026-05-12 已经有一条重要的真实论文证据进入基线：DM002、DM003、Obesity 三篇 paper line 都能输出 OPL-ingestable read-only typed closeout projection。DM002 当前 verdict 是 `ai_reviewer_re_eval`，DM003 与 Obesity 当前 verdict 是 `artifact_delta`；DM002 同时证明 publication-route memory consumed ref 和 MAS-owned writeback receipt refs 可被 OPL/Aion 以 ref-only 方式展示。所有这些 projection 都是 `writes_performed=false`，不能写成 guarded apply、生产 provider 托管或投稿级 closure 已完成。
+
 当前执行优先级应是 framework-first：
 
 1. 先把 OPL 做成完整的 Codex-first、stage-led 智能体框架，具备 durable stage attempt、queue/wakeup、retry/dead-letter、approval/human gate、receipt/projection、shared lifecycle/index primitive 和 provider-backed runtime。
@@ -24,11 +26,11 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 
 | 顺序 | 线路 | owner 文档 | 当前状态 | 当前实际要做 |
 | --- | --- | --- | --- | --- |
-| `1` | `opl_framework_foundation` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) + OPL master docs | `framework_required_before_final_soak` | 先完成 OPL 智能体框架能力：stage attempt、provider runtime、queue/wakeup、retry/dead-letter、approval transport、receipt/projection、shared lifecycle/index primitive。 |
+| `1` | `opl_framework_foundation` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) + OPL master docs | `framework_control_plane_landed; production_residency_pending` | 先完成 OPL 智能体框架能力：stage attempt、provider runtime、queue/wakeup、retry/dead-letter、approval transport、receipt/projection、shared lifecycle/index primitive。当前已有 provider/runner repo-test harness；真实 Temporal server/worker 长驻、长时 Codex/domain activity soak 和 production cutover 仍待完成。 |
 | `2` | `mas_framework_migration` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | `domain_adapter_landed; migration_active; memory_soak_readonly_proof_landed` | MAS 迁移为 OPL-admitted domain agent：sidecar/receipt contract、stage descriptor、domain skeleton、artifact locator、authority refs、direct path / hosted path receipt equivalence；publication-route memory 的 DM002 paper-line proof 已能把 stage route-memory refs、typed closeout proposal、MAS router receipt refs 和 OPL/Aion receipt refs 串成 MAS-owned ref-only surface，OPL 不能写 MAS memory body 或 router acceptance。 |
 | `3` | `feature_partition_and_retirement` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md), [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md), [Runtime Lifecycle SQLite Migration Program](./runtime_lifecycle_sqlite_migration_program.md) | `classification_and_cleanup_active` | 新旧功能逐块分类为 retain/move/lift/degrade/retire；退役旧默认依赖、legacy compat、重复 UI 和过时 manager surface。 |
 | `4` | `app_runtime_workbench` | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | `read_only_projection_landed; app_productization_active` | 在 OPL App 中产品化迁移后的 MAS 状态、route、conversation、terminal/log、artifact、action receipt；不重新定义 runtime truth。 |
-| `5` | `paper_autonomy_acceptance` | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | `repo_loop_landed; three_paper_readonly_projection_landed; dm002_memory_apply_proof_landed; controlled_live_apply_still_pending` | 在 OPL framework + migrated MAS 形态下做真实 paper-line soak；当前 read-only projection 已覆盖 DM002/DM003/Obesity，DM002 已形成 memory/writeback/receipt proof，下一步仍是 guarded controlled apply 下的 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。 |
+| `5` | `paper_autonomy_acceptance` | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | `repo_loop_landed; three_paper_readonly_projection_landed; dm002_memory_receipt_refs_landed; provider_guarded_apply_pending` | 在 OPL framework + migrated MAS 形态下做真实 paper-line soak；当前 read-only projection 已覆盖 DM002/DM003/Obesity，DM002 已形成 memory/writeback/receipt ref proof，下一步仍是 provider-hosted guarded apply 下的 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。 |
 | `6` | `recurring_learning_support` | `docs/status.md`, `docs/references/**` | `triggered_support` | DeepScientist / external harness / adjacent framework intake 只在触发时执行，dated snapshot 留在 history。 |
 
 ## 已过时或已降级内容
@@ -76,7 +78,7 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 | `mas_framework_migration` | MAS direct skill path 与 OPL-hosted path 使用同一 MAS owner receipts，且 OPL 不写 forbidden MAS truth surface。 |
 | `feature_partition_and_retirement` | 旧默认依赖、legacy compat、重复 UI、过时 manager surface 完成分类、替代和退役清理；保留项都有明确 owner 和用途。 |
 | `app_runtime_workbench` | 用户在 OPL App 看到 MAS study progress、route、conversation、terminal/log、artifacts、source refs 和 safe action receipts，不必依赖 CLI 或 local HTML。 |
-| `paper_autonomy_acceptance` | 迁移后的目标形态中，真实论文线反复产出 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 MAS owner surface 下的 typed blocker。 |
+| `paper_autonomy_acceptance` | Read-only evidence 已要求三篇真实论文线各有 typed closeout projection，且至少一篇带 memory consumed/writeback receipt refs；production evidence 还要求 provider-hosted guarded apply 能反复产出 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 MAS owner surface 下的 typed blocker。 |
 | `monolith_and_mds_foundation_guard` | 后续 MDS/DeepScientist 引用被分类，不能成为默认 runtime、quality 或 artifact authority。 |
 | `runtime_lifecycle_foundation_guard` | 新 runtime/Git/path drift 被 inventory、必要时 archive/restore、完成验证，并保持在默认 MAS authority 之外。 |
 
