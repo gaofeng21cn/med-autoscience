@@ -107,6 +107,7 @@ runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
 sidecar_provider_controller = _LazyModuleProxy(lambda: _load_controller("sidecar_provider"))
 sidecar_family_adapter = _LazyModuleProxy(lambda: _load_controller("sidecar_family_adapter"))
 stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
+publication_route_memory_inventory = _LazyModuleProxy(lambda: _load_module("med_autoscience.controllers.stage_knowledge_plane_parts.publication_route_memory_inventory"))
 real_paper_autonomy_soak_inventory = _LazyModuleProxy(lambda: _load_controller("real_paper_autonomy_soak_inventory"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
@@ -270,6 +271,17 @@ def _handle_stage_memory_command(args: argparse.Namespace, *, parser: argparse.A
             workspace_root=Path(args.workspace_root),
             seed_fixture_path=Path(args.seed_fixture),
             apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "publication-route-memory-inventory":
+        result = publication_route_memory_inventory.build_publication_route_memory_inventory(
+            workspace_root=Path(args.workspace_root),
+            stage=args.stage,
+            route_family_tags=args.route_families,
+            statuses=args.statuses,
+            include_card_body=bool(args.include_card_body),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

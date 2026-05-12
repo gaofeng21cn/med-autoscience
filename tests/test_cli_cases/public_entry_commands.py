@@ -188,6 +188,19 @@ def test_group_help_lists_subcommands(capsys) -> None:
     assert "Usage: medautosci study <command> [options]" in captured.out
     assert "progress" in captured.out
     assert "runtime-status" in captured.out
+
+
+def test_publication_group_help_lists_route_memory_inventory(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["publication"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Usage: medautosci publication <command> [options]" in captured.out
+    assert "route-memory-inventory" in captured.out
+
+
 def test_shell_argv_grouped_subcommand_dispatches(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "nfpitnet.local.toml"

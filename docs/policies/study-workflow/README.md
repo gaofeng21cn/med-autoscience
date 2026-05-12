@@ -24,6 +24,7 @@ MAS 的论文套路经验库已经按 `publication_route_memory` 落地为可检
 
 - small-set route memory cards
 - minimal metadata
+- read-only inventory/export
 - stage packet retrieval
 - typed closeout writeback
 - router receipt
@@ -41,6 +42,7 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 | repo seed fixture | [publication_route_memory_seed_fixture.json](./publication_route_memory_seed_fixture.json) | 查看首批可迁移 seed card 示例；它不是真实 memory store。 |
 | workspace memory pack | `portfolio/research_memory/publication_route_memory/memory_pack.json` | 查看某个 MAS workspace 内真正可检索的论文套路 memory cards。 |
 | receipts/proposals | `portfolio/research_memory/publication_route_memory/{migration_receipts,writeback_proposals,writeback_receipts}` | 查看 seed apply、typed closeout proposal 和 MAS router 接受/拒绝记录。 |
+| 只读 CLI inventory | `medautosci publication route-memory-inventory --workspace-root <workspace>` | 按 workspace/stage/route family/status 查看 card 元数据、locator 和 receipt summary；默认不输出 memory 正文。维护者显式加 `--include-card-body` 时才输出 prose / failure modes。 |
 
 当前真实样例在 DM-CVD workspace：
 
@@ -58,7 +60,7 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 - 真实 paper-line 长时 soak
 - human gate / resume 的运行证明
 - workspace/runtime memory writeback receipt 在更多真实论文线上的泛化
-- 面向人类用户的 OPL/App memory inventory 与编辑/审核工作台
+- 面向普通用户的 OPL/App 分组展示与编辑/审核工作台
 - 少量 legacy residue 清理
 
 因此，`publication_route_memory` 现在应按“可用的自然语言经验记忆”理解，不按“完整的自动论文套路引擎”理解。
@@ -67,8 +69,9 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 
 - 继续把真实 paper stage closeout 中的可复用 lesson 写成 natural-language memory card，并通过 `memory_write_router_receipt` 接受或拒绝。
 - 给每个活跃 MAS workspace 保持 `publication_route_memory/memory_pack.json`、migration receipt、writeback proposal、writeback receipt 完整可查。
+- 使用 `medautosci publication route-memory-inventory --workspace-root <workspace>` 做默认 body-free 的维护者/OPL 只读查看；需要审查正文时再加 `--include-card-body`。
 - 在 OPL/Aion 侧只展示 consumed memory refs、writeback receipt refs、rejected reason 和 freshness，不复制 memory 正文、不接受/拒绝 writeback。
-- 增加人读 inventory 或只读导出，帮助用户按 workspace/stage/route family 查看当前有哪些论文套路。
+- 继续把 OPL/Aion 展示收敛为 ref-only 分组，而不是把 memory body 复制到 OPL。
 
 暂缓的内容：
 

@@ -91,6 +91,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("publication", "reporting-audit"): "medical-reporting-audit",
     ("publication", "surface"): "medical-publication-surface",
     ("publication", "figure-loop-guard"): "figure-loop-guard",
+    ("publication", "route-memory-inventory"): "publication-route-memory-inventory",
     ("sidecar", "export"): "sidecar-export",
     ("sidecar", "dispatch"): "sidecar-dispatch",
     ("product", "governance-report"): "control-plane-governance-report",

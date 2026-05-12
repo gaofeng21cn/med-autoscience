@@ -53,6 +53,13 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     seed_apply_mode.add_argument("--apply", action="store_true")
     seed_apply_mode.add_argument("--dry-run", action="store_true")
 
+    route_memory_inventory_parser = subparsers.add_parser("publication-route-memory-inventory")
+    route_memory_inventory_parser.add_argument("--workspace-root", required=True)
+    route_memory_inventory_parser.add_argument("--stage", type=str)
+    route_memory_inventory_parser.add_argument("--route-family", action="append", dest="route_families")
+    route_memory_inventory_parser.add_argument("--status", action="append", dest="statuses")
+    route_memory_inventory_parser.add_argument("--include-card-body", action="store_true")
+
     stage_knowledge_packet_parser = subparsers.add_parser("stage-knowledge-packet")
     stage_knowledge_packet_parser.add_argument("--study-id", required=True)
     stage_knowledge_packet_parser.add_argument("--stage", required=True)

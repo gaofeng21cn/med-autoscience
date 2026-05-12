@@ -67,6 +67,86 @@ def test_publication_route_memory_apply_seed_cli_dispatches_controller(tmp_path:
     assert Path(payload["memory_pack_ref"]).exists()
 
 
+def test_publication_route_memory_inventory_cli_lists_cards_without_body_by_default(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    cli.main(
+        [
+            "publication-route-memory-apply-seed",
+            "--workspace-root",
+            str(workspace_root),
+            "--seed-fixture",
+            str(SEED_FIXTURE),
+            "--apply",
+        ]
+    )
+    capsys.readouterr()
+
+    exit_code = cli.main(
+        [
+            "publication-route-memory-inventory",
+            "--workspace-root",
+            str(workspace_root),
+            "--stage",
+            "decision",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["surface"] == "publication_route_memory_inventory"
+    assert payload["status"] == "ready"
+    assert payload["read_only"] is True
+    assert payload["body_included"] is False
+    assert payload["card_count_total"] == 2
+    assert payload["card_count_filtered"] == 1
+    assert [card["memory_id"] for card in payload["cards"]] == [
+        "publication_route_memory_seed__negative_result_stoploss"
+    ]
+    assert payload["receipt_summary"]["migration_receipt_count"] == 1
+    assert payload["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert "Negative or unstable main analysis should trigger" in captured.out
+    assert "When a bounded analysis campaign returns" not in captured.out
+
+
+def test_publication_route_memory_inventory_cli_can_include_body_for_maintainers(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    cli.main(
+        [
+            "publication-route-memory-apply-seed",
+            "--workspace-root",
+            str(workspace_root),
+            "--seed-fixture",
+            str(SEED_FIXTURE),
+            "--apply",
+        ]
+    )
+    capsys.readouterr()
+
+    exit_code = cli.main(
+        [
+            "publication-route-memory-inventory",
+            "--workspace-root",
+            str(workspace_root),
+            "--route-family",
+            "weak_or_negative_result_handling",
+            "--include-card-body",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["body_included"] is True
+    assert payload["card_count_filtered"] == 1
+    assert payload["cards"][0]["route_family"] == "weak_or_negative_result_handling"
+    assert "prose_summary" in payload["cards"][0]
+    assert "failure_modes" in payload["cards"][0]
+    assert "When a bounded analysis campaign returns" in captured.out
+
+
 def test_stage_knowledge_packet_cli_materializes_packet(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"
