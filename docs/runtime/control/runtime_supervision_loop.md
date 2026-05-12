@@ -148,6 +148,8 @@ safe reconcile 的核心边界是 fail-closed：route stale、owner mismatch、m
 - `owner_callable_registry` 是 callable owner 的机器锚点，当前注册 `MAS/controller`、`ai_reviewer`、`publication_gate`、`quality_repair_batch`、`gate_clearing_batch` 与 `delivery_sync`。`owner_callable_surface_missing` 是 controller-consumable blocker 或 repo-level callable gap；当 `requires_user_input=false` 时，不得把它投影成真实 `waiting_for_user`。
 - submission authority / delivery closure 必须在同一个 work-unit transaction 中完成 source freshness proof、delivery sync 和 gate replay。来自旧 MDS worktree 的绝对 `paper/...` 路径只可规范到当前 paper root 的同后缀 source ref，不能作为 current source blocker。
 - DM002、DM003 和 Obesity 的 read-only validation 要把 `actual_write_active`、`package_delivered`、`meaningful_artifact_delta`、`next_owner`、`why_not_progressing` 同时展示；只要 publishability / AI reviewer / submission QC 未放行，就不得把 downstream package missing 写成论文进度。
+- control-plane authorization 必须区分前台人工接管和 MAS managed worker：`foreground_paper_write_allowed=false` 只阻止 Codex App / manual agent 绕过 MAS 直接改论文；`managed_worker_paper_write_allowed=true` 表示当前 MAS controller work unit 可授权 worker 修改 canonical `paper/` 修订面。`publication_gate.allow_write=false` 只阻止 bundle/submission/current_package/proofing 写面，不能阻止上游 analysis-campaign/write stage 的 canonical paper 修订。
+- `stale_study_delivery_mirror` 是 downstream delivery/package 信号。它可以阻止 submission bundle 交付闭环，但不得阻断仍需分析、证据、图表、指标或正文修订的 paper stage；若 delivery lane 缺 freshness proof 或 source-to-target 闭合证据，controller 应产生 terminal/actionable delivery blocker，而不是派发会把 Codex CLI 吸入 replay loop 的泛化写作任务。
 
 2026-05-10 Paper Progress Reconciler 重构把上面的目标接入同一个 outer-loop receipt：
 

@@ -475,6 +475,23 @@ def _append_submission_delivery_sync_closure_unit(units: list[dict[str, str]]) -
     )
 
 
+def _append_submission_delivery_terminal_blocker_unit(
+    units: list[dict[str, str]],
+    *,
+    reason: str,
+) -> None:
+    units.append(
+        _unit(
+            "submission_delivery_terminal_blocker",
+            "controller",
+            "Record a controller-owned actionable blocker for downstream study delivery closure.",
+            control_surface="gate_clearing_batch",
+            controller_work_unit_executable=False,
+            non_executable_reason=reason,
+        )
+    )
+
+
 def _append_submission_authority_sync_closure_unit(units: list[dict[str, str]]) -> None:
     units.append(
         _unit(
@@ -648,8 +665,11 @@ def _derive_blocking_work_units(
         and authority_currentness.submission_authority_current
         and not authority_currentness.current_package_fresh
     ):
-        _append_gate_specificity_unit(units)
-        return units, "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
+        _append_submission_delivery_terminal_blocker_unit(
+            units,
+            reason="current_package_freshness_proof_missing",
+        )
+        return units, "controller_delivery_blocked", ()
     if (
         specificity_target_status_payload
         and specificity_target_status_payload.get("complete") is True

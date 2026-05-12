@@ -459,6 +459,37 @@ def test_stale_delivery_mirror_with_current_authority_routes_to_gate_replay() ->
     assert result["actionability_status"] == "controller_sync_closure_required"
 
 
+def test_stale_delivery_mirror_without_current_package_proof_is_terminal_delivery_blocker() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "current_required_action": "complete_bundle_stage",
+            "blockers": ["stale_study_delivery_mirror"],
+            "study_delivery_status": "stale_source_changed",
+            "study_delivery_stale_reason": "delivery_manifest_source_changed",
+            "submission_minimal_authority_status": "current",
+            "submission_minimal_evaluated_source_signature": "source::abc",
+            "submission_minimal_authority_source_signature": "source::abc",
+            "current_package_status": "fresh",
+            "current_package_source_signature": "source::abc",
+            "current_package_authority_source_signature": "source::abc",
+            "gate_fingerprint": "publication-gate::stale-delivery",
+        }
+    )
+
+    assert result["actionability_status"] == "controller_delivery_blocked"
+    assert result["next_work_unit"] == {
+        "unit_id": "submission_delivery_terminal_blocker",
+        "lane": "controller",
+        "summary": "Record a controller-owned actionable blocker for downstream study delivery closure.",
+        "control_surface": "gate_clearing_batch",
+        "controller_work_unit_executable": False,
+        "non_executable_reason": "current_package_freshness_proof_missing",
+    }
+
+
 def test_claim_story_figure_submission_hardening_cluster_starts_with_analysis_repair() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

@@ -195,10 +195,11 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
     if "study_truth_epoch_missing" in blocking_reasons or "runtime_health_epoch_missing" in blocking_reasons:
         truth_action = "read_runtime_status"
 
-    paper_write_allowed = not (
+    foreground_paper_write_allowed = not (
         "execution_owner_guard.supervisor_only" in blocking_reasons
         or "publication_eval.ai_reviewer_required" in blocking_reasons
     )
+    managed_worker_paper_write_allowed = True
     bundle_build_allowed = not (
         "execution_owner_guard.supervisor_only" in blocking_reasons
         or "publication_supervisor_state.bundle_tasks_downstream_only" in blocking_reasons
@@ -220,8 +221,11 @@ def build_control_plane_snapshot(status_payload: Mapping[str, Any]) -> dict[str,
         },
         "route_authorization": {
             "authorized": not dispatch_blocked,
-            "paper_write_allowed": paper_write_allowed,
+            "paper_write_allowed": managed_worker_paper_write_allowed,
+            "managed_worker_paper_write_allowed": managed_worker_paper_write_allowed,
+            "foreground_paper_write_allowed": foreground_paper_write_allowed,
             "bundle_build_allowed": bundle_build_allowed,
+            "foreground_bundle_build_allowed": bundle_build_allowed,
             "runtime_recovery_allowed": (
                 activity_timeout_owner_action is None
                 and runtime_action

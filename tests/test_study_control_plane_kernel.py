@@ -53,7 +53,7 @@ def test_control_plane_snapshot_fail_closes_non_ai_reviewer_publication_ready() 
     assert "publication_eval.ai_reviewer_required" in snapshot["blocking_reasons"]
 
 
-def test_control_plane_snapshot_blocks_paper_writes_for_supervisor_and_bundle_gates() -> None:
+def test_control_plane_snapshot_splits_foreground_guard_from_managed_paper_write_authority() -> None:
     snapshot = _snapshot(
         {
             "study_id": "004-invasive",
@@ -79,8 +79,11 @@ def test_control_plane_snapshot_blocks_paper_writes_for_supervisor_and_bundle_ga
     )
 
     assert snapshot["dispatch_gate"]["state"] == "blocked"
-    assert snapshot["route_authorization"]["paper_write_allowed"] is False
+    assert snapshot["route_authorization"]["paper_write_allowed"] is True
+    assert snapshot["route_authorization"]["managed_worker_paper_write_allowed"] is True
+    assert snapshot["route_authorization"]["foreground_paper_write_allowed"] is False
     assert snapshot["route_authorization"]["bundle_build_allowed"] is False
+    assert snapshot["route_authorization"]["foreground_bundle_build_allowed"] is False
     assert "direct_paper_line_write" not in snapshot["allowed_controller_actions"]
     assert "direct_bundle_build" not in snapshot["allowed_controller_actions"]
 

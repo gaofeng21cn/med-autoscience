@@ -49,8 +49,10 @@ def test_delivery_mirror_stale_requires_current_package_freshness_proof_before_s
 
     assert resolution.current_package_fresh is False
     assert resolution.delivery_sync_required is False
-    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
-    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert result["actionability_status"] == "controller_delivery_blocked"
+    assert result["next_work_unit"]["unit_id"] == "submission_delivery_terminal_blocker"
+    assert result["next_work_unit"]["controller_work_unit_executable"] is False
+    assert result["next_work_unit"]["non_executable_reason"] == "current_package_freshness_proof_missing"
 
 
 def test_delivery_mirror_stale_rejects_status_fresh_without_proof_path() -> None:
@@ -84,8 +86,10 @@ def test_delivery_mirror_stale_rejects_status_fresh_without_proof_path() -> None
 
     assert resolution.current_package_fresh is False
     assert resolution.delivery_sync_required is False
-    assert result["actionability_status"] == "blocked_by_non_actionable_gate"
-    assert result["next_work_unit"]["unit_id"] == "gate_needs_specificity"
+    assert result["actionability_status"] == "controller_delivery_blocked"
+    assert result["next_work_unit"]["unit_id"] == "submission_delivery_terminal_blocker"
+    assert result["next_work_unit"]["controller_work_unit_executable"] is False
+    assert result["next_work_unit"]["non_executable_reason"] == "current_package_freshness_proof_missing"
 
 
 def test_delivery_mirror_stale_with_package_freshness_proof_routes_to_sync_then_replay() -> None:

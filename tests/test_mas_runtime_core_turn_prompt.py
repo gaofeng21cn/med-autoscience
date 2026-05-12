@@ -111,6 +111,8 @@ def test_codex_exec_runner_prompt_includes_active_controller_work_unit(monkeypat
     assert "This Codex process is the MAS managed runtime worker for this run" in prompt
     assert "Do not treat `execution_owner_guard.supervisor_only=true` as a reason to skip this runtime turn" in prompt
     assert "Do not treat `execution_owner_guard.supervisor_only=true` as a reason to skip this controller work unit" in prompt
+    assert "analysis-campaign/write controller work units may revise canonical `paper/` surfaces" in prompt
+    assert "publication gate `allow_write=false` blocks generated package/submission writes" in prompt
     assert "runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta" in prompt
 
 
