@@ -173,13 +173,42 @@ Reporting guideline selection should be explicit:
 
 这些 pack 是质控输入和 reviewer rubric，不是 publication readiness authority。最终质量仍由 AI reviewer-backed `publication_eval/latest.json`、publication gate、controller decision 和 artifact proof 共同闭合。
 
+## Research Harness 后续学习整合
+
+`Biajin-PKU/research-harness@006ab44` / `v0.4.0` 对 MAS 的当前价值不是引入外部 runtime、SQLite schema、MCP server、dashboard、parser backend 或 auto-runner，而是提醒本 program 后续不要只停在 generated stage card。MAS 已经落地 stage card、knowledge / closeout obligations、stage quality pack contract、numeric trace / claim-evidence gate 和 OPL descriptor projection；接下来应把这些 machine surfaces 消费进每个 stage 的人读 skill 和真实 paper owner receipt。
+
+可继续学习并整合的内容只按 MAS owner surface 落地：
+
+| RH pattern | MAS current surface | next integration |
+| --- | --- | --- |
+| typed research checkpoint / evidence gate | `stage_surface_contract.py`、`stage_knowledge_contract.py`、`stage_quality_contract.py`、`publication_eval/latest.json`、publication gate | append-block 主 stage 迁移为独立 skill 时，必须显式列出 stage card ref、knowledge obligations、quality pack refs、durable output refs、closeout packet 和 gate owner。 |
+| literature / source readiness | `literature_provider_runtime`、`literature_intelligence_os`、workspace literature status、citation ledger refs | `scout` skill 保持独立，但要把 provider provenance、search strategy、anchor/guideline/journal-neighbor refs 和 citation readiness 写成 stage work rules，不让 provider read model 授权质量。 |
+| gap ranking / candidate path | `Study Line Selection Scorecard`、`route_decision_orchestrator`、bounded analysis candidate board、stop-loss memo | `idea`、`baseline`、`analysis-campaign` skill 只消费 scorecard / candidate path / stop rule 作为 route evidence；最终 go/stop/pivot 仍由 controller decision 和 human gate owner surface 支撑。 |
+| adversarial review / contradiction handling | `contradiction_flags`、AI reviewer workflow、`reviewer_refinement_loop`、review ledger、publication critique policy | `review` skill 独立化时，把 contradiction flag 写成 `review_signal_only`，并把 claim downgrade、citation repair、reusable critique lesson 和 route-back request 显式进入 closeout。 |
+| paper writing gate | `medical_claim_evidence_pack`、`display_to_claim_pack`、`reporting_guideline_pack`、`artifact_freshness_pack`、`medical_reporting_audit` | `write`、`finalize`、`journal-resolution` skill 继续保留独立入口，但要显式消费 stage quality pack refs；numeric trace、claim-evidence、display-to-claim 和 reporting guideline 缺口仍是 MAS gate blocker，不是 prose suggestion。 |
+| human checkpoint / resume | OPL signal transport、MAS controller decision、human gate status、owner receipt | provider-hosted soak 只能证明 `OPL attempt -> MAS owner receipt -> artifact delta / gate replay / reviewer update / route decision / human gate / stop-loss / typed blocker`；不能把 provider completion 或 queue completion 写成 paper closure。 |
+
+执行时按以下顺序给开发 Agent 分工：
+
+1. `skill_surface_migration`：先把 `baseline`、`experiment`、`analysis-campaign`、`review` 从 append block 升级为独立可读 skill surface。每个 skill 都要指向 generated stage card、canonical route contract、stage knowledge obligations、quality pack refs、allowed MAS owner tools、forbidden actions 和 closeout packet。
+2. `skill_pack_consumption`：再让已有独立 skill（`scout`、`idea`、`write`、`finalize`、`decision`、`journal-resolution`）补齐 quality pack / knowledge / closeout refs，避免 generated cards 和真实 executor prompt 脱节。
+3. `review_write_gate_alignment`：把 RH 启发的 adversarial review、number verification 和 claim-evidence consistency 只收敛到 MAS `review` / `write` / `finalize` gate，不新增第二套 paper-ready verdict。
+4. `provider_soak_evidence`：等 OPL provider-hosted path 可用后，用真实 paper line 验证 stage closeout、memory writeback、AI reviewer、gate replay、artifact delta、human gate 或 typed blocker 沿 MAS owner surface 闭合。
+
+明确不做：
+
+- 不把 `research-harness` 的 `pool.db`、dashboard、HTTP/API/Web/MCP server、checkpoint runner、Docling parser path 或 Cursor rules 作为 MAS 依赖。
+- 不把 RH 的研究领域判断、paper-ready verdict、citation/number quality authority 或 runner semantics 写入 OPL descriptor。
+- 不新增 Markdown-only 规则来替代 `agent_entry_modes.yaml`、stage knowledge plane、stage quality contract、publication gate、AI reviewer artifact、evidence/review ledger 或 controller decision。
+- 不把 quality pack、rubric score、candidate ranking、contradiction flag 或 read-only projection 写成 publication readiness authority。
+
 ## 执行计划
 
 | priority | status | task | output | validation |
 | --- | --- | --- | --- | --- |
 | `P0` | `landed` | 冻结 stage surface template | 本文 + program/README/current lines 引用 | `git diff --check` |
 | `P1` | `landed` | 为所有主 stage 生成 stage card | `src/med_autoscience/stage_surface_contract.py` + `docs/runtime/contracts/stage_surfaces.md` generated facade | `tests/test_stage_surface_contract.py` + route contract path spot check |
-| `P1` | `pending` | 把 append block 主 stage 升级为独立可读 skill surface | baseline / experiment / analysis-campaign / review stage skill | overlay installer tests + agent entry asset tests |
+| `P1` | `pending` | 把 append block 主 stage 升级为独立可读 skill surface，并消费 stage card / knowledge / quality pack / closeout refs | baseline / experiment / analysis-campaign / review stage skill | overlay installer tests + agent entry asset tests |
 | `P1` | `landed` | 补齐 knowledge / closeout obligations | 更新 `stage_knowledge_contract.py` 与 canonical YAML 中的 obligations | `tests/test_stage_knowledge_plane.py` + `tests/test_agent_entry_assets.py` |
 | `P2` | `landed` | 抽出 reporting guideline quality pack 和 stage quality pack contract | `stage_quality_contract.py` + generated product-entry / family descriptor refs | `tests/test_stage_quality_contract.py` + product-entry action catalog parity |
 | `P2` | `landed` | 对齐 OPL descriptor 中的 stage/skill/quality locator | product-entry manifest / skeleton mapping update | product-entry / OPL family adapter tests |

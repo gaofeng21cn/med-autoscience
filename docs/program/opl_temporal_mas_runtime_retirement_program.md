@@ -1,6 +1,6 @@
 # OPL Temporal MAS Runtime Retirement Program
 
-Status: `active framework enabler; content-level owner doc`
+Status: `adapter/boundary landed; production soak pending; content-level owner doc`
 Date: `2026-05-11`
 Owner: `MedAutoScience Runtime OS + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P2 框架对齐线路：MAS 与 OPL Codex-first、stage-led runtime framework 之间的边界、优先级和退役门槛。
@@ -20,7 +20,7 @@ Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full rec
 
 ## 当前状态
 
-当前状态是 `provider_ready_domain_adapter_landed_mas_guarded_apply_proof_surface_landed_live_apply_pending`。
+当前状态是 `agent_executor_adapter_boundary_landed_provider_ready_domain_adapter_landed_mas_guarded_apply_proof_surface_landed_live_apply_pending`。
 
 MAS 侧已经落地：
 
@@ -33,6 +33,7 @@ MAS 侧已经落地：
 - `standard_domain_agent_skeleton` 现在包含 `physical_skeleton_layout_audit`，把 repo-source physical skeleton slot 映射到现有 `docs/`、`templates/`、`src/`、`plugins/` 路径，同时把 workspace artifacts 固定为 locator-only；
 - MAS local scheduler、one-shot reconcile、Portal 和 Live Console 仍是有效 local diagnostics 与 evidence surface。
 - 默认 caller 已从 Hermes scheduler / hosted runtime 路径移走；Hermes 相关 surface 当前只作为 explicit optional diagnostics、proof/provenance 或 `retire_after_parity` 读法保留。本轮不要求真实 Hermes/Claude production soak，adapter smoke 与 receipt/fail-closed proof 足以关闭接入能力验收。
+- OPL 统一 Agent Executor Adapter 对 MAS 的边界已经落地：MAS 只声明 executor requirement、接收 OPL typed closeout / domain-task receipt，本地 `codex_cli_default` 仅作 standalone diagnostics；`Hermes-Agent` / `Claude Code` 不扩展成 MAS-owned executor kind，也不被写成 MAS runtime truth。
 
 cutover 或物理退役前仍未完成：
 
