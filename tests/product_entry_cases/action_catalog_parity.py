@@ -543,6 +543,40 @@ def test_provider_residency_read_model_requires_all_opl_receipts() -> None:
     ]
 
 
+def test_product_entry_manifest_exposes_legacy_residue_audit_without_default_callers(
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    audit = manifest["legacy_residue_audit"]
+
+    assert audit["surface_kind"] == "mas_legacy_residue_audit"
+    assert audit["status"] == "default_callers_retired_with_references_retained"
+    assert audit["scan_policy"] == {
+        "docs_are_not_machine_truth": True,
+        "stale_term_scan_is_review_input_only": True,
+        "delete_only_when_replacement_proof_and_no_default_caller": True,
+    }
+    assert audit["summary"]["default_caller_count"] == 0
+    assert audit["summary"]["cleanup_pending_count"] == 1
+    assert "provider_runtime_residency_read_model" in audit["replacement_surfaces"]
+    by_id = {item["residue_id"]: item for item in audit["findings"]}
+    assert by_id["hermes_agent_executor_adapter"]["default_caller"] is False
+    assert by_id["hermes_agent_executor_adapter"]["disposition"] == "retain_reference"
+    assert by_id["hermes_gateway_cron_scheduler"]["disposition"] == "retire_after_parity"
+    assert by_id["med_deepscientist_backend_reference"]["current_role"] == (
+        "historical_fixture_provenance_parity_oracle"
+    )
+    assert by_id["hosted_runtime_binding_wording"]["delete_allowed"] is True
+    assert all(item["body_included"] is False for item in audit["findings"])
+    assert audit["authority_boundary"]["audit_can_delete_code"] is False
+    assert audit["authority_boundary"]["audit_can_change_runtime_defaults"] is False
+
+
 def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_path: Path) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
 

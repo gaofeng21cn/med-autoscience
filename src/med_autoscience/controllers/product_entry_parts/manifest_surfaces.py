@@ -30,6 +30,7 @@ from .manifest_projection_compaction import (
     _manifest_portable_supervisor_queue_dashboard,
 )
 from med_autoscience.controllers import opl_provider_ready_adapter
+from med_autoscience.legacy_residue_audit import build_legacy_residue_audit
 from med_autoscience.stage_skill_surface_projection import build_stage_skill_surface_projection
 from med_autoscience.stage_quality_contract import build_stage_quality_pack_contract
 
@@ -457,6 +458,7 @@ def build_product_entry_manifest(
     )
     stage_quality_pack_contract = build_stage_quality_pack_contract()
     domain_memory_descriptor = build_domain_memory_descriptor()
+    legacy_residue_audit = build_legacy_residue_audit()
     persistence_policy = _build_family_persistence_policy_surface(
         adoption=opl_family_persistence_lifecycle_owner_route_adoption,
         progress_projection=progress_projection,
@@ -620,6 +622,7 @@ def build_product_entry_manifest(
             "provider_guarded_soak_read_model": provider_guarded_soak_read_model,
             "provider_residency_read_model": provider_residency_read_model,
             "domain_memory_descriptor": domain_memory_descriptor,
+            "legacy_residue_audit": legacy_residue_audit,
             "family_stage_control_plane_descriptor": family_stage_control_plane_descriptor,
             "family_stage_control_plane": family_stage_control_plane,
         },
