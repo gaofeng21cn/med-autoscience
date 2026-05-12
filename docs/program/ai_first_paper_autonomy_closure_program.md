@@ -41,10 +41,12 @@ The important distinction is that `repo surface landed` means MAS has the callab
 - DM003 currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=artifact_delta` and `next_owner=write`.
 - Obesity currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=artifact_delta` and `next_owner=write`.
 - DM002 also proves a publication-route memory read/writeback ref chain: consumed memory ref `publication_route_memory_seed__negative_result_stoploss` plus MAS-owned stage/router writeback receipt refs.
-- The calibration is read-only: `writes_performed=false`, `writes_real_workspace=false`, and OPL is forbidden from writing publication eval, controller decisions, current package, publication quality verdict, artifact authority, or memory body.
-- The repo-level provider-hosted proof surface is now callable as `real-paper-autonomy-provider-hosted-paper-proof`. It packages the three typed closeout packets with OPL attempt-owner context, publication-route memory consumed/writeback receipt refs, and a fail-closed forbidden-write guard proof. This is still a read-only proof surface: `guarded_apply_performed=false`.
+- The initial calibration is read-only: `writes_performed=false`, `writes_real_workspace=false`, and OPL is forbidden from writing publication eval, controller decisions, current package, publication quality verdict, artifact authority, or memory body.
+- The repo-level provider-hosted proof surface is callable as `real-paper-autonomy-provider-hosted-paper-proof`. It packages the three typed closeout packets with OPL attempt-owner context, publication-route memory consumed/writeback receipt refs, and a fail-closed forbidden-write guard proof.
+- The MAS-owned guarded apply proof surface is now callable as `real-paper-autonomy-guarded-apply-proof`. It reads the same three-paper packets, then accepts real workspace mutation only when an existing MAS owner apply receipt proves artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or stable blocker under MAS authority. Without that owner receipt it emits `mas_guarded_apply_receipt` typed blockers such as `mas_owner_apply_receipt_missing:*` and keeps `writes_performed=false`.
+- DM002 now has a final ref-level publication-route memory proof inside the guarded apply surface: consumed route-memory refs plus MAS router/workspace/OPL-Aion receipt refs are exposed with `body_included=false`; OPL still cannot read memory prose or accept/reject writeback.
 
-This means the current three-paper evidence has crossed the read-only acceptance threshold. It still has not crossed the production-hosted guarded-apply threshold.
+This means the current three-paper evidence has crossed the read-only acceptance threshold and now has a MAS-owned guarded apply proof surface. It still has not proven production-hosted paper completion; production evidence requires MAS owner receipts with real artifact/gate/reviewer/route progress or explicit typed blockers from live workspace gates.
 
 ## Acceptance Contract
 

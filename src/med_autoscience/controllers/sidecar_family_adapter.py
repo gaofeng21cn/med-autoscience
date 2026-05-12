@@ -208,12 +208,14 @@ def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> di
                     "claude_executor_adapter",
                 ],
             },
-            "diagnostic_providers": [
+            "optional_executor_adapters": [
                 {
-                    "provider": "Hermes-Agent",
-                    "classification": "optional_diagnostics",
+                    "adapter_id": "hermes_agent",
+                    "display_name": "Hermes-Agent",
+                    "classification": "explicit_optional_executor_adapter",
                     "retirement_policy": "retire_after_parity",
                     "executor_policy": "not_a_mas_executor_adapter",
+                    "default_provider": False,
                 }
             ],
             "role": "stage_attempt_queue_wakeup_retry_dead_letter_human_gate_receipt_projection_transport",

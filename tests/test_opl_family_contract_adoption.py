@@ -35,7 +35,15 @@ def test_mas_declares_thin_opl_family_contract_adoption() -> None:
     assert framework["minimal_executor"] == "Codex CLI"
     assert framework["provider_abstraction"] == "opl_family_runtime_provider"
     assert framework["target_production_provider"] == "Temporal"
-    assert framework["legacy_optional_providers"] == ["Hermes-Agent"]
+    assert "legacy_optional_providers" not in framework
+    assert framework["optional_executor_adapters"] == [
+        {
+            "adapter_id": "hermes_agent",
+            "display_name": "Hermes-Agent",
+            "classification": "explicit_optional_executor_adapter",
+            "default_provider": False,
+        }
+    ]
     assert set(framework["allowed_framework_authority"]) == {
         "stage_attempt",
         "queue",

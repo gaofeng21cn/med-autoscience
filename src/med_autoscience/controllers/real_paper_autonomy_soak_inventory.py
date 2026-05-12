@@ -7,6 +7,7 @@ from typing import Any
 
 from med_autoscience.controllers import opl_provider_ready_adapter
 from med_autoscience.controllers import stage_knowledge_plane
+from med_autoscience.controllers.real_paper_autonomy_soak_inventory_parts import apply_evidence, guarded_apply
 from med_autoscience.profiles import WorkspaceProfile, load_profile, profile_to_dict
 
 
@@ -33,27 +34,12 @@ READ_ONLY_CONTRACT = {
 SOAK_PROJECTION_SURFACE = "real_paper_autonomy_soak_projection"
 SOAK_CLOSEOUT_SURFACE = "real_paper_autonomy_soak_closeout_projection"
 PROVIDER_HOSTED_PROOF_SURFACE = "real_paper_autonomy_provider_hosted_paper_proof"
+GUARDED_APPLY_PROOF_SURFACE = "real_paper_autonomy_guarded_apply_proof"
 SOAK_ACCEPTED_STATES = (
-    "artifact_delta",
-    "gate_replay",
-    "ai_reviewer_re_eval",
-    "route_decision",
-    "stop_loss",
-    "human_gate",
-    "stable_blocker",
-    "continuing_repair",
-    "unknown",
+    "artifact_delta", "gate_replay", "ai_reviewer_re_eval", "route_decision",
+    "stop_loss", "human_gate", "stable_blocker", "continuing_repair", "unknown",
 )
-SOAK_EVIDENCE_STATES = {
-    "artifact_delta",
-    "gate_replay",
-    "ai_reviewer_re_eval",
-    "route_decision",
-    "stop_loss",
-    "human_gate",
-    "stable_blocker",
-    "continuing_repair",
-}
+SOAK_EVIDENCE_STATES = set(SOAK_ACCEPTED_STATES) - {"unknown"}
 
 STATUS_SURFACE_REFS: tuple[str, ...] = (
     "artifacts/runtime/runtime_status_summary.json",
@@ -120,11 +106,7 @@ def build_real_paper_autonomy_soak_projection(
     targets = tuple(target_studies)
     profiles = [_profile_soak_projection(path, target_studies=targets) for path in paths]
     target_coverage = _target_coverage(profiles=profiles, target_studies=targets)
-    state_counts = {state: 0 for state in SOAK_ACCEPTED_STATES}
-    for profile in profiles:
-        for study in profile.get("studies", []):
-            state = _text(_mapping(study).get("final_projection")) or "unknown"
-            state_counts[state] = state_counts.get(state, 0) + 1
+    state_counts = _projection_state_counts(profiles)
     return {
         "surface": SOAK_PROJECTION_SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -275,6 +257,25 @@ def build_real_paper_autonomy_provider_hosted_paper_proof(
     }
 
 
+def build_real_paper_autonomy_guarded_apply_proof(
+    *,
+    yang_root: str | Path = DEFAULT_YANG_ROOT,
+    profile_paths: Sequence[str | Path] | None = None,
+    target_studies: Sequence[str] = ("DM002", "DM003", "Obesity"),
+) -> dict[str, Any]:
+    provider_proof = build_real_paper_autonomy_provider_hosted_paper_proof(
+        yang_root=yang_root,
+        profile_paths=profile_paths,
+        target_studies=target_studies,
+    )
+    return guarded_apply.build_guarded_apply_proof_from_provider_proof(
+        provider_proof=provider_proof,
+        schema_version=SCHEMA_VERSION,
+        surface=GUARDED_APPLY_PROOF_SURFACE,
+        target_studies=target_studies,
+    )
+
+
 def _profile_soak_projection(profile_path: Path, *, target_studies: Sequence[str]) -> dict[str, Any]:
     base: dict[str, Any] = {
         "profile_path": str(profile_path),
@@ -302,6 +303,15 @@ def _profile_soak_projection(profile_path: Path, *, target_studies: Sequence[str
         }
     )
     return base
+
+
+def _projection_state_counts(profiles: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+    state_counts = {state: 0 for state in SOAK_ACCEPTED_STATES}
+    for profile in profiles:
+        for study in profile.get("studies", []):
+            state = _text(_mapping(study).get("final_projection")) or "unknown"
+            state_counts[state] = state_counts.get(state, 0) + 1
+    return state_counts
 
 
 def _dedupe_target_studies(profiles: Sequence[object]) -> list[dict[str, Any]]:
@@ -377,6 +387,7 @@ def _study_closeout_packet(study: Mapping[str, Any]) -> tuple[str, dict[str, Any
         "consumed_refs": [ref["ref"] for ref in evidence_refs],
         "consumed_memory_refs": _memory_refs(study),
         "writeback_receipt_refs": _memory_writeback_refs(study),
+        "mas_owner_apply_evidence": apply_evidence.build_mas_owner_apply_evidence(study),
         "rejected_writes": [
             {
                 "reason": "opl_forbidden_to_write_mas_truth",
@@ -426,6 +437,7 @@ def _target_blocker_closeout_packet(*, target: str, coverage: Mapping[str, Any])
         "consumed_refs": consumed_refs,
         "consumed_memory_refs": [],
         "writeback_receipt_refs": [],
+        "mas_owner_apply_evidence": apply_evidence.empty_mas_owner_apply_evidence(),
         "rejected_writes": [
             {
                 "reason": "opl_forbidden_to_write_mas_truth",
@@ -747,6 +759,7 @@ def _soak_source_refs(study_root: Path) -> list[dict[str, Any]]:
         "artifacts/runtime/opl_family_sidecar",
         "artifacts/controller/repair_execution_receipts/latest.json",
         "artifacts/controller/repair_execution_evidence/latest.json",
+        "artifacts/controller/gate_replay_requests/latest.json",
         "artifacts/publication_eval/latest.json",
         "artifacts/controller_decisions/latest.json",
     ):

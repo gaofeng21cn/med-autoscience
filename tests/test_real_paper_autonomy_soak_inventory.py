@@ -5,6 +5,7 @@ import subprocess
 from pathlib import Path
 
 from med_autoscience.controllers.real_paper_autonomy_soak_inventory import (
+    build_real_paper_autonomy_guarded_apply_proof,
     build_real_paper_autonomy_soak_inventory,
     build_real_paper_autonomy_provider_hosted_paper_proof,
     build_real_paper_autonomy_soak_closeout_projection,
@@ -401,6 +402,178 @@ def test_real_paper_autonomy_provider_hosted_paper_proof_is_readonly_and_guarded
     assert {path: path.stat().st_mtime_ns for path in before} == before
 
 
+def test_real_paper_autonomy_guarded_apply_proof_blocks_without_mas_owner_apply_receipt(
+    tmp_path: Path,
+) -> None:
+    yang_root = tmp_path / "Yang"
+    workspace = yang_root / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    (workspace / "portfolio").mkdir(parents=True)
+    dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
+    dm003 = workspace / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    obesity = workspace / "studies" / "obesity_multicenter_phenotype_atlas"
+    for study_root in (dm002, dm003, obesity):
+        _write_json(study_root / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": study_root.name})
+        _write_json(
+            study_root / "artifacts" / "publication_eval" / "latest.json",
+            {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": f"eval-{study_root.name}"},
+        )
+    _write_json(
+        dm002 / "artifacts" / "stage_knowledge" / "paper_soak_memory_apply_proof" / "latest.json",
+        {
+            "status": "ready",
+            "stage_entry": {
+                "publication_route_memory_refs": [
+                    {"memory_id": "publication_route_memory_seed__negative_result_stoploss"}
+                ]
+            },
+            "mas_router_receipt_refs": [{"ref": "receipt:memory-router"}],
+            "workspace_writeback_receipt_refs": [{"ref": "receipt:writeback"}],
+            "opl_aion_readonly_receipt_refs": [{"ref": "receipt:aion", "body_included": False}],
+        },
+    )
+    before = {path: path.stat().st_mtime_ns for path in workspace.rglob("*.json")}
+
+    payload = build_real_paper_autonomy_guarded_apply_proof(
+        yang_root=yang_root,
+        profile_paths=[profile_path],
+        target_studies=("DM002", "DM003", "Obesity"),
+    )
+
+    assert payload["surface"] == "real_paper_autonomy_guarded_apply_proof"
+    assert payload["mode"] == "mas_owned_guarded_apply_proof"
+    assert payload["guarded_apply_status"] == "blocked_no_mas_owner_apply_receipt"
+    assert payload["provider_attempt_projection"]["attempt_owner"] == "one-person-lab"
+    assert payload["provider_attempt_projection"]["guarded_apply_performed"] is False
+    assert payload["provider_attempt_projection"]["can_advance_paper_progress_without_mas_owner_receipt"] is False
+    assert payload["summary"]["writes_performed"] is False
+    assert payload["summary"]["real_workspace_mutation_allowed"] is False
+    assert payload["summary"]["guarded_apply_performed"] is False
+    assert payload["summary"]["typed_blocker_count"] == 3
+    assert payload["summary"]["mas_owner_apply_receipt_count"] == 0
+    assert payload["summary"]["artifact_delta_or_gate_progress_count"] == 0
+    assert payload["publication_route_memory_final_proof"]["target_study"] == "DM002"
+    assert payload["publication_route_memory_final_proof"]["status"] == "final_ref_chain_proven"
+    assert payload["publication_route_memory_final_proof"]["body_included"] is False
+    assert payload["publication_route_memory_final_proof"]["consumed_refs"] == [
+        "publication_route_memory_seed__negative_result_stoploss"
+    ]
+    assert payload["publication_route_memory_final_proof"]["writeback_receipt_refs"] == [
+        "receipt:memory-router",
+        "receipt:writeback",
+        "receipt:aion",
+    ]
+    assert payload["publication_route_memory_final_proof"]["opl_can_read_memory_body"] is False
+    assert payload["publication_route_memory_final_proof"]["opl_can_accept_or_reject_writeback"] is False
+    blocker = payload["guarded_apply_receipts"][0]
+    assert blocker["surface_kind"] == "mas_guarded_apply_receipt"
+    assert blocker["apply_result"] == "typed_blocker"
+    assert blocker["typed_blocker"]["blocker_id"].startswith("mas_owner_apply_receipt_missing:")
+    assert blocker["typed_blocker"]["write_permitted"] is False
+    assert blocker["workspace_mutation"]["writes_performed"] is False
+    assert blocker["workspace_mutation"]["allowed_by_mas_owner_gate"] is False
+    assert blocker["workspace_mutation"]["forbidden_surfaces"] == [
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "current_package",
+        "publication_quality_verdict",
+        "memory_body",
+    ]
+    guard = payload["forbidden_write_guard"]
+    assert guard["aggregate_result"] == "fail_closed_no_forbidden_writes"
+    assert guard["blocked_probe"]["result"] == "blocked"
+    assert {path: path.stat().st_mtime_ns for path in before} == before
+
+
+def test_real_paper_autonomy_guarded_apply_proof_accepts_existing_mas_owner_progress_receipt(
+    tmp_path: Path,
+) -> None:
+    yang_root = tmp_path / "Yang"
+    workspace = yang_root / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    (workspace / "portfolio").mkdir(parents=True)
+    dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
+    _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
+    _write_json(
+        dm002 / "artifacts" / "publication_eval" / "latest.json",
+        {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm002"},
+    )
+    _write_json(
+        dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json",
+        {
+            "surface": "paper_repair_owner_receipt",
+            "accepted": True,
+            "execution_status": "executed",
+            "canonical_artifact_delta_refs": [{"path": str(dm002 / "paper" / "manuscript.md")}],
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+    _write_json(
+        dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {
+            "canonical_artifact_delta": {"meaningful_artifact_delta": True},
+            "progress_delta_candidate": True,
+        },
+    )
+
+    payload = build_real_paper_autonomy_guarded_apply_proof(
+        yang_root=yang_root,
+        profile_paths=[profile_path],
+        target_studies=("DM002",),
+    )
+
+    assert payload["guarded_apply_status"] == "mas_owner_apply_receipt_observed"
+    assert payload["summary"]["guarded_apply_performed"] is True
+    assert payload["summary"]["real_workspace_mutation_allowed"] is True
+    assert payload["summary"]["typed_blocker_count"] == 0
+    assert payload["summary"]["mas_owner_apply_receipt_count"] == 1
+    assert payload["summary"]["artifact_delta_or_gate_progress_count"] == 1
+    receipt = payload["guarded_apply_receipts"][0]
+    assert receipt["apply_result"] == "artifact_delta"
+    assert receipt["workspace_mutation"]["allowed_by_mas_owner_gate"] is True
+    assert receipt["workspace_mutation"]["writes_performed"] is True
+    assert receipt["workspace_mutation"]["mutation_owner"] == "med-autoscience"
+    assert receipt["workspace_mutation"]["provider_attempt_wrote_workspace"] is False
+    assert receipt["mas_owner_apply_receipt_refs"]
+
+
+def test_real_paper_autonomy_guarded_apply_proof_blocks_evidence_without_owner_receipt(
+    tmp_path: Path,
+) -> None:
+    yang_root = tmp_path / "Yang"
+    workspace = yang_root / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    (workspace / "portfolio").mkdir(parents=True)
+    dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
+    _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
+    _write_json(
+        dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {
+            "canonical_artifact_delta": {"meaningful_artifact_delta": True},
+            "progress_delta_candidate": True,
+        },
+    )
+
+    payload = build_real_paper_autonomy_guarded_apply_proof(
+        yang_root=yang_root,
+        profile_paths=[profile_path],
+        target_studies=("DM002",),
+    )
+
+    assert payload["guarded_apply_status"] == "blocked_no_mas_owner_apply_receipt"
+    assert payload["summary"]["guarded_apply_performed"] is False
+    assert payload["summary"]["mas_owner_apply_receipt_count"] == 0
+    receipt = payload["guarded_apply_receipts"][0]
+    assert receipt["apply_result"] == "typed_blocker"
+    assert receipt["mas_owner_apply_receipt_refs"] == []
+    assert receipt["workspace_mutation"]["writes_performed"] is False
+
+
 def test_real_paper_autonomy_soak_script_outputs_closeout_mode(tmp_path: Path) -> None:
     yang_root = tmp_path / "Yang"
     workspace = yang_root / "DM"
@@ -489,6 +662,46 @@ def test_real_paper_autonomy_soak_script_outputs_provider_proof_mode(tmp_path: P
     assert payload["forbidden_write_guard"]["aggregate_result"] == "fail_closed_no_forbidden_writes"
 
 
+def test_real_paper_autonomy_soak_script_outputs_guarded_apply_proof_mode(tmp_path: Path) -> None:
+    yang_root = tmp_path / "Yang"
+    workspace = yang_root / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    (workspace / "portfolio").mkdir(parents=True)
+    study_root = workspace / "studies" / "002-dm-china-us-mortality-attribution"
+    _write_json(study_root / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": study_root.name})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm002"},
+    )
+
+    result = subprocess.run(
+        [
+            "uv",
+            "run",
+            "python",
+            "scripts/real-paper-autonomy-soak-inventory.py",
+            "--yang-root",
+            str(yang_root),
+            "--profile",
+            str(profile_path),
+            "--mode",
+            "guarded-apply-proof",
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["surface"] == "real_paper_autonomy_guarded_apply_proof"
+    assert payload["guarded_apply_status"] == "blocked_no_mas_owner_apply_receipt"
+    assert payload["summary"]["writes_performed"] is False
+    assert payload["guarded_apply_receipts"][0]["apply_result"] == "typed_blocker"
+
+
 def test_real_paper_autonomy_soak_projection_cli_reports_target_coverage(
     tmp_path: Path,
 ) -> None:
@@ -532,3 +745,50 @@ def test_real_paper_autonomy_soak_projection_cli_reports_target_coverage(
     assert coverage["DM002"]["status"] == "has_projection_evidence"
     assert coverage["DM003"]["status"] == "typed_blocker"
     assert coverage["DM003"]["typed_blockers"][0]["write_permitted"] is False
+
+
+def test_real_paper_autonomy_guarded_apply_proof_cli_reports_typed_blocker_without_writes(
+    tmp_path: Path,
+) -> None:
+    yang_root = tmp_path / "Yang"
+    workspace = yang_root / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    _write_json(
+        workspace / "studies" / "002-dm-china-us-mortality-attribution" / "artifacts" / "runtime" / "runtime_status_summary.json",
+        {"study_id": "002-dm-china-us-mortality-attribution", "health_status": "running"},
+    )
+    _write_json(
+        workspace / "studies" / "002-dm-china-us-mortality-attribution" / "artifacts" / "publication_eval" / "latest.json",
+        {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm002"},
+    )
+
+    result = subprocess.run(
+        [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "med_autoscience.cli",
+            "real-paper-autonomy-guarded-apply-proof",
+            "--yang-root",
+            str(yang_root),
+            "--profile",
+            str(profile_path),
+            "--target-study",
+            "DM002",
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["surface"] == "real_paper_autonomy_guarded_apply_proof"
+    assert payload["summary"]["writes_performed"] is False
+    assert payload["guarded_apply_receipts"][0]["apply_result"] == "typed_blocker"
+    assert payload["guarded_apply_receipts"][0]["typed_blocker"]["required_owner_surface"] == (
+        "MAS owner gate / guarded apply contract"
+    )

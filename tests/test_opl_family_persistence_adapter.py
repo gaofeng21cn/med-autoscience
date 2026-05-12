@@ -219,6 +219,45 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert standard_skeleton["workspace_runtime_artifact_root_locator_ref"] == (
         "/product_entry_manifest/workspace_runtime_artifact_root_locator"
     )
+    physical_audit = standard_skeleton["physical_skeleton_layout_audit"]
+    assert physical_audit["surface_kind"] == "standard_domain_agent_physical_skeleton_layout_audit"
+    assert physical_audit["status"] == "standardized_with_locator_refs"
+    assert physical_audit["repo_source_root"] == "repo:med-autoscience"
+    assert physical_audit["standard_layout_version"] == "standard-domain-agent-physical-layout.v1"
+    assert physical_audit["repo_tracks_real_workspace_artifacts"] is False
+    assert physical_audit["artifact_body_included"] is False
+    assert physical_audit["workspace_runtime_artifact_root_locator_ref"] == (
+        "/product_entry_manifest/workspace_runtime_artifact_root_locator"
+    )
+    by_slot = {item["slot_id"]: item for item in physical_audit["slots"]}
+    assert by_slot["agent/stages"]["repo_paths"] == [
+        "docs/policies/study-workflow/stage_led_research_autonomy.md",
+        "src/med_autoscience/controllers/stage_knowledge_plane.py",
+    ]
+    assert by_slot["agent/stages"]["status"] == "mapped_to_existing_repo_paths"
+    assert by_slot["agent/knowledge"]["repo_paths"] == [
+        "docs/policies/study-workflow/publication_route_memory_policy.md",
+        "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
+    ]
+    assert by_slot["contracts/runtime/sidecar"]["repo_paths"] == [
+        "src/med_autoscience/controllers/sidecar_family_adapter.py",
+        "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
+    ]
+    assert by_slot["runtime/artifact_locator"]["locator_refs"] == [
+        "/product_entry_manifest/workspace_runtime_artifact_root_locator"
+    ]
+    assert by_slot["runtime/artifact_locator"]["status"] == "locator_only_no_artifact_body"
+    assert by_slot["artifacts"]["status"] == "forbidden_repo_artifact_body"
+    assert by_slot["artifacts"]["repo_paths"] == []
+    assert by_slot["artifacts"]["locator_refs"] == [
+        "/product_entry_manifest/workspace_runtime_artifact_root_locator"
+    ]
+    assert physical_audit["summary"] == {
+        "mapped_slot_count": 7,
+        "locator_only_slot_count": 2,
+        "missing_required_slot_count": 0,
+        "forbidden_repo_artifact_body": True,
+    }
     assert payload["workspace_runtime_artifact_root_locator"]["surface_kind"] == (
         "workspace_runtime_artifact_root_locator"
     )

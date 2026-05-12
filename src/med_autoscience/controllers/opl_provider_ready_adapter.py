@@ -267,6 +267,7 @@ def build_standard_domain_agent_skeleton_surface() -> dict[str, Any]:
                 "/product_entry_manifest/workspace_runtime_artifact_root_locator"
             ],
         },
+        "physical_skeleton_layout_audit": build_physical_skeleton_layout_audit_surface(),
         "authority_boundary": {
             "opl": "framework_transport_and_projection_only",
             "domain_agent": "truth_quality_artifact_owner",
@@ -277,6 +278,108 @@ def build_standard_domain_agent_skeleton_surface() -> dict[str, Any]:
                 "publication_or_export_gate",
             ],
         },
+    }
+
+
+def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
+    slots = [
+        _physical_skeleton_slot(
+            "agent/stages",
+            repo_paths=[
+                "docs/policies/study-workflow/stage_led_research_autonomy.md",
+                "src/med_autoscience/controllers/stage_knowledge_plane.py",
+            ],
+        ),
+        _physical_skeleton_slot(
+            "agent/prompts",
+            repo_paths=[
+                "templates/agent_entry_modes.yaml",
+                "templates/codex/medautoscience-entry.SKILL.md",
+                "templates/openclaw/medautoscience-entry.prompt.md",
+            ],
+        ),
+        _physical_skeleton_slot(
+            "agent/skills",
+            repo_paths=[
+                "src/med_autoscience/cli.py",
+                "src/med_autoscience/cli_parts/parser.py",
+                "plugins/mas/bin/medautosci-mcp",
+            ],
+        ),
+        _physical_skeleton_slot(
+            "agent/knowledge",
+            repo_paths=[
+                "docs/policies/study-workflow/publication_route_memory_policy.md",
+                "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
+            ],
+        ),
+        _physical_skeleton_slot(
+            "agent/quality_gates",
+            repo_paths=[
+                "src/med_autoscience/controllers/publication_gate.py",
+                "src/med_autoscience/controllers/ai_reviewer_publication_eval.py",
+                "src/med_autoscience/controllers/paper_repair_executor.py",
+            ],
+        ),
+        _physical_skeleton_slot(
+            "contracts/runtime/sidecar",
+            repo_paths=[
+                "src/med_autoscience/controllers/sidecar_family_adapter.py",
+                "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
+            ],
+        ),
+        _physical_skeleton_slot(
+            "contracts/runtime/projection_builders",
+            repo_paths=[
+                "src/med_autoscience/controllers/product_entry_parts/manifest_surfaces.py",
+                "src/med_autoscience/controllers/real_paper_autonomy_soak_inventory.py",
+            ],
+        ),
+        _physical_skeleton_slot(
+            "runtime/artifact_locator",
+            locator_refs=["/product_entry_manifest/workspace_runtime_artifact_root_locator"],
+            status="locator_only_no_artifact_body",
+        ),
+        _physical_skeleton_slot(
+            "artifacts",
+            locator_refs=["/product_entry_manifest/workspace_runtime_artifact_root_locator"],
+            status="forbidden_repo_artifact_body",
+        ),
+    ]
+    return {
+        "surface_kind": "standard_domain_agent_physical_skeleton_layout_audit",
+        "version": "standard-domain-agent-physical-layout-audit.v1",
+        "standard_layout_version": "standard-domain-agent-physical-layout.v1",
+        "status": "standardized_with_locator_refs",
+        "repo_source_root": "repo:med-autoscience",
+        "repo_tracks_real_workspace_artifacts": False,
+        "artifact_body_included": False,
+        "workspace_runtime_artifact_root_locator_ref": "/product_entry_manifest/workspace_runtime_artifact_root_locator",
+        "slots": slots,
+        "summary": {
+            "mapped_slot_count": sum(1 for slot in slots if slot["status"] == "mapped_to_existing_repo_paths"),
+            "locator_only_slot_count": sum(1 for slot in slots if slot["locator_refs"] and not slot["repo_paths"]),
+            "missing_required_slot_count": sum(1 for slot in slots if slot["status"] == "missing_required_repo_path"),
+            "forbidden_repo_artifact_body": any(slot["status"] == "forbidden_repo_artifact_body" for slot in slots),
+        },
+    }
+
+
+def _physical_skeleton_slot(
+    slot_id: str,
+    *,
+    repo_paths: list[str] | None = None,
+    locator_refs: list[str] | None = None,
+    status: str | None = None,
+) -> dict[str, Any]:
+    paths = list(repo_paths or [])
+    return {
+        "slot_id": slot_id,
+        "status": status or ("mapped_to_existing_repo_paths" if paths else "missing_required_repo_path"),
+        "repo_paths": paths,
+        "locator_refs": list(locator_refs or []),
+        "artifact_body_included": False,
+        "repo_tracks_real_workspace_artifacts": False,
     }
 
 
@@ -405,6 +508,7 @@ __all__ = [
     "build_forbidden_write_guard_proof",
     "build_opl_lifecycle_inventory_surface",
     "build_opl_provider_ready_contract",
+    "build_physical_skeleton_layout_audit_surface",
     "build_standard_domain_agent_skeleton_surface",
     "receipt_refs_for_profile",
     "requested_writes_from_task",

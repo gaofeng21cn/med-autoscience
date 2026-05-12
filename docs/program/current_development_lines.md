@@ -10,7 +10,7 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 
 `docs/program/` 现在按内容线阅读，不按整份旧计划阅读。旧文档里的部分内容仍有效，但当前任务不是“把每个旧计划从头到尾做完”。
 
-当前执行优先级应是 framework-first，但 2026-05-12 已经有一条重要的真实论文证据进入基线：DM002、DM003、Obesity 三篇 paper line 都能输出 OPL-ingestable read-only typed closeout projection。DM002 当前 verdict 是 `ai_reviewer_re_eval`，DM003 与 Obesity 当前 verdict 是 `artifact_delta`；DM002 同时证明 publication-route memory consumed ref 和 MAS-owned writeback receipt refs 可被 OPL/Aion 以 ref-only 方式展示。`real-paper-autonomy-provider-hosted-paper-proof` 现在把三篇 typed closeout、OPL attempt-owner context、memory refs/writeback receipt refs 和 fail-closed forbidden-write guard 汇成 provider-hosted path 可消费的只读 proof。所有这些 projection 都是 `writes_performed=false` / `guarded_apply_performed=false`，不能写成 guarded apply、生产 provider 托管或投稿级 closure 已完成。
+当前执行优先级应是 framework-first，但 2026-05-12 已经有一条重要的真实论文证据进入基线：DM002、DM003、Obesity 三篇 paper line 都能输出 OPL-ingestable read-only typed closeout projection。DM002 当前 verdict 是 `ai_reviewer_re_eval`，DM003 与 Obesity 当前 verdict 是 `artifact_delta`；DM002 同时证明 publication-route memory consumed ref 和 MAS-owned writeback receipt refs 可被 OPL/Aion 以 ref-only 方式展示。`real-paper-autonomy-provider-hosted-paper-proof` 把三篇 typed closeout、OPL attempt-owner context、memory refs/writeback receipt refs 和 fail-closed forbidden-write guard 汇成 provider-hosted path 可消费的只读 proof。`real-paper-autonomy-guarded-apply-proof` 进一步给出 MAS-owned guarded apply proof：只有 MAS owner receipt 存在时才承认真实 workspace mutation；否则输出 typed blocker / receipt。不能把 provider attempt、queue completion 或只读 projection 写成投稿级 closure 已完成。
 
 当前执行优先级应是 framework-first：
 
@@ -30,7 +30,7 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 | `2` | `mas_framework_migration` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | `domain_adapter_landed; migration_active; memory_soak_readonly_proof_landed` | MAS 迁移为 OPL-admitted domain agent：sidecar/receipt contract、stage descriptor、domain skeleton、artifact locator、authority refs、direct path / hosted path receipt equivalence；publication-route memory 的 DM002 paper-line proof 已能把 stage route-memory refs、typed closeout proposal、MAS router receipt refs 和 OPL/Aion receipt refs 串成 MAS-owned ref-only surface，OPL 不能写 MAS memory body 或 router acceptance。 |
 | `3` | `feature_partition_and_retirement` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md), [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md), [Runtime Lifecycle SQLite Migration Program](./runtime_lifecycle_sqlite_migration_program.md) | `classification_and_cleanup_active` | 新旧功能逐块分类为 retain/move/lift/degrade/retire；退役旧默认依赖、legacy compat、重复 UI 和过时 manager surface。 |
 | `4` | `app_runtime_workbench` | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | `read_only_projection_landed; app_productization_active` | 在 OPL App 中产品化迁移后的 MAS 状态、route、conversation、terminal/log、artifact、action receipt；不重新定义 runtime truth。 |
-| `5` | `paper_autonomy_acceptance` | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | `repo_loop_landed; provider_hosted_readonly_paper_proof_landed; provider_guarded_apply_pending` | 在 OPL framework + migrated MAS 形态下做真实 paper-line soak；当前 provider-hosted read-only proof 已覆盖 DM002/DM003/Obesity typed closeout、DM002 memory/writeback/receipt refs 和 fail-closed forbidden-write guard，下一步仍是 provider-hosted guarded apply 下的 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。 |
+| `5` | `paper_autonomy_acceptance` | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | `repo_loop_landed; provider_hosted_readonly_paper_proof_landed; mas_guarded_apply_proof_surface_landed; live_provider_apply_pending` | 在 OPL framework + migrated MAS 形态下做真实 paper-line soak；当前 guarded apply proof 已覆盖 DM002/DM003/Obesity typed closeout、DM002 memory/writeback/receipt refs、MAS owner receipt gate 和 fail-closed forbidden-write guard。下一步仍是 live provider-hosted guarded apply 下的 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。 |
 | `6` | `recurring_learning_support` | `docs/status.md`, `docs/references/**` | `triggered_support` | DeepScientist / external harness / adjacent framework intake 只在触发时执行，dated snapshot 留在 history。 |
 
 ## 已过时或已降级内容
@@ -40,7 +40,7 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 | “P0 等于 MAS-only runtime 完成” | 已过时。P0 是目标和验收，产品/框架依托分别在 P1/P2。 |
 | “整份 P1 workbench 计划都要做完” | 已替换为 P1 内容 lane：read-only workbench、action receipt、terminal attach、provider join。 |
 | “整份 P2 Temporal retirement 计划都要做完” | 已替换为 framework-first 的 P2 内容 lane：OPL framework foundation、MAS framework migration、framework-generic lift、legacy retirement、再进入 paper-line soak。 |
-| Hermes-first 或 MAS local scheduler 作为 Full online target | 已降级。local scheduler 是 diagnostics/fallback；Hermes 是 legacy/optional proof lane，除非未来证据改变。 |
+| Hermes-first 或 MAS local scheduler 作为 Full online target | 已降级。local scheduler 是 diagnostics/fallback；Hermes 只保留为 explicit optional executor adapter / proof lane，除非未来证据改变。 |
 | 旧 MDS daemon/WebUI/runtime transport 作为默认依赖 | 默认路径已退役；只保留 provenance、explicit archive import、backend audit、upstream learning 或 parity reference。 |
 | Runtime lifecycle Git-era cleanup 作为活跃大迁移 | 已落地。新发现问题按 P3a drift/maintenance 处理，除非证明有 live writer regression。 |
 | Local Portal / Live Console 作为最终主产品面 | OPL App workbench 成为主用户面后，local Portal / Live Console 降级为 fallback/debug/evidence。 |
@@ -78,7 +78,7 @@ Machine boundary: 本文是人读规划地图。机器真相继续归 MAS runtim
 | `mas_framework_migration` | MAS direct skill path 与 OPL-hosted path 使用同一 MAS owner receipts，且 OPL 不写 forbidden MAS truth surface。 |
 | `feature_partition_and_retirement` | 旧默认依赖、legacy compat、重复 UI、过时 manager surface 完成分类、替代和退役清理；保留项都有明确 owner 和用途。 |
 | `app_runtime_workbench` | 用户在 OPL App 看到 MAS study progress、route、conversation、terminal/log、artifacts、source refs 和 safe action receipts，不必依赖 CLI 或 local HTML。 |
-| `paper_autonomy_acceptance` | Read-only evidence 已要求三篇真实论文线各有 typed closeout projection，且至少一篇带 memory consumed/writeback receipt refs；production evidence 还要求 provider-hosted guarded apply 能反复产出 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 MAS owner surface 下的 typed blocker。 |
+| `paper_autonomy_acceptance` | Read-only evidence 已要求三篇真实论文线各有 typed closeout projection，且至少一篇带 memory consumed/writeback receipt refs；guarded apply proof surface 已要求 MAS owner receipt gate，不允许 provider 直接写 workspace truth。Production evidence 还要求 provider-hosted live apply 能反复产出 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 MAS owner surface 下的 typed blocker。 |
 | `monolith_and_mds_foundation_guard` | 后续 MDS/DeepScientist 引用被分类，不能成为默认 runtime、quality 或 artifact authority。 |
 | `runtime_lifecycle_foundation_guard` | 新 runtime/Git/path drift 被 inventory、必要时 archive/restore、完成验证，并保持在默认 MAS authority 之外。 |
 

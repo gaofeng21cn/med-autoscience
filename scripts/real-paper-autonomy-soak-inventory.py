@@ -7,6 +7,7 @@ from pathlib import Path
 
 from med_autoscience.controllers.real_paper_autonomy_soak_inventory import (
     DEFAULT_YANG_ROOT,
+    build_real_paper_autonomy_guarded_apply_proof,
     build_real_paper_autonomy_soak_inventory,
     build_real_paper_autonomy_soak_closeout_projection,
     build_real_paper_autonomy_provider_hosted_paper_proof,
@@ -31,9 +32,9 @@ def main() -> int:
     )
     parser.add_argument(
         "--mode",
-        choices=("inventory", "projection", "closeout", "provider-proof"),
+        choices=("inventory", "projection", "closeout", "provider-proof", "guarded-apply-proof"),
         default="inventory",
-        help="Read-only output mode. provider-proof emits OPL provider-hosted closeout proof.",
+        help="Output mode. guarded-apply-proof emits MAS owner-gated apply proof or typed blockers.",
     )
     args = parser.parse_args()
 
@@ -47,6 +48,8 @@ def main() -> int:
         payload = build_real_paper_autonomy_soak_closeout_projection(**kwargs)
     elif args.mode == "provider-proof":
         payload = build_real_paper_autonomy_provider_hosted_paper_proof(**kwargs)
+    elif args.mode == "guarded-apply-proof":
+        payload = build_real_paper_autonomy_guarded_apply_proof(**kwargs)
     else:
         payload = build_real_paper_autonomy_soak_inventory(**kwargs)
     print(json.dumps(payload, ensure_ascii=False, indent=2))

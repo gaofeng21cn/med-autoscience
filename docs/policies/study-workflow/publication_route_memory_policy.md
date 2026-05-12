@@ -163,7 +163,7 @@ Accepted `workspace_reusable` lessons from typed stage closeout now update the w
 
 MAS exposes these as callable owner surfaces through `publication-route-memory-apply-seed`, `stage-knowledge-packet`, `stage-memory-closeout-route`, and `paper-soak-memory-proof`. These commands are domain-owned execution/receipt surfaces; they do not make OPL the memory body owner or publication quality authority.
 
-2026-05-12 fresh paper-line proof: DM002 read-only closeout consumed `publication_route_memory_seed__negative_result_stoploss` and carried MAS-owned writeback receipt refs under both the study stage-knowledge artifact root and workspace `portfolio/research_memory/publication_route_memory/writeback_receipts`. This proves the ref chain is usable for OPL/Aion projection. It does not prove OPL can read memory prose, accept/reject writebacks, or run provider-hosted guarded apply.
+2026-05-12 fresh paper-line proof: DM002 read-only closeout consumed `publication_route_memory_seed__negative_result_stoploss` and carried MAS-owned writeback receipt refs under both the study stage-knowledge artifact root and workspace `portfolio/research_memory/publication_route_memory/writeback_receipts`. The `real-paper-autonomy-guarded-apply-proof` surface now promotes this into a final ref-level memory proof for DM002: consumed route-memory refs and MAS router/workspace/OPL-Aion receipt refs are visible, `body_included=false`, and missing live apply permission remains a typed blocker rather than an artifact delta claim. This proves the ref chain is usable for OPL/Aion projection. It does not let OPL read memory prose, accept/reject writebacks, or mutate workspace truth.
 
 The repo still tracks only policy, contracts, seed fixture, code and tests. Real memory packs, migration receipts, writeback proposals and router receipts belong to the MAS workspace or runtime artifact root. OPL may discover locator / freshness / receipt refs; it does not own memory bodies, apply migration, accept/reject writebacks, choose a publication route, or promote memory into evidence, review, controller, publication or artifact truth.
 
@@ -205,6 +205,6 @@ Current OPL discovery sees MAS, MAG, and RCA as resolved family memory descripto
 
 Remaining MAS-side proof:
 
-- keep DM002's real paper-line consumed-memory proof as the current read-only baseline;
-- use provider-hosted guarded apply to publish only the ref-level chain from stage entry to typed closeout proposal, MAS `memory_write_router_receipt`, and OPL/Aion read-only receipt refs;
+- keep DM002's real paper-line consumed-memory proof as the current read-only baseline and guarded-apply final ref proof;
+- use provider-hosted guarded apply to publish only the ref-level chain from stage entry to typed closeout proposal, MAS `memory_write_router_receipt`, OPL/Aion read-only receipt refs, and MAS owner apply receipt / typed blocker refs;
 - proceed to controlled apply only through MAS owner surfaces when the route-memory proof is paired with artifact delta, gate replay, reviewer judgment, route decision, human gate, stop-loss, or typed blocker evidence.

@@ -215,12 +215,15 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "mas_owned_hermes_or_claude_executor": False,
         "mas_does_not_provide": ["hosted_executor", "hermes_executor_adapter", "claude_executor_adapter"],
     }
-    assert framework["diagnostic_providers"] == [
+    assert "diagnostic_providers" not in framework
+    assert framework["optional_executor_adapters"] == [
         {
-            "provider": "Hermes-Agent",
-            "classification": "optional_diagnostics",
+            "adapter_id": "hermes_agent",
+            "display_name": "Hermes-Agent",
+            "classification": "explicit_optional_executor_adapter",
             "retirement_policy": "retire_after_parity",
             "executor_policy": "not_a_mas_executor_adapter",
+            "default_provider": False,
         }
     ]
     assert payload["authority_boundary"]["domain_truth_owner"] == "med-autoscience"

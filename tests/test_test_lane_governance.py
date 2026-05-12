@@ -92,7 +92,15 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
     assert framework["minimal_executor"] == "Codex CLI"
     assert framework["provider_abstraction"] == "opl_family_runtime_provider"
     assert framework["target_production_provider"] == "Temporal"
-    assert framework["legacy_optional_providers"] == ["Hermes-Agent"]
+    assert "legacy_optional_providers" not in framework
+    assert framework["optional_executor_adapters"] == [
+        {
+            "adapter_id": "hermes_agent",
+            "display_name": "Hermes-Agent",
+            "classification": "explicit_optional_executor_adapter",
+            "default_provider": False,
+        }
+    ]
     assert framework["role"] == "stage_attempt_queue_wakeup_retry_dead_letter_human_gate_receipt_projection_transport"
     assert set(framework["not_authority_for"]) == {
         "study_truth",

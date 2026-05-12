@@ -10,8 +10,13 @@
     "minimal_executor": "Codex CLI",
     "provider_abstraction": "opl_family_runtime_provider",
     "target_production_provider": "Temporal",
-    "legacy_optional_providers": [
-      "Hermes-Agent"
+    "optional_executor_adapters": [
+      {
+        "adapter_id": "hermes_agent",
+        "display_name": "Hermes-Agent",
+        "classification": "explicit_optional_executor_adapter",
+        "default_provider": false
+      }
     ],
     "allowed_framework_authority": [
       "stage_attempt",
