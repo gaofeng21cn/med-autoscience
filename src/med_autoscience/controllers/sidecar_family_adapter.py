@@ -22,6 +22,9 @@ _FORBIDDEN_PAYLOAD_FLAGS = (
     "study_truth_write",
     "publication_quality_verdict",
     "current_package_write",
+    "memory_body_write",
+    "publication_route_memory_writeback_accept",
+    "memory_write_router_accept",
 )
 _STUDY_SOURCE_REFS: tuple[tuple[str, Path, str], ...] = (
     ("runtime_supervision_truth", Path("artifacts/runtime/runtime_supervision/latest.json"), "runtime_supervision"),
@@ -494,6 +497,10 @@ def _forbidden_requested_writes(task: Mapping[str, Any]) -> list[str]:
         "controller_decisions",
         "current_package",
         "artifact_gate",
+        "memory_body_write",
+        "publication_route_memory_body",
+        "publication_route_memory_writeback_accept",
+        "memory_write_router_accept",
     }
     return [item for item in requested if item in forbidden]
 

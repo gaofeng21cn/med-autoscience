@@ -24,6 +24,10 @@ FORBIDDEN_AUTHORITY_WRITES = (
     "controller_decisions",
     "current_package",
     "artifact_gate",
+    "memory_body_write",
+    "publication_route_memory_body",
+    "publication_route_memory_writeback_accept",
+    "memory_write_router_accept",
 )
 
 
@@ -287,6 +291,9 @@ def requested_writes_from_task(task: Mapping[str, Any]) -> list[str]:
         "study_truth_write",
         "publication_quality_verdict",
         "current_package_write",
+        "memory_body_write",
+        "publication_route_memory_writeback_accept",
+        "memory_write_router_accept",
     ):
         if bool(payload.get(flag)):
             requested.append(flag)

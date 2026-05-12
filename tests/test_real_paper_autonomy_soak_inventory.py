@@ -6,6 +6,7 @@ from pathlib import Path
 
 from med_autoscience.controllers.real_paper_autonomy_soak_inventory import (
     build_real_paper_autonomy_soak_inventory,
+    build_real_paper_autonomy_soak_closeout_projection,
     build_real_paper_autonomy_soak_projection,
 )
 
@@ -197,6 +198,13 @@ def test_real_paper_autonomy_soak_projection_reports_dispatch_and_evidence_witho
     assert payload["read_only_contract"]["writes_real_workspace"] is False
     assert payload["summary"]["target_studies"] == ["DM002", "DM003", "Obesity"]
     assert payload["summary"]["accepted_state_counts"]["artifact_delta"] == 1
+    coverage = {item["target_study"]: item for item in payload["summary"]["target_coverage"]}
+    assert coverage["DM002"]["status"] == "has_projection_evidence"
+    assert coverage["DM002"]["matched_study_ids"] == ["DM002"]
+    assert coverage["DM003"]["status"] == "typed_blocker"
+    assert coverage["DM003"]["typed_blockers"][0]["blocker_id"] == "target_study_not_discovered:003"
+    assert coverage["Obesity"]["status"] == "typed_blocker"
+    assert payload["summary"]["typed_blocker_count"] == 2
     study = payload["profiles"][0]["studies"][0]
     assert study["study_id"] == "DM002"
     assert study["final_projection"] == "artifact_delta"
@@ -235,3 +243,172 @@ def test_real_paper_autonomy_soak_projection_accepts_common_study_aliases(tmp_pa
         "003-dpcc-primary-care-phenotype-treatment-gap",
         "obesity_multicenter_phenotype_atlas",
     }
+
+
+def test_real_paper_autonomy_soak_closeout_projection_is_opl_ingestable_refs_only(
+    tmp_path: Path,
+) -> None:
+    yang_root = tmp_path / "Yang"
+    workspace = yang_root / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    (workspace / "portfolio").mkdir(parents=True)
+    dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
+    dm003 = workspace / "studies" / "003-dpcc-primary-care-phenotype-treatment-gap"
+    obesity = workspace / "studies" / "obesity_multicenter_phenotype_atlas"
+    for study_root, eval_id in (
+        (dm002, "eval-dm002"),
+        (dm003, "eval-dm003"),
+        (obesity, "eval-obesity"),
+    ):
+        _write_json(study_root / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": study_root.name})
+        _write_json(
+            study_root / "artifacts" / "publication_eval" / "latest.json",
+            {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": eval_id},
+        )
+        _write_json(
+            study_root / "artifacts" / "controller_decisions" / "latest.json",
+            {"next_owner": "write", "route_decision": "route_back_same_line"},
+        )
+    _write_json(
+        dm003 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {"canonical_artifact_delta": {"meaningful_artifact_delta": True}},
+    )
+    _write_json(
+        obesity / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {"progress_delta_candidate": True},
+    )
+    _write_json(
+        obesity / "artifacts" / "stage_knowledge" / "paper_soak_memory_apply_proof" / "latest.json",
+        {
+            "status": "ready",
+            "stage_entry": {
+                "publication_route_memory_refs": [
+                    {"memory_id": "publication_route_memory_seed__negative_result_stoploss"}
+                ]
+            },
+            "mas_router_receipt_refs": [{"ref": "receipt:memory-router"}],
+            "workspace_writeback_receipt_refs": [{"ref": "receipt:writeback"}],
+            "opl_aion_readonly_receipt_refs": [{"ref": "receipt:aion", "body_included": False}],
+        },
+    )
+    before = {path: path.stat().st_mtime_ns for path in workspace.rglob("*.json")}
+
+    payload = build_real_paper_autonomy_soak_closeout_projection(
+        yang_root=yang_root,
+        profile_paths=[profile_path],
+        target_studies=("DM002", "DM003", "Obesity"),
+    )
+
+    assert payload["surface"] == "real_paper_autonomy_soak_closeout_projection"
+    assert payload["summary"]["resolved_closeout_count"] == 3
+    assert payload["summary"]["typed_blocker_count"] == 0
+    assert payload["authority_boundary"]["opl_can_write_mas_truth"] is False
+    assert "source_projection" not in payload
+    assert "eval-dm002" not in json.dumps(payload, ensure_ascii=False)
+    packets = {packet["route_impact"]["study_id"]: packet for packet in payload["closeout_packets"]}
+    assert packets["002-dm-china-us-mortality-attribution"]["surface_kind"] == "domain_stage_closeout_packet"
+    assert packets["002-dm-china-us-mortality-attribution"]["domain_ready_verdict"] == "ai_reviewer_re_eval"
+    assert packets["003-dpcc-primary-care-phenotype-treatment-gap"]["domain_ready_verdict"] == "artifact_delta"
+    assert packets["obesity_multicenter_phenotype_atlas"]["consumed_memory_refs"] == [
+        "publication_route_memory_seed__negative_result_stoploss"
+    ]
+    assert packets["obesity_multicenter_phenotype_atlas"]["writeback_receipt_refs"] == [
+        "receipt:memory-router",
+        "receipt:writeback",
+        "receipt:aion",
+    ]
+    assert all("publication_eval/latest.json" in packet["rejected_writes"][0]["forbidden_surfaces"] for packet in packets.values())
+    assert {path: path.stat().st_mtime_ns for path in before} == before
+
+
+def test_real_paper_autonomy_soak_script_outputs_closeout_mode(tmp_path: Path) -> None:
+    yang_root = tmp_path / "Yang"
+    workspace = yang_root / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    (workspace / "portfolio").mkdir(parents=True)
+    study_root = workspace / "studies" / "002-dm-china-us-mortality-attribution"
+    _write_json(study_root / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": study_root.name})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm002"},
+    )
+
+    result = subprocess.run(
+        [
+            "uv",
+            "run",
+            "python",
+            "scripts/real-paper-autonomy-soak-inventory.py",
+            "--yang-root",
+            str(yang_root),
+            "--profile",
+            str(profile_path),
+            "--mode",
+            "closeout",
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["surface"] == "real_paper_autonomy_soak_closeout_projection"
+    assert payload["closeout_packets"][0]["domain_ready_verdict"] == "ai_reviewer_re_eval"
+    assert payload["summary"]["writes_performed"] is False
+    coverage = {item["target_study"]: item for item in payload["summary"]["target_coverage"]}
+    assert coverage["DM002"]["status"] == "has_projection_evidence"
+    assert coverage["DM003"]["status"] == "typed_blocker"
+    assert coverage["Obesity"]["status"] == "typed_blocker"
+    packets = {packet["route_impact"]["study_id"]: packet for packet in payload["closeout_packets"]}
+    assert packets["DM003"]["domain_ready_verdict"] == "typed_blocker"
+    assert packets["Obesity"]["domain_ready_verdict"] == "typed_blocker"
+    assert payload["summary"]["typed_blocker_count"] == 2
+
+
+def test_real_paper_autonomy_soak_projection_cli_reports_target_coverage(
+    tmp_path: Path,
+) -> None:
+    yang_root = tmp_path / "Yang"
+    workspace = yang_root / "DM"
+    profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+    _write_profile(workspace, profile_path)
+    _write_json(
+        workspace / "studies" / "002-dm-china-us-mortality-attribution" / "artifacts" / "runtime" / "runtime_status_summary.json",
+        {"study_id": "002-dm-china-us-mortality-attribution", "health_status": "running"},
+    )
+    _write_json(
+        workspace / "studies" / "002-dm-china-us-mortality-attribution" / "artifacts" / "publication_eval" / "latest.json",
+        {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm002"},
+    )
+
+    result = subprocess.run(
+        [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "med_autoscience.cli",
+            "real-paper-autonomy-soak-projection",
+            "--yang-root",
+            str(yang_root),
+            "--target-study",
+            "DM002",
+            "--target-study",
+            "DM003",
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    coverage = {item["target_study"]: item for item in payload["summary"]["target_coverage"]}
+    assert coverage["DM002"]["status"] == "has_projection_evidence"
+    assert coverage["DM003"]["status"] == "typed_blocker"
+    assert coverage["DM003"]["typed_blockers"][0]["write_permitted"] is False

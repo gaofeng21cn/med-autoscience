@@ -107,6 +107,7 @@ runtime_watch = _LazyModuleProxy(lambda: _load_controller("runtime_watch"))
 sidecar_provider_controller = _LazyModuleProxy(lambda: _load_controller("sidecar_provider"))
 sidecar_family_adapter = _LazyModuleProxy(lambda: _load_controller("sidecar_family_adapter"))
 stage_knowledge_plane = _LazyModuleProxy(lambda: _load_controller("stage_knowledge_plane"))
+real_paper_autonomy_soak_inventory = _LazyModuleProxy(lambda: _load_controller("real_paper_autonomy_soak_inventory"))
 startup_data_readiness_controller = _LazyModuleProxy(lambda: _load_controller("startup_data_readiness"))
 study_progress = _LazyModuleProxy(lambda: _load_controller("study_progress"))
 study_cycle_profiler = _LazyModuleProxy(lambda: _load_controller("study_cycle_profiler"))
@@ -319,6 +320,15 @@ def _handle_stage_memory_command(args: argparse.Namespace, *, parser: argparse.A
             stage=args.stage,
             study_root=Path(args.study_root),
             workspace_root=Path(args.workspace_root),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "real-paper-autonomy-soak-projection":
+        result = real_paper_autonomy_soak_inventory.build_real_paper_autonomy_soak_projection(
+            yang_root=Path(args.yang_root),
+            profile_paths=[Path(path) for path in args.profiles] if args.profiles else None,
+            target_studies=tuple(args.target_studies or ("DM002", "DM003", "Obesity")),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

@@ -8,6 +8,8 @@ from pathlib import Path
 from med_autoscience.controllers.real_paper_autonomy_soak_inventory import (
     DEFAULT_YANG_ROOT,
     build_real_paper_autonomy_soak_inventory,
+    build_real_paper_autonomy_soak_closeout_projection,
+    build_real_paper_autonomy_soak_projection,
 )
 
 
@@ -26,12 +28,24 @@ def main() -> int:
         dest="profiles",
         help="Specific profile path to inspect. May be passed multiple times.",
     )
+    parser.add_argument(
+        "--mode",
+        choices=("inventory", "projection", "closeout"),
+        default="inventory",
+        help="Read-only output mode. closeout emits OPL-ingestable typed closeout packets.",
+    )
     args = parser.parse_args()
 
-    payload = build_real_paper_autonomy_soak_inventory(
-        yang_root=Path(args.yang_root),
-        profile_paths=[Path(path) for path in args.profiles] if args.profiles else None,
-    )
+    kwargs = {
+        "yang_root": Path(args.yang_root),
+        "profile_paths": [Path(path) for path in args.profiles] if args.profiles else None,
+    }
+    if args.mode == "projection":
+        payload = build_real_paper_autonomy_soak_projection(**kwargs)
+    elif args.mode == "closeout":
+        payload = build_real_paper_autonomy_soak_closeout_projection(**kwargs)
+    else:
+        payload = build_real_paper_autonomy_soak_inventory(**kwargs)
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
 
