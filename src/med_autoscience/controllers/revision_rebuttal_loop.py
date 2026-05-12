@@ -16,6 +16,13 @@ _COMMENT_REQUIRED_FIELDS = (
     "severity",
     "requested_change",
 )
+_CONTEXT_FIELDS_BY_ACTION_LABEL = {
+    "ACCEPT_ANALYSIS": ("line_number", "citation_ref", "statistical_result"),
+    "ACCEPT_TEXT": ("line_number", "citation_ref"),
+    "SOFTEN_CLAIM": ("line_number", "citation_ref"),
+    "DISAGREE": ("line_number", "citation_ref"),
+    "AUTHOR_INPUT_NEEDED": ("citation_ref", "statistical_result"),
+}
 
 
 def _text(value: object) -> str:
@@ -41,6 +48,12 @@ def _contains_any(value: object, needles: tuple[str, ...]) -> bool:
 
 def _comment_identifier(comment: Mapping[str, Any], index: int) -> str:
     return _text(comment.get("comment_id")) or f"comment_{index + 1}"
+
+
+def _stable_concern_id(comment: Mapping[str, Any]) -> str:
+    source = _text(comment.get("source")) or "reviewer"
+    comment_id = _text(comment.get("comment_id")) or "unidentified"
+    return f"{source}:{comment_id}"
 
 
 def _comment_blockers(comments: list[dict[str, Any]]) -> list[str]:
@@ -69,13 +82,34 @@ def _repair_type(comment: Mapping[str, Any]) -> str:
     combined = f"{concern} {requested_change}"
     if severity == "major" and _contains_any(requested_change, ("additional analysis", "additional analyses")):
         return "analysis_repair"
-    if _contains_any(combined, ("overstrong claim", "overstrong causal", "causal wording")):
+    if _contains_any(
+        combined,
+        ("overstrong claim", "overstrong causal", "causal wording", "too strong", "restrained association"),
+    ):
         return "claim_downgrade"
     if _contains_any(combined, ("human review", "human gate", "ethics", "approval")):
         return "human_gate"
     if _contains_any(combined, ("rebuttal only", "no change", "already addressed")):
         return "rebuttal_only"
     return "prose_revision"
+
+
+def _action_label(comment: Mapping[str, Any], repair_type: str) -> str:
+    combined = f"{_text(comment.get('concern'))} {_text(comment.get('requested_change'))}".lower()
+    if _contains_any(combined, ("author", "rationale", "available", "unavailable")):
+        return "AUTHOR_INPUT_NEEDED"
+    if repair_type == "analysis_repair":
+        return "ACCEPT_ANALYSIS"
+    if repair_type == "claim_downgrade":
+        return "SOFTEN_CLAIM"
+    if repair_type == "rebuttal_only":
+        return "DISAGREE"
+    return "ACCEPT_TEXT"
+
+
+def _missing_context_fields(comment: Mapping[str, Any], action_label: str) -> list[str]:
+    required_fields = _CONTEXT_FIELDS_BY_ACTION_LABEL.get(action_label, ())
+    return [field_name for field_name in required_fields if not _text(comment.get(field_name))]
 
 
 def _repair_routes(
@@ -148,6 +182,8 @@ def _action_matrix_item(
 ) -> dict[str, Any]:
     comment_id = _text(comment.get("comment_id"))
     repair_type = _repair_type(comment)
+    action_label = _action_label(comment, repair_type)
+    missing_context_fields = _missing_context_fields(comment, action_label)
     required_surface_refs = _required_surface_refs(evidence_ledger_refs, review_ledger_refs)
     repair_routes = _repair_routes(
         comment,
@@ -158,8 +194,11 @@ def _action_matrix_item(
     action_type = _action_type(repair_type)
     return {
         "comment_id": comment_id,
+        "stable_concern_id": _stable_concern_id(comment),
         "repair_type": repair_type,
         "action_type": action_type,
+        "action_label": "AUTHOR_INPUT_NEEDED" if missing_context_fields else action_label,
+        "missing_context_fields": missing_context_fields,
         "required_surface_refs": required_surface_refs,
         "work_units": _work_units(repair_routes, required_surface_refs),
         "repair_routes": repair_routes,
@@ -220,6 +259,90 @@ def _repair_plan(action_matrix: list[dict[str, Any]]) -> dict[str, bool]:
     }
 
 
+def _comment_response_tracker(action_matrix: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    tracker: list[dict[str, Any]] = []
+    for item in action_matrix:
+        missing_fields = list(item.get("missing_context_fields") or [])
+        tracker.append(
+            {
+                "stable_concern_id": item["stable_concern_id"],
+                "comment_id": item["comment_id"],
+                "action_label": item["action_label"],
+                "response_status": "author_input_needed" if missing_fields else "planned",
+                "response_letter_point": item["response_letter_point"],
+                "blocking_missing_fields": missing_fields,
+                "read_model_only": True,
+            }
+        )
+    return tracker
+
+
+def _manuscript_change_checklist(action_matrix: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    checklist: list[dict[str, Any]] = []
+    for item in action_matrix:
+        action_label = item["action_label"]
+        target_section = item["repair_routes"]["analysis_repair"]["target_section"]
+        stable_concern_id = item["stable_concern_id"]
+        if action_label == "AUTHOR_INPUT_NEEDED":
+            check_item = f"Collect author input for {stable_concern_id} before drafting a rebuttal."
+            change_required = False
+        else:
+            check_item = f"Update {target_section} for {stable_concern_id} before response closure."
+            change_required = True
+        checklist.append(
+            {
+                "stable_concern_id": stable_concern_id,
+                "comment_id": item["comment_id"],
+                "action_label": action_label,
+                "target_section": target_section,
+                "target_claim": item["repair_routes"]["analysis_repair"]["target_claim"],
+                "change_required": change_required,
+                "check_item": check_item,
+                "read_model_only": True,
+            }
+        )
+    return checklist
+
+
+def _missing_author_input_list(action_matrix: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    missing: list[dict[str, Any]] = []
+    for item in action_matrix:
+        missing_fields = list(item.get("missing_context_fields") or [])
+        if item["action_label"] != "AUTHOR_INPUT_NEEDED" and not missing_fields:
+            continue
+        missing.append(
+            {
+                "stable_concern_id": item["stable_concern_id"],
+                "comment_id": item["comment_id"],
+                "source": item["stable_concern_id"].split(":", 1)[0],
+                "missing_fields": missing_fields,
+                "reason": "rebuttal_context_incomplete",
+            }
+        )
+    return missing
+
+
+def _response_package_readiness(
+    *,
+    blockers: list[str],
+    action_matrix: list[dict[str, Any]],
+) -> dict[str, Any]:
+    readiness_blockers = list(blockers)
+    for item in action_matrix:
+        if item["action_label"] == "AUTHOR_INPUT_NEEDED":
+            readiness_blockers.append(f"author_input_needed:{item['stable_concern_id']}")
+        for field_name in item.get("missing_context_fields") or []:
+            readiness_blockers.append(f"reviewer_comment_missing_{field_name}:{item['comment_id']}")
+    return {
+        "status": "blocked" if readiness_blockers else "planning_ready",
+        "ready": not readiness_blockers,
+        "blockers": readiness_blockers,
+        "read_model_only": True,
+        "publication_readiness_authorized": False,
+        "current_package_mutation_allowed": False,
+    }
+
+
 def build_revision_rebuttal_loop_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     comments = _mapping_list(payload.get("reviewer_comments"))
     evidence_ledger_refs = _text_list(payload.get("evidence_ledger_refs"))
@@ -241,6 +364,10 @@ def build_revision_rebuttal_loop_projection(payload: Mapping[str, Any]) -> dict[
             for comment in comments
         ]
     )
+    response_package_readiness = _response_package_readiness(
+        blockers=blockers,
+        action_matrix=action_matrix,
+    )
     return {
         "surface": SURFACE,
         "schema_version": SCHEMA_VERSION,
@@ -249,6 +376,10 @@ def build_revision_rebuttal_loop_projection(payload: Mapping[str, Any]) -> dict[
         "reviewer_comment_count": len(comments),
         "action_matrix": action_matrix,
         "comment_to_action_matrix": action_matrix,
+        "comment_response_tracker": _comment_response_tracker(action_matrix),
+        "manuscript_change_checklist": _manuscript_change_checklist(action_matrix),
+        "missing_author_input_list": _missing_author_input_list(action_matrix),
+        "response_package_readiness": response_package_readiness,
         "repair_plan": _repair_plan(action_matrix),
         "next_action": _next_action(blockers=blockers, action_matrix=action_matrix),
         "durable_refs": {
@@ -257,6 +388,8 @@ def build_revision_rebuttal_loop_projection(payload: Mapping[str, Any]) -> dict[
         },
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
+        "publication_readiness_authorized": False,
+        "current_package_mutation_allowed": False,
     }
 
 
