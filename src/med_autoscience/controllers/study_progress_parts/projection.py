@@ -108,9 +108,6 @@ def build_study_progress_projection(
     runtime_watch_path = input_paths.runtime_watch_path
     runtime_supervision_path = input_paths.runtime_supervision_path
     gate_clearing_batch_path = input_paths.gate_clearing_batch_path
-    gate_specificity_request_path, gate_specificity_request = _read_gate_specificity_request(
-        study_root=resolved_study_root,
-    )
     bash_summary_path = input_paths.bash_summary_path
     details_projection_path = input_paths.details_projection_path
 
@@ -136,6 +133,10 @@ def build_study_progress_projection(
     runtime_escalation_payload = surface_payloads.runtime_escalation_payload
     runtime_watch_payload = surface_payloads.runtime_watch_payload
     publication_eval_payload = surface_payloads.publication_eval_payload
+    gate_specificity_request_path, gate_specificity_request = _read_gate_specificity_request(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
     _publishability_gate_payload = surface_payloads.publishability_gate_payload
     bash_summary_payload = surface_payloads.bash_summary_payload
     details_projection_wrapper = surface_payloads.details_projection_wrapper
