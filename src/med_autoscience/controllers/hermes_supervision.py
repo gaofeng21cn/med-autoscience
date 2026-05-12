@@ -10,6 +10,7 @@ import subprocess
 from typing import Any
 
 from med_autoscience.controllers.hermes_supervision_parts.codex_app_automation import (
+    canonical_codex_app_automation_prompt as _shared_canonical_codex_app_automation_prompt,
     codex_app_automation_prompt_check as _shared_codex_app_automation_prompt_check,
 )
 from med_autoscience.controllers.hermes_supervision_parts.legacy_services import (
@@ -185,6 +186,10 @@ def _github_user_login_check() -> dict[str, Any]:
 
 def _codex_app_automation_prompt_check(*, automation_path: Path | None = None) -> dict[str, Any]:
     return _shared_codex_app_automation_prompt_check(automation_path or _codex_app_automation_path())
+
+
+def _canonical_codex_app_automation_prompt() -> str:
+    return _shared_canonical_codex_app_automation_prompt()
 
 
 def _developer_supervisor_mode_projection(*, profile: WorkspaceProfile, manager: str, interval_seconds: int) -> dict[str, Any]:

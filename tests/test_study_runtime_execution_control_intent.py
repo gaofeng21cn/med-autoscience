@@ -165,6 +165,79 @@ def _write_publication_eval_work_unit_authority(study_root: Path) -> None:
     )
 
 
+def _write_publication_eval_gate_replay_with_specificity_targets(study_root: Path) -> None:
+    path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "eval_id": "publication-eval::001-risk::quest-001::latest",
+                "emitted_at": "2026-05-12T01:00:00+00:00",
+                "recommended_actions": [
+                    {
+                        "action_type": "route_back_same_line",
+                        "route_target": "finalize",
+                        "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                        "route_rationale": "bundle-stage blockers are now on the critical path for this paper line",
+                        "work_unit_fingerprint": "publication-blockers::replay-with-targets",
+                        "blocking_work_units": [
+                            {
+                                "unit_id": "publication_gate_replay",
+                                "lane": "controller",
+                                "summary": "Replay the publication gate against current authority signatures before dispatching new work.",
+                            }
+                        ],
+                        "next_work_unit": {
+                            "unit_id": "publication_gate_replay",
+                            "lane": "controller",
+                            "summary": "Replay the publication gate against current authority signatures before dispatching new work.",
+                        },
+                        "specificity_targets": [
+                            {
+                                "target_kind": "claim",
+                                "target_id": "claim_evidence_map",
+                                "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+                                "blocking_reason": "stale_study_delivery_mirror",
+                            },
+                            {
+                                "target_kind": "figure",
+                                "target_id": "figure_catalog",
+                                "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+                                "blocking_reason": "stale_study_delivery_mirror",
+                            },
+                            {
+                                "target_kind": "table",
+                                "target_id": "submission_table_or_manifest",
+                                "source_path": str(
+                                    study_root / "paper" / "submission_minimal" / "audit" / "submission_manifest.json"
+                                ),
+                                "blocking_reason": "stale_study_delivery_mirror",
+                            },
+                            {
+                                "target_kind": "metric",
+                                "target_id": "main_result_metrics",
+                                "source_path": "/tmp/runtime/quests/quest-001/artifacts/results/main_result.json",
+                                "blocking_reason": "stale_study_delivery_mirror",
+                            },
+                            {
+                                "target_kind": "source_path",
+                                "target_id": "publication_gate_source_path",
+                                "source_path": "/tmp/runtime/quests/quest-001/artifacts/reports/medical_publication_surface/latest.json",
+                                "blocking_reason": "stale_study_delivery_mirror",
+                            },
+                        ],
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def _write_runtime_state(quest_root: Path, payload: dict[str, object]) -> None:
     runtime_state_path = quest_root / ".ds" / "runtime_state.json"
     runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -269,6 +342,41 @@ def test_controller_authorization_prefers_current_decision_work_unit_over_stale_
     assert authorization_context["next_work_unit"]["unit_id"] == "submission_minimal_refresh"
     assert authorization_context["blocking_work_units"][0]["unit_id"] == "manuscript_story_repair"
     assert authorization_context["control_intent_identity"]["work_unit_id"] == "submission_minimal_refresh"
+
+
+def test_controller_authorization_converts_gate_replay_targets_to_upstream_paper_repair(
+    tmp_path: Path,
+) -> None:
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_controller_decision_authorization(study_root)
+    _write_publication_eval_gate_replay_with_specificity_targets(study_root)
+
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+
+    assert authorization_context is not None
+    assert authorization_context["route_target"] == "analysis-campaign"
+    assert authorization_context["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert authorization_context["next_work_unit"] == {
+        "unit_id": "analysis_claim_evidence_repair",
+        "lane": "analysis-campaign",
+        "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+    }
+    assert [unit["unit_id"] for unit in authorization_context["blocking_work_units"]] == [
+        "analysis_claim_evidence_repair",
+        "figure_results_trace_repair",
+    ]
+    assert authorization_context["work_unit_fingerprint"] == "publication-blockers::replay-with-targets"
+    assert {target["target_kind"] for target in authorization_context["specificity_targets"]} == {
+        "claim",
+        "figure",
+        "table",
+        "metric",
+        "source_path",
+    }
+    assert authorization_context["control_intent_identity"]["work_unit_id"] == "analysis_claim_evidence_repair"
 
 
 def test_execute_noop_runtime_decision_defers_long_authorization_while_awaiting_artifact_delta(

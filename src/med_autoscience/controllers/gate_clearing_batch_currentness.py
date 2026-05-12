@@ -252,6 +252,14 @@ def publication_work_unit_selection(
         selected_publication_work_unit = dict(current_next_work_unit)
         selected_work_unit_id = current_work_unit_id
     if (
+        specificity_targets
+        and selected_work_unit_id == "publication_gate_replay"
+        and current_work_unit_id in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS
+        and isinstance(current_next_work_unit, dict)
+    ):
+        selected_publication_work_unit = dict(current_next_work_unit)
+        selected_work_unit_id = current_work_unit_id
+    if (
         selected_work_unit_id
         in {GATE_NEEDS_SPECIFICITY_WORK_UNIT_ID, SUBMISSION_DELIVERY_TERMINAL_BLOCKER_WORK_UNIT_ID}
         and gate_clearing_batch_replay_closure.stale_gate_replay_closed(latest_batch, gate_report=gate_report)

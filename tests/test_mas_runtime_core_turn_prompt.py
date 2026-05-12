@@ -247,6 +247,59 @@ def test_codex_exec_runner_prompt_maps_controller_action_to_callable_command(mon
     assert "blocked_reason=owner_callable_surface_missing" in prompt
 
 
+def test_codex_exec_runner_prompt_maps_gate_clearing_action_to_callable_command(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-002"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "last_controller_decision_authorization": {
+    "decision_id": "decision-gate-002",
+    "controller_actions": ["run_gate_clearing_batch"],
+    "work_unit_id": "publication_gate_replay",
+    "next_work_unit": {
+      "unit_id": "publication_gate_replay",
+      "lane": "controller"
+    }
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-002",
+        run_id="run-002",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+
+    assert "Controller action execution contract" in prompt
+    assert "run_gate_clearing_batch" in prompt
+    assert "python -m med_autoscience.cli gate-clearing-batch" in prompt
+    assert '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}"' in prompt
+    assert "--study-id <study_id>" in prompt
+    assert "--quest-id quest-002" in prompt
+    assert "No callable MAS CLI command is registered" not in prompt
+
+
 def test_codex_exec_runner_prompt_infers_quality_repair_command_from_blocking_work_units(
     monkeypatch,
     tmp_path: Path,

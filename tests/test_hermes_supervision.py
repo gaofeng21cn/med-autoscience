@@ -751,23 +751,7 @@ def test_ensure_supervision_retired_manager_keeps_developer_supervisor_diagnosti
     automation_path.parent.mkdir(parents=True, exist_ok=True)
     automation_path.write_text(
         'status = "ACTIVE"\n'
-        'prompt = """developer_apply_safe\n'
-        "mode=developer_apply_safe\n"
-        "supervisor-reconcile --mode developer_apply_safe --apply\n"
-        "supervisor-scan --apply-safe-actions\n"
-        "--apply-runtime-platform-repair\n"
-        "--developer-supervisor-mode developer_apply_safe\n"
-        "supervisor-consume --mode developer_apply_safe --apply\n"
-        "supervisor-execute-dispatch --mode developer_apply_safe --apply\n"
-        "workspace_dynamic_active_studies\n"
-        "new MAS tasks\n"
-        "active_run_id\n"
-        "worker_running\n"
-        "worktree\n"
-        "action_queue\n"
-        "why_not_applied\n"
-        "OPL family user config\n"
-        '"""\n',
+        f'prompt = """{module._canonical_codex_app_automation_prompt()}"""\n',
         encoding="utf-8",
     )
 
@@ -874,13 +858,7 @@ def test_ensure_supervision_disables_developer_mode_for_non_owner_github_user(
     automation_path.write_text(
         '[[automations]]\n'
         'status = "ACTIVE"\n'
-        'prompt = "developer_apply_safe mode=developer_apply_safe '
-        'supervisor-reconcile --mode developer_apply_safe --apply supervisor-scan --apply-safe-actions '
-        '--apply-runtime-platform-repair '
-        '--developer-supervisor-mode developer_apply_safe supervisor-consume --mode developer_apply_safe --apply '
-        'supervisor-execute-dispatch --mode developer_apply_safe --apply '
-        'workspace_dynamic_active_studies new MAS tasks active_run_id worker_running worktree '
-        'action_queue why_not_applied"\n',
+        f'prompt = """{module._canonical_codex_app_automation_prompt()}"""\n',
         encoding="utf-8",
     )
 
@@ -931,7 +909,23 @@ def test_codex_app_automation_prompt_check_reports_missing_tokens(tmp_path: Path
         "action_queue",
         "why_not_applied",
         "OPL family user config",
+        "study-runtime-status",
+        "study-progress",
+        "runtime_supervision/latest",
+        "runtime_watch/latest",
+        "controller_decisions/latest",
+        "publication_eval/latest",
+        "gate_clearing_batch/latest",
+        "paper-facing artifact delta",
+        "publication gate blocker",
+        "controller/route/work_unit",
+        "MAS repo/controller/runtime root cause",
+        "不得手工改论文包或 runtime-owned surfaces",
     ]
+    assert result["recommended_prompt"] == module._canonical_codex_app_automation_prompt()
+    assert "workspace_dynamic_active_studies" in result["recommended_prompt"]
+    assert "MAS repo/controller/runtime root cause" in result["recommended_prompt"]
+    assert "不得手工改论文包或 runtime-owned surfaces" in result["recommended_prompt"]
 
 
 def test_codex_app_automation_prompt_check_rejects_study_allowlist_only_prompt(tmp_path: Path) -> None:
@@ -962,4 +956,33 @@ def test_codex_app_automation_prompt_check_rejects_study_allowlist_only_prompt(t
         "worker_running",
         "worktree",
         "OPL family user config",
+        "study-runtime-status",
+        "study-progress",
+        "runtime_supervision/latest",
+        "runtime_watch/latest",
+        "controller_decisions/latest",
+        "publication_eval/latest",
+        "gate_clearing_batch/latest",
+        "paper-facing artifact delta",
+        "publication gate blocker",
+        "controller/route/work_unit",
+        "MAS repo/controller/runtime root cause",
+        "不得手工改论文包或 runtime-owned surfaces",
     ]
+
+
+def test_codex_app_automation_prompt_check_accepts_canonical_prompt(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.hermes_supervision")
+    automation_path = tmp_path / "automation.toml"
+    automation_path.write_text(
+        'status = "ACTIVE"\n'
+        f'prompt = """{module._canonical_codex_app_automation_prompt()}"""\n',
+        encoding="utf-8",
+    )
+
+    result = module._codex_app_automation_prompt_check(automation_path=automation_path)
+
+    assert result["status"] == "ok"
+    assert result["active"] is True
+    assert result["missing_prompt_tokens"] == []
+    assert result["canonical_prompt"] == module._canonical_codex_app_automation_prompt()

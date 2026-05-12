@@ -281,7 +281,7 @@ def specificity_targets_from_publication_eval(publication_eval_payload: Mapping[
             for item in action.get("blocking_work_units") or []
             if isinstance(item, Mapping)
         }
-        if next_work_unit_id not in _SPECIFICITY_WORK_UNIT_IDS and not (
+        if next_work_unit_id not in {*_SPECIFICITY_WORK_UNIT_IDS, "publication_gate_replay"} and not (
             blocking_work_unit_ids & _SPECIFICITY_WORK_UNIT_IDS
         ):
             continue

@@ -157,3 +157,91 @@ def test_quality_repair_batch_route_context_preempts_current_submission_refresh_
         "repair_paper_live_paths",
         "materialize_display_surface",
     ]
+
+
+def test_gate_specificity_targets_preempt_publication_gate_replay_for_upstream_paper_repair() -> None:
+    currentness = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_currentness")
+
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::latest",
+        "recommended_actions": [
+            {
+                "action_type": "route_back_same_line",
+                "work_unit_fingerprint": "publication-blockers::replay",
+                "next_work_unit": {
+                    "unit_id": "publication_gate_replay",
+                    "lane": "controller",
+                    "summary": "Replay the publication gate against current authority signatures.",
+                },
+                "specificity_targets": [
+                    {
+                        "target_kind": "claim",
+                        "target_id": "claim_evidence_map",
+                        "source_path": "/workspace/studies/dm002/paper/claim_evidence_map.json",
+                        "blocking_reason": "claim_evidence_consistency_failed",
+                    },
+                    {
+                        "target_kind": "metric",
+                        "target_id": "main_result_metrics",
+                        "source_path": "/workspace/runtime/quests/dm002/artifacts/results/main_result.json",
+                        "blocking_reason": "claim_evidence_consistency_failed",
+                    },
+                    {
+                        "target_kind": "figure",
+                        "target_id": "figure_catalog",
+                        "source_path": "/workspace/studies/dm002/paper/figures/figure_catalog.json",
+                        "blocking_reason": "claim_evidence_consistency_failed",
+                    },
+                    {
+                        "target_kind": "table",
+                        "target_id": "submission_table_or_manifest",
+                        "source_path": "/workspace/studies/dm002/paper/submission_minimal/audit/submission_manifest.json",
+                        "blocking_reason": "stale_study_delivery_mirror",
+                    },
+                    {
+                        "target_kind": "source_path",
+                        "target_id": "publication_gate_source_path",
+                        "source_path": "/workspace/runtime/quests/dm002/artifacts/reports/medical_publication_surface/latest.json",
+                        "blocking_reason": "stale_study_delivery_mirror",
+                    },
+                ],
+            }
+        ],
+    }
+    gate_report = {
+        "status": "blocked",
+        "blockers": [
+            "stale_study_delivery_mirror",
+            "medical_publication_surface_blocked",
+            "claim_evidence_consistency_failed",
+        ],
+        "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+        "study_delivery_status": "stale_source_mismatch",
+        "blocking_artifact_refs": [
+            {
+                "blocker": "stale_study_delivery_mirror",
+                "artifact_path": "/workspace/studies/dm002/manuscript/delivery_manifest.json",
+                "artifact_role": "study_delivery_mirror",
+            },
+            {
+                "blocker": "claim_evidence_consistency_failed",
+                "artifact_path": "/workspace/studies/dm002/paper/claim_evidence_map.json",
+                "artifact_role": "claim_evidence_map",
+            },
+        ],
+    }
+
+    selection = currentness.publication_work_unit_selection(
+        publication_eval_payload=publication_eval_payload,
+        latest_batch={},
+        gate_report=gate_report,
+        authority_settle_delivery_redrive_requested=False,
+        direct_submission_delivery_sync_requested=False,
+        controller_decision_work_unit=None,
+    )
+
+    assert selection["explicit_next_work_unit"]["unit_id"] == "publication_gate_replay"
+    assert selection["current_next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert selection["selected_publication_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
+    assert selection["terminal_reason"] is None

@@ -429,11 +429,16 @@ def _controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[str]:
 
 
 def _controller_action_command(*, action_name: str, quest_id: str) -> str | None:
-    if action_name != "run_quality_repair_batch":
+    command_by_action = {
+        "run_quality_repair_batch": "quality-repair-batch",
+        "run_gate_clearing_batch": "gate-clearing-batch",
+    }
+    command_name = command_by_action.get(action_name)
+    if command_name is None:
         return None
     return (
         '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}" '
-        "python -m med_autoscience.cli quality-repair-batch "
+        f"python -m med_autoscience.cli {command_name} "
         '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --study-id <study_id> '
         f"--quest-id {quest_id}"
     )

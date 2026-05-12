@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import control_intent
+from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.study_decision_record import StudyDecisionRecord
 
 
@@ -127,6 +128,80 @@ def _publication_eval_work_unit_context(publication_eval_payload: dict[str, Any]
             "source_route_key_question": _text(action.get("route_key_question")),
         }
     return {}
+
+
+def _upstream_repair_units_from_specificity_targets(specificity_targets: object) -> list[dict[str, str]]:
+    target_status = specificity_target_status(specificity_targets)
+    if target_status.get("complete") is not True:
+        return []
+    target_kinds = {
+        str(item.get("target_kind") or "").strip()
+        for item in target_status.get("targets") or []
+        if isinstance(item, dict)
+    }
+    units: list[dict[str, str]] = []
+    if target_kinds & {"claim", "metric", "source_path", "table"}:
+        units.append(
+            {
+                "unit_id": "analysis_claim_evidence_repair",
+                "lane": "analysis-campaign",
+                "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+            }
+        )
+    if "figure" in target_kinds:
+        units.append(
+            {
+                "unit_id": "figure_results_trace_repair",
+                "lane": "write",
+                "summary": "Repair figure and results traceability against the publication evidence surface.",
+            }
+        )
+    return units
+
+
+def _upstream_repair_work_unit_context_from_replay_targets(
+    *,
+    record: StudyDecisionRecord,
+    publication_eval_payload: dict[str, Any],
+    work_unit_context: dict[str, Any],
+) -> dict[str, Any] | None:
+    next_work_unit = _compact_work_unit_payload(work_unit_context.get("next_work_unit"))
+    if next_work_unit is None or next_work_unit.get("unit_id") != "publication_gate_replay":
+        return None
+    if record.route_target not in {"analysis-campaign", "write"}:
+        return None
+    recommended_actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(recommended_actions, list):
+        return None
+    for action in recommended_actions:
+        if not isinstance(action, dict):
+            continue
+        action_next_work_unit = _compact_work_unit_payload(action.get("next_work_unit"))
+        if action_next_work_unit is None or action_next_work_unit.get("unit_id") != "publication_gate_replay":
+            continue
+        repair_units = _upstream_repair_units_from_specificity_targets(action.get("specificity_targets"))
+        if not repair_units:
+            continue
+        return {
+            **work_unit_context,
+            "work_unit_id": repair_units[0]["unit_id"],
+            "next_work_unit": repair_units[0],
+            "blocking_work_units": repair_units,
+            "route_target": repair_units[0]["lane"],
+            "route_key_question": (
+                f"{repair_units[0]['unit_id']}: {repair_units[0]['summary']}"
+            ),
+            "route_rationale": (
+                _text(action.get("route_rationale"))
+                or _text(action.get("reason"))
+                or "Publication gate replay carried concrete paper-facing targets; route to upstream paper repair."
+            ),
+            "source_route_key_question": _text(action.get("route_key_question")) or record.route_key_question,
+            "specificity_targets": [
+                dict(item) for item in specificity_target_status(action.get("specificity_targets")).get("targets") or []
+            ],
+        }
+    return None
 
 
 def _publication_action_target_context(
@@ -315,6 +390,13 @@ def _controller_decision_work_unit_context(
         artifact_path=record.publication_eval_ref.artifact_path,
     )
     work_unit_context = _record_work_unit_context(record) or _publication_eval_work_unit_context(publication_eval_payload)
+    upstream_context = _upstream_repair_work_unit_context_from_replay_targets(
+        record=record,
+        publication_eval_payload=publication_eval_payload,
+        work_unit_context=work_unit_context,
+    )
+    if upstream_context is not None:
+        return upstream_context
     target_context = _publication_action_target_context(publication_eval_payload, work_unit_context)
     if target_context:
         return {**work_unit_context, **target_context}
