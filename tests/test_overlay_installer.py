@@ -69,6 +69,28 @@ def test_template_resource_names_use_med_deepscientist_prefix() -> None:
     assert all(name.startswith(f"{OVERLAY_PREFIX}-") for name in template_names)
 
 
+def test_stage_skill_surface_token_renders_machine_derived_block() -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    rendered = module._render_overlay_text_from_template(
+        "{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}\n"
+        "{{MED_AUTOSCIENCE_ROUTE_BIAS}}\n"
+        "{{MED_AUTOSCIENCE_STUDY_ARCHETYPES}}\n",
+        skill_id="baseline",
+        policy_id=None,
+        archetype_ids=(),
+        default_submission_targets=(),
+        default_publication_profile=None,
+        default_citation_style=None,
+    )
+
+    assert "{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}" not in rendered
+    assert "## MAS stage surface" in rendered
+    assert "- Stage: `baseline` / Baseline" in rendered
+    assert "statistical_analysis_pack" in rendered
+    assert "- Publication readiness authority: `false`" in rendered
+
+
 def test_overlay_status_reports_not_installed_for_global_targets(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     home = tmp_path / "home"

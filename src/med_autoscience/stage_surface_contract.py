@@ -4,6 +4,8 @@ from copy import deepcopy
 from typing import Any
 
 from med_autoscience.agent_entry.modes import load_entry_modes_payload
+from med_autoscience.stage_knowledge_contract import STAGE_OBLIGATIONS
+from med_autoscience.stage_quality_contract import build_stage_quality_pack_ref_projection
 
 MAIN_STAGE_ROUTE_IDS = (
     "scout",
@@ -122,6 +124,84 @@ def render_stage_surfaces_markdown(surface: dict[str, object] | None = None) -> 
     for card in cards:
         lines.extend(_render_stage_card(card))
 
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def render_stage_skill_surface_block(stage_id: str) -> str:
+    normalized_stage_id = str(stage_id).strip()
+    route_contracts = _route_contracts(load_entry_modes_payload())
+    _validate_main_routes(route_contracts)
+    if normalized_stage_id not in MAIN_STAGE_ROUTE_IDS:
+        raise ValueError(f"unsupported main stage id: {normalized_stage_id}")
+    if normalized_stage_id not in STAGE_OBLIGATIONS:
+        raise ValueError(f"stage obligations missing for main stage id: {normalized_stage_id}")
+
+    card = _build_stage_card(route_contracts[normalized_stage_id])
+    machine_source_refs = _mapping(card["machine_source_refs"], "machine_source_refs")
+    knowledge = _mapping(card["knowledge"], "knowledge")
+    tools = _mapping(card["tools"], "tools")
+    quality = _mapping(card["quality"], "quality")
+    closeout = _mapping(card["closeout"], "closeout")
+    opl_boundary = _mapping(card["opl_boundary"], "opl_boundary")
+    quality_pack_projection = build_stage_quality_pack_ref_projection([normalized_stage_id])
+    stage_obligations = STAGE_OBLIGATIONS[normalized_stage_id]
+    knowledge_obligations = list(stage_obligations.get("knowledge_input_obligations", ()))
+    closeout_obligations = list(stage_obligations.get("memory_closeout_obligations", ()))
+
+    lines = [
+        "## MAS stage surface",
+        "",
+        f"- Stage: `{card['route_id']}` / {card['display_name']}",
+        f"- Key question: {card['key_question']}",
+        f"- Stage card ref: `docs/runtime/contracts/stage_surfaces.md#{card['route_id']}`",
+        f"- Route contract ref: `{machine_source_refs['route_contract']}`",
+        "- Machine truth: canonical route contract, stage knowledge contract, stage quality contract, MAS controller/runtime surfaces, publication gate, evidence/review ledgers, and controller decisions.",
+        "- Markdown/Skill role: generated human-readable operating surface only; it is not machine truth.",
+        "",
+        "### Route contract",
+        _render_list_line("Purpose", [card["purpose"]]),
+        _render_list_line("Entry", card["entry"]),
+        _render_list_line("Durable outputs", card["outputs"]),
+        _render_list_line("Route success gate", quality["route_success_gate"]),
+        _render_list_line("Route back", card["route_back"]),
+        _render_list_line("Human gate", card["human_gate"]),
+        _render_list_line("Next routes", card["next_routes"]),
+        "",
+        "### Knowledge obligations",
+        _render_list_line("Machine source refs", knowledge["machine_source_refs"]),
+        _render_list_line("Canonical obligations", knowledge_obligations),
+        _render_list_line("Stage card status", [knowledge["status"]]),
+        "",
+        "### Quality pack refs",
+        _render_list_line("Pack refs", quality_pack_projection["pack_refs"]),
+        f"- Contract ref: `{quality_pack_projection['contract_ref']}`",
+        f"- Freshness ref: `{quality_pack_projection['freshness_ref']}`",
+        f"- Locator ref: `{quality_pack_projection['locator_ref']}`",
+        f"- Authority boundary ref: `{quality_pack_projection['authority_boundary_ref']}`",
+        f"- OPL projection boundary: `{quality_pack_projection['opl_projection_boundary']}`",
+        "- Publication readiness authority: `false`",
+        "- Quality verdict authority: `false`",
+        "",
+        "### Closeout obligations",
+        _render_list_line("Machine source refs", closeout["machine_source_refs"]),
+        _render_list_line("Canonical obligations", closeout_obligations),
+        _render_list_line("Stage card status", [closeout["status"]]),
+        "",
+        "### Allowed MAS owner tools",
+        _render_list_line("Allowed", tools["allowed"]),
+        f"- Boundary: `{tools['boundary']}`",
+        "",
+        "### Forbidden actions",
+        "- Do not write MAS domain truth outside controller-authorized surfaces.",
+        "- Do not authorize quality verdicts, publication readiness, or submission readiness from this Skill text.",
+        "- Do not accept memory writeback without `memory_write_router_receipt`.",
+        "- Do not treat OPL/provider completion as paper closure.",
+        "",
+        "### OPL/provider boundary",
+        _render_list_line("May", opl_boundary["may"]),
+        _render_list_line("Must not", opl_boundary["must_not"]),
+        "- Provider/OPL projections may expose locators, freshness, and refs only; MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.",
+    ]
     return "\n".join(lines).rstrip() + "\n"
 
 

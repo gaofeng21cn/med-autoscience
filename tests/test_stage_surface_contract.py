@@ -6,6 +6,7 @@ from med_autoscience.agent_entry.renderers import render_entry_modes_payload
 from med_autoscience.stage_surface_contract import (
     MAIN_STAGE_ROUTE_IDS,
     build_stage_surface_contract,
+    render_stage_skill_surface_block,
     render_stage_surfaces_markdown,
 )
 
@@ -100,6 +101,38 @@ def test_render_stage_surfaces_markdown_is_generated_from_contract() -> None:
         assert "### Quality" in markdown
         assert "### Closeout" in markdown
         assert "### OPL Boundary" in markdown
+
+
+def test_render_stage_skill_surface_block_is_machine_derived() -> None:
+    block = render_stage_skill_surface_block("baseline")
+
+    assert block.startswith("## MAS stage surface\n")
+    assert "- Stage: `baseline` / Baseline" in block
+    assert (
+        "- Route contract ref: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/baseline`"
+        in block
+    )
+    assert "- Stage card ref: `docs/runtime/contracts/stage_surfaces.md#baseline`" in block
+    assert "data_source_contract" in block
+    assert "baseline_cohort_endpoint_comparator_snapshot" in block
+    assert "statistical_analysis_pack" in block
+    assert "stop_loss_pack" in block
+    assert "human_gate_pack" in block
+    assert "- Publication readiness authority: `false`" in block
+    assert "- Quality verdict authority: `false`" in block
+    assert "Markdown/Skill role: generated human-readable operating surface only; it is not machine truth." in block
+    assert "Do not treat OPL/provider completion as paper closure." in block
+
+
+def test_render_stage_skill_surface_block_rejects_non_main_stage() -> None:
+    try:
+        render_stage_skill_surface_block("rebuttal")
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        message = ""
+
+    assert "unsupported main stage id: rebuttal" in message
 
 
 def test_repo_stage_surfaces_doc_matches_renderer() -> None:

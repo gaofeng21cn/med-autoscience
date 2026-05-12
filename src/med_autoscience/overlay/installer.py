@@ -29,6 +29,7 @@ from med_autoscience.policies.study_archetypes import (
 )
 from med_autoscience.reference_papers import render_reference_paper_overlay_block
 from med_autoscience.submission_targets import render_submission_target_overlay_block
+from med_autoscience.stage_surface_contract import MAIN_STAGE_ROUTE_IDS, render_stage_skill_surface_block
 
 
 SCHEMA_VERSION = 1
@@ -43,6 +44,8 @@ REFERENCE_PAPERS_TOKEN = "{{MED_AUTOSCIENCE_REFERENCE_PAPERS}}"
 CONTROLLER_FIRST_TOKEN = "{{MED_AUTOSCIENCE_CONTROLLER_FIRST}}"
 AUTOMATION_READY_TOKEN = "{{MED_AUTOSCIENCE_AUTOMATION_READY}}"
 MEDICAL_RUNTIME_CONTRACT_TOKEN = "{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}"
+STAGE_SKILL_SURFACE_TOKEN = "{{MED_AUTOSCIENCE_STAGE_SKILL_SURFACE}}"
+STAGE_SKILL_SURFACE_IDS = frozenset(MAIN_STAGE_ROUTE_IDS)
 FRONTLOAD_STAGE_IDS = frozenset(
     {"intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign"}
 )
@@ -175,6 +178,11 @@ def _render_overlay_text_from_template(
     default_citation_style: str | None,
 ) -> str:
     rendered = template
+    if skill_id in STAGE_SKILL_SURFACE_IDS and STAGE_SKILL_SURFACE_TOKEN in rendered:
+        rendered = rendered.replace(
+            STAGE_SKILL_SURFACE_TOKEN,
+            render_stage_skill_surface_block(skill_id).rstrip(),
+        )
     if skill_id in {"experiment", "analysis-campaign", "write", "review"}:
         if MEDICAL_RUNTIME_CONTRACT_TOKEN not in rendered:
             raise ValueError(f"Overlay template for {skill_id} is missing medical runtime contract token")
