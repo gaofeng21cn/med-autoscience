@@ -22,6 +22,8 @@ Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full rec
 
 当前状态是 `agent_executor_adapter_boundary_landed_provider_ready_domain_adapter_landed_mas_guarded_apply_proof_surface_landed_live_apply_pending`。
 
+2026-05-12 文档收口口径：P2 已经具备 OPL-hosted MAS 的 descriptor、sidecar、guarded apply receipt 和 DM002 route-memory receipt chain 证据；P2 仍未具备 production-hosted success 证据。真实完成需要 OPL production Temporal attempt 长驻运行，并在 MAS owner gate 允许时逐条 paper line 产出 owner receipt、artifact/gate/reviewer/route/human-gate/stop-loss evidence，或由 live owner guard / authorization / publication gate 返回 typed blocker。
+
 MAS 侧已经落地：
 
 - MAS 可被 OPL 发现为 aligned domain-agent skeleton 和 stage control plane；
