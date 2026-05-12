@@ -113,7 +113,10 @@ def bundle_stage_publication_eval_preempts_task_intake(
     status_payload: dict[str, Any],
     gate_report: dict[str, Any],
     publication_eval_payload: dict[str, Any],
+    task_intake_action: dict[str, Any] | None = None,
 ) -> bool:
     if not publication_eval_has_finalize_route(publication_eval_payload):
         return False
-    return _gate_report_is_clear_bundle_stage(gate_report) or _runtime_status_reports_bundle_stage_ready(status_payload)
+    if _runtime_status_reports_bundle_stage_ready(status_payload):
+        return True
+    return task_intake_action is None and _gate_report_is_clear_bundle_stage(gate_report)

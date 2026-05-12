@@ -291,6 +291,23 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "make test-control-plane",
         ),
     ),
+    PreflightCategorySpec(
+        category_id="publication_route_memory_surface",
+        exact_paths=(
+            "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
+            "src/med_autoscience/controllers/stage_knowledge_plane.py",
+            "src/med_autoscience/stage_knowledge_contract.py",
+            "src/med_autoscience/stage_surface_contract.py",
+            "tests/test_stage_knowledge_plane.py",
+        ),
+        prefix_paths=(
+            "src/med_autoscience/controllers/stage_knowledge_plane_parts/",
+        ),
+        commands=(
+            "uv run pytest tests/test_stage_knowledge_plane.py -q",
+            "uv run pytest tests/test_opl_family_contract_adoption.py -q",
+        ),
+    ),
 )
 
 _GENERIC_PYTHON_PREFIXES = (
