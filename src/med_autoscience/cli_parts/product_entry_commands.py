@@ -71,7 +71,11 @@ def handle_product_entry_command(
         )
 
     if args.command == "product-entry-manifest":
-        result = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+        result = product_entry.build_product_entry_manifest(
+            profile=profile,
+            profile_ref=profile_ref,
+            opl_production_proof_ref=args.opl_production_proof,
+        )
         return _emit_product_entry_result(
             result,
             args=args,

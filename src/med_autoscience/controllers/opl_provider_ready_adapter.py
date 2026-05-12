@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -40,8 +41,14 @@ def build_opl_provider_ready_contract(
     profile: WorkspaceProfile,
     profile_ref: str | Path | None,
     allowed_task_kinds: Iterable[str],
+    opl_production_proof: Mapping[str, Any] | None = None,
+    opl_production_proof_ref: str | Path | None = None,
 ) -> dict[str, Any]:
     profile_ref_text = str(profile_ref) if profile_ref is not None else "<profile>"
+    provider_availability = build_provider_availability_from_opl_proof(
+        opl_production_proof=opl_production_proof,
+        proof_ref=opl_production_proof_ref,
+    )
     return {
         "surface_kind": SURFACE_KIND,
         "version": VERSION,
@@ -51,7 +58,7 @@ def build_opl_provider_ready_contract(
             "MAS exposes a provider-ready OPL/Temporal adapter contract while MAS-owned runtime, "
             "publication, quality, and artifact truth remain in workspace artifacts."
         ),
-        "provider_topology": _provider_topology(),
+        "provider_topology": _provider_topology(provider_availability=provider_availability),
         "executor_requirements": {
             "adapter_owner": "one-person-lab",
             "generic_executor_adapter_owner": OPL_OWNER,
@@ -74,7 +81,7 @@ def build_opl_provider_ready_contract(
             requested_writes=(),
         ),
         "provider_guarded_soak_read_model": build_provider_guarded_soak_read_model(
-            provider_available=False,
+            provider_availability=provider_availability,
         ),
         "workspace_runtime_artifact_root_locator": _workspace_runtime_artifact_root_locator(profile=profile),
         "lifecycle_inventory": build_opl_lifecycle_inventory_surface(),
@@ -132,14 +139,21 @@ def build_forbidden_write_guard_proof(
 
 def build_provider_guarded_soak_read_model(
     *,
-    provider_available: bool,
+    provider_available: bool = False,
+    provider_availability: Mapping[str, Any] | None = None,
     target_studies: Iterable[str] = DEFAULT_PROVIDER_GUARDED_SOAK_TARGETS,
 ) -> dict[str, Any]:
     targets = tuple(str(item) for item in target_studies if str(item or "").strip())
+    availability = (
+        dict(provider_availability)
+        if provider_availability is not None
+        else _provider_availability(provider_available=provider_available)
+    )
+    provider_attempt_available = availability.get("provider_attempt_available") is True
     no_forbidden_write_proof = build_forbidden_write_guard_proof(
         result=(
             "configured"
-            if provider_available
+            if provider_attempt_available
             else "blocked_provider_completion_is_not_paper_closure"
         ),
         task_id="provider-guarded-soak-read-model:no-forbidden-write-proof",
@@ -165,9 +179,13 @@ def build_provider_guarded_soak_read_model(
             "closeout_packet_surface": "domain_stage_closeout_packet",
             "typed_blocker_surface": "mas_provider_guarded_soak_typed_blocker",
         },
-        "provider_availability": _provider_availability(provider_available=provider_available),
+        "provider_availability": availability,
         "target_coverage": [
-            _provider_guarded_soak_target_coverage(target) for target in targets
+            _provider_guarded_soak_target_coverage(
+                target,
+                provider_attempt_available=provider_attempt_available,
+            )
+            for target in targets
         ],
         "provider_completion_semantics": {
             "provider_completion_is_paper_closure": False,
@@ -186,6 +204,111 @@ def build_provider_guarded_soak_read_model(
             "can_authorize_publication_quality": False,
         },
     }
+
+
+def load_opl_production_proof(path: str | Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    proof_path = Path(path).expanduser()
+    try:
+        payload = json.loads(proof_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "surface_kind": "opl_temporal_production_residency_proof_ref",
+            "proof_ref": str(proof_path),
+            "evidence_status": "unreadable",
+            "error": f"{exc.__class__.__name__}: {exc}",
+        }
+    if not isinstance(payload, Mapping):
+        return {
+            "surface_kind": "opl_temporal_production_residency_proof_ref",
+            "proof_ref": str(proof_path),
+            "evidence_status": "invalid_shape",
+        }
+    return dict(payload)
+
+
+def build_provider_availability_from_opl_proof(
+    *,
+    opl_production_proof: Mapping[str, Any] | None = None,
+    proof_ref: str | Path | None = None,
+) -> dict[str, Any]:
+    if opl_production_proof is None:
+        return _provider_availability(provider_available=False)
+    wrapper = _mapping(opl_production_proof.get("family_runtime_residency_proof")) or opl_production_proof
+    production = _mapping(wrapper.get("production_residency_proof")) or wrapper
+    checks = _mapping(production.get("checks"))
+    required_checks = (
+        "external_temporal_server_reachable",
+        "managed_worker_ready",
+        "worker_completed_attempt",
+        "worker_restart_requery",
+        "signal_history_preserved",
+        "typed_closeout_required_for_completed",
+        "missing_closeout_blocks_completion",
+        "retry_or_dead_letter_boundary_observed",
+        "domain_truth_boundary_preserved",
+    )
+    missing_checks = [check for check in required_checks if checks.get(check) is not True]
+    receipt = _mapping(production.get("proof_receipt"))
+    closeout_status = str(production.get("closeout_status") or wrapper.get("closeout_status") or "")
+    provider_kind = str(production.get("provider_kind") or wrapper.get("provider_kind") or "")
+    proven = (
+        provider_kind == "temporal"
+        and closeout_status == "production_residency_proven"
+        and receipt.get("receipt_status") == "proven"
+        and not missing_checks
+    )
+    if proven:
+        runtime_snapshot = _mapping(production.get("runtime_snapshot"))
+        return {
+            "status": "available",
+            "provider_attempt_available": True,
+            "provider_kind": "temporal",
+            "proof_surface": str(production.get("surface_kind") or wrapper.get("surface_kind") or ""),
+            "proof_ref": str(proof_ref) if proof_ref is not None else None,
+            "closeout_status": closeout_status,
+            "proof_receipt": {
+                "receipt_kind": receipt.get("receipt_kind"),
+                "receipt_status": receipt.get("receipt_status"),
+                "completed_workflow_id": receipt.get("completed_workflow_id"),
+                "blocked_workflow_id": receipt.get("blocked_workflow_id"),
+            },
+            "runtime_snapshot": {
+                "address_source": runtime_snapshot.get("address_source"),
+                "lifecycle_status": runtime_snapshot.get("lifecycle_status"),
+                "server_reachable": runtime_snapshot.get("server_reachable"),
+                "worker_ready": runtime_snapshot.get("worker_ready"),
+                "task_queue": runtime_snapshot.get("task_queue"),
+            },
+            "checks": {check: checks.get(check) is True for check in required_checks},
+            "semantics": {
+                "provider_residency_proven": True,
+                "provider_completion_is_paper_closure": False,
+                "paper_closure_requires_mas_owner_receipt": True,
+                "mas_runtime_watch_role": "domain_truth_and_local_diagnostics",
+            },
+        }
+    return {
+        "status": "typed_blocker",
+        "provider_attempt_available": False,
+        "proof_ref": str(proof_ref) if proof_ref is not None else None,
+        "blocker": {
+            "surface_kind": "mas_provider_guarded_soak_typed_blocker",
+            "blocker_id": "provider_guarded_soak_production_proof_not_proven",
+            "owner": OPL_OWNER,
+            "reason": "OPL Temporal production proof is missing, unreadable, or not proven.",
+            "required_owner_surface": "OPL production Temporal residency proof",
+            "write_permitted": False,
+            "observed_provider_kind": provider_kind or None,
+            "observed_closeout_status": closeout_status or None,
+            "missing_checks": missing_checks,
+        },
+    }
+
+
+def _mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
 
 
 def _provider_availability(*, provider_available: bool) -> dict[str, Any]:
@@ -208,7 +331,23 @@ def _provider_availability(*, provider_available: bool) -> dict[str, Any]:
     }
 
 
-def _provider_guarded_soak_target_coverage(target_study: str) -> dict[str, Any]:
+def _provider_guarded_soak_target_coverage(
+    target_study: str,
+    *,
+    provider_attempt_available: bool = False,
+) -> dict[str, Any]:
+    if provider_attempt_available:
+        return {
+            "surface_kind": "mas_provider_guarded_soak_target_coverage",
+            "target_study": target_study,
+            "status": "provider_available_guarded_apply_pending",
+            "expected_provider_proof_surface": PROVIDER_HOSTED_PROOF_SURFACE,
+            "expected_guarded_apply_surface": GUARDED_APPLY_PROOF_SURFACE,
+            "write_permitted": False,
+            "provider_completion_is_paper_closure": False,
+            "paper_closure_requires_mas_owner_receipt": True,
+            "required_owner_surface": "MAS owner receipt",
+        }
     return {
         "surface_kind": "mas_provider_guarded_soak_typed_blocker",
         "target_study": target_study,
@@ -522,11 +661,12 @@ def requested_writes_from_task(task: Mapping[str, Any]) -> list[str]:
     return list(dict.fromkeys(requested))
 
 
-def _provider_topology() -> dict[str, Any]:
+def _provider_topology(*, provider_availability: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    provider_available = _mapping(provider_availability).get("provider_attempt_available") is True
     return {
         "target_provider": "temporal",
         "target_provider_owner": "one-person-lab",
-        "provider_state": "contract_ready_skeleton",
+        "provider_state": "production_residency_proven" if provider_available else "contract_ready_skeleton",
         "legacy_provider": "hermes_legacy",
         "legacy_provider_classification": "optional_diagnostics_or_retire_after_parity",
         "hosted_runtime_policy": "opl_explicit_opt_in_only",
@@ -611,9 +751,11 @@ __all__ = [
     "build_forbidden_write_guard_proof",
     "build_opl_lifecycle_inventory_surface",
     "build_opl_provider_ready_contract",
+    "build_provider_availability_from_opl_proof",
     "build_physical_skeleton_layout_audit_surface",
     "build_provider_guarded_soak_read_model",
     "build_standard_domain_agent_skeleton_surface",
+    "load_opl_production_proof",
     "receipt_refs_for_profile",
     "requested_writes_from_task",
 ]

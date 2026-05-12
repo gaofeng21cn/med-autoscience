@@ -166,10 +166,16 @@ def _study_roots(profile: WorkspaceProfile) -> list[Path]:
     return sorted(path for path in profile.studies_root.iterdir() if path.is_dir())
 
 
-def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> dict[str, Any]:
+def export_family_sidecar(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: Path,
+    opl_production_proof_ref: str | Path | None = None,
+) -> dict[str, Any]:
     studies = [_study_projection(study_root=study_root, profile=profile) for study_root in _study_roots(profile)]
     pending_tasks = _pending_family_tasks(studies=studies, profile=profile, profile_ref=profile_ref)
     generated_at = _now_iso()
+    opl_production_proof = opl_provider_ready_adapter.load_opl_production_proof(opl_production_proof_ref)
     return {
         "surface_kind": "mas_family_sidecar_export",
         "version": "mas-family-sidecar.v1",
@@ -234,6 +240,8 @@ def export_family_sidecar(*, profile: WorkspaceProfile, profile_ref: Path) -> di
             profile=profile,
             profile_ref=profile_ref,
             allowed_task_kinds=_ALLOWED_TASK_KINDS,
+            opl_production_proof=opl_production_proof,
+            opl_production_proof_ref=opl_production_proof_ref,
         ),
         "family_runtime_supervision": {
             "surface_kind": "family_runtime_supervision",

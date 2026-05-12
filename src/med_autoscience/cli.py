@@ -649,7 +649,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "sidecar-export":
         profile = load_profile(args.profile)
-        result = sidecar_family_adapter.export_family_sidecar(profile=profile, profile_ref=Path(args.profile))
+        result = sidecar_family_adapter.export_family_sidecar(
+            profile=profile,
+            profile_ref=Path(args.profile),
+            opl_production_proof_ref=args.opl_production_proof,
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

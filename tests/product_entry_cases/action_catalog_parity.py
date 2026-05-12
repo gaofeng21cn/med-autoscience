@@ -5,6 +5,54 @@ import importlib
 from .shared import *  # noqa: F403,F401
 
 
+def _write_opl_production_proof(path: Path) -> None:
+    checks = {
+        "external_temporal_server_reachable": True,
+        "managed_worker_ready": True,
+        "worker_completed_attempt": True,
+        "worker_restart_requery": True,
+        "signal_history_preserved": True,
+        "typed_closeout_required_for_completed": True,
+        "missing_closeout_blocks_completion": True,
+        "retry_or_dead_letter_boundary_observed": True,
+        "domain_truth_boundary_preserved": True,
+    }
+    path.write_text(
+        json.dumps(
+            {
+                "family_runtime_residency_proof": {
+                    "surface_kind": "opl_temporal_production_residency_proof",
+                    "provider_kind": "temporal",
+                    "closeout_status": "production_residency_proven",
+                    "production_residency_proof": {
+                        "surface_kind": "opl_temporal_external_production_residency_proof",
+                        "provider_kind": "temporal",
+                        "closeout_status": "production_residency_proven",
+                        "runtime_snapshot": {
+                            "address_source": "managed_local_service_state",
+                            "lifecycle_status": "ready",
+                            "server_reachable": True,
+                            "worker_ready": True,
+                            "task_queue": "opl-stage-attempts",
+                        },
+                        "proof_receipt": {
+                            "receipt_kind": "temporal_production_residency_proof",
+                            "receipt_status": "proven",
+                            "completed_workflow_id": "wf-complete",
+                            "blocked_workflow_id": "wf-blocked",
+                        },
+                        "checks": checks,
+                    },
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_path: Path) -> None:
     action_catalog = importlib.import_module("med_autoscience.action_catalog")
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
@@ -464,6 +512,47 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
     assert manifest["skill_catalog"]["skills"][0]["domain_projection"][
         "stage_skill_surface_projection"
     ] == manifest["stage_skill_surface_projection"]
+
+
+def test_product_entry_manifest_consumes_opl_production_proof_for_provider_availability(
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    proof_ref = tmp_path / "opl-production-proof.json"
+    _write_opl_production_proof(proof_ref)
+
+    manifest = product_entry.build_product_entry_manifest(
+        profile=profile,
+        profile_ref=profile_ref,
+        opl_production_proof_ref=proof_ref,
+    )
+    read_model = manifest["provider_guarded_soak_read_model"]
+    availability = read_model["provider_availability"]
+
+    assert manifest["opl_provider_ready_contract"]["provider_topology"]["provider_state"] == (
+        "production_residency_proven"
+    )
+    assert availability["status"] == "available"
+    assert availability["provider_attempt_available"] is True
+    assert availability["proof_ref"] == str(proof_ref)
+    assert availability["proof_receipt"]["receipt_status"] == "proven"
+    assert availability["runtime_snapshot"]["worker_ready"] is True
+    assert availability["semantics"]["provider_completion_is_paper_closure"] is False
+    assert availability["semantics"]["paper_closure_requires_mas_owner_receipt"] is True
+    assert read_model["provider_completion_semantics"]["paper_closure_requires_mas_owner_receipt"] is True
+    assert read_model["no_forbidden_write_proof"]["result"] == "configured"
+    assert all(
+        item["status"] == "provider_available_guarded_apply_pending"
+        for item in read_model["target_coverage"]
+    )
+    assert all(item["write_permitted"] is False for item in read_model["target_coverage"])
+    assert all(
+        item["paper_closure_requires_mas_owner_receipt"] is True
+        for item in read_model["target_coverage"]
+    )
 
 
 def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_path: Path) -> None:

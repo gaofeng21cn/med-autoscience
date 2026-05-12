@@ -66,6 +66,7 @@ def build_product_entry_manifest(
     *,
     profile: WorkspaceProfile,
     profile_ref: str | Path | None = None,
+    opl_production_proof_ref: str | Path | None = None,
 ) -> dict[str, Any]:
     mainline_payload = mainline_status.read_mainline_status()
     mainline_snapshot = _mainline_snapshot()
@@ -492,6 +493,10 @@ def build_product_entry_manifest(
             "status/read",
             "notification/receipt",
         ),
+        opl_production_proof=opl_provider_ready_adapter.load_opl_production_proof(
+            opl_production_proof_ref
+        ),
+        opl_production_proof_ref=opl_production_proof_ref,
     )
     provider_guarded_soak_read_model = opl_provider_ready_contract["provider_guarded_soak_read_model"]
     standard_domain_agent_skeleton = (

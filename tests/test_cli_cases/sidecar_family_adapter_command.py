@@ -14,6 +14,49 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _write_opl_production_proof(path: Path) -> None:
+    checks = {
+        "external_temporal_server_reachable": True,
+        "managed_worker_ready": True,
+        "worker_completed_attempt": True,
+        "worker_restart_requery": True,
+        "signal_history_preserved": True,
+        "typed_closeout_required_for_completed": True,
+        "missing_closeout_blocks_completion": True,
+        "retry_or_dead_letter_boundary_observed": True,
+        "domain_truth_boundary_preserved": True,
+    }
+    _write_json(
+        path,
+        {
+            "family_runtime_residency_proof": {
+                "surface_kind": "opl_temporal_production_residency_proof",
+                "provider_kind": "temporal",
+                "closeout_status": "production_residency_proven",
+                "production_residency_proof": {
+                    "surface_kind": "opl_temporal_external_production_residency_proof",
+                    "provider_kind": "temporal",
+                    "closeout_status": "production_residency_proven",
+                    "runtime_snapshot": {
+                        "address_source": "managed_local_service_state",
+                        "lifecycle_status": "ready",
+                        "server_reachable": True,
+                        "worker_ready": True,
+                        "task_queue": "opl-stage-attempts",
+                    },
+                    "proof_receipt": {
+                        "receipt_kind": "temporal_production_residency_proof",
+                        "receipt_status": "proven",
+                        "completed_workflow_id": "wf-complete",
+                        "blocked_workflow_id": "wf-blocked",
+                    },
+                    "checks": checks,
+                },
+            }
+        },
+    )
+
+
 def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
     quest_root = study_root.parents[1] / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
     main_result_ref = str(quest_root / "artifacts" / "results" / "main_result.json")
@@ -355,6 +398,60 @@ def test_sidecar_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path:
     assert projection["read_only_display_policy"]["repo_tracks_memory_body"] is False
     assert projection["read_only_display_policy"]["can_write_study_truth"] is False
     assert "prose_summary" not in json.dumps(projection, ensure_ascii=False)
+
+
+def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    proof_ref = tmp_path / "opl-production-proof.json"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        workspace_root / "studies" / "001-risk" / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {"state": "running"},
+    )
+    _write_opl_production_proof(proof_ref)
+
+    exit_code = cli.main(
+        [
+            "sidecar",
+            "export",
+            "--profile",
+            str(profile_path),
+            "--opl-production-proof",
+            str(proof_ref),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    read_model = payload["provider_ready_adapter"]["provider_guarded_soak_read_model"]
+    availability = read_model["provider_availability"]
+
+    assert exit_code == 0
+    assert payload["provider_ready_adapter"]["provider_topology"]["provider_state"] == (
+        "production_residency_proven"
+    )
+    assert availability["status"] == "available"
+    assert availability["provider_attempt_available"] is True
+    assert availability["proof_ref"] == str(proof_ref)
+    assert availability["semantics"]["provider_completion_is_paper_closure"] is False
+    assert availability["semantics"]["mas_runtime_watch_role"] == "domain_truth_and_local_diagnostics"
+    assert read_model["provider_completion_semantics"] == {
+        "provider_completion_is_paper_closure": False,
+        "queue_completion_is_paper_closure": False,
+        "paper_closure_requires_mas_owner_receipt": True,
+        "mutation_proof_surface": "MAS owner receipt",
+    }
+    assert read_model["authority_boundary"]["can_write_domain_truth"] is False
+    assert read_model["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert all(
+        item["status"] == "provider_available_guarded_apply_pending"
+        for item in read_model["target_coverage"]
+    )
 
 
 def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path, capsys) -> None:

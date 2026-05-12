@@ -516,6 +516,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     sidecar_export_parser = subparsers.add_parser("sidecar-export")
     sidecar_export_parser.add_argument("--profile", required=True)
     sidecar_export_parser.add_argument("--format", choices=("json",), default="json")
+    sidecar_export_parser.add_argument("--opl-production-proof", type=str)
     sidecar_dispatch_parser = subparsers.add_parser("sidecar-dispatch")
     sidecar_dispatch_parser.add_argument("--task", required=True)
     sidecar_dispatch_parser.add_argument("--format", choices=("json",), default="json")

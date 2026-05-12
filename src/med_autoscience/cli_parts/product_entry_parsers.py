@@ -19,6 +19,7 @@ def register_product_entry_parsers(subparsers: argparse._SubParsersAction) -> No
     product_entry_manifest_parser = subparsers.add_parser("product-entry-manifest")
     product_entry_manifest_parser.add_argument("--profile", required=True)
     product_entry_manifest_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    product_entry_manifest_parser.add_argument("--opl-production-proof", type=str)
 
     skill_catalog_parser = subparsers.add_parser("skill-catalog")
     skill_catalog_parser.add_argument("--profile", required=True)
