@@ -24,6 +24,8 @@ MAS 现在通过 product-entry manifest 暴露 MAS-owned 标准 `family_stage_co
 
 2026-05-11 update: 同一 manifest 现在也暴露 MAS-owned `domain_memory_descriptor`，其 `memory_ref_id=mas_publication_route_memory`。这个 descriptor 只提供 publication-route memory 的 policy seed、workspace locator、stage applicability、retrieval/writeback/receipt/recall refs、migration plan ref、seed corpus ref、writeback receipt locator、freshness 和 forbidden OPL authority；它不包含 memory 正文，不授权 OPL 选择论文路线，也不把 writeback 接受/拒绝、evidence/review/controller/publication 或 artifact authority 移出 MAS。
 
+2026-05-12 update: fresh OPL family CLI read model 已能解析 MAS/MAG/RCA 三个 standard domain-agent skeleton、`18` 个 family stages 和 `3` 个 domain-memory descriptor。MAS 的 domain-memory descriptor 当前 `migration_readiness.status=workspace_apply_closure_ready`，表示 repo seed fixture、workspace apply、workspace memory pack locator 和 writeback receipt locator 已具备 MAS owner apply closure；OPL 仍只消费 locator / receipt refs / freshness，不持有 memory body 或 accept/reject authority。
+
 ## Scope Guard
 
 本 inventory 固定以下边界：
@@ -93,10 +95,10 @@ MAS exposes publication-route memory to OPL as `domain_memory_descriptor`:
 - `migration_plan_ref`: `docs/policies/study-workflow/publication_route_memory_policy.md#migration-plan`
 - `seed_corpus_ref`: `docs/policies/study-workflow/publication_route_memory_seed_fixture.json`
 - `writeback_receipt_locator_ref`: `portfolio/research_memory/publication_route_memory/writeback_receipts`
-- `migration_readiness`: `migration_plan_ready_descriptor_only`; real memory body migration remains MAS workspace-owned
+- `migration_readiness`: `workspace_apply_closure_ready`; real memory body migration and writeback receipt instances remain MAS workspace-owned
 - `authority_boundary`: OPL is locator projection owner only; forbidden authorities include memory store, domain truth, quality verdict, artifact authority, publication route decision, publication readiness and submission readiness.
 
-The standard `family_stage_control_plane` now links route-sensitive stages to this descriptor through `knowledge_refs`. OPL may display and inject the ref into provider attempts; MAS still owns actual retrieval, closeout normalization, router receipt, accepted/rejected writes, and publication route decisions.
+The standard `family_stage_control_plane` now links route-sensitive stages to this descriptor through `knowledge_refs`. OPL may display and inject the ref into provider attempts; MAS still owns actual retrieval, closeout normalization, router receipt, accepted/rejected writes, and publication route decisions. For human/operator inspection, the current MAS owner entry is `medautosci publication route-memory-inventory --workspace-root <workspace>`, which defaults to body-free card metadata, locators, filters, receipt summary and authority boundary; `--include-card-body` is reserved for maintainer-level prose review.
 
 ## Adoption Recommendations
 

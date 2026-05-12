@@ -37,7 +37,11 @@
 
 `MAS` 通过 product-entry manifest 的 `domain_memory_descriptor` 暴露 `publication_route_memory` 的 OPL family locator。这个 descriptor 指向 MAS-owned policy seed、workspace memory locator、`stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt` 和 `stage_recall_index`。
 
-`OPL` 可以读取、索引、投影和携带这个 locator 进入 stage attempt；MAS 继续持有 route-memory 正文、retrieval、writeback accept/reject、publication route decision、evidence/review/controller truth、publication gate 和 artifact/package authority。
+2026-05-12 fresh OPL read model 已解析 `mas_publication_route_memory`，并把 MAS 的 `migration_readiness.status` 读为 `workspace_apply_closure_ready`。这说明 MAS 侧 repo seed fixture、workspace apply、workspace memory pack locator、stage entry refs、typed closeout writeback 和 writeback receipt locator 已能作为 domain-owned memory surface 被 OPL 发现。
+
+`OPL` 可以读取、索引、投影和携带这个 locator 进入 stage attempt；MAS 继续持有 route-memory 正文、retrieval、writeback accept/reject、publication route decision、evidence/review/controller truth、publication gate 和 artifact/package authority。维护者查看当前 workspace memory inventory 时使用 `medautosci publication route-memory-inventory --workspace-root <workspace>`，默认输出 body-free，适合 OPL/Aion ref-only grouping；正文审查必须显式请求 body 并留在 MAS owner 语境。
+
+当前 OPL family-runtime 本机 provider 是 `local_sqlite`，`provider_ready=true`，`full_online_ready=false`，`durable_online_ready=false`。因此 domain memory 现在可以进入 local provider / App grouping / operator inventory 的落地阶段；production Temporal service、managed worker residency、human gate/resume 和真实 paper-line live apply soak 仍是后续 production closure 条件。
 
 ## Monolith And Companion Retirement Projection
 

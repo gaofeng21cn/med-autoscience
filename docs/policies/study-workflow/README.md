@@ -52,15 +52,25 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 
 这些 JSON 现在已经方便维护者阅读和审计，但还不是面向普通用户的编辑 UI。安全管理路径应优先使用 MAS owner CLI/controller surface 生成 pack、proposal 和 receipt；手工编辑 workspace pack 只应作为 maintainer-level 修复，并保持 `memory_id`、stage applicability、source/provenance、status 和 receipt refs 可追溯。
 
+当前推荐查看方式：
+
+```bash
+medautosci publication route-memory-inventory --workspace-root /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk
+medautosci publication route-memory-inventory --workspace-root /Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk --stage decision
+```
+
+2026-05-12 fresh output 显示 DM-CVD workspace 共有 `3` 张 card；`--stage decision` 过滤后有 `2` 张，分别是 `publication_route_memory_seed__negative_result_stoploss` 和 `publication_route_memory_writeback__dm002-route-memory-proof`。默认输出不含 memory 正文，适合 OPL/Aion 和维护者快速查 inventory；审查正文时才使用 `--include-card-body`。
+
 ## 现阶段边界
 
-当前已经落地的是 thin but real 的 MAS memory surface。与理想形态的差距主要在：
+当前已经落地的是 thin but real 的 MAS memory surface。OPL 平台也已经从 descriptor-only 往前推进：family agent / stage / domain-memory 三个索引都能解析 MAS/MAG/RCA，Temporal provider core、attempt start/query/signal、residency proof 和 Codex runner harness 已进入 OPL 仓。与理想形态的差距主要在：
 
-- OPL 生产级 provider residency
+- 外部 production Temporal provider residency 和 managed worker 长驻
 - 真实 paper-line 长时 soak
 - human gate / resume 的运行证明
 - workspace/runtime memory writeback receipt 在更多真实论文线上的泛化
-- 面向普通用户的 OPL/App 分组展示与编辑/审核工作台
+- 面向普通用户的 OPL/App ref-only 分组展示
+- 带 receipt generation / provenance / deprecation / stale review 的编辑审核工作台
 - 少量 legacy residue 清理
 
 因此，`publication_route_memory` 现在应按“可用的自然语言经验记忆”理解，不按“完整的自动论文套路引擎”理解。
@@ -70,6 +80,9 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 - 继续把真实 paper stage closeout 中的可复用 lesson 写成 natural-language memory card，并通过 `memory_write_router_receipt` 接受或拒绝。
 - 给每个活跃 MAS workspace 保持 `publication_route_memory/memory_pack.json`、migration receipt、writeback proposal、writeback receipt 完整可查。
 - 使用 `medautosci publication route-memory-inventory --workspace-root <workspace>` 做默认 body-free 的维护者/OPL 只读查看；需要审查正文时再加 `--include-card-body`。
+- 把 DM002 之外的真实 paper closeout 继续通过 MAS router 生成 accepted/rejected writeback receipt，优先补足负结果/止损、外部验证/模型更新、审稿返修路线三类高频经验。
+- 在 OPL/Aion 侧先做按 workspace、stage、route family、status、receipt freshness 的 ref-only 分组展示。
+- 给 memory card 补 maintainer-level `status` 纪律，例如 active、draft_seed、deprecated、stale_review_needed；状态仍由 MAS workspace owner surface 和 receipt 支撑。
 - 在 OPL/Aion 侧只展示 consumed memory refs、writeback receipt refs、rejected reason 和 freshness，不复制 memory 正文、不接受/拒绝 writeback。
 - 继续把 OPL/Aion 展示收敛为 ref-only 分组，而不是把 memory body 复制到 OPL。
 

@@ -241,6 +241,8 @@ Current OPL discovery sees MAS, MAG, and RCA as resolved family memory descripto
 - OPL `stages list --json` currently reports `resolved_planes_count=3` and `stages_count=18`.
 - OPL `domain-memory list --json` currently reports `resolved_memory_descriptor_count=3` and `missing_memory_descriptor_count=0`.
 - OPL `domain-memory inspect --domain mas --json` resolves `mas_publication_route_memory` from the MAS standard `domain_memory_descriptor`, with `opl_role=locator_projection_owner` and forbidden OPL authority over memory store, domain truth, quality verdict, artifact authority, route decision, and publication readiness.
+- OPL `family-runtime status --json` on the current machine reports selected provider `local_sqlite`, `provider_ready=true`, `full_online_ready=false`, and `durable_online_ready=false`. This means local typed queue / stage attempt ledger is usable, while production online Temporal residency is still pending.
+- OPL roadmap now records Temporal provider core as landed: `StageAttemptWorkflow`, Codex/domain sidecar activities, human/user/resume signals, attempt query, `attempt start|query|signal`, worker helper, lifecycle contract, and Temporal residency proof. The remaining OPL-side gap is external production Temporal service / managed worker residency plus long-running domain activity soak.
 - MAG/RCA also expose standard `family_domain_memory_ref.v1` descriptors for their grant-strategy and visual-pattern memory locators.
 - This makes MAS publication route memory the MAS-side reference implementation for natural-language, stage-consumed publication-route memory, not a reason to move publication-route content into OPL or to build an OPL-owned recipe runtime.
 
@@ -257,13 +259,16 @@ Now:
 - maintain the policy/index/seed/workspace locator documentation as the single human entrypoint;
 - keep writing accepted reusable lessons into workspace `memory_pack.json` through MAS router receipts;
 - use `publication-route-memory-inventory` / `publication route-memory-inventory` as the current read-only inventory/export surface;
+- run the inventory against more real workspaces and keep card counts / receipt counts visible in closeout notes;
+- add maintainer-level card status discipline for `active`, `draft_seed`, `deprecated`, and `stale_review_needed` without turning the body into a hard schema;
 - keep OPL projection ref-only and body-free;
 
 Next:
 
-- run provider-hosted guarded apply proof for MAS paper lines using the same memory ref/writeback receipt chain;
 - generalize accepted/rejected writeback receipt evidence beyond DM002;
-- add App/workbench grouping by workspace, stage, route family, status, and receipt refs.
+- add OPL/Aion App/workbench grouping by workspace, stage, route family, status, and receipt refs;
+- run provider-hosted guarded apply proof for MAS paper lines using the same memory ref/writeback receipt chain when production provider residency / live apply gate is available;
+- add stale-memory review and deprecation receipt flow after enough cards accumulate.
 
 Defer:
 

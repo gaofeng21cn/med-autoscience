@@ -91,12 +91,32 @@ Stage card
 
 当前不足：
 
-| gap | impact |
-| --- | --- |
-| Production provider-hosted live apply 仍未闭合 | 只能说 stage skill surfaces landed、descriptor / adapter ready、provider projection 与 typed blocker proof landed；不能说 production-hosted paper automation 已完成。 |
-| Stage prompt、policy、quality rubric 仍需要持续守住 owner boundary | 新增或修改 skill 时必须继续消费 stage card、canonical route contract、stage knowledge obligations、quality pack refs、RH clean-room gates 和 MAS owner closeout packet，不能回退为 Markdown-only 规则。 |
-| `Stage Deliverable Review Page` / `Stage Deliverable Index` 已进入生成器和 product-entry locator，但尚未在真实 paper-line workspace artifact 与 Progress Portal / Workbench UI 中闭合 | 人工审阅者能从 generated contract 看到统一审阅字段；真实论文线仍需留下 latest review page、owner receipt、freshness 和人工判断 proof，Portal / Workbench 仍需把这些 refs 展成一张人看的 stage review table。 |
-| 旧 MDS / Hermes / local scheduler residue 仍有 compat vocabulary | 容易让读者误以为旧 runtime 或旧 WebUI 仍是默认运行形态。 |
+| gap | current impact | next proof |
+| --- | --- | --- |
+| Production provider-hosted live apply 仍未闭合 | 只能说 stage skill surfaces landed、descriptor / adapter ready、provider projection 与 typed blocker proof landed；不能说 production-hosted paper automation 已完成。 | 真实 provider attempt 在 paper line 上留下 `attempt query -> typed closeout -> MAS owner receipt -> artifact delta / gate replay / human gate / stop-loss / typed blocker`。 |
+| OPL production provider residency 仍缺长期运行证据 | 当前 OPL/MAS 对齐达到 descriptor-level aligned / adapter-ready；Temporal-backed production residency、restart/re-query、retry/dead-letter 和长时 Codex/domain activity soak 仍未证明。 | OPL production worker residency ledger、restart/re-query proof、dead-letter/retry proof 和 MAS sidecar dispatch receipt 串联。 |
+| Stage prompt、policy、quality rubric 仍需要持续守住 owner boundary | 新增或修改 skill 时必须继续消费 stage card、canonical route contract、stage knowledge obligations、quality pack refs、RH clean-room gates 和 MAS owner closeout packet，不能回退为 Markdown-only 规则。 | overlay / agent-entry asset validation 加上 focused route/knowledge/quality contract tests；新增 stage skill 必须带 machine-derived surface block。 |
+| `Stage Deliverable Review Page` / `Stage Deliverable Index` 已进入生成器和 product-entry locator，但尚未在真实 paper-line workspace artifact 与 Progress Portal / Workbench UI 中闭合 | 人工审阅者能从 generated contract 看到统一审阅字段；真实论文线仍需留下 latest review page、owner receipt、freshness 和人工判断 proof，Portal / Workbench 仍需把这些 refs 展成一张人看的 stage review table。 | 至少一条真实 paper line 生成每个关键 stage 的 latest review page，并由 index 汇总 refs、freshness、quality gate state、human review annotation 和 next owner。 |
+| publication-route memory 仍需更多真实 receipt 泛化 | DM002 已证明 consumed ref / writeback receipt refs 可被 OPL/Aion 只读展示；更多 accepted / rejected reusable lessons 仍需从真实论文线进入 workspace memory pack。 | 多 paper-line `stage-memory-closeout-route -> memory_write_router_receipt -> inventory/export` proof，覆盖 accepted、rejected 和 route-back lessons。 |
+| repo-source skeleton 仍是最小 physical mapping | `standard_domain_agent_skeleton.physical_skeleton_layout_audit` 已能映射现有路径，但未来 family skeleton 目录尚未物理标准化。 | 在不破坏现有 facade 的前提下，逐步把新 stage/prompt/skill/knowledge/quality material 放入标准 slot，并保留 locator/audit parity。 |
+| 旧 MDS / Hermes / local scheduler residue 仍有 compat vocabulary | 容易让读者误以为旧 runtime、旧 WebUI 或 local scheduler 仍是默认运行形态。 | `rg` stale scan、no default caller proof、replacement proof 和必要 focused compatibility tests 后移入 history/reference 或删除。 |
+
+## 距离理想情况
+
+按当前实际状态，MAS 已经越过“形式不可维护”的阶段：主 stage 的 route contract、generated stage card、独立 skill surface、knowledge / closeout obligations、stage quality pack、Research Harness clean-room gates、OPL descriptor locator 和 typed blocker proof 已经是可用维护形态。开发者日常修改 stage 时，主要应关注 prompt / skill / tool / knowledge / quality / closeout 是否继续消费这些 machine-owned surfaces。
+
+距离理想情况还差在运行闭环和产品闭环，而不是再写一批 Markdown：
+
+| layer | current distance to ideal | practical meaning |
+| --- | --- | --- |
+| Stage form / skill authoring | `near_target` | 已可按统一模板维护；风险是新增 skill 绕过 machine-derived refs 或把 prose 写成 truth。 |
+| Knowledge / memory / quality contract | `usable_with_more_real_receipts_needed` | contract 与 CLI owner entry 已可用；仍需要更多真实 paper-line accepted/rejected receipt 扩展 route memory，而不是引入 recipe engine。 |
+| Stage deliverable review / index | `contract_landed_projection_only` | 字段和 locator 已有；还缺真实 workspace review pages / index 与 Portal / Workbench 展示 proof。 |
+| OPL-hosted execution | `adapter_ready_live_apply_pending` | descriptor、sidecar、typed closeout 和 forbidden-write proof 已有；还缺 production provider residency 与 provider-hosted guarded apply soak。 |
+| User-facing operation | `read_model_landed_app_polish_pending` | MAS Progress Portal / OPL descriptor 能读；理想态是 OPL App / Workbench 直接展示 stage review table、freshness、action receipt 和 blocker。 |
+| Legacy cleanup | `bounded_cleanup_pending` | 默认路径已迁走；旧词汇和 compat surface 要按替代证据清理，避免误导后续维护者。 |
+
+因此，开发者的理解可以调整为：在 stage 内部，确实应主要维护自然语言 skill、stage prompt、知识包、工具边界和质控；但在 stage 与运行框架、workspace artifact、publication authority、human gate、provider live apply 的交界处，仍必须关心程序 contract、owner receipt 和验证证据。理想的分工不是“开发者完全不关心程序”，而是“日常科研语义维护尽量落在人读 stage surface，跨边界动作必须由 machine-owned MAS / OPL contract 兜住”。
 
 ## Stage 标准模板
 
@@ -274,6 +294,29 @@ Reporting guideline selection should be explicit:
 | `P2` | `landed` | 对齐 OPL descriptor 中的 stage/skill/quality locator | product-entry manifest / skeleton mapping update | product-entry / OPL family adapter tests |
 | `P3` | `pending` | 退役旧 compat vocabulary 或移入 history/reference | no default caller + replacement proof | `rg` stale scan + focused compatibility tests |
 | `P4` | `provider_live_apply_pending` | 用真实 paper-line provider-hosted live apply 验证 | OPL attempt -> MAS owner receipt -> artifact delta / gate replay / blocker | real paper-line guarded apply evidence |
+
+## 后续细化方案
+
+后续不应再按“一个 stage 一个 stage”顺序推进。当前可并行的工作应按缺口 owner 拆线，每条线都必须以 MAS owner receipt、OPL framework receipt 或 read-only locator 作为完成证据。
+
+| lane | status | owner boundary | next work | done signal |
+| --- | --- | --- | --- | --- |
+| `provider_residency` | `pending` | OPL production provider / Temporal-backed runtime | 证明真实 Temporal server/worker residency、worker restart/re-query、retry/dead-letter、长时 Codex/domain activity soak；MAS 只消费 sidecar task 和 typed receipt。 | OPL ledger 显示 provider 长驻、attempt 可查询、失败可重试/进 dead letter，且没有 MAS forbidden write。 |
+| `provider_guarded_apply_soak` | `pending` | MAS paper owner surface + OPL attempt receipt | 在 DM002、DM003、Obesity 或下一条真实 paper line 上执行 provider-hosted guarded apply；写入只允许经 MAS owner receipt；无 owner receipt 时必须返回 typed blocker。 | 每条 proof 都包含 attempt id、typed closeout、MAS owner receipt、artifact delta / gate replay / reviewer update / route decision / human gate / stop-loss / typed blocker、no-forbidden-write proof。 |
+| `stage_review_index_workspace_proof` | `pending` | MAS artifact locator + review/index projection | 将 latest stage review page 和 paper-line Stage Deliverable Index 落到真实 workspace artifact locator；Progress Portal / OPL Workbench 只读展示 refs、freshness、claim impact、human annotation 和 next owner。 | 至少一条真实 paper line 可以从 index 打开 latest review page，并能追到 MAS owner refs；UI 不写 truth。 |
+| `publication_route_memory_receipt_scaleout` | `active_next` | MAS stage knowledge plane / workspace memory pack | 从更多真实论文线收集 accepted / rejected route lessons；默认 body-free inventory 给 OPL/Aion，维护者显式请求时才看 card body。 | `publication-route-memory-inventory` 显示多条真实 receipt，OPL/Aion 只显示 refs/reasons/freshness，不持有 memory body 或 acceptance authority。 |
+| `skill_change_guard` | `ongoing` | overlay installer + stage route/knowledge/quality contracts | 对后续任何 stage skill 变更保持 machine-derived stage surface block、canonical route refs、knowledge obligations、quality pack refs、closeout refs 和 forbidden actions。 | overlay / agent-entry focused tests 通过，且新增 prose 没有替代 machine truth。 |
+| `legacy_residue_retirement` | `pending` | P2 migration / P3 provenance guard | 扫描旧 MDS、Hermes、local scheduler、hosted runtime、binding wording；有替代证据且无 default caller 的进入 history/tombstone 或删除；仍需 parity/provenance 的保留 reference。 | stale scan + no-default-caller proof + focused compatibility tests；文档不再暗示旧 runtime 是默认形态。 |
+| `standard_skeleton_physicalization` | `later` | standard domain agent skeleton / repo source layout | 新增 surface 默认按 standard slot 落位；旧路径保留 facade 和 locator，避免一次性大搬迁。 | skeleton audit 能解释标准 slot 与实际路径；无破坏性目录重组。 |
+
+推荐执行顺序是：先做 `provider_residency` 与 `provider_guarded_apply_soak`，因为它们决定是否真的进入 OPL-hosted MAS；并行推进 `stage_review_index_workspace_proof` 与 `publication_route_memory_receipt_scaleout`，因为它们只读消费 MAS owner refs；最后用 `legacy_residue_retirement` 和 `standard_skeleton_physicalization` 收口可维护性。`skill_change_guard` 是所有后续 stage 修改的常驻门槛。
+
+每条线的验证下限：
+
+- docs-only 更新：`git diff --check` 加 stale link/reference spot-check。
+- skill / prompt / overlay 更新：overlay installer、agent-entry asset、stage surface、stage knowledge 和 stage quality focused tests。
+- product-entry / OPL descriptor 更新：product-entry action catalog parity、manifest/descriptor projection tests、forbidden-write proof。
+- provider / live apply 更新：先 read-only evidence，再 guarded apply；最终证据必须来自真实 workspace / provider receipt，不用 repo tests 或 queue completion 代替。
 
 ## 不做的事
 

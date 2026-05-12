@@ -15,6 +15,8 @@ Machine boundary: this is a human-readable policy. Machine truth remains in `stu
 
 2026-05-11 OPL integration calibration: OPL 现在可以把 MAS 识别为 aligned standard domain-agent skeleton、6-stage family stage plane，并把 `mas_publication_route_memory` 作为 MAS-owned resolved family domain-memory descriptor 解析；同一 OPL family index 也已能解析 MAG/RCA 的标准 domain-memory descriptor。这个状态说明 stage-led autonomy 已具备被 OPL 托管的 descriptor / memory / sidecar 条件；它仍不等于真实 paper line 已完成 provider-hosted long-running soak。MAS 的研究判断、publication quality、claim boundary、artifact authority 继续只由 MAS durable truth surface 持有。
 
+2026-05-12 OPL platform calibration: OPL family index fresh read 显示 MAS/MAG/RCA 三个 domain agent 均 descriptor-aligned，family stage plane 共 `18` 个 stages，domain-memory descriptor 共 `3` 个且无 missing；MAS 的 `mas_publication_route_memory` descriptor 已被 OPL 解析为 MAS-owned locator。OPL family-runtime 当前本机 provider 是 `local_sqlite`，`provider_ready=true`，`full_online_ready=false`，`durable_online_ready=false`；OPL roadmap 已落地 Temporal provider core、attempt start/query/signal、worker helper、Temporal residency proof 和 Codex runner harness。这个状态把 MAS 的 OPL-hosted 条件从 descriptor-only 推到 local provider 可执行/可索引阶段，但 production Temporal service、managed worker residency、真实 paper-line live apply soak 和 human gate/resume 运行证明仍是目标态缺口。
+
 ## 总目标与运行模型
 
 MAS 的总目标是长时间自治地完成高质量医学论文，而不是只自动运行一批分析脚本或拼接投稿包。
@@ -178,10 +180,10 @@ controller 不应该替 Codex 做科研思考。controller 的职责是：
 
 与理想形态的剩余距离：
 
-- `scout / idea / analysis-campaign / review / decision` 的 stage contract 已具备 autonomy policy 和 memory 输入/closeout 机制，但还需要在真实 paper line 中证明 Codex CLI 长时间执行后能稳定生成 typed closeout。
-- `publication_route_memory` 已能作为 stage 输入和 closeout writeback proposal 载体，但还需要真实 reusable lesson 的 accepted/rejected receipt。
+- `scout / idea / analysis-campaign / review / decision` 的 stage contract 已具备 autonomy policy 和 memory 输入/closeout 机制；DM002、DM003、Obesity 已给出 read-only typed closeout projection，但还需要 provider-hosted live apply 中证明 Codex CLI 长时间执行后能稳定生成 MAS owner receipt。
+- `publication_route_memory` 已能作为 stage 输入和 closeout writeback proposal 载体，DM002 已形成 workspace memory pack / writeback receipt proof；还需要更多真实 reusable lesson 的 accepted/rejected receipt 和 stale/deprecated review 纪律。
 - route decision / repair / gate replay 已经能作为 MAS owner callable surface 工作，但旧 mechanical vocabulary 和 historical compatibility reader 仍需按 parity gate 继续删除或归档。
-- OPL 托管路径还需要证明不降低 direct MAS app skill 路径的能力，不改变 MAS owner route，不绕过 AI reviewer / publication gate。
+- OPL 托管路径还需要通过 production Temporal provider residency、managed worker 长驻、human gate/resume 和真实 paper-line live apply 证明不降低 direct MAS app skill 路径的能力，不改变 MAS owner route，不绕过 AI reviewer / publication gate。
 
 ## 文献、引用与研究记忆平面
 
