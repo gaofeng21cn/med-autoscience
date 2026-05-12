@@ -24,10 +24,10 @@ _BATCH_OPEN_UNIT_STATUSES = frozenset(
         "control_plane_route_blocked",
         "failed",
         "missing",
-        "skipped_authority_not_settled",
         "skipped_failed_dependency",
     }
 )
+_TRANSIENT_OPEN_UNIT_STATUSES = frozenset({"skipped_authority_not_settled"})
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -326,8 +326,14 @@ def _unit_results_have_open_failures(batch_payload: dict[str, Any]) -> bool:
     unit_results = batch_payload.get("unit_results")
     if not isinstance(unit_results, list):
         return False
+    if _gate_replay_closed(batch_payload):
+        return any(
+            isinstance(item, dict) and _non_empty_text(item.get("status")) in _BATCH_OPEN_UNIT_STATUSES
+            for item in unit_results
+        )
     return any(
-        isinstance(item, dict) and _non_empty_text(item.get("status")) in _BATCH_OPEN_UNIT_STATUSES
+        isinstance(item, dict)
+        and _non_empty_text(item.get("status")) in (_BATCH_OPEN_UNIT_STATUSES | _TRANSIENT_OPEN_UNIT_STATUSES)
         for item in unit_results
     )
 

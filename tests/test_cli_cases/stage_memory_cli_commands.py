@@ -105,6 +105,21 @@ def test_publication_route_memory_inventory_cli_lists_cards_without_body_by_defa
         "publication_route_memory_seed__negative_result_stoploss"
     ]
     assert payload["receipt_summary"]["migration_receipt_count"] == 1
+    assert payload["opl_aion_receipt_inventory"]["body_included"] is False
+    assert payload["opl_aion_receipt_inventory"]["receipt_count"] == 1
+    assert payload["opl_aion_receipt_inventory"]["receipts"][0]["receipt_status"] == "applied"
+    assert payload["opl_aion_receipt_inventory"]["receipts"][0]["accepted_refs"] == [
+        {
+            "memory_id": "publication_route_memory_seed__external_validation_rescue",
+            "reason": "",
+            "status": "accepted",
+        },
+        {
+            "memory_id": "publication_route_memory_seed__negative_result_stoploss",
+            "reason": "",
+            "status": "accepted",
+        },
+    ]
     assert payload["authority_boundary"]["can_authorize_publication_quality"] is False
     assert "Negative or unstable main analysis should trigger" in captured.out
     assert "When a bounded analysis campaign returns" not in captured.out

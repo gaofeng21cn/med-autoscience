@@ -11,6 +11,7 @@ STABLE_PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH = Path(
     "artifacts/controller/publication_work_unit_lifecycle/latest.json"
 )
 _BLOCKING_STATUSES = frozenset({"failed", "missing", "skipped_failed_dependency", "skipped_authority_not_settled"})
+_HARD_BLOCKING_STATUSES = _BLOCKING_STATUSES - frozenset({"skipped_authority_not_settled"})
 STEP_SURFACE_METADATA_KEYS = (
     "authority_fingerprints",
     "settle_window_ns",
@@ -144,11 +145,13 @@ def classify_lifecycle_status(
     if not unit_results:
         return "skipped"
     statuses = {str(item.get("status") or "").strip() for item in unit_results}
-    if statuses & _BLOCKING_STATUSES:
+    if statuses & _HARD_BLOCKING_STATUSES:
         return "blocked"
     gate_status = str(gate_replay.get("status") or "").strip()
     if gate_status == "clear" or gate_replay.get("allow_write") is True:
         return "done"
+    if statuses & _BLOCKING_STATUSES:
+        return "blocked"
     return "blocked"
 
 
@@ -161,12 +164,12 @@ def build_lifecycle_record(
     unit_results: list[dict[str, Any]],
     gate_replay: dict[str, Any],
 ) -> dict[str, Any]:
-    retry = retry_metadata_from_unit_results(unit_results)
     status = classify_lifecycle_status(
         selected_work_unit=selected_work_unit,
         unit_results=unit_results,
         gate_replay=gate_replay,
     )
+    retry = None if status == "done" else retry_metadata_from_unit_results(unit_results)
     record: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "source_eval_id": source_eval_id,
