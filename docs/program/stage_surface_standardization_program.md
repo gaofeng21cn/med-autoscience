@@ -20,6 +20,7 @@ Stage card
   -> callable owner tools
   -> knowledge packet obligations
   -> durable output / closeout obligations
+  -> Stage Deliverable Review Page / Stage Deliverable Index
   -> quality gate / reviewer rubric
   -> OPL descriptor / artifact locator projection
 ```
@@ -38,6 +39,8 @@ Stage card
 | `tool surface` | 每个 stage 明确允许调用哪些 MAS owner callable surface；工具只进入 controller-authorized CLI/MCP/product-entry/runtime/action catalog，不旁路写研究产物。 |
 | `knowledge input` | 每个探索、分析、写作、审阅和决策 stage 都有明确 `stage_knowledge_packet` 输入义务；无义务也要显式说明为什么不需要。 |
 | `closeout` | 每个能产生 reusable lesson、failed path、route impact、citation gap 或 reviewer lesson 的 stage 都有 `stage_memory_closeout_packet` 和 router receipt 规则。 |
+| `deliverable review page` | 每个 stage 的最终人读交付物统一收敛成一页 `Stage Deliverable Review Page`，供论文人工审阅者判断该 stage 是否能进入下一步。 |
+| `deliverable index` | 每条 paper line 有一个 `Stage Deliverable Index`，按 stage 列出最新 review page、源 artifact refs、owner receipt、freshness、人工判断状态和下一步。 |
 | `quality gate` | 每个 stage 都有医学、统计、证据、写作或投稿质控 rubric；ready / done / pass 只能由对应 MAS owner truth surface 支撑。 |
 | `artifact locator` | repo 只保存 contract、prompt、policy、schema、seed fixture 和 locator；真实 workspace artifact body 留在 workspace/runtime root。 |
 | `OPL projection` | OPL 只消费 descriptor、refs、freshness、attempt receipt 和 source locator；不生成医学 truth、不接受 memory writeback、不授权 publication readiness。 |
@@ -74,6 +77,7 @@ Stage card
 - `stage_quality_pack_contract` 已把 stage-selectable quality packs、reporting guideline selection、locator、freshness 和 authority boundary 落成 machine-readable contract。
 - `standard_domain_agent_skeleton.physical_skeleton_layout_audit` 已把 stage、prompt、skill、knowledge、quality gate、sidecar、projection builder 和 artifact locator 映射到现有 repo paths。
 - `family_stage_control_plane_descriptor` 与 product-entry manifest 已把 route contract、stage knowledge plane、stage quality pack contract、quality/publication refs 和 authority boundary 投影给 OPL。
+- `Stage Deliverable Review Page` 与 `Stage Deliverable Index` 已进入 generated stage surface contract 和 OPL/product-entry descriptor locator；machine truth 仍必须来自 MAS owner receipts、ledgers、publication eval、controller decisions 和 workspace artifact locator refs。
 
 本轮已经落地的部分：
 
@@ -91,6 +95,7 @@ Stage card
 | --- | --- |
 | Production provider-hosted live apply 仍未闭合 | 只能说 stage skill surfaces landed、descriptor / adapter ready、provider projection 与 typed blocker proof landed；不能说 production-hosted paper automation 已完成。 |
 | Stage prompt、policy、quality rubric 仍需要持续守住 owner boundary | 新增或修改 skill 时必须继续消费 stage card、canonical route contract、stage knowledge obligations、quality pack refs、RH clean-room gates 和 MAS owner closeout packet，不能回退为 Markdown-only 规则。 |
+| `Stage Deliverable Review Page` / `Stage Deliverable Index` 已进入生成器和 product-entry locator，但尚未在真实 paper-line workspace artifact 中闭合 | 人工审阅者能从 generated contract 看到统一审阅字段；真实论文线仍需留下 latest review page、owner receipt、freshness 和人工判断 proof。 |
 | 旧 MDS / Hermes / local scheduler residue 仍有 compat vocabulary | 容易让读者误以为旧 runtime 或旧 WebUI 仍是默认运行形态。 |
 
 ## Stage 标准模板
@@ -130,6 +135,51 @@ Machine boundary:
 | `Quality Gate` | 写清谁能给 PASS / FAIL / NEEDS_REVIEW，哪些 surface 只能做 projection。 |
 | `Closeout And Memory` | 写清哪些内容进入 evidence ledger、review ledger、controller decision、publication route memory 或 incident learning。 |
 | `OPL Projection Boundary` | 写清 OPL 只能 index/display/freshness/dispatch MAS-exported task，不能写 MAS truth。 |
+
+## Stage Deliverable Review Page
+
+`Stage Deliverable Review Page` 是每个 stage 的最终人读交付物。它不是新的机器真相源，也不是替代 generated stage card 的手写 contract；它是把该 stage 结束时论文人工审阅需要判断的材料收敛成一页。
+
+每个 review page 必须面向论文人工审阅者回答：
+
+- 这个 stage 是否完成了对当前论文有意义的交付；
+- 交付物支持、削弱或改变了哪些 claim；
+- 证据、统计、引用、图表、叙事、投稿或伦理声明是否存在阻塞；
+- 下一步应进入哪个 stage、route back、stop-loss、human gate 或 finalize；
+- 判断所依赖的 MAS truth surface、artifact locator、owner receipt 和 freshness proof 是什么。
+
+Review page 的建议字段是：
+
+| field | purpose |
+| --- | --- |
+| `stage_id` / `paper_line` / `active_run_id` | 让审阅者确认一页属于哪条论文线、哪个 stage 和哪个运行上下文。 |
+| `review_question` | 用一句话写清本页要帮助人工判断的问题，例如能否写入主文、是否需要补实验、是否可进入 finalize。 |
+| `deliverable_summary` | 用论文语境概括本 stage 的最终交付，不复述 executor 日志。 |
+| `source_refs` | 指向 canonical artifact、evidence ledger、review ledger、publication eval、controller decision、package proof 或 workspace locator refs。 |
+| `claim_impact` | 标明 strengthened、weakened、changed、unsupported、newly_blocked 或 no_claim_change，并列出受影响 claim。 |
+| `evidence_and_statistics` | 对医学证据、统计可重复性、数值一致性、negative/failed path 和 uncertainty 做人工可审阅摘要。 |
+| `manuscript_impact` | 标明需要修改的 section、table、figure、supplement、reference、declaration 或 response-to-reviewer。 |
+| `quality_gate_state` | 引用 AI reviewer、publication gate、quality pack 或 reporting guideline 的状态；只报告，不自行授权 publication readiness。 |
+| `human_judgment` | 人工审阅字段：`accept_for_next_stage`、`needs_revision`、`route_back`、`stop_or_pivot`、`human_gate_required`。 |
+| `reviewer_notes` | 人工审阅者写给下一 stage owner 的简短判断、风险和不可省略的检查点。 |
+| `next_action` | 指向下一 route、owner tool、blocked reason 或 terminal decision surface。 |
+| `freshness` | 写清 artifact/package/ledger 是否新鲜，过期时必须给出刷新 owner 或 blocker。 |
+
+人工判断字段必须保留论文审阅语义，不能退化成任务完成状态。`provider_done`、`queue_completed`、`tests_passed` 或 `page_generated` 都不能替代 `human_judgment`。
+
+## Stage Deliverable Index
+
+`Stage Deliverable Index` 是 paper-line 级索引。它按 stage 串起最新 review page，让人工审阅者能从一处看到整篇论文走到哪里、每个 stage 的最终人读交付页在哪里、哪些页仍阻塞下一步。
+
+Index 最少应包含：
+
+- paper line / study id / active run id；
+- stage 顺序与 latest review page ref；
+- 每个 stage 的 source artifact refs、owner receipt、freshness、quality gate state 和 `human_judgment`；
+- 当前全局 next route、route back、human gate、stop-loss 或 finalize readiness；
+- 明确说明 OPL 只能展示和索引这些 refs，不能接受人工判断写回为 MAS truth。
+
+当前状态是：review page / index 已进入 `stage_surface_contract.py` 的 generated machine contract，`docs/runtime/contracts/stage_surfaces.md` 已渲染统一的人读字段，product-entry / OPL descriptor 已暴露只读 locator。下一步应在真实 paper line 上证明每个 stage 能产出 latest review page，并由 index 串成一页式人工审阅入口；该 proof 仍不得替代 MAS owner receipts、quality verdict、publication readiness 或 artifact authority。
 
 ## Stage 统一目标表
 

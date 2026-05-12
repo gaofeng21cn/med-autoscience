@@ -155,6 +155,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     agent_entry = importlib.import_module("med_autoscience.agent_entry")
     stage_knowledge_plane = importlib.import_module("med_autoscience.controllers.stage_knowledge_plane")
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    stage_surface_contract = importlib.import_module("med_autoscience.stage_surface_contract")
     stage_quality_contract = importlib.import_module("med_autoscience.stage_quality_contract")
     stage_skill_surface_projection = importlib.import_module(
         "med_autoscience.stage_skill_surface_projection"
@@ -164,6 +165,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     profile_ref = tmp_path / "profile.local.toml"
     route_payload = agent_entry.load_entry_modes_payload()
     stage_contract = stage_knowledge_plane.stage_knowledge_plane_contract()
+    stage_surface = stage_surface_contract.build_stage_surface_contract()
 
     manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     descriptor = manifest["family_stage_control_plane_descriptor"]
@@ -186,6 +188,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     )
     assert descriptor["source_refs"]["quality_pack_contract_source"] == (
         "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract"
+    )
+    assert descriptor["source_refs"]["stage_deliverable_index_contract_source"] == (
+        "med_autoscience.stage_surface_contract.build_stage_surface_contract"
     )
     assert descriptor["source_refs"]["packet_contract_surfaces"] == list(stage_contract["packet_contracts"])
     assert descriptor["source_refs"]["quality_pack_contract_surfaces"] == [
@@ -211,6 +216,17 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "stage_recall_index": "stage_recall_index",
     }
     assert descriptor["memory_control"]["can_promote_memory_to_evidence"] is False
+    assert descriptor["stage_deliverable_index"] == {
+        "surface_kind": "mas_stage_deliverable_index",
+        "version": "mas-stage-deliverable-index.v1",
+        "role": "human_audit_and_opl_locator",
+        "stage_count": len(stage_surface["stage_cards"]),
+        "locator_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+        "stage_refs": stage_surface["stage_deliverable_index"]["stage_refs"],
+        "source_refs": stage_surface["stage_deliverable_index"]["source_refs"],
+        "authority_boundary": stage_surface["stage_deliverable_index"]["authority_boundary"],
+        "opl_projection_boundary": "read_only_locator_no_truth_write",
+    }
     quality_pack_contract = stage_quality_contract.build_stage_quality_pack_contract()
     assert descriptor["quality_pack_contract"] == {
         "surface_kind": "stage_quality_pack_projection",
@@ -335,6 +351,16 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["handoff"]["next_owner"] == "MedAutoScience"
         assert stage["freshness"]["stale_if_source_refs_missing"] is True
         assert any(ref["role"] == "deep_descriptor" for ref in stage["source_refs"])
+        assert any(ref["role"] == "stage_deliverable_index" for ref in stage["source_refs"])
+        assert stage["deliverable_index_ref"] == {
+            "ref_kind": "json_pointer",
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+            "role": "stage_deliverable_index",
+            "opl_projection_boundary": "read_only_locator_no_truth_write",
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+        }
         assert set(stage["quality_pack_refs"]) <= set(quality_pack_contract["pack_ids"])
         assert stage["quality_pack_projection"]["role"] == "quality_input_and_reviewer_rubric"
         assert stage["quality_pack_projection"]["publication_readiness_authority"] is False

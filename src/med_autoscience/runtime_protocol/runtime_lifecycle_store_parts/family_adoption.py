@@ -10,6 +10,7 @@ from med_autoscience.agent_entry import load_entry_modes_payload
 from med_autoscience import stage_knowledge_contract
 from med_autoscience import stage_quality_contract
 from med_autoscience import stage_skill_surface_projection
+from med_autoscience.stage_surface_contract import build_stage_surface_contract
 
 from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
@@ -34,6 +35,7 @@ STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
 )
 STAGE_QUALITY_PACK_CONTRACT_REF = stage_quality_contract.CONTRACT_REF
 STAGE_SKILL_SURFACE_PROJECTION_REF = stage_skill_surface_projection.CONTRACT_REF
+STAGE_DELIVERABLE_INDEX_CONTRACT_REF = "med_autoscience.stage_surface_contract.build_stage_surface_contract"
 
 FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "publication_eval/latest.json",
@@ -97,6 +99,8 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     packet_contracts = _mapping(knowledge_contract.get("packet_contracts"))
     packet_surfaces = list(packet_contracts)
     exploratory_stages = list(knowledge_contract.get("exploratory_stages") or [])
+    stage_surface = build_stage_surface_contract()
+    stage_deliverable_index = _stage_deliverable_index_projection(stage_surface)
     return {
         "surface_kind": FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND,
         "schema_version": 1,
@@ -111,6 +115,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "knowledge_plane_contract_source": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "quality_pack_contract_source": STAGE_QUALITY_PACK_CONTRACT_REF,
             "stage_skill_surface_projection_source": STAGE_SKILL_SURFACE_PROJECTION_REF,
+            "stage_deliverable_index_contract_source": STAGE_DELIVERABLE_INDEX_CONTRACT_REF,
             "packet_contract_surfaces": packet_surfaces,
             "quality_pack_contract_surfaces": list(stage_quality_contract.QUALITY_PACK_CONTRACT_SURFACES),
             "stage_knowledge_root": str(stage_knowledge_contract.STAGE_KNOWLEDGE_ROOT),
@@ -153,6 +158,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             ),
             "can_promote_memory_to_evidence": False,
         },
+        "stage_deliverable_index": stage_deliverable_index,
         "quality_pack_contract": stage_quality_contract.build_stage_quality_pack_projection(),
         "stage_skill_surface_projection": (
             stage_skill_surface_projection.build_stage_skill_surface_projection()
@@ -385,6 +391,11 @@ def _plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
             "role": "quality_pack_contract",
         },
         {
+            "ref_kind": "json_pointer",
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+            "role": "stage_deliverable_index",
+        },
+        {
             "ref_kind": "repo_path",
             "ref": STAGE_LED_AUTONOMY_INVENTORY_REF,
             "role": "inventory_reference",
@@ -435,8 +446,10 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             {"ref_kind": "repo_path", "ref": STAGE_LED_AUTONOMY_POLICY_REF, "role": "stage_led_policy"},
         ],
         "allowed_action_refs": list(stage["allowed_action_refs"]),
+        "deliverable_index_ref": _stage_deliverable_index_ref(),
         "outputs": [
             {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "stage_status"},
+            _stage_deliverable_index_ref(),
             {
                 "ref_kind": "json_pointer",
                 "ref": "/opl_family_persistence_lifecycle_owner_route_adoption",
@@ -472,6 +485,33 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "can_authorize_publication_quality": False,
             "can_authorize_submission_readiness": False,
         },
+    }
+
+
+def _stage_deliverable_index_projection(stage_surface: Mapping[str, Any]) -> dict[str, Any]:
+    index = _mapping(stage_surface.get("stage_deliverable_index"))
+    return {
+        "surface_kind": index.get("surface_kind"),
+        "version": index.get("version"),
+        "role": index.get("role"),
+        "stage_count": index.get("stage_count"),
+        "locator_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+        "stage_refs": list(index.get("stage_refs") or []),
+        "source_refs": list(index.get("source_refs") or []),
+        "authority_boundary": _mapping(index.get("authority_boundary")),
+        "opl_projection_boundary": "read_only_locator_no_truth_write",
+    }
+
+
+def _stage_deliverable_index_ref() -> dict[str, Any]:
+    return {
+        "ref_kind": "json_pointer",
+        "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+        "role": "stage_deliverable_index",
+        "opl_projection_boundary": "read_only_locator_no_truth_write",
+        "can_write_domain_truth": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
     }
 
 

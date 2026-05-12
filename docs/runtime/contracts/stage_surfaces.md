@@ -57,6 +57,24 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | clinical_question_framing | literature_gap | anchor_paper_role | route_recommendation
 
+### Deliverable Index
+- Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/scout/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
+- Output refs: durable_outputs_minimum -> durable_outputs_minimum | stage_memory_closeout_packet -> artifacts/stage_knowledge/scout/closeouts | memory_write_router_receipt -> artifacts/stage_knowledge/memory_write_router_receipts
+- Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
+- Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
+- Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Next owner: next_routes=['baseline', 'write', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
+
+### One-Page Paper Review
+- paper_question: 本阶段要回答的论文问题
+- stage_inputs: 本阶段输入
+- work_completed: 本阶段完成的工作
+- manuscript_or_artifact_delta: 论文资产变化
+- evidence_and_citation_basis: 证据与引用依据
+- quality_judgment: 质量判断
+- advance_decision: 是否进入下一阶段
+- route_back_or_human_gate: 退回原因或人工决策点
+
 ### Route Back / Human Gate
 - Route back: evidence target stays ambiguous after scouting | study question changes materially during later routes | downstream review surfaces missing direction rationale
 - Human gate: primary question, target population, or evidence boundary needs reset | recommended next route would widen the active study charter boundary
@@ -110,6 +128,24 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | selected_line | rejected_alternatives | selection_rationale | stop_rule | memory_reuse_note
 
+### Deliverable Index
+- Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/idea/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
+- Output refs: durable_outputs_minimum -> durable_outputs_minimum | stage_memory_closeout_packet -> artifacts/stage_knowledge/idea/closeouts | memory_write_router_receipt -> artifacts/stage_knowledge/memory_write_router_receipts
+- Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
+- Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
+- Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Next owner: next_routes=['baseline', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
+
+### One-Page Paper Review
+- paper_question: 本阶段要回答的论文问题
+- stage_inputs: 本阶段输入
+- work_completed: 本阶段完成的工作
+- manuscript_or_artifact_delta: 论文资产变化
+- evidence_and_citation_basis: 证据与引用依据
+- quality_judgment: 质量判断
+- advance_decision: 是否进入下一阶段
+- route_back_or_human_gate: 退回原因或人工决策点
+
 ### Route Back / Human Gate
 - Route back: baseline readiness is still missing | chosen line conflicts with later evidence review | controller requests a different route bias
 - Human gate: chosen line changes the locked study direction or main claim family | execution recommendation needs a new managed-study commitment beyond the active charter
@@ -162,6 +198,24 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | baseline_cohort_endpoint_comparator_snapshot | baseline_effect_size_or_feasibility_readout | failed_comparator_lesson | continue_reroute_or_stop_recommendation
 
+### Deliverable Index
+- Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/baseline/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
+- Output refs: durable_outputs_minimum -> durable_outputs_minimum | stage_memory_closeout_packet -> artifacts/stage_knowledge/baseline/closeouts | memory_write_router_receipt -> artifacts/stage_knowledge/memory_write_router_receipts
+- Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
+- Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
+- Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Next owner: next_routes=['analysis-campaign', 'write', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
+
+### One-Page Paper Review
+- paper_question: 本阶段要回答的论文问题
+- stage_inputs: 本阶段输入
+- work_completed: 本阶段完成的工作
+- manuscript_or_artifact_delta: 论文资产变化
+- evidence_and_citation_basis: 证据与引用依据
+- quality_judgment: 质量判断
+- advance_decision: 是否进入下一阶段
+- route_back_or_human_gate: 退回原因或人工决策点
+
 ### Route Back / Human Gate
 - Route back: baseline result cannot support the active claim | comparator or cohort definition changes materially | reviewer-first scan finds missing baseline proof
 - Human gate: comparator, cohort, or endpoint redefinition changes the active claim boundary | baseline readout points to a stop decision or a direction reset
@@ -213,6 +267,24 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | primary_result_with_run_context | result_lineage_update | endpoint_or_comparator_deviation | negative_or_failed_comparator_lesson
+
+### Deliverable Index
+- Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/experiment/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
+- Output refs: durable_outputs_minimum -> durable_outputs_minimum | stage_memory_closeout_packet -> artifacts/stage_knowledge/experiment/closeouts | memory_write_router_receipt -> artifacts/stage_knowledge/memory_write_router_receipts
+- Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
+- Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
+- Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Next owner: next_routes=['analysis-campaign', 'write', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
+
+### One-Page Paper Review
+- paper_question: 本阶段要回答的论文问题
+- stage_inputs: 本阶段输入
+- work_completed: 本阶段完成的工作
+- manuscript_or_artifact_delta: 论文资产变化
+- evidence_and_citation_basis: 证据与引用依据
+- quality_judgment: 质量判断
+- advance_decision: 是否进入下一阶段
+- route_back_or_human_gate: 退回原因或人工决策点
 
 ### Route Back / Human Gate
 - Route back: run outcome invalidates the current study line | result quality or reproducibility gaps block downstream review | controller boundary changes before interpretation stabilizes
@@ -267,6 +339,24 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | slice_ledger | negative_or_weak_result_interpretation | route_impact | failed_path_lesson
+
+### Deliverable Index
+- Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/analysis-campaign/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
+- Output refs: durable_outputs_minimum -> durable_outputs_minimum | stage_memory_closeout_packet -> artifacts/stage_knowledge/analysis-campaign/closeouts | memory_write_router_receipt -> artifacts/stage_knowledge/memory_write_router_receipts
+- Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
+- Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
+- Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Next owner: next_routes=['write', 'finalize', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
+
+### One-Page Paper Review
+- paper_question: 本阶段要回答的论文问题
+- stage_inputs: 本阶段输入
+- work_completed: 本阶段完成的工作
+- manuscript_or_artifact_delta: 论文资产变化
+- evidence_and_citation_basis: 证据与引用依据
+- quality_judgment: 质量判断
+- advance_decision: 是否进入下一阶段
+- route_back_or_human_gate: 退回原因或人工决策点
 
 ### Route Back / Human Gate
 - Route back: new gaps expand beyond bounded analysis scope | claim support weakens after follow-up analysis | reviewer-first scan requests a different baseline or study line
@@ -323,6 +413,24 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | writing_experience_lesson | claim_wording_boundary_decision | reporting_guideline_gap | display_to_claim_repair_request | journal_neighbor_positioning_lesson
 
+### Deliverable Index
+- Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/write/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
+- Output refs: durable_outputs_minimum -> durable_outputs_minimum | stage_memory_closeout_packet -> artifacts/stage_knowledge/write/closeouts | memory_write_router_receipt -> artifacts/stage_knowledge/memory_write_router_receipts
+- Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
+- Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
+- Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Next owner: next_routes=['finalize', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
+
+### One-Page Paper Review
+- paper_question: 本阶段要回答的论文问题
+- stage_inputs: 本阶段输入
+- work_completed: 本阶段完成的工作
+- manuscript_or_artifact_delta: 论文资产变化
+- evidence_and_citation_basis: 证据与引用依据
+- quality_judgment: 质量判断
+- advance_decision: 是否进入下一阶段
+- route_back_or_human_gate: 退回原因或人工决策点
+
 ### Route Back / Human Gate
 - Route back: any active claim lacks supporting evidence | reviewer-first scan finds unresolved logic, novelty, or rigor gaps | first-draft quality scan finds verified asset dimensions that can support a stronger bounded analysis or manuscript framing | manuscript narrative changes the claim boundary | foreground edits only touched `manuscript/current_package/` before MAS runtime reactivation or have not been reconciled into the canonical paper source
 - Human gate: manuscript claims expand beyond the current evidence package or locked study objective | draft is ready for external circulation or submission-facing release
@@ -376,6 +484,24 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | reviewer_action_matrix | evidence_or_citation_repair_request | reusable_critique_lesson
 
+### Deliverable Index
+- Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/review/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
+- Output refs: durable_outputs_minimum -> durable_outputs_minimum | stage_memory_closeout_packet -> artifacts/stage_knowledge/review/closeouts | memory_write_router_receipt -> artifacts/stage_knowledge/memory_write_router_receipts
+- Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
+- Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
+- Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Next owner: next_routes=['analysis-campaign', 'write', 'finalize', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
+
+### One-Page Paper Review
+- paper_question: 本阶段要回答的论文问题
+- stage_inputs: 本阶段输入
+- work_completed: 本阶段完成的工作
+- manuscript_or_artifact_delta: 论文资产变化
+- evidence_and_citation_basis: 证据与引用依据
+- quality_judgment: 质量判断
+- advance_decision: 是否进入下一阶段
+- route_back_or_human_gate: 退回原因或人工决策点
+
 ### Route Back / Human Gate
 - Route back: active claim lacks direct evidence support | novelty, rigor, or citation gap cannot be closed in writing | AI reviewer requests a different baseline, analysis-campaign, or route decision
 - Human gate: reviewer conclusion would change study boundary, external release, or submission authorization | citation or evidence gap cannot be repaired inside the current charter
@@ -427,6 +553,24 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | package_readiness_decision | package_freshness_or_staleness_lesson | declaration_or_ethics_blocker | human_gate_request_or_clearance
+
+### Deliverable Index
+- Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/finalize/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
+- Output refs: durable_outputs_minimum -> durable_outputs_minimum | stage_memory_closeout_packet -> artifacts/stage_knowledge/finalize/closeouts | memory_write_router_receipt -> artifacts/stage_knowledge/memory_write_router_receipts
+- Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
+- Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
+- Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Next owner: next_routes=['decision', 'write'], owner=MedAutoScience, source_ref=route_contract.next_routes
+
+### One-Page Paper Review
+- paper_question: 本阶段要回答的论文问题
+- stage_inputs: 本阶段输入
+- work_completed: 本阶段完成的工作
+- manuscript_or_artifact_delta: 论文资产变化
+- evidence_and_citation_basis: 证据与引用依据
+- quality_judgment: 质量判断
+- advance_decision: 是否进入下一阶段
+- route_back_or_human_gate: 退回原因或人工决策点
 
 ### Route Back / Human Gate
 - Route back: final audit finds missing proof or inconsistent claims | submission bundle surfaces unresolved reviewer-level concerns | package assembly changes the meaning of any active claim
@@ -481,6 +625,24 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | stop_or_pivot_lesson | route_impact | rejected_alternatives
 
+### Deliverable Index
+- Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/decision/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
+- Output refs: durable_outputs_minimum -> durable_outputs_minimum | stage_memory_closeout_packet -> artifacts/stage_knowledge/decision/closeouts | memory_write_router_receipt -> artifacts/stage_knowledge/memory_write_router_receipts
+- Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
+- Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
+- Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Next owner: next_routes=['scout', 'baseline', 'analysis-campaign', 'write', 'finalize'], owner=MedAutoScience, source_ref=route_contract.next_routes
+
+### One-Page Paper Review
+- paper_question: 本阶段要回答的论文问题
+- stage_inputs: 本阶段输入
+- work_completed: 本阶段完成的工作
+- manuscript_or_artifact_delta: 论文资产变化
+- evidence_and_citation_basis: 证据与引用依据
+- quality_judgment: 质量判断
+- advance_decision: 是否进入下一阶段
+- route_back_or_human_gate: 退回原因或人工决策点
+
 ### Route Back / Human Gate
 - Route back: new evidence invalidates the recorded judgment | human gate changes the study boundary | downstream route reports unmet assumptions from the decision record
 - Human gate: official go, stop, reroute, or direction-reset judgment is required | decision changes the study boundary or authorizes external release
@@ -532,6 +694,24 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 - Status: declared_in_canonical_route_contract
 - Machine source refs: stage_memory_closeout_packet | memory_write_router_receipt | src/med_autoscience/stage_knowledge_contract.py
 - Obligations: stage_memory_closeout_packet | selected_outlet_or_profile_rationale | exporter_constraint_lesson | blocked_profile_decision | reporting_guideline_delta
+
+### Deliverable Index
+- Input refs: stage_knowledge_packet -> artifacts/stage_knowledge/journal-resolution/latest.json | active_study_charter -> artifacts/controller/study_charter.json | stage_entry_conditions -> enter_conditions
+- Output refs: durable_outputs_minimum -> durable_outputs_minimum | stage_memory_closeout_packet -> artifacts/stage_knowledge/journal-resolution/closeouts | memory_write_router_receipt -> artifacts/stage_knowledge/memory_write_router_receipts
+- Ledger refs: evidence_ledger -> evidence_ledger | review_ledger -> review_ledger | controller_decision -> controller_decisions/latest.json
+- Quality gate ref: owner=MedAutoScience, publication_readiness_authority=False, ref=publication_eval/latest.json, ref_kind=durable_surface, role=ai_reviewer_or_publication_gate_projection
+- Package/artifact delta ref: body_included=False, owner=MedAutoScience, ref=package_freshness_proof_or_artifact_delta_proof, ref_kind=durable_surface, role=paper_asset_delta_evidence
+- Next owner: next_routes=['write', 'finalize', 'decision'], owner=MedAutoScience, source_ref=route_contract.next_routes
+
+### One-Page Paper Review
+- paper_question: 本阶段要回答的论文问题
+- stage_inputs: 本阶段输入
+- work_completed: 本阶段完成的工作
+- manuscript_or_artifact_delta: 论文资产变化
+- evidence_and_citation_basis: 证据与引用依据
+- quality_judgment: 质量判断
+- advance_decision: 是否进入下一阶段
+- route_back_or_human_gate: 退回原因或人工决策点
 
 ### Route Back / Human Gate
 - Route back: journal requirements expose missing evidence or structure gaps | target outlet changes the claim framing materially | packaging constraints require a different delivery plan

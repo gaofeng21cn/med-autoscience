@@ -40,6 +40,17 @@ QUALITY_SOURCE_REFS = (
     "controller_decisions/latest.json",
     "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract",
 )
+DELIVERABLE_INDEX_SOURCE_REFS = (
+    "stage_knowledge_packet",
+    "stage_memory_closeout_packet",
+    "memory_write_router_receipt",
+    "evidence_ledger",
+    "review_ledger",
+    "publication_eval/latest.json",
+    "controller_decisions/latest.json",
+    "package_freshness_proof",
+    "artifact_delta_proof",
+)
 ALLOWED_OWNER_TOOLS = (
     "MAS controller-authorized CLI/MCP/product-entry/runtime surfaces",
     "stage-knowledge-packet",
@@ -88,6 +99,7 @@ def build_stage_surface_contract(payload: dict[str, object] | None = None) -> di
                 "runtime_owner",
             ],
         },
+        "stage_deliverable_index": _stage_deliverable_index_summary(cards),
         "stage_cards": cards,
         "validation": {
             "main_stage_route_ids": list(MAIN_STAGE_ROUTE_IDS),
@@ -209,6 +221,12 @@ def _build_stage_card(route_payload: dict[str, Any]) -> dict[str, object]:
     route_id = _string(route_payload["route_id"], "route_id")
     knowledge_obligations = _optional_string_list(route_payload, "knowledge_input_obligations")
     closeout_obligations = _optional_string_list(route_payload, "memory_closeout_obligations")
+    deliverable_index = _build_deliverable_index(
+        route_id=route_id,
+        entry=_required_string_list(route_payload, "enter_conditions"),
+        outputs=_required_string_list(route_payload, "durable_outputs_minimum"),
+        next_routes=_required_string_list(route_payload, "next_routes"),
+    )
     return {
         "surface_kind": "mas_stage_card",
         "route_id": route_id,
@@ -231,6 +249,8 @@ def _build_stage_card(route_payload: dict[str, Any]) -> dict[str, object]:
             "machine_source_refs": list(STAGE_KNOWLEDGE_SOURCE_REFS),
         },
         "outputs": _required_string_list(route_payload, "durable_outputs_minimum"),
+        "deliverable_index": deliverable_index,
+        "human_review_page": _build_human_review_page(route_payload, deliverable_index=deliverable_index),
         "quality": {
             "route_success_gate": _required_string_list(route_payload, "hard_success_gate"),
             "verdict_owner": "MedAutoScience",
@@ -262,6 +282,8 @@ def _render_stage_card(card: dict[str, Any]) -> list[str]:
     tools = _mapping(card["tools"], "tools")
     quality = _mapping(card["quality"], "quality")
     closeout = _mapping(card["closeout"], "closeout")
+    deliverable_index = _mapping(card["deliverable_index"], "deliverable_index")
+    human_review_page = _mapping(card["human_review_page"], "human_review_page")
     opl_boundary = _mapping(card["opl_boundary"], "opl_boundary")
 
     lines = [
@@ -300,6 +322,17 @@ def _render_stage_card(card: dict[str, Any]) -> list[str]:
         _render_list_line("Machine source refs", closeout["machine_source_refs"]),
         _render_list_line("Obligations", closeout["obligations"]),
         "",
+        "### Deliverable Index",
+        _render_ref_list_line("Input refs", deliverable_index["input_refs"]),
+        _render_ref_list_line("Output refs", deliverable_index["output_refs"]),
+        _render_ref_list_line("Ledger refs", deliverable_index["ledger_refs"]),
+        _render_mapping_line("Quality gate ref", deliverable_index["quality_gate_ref"]),
+        _render_mapping_line("Package/artifact delta ref", deliverable_index["package_artifact_delta_ref"]),
+        _render_mapping_line("Next owner", deliverable_index["next_owner"]),
+        "",
+        "### One-Page Paper Review",
+        _render_review_sections(human_review_page["sections"]),
+        "",
         "### Route Back / Human Gate",
         _render_list_line("Route back", card["route_back"]),
         _render_list_line("Human gate", card["human_gate"]),
@@ -310,6 +343,151 @@ def _render_stage_card(card: dict[str, Any]) -> list[str]:
         _render_list_line("Must not", opl_boundary["must_not"]),
     ]
     return lines
+
+
+def _stage_deliverable_index_summary(cards: list[dict[str, object]]) -> dict[str, object]:
+    return {
+        "surface_kind": "mas_stage_deliverable_index",
+        "version": "mas-stage-deliverable-index.v1",
+        "role": "human_audit_and_opl_locator",
+        "stage_count": len(cards),
+        "stage_refs": [f"/stage_cards/{_string(card['route_id'], 'route_id')}/deliverable_index" for card in cards],
+        "source_refs": list(DELIVERABLE_INDEX_SOURCE_REFS),
+        "authority_boundary": _deliverable_authority_boundary(),
+    }
+
+
+def _build_deliverable_index(
+    *,
+    route_id: str,
+    entry: list[str],
+    outputs: list[str],
+    next_routes: list[str],
+) -> dict[str, object]:
+    return {
+        "surface_kind": "mas_stage_deliverable_index_entry",
+        "stage": route_id,
+        "role": "human_audit_and_opl_locator",
+        "input_refs": [
+            _ref("workspace_artifact", f"artifacts/stage_knowledge/{route_id}/latest.json", "stage_knowledge_packet"),
+            _ref("workspace_artifact", "artifacts/controller/study_charter.json", "active_study_charter"),
+            _ref("route_contract_field", "enter_conditions", "stage_entry_conditions", values=entry),
+        ],
+        "output_refs": [
+            _ref("route_contract_field", "durable_outputs_minimum", "durable_outputs_minimum", values=outputs),
+            _ref(
+                "workspace_artifact",
+                f"artifacts/stage_knowledge/{route_id}/closeouts",
+                "stage_memory_closeout_packet",
+            ),
+            _ref(
+                "workspace_artifact",
+                "artifacts/stage_knowledge/memory_write_router_receipts",
+                "memory_write_router_receipt",
+            ),
+        ],
+        "ledger_refs": [
+            _ref("durable_surface", "evidence_ledger", "evidence_ledger"),
+            _ref("durable_surface", "review_ledger", "review_ledger"),
+            _ref("durable_surface", "controller_decisions/latest.json", "controller_decision"),
+        ],
+        "quality_gate_ref": {
+            "ref_kind": "durable_surface",
+            "ref": "publication_eval/latest.json",
+            "role": "ai_reviewer_or_publication_gate_projection",
+            "owner": "MedAutoScience",
+            "publication_readiness_authority": False,
+        },
+        "package_artifact_delta_ref": {
+            "ref_kind": "durable_surface",
+            "ref": "package_freshness_proof_or_artifact_delta_proof",
+            "role": "paper_asset_delta_evidence",
+            "owner": "MedAutoScience",
+            "body_included": False,
+        },
+        "next_owner": {
+            "owner": "MedAutoScience",
+            "next_routes": list(next_routes),
+            "source_ref": "route_contract.next_routes",
+        },
+        "human_review_page_ref": f"/stage_cards/{route_id}/human_review_page",
+        "authority_boundary": _deliverable_authority_boundary(),
+    }
+
+
+def _build_human_review_page(
+    route_payload: dict[str, Any],
+    *,
+    deliverable_index: dict[str, object],
+) -> dict[str, object]:
+    route_id = _string(route_payload["route_id"], "route_id")
+    return {
+        "surface_kind": "mas_stage_human_review_page",
+        "stage": route_id,
+        "role": "one_page_paper_audit_surface",
+        "display_name": _string(route_payload["display_name"], "display_name"),
+        "paper_question": _string(route_payload["key_question"], "key_question"),
+        "deliverable_index_ref": f"/stage_cards/{route_id}/deliverable_index",
+        "sections": [
+            _review_section("paper_question", "本阶段要回答的论文问题", [_string(route_payload["key_question"], "key_question")]),
+            _review_section("stage_inputs", "本阶段输入", _required_string_list(route_payload, "enter_conditions")),
+            _review_section("work_completed", "本阶段完成的工作", [_string(route_payload["goal"], "goal")]),
+            _review_section(
+                "manuscript_or_artifact_delta",
+                "论文资产变化",
+                _required_string_list(route_payload, "durable_outputs_minimum"),
+            ),
+            _review_section(
+                "evidence_and_citation_basis",
+                "证据与引用依据",
+                _optional_string_list(route_payload, "knowledge_input_obligations"),
+            ),
+            _review_section("quality_judgment", "质量判断", _required_string_list(route_payload, "hard_success_gate")),
+            _review_section("advance_decision", "是否进入下一阶段", _required_string_list(route_payload, "next_routes")),
+            _review_section(
+                "route_back_or_human_gate",
+                "退回原因或人工决策点",
+                [
+                    *_required_string_list(route_payload, "route_back_triggers"),
+                    *_required_string_list(route_payload, "human_gate_boundary"),
+                ],
+            ),
+        ],
+        "authority_boundary": {
+            "can_authorize_quality_verdict": False,
+            "can_authorize_submission_readiness": False,
+            "can_write_domain_truth": False,
+            "truth_owner": "MedAutoScience",
+        },
+    }
+
+
+def _review_section(section_id: str, title: str, source_items: list[str]) -> dict[str, object]:
+    return {
+        "section_id": section_id,
+        "title": title,
+        "source_items": source_items,
+        "human_judgment": "required",
+    }
+
+
+def _deliverable_authority_boundary() -> dict[str, object]:
+    return {
+        "truth_owner": "MedAutoScience",
+        "role": "locator_and_human_audit_projection",
+        "can_write_mas_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_submission_readiness": False,
+        "body_included": False,
+    }
+
+
+def _ref(ref_kind: str, ref: str, role: str, *, values: list[str] | None = None) -> dict[str, object]:
+    payload: dict[str, object] = {"ref_kind": ref_kind, "ref": ref, "role": role}
+    if values is not None:
+        payload["values"] = list(values)
+    return payload
 
 
 def _route_contracts(payload: dict[str, object]) -> dict[str, dict[str, Any]]:
@@ -383,3 +561,21 @@ def _render_list_line(label: str, values: object) -> str:
     items = _string_list(values, label) if isinstance(values, list) else [_string(values, label)]
     rendered = " | ".join(items) if items else "(none)"
     return f"- {label}: {rendered}"
+
+
+def _render_ref_list_line(label: str, refs: object) -> str:
+    items = _list_of_mappings(refs, label)
+    rendered_refs = [f"{item.get('role')} -> {item.get('ref')}" for item in items]
+    return _render_list_line(label, rendered_refs)
+
+
+def _render_mapping_line(label: str, value: object) -> str:
+    mapping = _mapping(value, label)
+    rendered = ", ".join(f"{key}={mapping[key]}" for key in sorted(mapping))
+    return f"- {label}: {rendered}"
+
+
+def _render_review_sections(sections: object) -> str:
+    items = _list_of_mappings(sections, "sections")
+    rendered = [f"{item.get('section_id')}: {item.get('title')}" for item in items]
+    return _render_list_block(rendered)

@@ -8,7 +8,7 @@
 
 Current reading note：这里的 `Hermes` 指显式 `--manager hermes` 的 `Hermes gateway cron` scheduler adapter 或 optional external `Hermes-Agent` hosted target；它们必须另有 readiness proof，不能被写成默认 study truth、runtime truth、session truth 或默认 executor。
 
-Executor adapter note：generic executor adapter 归 `OPL`；MAS 只声明 executor requirement、接收 OPL typed closeout / domain-task receipt。MAS 本地 `codex_cli_default` 只用于 standalone diagnostics；`Hermes-Agent` / `Claude Code` 只能作为 OPL 显式 opt-in provider/provenance/receipt 路径出现，不能扩展成 MAS-owned `executor_kind`、MAS-owned hosted executor 或 MAS runtime truth。2026-05-12 当前状态是 adapter/receipt/fail-closed 边界已落地，剩余验收只是真实 production-hosted soak、provider-hosted guarded apply 和 human gate/resume 进入 MAS owner chain 的运行证明。
+Executor adapter note：generic executor adapter 归 `OPL`；MAS 只声明 executor requirement、接收 OPL typed closeout / domain-task receipt。MAS 本地 `codex_cli_default` 只用于 standalone diagnostics；`Hermes-Agent` / `Claude Code` 只能作为 OPL 显式 opt-in provider/provenance/receipt 路径出现，不能扩展成 MAS-owned `executor_kind`、MAS-owned hosted executor 或 MAS runtime truth。2026-05-12 当前状态是 adapter/receipt/fail-closed 边界已落地；剩余验收分为真实 production-hosted soak / provider-hosted guarded apply / human gate-resume owner-chain proof，以及真实 workspace/runtime memory writeback receipt 泛化、legacy residue cleanup 和旧 hosted/runtime 命名在无 active caller 后的物理归档。
 
 display / paper-facing asset packaging 独立线明确排除在这条 runtime 主线之外。
 

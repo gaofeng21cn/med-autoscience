@@ -77,6 +77,58 @@ def test_stage_surface_contract_builds_cards_from_canonical_route_contracts() ->
         assert "stage_memory_closeout_packet" in card["closeout"]["machine_source_refs"]
 
 
+def test_stage_surface_contract_exposes_deliverable_index_for_human_audit_and_opl_projection() -> None:
+    surface = build_stage_surface_contract()
+
+    assert surface["stage_deliverable_index"]["role"] == "human_audit_and_opl_locator"
+    assert surface["stage_deliverable_index"]["authority_boundary"]["can_write_mas_truth"] is False
+    assert surface["stage_deliverable_index"]["authority_boundary"]["can_authorize_quality_verdict"] is False
+
+    for card in surface["stage_cards"]:
+        route_id = card["route_id"]
+        deliverable_index = card["deliverable_index"]
+
+        assert deliverable_index["surface_kind"] == "mas_stage_deliverable_index_entry"
+        assert deliverable_index["stage"] == route_id
+        assert deliverable_index["input_refs"][0]["role"] == "stage_knowledge_packet"
+        assert deliverable_index["input_refs"][0]["ref"] == f"artifacts/stage_knowledge/{route_id}/latest.json"
+        assert any(item["role"] == "active_study_charter" for item in deliverable_index["input_refs"])
+        assert any(item["role"] == "durable_outputs_minimum" for item in deliverable_index["output_refs"])
+        assert any(item["role"] == "stage_memory_closeout_packet" for item in deliverable_index["output_refs"])
+        assert any(item["role"] == "evidence_ledger" for item in deliverable_index["ledger_refs"])
+        assert deliverable_index["quality_gate_ref"]["owner"] == "MedAutoScience"
+        assert deliverable_index["quality_gate_ref"]["publication_readiness_authority"] is False
+        assert deliverable_index["package_artifact_delta_ref"]["owner"] == "MedAutoScience"
+        assert deliverable_index["next_owner"]["owner"] == "MedAutoScience"
+        assert deliverable_index["next_owner"]["next_routes"] == card["next_routes"]
+        assert deliverable_index["human_review_page_ref"] == f"/stage_cards/{route_id}/human_review_page"
+
+
+def test_stage_surface_contract_exposes_one_page_paper_review_template() -> None:
+    surface = build_stage_surface_contract()
+
+    for card in surface["stage_cards"]:
+        review_page = card["human_review_page"]
+        section_ids = [section["section_id"] for section in review_page["sections"]]
+
+        assert review_page["surface_kind"] == "mas_stage_human_review_page"
+        assert review_page["stage"] == card["route_id"]
+        assert review_page["role"] == "one_page_paper_audit_surface"
+        assert review_page["deliverable_index_ref"] == f"/stage_cards/{card['route_id']}/deliverable_index"
+        assert section_ids == [
+            "paper_question",
+            "stage_inputs",
+            "work_completed",
+            "manuscript_or_artifact_delta",
+            "evidence_and_citation_basis",
+            "quality_judgment",
+            "advance_decision",
+            "route_back_or_human_gate",
+        ]
+        assert review_page["authority_boundary"]["can_authorize_quality_verdict"] is False
+        assert review_page["authority_boundary"]["can_authorize_submission_readiness"] is False
+
+
 def test_render_stage_surfaces_markdown_is_generated_from_contract() -> None:
     surface = build_stage_surface_contract()
     markdown = render_stage_surfaces_markdown(surface)
@@ -100,6 +152,8 @@ def test_render_stage_surfaces_markdown_is_generated_from_contract() -> None:
         assert "### Outputs" in markdown
         assert "### Quality" in markdown
         assert "### Closeout" in markdown
+        assert "### Deliverable Index" in markdown
+        assert "### One-Page Paper Review" in markdown
         assert "### OPL Boundary" in markdown
 
 
