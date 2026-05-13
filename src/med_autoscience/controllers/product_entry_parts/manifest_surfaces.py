@@ -614,6 +614,12 @@ def build_product_entry_manifest(
             ),
             "opl_provider_ready_contract": opl_provider_ready_contract,
             "opl_lifecycle_inventory": opl_provider_ready_contract["lifecycle_inventory"],
+            "managed_temporal_state_consistency": (
+                opl_provider_ready_contract["managed_temporal_state_consistency"]
+            ),
+            "legacy_retirement_tombstone_proof": (
+                opl_provider_ready_contract["legacy_retirement_tombstone_proof"]
+            ),
             "opl_domain_agent_skeleton_mapping": opl_provider_ready_contract["domain_agent_skeleton_mapping"],
             "standard_domain_agent_skeleton": standard_domain_agent_skeleton,
             "workspace_runtime_artifact_root_locator": (

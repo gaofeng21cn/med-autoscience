@@ -80,9 +80,13 @@ def build_opl_provider_ready_contract(
             task_kind=None,
             requested_writes=(),
         ),
+        "managed_temporal_state_consistency": build_managed_temporal_state_consistency_read_model(
+            provider_availability=provider_availability,
+        ),
         "provider_guarded_soak_read_model": build_provider_guarded_soak_read_model(
             provider_availability=provider_availability,
         ),
+        "legacy_retirement_tombstone_proof": build_legacy_retirement_tombstone_proof(),
         "workspace_runtime_artifact_root_locator": _workspace_runtime_artifact_root_locator(profile=profile),
         "lifecycle_inventory": build_opl_lifecycle_inventory_surface(),
         "domain_agent_skeleton_mapping": build_domain_agent_skeleton_mapping_surface(),
@@ -202,6 +206,132 @@ def build_provider_guarded_soak_read_model(
             "can_write_domain_truth": False,
             "can_write_current_package": False,
             "can_authorize_publication_quality": False,
+        },
+    }
+
+
+def build_managed_temporal_state_consistency_read_model(
+    *,
+    provider_availability: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    availability = dict(provider_availability or _provider_availability(provider_available=False))
+    runtime_snapshot = _mapping(availability.get("runtime_snapshot"))
+    provider_available = availability.get("provider_attempt_available") is True
+    managed_ready = (
+        runtime_snapshot.get("address_source") == "managed_local_service_state"
+        and runtime_snapshot.get("lifecycle_status") == "ready"
+        and runtime_snapshot.get("server_reachable") is True
+        and runtime_snapshot.get("worker_ready") is True
+    )
+    status = "consistent" if provider_available and managed_ready else "typed_blocker"
+    blocker = None
+    if status != "consistent":
+        blocker = {
+            "surface_kind": "mas_opl_managed_temporal_state_typed_blocker",
+            "blocker_id": "managed_temporal_state_not_consistent",
+            "owner": OPL_OWNER,
+            "reason": (
+                "OPL provider status/read-model needs a proven managed service and worker state "
+                "before MAS can project provider-hosted paper apply readiness."
+            ),
+            "required_owner_surface": "OPL family-runtime status --provider temporal",
+            "write_permitted": False,
+        }
+    return {
+        "surface_kind": "mas_opl_managed_temporal_state_consistency",
+        "version": "mas-opl-managed-temporal-state-consistency.v1",
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "status": status,
+        "provider_state": "production_residency_proven" if provider_available else "contract_ready_skeleton",
+        "provider_availability_status": availability.get("status"),
+        "proof_ref": availability.get("proof_ref"),
+        "managed_state": {
+            "address_source": runtime_snapshot.get("address_source"),
+            "lifecycle_status": runtime_snapshot.get("lifecycle_status"),
+            "server_reachable": runtime_snapshot.get("server_reachable") is True,
+            "worker_ready": runtime_snapshot.get("worker_ready") is True,
+            "task_queue": runtime_snapshot.get("task_queue"),
+        },
+        "opl_status_projection": {
+            "provider": "temporal",
+            "read_model_owner": OPL_OWNER,
+            "managed_service_state": "ready" if managed_ready else "unavailable",
+            "worker_state": "ready" if runtime_snapshot.get("worker_ready") is True else "unknown",
+            "attempt_query_ready": provider_available and managed_ready,
+            "retry_dead_letter_state_visible": provider_available,
+        },
+        "consistency_checks": {
+            "provider_available_matches_managed_state": provider_available == managed_ready,
+            "managed_state_source_is_typed": runtime_snapshot.get("address_source") == "managed_local_service_state",
+            "server_reachable": runtime_snapshot.get("server_reachable") is True,
+            "worker_ready": runtime_snapshot.get("worker_ready") is True,
+            "task_queue_declared": bool(str(runtime_snapshot.get("task_queue") or "").strip()),
+        },
+        "blocker": blocker,
+        "authority_boundary": {
+            "projection_owner": OPL_OWNER,
+            "domain_truth_owner": DOMAIN_OWNER,
+            "read_only": True,
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+            "provider_completion_is_paper_closure": False,
+        },
+    }
+
+
+def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
+    retired_surfaces = [
+        {
+            "surface_id": "hermes_agent_executor_adapter",
+            "classification": "explicit_optional_executor_adapter",
+            "default_caller": False,
+            "retention_reason": "proof_or_diagnostics_only",
+            "replacement_ref": "/opl_provider_ready_contract/executor_requirements",
+        },
+        {
+            "surface_id": "hermes_scheduler_hosted_runtime",
+            "classification": "retire_after_parity",
+            "default_caller": False,
+            "retention_reason": "history_or_optional_provider_provenance",
+            "replacement_ref": "/opl_provider_ready_contract/provider_topology",
+        },
+        {
+            "surface_id": "mds_deepscientist_backend",
+            "classification": "fixture_or_provenance_only",
+            "default_caller": False,
+            "retention_reason": "historical_fixture_and_parity_oracle",
+            "replacement_ref": "/standard_domain_agent_skeleton",
+        },
+        {
+            "surface_id": "workspace_local_scheduler",
+            "classification": "standalone_diagnostics_only",
+            "default_caller": False,
+            "retention_reason": "local_diagnostics_not_opl_hosted_runtime",
+            "replacement_ref": "/managed_temporal_state_consistency",
+        },
+    ]
+    return {
+        "surface_kind": "mas_legacy_retirement_tombstone_proof",
+        "version": "mas-legacy-retirement-tombstone-proof.v1",
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "status": "no_active_default_caller_proven",
+        "active_default_callers": [],
+        "retired_or_tombstoned_surfaces": retired_surfaces,
+        "removal_policy": {
+            "delete_or_tombstone_when": [
+                "no_default_cli_mcp_product_entry_or_skill_caller",
+                "no_opl_active_reference",
+                "no_fixture_or_provenance_dependency",
+                "replacement_diagnostic_or_history_link_exists",
+            ],
+            "current_action": "safe_to_tombstone_docs_and_optional_residue",
+        },
+        "authority_boundary": {
+            "proof_role": "caller_inventory_and_tombstone_read_model",
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
         },
     }
 
@@ -751,6 +881,8 @@ __all__ = [
     "VERSION",
     "build_domain_agent_skeleton_mapping_surface",
     "build_forbidden_write_guard_proof",
+    "build_legacy_retirement_tombstone_proof",
+    "build_managed_temporal_state_consistency_read_model",
     "build_opl_lifecycle_inventory_surface",
     "build_opl_provider_ready_contract",
     "build_provider_availability_from_opl_proof",

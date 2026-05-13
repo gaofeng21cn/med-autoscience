@@ -537,7 +537,7 @@ def test_watch_runtime_keeps_submission_milestone_parked_instead_of_external_sup
     assert lifecycle_latest["medical_claim_authoring_allowed"] is False
 
 
-def test_watch_runtime_blocks_ai_doctor_repair_under_supervisor_only(
+def test_watch_runtime_applies_mas_controller_ai_doctor_repair_under_supervisor_only(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -578,12 +578,25 @@ def test_watch_runtime_blocks_ai_doctor_repair_under_supervisor_only(
     )
 
     assert ensure_calls == ["runtime_watch"]
-    assert result["managed_study_autonomy_repair_actions"][0]["state"] == "blocked"
-    assert result["managed_study_autonomy_repair_actions"][0]["reason"] == "execution_owner_guard_supervisor_only"
+    assert result["managed_study_autonomy_repair_actions"] == [
+        {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "state": "applied",
+            "action_type": "controller_repair",
+            "repair_kind": "bounded_work_unit_redrive",
+            "owner": "mas_controller",
+            "auto_apply_allowed": True,
+            "quality_gate_relaxation_allowed": False,
+            "dispatch_status": "executed",
+            "source": "runtime_watch_ai_doctor_repair",
+        }
+    ]
     repair_latest = json.loads(
         (study_root / "artifacts" / "autonomy" / "repair_actions" / "latest.json").read_text(encoding="utf-8")
     )
-    assert repair_latest["state"] == "ready_for_repair"
+    assert repair_latest["state"] == "applied"
+    assert repair_latest["applied_action"]["repair_kind"] == "bounded_work_unit_redrive"
 
 
 def test_watch_runtime_consumes_ai_doctor_repair_materialized_in_same_tick(

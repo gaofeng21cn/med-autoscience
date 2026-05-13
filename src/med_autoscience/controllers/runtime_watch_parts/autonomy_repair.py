@@ -338,12 +338,18 @@ def _has_controller_owned_runtime_recovery(status_payload: Mapping[str, Any]) ->
     return False
 
 
+def _status_allows_mas_controller_ai_doctor_repair(status_payload: Mapping[str, Any]) -> bool:
+    return (
+        _runtime_recovery_authorized(status_payload)
+        and _repair_authorization_allows_runtime_recovery(status_payload)
+        and _has_controller_owned_runtime_recovery(status_payload)
+    )
+
+
 def status_allows_ai_doctor_repair(status_payload: Mapping[str, Any]) -> bool:
     return (
         not _execution_owner_supervisor_only(status_payload)
-        and _runtime_recovery_authorized(status_payload)
-        and _repair_authorization_allows_runtime_recovery(status_payload)
-        and _has_controller_owned_runtime_recovery(status_payload)
+        and _status_allows_mas_controller_ai_doctor_repair(status_payload)
     )
 
 
@@ -517,7 +523,7 @@ def _apply_ai_doctor_repair_action(
             state="applied",
             dispatch_status="executed",
         )
-    if not status_allows_ai_doctor_repair(status_payload):
+    if not _status_allows_mas_controller_ai_doctor_repair(status_payload):
         return _serialize_ai_doctor_repair_result(
             repair_payload=repair_payload,
             action=action,
@@ -567,7 +573,7 @@ def _runtime_recovery_payload_satisfies_repair(
         runtime_recovery_payload is not None
         and _repair_targets_status(repair_payload=repair_payload, status_payload=runtime_recovery_payload)
         and _runtime_recovery_executed(runtime_recovery_payload)
-        and status_allows_ai_doctor_repair(runtime_recovery_payload)
+        and _status_allows_mas_controller_ai_doctor_repair(runtime_recovery_payload)
     )
 
 

@@ -543,6 +543,22 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
     assert availability["proof_ref"] == str(proof_ref)
     assert availability["proof_receipt"]["receipt_status"] == "proven"
     assert availability["runtime_snapshot"]["worker_ready"] is True
+    managed_state = manifest["managed_temporal_state_consistency"]
+    assert managed_state == manifest["opl_provider_ready_contract"]["managed_temporal_state_consistency"]
+    assert managed_state["status"] == "consistent"
+    assert managed_state["managed_state"]["address_source"] == "managed_local_service_state"
+    assert managed_state["managed_state"]["lifecycle_status"] == "ready"
+    assert managed_state["managed_state"]["server_reachable"] is True
+    assert managed_state["managed_state"]["worker_ready"] is True
+    assert managed_state["opl_status_projection"] == {
+        "provider": "temporal",
+        "read_model_owner": "one-person-lab",
+        "managed_service_state": "ready",
+        "worker_state": "ready",
+        "attempt_query_ready": True,
+        "retry_dead_letter_state_visible": True,
+    }
+    assert managed_state["authority_boundary"]["can_write_domain_truth"] is False
     assert availability["semantics"]["provider_completion_is_paper_closure"] is False
     assert availability["semantics"]["paper_closure_requires_mas_owner_receipt"] is True
     assert read_model["provider_completion_semantics"]["paper_closure_requires_mas_owner_receipt"] is True
@@ -556,6 +572,19 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
         item["paper_closure_requires_mas_owner_receipt"] is True
         for item in read_model["target_coverage"]
     )
+    tombstone = manifest["legacy_retirement_tombstone_proof"]
+    assert tombstone == manifest["opl_provider_ready_contract"]["legacy_retirement_tombstone_proof"]
+    assert tombstone["surface_kind"] == "mas_legacy_retirement_tombstone_proof"
+    assert tombstone["status"] == "no_active_default_caller_proven"
+    assert tombstone["active_default_callers"] == []
+    assert {item["classification"] for item in tombstone["retired_or_tombstoned_surfaces"]} == {
+        "explicit_optional_executor_adapter",
+        "retire_after_parity",
+        "fixture_or_provenance_only",
+        "standalone_diagnostics_only",
+    }
+    assert tombstone["removal_policy"]["current_action"] == "safe_to_tombstone_docs_and_optional_residue"
+    assert tombstone["authority_boundary"]["can_authorize_submission_readiness"] is False
 
 
 def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_path: Path) -> None:

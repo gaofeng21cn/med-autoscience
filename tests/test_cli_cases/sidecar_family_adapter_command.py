@@ -440,6 +440,32 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     assert availability["proof_ref"] == str(proof_ref)
     assert availability["semantics"]["provider_completion_is_paper_closure"] is False
     assert availability["semantics"]["mas_runtime_watch_role"] == "domain_truth_and_local_diagnostics"
+    managed_state = payload["managed_temporal_state_consistency"]
+    assert managed_state["surface_kind"] == "mas_opl_managed_temporal_state_consistency"
+    assert managed_state["status"] == "consistent"
+    assert managed_state["provider_state"] == "production_residency_proven"
+    assert managed_state["managed_state"] == {
+        "address_source": "managed_local_service_state",
+        "lifecycle_status": "ready",
+        "server_reachable": True,
+        "worker_ready": True,
+        "task_queue": "opl-stage-attempts",
+    }
+    assert managed_state["opl_status_projection"]["managed_service_state"] == "ready"
+    assert managed_state["opl_status_projection"]["worker_state"] == "ready"
+    assert managed_state["opl_status_projection"]["attempt_query_ready"] is True
+    assert managed_state["authority_boundary"]["can_write_domain_truth"] is False
+    tombstone = payload["legacy_retirement_tombstone_proof"]
+    assert tombstone["surface_kind"] == "mas_legacy_retirement_tombstone_proof"
+    assert tombstone["status"] == "no_active_default_caller_proven"
+    assert tombstone["active_default_callers"] == []
+    assert {item["surface_id"] for item in tombstone["retired_or_tombstoned_surfaces"]} == {
+        "hermes_agent_executor_adapter",
+        "hermes_scheduler_hosted_runtime",
+        "mds_deepscientist_backend",
+        "workspace_local_scheduler",
+    }
+    assert tombstone["authority_boundary"]["can_authorize_publication_quality"] is False
     assert read_model["provider_completion_semantics"] == {
         "provider_completion_is_paper_closure": False,
         "queue_completion_is_paper_closure": False,
@@ -452,6 +478,43 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
         item["status"] == "provider_available_guarded_apply_pending"
         for item in read_model["target_coverage"]
     )
+    guarded_apply_tasks = [
+        task for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "paper_autonomy/guarded-apply"
+    ]
+    assert guarded_apply_tasks == [
+        {
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/guarded-apply",
+            "priority": 30,
+            "source": "mas-sidecar-export",
+            "requires_approval": False,
+            "dedupe_key": "mas:nfpitnet:DM002:provider-hosted-guarded-apply:opl-temporal",
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": "DM002",
+                "target_studies": ["DM002"],
+                "provider_attempt_id": "opl-temporal:nfpitnet:DM002:provider-hosted-guarded-apply",
+                "idempotency_key": "mas:nfpitnet:DM002:provider-hosted-guarded-apply:opl-temporal",
+                "paper_autonomy_reason": "provider_hosted_guarded_apply_soak",
+                "authority_boundary": "mas_owner_guarded_apply_only",
+            },
+            "dispatch_owner": "med-autoscience",
+            "profile_name": "nfpitnet",
+            "source_refs": [
+                {
+                    "role": "opl_production_proof",
+                    "ref": str(proof_ref),
+                    "exists": True,
+                },
+                {
+                    "role": "provider_guarded_soak_read_model",
+                    "ref": "/provider_ready_adapter/provider_guarded_soak_read_model",
+                    "exists": True,
+                },
+            ],
+        }
+    ]
 
 
 def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path, capsys) -> None:
