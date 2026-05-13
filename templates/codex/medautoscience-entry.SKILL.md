@@ -1,6 +1,6 @@
 # MedAutoScience Agent Entry (Codex)
 
-Use this contract to select entry mode and route actions without changing canonical definitions.
+Use this stage route contract to select entry mode and route actions without changing canonical definitions.
 
 Compatible agents: Codex, Claude Code, OpenClaw
 Runtime modes: lightweight, managed

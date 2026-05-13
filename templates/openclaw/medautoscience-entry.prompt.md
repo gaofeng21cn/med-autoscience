@@ -1,6 +1,6 @@
 # MedAutoScience Agent Entry (OpenClaw)
 
-Use this prompt contract to choose runtime mode and route transitions from canonical entry facts.
+Use this prompt contract to choose runtime mode and route transitions from the canonical stage route contract.
 
 Compatible agents: Codex, Claude Code, OpenClaw
 Runtime modes: lightweight, managed

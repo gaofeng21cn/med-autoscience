@@ -25,7 +25,7 @@ META_FILES = {
     "tests/eval_hygiene/test_eval_hygiene_module_contract.py",
     "tests/integration/test_monorepo_scaffold_boundaries.py",
     "tests/runtime/test_runtime_module_contract.py",
-    "tests/test_agent_entry_assets.py",
+    "tests/test_stage_route_assets.py",
     "tests/test_codex_plugin.py",
     "tests/test_codex_plugin_installer.py",
     "tests/test_codex_plugin_installer_script.py",

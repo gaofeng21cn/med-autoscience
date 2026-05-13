@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import dev_preflight, dev_preflight_contract
-from med_autoscience.agent_entry.renderers import render_entry_modes_payload, sync_agent_entry_assets
+from med_autoscience.agent_entry.renderers import render_stage_route_contract_payload, sync_agent_entry_assets
 from med_autoscience.cli_public_surface import (
     GROUPED_COMMAND_PROGS,
     maybe_handle_public_help,
@@ -427,8 +427,8 @@ def main(argv: list[str] | None = None) -> int:
             print(mainline_status.render_mainline_phase_markdown(result), end="")
         return 0
 
-    if args.command == "show-agent-entry-modes":
-        print(json.dumps(render_entry_modes_payload(), ensure_ascii=False, indent=2))
+    if args.command in {"show-stage-route-contract", "show-agent-entry-modes"}:
+        print(json.dumps(render_stage_route_contract_payload(), ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "sync-agent-entry-assets":

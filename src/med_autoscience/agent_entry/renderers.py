@@ -6,15 +6,19 @@ from typing import Any
 
 import yaml
 
-from med_autoscience.agent_entry.modes import load_entry_modes_payload
+from med_autoscience.stage_route_contract import STAGE_ROUTE_CONTRACT_REF, load_stage_route_contract_payload
+
+
+def render_stage_route_contract_payload() -> dict[str, object]:
+    return deepcopy(load_stage_route_contract_payload())
 
 
 def render_entry_modes_payload() -> dict[str, object]:
-    return deepcopy(load_entry_modes_payload())
+    return render_stage_route_contract_payload()
 
 
-def render_entry_modes_guide() -> str:
-    payload = render_entry_modes_payload()
+def render_stage_route_contract_guide() -> str:
+    payload = render_stage_route_contract_payload()
     compatible_agents = _string_list(payload.get("compatible_agents"), field="compatible_agents")
     modes = _mode_payload_list(payload)
     route_contracts = _route_contract_payload_map(payload)
@@ -22,9 +26,10 @@ def render_entry_modes_guide() -> str:
     runtime_modes = sorted({mode["default_runtime_mode"] for mode in modes})
 
     lines: list[str] = [
-        "# Agent Entry Modes",
+        "# MAS Stage Route Contract",
         "",
-        "Canonical source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml`.",
+        f"Canonical source: `{STAGE_ROUTE_CONTRACT_REF}`.",
+        "Legacy `agent_entry_modes` names are compatibility aliases for this stage route contract.",
         "",
         "## Compatible Agents",
         f"- {', '.join(compatible_agents)}",
@@ -130,8 +135,12 @@ def render_entry_modes_guide() -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def render_entry_modes_guide() -> str:
+    return render_stage_route_contract_guide()
+
+
 def render_public_yaml() -> str:
-    payload = render_entry_modes_payload()
+    payload = render_stage_route_contract_payload()
     rendered = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
     return rendered if rendered.endswith("\n") else f"{rendered}\n"
 
@@ -139,22 +148,22 @@ def render_public_yaml() -> str:
 def render_codex_entry_skill() -> str:
     return _render_agent_entry_prompt(
         title="# MedAutoScience Agent Entry (Codex)",
-        intro="Use this contract to select entry mode and route actions without changing canonical definitions.",
+        intro="Use this stage route contract to select entry mode and route actions without changing canonical definitions.",
     )
 
 
 def render_openclaw_entry_prompt() -> str:
     return _render_agent_entry_prompt(
         title="# MedAutoScience Agent Entry (OpenClaw)",
-        intro="Use this prompt contract to choose runtime mode and route transitions from canonical entry facts.",
+        intro="Use this prompt contract to choose runtime mode and route transitions from the canonical stage route contract.",
     )
 
 
 def sync_agent_entry_assets(repo_root: Path) -> dict[str, object]:
     root = repo_root.expanduser().resolve()
     assets: tuple[tuple[Path, str], ...] = (
-        (Path("docs/runtime/contracts/agent_entry_modes.md"), render_entry_modes_guide()),
-        (Path("templates/agent_entry_modes.yaml"), render_public_yaml()),
+        (Path("docs/runtime/contracts/stage_route_contract.md"), render_stage_route_contract_guide()),
+        (Path("templates/stage_route_contract.yaml"), render_public_yaml()),
         (Path("templates/codex/medautoscience-entry.SKILL.md"), render_codex_entry_skill()),
         (Path("templates/openclaw/medautoscience-entry.prompt.md"), render_openclaw_entry_prompt()),
     )
@@ -174,7 +183,7 @@ def sync_agent_entry_assets(repo_root: Path) -> dict[str, object]:
 
 
 def _render_agent_entry_prompt(*, title: str, intro: str) -> str:
-    payload = render_entry_modes_payload()
+    payload = render_stage_route_contract_payload()
     modes = _mode_payload_list(payload)
     route_contracts = _route_contract_payload_map(payload)
     evidence_review_contract = _evidence_review_contract_payload(payload)

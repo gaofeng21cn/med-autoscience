@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from med_autoscience.agent_entry.renderers import render_entry_modes_payload
+from med_autoscience.agent_entry.renderers import render_stage_route_contract_payload
 from med_autoscience.stage_surface_contract import (
     MAIN_STAGE_ROUTE_IDS,
     build_stage_surface_contract,
@@ -23,10 +23,11 @@ EXPECTED_ROUTE_IDS = (
     "decision",
     "journal-resolution",
 )
+STAGE_ROUTE_CONTRACT_REF = "agent/stages/stage_route_contract.yaml"
 
 
 def test_stage_surface_contract_builds_cards_from_canonical_route_contracts() -> None:
-    payload = render_entry_modes_payload()
+    payload = render_stage_route_contract_payload()
     route_contracts = payload["route_contracts"]
     assert isinstance(route_contracts, dict)
 
@@ -36,7 +37,7 @@ def test_stage_surface_contract_builds_cards_from_canonical_route_contracts() ->
     assert surface["surface_kind"] == "mas_stage_surface_contract"
     assert surface["machine_boundary"]["markdown_is_truth"] is False
     assert surface["machine_boundary"]["canonical_route_contract"] == (
-        "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml"
+        STAGE_ROUTE_CONTRACT_REF
     )
     assert surface["authority_boundary"]["opl_allowed"] == [
         "projection",
@@ -62,7 +63,7 @@ def test_stage_surface_contract_builds_cards_from_canonical_route_contracts() ->
     for card in cards:
         route_id = card["route_id"]
         assert card["machine_source_refs"]["route_contract"] == (
-            f"src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/{route_id}"
+            f"{STAGE_ROUTE_CONTRACT_REF}#/route_contracts/{route_id}"
         )
         assert card["purpose"] == route_contracts[route_id]["goal"]
         assert card["entry"] == route_contracts[route_id]["enter_conditions"]
@@ -235,7 +236,7 @@ def test_render_stage_surfaces_markdown_is_generated_from_contract() -> None:
     markdown = render_stage_surfaces_markdown(surface)
 
     assert markdown.startswith("# MAS Stage Surfaces\n")
-    assert "Canonical route source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml`." in markdown
+    assert f"Canonical route source: `{STAGE_ROUTE_CONTRACT_REF}`." in markdown
     assert "Markdown is a generated human-reading surface; it is not machine truth." in markdown
     assert "OPL may only project, dispatch, and read refs." in markdown
     assert "MAS keeps domain truth, quality verdict, runtime owner, and artifact authority." in markdown
@@ -243,7 +244,7 @@ def test_render_stage_surfaces_markdown_is_generated_from_contract() -> None:
     for route_id in EXPECTED_ROUTE_IDS:
         assert f"## {route_id}" in markdown
         assert (
-            f"- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/{route_id}`"
+            f"- Machine source: `{STAGE_ROUTE_CONTRACT_REF}#/route_contracts/{route_id}`"
             in markdown
         )
         assert "### Purpose" in markdown
@@ -264,7 +265,7 @@ def test_render_stage_skill_surface_block_is_machine_derived() -> None:
     assert block.startswith("## MAS stage surface\n")
     assert "- Stage: `baseline` / Baseline" in block
     assert (
-        "- Route contract ref: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/baseline`"
+        f"- Route contract ref: `{STAGE_ROUTE_CONTRACT_REF}#/route_contracts/baseline`"
         in block
     )
     assert "- Stage card ref: `docs/runtime/contracts/stage_surfaces.md#baseline`" in block

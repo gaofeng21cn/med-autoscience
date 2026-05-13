@@ -5,7 +5,7 @@ Date: `2026-05-13`
 Owner: `MedAutoScience Stage-Led Autonomy + Quality OS`
 Purpose: 定义 MAS 在 OPL stage-led framework 下更理想、更统一、更易维护的 stage 表达形态，并记录当前差距、统一模板与后续执行计划。
 State: `stage_skill_surfaces_landed; provider_residency_read_model_landed; guarded_apply_harness_landed; review_index_workspace_locator_proof_landed; memory_receipt_inventory_landed; workbench_ref_projection_landed; opl_production_proof_ingested; legacy_residue_audit_landed; production_provider_live_apply_pending`
-Machine boundary: 本文是人读规划与维护合同。机器真相继续归 canonical route / contract / runtime surfaces：`agent_entry_modes.yaml`、stage knowledge plane contracts、stage quality contract、MAS controller/runtime surfaces、product-entry manifest、sidecar receipts、AI reviewer artifacts、publication gate、evidence/review ledgers 和真实 workspace artifact proof；Markdown 只解释和导航，不成为机器 truth。
+Machine boundary: 本文是人读规划与维护合同。机器真相继续归 canonical route / contract / runtime surfaces：`stage_route_contract.yaml`、stage knowledge plane contracts、stage quality contract、MAS controller/runtime surfaces、product-entry manifest、sidecar receipts、AI reviewer artifacts、publication gate、evidence/review ledgers 和真实 workspace artifact proof；Markdown 只解释和导航，不成为机器 truth。
 
 ## 结论
 
@@ -34,7 +34,7 @@ Stage card
 | surface | ideal contract |
 | --- | --- |
 | `stage card` | 一页人读 stage 摘要，说明目的、进入条件、退出条件、禁止动作、human gate 和 next routes。 |
-| `route contract` | `agent_entry_modes.yaml` 是 canonical source；每个 route 都有 `key_question`、`goal`、`enter_conditions`、`hard_success_gate`、`durable_outputs_minimum`、`human_gate_boundary`、`next_routes`、`route_back_triggers`。 |
+| `route contract` | `stage_route_contract.yaml` 是 canonical source；每个 route 都有 `key_question`、`goal`、`enter_conditions`、`hard_success_gate`、`durable_outputs_minimum`、`human_gate_boundary`、`next_routes`、`route_back_triggers`。 |
 | `prompt / skill` | 每个主 stage 都有独立可读 `SKILL.md` 或同等 stage prompt surface；append block 只用于横切补充，不作为长期主说明面。 |
 | `tool surface` | 每个 stage 明确允许调用哪些 MAS owner callable surface；工具只进入 controller-authorized CLI/MCP/product-entry/runtime/action catalog，不旁路写研究产物。 |
 | `knowledge input` | 每个探索、分析、写作、审阅和决策 stage 都有明确 `stage_knowledge_packet` 输入义务；无义务也要显式说明为什么不需要。 |
@@ -65,14 +65,14 @@ Stage card
 
 当前已具备的基础：
 
-- `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml` 已是 stage / route contract 的 canonical source。
-- `docs/runtime/contracts/agent_entry_modes.md`、`templates/agent_entry_modes.yaml`、Codex/OpenClaw entry prompt 都由 canonical payload 派生。
+- `agent/stages/stage_route_contract.yaml` 已是 stage / route contract 的 canonical source。
+- `docs/runtime/contracts/stage_route_contract.md`、`templates/stage_route_contract.yaml`、Codex/OpenClaw entry prompt 都由 canonical payload 派生。
 - `src/med_autoscience/stage_surface_contract.py` 已为 `scout`、`idea`、`baseline`、`experiment`、`analysis-campaign`、`write`、`review`、`finalize`、`decision` 和 `journal-resolution` 生成同构 stage card contract。
 - `docs/runtime/contracts/stage_surfaces.md` 是 stage card 的生成人读 facade；它从 machine source 渲染，不持有第二份 truth。
 - `scout`、`idea`、`baseline`、`experiment`、`analysis-campaign`、`write`、`review`、`finalize`、`decision`、`journal-resolution` 和 `figure-polish` 已有独立 stage skill surface。
 - `baseline`、`experiment`、`analysis-campaign` 和 `review` 已从历史 append-block 主说明升级为独立 skill surface；`rebuttal`、`intake-audit` 仍是次级/横切注入面，不代表主 stage skill 状态。
 - `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`stage_recall_index`、`publication_route_memory_pack` 和 `paper_soak_memory_apply_proof` 已是 MAS-owned operating surface。
-- `baseline`、`experiment`、`write`、`finalize` 和 `journal-resolution` 的 knowledge / closeout obligations 已进入 `stage_knowledge_contract.py` 与 canonical entry-mode payload。
+- `baseline`、`experiment`、`write`、`finalize` 和 `journal-resolution` 的 knowledge / closeout obligations 已进入 `stage_knowledge_contract.py` 与 canonical stage route contract payload。
 - `publication_route_memory` 已按 natural-language-first memory card 落地为小集合检索、typed closeout writeback 和 router receipt，不是机械 recipe engine。
 - `stage_quality_pack_contract` 已把 stage-selectable quality packs、reporting guideline selection、locator、freshness 和 authority boundary 落成 machine-readable contract。
 - `standard_domain_agent_skeleton.physical_skeleton_layout_audit` 已把 stage、prompt、skill、knowledge、quality gate、sidecar、projection builder 和 artifact locator 映射到现有 repo paths；`agent/`、`contracts/runtime/`、`runtime/artifact_locator/` 和 `docs/runtime/contracts/` 下的 repo-source physical anchors 已落地，`default_new_surface_slots` 和每个 slot 的 `mapping_explanation` 已说明新增 surface 应如何落到标准骨架，同时保留旧 facade / locator。
@@ -89,7 +89,7 @@ Stage card
 | landed slice | owner surface | proof surface |
 | --- | --- | --- |
 | stage card generated facade | `stage_surface_contract.py` + `docs/runtime/contracts/stage_surfaces.md` | `tests/test_stage_surface_contract.py` |
-| missing knowledge / closeout obligations | `stage_knowledge_contract.py` + canonical entry-mode assets | `tests/test_stage_knowledge_plane.py` + `tests/test_agent_entry_assets.py` |
+| missing knowledge / closeout obligations | `stage_knowledge_contract.py` + canonical stage route contract assets | `tests/test_stage_knowledge_plane.py` + `tests/test_stage_route_assets.py` |
 | stage-selectable quality packs | `stage_quality_contract.py` + product-entry / family descriptor projections | `tests/test_stage_quality_contract.py` + product-entry action catalog parity |
 | independent stage skill surfaces | `baseline` / `experiment` / `analysis-campaign` / `review` skill surfaces + existing stage skill updates | overlay / agent-entry asset validation |
 | provider projection and typed blocker proof | `real-paper-autonomy-provider-hosted-paper-proof` + `real-paper-autonomy-guarded-apply-proof` | read-only three-paper proof + MAS-owned guarded apply typed blocker surface |
@@ -173,7 +173,7 @@ Machine boundary:
 
 | field | meaning |
 | --- | --- |
-| `Machine source` | 指向 canonical contract，例如 `agent_entry_modes.yaml` 或 stage knowledge contract，不让 Markdown 成为机器真相。 |
+| `Machine source` | 指向 canonical contract，例如 `stage_route_contract.yaml` 或 stage knowledge contract，不让 Markdown 成为机器真相。 |
 | `Allowed Tools` | 只列 MAS owner callable surface，例如 `stage-knowledge-packet`、`stage-memory-closeout-route`、`runtime-supervisor-reconcile`、`ai-reviewer`、`publication_gate` 等。 |
 | `Knowledge Packet` | 写清 stage 开始前必须读取的 memory/literature/evidence/review refs。 |
 | `Quality Gate` | 写清谁能给 PASS / FAIL / NEEDS_REVIEW，哪些 surface 只能做 projection。 |
@@ -303,7 +303,7 @@ Reporting guideline selection should be explicit:
 
 - 不把 `research-harness` 的 `pool.db`、dashboard、HTTP/API/Web/MCP server、checkpoint runner、Docling parser path 或 Cursor rules 作为 MAS 依赖。
 - 不把 RH 的研究领域判断、paper-ready verdict、citation/number quality authority 或 runner semantics 写入 OPL descriptor。
-- 不新增 Markdown-only 规则来替代 `agent_entry_modes.yaml`、stage knowledge plane、stage quality contract、publication gate、AI reviewer artifact、evidence/review ledger 或 controller decision。
+- 不新增 Markdown-only 规则来替代 `stage_route_contract.yaml`、stage knowledge plane、stage quality contract、publication gate、AI reviewer artifact、evidence/review ledger 或 controller decision。
 - 不把 quality pack、rubric score、candidate ranking、contradiction flag 或 read-only projection 写成 publication readiness authority。
 
 ## Nature-skills Clean-room Pattern Intake
@@ -319,7 +319,7 @@ nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clea
 | `P0` | `landed` | 冻结 stage surface template | 本文 + program/README/current lines 引用 | `git diff --check` |
 | `P1` | `landed` | 为所有主 stage 生成 stage card | `src/med_autoscience/stage_surface_contract.py` + `docs/runtime/contracts/stage_surfaces.md` generated facade | `tests/test_stage_surface_contract.py` + route contract path spot check |
 | `P1` | `landed` | 把 append-block 主 stage 升级为独立可读 skill surface，并消费 stage card / knowledge / quality pack / closeout refs | baseline / experiment / analysis-campaign / review stage skill | overlay installer tests + agent entry asset tests |
-| `P1` | `landed` | 补齐 knowledge / closeout obligations | 更新 `stage_knowledge_contract.py` 与 canonical YAML 中的 obligations | `tests/test_stage_knowledge_plane.py` + `tests/test_agent_entry_assets.py` |
+| `P1` | `landed` | 补齐 knowledge / closeout obligations | 更新 `stage_knowledge_contract.py` 与 canonical YAML 中的 obligations | `tests/test_stage_knowledge_plane.py` + `tests/test_stage_route_assets.py` |
 | `P2` | `landed` | 抽出 reporting guideline quality pack 和 stage quality pack contract | `stage_quality_contract.py` + generated product-entry / family descriptor refs | `tests/test_stage_quality_contract.py` + product-entry action catalog parity |
 | `P2` | `landed` | 对齐 OPL descriptor 中的 stage/skill/quality locator | product-entry manifest / skeleton mapping update | product-entry / OPL family adapter tests |
 | `P2` | `documented` | 记录 nature-skills clean-room pattern absorption | `docs/references/mainline/nature_skills_learning_intake.md` + 本 program closeout note | `git diff --check` |

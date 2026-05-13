@@ -249,6 +249,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     by_slot = {item["slot_id"]: item for item in physical_audit["slots"]}
     assert by_slot["agent/stages"]["repo_paths"] == [
         "docs/policies/study-workflow/stage_led_research_autonomy.md",
+        "agent/stages/stage_route_contract.yaml",
         "src/med_autoscience/controllers/stage_knowledge_plane.py",
     ]
     assert by_slot["agent/stages"]["status"] == "mapped_to_existing_repo_paths"

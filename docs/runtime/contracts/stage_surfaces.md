@@ -1,6 +1,6 @@
 # MAS Stage Surfaces
 
-Canonical route source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml`.
+Canonical route source: `agent/stages/stage_route_contract.yaml`.
 Markdown is a generated human-reading surface; it is not machine truth.
 OPL may only project, dispatch, and read refs.
 MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
@@ -16,7 +16,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ## scout
 
 - Display name: Scout
-- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/scout`
+- Machine source: `agent/stages/stage_route_contract.yaml#/route_contracts/scout`
 - Key question: Is this direction worth entering the current study line?
 
 ### Purpose
@@ -49,7 +49,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 
 ### Quality
 - Verdict owner: MedAutoScience
-- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract
+- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | agent/stages/stage_route_contract.yaml#/evidence_review_contract
 - Route success gate: question framing names the study target, population, and evidence boundary | Literature Scout OS records search strategy with MeSH, query, date, anchor papers, guideline, and journal-neighbor evidence anchors | route recommendation names the next formal route with reasons | blockers and assumptions are explicit enough for controller review
 
 ### Closeout
@@ -93,7 +93,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ## idea
 
 - Display name: Idea
-- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/idea`
+- Machine source: `agent/stages/stage_route_contract.yaml#/route_contracts/idea`
 - Key question: Which study line is strongest enough to justify the next route?
 
 ### Purpose
@@ -126,7 +126,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 
 ### Quality
 - Verdict owner: MedAutoScience
-- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract
+- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | agent/stages/stage_route_contract.yaml#/evidence_review_contract
 - Route success gate: one primary line is selected with explicit tradeoffs | Study Line Selection Scorecard compares novelty, clinical relevance, data fit, analysis plasticity, external validation, journal fit, cost-risk, and stop threshold | execution recommendation names whether to proceed to baseline or return to decision | chosen line matches the active study charter scope
 
 ### Closeout
@@ -170,7 +170,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ## baseline
 
 - Display name: Baseline
-- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/baseline`
+- Machine source: `agent/stages/stage_route_contract.yaml#/route_contracts/baseline`
 - Key question: Does the current claim have reproducible baseline support?
 
 ### Purpose
@@ -202,7 +202,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 
 ### Quality
 - Verdict owner: MedAutoScience
-- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract
+- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | agent/stages/stage_route_contract.yaml#/evidence_review_contract
 - Route success gate: baseline or comparator setup is reproducible and scoped to the active claim | baseline readout reveals whether the line is strong enough to continue | unresolved blockers are small enough for analysis-campaign or decision
 
 ### Closeout
@@ -246,7 +246,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ## experiment
 
 - Display name: Experiment
-- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/experiment`
+- Machine source: `agent/stages/stage_route_contract.yaml#/route_contracts/experiment`
 - Key question: Does the primary result answer the current study question?
 
 ### Purpose
@@ -278,7 +278,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 
 ### Quality
 - Verdict owner: MedAutoScience
-- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract
+- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | agent/stages/stage_route_contract.yaml#/evidence_review_contract
 - Route success gate: primary experiment result is recorded with reproducible run context | result answers the intended study question for the current line | next step is clear between analysis-campaign, write, and decision
 
 ### Closeout
@@ -322,7 +322,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ## analysis-campaign
 
 - Display name: Analysis Campaign
-- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/analysis-campaign`
+- Machine source: `agent/stages/stage_route_contract.yaml#/route_contracts/analysis-campaign`
 - Key question: Have the bounded evidence gaps been closed?
 
 ### Purpose
@@ -356,7 +356,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 
 ### Quality
 - Verdict owner: MedAutoScience
-- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract
+- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | agent/stages/stage_route_contract.yaml#/evidence_review_contract
 - Route success gate: each targeted gap has a resolved outcome or explicit stop decision | Bounded Analysis Candidate Board records explore, exploit, fusion, debug, and stop candidates with target claim, expected evidence gain, cost/risk, clinical interpretability, and decision reason | added analyses stay within the bounded scope of the active line | resulting evidence package can support writing or a decision review
 
 ### Closeout
@@ -400,7 +400,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ## write
 
 - Display name: Write
-- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/write`
+- Machine source: `agent/stages/stage_route_contract.yaml#/route_contracts/write`
 - Key question: Does the manuscript narrative faithfully carry the current evidence?
 
 ### Purpose
@@ -435,7 +435,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 
 ### Quality
 - Verdict owner: MedAutoScience
-- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract
+- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | agent/stages/stage_route_contract.yaml#/evidence_review_contract
 - Route success gate: manuscript line states claims that match cited evidence | first-draft quality scan has checked underused data-asset dimensions before calling the draft ready | open gaps, caveats, and next actions are explicit in the writing surface | draft is ready for finalize or route-back with named reasons | explicit user/reviewer manuscript feedback after a stopped or submission-ready milestone has been handled as same-line revision reactivation, not as direct `current_package` editing
 
 ### Closeout
@@ -479,7 +479,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ## review
 
 - Display name: Review
-- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/review`
+- Machine source: `agent/stages/stage_route_contract.yaml#/route_contracts/review`
 - Key question: What should the strict AI reviewer send back before the line can advance?
 
 ### Purpose
@@ -512,7 +512,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 
 ### Quality
 - Verdict owner: MedAutoScience
-- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract
+- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | agent/stages/stage_route_contract.yaml#/evidence_review_contract
 - Route success gate: reviewer action matrix maps each concern to evidence, citation, text, analysis, route decision, or human gate work | unsupported claims are downgraded or routed back before finalize | citation and reference gaps have repair requests or explicit blockers | reusable critique lessons are separated from study-specific truth
 
 ### Closeout
@@ -556,7 +556,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ## finalize
 
 - Display name: Finalize
-- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/finalize`
+- Machine source: `agent/stages/stage_route_contract.yaml#/route_contracts/finalize`
 - Key question: Is the submission package ready for final audit?
 
 ### Purpose
@@ -588,7 +588,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 
 ### Quality
 - Verdict owner: MedAutoScience
-- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract
+- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | agent/stages/stage_route_contract.yaml#/evidence_review_contract
 - Route success gate: final package is internally consistent across claim, evidence, and limitations | required review artifacts are complete enough for final audit | route recommendation is explicit between submit-ready and route-back | no unreconciled foreground `current_package` revision overlay remains
 
 ### Closeout
@@ -632,7 +632,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ## decision
 
 - Display name: Decision
-- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/decision`
+- Machine source: `agent/stages/stage_route_contract.yaml#/route_contracts/decision`
 - Key question: Should the current study line continue, route back, stop, or enter a human gate?
 
 ### Purpose
@@ -665,7 +665,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 
 ### Quality
 - Verdict owner: MedAutoScience
-- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract
+- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | agent/stages/stage_route_contract.yaml#/evidence_review_contract
 - Route success gate: decision names the chosen route or terminal judgment | Stop-loss Memo is written when the line should stop, route back, or enter a human gate | rationale cites the current evidence and unresolved risks | downstream owner and next action are unambiguous
 
 ### Closeout
@@ -709,7 +709,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 ## journal-resolution
 
 - Display name: Journal Resolution
-- Machine source: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/journal-resolution`
+- Machine source: `agent/stages/stage_route_contract.yaml#/route_contracts/journal-resolution`
 - Key question: Which outlet or packaging path best preserves the current claim boundary?
 
 ### Purpose
@@ -741,7 +741,7 @@ MAS keeps domain truth, quality verdict, runtime owner, and artifact authority.
 
 ### Quality
 - Verdict owner: MedAutoScience
-- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract
+- Machine source refs: publication_eval/latest.json | review_ledger | evidence_ledger | controller_decisions/latest.json | agent/stages/stage_route_contract.yaml#/evidence_review_contract
 - Route success gate: target outlet or packaging rule is chosen with reasons | manuscript bundle requirements are reflected in the active draft plan | remaining journal-facing gaps are explicit
 
 ### Closeout

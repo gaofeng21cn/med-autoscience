@@ -13,7 +13,7 @@ command -v uv >/dev/null 2>&1
 repo_uv=(uv run --directory "${repo_root}" --extra analysis)
 
 "${repo_uv[@]}" medautosci --help >/dev/null
-"${repo_uv[@]}" medautosci doctor entry-modes >/dev/null
+"${repo_uv[@]}" medautosci doctor stage-route-contract >/dev/null
 mcp_tools_json="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | "${repo_uv[@]}" medautosci-mcp)"
 export MCP_TOOLS_JSON="${mcp_tools_json}"
 

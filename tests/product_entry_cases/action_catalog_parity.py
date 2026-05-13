@@ -201,9 +201,9 @@ def test_product_entry_manifest_exposes_foundry_agent_product_positioning(tmp_pa
 
 
 def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descriptor(tmp_path: Path) -> None:
-    agent_entry = importlib.import_module("med_autoscience.agent_entry")
     stage_knowledge_plane = importlib.import_module("med_autoscience.controllers.stage_knowledge_plane")
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+    stage_route_contract = importlib.import_module("med_autoscience.stage_route_contract")
     stage_surface_contract = importlib.import_module("med_autoscience.stage_surface_contract")
     stage_quality_contract = importlib.import_module("med_autoscience.stage_quality_contract")
     stage_skill_surface_projection = importlib.import_module(
@@ -212,7 +212,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
 
     profile = make_profile(tmp_path)
     profile_ref = tmp_path / "profile.local.toml"
-    route_payload = agent_entry.load_entry_modes_payload()
+    route_payload = stage_route_contract.load_stage_route_contract_payload()
     stage_contract = stage_knowledge_plane.stage_knowledge_plane_contract()
     stage_surface = stage_surface_contract.build_stage_surface_contract()
 
@@ -230,7 +230,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "docs/references/integration/stage_led_autonomy_family_inventory.md"
     )
     assert descriptor["source_refs"]["route_contract_source"] == (
-        "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml"
+        "agent/stages/stage_route_contract.yaml"
     )
     assert descriptor["source_refs"]["knowledge_plane_contract_source"] == (
         "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
@@ -251,6 +251,7 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     )
 
     snapshot = descriptor["route_contract_snapshot"]
+    assert snapshot["source"] == "agent/stages/stage_route_contract.yaml"
     assert snapshot["route_ids"] == list(route_payload["route_contracts"])
     assert snapshot["route_count"] == len(route_payload["route_contracts"])
     assert snapshot["entry_mode_count"] == len(route_payload["modes"])
@@ -432,6 +433,9 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["freshness"]["stale_if_source_refs_missing"] is True
         assert any(ref["role"] == "deep_descriptor" for ref in stage["source_refs"])
         assert any(ref["role"] == "stage_deliverable_index" for ref in stage["source_refs"])
+        assert {"ref_kind": "repo_path", "ref": "agent/stages/stage_route_contract.yaml", "role": "route_contract"} in stage[
+            "prompt_refs"
+        ]
         assert stage["deliverable_index_ref"] == {
             "ref_kind": "json_pointer",
             "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
@@ -867,6 +871,7 @@ def test_standard_domain_agent_skeleton_projects_quality_pack_locator_without_au
     }
     assert "src/med_autoscience/stage_quality_contract.py" in skeleton["skeleton"]["agent/quality_gates"]
     assert skeleton["default_new_surface_slots"]["quality"] == "agent/quality_gates"
+    assert "agent/stages/stage_route_contract.yaml" in skeleton["skeleton"]["agent/stages"]
     quality_slot = {
         item["slot_id"]: item for item in skeleton["physical_skeleton_layout_audit"]["slots"]
     }["agent/quality_gates"]

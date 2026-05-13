@@ -267,19 +267,29 @@ def test_shell_argv_grouped_subcommand_help_uses_grouped_prog(monkeypatch, capsy
     assert excinfo.value.code == 0
     assert "usage: medautosci publication gate" in captured.out
 
-def test_show_agent_entry_modes_outputs_canonical_payload(capsys) -> None:
+def test_show_stage_route_contract_outputs_canonical_payload(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    exit_code = cli.main(["doctor", "stage-route-contract"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert json.loads(captured.out) == render_stage_route_contract_payload()
+
+
+def test_show_agent_entry_modes_remains_compatibility_alias(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
     exit_code = cli.main(["doctor", "entry-modes"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert json.loads(captured.out) == render_entry_modes_payload()
+    assert json.loads(captured.out) == render_stage_route_contract_payload()
 def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     expected_assets = {
-        "docs/runtime/contracts/agent_entry_modes.md": render_entry_modes_guide(),
-        "templates/agent_entry_modes.yaml": render_public_yaml(),
+        "docs/runtime/contracts/stage_route_contract.md": render_stage_route_contract_guide(),
+        "templates/stage_route_contract.yaml": render_public_yaml(),
         "templates/codex/medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         "templates/openclaw/medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
     }

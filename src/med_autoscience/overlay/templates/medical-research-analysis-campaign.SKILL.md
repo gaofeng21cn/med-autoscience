@@ -20,7 +20,7 @@ Do not use this skill for open-ended exploration, metric polishing, or a new stu
 ## Stage card and route contract
 
 - Stage card ref: `docs/runtime/contracts/stage_surfaces.md#analysis-campaign`
-- Route contract ref: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/analysis-campaign`
+- Route contract ref: `agent/stages/stage_route_contract.yaml#/route_contracts/analysis-campaign`
 - Knowledge contract: `src/med_autoscience/stage_knowledge_contract.py#/STAGE_OBLIGATIONS/analysis-campaign`
 - Quality pack contract: `src/med_autoscience/stage_quality_contract.py`
 

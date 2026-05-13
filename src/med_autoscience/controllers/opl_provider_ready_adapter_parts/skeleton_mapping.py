@@ -26,7 +26,7 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
         "repo_source_anchor_status": _repo_source_anchor_status(),
         "skeleton": {
             "agent/stages": [
-                "templates/agent_entry_modes.yaml",
+                "agent/stages/stage_route_contract.yaml",
                 "med_autoscience.controllers.stage_knowledge_plane.stage_knowledge_plane_contract",
             ],
             "agent/prompts": [
@@ -127,6 +127,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             default_for_new_surfaces=True,
             repo_paths=[
                 "docs/policies/study-workflow/stage_led_research_autonomy.md",
+                "agent/stages/stage_route_contract.yaml",
                 "src/med_autoscience/controllers/stage_knowledge_plane.py",
             ],
             mapping_explanation=(
@@ -139,7 +140,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             surface_class="prompt",
             default_for_new_surfaces=True,
             repo_paths=[
-                "templates/agent_entry_modes.yaml",
+                "templates/stage_route_contract.yaml",
                 "templates/codex/medautoscience-entry.SKILL.md",
                 "templates/openclaw/medautoscience-entry.prompt.md",
             ],

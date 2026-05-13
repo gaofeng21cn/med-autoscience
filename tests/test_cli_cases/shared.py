@@ -11,10 +11,10 @@ import pytest
 
 from med_autoscience.agent_entry.renderers import (
     render_codex_entry_skill,
-    render_entry_modes_guide,
-    render_entry_modes_payload,
     render_openclaw_entry_prompt,
     render_public_yaml,
+    render_stage_route_contract_guide,
+    render_stage_route_contract_payload,
 )
 from med_autoscience.figure_routes import (
     FIGURE_ROUTE_ILLUSTRATION_PROGRAM,
@@ -72,8 +72,6 @@ def write_profile(
         + "\n",
         encoding="utf-8",
     )
-
-
 
 
 

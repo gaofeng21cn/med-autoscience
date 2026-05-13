@@ -16,7 +16,7 @@ The core lane renderer injects the generated stage skill surface here.
 ## Stage card and route contract
 
 - Stage card ref: `docs/runtime/contracts/stage_surfaces.md#baseline`
-- Route contract ref: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/baseline`
+- Route contract ref: `agent/stages/stage_route_contract.yaml#/route_contracts/baseline`
 - Key question: Does the current claim have reproducible baseline support?
 - Goal: Establish the baseline, comparator, and readiness proof for the active study line.
 - Route bias token: `{{MED_AUTOSCIENCE_ROUTE_BIAS}}`

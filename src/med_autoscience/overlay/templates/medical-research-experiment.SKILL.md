@@ -16,7 +16,7 @@ The core lane renderer injects the generated stage skill surface here.
 ## Stage card and route contract
 
 - Stage card ref: `docs/runtime/contracts/stage_surfaces.md#experiment`
-- Route contract ref: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/experiment`
+- Route contract ref: `agent/stages/stage_route_contract.yaml#/route_contracts/experiment`
 - Key question: Does the primary result answer the current study question?
 - Goal: Run a primary managed experiment when the study line needs fresh main-result execution.
 - Runtime contract token: `{{MED_AUTOSCIENCE_MEDICAL_RUNTIME_CONTRACT}}`

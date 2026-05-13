@@ -75,7 +75,7 @@ The previous non-Markdown-first agent-context residues have been migrated:
 | `src/med_autoscience/policies/study_archetypes.py` | `docs/policies/study-workflow/study_archetypes.md` | parser, validator, typed API, overlay renderer |
 | `src/med_autoscience/policies/research_route_bias.py` | `docs/policies/study-workflow/research_route_bias_policy.md` | parser, validator, typed API, overlay renderer |
 
-`src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml` is still structured because it is the MAS route/stage contract source, not a natural-language memory body. It defines route ids, entry modes, gates, durable outputs, route-back triggers, stage knowledge obligations, and derived OPL/family descriptors. It may later gain a richer Markdown projection for human reading, but replacing the contract with Markdown would move route authority into prose and break current stage-surface tests.
+`agent/stages/stage_route_contract.yaml` is still structured because it is the MAS route/stage contract source, not a natural-language memory body. It defines route ids, entry modes, gates, durable outputs, route-back triggers, stage knowledge obligations, and derived OPL/family descriptors. It may later gain a richer Markdown projection for human reading, but replacing the contract with Markdown would move route authority into prose and break current stage-surface tests.
 
 ## Publication Route Memory Entry
 

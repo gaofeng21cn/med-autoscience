@@ -10,6 +10,8 @@ from setuptools.command.sdist import sdist as _sdist
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 RESOURCE_PROJECTION_PATH = Path("src/med_autoscience/resources/display_pack_repo")
+STAGE_ROUTE_CONTRACT_SOURCE_PATH = Path("agent/stages/stage_route_contract.yaml")
+STAGE_ROUTE_CONTRACT_RESOURCE_PATH = Path("src/med_autoscience/resources/stage_route_contract.yaml")
 DISPLAY_PACK_CONFIG_PATH = Path("config/display_packs.toml")
 DISPLAY_PACKS_ROOT = Path("display-packs")
 IGNORED_DIR_NAMES = frozenset((".git", ".hg", ".svn", "__pycache__"))
@@ -49,11 +51,22 @@ def _project_display_pack_repo(source_root: Path, target_root: Path) -> None:
     _copy_tree(packs_root, target_root / "display-packs")
 
 
+def _project_stage_route_contract(source_root: Path, target_path: Path) -> None:
+    source_path = source_root / STAGE_ROUTE_CONTRACT_SOURCE_PATH
+    if not source_path.is_file():
+        raise RuntimeError(f"missing stage route contract source: {source_path}")
+    _copy_file(source_path, target_path)
+
+
 class build_py(_build_py):
     def run(self) -> None:
         super().run()
         target_root = Path(self.build_lib) / "med_autoscience" / "resources" / "display_pack_repo"
         _project_display_pack_repo(PROJECT_ROOT, target_root)
+        _project_stage_route_contract(
+            PROJECT_ROOT,
+            Path(self.build_lib) / "med_autoscience" / "resources" / "stage_route_contract.yaml",
+        )
 
 
 class sdist(_sdist):
@@ -61,6 +74,7 @@ class sdist(_sdist):
         super().make_release_tree(base_dir, files)
         release_root = Path(base_dir)
         _project_display_pack_repo(release_root, release_root / RESOURCE_PROJECTION_PATH)
+        _project_stage_route_contract(release_root, release_root / STAGE_ROUTE_CONTRACT_RESOURCE_PATH)
 
 
 setup(cmdclass={"build_py": build_py, "sdist": sdist})

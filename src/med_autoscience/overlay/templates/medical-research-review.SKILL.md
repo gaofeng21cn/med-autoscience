@@ -16,7 +16,7 @@ Review is not copyediting. It is a MAS-owned pressure test over claims, evidence
 ## Stage card and route contract
 
 - Stage card ref: `docs/runtime/contracts/stage_surfaces.md#review`
-- Route contract ref: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/route_contracts/review`
+- Route contract ref: `agent/stages/stage_route_contract.yaml#/route_contracts/review`
 - Knowledge contract: `src/med_autoscience/stage_knowledge_contract.py#/STAGE_OBLIGATIONS/review`
 - Quality pack contract: `src/med_autoscience/stage_quality_contract.py`
 

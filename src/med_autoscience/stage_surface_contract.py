@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from med_autoscience.agent_entry.modes import load_entry_modes_payload
+from med_autoscience.stage_route_contract import STAGE_ROUTE_CONTRACT_REF, load_stage_route_contract_payload
 from med_autoscience.stage_knowledge_contract import STAGE_OBLIGATIONS
 from med_autoscience.stage_quality_contract import build_stage_quality_pack_ref_projection
 
@@ -20,7 +20,7 @@ MAIN_STAGE_ROUTE_IDS = (
     "journal-resolution",
 )
 
-CANONICAL_ROUTE_CONTRACT_REF = "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml"
+CANONICAL_ROUTE_CONTRACT_REF = STAGE_ROUTE_CONTRACT_REF
 
 STAGE_KNOWLEDGE_SOURCE_REFS = (
     "stage_knowledge_packet",
@@ -38,7 +38,7 @@ QUALITY_SOURCE_REFS = (
     "review_ledger",
     "evidence_ledger",
     "controller_decisions/latest.json",
-    "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml#/evidence_review_contract",
+    f"{STAGE_ROUTE_CONTRACT_REF}#/evidence_review_contract",
 )
 DELIVERABLE_INDEX_SOURCE_REFS = (
     "stage_knowledge_packet",
@@ -148,7 +148,7 @@ ALLOWED_OWNER_TOOLS = (
 
 
 def build_stage_surface_contract(payload: dict[str, object] | None = None) -> dict[str, object]:
-    entry_payload = deepcopy(payload) if payload is not None else load_entry_modes_payload()
+    entry_payload = deepcopy(payload) if payload is not None else load_stage_route_contract_payload()
     route_contracts = _route_contracts(entry_payload)
     _validate_main_routes(route_contracts)
 
@@ -228,7 +228,7 @@ def render_stage_surfaces_markdown(surface: dict[str, object] | None = None) -> 
 
 def render_stage_skill_surface_block(stage_id: str) -> str:
     normalized_stage_id = str(stage_id).strip()
-    route_contracts = _route_contracts(load_entry_modes_payload())
+    route_contracts = _route_contracts(load_stage_route_contract_payload())
     _validate_main_routes(route_contracts)
     if normalized_stage_id not in MAIN_STAGE_ROUTE_IDS:
         raise ValueError(f"unsupported main stage id: {normalized_stage_id}")

@@ -31,6 +31,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     mainline_phase_parser.add_argument("--phase", default="current")
     mainline_phase_parser.add_argument("--format", choices=("text", "json"), default="text")
 
+    subparsers.add_parser("show-stage-route-contract")
     subparsers.add_parser("show-agent-entry-modes")
 
     sync_agent_entry_assets_parser = subparsers.add_parser("sync-agent-entry-assets")

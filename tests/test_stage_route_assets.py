@@ -6,15 +6,15 @@ from pathlib import Path
 import pytest
 import yaml
 
-from med_autoscience.agent_entry import load_entry_modes_payload
 from med_autoscience.agent_entry.renderers import (
     render_codex_entry_skill,
-    render_entry_modes_guide,
-    render_entry_modes_payload,
     render_openclaw_entry_prompt,
     render_public_yaml,
+    render_stage_route_contract_guide,
+    render_stage_route_contract_payload,
     sync_agent_entry_assets,
 )
+from med_autoscience.stage_route_contract import load_stage_route_contract_payload
 from med_autoscience.stage_knowledge_contract import STAGE_OBLIGATIONS
 
 EXPECTED_ROUTE_IDS = {
@@ -34,8 +34,8 @@ EXPECTED_ROUTE_IDS = {
 def test_sync_agent_entry_assets_writes_public_files(tmp_path) -> None:
     result = sync_agent_entry_assets(repo_root=tmp_path)
     expected_assets = {
-        "docs/runtime/contracts/agent_entry_modes.md": render_entry_modes_guide(),
-        "templates/agent_entry_modes.yaml": render_public_yaml(),
+        "docs/runtime/contracts/stage_route_contract.md": render_stage_route_contract_guide(),
+        "templates/stage_route_contract.yaml": render_public_yaml(),
         "templates/codex/medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         "templates/openclaw/medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
     }
@@ -51,8 +51,8 @@ def test_sync_agent_entry_assets_writes_public_files(tmp_path) -> None:
 def test_repo_public_agent_entry_assets_match_renderers() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     expected_assets = {
-        repo_root / "docs" / "runtime" / "contracts" / "agent_entry_modes.md": render_entry_modes_guide(),
-        repo_root / "templates" / "agent_entry_modes.yaml": render_public_yaml(),
+        repo_root / "docs" / "runtime" / "contracts" / "stage_route_contract.md": render_stage_route_contract_guide(),
+        repo_root / "templates" / "stage_route_contract.yaml": render_public_yaml(),
         repo_root / "templates" / "codex" / "medautoscience-entry.SKILL.md": render_codex_entry_skill(),
         repo_root / "templates" / "openclaw" / "medautoscience-entry.prompt.md": render_openclaw_entry_prompt(),
     }
@@ -65,47 +65,47 @@ def test_repo_public_agent_entry_assets_match_renderers() -> None:
 def test_render_public_yaml_round_trip_matches_canonical_payload() -> None:
     rendered = render_public_yaml()
 
-    assert yaml.safe_load(rendered) == load_entry_modes_payload()
+    assert yaml.safe_load(rendered) == load_stage_route_contract_payload()
 
 
-def test_load_entry_modes_payload_requires_route_human_gate_boundary(tmp_path: Path) -> None:
-    payload = render_entry_modes_payload()
+def test_stage_route_contract_payload_requires_route_human_gate_boundary(tmp_path: Path) -> None:
+    payload = render_stage_route_contract_payload()
     route_contracts = payload["route_contracts"]
     assert isinstance(route_contracts, dict)
     route_contracts["scout"].pop("human_gate_boundary", None)
-    yaml_path = tmp_path / "agent_entry_modes.yaml"
+    yaml_path = tmp_path / "stage_route_contract.yaml"
     yaml_path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
     with pytest.raises(ValueError, match=r"route_contracts\[scout\] missing required field: human_gate_boundary"):
-        load_entry_modes_payload(yaml_path)
+        load_stage_route_contract_payload(yaml_path)
 
 
-def test_load_entry_modes_payload_requires_route_key_question(tmp_path: Path) -> None:
-    payload = render_entry_modes_payload()
+def test_stage_route_contract_payload_requires_route_key_question(tmp_path: Path) -> None:
+    payload = render_stage_route_contract_payload()
     route_contracts = payload["route_contracts"]
     assert isinstance(route_contracts, dict)
     route_contracts["scout"].pop("key_question", None)
-    yaml_path = tmp_path / "agent_entry_modes.yaml"
+    yaml_path = tmp_path / "stage_route_contract.yaml"
     yaml_path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
     with pytest.raises(ValueError, match=r"route_contracts\[scout\] missing required field: key_question"):
-        load_entry_modes_payload(yaml_path)
+        load_stage_route_contract_payload(yaml_path)
 
 
-def test_load_entry_modes_payload_rejects_empty_route_key_question(tmp_path: Path) -> None:
-    payload = render_entry_modes_payload()
+def test_stage_route_contract_payload_rejects_empty_route_key_question(tmp_path: Path) -> None:
+    payload = render_stage_route_contract_payload()
     route_contracts = payload["route_contracts"]
     assert isinstance(route_contracts, dict)
     route_contracts["scout"]["key_question"] = ""
-    yaml_path = tmp_path / "agent_entry_modes.yaml"
+    yaml_path = tmp_path / "stage_route_contract.yaml"
     yaml_path.write_text(yaml.safe_dump(payload, allow_unicode=True, sort_keys=False), encoding="utf-8")
 
     with pytest.raises(ValueError, match=r"route_contracts\[scout\] key_question must be a non-empty string"):
-        load_entry_modes_payload(yaml_path)
+        load_stage_route_contract_payload(yaml_path)
 
 
 def test_canonical_payload_includes_global_route_and_evidence_review_contracts() -> None:
-    payload = render_entry_modes_payload()
+    payload = render_stage_route_contract_payload()
 
     route_contracts = payload.get("route_contracts")
     assert isinstance(route_contracts, dict)
@@ -145,7 +145,7 @@ def test_canonical_payload_includes_global_route_and_evidence_review_contracts()
 
 
 def test_route_contract_stage_obligations_match_stage_knowledge_contract() -> None:
-    payload = render_entry_modes_payload()
+    payload = render_stage_route_contract_payload()
     route_contracts = payload["route_contracts"]
 
     assert isinstance(route_contracts, dict)
@@ -156,17 +156,17 @@ def test_route_contract_stage_obligations_match_stage_knowledge_contract() -> No
 
 
 def test_route_contracts_include_literature_scout_line_selection_candidate_board_and_stop_loss_contracts() -> None:
-    payload = render_entry_modes_payload()
-    guide = render_entry_modes_guide()
+    payload = render_stage_route_contract_payload()
+    guide = render_stage_route_contract_guide()
     canonical_text = yaml.safe_dump(payload, allow_unicode=True, sort_keys=False)
     combined_contract_text = f"{canonical_text}\n{guide}"
 
     assert combined_contract_text.strip()
 
 
-def test_render_entry_modes_guide_contains_required_contract_context() -> None:
-    guide = render_entry_modes_guide()
-    payload = render_entry_modes_payload()
+def test_render_stage_route_contract_guide_contains_required_contract_context() -> None:
+    guide = render_stage_route_contract_guide()
+    payload = render_stage_route_contract_payload()
     modes_payload = payload["modes"]
     route_contracts = payload["route_contracts"]
     evidence_review_contract = payload["evidence_review_contract"]
@@ -214,7 +214,7 @@ def test_render_entry_modes_guide_contains_required_contract_context() -> None:
 @pytest.mark.parametrize("render_prompt", [render_codex_entry_skill, render_openclaw_entry_prompt])
 def test_entry_prompts_include_per_mode_route_contract_and_upgrade_rule(render_prompt) -> None:
     prompt = render_prompt()
-    payload = render_entry_modes_payload()
+    payload = render_stage_route_contract_payload()
     modes_payload = payload["modes"]
     route_contracts = payload["route_contracts"]
     evidence_review_contract = payload["evidence_review_contract"]

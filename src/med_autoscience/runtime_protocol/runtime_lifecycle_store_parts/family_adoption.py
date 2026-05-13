@@ -6,10 +6,10 @@ import json
 import sqlite3
 from typing import Any
 
-from med_autoscience.agent_entry import load_entry_modes_payload
 from med_autoscience import stage_knowledge_contract
 from med_autoscience import stage_quality_contract
 from med_autoscience import stage_skill_surface_projection
+from med_autoscience.stage_route_contract import STAGE_ROUTE_CONTRACT_REF, load_stage_route_contract_payload
 from med_autoscience.stage_surface_contract import build_stage_surface_contract
 
 from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
@@ -30,7 +30,6 @@ PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF = (
     "docs/policies/study-workflow/publication_route_memory_seed_fixture.json"
 )
 STUDY_ARCHETYPES_REF = "docs/policies/study-workflow/study_archetypes.md"
-AGENT_ENTRY_MODES_REF = "src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml"
 STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
     "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
 )
@@ -93,8 +92,8 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
 
 
 def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
-    entry_modes_payload = load_entry_modes_payload()
-    route_contracts = _mapping(entry_modes_payload.get("route_contracts"))
+    route_contract_payload = load_stage_route_contract_payload()
+    route_contracts = _mapping(route_contract_payload.get("route_contracts"))
     route_ids = list(route_contracts)
     knowledge_contract = stage_knowledge_contract.stage_knowledge_plane_contract()
     packet_contracts = _mapping(knowledge_contract.get("packet_contracts"))
@@ -112,7 +111,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
         "source_refs": {
             "inventory": STAGE_LED_AUTONOMY_INVENTORY_REF,
             "policy": STAGE_LED_AUTONOMY_POLICY_REF,
-            "route_contract_source": AGENT_ENTRY_MODES_REF,
+            "route_contract_source": STAGE_ROUTE_CONTRACT_REF,
             "knowledge_plane_contract_source": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "quality_pack_contract_source": STAGE_QUALITY_PACK_CONTRACT_REF,
             "stage_skill_surface_projection_source": STAGE_SKILL_SURFACE_PROJECTION_REF,
@@ -121,8 +120,8 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "quality_pack_contract_surfaces": list(stage_quality_contract.QUALITY_PACK_CONTRACT_SURFACES),
             "stage_knowledge_root": str(stage_knowledge_contract.STAGE_KNOWLEDGE_ROOT),
             "test_evidence": [
-                "tests/test_agent_entry_modes.py",
-                "tests/test_agent_entry_assets.py",
+                "tests/test_stage_route_contract.py",
+                "tests/test_stage_route_assets.py",
                 "tests/test_stage_knowledge_plane.py",
                 "tests/test_stage_knowledge_entry_injection.py",
                 "tests/test_stage_knowledge_visibility.py",
@@ -130,10 +129,10 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             ],
         },
         "route_contract_snapshot": {
-            "source": AGENT_ENTRY_MODES_REF,
+            "source": STAGE_ROUTE_CONTRACT_REF,
             "route_ids": route_ids,
             "route_count": len(route_ids),
-            "entry_mode_count": len(list(entry_modes_payload.get("modes") or [])),
+            "entry_mode_count": len(list(route_contract_payload.get("modes") or [])),
             "descriptor_derives_routes": False,
         },
         "stage_knowledge_plane": {
@@ -386,7 +385,7 @@ def _plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
         },
         {
             "ref_kind": "repo_path",
-            "ref": str(_mapping(descriptor.get("source_refs")).get("route_contract_source") or AGENT_ENTRY_MODES_REF),
+            "ref": str(_mapping(descriptor.get("source_refs")).get("route_contract_source") or STAGE_ROUTE_CONTRACT_REF),
             "role": "route_contract_source",
         },
         {
@@ -451,7 +450,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             {"ref_kind": "skill_id", "ref": "mas", "role": "codex_app_skill"},
         ],
         "prompt_refs": [
-            {"ref_kind": "repo_path", "ref": AGENT_ENTRY_MODES_REF, "role": "route_contract"},
+            {"ref_kind": "repo_path", "ref": STAGE_ROUTE_CONTRACT_REF, "role": "route_contract"},
             {"ref_kind": "repo_path", "ref": STAGE_LED_AUTONOMY_POLICY_REF, "role": "stage_led_policy"},
         ],
         "allowed_action_refs": list(stage["allowed_action_refs"]),
@@ -548,7 +547,7 @@ def _stage_knowledge_refs(stage: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def _stage_goal(stage: Mapping[str, Any], *, descriptor: Mapping[str, Any]) -> str:
-    route_contracts = _mapping(load_entry_modes_payload().get("route_contracts"))
+    route_contracts = _mapping(load_stage_route_contract_payload().get("route_contracts"))
     route_goals = [
         str(_mapping(route_contracts.get(route_id)).get("goal") or "").strip()
         for route_id in stage["domain_stage_refs"]

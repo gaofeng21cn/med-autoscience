@@ -491,7 +491,7 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
     assert "export PYTHONDONTWRITEBYTECODE=1" in script
     assert 'repo_uv=(uv run --directory "${repo_root}" --extra analysis)' in script
     assert '"${repo_uv[@]}" medautosci --help >/dev/null' in script
-    assert '"${repo_uv[@]}" medautosci doctor entry-modes >/dev/null' in script
+    assert '"${repo_uv[@]}" medautosci doctor stage-route-contract >/dev/null' in script
     assert 'printf \'{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\\n\'' in script
     assert '"${repo_uv[@]}" medautosci-mcp' in script
     assert '"plugins" / "mas" / ".codex-plugin" / "plugin.json"' in script

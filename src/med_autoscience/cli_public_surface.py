@@ -8,6 +8,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("doctor", "profile"): "show-profile",
     ("doctor", "mainline-status"): "mainline-status",
     ("doctor", "mainline-phase"): "mainline-phase",
+    ("doctor", "stage-route-contract"): "show-stage-route-contract",
     ("doctor", "entry-modes"): "show-agent-entry-modes",
     ("doctor", "sync-entry-assets"): "sync-agent-entry-assets",
     ("doctor", "preflight"): "preflight-changes",

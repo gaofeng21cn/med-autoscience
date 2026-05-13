@@ -129,7 +129,7 @@ upstream `write` skill 已经明确：
 
 - `src/med_autoscience/overlay/templates/medical-research-write.SKILL.md`
 - `docs/policies/quality/evidence_review_contract.md`
-- `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml`
+- `agent/stages/stage_route_contract.yaml`
 
 来源判断：
 
@@ -176,7 +176,7 @@ upstream `decision` skill 已经明确：
 `MAS` 里对应吸收：
 
 - `src/med_autoscience/overlay/templates/medical-research-decision.SKILL.md`
-- `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml`
+- `agent/stages/stage_route_contract.yaml`
 
 来源判断：
 

@@ -5,7 +5,7 @@ Date: `2026-05-10`
 Owner: `MedAutoScience`
 Purpose: inventory MAS Stage-Led Autonomy surfaces for OPL family descriptor projection without changing MAS study routes, controller runtime, publication authority, or execution kernel.
 State: `reference inventory plus MAS-owned descriptor projection`
-Machine boundary: this is human-readable inventory material. Machine truth remains in `agent_entry_modes.yaml`, `stage_knowledge_plane_contract`, `stage_knowledge_packet`, `stage_memory_closeout_packet`, `memory_write_router_receipt`, `stage_recall_index`, evidence/review ledgers, controller decisions, runtime status, publication eval, and generated study artifacts.
+Machine boundary: this is human-readable inventory material. Machine truth remains in `stage_route_contract.yaml`, `stage_knowledge_plane_contract`, `stage_knowledge_packet`, `stage_memory_closeout_packet`, `memory_write_router_receipt`, `stage_recall_index`, evidence/review ledgers, controller decisions, runtime status, publication eval, and generated study artifacts.
 
 ## 结论
 
@@ -30,7 +30,7 @@ MAS 现在通过 product-entry manifest 暴露 MAS-owned 标准 `family_stage_co
 
 本 inventory 固定以下边界：
 
-- 保留 `agent_entry_modes.yaml` 作为 MAS route contract source，不从 OPL descriptor 派生 route id 或 stage 数量。
+- 保留 `stage_route_contract.yaml` 作为 MAS route contract source，不从 OPL descriptor 派生 route id 或 stage 数量。
 - 保留 `docs/policies/study-workflow/stage_led_research_autonomy.md` 作为 Stage-Led Autonomy policy，不把本文件变成 policy。
 - 保留 `stage_knowledge_plane_contract` 与四个 packet/read-model surface 作为 MAS machine-readable boundary，不在 OPL 侧复制第二套 schema authority。
 - 保留 `study_charter`、`evidence_ledger`、`review_ledger`、AI reviewer-backed `publication_eval/latest.json` 和 `controller_decisions/latest.json` 作为医学质量与路线 authority。
@@ -42,7 +42,7 @@ MAS 现在通过 product-entry manifest 暴露 MAS-owned 标准 `family_stage_co
 | --- | --- | --- | --- |
 | `docs/policies/study-workflow/stage_led_research_autonomy.md` | MAS policy owner | Stable policy for `stage-led autonomy, controller-governed evidence` | `keep` as policy reference; expose descriptor link only |
 | `docs/program/ai_first_paper_autonomy_closure_program.md` | MAS program owner | Program context tying AI reviewer repair, route decision, stage knowledge/memory, and real-paper soak | `keep` as program context; do not use as runtime contract |
-| `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml` | MAS route contract owner | Route contract for scout, idea, baseline, experiment, analysis-campaign, write, review, finalize, decision, journal-resolution, entry modes, gates, outputs, and route-back triggers | `keep`; OPL maps route descriptors from this source read-only |
+| `agent/stages/stage_route_contract.yaml` | MAS route contract owner | Route contract for scout, idea, baseline, experiment, analysis-campaign, write, review, finalize, decision, journal-resolution, entry modes, gates, outputs, and route-back triggers | `keep`; OPL maps route descriptors from this source read-only |
 | `src/med_autoscience/controllers/stage_knowledge_plane.py` | MAS controller/knowledge-plane owner | Machine surface for stage knowledge packets, typed closeout, memory routing receipts, and recall index | `map_to_descriptor`; descriptor mirrors surface metadata, required fields, owner, and authority boundary |
 | `product-entry-manifest.family_stage_control_plane` | MAS product-entry projection owner | OPL-standard stage plane for `stages list|inspect`, mapped to existing MAS routes and action catalog refs | `landed`; OPL may consume it as descriptor only |
 | `product-entry-manifest.family_stage_control_plane_descriptor` | MAS product-entry projection owner | Read-only deep family descriptor for `stage_led_autonomy` source refs, route snapshot, packet/read-model surfaces and authority boundary | `landed`; OPL may consume it as descriptor only |
@@ -55,7 +55,7 @@ MAS 现在通过 product-entry manifest 暴露 MAS-owned 标准 `family_stage_co
 
 | category | MAS surfaces | recommendation | rationale |
 | --- | --- | --- | --- |
-| `expert_stage` | `agent_entry_modes.yaml` route contracts for `scout`, `idea`, `baseline`, `experiment`, `analysis-campaign`, `write`, `review`, `finalize`, `decision`, `journal-resolution`; `stage_led_research_autonomy.md` | `keep` | Stage contracts encode key questions, enter conditions, hard success gates, durable outputs, human gate boundaries, next routes, and route-back triggers. They are MAS-owned stage discipline, not OPL-generated plans. |
+| `expert_stage` | `stage_route_contract.yaml` route contracts for `scout`, `idea`, `baseline`, `experiment`, `analysis-campaign`, `write`, `review`, `finalize`, `decision`, `journal-resolution`; `stage_led_research_autonomy.md` | `keep` | Stage contracts encode key questions, enter conditions, hard success gates, durable outputs, human gate boundaries, next routes, and route-back triggers. They are MAS-owned stage discipline, not OPL-generated plans. |
 | `guard` | `study_charter`, evidence/review ledgers, AI reviewer-backed `publication_eval/latest.json`, `controller_decisions/latest.json`, stage authority boundary fields | `split_authority` | Guards authorize medical boundary, quality, evidence, route, stop-loss, and human gate decisions. Family projection may show guard status, but MAS remains authority. |
 | `router` | `memory_write_router_receipt`, proposed write destinations, owner targets, rejected writes, typed blockers, controller decision requests | `map_to_descriptor` | Routing metadata is useful for family-level queue/projection, but routed writes must execute through MAS owner surfaces. |
 | `reconciler` | `stage_memory_closeout_packet`, idempotency keys, source fingerprints, typed closeout normalization, rejected study-specific workspace memory writes | `keep` | Reconciliation protects authority split and prevents free-text memory from becoming truth. OPL descriptor can report status and blockers only. |
@@ -70,14 +70,14 @@ MAS now exposes the family descriptor for this lane as `family_stage_control_pla
 - `domain_id`: `med-autoscience`
 - `capability_id`: `stage_led_autonomy`
 - `authority_owner`: `MAS`
-- `route_contract_source`: `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml`
+- `route_contract_source`: `agent/stages/stage_route_contract.yaml`
 - `knowledge_plane_contract_source`: `stage_knowledge_plane_contract`
 - `packet_surfaces`: `stage_knowledge_packet`, `stage_memory_closeout_packet`, `memory_write_router_receipt`, `stage_recall_index`
 - `allowed_family_actions`: `index`, `display`, `freshness_check`, `dispatch_mas_exported_task`
 - `forbidden_family_actions`: `write_study_truth`, `replace_route_contract`, `authorize_publication_quality`, `authorize_submission_readiness`, `promote_memory_to_evidence`, `infer_medical_route_from_projection`
 - `source_refs_required`: policy ref, route contract ref, contract surface ref, test evidence ref, freshness/refingerprint if materialized
 
-This descriptor is generated against MAS-owned surfaces. It carries route IDs/counts as a snapshot from `agent_entry_modes.yaml`, but it does not define, add, remove, reorder or authorize routes. It should not hard-code route wording, stage counts, or Markdown paragraphs as a family truth source.
+This descriptor is generated against MAS-owned surfaces. It carries route IDs/counts as a snapshot from `stage_route_contract.yaml`, but it does not define, add, remove, reorder or authorize routes. It should not hard-code route wording, stage counts, or Markdown paragraphs as a family truth source.
 
 ## Domain Memory Descriptor Shape
 

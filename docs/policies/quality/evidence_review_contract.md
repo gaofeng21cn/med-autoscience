@@ -1,7 +1,7 @@
 # Evidence Review Contract
 
 本 policy 固定 `MedAutoScience` 在研究 route 之间推进时必须共享的 evidence / review 合同边界。
-canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml` 的 `evidence_review_contract`。
+canonical source 位于 `agent/stages/stage_route_contract.yaml` 的 `evidence_review_contract`。
 
 ## 固定字段
 
@@ -163,5 +163,5 @@ platform incident learning loop 现在显式覆盖 `no_live`、`stalled`、`stat
 ## 维护规则
 
 - evidence / review 合同统一维护在 canonical YAML，不在单个 route prose 里重复定义另一套规则。
-- 变更 evidence / review 合同属于 contract surface 变更，至少补跑 `tests/test_agent_entry_assets.py` 与 `make test-meta`。
+- 变更 evidence / review 合同属于 contract surface 变更，至少补跑 `tests/test_stage_route_assets.py` 与 `make test-meta`。
 - 任何新写作、finalize、review、submission readiness 规则，都应先回答它属于 `minimum_proof_package`、`reviewer_first_checks`、`claim_evidence_consistency_requirements`、`route_back_policy` 中的哪一类。

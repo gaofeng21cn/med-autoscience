@@ -64,7 +64,7 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 
 `study_archetypes.md` 不是论文套路 domain memory 的完整存储位置。它是第一代入口，旧 MAS 通过 profile / study payload 的 `preferred_study_archetypes`、`study_archetype` 或 `preferred_study_archetype` 选择分析和报告合同；真正的人类维护入口现在是 `publication_route_memory_library.md`。`publication_route_memory_seed_fixture.json` 只做索引和 locator，workspace `memory_pack.json`、`stage_knowledge_packet.publication_route_memory_refs`、`stage-memory-closeout-route` 和 `route-memory-inventory` 是应用、检索、回写与审计面。
 
-`agent_entry_modes.yaml` 不归类为 memory。它当前仍在用，是 MAS route/stage contract 的 canonical structured source：`show-agent-entry-modes`、`sync-agent-entry-assets`、stage surface contract、product-entry/family descriptors、OPL projection 和 tests 都从它读取 route ids、entry mode、success gate、durable outputs、human gate、route-back triggers 与 knowledge/closeout obligations。它可以继续生成 Markdown guide 和 Codex/OpenClaw entry prompt，但它本身承担 contract authority；如果未来 OPL 提供统一 domain-agent descriptor，需要先把这个 YAML 吸收到统一 descriptor contract，而不是把 route contract 改成 memory prose。
+`stage_route_contract.yaml` 不归类为 memory。它位于 `agent/stages/stage_route_contract.yaml`，是 MAS route/stage contract 的 canonical structured source：`show-stage-route-contract`、stage surface contract、product-entry/family descriptors、OPL projection 和 tests 都从它读取 route ids、entry mode、success gate、durable outputs、human gate、route-back triggers 与 knowledge/closeout obligations。`show-agent-entry-modes` 只是兼容别名。它可以继续生成 Markdown guide 和 Codex/OpenClaw entry prompt，但它本身承担 contract authority；publication-route memory 和其他自然语言经验继续由 Markdown-first memory body 管理。
 
 当前真实样例在 DM-CVD workspace：
 

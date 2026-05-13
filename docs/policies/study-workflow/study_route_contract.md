@@ -1,10 +1,10 @@
 # Study Route Contract
 
 本 policy 固定 `MedAutoScience` 的研究阶段 route 合同边界。
-canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml` 的 `route_contracts`。
+canonical source 位于 `agent/stages/stage_route_contract.yaml` 的 `route_contracts`。
 `modes` 只回答某个 entry mode 当前允许走哪些 route，正式 route 定义统一以 `route_contracts` 为准。
 
-`agent_entry_modes.yaml` 当前仍在真实使用。它不是 domain memory，也不是给 maintainer 维护自然语言经验的正文库；它是 MAS route/stage contract 的结构化源，供 `show-agent-entry-modes`、`sync-agent-entry-assets`、stage surface contract、product-entry manifest、OPL/family descriptor 和测试读取。Markdown guide、Codex skill prompt 与 OpenClaw prompt都从它派生。若后续 OPL 平台提供统一 domain-agent descriptor，本文件应被映射或吸收到那个 descriptor contract，而不是被 publication-route memory 或 Markdown prose 替代。
+`stage_route_contract.yaml` 当前是真实使用的 MAS route/stage contract 结构化源，供 `show-stage-route-contract`、stage surface contract、product-entry manifest、OPL/family descriptor 和测试读取。`show-agent-entry-modes` 和 `agent_entry` Python API 只作为兼容别名保留，内部读取同一个 canonical source。Markdown guide、Codex skill prompt 与 OpenClaw prompt 都从它派生。它不是 domain memory，也不是给 maintainer 维护自然语言经验的正文库；论文套路、路线偏置、reviewer lesson 和可复用 display lesson 应留在 Markdown-first memory 或 workspace memory 中。
 
 ## 固定字段
 
@@ -65,5 +65,5 @@ canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_m
 
 ## 吸收规则
 
-- 变更 route 合同时，先改 canonical YAML，再同步 `docs/runtime/contracts/agent_entry_modes.md` 与模板输出。
-- 变更 route 合同属于 contract surface 变更，至少补跑 `tests/test_agent_entry_assets.py` 与 `make test-meta`。
+- 变更 route 合同时，先改 `agent/stages/stage_route_contract.yaml`，再同步 `docs/runtime/contracts/stage_route_contract.md`、`templates/stage_route_contract.yaml` 与 Codex/OpenClaw prompt 输出。
+- 变更 route 合同属于 contract surface 变更，至少补跑 `tests/test_stage_route_contract.py`、`tests/test_stage_route_assets.py` 与 `make test-meta`。
