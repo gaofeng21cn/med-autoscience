@@ -174,6 +174,33 @@ def test_repeat_suppression_ignores_last_meaningful_progress_without_artifact_de
     ) is False
 
 
+def test_supervisor_scan_observes_only_fresh_artifact_delta_as_meaningful() -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan_parts.artifact_freshness")
+
+    stale_progress = {
+        "progress_freshness": {
+            "meaningful_artifact_delta_freshness": {
+                "status": "stale",
+                "latest_progress_at": "2026-05-12T10:40:22+00:00",
+                "latest_progress_source": "runtime_turn_closeout",
+            }
+        }
+    }
+    fresh_progress = {
+        "progress_freshness": {
+            "meaningful_artifact_delta_freshness": {
+                "status": "fresh",
+                "latest_progress_at": "2026-05-13T16:51:40+00:00",
+                "latest_progress_source": "runtime_turn_closeout",
+            }
+        }
+    }
+
+    assert module.artifact_delta(stale_progress)["status"] == "stale"
+    assert module.meaningful_artifact_delta_observed(stale_progress) is False
+    assert module.meaningful_artifact_delta_observed(fresh_progress) is True
+
+
 def test_repeat_suppression_does_not_override_owner_handoff_projection() -> None:
     module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
 

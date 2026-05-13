@@ -252,3 +252,106 @@ def test_study_progress_counts_gate_clearing_paper_outputs_as_artifact_delta(
     assert result["progress_freshness"]["activity_timeout"]["state"] == "ok"
     assert result["user_visible_projection"]["actual_write_active"] is True
     assert "系统有实际 writer/run 正在推进" in result["user_visible_projection"]["status_summary"]
+
+
+def test_study_progress_counts_runtime_closeout_paper_outputs_as_artifact_delta(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "003-dm",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-003"
+    _write_publication_eval(study_root, quest_root)
+    _write_json(
+        quest_root / "artifacts" / "runtime" / "turn_closeouts" / "run-paper-delta.json",
+        {
+            "schema_version": 1,
+            "status": "completed",
+            "completed_at": "2026-05-13T14:55:14Z",
+            "meaningful_artifact_delta": True,
+            "artifact_refs": [
+                "../../../studies/003-dm/paper/claim_evidence_map.json",
+                "../../../studies/003-dm/paper/evidence_ledger.json",
+                "../../../studies/003-dm/paper/review/review_ledger.json",
+                "artifacts/reports/publishability_gate/latest.json",
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
+        {
+            "surface": "autonomy_progress_slo_status",
+            "schema_version": 1,
+            "study_id": "003-dm",
+            "quest_id": "quest-003",
+            "state": "breach",
+            "breach_types": ["same_fingerprint_loop"],
+            "last_meaningful_progress_at": "2026-05-13T14:50:00+00:00",
+            "mds_progress_markers": {
+                "meaningful_artifact_delta_at": None,
+                "meaningful_artifact_delta_kind": None,
+                "turn_progress_kind": None,
+            },
+            "ai_doctor_request_required": True,
+            "ai_doctor_state": "request_ready",
+            "quality_gate_relaxation_allowed": False,
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "003-dm",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-003", "auto_resume": True},
+            "quest_id": "quest-003",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "runtime_liveness_status": "live",
+            "active_run_id": "run-live-after-closeout",
+            "worker_running": True,
+            "runtime_liveness_audit": {
+                "status": "live",
+                "active_run_id": "run-live-after-closeout",
+                "runtime_audit": {
+                    "status": "live",
+                    "active_run_id": "run-live-after-closeout",
+                    "worker_running": True,
+                    "worker_watchdog": {"started_at": "2026-05-13T14:57:00+00:00"},
+                },
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "监管心跳新鲜。",
+                "latest_recorded_at": "2026-05-13T14:57:00+00:00",
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: datetime(2026, 5, 13, 15, 0, tzinfo=timezone.utc),
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="003-dm")
+
+    artifact_freshness = result["progress_freshness"]["meaningful_artifact_delta_freshness"]
+    assert artifact_freshness["status"] == "fresh"
+    assert artifact_freshness["latest_progress_at"] == "2026-05-13T14:55:14+00:00"
+    assert artifact_freshness["latest_progress_source"] == "runtime_turn_closeout"
+    assert "3 paper-facing artifact(s)" in artifact_freshness["summary"]
+    assert result["progress_freshness"]["activity_timeout"]["state"] == "ok"
+    assert result["user_visible_projection"]["actual_write_active"] is True

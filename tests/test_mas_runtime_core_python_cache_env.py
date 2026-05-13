@@ -57,6 +57,34 @@ def test_codex_exec_runner_uses_quest_local_python_cache(monkeypatch, tmp_path: 
     assert seen["stdin"] is subprocess.DEVNULL
 
 
+def test_worker_wrapper_module_entrypoint_does_not_eager_load_runtime_backend(tmp_path: Path) -> None:
+    env = os.environ.copy()
+    src_path = str((Path(__file__).resolve().parents[1] / "src").resolve())
+    existing_pythonpath = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = src_path if not existing_pythonpath else os.pathsep.join([src_path, existing_pythonpath])
+    env["PYTHONPYCACHEPREFIX"] = str(tmp_path / "pycache")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper",
+            "--help",
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert "MAS per-run Codex worker watchdog wrapper" in result.stdout
+    assert "RuntimeWarning" not in result.stderr
+    assert "managed runtime backend must expose non-empty BACKEND_ID" not in result.stderr
+
+
 def test_worker_wrapper_isolates_codex_child_from_user_home(monkeypatch, tmp_path: Path) -> None:
     wrapper_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"

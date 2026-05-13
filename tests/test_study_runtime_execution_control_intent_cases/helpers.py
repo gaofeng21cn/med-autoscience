@@ -164,6 +164,46 @@ def _write_publication_eval_work_unit_authority(study_root: Path) -> None:
     )
 
 
+def _write_publication_eval_review_only_authority(study_root: Path) -> None:
+    path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "eval_id": "publication-eval::001-risk::quest-001::latest",
+                "emitted_at": "2026-05-13T16:15:57+00:00",
+                "recommended_actions": [
+                    {
+                        "action_type": "continue_same_line",
+                        "route_target": "finalize",
+                        "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                        "route_rationale": "bundle-stage work is unlocked and can proceed on the critical path",
+                        "requires_controller_decision": True,
+                        "work_unit_fingerprint": "publication-blockers::review-only",
+                        "next_work_unit": {
+                            "unit_id": "publication_gate_blocker_review",
+                            "lane": "review",
+                            "summary": "Review the current publication gate blockers and select the narrowest repair unit.",
+                        },
+                        "blocking_work_units": [
+                            {
+                                "unit_id": "publication_gate_blocker_review",
+                                "lane": "review",
+                                "summary": "Review the current publication gate blockers and select the narrowest repair unit.",
+                            }
+                        ],
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def _write_publication_eval_gate_replay_with_specificity_targets(study_root: Path) -> None:
     path = study_root / "artifacts" / "publication_eval" / "latest.json"
     path.parent.mkdir(parents=True, exist_ok=True)

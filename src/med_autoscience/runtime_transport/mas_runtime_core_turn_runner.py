@@ -5,8 +5,10 @@ from dataclasses import dataclass
 import json
 import subprocess
 from pathlib import Path
+from datetime import datetime, timezone
 from typing import Any, Protocol
 
+from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import wrapper_command
 from med_autoscience.runtime_transport.mas_runtime_core_worker_wrapper import quest_python_runtime_env
@@ -85,6 +87,11 @@ class CodexExecTurnRunner:
         prompt_path = _run_root(quest_root=quest_root, run_id=run_id) / "prompt.md"
         stdout_path.parent.mkdir(parents=True, exist_ok=True)
         runtime_state = _read_runtime_state(quest_root=quest_root)
+        runtime_state = _sanitize_runtime_state_before_turn(
+            runtime_state=runtime_state,
+            quest_root=quest_root,
+            quest_id=quest_id,
+        )
         prompt_path.write_text(
             _codex_turn_prompt(
                 quest_id=quest_id,
@@ -92,6 +99,7 @@ class CodexExecTurnRunner:
                 reason=reason,
                 claimed_user_messages=claimed_user_messages,
                 runtime_state=runtime_state,
+                quest_root=quest_root,
             ),
             encoding="utf-8",
         )
@@ -230,9 +238,18 @@ def _codex_turn_prompt(
     reason: str,
     claimed_user_messages: tuple[dict[str, Any], ...],
     runtime_state: Mapping[str, Any] | None = None,
+    quest_root: Path | None = None,
 ) -> str:
+    authorization = _controller_authorization(
+        runtime_state,
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
+    claimed_user_messages = _claimed_messages_for_prompt(
+        claimed_user_messages=claimed_user_messages,
+        authorization=authorization,
+    )
     messages = json.dumps(list(claimed_user_messages), ensure_ascii=False, indent=2, sort_keys=True)
-    authorization = _controller_authorization(runtime_state)
     authorization_section = _controller_authorization_prompt_section(
         authorization=authorization,
         quest_id=quest_id,
@@ -280,6 +297,25 @@ def _codex_turn_prompt(
     )
 
 
+def _claimed_messages_for_prompt(
+    *,
+    claimed_user_messages: tuple[dict[str, Any], ...],
+    authorization: Mapping[str, Any],
+) -> tuple[dict[str, Any], ...]:
+    if not authorization:
+        return claimed_user_messages
+    return tuple(message for message in claimed_user_messages if not _controller_authorization_message(message))
+
+
+def _controller_authorization_message(message: Mapping[str, Any]) -> bool:
+    content = str(message.get("content") or "")
+    return (
+        "MAS controller authorization." in content
+        and "artifacts/controller_decisions/latest.json" in content
+        and "active MAS authorization for this runtime turn" in content
+    )
+
+
 def _read_runtime_state(*, quest_root: Path) -> dict[str, Any]:
     path = quest_root / ".ds" / "runtime_state.json"
     try:
@@ -289,14 +325,228 @@ def _read_runtime_state(*, quest_root: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _controller_authorization(runtime_state: Mapping[str, Any] | None) -> dict[str, Any]:
+def _write_runtime_state(*, quest_root: Path, runtime_state: Mapping[str, Any]) -> None:
+    path = quest_root / ".ds" / "runtime_state.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(dict(runtime_state), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _sanitize_runtime_state_before_turn(
+    *,
+    runtime_state: Mapping[str, Any],
+    quest_root: Path,
+    quest_id: str,
+) -> dict[str, Any]:
+    if not isinstance(runtime_state, Mapping):
+        return {}
+    sanitized = dict(runtime_state)
+    cleared_keys: list[str] = []
+    for key in ("last_controller_decision_authorization", "current_controller_authorization"):
+        value = sanitized.get(key)
+        if not isinstance(value, Mapping):
+            continue
+        closed = _closed_publication_work_unit_for_authorization(
+            authorization=dict(value),
+            quest_root=quest_root,
+            quest_id=quest_id,
+        )
+        if closed is None:
+            continue
+        sanitized.pop(key, None)
+        cleared_keys.append(key)
+    if not cleared_keys:
+        return sanitized
+    sanitized["quest_id"] = _text(sanitized.get("quest_id")) or quest_id
+    sanitized["continuation_policy"] = "auto"
+    sanitized["continuation_anchor"] = "decision"
+    sanitized["continuation_reason"] = "closed_controller_work_unit_authorization_cleared"
+    sanitized["continuation_updated_at"] = _utc_now()
+    sanitized["same_fingerprint_auto_turn_count"] = 0
+    sanitized["last_runtime_turn_state_sanitization"] = {
+        "reason": "publication_work_unit_lifecycle_done",
+        "cleared_keys": cleared_keys,
+        "applied_at": _utc_now(),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+    }
+    _write_runtime_state(quest_root=quest_root, runtime_state=sanitized)
+    return sanitized
+
+
+def _controller_authorization(
+    runtime_state: Mapping[str, Any] | None,
+    *,
+    quest_root: Path | None = None,
+    quest_id: str | None = None,
+) -> dict[str, Any]:
     if not isinstance(runtime_state, Mapping):
         return {}
     for key in ("last_controller_decision_authorization", "current_controller_authorization"):
         value = runtime_state.get(key)
         if isinstance(value, Mapping):
-            return dict(value)
+            authorization = dict(value)
+            if _closed_publication_work_unit_for_authorization(
+                authorization=authorization,
+                quest_root=quest_root,
+                quest_id=quest_id,
+            ) is not None:
+                return {}
+            return authorization
     return {}
+
+
+def _closed_publication_work_unit_for_authorization(
+    *,
+    authorization: Mapping[str, Any],
+    quest_root: Path | None,
+    quest_id: str | None,
+) -> dict[str, Any] | None:
+    if quest_root is None:
+        return None
+    study_root = _resolve_study_root_from_quest_root_light(quest_root=Path(quest_root), quest_id=quest_id)
+    if study_root is None:
+        return None
+    lifecycle_path = publication_work_unit_lifecycle.stable_publication_work_unit_lifecycle_path(
+        study_root=study_root,
+    )
+    try:
+        payload = json.loads(lifecycle_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, Mapping):
+        return None
+    if not publication_work_unit_lifecycle.lifecycle_payload_is_closed(dict(payload)):
+        return None
+    source_eval_id = _text(payload.get("source_eval_id"))
+    authorization_eval_id = _authorization_publication_eval_id(
+        authorization=authorization,
+        study_root=study_root,
+    )
+    if source_eval_id is None or authorization_eval_id is None or source_eval_id != authorization_eval_id:
+        return None
+    lifecycle_work_unit = _mapping(payload.get("work_unit"))
+    lifecycle_work_unit_id = _text(lifecycle_work_unit.get("unit_id"))
+    authorization_work_unit_ids = set(_controller_work_unit_ids(authorization))
+    if lifecycle_work_unit_id is None or lifecycle_work_unit_id not in authorization_work_unit_ids:
+        return None
+    return {
+        "reason": "publication_work_unit_lifecycle_done",
+        "source_eval_id": source_eval_id,
+        "work_unit_id": lifecycle_work_unit_id,
+        "lifecycle_path": str(lifecycle_path),
+    }
+
+
+def _authorization_publication_eval_id(
+    *,
+    authorization: Mapping[str, Any],
+    study_root: Path,
+) -> str | None:
+    direct_eval_id = _text(
+        authorization.get("publication_eval_id")
+        or authorization.get("source_eval_id")
+        or _mapping(authorization.get("publication_eval_ref")).get("eval_id")
+    )
+    if direct_eval_id is not None:
+        return direct_eval_id
+    decision = _read_json_mapping(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    if not _authorization_matches_controller_decision(authorization=authorization, decision=decision):
+        return None
+    return _text(
+        decision.get("publication_eval_id")
+        or decision.get("source_eval_id")
+        or _mapping(decision.get("publication_eval_ref")).get("eval_id")
+    )
+
+
+def _authorization_matches_controller_decision(
+    *,
+    authorization: Mapping[str, Any],
+    decision: Mapping[str, Any],
+) -> bool:
+    if not decision:
+        return False
+    authorization_decision_id = _text(authorization.get("decision_id"))
+    decision_id = _text(decision.get("decision_id"))
+    if authorization_decision_id is not None and decision_id is not None:
+        return authorization_decision_id == decision_id
+    authorization_work_units = set(_controller_work_unit_ids(authorization))
+    decision_work_units = set(_controller_work_unit_ids(decision))
+    if not authorization_work_units or not authorization_work_units.intersection(decision_work_units):
+        return False
+    authorization_fingerprint = _text(authorization.get("work_unit_fingerprint"))
+    decision_fingerprint = _text(decision.get("work_unit_fingerprint"))
+    return (
+        authorization_fingerprint is None
+        or decision_fingerprint is None
+        or authorization_fingerprint == decision_fingerprint
+    )
+
+
+def _read_json_mapping(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _resolve_study_root_from_quest_root_light(*, quest_root: Path, quest_id: str | None) -> Path | None:
+    resolved = Path(quest_root).expanduser().resolve()
+    if resolved.parent.name != "quests" or resolved.parent.parent.name != "runtime":
+        return None
+    if len(resolved.parents) >= 3 and resolved.parents[2].name != "ops":
+        workspace_root = resolved.parents[2]
+    elif len(resolved.parents) >= 5 and resolved.parents[3].name == "ops":
+        workspace_root = resolved.parents[4]
+    else:
+        return None
+    quest_name = _text(quest_id) or resolved.name
+    candidate_ids = [quest_name]
+    declared_study_id = _declared_study_id_from_quest_yaml(resolved / "quest.yaml")
+    if declared_study_id is not None and declared_study_id not in candidate_ids:
+        candidate_ids.insert(0, declared_study_id)
+    studies_root = workspace_root / "studies"
+    for study_id in candidate_ids:
+        candidate = (studies_root / study_id).resolve()
+        if (candidate / "study.yaml").exists():
+            return candidate
+    if not studies_root.exists():
+        return None
+    for binding_path in sorted(studies_root.glob("*/runtime_binding.yaml")):
+        binding_text = _yaml_string_field(binding_path, "quest_id")
+        if binding_text != quest_name:
+            continue
+        candidate = binding_path.parent.resolve()
+        if (candidate / "study.yaml").exists():
+            return candidate
+    return None
+
+
+def _declared_study_id_from_quest_yaml(path: Path) -> str | None:
+    return _yaml_string_field(path, "study_id")
+
+
+def _yaml_string_field(path: Path, field_name: str) -> str | None:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    prefix = f"{field_name}:"
+    for line in lines:
+        stripped = line.strip()
+        if not stripped.startswith(prefix):
+            continue
+        value = stripped[len(prefix) :].strip().strip("\"'")
+        return value or None
+    return None
 
 
 def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any], quest_id: str) -> str:
@@ -333,6 +583,15 @@ def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any]
         "- A runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta for this work unit.\n\n"
         f"{controller_action_contract}"
     )
+
+
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
 
 
 def _controller_action_execution_contract_prompt_section(

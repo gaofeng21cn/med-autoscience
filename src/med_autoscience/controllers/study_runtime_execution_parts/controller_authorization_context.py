@@ -31,6 +31,22 @@ _ROUTE_TARGET_LABELS = {
     "review": "质量复评",
     "finalize": "finalize / 投稿包收口",
 }
+_UPSTREAM_PAPER_REPAIR_WORK_UNIT_IDS = frozenset(
+    {
+        "analysis_claim_evidence_repair",
+        "figure_results_trace_repair",
+        "manuscript_story_repair",
+        "treatment_gap_reporting_repair",
+    }
+)
+_FINALIZE_WORK_UNIT_IDS = frozenset(
+    {
+        "submission_authority_sync_closure",
+        "submission_minimal_refresh",
+        "submission_delivery_sync_closure",
+        "publication_gate_replay",
+    }
+)
 
 
 def _read_json_mapping(path: Path) -> dict[str, Any]:
@@ -264,6 +280,19 @@ def _record_work_unit_context(record: StudyDecisionRecord) -> dict[str, Any]:
     }
 
 
+def _publication_eval_work_unit_context_is_relayable_for_record(
+    *,
+    record: StudyDecisionRecord,
+    work_unit_context: dict[str, Any],
+) -> bool:
+    next_work_unit = _mapping(work_unit_context.get("next_work_unit"))
+    unit_id = _text(work_unit_context.get("work_unit_id")) or _text(next_work_unit.get("unit_id"))
+    lane = _text(next_work_unit.get("lane")) or _text(work_unit_context.get("route_target"))
+    if unit_id in _UPSTREAM_PAPER_REPAIR_WORK_UNIT_IDS or unit_id in _FINALIZE_WORK_UNIT_IDS:
+        return True
+    return lane is not None and lane == record.route_target
+
+
 def _stable_publication_authority_fingerprint(
     *,
     study_root: Path,
@@ -273,10 +302,7 @@ def _stable_publication_authority_fingerprint(
         study_root=study_root,
         artifact_path=record.publication_eval_ref.artifact_path,
     )
-    work_unit_context = _record_work_unit_context(record) or _publication_eval_work_unit_context(publication_eval_payload)
-    target_context = _publication_action_target_context(publication_eval_payload, work_unit_context)
-    if target_context:
-        work_unit_context = {**work_unit_context, **target_context}
+    work_unit_context = _controller_decision_work_unit_context(record=record, study_root=study_root)
     canonical_payload: dict[str, Any] = {
         "gate_fingerprint": _text(publication_eval_payload.get("gate_fingerprint")),
         "work_unit_fingerprint": _text(work_unit_context.get("work_unit_fingerprint")),
@@ -389,7 +415,9 @@ def _controller_decision_work_unit_context(
         study_root=study_root,
         artifact_path=record.publication_eval_ref.artifact_path,
     )
-    work_unit_context = _record_work_unit_context(record) or _publication_eval_work_unit_context(publication_eval_payload)
+    record_context = _record_work_unit_context(record)
+    publication_context = {} if record_context else _publication_eval_work_unit_context(publication_eval_payload)
+    work_unit_context = record_context or publication_context
     upstream_context = _upstream_repair_work_unit_context_from_replay_targets(
         record=record,
         publication_eval_payload=publication_eval_payload,
@@ -397,6 +425,15 @@ def _controller_decision_work_unit_context(
     )
     if upstream_context is not None:
         return upstream_context
+    if (
+        not record_context
+        and work_unit_context
+        and not _publication_eval_work_unit_context_is_relayable_for_record(
+            record=record,
+            work_unit_context=work_unit_context,
+        )
+    ):
+        return {}
     target_context = _publication_action_target_context(publication_eval_payload, work_unit_context)
     if target_context:
         return {**work_unit_context, **target_context}

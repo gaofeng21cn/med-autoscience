@@ -496,6 +496,28 @@ def resolve_study_manual_finish_contract(*, study_root: Path | None) -> StudyMan
     )
 
 
+def resolve_runtime_read_study_manual_finish_contract(*, study_root: Path | None) -> StudyManualFinishContract | None:
+    if study_root is None:
+        return None
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    payload = _load_yaml_dict(resolved_study_root / "study.yaml")
+    raw_manual_finish = payload.get("manual_finish")
+    if raw_manual_finish is None:
+        return None
+    if not isinstance(raw_manual_finish, dict):
+        raise ValueError("manual_finish must be a mapping")
+    guard_only = raw_manual_finish.get("manual_finish_guard_only")
+    if guard_only is None and "compatibility_guard_only" in raw_manual_finish:
+        guard_only = raw_manual_finish.get("compatibility_guard_only")
+    return StudyManualFinishContract(
+        study_root=resolved_study_root,
+        status=_non_empty_string(raw_manual_finish.get("status"), field_name="manual_finish.status"),
+        summary=_non_empty_string(raw_manual_finish.get("summary"), field_name="manual_finish.summary"),
+        next_action_summary=_optional_string(raw_manual_finish.get("next_action_summary")),
+        manual_finish_guard_only=bool(True if guard_only is None else guard_only),
+    )
+
+
 def resolve_effective_study_manual_finish_contract(
     *,
     study_root: Path | None,

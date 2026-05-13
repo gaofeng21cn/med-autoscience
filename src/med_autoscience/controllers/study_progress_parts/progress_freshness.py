@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Mapping
 
 from . import shared as _shared
@@ -128,6 +129,84 @@ def _gate_clearing_artifact_delta_freshness(
         source="gate_clearing_batch",
         summary=summary,
     )
+
+
+def _runtime_turn_closeout_artifact_delta_freshness(
+    *,
+    quest_root: Path | None,
+) -> dict[str, Any]:
+    missing = _freshness_from_timestamp(
+        timestamp=None,
+        source="runtime_turn_closeout",
+        summary=None,
+    )
+    if quest_root is None:
+        return missing
+    closeout_root = quest_root / "artifacts" / "runtime" / "turn_closeouts"
+    if not closeout_root.is_dir():
+        return missing
+
+    candidates: list[tuple[datetime, dict[str, Any], list[str]]] = []
+    for path in closeout_root.glob("*.json"):
+        payload = _read_json_object(path)
+        if payload is None:
+            continue
+        if _non_empty_text(payload.get("status")) not in {None, "completed"}:
+            continue
+        if payload.get("meaningful_artifact_delta") is not True:
+            continue
+        timestamp = _timestamp_value(
+            payload.get("completed_at")
+            or payload.get("finished_at")
+            or payload.get("recorded_at")
+            or payload.get("generated_at")
+        )
+        if timestamp is None:
+            continue
+        paper_refs = _closeout_paper_artifact_delta_refs(payload)
+        if not paper_refs:
+            continue
+        candidates.append((timestamp, payload, paper_refs))
+    if not candidates:
+        return missing
+
+    timestamp, _payload, paper_refs = max(candidates, key=lambda item: item[0])
+    display_count = sum(1 for ref in paper_refs if "/paper/figures/" in ref or "/paper/tables/" in ref)
+    summary = f"runtime turn closeout reported {len(paper_refs)} paper-facing artifact(s)"
+    if display_count:
+        summary += f", including {display_count} table/figure artifact(s)"
+    summary += "."
+    return _freshness_from_timestamp(
+        timestamp=timestamp.isoformat(),
+        source="runtime_turn_closeout",
+        summary=summary,
+    )
+
+
+def _closeout_paper_artifact_delta_refs(closeout_payload: Mapping[str, Any]) -> list[str]:
+    refs = closeout_payload.get("artifact_refs")
+    if not isinstance(refs, list):
+        return []
+    paper_refs: list[str] = []
+    for ref in refs:
+        text = _non_empty_text(ref)
+        if text is None:
+            continue
+        if _canonical_paper_artifact_delta_path(text):
+            paper_refs.append(text.replace("\\", "/"))
+    return sorted(dict.fromkeys(paper_refs))
+
+
+def _canonical_paper_artifact_delta_path(path: str) -> bool:
+    normalized = path.strip().replace("\\", "/").lstrip("./")
+    if not _paper_facing_artifact_path(normalized):
+        return False
+    parts = tuple(part.lower() for part in normalized.split("/") if part not in {"", "."})
+    if "current_package" in parts or "submission_minimal" in parts:
+        return False
+    if parts and parts[-1] in {"current_package.zip", "current_package.tar.gz", "delivery_manifest.json"}:
+        return False
+    return True
 
 
 def _same_publication_eval(
@@ -309,6 +388,7 @@ def _split_progress_freshness(
     publication_eval_payload: dict[str, Any] | None,
     runtime_facts: Any,
     runtime_supervision_payload: dict[str, Any] | None,
+    quest_root: Path | None = None,
 ) -> dict[str, Any]:
     supervisor_status = _non_empty_text(supervisor_tick_audit.get("status"))
     supervisor_tick = {
@@ -382,9 +462,13 @@ def _split_progress_freshness(
         gate_clearing_batch_payload=gate_clearing_batch_payload,
         publication_eval_payload=publication_eval_payload,
     )
+    closeout_artifact_delta_freshness = _runtime_turn_closeout_artifact_delta_freshness(
+        quest_root=quest_root,
+    )
     artifact_delta_freshness = _freshest_freshness(
         artifact_delta_freshness,
         gate_artifact_delta_freshness,
+        closeout_artifact_delta_freshness,
     )
     artifact_delta_at = _non_empty_text(artifact_delta_freshness.get("latest_progress_at"))
     breach_types = {

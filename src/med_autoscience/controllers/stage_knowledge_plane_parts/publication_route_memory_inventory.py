@@ -60,6 +60,12 @@ def build_publication_route_memory_inventory(
             _publication_route_inventory_card(card, include_body=include_card_body)
             for card in filtered_cards
         ],
+        "operator_grouping": _publication_route_memory_operator_grouping(
+            workspace_root=resolved_workspace_root,
+            cards=filtered_cards,
+            include_body=include_card_body,
+        ),
+        "review_summary": _publication_route_memory_review_summary(filtered_cards),
         "receipt_summary": _publication_route_memory_receipt_summary(pack_root=pack_root),
         "opl_aion_receipt_inventory": _publication_route_memory_opl_aion_receipt_inventory(pack_root=pack_root),
         "locator_refs": {
@@ -93,6 +99,7 @@ def _publication_route_inventory_card(card: Mapping[str, Any], *, include_body: 
     inventory_card = {
         "memory_id": _text(card.get("memory_id")),
         "status": _text(card.get("status")),
+        "review_state": _publication_route_memory_review_state(card),
         "route_family": _text(card.get("route_family")),
         "stage_applicability": _text_list(card.get("stage_applicability")),
         "title": _text(card.get("title")),
@@ -114,6 +121,112 @@ def _publication_route_inventory_card(card: Mapping[str, Any], *, include_body: 
         inventory_card["example_signals"] = _text_list(card.get("example_signals"))
         inventory_card["failure_modes"] = _text_list(card.get("failure_modes"))
     return inventory_card
+
+
+def _publication_route_memory_operator_grouping(
+    *,
+    workspace_root: Path,
+    cards: Sequence[Mapping[str, Any]],
+    include_body: bool,
+) -> dict[str, Any]:
+    return {
+        "surface": "publication_route_memory_operator_grouping",
+        "read_only": True,
+        "body_included": bool(include_body),
+        "workspace": {
+            "workspace_root": str(workspace_root),
+            "memory_refs": _group_memory_refs(cards),
+            "card_count": len(cards),
+        },
+        "by_stage": _group_cards_by_value(
+            cards,
+            values_for_card=lambda card: _text_list(card.get("stage_applicability")),
+            group_key="stage",
+        ),
+        "by_route_family": _group_cards_by_value(
+            cards,
+            values_for_card=lambda card: [_text(card.get("route_family"))],
+            group_key="route_family",
+        ),
+        "by_status": _group_cards_by_value(
+            cards,
+            values_for_card=lambda card: [_publication_route_memory_review_state(card)],
+            group_key="status",
+        ),
+        "display_policy": {
+            "consumer": "OPL/Aion",
+            "display_role": "ref_only_grouping",
+            "can_read_memory_body": bool(include_body),
+            "can_write_memory_body": False,
+            "can_accept_or_reject_writeback": False,
+            "can_score_winning_route": False,
+            "can_authorize_publication_quality": False,
+        },
+    }
+
+
+def _publication_route_memory_review_summary(cards: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    states = [_publication_route_memory_review_state(card) for card in cards]
+    return {
+        "surface": "publication_route_memory_review_summary",
+        "card_count": len(cards),
+        "active_count": states.count("active"),
+        "stale_count": states.count("stale"),
+        "deprecated_count": states.count("deprecated"),
+        "needs_review_count": sum(1 for state in states if state in {"stale", "deprecated"}),
+        "stale_or_deprecated_refs": [
+            _text(card.get("memory_id"))
+            for card in cards
+            if _publication_route_memory_review_state(card) in {"stale", "deprecated"}
+        ],
+        "authority_boundary": "review_signal_only_not_memory_body_or_quality_authority",
+    }
+
+
+def _publication_route_memory_review_state(card: Mapping[str, Any]) -> str:
+    status = _text(card.get("status")).lower().replace("-", "_")
+    if status in {"deprecated", "deprecated_seed", "retired", "retired_seed"}:
+        return "deprecated"
+    if status in {"stale", "stale_seed", "needs_review", "review_needed"}:
+        return "stale"
+    return "active"
+
+
+def _group_cards_by_value(
+    cards: Sequence[Mapping[str, Any]],
+    *,
+    values_for_card,
+    group_key: str,
+) -> list[dict[str, Any]]:
+    grouped: dict[str, list[Mapping[str, Any]]] = {}
+    for card in cards:
+        values = [value for value in values_for_card(card) if value]
+        for value in values or ["unclassified"]:
+            grouped.setdefault(value, []).append(card)
+    return [
+        {
+            group_key: value,
+            "memory_refs": _group_memory_refs(grouped[value]),
+            "card_count": len(grouped[value]),
+        }
+        for value in sorted(grouped)
+    ]
+
+
+def _group_memory_refs(cards: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        _drop_empty(
+            {
+                "memory_id": _text(card.get("memory_id")),
+                "status": _publication_route_memory_review_state(card),
+                "route_family": _text(card.get("route_family")),
+                "stage_applicability": _text_list(card.get("stage_applicability")),
+                "source_receipt_ref": _text(card.get("source_receipt_ref")),
+            }
+        )
+        for card in cards
+        if _text(card.get("memory_id"))
+    ]
 
 
 def _publication_route_memory_receipt_summary(*, pack_root: Path) -> dict[str, Any]:

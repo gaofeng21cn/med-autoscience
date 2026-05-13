@@ -108,6 +108,25 @@ def publication_eval_has_finalize_route(publication_eval_payload: dict[str, Any]
     )
 
 
+def _publication_eval_has_finalize_work_unit(publication_eval_payload: dict[str, Any]) -> bool:
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return False
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        if action.get("requires_controller_decision") is not True:
+            continue
+        next_work_unit = action.get("next_work_unit")
+        if not isinstance(next_work_unit, dict):
+            continue
+        next_work_unit_lane = str(next_work_unit.get("lane") or "").strip()
+        next_work_unit_id = str(next_work_unit.get("unit_id") or "").strip()
+        if next_work_unit_lane in FINALIZE_ROUTE_TARGETS or next_work_unit_id in FINALIZE_WORK_UNIT_IDS:
+            return True
+    return False
+
+
 def bundle_stage_publication_eval_preempts_task_intake(
     *,
     status_payload: dict[str, Any],
@@ -116,6 +135,8 @@ def bundle_stage_publication_eval_preempts_task_intake(
     task_intake_action: dict[str, Any] | None = None,
 ) -> bool:
     if not publication_eval_has_finalize_route(publication_eval_payload):
+        return False
+    if task_intake_action is not None and not _publication_eval_has_finalize_work_unit(publication_eval_payload):
         return False
     if _runtime_status_reports_bundle_stage_ready(status_payload):
         return True

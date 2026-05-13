@@ -106,7 +106,7 @@ def artifact_delta(progress: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def meaningful_artifact_delta_observed(progress: Mapping[str, Any]) -> bool:
-    return _text(artifact_delta(progress).get("latest_meaningful_delta_at")) is not None
+    return _text(artifact_delta(progress).get("status")) == "fresh"
 
 
 def _gate_clearing_path(*, study_root: Path) -> Path:

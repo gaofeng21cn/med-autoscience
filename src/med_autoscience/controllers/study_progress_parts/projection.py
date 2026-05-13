@@ -291,6 +291,7 @@ def build_study_progress_projection(
         publication_eval_payload=publication_eval_payload,
         runtime_facts=runtime_facts,
         runtime_supervision_payload=runtime_supervision_payload,
+        quest_root=quest_root,
     )
     current_stage_summary = _display_text(_stage_summary(
         status=status,

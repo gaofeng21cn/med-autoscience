@@ -755,6 +755,7 @@ def _study_projection(
         _supervisor_only(status_payload, progress_payload)
         and artifact_freshness.meaningful_artifact_delta_observed(progress_payload)
         and _active_run_id(status_payload, progress_payload) is not None
+        and not actions
     )
     next_owner = (
         "supervisor_only/live_quality_repair"

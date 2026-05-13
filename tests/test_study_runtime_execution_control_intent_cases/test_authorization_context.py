@@ -12,6 +12,7 @@ from tests.test_study_runtime_execution_control_intent_cases.helpers import (
     _write_controller_decision_authorization,
     _write_publication_eval_authority,
     _write_publication_eval_gate_replay_with_specificity_targets,
+    _write_publication_eval_review_only_authority,
     _write_publication_eval_work_unit_authority,
     _write_runtime_state,
 )
@@ -112,6 +113,40 @@ def test_controller_authorization_prefers_current_decision_work_unit_over_stale_
     assert authorization_context["next_work_unit"]["unit_id"] == "submission_minimal_refresh"
     assert authorization_context["blocking_work_units"][0]["unit_id"] == "manuscript_story_repair"
     assert authorization_context["control_intent_identity"]["work_unit_id"] == "submission_minimal_refresh"
+
+
+def test_controller_authorization_keeps_record_route_over_review_only_publication_work_unit(
+    tmp_path: Path,
+) -> None:
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_controller_decision_authorization(
+        study_root,
+        decision_id="decision-dm002-reviewer-revision",
+        emitted_at="2026-05-13T16:39:25+00:00",
+    )
+    _write_publication_eval_review_only_authority(study_root)
+
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+
+    assert authorization_context is not None
+    assert authorization_context["decision_type"] == "bounded_analysis"
+    assert authorization_context["route_target"] == "analysis-campaign"
+    assert authorization_context["route_key_question"] == (
+        "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
+    )
+    assert authorization_context["work_unit_id"] == (
+        "revision checklist mapping each user comment to manuscript/table/figure/reference changes"
+    )
+    assert authorization_context["source_route_key_question"] == authorization_context["route_key_question"]
+    assert authorization_context["next_work_unit"] == {}
+    assert authorization_context["blocking_work_units"] == []
+    assert authorization_context["work_unit_fingerprint"] is None
+    assert authorization_context["control_intent_identity"]["route_target"] == "analysis-campaign"
+    assert authorization_context["control_intent_identity"]["work_unit_id"] != "publication_gate_blocker_review"
+
 
 def test_controller_authorization_converts_gate_replay_targets_to_upstream_paper_repair(
     tmp_path: Path,

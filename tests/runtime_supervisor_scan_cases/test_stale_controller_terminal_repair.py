@@ -184,6 +184,8 @@ def test_supervisor_scan_writes_current_controller_authorization_before_no_live_
     quest_root = profile.runtime_root / study_id
     work_unit_fingerprint = "publication-blockers::current"
     publication_eval = {
+        "schema_version": 1,
+        "eval_id": f"publication-eval::{study_id}::current",
         "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
         "recommended_actions": [
             {
@@ -200,9 +202,14 @@ def test_supervisor_scan_writes_current_controller_authorization_before_no_live_
     _write_json(
         study_root / "artifacts" / "controller_decisions" / "latest.json",
         {
+            "schema_version": 1,
             "decision_id": "current-dpcc-analysis-redrive",
             "study_id": study_id,
             "quest_id": study_id,
+            "publication_eval_ref": {
+                "eval_id": f"publication-eval::{study_id}::current",
+                "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            },
             "requires_human_confirmation": False,
             "controller_actions": [{"action_type": "ensure_study_runtime"}],
             "route_target": "analysis-campaign",
@@ -229,6 +236,8 @@ def test_supervisor_scan_writes_current_controller_authorization_before_no_live_
         runtime_state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
         authorization = runtime_state["last_controller_decision_authorization"]
         assert authorization["decision_id"] == "current-dpcc-analysis-redrive"
+        assert authorization["publication_eval_id"] == f"publication-eval::{study_id}::current"
+        assert authorization["publication_eval_ref"]["eval_id"] == authorization["publication_eval_id"]
         assert authorization["work_unit_id"] == "analysis_claim_evidence_repair"
         assert authorization["specificity_targets"][0]["target_kind"] == "metric"
         assert runtime_state["same_fingerprint_auto_turn_count"] == 0

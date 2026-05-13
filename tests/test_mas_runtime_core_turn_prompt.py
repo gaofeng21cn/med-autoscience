@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 import subprocess
 
@@ -114,6 +115,179 @@ def test_codex_exec_runner_prompt_includes_active_controller_work_unit(monkeypat
     assert "analysis-campaign/write controller work units may revise canonical `paper/` surfaces" in prompt
     assert "publication gate `allow_write=false` blocks generated package/submission writes" in prompt
     assert "runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta" in prompt
+
+
+def test_codex_exec_runner_prompt_omits_queued_controller_authorization_when_active_authorization_exists(
+    monkeypatch, tmp_path: Path
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "last_controller_decision_authorization": {
+    "decision_id": "decision-analysis-001",
+    "controller_actions": ["ensure_study_runtime"],
+    "route_target": "analysis-campaign",
+    "route_key_question": "paper/rebuttal/review_matrix.md and action_plan.md",
+    "work_unit_id": "paper/rebuttal/review_matrix.md and action_plan.md"
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-001",
+        run_id="run-001",
+        reason="queued_user_messages",
+        claimed_user_messages=(
+            {
+                "message_id": "msg-stale-review",
+                "source": "runtime_watch",
+                "content": (
+                    "MAS controller authorization. `/workspace/studies/001/artifacts/controller_decisions/latest.json` "
+                    "is the active MAS authorization for this runtime turn.\n\n"
+                    "- route_target: `review` (质量复评)\n"
+                    "- route_key_question: publication_gate_blocker_review: Review the current publication gate blockers.\n"
+                    "- active_work_unit_id: `publication_gate_blocker_review`"
+                ),
+            },
+            {
+                "message_id": "msg-user",
+                "source": "user",
+                "content": "Please preserve this ordinary user instruction.",
+            },
+        ),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+
+    assert "Active MAS controller work unit" in prompt
+    assert '"route_target": "analysis-campaign"' in prompt
+    assert "publication_gate_blocker_review" not in prompt
+    assert "Please preserve this ordinary user instruction." in prompt
+
+
+def test_codex_exec_runner_prompt_skips_closed_publication_work_unit_authorization(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    workspace_root = tmp_path / "workspace"
+    quest_id = "002-dm"
+    quest_root = workspace_root / "runtime" / "quests" / quest_id
+    runtime_root = workspace_root / "runtime"
+    study_root = workspace_root / "studies" / quest_id
+    _write_workspace_python(quest_root)
+    (study_root).mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 002-dm\n", encoding="utf-8")
+    lifecycle_path = study_root / "artifacts" / "controller" / "publication_work_unit_lifecycle" / "latest.json"
+    lifecycle_path.parent.mkdir(parents=True, exist_ok=True)
+    lifecycle_path.write_text(
+        """
+{
+  "schema_version": 1,
+  "source_eval_id": "publication-eval::002-dm::002-dm::2026-05-12T10:36:52+00:00",
+  "study_id": "002-dm",
+  "quest_id": "002-dm",
+  "status": "done",
+  "work_unit": {
+    "unit_id": "submission_authority_sync_closure",
+    "lane": "controller"
+  },
+  "unit_statuses": [
+    {"unit_id": "create_submission_minimal_package", "status": "ok"},
+    {"unit_id": "sync_submission_minimal_delivery", "status": "settled_by_current_gate"}
+  ],
+  "gate_replay_status": "clear"
+}
+""",
+        encoding="utf-8",
+    )
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "active_run_id": "run-live-001",
+  "last_controller_decision_authorization": {
+    "decision_id": "decision-authority-sync-stale",
+    "controller_actions": ["ensure_study_runtime"],
+    "route_target": "finalize",
+    "work_unit_id": "submission_authority_sync_closure",
+    "work_unit_fingerprint": "publication-blockers::authority-sync",
+    "next_work_unit": {
+      "unit_id": "submission_authority_sync_closure",
+      "lane": "controller",
+      "summary": "Regenerate submission authority signatures, then replay the publication gate."
+    },
+    "controller_work_unit_lifecycle": {
+      "lifecycle_state": "new",
+      "terminal_consumed": false
+    }
+  }
+}
+""",
+        encoding="utf-8",
+    )
+    controller_decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    controller_decision_path.parent.mkdir(parents=True, exist_ok=True)
+    controller_decision_path.write_text(
+        """
+{
+  "schema_version": 1,
+  "decision_id": "decision-authority-sync-stale",
+  "publication_eval_ref": {
+    "eval_id": "publication-eval::002-dm::002-dm::2026-05-12T10:36:52+00:00",
+    "artifact_path": "/tmp/publication_eval/latest.json"
+  },
+  "next_work_unit": {
+    "unit_id": "submission_authority_sync_closure",
+    "lane": "controller"
+  },
+  "work_unit_fingerprint": "publication-blockers::authority-sync"
+}
+""",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id="run-002",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+
+    assert "Active MAS controller work unit" not in prompt
+    assert "submission_authority_sync_closure" not in prompt
+    assert "Turn closeout contract" in prompt
+    assert "last_controller_decision_authorization" not in runtime_state
+    assert runtime_state["last_runtime_turn_state_sanitization"]["reason"] == "publication_work_unit_lifecycle_done"
+    assert runtime_state["continuation_reason"] == "closed_controller_work_unit_authorization_cleared"
 
 
 def test_codex_exec_runner_default_turn_is_not_terminal_attach_capable(monkeypatch, tmp_path: Path) -> None:

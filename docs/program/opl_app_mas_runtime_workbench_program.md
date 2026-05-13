@@ -1,7 +1,7 @@
 # OPL App MAS Runtime Workbench Program
 
 Status: `active product enabler; content-level owner doc`
-Date: `2026-05-13`
+Date: `2026-05-14`
 Owner: `MedAutoScience Product Projection + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P1 产品化线路：把 MAS 论文自治进度变成 OPL App Runtime Workbench 中的人用运行工作台。
 Machine boundary: 本文是人读 owner/program 文档。实现真相应进入稳定 JSON/API contract、MAS action receipt、OPL App/runtime manager contract、UI test、截图证据和真实 workspace evidence。
@@ -32,9 +32,9 @@ MAS 已具备相关 repo surface：
 | `mas_opl_runtime_workbench_projection` | `landed_read_only_projection` | App-facing projection gate，登记在 `contracts/test-lane-manifest.json` |
 | Stage Deliverable Review / Index projection | `landed_read_only_locator_projection` | 展示 latest review page、deliverable index、freshness、claim impact、human annotation、next owner 和 blocker；不写 MAS truth |
 | OPL provider attempt/readiness refs | `provider_readiness_projection_ready` | OPL production proof 可被 MAS product-entry / sidecar ingestion 投影为 provider available；App 只能展示 provider refs 和 typed blocker |
-| publication-route memory refs | `body_free_ref_projection_ready` | 展示 consumed refs、writeback receipt refs、freshness 和 rejected reason；不展示 memory body，不接受 writeback |
+| publication-route memory refs | `body_free_grouping_review_projection_ready` | 展示 consumed refs、writeback receipt refs、freshness、rejected reason、workspace/stage/route family/status grouping 和 stale/deprecated review summary；不展示 memory body，不接受 writeback |
 
-剩余产品缺口不是“旧 P1 文档里的所有功能都要做”。当前缺口是把这些现有 MAS projection、Stage Review locator、publication-route memory refs、provider readiness refs 和 action receipts 变成 OPL App 里的主用户运行面，同时 local Portal / Live Console 保留为 fallback、debug 和 evidence。
+剩余产品缺口不是“旧 P1 文档里的所有功能都要做”。当前缺口是把这些现有 MAS projection、Stage Review locator、publication-route memory refs / grouping / review summary、provider readiness refs 和 action receipts 变成 OPL App 里的主用户运行面，同时 local Portal / Live Console 保留为 fallback、debug 和 evidence。
 
 P1 的当前规划状态来自 [MAS Current Development Lines](./current_development_lines.md)。P1 只承担 `functional_follow_through_gate`：把已经存在的 MAS / OPL refs、receipts、blockers 和 action boundaries 产品化。真实 provider-hosted paper progress 仍归 P0 / P2 owner surfaces；P1 不用 UI 状态、provider completion 或 queue status 宣布论文进展。
 
@@ -45,7 +45,7 @@ P1 的当前规划状态来自 [MAS Current Development Lines](./current_develop
 | `P1.1` | `read_only_study_workbench` | OPL App-native MAS study drilldown，展示 status、next owner、blocker、route/decision trail、executor conversation、terminal/log tail、artifacts、source refs。 | terminal input、runtime apply、publication readiness decision |
 | `P1.2` | `action_receipt_transport` | pause/resume/stop/reconcile dry-run UI 调 MAS owner endpoint，展示 receipt、拒绝原因、idempotency 和 next state。 | 直接写 MAS runtime SQLite、controller decisions、publication eval、current package、ledger 或 terminal command file |
 | `P1.3` | `interactive_terminal_attach` | 仅当 MAS terminal attach status 可用时启用 App terminal panel；input/resize/detach 经 MAS token/lease/idempotency/audit gate。 | 恢复旧 MDS WebSocket owner，或用 chat 伪装 terminal input |
-| `P1.4` | `stage_review_and_memory_drilldown` | 将 Stage Deliverable Review / Index 与 publication-route memory body-free refs 分组展示：latest review page、claim impact、paper asset delta、freshness、human annotation、consumed/writeback refs、rejected reason。 | 把人工注释、memory refs 或 review page 变成 quality verdict / publication readiness |
+| `P1.4` | `stage_review_and_memory_drilldown` | 将 Stage Deliverable Review / Index 与 publication-route memory body-free refs 分组展示：latest review page、claim impact、paper asset delta、freshness、human annotation、consumed/writeback refs、rejected reason、operator grouping、stale/deprecated review summary。 | 把人工注释、memory refs 或 review page 变成 quality verdict / publication readiness |
 | `P1.5` | `provider_workbench_join` | 在 OPL production proof ingestion 已可用的基础上，把 MAS study workbench 与 OPL provider readiness、family queue、approval transport、stage attempt status、typed blocker 和 domain activity soak refs 合并显示。 | 把 provider attempt completion 或 production residency proof 当成 paper progress |
 
 这些 lane 可以独立推进。后续 patch 可以只触碰一个 lane，只要它改善内容级结果并保持 owner 边界。
@@ -54,7 +54,7 @@ P1 的当前规划状态来自 [MAS Current Development Lines](./current_develop
 
 | workbench gate | gate class | current planning status | done evidence |
 | --- | --- | --- | --- |
-| `stage_review_and_memory_drilldown` | `functional_follow_through_gate` | `planned; locator_projection_landed` | OPL App / Workbench 展示 latest review page、stage index、claim impact、freshness、memory consumed/writeback refs、rejected reason 和 typed blocker；不写 MAS truth。 |
+| `stage_review_and_memory_drilldown` | `functional_follow_through_gate` | `implemented_read_model; app_polish_pending` | OPL App / Workbench 展示 latest review page、stage index、claim impact、freshness、memory consumed/writeback refs、rejected reason、operator grouping、review summary 和 typed blocker；不写 MAS truth。 |
 | `safe_action_receipt_transport` | `functional_follow_through_gate` | `planned; MAS receipt path landed` | Pause/resume/stop/reconcile dry-run 返回 MAS action receipt、idempotency、refusal reason 和 next owner；App 不写 runtime SQLite、controller decision、publication eval 或 package。 |
 | `terminal_attach_panel` | `functional_follow_through_gate` | `planned; owner gate landed` | 只有 attach-capable live run 才启用；input/resize/detach 经 MAS token、lease、idempotency 和 audit gate。 |
 | `provider_attempt_join` | `functional_follow_through_gate` | `planned; provider refs available` | App 能把 provider readiness、attempt refs、human gate transport、dead-letter 和 domain typed blockers 与 MAS study projection 并列展示；provider done 不等于 paper progress。 |

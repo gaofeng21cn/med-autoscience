@@ -139,6 +139,38 @@ def test_publication_route_memory_inventory_cli_lists_cards_without_body_by_defa
         "publication_route_memory_seed__negative_result_stoploss",
     ]
     assert payload["receipt_summary"]["migration_receipt_count"] == 1
+    grouping = payload["operator_grouping"]
+    assert grouping["surface"] == "publication_route_memory_operator_grouping"
+    assert grouping["read_only"] is True
+    assert grouping["body_included"] is False
+    assert grouping["display_policy"]["display_role"] == "ref_only_grouping"
+    assert grouping["display_policy"]["can_write_memory_body"] is False
+    assert grouping["display_policy"]["can_accept_or_reject_writeback"] is False
+    assert grouping["display_policy"]["can_authorize_publication_quality"] is False
+    assert grouping["workspace"]["card_count"] == payload["card_count_filtered"]
+    assert {item["stage"] for item in grouping["by_stage"]} >= {"decision"}
+    assert {item["route_family"] for item in grouping["by_route_family"]} >= {
+        "clinical_classifier",
+        "clinical_subtype_reconstruction",
+        "weak_or_negative_result_handling",
+    }
+    assert grouping["by_status"] == [
+        {
+            "status": "active",
+            "memory_refs": grouping["workspace"]["memory_refs"],
+            "card_count": payload["card_count_filtered"],
+        }
+    ]
+    assert payload["review_summary"] == {
+        "surface": "publication_route_memory_review_summary",
+        "card_count": payload["card_count_filtered"],
+        "active_count": payload["card_count_filtered"],
+        "stale_count": 0,
+        "deprecated_count": 0,
+        "needs_review_count": 0,
+        "stale_or_deprecated_refs": [],
+        "authority_boundary": "review_signal_only_not_memory_body_or_quality_authority",
+    }
     assert payload["opl_aion_receipt_inventory"]["body_included"] is False
     assert payload["opl_aion_receipt_inventory"]["receipt_count"] == 1
     assert payload["opl_aion_receipt_inventory"]["receipts"][0]["receipt_status"] == "applied"
@@ -164,6 +196,63 @@ def test_publication_route_memory_inventory_cli_lists_cards_without_body_by_defa
     assert payload["authority_boundary"]["can_authorize_publication_quality"] is False
     assert "Negative or unstable main analysis should trigger" in captured.out
     assert "When a bounded analysis campaign returns" not in captured.out
+
+
+def test_publication_route_memory_inventory_cli_groups_stale_and_deprecated_review_refs(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    cli.main(
+        [
+            "publication-route-memory-apply-seed",
+            "--workspace-root",
+            str(workspace_root),
+            "--seed-fixture",
+            str(SEED_FIXTURE),
+            "--apply",
+        ]
+    )
+    capsys.readouterr()
+
+    pack_path = workspace_root / "portfolio" / "research_memory" / "publication_route_memory" / "memory_pack.json"
+    pack = json.loads(pack_path.read_text(encoding="utf-8"))
+    pack["cards"][0]["status"] = "stale_seed"
+    pack["cards"][1]["status"] = "deprecated_seed"
+    _write_json(pack_path, pack)
+
+    exit_code = cli.main(
+        [
+            "publication-route-memory-inventory",
+            "--workspace-root",
+            str(workspace_root),
+            "--stage",
+            "decision",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["review_summary"]["stale_count"] == 1
+    assert payload["review_summary"]["deprecated_count"] == 1
+    assert payload["review_summary"]["needs_review_count"] == 2
+    assert payload["review_summary"]["stale_or_deprecated_refs"][:2] == [
+        "publication_route_memory_seed__clinical_classifier",
+        "publication_route_memory_seed__clinical_subtype_reconstruction",
+    ]
+    by_status = {
+        item["status"]: item
+        for item in payload["operator_grouping"]["by_status"]
+    }
+    assert by_status["stale"]["memory_refs"][0]["memory_id"] == (
+        "publication_route_memory_seed__clinical_classifier"
+    )
+    assert by_status["deprecated"]["memory_refs"][0]["memory_id"] == (
+        "publication_route_memory_seed__clinical_subtype_reconstruction"
+    )
+    assert all("prose_summary" not in ref for ref in by_status["active"]["memory_refs"])
 
 
 def test_publication_route_memory_inventory_cli_can_include_body_for_maintainers(tmp_path: Path, capsys) -> None:

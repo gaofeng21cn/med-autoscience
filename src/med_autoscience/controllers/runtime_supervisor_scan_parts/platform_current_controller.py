@@ -141,6 +141,8 @@ def current_controller_authorization_payload(
         "route_target": text(decision.get("route_target")),
         "work_unit_id": text(work_unit.get("unit_id")),
         "work_unit_fingerprint": work_unit_fingerprint,
+        "publication_eval_id": text(publication_eval_payload.get("eval_id")),
+        "publication_eval_ref": mapping(decision.get("publication_eval_ref")),
         "next_work_unit": _target_ready_next_work_unit(work_unit, publication_action),
         "controller_actions": sorted(controller_action_types(decision)),
         "source": RUNTIME_PLATFORM_REPAIR_SOURCE,

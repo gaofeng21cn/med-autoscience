@@ -60,7 +60,7 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 | repo seed index | [publication_route_memory_seed_fixture.json](./publication_route_memory_seed_fixture.json) | 9 张 seed card 的机器索引和 Markdown locator；不是 memory 正文，也不是真实 memory store。 |
 | workspace memory pack | `portfolio/research_memory/publication_route_memory/memory_pack.json` | 某个 MAS workspace 内应用/回写后的可检索 memory pack；它是生成面，不是维护者第一编辑面。 |
 | receipts/proposals | `portfolio/research_memory/publication_route_memory/{migration_receipts,writeback_proposals,writeback_receipts}` | 查看 seed apply、typed closeout proposal 和 MAS router 接受/拒绝记录。 |
-| 只读 CLI inventory | `medautosci publication route-memory-inventory --workspace-root <workspace>` | 按 workspace/stage/route family/status 查看 card 元数据、locator 和 receipt summary；默认不输出 memory 正文。维护者显式加 `--include-card-body` 时才输出 rich body sections。 |
+| 只读 CLI inventory | `medautosci publication route-memory-inventory --workspace-root <workspace>` | 按 workspace/stage/route family/status 查看 card 元数据、locator、receipt summary、operator grouping 和 stale/deprecated review summary；默认不输出 memory 正文。维护者显式加 `--include-card-body` 时才输出 rich body sections。 |
 
 `study_archetypes.md` 不是论文套路 domain memory 的完整存储位置。它是第一代入口，旧 MAS 通过 profile / study payload 的 `preferred_study_archetypes`、`study_archetype` 或 `preferred_study_archetype` 选择分析和报告合同；真正的人类维护入口现在是 `publication_route_memory_library.md`。`publication_route_memory_seed_fixture.json` 只做索引和 locator，workspace `memory_pack.json`、`stage_knowledge_packet.publication_route_memory_refs`、`stage-memory-closeout-route` 和 `route-memory-inventory` 是应用、检索、回写与审计面。
 

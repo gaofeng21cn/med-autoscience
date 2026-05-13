@@ -1,7 +1,7 @@
 # OPL Temporal MAS Runtime Retirement Program
 
 Status: `production_residency_proof_landed; mas_proof_ingestion_landed; watchdog_kernel_migrated; live_paper_apply_pending; content-level owner doc`
-Date: `2026-05-13`
+Date: `2026-05-14`
 Owner: `MedAutoScience Runtime OS + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P2 框架对齐线路：MAS 与 OPL stage-led、以 Agent executor 为最小执行单位 runtime framework 之间的边界、优先级和退役门槛。
 Machine boundary: 本文是人读 program owner。机器真相继续归 MAS controller/runtime surfaces、OPL provider contracts、sidecar receipts、attempt ledgers、durable schemas、CLI/API behavior 和 live workspace evidence。
@@ -40,6 +40,8 @@ MAS 侧已经落地：
 - MAS product-entry manifest 与 sidecar export 也暴露 OPL production closeout gate 可直接消费的 `owner_receipt_contract` / `domain_owner_receipt_contract`、`lifecycle_apply_requests` 和 `lifecycle_guarded_apply_proof`。这些字段只声明 MAS owner receipt envelope、OPL-owned ledger/locator apply 与 MAS-owned artifact cleanup/restore/retention receipt requirement；OPL 只能保存 refs / blocker / receipt locator，不写 MAS truth、artifact gate、memory body 或 publication verdict；
 - `medautosci sidecar dispatch` 已支持 `paper_autonomy/guarded-apply`，只写 MAS sidecar dispatch receipt 和 `real_paper_autonomy_provider_hosted_guarded_apply_receipt` 嵌套结果；OPL/provider 仍不能写 publication eval、controller decisions、current package、paper package、artifact gate、memory body、evidence ledger 或 review ledger；
 - `runtime_watch` 已从旧 watchdog 角色收敛为 MAS domain health / reconcile / owner repair kernel：`execution_owner_guard.supervisor_only=true` 下只允许同一 study/quest/run 的 MAS controller-owned live work-unit repair 或 controller-authorized runtime recovery；authorization mismatch、terminal lifecycle、provider/platform/OPL repair、缺 MAS controller authorization 均 fail closed。AI reviewer `publication_eval/latest.json` 只作为质量读面和 closeout evidence，不再被当作 guarded apply owner receipt；
+- MAS runtime core turn runner 现在会在进入下一轮 Codex turn 前清理已闭合 publication work-unit 的 stale controller authorization，并从 prompt 中去重旧授权消息；study progress / runtime supervisor scan 同步把 runtime turn closeout 中的 paper-facing artifact delta 纳入 freshness，并在 supervisor-only live delta 且无更高优先级 action 时投影 `supervisor_only/live_quality_repair`。这些是 MAS owner repair kernel 的功能性收口，不授权 provider 或 OPL 写 paper truth；
+- `publication-route-memory-inventory` 已补齐 OPL/Aion 可消费的 body-free `operator_grouping` 与 stale/deprecated `review_summary`，使 domain memory receipt refs 可以按 workspace、stage、route family 和 status 展示；memory body、writeback acceptance 和 publication route authority 仍留在 MAS owner surface；
 - `standard_domain_agent_skeleton` 现在包含 `physical_skeleton_layout_audit` 和 repo-source anchor status；`agent/standard-domain-agent-anchor.json`、`contracts/runtime/standard-domain-agent-anchor.json`、`runtime/artifact_locator/workspace-runtime-artifact-root.locator.json` 与 `docs/runtime/contracts/standard_domain_agent_skeleton.md` 已作为 physical anchors，同时把 workspace artifacts 固定为 locator-only；
 - MAS local scheduler、one-shot reconcile、Portal 和 Live Console 仍是有效 local diagnostics 与 evidence surface。
 - 默认 caller 已从 Hermes scheduler / hosted runtime 路径移走；Hermes 相关 surface 当前只作为 explicit optional diagnostics、proof/provenance 或 `retire_after_parity` 读法保留。本轮不要求真实 Hermes/Claude production soak，adapter smoke 与 receipt/fail-closed proof 足以关闭接入能力验收。

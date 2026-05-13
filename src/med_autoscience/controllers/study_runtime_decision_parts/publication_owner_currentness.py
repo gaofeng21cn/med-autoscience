@@ -44,6 +44,44 @@ def _publication_eval_specificity_targets_complete(payload: dict[str, object]) -
     return False
 
 
+def _publication_eval_action_types(payload: dict[str, object]) -> set[str]:
+    action_types: set[str] = set()
+    actions = payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return action_types
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        text = str(action.get("action_type") or "").strip()
+        if text:
+            action_types.add(text)
+    return action_types
+
+
+def _publication_eval_verdict(payload: dict[str, object]) -> str | None:
+    verdict = payload.get("verdict")
+    if not isinstance(verdict, dict):
+        return None
+    text = str(verdict.get("overall_verdict") or "").strip()
+    return text or None
+
+
+def _ai_reviewer_eval_matches_clear_gate(
+    payload: dict[str, object],
+    *,
+    gate_required_action: str,
+) -> bool:
+    verdict = _publication_eval_verdict(payload)
+    if verdict in {"blocked", "rejected", "stop_loss"}:
+        return False
+    action_types = _publication_eval_action_types(payload)
+    if gate_required_action == "continue_write_stage":
+        return bool(action_types & {"bounded_analysis", "continue_same_line"})
+    if gate_required_action in {"continue_bundle_stage", "complete_bundle_stage"}:
+        return bool(action_types & {"continue_same_line", "prepare_promotion_review"})
+    return bool(action_types - {"route_back_same_line", "return_to_controller", "stop_loss"})
+
+
 def _report_work_unit_fingerprint(publication_gate_report: dict[str, object]) -> str | None:
     try:
         work_unit_payload = publication_work_units.derive_publication_work_units(publication_gate_report)
@@ -103,11 +141,19 @@ def _current_ai_reviewer_publication_eval_ref(
     if isinstance(delivery_context_refs, dict):
         eval_paper_root = _normalized_path_text(delivery_context_refs.get("paper_root_ref"))
         gate_paper_root = _normalized_path_text(publication_gate_report.get("paper_root"))
-        if (
-            eval_paper_root is not None
-            and gate_paper_root is not None
-            and eval_paper_root != gate_paper_root
-        ):
+    if (
+        eval_paper_root is not None
+        and gate_paper_root is not None
+        and eval_paper_root != gate_paper_root
+    ):
+        return None
+    if gate_status == "clear" and gate_required_action in {
+        "continue_write_stage",
+        "continue_bundle_stage",
+        "complete_bundle_stage",
+        "prepare_promotion_review",
+    }:
+        if not _ai_reviewer_eval_matches_clear_gate(payload, gate_required_action=gate_required_action):
             return None
     if gate_status == "blocked" and gate_blockers and (
         gate_blocks_current_owner

@@ -1,7 +1,7 @@
 # AI-first Paper Autonomy Closure Program
 
 Status: `active target and acceptance owner`
-Date: `2026-05-13`
+Date: `2026-05-14`
 Owner: `MedAutoScience`
 Purpose: define the current MAS paper-autonomy objective, acceptance gates, and live-soak evidence requirements.
 Machine boundary: this is a human-readable program owner. Machine truth remains in `study_charter`, `paper/evidence_ledger.json`, `paper/review_ledger.json`, `artifacts/publication_eval/latest.json`, `artifacts/controller_decisions/latest.json`, `study_runtime_status`, `runtime_watch`, runtime supervision receipts, owner-route dispatch receipts, manuscript/package rebuild proof, and live study artifact refs.
@@ -47,6 +47,8 @@ The important distinction is that `repo surface landed` means MAS has the callab
 - MAS sidecar dispatch now accepts `paper_autonomy/guarded-apply` as a provider-hosted guarded apply closure request. The request writes only a MAS sidecar dispatch receipt with a nested `real_paper_autonomy_provider_hosted_guarded_apply_receipt`, provider attempt id, idempotency key, source fingerprint, no-forbidden-write proof, guarded apply receipt refs, and typed blockers when MAS owner progress is missing.
 - DM002 now has a final ref-level publication-route memory proof inside the guarded apply surface: consumed route-memory refs plus MAS router/workspace/OPL-Aion receipt refs are exposed with `body_included=false`; OPL still cannot read memory prose or accept/reject writeback.
 - OPL production residency proof has been ingested by MAS product-entry manifest and sidecar export. The provider read model can report `production_residency_proven` / provider available while preserving `can_write_domain_truth=false`, `provider_completion_is_paper_closure=false`, and `paper_closure_requires_mas_owner_receipt=true`.
+- 2026-05-14 follow-through: `publication-route-memory-inventory` now also exposes ref-only `operator_grouping` by workspace/stage/route family/status plus `review_summary` for stale/deprecated cards. This is a read-only maintenance and OPL/Aion display surface; it does not expose memory body, accept/reject writeback, choose a winning route, or authorize publication quality.
+- MAS runtime/progress surfaces now recognize paper-facing runtime turn closeout artifact deltas as progress freshness evidence, clear closed controller work-unit authorization before the next Codex turn, and route supervisor-only live artifact-delta states to `supervisor_only/live_quality_repair` only when no higher-priority action is present. These are owner/projection improvements, not production paper closure.
 
 This means the current three-paper evidence has crossed the read-only acceptance threshold, now has a MAS-owned guarded apply proof and dispatch receipt closure surface, and can be paired with OPL production residency evidence. It still has not proven production-hosted paper completion; production evidence requires MAS owner receipts with real artifact/gate/reviewer/route progress or explicit typed blockers from live workspace gates.
 
@@ -61,7 +63,7 @@ P0 now consumes the MAS line plan from [MAS Current Development Lines](./current
 | `live_paper_owner_chain` | `production_evidence_gate` | `planned; read_only_three_paper_proof_landed` | Real paper-line owner receipt with artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or typed blocker in MAS truth surfaces. |
 | `provider_hosted_guarded_apply` | `production_evidence_gate` | `planned; guarded_apply_surface_landed` | Provider attempt id and typed closeout paired with MAS owner receipt and no-forbidden-write proof; provider completion alone does not count. |
 | `human_gate_resume` | `production_evidence_gate` | `planned; owner_boundary_landed` | MAS controller/runtime records the gate reason, resume token or refusal, next owner, and blocker; OPL signal is transport only. |
-| `publication_route_memory_writeback` | `functional_follow_through_gate` | `planned; DM002 ref chain landed` | Stage closeout proposal, MAS router accepted/rejected receipt, body-free inventory/export refs; memory body and accept/reject authority stay in MAS workspace/runtime owner. |
+| `publication_route_memory_writeback` | `functional_follow_through_gate` | `implemented; DM002 ref chain plus grouping/review inventory landed` | Stage closeout proposal, MAS router accepted/rejected receipt, body-free inventory/export refs, operator grouping, stale/deprecated review summary; memory body and accept/reject authority stay in MAS workspace/runtime owner. |
 | `stage_review_index_instance` | `functional_follow_through_gate` | `planned; locator proof landed` | Live attempt produces latest review page / index refs, freshness, claim impact, next owner or typed blocker; review/index does not authorize publication readiness. |
 
 P0 is complete only when these gates repeatedly produce MAS-owned progress or MAS-owned blockers on real paper lines. It is not completed by documentation alignment, repo tests, OPL production residency proof, queue completion, or App display.
