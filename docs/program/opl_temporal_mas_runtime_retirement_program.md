@@ -24,6 +24,8 @@ Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full rec
 
 2026-05-12 文档收口口径：P2 已经具备 OPL-hosted MAS 的 descriptor、sidecar、guarded apply receipt、DM002 route-memory receipt chain、OPL Temporal production residency proof，以及 MAS 对该 proof 的 product-entry / sidecar ingestion。MAS 读取 `--opl-production-proof` 后，可把 provider availability 从 typed blocker 切到 `available`，但 authority boundary 仍保持 `can_write_domain_truth=false`、`provider_completion_is_paper_closure=false`、`paper_closure_requires_mas_owner_receipt=true`。P2 仍未具备真实 paper-line provider-hosted guarded apply success 证据。真实完成需要在 MAS owner gate 允许时逐条 paper line 产出 owner receipt、artifact/gate/reviewer/route/human-gate/stop-loss evidence，或由 live owner guard / authorization / publication gate 返回 typed blocker。
 
+2026-05-13 functional closure 口径：真实 paper-line long-running apply 仍是 production evidence gate；在此之外，P2 的工程功能闭环不应继续等待真实论文运行。下一步应直接实现 MAS owner receipt envelope 泛化、publication-route memory writeback receipt 泛化、physical skeleton follow-through、legacy residue no-active-caller/tombstone proof，以及 OPL status/read-model 对 managed Temporal state 的一致性 cleanup。每项结果要么进入 MAS-owned receipt / locator / typed blocker surface，要么明确返回 owner guard、live gate、authorization 或 contract gap。
+
 MAS 侧已经落地：
 
 - MAS 可被 OPL 发现为 aligned domain-agent skeleton 和 stage control plane；
