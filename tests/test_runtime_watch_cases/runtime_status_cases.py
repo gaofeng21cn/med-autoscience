@@ -10,6 +10,7 @@ globals().update({
 
 from .runtime_status_cases_cases.test_runtime_activity_projection import *  # noqa: F403,F401
 from .runtime_status_cases_cases.test_ai_doctor_autonomy_repair import *  # noqa: F403,F401
+from .runtime_status_cases_cases.test_live_work_unit_autonomy_repair import *  # noqa: F403,F401
 
 def test_runtime_watch_uses_runtime_watch_protocol_helpers(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
