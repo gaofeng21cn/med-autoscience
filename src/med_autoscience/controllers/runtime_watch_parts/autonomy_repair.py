@@ -142,6 +142,69 @@ def read_ai_repair_lifecycle(*, study_root: Path) -> dict[str, Any] | None:
     return _read_json_object(ai_repair_lifecycle_path(study_root=study_root))
 
 
+def _empty_ai_repair_lifecycle_payload(
+    *,
+    study_root: Path,
+    repair_payload: Mapping[str, Any],
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    recorded_at = utc_now()
+    return {
+        "surface": "ai_repair_lifecycle",
+        "schema_version": 1,
+        "study_id": _non_empty_text(repair_payload.get("study_id")) or _non_empty_text(status_payload.get("study_id")),
+        "quest_id": _non_empty_text(repair_payload.get("quest_id")) or _non_empty_text(status_payload.get("quest_id")),
+        "state": _non_empty_text(repair_payload.get("state")) or "monitor_only",
+        "top_action": None,
+        "auto_apply_allowed": False,
+        "last_apply_attempt_at": None,
+        "applied_at": None,
+        "blocked_reason": None,
+        "next_owner": None,
+        "external_supervisor_required": False,
+        "quality_gate_relaxation_allowed": False,
+        "paper_package_mutation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "last_apply_attempt": None,
+        "reconciled_at": recorded_at,
+        "refs": {
+            "repair_action_path": str(_latest_ai_doctor_repair_path(study_root=study_root)),
+        },
+    }
+
+
+def reconcile_ai_repair_lifecycle(
+    *,
+    study_root: Path,
+    status_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    repair_payload = _read_json_object(_latest_ai_doctor_repair_path(study_root=study_root))
+    if repair_payload is None:
+        return None
+    if _first_ai_doctor_repair_action(repair_payload) is not None:
+        return None
+    state = _non_empty_text(repair_payload.get("state"))
+    actions = repair_payload.get("actions")
+    action_count = repair_payload.get("action_count")
+    if state != "monitor_only" and actions != [] and action_count != 0:
+        return None
+    current = read_ai_repair_lifecycle(study_root=study_root) or {}
+    if not current or (
+        _non_empty_text(current.get("state")) == state
+        and current.get("external_supervisor_required") is False
+        and current.get("blocked_reason") is None
+    ):
+        return current or None
+    payload = _empty_ai_repair_lifecycle_payload(
+        study_root=study_root,
+        repair_payload=repair_payload,
+        status_payload=status_payload,
+    )
+    _write_json_object(ai_repair_lifecycle_path(study_root=study_root), payload)
+    return payload
+
+
 def _serialize_ai_doctor_repair_result(
     *,
     repair_payload: Mapping[str, Any],
@@ -350,6 +413,112 @@ def _has_controller_owned_runtime_recovery(status_payload: Mapping[str, Any]) ->
     return False
 
 
+def _active_run_id(status_payload: Mapping[str, Any]) -> str | None:
+    runtime_health = _mapping(status_payload.get("runtime_health_snapshot"))
+    worker_liveness = _mapping(runtime_health.get("worker_liveness_state"))
+    liveness_audit = _mapping(status_payload.get("runtime_liveness_audit"))
+    runtime_audit = _mapping(liveness_audit.get("runtime_audit"))
+    guard = _mapping(status_payload.get("execution_owner_guard"))
+    for value in (
+        status_payload.get("active_run_id"),
+        guard.get("active_run_id"),
+        worker_liveness.get("active_run_id"),
+        liveness_audit.get("active_run_id"),
+        runtime_audit.get("active_run_id"),
+    ):
+        if text := _non_empty_text(value):
+            return text
+    return None
+
+
+def _live_worker_running(status_payload: Mapping[str, Any]) -> bool:
+    runtime_health = _mapping(status_payload.get("runtime_health_snapshot"))
+    worker_liveness = _mapping(runtime_health.get("worker_liveness_state"))
+    liveness_audit = _mapping(status_payload.get("runtime_liveness_audit"))
+    runtime_audit = _mapping(liveness_audit.get("runtime_audit"))
+    return bool(
+        worker_liveness.get("worker_running") is True
+        or liveness_audit.get("worker_running") is True
+        or runtime_audit.get("worker_running") is True
+    )
+
+
+def _controller_work_unit_authorization(status_payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    for key in ("last_controller_decision_authorization", "current_controller_authorization"):
+        value = status_payload.get(key)
+        if isinstance(value, Mapping):
+            return value
+    return {}
+
+
+def _authorization_work_unit_ids(authorization: Mapping[str, Any]) -> set[str]:
+    work_unit_ids = {_non_empty_text(authorization.get("work_unit_id"))}
+    next_work_unit = _mapping(authorization.get("next_work_unit"))
+    work_unit_ids.add(_non_empty_text(next_work_unit.get("unit_id")))
+    for item in authorization.get("blocking_work_units") or []:
+        if isinstance(item, Mapping):
+            work_unit_ids.add(_non_empty_text(item.get("unit_id")))
+    work_unit_ids.discard(None)
+    return {str(item) for item in work_unit_ids}
+
+
+def _controller_work_unit_lifecycle_open(authorization: Mapping[str, Any]) -> bool:
+    lifecycle = _mapping(authorization.get("controller_work_unit_lifecycle"))
+    if not lifecycle:
+        return True
+    if lifecycle.get("terminal_consumed") is True:
+        return False
+    return _non_empty_text(lifecycle.get("lifecycle_state")) not in {"done", "terminal", "completed"}
+
+
+def _controller_work_unit_authorization_targets_status(
+    status_payload: Mapping[str, Any],
+    authorization: Mapping[str, Any],
+) -> bool:
+    status_active_run_id = _active_run_id(status_payload)
+    for key, expected in (
+        ("study_id", _non_empty_text(status_payload.get("study_id"))),
+        ("quest_id", _non_empty_text(status_payload.get("quest_id"))),
+        ("active_run_id", status_active_run_id),
+    ):
+        authorized = _non_empty_text(authorization.get(key))
+        if authorized is not None and expected is not None and authorized != expected:
+            return False
+    return True
+
+
+def _repair_kind_matches_live_controller_work_unit(action: Mapping[str, Any], authorization: Mapping[str, Any]) -> bool:
+    repair_kind = _non_empty_text(action.get("repair_kind"))
+    if repair_kind == "bounded_work_unit_redrive":
+        return bool(_authorization_work_unit_ids(authorization))
+    if repair_kind != "analysis_claim_evidence_redrive":
+        return False
+    work_unit_ids = _authorization_work_unit_ids(authorization)
+    route_target = _non_empty_text(authorization.get("route_target"))
+    return bool(
+        "analysis_claim_evidence_repair" in work_unit_ids
+        or route_target in {"analysis-campaign", "write"}
+    )
+
+
+def _status_allows_mas_controller_live_work_unit_repair(
+    status_payload: Mapping[str, Any],
+    action: Mapping[str, Any],
+) -> bool:
+    if _active_run_id(status_payload) is None or not _live_worker_running(status_payload):
+        return False
+    authorization = _controller_work_unit_authorization(status_payload)
+    if not authorization:
+        return False
+    if _non_empty_text(authorization.get("delivery_mode")) not in {None, "managed_runtime_chat"}:
+        return False
+    if not _controller_work_unit_authorization_targets_status(status_payload, authorization):
+        return False
+    if not _controller_work_unit_lifecycle_open(authorization):
+        return False
+    return _repair_kind_matches_live_controller_work_unit(action, authorization)
+
+
 def _status_allows_mas_controller_ai_doctor_repair(status_payload: Mapping[str, Any]) -> bool:
     return (
         _runtime_recovery_authorized(status_payload)
@@ -467,7 +636,7 @@ def _materialize_ai_repair_lifecycle(
         "next_owner": (
             "external_supervisor"
             if external_supervisor_required and result_state != "applied"
-            else (None if result_state == "parked" else _repair_next_owner(result=result, action=action))
+            else (None if result_state in {"applied", "parked"} else _repair_next_owner(result=result, action=action))
         ),
         "external_supervisor_required": external_supervisor_required and result_state != "applied",
         "quality_gate_relaxation_allowed": False,
@@ -529,6 +698,13 @@ def _apply_ai_doctor_repair_action(
         repair_payload=repair_payload,
         runtime_recovery_payload=runtime_recovery_payload,
     ):
+        return _serialize_ai_doctor_repair_result(
+            repair_payload=repair_payload,
+            action=action,
+            state="applied",
+            dispatch_status="executed",
+        )
+    if _status_allows_mas_controller_live_work_unit_repair(status_payload, action):
         return _serialize_ai_doctor_repair_result(
             repair_payload=repair_payload,
             action=action,
@@ -635,6 +811,7 @@ __all__ = [
     "REPAIR_LIFECYCLE_RELATIVE_PATH",
     "ai_repair_lifecycle_path",
     "apply_ready_ai_doctor_repair",
+    "reconcile_ai_repair_lifecycle",
     "read_ai_repair_lifecycle",
     "read_ready_ai_doctor_repair",
 ]

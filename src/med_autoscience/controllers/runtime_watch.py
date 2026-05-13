@@ -34,6 +34,7 @@ from med_autoscience.controllers.runtime_watch_outer_loop_policy import (
 )
 from med_autoscience.controllers.runtime_watch_parts.autonomy_repair import (
     apply_ready_ai_doctor_repair,
+    reconcile_ai_repair_lifecycle,
     read_ai_repair_lifecycle,
     read_ready_ai_doctor_repair,
 )
@@ -192,6 +193,7 @@ def _build_runtime_control_ports() -> RuntimeControlPorts:
         read_ready_ai_repair=read_ready_ai_doctor_repair,
         apply_ai_repair=apply_ready_ai_doctor_repair,
         read_ai_repair_lifecycle=read_ai_repair_lifecycle,
+        reconcile_ai_repair_lifecycle=reconcile_ai_repair_lifecycle,
     )
 
 

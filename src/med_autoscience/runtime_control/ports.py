@@ -25,6 +25,7 @@ class RuntimeControlPorts:
     read_ready_ai_repair: Callable[..., dict[str, Any] | None]
     apply_ai_repair: Callable[..., dict[str, Any] | None]
     read_ai_repair_lifecycle: Callable[..., dict[str, Any] | None]
+    reconcile_ai_repair_lifecycle: Callable[..., dict[str, Any] | None]
 
 
 def runtime_status_payload(

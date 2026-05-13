@@ -29,7 +29,7 @@ def build_guarded_apply_proof_from_provider_proof(
     progress_receipts = [
         receipt
         for receipt in accepted_receipts
-        if receipt.get("apply_result") in {"artifact_delta", "gate_replay", "ai_reviewer_re_eval", "route_decision", "stop_loss", "human_gate"}
+        if receipt.get("apply_result") in {"artifact_delta", "gate_replay", "route_decision", "stop_loss", "human_gate"}
     ]
     guarded_apply_performed = bool(accepted_receipts)
     memory_final_proof = _dm002_publication_route_memory_final_proof(closeout_packets)
@@ -95,8 +95,8 @@ def _guarded_apply_receipt(packet: Mapping[str, Any]) -> dict[str, Any]:
                 "study_id": study_id,
                 "owner": "MedAutoScience",
                 "reason": (
-                    "no MAS owner apply receipt with artifact delta, gate replay, reviewer update, route decision, "
-                    "human gate, stop-loss, or stable blocker was observed"
+                    "no MAS owner apply receipt with artifact delta, gate replay, route decision, human gate, "
+                    "stop-loss, or stable blocker was observed"
                 ),
                 "required_owner_surface": "MAS owner gate / guarded apply contract",
                 "write_permitted": False,
