@@ -11,6 +11,7 @@
 
 Sidecar 运行必须遵守下列核心契约条款：
 
+- **统一 provider 入口。** Sidecar provider 只能通过 generic controller / CLI 入口调用：`recommend-sidecar --provider <provider>`、`provision-sidecar --provider <provider>`、`import-sidecar --provider <provider>`。旧的 provider-specific wrapper command / controller / adapter 不是活跃接口。
 - **Recommendation gate。** Sidecar 不得自行决定何时执行。它必须先经过 recommendation gate；当 gate 为推荐态时，结论会落到 `runtime/quests/<quest-id>/sidecars/<provider>/<instance-id>/recommendation.json`，等待明确确认后才能继续。
 - **Frozen input contract。** Sidecar 接受的输入必须冻结为只读 contract，并落到 `runtime/quests/<quest-id>/sidecars/<provider>/<instance-id>/input_contract.json`。Sidecar 不得直接改写源数据、模型 checkpoint、registry 或主线结果文件。
 - **Handoff root 明确。** Sidecar 执行阶段只能向 `runtime/quests/<quest-id>/sidecars/<provider>/<instance-id>/handoff/` 产生产物。调用方只读取这个 handoff root，而不是从临时目录、对话附件或未登记缓存中“顺手拿结果”。

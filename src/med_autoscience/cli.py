@@ -56,7 +56,6 @@ class _LazyModuleProxy:
         return getattr(object.__getattribute__(self, "_loader")(), name)
 
 
-aris_sidecar_controller = _LazyModuleProxy(lambda: _load_controller("aris_sidecar"))
 data_asset_gate = _LazyModuleProxy(lambda: _load_controller("data_asset_gate"))
 data_assets = _LazyModuleProxy(lambda: _load_controller("data_assets"))
 data_asset_updates_controller = _LazyModuleProxy(lambda: _load_controller("data_asset_updates"))
@@ -994,29 +993,6 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "resolve-reference-papers":
         result = reference_papers_controller.resolve_reference_papers(
-            quest_root=Path(args.quest_root),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "recommend-aris-sidecar":
-        result = aris_sidecar_controller.recommend_aris_sidecar(
-            quest_root=Path(args.quest_root),
-            payload=_load_json_payload_from_args(args),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "provision-aris-sidecar":
-        result = aris_sidecar_controller.provision_aris_sidecar(
-            quest_root=Path(args.quest_root),
-            payload=_load_json_payload_from_args(args),
-        )
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0
-
-    if args.command == "import-aris-sidecar":
-        result = aris_sidecar_controller.import_aris_sidecar_result(
             quest_root=Path(args.quest_root),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))

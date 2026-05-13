@@ -1,5 +1,4 @@
 __all__ = [
-    "aris_sidecar",
     "ai_first_cross_study_completion",
     "data_asset_gate",
     "data_assets",

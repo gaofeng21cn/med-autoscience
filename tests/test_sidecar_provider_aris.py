@@ -123,12 +123,13 @@ claim_evidence_pairs:
     )
 
 
-def test_recommend_aris_sidecar_returns_recommended_when_algorithm_route_is_ready(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.aris_sidecar")
+def test_recommend_sidecar_with_aris_provider_returns_recommended_when_algorithm_route_is_ready(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.sidecar_provider")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
 
-    result = module.recommend_aris_sidecar(
+    result = module.recommend_sidecar(
         quest_root=quest_root,
+        provider_id="aris",
         payload=ready_recommendation_payload(),
     )
 
@@ -139,12 +140,13 @@ def test_recommend_aris_sidecar_returns_recommended_when_algorithm_route_is_read
     assert recommendation["status"] == "awaiting_user_confirmation"
 
 
-def test_recommend_aris_sidecar_returns_not_candidate_with_blockers(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.aris_sidecar")
+def test_recommend_sidecar_with_aris_provider_returns_not_candidate_with_blockers(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.sidecar_provider")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
 
-    result = module.recommend_aris_sidecar(
+    result = module.recommend_sidecar(
         quest_root=quest_root,
+        provider_id="aris",
         payload={
             "requires_algorithmic_innovation": False,
             "task_definition_ready": False,
@@ -165,16 +167,18 @@ def test_recommend_aris_sidecar_returns_not_candidate_with_blockers(tmp_path: Pa
     assert "no_baseline_or_reference_context" in result["blockers"]
 
 
-def test_provision_aris_sidecar_writes_frozen_contract_and_state(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.aris_sidecar")
+def test_provision_sidecar_with_aris_provider_writes_frozen_contract_and_state(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.sidecar_provider")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
-    module.recommend_aris_sidecar(
+    module.recommend_sidecar(
         quest_root=quest_root,
+        provider_id="aris",
         payload=ready_recommendation_payload(),
     )
 
-    result = module.provision_aris_sidecar(
+    result = module.provision_sidecar(
         quest_root=quest_root,
+        provider_id="aris",
         payload=provision_payload(),
     )
 
@@ -190,59 +194,62 @@ def test_provision_aris_sidecar_writes_frozen_contract_and_state(tmp_path: Path)
     assert (sidecar_root / "handoff").is_dir()
 
 
-def test_provision_aris_sidecar_rejects_contract_drift(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.aris_sidecar")
+def test_provision_sidecar_with_aris_provider_rejects_contract_drift(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.sidecar_provider")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
-    module.recommend_aris_sidecar(
+    module.recommend_sidecar(
         quest_root=quest_root,
+        provider_id="aris",
         payload=ready_recommendation_payload(),
     )
     payload = provision_payload()
-    module.provision_aris_sidecar(quest_root=quest_root, payload=payload)
+    module.provision_sidecar(quest_root=quest_root, provider_id="aris", payload=payload)
 
     drifted_payload = provision_payload()
     drifted_payload["evaluation_contract"]["primary_metric"] = "dice"
 
     try:
-        module.provision_aris_sidecar(quest_root=quest_root, payload=drifted_payload)
+        module.provision_sidecar(quest_root=quest_root, provider_id="aris", payload=drifted_payload)
     except ValueError as exc:
         assert "contract drift" in str(exc)
     else:
         raise AssertionError("Expected ValueError for ARIS sidecar contract drift")
 
 
-def test_provision_aris_sidecar_requires_confirmed_user_gate(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.aris_sidecar")
+def test_provision_sidecar_with_aris_provider_requires_confirmed_user_gate(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.sidecar_provider")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
 
     try:
-        module.provision_aris_sidecar(quest_root=quest_root, payload=provision_payload())
+        module.provision_sidecar(quest_root=quest_root, provider_id="aris", payload=provision_payload())
     except ValueError as exc:
         assert "awaiting_user_confirmation" in str(exc)
     else:
         raise AssertionError("Expected ValueError when provisioning without a recorded recommendation gate")
 
-    module.recommend_aris_sidecar(
+    module.recommend_sidecar(
         quest_root=quest_root,
+        provider_id="aris",
         payload=ready_recommendation_payload(),
     )
     unconfirmed_payload = full_input_contract()
     try:
-        module.provision_aris_sidecar(quest_root=quest_root, payload=unconfirmed_payload)
+        module.provision_sidecar(quest_root=quest_root, provider_id="aris", payload=unconfirmed_payload)
     except ValueError as exc:
         assert "user_confirmation" in str(exc)
     else:
         raise AssertionError("Expected ValueError when provisioning without explicit user confirmation")
 
 
-def test_import_aris_sidecar_result_copies_handoff_artifacts_to_audit_surface(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.aris_sidecar")
+def test_import_sidecar_with_aris_provider_copies_handoff_artifacts_to_audit_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.sidecar_provider")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
-    module.recommend_aris_sidecar(
+    module.recommend_sidecar(
         quest_root=quest_root,
+        provider_id="aris",
         payload=ready_recommendation_payload(),
     )
-    provision = module.provision_aris_sidecar(quest_root=quest_root, payload=provision_payload())
+    provision = module.provision_sidecar(quest_root=quest_root, provider_id="aris", payload=provision_payload())
     sidecar_root = Path(provision["sidecar_root"])
     manifest = {
         "schema_version": 1,
@@ -268,7 +275,7 @@ def test_import_aris_sidecar_result_copies_handoff_artifacts_to_audit_surface(tm
     }
     populate_handoff(sidecar_root, manifest=manifest)
 
-    result = module.import_aris_sidecar_result(quest_root=quest_root)
+    result = module.import_sidecar_result(quest_root=quest_root, provider_id="aris")
 
     artifact_root = quest_root / "artifacts" / "algorithm_research" / "aris"
     imported_manifest = load_json(artifact_root / "sidecar_manifest.json")
@@ -279,14 +286,15 @@ def test_import_aris_sidecar_result_copies_handoff_artifacts_to_audit_surface(tm
     assert imported_manifest["input_contract_hash"] == provision["input_contract_hash"]
 
 
-def test_import_aris_sidecar_result_rejects_manifest_without_aligned_claim_evidence_pairs(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.aris_sidecar")
+def test_import_sidecar_with_aris_provider_rejects_manifest_without_aligned_claim_evidence_pairs(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.sidecar_provider")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
-    module.recommend_aris_sidecar(
+    module.recommend_sidecar(
         quest_root=quest_root,
+        provider_id="aris",
         payload=ready_recommendation_payload(),
     )
-    provision = module.provision_aris_sidecar(quest_root=quest_root, payload=provision_payload())
+    provision = module.provision_sidecar(quest_root=quest_root, provider_id="aris", payload=provision_payload())
     sidecar_root = Path(provision["sidecar_root"])
     manifest = {
         "schema_version": 1,
@@ -313,21 +321,22 @@ def test_import_aris_sidecar_result_rejects_manifest_without_aligned_claim_evide
     populate_handoff(sidecar_root, manifest=manifest, aligned_claim_map=False)
 
     try:
-        module.import_aris_sidecar_result(quest_root=quest_root)
+        module.import_sidecar_result(quest_root=quest_root, provider_id="aris")
     except ValueError as exc:
         assert "claim_to_evidence_map" in str(exc)
     else:
         raise AssertionError("Expected ValueError for unaligned claim_evidence_pairs")
 
 
-def test_resolve_aris_sidecar_artifacts_reads_only_imported_audit_surface(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.aris_sidecar")
+def test_resolve_sidecar_artifacts_with_aris_provider_reads_only_imported_audit_surface(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.sidecar_provider")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
-    module.recommend_aris_sidecar(
+    module.recommend_sidecar(
         quest_root=quest_root,
+        provider_id="aris",
         payload=ready_recommendation_payload(),
     )
-    provision = module.provision_aris_sidecar(quest_root=quest_root, payload=provision_payload())
+    provision = module.provision_sidecar(quest_root=quest_root, provider_id="aris", payload=provision_payload())
     sidecar_root = Path(provision["sidecar_root"])
     manifest = {
         "schema_version": 1,
@@ -352,10 +361,10 @@ def test_resolve_aris_sidecar_artifacts_reads_only_imported_audit_surface(tmp_pa
         ],
     }
     populate_handoff(sidecar_root, manifest=manifest)
-    module.import_aris_sidecar_result(quest_root=quest_root)
+    module.import_sidecar_result(quest_root=quest_root, provider_id="aris")
 
     write_text(sidecar_root / "handoff" / "final_method_proposal.md", "# stale sidecar draft\n")
-    resolved = module.resolve_aris_sidecar_artifacts(quest_root=quest_root)
+    resolved = module.resolve_sidecar_artifacts(quest_root=quest_root, provider_id="aris")
 
     assert resolved["status"] == "imported"
     assert resolved["artifacts"]["final_method_proposal.md"].endswith(

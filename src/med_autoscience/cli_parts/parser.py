@@ -313,19 +313,6 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     resolve_reference_papers_parser = subparsers.add_parser("resolve-reference-papers")
     resolve_reference_papers_parser.add_argument("--quest-root", required=True)
 
-    recommend_aris_sidecar_parser = subparsers.add_parser("recommend-aris-sidecar")
-    recommend_aris_sidecar_parser.add_argument("--quest-root", required=True)
-    recommend_aris_sidecar_parser.add_argument("--payload-file", type=str)
-    recommend_aris_sidecar_parser.add_argument("--payload-json", type=str)
-
-    provision_aris_sidecar_parser = subparsers.add_parser("provision-aris-sidecar")
-    provision_aris_sidecar_parser.add_argument("--quest-root", required=True)
-    provision_aris_sidecar_parser.add_argument("--payload-file", type=str)
-    provision_aris_sidecar_parser.add_argument("--payload-json", type=str)
-
-    import_aris_sidecar_parser = subparsers.add_parser("import-aris-sidecar")
-    import_aris_sidecar_parser.add_argument("--quest-root", required=True)
-
     recommend_sidecar_parser = subparsers.add_parser("recommend-sidecar")
     recommend_sidecar_parser.add_argument("--provider", required=True)
     recommend_sidecar_parser.add_argument("--quest-root", required=True)
