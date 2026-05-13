@@ -1,7 +1,7 @@
 # OPL App MAS Runtime Workbench Program
 
 Status: `active product enabler; content-level owner doc`
-Date: `2026-05-11`
+Date: `2026-05-13`
 Owner: `MedAutoScience Product Projection + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P1 产品化线路：把 MAS 论文自治进度变成 OPL App Runtime Workbench 中的人用运行工作台。
 Machine boundary: 本文是人读 owner/program 文档。实现真相应进入稳定 JSON/API contract、MAS action receipt、OPL App/runtime manager contract、UI test、截图证据和真实 workspace evidence。
@@ -30,8 +30,11 @@ MAS 已具备相关 repo surface：
 | terminal attach gate | `owner_gate_landed` | fail-closed attach/input/resize/detach authority |
 | pause/resume/stop owner actions | `landed_owner_receipt_path` | MAS authority 下的 controlled runtime action |
 | `mas_opl_runtime_workbench_projection` | `landed_read_only_projection` | App-facing projection gate，登记在 `contracts/test-lane-manifest.json` |
+| Stage Deliverable Review / Index projection | `landed_read_only_locator_projection` | 展示 latest review page、deliverable index、freshness、claim impact、human annotation、next owner 和 blocker；不写 MAS truth |
+| OPL provider attempt/readiness refs | `provider_readiness_projection_ready` | OPL production proof 可被 MAS product-entry / sidecar ingestion 投影为 provider available；App 只能展示 provider refs 和 typed blocker |
+| publication-route memory refs | `body_free_ref_projection_ready` | 展示 consumed refs、writeback receipt refs、freshness 和 rejected reason；不展示 memory body，不接受 writeback |
 
-剩余产品缺口不是“旧 P1 文档里的所有功能都要做”。当前缺口是把这些现有 MAS projection 和 receipt 变成 OPL App 里的主用户运行面，同时 local Portal / Live Console 保留为 fallback、debug 和 evidence。
+剩余产品缺口不是“旧 P1 文档里的所有功能都要做”。当前缺口是把这些现有 MAS projection、Stage Review locator、publication-route memory refs、provider readiness refs 和 action receipts 变成 OPL App 里的主用户运行面，同时 local Portal / Live Console 保留为 fallback、debug 和 evidence。
 
 ## 活跃内容 Lane
 
@@ -40,7 +43,8 @@ MAS 已具备相关 repo surface：
 | `P1.1` | `read_only_study_workbench` | OPL App-native MAS study drilldown，展示 status、next owner、blocker、route/decision trail、executor conversation、terminal/log tail、artifacts、source refs。 | terminal input、runtime apply、publication readiness decision |
 | `P1.2` | `action_receipt_transport` | pause/resume/stop/reconcile dry-run UI 调 MAS owner endpoint，展示 receipt、拒绝原因、idempotency 和 next state。 | 直接写 MAS runtime SQLite、controller decisions、publication eval、current package、ledger 或 terminal command file |
 | `P1.3` | `interactive_terminal_attach` | 仅当 MAS terminal attach status 可用时启用 App terminal panel；input/resize/detach 经 MAS token/lease/idempotency/audit gate。 | 恢复旧 MDS WebSocket owner，或用 chat 伪装 terminal input |
-| `P1.4` | `provider_workbench_join` | P2 provider evidence 存在后，把 MAS study workbench 与 OPL provider readiness、family queue、approval transport 和 stage attempt status 合并显示。 | 把 provider attempt completion 当成 paper progress |
+| `P1.4` | `stage_review_and_memory_drilldown` | 将 Stage Deliverable Review / Index 与 publication-route memory body-free refs 分组展示：latest review page、claim impact、paper asset delta、freshness、human annotation、consumed/writeback refs、rejected reason。 | 把人工注释、memory refs 或 review page 变成 quality verdict / publication readiness |
+| `P1.5` | `provider_workbench_join` | 在 OPL production proof ingestion 已可用的基础上，把 MAS study workbench 与 OPL provider readiness、family queue、approval transport、stage attempt status、typed blocker 和 domain activity soak refs 合并显示。 | 把 provider attempt completion 或 production residency proof 当成 paper progress |
 
 这些 lane 可以独立推进。后续 patch 可以只触碰一个 lane，只要它改善内容级结果并保持 owner 边界。
 
@@ -56,7 +60,7 @@ OPL App / OPL Runtime Manager 持有：
 
 - navigation、runtime workbench layout、notification/approval transport、App history cache、panel state、IPC/WebView/native component safety 和用户交互 shell；
 - typed MAS action request 的 transport，以及 MAS typed receipt 的展示；
-- P2 可用后显示 provider/runtime queue context。
+- provider/runtime queue context、OPL production proof state、managed-state freshness、typed blocker 和 domain activity soak refs。
 
 P1 禁止写入：study truth、publication eval、controller decisions、runtime lifecycle SQLite、terminal command files、current package、submission package、evidence ledger、review ledger。
 
@@ -66,9 +70,10 @@ P1 禁止写入：study truth、publication eval、controller decisions、runtim
 
 1. P2 先完成 OPL framework 基础和 MAS framework migration 的机器边界；
 2. P1 再基于迁移后的 MAS projection / OPL provider projection 交付 read-only App-native study workbench；
-3. read-only state/source refs 可信后，再接 controlled action receipt transport；
-4. 仅对 attach-capable live run 增加 interactive terminal attach；
-5. P2 完成真实 provider-hosted MAS paper-line soak 后，再把 provider queue/attempt context 作为主工作台的一部分。
+3. 把 Stage Review / Index、publication-route memory refs 和 provider readiness refs 做成可 drilldown 的只读分组；
+4. read-only state/source refs 可信后，再接 controlled action receipt transport；
+5. 仅对 attach-capable live run 增加 interactive terminal attach；
+6. P2 完成真实 provider-hosted MAS paper-line soak 后，再把 provider queue/attempt context 从 evidence panel 升级为主工作台的一部分。
 
 因此 local Portal polish、重复 WebUI 工作、宽泛 Electron 架构探索和旧 MDS UI parity 细节是支撑材料，不是独立 active program scope。
 

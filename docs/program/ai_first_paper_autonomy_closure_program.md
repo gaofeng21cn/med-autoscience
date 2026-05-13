@@ -1,7 +1,7 @@
 # AI-first Paper Autonomy Closure Program
 
 Status: `active target and acceptance owner`
-Date: `2026-05-11`
+Date: `2026-05-13`
 Owner: `MedAutoScience`
 Purpose: define the current MAS paper-autonomy objective, acceptance gates, and live-soak evidence requirements.
 Machine boundary: this is a human-readable program owner. Machine truth remains in `study_charter`, `paper/evidence_ledger.json`, `paper/review_ledger.json`, `artifacts/publication_eval/latest.json`, `artifacts/controller_decisions/latest.json`, `study_runtime_status`, `runtime_watch`, runtime supervision receipts, owner-route dispatch receipts, manuscript/package rebuild proof, and live study artifact refs.
@@ -31,11 +31,11 @@ The repo-level MAS paper loop is implemented enough to be called, tested, and in
 | Stage knowledge and memory packets | `repo contract/read-model landed` | MAS stage knowledge packet, closeout packet, memory write router, recall index |
 | Real paper closure | `evidence-gated live soak` | live MAS study truth surfaces |
 | Product visibility | `depends on P1` | OPL App Runtime Workbench consuming MAS projections |
-| Durable hosted runtime | `depends on P2` | OPL stage-led framework and provider-backed runtime consuming MAS sidecar/receipts |
+| Durable hosted runtime | `production proof ingested; live paper apply pending` | OPL stage-led framework and provider-backed runtime consuming MAS sidecar/receipts |
 
 The important distinction is that `repo surface landed` means MAS has the callable contracts, owners, receipts, and tests needed for the loop. It does not mean every real paper line has already reached submission-facing closure.
 
-2026-05-12 fresh live-soak calibration:
+2026-05-13 fresh live-soak calibration:
 
 - DM002 currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=ai_reviewer_re_eval`, MAS-owned publication gate / controller decision / repair evidence refs, and `next_owner=analysis-campaign`.
 - DM003 currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=artifact_delta` and `next_owner=write`.
@@ -46,10 +46,11 @@ The important distinction is that `repo surface landed` means MAS has the callab
 - The MAS-owned guarded apply proof surface is now callable as `real-paper-autonomy-guarded-apply-proof`. It reads the same three-paper packets, then accepts real workspace mutation only when an existing MAS owner apply receipt proves artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or stable blocker under MAS authority. Without that owner receipt it emits `mas_guarded_apply_receipt` typed blockers such as `mas_owner_apply_receipt_missing:*` and keeps `writes_performed=false`.
 - MAS sidecar dispatch now accepts `paper_autonomy/guarded-apply` as a provider-hosted guarded apply closure request. The request writes only a MAS sidecar dispatch receipt with a nested `real_paper_autonomy_provider_hosted_guarded_apply_receipt`, provider attempt id, idempotency key, source fingerprint, no-forbidden-write proof, guarded apply receipt refs, and typed blockers when MAS owner progress is missing.
 - DM002 now has a final ref-level publication-route memory proof inside the guarded apply surface: consumed route-memory refs plus MAS router/workspace/OPL-Aion receipt refs are exposed with `body_included=false`; OPL still cannot read memory prose or accept/reject writeback.
+- OPL production residency proof has been ingested by MAS product-entry manifest and sidecar export. The provider read model can report `production_residency_proven` / provider available while preserving `can_write_domain_truth=false`, `provider_completion_is_paper_closure=false`, and `paper_closure_requires_mas_owner_receipt=true`.
 
-This means the current three-paper evidence has crossed the read-only acceptance threshold and now has a MAS-owned guarded apply proof and dispatch receipt closure surface. It still has not proven production-hosted paper completion; production evidence requires MAS owner receipts with real artifact/gate/reviewer/route progress or explicit typed blockers from live workspace gates.
+This means the current three-paper evidence has crossed the read-only acceptance threshold, now has a MAS-owned guarded apply proof and dispatch receipt closure surface, and can be paired with OPL production residency evidence. It still has not proven production-hosted paper completion; production evidence requires MAS owner receipts with real artifact/gate/reviewer/route progress or explicit typed blockers from live workspace gates.
 
-2026-05-12 production closure wording: the current acceptable claim is that MAS has provider-guarded apply receipt surfaces, a DM002 route-memory consumed/writeback receipt chain, and three-paper guarded proof surfaces ready for OPL-hosted attempts. The remaining claim requires live provider-hosted guarded apply soak: each paper line must produce a MAS owner receipt with artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or a typed blocker from the live owner/gate.
+2026-05-13 production closure wording: the current acceptable claim is that MAS has provider-guarded apply receipt surfaces, a DM002 route-memory consumed/writeback receipt chain, three-paper guarded proof surfaces ready for OPL-hosted attempts, and OPL production proof ingestion into MAS provider availability projection. The remaining claim requires live provider-hosted guarded apply soak: each paper line must produce a MAS owner receipt with artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or a typed blocker from the live owner/gate. OPL production proof, queue completion, repo tests, and provider attempt completion remain supporting evidence, not paper closure.
 
 ## Acceptance Contract
 
