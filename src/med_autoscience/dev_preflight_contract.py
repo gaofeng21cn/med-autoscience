@@ -269,6 +269,8 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         category_id="control_plane_surface",
         exact_paths=(
             "scripts/real-paper-autonomy-soak-inventory.py",
+            "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
+            "src/med_autoscience/controllers/sidecar_family_adapter.py",
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
             "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
             "src/med_autoscience/controllers/control_identity.py",
@@ -293,6 +295,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "tests/test_mcp_server.py",
             "tests/test_runtime_protocol_paper_artifacts.py",
             "tests/test_runtime_storage_maintenance.py",
+            "tests/test_cli_cases/sidecar_family_adapter_command.py",
             "tests/test_study_control_plane_kernel.py",
             "tests/test_study_delivery_sync.py",
             "tests/test_truth_projection_surfaces.py",
