@@ -589,12 +589,17 @@ def test_classify_changed_files_matches_root_governance_contract_surface() -> No
     result = module.classify_changed_files(
         [
             "AGENTS.md",
+            "agent/standard-domain-agent-anchor.json",
             "contracts/README.md",
+            "contracts/runtime/legacy-active-path-tombstones.json",
+            "contracts/runtime/standard-domain-agent-anchor.json",
             "contracts/modules/runtime/module_contract.yaml",
             "contracts/opl-framework/family-contract-adoption.json",
             "contracts/schemas/v1/product-entry-manifest.schema.json",
+            "runtime/artifact_locator/workspace-runtime-artifact-root.locator.json",
             "tests/runtime/test_runtime_module_contract.py",
             "tests/test_opl_family_contract_adoption.py",
+            "tests/test_opl_family_persistence_adapter.py",
             "tests/test_test_command_surfaces.py",
         ]
     )
@@ -716,6 +721,7 @@ def test_plan_commands_for_root_governance_contract_surface_use_focused_contract
             "tests/integration/test_monorepo_scaffold_boundaries.py -q"
         ),
         "uv run pytest tests/test_opl_family_contract_adoption.py -q",
+        "uv run pytest tests/test_opl_family_persistence_adapter.py -q",
         "uv run pytest tests/test_test_command_surfaces.py -q",
     ]
 

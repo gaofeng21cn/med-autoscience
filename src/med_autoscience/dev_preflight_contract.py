@@ -205,12 +205,17 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         category_id="root_governance_contract_surface",
         exact_paths=(
             "AGENTS.md",
+            "agent/standard-domain-agent-anchor.json",
             "contracts/README.md",
+            "contracts/runtime/legacy-active-path-tombstones.json",
+            "contracts/runtime/standard-domain-agent-anchor.json",
+            "runtime/artifact_locator/workspace-runtime-artifact-root.locator.json",
             "tests/controller_charter/test_controller_charter_module_contract.py",
             "tests/eval_hygiene/test_eval_hygiene_module_contract.py",
             "tests/integration/test_monorepo_scaffold_boundaries.py",
             "tests/runtime/test_runtime_module_contract.py",
             "tests/test_opl_family_contract_adoption.py",
+            "tests/test_opl_family_persistence_adapter.py",
             "tests/test_test_command_surfaces.py",
         ),
         prefix_paths=(
@@ -227,6 +232,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
                 "tests/integration/test_monorepo_scaffold_boundaries.py -q"
             ),
             "uv run pytest tests/test_opl_family_contract_adoption.py -q",
+            "uv run pytest tests/test_opl_family_persistence_adapter.py -q",
             "uv run pytest tests/test_test_command_surfaces.py -q",
         ),
     ),
@@ -391,13 +397,24 @@ _DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
         prefix_paths=("docs/capabilities/",),
     ),
     PreflightCoveragePathFamily(
+        family_id="agent_root",
+        exact_paths=(),
+        prefix_paths=("agent/",),
+    ),
+    PreflightCoveragePathFamily(
         family_id="contract_root",
         exact_paths=("contracts/README.md",),
         prefix_paths=(
             "contracts/modules/",
             "contracts/opl-framework/",
+            "contracts/runtime/",
             "contracts/schemas/",
         ),
+    ),
+    PreflightCoveragePathFamily(
+        family_id="runtime_artifact_locator_root",
+        exact_paths=(),
+        prefix_paths=("runtime/artifact_locator/",),
     ),
     PreflightCoveragePathFamily(
         family_id="workflow_config",

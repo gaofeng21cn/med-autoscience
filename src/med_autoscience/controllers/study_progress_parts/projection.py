@@ -974,37 +974,34 @@ def _live_runtime_supervision_facts(
         return None
     runtime_health = _mapping_copy(supervision.get("runtime_health_snapshot"))
     worker_liveness = _mapping_copy(runtime_health.get("worker_liveness_state"))
-    active_run_id = (
-        _non_empty_text(supervision.get("active_run_id"))
-        or _non_empty_text(runtime_health.get("active_run_id"))
-        or _non_empty_text(worker_liveness.get("active_run_id"))
+    facts = control_plane_facts.resolve_control_plane_facts(
+        {
+            "active_run_id": (
+                _non_empty_text(supervision.get("active_run_id"))
+                or _non_empty_text(runtime_health.get("active_run_id"))
+                or _non_empty_text(worker_liveness.get("active_run_id"))
+            ),
+            "runtime_liveness_status": (
+                _non_empty_text(supervision.get("runtime_liveness_status"))
+                or _non_empty_text(worker_liveness.get("runtime_liveness_status"))
+                or _non_empty_text(supervision.get("health_status"))
+                or _non_empty_text(worker_liveness.get("state"))
+            ),
+            "worker_running": (
+                supervision.get("worker_running")
+                if isinstance(supervision.get("worker_running"), bool)
+                else worker_liveness.get("worker_running")
+            ),
+            "quest_status": _non_empty_text(supervision.get("quest_status")),
+            "reason": _non_empty_text(supervision.get("runtime_reason")),
+        }
     )
-    if active_run_id is None:
-        return None
-    worker_running = (
-        supervision.get("worker_running")
-        if isinstance(supervision.get("worker_running"), bool)
-        else worker_liveness.get("worker_running")
-    )
-    runtime_liveness_status = (
-        _non_empty_text(supervision.get("runtime_liveness_status"))
-        or _non_empty_text(worker_liveness.get("runtime_liveness_status"))
-    )
-    health_status = _non_empty_text(supervision.get("health_status"))
-    worker_state = _non_empty_text(worker_liveness.get("state"))
-    if not (
-        worker_running is True
-        and (
-            runtime_liveness_status == "live"
-            or health_status == "live"
-            or worker_state == "live"
-        )
-    ):
+    if not facts.strict_live or facts.active_run_id is None:
         return None
     return {
-        "active_run_id": active_run_id,
-        "quest_status": _non_empty_text(supervision.get("quest_status")),
-        "runtime_reason": _non_empty_text(supervision.get("runtime_reason")),
+        "active_run_id": facts.active_run_id,
+        "quest_status": facts.quest_status,
+        "runtime_reason": facts.reason,
         "runtime_health_snapshot": runtime_health,
     }
 

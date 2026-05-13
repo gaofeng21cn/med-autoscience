@@ -65,8 +65,11 @@ def test_revision_rebuttal_loop_builds_canonical_projection() -> None:
     matrix = projection["action_matrix"]
     assert matrix[0] == {
         "comment_id": "R1-C1",
+        "stable_concern_id": "reviewer_1:R1-C1",
         "repair_type": "analysis_repair",
         "action_type": "analysis_repair",
+        "action_label": "AUTHOR_INPUT_NEEDED",
+        "missing_context_fields": ["line_number", "citation_ref", "statistical_result"],
         "required_surface_refs": [
             "paper/evidence_ledger.json#revision-intake",
             "paper/review/review_ledger.json#reviewer-round-1",
