@@ -14,6 +14,129 @@ def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def test_sidecar_dispatch_records_provider_hosted_guarded_apply_receipt_without_forbidden_writes(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "002-dm-china-us-mortality-attribution"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(study_root / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": study_root.name})
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm002"},
+    )
+    _write_json(
+        study_root / "artifacts" / "stage_knowledge" / "paper_soak_memory_apply_proof" / "latest.json",
+        {
+            "surface": "paper_soak_memory_apply_proof",
+            "status": "ready",
+            "stage_entry": {
+                "publication_route_memory_refs": [
+                    {"memory_id": "publication_route_memory_seed__negative_result_stoploss"}
+                ]
+            },
+            "mas_router_receipt_refs": [{"ref": "receipt:memory-router"}],
+            "workspace_writeback_receipt_refs": [{"ref": "receipt:writeback"}],
+            "opl_aion_readonly_receipt_refs": [{"ref": "receipt:aion", "body_included": False}],
+        },
+    )
+    before = {path: path.stat().st_mtime_ns for path in study_root.rglob("*.json")}
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "guarded-apply-dm002",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/guarded-apply",
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": "DM002",
+                "provider_attempt_id": "opl-attempt-dm002-001",
+                "idempotency_key": "opl-attempt-dm002-001:guarded-apply",
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["accepted"] is True
+    assert payload["dispatch"]["action_type"] == "paper_autonomy_guarded_apply"
+    assert payload["dispatch"]["execution_policy"] == "mas_owner_provider_hosted_guarded_apply"
+    result = payload["dispatch"]["result"]
+    assert result["surface"] == "real_paper_autonomy_provider_hosted_guarded_apply_receipt"
+    assert result["provider_attempt"]["attempt_id"] == "opl-attempt-dm002-001"
+    assert result["status"] == "typed_blocker"
+    assert result["typed_blockers"][0]["blocker_id"].startswith("mas_owner_apply_receipt_missing:")
+    assert result["publication_route_memory_final_proof"]["status"] == "final_ref_chain_proven"
+    assert result["publication_route_memory_final_proof"]["consumed_refs"] == [
+        "publication_route_memory_seed__negative_result_stoploss"
+    ]
+    assert result["publication_route_memory_final_proof"]["writeback_receipt_refs"] == [
+        "receipt:memory-router",
+        "receipt:writeback",
+        "receipt:aion",
+    ]
+    assert result["forbidden_write_guard"]["aggregate_result"] == "fail_closed_no_forbidden_writes"
+    assert result["authority_boundary"]["opl_can_write_mas_truth"] is False
+    assert result["authority_boundary"]["opl_can_write_memory_body"] is False
+    assert payload["forbidden_write_guard_proof"]["result"] == "accepted_no_forbidden_writes"
+    receipt_ref = workspace_root / payload["receipt_ref"]
+    assert receipt_ref.is_file()
+    persisted = json.loads(receipt_ref.read_text(encoding="utf-8"))
+    assert persisted["dispatch"]["result"]["surface"] == "real_paper_autonomy_provider_hosted_guarded_apply_receipt"
+    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+    assert not (study_root / "paper" / "current_package").exists()
+    assert not (study_root / "manuscript" / "current_package").exists()
+    assert {path: path.stat().st_mtime_ns for path in before} == before
+
+
+def test_sidecar_dispatch_guarded_apply_rejects_review_ledger_or_memory_body_write(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "guarded-apply-forbidden",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/guarded-apply",
+            "payload": {
+                "profile": "/tmp/profile.toml",
+                "study_id": "DM002",
+                "requested_writes": [
+                    "review_ledger_write",
+                    "memory_body_write",
+                    "current_package_write",
+                    "publication_eval_write",
+                    "controller_decisions_write",
+                ],
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["accepted"] is False
+    assert payload["reason"] == "domain_truth_or_artifact_gate_write_forbidden"
+    assert payload["forbidden_requested_writes"] == [
+        "review_ledger_write",
+        "memory_body_write",
+        "current_package_write",
+        "publication_eval_write",
+        "controller_decisions_write",
+    ]
+
+
+
 def test_sidecar_dispatch_guarded_apply_records_mas_owner_receipt_present(
     tmp_path: Path,
     capsys,

@@ -1,0 +1,535 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Iterable, Mapping
+
+
+TARGET_DOMAIN_ID = "medautoscience"
+DOMAIN_OWNER = "med-autoscience"
+OPL_OWNER = "one-person-lab"
+DEFAULT_PROVIDER_GUARDED_SOAK_TARGETS = ("DM002", "DM003", "Obesity")
+PROVIDER_HOSTED_PROOF_SURFACE = "real_paper_autonomy_provider_hosted_paper_proof"
+GUARDED_APPLY_PROOF_SURFACE = "real_paper_autonomy_guarded_apply_proof"
+PROVIDER_RESIDENCY_SURFACE = "provider_runtime_residency_read_model"
+PRODUCTION_RESIDENCY_CHECKS = (
+    "temporal_production_residency",
+    "worker_restart_requery",
+    "retry_dead_letter",
+    "long_soak_receipt",
+)
+
+FORBIDDEN_AUTHORITY_WRITES = (
+    "study_truth_write",
+    "publication_quality_verdict",
+    "artifact_gate_override",
+    "current_package_write",
+    "evidence_ledger_write",
+    "review_ledger_write",
+    "study_truth",
+    "publication_eval",
+    "publication_eval_write",
+    "controller_decisions",
+    "controller_decisions_write",
+    "current_package",
+    "artifact_gate",
+    "memory_body_write",
+    "publication_route_memory_body",
+    "publication_route_memory_writeback_accept",
+    "memory_write_router_accept",
+)
+
+
+def _mapping(value: object) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
+def build_provider_residency_read_model(
+    *,
+    provider_available: bool,
+    receipt_refs: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    receipts = dict(receipt_refs or {})
+    checks = [
+        _provider_residency_check(
+            check_id=check_id,
+            provider_available=provider_available,
+            receipt_ref=receipts.get(check_id),
+        )
+        for check_id in PRODUCTION_RESIDENCY_CHECKS
+    ]
+    missing = [item["check_id"] for item in checks if item["status"] != "receipt_observed"]
+    status = "ready" if provider_available and not missing else "typed_blocker"
+    return {
+        "surface_kind": PROVIDER_RESIDENCY_SURFACE,
+        "version": "provider-runtime-residency-read-model.v1",
+        "mode": "opl_owned_read_model_refs_only",
+        "target_provider": "temporal",
+        "provider_owner": OPL_OWNER,
+        "domain_owner": DOMAIN_OWNER,
+        "status": status,
+        "provider_available": bool(provider_available),
+        "checks": checks,
+        "required_evidence": list(PRODUCTION_RESIDENCY_CHECKS),
+        "accepted_receipt_surfaces": [
+            "opl_provider_attempt_receipt",
+            "opl_provider_worker_lifecycle_receipt",
+            "opl_provider_retry_dead_letter_receipt",
+            "opl_provider_long_soak_receipt",
+            "typed_closeout_receipt",
+        ],
+        "typed_blocker": (
+            None
+            if status == "ready"
+            else {
+                "surface_kind": "mas_provider_residency_typed_blocker",
+                "blocker_id": "production_provider_residency_evidence_missing",
+                "owner": OPL_OWNER,
+                "missing_evidence": missing,
+                "reason": (
+                    "MAS can consume OPL provider sidecar tasks and typed receipts, but production "
+                    "Temporal residency is not proven by the required OPL-owned receipts."
+                ),
+                "required_owner_surface": "OPL production provider residency receipt bundle",
+                "write_permitted": False,
+            }
+        ),
+        "consumer_contract": {
+            "mas_consumes": ["sidecar_task", "typed_receipt", "receipt_refs"],
+            "mas_owned_provider_kernel": False,
+            "provider_completion_is_paper_closure": False,
+            "queue_completion_is_paper_closure": False,
+            "paper_progress_requires_mas_owner_receipt": True,
+        },
+        "authority_boundary": {
+            "provider_attempt_owner": OPL_OWNER,
+            "domain_truth_owner": DOMAIN_OWNER,
+            "can_write_domain_truth": False,
+            "can_write_current_package": False,
+            "can_authorize_publication_quality": False,
+            "can_write_memory_body": False,
+        },
+    }
+
+def build_forbidden_write_guard_proof(
+    *,
+    result: str,
+    task_id: str | None,
+    task_kind: str | None,
+    requested_writes: Iterable[str],
+) -> dict[str, Any]:
+    requested = [str(item) for item in requested_writes if str(item or "").strip()]
+    forbidden_requested = [item for item in requested if item in FORBIDDEN_AUTHORITY_WRITES]
+    return {
+        "surface_kind": "mas_opl_forbidden_write_guard_proof",
+        "version": "mas-opl-forbidden-write-guard.v1",
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "task_id": task_id,
+        "task_kind": task_kind,
+        "result": result,
+        "guard_mode": "fail_closed",
+        "guard_owner": DOMAIN_OWNER,
+        "requested_writes": requested,
+        "forbidden_requested_writes": forbidden_requested,
+        "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
+        "can_write_domain_truth": False,
+        "can_authorize_publication_quality": False,
+        "can_override_artifact_gate": False,
+        "can_write_current_package": False,
+        "proof_refs": [
+            {
+                "ref_kind": "python_symbol",
+                "ref": "med_autoscience.controllers.sidecar_family_adapter.dispatch_family_sidecar_task",
+                "role": "dispatch_guard",
+            },
+            {
+                "ref_kind": "json_pointer",
+                "ref": "/authority_boundary/forbidden_authorities",
+                "role": "receipt_authority_boundary",
+            },
+        ],
+    }
+
+def build_provider_guarded_soak_read_model(
+    *,
+    provider_available: bool = False,
+    provider_availability: Mapping[str, Any] | None = None,
+    target_studies: Iterable[str] = DEFAULT_PROVIDER_GUARDED_SOAK_TARGETS,
+) -> dict[str, Any]:
+    targets = tuple(str(item) for item in target_studies if str(item or "").strip())
+    availability = (
+        dict(provider_availability)
+        if provider_availability is not None
+        else _provider_availability(provider_available=provider_available)
+    )
+    provider_attempt_available = availability.get("provider_attempt_available") is True
+    no_forbidden_write_proof = build_forbidden_write_guard_proof(
+        result=(
+            "configured"
+            if provider_attempt_available
+            else "blocked_provider_completion_is_not_paper_closure"
+        ),
+        task_id="provider-guarded-soak-read-model:no-forbidden-write-proof",
+        task_kind="provider_guarded_soak_read_model",
+        requested_writes=("current_package_write", "publication_quality_verdict", "study_truth_write"),
+    )
+    no_forbidden_write_proof.update(
+        {
+            "provider_completion_is_paper_closure": False,
+            "queue_completion_is_paper_closure": False,
+            "paper_closure_requires_mas_owner_receipt": True,
+            "only_mas_owner_receipt_can_prove_mutation": True,
+        }
+    )
+    return {
+        "surface_kind": "provider_guarded_soak_read_model",
+        "version": "provider-guarded-soak-read-model.v1",
+        "mode": "descriptor_read_model",
+        "target_studies": list(targets),
+        "expected_surface_shape": {
+            "provider_proof_surface": PROVIDER_HOSTED_PROOF_SURFACE,
+            "guarded_apply_surface": GUARDED_APPLY_PROOF_SURFACE,
+            "closeout_packet_surface": "domain_stage_closeout_packet",
+            "typed_blocker_surface": "mas_provider_guarded_soak_typed_blocker",
+        },
+        "provider_availability": availability,
+        "target_coverage": [
+            _provider_guarded_soak_target_coverage(
+                target,
+                provider_attempt_available=provider_attempt_available,
+            )
+            for target in targets
+        ],
+        "provider_completion_semantics": {
+            "provider_completion_is_paper_closure": False,
+            "queue_completion_is_paper_closure": False,
+            "paper_closure_requires_mas_owner_receipt": True,
+            "mutation_proof_surface": "MAS owner receipt",
+        },
+        "no_forbidden_write_proof": no_forbidden_write_proof,
+        "authority_boundary": {
+            "provider_attempt_owner": OPL_OWNER,
+            "domain_truth_owner": DOMAIN_OWNER,
+            "provider_completion_is_truth": False,
+            "queue_completion_is_paper_closure": False,
+            "can_write_domain_truth": False,
+            "can_write_current_package": False,
+            "can_authorize_publication_quality": False,
+        },
+    }
+
+def build_managed_temporal_state_consistency_read_model(
+    *,
+    provider_availability: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    availability = dict(provider_availability or _provider_availability(provider_available=False))
+    runtime_snapshot = _mapping(availability.get("runtime_snapshot"))
+    provider_available = availability.get("provider_attempt_available") is True
+    managed_ready = (
+        runtime_snapshot.get("address_source") == "managed_local_service_state"
+        and runtime_snapshot.get("lifecycle_status") == "ready"
+        and runtime_snapshot.get("server_reachable") is True
+        and runtime_snapshot.get("worker_ready") is True
+    )
+    status = "consistent" if provider_available and managed_ready else "typed_blocker"
+    blocker = None
+    if status != "consistent":
+        blocker = {
+            "surface_kind": "mas_opl_managed_temporal_state_typed_blocker",
+            "blocker_id": "managed_temporal_state_not_consistent",
+            "owner": OPL_OWNER,
+            "reason": (
+                "OPL provider status/read-model needs a proven managed service and worker state "
+                "before MAS can project provider-hosted paper apply readiness."
+            ),
+            "required_owner_surface": "OPL family-runtime status --provider temporal",
+            "write_permitted": False,
+        }
+    return {
+        "surface_kind": "mas_opl_managed_temporal_state_consistency",
+        "version": "mas-opl-managed-temporal-state-consistency.v1",
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "status": status,
+        "provider_state": "production_residency_proven" if provider_available else "contract_ready_skeleton",
+        "provider_availability_status": availability.get("status"),
+        "proof_ref": availability.get("proof_ref"),
+        "managed_state": {
+            "address_source": runtime_snapshot.get("address_source"),
+            "lifecycle_status": runtime_snapshot.get("lifecycle_status"),
+            "server_reachable": runtime_snapshot.get("server_reachable") is True,
+            "worker_ready": runtime_snapshot.get("worker_ready") is True,
+            "task_queue": runtime_snapshot.get("task_queue"),
+        },
+        "opl_status_projection": {
+            "provider": "temporal",
+            "read_model_owner": OPL_OWNER,
+            "managed_service_state": "ready" if managed_ready else "unavailable",
+            "worker_state": "ready" if runtime_snapshot.get("worker_ready") is True else "unknown",
+            "attempt_query_ready": provider_available and managed_ready,
+            "retry_dead_letter_state_visible": provider_available,
+        },
+        "consistency_checks": {
+            "provider_available_matches_managed_state": provider_available == managed_ready,
+            "managed_state_source_is_typed": runtime_snapshot.get("address_source") == "managed_local_service_state",
+            "server_reachable": runtime_snapshot.get("server_reachable") is True,
+            "worker_ready": runtime_snapshot.get("worker_ready") is True,
+            "task_queue_declared": bool(str(runtime_snapshot.get("task_queue") or "").strip()),
+        },
+        "blocker": blocker,
+        "authority_boundary": {
+            "projection_owner": OPL_OWNER,
+            "domain_truth_owner": DOMAIN_OWNER,
+            "read_only": True,
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+            "provider_completion_is_paper_closure": False,
+        },
+    }
+
+def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
+    retired_surfaces = [
+        {
+            "surface_id": "hermes_agent_executor_adapter",
+            "classification": "explicit_optional_executor_adapter",
+            "default_caller": False,
+            "retention_reason": "proof_or_diagnostics_only",
+            "replacement_ref": "/opl_provider_ready_contract/executor_requirements",
+        },
+        {
+            "surface_id": "hermes_scheduler_hosted_runtime",
+            "classification": "retire_after_parity",
+            "default_caller": False,
+            "retention_reason": "history_or_optional_provider_provenance",
+            "replacement_ref": "/opl_provider_ready_contract/provider_topology",
+        },
+        {
+            "surface_id": "mds_deepscientist_backend",
+            "classification": "fixture_or_provenance_only",
+            "default_caller": False,
+            "retention_reason": "historical_fixture_and_parity_oracle",
+            "replacement_ref": "/standard_domain_agent_skeleton",
+        },
+        {
+            "surface_id": "workspace_local_scheduler",
+            "classification": "standalone_diagnostics_only",
+            "default_caller": False,
+            "retention_reason": "local_diagnostics_not_opl_hosted_runtime",
+            "replacement_ref": "/managed_temporal_state_consistency",
+        },
+    ]
+    return {
+        "surface_kind": "mas_legacy_retirement_tombstone_proof",
+        "version": "mas-legacy-retirement-tombstone-proof.v1",
+        "target_domain_id": TARGET_DOMAIN_ID,
+        "status": "no_active_default_caller_proven",
+        "active_default_callers": [],
+        "retired_or_tombstoned_surfaces": retired_surfaces,
+        "removal_policy": {
+            "delete_or_tombstone_when": [
+                "no_default_cli_mcp_product_entry_or_skill_caller",
+                "no_opl_active_reference",
+                "no_fixture_or_provenance_dependency",
+                "replacement_diagnostic_or_history_link_exists",
+            ],
+            "current_action": "safe_to_tombstone_docs_and_optional_residue",
+        },
+        "authority_boundary": {
+            "proof_role": "caller_inventory_and_tombstone_read_model",
+            "can_write_domain_truth": False,
+            "can_authorize_publication_quality": False,
+            "can_authorize_submission_readiness": False,
+        },
+    }
+
+def load_opl_production_proof(path: str | Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    proof_path = Path(path).expanduser()
+    try:
+        payload = json.loads(proof_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "surface_kind": "opl_temporal_production_residency_proof_ref",
+            "proof_ref": str(proof_path),
+            "evidence_status": "unreadable",
+            "error": f"{exc.__class__.__name__}: {exc}",
+        }
+    if not isinstance(payload, Mapping):
+        return {
+            "surface_kind": "opl_temporal_production_residency_proof_ref",
+            "proof_ref": str(proof_path),
+            "evidence_status": "invalid_shape",
+        }
+    return dict(payload)
+
+def build_provider_availability_from_opl_proof(
+    *,
+    opl_production_proof: Mapping[str, Any] | None = None,
+    proof_ref: str | Path | None = None,
+) -> dict[str, Any]:
+    if opl_production_proof is None:
+        return _provider_availability(provider_available=False)
+    wrapper = _mapping(opl_production_proof.get("family_runtime_residency_proof")) or opl_production_proof
+    production = _mapping(wrapper.get("production_residency_proof")) or wrapper
+    checks = _mapping(production.get("checks"))
+    required_checks = (
+        "external_temporal_server_reachable",
+        "managed_worker_ready",
+        "worker_completed_attempt",
+        "worker_restart_requery",
+        "signal_history_preserved",
+        "typed_closeout_required_for_completed",
+        "missing_closeout_blocks_completion",
+        "retry_or_dead_letter_boundary_observed",
+        "domain_truth_boundary_preserved",
+    )
+    missing_checks = [check for check in required_checks if checks.get(check) is not True]
+    receipt = _mapping(production.get("proof_receipt"))
+    closeout_status = str(production.get("closeout_status") or wrapper.get("closeout_status") or "")
+    provider_kind = str(production.get("provider_kind") or wrapper.get("provider_kind") or "")
+    proven = (
+        provider_kind == "temporal"
+        and closeout_status == "production_residency_proven"
+        and receipt.get("receipt_status") == "proven"
+        and not missing_checks
+    )
+    if proven:
+        runtime_snapshot = _mapping(production.get("runtime_snapshot"))
+        return {
+            "status": "available",
+            "provider_attempt_available": True,
+            "provider_kind": "temporal",
+            "proof_surface": str(production.get("surface_kind") or wrapper.get("surface_kind") or ""),
+            "proof_ref": str(proof_ref) if proof_ref is not None else None,
+            "closeout_status": closeout_status,
+            "proof_receipt": {
+                "receipt_kind": receipt.get("receipt_kind"),
+                "receipt_status": receipt.get("receipt_status"),
+                "completed_workflow_id": receipt.get("completed_workflow_id"),
+                "blocked_workflow_id": receipt.get("blocked_workflow_id"),
+            },
+            "runtime_snapshot": {
+                "address_source": runtime_snapshot.get("address_source"),
+                "lifecycle_status": runtime_snapshot.get("lifecycle_status"),
+                "server_reachable": runtime_snapshot.get("server_reachable"),
+                "worker_ready": runtime_snapshot.get("worker_ready"),
+                "task_queue": runtime_snapshot.get("task_queue"),
+            },
+            "checks": {check: checks.get(check) is True for check in required_checks},
+            "semantics": {
+                "provider_residency_proven": True,
+                "provider_completion_is_paper_closure": False,
+                "paper_closure_requires_mas_owner_receipt": True,
+                "mas_runtime_watch_role": "domain_truth_and_local_diagnostics",
+            },
+        }
+    return {
+        "status": "typed_blocker",
+        "provider_attempt_available": False,
+        "proof_ref": str(proof_ref) if proof_ref is not None else None,
+        "blocker": {
+            "surface_kind": "mas_provider_guarded_soak_typed_blocker",
+            "blocker_id": "provider_guarded_soak_production_proof_not_proven",
+            "owner": OPL_OWNER,
+            "reason": "OPL Temporal production proof is missing, unreadable, or not proven.",
+            "required_owner_surface": "OPL production Temporal residency proof",
+            "write_permitted": False,
+            "observed_provider_kind": provider_kind or None,
+            "observed_closeout_status": closeout_status or None,
+            "missing_checks": missing_checks,
+            "evidence_status": opl_production_proof.get("evidence_status"),
+        },
+    }
+
+def _provider_residency_receipt_refs_from_availability(availability: Mapping[str, Any]) -> dict[str, str]:
+    if availability.get("provider_attempt_available") is not True:
+        return {}
+    proof_ref = str(availability.get("proof_ref") or "").strip()
+    receipt = _mapping(availability.get("proof_receipt"))
+    completed_workflow_id = str(receipt.get("completed_workflow_id") or "").strip()
+    blocked_workflow_id = str(receipt.get("blocked_workflow_id") or "").strip()
+    base_ref = proof_ref or completed_workflow_id or blocked_workflow_id
+    if not base_ref:
+        return {}
+    return {
+        "temporal_production_residency": base_ref,
+        "worker_restart_requery": base_ref,
+        "retry_dead_letter": blocked_workflow_id or base_ref,
+        "long_soak_receipt": base_ref,
+    }
+
+def _provider_availability(*, provider_available: bool) -> dict[str, Any]:
+    if provider_available:
+        return {
+            "status": "available",
+            "provider_attempt_available": True,
+        }
+    return {
+        "status": "typed_blocker",
+        "provider_attempt_available": False,
+        "blocker": {
+            "surface_kind": "mas_provider_guarded_soak_typed_blocker",
+            "blocker_id": "provider_guarded_soak_provider_unavailable",
+            "owner": OPL_OWNER,
+            "reason": "real provider attempt surface is unavailable to MAS projection",
+            "required_owner_surface": "OPL provider attempt receipt / guarded soak provider proof",
+            "write_permitted": False,
+        },
+    }
+
+def _provider_guarded_soak_target_coverage(
+    target_study: str,
+    *,
+    provider_attempt_available: bool = False,
+) -> dict[str, Any]:
+    if provider_attempt_available:
+        return {
+            "surface_kind": "mas_provider_guarded_soak_target_coverage",
+            "target_study": target_study,
+            "status": "provider_available_guarded_apply_pending",
+            "expected_provider_proof_surface": PROVIDER_HOSTED_PROOF_SURFACE,
+            "expected_guarded_apply_surface": GUARDED_APPLY_PROOF_SURFACE,
+            "write_permitted": False,
+            "provider_completion_is_paper_closure": False,
+            "paper_closure_requires_mas_owner_receipt": True,
+            "required_owner_surface": "MAS owner receipt",
+        }
+    return {
+        "surface_kind": "mas_provider_guarded_soak_typed_blocker",
+        "target_study": target_study,
+        "status": "typed_blocker",
+        "blocker_id": f"provider_guarded_soak_evidence_unavailable:{target_study}",
+        "expected_provider_proof_surface": PROVIDER_HOSTED_PROOF_SURFACE,
+        "expected_guarded_apply_surface": GUARDED_APPLY_PROOF_SURFACE,
+        "write_permitted": False,
+        "provider_completion_is_paper_closure": False,
+        "paper_closure_requires_mas_owner_receipt": True,
+        "required_owner_surface": "MAS owner receipt",
+    }
+
+def _provider_residency_check(
+    *,
+    check_id: str,
+    provider_available: bool,
+    receipt_ref: object,
+) -> dict[str, Any]:
+    receipt_text = str(receipt_ref or "").strip()
+    status = "receipt_observed" if provider_available and receipt_text else "typed_blocker"
+    return {
+        "check_id": check_id,
+        "status": status,
+        "receipt_ref": receipt_text or None,
+        "owner": OPL_OWNER,
+        "body_included": False,
+        "write_permitted": False,
+        "required_surface": _provider_residency_required_surface(check_id),
+    }
+
+def _provider_residency_required_surface(check_id: str) -> str:
+    return {
+        "temporal_production_residency": "OPL Temporal production residency receipt",
+        "worker_restart_requery": "OPL worker restart and re-query receipt",
+        "retry_dead_letter": "OPL retry policy and dead-letter receipt",
+        "long_soak_receipt": "OPL long soak receipt",
+    }.get(check_id, "OPL provider residency receipt")
