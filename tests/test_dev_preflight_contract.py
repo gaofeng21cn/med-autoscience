@@ -613,6 +613,19 @@ def test_classify_changed_verify_script_as_family_shared_surface() -> None:
     assert result.unclassified_changes == ()
 
 
+def test_classify_changed_sentrux_baseline_as_structure_quality_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            ".sentrux/baseline.json",
+        ]
+    )
+
+    assert result.matched_categories == ("structure_quality_surface",)
+    assert result.unclassified_changes == ()
+
+
 def test_plan_commands_for_categories_deduplicates_results() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
@@ -676,6 +689,14 @@ def test_plan_commands_for_family_shared_surface_use_focused_family_lane() -> No
     commands = module.plan_commands_for_categories(("family_shared_surface",))
 
     assert commands == ["make test-family"]
+
+
+def test_plan_commands_for_structure_quality_surface_use_structure_lane() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    commands = module.plan_commands_for_categories(("structure_quality_surface",))
+
+    assert commands == ["make test-structure"]
 
 
 def test_plan_commands_for_root_governance_contract_surface_use_focused_contract_lanes() -> None:

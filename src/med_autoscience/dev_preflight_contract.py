@@ -253,6 +253,19 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
+        category_id="structure_quality_surface",
+        exact_paths=(
+            ".sentrux/baseline.json",
+            ".sentrux/rules.toml",
+            "scripts/run-structure-quality-gate.sh",
+            "scripts/line_budget.py",
+        ),
+        prefix_paths=(),
+        commands=(
+            "make test-structure",
+        ),
+    ),
+    PreflightCategorySpec(
         category_id="control_plane_surface",
         exact_paths=(
             "scripts/real-paper-autonomy-soak-inventory.py",
@@ -386,6 +399,8 @@ _DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
     PreflightCoveragePathFamily(
         family_id="workflow_config",
         exact_paths=(
+            ".sentrux/baseline.json",
+            ".sentrux/rules.toml",
             "Makefile",
             "pyproject.toml",
             "uv.lock",
