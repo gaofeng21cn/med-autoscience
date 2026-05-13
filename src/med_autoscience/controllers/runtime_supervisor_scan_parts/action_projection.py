@@ -52,14 +52,14 @@ def action_queue(
             publication_eval_payload=publication_eval_payload,
             gate_specificity=gate_specificity,
         )
-        or _external_supervisor_runtime_repair_required(progress)
+        or _external_supervisor_runtime_repair_required(status, progress)
     ):
         actions.append(
             current_truth_owner.runtime_platform_repair_action(
                 study_root=study_root,
                 status=status,
                 publication_eval_payload=publication_eval_payload,
-                default_reason=_external_supervisor_runtime_repair_reason(progress)
+                default_reason=_external_supervisor_runtime_repair_reason(status, progress)
                 or current_truth_owner.runtime_platform_repair_reason(status, progress),
             )
         )
@@ -289,11 +289,13 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
-def _external_supervisor_runtime_repair_required(progress: Mapping[str, Any]) -> bool:
-    return _external_supervisor_runtime_repair_reason(progress) is not None
+def _external_supervisor_runtime_repair_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    return _external_supervisor_runtime_repair_reason(status, progress) is not None
 
 
-def _external_supervisor_runtime_repair_reason(progress: Mapping[str, Any]) -> str | None:
+def _external_supervisor_runtime_repair_reason(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str | None:
+    if runtime_facts.active_run_id(status, progress) is not None and runtime_facts.worker_running(status):
+        return None
     lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
     if _text(lifecycle.get("state")) not in {"blocked", "external_supervisor_required"}:
         return None
