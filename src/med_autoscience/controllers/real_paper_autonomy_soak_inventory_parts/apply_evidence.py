@@ -8,9 +8,13 @@ def build_mas_owner_apply_evidence(study: Mapping[str, Any]) -> dict[str, Any]:
     repair_receipt = _mapping(study.get("repair_execution_receipt"))
     repair_evidence = _mapping(study.get("repair_execution_evidence"))
     gate_replay = _mapping(study.get("gate_replay"))
+    publication_eval = _mapping(study.get("publication_eval"))
+    controller_decisions = _mapping(study.get("controller_decisions"))
     receipt_ref = _source_ref_path(study, "artifacts/controller/repair_execution_receipts/latest.json")
     evidence_ref = _source_ref_path(study, "artifacts/controller/repair_execution_evidence/latest.json")
     gate_replay_ref = _source_ref_path(study, "artifacts/controller/gate_replay_requests/latest.json")
+    publication_eval_ref = _source_ref_path(study, "artifacts/publication_eval/latest.json")
+    controller_decisions_ref = _source_ref_path(study, "artifacts/controller_decisions/latest.json")
     receipt_executed = (
         repair_receipt.get("surface") == "paper_repair_owner_receipt"
         and repair_receipt.get("accepted") is True
@@ -25,6 +29,18 @@ def build_mas_owner_apply_evidence(study: Mapping[str, Any]) -> dict[str, Any]:
         or bool(repair_receipt.get("canonical_artifact_delta_refs"))
     )
     gate_replay_observed = gate_replay.get("surface") == "paper_repair_gate_replay_request"
+    ai_reviewer_re_eval_observed = bool(_mapping(publication_eval.get("assessment_provenance")))
+    route_decision_observed = bool(_text(controller_decisions.get("route_decision")))
+    human_gate_observed = controller_decisions.get("requires_human_confirmation") is True
+    stop_loss_observed = (
+        _text(controller_decisions.get("route_decision")) in {"stop_loss", "terminal_stop"}
+        or _text(controller_decisions.get("route_target")) == "stop"
+    )
+    stable_blocker_observed = (
+        _text(controller_decisions.get("route_decision")) in {"stable_blocker", "blocked"}
+        or _text(controller_decisions.get("runtime_decision")) == "blocked"
+        or bool(_text(controller_decisions.get("blocked_reason")))
+    )
     refs = []
     if receipt_executed and receipt_ref:
         refs.append(receipt_ref)
@@ -32,13 +48,35 @@ def build_mas_owner_apply_evidence(study: Mapping[str, Any]) -> dict[str, Any]:
         refs.append(evidence_ref)
     if gate_replay_observed and gate_replay_ref:
         refs.append(gate_replay_ref)
+    if ai_reviewer_re_eval_observed and publication_eval_ref:
+        refs.append(publication_eval_ref)
+    if (
+        route_decision_observed
+        or human_gate_observed
+        or stop_loss_observed
+        or stable_blocker_observed
+    ) and controller_decisions_ref:
+        refs.append(controller_decisions_ref)
     return {
-        "has_mas_owner_apply_receipt": bool((receipt_executed and evidence_progress_observed) or gate_replay_observed),
+        "has_mas_owner_apply_receipt": bool(
+            (receipt_executed and evidence_progress_observed)
+            or gate_replay_observed
+            or ai_reviewer_re_eval_observed
+            or route_decision_observed
+            or human_gate_observed
+            or stop_loss_observed
+            or stable_blocker_observed
+        ),
         "receipt_refs": list(dict.fromkeys(refs)),
         "receipt_surface": _text(repair_receipt.get("surface")),
         "receipt_execution_status": _text(repair_receipt.get("execution_status")),
         "evidence_progress_observed": evidence_progress_observed,
         "gate_replay_observed": gate_replay_observed,
+        "ai_reviewer_re_eval_observed": ai_reviewer_re_eval_observed,
+        "route_decision_observed": route_decision_observed,
+        "human_gate_observed": human_gate_observed,
+        "stop_loss_observed": stop_loss_observed,
+        "stable_blocker_observed": stable_blocker_observed,
     }
 
 
@@ -50,6 +88,11 @@ def empty_mas_owner_apply_evidence() -> dict[str, Any]:
         "receipt_execution_status": "",
         "evidence_progress_observed": False,
         "gate_replay_observed": False,
+        "ai_reviewer_re_eval_observed": False,
+        "route_decision_observed": False,
+        "human_gate_observed": False,
+        "stop_loss_observed": False,
+        "stable_blocker_observed": False,
     }
 
 

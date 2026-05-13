@@ -180,6 +180,8 @@ MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 poli
 
 这些策略同时投影到 `two_layer_ai_repair_policy`，由 `runtime supervisor-scan` 和 `runtime supervisor-consume` 输出。这样前台看到“AI reviewer 队列积压”时，能同时看到内置 AI repair 是否已接上、是否超时，以及下一层开发者 supervisor 是否已到接手阈值。
 
+旧 MAS watchdog 的可执行价值收敛为 MAS domain health / reconcile / owner repair kernel。`runtime_watch` 可以聚合 runtime health、safe reconcile evidence、owner route 与 AI doctor repair lifecycle；它不能作为外部 provider、OPL family task 或前台 agent 的 live runtime root 写入口。尤其在 `execution_owner_guard.supervisor_only=true` 时，apply 只允许同一 `(study_id, quest_id)` 上的 MAS controller-owned repair：action 必须是 `controller_repair`、owner 必须是 `mas_controller`、repair kind 必须在 runtime recovery allowlist 内，并且当前 `study_runtime_status` / runtime recovery payload 必须携带 `runtime_recovery_allowed=true`、open dispatch gate、`controller_repair_authorization(_ref).authorized=true`、`action=runtime_recovery` 与 `control_surface=runtime_watch`。外部/provider/OPL/platform repair、缺 controller repair authorization、route 不匹配或 recovery evidence 不足时必须 fail closed，写出明确 blocked reason，并保持 paper/package、publication gate、controller decision 和 live runtime-owned roots 不被前台直接改写。
+
 2026-05-10 OPL/Hermes family runtime bridge closeout 把 read model 到执行队列的断点收口为正式 sidecar 合同：
 
 - `medautosci sidecar export --profile <profile> --format json` 会在每个 study projection 中输出 `autonomy_continuation`，并在顶层输出 `pending_family_tasks[]`。

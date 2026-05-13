@@ -718,7 +718,11 @@ def _final_projection(surfaces: Mapping[str, Mapping[str, Any]]) -> str:
             return "stop_loss"
         if controller.get("requires_human_confirmation") is True:
             return "human_gate"
+        if _text(controller.get("route_decision")) in {"stable_blocker", "blocked"}:
+            return "stable_blocker"
         return "route_decision"
+    if _text(controller.get("runtime_decision")) == "blocked" or _text(controller.get("blocked_reason")):
+        return "stable_blocker"
     if _mapping(surfaces.get("dispatch_receipt")).get("accepted") is False:
         return "stable_blocker"
     if _mapping(surfaces.get("sidecar_task")):

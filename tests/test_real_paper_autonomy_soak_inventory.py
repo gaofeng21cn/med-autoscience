@@ -541,6 +541,73 @@ def test_real_paper_autonomy_guarded_apply_proof_accepts_existing_mas_owner_prog
     assert receipt["mas_owner_apply_receipt_refs"]
 
 
+def test_real_paper_autonomy_guarded_apply_proof_accepts_mas_owner_route_receipts(
+    tmp_path: Path,
+) -> None:
+    cases = [
+        (
+            "route_decision",
+            "route_decision",
+            "artifacts/controller_decisions/latest.json",
+            {"route_decision": "route_back_same_line", "next_owner": "write"},
+        ),
+        (
+            "human_gate",
+            "human_gate",
+            "artifacts/controller_decisions/latest.json",
+            {"route_decision": "route_back_same_line", "requires_human_confirmation": True},
+        ),
+        (
+            "stop_loss",
+            "stop_loss",
+            "artifacts/controller_decisions/latest.json",
+            {"route_decision": "stop_loss", "route_target": "stop"},
+        ),
+        (
+            "stable_blocker",
+            "stable_blocker",
+            "artifacts/controller_decisions/latest.json",
+            {"runtime_decision": "blocked", "blocked_reason": "owner surface blocked"},
+        ),
+        (
+            "ai_reviewer_re_eval",
+            "ai_reviewer_re_eval",
+            "artifacts/publication_eval/latest.json",
+            {"assessment_provenance": {"owner": "ai_reviewer"}, "eval_id": "eval-dm002"},
+        ),
+    ]
+    for case_id, expected_result, expected_ref_suffix, owner_surface in cases:
+        yang_root = tmp_path / case_id / "Yang"
+        workspace = yang_root / "DM"
+        profile_path = workspace / "ops" / "medautoscience" / "profiles" / "dm.workspace.toml"
+        _write_profile(workspace, profile_path)
+        (workspace / "portfolio").mkdir(parents=True)
+        dm002 = workspace / "studies" / "002-dm-china-us-mortality-attribution"
+        _write_json(dm002 / "artifacts" / "runtime" / "runtime_status_summary.json", {"study_id": dm002.name})
+        if expected_ref_suffix == "artifacts/controller_decisions/latest.json":
+            _write_json(dm002 / expected_ref_suffix, owner_surface)
+        else:
+            _write_json(dm002 / expected_ref_suffix, owner_surface)
+
+        payload = build_real_paper_autonomy_guarded_apply_proof(
+            yang_root=yang_root,
+            profile_paths=[profile_path],
+            target_studies=("DM002",),
+        )
+
+        assert payload["guarded_apply_status"] == "mas_owner_apply_receipt_observed"
+        assert payload["summary"]["guarded_apply_performed"] is True
+        assert payload["summary"]["typed_blocker_count"] == 0
+        assert payload["summary"]["mas_owner_apply_receipt_count"] == 1
+        receipt = payload["guarded_apply_receipts"][0]
+        assert receipt["apply_result"] == expected_result
+        assert receipt["workspace_mutation"]["allowed_by_mas_owner_gate"] is True
+        assert receipt["workspace_mutation"]["provider_attempt_wrote_workspace"] is False
+        assert receipt["mas_owner_apply_receipt_refs"] == [str(dm002 / expected_ref_suffix)]
+        assert all(item["body_included"] is False for item in receipt["source_refs"])
+        assert expected_ref_suffix in json.dumps(receipt["source_refs"], ensure_ascii=False)
+
+
 def test_real_paper_autonomy_guarded_apply_proof_blocks_evidence_without_owner_receipt(
     tmp_path: Path,
 ) -> None:

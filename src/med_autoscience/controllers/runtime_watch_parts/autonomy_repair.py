@@ -317,6 +317,18 @@ def _repair_authorization_allows_runtime_recovery(payload: Mapping[str, Any]) ->
     work_unit_id = _non_empty_text(authorization.get("work_unit_id"))
     if work_unit_id and work_unit_id != "runtime_recovery":
         return False
+    control_surface = _non_empty_text(authorization.get("control_surface"))
+    if control_surface and control_surface != "runtime_watch":
+        return False
+    controller_action_type = _non_empty_text(authorization.get("controller_action_type"))
+    if controller_action_type and controller_action_type not in {"ensure_study_runtime", "runtime_watch"}:
+        return False
+    authorized_study_id = _non_empty_text(authorization.get("study_id"))
+    if authorized_study_id and authorized_study_id != _non_empty_text(payload.get("study_id")):
+        return False
+    authorized_quest_id = _non_empty_text(authorization.get("quest_id"))
+    if authorized_quest_id and authorized_quest_id != _non_empty_text(payload.get("quest_id")):
+        return False
     return True
 
 
@@ -354,12 +366,12 @@ def status_allows_ai_doctor_repair(status_payload: Mapping[str, Any]) -> bool:
 
 
 def _status_block_reason(status_payload: Mapping[str, Any]) -> str:
-    if _execution_owner_supervisor_only(status_payload):
-        return "execution_owner_guard_supervisor_only"
     if not _runtime_recovery_authorized(status_payload):
         return "runtime_recovery_not_authorized"
     if not _repair_authorization_allows_runtime_recovery(status_payload):
         return "controller_repair_authorization_missing"
+    if _execution_owner_supervisor_only(status_payload):
+        return "execution_owner_guard_supervisor_only"
     return "ai_doctor_repair_requires_controller_authorized_runtime_recovery"
 
 
