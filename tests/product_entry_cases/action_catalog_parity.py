@@ -512,6 +512,49 @@ def test_product_entry_manifest_exposes_provider_guarded_soak_read_model_with_ty
     assert proof["can_write_current_package"] is False
     assert proof["can_authorize_publication_quality"] is False
 
+    owner_contract = manifest["owner_receipt_contract"]
+    assert owner_contract == provider_contract["owner_receipt_contract"]
+    assert manifest["domain_owner_receipt_contract"] == owner_contract
+    assert owner_contract["surface_kind"] == "domain_owner_receipt_contract"
+    assert owner_contract["accepted_return_shapes"] == [
+        "domain_receipt",
+        "typed_blocker",
+        "no_regression_evidence",
+    ]
+    assert owner_contract["receipt_ref_policy"]["opl_persists"] == "receipt_refs_only"
+    assert owner_contract["receipt_ref_policy"]["memory_body_externalized"] is True
+    assert owner_contract["typed_blocker"]["blocker_id"] == "mas_live_owner_receipt_soak_pending"
+    assert owner_contract["forbidden_write_guard"]["forbidden_requested_writes"] == []
+    assert owner_contract["authority_boundary"]["can_write_domain_truth"] is False
+    assert owner_contract["authority_boundary"]["can_write_artifact_gate"] is False
+    assert owner_contract["authority_boundary"]["can_write_memory_body"] is False
+
+    lifecycle_requests = manifest["lifecycle_apply_requests"]
+    lifecycle_proof = manifest["lifecycle_guarded_apply_proof"]
+    assert lifecycle_requests == provider_contract["lifecycle_apply_requests"]
+    assert lifecycle_proof == provider_contract["lifecycle_guarded_apply_proof"]
+    assert {request["action_kind"] for request in lifecycle_requests} == {
+        "cleanup",
+        "restore",
+        "retention",
+    }
+    assert any(
+        request["owner_scope"] == "opl_owned_ledger"
+        and request["domain_receipt_required"] is False
+        for request in lifecycle_requests
+    )
+    assert all(
+        request["domain_receipt_required"] is True
+        for request in lifecycle_requests
+        if request["owner_scope"] == "domain_owned_artifact"
+    )
+    assert lifecycle_proof["apply_status"] == "blocked_domain_receipt_required"
+    assert lifecycle_proof["domain_receipt_required_count"] == 2
+    assert lifecycle_proof["domain_receipt_refs"] == []
+    assert lifecycle_proof["authority_boundary"]["opl_can_apply_owned_ledger_or_locator"] is True
+    assert lifecycle_proof["authority_boundary"]["opl_writes_domain_artifact"] is False
+    assert lifecycle_proof["authority_boundary"]["domain_artifact_mutation_requires_mas_receipt"] is True
+
     assert manifest["skill_catalog"]["skills"][0]["domain_projection"][
         "stage_skill_surface_projection"
     ] == manifest["stage_skill_surface_projection"]

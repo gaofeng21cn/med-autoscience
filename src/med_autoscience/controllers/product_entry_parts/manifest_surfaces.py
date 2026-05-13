@@ -614,6 +614,10 @@ def build_product_entry_manifest(
             ),
             "opl_provider_ready_contract": opl_provider_ready_contract,
             "opl_lifecycle_inventory": opl_provider_ready_contract["lifecycle_inventory"],
+            "owner_receipt_contract": opl_provider_ready_contract["owner_receipt_contract"],
+            "domain_owner_receipt_contract": opl_provider_ready_contract["owner_receipt_contract"],
+            "lifecycle_apply_requests": opl_provider_ready_contract["lifecycle_apply_requests"],
+            "lifecycle_guarded_apply_proof": opl_provider_ready_contract["lifecycle_guarded_apply_proof"],
             "managed_temporal_state_consistency": (
                 opl_provider_ready_contract["managed_temporal_state_consistency"]
             ),

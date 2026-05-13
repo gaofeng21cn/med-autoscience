@@ -258,6 +258,16 @@ def export_family_sidecar(
                 provider_availability=provider_availability,
             )
         ),
+        "owner_receipt_contract": opl_provider_ready_adapter.build_owner_receipt_contract_surface(
+            provider_availability=provider_availability,
+        ),
+        "domain_owner_receipt_contract": opl_provider_ready_adapter.build_owner_receipt_contract_surface(
+            provider_availability=provider_availability,
+        ),
+        "lifecycle_apply_requests": opl_provider_ready_adapter.build_lifecycle_apply_requests_surface(),
+        "lifecycle_guarded_apply_proof": (
+            opl_provider_ready_adapter.build_lifecycle_guarded_apply_proof_surface()
+        ),
         "legacy_retirement_tombstone_proof": opl_provider_ready_adapter.build_legacy_retirement_tombstone_proof(),
         "family_runtime_supervision": {
             "surface_kind": "family_runtime_supervision",

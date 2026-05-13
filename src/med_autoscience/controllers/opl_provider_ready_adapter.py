@@ -5,6 +5,11 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from med_autoscience import stage_quality_contract
+from med_autoscience.controllers.opl_functional_closure_surfaces import (
+    build_lifecycle_apply_requests_surface,
+    build_lifecycle_guarded_apply_proof_surface,
+    build_owner_receipt_contract_surface,
+)
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -86,9 +91,14 @@ def build_opl_provider_ready_contract(
         "provider_guarded_soak_read_model": build_provider_guarded_soak_read_model(
             provider_availability=provider_availability,
         ),
+        "owner_receipt_contract": build_owner_receipt_contract_surface(
+            provider_availability=provider_availability,
+        ),
         "legacy_retirement_tombstone_proof": build_legacy_retirement_tombstone_proof(),
         "workspace_runtime_artifact_root_locator": _workspace_runtime_artifact_root_locator(profile=profile),
         "lifecycle_inventory": build_opl_lifecycle_inventory_surface(),
+        "lifecycle_apply_requests": build_lifecycle_apply_requests_surface(),
+        "lifecycle_guarded_apply_proof": build_lifecycle_guarded_apply_proof_surface(),
         "domain_agent_skeleton_mapping": build_domain_agent_skeleton_mapping_surface(),
         "allowed_task_kinds": sorted(str(item) for item in allowed_task_kinds),
         "truth_source_precedence": {
@@ -882,9 +892,12 @@ __all__ = [
     "build_domain_agent_skeleton_mapping_surface",
     "build_forbidden_write_guard_proof",
     "build_legacy_retirement_tombstone_proof",
+    "build_lifecycle_apply_requests_surface",
+    "build_lifecycle_guarded_apply_proof_surface",
     "build_managed_temporal_state_consistency_read_model",
     "build_opl_lifecycle_inventory_surface",
     "build_opl_provider_ready_contract",
+    "build_owner_receipt_contract_surface",
     "build_provider_availability_from_opl_proof",
     "build_physical_skeleton_layout_audit_surface",
     "build_provider_guarded_soak_read_model",
