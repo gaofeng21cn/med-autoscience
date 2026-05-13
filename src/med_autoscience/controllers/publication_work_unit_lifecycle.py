@@ -12,6 +12,13 @@ STABLE_PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH = Path(
 )
 _BLOCKING_STATUSES = frozenset({"failed", "missing", "skipped_failed_dependency", "skipped_authority_not_settled"})
 _HARD_BLOCKING_STATUSES = _BLOCKING_STATUSES - frozenset({"skipped_authority_not_settled"})
+_CLOSED_WORK_UNIT_LIFECYCLE_STATUSES = frozenset({"done"})
+_OPEN_LIFECYCLE_UNIT_STATUSES = _BLOCKING_STATUSES | frozenset(
+    {
+        "blocked_matching_failed_unit_fingerprint",
+        "control_plane_route_blocked",
+    }
+)
 STEP_SURFACE_METADATA_KEYS = (
     "authority_fingerprints",
     "settle_window_ns",
@@ -134,6 +141,25 @@ def retry_metadata_from_unit_results(unit_results: list[dict[str, Any]]) -> dict
     return None
 
 
+def unit_status_blocks_lifecycle_closure(status: object) -> bool:
+    return str(status or "").strip() in _OPEN_LIFECYCLE_UNIT_STATUSES
+
+
+def unit_statuses_block_lifecycle_closure(unit_statuses: object) -> bool:
+    if not isinstance(unit_statuses, list):
+        return False
+    return any(
+        isinstance(item, dict) and unit_status_blocks_lifecycle_closure(item.get("status"))
+        for item in unit_statuses
+    )
+
+
+def lifecycle_payload_is_closed(payload: dict[str, Any]) -> bool:
+    if str(payload.get("status") or "").strip() not in _CLOSED_WORK_UNIT_LIFECYCLE_STATUSES:
+        return False
+    return not unit_statuses_block_lifecycle_closure(payload.get("unit_statuses"))
+
+
 def classify_lifecycle_status(
     *,
     selected_work_unit: dict[str, Any] | None,
@@ -145,13 +171,11 @@ def classify_lifecycle_status(
     if not unit_results:
         return "skipped"
     statuses = {str(item.get("status") or "").strip() for item in unit_results}
-    if statuses & _HARD_BLOCKING_STATUSES:
+    if statuses & _BLOCKING_STATUSES:
         return "blocked"
     gate_status = str(gate_replay.get("status") or "").strip()
     if gate_status == "clear" or gate_replay.get("allow_write") is True:
         return "done"
-    if statuses & _BLOCKING_STATUSES:
-        return "blocked"
     return "blocked"
 
 

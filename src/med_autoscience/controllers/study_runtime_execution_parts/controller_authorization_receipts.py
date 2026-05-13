@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.controllers import control_intent
 
 from ..study_runtime_status import StudyRuntimeDecision, StudyRuntimeStatus
@@ -30,7 +31,6 @@ _QUALITY_REPAIR_DOWNSTREAM_WORK_UNIT_IDS = {
 }
 _CONTROL_INTENT_LIFECYCLE_STATE_KEY = "control_intent_lifecycle"
 _LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY = "last_live_controller_reroute_restart"
-_CLOSED_PUBLICATION_WORK_UNIT_LIFECYCLE_STATUSES = frozenset({"done"})
 
 
 def _text(value: object) -> str | None:
@@ -158,7 +158,7 @@ def _closed_publication_work_unit_lifecycle(
         return None
     if not isinstance(payload, dict):
         return None
-    if _text(payload.get("status")) not in _CLOSED_PUBLICATION_WORK_UNIT_LIFECYCLE_STATUSES:
+    if not publication_work_unit_lifecycle.lifecycle_payload_is_closed(payload):
         return None
     source_eval_id = _text(payload.get("source_eval_id"))
     authorization_eval_id = _text(authorization_context.get("publication_eval_id"))

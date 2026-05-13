@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import publication_work_unit_lifecycle
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
 
@@ -16,7 +17,6 @@ RUNTIME_REDRIVE_ACTIONS = {
     "run_gate_clearing_batch",
     "run_quality_repair_batch",
 }
-_CLOSED_WORK_UNIT_LIFECYCLE_STATUSES = frozenset({"done"})
 
 
 def runtime_platform_repair_action(
@@ -164,7 +164,7 @@ def _publication_work_unit_closed(
     lifecycle = _read_json_object(lifecycle_path)
     if lifecycle is None:
         return False
-    if _text(lifecycle.get("status")) not in _CLOSED_WORK_UNIT_LIFECYCLE_STATUSES:
+    if not publication_work_unit_lifecycle.lifecycle_payload_is_closed(lifecycle):
         return False
     source_eval_id = _text(lifecycle.get("source_eval_id"))
     current_eval_id = _text(publication_eval_payload.get("eval_id"))
