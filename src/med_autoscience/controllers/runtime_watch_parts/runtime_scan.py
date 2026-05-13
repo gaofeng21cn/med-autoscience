@@ -682,6 +682,11 @@ def run_watch_for_runtime(
                 )
                 if autonomy_repair is not None:
                     managed_study_autonomy_repair_actions.append(autonomy_repair)
+            if apply:
+                runtime_control_ports.reconcile_ai_repair_lifecycle(
+                    study_root=study_root,
+                    status_payload=status_payload,
+                )
             lifecycle = runtime_control_ports.read_ai_repair_lifecycle(study_root=study_root)
             if isinstance(lifecycle, Mapping):
                 status_payload["ai_repair_lifecycle"] = dict(lifecycle)
