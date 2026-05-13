@@ -190,6 +190,20 @@ _QUALITY_REPAIR_BATCH_WORK_UNIT_IDS = frozenset(
         "local_architecture_overview_repair",
     }
 )
+_GATE_CLEARING_BATCH_WORK_UNIT_IDS = frozenset(
+    {
+        "publication_gate_replay",
+        "submission_authority_sync_closure",
+        "submission_delivery_sync_closure",
+        "submission_minimal_refresh",
+    }
+)
+_RUNTIME_REDRIVE_ACTION_NAMES = frozenset(
+    {
+        "ensure_study_runtime",
+        "ensure_study_runtime_relaunch_stopped",
+    }
+)
 _SPECIFICITY_WORK_UNIT_IDS = frozenset({"gate_needs_specificity", "needs_specificity"})
 
 
@@ -383,14 +397,37 @@ def _controller_action_names(authorization: Mapping[str, Any]) -> list[str]:
         names = [name for name in names if name != "request_gate_specificity"]
         if "run_quality_repair_batch" not in names:
             names.append("run_quality_repair_batch")
+    elif (
+        not _controller_callable_action_present(names)
+        and _runtime_redrive_action_present(names)
+        and _gate_clearing_work_unit_present(authorization)
+    ):
+        names.append("run_gate_clearing_batch")
     elif "run_quality_repair_batch" not in names and _quality_repair_work_unit_present(authorization):
         names.append("run_quality_repair_batch")
+    elif not _controller_callable_action_present(names) and _gate_clearing_work_unit_present(authorization):
+        names.append("run_gate_clearing_batch")
     return names
+
+
+def _controller_callable_action_present(action_names: list[str]) -> bool:
+    return any(name in {"run_quality_repair_batch", "run_gate_clearing_batch"} for name in action_names)
+
+
+def _runtime_redrive_action_present(action_names: list[str]) -> bool:
+    return any(name in _RUNTIME_REDRIVE_ACTION_NAMES for name in action_names)
 
 
 def _quality_repair_work_unit_present(authorization: Mapping[str, Any]) -> bool:
     for unit_id in _controller_work_unit_ids(authorization):
         if unit_id in _QUALITY_REPAIR_BATCH_WORK_UNIT_IDS:
+            return True
+    return False
+
+
+def _gate_clearing_work_unit_present(authorization: Mapping[str, Any]) -> bool:
+    for unit_id in _primary_controller_work_unit_ids(authorization):
+        if unit_id in _GATE_CLEARING_BATCH_WORK_UNIT_IDS:
             return True
     return False
 
@@ -425,6 +462,27 @@ def _controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[str]:
                 append_unit_id(item)
         else:
             append_unit_id(candidate)
+    return unit_ids
+
+
+def _primary_controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[str]:
+    candidates: list[object] = [
+        authorization.get("work_unit_id"),
+        authorization.get("next_work_unit"),
+    ]
+    unit_ids: list[str] = []
+
+    def append_unit_id(value: object) -> None:
+        if isinstance(value, Mapping):
+            raw_value = value.get("unit_id") or value.get("work_unit_id") or value.get("id")
+        else:
+            raw_value = value
+        unit_id = str(raw_value or "").strip()
+        if unit_id and unit_id not in unit_ids:
+            unit_ids.append(unit_id)
+
+    for candidate in candidates:
+        append_unit_id(candidate)
     return unit_ids
 
 
