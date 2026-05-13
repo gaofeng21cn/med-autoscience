@@ -163,6 +163,62 @@ def test_reconciler_routes_dm003_missing_callable_to_controller_registry_repair(
     assert decision["action_receipt"]["receipt_status"] == "dry_run_not_recorded"
 
 
+def test_reconciler_does_not_record_worker_start_without_dispatch_execution(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
+    outbox = importlib.import_module("med_autoscience.controllers.paper_work_unit_outbox")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        owner="external_supervisor",
+        reason="execution_owner_guard_supervisor_only",
+        action_type="runtime_platform_repair",
+    )
+    route["allowed_actions"] = []
+    scan = {
+        "studies": [
+            {
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "active_run_id": "run-dm003",
+                "study_macro_state": {
+                    "writer_state": "live",
+                    "user_next": "watch",
+                    "reason": "runtime",
+                    "details": {"active_run_id": "run-dm003", "package_delivered": False},
+                },
+                "owner_route": route,
+                "progress_freshness": {
+                    "meaningful_artifact_delta_freshness": {"status": "missing"},
+                },
+            }
+        ]
+    }
+
+    receipt = module.build_paper_progress_reconcile_receipt(
+        profile=profile,
+        requested_study_ids=(study_id,),
+        resolved_study_ids=(study_id,),
+        before_scan=scan,
+        consumed={},
+        executed={},
+        after_scan=scan,
+        apply=True,
+        generated_at="2026-05-10T00:00:00+00:00",
+    )
+
+    decision = receipt["decisions"][0]
+    assert decision["current_state"]["state"] == "awaiting_callable_owner"
+    assert decision["decision"] == "registry_repair"
+    assert decision["apply_eligible"] is False
+    assert decision["action_receipt"]["receipt_status"] == "not_executed"
+    assert decision["action_receipt"]["reason"] == "owner_dispatch_not_executed"
+    assert receipt["action_receipt_count"] == 0
+    assert outbox.read_receipts(study_root=profile.studies_root / study_id) == []
+    assert outbox.worker_starts(study_root=profile.studies_root / study_id) == []
+
+
 def test_reconciler_keeps_obesity_delivery_missing_downstream_only(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
     profile = make_profile(tmp_path)
@@ -217,4 +273,63 @@ def test_reconciler_keeps_obesity_delivery_missing_downstream_only(tmp_path: Pat
     assert decision["current_state"]["meaningful_artifact_delta"] is True
     assert decision["current_state"]["package_delivered"] is False
     assert decision["next_owner"] == "supervisor_only/live_quality_repair"
+    assert decision["decision"] == "monitor_live_quality_repair"
+
+
+def test_reconciler_accepts_supervisor_scan_artifact_delta_projection(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_progress_reconciler")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    scan = {
+        "studies": [
+            {
+                "study_id": study_id,
+                "quest_id": f"quest-{study_id}",
+                "active_run_id": "run-dm003",
+                "owner_route": {
+                    "next_owner": "external_supervisor",
+                    "owner_reason": "execution_owner_guard_supervisor_only",
+                    "active_run_id": "run-dm003",
+                    "source_refs": {
+                        "study_macro_state": {
+                            "writer_state": "live",
+                            "user_next": "watch",
+                            "reason": "runtime",
+                        }
+                    },
+                },
+                "execution_owner_guard": {"supervisor_only": True},
+                "meaningful_artifact_delta": True,
+                "artifact_delta": {
+                    "status": "fresh",
+                    "latest_meaningful_delta_at": "2026-05-12T23:22:36.498447+00:00",
+                    "source": "gate_clearing_batch",
+                },
+                "progress_freshness": {
+                    "meaningful_artifact_delta_freshness": {"status": "missing"},
+                },
+                "publication_supervisor_state": {
+                    "bundle_tasks_downstream_only": True,
+                },
+            }
+        ]
+    }
+
+    receipt = module.build_paper_progress_reconcile_receipt(
+        profile=profile,
+        requested_study_ids=(study_id,),
+        resolved_study_ids=(study_id,),
+        before_scan=scan,
+        consumed={},
+        executed={},
+        after_scan=scan,
+        apply=False,
+        generated_at="2026-05-12T23:23:00+00:00",
+    )
+
+    decision = receipt["decisions"][0]
+    assert decision["current_state"]["state"] == "downstream_only"
+    assert decision["current_state"]["actual_write_active"] is True
+    assert decision["current_state"]["meaningful_artifact_delta"] is True
     assert decision["decision"] == "monitor_live_quality_repair"

@@ -322,6 +322,10 @@ def _terminal_stall_owner_handoff_allowed(
     dispatch: Mapping[str, Any],
     current_study: Mapping[str, Any] | None,
 ) -> bool:
+    if action_type == "runtime_platform_repair":
+        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
+        return owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
     if action_type != "return_to_ai_reviewer_workflow":
         return False
     if output_readiness.ai_reviewer_output_pending(current_study):

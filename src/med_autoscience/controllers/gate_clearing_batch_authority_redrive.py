@@ -36,13 +36,4 @@ def analysis_work_unit_authority_closure_unit_ids(
     submission_minimal_refresh_requested: bool,
     repair_units: list[Any],
 ) -> tuple[str, ...]:
-    unit_id = ""
-    if isinstance(selected_publication_work_unit, dict):
-        unit_id = str(selected_publication_work_unit.get("unit_id") or "").strip()
-    if unit_id != "analysis_claim_evidence_repair":
-        return ()
-    if not submission_minimal_refresh_requested:
-        return ()
-    if not any(getattr(unit, "unit_id", "") == "materialize_display_surface" for unit in repair_units):
-        return ()
-    return ("create_submission_minimal_package",)
+    return ()

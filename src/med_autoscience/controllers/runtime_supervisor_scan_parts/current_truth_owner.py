@@ -16,6 +16,7 @@ RUNTIME_REDRIVE_ACTIONS = {
     "run_gate_clearing_batch",
     "run_quality_repair_batch",
 }
+_CLOSED_WORK_UNIT_LIFECYCLE_STATUSES = frozenset({"done"})
 
 
 def runtime_platform_repair_action(
@@ -93,6 +94,12 @@ def current_controller_runtime_route(
             decision_fingerprint=decision_fingerprint,
         ):
             return None
+    if _publication_work_unit_closed(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        work_unit_id=work_unit_id,
+    ):
+        return None
     return {
         "decision_path": str(decision_path),
         "decision_id": _text(decision.get("decision_id")),
@@ -139,6 +146,32 @@ def _publication_eval_specificity_targets_complete_for_fingerprint(
         if specificity_target_status(action.get("specificity_targets")).get("complete") is True:
             return True
     return False
+
+
+def _publication_work_unit_closed(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    work_unit_id: str,
+) -> bool:
+    lifecycle_path = (
+        Path(study_root).expanduser().resolve()
+        / "artifacts"
+        / "controller"
+        / "publication_work_unit_lifecycle"
+        / "latest.json"
+    )
+    lifecycle = _read_json_object(lifecycle_path)
+    if lifecycle is None:
+        return False
+    if _text(lifecycle.get("status")) not in _CLOSED_WORK_UNIT_LIFECYCLE_STATUSES:
+        return False
+    source_eval_id = _text(lifecycle.get("source_eval_id"))
+    current_eval_id = _text(publication_eval_payload.get("eval_id"))
+    if source_eval_id is None or current_eval_id is None or source_eval_id != current_eval_id:
+        return False
+    lifecycle_work_unit = _mapping(lifecycle.get("work_unit"))
+    return _text(lifecycle_work_unit.get("unit_id")) == work_unit_id
 
 
 def _controller_action_types(payload: Mapping[str, Any]) -> set[str]:

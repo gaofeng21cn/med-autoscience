@@ -830,3 +830,120 @@ def test_execute_dispatch_runs_ai_reviewer_handoff_when_terminal_stall_marks_exh
     assert execution["action_class"] == "controller_apply"
     assert execution["will_start_llm"] is False
     assert called["study_id"] == study_id
+
+
+def test_execute_dispatch_runs_runtime_platform_repair_when_terminal_stall_route_allows_repair(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "obesity_multicenter_phenotype_atlas"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
+    route = _owner_route(
+        study_id=study_id,
+        action_type="runtime_platform_repair",
+        owner="MAS/controller",
+    )
+    route.update(
+        {
+            "schema_version": 2,
+            "truth_epoch": "truth-event-000002",
+            "runtime_health_epoch": "runtime-health-event-003034",
+            "work_unit_fingerprint": "publication-blockers::497d1260db522f01",
+            "source_fingerprint": "truth-snapshot::runtime-controller-redrive",
+            "failure_signature": "runtime_controller_redrive_required",
+            "owner_reason": "runtime_controller_redrive_required",
+            "trace_id": "owner-route-trace::runtime-controller-redrive",
+            "next_owner": "MAS/controller",
+            "allowed_actions": ["runtime_platform_repair"],
+        }
+    )
+    route["idempotency_key"] = "owner-route::obesity::runtime-controller-redrive"
+    paper_progress_stall = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "terminal": True,
+        "stall_reasons": ["runtime_recovery_retry_budget_exhausted"],
+        "action_fingerprint": "paper_progress_stall::runtime-controller-redrive",
+        "action_cost": {
+            "surface_kind": "runtime_dispatch_cost_contract",
+            "action_class": "observe_only",
+            "will_start_llm": False,
+            "reason": "paper_progress_stall_read_model",
+            "llm_dispatch_allowed": False,
+            "codex_worker_dispatch": False,
+        },
+    }
+    dispatch_payload = _dispatch(
+        study_id=study_id,
+        action_type="runtime_platform_repair",
+        owner="MAS/controller",
+        required_output_surface="artifacts/supervision/consumer/runtime_platform_repair.json",
+        owner_route=route,
+    )
+    dispatch_payload["paper_progress_stall"] = paper_progress_stall
+    dispatch_payload["prompt_contract"]["paper_progress_stall"] = paper_progress_stall
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "runtime_platform_repair.json"
+    )
+    _write_json(dispatch_path, dispatch_payload)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "paper_progress_stall": paper_progress_stall,
+                }
+            ],
+        },
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "runtime_supervisor_consumer",
+            "schema_version": 1,
+            "default_executor_dispatches": [{**dispatch_payload, "refs": {"dispatch_path": str(dispatch_path)}}],
+        },
+    )
+    called: dict[str, object] = {}
+
+    def fake_execute_runtime_platform_repair(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        return {
+            "execution_status": "executed",
+            "blocked_reason": None,
+            "owner_callable_surface": "runtime_supervisor_scan.supervisor_scan(apply_runtime_platform_repair=True)",
+            "owner_result": {"dispatch_status": "applied", "started": True, "active_run_id": "run-obesity"},
+        }
+
+    monkeypatch.setattr(module, "_execute_runtime_platform_repair", fake_execute_runtime_platform_repair)
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("runtime_platform_repair",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert result["codex_dispatch_count"] == 1
+    assert execution["execution_status"] == "executed"
+    assert execution["blocked_reason"] is None
+    assert execution["paper_progress_stall_handoff_allowed"] is True
+    assert execution["action_class"] == "codex_worker_dispatch"
+    assert execution["will_start_llm"] is True
+    assert called["study_id"] == study_id

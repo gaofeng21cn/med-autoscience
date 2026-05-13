@@ -30,6 +30,7 @@ _QUALITY_REPAIR_DOWNSTREAM_WORK_UNIT_IDS = {
 }
 _CONTROL_INTENT_LIFECYCLE_STATE_KEY = "control_intent_lifecycle"
 _LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY = "last_live_controller_reroute_restart"
+_CLOSED_PUBLICATION_WORK_UNIT_LIFECYCLE_STATUSES = frozenset({"done"})
 
 
 def _text(value: object) -> str | None:
@@ -137,6 +138,47 @@ def _controller_decision_authorization_lifecycle(
         authorization_context=authorization_context,
         active_run_id=active_run_id,
     )
+
+
+def _closed_publication_work_unit_lifecycle(
+    *,
+    study_root: Path,
+    authorization_context: dict[str, Any],
+) -> dict[str, Any] | None:
+    lifecycle_path = (
+        Path(study_root).expanduser().resolve()
+        / "artifacts"
+        / "controller"
+        / "publication_work_unit_lifecycle"
+        / "latest.json"
+    )
+    try:
+        payload = json.loads(lifecycle_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if _text(payload.get("status")) not in _CLOSED_PUBLICATION_WORK_UNIT_LIFECYCLE_STATUSES:
+        return None
+    source_eval_id = _text(payload.get("source_eval_id"))
+    authorization_eval_id = _text(authorization_context.get("publication_eval_id"))
+    if source_eval_id is None or authorization_eval_id is None or source_eval_id != authorization_eval_id:
+        return None
+    lifecycle_work_unit = payload.get("work_unit")
+    if not isinstance(lifecycle_work_unit, dict):
+        return None
+    work_unit_id = _text(authorization_context.get("work_unit_id"))
+    if work_unit_id is None or _text(lifecycle_work_unit.get("unit_id")) != work_unit_id:
+        return None
+    return {
+        "reason": "publication_work_unit_lifecycle_done",
+        "status": _text(payload.get("status")),
+        "source_eval_id": source_eval_id,
+        "work_unit_id": work_unit_id,
+        "lifecycle_path": str(lifecycle_path),
+        "gate_replay_status": payload.get("gate_replay_status"),
+        "unit_statuses": list(payload.get("unit_statuses") or []),
+    }
 
 
 def _controller_decision_authorization_dedupe_key(

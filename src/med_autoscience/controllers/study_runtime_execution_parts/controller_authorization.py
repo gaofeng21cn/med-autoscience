@@ -19,6 +19,7 @@ from .controller_authorization_receipts import (
     _CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS,
     _active_run_id_from_status_or_state,
     _controller_authorization_marker_lacks_target_context,
+    _closed_publication_work_unit_lifecycle,
     _controller_decision_authorization_allowed_while_waiting,
     _controller_decision_authorization_already_relayed,
     _controller_decision_authorization_dedupe_key,
@@ -157,6 +158,18 @@ def _relay_controller_decision_authorization_if_required(
         active_run_id=active_run_id,
     )
     authorization_context["controller_work_unit_lifecycle"] = lifecycle
+    closed_publication_work_unit = _closed_publication_work_unit_lifecycle(
+        study_root=context.study_root,
+        authorization_context=authorization_context,
+    )
+    if closed_publication_work_unit is not None:
+        status.extras["controller_decision_authorization_closed"] = {
+            **closed_publication_work_unit,
+            "control_intent_key": authorization_context.get("control_intent_key"),
+            "active_run_id": active_run_id,
+            "source": context.source,
+        }
+        return None
     marker_lacks_target_context = _controller_authorization_marker_lacks_target_context(
         runtime_state=runtime_state,
         authorization_context=authorization_context,

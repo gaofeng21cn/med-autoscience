@@ -455,6 +455,8 @@ def _controller_decision_authorization_context_payload(
         "requires_human_confirmation": record.requires_human_confirmation,
         "controller_actions": controller_actions,
         "decision_path": str(decision_path),
+        "publication_eval_id": record.publication_eval_ref.eval_id,
+        "publication_eval_path": record.publication_eval_ref.artifact_path,
         "route_target": route_target,
         "route_target_label": _ROUTE_TARGET_LABELS.get(route_target, route_target),
         "route_key_question": route_fields["route_key_question"],

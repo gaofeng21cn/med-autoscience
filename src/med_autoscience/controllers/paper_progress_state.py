@@ -24,7 +24,8 @@ _DOWNSTREAM_ONLY = "publication_supervisor_state.bundle_tasks_downstream_only"
 
 
 def build_paper_progress_state(payload: Mapping[str, Any]) -> dict[str, Any]:
-    details = _mapping(_mapping(payload.get("study_macro_state")).get("details"))
+    macro_state = _study_macro_state(payload)
+    details = _mapping(macro_state.get("details"))
     actual_write_active = _actual_write_active(payload)
     package_delivered = _package_delivered(payload, details)
     meaningful_artifact_delta = _meaningful_artifact_delta(payload)
@@ -101,7 +102,7 @@ def _paper_state(
 
 
 def _actual_write_active(payload: Mapping[str, Any]) -> bool:
-    macro_state = _mapping(payload.get("study_macro_state"))
+    macro_state = _study_macro_state(payload)
     writer_state = _text(macro_state.get("writer_state"))
     if writer_state != "live":
         return False
@@ -132,6 +133,8 @@ def _package_delivered(payload: Mapping[str, Any], details: Mapping[str, Any]) -
 def _meaningful_artifact_delta(payload: Mapping[str, Any]) -> bool:
     if _fresh_artifact_delta_present(payload):
         return True
+    if _scan_artifact_delta_present(payload):
+        return True
     for key in ("paper_progress_stall", "portable_supervisor_dashboard", "runtime_health_snapshot"):
         value = _mapping(payload.get(key))
         if value.get("meaningful_artifact_delta") is True:
@@ -145,7 +148,19 @@ def _meaningful_artifact_delta(payload: Mapping[str, Any]) -> bool:
 def _fresh_artifact_delta_present(payload: Mapping[str, Any]) -> bool:
     progress_freshness = _mapping(payload.get("progress_freshness"))
     artifact_delta = _mapping(progress_freshness.get("meaningful_artifact_delta_freshness"))
-    return _text(artifact_delta.get("status")) == "fresh" and _text(artifact_delta.get("latest_progress_at")) is not None
+    return (
+        _text(artifact_delta.get("status")) == "fresh"
+        and _text(artifact_delta.get("latest_progress_at")) is not None
+    ) or _scan_artifact_delta_present(payload)
+
+
+def _scan_artifact_delta_present(payload: Mapping[str, Any]) -> bool:
+    if payload.get("meaningful_artifact_delta") is not True:
+        return False
+    artifact_delta = _mapping(payload.get("artifact_delta"))
+    if _text(artifact_delta.get("status")) != "fresh":
+        return False
+    return _text(artifact_delta.get("latest_meaningful_delta_at")) is not None
 
 
 def _next_owner(payload: Mapping[str, Any], details: Mapping[str, Any]) -> str | None:
@@ -177,7 +192,7 @@ def _requires_user_input(payload: Mapping[str, Any]) -> bool:
         return bool(interaction.get("requires_user_input"))
     if payload.get("needs_user_decision") is True or payload.get("needs_physician_decision") is True:
         return True
-    macro_state = _mapping(payload.get("study_macro_state"))
+    macro_state = _study_macro_state(payload)
     return _text(macro_state.get("user_next")) in {"submit_info", "revise"}
 
 
@@ -259,10 +274,17 @@ def _same_line_reactivation_active(payload: Mapping[str, Any]) -> bool:
 
 def _is_downstream_only(payload: Mapping[str, Any], blocking_reasons: list[str]) -> bool:
     supervisor = _mapping(payload.get("publication_supervisor_state"))
-    return supervisor.get("bundle_tasks_downstream_only") is True or _DOWNSTREAM_ONLY in blocking_reasons
+    if supervisor.get("bundle_tasks_downstream_only") is True or _DOWNSTREAM_ONLY in blocking_reasons:
+        return True
+    if not _meaningful_artifact_delta(payload):
+        return False
+    next_owner = _text(payload.get("next_owner")) or _text(_mapping(payload.get("owner_route")).get("next_owner"))
+    return next_owner == "supervisor_only/live_quality_repair"
 
 
 def _owner_callable_surface_missing(payload: Mapping[str, Any], next_owner: str | None) -> bool:
+    if next_owner == "supervisor_only/live_quality_repair":
+        return False
     interaction = _mapping(payload.get("interaction_arbitration"))
     if _text(interaction.get("blocked_reason")) == "owner_callable_surface_missing":
         return True
@@ -299,9 +321,19 @@ def _supervisor_only_live_quality_repair(payload: Mapping[str, Any]) -> bool:
     active_run_id = (
         _text(payload.get("active_run_id"))
         or _text(_mapping(payload.get("supervision")).get("active_run_id"))
-        or _text(_mapping(_mapping(payload.get("study_macro_state")).get("details")).get("active_run_id"))
+        or _text(_mapping(_study_macro_state(payload).get("details")).get("active_run_id"))
+        or _text(_mapping(payload.get("owner_route")).get("active_run_id"))
     )
     return active_run_id is not None
+
+
+def _study_macro_state(payload: Mapping[str, Any]) -> dict[str, Any]:
+    macro_state = _mapping(payload.get("study_macro_state"))
+    if macro_state:
+        return macro_state
+    owner_route = _mapping(payload.get("owner_route"))
+    source_refs = _mapping(owner_route.get("source_refs"))
+    return _mapping(source_refs.get("study_macro_state"))
 
 
 def _supervisor_only(payload: Mapping[str, Any]) -> bool:

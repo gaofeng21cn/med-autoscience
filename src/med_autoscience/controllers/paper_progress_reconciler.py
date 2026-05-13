@@ -49,7 +49,11 @@ def build_paper_progress_reconcile_receipt(
         "resolved_studies": list(resolved),
         "decision_count": len(decisions),
         "apply_eligible_count": sum(item.get("apply_eligible") is True for item in decisions),
-        "action_receipt_count": sum(_mapping(item.get("action_receipt")).get("receipt_status") not in {None, "dry_run_not_recorded"} for item in decisions),
+        "action_receipt_count": sum(
+            _mapping(item.get("action_receipt")).get("receipt_status")
+            not in {None, "dry_run_not_recorded", "not_callable", "not_executed"}
+            for item in decisions
+        ),
         "decisions": decisions,
     }
 
@@ -72,15 +76,13 @@ def _decision_for_study(
     decision = _decision(current_state=current_state, desired_state=desired_state, study=current_study)
     callable_contract = _callable_contract(desired_state)
     execution = _matching_execution(executed, study_id=study_id, action_type=_text(desired_state.get("action_type")))
+    execution_status = _text(_mapping(execution).get("execution_status"))
     apply_eligible = bool(
         apply
         and callable_contract is not None
         and current_state.get("requires_user_input") is not True
         and _text(desired_state.get("source_fingerprint")) is not None
-        and (
-            _text(_mapping(execution).get("execution_status")) in {"executed", "dry_run"}
-            or decision in {"registry_repair", "controller_redrive"}
-        )
+        and execution_status == "executed"
     )
     action_receipt = _action_receipt(
         profile=profile,
@@ -88,6 +90,7 @@ def _decision_for_study(
         desired_state=desired_state,
         callable_contract=callable_contract,
         execution=execution,
+        reconcile_apply_requested=apply,
         apply=apply_eligible,
         generated_at=generated_at,
     )
@@ -210,6 +213,7 @@ def _action_receipt(
     desired_state: Mapping[str, Any],
     callable_contract: Mapping[str, Any] | None,
     execution: Mapping[str, Any] | None,
+    reconcile_apply_requested: bool,
     apply: bool,
     generated_at: str,
 ) -> dict[str, Any]:
@@ -217,6 +221,17 @@ def _action_receipt(
         return {"receipt_status": "not_callable", "reason": "callable_contract_missing"}
     intent = _intent(study=study, desired_state=desired_state, callable_contract=callable_contract)
     if not apply:
+        if reconcile_apply_requested:
+            execution_status = _text(_mapping(execution).get("execution_status"))
+            return {
+                "receipt_status": "not_executed",
+                "reason": "owner_dispatch_not_executed",
+                "execution_status": execution_status,
+                "idempotency_key": intent["idempotency_key"],
+                "source_fingerprint": intent["source_fingerprint"],
+                "owner": intent["owner"],
+                "callable_surface": intent["callable_surface"],
+            }
         return {
             "receipt_status": "dry_run_not_recorded",
             "idempotency_key": intent["idempotency_key"],

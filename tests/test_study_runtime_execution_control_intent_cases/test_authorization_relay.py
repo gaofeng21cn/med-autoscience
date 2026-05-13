@@ -277,6 +277,84 @@ def test_relayed_controller_authorization_marker_includes_lifecycle_projection(
     }
     assert marker["specificity_targets"][0]["target_kind"] == "claim"
 
+
+def test_execute_noop_runtime_decision_skips_closed_publication_work_unit_authorization(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    quest_root = tmp_path / "runtime" / "quest-001"
+    source_eval_id = "publication-eval::001-risk::quest-001::latest"
+    _write_controller_decision_authorization(
+        study_root,
+        action_type="run_gate_clearing_batch",
+        work_unit_fingerprint="publication-blockers::authority-sync",
+        next_work_unit={
+            "unit_id": "submission_authority_sync_closure",
+            "lane": "controller",
+            "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+        },
+    )
+    _write_publication_eval_authority(study_root)
+    lifecycle_path = study_root / "artifacts" / "controller" / "publication_work_unit_lifecycle" / "latest.json"
+    lifecycle_path.parent.mkdir(parents=True, exist_ok=True)
+    lifecycle_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "source_eval_id": source_eval_id,
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "status": "done",
+                "work_unit": {
+                    "unit_id": "submission_authority_sync_closure",
+                    "lane": "controller",
+                },
+                "unit_statuses": [
+                    {"unit_id": "create_submission_minimal_package", "status": "ok"},
+                    {"unit_id": "sync_submission_minimal_delivery", "status": "updated"},
+                ],
+                "gate_replay_status": "clear",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_runtime_state(
+        quest_root,
+        {
+            "status": "running",
+            "active_run_id": "run-live-001",
+            "pending_user_message_count": 0,
+        },
+    )
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("closed publication work unit authorization must not be relayed")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+    payload = status.to_dict()
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert "controller_decision_authorization_relay" not in payload
+    assert payload["controller_decision_authorization_closed"]["reason"] == "publication_work_unit_lifecycle_done"
+    assert payload["controller_decision_authorization_closed"]["work_unit_id"] == "submission_authority_sync_closure"
+
 def test_execute_noop_runtime_decision_refreshes_marker_when_specificity_targets_were_missing(
     tmp_path: Path,
 ) -> None:
