@@ -632,6 +632,9 @@ def build_product_entry_manifest(
             "workspace_runtime_artifact_root_locator": (
                 opl_provider_ready_contract["workspace_runtime_artifact_root_locator"]
             ),
+            "workspace_runtime_evidence_receipt": (
+                opl_provider_ready_contract["workspace_runtime_evidence_receipt"]
+            ),
             "stage_quality_pack_contract": stage_quality_pack_contract,
             "stage_skill_surface_projection": build_stage_skill_surface_projection(),
             "provider_guarded_soak_read_model": provider_guarded_soak_read_model,

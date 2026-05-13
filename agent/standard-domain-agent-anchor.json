@@ -1,0 +1,27 @@
+{
+  "surface_kind": "mas_standard_domain_agent_repo_anchor",
+  "version": "mas-standard-domain-agent-repo-anchor.v1",
+  "target_domain_id": "medautoscience",
+  "anchor_role": "agent_source_root",
+  "status": "repo_source_physical_anchor",
+  "standard_slots": [
+    "agent/stages",
+    "agent/prompts",
+    "agent/skills",
+    "agent/knowledge",
+    "agent/quality_gates"
+  ],
+  "source_policy": {
+    "new_agent_surfaces_use_standard_slots": true,
+    "existing_facades_remain_mapped_refs": true,
+    "workspace_artifact_bodies_allowed": false
+  },
+  "authority_boundary": {
+    "domain_owner": "med-autoscience",
+    "opl_role": "descriptor_projection_only",
+    "can_write_domain_truth": false,
+    "can_authorize_publication_quality": false,
+    "can_authorize_submission_readiness": false
+  },
+  "body_included": false
+}

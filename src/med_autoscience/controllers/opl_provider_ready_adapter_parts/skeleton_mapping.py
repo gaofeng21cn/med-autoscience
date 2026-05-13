@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from med_autoscience import stage_quality_contract
 
 from .provider_readiness import DOMAIN_OWNER, TARGET_DOMAIN_ID
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
+REPO_SOURCE_ANCHORS = {
+    "agent": "agent/standard-domain-agent-anchor.json",
+    "contracts": "contracts/runtime/standard-domain-agent-anchor.json",
+    "runtime": "runtime/artifact_locator/workspace-runtime-artifact-root.locator.json",
+    "docs": "docs/runtime/contracts/standard_domain_agent_skeleton.md",
+}
 
 
 def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
@@ -12,8 +21,9 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
         "surface_kind": "mas_opl_domain_agent_skeleton_mapping",
         "version": "mas-opl-domain-agent-skeleton-mapping.v1",
         "target_domain_id": TARGET_DOMAIN_ID,
-        "mapping_mode": "contract_only_no_physical_artifact_move",
+        "mapping_mode": "repo_source_physical_anchors_landed",
         "repo_tracks_real_workspace_artifacts": False,
+        "repo_source_anchor_status": _repo_source_anchor_status(),
         "skeleton": {
             "agent/stages": [
                 "templates/agent_entry_modes.yaml",
@@ -72,6 +82,7 @@ def build_standard_domain_agent_skeleton_surface() -> dict[str, Any]:
             "required_dirs": ["agent", "contracts", "runtime", "docs"],
             "forbidden_dirs": ["artifacts"],
         },
+        "repo_source_anchor_status": mapping["repo_source_anchor_status"],
         "skeleton": mapping["skeleton"],
         "default_new_surface_slots": {
             "stage": "agent/stages",
@@ -234,8 +245,9 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
         "surface_kind": "standard_domain_agent_physical_skeleton_layout_audit",
         "version": "standard-domain-agent-physical-layout-audit.v1",
         "standard_layout_version": "standard-domain-agent-physical-layout.v1",
-        "status": "standardized_with_locator_refs",
+        "status": "repo_source_physical_anchors_landed",
         "repo_source_root": "repo:med-autoscience",
+        "repo_source_anchor_status": _repo_source_anchor_status(),
         "repo_tracks_real_workspace_artifacts": False,
         "artifact_body_included": False,
         "workspace_runtime_artifact_root_locator_ref": "/product_entry_manifest/workspace_runtime_artifact_root_locator",
@@ -275,4 +287,26 @@ def _physical_skeleton_slot(
         "mapping_explanation": mapping_explanation,
         "artifact_body_included": False,
         "repo_tracks_real_workspace_artifacts": False,
+    }
+
+
+def _repo_source_anchor_status() -> dict[str, Any]:
+    anchors = [
+        {
+            "anchor_id": anchor_id,
+            "repo_path": repo_path,
+            "exists": (REPO_ROOT / repo_path).exists(),
+            "body_included": False,
+            "artifact_body_allowed": False,
+        }
+        for anchor_id, repo_path in REPO_SOURCE_ANCHORS.items()
+    ]
+    return {
+        "surface_kind": "mas_standard_skeleton_repo_source_anchor_status",
+        "version": "mas-standard-skeleton-repo-source-anchor-status.v1",
+        "status": "landed" if all(anchor["exists"] for anchor in anchors) else "typed_blocker",
+        "required_anchor_ids": list(REPO_SOURCE_ANCHORS),
+        "anchors": anchors,
+        "missing_anchor_ids": [anchor["anchor_id"] for anchor in anchors if anchor["exists"] is not True],
+        "workspace_artifacts_locator_only": True,
     }

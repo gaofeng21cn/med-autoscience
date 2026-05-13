@@ -54,14 +54,15 @@ def build_legacy_residue_audit() -> dict[str, Any]:
         ),
         _finding(
             residue_id="hosted_runtime_binding_wording",
-            current_role="projection_or_history_only",
+            current_role="tombstoned_history_or_provider_readiness_context",
             default_caller=False,
             replacement_proof_refs=[
                 "provider_runtime_residency_read_model",
                 "provider_guarded_soak_read_model",
+                "contracts/runtime/legacy-active-path-tombstones.json",
             ],
-            retention_reason="move prose to history/reference when it lacks explicit optional/provider context",
-            disposition="cleanup_pending",
+            retention_reason="tombstone landed; active docs must use explicit provider-readiness context",
+            disposition="tombstoned",
         ),
     ]
     return {
@@ -85,6 +86,7 @@ def build_legacy_residue_audit() -> dict[str, Any]:
             "finding_count": len(findings),
             "default_caller_count": sum(1 for item in findings if item["default_caller"]),
             "cleanup_pending_count": sum(1 for item in findings if item["disposition"] == "cleanup_pending"),
+            "tombstoned_count": sum(1 for item in findings if item["disposition"] == "tombstoned"),
             "retained_reference_count": sum(1 for item in findings if item["disposition"] == "retain_reference"),
             "retained_diagnostics_count": sum(1 for item in findings if item["disposition"] == "retain_diagnostics"),
             "retire_after_parity_count": sum(1 for item in findings if item["disposition"] == "retire_after_parity"),

@@ -631,7 +631,11 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
         "fixture_or_provenance_only",
         "standalone_diagnostics_only",
     }
-    assert tombstone["removal_policy"]["current_action"] == "safe_to_tombstone_docs_and_optional_residue"
+    assert tombstone["physical_tombstone_refs"] == [
+        "contracts/runtime/legacy-active-path-tombstones.json",
+        "docs/history/runtime/legacy_active_path_tombstones.md",
+    ]
+    assert tombstone["removal_policy"]["current_action"] == "legacy_active_path_tombstones_landed"
     assert tombstone["authority_boundary"]["can_authorize_submission_readiness"] is False
 
 
@@ -734,7 +738,8 @@ def test_product_entry_manifest_exposes_legacy_residue_audit_without_default_cal
         "delete_only_when_replacement_proof_and_no_default_caller": True,
     }
     assert audit["summary"]["default_caller_count"] == 0
-    assert audit["summary"]["cleanup_pending_count"] == 1
+    assert audit["summary"]["cleanup_pending_count"] == 0
+    assert audit["summary"]["tombstoned_count"] == 1
     assert "provider_runtime_residency_read_model" in audit["replacement_surfaces"]
     by_id = {item["residue_id"]: item for item in audit["findings"]}
     assert by_id["hermes_agent_executor_adapter"]["default_caller"] is False
@@ -743,7 +748,11 @@ def test_product_entry_manifest_exposes_legacy_residue_audit_without_default_cal
     assert by_id["med_deepscientist_backend_reference"]["current_role"] == (
         "historical_fixture_provenance_parity_oracle"
     )
-    assert by_id["hosted_runtime_binding_wording"]["delete_allowed"] is True
+    assert by_id["hosted_runtime_binding_wording"]["disposition"] == "tombstoned"
+    assert by_id["hosted_runtime_binding_wording"]["delete_allowed"] is False
+    assert "contracts/runtime/legacy-active-path-tombstones.json" in by_id[
+        "hosted_runtime_binding_wording"
+    ]["replacement_proof_refs"]
     assert all(item["body_included"] is False for item in audit["findings"])
     assert audit["authority_boundary"]["audit_can_delete_code"] is False
     assert audit["authority_boundary"]["audit_can_change_runtime_defaults"] is False
@@ -832,6 +841,18 @@ def test_standard_domain_agent_skeleton_projects_quality_pack_locator_without_au
     manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
     skeleton = manifest["standard_domain_agent_skeleton"]
 
+    assert skeleton["mapping_mode"] == "repo_source_physical_anchors_landed"
+    anchors = skeleton["repo_source_anchor_status"]
+    assert anchors["status"] == "landed"
+    assert anchors["missing_anchor_ids"] == []
+    assert {item["anchor_id"] for item in anchors["anchors"]} == {
+        "agent",
+        "contracts",
+        "runtime",
+        "docs",
+    }
+    assert all(item["exists"] is True for item in anchors["anchors"])
+    assert all(item["body_included"] is False for item in anchors["anchors"])
     quality_locator = skeleton["quality_pack_locator"]
     assert quality_locator == {
         "ref_kind": "json_pointer",
@@ -849,6 +870,7 @@ def test_standard_domain_agent_skeleton_projects_quality_pack_locator_without_au
     quality_slot = {
         item["slot_id"]: item for item in skeleton["physical_skeleton_layout_audit"]["slots"]
     }["agent/quality_gates"]
+    assert skeleton["physical_skeleton_layout_audit"]["status"] == "repo_source_physical_anchors_landed"
     assert quality_slot["surface_class"] == "quality"
     assert quality_slot["default_for_new_surfaces"] is True
     assert quality_slot["repo_paths"][0] == "src/med_autoscience/stage_quality_contract.py"
@@ -858,3 +880,80 @@ def test_standard_domain_agent_skeleton_projects_quality_pack_locator_without_au
         "canonical_artifact_blob",
         "publication_or_export_gate",
     ]
+
+
+def test_manifest_exposes_body_free_workspace_runtime_evidence_receipt_with_typed_blocker(
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    write_study(profile.workspace_root, "001-risk")
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    receipt = manifest["workspace_runtime_evidence_receipt"]
+
+    assert receipt == manifest["opl_provider_ready_contract"]["workspace_runtime_evidence_receipt"]
+    assert receipt["surface_kind"] == "mas_workspace_runtime_evidence_receipt"
+    assert receipt["mode"] == "body_free_refs_only"
+    assert receipt["status"] == "typed_blocker"
+    assert receipt["typed_blocker"]["blocker_id"] == "mas_live_workspace_runtime_owner_receipt_missing"
+    assert receipt["owner_receipt_refs"] == []
+    assert receipt["locator_ref"] == "/product_entry_manifest/workspace_runtime_artifact_root_locator"
+    assert receipt["live_apply_claims"] == {
+        "provider_hosted_live_apply_claimed": False,
+        "long_soak_claimed": False,
+        "publication_closure_claimed": False,
+        "paper_progress_requires_mas_owner_receipt": True,
+    }
+    assert any(
+        ref["role"] == "study_root" and ref["study_id"] == "001-risk" and ref["exists"] is True
+        for ref in receipt["observed_refs"]
+    )
+    assert all(ref["body_included"] is False for ref in receipt["observed_refs"])
+    assert all(ref["write_permitted"] is False for ref in receipt["observed_refs"])
+    assert receipt["authority_boundary"]["can_authorize_submission_readiness"] is False
+
+
+def test_workspace_runtime_evidence_receipt_observes_mas_owner_receipt_refs(
+    tmp_path: Path,
+) -> None:
+    adapter = importlib.import_module("med_autoscience.controllers.opl_provider_ready_adapter")
+
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    owner_receipt = study_root / "artifacts" / "runtime" / "owner_route" / "latest.json"
+    write_text(
+        owner_receipt,
+        json.dumps(
+            {
+                "surface_kind": "mas_owner_route_receipt",
+                "study_id": "001-risk",
+                "result": "typed_blocker",
+                "body_included": False,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    receipt = adapter.build_workspace_runtime_evidence_receipt_surface(profile=profile)
+
+    assert receipt["status"] == "workspace_runtime_evidence_refs_observed"
+    assert receipt["typed_blocker"] is None
+    assert receipt["owner_receipt_refs"] == [str(owner_receipt)]
+    owner_refs = [ref for ref in receipt["observed_refs"] if ref["role"] == "owner_route_receipt"]
+    assert owner_refs == [
+        {
+            "ref_kind": "workspace_path",
+            "role": "owner_route_receipt",
+            "ref": str(owner_receipt),
+            "exists": True,
+            "body_included": False,
+            "write_permitted": False,
+            "study_id": "001-risk",
+        }
+    ]
+    assert receipt["live_apply_claims"]["publication_closure_claimed"] is False

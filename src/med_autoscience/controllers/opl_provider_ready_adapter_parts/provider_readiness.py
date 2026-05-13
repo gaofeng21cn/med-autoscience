@@ -300,8 +300,9 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
             "surface_id": "hermes_scheduler_hosted_runtime",
             "classification": "retire_after_parity",
             "default_caller": False,
-            "retention_reason": "history_or_optional_provider_provenance",
+            "retention_reason": "tombstoned_history_or_optional_provider_provenance",
             "replacement_ref": "/opl_provider_ready_contract/provider_topology",
+            "tombstone_ref": "contracts/runtime/legacy-active-path-tombstones.json",
         },
         {
             "surface_id": "mds_deepscientist_backend",
@@ -316,6 +317,7 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
             "default_caller": False,
             "retention_reason": "local_diagnostics_not_opl_hosted_runtime",
             "replacement_ref": "/managed_temporal_state_consistency",
+            "tombstone_ref": "contracts/runtime/legacy-active-path-tombstones.json",
         },
     ]
     return {
@@ -325,6 +327,10 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         "status": "no_active_default_caller_proven",
         "active_default_callers": [],
         "retired_or_tombstoned_surfaces": retired_surfaces,
+        "physical_tombstone_refs": [
+            "contracts/runtime/legacy-active-path-tombstones.json",
+            "docs/history/runtime/legacy_active_path_tombstones.md",
+        ],
         "removal_policy": {
             "delete_or_tombstone_when": [
                 "no_default_cli_mcp_product_entry_or_skill_caller",
@@ -332,7 +338,7 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
                 "no_fixture_or_provenance_dependency",
                 "replacement_diagnostic_or_history_link_exists",
             ],
-            "current_action": "safe_to_tombstone_docs_and_optional_residue",
+            "current_action": "legacy_active_path_tombstones_landed",
         },
         "authority_boundary": {
             "proof_role": "caller_inventory_and_tombstone_read_model",

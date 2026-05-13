@@ -189,7 +189,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert all(item["owner"] == "med-autoscience" for item in inventory["mas_domain_specific"])
     skeleton = payload["opl_domain_agent_skeleton_mapping"]
     assert skeleton == provider["domain_agent_skeleton_mapping"]
-    assert skeleton["mapping_mode"] == "contract_only_no_physical_artifact_move"
+    assert skeleton["mapping_mode"] == "repo_source_physical_anchors_landed"
     assert skeleton["repo_tracks_real_workspace_artifacts"] is False
     assert "mas_family_sidecar_dispatch_receipt" in skeleton["skeleton"]["contracts/runtime/sidecar"]
     standard_skeleton = payload["standard_domain_agent_skeleton"]
@@ -197,7 +197,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert standard_skeleton["version"] == "standard-domain-agent-skeleton.v1"
     assert standard_skeleton["skeleton_id"] == "mas.standard_domain_agent_skeleton.v1"
     assert standard_skeleton["target_domain_id"] == "med-autoscience"
-    assert standard_skeleton["mapping_mode"] == "contract_only_no_physical_artifact_move"
+    assert standard_skeleton["mapping_mode"] == "repo_source_physical_anchors_landed"
     assert standard_skeleton["repo_tracks_real_workspace_artifacts"] is False
     assert standard_skeleton["repo_source_boundary"]["required_dirs"] == [
         "agent",
@@ -230,8 +230,10 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     )
     physical_audit = standard_skeleton["physical_skeleton_layout_audit"]
     assert physical_audit["surface_kind"] == "standard_domain_agent_physical_skeleton_layout_audit"
-    assert physical_audit["status"] == "standardized_with_locator_refs"
+    assert physical_audit["status"] == "repo_source_physical_anchors_landed"
     assert physical_audit["repo_source_root"] == "repo:med-autoscience"
+    assert physical_audit["repo_source_anchor_status"]["status"] == "landed"
+    assert physical_audit["repo_source_anchor_status"] == standard_skeleton["repo_source_anchor_status"]
     assert physical_audit["standard_layout_version"] == "standard-domain-agent-physical-layout.v1"
     assert physical_audit["repo_tracks_real_workspace_artifacts"] is False
     assert physical_audit["artifact_body_included"] is False

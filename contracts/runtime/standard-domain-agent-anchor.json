@@ -1,0 +1,26 @@
+{
+  "surface_kind": "mas_standard_domain_runtime_contract_anchor",
+  "version": "mas-standard-domain-runtime-contract-anchor.v1",
+  "target_domain_id": "medautoscience",
+  "anchor_role": "contracts_runtime_root",
+  "status": "repo_source_physical_anchor",
+  "standard_slots": [
+    "contracts/runtime/sidecar",
+    "contracts/runtime/projection_builders",
+    "contracts/runtime/lifecycle_adapters"
+  ],
+  "contract_refs": [
+    "/product_entry_manifest/opl_provider_ready_contract",
+    "/product_entry_manifest/owner_receipt_contract",
+    "/product_entry_manifest/lifecycle_guarded_apply_proof",
+    "/product_entry_manifest/workspace_runtime_evidence_receipt"
+  ],
+  "authority_boundary": {
+    "domain_owner": "med-autoscience",
+    "opl_role": "receipt_ref_transport_and_projection",
+    "can_write_domain_truth": false,
+    "can_write_artifact_body": false,
+    "can_write_memory_body": false
+  },
+  "body_included": false
+}

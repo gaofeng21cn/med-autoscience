@@ -1,0 +1,31 @@
+{
+  "surface_kind": "workspace_runtime_artifact_root_locator_anchor",
+  "version": "workspace-runtime-artifact-root-locator-anchor.v1",
+  "target_domain_id": "medautoscience",
+  "anchor_role": "runtime_artifact_locator_root",
+  "status": "repo_source_physical_anchor_locator_only",
+  "locator_templates": {
+    "study_artifact_root": "studies/<study_id>/artifacts",
+    "runtime_artifact_root": "studies/<study_id>/artifacts/runtime",
+    "owner_route_receipt": "studies/<study_id>/artifacts/runtime/owner_route/latest.json",
+    "stage_review_index": "studies/<study_id>/artifacts/stage_reviews/index.json",
+    "publication_eval": "studies/<study_id>/artifacts/publication_eval/latest.json",
+    "controller_decisions": "studies/<study_id>/artifacts/controller_decisions/latest.json",
+    "sidecar_dispatch_receipts": "artifacts/runtime/opl_family_sidecar/dispatch_receipts"
+  },
+  "artifact_policy": {
+    "repo_tracks_real_workspace_artifacts": false,
+    "artifact_bodies_allowed": false,
+    "receipt_refs_allowed": true,
+    "missing_live_receipt_returns_typed_blocker": true
+  },
+  "authority_boundary": {
+    "domain_owner": "med-autoscience",
+    "artifact_authority_owner": "med-autoscience",
+    "opl_role": "locator_projection_only",
+    "can_write_domain_truth": false,
+    "can_write_artifact_body": false,
+    "can_authorize_publication_quality": false
+  },
+  "body_included": false
+}

@@ -1,0 +1,48 @@
+{
+  "surface_kind": "mas_legacy_active_path_tombstone_contract",
+  "version": "mas-legacy-active-path-tombstone-contract.v1",
+  "target_domain_id": "medautoscience",
+  "status": "legacy_active_paths_tombstoned",
+  "default_active_path": "Codex-default host-agent runtime via MAS direct skill or OPL Temporal provider sidecar",
+  "tombstoned_surfaces": [
+    {
+      "surface_id": "hermes_scheduler_hosted_runtime",
+      "classification": "retire_after_parity",
+      "default_caller": false,
+      "tombstone_ref": "docs/history/runtime/legacy_active_path_tombstones.md#hermes-scheduler-hosted-runtime",
+      "replacement_ref": "/product_entry_manifest/managed_temporal_state_consistency",
+      "retained_context": "explicit optional diagnostics or historical provider proof only"
+    },
+    {
+      "surface_id": "hosted_runtime_binding_wording",
+      "classification": "tombstoned_wording",
+      "default_caller": false,
+      "tombstone_ref": "docs/history/runtime/legacy_active_path_tombstones.md#hosted-runtime-binding-wording",
+      "replacement_ref": "/product_entry_manifest/provider_residency_read_model",
+      "retained_context": "history or explicit provider-readiness provenance only"
+    },
+    {
+      "surface_id": "workspace_local_scheduler_as_online_target",
+      "classification": "degraded_to_local_diagnostics",
+      "default_caller": false,
+      "tombstone_ref": "docs/history/runtime/legacy_active_path_tombstones.md#workspace-local-scheduler",
+      "replacement_ref": "/product_entry_manifest/opl_provider_ready_contract",
+      "retained_context": "standalone diagnostics"
+    }
+  ],
+  "no_active_default_caller_proof": {
+    "active_default_callers": [],
+    "default_cli_mcp_product_entry_or_skill_caller_count": 0,
+    "opl_active_reference_count": 0,
+    "replacement_proof_required": true
+  },
+  "authority_boundary": {
+    "proof_owner": "med-autoscience",
+    "read_only": true,
+    "can_delete_code_by_itself": false,
+    "can_change_runtime_defaults": false,
+    "can_write_domain_truth": false,
+    "can_authorize_publication_quality": false
+  },
+  "body_included": false
+}

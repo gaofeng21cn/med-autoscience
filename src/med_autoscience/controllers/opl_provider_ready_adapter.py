@@ -34,6 +34,9 @@ from med_autoscience.controllers.opl_provider_ready_adapter_parts.skeleton_mappi
     build_physical_skeleton_layout_audit_surface,
     build_standard_domain_agent_skeleton_surface,
 )
+from med_autoscience.controllers.opl_provider_ready_adapter_parts.workspace_evidence import (
+    build_workspace_runtime_evidence_receipt_surface,
+)
 
 
 SURFACE_KIND = "mas_opl_provider_ready_contract"
@@ -98,6 +101,7 @@ def build_opl_provider_ready_contract(
         ),
         "legacy_retirement_tombstone_proof": build_legacy_retirement_tombstone_proof(),
         "workspace_runtime_artifact_root_locator": _workspace_runtime_artifact_root_locator(profile=profile),
+        "workspace_runtime_evidence_receipt": build_workspace_runtime_evidence_receipt_surface(profile=profile),
         "lifecycle_inventory": build_opl_lifecycle_inventory_surface(),
         "lifecycle_apply_requests": build_lifecycle_apply_requests_surface(),
         "lifecycle_guarded_apply_proof": build_lifecycle_guarded_apply_proof_surface(),
@@ -235,6 +239,7 @@ __all__ = [
     "build_provider_guarded_soak_read_model",
     "build_provider_residency_read_model",
     "build_standard_domain_agent_skeleton_surface",
+    "build_workspace_runtime_evidence_receipt_surface",
     "load_opl_production_proof",
     "receipt_refs_for_profile",
     "requested_writes_from_task",
