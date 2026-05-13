@@ -298,6 +298,29 @@ def test_classify_changed_files_routes_branding_assets_to_review_only() -> None:
     assert result.unclassified_changes == ()
 
 
+def test_classify_changed_files_routes_publication_route_memory_fixture_to_owner_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "docs/policies/study-workflow/publication_route_memory_policy.md",
+            "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
+            "src/med_autoscience/controllers/stage_knowledge_plane_parts/publication_route_memory_cards.py",
+            "tests/test_stage_knowledge_plane.py",
+        ]
+    )
+
+    assert result.matched_categories == (
+        "documentation_review_only",
+        "publication_route_memory_surface",
+    )
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        "uv run pytest tests/test_stage_knowledge_plane.py -q",
+        "uv run pytest tests/test_opl_family_contract_adoption.py -q",
+    ]
+
+
 def test_classify_changed_files_flags_unclassified_paths() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 

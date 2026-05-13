@@ -240,6 +240,7 @@ def build_runtime_watch_outer_loop_tick_request(
             status_payload=status_payload,
             gate_report=gate_report,
             publication_eval_payload=publication_eval_payload,
+            task_intake_action=task_intake_action,
         )
         if bundle_stage_finalize_preempts_task_intake:
             task_intake_action = None
