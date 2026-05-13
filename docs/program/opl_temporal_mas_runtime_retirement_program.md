@@ -1,6 +1,6 @@
 # OPL Temporal MAS Runtime Retirement Program
 
-Status: `production_residency_proof_landed; mas_proof_ingestion_landed; live_paper_apply_pending; content-level owner doc`
+Status: `production_residency_proof_landed; mas_proof_ingestion_landed; watchdog_kernel_migrated; live_paper_apply_pending; content-level owner doc`
 Date: `2026-05-13`
 Owner: `MedAutoScience Runtime OS + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P2 框架对齐线路：MAS 与 OPL stage-led、以 Agent executor 为最小执行单位 runtime framework 之间的边界、优先级和退役门槛。
@@ -20,11 +20,11 @@ Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full rec
 
 ## 当前状态
 
-当前状态是 `agent_executor_adapter_boundary_landed_opl_temporal_production_proof_landed_mas_provider_proof_ingestion_landed_live_paper_apply_pending`。
+当前状态是 `agent_executor_adapter_boundary_landed_opl_temporal_production_proof_landed_mas_provider_proof_ingestion_landed_watchdog_kernel_migrated_live_paper_apply_pending`。
 
 2026-05-12 文档收口口径：P2 已经具备 OPL-hosted MAS 的 descriptor、sidecar、guarded apply receipt、DM002 route-memory receipt chain、OPL Temporal production residency proof，以及 MAS 对该 proof 的 product-entry / sidecar ingestion。MAS 读取 `--opl-production-proof` 后，可把 provider availability 从 typed blocker 切到 `available`，但 authority boundary 仍保持 `can_write_domain_truth=false`、`provider_completion_is_paper_closure=false`、`paper_closure_requires_mas_owner_receipt=true`。P2 仍未具备真实 paper-line provider-hosted guarded apply success 证据。真实完成需要在 MAS owner gate 允许时逐条 paper line 产出 owner receipt、artifact/gate/reviewer/route/human-gate/stop-loss evidence，或由 live owner guard / authorization / publication gate 返回 typed blocker。
 
-2026-05-13 functional closure 口径：真实 paper-line long-running apply 仍是 production evidence gate；在此之外，P2 的工程功能闭环不应继续等待真实论文运行。MAS 侧工作应作为 OPL `production-functional-closure-plan.zh-CN.md` 的并行 implementation lane 执行，而不是形成另一份平行大计划。MAS 已把 provider proof 中的 managed Temporal service / worker state 投影成 read-only consistency surface，并新增旧 Hermes / MDS / workspace-local scheduler 的 no-active-default-caller tombstone proof；剩余 owner receipt、memory receipt、skeleton、workbench / closeout projection follow-through 继续按 OPL umbrella lane 承接。每项结果要么进入 MAS-owned receipt / locator / typed blocker surface，要么明确返回 owner guard、live gate、authorization 或 contract gap。
+2026-05-13 functional closure 口径：真实 paper-line long-running apply 仍是 production evidence gate；在此之外，P2 的工程功能闭环不应继续等待真实论文运行。MAS 侧工作应作为 OPL `production-functional-closure-plan.zh-CN.md` 的并行 implementation lane 执行，而不是形成另一份平行大计划。MAS 已把 provider proof 中的 managed Temporal service / worker state 投影成 read-only consistency surface，并新增旧 Hermes / MDS / workspace-local scheduler 的 no-active-default-caller tombstone proof；OPL family-runtime status 和 runtime snapshot 已能消费该 read model，而不把它升级为 MAS paper closure。MAS watchdog 的功能性职责已收敛为 domain health / reconcile / MAS-controller owner repair kernel；剩余 memory receipt、真实 workspace receipt 泛化和 legacy physical cleanup 继续按 OPL umbrella lane 承接。每项结果要么进入 MAS-owned receipt / locator / typed blocker surface，要么明确返回 owner guard、live gate、authorization 或 contract gap。
 
 MAS 侧已经落地：
 
@@ -36,7 +36,9 @@ MAS 侧已经落地：
 - `real-paper-autonomy-guarded-apply-proof` 已把 read-only proof 推进为 MAS-owned guarded apply proof surface：已有 MAS owner apply receipt 时可承认真实 workspace mutation；没有 owner receipt 或 human/live gate 不允许时输出 typed blocker / receipt，并保持 no-forbidden-write proof；
 - OPL Temporal production residency proof 已可证明 managed Temporal service + worker 的 start/query/signal、typed closeout、missing closeout blocker、retry/dead-letter boundary 和 domain truth boundary；MAS product-entry manifest 与 sidecar export 已能消费该 proof 并暴露 provider available read model；
 - MAS product-entry manifest 与 sidecar export 已暴露 `managed_temporal_state_consistency`，把 provider proof 的 managed service state、worker state、task queue、attempt query readiness 和 retry/dead-letter visibility 投影给 OPL status/workbench，且仍是 read-only projection；
+- OPL family-runtime status 与 runtime snapshot 已消费 MAS `managed_temporal_state_consistency` / `legacy_retirement_tombstone_proof` read model；当 MAS projection 显示 service/worker ready 时，OPL provider readiness 可按同一口径显示，但 authority boundary 保持 `status_projection_only`，不生成 paper progress、quality verdict、submission readiness 或 publication closure；
 - `medautosci sidecar dispatch` 已支持 `paper_autonomy/guarded-apply`，只写 MAS sidecar dispatch receipt 和 `real_paper_autonomy_provider_hosted_guarded_apply_receipt` 嵌套结果；OPL/provider 仍不能写 publication eval、controller decisions、current package、paper package、artifact gate、memory body、evidence ledger 或 review ledger；
+- `runtime_watch` 已从旧 watchdog 角色收敛为 MAS domain health / reconcile / owner repair kernel：`execution_owner_guard.supervisor_only=true` 下只允许同一 study/quest/run 的 MAS controller-owned live work-unit repair 或 controller-authorized runtime recovery；authorization mismatch、terminal lifecycle、provider/platform/OPL repair、缺 MAS controller authorization 均 fail closed。AI reviewer `publication_eval/latest.json` 只作为质量读面和 closeout evidence，不再被当作 guarded apply owner receipt；
 - `standard_domain_agent_skeleton` 现在包含 `physical_skeleton_layout_audit`，把 repo-source physical skeleton slot 映射到现有 `docs/`、`templates/`、`src/`、`plugins/` 路径，同时把 workspace artifacts 固定为 locator-only；
 - MAS local scheduler、one-shot reconcile、Portal 和 Live Console 仍是有效 local diagnostics 与 evidence surface。
 - 默认 caller 已从 Hermes scheduler / hosted runtime 路径移走；Hermes 相关 surface 当前只作为 explicit optional diagnostics、proof/provenance 或 `retire_after_parity` 读法保留。本轮不要求真实 Hermes/Claude production soak，adapter smoke 与 receipt/fail-closed proof 足以关闭接入能力验收。
@@ -48,14 +50,13 @@ cutover 或物理退役前仍未完成：
 - OPL stage attempt 下真实长时 domain activity soak；OPL Codex runner 的 repo/test harness 已具备 `dry_run`、`live_dry_run` 与 `codex_cli` process supervision，但 MAS paper-line provider-hosted 连续运行证据仍未完成；
 - 至少一条真实 MAS paper-line provider-hosted guarded apply soak 仍要在 live workspace gate 允许时闭合：链路为 OPL attempt -> MAS owner receipt -> artifact delta / gate replay / reviewer judgment / human gate / stop-loss / typed blocker；
 - human gate / user modification / resume token 从 OPL signal 进入 MAS revision 或 gate owner chain 的 proof；
-- OPL App / family-runtime status 仍需消费 MAS 暴露的 managed-state consistency projection，在前端或 OPL status 面完成同口径展示；
 - provider parity 证明之后，旧 scheduler/Hermes/MDS/legacy compatibility 的物理删除或 history/tombstone 归档仍需按 no-active-reference 证据逐项执行。
 
 ## 活跃内容 Lane
 
 | priority | lane | 当前范围 | output |
 | --- | --- | --- | --- |
-| `P2.1` | `opl_framework_foundation` | OPL 已具备 Temporal production residency proof，可证明 stage attempt、Temporal-backed runtime、queue/wakeup、retry/dead-letter、approval/human gate transport、receipt/projection 与 domain truth boundary；MAS 已提供 managed lifecycle state consistency projection，剩余是 OPL 侧 status/App 消费和更长时 domain activity soak。 | OPL framework/provider readiness evidence |
+| `P2.1` | `opl_framework_foundation` | OPL 已具备 Temporal production residency proof，可证明 stage attempt、Temporal-backed runtime、queue/wakeup、retry/dead-letter、approval/human gate transport、receipt/projection 与 domain truth boundary；MAS 已提供 managed lifecycle state consistency projection，OPL family-runtime status / runtime snapshot 已消费该 projection，剩余是更长时 domain activity soak 和 App 级展示 polish。 | OPL framework/provider readiness evidence |
 | `P2.2` | `mas_framework_migration` | MAS 作为 OPL-admitted domain agent 暴露 domain skeleton、stage descriptor、sidecar export/dispatch、owner receipts、projection builder、artifact locator 和 authority refs。 | MAS direct path / OPL-hosted path receipt equivalence |
 | `P2.3` | `framework_generic_lifecycle_lift` | 把 MAS runtime lifecycle、artifact locator、retention、restore-proof、migration-ledger 经验分类为 OPL framework-generic primitive 与 MAS-domain truth。 | OPL primitive candidates plus MAS retained-domain list |
 | `P2.4` | `legacy_retirement_after_replacement` | MAS 已提供 no-active-default-caller tombstone proof；有替代证据后，继续删除或降级 scheduler/Hermes/MDS/legacy manager/UI wording 与代码。当前 active contract 已把 Hermes 表述收窄为 explicit optional executor adapter，把旧 manager 表述保留为 retired cleanup evidence。 | retired path evidence 和更新后的 diagnostics/fallback docs |
