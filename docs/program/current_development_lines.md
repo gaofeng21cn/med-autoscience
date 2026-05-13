@@ -16,6 +16,30 @@ Domain memory 这条线现在可以回到主线任务推进：`publication_route
 
 距离理想情况的当前判断是：stage form / skill authoring 已接近目标形态，knowledge / quality / memory contract 已可用，OPL-hosted execution 与用户产品闭环已有 callable/read-model 证据面但仍未完成 production closure。provider residency typed blocker、guarded apply harness、Stage Deliverable Review Page / Index locator proof、publication-route memory body-free receipt inventory、Workbench reference projection、standard skeleton repo-source physical anchors、workspace/runtime evidence receipt、standard skeleton slot audit 和 legacy active-path tombstones 已落地；剩余关键是把这些 proof surface 接到真实 production Temporal provider 和更多真实 paper-line instance，而不是再补一批手写 Markdown。
 
+## MAS 全线规划闭环
+
+本文是 MAS 当前开发规划的唯一入口。后续不要再为 MAS production closure、stage surface、paper autonomy、App workbench 或 legacy cleanup 新建平行总计划；新增工作先落到本文的内容线路，再跳到对应 owner 文档执行。
+
+当前 MAS 线已经完成规划分层：
+
+- `landed_foundation`：已经有 repo/source/contract/read-model/receipt 证据，后续只维护 drift、兼容和 provenance；
+- `functional_follow_through_gate`：不是基础功能缺口，而是需要更多 owner receipt、真实 workspace refs、UI drilldown、stale scan 或物理 cleanup 的工程收口；
+- `production_evidence_gate`：需要真实 provider、真实 paper-line、live workspace、owner gate 或长时运行证据；不能用文档、repo tests、queue completion 或 provider liveness 代替。
+
+| MAS line | owner doc | gate class | planning status | next implementation unit | done evidence |
+| --- | --- | --- | --- | --- | --- |
+| `p2_provider_residency_and_activity_soak` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) + OPL master docs | `production_evidence_gate` | `planned; proof_ingestion_landed` | 真实 Temporal/provider 下的 Codex/domain activity long soak、restart/re-query、retry/dead-letter、attempt history 与 MAS sidecar receipt 串联。 | OPL attempt refs + MAS sidecar dispatch receipt + domain activity closeout + no-forbidden-write proof；缺 live provider 时返回 typed blocker。 |
+| `p2_mas_framework_migration` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | `landed_foundation_with_live_apply_gate` | `planned; descriptor_and_receipt_boundary_landed` | 保持 direct skill path 与 OPL-hosted path 同用 MAS owner receipt；后续只补真实 live apply owner chain。 | OPL 只持 attempt / refs / typed blocker；MAS owner surface 给出 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 blocker。 |
+| `publication_route_memory_management` | [Publication Route Memory Policy](../policies/study-workflow/publication_route_memory_policy.md) + [Study Workflow](../policies/study-workflow/README.md) | `functional_follow_through_gate` | `planned; body_free_inventory_landed` | 扩展真实 accepted / rejected / route-back receipts，补跨 workspace inventory smoke、ref-only grouping、stale/deprecated review。 | 多 paper-line `stage-memory-closeout-route -> memory_write_router_receipt -> inventory/export` proof；OPL/Aion 只显示 refs 和 freshness。 |
+| `stage_surface_standardization` | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | `landed_foundation_with_live_apply_gate` | `planned; stage_skill_surfaces_landed` | 维护 skill-change guard、live review/index follow-through、standard skeleton slot discipline；新增 stage/prompt/skill 必须继续消费 machine-derived refs。 | Generated stage card、knowledge/closeout obligations、quality pack、review/index locator 和 MAS owner closeout refs；live paper apply 前不宣称 production closure。 |
+| `p1_app_runtime_workbench` | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | `functional_follow_through_gate` | `planned; projection_landed` | OPL App 读 MAS workbench projection、stage review/index、memory refs、provider refs、安全 action receipt 和 terminal attach gate。 | App / Workbench 只读展示真实 refs、freshness、blocker 和 owner；action 只返回 MAS typed receipt。 |
+| `p0_live_paper_autonomy_acceptance` | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | `production_evidence_gate` | `planned; guarded_proof_surface_landed` | DM002、DM003、Obesity 等真实 paper line 经 provider-hosted guarded apply 进入 MAS owner chain。 | artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker；provider completion 只是支撑证据。 |
+| `legacy_residue_retirement` | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md), [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md), [Runtime Lifecycle SQLite Migration Program](./runtime_lifecycle_sqlite_migration_program.md) | `functional_follow_through_gate` | `planned; tombstone_contract_landed` | 按 `legacy_residue_audit` finding 做 no-active-caller scan、replacement proof、可删代码删除或 history/tombstone 归档。 | stale scan、no default caller proof、无 fixture/provenance dependency、focused compatibility tests。 |
+| `standard_skeleton_physicalization` | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) + [Standard Domain Agent Skeleton](../runtime/contracts/standard_domain_agent_skeleton.md) | `functional_follow_through_gate` | `planned; repo_source_anchors_landed` | 新增 repo-source surface 默认按 standard slots 落位；破坏性目录迁移只在 parity/provenance/no-forbidden-write proof 后做。 | skeleton audit 能解释标准 slot 与现有路径；workspace artifacts、memory body、receipt instances 仍 locator-only。 |
+| `p3_foundation_guard` | [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md) + [Runtime Lifecycle SQLite Migration Program](./runtime_lifecycle_sqlite_migration_program.md) | `landed_foundation` | `planned; maintenance_only` | 只处理新 drift、restore diagnostic、explicit archive import、MDS provenance / upstream intake 分类。 | 不新增默认 MDS dependency、不恢复 Git lifecycle、不制造第二套 study/runtime truth。 |
+
+规划完成的含义是：每条 MAS 内容线都有唯一入口、owner doc、gate class、下一实施单元和验收证据。它不表示真实 paper live apply、真实 memory writeback、App UI drilldown 或 legacy 物理删除已经完成；这些继续按上表的 gate 推进。
+
 ## OPL Production Functional Closure 对齐
 
 OPL 层面的 umbrella plan 是 `one-person-lab/docs/active/production-functional-closure-plan.zh-CN.md`。MAS 这里不再维护一份平行的 production-functional closure 大计划；MAS 的下一批可立即工程落地工作应作为该 umbrella plan 的 MAS implementation lane 并行推进。

@@ -27,6 +27,7 @@ Owner: `MedAutoScience`
 - OPL 已上升为 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架。MAS 作为医学研究 domain agent 暴露 stage descriptor、sidecar export/dispatch、receipt schema、projection builder、artifact locator 和 authority refs；OPL 持有 framework-level stage attempt、queue/wakeup、retry/dead-letter、approval transport、projection 和 shared lifecycle/index primitives。
 - Stage surface 的形式统一已基本进入可维护状态：主 stage generated card、独立 skill surface、knowledge / closeout obligations、stage quality packs、Research Harness clean-room gates、OPL descriptor locator、provider residency read model、guarded apply harness、OPL production proof ingestion、真实 workspace review/index locator proof、body-free route-memory receipt inventory、Workbench reference projection、standard skeleton slot audit 和 legacy residue audit 已落地。距离理想态的核心差距集中在真实 domain activity 长时 soak、provider-hosted live paper apply、更多真实 paper-line Stage Deliverable Review Page / Index instance、更多 publication-route memory receipts、OPL App UI drilldown 和按 audit finding 清理旧兼容残留。
 - Production functional closure 的跨仓总计划归 OPL `production-functional-closure-plan.zh-CN.md` 持有。MAS 不维护平行大计划；MAS 负责在该 umbrella plan 下提供 MAS-owned owner receipt、domain memory receipt、stage review/index locator、skeleton follow-through、legacy no-active-caller proof 和 workbench/closeout projection refs。真实 paper-line live apply 继续是 P0 production evidence gate。
+- MAS 当前规划已经收口到 [MAS Current Development Lines](./current_development_lines.md) 的全线规划闭环表。后续每条 MAS 线必须先归入 `landed_foundation`、`functional_follow_through_gate` 或 `production_evidence_gate`，再跳到 P0/P1/P2/stage/memory/P3 owner doc；不要把同一批剩余项复制成新的平行 program。
 
 ## Program Map
 
@@ -70,6 +71,18 @@ Owner: `MedAutoScience`
 | Stage-led knowledge and publication-route memory | `repo_contract_landed; migration_active` | `ai_first_paper_autonomy_closure_program.md`, `docs/policies/study-workflow/`, `docs/status.md` | P0 objective + policy |
 | OPL stage-led / Temporal alignment | `production_residency_proof_landed; mas_proof_ingestion_landed; live_paper_apply_pending` | OPL master roadmap plus `opl_temporal_mas_runtime_retirement_program.md` | P2 active enabler |
 | OPL App MAS Runtime Workbench | `active_plan` | `opl_app_mas_runtime_workbench_program.md` | P1 active enabler |
+
+## MAS Line Gate Map
+
+当前 portfolio 的执行和汇报统一使用以下 gate 分类。该表只做 program routing；具体实施细节仍归各 owner doc 和 machine-readable contract。
+
+| gate class | meaning | MAS lines |
+| --- | --- | --- |
+| `landed_foundation` | 已有 repo/source/contract/read-model/receipt 证据；后续只维护 drift、provenance、compatibility 和 guard。 | P3 monolith / MDS provenance、P3a runtime lifecycle、repo-source skeleton anchors、stage skill surface baseline。 |
+| `functional_follow_through_gate` | 基础功能 surface 已有；还需要更多 owner receipts、真实 workspace refs、App drilldown、stale scan 或物理 cleanup。 | publication-route memory receipt scaleout、OPL App MAS workbench drilldown、legacy residue physical cleanup、standard skeleton physicalization、stage review/index live follow-through。 |
+| `production_evidence_gate` | 需要真实 provider、真实 paper-line、live workspace、owner gate 或长时运行证据；文档、repo tests、queue completion 或 provider liveness 不能替代。 | provider/domain activity long soak、provider-hosted guarded apply、MAS live paper owner chain、human gate/resume owner proof。 |
+
+完成某个 gate 的有效证据只有三类：机器可读 owner receipt / no-regression evidence、真实 workspace/runtime artifact locator proof、或带 owner/source/repair action 的 typed blocker。文档状态只解释这些证据，不制造第二真相源。
 
 ## Content-Level Disposition
 

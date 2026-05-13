@@ -52,6 +52,20 @@ This means the current three-paper evidence has crossed the read-only acceptance
 
 2026-05-13 production closure wording: the current acceptable claim is that MAS has provider-guarded apply receipt surfaces, a DM002 route-memory consumed/writeback receipt chain, three-paper guarded proof surfaces ready for OPL-hosted attempts, and OPL production proof ingestion into MAS provider availability projection. The remaining claim requires live provider-hosted guarded apply soak: each paper line must produce a MAS owner receipt with artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or a typed blocker from the live owner/gate. OPL production proof, queue completion, repo tests, and provider attempt completion remain supporting evidence, not paper closure.
 
+## Planning Gate Classification
+
+P0 now consumes the MAS line plan from [MAS Current Development Lines](./current_development_lines.md). P0 does not own OPL provider implementation, App UI, stage skill formatting, or legacy cleanup, but it defines which evidence can count as real paper-autonomy progress.
+
+| P0 gate | gate class | current planning status | acceptable evidence |
+| --- | --- | --- | --- |
+| `live_paper_owner_chain` | `production_evidence_gate` | `planned; read_only_three_paper_proof_landed` | Real paper-line owner receipt with artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or typed blocker in MAS truth surfaces. |
+| `provider_hosted_guarded_apply` | `production_evidence_gate` | `planned; guarded_apply_surface_landed` | Provider attempt id and typed closeout paired with MAS owner receipt and no-forbidden-write proof; provider completion alone does not count. |
+| `human_gate_resume` | `production_evidence_gate` | `planned; owner_boundary_landed` | MAS controller/runtime records the gate reason, resume token or refusal, next owner, and blocker; OPL signal is transport only. |
+| `publication_route_memory_writeback` | `functional_follow_through_gate` | `planned; DM002 ref chain landed` | Stage closeout proposal, MAS router accepted/rejected receipt, body-free inventory/export refs; memory body and accept/reject authority stay in MAS workspace/runtime owner. |
+| `stage_review_index_instance` | `functional_follow_through_gate` | `planned; locator proof landed` | Live attempt produces latest review page / index refs, freshness, claim impact, next owner or typed blocker; review/index does not authorize publication readiness. |
+
+P0 is complete only when these gates repeatedly produce MAS-owned progress or MAS-owned blockers on real paper lines. It is not completed by documentation alignment, repo tests, OPL production residency proof, queue completion, or App display.
+
 ## Acceptance Contract
 
 MAS paper autonomy is accepted only when a real eligible paper line can repeatedly show one of the following outcomes after an autonomous work unit:

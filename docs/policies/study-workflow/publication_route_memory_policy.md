@@ -203,6 +203,19 @@ Decision-stage availability is read-only context. `stage_knowledge_packet.author
 
 `paper_soak_memory_apply_proof` is also read-only. It can show that a paper-line stage consumed a small route-memory set, produced a typed writeback proposal, and received a MAS router accepted/rejected receipt. It must expose refs and counts, not memory card prose, paper artifact bodies, publication verdicts, or receipt instances stored in the repo.
 
+## Planning Gate Classification
+
+Publication-route memory 的后续规划入口是 [MAS Current Development Lines](../../program/current_development_lines.md)，不是单独的 production closure plan。当前属于 `functional_follow_through_gate`：基础 policy、Markdown body、seed index、workspace pack、CLI inventory、typed closeout proposal、router receipt 和 body-free OPL/Aion projection 已落地，后续要增加真实 paper-line receipts 和维护纪律。
+
+| memory gate | gate class | current planning status | done evidence |
+| --- | --- | --- | --- |
+| `paper_line_receipt_scaleout` | `functional_follow_through_gate` | `planned; DM002 ref chain landed` | 多条 paper line 产生 accepted / rejected / route-back reusable lesson receipts，并可由 body-free inventory/export 读取。 |
+| `cross_workspace_inventory_smoke` | `functional_follow_through_gate` | `planned; CLI inventory_landed` | 不同 workspace 的 pack、migration receipt、writeback proposal/receipt 都能以 body-free refs、counts、freshness 和 authority boundary 展示。 |
+| `card_status_and_stale_review` | `functional_follow_through_gate` | `planned; rich_seed_library_landed` | card status、deprecated/stale reason、review date 和 maintainer body review 规则清晰；不引入 ordinary-user write UI。 |
+| `memory_body_apply` | `production_evidence_gate_when_live_workspace_required` | `planned; body_owner_boundary_landed` | 真实 workspace/runtime owner 接受或拒绝 body/writeback apply；OPL/Aion 只持 locator、freshness 和 receipt refs。 |
+
+本 policy 的非目标保持不变：不做 recipe engine、不做 winning-route scorer、不把 OPL 变成 memory body owner、不把 memory refs 升级为 publication quality 或 controller decision authority。
+
 ## Human Inventory And Maintenance
 
 The human-facing entrypoint is `docs/policies/study-workflow/README.md`. It points to the governing policy, Markdown canonical library, first-generation archetype prose, repo seed index, workspace memory pack locator, and receipt/proposal locators.

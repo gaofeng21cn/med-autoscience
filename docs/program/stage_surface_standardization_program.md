@@ -114,6 +114,17 @@ Stage card
 | repo-source skeleton 已有 physical anchors，仍需后续按新增 surface 持续使用 | `standard_domain_agent_skeleton.repo_source_anchor_status` 已证明最小 physical anchors；真实 workspace artifact body 仍 locator-only。 | 在不破坏现有 facade 的前提下，新增 material 默认按标准 slot 落位，并保留 locator/audit parity。 |
 | 旧 MDS / Hermes / local scheduler residue 已有 active-path tombstone | `legacy_residue_audit` 已说明 no-default-caller、replacement proof、retained reference 与 tombstoned disposition；仍需按无 active reference 与无 fixture/provenance dependency 逐项删除可删代码。 | stale scan + audit finding + no-default-caller proof + focused compatibility tests。 |
 
+## Planning Gate Classification
+
+本 program 现在只承担 [MAS Current Development Lines](./current_development_lines.md) 中 stage / prompt / skill / knowledge / quality / review-index 相关的横向 planning。它不是 MAS production closure 总计划，也不声明 provider live apply 已完成。
+
+| stage-surface gate | gate class | current planning status | done evidence |
+| --- | --- | --- | --- |
+| `skill_change_guard` | `landed_foundation` | `planned; machine_derived_surface_block_landed` | 新增或修改 stage skill 时继续消费 generated stage card、route contract、knowledge obligations、quality pack refs、RH clean-room gates 和 MAS closeout refs。 |
+| `stage_review_index_live_provider_followthrough` | `functional_follow_through_gate` | `planned; workspace_locator_proof_landed` | Live provider attempt 触发 MAS owner closeout 后产生 latest review page / index refs、freshness、claim impact、human annotation、next owner 或 typed blocker。 |
+| `standard_skeleton_physicalization` | `functional_follow_through_gate` | `planned; repo_source_anchors_landed` | 新 repo-source surface 默认按 standard slot 落位；破坏性目录移动必须有 direct/hosted parity、provenance、restore 和 no-forbidden-write proof。 |
+| `stage_closeout_owner_chain` | `production_evidence_gate` | `planned; guarded_apply_harness_landed` | Provider-hosted live apply 产出 MAS owner receipt，证明 stage closeout / memory / quality / artifact delta 沿 MAS owner surface 闭合，或返回 typed blocker。 |
+
 ## 距离理想情况
 
 按当前实际状态，MAS 已经越过“形式不可维护”的阶段：主 stage 的 route contract、generated stage card、独立 skill surface、knowledge / closeout obligations、stage quality pack、Research Harness clean-room gates、OPL descriptor locator 和 typed blocker proof 已经是可用维护形态。开发者日常修改 stage 时，主要应关注 prompt / skill / tool / knowledge / quality / closeout 是否继续消费这些 machine-owned surfaces。

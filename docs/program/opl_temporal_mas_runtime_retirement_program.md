@@ -53,6 +53,16 @@ cutover 或物理退役前仍未完成：
 - human gate / user modification / resume token 从 OPL signal 进入 MAS revision 或 gate owner chain 的 proof；
 - provider parity 证明之后，旧 scheduler/Hermes/MDS/legacy compatibility 的物理删除或 history/tombstone 归档仍需按 no-active-reference 证据逐项执行。
 
+这些剩余项现在按 [MAS Current Development Lines](./current_development_lines.md) 的全线规划闭环表执行，不再拆成另一份 P2 大计划。P2 只持有 framework/runtime owner 边界：
+
+| remaining gate | gate class | P2 responsibility | completion evidence |
+| --- | --- | --- | --- |
+| `provider_residency_status_and_activity_soak` | `production_evidence_gate` | 消费 OPL provider proof，向 MAS product-entry / sidecar / workbench 投影 provider readiness、attempt query、retry/dead-letter、typed blocker 和 no-forbidden-write boundary。 | OPL attempt refs + MAS sidecar receipt + domain activity closeout；缺真实 provider 或 live gate 时返回 typed blocker。 |
+| `provider_guarded_apply_soak` | `production_evidence_gate` | 保持 provider-hosted request 只能进入 MAS sidecar dispatch / guarded apply receipt，不写 MAS truth。 | MAS owner receipt 显示 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 stable blocker。 |
+| `human_gate_resume_owner_chain` | `production_evidence_gate` | 只承载 OPL approval/signal/transport refs；MAS 决定 human gate 是否阻塞、恢复或 route back。 | MAS controller / runtime owner surface 记录 human gate reason、resume receipt、next owner 或 typed blocker。 |
+| `legacy_physical_cleanup` | `functional_follow_through_gate` | 用 legacy audit 和 tombstone contract 指导旧 active-path 删除或归档。 | stale scan、no default caller proof、replacement proof、无 fixture/provenance dependency、focused compatibility tests。 |
+| `skeleton_and_lifecycle_followthrough` | `functional_follow_through_gate` | 把 repo-source anchors、artifact locator、cleanup/restore/retention receipt requirement 投影给 OPL。 | 新 surface 按 standard skeleton slot 落位；domain artifact mutation 返回 MAS receipt requirement 或 typed blocker。 |
+
 ## 活跃内容 Lane
 
 | priority | lane | 当前范围 | output |
