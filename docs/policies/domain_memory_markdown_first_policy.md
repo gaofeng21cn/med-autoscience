@@ -1,7 +1,7 @@
 # Domain Memory Markdown-First Policy
 
 Status: `active policy`
-Date: `2026-05-12`
+Date: `2026-05-13`
 Owner: `MedAutoScience`
 Purpose: define how MAS keeps natural-language domain memory maintainable for Codex-first, stage-led execution.
 State: `active governance rule`
@@ -30,6 +30,20 @@ Structured surfaces remain appropriate for:
 - migration receipts, router receipts, sidecar dispatch receipts, OPL/Aion body-free projections, inventories, freshness summaries, and locator refs;
 - schemas, test fixtures, parity oracles, and source-provenance manifests where the value is machine validation rather than human prose.
 
+## Unified Memory Layers
+
+MAS memory is managed as one family of owner-controlled memory surfaces, not as unrelated one-off stores at each level.
+
+| layer | scope | canonical body | structured surfaces | executor entry |
+| --- | --- | --- | --- | --- |
+| Domain memory | reusable MAS medical knowledge across workspaces, such as publication-route experience, route-bias prose, reviewer-pattern lessons, and figure/table rationale | repo Markdown under `docs/policies/**` when the knowledge is natural language | seed indexes, locator refs, workspace packs, inventories, receipts | direct Markdown reading when rich context is needed; stage packets carry small refs/summaries |
+| Workspace memory | disease workspace knowledge across multiple studies, such as topic landscape, dataset-question map, venue intelligence, literature coverage, and cross-study recall | `portfolio/research_memory/*.md` for human/Codex prose | `registry.yaml`, literature JSONL/BibTeX/coverage JSON, workspace memory packs | `stage_knowledge_packet.input_refs` and `high_signal_memory` |
+| Study memory | one paper line's reusable context, such as failed paths, selected/rejected lines, reviewer lessons, claim-boundary decisions, and route-back rationale | study artifacts may include Markdown notes, but study truth remains in controller/evidence/review surfaces | `study_charter`, evidence ledger, review ledger, controller decisions, publication eval, claim/display maps | `stage_knowledge_packet.input_refs` plus stage-specific obligations |
+| Stage memory | stage-local input and closeout handoff | stage notes can be Markdown, but closeout routing is structured | `stage_knowledge_packet`, `stage_memory_closeout_packet`, `memory_write_router_receipt`, `stage_recall_index` | executor payload gets `input_contract.required_refs.stage_knowledge_packet` |
+| Projection memory | OPL/Aion/family display and provider handoff | no body ownership | body-free refs, freshness, receipt counts, accepted/rejected refs | read-only projection; no writeback acceptance or memory body mutation |
+
+The shared logic is: prose lives in Markdown when it is meant for agent reasoning; machine surfaces carry ids, refs, freshness, receipts, gates, and owner boundaries; stage packets retrieve only small relevant refs; writeback flows through typed closeout and MAS router receipts.
+
 ## Maintenance Pattern
 
 The canonical pattern is:
@@ -44,7 +58,7 @@ This keeps Codex CLI free to reason over rich prose without turning exploratory 
 
 ## Current MAS Audit
 
-The current repo-tracked JSON files are:
+The current repo-tracked structured files relevant to memory are:
 
 | file | classification | action |
 | --- | --- | --- |
@@ -53,6 +67,15 @@ The current repo-tracked JSON files are:
 | `tests/fixtures/live_console/mds_webui_cleanroom_oracle.json` | test oracle fixture | keep JSON; it supports deterministic tests. |
 
 Memory-like runtime surfaces in `portfolio/research_memory/**`, `artifacts/stage_knowledge/**`, receipts, and OPL projections remain structured because they are generated owner surfaces, body-free projections, or runtime proof. They should not become the primary maintainer editing interface for natural-language experience.
+
+The previous non-Markdown-first agent-context residues have been migrated:
+
+| previous surface | current canonical body | current role of code |
+| --- | --- | --- |
+| `src/med_autoscience/policies/study_archetypes.py` | `docs/policies/study-workflow/study_archetypes.md` | parser, validator, typed API, overlay renderer |
+| `src/med_autoscience/policies/research_route_bias.py` | `docs/policies/study-workflow/research_route_bias_policy.md` | parser, validator, typed API, overlay renderer |
+
+`src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml` is still structured because it is the MAS route/stage contract source, not a natural-language memory body. It defines route ids, entry modes, gates, durable outputs, route-back triggers, stage knowledge obligations, and derived OPL/family descriptors. It may later gain a richer Markdown projection for human reading, but replacing the contract with Markdown would move route authority into prose and break current stage-surface tests.
 
 ## Publication Route Memory Entry
 

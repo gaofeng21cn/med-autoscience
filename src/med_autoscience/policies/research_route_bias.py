@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 
 DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID = "high_plasticity_medical"
@@ -13,6 +14,19 @@ SUPPORTED_STAGE_IDS = (
     "experiment",
     "analysis-campaign",
 )
+RESEARCH_ROUTE_BIAS_MARKDOWN_PATH = (
+    Path(__file__).resolve().parents[3]
+    / "docs"
+    / "policies"
+    / "study-workflow"
+    / "research_route_bias_policy.md"
+)
+_LIST_SECTIONS = {
+    "Preferred Route Order": "preferred_route_order",
+    "Candidate Scoring Dimensions": "candidate_scoring_dimensions",
+    "Downrank Patterns": "downrank_patterns",
+    "Public Data Rules": "public_data_rules",
+}
 
 
 @dataclass(frozen=True)
@@ -23,109 +37,16 @@ class ResearchRouteBiasPolicy:
     candidate_scoring_dimensions: tuple[str, ...]
     downrank_patterns: tuple[str, ...]
     public_data_rules: tuple[str, ...]
-
-
-_POLICIES = {
-    DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID: ResearchRouteBiasPolicy(
-        policy_id=DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID,
-        title="High-plasticity medical publication bias",
-        preferred_route_order=(
-            "supervised prediction or risk-stratification routes with clinically interpretable downstream analyses",
-            "subtype-reconstruction routes that can be converted into clinically legible subgroup stories or subtype recognizers",
-            "routes that can absorb external public data for validation, extension, or mechanism/context support",
-            "gray-zone triage routes when they can change workflow, testing, or follow-up decisions even without dramatic AUC gains",
-            "LLM / agent tasks only when the task can be bounded, benchmarked fairly, and translated into a medical paper package",
-            "routes that can naturally produce a full paper-facing evidence package rather than a single fragile association",
-            "fixed-factor clinical association routes only when prior evidence or clinical importance is unusually strong",
-        ),
-        candidate_scoring_dimensions=(
-            "clinical significance if the result is positive",
-            "controllability of the downstream paper path",
-            "room for iterative model/package refinement",
-            "public-data extensibility",
-            "likely figure/table depth for a Q2+ medical paper",
-            "whether the route can survive a moderate rather than spectacular main effect",
-        ),
-        downrank_patterns=(
-            "the main value would hinge on one fixed clinical factor being significant",
-            "a negative result would leave little room for branching or rescue",
-            "the likely paper would have weak clinical utility even if the analysis is technically clean",
-            "the route cannot be expanded beyond a thin association table and discussion",
-            "an LLM / agent route is framed too broadly to benchmark rigorously against clinician-relevant baselines",
-        ),
-        public_data_rules=(
-            "Use public data when it can materially add external validation, cohort extension, or biological/context support.",
-            "Do not add public data only as decorative workload.",
-        ),
-    )
-}
-
-_STAGE_OPENERS = {
-    "intake-audit": (
-        "When auditing an in-flight medical quest, explicitly judge whether the current line still has a controllable path "
-        "to a publishable paper rather than merely a path to more execution."
-    ),
-    "scout": (
-        "When the quest is a medical-data paper line, do not treat all reasonable frames as equally good scouting outputs. "
-        "Prefer frames that are more controllable for publication and more extensible for downstream evidence-building."
-    ),
-    "baseline": (
-        "For medical-data quests, baseline work should preserve a strong paper route rather than turning into endless comparator "
-        "reproduction with little downstream clinical utility."
-    ),
-    "idea": (
-        "For medical-data quests, treat publishability controllability as a first-class selection criterion. "
-        "Do not prefer a route merely because it is clinically familiar or easy to describe."
-    ),
-    "decision": (
-        "For medical-data quests, route selection should explicitly favor lines with a more controllable path to a publishable paper. "
-        "In practice, prefer routes that preserve room for meaningful iteration, richer paper packaging, and clinically legible utility."
-    ),
-    "experiment": (
-        "For medical-data quests, main experiments should be judged by the strength of the eventual paper package, not only by a single "
-        "discrimination number or an engineering-style benchmark win."
-    ),
-    "analysis-campaign": (
-        "For medical-data quests, follow-up campaigns should preferentially build publication-strength evidence packages such as utility, "
-        "subgroup, explainability, or external-validation support rather than tiny metric-chasing loops."
-    ),
-}
-
-_STAGE_QUESTIONS = {
-    "intake-audit": (
-        "is the current strongest line still clinically meaningful if the main effect is only moderate?",
-        "does the current line still preserve room for a classifier, subtype, utility, or public-data extension package?",
-        "would continuing this line mostly package weak evidence, or can it still build stronger evidence efficiently?",
-    ),
-    "baseline": (
-        "which baseline route best preserves a clinically interpretable and publishable comparison surface?",
-        "is the baseline path helping the paper route, or just consuming time on low-yield reproduction?",
-    ),
-    "decision": (
-        "which route is most likely to support a clinically meaningful classifier / risk-stratification / utility package?",
-        "which route could support a subtype-reconstruction or gray-zone triage story if the main discriminative gain is only moderate?",
-        "which route leaves room for calibration, subgroup, explainability, and external-validation expansion?",
-        "for LLM / agent tasks, is the task narrow enough to benchmark cleanly and clinically?",
-        "which route can still branch productively if the first main result is only moderate rather than striking?",
-        "which route is most likely to accumulate enough figure/table depth for a Q2+ medical manuscript?",
-    ),
-    "experiment": (
-        "if this run is positive, does it naturally open calibration, utility, subgroup, explainability, or external-validation follow-up?",
-        "if this run is only moderate, is there still a credible medical-paper route rather than a dead end?",
-        "is the experiment package clinically legible, or mostly an engineering comparison with weak bedside meaning?",
-    ),
-    "analysis-campaign": (
-        "which follow-up analyses would materially improve publication strength rather than only decorate workload?",
-        "are we spending compute on clinically meaningful utility and heterogeneity checks, or on low-yield metric drift?",
-    ),
-}
+    stage_openers: dict[str, str]
+    stage_questions: dict[str, tuple[str, ...]]
 
 
 def get_policy(policy_id: str = DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID) -> ResearchRouteBiasPolicy:
+    policies = _load_policies_by_id()
     try:
-        return _POLICIES[policy_id]
+        return policies[policy_id]
     except KeyError as exc:
-        supported = ", ".join(sorted(_POLICIES))
+        supported = ", ".join(sorted(policies))
         raise ValueError(f"Unsupported research route bias policy: {policy_id}. Supported: {supported}") from exc
 
 
@@ -139,10 +60,13 @@ def render_policy_block(
         raise ValueError(f"Unsupported stage id: {stage_id}. Supported: {supported}")
 
     policy = get_policy(policy_id)
+    opener = policy.stage_openers.get(stage_id)
+    if not opener:
+        raise ValueError(f"research route bias Markdown missing opener for stage: {stage_id}")
     lines = [
         "## Medical publication route bias",
         "",
-        _STAGE_OPENERS[stage_id],
+        opener,
         "",
         "Default priority order:",
         *[f"- {item}" for item in policy.preferred_route_order],
@@ -151,7 +75,7 @@ def render_policy_block(
         *[f"- {item}" for item in policy.candidate_scoring_dimensions],
         "",
     ]
-    stage_questions = _STAGE_QUESTIONS.get(stage_id, ())
+    stage_questions = policy.stage_questions.get(stage_id, ())
     if stage_questions:
         lines.extend(
             [
@@ -170,3 +94,128 @@ def render_policy_block(
         ]
     )
     return "\n".join(lines) + "\n"
+
+
+def _load_policies_by_id() -> dict[str, ResearchRouteBiasPolicy]:
+    return _parse_research_route_bias_markdown(RESEARCH_ROUTE_BIAS_MARKDOWN_PATH.read_text(encoding="utf-8"))
+
+
+def _parse_research_route_bias_markdown(markdown: str) -> dict[str, ResearchRouteBiasPolicy]:
+    policies: dict[str, dict[str, object]] = {}
+    current_id = ""
+    current_section = ""
+    section_lines: list[str] = []
+
+    def flush_section() -> None:
+        nonlocal section_lines
+        if not current_id or not current_section:
+            section_lines = []
+            return
+        field = _LIST_SECTIONS.get(current_section)
+        if field:
+            policies[current_id][field] = tuple(_markdown_list(section_lines))
+        elif current_section == "Stage Openers":
+            policies[current_id]["stage_openers"] = _markdown_keyed_text(section_lines)
+        elif current_section == "Stage Questions":
+            policies[current_id]["stage_questions"] = _markdown_keyed_lists(section_lines)
+        section_lines = []
+
+    for raw_line in markdown.splitlines():
+        line = raw_line.rstrip()
+        if line.startswith("## "):
+            flush_section()
+            candidate_id = line[3:].strip()
+            current_id = candidate_id if _is_policy_id(candidate_id) else ""
+            current_section = ""
+            section_lines = []
+            if current_id:
+                policies[current_id] = {"policy_id": current_id}
+            continue
+        if not current_id:
+            continue
+        if line.startswith("### "):
+            flush_section()
+            current_section = line[4:].strip()
+            continue
+        if current_section:
+            section_lines.append(line)
+            continue
+        if line.startswith("Title:"):
+            policies[current_id]["title"] = line.removeprefix("Title:").strip()
+
+    flush_section()
+    return {policy_id: _normalize_policy(policy_id, payload) for policy_id, payload in policies.items()}
+
+
+def _normalize_policy(policy_id: str, payload: dict[str, object]) -> ResearchRouteBiasPolicy:
+    return ResearchRouteBiasPolicy(
+        policy_id=policy_id,
+        title=_required_text(payload.get("title"), field=f"{policy_id}.title"),
+        preferred_route_order=_required_tuple(
+            payload.get("preferred_route_order"),
+            field=f"{policy_id}.preferred_route_order",
+        ),
+        candidate_scoring_dimensions=_required_tuple(
+            payload.get("candidate_scoring_dimensions"),
+            field=f"{policy_id}.candidate_scoring_dimensions",
+        ),
+        downrank_patterns=_required_tuple(payload.get("downrank_patterns"), field=f"{policy_id}.downrank_patterns"),
+        public_data_rules=_required_tuple(payload.get("public_data_rules"), field=f"{policy_id}.public_data_rules"),
+        stage_openers=_required_stage_openers(payload.get("stage_openers"), field=f"{policy_id}.stage_openers"),
+        stage_questions=_stage_questions(payload.get("stage_questions")),
+    )
+
+
+def _markdown_list(lines: list[str]) -> list[str]:
+    return [line.strip()[2:].strip() for line in lines if line.strip().startswith("- ") and line.strip()[2:].strip()]
+
+
+def _markdown_keyed_text(lines: list[str]) -> dict[str, str]:
+    keyed: dict[str, str] = {}
+    for item in _markdown_list(lines):
+        key, separator, value = item.partition(":")
+        if separator and key.strip() and value.strip():
+            keyed[key.strip()] = value.strip()
+    return keyed
+
+
+def _markdown_keyed_lists(lines: list[str]) -> dict[str, tuple[str, ...]]:
+    keyed: dict[str, list[str]] = {}
+    for item in _markdown_list(lines):
+        key, separator, value = item.partition(":")
+        if not separator or not key.strip() or not value.strip():
+            continue
+        keyed.setdefault(key.strip(), []).append(value.strip())
+    return {key: tuple(values) for key, values in keyed.items()}
+
+
+def _is_policy_id(value: str) -> bool:
+    return bool(value) and value.replace("_", "").replace("-", "").isalnum()
+
+
+def _required_text(value: object, *, field: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        raise ValueError(f"research route bias Markdown missing required field: {field}")
+    return text
+
+
+def _required_tuple(value: object, *, field: str) -> tuple[str, ...]:
+    if not isinstance(value, tuple) or not value:
+        raise ValueError(f"research route bias Markdown missing required list: {field}")
+    return value
+
+
+def _required_stage_openers(value: object, *, field: str) -> dict[str, str]:
+    if not isinstance(value, dict):
+        raise ValueError(f"research route bias Markdown missing required mapping: {field}")
+    missing = [stage_id for stage_id in SUPPORTED_STAGE_IDS if not str(value.get(stage_id) or "").strip()]
+    if missing:
+        raise ValueError(f"research route bias Markdown missing stage openers: {', '.join(missing)}")
+    return {str(key): str(item).strip() for key, item in value.items() if str(item).strip()}
+
+
+def _stage_questions(value: object) -> dict[str, tuple[str, ...]]:
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): tuple(str(item).strip() for item in items if str(item).strip()) for key, items in value.items()}

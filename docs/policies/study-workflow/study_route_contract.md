@@ -4,6 +4,8 @@
 canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_modes.yaml` 的 `route_contracts`。
 `modes` 只回答某个 entry mode 当前允许走哪些 route，正式 route 定义统一以 `route_contracts` 为准。
 
+`agent_entry_modes.yaml` 当前仍在真实使用。它不是 domain memory，也不是给 maintainer 维护自然语言经验的正文库；它是 MAS route/stage contract 的结构化源，供 `show-agent-entry-modes`、`sync-agent-entry-assets`、stage surface contract、product-entry manifest、OPL/family descriptor 和测试读取。Markdown guide、Codex skill prompt 与 OpenClaw prompt都从它派生。若后续 OPL 平台提供统一 domain-agent descriptor，本文件应被映射或吸收到那个 descriptor contract，而不是被 publication-route memory 或 Markdown prose 替代。
+
 ## 固定字段
 
 每个 route 必须稳定提供以下字段：
@@ -59,6 +61,7 @@ canonical source 位于 `src/med_autoscience/agent_entry/resources/agent_entry_m
 - route 之间的前进、回退、治理边界应通过 `next_routes` 与 `route_back_triggers` 表达，不把阶段跳转藏在 prose 里。
 - route 产物要求以 durable surface、artifact、ledger、decision record 这类可引用对象表述。
 - 任何写作、补充分析、最终交付动作都要能回指当前 route 合同与 study charter 边界。
+- 自然语言经验、路线偏置、论文套路和可复用 reviewer/display lesson 应放在 Markdown-first memory 文档或 workspace memory 中；route contract 只保存阶段边界、成功门槛、durable output 和跳转规则。
 
 ## 吸收规则
 

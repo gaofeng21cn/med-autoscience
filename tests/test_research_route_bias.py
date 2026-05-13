@@ -3,6 +3,63 @@ from __future__ import annotations
 import importlib
 
 
+def test_route_bias_rendering_uses_markdown_first_body(tmp_path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.policies.research_route_bias")
+    markdown_path = tmp_path / "research_route_bias_policy.md"
+    markdown_path.write_text(
+        "\n".join(
+            [
+                "# Research Route Bias Policy",
+                "",
+                "## high_plasticity_medical",
+                "",
+                "Title: Markdown Sentinel Route Bias",
+                "",
+                "### Preferred Route Order",
+                "",
+                "- markdown-only route order",
+                "",
+                "### Candidate Scoring Dimensions",
+                "",
+                "- markdown-only scoring dimension",
+                "",
+                "### Downrank Patterns",
+                "",
+                "- markdown-only downrank pattern",
+                "",
+                "### Public Data Rules",
+                "",
+                "- markdown-only public data rule",
+                "",
+                "### Stage Openers",
+                "",
+                "- intake-audit: markdown-only intake opener",
+                "- scout: markdown-only scout opener",
+                "- baseline: markdown-only baseline opener",
+                "- idea: markdown-only idea opener",
+                "- decision: markdown-only decision opener",
+                "- experiment: markdown-only experiment opener",
+                "- analysis-campaign: markdown-only campaign opener",
+                "",
+                "### Stage Questions",
+                "",
+                "- scout: markdown-only scout question",
+                "",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "RESEARCH_ROUTE_BIAS_MARKDOWN_PATH", markdown_path)
+
+    block = module.render_policy_block(stage_id="scout")
+
+    assert "markdown-only scout opener" in block
+    assert "markdown-only route order" in block
+    assert "markdown-only scout question" in block
+    assert module.get_policy().title == "Markdown Sentinel Route Bias"
+
+
 def test_default_route_bias_policy_exposes_expected_contract() -> None:
     module = importlib.import_module("med_autoscience.policies.research_route_bias")
 

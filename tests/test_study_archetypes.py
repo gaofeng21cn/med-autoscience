@@ -3,6 +3,44 @@ from __future__ import annotations
 import importlib
 
 
+def test_study_archetype_rendering_uses_markdown_first_body(tmp_path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.policies.study_archetypes")
+    markdown_path = tmp_path / "study_archetypes.md"
+    markdown_path.write_text(
+        "\n".join(
+            [
+                "# Study Archetypes",
+                "",
+                "## clinical_classifier",
+                "",
+                "Title: Markdown Sentinel Classifier",
+                "",
+                "### When To Prefer",
+                "",
+                "- markdown-only fit signal",
+                "",
+                "### Expected Paper Package",
+                "",
+                "- markdown-only evidence package",
+                "",
+                "### Public Data Roles",
+                "",
+                "- markdown-only public-data role",
+                "",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "STUDY_ARCHETYPES_MARKDOWN_PATH", markdown_path)
+
+    block = module.render_archetype_block(archetype_ids=("clinical_classifier",))
+
+    assert "### Markdown Sentinel Classifier" in block
+    assert "markdown-only evidence package" in block
+    assert module.get_archetype("clinical_classifier").title == "Markdown Sentinel Classifier"
+
+
 def test_default_study_archetypes_include_classifier_and_llm_agent_routes() -> None:
     module = importlib.import_module("med_autoscience.policies.study_archetypes")
 

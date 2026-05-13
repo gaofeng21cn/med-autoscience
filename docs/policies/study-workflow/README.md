@@ -18,6 +18,20 @@ Purpose: 作为 MAS 研究路线、研究记忆、论文套路、数据资产和
 - [Bounded Analysis Frontier Policy](./bounded_analysis_frontier_policy.md)
 - [Workspace Autoscience Rules](./workspace_autoscience_rules.md)
 
+## Memory 分层
+
+MAS 的 memory 现在按统一逻辑管理，不按每一层各自发明一条链路：
+
+| 层 | 记录什么 | 人类/Agent 正文 | 机器面 |
+| --- | --- | --- | --- |
+| Domain memory | MAS 跨 workspace 的医学经验，例如论文路线、route bias、审稿经验、figure/table 选择经验 | repo Markdown policy/library | seed index、workspace pack、inventory、receipt |
+| Workspace memory | 同一 disease workspace 的数据情况、文献调研、可行/不可行方向、期刊邻域、跨 study recall | `portfolio/research_memory/*.md` | `registry.yaml`、literature registry、coverage、workspace packs |
+| Study memory | 单篇论文的 selected/rejected line、failed path、reviewer lesson、claim boundary、route-back rationale | study notes / manuscript-facing Markdown where appropriate | `study_charter`、evidence/review ledgers、controller decisions、publication eval、claim/display maps |
+| Stage memory | 单个 stage 启动前要读什么、结束后哪些 lesson 可回写 | stage notes can remain prose | `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`stage_recall_index` |
+| OPL/Aion projection | 给平台和 UI 看的 refs、freshness、receipt、status | 不持有 MAS memory 正文 | body-free descriptor / inventory / receipt projection |
+
+统一规则是：给 Codex 理解和判断的自然语言经验用 Markdown 做第一公民；状态、索引、参数、receipt、gate、ledger、runtime truth 用结构化面。Stage executor 不靠全量 prompt stuffing，而是通过 `stage_knowledge_packet` 读小集合 refs、summary 和 required input refs；需要正文时回到对应 Markdown 或 MAS workspace owner surface。
+
 ## 现在的读法
 
 MAS 的论文套路经验库已经按 `publication_route_memory` 落地为可检索、可回写的自然语言 memory card。它的设计目标是“给 Codex CLI 提供可参考的经验”，不是把研究过程做成强 schema 的 recipe engine。
@@ -41,13 +55,16 @@ OPL 只负责 locator、projection、receipt 和 family-level discovery；public
 | --- | --- | --- |
 | 规则入口 | [Publication Route Memory Policy](./publication_route_memory_policy.md) | 解释自然语言 memory card 的维护规则、OPL/MAS 边界、writeback 规则和迁移计划。 |
 | 正文入口 | [Publication Route Memory Library](./publication_route_memory_library.md) | 维护者直接查看和编辑的论文套路经验库正文；Markdown 是 canonical body。 |
-| 第一代路线种子 | [Study Archetypes](./study_archetypes.md) | 旧 MAS 使用的 route bias / contract input prose，不是完整经验库。 |
+| 第一代路线种子 | [Study Archetypes](./study_archetypes.md) | 旧 MAS 使用的 route bias / contract input prose；现在也是 overlay 渲染的 Markdown-first 正文源，不是完整经验库。 |
+| 第一代路线偏置 | [Research Route Bias Policy](./research_route_bias_policy.md) | 旧 MAS 使用的 route-bias prose；现在是 overlay 渲染的 Markdown-first 正文源，不是 route scorer。 |
 | repo seed index | [publication_route_memory_seed_fixture.json](./publication_route_memory_seed_fixture.json) | 9 张 seed card 的机器索引和 Markdown locator；不是 memory 正文，也不是真实 memory store。 |
 | workspace memory pack | `portfolio/research_memory/publication_route_memory/memory_pack.json` | 某个 MAS workspace 内应用/回写后的可检索 memory pack；它是生成面，不是维护者第一编辑面。 |
 | receipts/proposals | `portfolio/research_memory/publication_route_memory/{migration_receipts,writeback_proposals,writeback_receipts}` | 查看 seed apply、typed closeout proposal 和 MAS router 接受/拒绝记录。 |
 | 只读 CLI inventory | `medautosci publication route-memory-inventory --workspace-root <workspace>` | 按 workspace/stage/route family/status 查看 card 元数据、locator 和 receipt summary；默认不输出 memory 正文。维护者显式加 `--include-card-body` 时才输出 rich body sections。 |
 
 `study_archetypes.md` 不是论文套路 domain memory 的完整存储位置。它是第一代入口，旧 MAS 通过 profile / study payload 的 `preferred_study_archetypes`、`study_archetype` 或 `preferred_study_archetype` 选择分析和报告合同；真正的人类维护入口现在是 `publication_route_memory_library.md`。`publication_route_memory_seed_fixture.json` 只做索引和 locator，workspace `memory_pack.json`、`stage_knowledge_packet.publication_route_memory_refs`、`stage-memory-closeout-route` 和 `route-memory-inventory` 是应用、检索、回写与审计面。
+
+`agent_entry_modes.yaml` 不归类为 memory。它当前仍在用，是 MAS route/stage contract 的 canonical structured source：`show-agent-entry-modes`、`sync-agent-entry-assets`、stage surface contract、product-entry/family descriptors、OPL projection 和 tests 都从它读取 route ids、entry mode、success gate、durable outputs、human gate、route-back triggers 与 knowledge/closeout obligations。它可以继续生成 Markdown guide 和 Codex/OpenClaw entry prompt，但它本身承担 contract authority；如果未来 OPL 提供统一 domain-agent descriptor，需要先把这个 YAML 吸收到统一 descriptor contract，而不是把 route contract 改成 memory prose。
 
 当前真实样例在 DM-CVD workspace：
 
