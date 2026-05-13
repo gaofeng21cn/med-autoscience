@@ -114,6 +114,110 @@ def test_stall_signals_project_paper_progress_stall_read_model() -> None:
     assert projection["safe_to_request"] is True
 
 
+def test_new_run_grace_suppresses_historical_same_fingerprint_stall_signal() -> None:
+    projection = _build_projection(
+        _base_status(
+            runtime_session={"freshness_state": "fresh"},
+            worker_state="fresh",
+            reason="quest_already_running",
+            active_run_id="run-new",
+            runtime_liveness_audit={
+                "status": "live",
+                "active_run_id": "run-new",
+                "runtime_audit": {
+                    "status": "live",
+                    "worker_running": True,
+                    "active_run_id": "run-new",
+                },
+            },
+            autonomy_slo={
+                "state": "breach",
+                "active_run_id": "run-old",
+                "breach_types": ["same_fingerprint_loop", "read_churn_without_artifact_delta"],
+                "mds_progress_markers": {"turn_progress_kind": "read_churn_without_artifact_delta"},
+            },
+            progress_freshness={
+                "activity_timeout": {
+                    "state": "watching_new_run",
+                    "active_run_id": "run-new",
+                    "breach_types": ["same_fingerprint_loop"],
+                    "new_run_grace": {
+                        "state": "new_run_grace",
+                        "active_run_id": "run-new",
+                        "observed_at": "2026-05-13T06:47:25+00:00",
+                        "seconds_since_observed": 24,
+                        "grace_after_seconds": 1800,
+                    },
+                },
+                "meaningful_artifact_delta_freshness": {
+                    "status": "missing",
+                    "turn_progress_kind": "read_churn_without_artifact_delta",
+                },
+            },
+        )
+    )
+
+    stall = projection["paper_progress_stall"]
+    assert stall["stalled"] is False
+    assert stall["stall_reasons"] == []
+    assert stall["safe_reconcile_candidate"] is False
+    assert {"source": "paper_progress_stall.stall_reasons", "state": "same_fingerprint_loop"} not in projection[
+        "stale_signals"
+    ]
+    assert projection["safe_to_request"] is False
+    assert "runtime_session_not_stale" in projection["blocked_reasons"]
+
+
+def test_fresh_paper_artifact_delta_suppresses_historical_same_fingerprint_stall_signal() -> None:
+    projection = _build_projection(
+        _base_status(
+            runtime_session={"freshness_state": "fresh"},
+            worker_state="fresh",
+            reason="quest_already_running",
+            active_run_id="run-live",
+            runtime_liveness_audit={
+                "status": "live",
+                "active_run_id": "run-live",
+                "runtime_audit": {
+                    "status": "live",
+                    "worker_running": True,
+                    "active_run_id": "run-live",
+                },
+            },
+            autonomy_slo={
+                "state": "breach",
+                "active_run_id": "run-live",
+                "breach_types": ["same_fingerprint_loop", "read_churn_without_artifact_delta"],
+                "mds_progress_markers": {"turn_progress_kind": "read_churn_without_artifact_delta"},
+            },
+            progress_freshness={
+                "meaningful_artifact_delta_freshness": {
+                    "status": "fresh",
+                    "latest_progress_source": "gate_clearing_batch",
+                    "latest_progress_summary": (
+                        "controller-owned gate-clearing batch updated 12 paper-facing artifact(s)."
+                    ),
+                },
+                "activity_timeout": {
+                    "state": "ok",
+                    "active_run_id": "run-live",
+                    "breach_types": ["same_fingerprint_loop"],
+                },
+            },
+        )
+    )
+
+    stall = projection["paper_progress_stall"]
+    assert stall["stalled"] is False
+    assert stall["stall_reasons"] == []
+    assert stall["safe_reconcile_candidate"] is False
+    assert {"source": "paper_progress_stall.stall_reasons", "state": "same_fingerprint_loop"} not in projection[
+        "stale_signals"
+    ]
+    assert projection["safe_to_request"] is False
+    assert "runtime_session_not_stale" in projection["blocked_reasons"]
+
+
 def test_retry_budget_exhausted_projects_terminal_paper_progress_stall() -> None:
     projection = _build_projection(
         _base_status(

@@ -544,7 +544,6 @@ def test_supervisor_scan_suppresses_stale_runtime_recovery_lifecycle_when_worker
             "state": "external_supervisor_required",
             "blocked_reason": "runtime_recovery_not_authorized",
             "external_supervisor_required": True,
-            "projection_only": True,
             "top_action": {
                 "action_type": "controller_repair",
                 "repair_kind": "bounded_work_unit_redrive",
@@ -608,5 +607,9 @@ def test_supervisor_scan_suppresses_stale_runtime_recovery_lifecycle_when_worker
     assert study["why_not_applied"] is None
     assert study["blocked_reason"] is None
     assert study["external_supervisor_required"] is False
+    assert study["next_owner"] is None
+    assert study["owner_route"]["current_owner"] == "managed_runtime"
+    assert study["owner_route"]["next_owner"] is None
+    assert study["owner_route"]["owner_reason"] is None
     assert study["ai_repair_lifecycle"] is None
     assert not lifecycle_path.exists()

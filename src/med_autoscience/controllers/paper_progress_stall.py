@@ -17,6 +17,18 @@ STALL_REASONS = (
     "runtime_recovery_retry_budget_exhausted",
 )
 TERMINAL_REASONS = frozenset({"runtime_recovery_retry_budget_exhausted"})
+NEW_RUN_GRACE_SUPPRESSED_REASONS = frozenset(
+    {
+        "same_fingerprint_loop",
+        "read_churn_without_artifact_delta",
+    }
+)
+FRESH_ARTIFACT_DELTA_SUPPRESSED_REASONS = frozenset(
+    {
+        "same_fingerprint_loop",
+        "read_churn_without_artifact_delta",
+    }
+)
 
 
 def build_paper_progress_stall_read_model(
@@ -88,7 +100,12 @@ def _stall_reasons(*, status: Mapping[str, Any], progress: Mapping[str, Any]) ->
         observed.append("stale_truth_surface")
     if _retry_exhausted(status, progress):
         observed.append("runtime_recovery_retry_budget_exhausted")
-    return [reason for reason in STALL_REASONS if reason in set(observed)]
+    reasons = [reason for reason in STALL_REASONS if reason in set(observed)]
+    if _watching_new_run_grace(status, progress):
+        reasons = [reason for reason in reasons if reason not in NEW_RUN_GRACE_SUPPRESSED_REASONS]
+    if _fresh_meaningful_artifact_delta(status, progress):
+        reasons = [reason for reason in reasons if reason not in FRESH_ARTIFACT_DELTA_SUPPRESSED_REASONS]
+    return reasons
 
 
 def _blocking_reasons(status: Mapping[str, Any], progress: Mapping[str, Any]) -> list[str]:
@@ -156,6 +173,51 @@ def _retry_exhausted(status: Mapping[str, Any], progress: Mapping[str, Any]) -> 
         or attempt_state == "escalated"
         or zero_budget_in_recovery_context
     )
+
+
+def _watching_new_run_grace(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    active_run_id = _active_run_id(status, progress)
+    if active_run_id is None:
+        return False
+    for payload in (status, progress):
+        activity_timeout = _mapping(_mapping(payload.get("progress_freshness")).get("activity_timeout"))
+        grace = _mapping(activity_timeout.get("new_run_grace"))
+        if _text(activity_timeout.get("state")) != "watching_new_run":
+            continue
+        if _text(grace.get("state")) != "new_run_grace":
+            continue
+        if _text(grace.get("active_run_id")) == active_run_id:
+            return True
+    return False
+
+
+def _fresh_meaningful_artifact_delta(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:
+    for payload in (status, progress):
+        freshness = _mapping(payload.get("progress_freshness"))
+        delta = _mapping(freshness.get("meaningful_artifact_delta_freshness"))
+        activity_timeout = _mapping(freshness.get("activity_timeout"))
+        if _text(delta.get("status")) == "fresh" and _text(activity_timeout.get("state")) == "ok":
+            return True
+    return False
+
+
+def _active_run_id(status: Mapping[str, Any], progress: Mapping[str, Any]) -> str | None:
+    for payload in (status, progress):
+        if text := _text(payload.get("active_run_id")):
+            return text
+        supervision = _mapping(payload.get("supervision"))
+        if text := _text(supervision.get("active_run_id")):
+            return text
+        liveness = _mapping(payload.get("runtime_liveness_audit"))
+        if text := _text(liveness.get("active_run_id")):
+            return text
+        runtime_audit = _mapping(liveness.get("runtime_audit"))
+        if text := _text(runtime_audit.get("active_run_id")):
+            return text
+        runtime_health = _mapping(payload.get("runtime_health_snapshot"))
+        if text := _text(runtime_health.get("active_run_id")):
+            return text
+    return None
 
 
 def _action_fingerprint(

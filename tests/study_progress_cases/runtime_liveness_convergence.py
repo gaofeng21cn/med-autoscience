@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile, write_study
@@ -171,3 +172,113 @@ def test_study_progress_projects_output_blocker_impact_from_runtime_continuity(
     assert impact["safe_reconcile_command"].endswith("--studies 001-risk --mode developer_apply_safe --dry-run")
     assert impact["route"]["source_fingerprint"] == "runtime-continuity-001"
     assert impact["authority"]["writes_authority_surface"] is False
+
+
+def test_study_progress_absorbs_live_runtime_supervision_over_stale_status(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    runtime_supervision_path = study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"
+    runtime_supervision_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_supervision_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "recorded_at": "2026-05-13T07:52:30+00:00",
+                "study_id": "001-risk",
+                "study_root": str(study_root),
+                "quest_id": "quest-001",
+                "quest_root": str(quest_root),
+                "health_status": "live",
+                "runtime_decision": "noop",
+                "runtime_reason": "quest_already_running",
+                "quest_status": "running",
+                "runtime_liveness_status": "live",
+                "worker_running": True,
+                "active_run_id": "run-live-001",
+                "runtime_health_snapshot": {
+                    "runtime_health_epoch": "runtime-health-live-001",
+                    "attempt_state": "live",
+                    "retry_budget_remaining": 3,
+                    "worker_liveness_state": {
+                        "state": "live",
+                        "runtime_liveness_status": "live",
+                        "worker_running": True,
+                        "active_run_id": "run-live-001",
+                    },
+                    "blocking_reasons": [],
+                    "dominant_runtime_refs": [
+                        {
+                            "event_type": "runtime_state_observed",
+                            "recorded_at": "2026-05-13T07:52:30+00:00",
+                        }
+                    ],
+                },
+                "summary": "托管运行时在线，研究仍在自动推进。",
+                "next_action": "continue_supervising_runtime",
+                "next_action_summary": "继续监督当前托管运行，并等待新的阶段事件。",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        module,
+        "_progress_freshness_now",
+        lambda: module.datetime.fromisoformat("2026-05-13T08:00:00+00:00"),
+    )
+
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {"quest_id": "quest-001", "auto_resume": True},
+            "quest_id": "quest-001",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "decision": "noop",
+            "reason": "quest_marked_running_but_no_live_session",
+            "runtime_liveness_status": "none",
+            "active_run_id": None,
+            "worker_running": False,
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-stale-001",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "worker_liveness_state": {"state": "missing_live_session"},
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "supervisor tick fresh",
+                "latest_recorded_at": "2026-05-13T07:52:10+00:00",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="001-risk")
+
+    assert result["active_run_id"] == "run-live-001"
+    assert result["runtime_health_snapshot"]["worker_liveness_state"]["state"] == "live"
+    assert result["progress_freshness"]["worker_liveness_freshness"]["status"] == "fresh"
+    assert result["progress_freshness"]["worker_liveness_freshness"]["active_run_id"] == "run-live-001"
+    assert result["paper_progress_stall"]["stalled"] is False
+    assert "runtime_recovery_retry_budget_exhausted" not in result["paper_progress_stall"]["stall_reasons"]

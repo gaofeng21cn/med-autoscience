@@ -96,6 +96,17 @@ def runtime_platform_repair_required(
     return retry_exhausted(status, progress) and no_live_worker and _text(status.get("quest_status")) in {"active", "running"}
 
 
+def runtime_recovery_lifecycle_resolved(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    lifecycle: Mapping[str, Any],
+) -> bool:
+    if _text(lifecycle.get("blocked_reason")) != "runtime_recovery_not_authorized":
+        return False
+    return active_run_id(status, progress) is not None and worker_running(status)
+
+
 def live_activity_timeout_current_controller_redrive_required(
     status: Mapping[str, Any],
     progress: Mapping[str, Any],
@@ -379,6 +390,7 @@ __all__ = [
     "live_activity_timeout_current_controller_route_available",
     "live_activity_timeout_current_controller_redrive_required",
     "retry_exhausted",
+    "runtime_recovery_lifecycle_resolved",
     "runtime_platform_repair_apply_required",
     "runtime_platform_repair_required",
     "supervisor_only",

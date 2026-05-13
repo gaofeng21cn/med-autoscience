@@ -37,11 +37,11 @@ def projection_only_runtime_recovery_lifecycle_resolved(
     progress: Mapping[str, Any],
     lifecycle: Mapping[str, Any],
 ) -> bool:
-    if lifecycle.get("projection_only") is not True:
-        return False
-    if _text(lifecycle.get("blocked_reason")) != "runtime_recovery_not_authorized":
-        return False
-    return runtime_facts.active_run_id(status, progress) is not None and runtime_facts.worker_running(status)
+    return runtime_facts.runtime_recovery_lifecycle_resolved(
+        status=status,
+        progress=progress,
+        lifecycle=lifecycle,
+    )
 
 
 def projection_block_state(

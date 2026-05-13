@@ -140,6 +140,12 @@ def build_study_progress_projection(
     runtime_escalation_payload = surface_payloads.runtime_escalation_payload
     runtime_watch_payload = surface_payloads.runtime_watch_payload
     publication_eval_payload = surface_payloads.publication_eval_payload
+    status = _status_absorbing_live_runtime_surfaces(
+        status=status,
+        study_id=resolved_study_id,
+        runtime_supervision_payload=runtime_supervision_payload,
+        launch_report_payload=launch_report_payload,
+    )
     gate_specificity_request_path, gate_specificity_request = _read_gate_specificity_request(
         study_root=resolved_study_root,
         publication_eval_payload=publication_eval_payload,
@@ -452,7 +458,12 @@ def build_study_progress_projection(
         supervision_status=_mapping_copy(status.get("workspace_runtime_supervision")),
         generated_at=_non_empty_text(status.get("generated_at")),
     )
-    status_with_outer_slo = {**status, "outer_supervision_slo": outer_supervision_slo_projection}
+    status_with_outer_slo = {
+        **status,
+        "outer_supervision_slo": outer_supervision_slo_projection,
+        "progress_freshness": progress_freshness,
+        "autonomy_slo": autonomy_slo_status,
+    }
     runtime_reconcile_trigger_projection = runtime_reconcile_trigger.build_runtime_reconcile_trigger_projection(
         status_payload=status_with_outer_slo,
         profile_ref=str(profile_ref) if profile_ref is not None else None,
@@ -460,7 +471,12 @@ def build_study_progress_projection(
     )
     paper_progress_stall_projection = paper_progress_stall.build_paper_progress_stall_read_model(
         status_payload=status_with_outer_slo,
-        progress_payload={},
+        progress_payload={
+            "study_id": resolved_study_id,
+            "quest_id": quest_id,
+            "progress_freshness": progress_freshness,
+            "autonomy_slo": autonomy_slo_status,
+        },
     )
     existing_paper_progress_stall = _mapping_copy(status.get("paper_progress_stall"))
     if existing_paper_progress_stall:
@@ -901,6 +917,96 @@ def _supervision_health_status(
     if runtime_facts.strict_live:
         return runtime_health_status or "live"
     return runtime_health_status
+
+
+def _status_absorbing_live_runtime_surfaces(
+    *,
+    status: dict[str, Any],
+    study_id: str,
+    runtime_supervision_payload: Mapping[str, Any] | None,
+    launch_report_payload: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    live = _live_runtime_supervision_facts(runtime_supervision_payload, study_id=study_id)
+    if live is None:
+        return status
+    updated = dict(status)
+    active_run_id = live["active_run_id"]
+    updated["active_run_id"] = active_run_id
+    updated["worker_running"] = True
+    updated["runtime_liveness_status"] = "live"
+    if live.get("quest_status") is not None:
+        updated["quest_status"] = live["quest_status"]
+    if live.get("runtime_reason") is not None:
+        updated["reason"] = live["runtime_reason"]
+        updated["runtime_reason"] = live["runtime_reason"]
+    if live.get("runtime_health_snapshot"):
+        updated["runtime_health_snapshot"] = live["runtime_health_snapshot"]
+    updated["runtime_liveness_audit"] = {
+        "status": "live",
+        "active_run_id": active_run_id,
+        "runtime_audit": {
+            "status": "live",
+            "worker_running": True,
+            "active_run_id": active_run_id,
+        },
+    }
+    launch = _mapping_copy(launch_report_payload)
+    for key in ("autonomous_runtime_notice", "execution_owner_guard", "continuation_state"):
+        value = _mapping_copy(launch.get(key))
+        if not value:
+            continue
+        value_active_run_id = _non_empty_text(value.get("active_run_id"))
+        if value_active_run_id is None or value_active_run_id == active_run_id:
+            updated[key] = value
+    return updated
+
+
+def _live_runtime_supervision_facts(
+    payload: Mapping[str, Any] | None,
+    *,
+    study_id: str,
+) -> dict[str, Any] | None:
+    supervision = _mapping_copy(payload)
+    if not supervision:
+        return None
+    payload_study_id = _non_empty_text(supervision.get("study_id"))
+    if payload_study_id is not None and payload_study_id != study_id:
+        return None
+    runtime_health = _mapping_copy(supervision.get("runtime_health_snapshot"))
+    worker_liveness = _mapping_copy(runtime_health.get("worker_liveness_state"))
+    active_run_id = (
+        _non_empty_text(supervision.get("active_run_id"))
+        or _non_empty_text(runtime_health.get("active_run_id"))
+        or _non_empty_text(worker_liveness.get("active_run_id"))
+    )
+    if active_run_id is None:
+        return None
+    worker_running = (
+        supervision.get("worker_running")
+        if isinstance(supervision.get("worker_running"), bool)
+        else worker_liveness.get("worker_running")
+    )
+    runtime_liveness_status = (
+        _non_empty_text(supervision.get("runtime_liveness_status"))
+        or _non_empty_text(worker_liveness.get("runtime_liveness_status"))
+    )
+    health_status = _non_empty_text(supervision.get("health_status"))
+    worker_state = _non_empty_text(worker_liveness.get("state"))
+    if not (
+        worker_running is True
+        and (
+            runtime_liveness_status == "live"
+            or health_status == "live"
+            or worker_state == "live"
+        )
+    ):
+        return None
+    return {
+        "active_run_id": active_run_id,
+        "quest_status": _non_empty_text(supervision.get("quest_status")),
+        "runtime_reason": _non_empty_text(supervision.get("runtime_reason")),
+        "runtime_health_snapshot": runtime_health,
+    }
 
 
 def _current_blockers_respecting_controller_closure(
