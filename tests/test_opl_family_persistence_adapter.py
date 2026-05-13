@@ -211,6 +211,15 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
         "workspace_runtime_artifact_root_locator"
         in standard_skeleton["skeleton"]["contracts/runtime/lifecycle_adapters"]
     )
+    default_slots = standard_skeleton["default_new_surface_slots"]
+    assert default_slots == {
+        "stage": "agent/stages",
+        "prompt": "agent/prompts",
+        "skill": "agent/skills",
+        "knowledge": "agent/knowledge",
+        "quality": "agent/quality_gates",
+        "projection": "contracts/runtime/projection_builders",
+    }
     assert standard_skeleton["artifact_boundary"]["repo_contains_real_artifacts"] is False
     assert standard_skeleton["artifact_boundary"]["artifact_roots_are_locators"] is True
     assert standard_skeleton["artifact_boundary"]["workspace_artifact_locator_refs"] == [
@@ -229,25 +238,47 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert physical_audit["workspace_runtime_artifact_root_locator_ref"] == (
         "/product_entry_manifest/workspace_runtime_artifact_root_locator"
     )
+    assert physical_audit["default_placement_policy"] == {
+        "new_repo_source_surfaces_follow_standard_slots": True,
+        "preserve_legacy_facades_and_locators": True,
+        "destructive_directory_reorganization_allowed": False,
+        "real_workspace_artifacts_remain_locator_only": True,
+    }
     by_slot = {item["slot_id"]: item for item in physical_audit["slots"]}
     assert by_slot["agent/stages"]["repo_paths"] == [
         "docs/policies/study-workflow/stage_led_research_autonomy.md",
         "src/med_autoscience/controllers/stage_knowledge_plane.py",
     ]
     assert by_slot["agent/stages"]["status"] == "mapped_to_existing_repo_paths"
+    assert by_slot["agent/stages"]["surface_class"] == "stage"
+    assert by_slot["agent/stages"]["default_for_new_surfaces"] is True
+    assert by_slot["agent/stages"]["mapping_explanation"] == (
+        "New stage definitions should land in the standard slot while existing stage policy "
+        "and stage knowledge controller paths remain the active facade-backed repo mapping."
+    )
+    assert by_slot["agent/prompts"]["surface_class"] == "prompt"
+    assert by_slot["agent/prompts"]["default_for_new_surfaces"] is True
+    assert by_slot["agent/skills"]["surface_class"] == "skill"
+    assert by_slot["agent/skills"]["default_for_new_surfaces"] is True
     assert by_slot["agent/knowledge"]["repo_paths"] == [
         "docs/policies/study-workflow/publication_route_memory_policy.md",
         "docs/policies/study-workflow/publication_route_memory_library.md",
         "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
     ]
+    assert by_slot["agent/knowledge"]["surface_class"] == "knowledge"
+    assert by_slot["agent/quality_gates"]["surface_class"] == "quality"
+    assert by_slot["agent/quality_gates"]["default_for_new_surfaces"] is True
     assert by_slot["contracts/runtime/sidecar"]["repo_paths"] == [
         "src/med_autoscience/controllers/sidecar_family_adapter.py",
         "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
     ]
+    assert by_slot["contracts/runtime/projection_builders"]["surface_class"] == "projection"
+    assert by_slot["contracts/runtime/projection_builders"]["default_for_new_surfaces"] is True
     assert by_slot["runtime/artifact_locator"]["locator_refs"] == [
         "/product_entry_manifest/workspace_runtime_artifact_root_locator"
     ]
     assert by_slot["runtime/artifact_locator"]["status"] == "locator_only_no_artifact_body"
+    assert by_slot["runtime/artifact_locator"]["default_for_new_surfaces"] is False
     assert by_slot["artifacts"]["status"] == "forbidden_repo_artifact_body"
     assert by_slot["artifacts"]["repo_paths"] == []
     assert by_slot["artifacts"]["locator_refs"] == [

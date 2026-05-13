@@ -854,7 +854,13 @@ def test_sidecar_dispatch_guarded_apply_rejects_review_ledger_or_memory_body_wri
             "payload": {
                 "profile": "/tmp/profile.toml",
                 "study_id": "DM002",
-                "requested_writes": ["review_ledger_write", "memory_body_write"],
+                "requested_writes": [
+                    "review_ledger_write",
+                    "memory_body_write",
+                    "current_package_write",
+                    "publication_eval_write",
+                    "controller_decisions_write",
+                ],
             },
         },
     )
@@ -865,7 +871,13 @@ def test_sidecar_dispatch_guarded_apply_rejects_review_ledger_or_memory_body_wri
     assert exit_code == 1
     assert payload["accepted"] is False
     assert payload["reason"] == "domain_truth_or_artifact_gate_write_forbidden"
-    assert payload["forbidden_requested_writes"] == ["review_ledger_write", "memory_body_write"]
+    assert payload["forbidden_requested_writes"] == [
+        "review_ledger_write",
+        "memory_body_write",
+        "current_package_write",
+        "publication_eval_write",
+        "controller_decisions_write",
+    ]
 
 
 def test_sidecar_export_does_not_auto_ticket_stop_loss_or_human_gate(tmp_path: Path, capsys) -> None:

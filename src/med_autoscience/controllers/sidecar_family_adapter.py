@@ -8,13 +8,14 @@ from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
-from . import reviewer_refinement_loop
 from . import opl_provider_ready_adapter
 from . import paper_repair_executor
 from . import real_paper_autonomy_soak_inventory
+from . import reviewer_refinement_loop
 from . import runtime_supervisor_dispatch_executor
 from . import runtime_supervisor_reconcile
 from . import stage_knowledge_plane
+from .real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
 
 
 _FORBIDDEN_PAYLOAD_FLAGS = (
@@ -731,6 +732,15 @@ def _execute_guarded_apply(
         if isinstance(target_studies, list)
         else [study_id]
     )
+    if payload.get("provider_ready") is False:
+        return provider_guarded_apply.build_provider_unavailable_guarded_apply_receipt(
+            schema_version=real_paper_autonomy_soak_inventory.SCHEMA_VERSION,
+            surface=real_paper_autonomy_soak_inventory.PROVIDER_HOSTED_GUARDED_APPLY_RECEIPT_SURFACE,
+            provider_attempt_id=provider_attempt_id,
+            idempotency_key=idempotency_key,
+            target_studies=targets,
+            reason=_text(payload.get("provider_unavailable_reason")) or "provider_ready_false",
+        )
     return real_paper_autonomy_soak_inventory.build_real_paper_autonomy_provider_hosted_guarded_apply_receipt(
         profile_path=profile_ref,
         provider_attempt_id=provider_attempt_id,
@@ -873,11 +883,51 @@ def _write_dispatch_receipt(
     if path.exists():
         existing = _read_json_object(path)
         if existing is not None:
+            existing_result = _mapping(_mapping(existing.get("dispatch")).get("result"))
+            new_result = _mapping(_mapping(receipt.get("dispatch")).get("result"))
+            if _text(existing_result.get("source_fingerprint")) != _text(new_result.get("source_fingerprint")):
+                return _conflicting_dispatch_receipt(
+                    existing=existing,
+                    receipt=receipt,
+                    profile=profile,
+                    path=path,
+                )
             existing["idempotent_noop"] = True
             return existing
     receipt["receipt_ref"] = _workspace_relative(path, workspace_root=profile.workspace_root)
     _write_json(path, receipt)
     return receipt
+
+
+def _conflicting_dispatch_receipt(
+    *,
+    existing: Mapping[str, Any],
+    receipt: Mapping[str, Any],
+    profile: WorkspaceProfile,
+    path: Path,
+) -> dict[str, Any]:
+    existing_result = _mapping(_mapping(existing.get("dispatch")).get("result"))
+    new_result = _mapping(_mapping(receipt.get("dispatch")).get("result"))
+    return {
+        "surface_kind": "mas_family_sidecar_dispatch_receipt",
+        "version": "mas-family-sidecar.v1",
+        "accepted": False,
+        "task_id": _text(receipt.get("task_id")) or _text(existing.get("task_id")),
+        "task_kind": _text(receipt.get("task_kind")) or _text(existing.get("task_kind")),
+        "generated_at": _now_iso(),
+        "reason": "idempotency_key_intent_conflict",
+        "existing_receipt_ref": _workspace_relative(path, workspace_root=profile.workspace_root),
+        "existing_source_fingerprint": _text(existing_result.get("source_fingerprint")),
+        "requested_source_fingerprint": _text(new_result.get("source_fingerprint")),
+        "forbidden_domain_truth_write": False,
+        "authority_boundary": _authority_boundary_payload(),
+        "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(
+            result="blocked",
+            task_id=_text(receipt.get("task_id")),
+            task_kind=_text(receipt.get("task_kind")),
+            requested_writes=(),
+        ),
+    }
 
 
 def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:

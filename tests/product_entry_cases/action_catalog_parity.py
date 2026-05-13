@@ -615,6 +615,11 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
         item["paper_closure_requires_mas_owner_receipt"] is True
         for item in read_model["target_coverage"]
     )
+    residency_read_model = manifest["provider_residency_read_model"]
+    assert residency_read_model == manifest["opl_provider_ready_contract"]["provider_residency_read_model"]
+    assert residency_read_model["status"] == "ready"
+    assert all(item["status"] == "receipt_observed" for item in residency_read_model["checks"])
+    assert residency_read_model["authority_boundary"]["can_write_domain_truth"] is False
     tombstone = manifest["legacy_retirement_tombstone_proof"]
     assert tombstone == manifest["opl_provider_ready_contract"]["legacy_retirement_tombstone_proof"]
     assert tombstone["surface_kind"] == "mas_legacy_retirement_tombstone_proof"
@@ -628,6 +633,120 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
     }
     assert tombstone["removal_policy"]["current_action"] == "safe_to_tombstone_docs_and_optional_residue"
     assert tombstone["authority_boundary"]["can_authorize_submission_readiness"] is False
+
+
+def test_product_entry_manifest_exposes_provider_residency_typed_blocker(
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    provider_contract = manifest["opl_provider_ready_contract"]
+    read_model = manifest["provider_residency_read_model"]
+
+    assert read_model == provider_contract["provider_residency_read_model"]
+    assert read_model["surface_kind"] == "provider_runtime_residency_read_model"
+    assert read_model["version"] == "provider-runtime-residency-read-model.v1"
+    assert read_model["status"] == "typed_blocker"
+    assert read_model["provider_owner"] == "one-person-lab"
+    assert read_model["domain_owner"] == "med-autoscience"
+    assert read_model["provider_available"] is False
+    assert read_model["required_evidence"] == [
+        "temporal_production_residency",
+        "worker_restart_requery",
+        "retry_dead_letter",
+        "long_soak_receipt",
+    ]
+    assert {item["check_id"] for item in read_model["checks"]} == set(read_model["required_evidence"])
+    assert all(item["status"] == "typed_blocker" for item in read_model["checks"])
+    assert all(item["body_included"] is False for item in read_model["checks"])
+    assert all(item["write_permitted"] is False for item in read_model["checks"])
+    assert read_model["typed_blocker"]["blocker_id"] == "production_provider_residency_evidence_missing"
+    assert read_model["typed_blocker"]["missing_evidence"] == read_model["required_evidence"]
+    assert read_model["consumer_contract"]["mas_owned_provider_kernel"] is False
+    assert read_model["consumer_contract"]["provider_completion_is_paper_closure"] is False
+    assert read_model["consumer_contract"]["queue_completion_is_paper_closure"] is False
+    assert read_model["consumer_contract"]["paper_progress_requires_mas_owner_receipt"] is True
+    assert read_model["authority_boundary"]["can_write_domain_truth"] is False
+    assert read_model["authority_boundary"]["can_write_current_package"] is False
+    assert read_model["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert read_model["authority_boundary"]["can_write_memory_body"] is False
+
+
+def test_provider_residency_read_model_requires_all_opl_receipts() -> None:
+    adapter = importlib.import_module("med_autoscience.controllers.opl_provider_ready_adapter")
+
+    payload = adapter.build_provider_residency_read_model(
+        provider_available=True,
+        receipt_refs={
+            "temporal_production_residency": "opl://provider/temporal-residency.json",
+            "worker_restart_requery": "opl://provider/worker-restart.json",
+            "retry_dead_letter": "opl://provider/retry-dead-letter.json",
+            "long_soak_receipt": "opl://provider/long-soak.json",
+        },
+    )
+
+    assert payload["status"] == "ready"
+    assert payload["typed_blocker"] is None
+    assert all(item["status"] == "receipt_observed" for item in payload["checks"])
+    assert all(item["body_included"] is False for item in payload["checks"])
+    assert payload["consumer_contract"]["mas_consumes"] == [
+        "sidecar_task",
+        "typed_receipt",
+        "receipt_refs",
+    ]
+    assert payload["authority_boundary"]["can_write_domain_truth"] is False
+    assert payload["authority_boundary"]["can_authorize_publication_quality"] is False
+
+    missing = adapter.build_provider_residency_read_model(
+        provider_available=True,
+        receipt_refs={
+            "temporal_production_residency": "opl://provider/temporal-residency.json",
+        },
+    )
+    assert missing["status"] == "typed_blocker"
+    assert missing["typed_blocker"]["missing_evidence"] == [
+        "worker_restart_requery",
+        "retry_dead_letter",
+        "long_soak_receipt",
+    ]
+
+
+def test_product_entry_manifest_exposes_legacy_residue_audit_without_default_callers(
+    tmp_path: Path,
+) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    audit = manifest["legacy_residue_audit"]
+
+    assert audit["surface_kind"] == "mas_legacy_residue_audit"
+    assert audit["status"] == "default_callers_retired_with_references_retained"
+    assert audit["scan_policy"] == {
+        "docs_are_not_machine_truth": True,
+        "stale_term_scan_is_review_input_only": True,
+        "delete_only_when_replacement_proof_and_no_default_caller": True,
+    }
+    assert audit["summary"]["default_caller_count"] == 0
+    assert audit["summary"]["cleanup_pending_count"] == 1
+    assert "provider_runtime_residency_read_model" in audit["replacement_surfaces"]
+    by_id = {item["residue_id"]: item for item in audit["findings"]}
+    assert by_id["hermes_agent_executor_adapter"]["default_caller"] is False
+    assert by_id["hermes_agent_executor_adapter"]["disposition"] == "retain_reference"
+    assert by_id["hermes_gateway_cron_scheduler"]["disposition"] == "retire_after_parity"
+    assert by_id["med_deepscientist_backend_reference"]["current_role"] == (
+        "historical_fixture_provenance_parity_oracle"
+    )
+    assert by_id["hosted_runtime_binding_wording"]["delete_allowed"] is True
+    assert all(item["body_included"] is False for item in audit["findings"])
+    assert audit["authority_boundary"]["audit_can_delete_code"] is False
+    assert audit["authority_boundary"]["audit_can_change_runtime_defaults"] is False
 
 
 def test_product_entry_manifest_exposes_publication_route_memory_descriptor(tmp_path: Path) -> None:
@@ -726,6 +845,13 @@ def test_standard_domain_agent_skeleton_projects_quality_pack_locator_without_au
         "can_authorize_publication_readiness": False,
     }
     assert "src/med_autoscience/stage_quality_contract.py" in skeleton["skeleton"]["agent/quality_gates"]
+    assert skeleton["default_new_surface_slots"]["quality"] == "agent/quality_gates"
+    quality_slot = {
+        item["slot_id"]: item for item in skeleton["physical_skeleton_layout_audit"]["slots"]
+    }["agent/quality_gates"]
+    assert quality_slot["surface_class"] == "quality"
+    assert quality_slot["default_for_new_surfaces"] is True
+    assert quality_slot["repo_paths"][0] == "src/med_autoscience/stage_quality_contract.py"
     assert skeleton["authority_boundary"]["forbidden_opl_authority"] == [
         "domain_truth",
         "quality_verdict",
