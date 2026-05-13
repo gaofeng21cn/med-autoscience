@@ -10,7 +10,6 @@ import shutil
 from typing import Any
 
 from med_autoscience.overlay.constants import DEFAULT_MEDICAL_OVERLAY_SKILL_IDS
-from med_autoscience.overlay.legacy_mds_stage_cleanup import cleanup_legacy_mds_stage_skills
 from med_autoscience.overlay.system_prompt_hygiene import (
     audit_runtime_system_prompt,
     sanitize_runtime_system_prompt,
@@ -682,7 +681,6 @@ def _install_overlay(
         )
         for target in targets
     ]
-    legacy_mds_skill_cleanup = cleanup_legacy_mds_stage_skills(quest_root=resolved_quest_root)
     return {
         "schema_version": SCHEMA_VERSION,
         "overlay_name": OVERLAY_NAME,
@@ -696,7 +694,6 @@ def _install_overlay(
         "default_citation_style": default_citation_style,
         "targets": installed_targets,
         "installed_count": sum(1 for item in installed_targets if item["action"] != "already_installed"),
-        "legacy_mds_skill_cleanup": legacy_mds_skill_cleanup,
     }
 
 
@@ -783,7 +780,6 @@ def ensure_medical_overlay(
         default_citation_style=default_citation_style,
     )
     action_result: dict[str, Any] | None = None
-    legacy_mds_skill_cleanup: dict[str, Any] | None = None
     selected_action = "noop"
 
     if mode == "status_only":
@@ -830,12 +826,6 @@ def ensure_medical_overlay(
                 default_publication_profile=default_publication_profile,
                 default_citation_style=default_citation_style,
             )
-        if action_result is not None:
-            raw_cleanup = action_result.get("legacy_mds_skill_cleanup")
-            if isinstance(raw_cleanup, dict):
-                legacy_mds_skill_cleanup = raw_cleanup
-        elif selected_action == "noop":
-            legacy_mds_skill_cleanup = cleanup_legacy_mds_stage_skills(quest_root=quest_root)
         post_status = (
             describe_medical_overlay(
                 quest_root=quest_root,
@@ -859,7 +849,6 @@ def ensure_medical_overlay(
         "pre_status": pre_status,
         "post_status": post_status,
         "action_result": action_result,
-        "legacy_mds_skill_cleanup": legacy_mds_skill_cleanup,
     }
 
 
@@ -887,7 +876,6 @@ def materialize_runtime_medical_overlay(
 ) -> dict[str, Any]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     resolved_authoritative_root = Path(authoritative_root).expanduser().resolve()
-    authoritative_legacy_cleanup = cleanup_legacy_mds_stage_skills(quest_root=resolved_authoritative_root)
     results = []
     for root in _runtime_materialization_roots(quest_root=resolved_quest_root):
         overlay_result = reapply_medical_overlay(
@@ -914,7 +902,6 @@ def materialize_runtime_medical_overlay(
     return {
         "quest_root": str(resolved_quest_root),
         "authoritative_root": str(resolved_authoritative_root),
-        "authoritative_legacy_mds_skill_cleanup": authoritative_legacy_cleanup,
         "surfaces": results,
         "materialized_surface_count": len(results),
     }

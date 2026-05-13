@@ -329,7 +329,6 @@ def test_prepare_runtime_overlay_maintains_workspace_and_quest_local_stage_skill
         or {
             "selected_action": "noop",
             "post_status": {"all_targets_ready": True},
-            "legacy_mds_skill_cleanup": {"removed_count": 0},
         },
     )
     monkeypatch.setattr(

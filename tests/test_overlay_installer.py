@@ -380,8 +380,7 @@ def test_install_medical_overlay_materializes_workspace_append_stage_without_mds
     status = module.describe_medical_overlay(quest_root=quest_root, skill_ids=("intake-audit",))
 
     assert result["installed_count"] == 1
-    assert result["legacy_mds_skill_cleanup"]["scope"] == "quest"
-    assert result["legacy_mds_skill_cleanup"]["removed_count"] == 0
+    assert "legacy_mds_skill_cleanup" not in result
     assert status["all_targets_ready"] is True
     skill_path = quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-intake-audit" / "SKILL.md"
     skill_text = skill_path.read_text(encoding="utf-8")
@@ -454,7 +453,7 @@ def test_install_medical_overlay_seeds_workspace_targets_from_runtime_repo_skill
         )
 
 
-def test_install_medical_overlay_prunes_legacy_mds_stage_skills_from_workspace_root(tmp_path: Path) -> None:
+def test_install_medical_overlay_does_not_mutate_legacy_mds_stage_skills(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     runtime_repo_root = tmp_path / "med-deepscientist"
     quest_root = tmp_path / "workspace"
@@ -476,11 +475,8 @@ def test_install_medical_overlay_prunes_legacy_mds_stage_skills_from_workspace_r
         skill_ids=("write",),
     )
 
-    cleanup = result["legacy_mds_skill_cleanup"]
-    assert cleanup["scope"] == "quest"
-    assert cleanup["removed_count"] == 1
-    assert cleanup["removed"] == [str(stale_skill.parent)]
-    assert not any((quest_root / ".codex" / "skills").glob("deepscientist-*"))
+    assert "legacy_mds_skill_cleanup" not in result
+    assert stale_skill.exists()
     assert (quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-write" / "SKILL.md").exists()
     assert (quest_root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-journal-resolution" / "SKILL.md").exists()
 
@@ -519,7 +515,7 @@ def test_ensure_medical_overlay_noops_when_targets_are_ready(tmp_path: Path) -> 
     assert result["post_status"]["all_targets_ready"] is True
 
 
-def test_ensure_medical_overlay_prunes_legacy_mds_stage_skills_when_workspace_overlay_is_ready(tmp_path: Path) -> None:
+def test_ensure_medical_overlay_noop_does_not_mutate_legacy_mds_stage_skills(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
     runtime_repo_root = tmp_path / "med-deepscientist"
     quest_root = tmp_path / "workspace"
@@ -545,8 +541,11 @@ def test_ensure_medical_overlay_prunes_legacy_mds_stage_skills_when_workspace_ov
 
     assert result["selected_action"] == "noop"
     assert result["action_result"] is None
-    assert result["legacy_mds_skill_cleanup"]["removed_count"] == 2
-    assert not any((quest_root / ".codex" / "skills").glob("deepscientist-*"))
+    assert "legacy_mds_skill_cleanup" not in result
+    assert sorted(path.name for path in (quest_root / ".codex" / "skills").glob("deepscientist-*")) == [
+        "deepscientist-optimize",
+        "deepscientist-write",
+    ]
 
 
 def test_ensure_medical_overlay_reapplies_when_targets_are_drifted(tmp_path: Path) -> None:
@@ -702,11 +701,7 @@ def test_materialize_runtime_medical_overlay_rewrites_existing_worktrees(tmp_pat
     by_surface = {Path(item["runtime_root"]).name: item for item in audit["surfaces"]}
     assert by_surface["q001"]["all_targets_ready"] is True
     assert by_surface["paper-run-1"]["all_targets_ready"] is True
-    for root in (quest_root, worktree_root):
-        assert not any((root / ".codex" / "skills").glob("deepscientist-*"))
-
-
-def test_materialize_runtime_medical_overlay_prunes_legacy_mds_skills_without_home_global_writes(
+def test_materialize_runtime_medical_overlay_does_not_mutate_legacy_mds_skills_without_home_global_writes(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
@@ -741,13 +736,17 @@ def test_materialize_runtime_medical_overlay_prunes_legacy_mds_skills_without_ho
     )
 
     assert result["materialized_surface_count"] == 1
+    assert "authoritative_legacy_mds_skill_cleanup" not in result
     for root in (workspace_root, quest_root):
         for skill_id in ("write", "journal-resolution"):
             skill_root = root / ".codex" / "skills" / f"{OVERLAY_PREFIX}-{skill_id}"
             assert (skill_root / "SKILL.md").exists()
             assert read_manifest(skill_root)["scope"] == "quest"
-    for root in (workspace_root, quest_root):
-        assert not any((root / ".codex" / "skills").glob("deepscientist-*"))
+    assert sorted(path.name for path in (workspace_root / ".codex" / "skills").glob("deepscientist-*")) == [
+        "deepscientist-optimize",
+        "deepscientist-write",
+    ]
+    assert not any((quest_root / ".codex" / "skills").glob("deepscientist-*"))
     assert not home_skills_root.exists()
 
 
