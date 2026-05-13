@@ -698,6 +698,10 @@ def study_outer_loop_tick(
         quest_id=quest_id,
         source=source,
     )
+    dispatch_status = "executed"
+    action_result = executed_controller_action.get("result")
+    if isinstance(action_result, dict) and action_result.get("ok") is False:
+        dispatch_status = "blocked"
     return {
         "study_id": resolved_study_id,
         "quest_id": quest_id,
@@ -706,7 +710,7 @@ def study_outer_loop_tick(
         "runtime_escalation_ref": written_record.runtime_escalation_ref.to_dict(),
         "study_decision_ref": written_record.ref().to_dict(),
         "controller_confirmation_summary_ref": confirmation_summary_ref,
-        "dispatch_status": "executed",
+        "dispatch_status": dispatch_status,
         "executed_controller_action": executed_controller_action,
     }
 

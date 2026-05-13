@@ -82,21 +82,27 @@ def execute_controller_action(
                 source=source,
             )
     elif action.action_type is StudyDecisionActionType.RUN_GATE_CLEARING_BATCH:
-        result = run_gate_clearing_batch_fn(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            quest_id=quest_id,
-            source=source,
-        )
+        try:
+            result = run_gate_clearing_batch_fn(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                quest_id=quest_id,
+                source=source,
+            )
+        except PermissionError as exc:
+            result = _permission_blocked_result(exc)
     elif action.action_type is StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH:
-        result = run_quality_repair_batch_fn(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            quest_id=quest_id,
-            source=source,
-        )
+        try:
+            result = run_quality_repair_batch_fn(
+                profile=profile,
+                study_id=study_id,
+                study_root=study_root,
+                quest_id=quest_id,
+                source=source,
+            )
+        except PermissionError as exc:
+            result = _permission_blocked_result(exc)
     elif action.action_type is StudyDecisionActionType.REQUEST_GATE_SPECIFICITY:
         result = {
             "ok": True,
@@ -109,6 +115,16 @@ def execute_controller_action(
         "action_type": action.action_type.value,
         "payload_ref": action.payload_ref,
         "result": result,
+    }
+
+
+def _permission_blocked_result(exc: PermissionError) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "status": "control_plane_route_blocked",
+        "blocked_reason": "control_plane_route_blocked",
+        "message": str(exc),
+        "next_owner": "MAS/controller",
     }
 
 

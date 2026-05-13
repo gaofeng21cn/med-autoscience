@@ -163,3 +163,61 @@ def test_build_runtime_watch_outer_loop_tick_request_routes_quality_repair_batch
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
+
+
+def test_study_outer_loop_tick_records_control_plane_route_blocked_quality_repair(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    _write_charter(study_root)
+    publication_eval_ref = _write_publication_eval(study_root, quest_root)
+    runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "001-risk",
+            "quest_id": "quest-001",
+            "decision": "blocked",
+            "reason": "runtime_recovery_retry_budget_exhausted",
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+
+    def blocked_quality_repair_batch(**_: object) -> dict[str, object]:
+        raise PermissionError(
+            "control plane route blocked paper_write: dispatch_gate_blocked, "
+            "publication_supervisor_state.bundle_tasks_downstream_only"
+        )
+
+    monkeypatch.setattr(module.quality_repair_batch, "run_quality_repair_batch", blocked_quality_repair_batch)
+
+    result = module.study_outer_loop_tick(
+        profile=profile,
+        study_id="001-risk",
+        charter_ref=_write_charter(study_root),
+        publication_eval_ref=publication_eval_ref,
+        decision_type="route_back_same_line",
+        requires_human_confirmation=False,
+        controller_actions=[
+            {
+                "action_type": "run_quality_repair_batch",
+                "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            }
+        ],
+        reason="Quality repair should be attempted only through authorized MAS controller routes.",
+        source="test-source",
+        recorded_at="2026-04-25T04:45:00+00:00",
+    )
+
+    assert result["dispatch_status"] == "blocked"
+    assert result["executed_controller_action"]["action_type"] == "run_quality_repair_batch"
+    action_result = result["executed_controller_action"]["result"]
+    assert action_result["ok"] is False
+    assert action_result["status"] == "control_plane_route_blocked"
+    assert action_result["blocked_reason"] == "control_plane_route_blocked"
+    assert "publication_supervisor_state.bundle_tasks_downstream_only" in action_result["message"]
