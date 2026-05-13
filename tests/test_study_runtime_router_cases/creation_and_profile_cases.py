@@ -22,7 +22,7 @@ def test_study_runtime_status_keeps_explicit_manual_finish_contract_parked_even_
             "status": "active",
             "summary": "当前 study 已转入人工打磨收尾；MAS 只需保持兼容性与监督入口。",
             "next_action_summary": "继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。",
-            "compatibility_guard_only": True,
+            "manual_finish_guard_only": True,
         },
     )
     quest_root = profile.runtime_root / "001-risk"

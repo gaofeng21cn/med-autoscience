@@ -91,7 +91,7 @@ def test_resolve_effective_study_manual_finish_contract_rejects_retired_guard_fl
         )
 
 
-def test_runtime_read_study_manual_finish_contract_accepts_retired_guard_flag(tmp_path: Path) -> None:
+def test_runtime_read_study_manual_finish_contract_rejects_retired_guard_flag(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.study_manual_finish")
     profile = make_profile(tmp_path)
     study_root = write_study(
@@ -118,12 +118,8 @@ def test_runtime_read_study_manual_finish_contract_accepts_retired_guard_flag(tm
         encoding="utf-8",
     )
 
-    contract = module.resolve_runtime_read_study_manual_finish_contract(study_root=study_root)
-
-    assert contract is not None
-    assert contract.summary == "当前 study 进入旧字段人工收尾。"
-    assert contract.next_action_summary == "等待人工完成最后核对。"
-    assert contract.manual_finish_guard_only is True
+    with pytest.raises(ValueError, match="manual_finish.compatibility_guard_only is retired"):
+        module.resolve_runtime_read_study_manual_finish_contract(study_root=study_root)
 
 
 def test_resolve_effective_study_manual_finish_contract_derives_submission_metadata_only_parking(

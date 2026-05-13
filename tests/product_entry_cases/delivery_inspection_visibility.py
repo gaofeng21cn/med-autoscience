@@ -225,12 +225,5 @@ def test_product_entry_does_not_normalize_retired_delivery_projection_input(
         },
     )
 
-    cockpit = module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)
-
-    counts = cockpit["delivery_inspection_state"]["counts"]
-    study_projection = cockpit["delivery_inspection_state"]["studies"][0]
-    assert counts["layout_migration_pending_sync"] == 0
-    assert "legacy_layout_pending_sync" not in counts
-    assert study_projection["status"] == "unknown"
-    assert study_projection["layout_migration_pending_sync"] is False
-    assert "legacy_layout_pending_sync" not in study_projection
+    with pytest.raises(ValueError, match="legacy_layout_pending_sync is retired"):
+        module.read_workspace_cockpit(profile=profile, profile_ref=profile_ref)

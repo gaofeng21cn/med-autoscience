@@ -35,7 +35,7 @@ def test_study_progress_does_not_project_abnormal_stopped_blocked_bundle_as_pack
                 "  status: active",
                 "  summary: Historical manual-finish compatibility guard.",
                 "  next_action_summary: Keep compatibility only.",
-                "  compatibility_guard_only: true",
+                "  manual_finish_guard_only: true",
                 "",
             ]
         ),
@@ -134,4 +134,3 @@ def test_study_progress_does_not_project_abnormal_stopped_blocked_bundle_as_pack
     assert result["operator_status_card"]["handling_state"] != "package_ready_handoff"
     assert "投稿包/人审包交付" not in result["operator_status_card"]["user_visible_verdict"]
     assert result["refs"]["publication_eval_path"] == str(publication_eval_path)
-

@@ -36,8 +36,6 @@ def _inspection_status(inspection: Mapping[str, Any]) -> str:
     verdict = str(freshness.get("verdict") or "").strip()
     delivery_status = str(freshness.get("delivery_status") or "").strip()
     incoming_status = str(inspection.get("status") or "").strip()
-    if incoming_status == "legacy_layout_pending_sync":
-        incoming_status = ""
     if _layout_pending_sync(inspection) and not (
         verdict == "stale" or delivery_status.startswith("stale") or incoming_status.startswith("stale")
     ):
@@ -64,6 +62,8 @@ def compact_delivery_inspection_projection(value: object) -> dict[str, Any] | No
     inspection = _mapping(value)
     if not inspection:
         return None
+    if inspection.get("status") == "legacy_layout_pending_sync" or "legacy_layout_pending_sync" in inspection:
+        raise ValueError("legacy_layout_pending_sync is retired; use layout_migration_pending_sync")
     status = _inspection_status(inspection)
     compact: dict[str, Any] = {}
     for key in (
