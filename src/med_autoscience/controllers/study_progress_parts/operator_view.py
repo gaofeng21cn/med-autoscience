@@ -529,7 +529,7 @@ def _operator_verdict(
     elif lane_id == "auto_runtime_parked":
         decision_mode = "auto_runtime_parked"
     elif lane_id in {"manual_finishing", "manual_finishing_fast_lane"}:
-        decision_mode = "compatibility_guard_only"
+        decision_mode = "manual_finish_guard_only"
     else:
         decision_mode = "monitor_only"
 

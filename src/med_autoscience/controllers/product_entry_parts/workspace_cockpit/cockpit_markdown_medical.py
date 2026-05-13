@@ -137,13 +137,13 @@ def _workspace_delivery_inspection_lines(state: object) -> list[str]:
         "",
         "- submission_minimal = controller-authorized source",
         "- current_package = human-facing mirror",
-        "- legacy layout: legacy layout 会在下一次 authorized sync 升级",
+        "- layout migration: layout migration 会在下一次 authorized sync 升级",
         f"- 当前摘要: {delivery_state.get('summary') or 'none'}",
         (
             "- 当前计数: "
             f"已接入 {counts.get('projected_count', 0)}；"
             f"需要关注 {counts.get('attention_required', 0)}；"
-            f"legacy layout {counts.get('legacy_layout_pending_sync', 0)}"
+            f"layout migration {counts.get('layout_migration_pending_sync', 0)}"
         ),
     ]
     for study in delivery_state.get("studies") or []:

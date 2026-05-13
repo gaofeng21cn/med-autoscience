@@ -396,13 +396,14 @@ def _workspace_delivery_inspection_state(*, studies: list[dict[str, Any]]) -> di
         "study_count": len(studies),
         "projected_count": len(entries),
         "attention_required": 0,
-        "legacy_layout_pending_sync": 0,
+        "layout_migration_pending_sync": 0,
     }
     for entry in entries:
         status = _non_empty_text(entry.get("status")) or "unknown"
-        if status == "legacy_layout_pending_sync" or bool(entry.get("legacy_layout_pending_sync")):
-            counts["legacy_layout_pending_sync"] += 1
-        if status == "legacy_layout_pending_sync":
+        layout_migration_pending = bool(entry.get("layout_migration_pending_sync"))
+        if status == "layout_migration_pending_sync" or layout_migration_pending:
+            counts["layout_migration_pending_sync"] += 1
+        if status == "layout_migration_pending_sync":
             counts["attention_required"] += 1
         elif status not in {"current", "ready"}:
             counts["attention_required"] += 1
@@ -413,7 +414,7 @@ def _workspace_delivery_inspection_state(*, studies: list[dict[str, Any]]) -> di
         status = "attention_required"
         summary = (
             f"{counts['projected_count']} 个 study 已接入 Delivery Inspection；"
-            f"{counts['legacy_layout_pending_sync']} 个 legacy layout 等待下一次 authorized sync 升级。"
+            f"{counts['layout_migration_pending_sync']} 个 layout migration 等待下一次 authorized sync 升级。"
         )
     else:
         status = "ready"
@@ -491,5 +492,3 @@ def _workspace_portable_supervisor_queue_dashboard(
         "counts": counts,
         "studies": projected_studies,
     }
-
-

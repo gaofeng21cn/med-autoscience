@@ -68,5 +68,5 @@ def _manual_finish_contract(*, status: dict[str, Any], study_root: Path) -> dict
         "status": manual_finish.status.value,
         "summary": manual_finish.summary,
         "next_action_summary": manual_finish.next_action_summary,
-        "compatibility_guard_only": manual_finish.compatibility_guard_only,
+        "manual_finish_guard_only": manual_finish.manual_finish_guard_only,
     }

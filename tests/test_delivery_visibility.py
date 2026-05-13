@@ -40,7 +40,7 @@ def _legacy_inspection() -> dict:
     }
 
 
-def test_delivery_visibility_projects_legacy_queue_and_read_only_authority() -> None:
+def test_delivery_visibility_projects_layout_migration_queue_and_read_only_authority() -> None:
     module = importlib.import_module("med_autoscience.controllers.delivery_visibility")
 
     read_model = module.build_delivery_visibility_read_model(_legacy_inspection())
@@ -48,9 +48,10 @@ def test_delivery_visibility_projects_legacy_queue_and_read_only_authority() -> 
     assert read_model["read_model"] == "delivery_visibility_read_model"
     assert read_model["surface"] == "delivery_visibility"
     assert read_model["projection_only"] is True
-    assert read_model["traffic_light"]["status"] == "legacy_pending"
-    assert len(read_model["legacy_upgrade_queue"]) == 3
-    assert read_model["legacy_upgrade_queue"][0]["next_action"] == "run_controller_authorized_delivery_sync"
+    assert read_model["traffic_light"]["status"] == "layout_migration_pending"
+    assert len(read_model["layout_migration_queue"]) == 3
+    assert read_model["layout_migration_queue"][0]["next_action"] == "run_controller_authorized_delivery_sync"
+    assert "legacy_upgrade_queue" not in read_model
     assert [item["section"] for item in read_model["doctor_readme_structure_projection"]] == [
         "Submission files",
         "Audit and reproducibility",
@@ -102,12 +103,13 @@ def test_delivery_visibility_projection_embeds_l4_read_model() -> None:
 
     projection = projection_module.compact_delivery_inspection_projection(_legacy_inspection())
 
-    assert projection["status"] == "legacy_layout_pending_sync"
+    assert projection["status"] == "layout_migration_pending_sync"
     assert projection["read_model"] == "delivery_visibility_projection"
     assert projection["projection_only"] is True
     retired_payload_key = "legacy" + "_visibility"
     assert retired_payload_key not in projection
-    assert projection["delivery_visibility"]["traffic_light"]["status"] == "legacy_pending"
+    assert projection["delivery_visibility"]["traffic_light"]["status"] == "layout_migration_pending"
+    assert "legacy_upgrade_queue" not in projection["delivery_visibility"]
     assert projection["delivery_visibility"]["authority"]["can_write_delivery_truth"] is False
     markdown = "\n".join(
         projection_module.render_delivery_inspection_markdown_lines(
@@ -115,8 +117,8 @@ def test_delivery_visibility_projection_embeds_l4_read_model() -> None:
             heading="## Delivery Inspection",
         )
     )
-    assert "delivery traffic-light: `legacy_pending`" in markdown
-    assert "legacy upgrade queue: `3` item(s)" in markdown
+    assert "delivery traffic-light: `layout_migration_pending`" in markdown
+    assert "layout migration queue: `3` item(s)" in markdown
     assert "backfill blockers: `blocked`" in markdown
 
 
@@ -140,12 +142,13 @@ def test_inspect_delivery_visibility_reads_real_delivery_without_writing_truth(t
     )
 
     assert read_model["traffic_light"]["status"] == "current"
-    assert read_model["legacy_upgrade_queue"] == []
+    assert read_model["layout_migration_queue"] == []
+    assert "legacy_upgrade_queue" not in read_model
     assert read_model["backfill_blocker_report"]["status"] == "clear"
     assert read_model["authority"]["can_write_delivery_truth"] is False
 
 
-def test_inspect_delivery_visibility_reports_legacy_backfill_without_mutation(tmp_path: Path) -> None:
+def test_inspect_delivery_visibility_reports_layout_migration_backfill_without_mutation(tmp_path: Path) -> None:
     profiles = importlib.import_module("med_autoscience.profiles")
     module = importlib.import_module("med_autoscience.controllers.delivery_visibility")
     workspace_root = tmp_path / "repo"
@@ -168,8 +171,9 @@ def test_inspect_delivery_visibility_reports_legacy_backfill_without_mutation(tm
         study_id=study_root.name,
     )
 
-    assert read_model["traffic_light"]["status"] == "legacy_pending"
-    assert read_model["legacy_upgrade_queue"]
+    assert read_model["traffic_light"]["status"] == "layout_migration_pending"
+    assert read_model["layout_migration_queue"]
+    assert "legacy_upgrade_queue" not in read_model
     assert read_model["backfill_blocker_report"]["status"] == "blocked"
     assert not (source_root / "audit").exists()
     assert not (human_root / "audit").exists()

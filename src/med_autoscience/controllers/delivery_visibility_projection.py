@@ -10,7 +10,7 @@ from med_autoscience.controllers.delivery_visibility import (
 
 SUBMISSION_MINIMAL_LABEL = "controller-authorized source"
 CURRENT_PACKAGE_LABEL = "human-facing mirror"
-LEGACY_LAYOUT_UPGRADE_NOTE = "legacy layout 会在下一次 authorized sync 升级"
+LAYOUT_MIGRATION_UPGRADE_NOTE = "layout migration 会在下一次 authorized sync 升级"
 
 
 def _mapping(value: object) -> dict[str, Any]:
@@ -18,7 +18,7 @@ def _mapping(value: object) -> dict[str, Any]:
 
 
 def _layout_pending_sync(inspection: Mapping[str, Any]) -> bool:
-    if bool(inspection.get("legacy_layout_pending_sync")):
+    if bool(inspection.get("layout_migration_pending_sync")):
         return True
     freshness = _mapping(inspection.get("freshness"))
     if freshness.get("verdict") == "legacy":
@@ -36,10 +36,12 @@ def _inspection_status(inspection: Mapping[str, Any]) -> str:
     verdict = str(freshness.get("verdict") or "").strip()
     delivery_status = str(freshness.get("delivery_status") or "").strip()
     incoming_status = str(inspection.get("status") or "").strip()
+    if incoming_status == "legacy_layout_pending_sync":
+        incoming_status = ""
     if _layout_pending_sync(inspection) and not (
         verdict == "stale" or delivery_status.startswith("stale") or incoming_status.startswith("stale")
     ):
-        return "legacy_layout_pending_sync"
+        return "layout_migration_pending_sync"
     if verdict:
         return verdict
     return delivery_status or incoming_status or "unknown"
@@ -51,8 +53,8 @@ def _inspection_summary(inspection: Mapping[str, Any], *, status: str) -> str:
         return summary
     freshness = _mapping(inspection.get("freshness"))
     delivery_status = str(freshness.get("delivery_status") or "").strip()
-    if status == "legacy_layout_pending_sync":
-        return LEGACY_LAYOUT_UPGRADE_NOTE
+    if status == "layout_migration_pending_sync":
+        return LAYOUT_MIGRATION_UPGRADE_NOTE
     if delivery_status:
         return f"delivery status: {delivery_status}"
     return "Delivery inspection is available as a read-only projection."
@@ -76,19 +78,19 @@ def compact_delivery_inspection_projection(value: object) -> dict[str, Any] | No
         "zip",
         "journal_package_count",
         "next_sync_command",
-        "legacy_layout",
+        "layout_migration",
     ):
         if key in inspection:
             compact[key] = inspection[key]
     compact.setdefault("surface_kind", "study_delivery_inspection_projection")
     compact["status"] = status
     compact["summary"] = _inspection_summary(inspection, status=status)
-    compact["legacy_layout_pending_sync"] = _layout_pending_sync(inspection)
+    compact["layout_migration_pending_sync"] = _layout_pending_sync(inspection)
     compact["source_labels"] = {
         "submission_minimal": SUBMISSION_MINIMAL_LABEL,
         "current_package": CURRENT_PACKAGE_LABEL,
     }
-    compact["legacy_layout_upgrade_note"] = LEGACY_LAYOUT_UPGRADE_NOTE
+    compact["layout_migration_upgrade_note"] = LAYOUT_MIGRATION_UPGRADE_NOTE
     delivery_visibility = build_delivery_visibility_read_model(inspection)
     if delivery_visibility is not None:
         compact["delivery_visibility"] = delivery_visibility
@@ -131,10 +133,10 @@ def build_study_delivery_inspection_projection(
         projection.setdefault("study_id", study_id)
     elif study_root is not None:
         projection.setdefault("study_id", Path(study_root).name)
-    if "legacy_layout" not in projection:
-        legacy_layout = _mapping(inspection.get("legacy_layout"))
-        if legacy_layout:
-            projection["legacy_layout"] = legacy_layout
+    if "layout_migration" not in projection:
+        layout_migration = _mapping(inspection.get("layout_migration"))
+        if layout_migration:
+            projection["layout_migration"] = layout_migration
     return projection
 
 
@@ -148,7 +150,7 @@ def render_delivery_inspection_markdown_lines(value: object, *, heading: str) ->
         "",
         "- submission_minimal = controller-authorized source",
         "- current_package = human-facing mirror",
-        f"- legacy layout: {LEGACY_LAYOUT_UPGRADE_NOTE}",
+        f"- layout migration: {LAYOUT_MIGRATION_UPGRADE_NOTE}",
         f"- 当前状态: `{projection.get('status') or 'unknown'}`",
     ]
     summary = str(projection.get("summary") or "").strip()
@@ -158,9 +160,11 @@ def render_delivery_inspection_markdown_lines(value: object, *, heading: str) ->
     traffic_light = _mapping(delivery_visibility.get("traffic_light"))
     if traffic_light:
         lines.append(f"- delivery traffic-light: `{traffic_light.get('status') or 'missing'}`")
-    legacy_queue = delivery_visibility.get("legacy_upgrade_queue")
-    if isinstance(legacy_queue, list):
-        lines.append(f"- legacy upgrade queue: `{len(legacy_queue)}` item(s)")
+    layout_migration_queue = delivery_visibility.get("layout_migration_queue")
+    if not isinstance(layout_migration_queue, list):
+        layout_migration_queue = delivery_visibility.get("legacy_upgrade_queue")
+    if isinstance(layout_migration_queue, list):
+        lines.append(f"- layout migration queue: `{len(layout_migration_queue)}` item(s)")
     blocker_report = _mapping(delivery_visibility.get("backfill_blocker_report"))
     if blocker_report:
         lines.append(
@@ -181,7 +185,7 @@ def render_delivery_inspection_markdown_lines(value: object, *, heading: str) ->
 
 __all__ = [
     "CURRENT_PACKAGE_LABEL",
-    "LEGACY_LAYOUT_UPGRADE_NOTE",
+    "LAYOUT_MIGRATION_UPGRADE_NOTE",
     "SUBMISSION_MINIMAL_LABEL",
     "build_study_delivery_inspection_projection",
     "compact_delivery_inspection_projection",

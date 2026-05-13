@@ -5,6 +5,7 @@ from enum import StrEnum
 from importlib import import_module
 import json
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -28,7 +29,7 @@ class StudyManualFinishContract:
     status: StudyManualFinishStatus
     summary: str
     next_action_summary: str | None
-    compatibility_guard_only: bool
+    manual_finish_guard_only: bool
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "status", self._normalize_status(self.status))
@@ -145,6 +146,14 @@ def _optional_string(raw_value: object) -> str | None:
     if not isinstance(raw_value, str) or not raw_value.strip():
         return None
     return raw_value.strip()
+
+
+def manual_finish_guard_only(value: StudyManualFinishContract | dict[str, Any] | None) -> bool:
+    if isinstance(value, StudyManualFinishContract):
+        return value.manual_finish_guard_only
+    if not isinstance(value, dict):
+        return False
+    return bool(value.get("manual_finish_guard_only"))
 
 
 def _delivery_authority_context(
@@ -422,7 +431,7 @@ def resolve_submission_metadata_only_manual_finish_contract(
         status=StudyManualFinishStatus.ACTIVE,
         summary=_AUTONOMOUS_MANUAL_FINISH_SUMMARY,
         next_action_summary=_AUTONOMOUS_MANUAL_FINISH_NEXT_ACTION,
-        compatibility_guard_only=True,
+        manual_finish_guard_only=True,
     )
 
 
@@ -442,7 +451,7 @@ def resolve_bundle_only_submission_ready_manual_finish_contract(
         status=StudyManualFinishStatus.ACTIVE,
         summary=_BUNDLE_ONLY_MANUAL_FINISH_SUMMARY,
         next_action_summary=_BUNDLE_ONLY_MANUAL_FINISH_NEXT_ACTION,
-        compatibility_guard_only=True,
+        manual_finish_guard_only=True,
     )
 
 
@@ -462,7 +471,7 @@ def resolve_delivered_submission_package_manual_finish_contract(
         status=StudyManualFinishStatus.ACTIVE,
         summary=_BUNDLE_ONLY_MANUAL_FINISH_SUMMARY,
         next_action_summary=_BUNDLE_ONLY_MANUAL_FINISH_NEXT_ACTION,
-        compatibility_guard_only=True,
+        manual_finish_guard_only=True,
     )
 
 
@@ -476,12 +485,14 @@ def resolve_study_manual_finish_contract(*, study_root: Path | None) -> StudyMan
         return None
     if not isinstance(raw_manual_finish, dict):
         raise ValueError("manual_finish must be a mapping")
+    if "compatibility_guard_only" in raw_manual_finish:
+        raise ValueError("manual_finish.compatibility_guard_only is retired; use manual_finish_guard_only")
     return StudyManualFinishContract(
         study_root=resolved_study_root,
         status=_non_empty_string(raw_manual_finish.get("status"), field_name="manual_finish.status"),
         summary=_non_empty_string(raw_manual_finish.get("summary"), field_name="manual_finish.summary"),
         next_action_summary=_optional_string(raw_manual_finish.get("next_action_summary")),
-        compatibility_guard_only=bool(raw_manual_finish.get("compatibility_guard_only", True)),
+        manual_finish_guard_only=bool(raw_manual_finish.get("manual_finish_guard_only", True)),
     )
 
 

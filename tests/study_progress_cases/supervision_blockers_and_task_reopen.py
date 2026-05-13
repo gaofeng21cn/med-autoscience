@@ -223,7 +223,7 @@ def test_study_progress_projects_manual_finishing_contract_before_runtime_blocke
                 "  status: active",
                 "  summary: 当前 study 已转入人工打磨收尾；MAS 只需保持兼容性与监督入口，不再把它视为默认自动续跑对象。",
                 "  next_action_summary: 继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。",
-                "  compatibility_guard_only: true",
+                "  manual_finish_guard_only: true",
                 "",
             ]
         ),
@@ -319,7 +319,7 @@ def test_study_progress_projects_manual_finishing_fast_lane_intake(
                 "  status: active",
                 "  summary: 当前 study 已转入人工打磨收尾；MAS 只需保持兼容性与监督入口，不再把它视为默认自动续跑对象。",
                 "  next_action_summary: 继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。",
-                "  compatibility_guard_only: true",
+                "  manual_finish_guard_only: true",
                 "",
             ]
         ),
@@ -389,7 +389,7 @@ def test_study_progress_projects_manual_finishing_fast_lane_intake(
     assert result["task_intake"]["manuscript_fast_lane"]["status"] == "requested"
     assert result["intervention_lane"]["lane_id"] == "manual_finishing_fast_lane"
     assert result["quality_execution_lane"]["lane_id"] == "manuscript_fast_lane"
-    assert result["operator_verdict"]["decision_mode"] == "compatibility_guard_only"
+    assert result["operator_verdict"]["decision_mode"] == "manual_finish_guard_only"
     assert result["operator_verdict"]["repair_mode"] == "same_line_route_back"
     assert "fast lane" in result["next_system_action"]
     assert "canonical paper" in result["next_system_action"]

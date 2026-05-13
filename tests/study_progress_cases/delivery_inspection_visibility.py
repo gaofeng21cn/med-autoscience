@@ -116,8 +116,10 @@ def test_study_progress_projects_delivery_inspector_summary_without_authority_ch
         "submission_minimal": "controller-authorized source",
         "current_package": "human-facing mirror",
     }
-    assert delivery["legacy_layout_upgrade_note"] == "legacy layout 会在下一次 authorized sync 升级"
-    assert delivery["status"] == "legacy_layout_pending_sync"
+    assert delivery["layout_migration_upgrade_note"] == "layout migration 会在下一次 authorized sync 升级"
+    assert delivery["status"] == "layout_migration_pending_sync"
+    assert "legacy_layout_upgrade_note" not in delivery
+    assert "legacy_layout_pending_sync" not in delivery
     assert delivery["authority"] == "observability_projection_only"
     assert delivery["can_authorize_submission"] is False
     assert delivery["can_authorize_publication_quality"] is False
@@ -127,7 +129,7 @@ def test_study_progress_projects_delivery_inspector_summary_without_authority_ch
     assert markdown.strip()
 
 
-def test_delivery_visibility_projection_keeps_stale_visible_for_legacy_layout() -> None:
+def test_delivery_visibility_projection_keeps_stale_visible_for_layout_migration() -> None:
     module = importlib.import_module("med_autoscience.controllers.delivery_visibility_projection")
 
     projection = module.compact_delivery_inspection_projection(
@@ -142,5 +144,6 @@ def test_delivery_visibility_projection_keeps_stale_visible_for_legacy_layout() 
     )
 
     assert projection["status"] == "stale"
-    assert projection["legacy_layout_pending_sync"] is True
+    assert projection["layout_migration_pending_sync"] is True
+    assert "legacy_layout_pending_sync" not in projection
     assert projection["summary"] == "delivery status: stale_source_changed"

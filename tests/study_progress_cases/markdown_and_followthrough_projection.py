@@ -155,7 +155,7 @@ def test_render_study_progress_markdown_hides_runtime_blocker_wording_for_manual
                 "status": "active",
                 "summary": "当前 study 已转入人工打磨收尾；MAS 只需保持兼容性与监督入口，不再把它视为默认自动续跑对象。",
                 "next_action_summary": "继续保持兼容性与监督入口；如需重新自动续跑，再显式 rerun 或 relaunch。",
-                "compatibility_guard_only": True,
+                "manual_finish_guard_only": True,
             },
             "supervision": {
                 "health_status": "none",

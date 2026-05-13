@@ -151,7 +151,7 @@ def _runtime_decision_label(value: object) -> str | None:
 
 
 def _manual_finish_active(manual_finish_contract: dict[str, Any] | None) -> bool:
-    return bool((manual_finish_contract or {}).get("compatibility_guard_only"))
+    return manual_finish_guard_only(manual_finish_contract)
 
 
 def _manual_finish_runtime_decision_summary(manual_finish_contract: dict[str, Any] | None) -> str:

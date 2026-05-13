@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import runtime_failure_taxonomy
+from med_autoscience.study_manual_finish import manual_finish_guard_only
 
 
 SCHEMA_VERSION = 1
@@ -336,7 +337,7 @@ def _state_from_reason(
     if reason in _PLATFORM_REPAIR_REASONS and decision in {"blocked", "pause"}:
         return "platform_repair_pending"
     if (
-        bool(manual_finish_contract.get("compatibility_guard_only"))
+        manual_finish_guard_only(manual_finish_contract)
         and quest_status not in {"running", "retrying", "active"}
         and decision in {"blocked", "pause", "noop", None}
     ):

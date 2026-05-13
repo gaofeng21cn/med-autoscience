@@ -36,7 +36,7 @@ from med_autoscience.runtime_status_summary import (
     materialize_runtime_status_summary,
 )
 from med_autoscience.study_charter import stable_study_charter_path
-from med_autoscience.study_manual_finish import resolve_effective_study_manual_finish_contract
+from med_autoscience.study_manual_finish import manual_finish_guard_only, resolve_effective_study_manual_finish_contract
 from med_autoscience.study_task_intake import (
     build_task_intake_progress_override,
     read_latest_task_intake,

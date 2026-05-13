@@ -77,6 +77,7 @@ from med_autoscience.controllers.study_runtime_transport import _get_quest_sessi
 from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
 from med_autoscience.study_manual_finish import (
+    manual_finish_guard_only,
     resolve_bundle_only_submission_ready_manual_finish_contract,
     resolve_delivered_submission_package_manual_finish_contract,
     resolve_study_manual_finish_contract,
@@ -329,7 +330,7 @@ def _delivered_submission_package_manual_finish_active(*, study_root: Path) -> b
 
 def _explicit_manual_finish_compatibility_guard_active(*, study_root: Path) -> bool:
     contract = resolve_study_manual_finish_contract(study_root=study_root)
-    return contract is not None and contract.compatibility_guard_only
+    return manual_finish_guard_only(contract)
 
 
 def _task_intake_overrides_auto_manual_finish_active(*, study_root: Path) -> bool:

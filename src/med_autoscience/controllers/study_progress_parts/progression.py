@@ -95,7 +95,7 @@ def _current_stage(
         return "study_completed"
     if task_intake_progress_override:
         return "publication_supervision"
-    if bool((manual_finish_contract or {}).get("compatibility_guard_only")) and not publication_supervisor_blocks_handoff(publication_supervisor_state):
+    if manual_finish_guard_only(manual_finish_contract) and not publication_supervisor_blocks_handoff(publication_supervisor_state):
         return "manual_finishing"
     if needs_physician_decision:
         return "waiting_user_decision"
@@ -436,7 +436,7 @@ def _next_system_action(
     task_intake_progress_override: dict[str, Any] | None,
     evaluation_summary_payload: dict[str, Any] | None,
 ) -> str:
-    if bool((manual_finish_contract or {}).get("compatibility_guard_only")):
+    if manual_finish_guard_only(manual_finish_contract):
         if _task_intake_override_is_manuscript_fast_lane(task_intake_progress_override):
             return (
                 _non_empty_text(task_intake_progress_override.get("next_system_action"))
