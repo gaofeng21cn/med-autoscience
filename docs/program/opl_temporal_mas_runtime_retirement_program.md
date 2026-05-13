@@ -24,7 +24,7 @@ Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full rec
 
 2026-05-12 文档收口口径：P2 已经具备 OPL-hosted MAS 的 descriptor、sidecar、guarded apply receipt、DM002 route-memory receipt chain、OPL Temporal production residency proof，以及 MAS 对该 proof 的 product-entry / sidecar ingestion。MAS 读取 `--opl-production-proof` 后，可把 provider availability 从 typed blocker 切到 `available`，但 authority boundary 仍保持 `can_write_domain_truth=false`、`provider_completion_is_paper_closure=false`、`paper_closure_requires_mas_owner_receipt=true`。P2 仍未具备真实 paper-line provider-hosted guarded apply success 证据。真实完成需要在 MAS owner gate 允许时逐条 paper line 产出 owner receipt、artifact/gate/reviewer/route/human-gate/stop-loss evidence，或由 live owner guard / authorization / publication gate 返回 typed blocker。
 
-2026-05-13 functional closure 口径：真实 paper-line long-running apply 仍是 production evidence gate；在此之外，P2 的工程功能闭环不应继续等待真实论文运行。MAS 已把 provider proof 中的 managed Temporal service / worker state 投影成 read-only consistency surface，并新增旧 Hermes / MDS / workspace-local scheduler 的 no-active-default-caller tombstone proof。每项结果要么进入 MAS-owned receipt / locator / typed blocker surface，要么明确返回 owner guard、live gate、authorization 或 contract gap。
+2026-05-13 functional closure 口径：真实 paper-line long-running apply 仍是 production evidence gate；在此之外，P2 的工程功能闭环不应继续等待真实论文运行。MAS 侧工作应作为 OPL `production-functional-closure-plan.zh-CN.md` 的并行 implementation lane 执行，而不是形成另一份平行大计划。MAS 已把 provider proof 中的 managed Temporal service / worker state 投影成 read-only consistency surface，并新增旧 Hermes / MDS / workspace-local scheduler 的 no-active-default-caller tombstone proof；剩余 owner receipt、memory receipt、skeleton、workbench / closeout projection follow-through 继续按 OPL umbrella lane 承接。每项结果要么进入 MAS-owned receipt / locator / typed blocker surface，要么明确返回 owner guard、live gate、authorization 或 contract gap。
 
 MAS 侧已经落地：
 
@@ -62,6 +62,21 @@ cutover 或物理退役前仍未完成：
 | `P2.5` | `final_paper_line_guarded_soak` | read-only proof 已覆盖 DM002/DM003/Obesity；MAS-owned guarded apply proof 与 sidecar dispatch receipt closure surface 已能承认 MAS owner receipt 或返回 typed blocker。下一步是在 provider-hosted live apply 中证明真实 paper line 可经 OPL attempt + MAS owner chain 前进或明确阻塞。 | MAS truth surface 中的 attempt query、owner receipt、progress delta、gate replay、reviewer update、human gate、stop-loss 或 typed blocker |
 
 这些是内容线。后续变更可以只实现其中一条，不需要触碰整个 P2 surface。
+
+### OPL Umbrella Plan 对齐
+
+P2 对 OPL production functional closure 的职责是提供 MAS domain-owned evidence，而不是复制 OPL 的 provider/operator/workbench 总计划。对应关系如下：
+
+| OPL lane | MAS P2 responsibility | boundary |
+| --- | --- | --- |
+| `provider-readiness-operator-closure` | 消费 OPL production proof，向 product-entry / sidecar / workbench projection 暴露 provider available、freshness、typed blocker 和 no-forbidden-write boundary。 | MAS 不实现 OPL provider kernel 或 operator repair action。 |
+| `owner-receipt-contract-generalization` | 把 MAS sidecar dispatch、guarded apply、stage closeout、human gate、stop-loss 和 owner progress 都投影为同构 owner receipt / typed blocker refs。 | OPL attempt ledger 只持 refs，不持 paper truth。 |
+| `domain-memory-apply-generalization` | 让 publication-route memory consumed/proposal/accepted/rejected/writeback receipt 泛化到更多 fixture / workspace owner surface。 | OPL/Aion 不读取 memory body，不接受或拒绝 writeback。 |
+| `lifecycle-guarded-apply-generalization` | 对 MAS artifact/package/runtime mutation 保持 domain receipt requirement；只把 locator / blocker / restore refs 投影给 OPL。 | OPL metadata apply 不能删除或重写 MAS artifacts。 |
+| `physical-skeleton-follow-through` | 维护 MAS repo-source skeleton slot 映射与低风险 follow-through。 | workspace/runtime artifact body、receipt instances、memory body 不迁入 repo skeleton。 |
+| `legacy-active-path-final-retirement` | 给旧 MDS/Hermes/local scheduler/default compat surface 做 no-active-caller proof 和 tombstone/retained-provenance 分类。 | explicit archive、fixture、parity oracle 可保留，但必须标注语境。 |
+| `operator-workbench-drilldown` | 提供 MAS workbench projection 所需的 provider refs、stage review refs、memory refs、safe action receipt refs 和 typed blockers。 | OPL App 只展示和发受控 request，不写 MAS truth。 |
+| `cross-repo-production-closeout-gate` | 提供 MAS 当前功能闭环状态、验证 refs、receipt coverage、legacy residue state 和 typed blocker summary。 | 缺真实 live apply 时报告 typed blocker，不把 gate 写成 paper closure。 |
 
 ## 当前分类规则
 

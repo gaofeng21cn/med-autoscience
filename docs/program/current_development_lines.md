@@ -16,6 +16,27 @@ Domain memory 这条线现在可以回到主线任务推进：`publication_route
 
 距离理想情况的当前判断是：stage form / skill authoring 已接近目标形态，knowledge / quality / memory contract 已可用，OPL-hosted execution 与用户产品闭环仍未完成。剩余关键不是再补一批手写 Markdown，而是让 provider-hosted guarded apply、Stage Deliverable Review Page / Index、publication-route memory receipt、OPL App / Workbench 展示和 legacy residue cleanup 都沿 MAS / OPL owner surfaces 留下证据。
 
+## OPL Production Functional Closure 对齐
+
+OPL 层面的 umbrella plan 是 `one-person-lab/docs/active/production-functional-closure-plan.zh-CN.md`。MAS 这里不再维护一份平行的 production-functional closure 大计划；MAS 的下一批可立即工程落地工作应作为该 umbrella plan 的 MAS implementation lane 并行推进。
+
+这意味着：
+
+- OPL plan 持有跨仓总目标、吸收顺序、provider/operator/workbench/cross-repo gate；
+- MAS 文档只持有 MAS-owned domain receipt、memory、stage review、skeleton、legacy cleanup 和 sidecar/product-entry projection；
+- stage surface standardization 是 MAS implementation lane 的基础依赖之一，不是 production functional closure 的总目标；
+- 真实 paper-line provider-hosted live apply 仍是 production evidence gate，不阻塞下面这些功能性闭环先落地。
+
+| OPL umbrella lane | MAS 对应 implementation lane | MAS owner surface | MAS done signal |
+| --- | --- | --- | --- |
+| `owner-receipt-contract-generalization` | `mas_owner_receipt_envelope` | sidecar dispatch receipt、guarded apply receipt、stage closeout、human gate、stop-loss、paper progress owner receipt | paper guarded apply、stage closeout、memory writeback、human gate 和 stop-loss 都能投影成同构 MAS owner receipt 或 typed blocker refs；OPL 只保存 refs。 |
+| `domain-memory-apply-generalization` | `publication_route_memory_receipt_generalization` | stage knowledge plane、publication-route memory pack、writeback proposal/router receipt、body-free inventory | consumed/proposal/accepted/rejected/writeback refs 覆盖 DM002 proof 之外的 fixture / workspace proof；OPL/Aion 只读展示 locator、freshness、receipt refs，不持有 memory body。 |
+| `lifecycle-guarded-apply-generalization` | `mas_lifecycle_artifact_receipt_requirement` | runtime lifecycle locator、artifact locator、restore/retention receipt boundary | OPL-owned metadata 可被 locator/projection 消费；任何 domain artifact 删除、重写或 package mutation 都必须返回 MAS domain receipt requirement 或 typed blocker。 |
+| `physical-skeleton-follow-through` | `mas_standard_skeleton_followthrough` | `standard_domain_agent_skeleton`、agent/stage/skill/knowledge/quality/sidecar/projection locator | 新增 repo-source surface 默认能映射到 `agent/ contracts/ runtime/ docs/` slot；旧路径保留 facade/locator/provenance，不做破坏性大搬迁。 |
+| `legacy-active-path-final-retirement` | `mas_legacy_residue_no_active_caller_proof` | P2 classification、MDS/Hermes/local scheduler provenance、compat tests | stale scan + no default caller proof + replacement proof；可删的旧 active wording 删除，不可删的进入 history/tombstone/provenance 语境。 |
+| `operator-workbench-drilldown` | `mas_workbench_projection_completion` | `mas_opl_runtime_workbench_projection`、Progress Portal stage review、provider readiness refs、route-memory refs、safe action receipts | provider readiness、stage review/index、memory refs、safe action receipt、typed blocker 在同一 App-consumable read model 中分 lane 展示，且不写 MAS truth。 |
+| `cross-repo-production-closeout-gate` | `mas_functional_closure_status_projection` | product-entry manifest、sidecar export、focused verification report | MAS 可以给 OPL closeout gate 提供当前 descriptor alignment、provider proof ingestion、memory receipt coverage、stage review proof、legacy residue state 和 typed blockers。 |
+
 当前执行优先级应是 framework-first：
 
 1. 先把 OPL 做成完整的 stage-led、以 Agent executor 为最小执行单位的智能体框架，具备 durable stage attempt、queue/wakeup、retry/dead-letter、approval/human gate、receipt/projection、shared lifecycle/index primitive 和 provider-backed runtime。

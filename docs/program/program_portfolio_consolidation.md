@@ -26,6 +26,7 @@ Owner: `MedAutoScience`
 - AI-first paper autonomy repo callable loop 已落地；真实论文线仍必须通过 live MAS truth surface 证明 artifact delta、gate replay、AI reviewer judgment、route decision、human gate、stop-loss 或 stable blocker。
 - OPL 已上升为 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架。MAS 作为医学研究 domain agent 暴露 stage descriptor、sidecar export/dispatch、receipt schema、projection builder、artifact locator 和 authority refs；OPL 持有 framework-level stage attempt、queue/wakeup、retry/dead-letter、approval transport、projection 和 shared lifecycle/index primitives。
 - Stage surface 的形式统一已基本进入可维护状态：主 stage generated card、独立 skill surface、knowledge / closeout obligations、stage quality packs、Research Harness clean-room gates、OPL descriptor locator、provider typed blocker proof、OPL production proof ingestion 和 Stage Deliverable Review Page / Index workspace locator proof 已落地。距离理想态的核心差距集中在 provider status/read-model managed-state cleanup、真实 Codex/domain activity 长时 soak、provider-hosted guarded apply、live paper-line review/index follow-through、更多 publication-route memory receipts、OPL App / Workbench 产品闭环和旧兼容残留清理。
+- Production functional closure 的跨仓总计划归 OPL `production-functional-closure-plan.zh-CN.md` 持有。MAS 不维护平行大计划；MAS 负责在该 umbrella plan 下提供 MAS-owned owner receipt、domain memory receipt、stage review/index locator、skeleton follow-through、legacy no-active-caller proof 和 workbench/closeout projection refs。真实 paper-line live apply 继续是 P0 production evidence gate。
 
 ## Program Map
 

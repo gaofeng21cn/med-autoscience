@@ -308,6 +308,8 @@ nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clea
 
 后续不应再按“一个 stage 一个 stage”顺序推进。当前可并行的工作应按缺口 owner 拆线，每条线都必须以 MAS owner receipt、OPL framework receipt 或 read-only locator 作为完成证据。
 
+本节只覆盖 MAS stage surface 相关 follow-through。更大的 production functional closure 已由 OPL `production-functional-closure-plan.zh-CN.md` 持有；本 program 在其中只承担 `stage_review_index_live_provider_followthrough`、`skill_change_guard`、`standard_skeleton_followthrough` 以及与 receipt/memory/workbench projection 的 stage locator 部分。不要把本 program 当作 OPL production functional closure 的平行总计划。
+
 | lane | status | owner boundary | next work | done signal |
 | --- | --- | --- | --- | --- |
 | `provider_residency_and_activity_soak` | `production_proof_landed_status_cleanup_pending` | OPL production provider / Temporal-backed runtime | 已证明 production residency 并已被 MAS product-entry / sidecar ingestion 消费；继续补 `family-runtime status --provider temporal` managed-state 一致性、worker restart/re-query 可见性和长时 Codex/domain activity soak。MAS 只消费 sidecar task 和 typed receipt。 | OPL ledger / status 同时显示 provider 长驻、attempt 可查询、失败可重试/进 dead letter，真实 domain activity attempt 串到 MAS sidecar receipt，且没有 MAS forbidden write。 |
@@ -318,7 +320,7 @@ nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clea
 | `legacy_residue_retirement` | `pending` | P2 migration / P3 provenance guard | 扫描旧 MDS、Hermes、local scheduler、hosted runtime、binding wording；有替代证据且无 default caller 的进入 history/tombstone 或删除；仍需 parity/provenance 的保留 reference。 | stale scan + no-default-caller proof + focused compatibility tests；文档不再暗示旧 runtime 是默认形态。 |
 | `standard_skeleton_physicalization` | `later` | standard domain agent skeleton / repo source layout | 新增 surface 默认按 standard slot 落位；旧路径保留 facade 和 locator，避免一次性大搬迁。 | skeleton audit 能解释标准 slot 与实际路径；无破坏性目录重组。 |
 
-推荐执行顺序是：先把 `provider_residency_and_activity_soak` 的 status/read-model cleanup 与长时 domain activity soak 补齐，并同时推进 `provider_guarded_apply_soak`，因为它们决定 OPL-hosted MAS 是否能在真实 paper line 上产生 MAS owner progress 或 typed blocker；并行推进 `publication_route_memory_receipt_scaleout`，同时把 `stage_review_index_workspace_proof` 作为常驻只读 guard 继续覆盖后续真实 paper line；最后用 `legacy_residue_retirement` 和 `standard_skeleton_physicalization` 收口可维护性。`skill_change_guard` 是所有后续 stage 修改的常驻门槛。
+在 OPL umbrella plan 下的推荐执行顺序是：先由 OPL/OPL+domain lane 统一 provider readiness、owner receipt envelope 和 memory/lifecycle apply receipt；MAS 本 program 并行保持 `stage_review_index_workspace_proof`、`skill_change_guard` 和 `standard_skeleton_physicalization`，并把 stage locator / review/index refs 接入 owner receipt 与 workbench projection；最后用 `legacy_residue_retirement` 收口可维护性。真实 `provider_guarded_apply_soak` 继续作为 production evidence gate，不由本 stage surface program 单独宣布完成。
 
 每条线的验证下限：
 
