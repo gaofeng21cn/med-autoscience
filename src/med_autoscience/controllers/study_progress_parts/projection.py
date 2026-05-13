@@ -86,6 +86,13 @@ def build_study_progress_projection(
             }
         )
         normalized_existing.pop("publication_supervisor_state", None)
+        normalized_existing = _progress_projection_respecting_controller_closure(
+            study_root=study_root,
+            publication_eval_payload=_read_json_object(
+                study_root / "artifacts" / "publication_eval" / "latest.json"
+            ),
+            payload=normalized_existing,
+        )
         return _attach_existing_autonomy_slo_projection(
             _attach_delivery_inspection_projection(
                 normalized_existing,
@@ -310,21 +317,25 @@ def build_study_progress_projection(
             or paper_stage_summary
         )
     current_blockers = _humanized_blockers(
-        _current_blockers(
-            status=status,
+        _current_blockers_respecting_controller_closure(
+            study_root=resolved_study_root,
             publication_eval_payload=publication_eval_payload,
-            runtime_watch_payload=runtime_watch_payload,
-            runtime_escalation_payload=runtime_escalation_payload,
-            controller_confirmation_summary=controller_confirmation_summary,
-            controller_decision_payload=controller_decision_payload,
-            pending_user_interaction=pending_user_interaction,
-            interaction_arbitration=interaction_arbitration,
-            runtime_supervision_payload=runtime_supervision_payload,
-            supervisor_tick_audit=supervisor_tick_audit,
-            progress_freshness=progress_freshness,
-            manual_finish_contract=manual_finish_contract,
-            task_intake_progress_override=task_intake_progress_override,
-            evaluation_summary_payload=evaluation_summary_payload,
+            blockers=_current_blockers(
+                status=status,
+                publication_eval_payload=publication_eval_payload,
+                runtime_watch_payload=runtime_watch_payload,
+                runtime_escalation_payload=runtime_escalation_payload,
+                controller_confirmation_summary=controller_confirmation_summary,
+                controller_decision_payload=controller_decision_payload,
+                pending_user_interaction=pending_user_interaction,
+                interaction_arbitration=interaction_arbitration,
+                runtime_supervision_payload=runtime_supervision_payload,
+                supervisor_tick_audit=supervisor_tick_audit,
+                progress_freshness=progress_freshness,
+                manual_finish_contract=manual_finish_contract,
+                task_intake_progress_override=task_intake_progress_override,
+                evaluation_summary_payload=evaluation_summary_payload,
+            ),
         )
     )
     next_system_action = _display_text(_next_system_action(
@@ -890,6 +901,76 @@ def _supervision_health_status(
     if runtime_facts.strict_live:
         return runtime_health_status or "live"
     return runtime_health_status
+
+
+def _current_blockers_respecting_controller_closure(
+    *,
+    study_root: Path,
+    publication_eval_payload: dict[str, Any] | None,
+    blockers: list[str],
+) -> list[str]:
+    if not _submission_authority_sync_closed_for_eval(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    ):
+        return blockers
+    return [
+        blocker
+        for blocker in blockers
+        if _non_empty_text(blocker) != "stale_submission_minimal_authority"
+    ]
+
+
+def _progress_projection_respecting_controller_closure(
+    *,
+    study_root: Path,
+    publication_eval_payload: dict[str, Any] | None,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    blockers = _current_blockers_respecting_controller_closure(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+        blockers=[
+            str(item)
+            for item in payload.get("current_blockers") or []
+            if str(item or "").strip()
+        ],
+    )
+    if blockers == payload.get("current_blockers"):
+        return payload
+    updated = dict(payload)
+    updated["current_blockers"] = blockers
+    user_visible = _mapping_copy(updated.get("user_visible_projection"))
+    if user_visible:
+        user_visible["current_blockers"] = blockers
+        updated["user_visible_projection"] = user_visible
+    status_contract = _mapping_copy(updated.get("status_narration_contract"))
+    if status_contract:
+        status_contract["current_blockers"] = blockers[:8]
+        updated["status_narration_contract"] = status_contract
+    return updated
+
+
+def _submission_authority_sync_closed_for_eval(
+    *,
+    study_root: Path,
+    publication_eval_payload: dict[str, Any] | None,
+) -> bool:
+    current_eval_id = _non_empty_text((publication_eval_payload or {}).get("eval_id"))
+    if current_eval_id is None:
+        return False
+    lifecycle = _read_json_object(
+        study_root / "artifacts" / "controller" / "publication_work_unit_lifecycle" / "latest.json"
+    )
+    freshness = _read_json_object(
+        study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
+    )
+    return (
+        _non_empty_text((lifecycle or {}).get("source_eval_id")) == current_eval_id
+        and _non_empty_text((lifecycle or {}).get("status")) == "done"
+        and _non_empty_text((freshness or {}).get("source_eval_id")) == current_eval_id
+        and _non_empty_text((freshness or {}).get("status")) == "fresh"
+    )
 
 
 def read_study_progress(
