@@ -29,6 +29,13 @@ _BATCH_OPEN_UNIT_STATUSES = frozenset(
     }
 )
 _TRANSIENT_OPEN_UNIT_STATUSES = frozenset({"skipped_authority_not_settled"})
+_AUTHORITY_SYNC_WORK_UNIT_IDS = frozenset(
+    {
+        "submission_authority_sync_closure",
+        "submission_delivery_sync_closure",
+        "submission_minimal_refresh",
+    }
+)
 
 
 def _non_empty_text(value: object) -> str | None:
@@ -328,7 +335,18 @@ def _unit_results_have_open_failures(batch_payload: dict[str, Any]) -> bool:
         return False
     return any(
         isinstance(item, dict)
-        and _non_empty_text(item.get("status")) in (_BATCH_OPEN_UNIT_STATUSES | _TRANSIENT_OPEN_UNIT_STATUSES)
+        and _non_empty_text(item.get("status")) in _BATCH_OPEN_UNIT_STATUSES
+        for item in unit_results
+    )
+
+
+def _unit_results_have_transient_open_units(batch_payload: dict[str, Any]) -> bool:
+    unit_results = batch_payload.get("unit_results")
+    if not isinstance(unit_results, list):
+        return False
+    return any(
+        isinstance(item, dict)
+        and _non_empty_text(item.get("status")) in _TRANSIENT_OPEN_UNIT_STATUSES
         for item in unit_results
     )
 
@@ -338,6 +356,26 @@ def _gate_replay_closed(batch_payload: dict[str, Any]) -> bool:
     if not isinstance(gate_replay, dict):
         return False
     return _non_empty_text(gate_replay.get("status")) == "clear" or gate_replay.get("allow_write") is True
+
+
+def _authority_current_gate_closed(gate_report: dict[str, Any] | None) -> bool:
+    if not isinstance(gate_report, dict):
+        return False
+    return (
+        (_non_empty_text(gate_report.get("status")) == "clear" or gate_report.get("allow_write") is True)
+        and _non_empty_text(gate_report.get("submission_minimal_authority_status")) == "current"
+        and _non_empty_text(gate_report.get("study_delivery_status")) == "current"
+    )
+
+
+def _selected_work_unit_id(batch_payload: dict[str, Any]) -> str | None:
+    selected = batch_payload.get("selected_publication_work_unit")
+    if isinstance(selected, dict):
+        return publication_work_unit_id(selected)
+    lifecycle = batch_payload.get("publication_work_unit_lifecycle")
+    if isinstance(lifecycle, dict):
+        return publication_work_unit_id(lifecycle.get("work_unit"))
+    return None
 
 
 def _platform_terminal_closed(batch_payload: dict[str, Any]) -> bool:
@@ -355,11 +393,21 @@ def _stale_gate_replay_marker_closed(batch_payload: dict[str, Any]) -> bool:
     return _non_empty_text(marker.get("status")) == "closed"
 
 
-def batch_closed_for_source_eval(batch_payload: dict[str, Any], *, source_eval_id: str | None) -> bool:
+def batch_closed_for_source_eval(
+    batch_payload: dict[str, Any],
+    *,
+    source_eval_id: str | None,
+    gate_report: dict[str, Any] | None = None,
+) -> bool:
     if source_eval_id is None or _non_empty_text(batch_payload.get("source_eval_id")) != source_eval_id:
         return False
     if _unit_results_have_open_failures(batch_payload):
         return False
+    if _unit_results_have_transient_open_units(batch_payload):
+        return (
+            _selected_work_unit_id(batch_payload) in _AUTHORITY_SYNC_WORK_UNIT_IDS
+            and _authority_current_gate_closed(gate_report)
+        )
     return (
         _gate_replay_closed(batch_payload)
         or _platform_terminal_closed(batch_payload)

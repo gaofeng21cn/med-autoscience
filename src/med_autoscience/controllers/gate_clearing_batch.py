@@ -304,6 +304,7 @@ def _closed_batch_lifecycle_record(
     study_id: str,
     quest_id: str,
     source_eval_id: str,
+    gate_report: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     selected_work_unit = _base_publication_work_unit(latest_batch.get("selected_publication_work_unit"))
     if selected_work_unit is None:
@@ -316,6 +317,21 @@ def _closed_batch_lifecycle_record(
         if isinstance(item, dict)
     ]
     gate_replay = dict(latest_batch.get("gate_replay") or {})
+    if _current_gate_settles_authority_sync(latest_batch=latest_batch, gate_report=gate_report):
+        unit_results = [
+            {
+                **item,
+                "status": "settled_by_current_gate"
+                if _non_empty_text(item.get("status")) == "skipped_authority_not_settled"
+                else item.get("status"),
+            }
+            for item in unit_results
+        ]
+        gate_replay = {
+            **gate_replay,
+            "status": "clear",
+            "allow_write": True,
+        }
     if selected_work_unit is None or not unit_results:
         return None
     return publication_work_unit_lifecycle.build_lifecycle_record(
@@ -335,12 +351,14 @@ def _normalize_closed_batch_lifecycle_surface(
     study_id: str,
     quest_id: str,
     source_eval_id: str,
+    gate_report: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any] | None, bool]:
     lifecycle_record = _closed_batch_lifecycle_record(
         latest_batch=latest_batch,
         study_id=study_id,
         quest_id=quest_id,
         source_eval_id=source_eval_id,
+        gate_report=gate_report,
     )
     if lifecycle_record is None:
         return None, False
@@ -363,6 +381,35 @@ def _normalize_closed_batch_lifecycle_surface(
 
 def _latest_batch_closed_for_eval(latest_batch: dict[str, Any], current_eval_id: str | None) -> bool:
     return gate_clearing_batch_currentness.batch_closed_for_source_eval(latest_batch, source_eval_id=current_eval_id)
+
+
+def _latest_batch_closed_for_current_gate(
+    latest_batch: dict[str, Any],
+    current_eval_id: str | None,
+    gate_report: dict[str, Any],
+) -> bool:
+    return gate_clearing_batch_currentness.batch_closed_for_source_eval(
+        latest_batch,
+        source_eval_id=current_eval_id,
+        gate_report=gate_report,
+    )
+
+
+def _current_gate_settles_authority_sync(
+    *,
+    latest_batch: dict[str, Any],
+    gate_report: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(gate_report, dict):
+        return False
+    return gate_clearing_batch_currentness.batch_closed_for_source_eval(
+        latest_batch,
+        source_eval_id=_non_empty_text(latest_batch.get("source_eval_id")),
+        gate_report=gate_report,
+    ) and not gate_clearing_batch_currentness.batch_closed_for_source_eval(
+        latest_batch,
+        source_eval_id=_non_empty_text(latest_batch.get("source_eval_id")),
+    )
 
 
 def _recommended_action_by_type(
@@ -677,13 +724,14 @@ def run_gate_clearing_batch(
     latest_batch = context.latest_batch
     current_eval_id = context.current_eval_id
     controller_decision_work_unit = context.controller_decision_work_unit
-    if _latest_batch_closed_for_eval(latest_batch, current_eval_id):
+    if _latest_batch_closed_for_current_gate(latest_batch, current_eval_id, gate_report):
         lifecycle_record, lifecycle_normalized = _normalize_closed_batch_lifecycle_surface(
             latest_batch=latest_batch,
             study_root=resolved_study_root,
             study_id=study_id,
             quest_id=quest_id,
             source_eval_id=current_eval_id,
+            gate_report=gate_report,
         )
         current_package_freshness_proof = _closed_batch_current_freshness_proof(
             latest_batch=latest_batch,
