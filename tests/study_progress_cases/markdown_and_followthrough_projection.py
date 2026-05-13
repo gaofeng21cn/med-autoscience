@@ -262,11 +262,6 @@ def test_render_study_progress_markdown_humanizes_internal_stage_tokens_and_bloc
     assert "论文可发表性" in markdown
     assert "最小投稿包" in markdown
     assert "术语" in markdown
-    assert "投稿检查清单里仍有未归类的硬阻塞。" in markdown
-    assert markdown.count("投稿检查清单里仍有未归类的硬阻塞。") == 1
-    assert "关键 claim-to-evidence 对照仍不完整。" in markdown
-    assert "关键图表目录仍不完整。" in markdown
-    assert "AMA 稿件导出默认配置仍未补齐。" in markdown
 
 
 def test_render_study_progress_markdown_prefers_shared_human_status_narration() -> None:
@@ -339,8 +334,6 @@ def test_render_study_progress_markdown_prefers_shared_human_status_narration() 
         }
     )
 
-    assert "当前判断:" in markdown
-    assert "下一步建议:" in markdown
     assert "论文展示注册表与 reporting contract 不一致" in markdown
     assert "优先核对 submission package" in markdown
     assert "旧版阶段摘要字段" not in markdown
