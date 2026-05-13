@@ -19,7 +19,7 @@ DOCTOR_README_STRUCTURE = [
     },
     {
         "section": "Delivery status",
-        "purpose": "Show current/stale/legacy_pending/missing without authorizing publication quality.",
+        "purpose": "Show current/stale/layout_migration_pending/missing without authorizing publication quality.",
         "editable_source": False,
     },
     {
@@ -66,7 +66,7 @@ def _package_incomplete(package: Mapping[str, Any], key: str) -> bool:
     return bool(status and status in {"partial"})
 
 
-def _legacy_upgrade_queue(inspection: Mapping[str, Any]) -> list[dict[str, Any]]:
+def _layout_migration_queue(inspection: Mapping[str, Any]) -> list[dict[str, Any]]:
     queue: list[dict[str, Any]] = []
     for key, fallback in (
         ("source_package", "controller_authorized_source"),
@@ -117,7 +117,7 @@ def _traffic_light_status(
     if any(token.startswith("stale") for token in status_tokens if token):
         return "stale", delivery_status or verdict or incoming_status
     if legacy_queue and not (_package_missing(source_package) or _package_missing(human_package)):
-        return "legacy_pending", "legacy layout is waiting for controller-authorized sync"
+        return "layout_migration_pending", "layout migration is waiting for controller-authorized sync"
     if "missing" in status_tokens or _package_missing(source_package) or _package_missing(human_package):
         return "missing", "delivery package or mirror is missing"
     if verdict == "current" or delivery_status == "current" or incoming_status == "current":
@@ -168,9 +168,9 @@ def _backfill_blockers(
     for item in legacy_queue:
         blockers.append(
             {
-                "blocker_id": f"legacy_upgrade::{item.get('queue_item')}",
+                "blocker_id": f"layout_migration::{item.get('queue_item')}",
                 "severity": "controller_sync_required",
-                "summary": f"{item.get('role')} still uses legacy delivery layout.",
+                "summary": f"{item.get('role')} still needs delivery layout migration.",
             }
         )
     return blockers
@@ -180,7 +180,7 @@ def build_delivery_visibility_read_model(value: object) -> dict[str, Any] | None
     inspection = _mapping(value)
     if not inspection:
         return None
-    legacy_queue = _legacy_upgrade_queue(inspection)
+    legacy_queue = _layout_migration_queue(inspection)
     traffic_status, traffic_reason = _traffic_light_status(inspection, legacy_queue=legacy_queue)
     blockers = _backfill_blockers(
         inspection,
@@ -198,10 +198,10 @@ def build_delivery_visibility_read_model(value: object) -> dict[str, Any] | None
         "study_id": inspection.get("study_id"),
         "traffic_light": {
             "status": traffic_status,
-            "allowed_statuses": ["current", "stale", "legacy_pending", "missing"],
+            "allowed_statuses": ["current", "stale", "layout_migration_pending", "missing"],
             "reason": traffic_reason,
         },
-        "legacy_upgrade_queue": legacy_queue,
+        "layout_migration_queue": legacy_queue,
         "doctor_readme_structure_projection": DOCTOR_README_STRUCTURE,
         "backfill_blocker_report": {
             "status": backfill_status,
