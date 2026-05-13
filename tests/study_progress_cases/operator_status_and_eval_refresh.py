@@ -664,6 +664,201 @@ def test_study_progress_prefers_live_runtime_truth_over_recovering_health_hint(
     assert result["operator_status_card"]["user_visible_verdict"] == "MAS 正在持续监管当前 study。"
 
 
+def test_study_progress_drops_stale_submission_authority_blocker_after_controller_closure(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_root = profile.managed_runtime_home / "quests" / "quest-002"
+    source_eval_id = "publication-eval::002-risk::quest-002::2026-05-13T04:00:00+00:00"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": source_eval_id,
+            "study_id": "002-risk",
+            "quest_id": "quest-002",
+            "emitted_at": "2026-05-13T04:00:00+00:00",
+            "verdict": {
+                "overall_verdict": "blocked",
+                "summary": "bundle-stage blockers are now on the critical path for this paper line",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "must_fix",
+                    "summary": "stale_submission_minimal_authority",
+                }
+            ],
+            "recommended_actions": [],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "publication_work_unit_lifecycle" / "latest.json",
+        {
+            "schema_version": 1,
+            "source_eval_id": source_eval_id,
+            "study_id": "002-risk",
+            "quest_id": "quest-002",
+            "status": "done",
+            "work_unit": {"unit_id": "submission_authority_sync_closure", "lane": "controller"},
+            "unit_statuses": [
+                {"unit_id": "create_submission_minimal_package", "status": "ok"},
+                {"unit_id": "sync_submission_minimal_delivery", "status": "settled_by_current_gate"},
+            ],
+            "gate_replay_status": "clear",
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json",
+        {
+            "schema_version": 1,
+            "source_eval_id": source_eval_id,
+            "status": "fresh",
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "schema_version": 1,
+            "study_id": "002-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "quest_id": "quest-002",
+            "quest_root": str(quest_root),
+            "quest_exists": True,
+            "quest_status": "running",
+            "study_completion_contract": {},
+            "decision": "noop",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "phase_owner": "publication_gate",
+                "upstream_scientific_anchor_ready": True,
+                "bundle_tasks_downstream_only": False,
+                "current_required_action": "continue_bundle_stage",
+                "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+            },
+            "execution_owner_guard": {
+                "owner": "managed_runtime",
+                "supervisor_only": True,
+                "active_run_id": "run-002",
+                "current_required_action": "supervise_managed_runtime",
+                "publication_gate_allows_direct_write": True,
+            },
+            "continuation_state": {
+                "quest_status": "running",
+                "active_run_id": "run-002",
+                "continuation_policy": "auto",
+            },
+            "supervisor_tick_audit": {
+                "required": True,
+                "status": "fresh",
+                "summary": "MAS 外环监管心跳新鲜。",
+            },
+        },
+    )
+
+    result = module.read_study_progress(profile=profile, study_id="002-risk")
+
+    assert "stale_submission_minimal_authority" not in result["current_blockers"]
+    assert not any("投稿包" in item for item in result["current_blockers"])
+
+
+def test_study_progress_filters_cached_projection_after_controller_closure(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "002-risk", quest_id="quest-002")
+    source_eval_id = "publication-eval::002-risk::quest-002::2026-05-13T04:00:00+00:00"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": source_eval_id,
+            "study_id": "002-risk",
+            "quest_id": "quest-002",
+            "verdict": {"overall_verdict": "blocked"},
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "delivery",
+                    "severity": "must_fix",
+                    "summary": "stale_submission_minimal_authority",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "publication_work_unit_lifecycle" / "latest.json",
+        {
+            "schema_version": 1,
+            "source_eval_id": source_eval_id,
+            "study_id": "002-risk",
+            "quest_id": "quest-002",
+            "status": "done",
+            "work_unit": {"unit_id": "submission_authority_sync_closure", "lane": "controller"},
+            "unit_statuses": [
+                {"unit_id": "create_submission_minimal_package", "status": "ok"},
+                {"unit_id": "sync_submission_minimal_delivery", "status": "settled_by_current_gate"},
+            ],
+            "gate_replay_status": "clear",
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json",
+        {
+            "schema_version": 1,
+            "source_eval_id": source_eval_id,
+            "status": "fresh",
+        },
+    )
+
+    result = module.build_study_progress_projection(
+        profile=profile,
+        study_id="002-risk",
+        study_root=study_root,
+        status_payload={
+            "study_id": "002-risk",
+            "publication_supervisor_state": {},
+            "progress_projection": {
+                "schema_version": 1,
+                "study_id": "002-risk",
+                "current_stage": "publication_supervision",
+                "current_blockers": [
+                    "stale_submission_minimal_authority",
+                    "仍需人工复核主文叙事。",
+                ],
+                "user_visible_projection": {
+                    "current_blockers": [
+                        "stale_submission_minimal_authority",
+                        "仍需人工复核主文叙事。",
+                    ],
+                },
+                "status_narration_contract": {
+                    "current_blockers": [
+                        "stale_submission_minimal_authority",
+                        "仍需人工复核主文叙事。",
+                    ],
+                },
+            },
+        },
+    )
+
+    assert result["current_blockers"] == ["仍需人工复核主文叙事。"]
+    assert result["user_visible_projection"]["current_blockers"] == ["仍需人工复核主文叙事。"]
+    assert result["status_narration_contract"]["current_blockers"] == ["仍需人工复核主文叙事。"]
+
+
 def test_study_progress_refreshes_publication_eval_from_newer_gate_report(
     monkeypatch,
     tmp_path: Path,
