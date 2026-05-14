@@ -5,7 +5,7 @@ Owner: `MedAutoScience`
 
 Policies are stable internal rules. They define boundaries that maintainers and
 agents must follow; one-off checklists, closeout notes, and program boards
-belong in `docs/program/`, `docs/references/`, or `docs/history/`.
+belong in `docs/active/`, `docs/references/`, or `docs/history/`.
 
 | directory | purpose |
 | --- | --- |

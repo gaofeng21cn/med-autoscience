@@ -374,7 +374,7 @@ _DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
     PreflightCoveragePathFamily(
         family_id="program_docs",
         exact_paths=(),
-        prefix_paths=("docs/program/",),
+        prefix_paths=("docs/active/",),
     ),
     PreflightCoveragePathFamily(
         family_id="policy_docs",
@@ -394,7 +394,7 @@ _DEFAULT_COVERAGE_PATH_FAMILIES: tuple[PreflightCoveragePathFamily, ...] = (
     PreflightCoveragePathFamily(
         family_id="capability_docs",
         exact_paths=(),
-        prefix_paths=("docs/capabilities/",),
+        prefix_paths=("docs/delivery/",),
     ),
     PreflightCoveragePathFamily(
         family_id="agent_root",

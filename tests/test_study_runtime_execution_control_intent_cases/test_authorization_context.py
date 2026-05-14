@@ -115,6 +115,44 @@ def test_controller_authorization_prefers_current_decision_work_unit_over_stale_
     assert authorization_context["control_intent_identity"]["work_unit_id"] == "submission_minimal_refresh"
 
 
+def test_controller_authorization_projects_finalize_route_for_controller_owned_submission_unit(
+    tmp_path: Path,
+) -> None:
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_controller_decision_authorization(
+        study_root,
+        next_work_unit={
+            "unit_id": "submission_authority_sync_closure",
+            "lane": "controller",
+            "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+            "control_surface": "gate_clearing_batch",
+        },
+        blocking_work_units=[
+            {
+                "unit_id": "submission_authority_sync_closure",
+                "lane": "controller",
+                "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+                "control_surface": "gate_clearing_batch",
+            }
+        ],
+        work_unit_fingerprint="publication-blockers::bundle-ready",
+    )
+    _write_publication_eval_review_only_authority(study_root)
+
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+
+    assert authorization_context is not None
+    assert authorization_context["route_target"] == "finalize"
+    assert authorization_context["route_key_question"].startswith("submission_authority_sync_closure:")
+    assert authorization_context["work_unit_id"] == "submission_authority_sync_closure"
+    assert authorization_context["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert authorization_context["control_intent_identity"]["route_target"] == "finalize"
+    assert authorization_context["control_intent_identity"]["work_unit_id"] == "submission_authority_sync_closure"
+
+
 def test_controller_authorization_keeps_record_route_over_review_only_publication_work_unit(
     tmp_path: Path,
 ) -> None:

@@ -290,8 +290,9 @@ def _assert_product_entry_overview_surface(*, module, payload, profile, profile_
                 + " --ensure-study-runtimes --apply-supervisor-platform-repair --apply"
             ),
             "domain_projection": {
-                "service_status_command": str(
-                    profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
+                "service_status_command": (
+                    "uv run python -m med_autoscience.cli runtime supervision-status --profile "
+                    + str(profile_ref.resolve())
                 ),
                 "recommended_entry_surface": "workspace_cockpit",
             },

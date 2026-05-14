@@ -31,7 +31,7 @@ def render_medautoscience_config(*, workspace_root: Path, profile_relpath: Path)
         f'MED_AUTOSCIENCE_UV_BIN="{uv_config_value}"\n'
         "# Optional: set the absolute path to Rscript so host services can still see it under minimal PATH environments.\n"
         f'MED_AUTOSCIENCE_RSCRIPT_BIN="{rscript_config_value}"\n'
-        "# Optional: set the absolute path to node so managed runtime services can still launch node-backed backends under minimal PATH environments.\n"
+        "# Optional: set the absolute path to node so managed runtime commands can still launch node-backed backends under minimal PATH environments.\n"
         f'MED_AUTOSCIENCE_NODE_BIN="{node_config_value}"\n'
         "# Optional: override the default local profile file.\n"
         f'MED_AUTOSCIENCE_PROFILE="{profile_path}"\n'
@@ -54,11 +54,12 @@ def render_medautoscience_readme(*, profile_relpath: Path) -> str:
         "\n"
         "推荐的长时监管入口：\n\n"
         "- `bin/watch-runtime`\n"
-        "- `bin/install-watch-runtime-service`\n"
-        "- `bin/watch-runtime-service-status`\n"
-        "- `bin/uninstall-watch-runtime-service`\n\n"
-        "其中 `install-watch-runtime-service` / `watch-runtime-service-status` / `uninstall-watch-runtime-service`\n"
-        "会管理 MAS scheduler supervision job；Hermes 只在显式 `--manager hermes` 时作为 optional adapter。\n"
+        "- `bin/supervisor-reconcile`\n"
+        "- `bin/supervisor-consume`\n"
+        "- `bin/supervisor-execute-dispatch`\n\n"
+        "MAS scheduler supervision job 由 canonical CLI 管理：`medautosci runtime ensure-supervision --profile <profile>`、"
+        "`medautosci runtime supervision-status --profile <profile>` 与 `medautosci runtime remove-supervision --profile <profile>`。"
+        "Hermes 只在显式 `--manager hermes` 时作为 optional adapter。\n"
     )
 
 

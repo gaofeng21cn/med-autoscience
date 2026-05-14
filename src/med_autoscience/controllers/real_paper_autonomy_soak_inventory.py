@@ -58,7 +58,6 @@ STATUS_SURFACE_REFS: tuple[str, ...] = (
 LEGACY_MDS_LAUNCHER_REFS: tuple[str, ...] = (
     "ops/med-deepscientist",
     "ops/medautoscience/bin/watch-runtime",
-    "ops/medautoscience/bin/install-watch-runtime-service",
 )
 
 

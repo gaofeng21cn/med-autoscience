@@ -8,7 +8,7 @@ globals().update({
     if not name.startswith('__')
 })
 
-def test_bootstrap_command_refreshes_legacy_workspace_runtime_entry_scripts(
+def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     monkeypatch, tmp_path: Path, capsys
 ) -> None:
     cli = importlib.import_module("med_autoscience.cli")
@@ -116,8 +116,7 @@ def test_bootstrap_command_refreshes_legacy_workspace_runtime_entry_scripts(
     assert '"selected_action": "noop"' in captured.out
     assert '"supervision_bootstrap"' in captured.out
     assert '"trigger_now": false' in captured.out
-    install_text = install_service.read_text(encoding="utf-8")
-    assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
+    assert not install_service.exists()
 def test_ensure_study_runtime_analysis_bundle_command_prints_controller_payload(monkeypatch, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     payload = {"action": "already_ready", "ready": True}

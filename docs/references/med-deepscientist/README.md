@@ -14,4 +14,4 @@ This reference family is covered by the MAS/MDS doc-reference semantic guard. Wo
 - [MedDeepScientist upstream source provenance](./med_deepscientist_upstream_source_provenance.md)
 - [Upstream intake guide](./upstream_intake.md)
 
-These are references, not independent program boards. Current execution is governed by [Program portfolio consolidation](../../program/program_portfolio_consolidation.md), and the learning entry point is [DeepScientist latest-update learning protocol](./deepscientist_latest_update_learning_protocol.md).
+These are references, not independent program boards. Current execution is governed by [Program portfolio consolidation](../../active/program_portfolio_consolidation.md), and the learning entry point is [DeepScientist latest-update learning protocol](./deepscientist_latest_update_learning_protocol.md).

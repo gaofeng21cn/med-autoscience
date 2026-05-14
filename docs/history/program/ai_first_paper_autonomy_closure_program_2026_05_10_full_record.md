@@ -1,7 +1,7 @@
 # AI-first Paper Autonomy Closure Program
 
 Archive state: `historical full record`
-Current owner: [AI-first Paper Autonomy Closure Program](../../program/ai_first_paper_autonomy_closure_program.md)
+Current owner: [AI-first Paper Autonomy Closure Program](../../active/ai_first_paper_autonomy_closure_program.md)
 Read rule: this file preserves the 2026-05-10 full closeout/provenance record. Do not read implementation lanes, status labels, or open requirements here as the current program queue unless the current owner document still references them.
 
 Status: `repo implementation landed; real-paper soak projection active`

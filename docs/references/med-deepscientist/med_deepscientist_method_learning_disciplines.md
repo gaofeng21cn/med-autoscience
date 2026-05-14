@@ -108,7 +108,7 @@
 一个 lesson 只有进入下面这些面，才算真正被 `MAS` 学到：
 
 - `docs/project.md`、`docs/architecture.md`、`docs/status.md` 这一层的 owner 与入口说明
-- `docs/program/`、`docs/runtime/` 这一层的 program truth 和 contract truth
+- `docs/active/`、`docs/runtime/` 这一层的 program truth 和 contract truth
 - 对应的 `tests/*`、`make test-meta`、必要的 targeted regression
 - 至少一个真实 study 或真实维护场景的验证证据
 
@@ -134,7 +134,7 @@
 | 单主线研究推进 | `controller_charter` + `eval_hygiene` | quest/study program、evidence/review ledger、delivery plane | docs、ledger tests、真实研究轨迹 |
 | durable truth 与前台可见性 | `runtime` + `eval_hygiene` | `study_runtime_status`、`runtime_watch`、`publication_eval`、progress projection | runtime tests、meta tests、fresh runtime evidence |
 | interrupt / resume / replan 治理 | `runtime` | supervision loop、outer-loop decision、controller decision record | runtime tests、真实恢复场景 |
-| 持续学习 program | `controller_charter` + `runtime` + `eval_hygiene` | `docs/program/`、intake / parity / oracle gate、长期主线 status | docs、merge gate、parity proof |
+| 持续学习 program | `controller_charter` + `runtime` + `eval_hygiene` | `docs/active/`、intake / parity / oracle gate、长期主线 status | docs、merge gate、parity proof |
 
 ## 6. 当前还应留给 MDS 的历史职责
 

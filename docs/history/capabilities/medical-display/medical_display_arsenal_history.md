@@ -10,7 +10,7 @@
 4. 具体落成了哪个模板、契约、质控或回归能力；
 5. 当前这次扩充处于什么状态。
 
-与 [medical_display_arsenal.md](../../../capabilities/medical-display/catalogs/medical_display_arsenal.md) 的分工是：
+与 [medical_display_arsenal.md](../../../delivery/medical-display/catalogs/medical_display_arsenal.md) 的分工是：
 
 - `medical_display_arsenal.md` 记录“现在军火库里有什么”；
 - 本文记录“这些能力是怎么学会的、什么时候学会的”。

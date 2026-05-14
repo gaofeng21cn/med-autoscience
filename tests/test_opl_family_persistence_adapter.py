@@ -242,7 +242,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     )
     assert physical_audit["default_placement_policy"] == {
         "new_repo_source_surfaces_follow_standard_slots": True,
-        "preserve_legacy_facades_and_locators": True,
+        "preserve_current_locator_boundaries": True,
         "destructive_directory_reorganization_allowed": False,
         "real_workspace_artifacts_remain_locator_only": True,
     }
@@ -257,7 +257,7 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert by_slot["agent/stages"]["default_for_new_surfaces"] is True
     assert by_slot["agent/stages"]["mapping_explanation"] == (
         "New stage definitions should land in the standard slot while existing stage policy "
-        "and stage knowledge controller paths remain the active facade-backed repo mapping."
+        "and stage knowledge controller paths remain the active repo mapping."
     )
     assert by_slot["agent/prompts"]["surface_class"] == "prompt"
     assert by_slot["agent/prompts"]["default_for_new_surfaces"] is True

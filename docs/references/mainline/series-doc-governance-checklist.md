@@ -3,13 +3,13 @@
 ## 目标
 
 本清单用于把 `Med Auto Science` 放进 `One Person Lab`、`Med Auto Science`、`Med Auto Grant`、`RedCube AI` 这组系列项目的统一文档管理口径里做巡检。
-它服务跨仓 docs intake、回归与持续对齐，不替代核心五件套、`docs/runtime/**`、`docs/program/**`、`docs/capabilities/**` 或 runtime / product-entry contract。
+它服务跨仓 docs intake、回归与持续对齐，不替代核心五件套、`docs/runtime/**`、`docs/active/**`、`docs/delivery/**` 或 runtime / product-entry contract。
 
 ## 一、默认入口
 
 - `README.md` / `README.zh-CN.md` 是默认公开首页。
 - `docs/README.md` / `docs/README.zh-CN.md` 是默认 docs 索引。
-- 外部读者先走公开入口；AI / 维护者先走核心五件套，再进入 `docs/runtime/**`、`docs/program/**`、`docs/references/**` 与 `docs/policies/**`。
+- 外部读者先走公开入口；AI / 维护者先走核心五件套，再进入 `docs/runtime/**`、`docs/active/**`、`docs/references/**` 与 `docs/policies/**`。
 
 ## 二、核心五件套
 
@@ -25,7 +25,7 @@
 ## 三、公开层与内部层
 
 - `README*` 与 `docs/README*` 继续承担双语公开入口。
-- `docs/runtime/**`、`docs/program/**`、`docs/capabilities/**`、`docs/references/**` 继续承担 repo-tracked operator docs；默认中文维护，除非明确提升到公开双语面。
+- `docs/runtime/**`、`docs/active/**`、`docs/delivery/**`、`docs/references/**` 继续承担 repo-tracked operator docs；默认中文维护，除非明确提升到公开双语面。
 - `docs/policies/**` 继续承担稳定内部规则。
 - `docs/history/omx/` 只保留历史归档入口，不重新承担当前 workflow。
 - 长期规则要冻结进核心文档、policy、reference 或 contract surface；不要把 `AGENTS.md` 继续当第二真相源。

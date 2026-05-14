@@ -148,7 +148,7 @@ functional monolith closeout 后，`MAS` 仍要持续学习如何把长期研究
 
 每次有效 lesson 都应优先沉到下面这些输出面之一：
 
-- `docs/program/`：方法论、阶段计划、maintainer 入口
+- `docs/active/`：方法论、阶段计划、maintainer 入口
 - `docs/runtime/`：控制语义、durable surface、治理 contract
 - `docs/status.md`：当前维护重点与阅读入口
 - `tests/` 与 `make test-meta`：守住 contract 的 fail-closed proof

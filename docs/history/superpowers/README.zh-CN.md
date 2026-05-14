@@ -11,7 +11,7 @@
 
 - [文档索引](../../README.zh-CN.md)
 - [文档组合治理](../../docs_portfolio_consolidation.md)
-- [Program portfolio consolidation](../../program/program_portfolio_consolidation.md)
+- [Program portfolio consolidation](../../active/program_portfolio_consolidation.md)
 
 归档分组：
 

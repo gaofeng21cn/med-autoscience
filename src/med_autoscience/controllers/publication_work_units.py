@@ -600,6 +600,13 @@ def _complete_actionability_units(
 ) -> tuple[str, tuple[str, ...]]:
     if units:
         return "actionable", ()
+    current_required_action = str(report.get("current_required_action") or "").strip()
+    if str(report.get("status") or "").strip() == "clear" and current_required_action in {
+        "continue_bundle_stage",
+        "complete_bundle_stage",
+    }:
+        _append_submission_authority_sync_closure_unit(units)
+        return "controller_bundle_stage_required", ()
     if blockers and not _has_actionable_object_ref(report):
         _append_gate_specificity_unit(units)
         return "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS

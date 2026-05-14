@@ -136,8 +136,10 @@ def bundle_stage_publication_eval_preempts_task_intake(
 ) -> bool:
     if not publication_eval_has_finalize_route(publication_eval_payload):
         return False
-    if task_intake_action is not None and not _publication_eval_has_finalize_work_unit(publication_eval_payload):
-        return False
     if _runtime_status_reports_bundle_stage_ready(status_payload):
         return True
-    return task_intake_action is None and _gate_report_is_clear_bundle_stage(gate_report)
+    if not _gate_report_is_clear_bundle_stage(gate_report):
+        return False
+    if task_intake_action is None:
+        return True
+    return _publication_eval_has_finalize_work_unit(publication_eval_payload)

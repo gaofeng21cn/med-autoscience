@@ -383,7 +383,7 @@ def build_functional_closure_status_projection(
         "version": "mas-functional-closure-status.v1",
         "target_domain_id": TARGET_DOMAIN_ID,
         "owner": DOMAIN_OWNER,
-        "planning_ref": "docs/program/current_development_lines.md",
+        "planning_ref": "docs/active/current_development_lines.md",
         "status": "functional_surfaces_projected_production_evidence_gated",
         "summary": _functional_closure_summary(lines),
         "lines": lines,

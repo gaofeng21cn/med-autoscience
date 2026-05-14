@@ -485,14 +485,15 @@ def write_runtime_binding(
     source: str,
     recorded_at: str,
     runtime_backend_id: str = runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
-    runtime_engine_id: str = runtime_backend_contract.engine_id_for_backend_id(
-        runtime_backend_contract.DEFAULT_MANAGED_RUNTIME_BACKEND_ID
-    ),
+    runtime_engine_id: str | None = None,
     research_backend_id: str | None = None,
     research_engine_id: str | None = None,
 ) -> None:
     resolved_runtime_root = Path(runtime_root).expanduser().resolve()
     resolved_study_root = Path(study_root).expanduser().resolve()
+    resolved_runtime_engine_id = runtime_engine_id or runtime_backend_contract.engine_id_for_backend_id(
+        runtime_backend_id
+    )
     resolved_research_backend_id, resolved_research_engine_id = runtime_backend_contract.controlled_research_backend_metadata_for_backend_id(
         runtime_backend_id
     )
@@ -500,10 +501,10 @@ def write_runtime_binding(
         runtime_binding_path,
         {
             "schema_version": 1,
-            "engine": runtime_engine_id,
+            "engine": resolved_runtime_engine_id,
             "runtime_backend_id": runtime_backend_id,
             "runtime_backend": runtime_backend_id,
-            "runtime_engine_id": runtime_engine_id,
+            "runtime_engine_id": resolved_runtime_engine_id,
             "research_backend_id": research_backend_id or resolved_research_backend_id,
             "research_backend": research_backend_id or resolved_research_backend_id,
             "research_engine_id": research_engine_id or resolved_research_engine_id,

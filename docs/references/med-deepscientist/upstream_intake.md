@@ -222,4 +222,4 @@ PYTHONPATH=src pytest -q
 
 对应治理视角请看：
 
-- [`Program Portfolio Consolidation`](../../program/program_portfolio_consolidation.md)
+- [`Program Portfolio Consolidation`](../../active/program_portfolio_consolidation.md)

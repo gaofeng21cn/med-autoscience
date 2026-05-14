@@ -47,6 +47,8 @@ _FINALIZE_WORK_UNIT_IDS = frozenset(
         "publication_gate_replay",
     }
 )
+_EXECUTION_SURFACE_LANES = frozenset({"controller"})
+_ROUTE_TARGETS = frozenset({"analysis-campaign", "write", "review", "finalize", "publication_gate", "stop"})
 
 
 def _read_json_mapping(path: Path) -> dict[str, Any]:
@@ -149,12 +151,16 @@ def _publication_eval_work_unit_context(publication_eval_payload: dict[str, Any]
             for item in action.get("blocking_work_units") or []
             if (compact := _compact_work_unit_payload(item)) is not None
         ]
+        route_target = _text(action.get("route_target"))
+        next_work_unit_lane = _text(next_work_unit.get("lane"))
+        if route_target is None and next_work_unit_lane not in _EXECUTION_SURFACE_LANES:
+            route_target = next_work_unit_lane
         return {
             "work_unit_id": unit_id,
             "work_unit_fingerprint": _text(action.get("work_unit_fingerprint")),
             "next_work_unit": next_work_unit,
             "blocking_work_units": blocking_work_units,
-            "route_target": _text(next_work_unit.get("lane")) or _text(action.get("route_target")),
+            "route_target": route_target,
             "route_key_question": route_key_question,
             "route_rationale": route_rationale,
             "source_route_key_question": _text(action.get("route_key_question")),
@@ -284,12 +290,18 @@ def _record_work_unit_context(record: StudyDecisionRecord) -> dict[str, Any]:
         for item in record.blocking_work_units
         if (compact := _compact_work_unit_payload(item)) is not None
     ]
+    route_target = record.route_target if record.route_target in _ROUTE_TARGETS else None
+    next_work_unit_lane = _text(next_work_unit.get("lane"))
+    if route_target is None and next_work_unit_lane not in _EXECUTION_SURFACE_LANES:
+        route_target = next_work_unit_lane
+    if unit_id in _FINALIZE_WORK_UNIT_IDS and route_target in {None, "analysis-campaign", "write"}:
+        route_target = "finalize"
     return {
         "work_unit_id": unit_id,
         "work_unit_fingerprint": record.work_unit_fingerprint,
         "next_work_unit": next_work_unit,
         "blocking_work_units": blocking_work_units,
-        "route_target": _text(next_work_unit.get("lane")) or record.route_target,
+        "route_target": route_target,
         "route_key_question": route_key_question,
         "route_rationale": record.route_rationale,
         "source_route_key_question": record.route_key_question,

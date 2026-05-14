@@ -14,7 +14,7 @@
 
 ## 规则
 
-Reference 如果变成当前执行队列，应迁入 `docs/program/`；如果变成稳定规则，应迁入 `docs/policies/`；如果变成完成快照或退役 board，应归档到 `docs/history/`。
+Reference 如果变成当前执行队列，应迁入 `docs/active/`；如果变成稳定规则，应迁入 `docs/policies/`；如果变成完成快照或退役 board，应归档到 `docs/history/`。
 
 ## 定位参考
 

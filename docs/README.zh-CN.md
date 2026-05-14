@@ -15,18 +15,33 @@
 | 持久决策 | [关键决策](./decisions.md) |
 | 文档生命周期规则 | [文档组合治理](./docs_portfolio_consolidation.md) |
 
+## OPL 系列分层
+
+OPL 系列项目的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/docs/active/opl-family-development-reference.zh-CN.md`。其中维护 OPL Framework 的全局目标、全局差距、通用能力上收边界、App/workbench 目标和跨仓开发顺序。
+
+MAS 本仓只维护医学研究 domain agent 的目标、当前差距、study/publication/artifact authority、direct MAS app skill path、OPL-hosted sidecar/projection/receipt 边界，以及哪些通用 runtime、memory、artifact lifecycle、workbench 和 observability primitive 应上收到 OPL。MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不在 MAS 文档中维护。
+
 ## 目录地图
 
 | 目录 | 用途 |
 | --- | --- |
+| [active](./active/README.md) | 当前执行、当前计划、当前差距与 active baton；旧 `program/` 由这里收口。 |
+| [public](./public/README.md) | MAS 对外公开叙事和用户第一阅读层。 |
+| [product](./product/README.md) | MAS app skill、direct product entry、operator/workbench-facing 指南。 |
 | [runtime](./runtime/README.md) | 运行时合同、控制面、读模型、展示合同和活跃设计。 |
-| [program](./program/README.zh-CN.md) | Program 生命周期组合：论文自治目标、产品化/框架化实现依托、已落地基础 owner 文档和 program 级协调。 |
-| [capabilities](./capabilities/README.zh-CN.md) | 能力族文档，例如 medical display。 |
-| [references](./references/README.zh-CN.md) | 支撑参考、定位、集成说明、parity 材料和验证记录。 |
+| [delivery](./delivery/README.md) | manuscript、package、submission/export 与医学研究交付 authority。 |
+| [source](./source/README.md) | study workspace、source readiness、source truth consumption 与 external research intake。 |
 | [policies](./policies/README.md) | 稳定内部规则和长期运行边界。 |
+| [specs](./specs/README.md) | 当前仍有效的技术规格索引；旧 spec 需标清 active/history。 |
+| [program](./active/README.zh-CN.md) | Program 生命周期组合：论文自治目标、产品化/框架化实现依托、已落地基础 owner 文档和 program 级协调。 |
+| [capabilities](./delivery/README.zh-CN.md) | 能力族文档，例如 medical display。 |
+| [references](./references/README.zh-CN.md) | 支撑参考、定位、集成说明、parity 材料和验证记录。 |
 | [history](./history/README.zh-CN.md) | dated snapshot、provenance、退役 board、归档计划和过程稿。 |
 
-这张表是生命周期层级。核心文档与 runtime / policy owner surface 承担当前真相；`program` 承担目标、实现依托和已落地基础的组合治理；`references` 承担支撑上下文；`history` 承担 provenance 和退役材料。
+这张表采用 OPL-family canonical docs taxonomy。`program/` 与 `capabilities/`
+是现有迁移源和 path-stable 支撑目录：仍被合同、历史证据或 active baton 引用的文件可暂留原位，
+但新 recurring material 应优先进入 `active/public/product/runtime/delivery/source/policies/specs/references/history`
+这组同名目录。
 
 ## 阅读规则
 

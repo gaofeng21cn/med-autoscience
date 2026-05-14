@@ -1,8 +1,8 @@
 # OPL Temporal MAS Runtime Retirement Program
 
 Archive note: this is the 2026-05-11 full record of the P2 framework-alignment and retirement plan.
-Current content-level owner: [OPL Temporal MAS Runtime Retirement Program](../../program/opl_temporal_mas_runtime_retirement_program.md).
-Current development map: [MAS Current Development Lines](../../program/current_development_lines.md).
+Current content-level owner: [OPL Temporal MAS Runtime Retirement Program](../../active/opl_temporal_mas_runtime_retirement_program.md).
+Current development map: [MAS Current Development Lines](../../active/current_development_lines.md).
 Do not treat every section in this file as current mandatory scope.
 
 Status: `archived full record; current owner doc is active`

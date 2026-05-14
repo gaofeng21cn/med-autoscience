@@ -23,6 +23,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_r
 from med_autoscience.controllers.runtime_supervisor_scan_parts import publication_gate_actions
 from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_truth
 from med_autoscience.controllers.runtime_supervisor_scan_parts import paper_progress_stall_projection
+from med_autoscience.controllers.runtime_supervisor_scan_parts import projection_errors
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
@@ -890,19 +891,33 @@ def supervisor_scan(
         if isinstance(action, Mapping)
     }
     previous_action_ids.discard(None)
-    studies = [
-        _study_projection(
-            profile=profile,
-            study_id=study_id,
-            apply_safe_actions=apply_safe_actions,
-            apply_runtime_platform_repair=apply_runtime_platform_repair,
-            developer_mode=developer_mode,
-            persist_surfaces=persist_surfaces,
-            generated_at=generated_at,
-            previous_payload=previous_payload,
-        )
-        for study_id in resolved_study_ids
-    ]
+    studies: list[dict[str, Any]] = []
+    for study_id in resolved_study_ids:
+        try:
+            study_projection = _study_projection(
+                profile=profile,
+                study_id=study_id,
+                apply_safe_actions=apply_safe_actions,
+                apply_runtime_platform_repair=apply_runtime_platform_repair,
+                developer_mode=developer_mode,
+                persist_surfaces=persist_surfaces,
+                generated_at=generated_at,
+                previous_payload=previous_payload,
+            )
+        except (ValueError, TypeError) as exc:
+            study_root = _study_root(profile, study_id)
+            reason = projection_errors.PROJECTION_CONTRACT_ERROR_REASON
+            study_projection = projection_errors.projection_error_study(
+                study_id=study_id,
+                study_root=study_root,
+                developer_mode_payload=developer_mode.to_dict(),
+                safe_actions_enabled=developer_mode.safe_actions_enabled,
+                generated_at=generated_at,
+                error=exc,
+                recovery_intent_path=recovery_intent_ledger.latest_path_for_study(study_root),
+                why_not_applied_timeline=_why_not_applied_timeline(reason),
+            )
+        studies.append(study_projection)
     queue_slo_payload = queue_slo.decorate_action_queue_slo(
         studies=studies,
         previous_payload=previous_payload,

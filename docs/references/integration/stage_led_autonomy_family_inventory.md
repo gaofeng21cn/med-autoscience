@@ -41,7 +41,7 @@ MAS 现在通过 product-entry manifest 暴露 MAS-owned 标准 `family_stage_co
 | surface | current owner | current role | family projection recommendation |
 | --- | --- | --- | --- |
 | `docs/policies/study-workflow/stage_led_research_autonomy.md` | MAS policy owner | Stable policy for `stage-led autonomy, controller-governed evidence` | `keep` as policy reference; expose descriptor link only |
-| `docs/program/ai_first_paper_autonomy_closure_program.md` | MAS program owner | Program context tying AI reviewer repair, route decision, stage knowledge/memory, and real-paper soak | `keep` as program context; do not use as runtime contract |
+| `docs/active/ai_first_paper_autonomy_closure_program.md` | MAS program owner | Program context tying AI reviewer repair, route decision, stage knowledge/memory, and real-paper soak | `keep` as program context; do not use as runtime contract |
 | `agent/stages/stage_route_contract.yaml` | MAS route contract owner | Route contract for scout, idea, baseline, experiment, analysis-campaign, write, review, finalize, decision, journal-resolution, entry modes, gates, outputs, and route-back triggers | `keep`; OPL maps route descriptors from this source read-only |
 | `src/med_autoscience/controllers/stage_knowledge_plane.py` | MAS controller/knowledge-plane owner | Machine surface for stage knowledge packets, typed closeout, memory routing receipts, and recall index | `map_to_descriptor`; descriptor mirrors surface metadata, required fields, owner, and authority boundary |
 | `product-entry-manifest.family_stage_control_plane` | MAS product-entry projection owner | OPL-standard stage plane for `stages list|inspect`, mapped to existing MAS routes and action catalog refs | `landed`; OPL may consume it as descriptor only |

@@ -464,7 +464,7 @@ def test_runtime_watch_outer_loop_routes_bundle_stage_ready_before_stale_task_in
     ]
 
 
-def test_runtime_watch_outer_loop_keeps_reviewer_revision_when_bundle_ready_eval_only_has_review_work_unit(
+def test_runtime_watch_outer_loop_routes_bundle_ready_eval_review_unit_to_finalize_work_unit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -632,14 +632,162 @@ def test_runtime_watch_outer_loop_keeps_reviewer_revision_when_bundle_ready_eval
     )
 
     assert request is not None
-    assert request["decision_type"] == "bounded_analysis"
-    assert request["route_target"] == "analysis-campaign"
+    assert request["decision_type"] == "continue_same_line"
+    assert request["route_target"] == "finalize"
+    assert request["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert request["work_unit_fingerprint"] == "publication-blockers::4f53cda18c2baa0c"
     assert request["controller_actions"] == [
         {
             "action_type": "ensure_study_runtime",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]
+
+
+def test_runtime_watch_outer_loop_routes_bundle_blocked_eval_review_unit_to_finalize_work_unit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "003-dpcc-primary-care-phenotype-treatment-gap")
+    quest_root = profile.managed_runtime_home / "quests" / "quest-003"
+    runtime_escalation_ref = _write_runtime_escalation_record(
+        module,
+        quest_root,
+        study_root,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        quest_id="quest-003",
+    )
+    _write_charter(study_root)
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    _write_json(
+        publication_eval_path,
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::quest-003::latest",
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "quest-003",
+            "emitted_at": "2026-05-13T22:45:40+00:00",
+            "evaluation_scope": "publication",
+            "charter_context_ref": {
+                "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                "charter_id": "charter::003-dpcc-primary-care-phenotype-treatment-gap::v1",
+                "publication_objective": "primary care treatment gap manuscript",
+            },
+            "runtime_context_refs": {
+                "runtime_escalation_ref": str(
+                    quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+                ),
+                "main_result_ref": str(quest_root / "artifacts" / "results" / "main_result.json"),
+            },
+            "delivery_context_refs": {
+                "paper_root_ref": str(study_root / "paper"),
+                "submission_minimal_ref": str(
+                    study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+                ),
+            },
+            "verdict": {
+                "overall_verdict": "promising",
+                "primary_claim_status": "supported",
+                "summary": "bundle-stage work is unlocked and can proceed on the critical path",
+                "stop_loss_pressure": "none",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-submission-authority",
+                    "gap_type": "delivery",
+                    "severity": "important",
+                    "summary": "stale_submission_minimal_authority",
+                    "evidence_refs": [str(publication_eval_path)],
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "publication-eval-action::continue_same_line::review",
+                    "action_type": "continue_same_line",
+                    "priority": "now",
+                    "reason": "bundle-stage work is unlocked and can proceed on the critical path",
+                    "route_target": "finalize",
+                    "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                    "route_rationale": "bundle-stage work is unlocked and can proceed on the critical path",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "work_unit_fingerprint": "publication-blockers::review",
+                    "next_work_unit": {
+                        "unit_id": "publication_gate_blocker_review",
+                        "lane": "review",
+                        "summary": "Review the current publication gate blockers and select the narrowest repair unit.",
+                    },
+                    "blocking_work_units": [
+                        {
+                            "unit_id": "publication_gate_blocker_review",
+                            "lane": "review",
+                            "summary": "Review the current publication gate blockers and select the narrowest repair unit.",
+                        }
+                    ],
+                    "requires_controller_decision": True,
+                }
+            ],
+        },
+    )
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="003-dpcc-primary-care-phenotype-treatment-gap",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent="旧 manuscript revision work unit。",
+        constraints=("不得绕过 publication gate。",),
+        first_cycle_outputs=("revised canonical manuscript source",),
+    )
+    gate_report = {
+        "generated_at": "2026-05-13T22:45:40+00:00",
+        "status": "blocked",
+        "allow_write": False,
+        "blockers": ["stale_submission_minimal_authority"],
+        "current_required_action": "complete_bundle_stage",
+        "supervisor_phase": "bundle_stage_blocked",
+        "study_delivery_status": "current",
+        "submission_minimal_authority_status": "stale_source_changed",
+        "submission_minimal_evaluated_source_signature": "source::new",
+        "submission_minimal_authority_source_signature": "source::old",
+    }
+    monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
+    monkeypatch.setattr(module.publication_gate_controller, "build_gate_report", lambda state: dict(gate_report))
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "build_gate_clearing_batch_recommended_action",
+        lambda **_: None,
+    )
+    monkeypatch.setattr(
+        module.quality_repair_batch,
+        "build_quality_repair_batch_recommended_action",
+        lambda **_: None,
+    )
+
+    request = module.build_runtime_watch_outer_loop_tick_request(
+        study_root=study_root,
+        status_payload={
+            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+            "quest_id": "quest-003",
+            "quest_status": "active",
+            "runtime_liveness_status": "live",
+            "active_run_id": "mas-run-003",
+            "reason": "quest_already_running",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+                "publication_gate_allows_direct_write": True,
+            },
+            "runtime_escalation_ref": runtime_escalation_ref,
+        },
+    )
+
+    assert request is not None
+    assert request["decision_type"] == "continue_same_line"
+    assert request["route_target"] == "finalize"
+    assert request["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert request["work_unit_fingerprint"] != "publication-blockers::review"
 
 
 def test_runtime_watch_outer_loop_keeps_current_write_task_intake_before_clear_bundle_gate(

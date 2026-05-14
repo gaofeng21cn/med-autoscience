@@ -8,6 +8,7 @@ globals().update({
     if not name.startswith('__')
 })
 
+from .test_study_outer_loop_cases.controller_transition_matrix_cases import *  # noqa: F403,F401
 from .test_study_outer_loop_cases.controller_and_manifest_cases import *  # noqa: F403,F401
 from .test_study_outer_loop_cases.controller_work_unit_cases import *  # noqa: F403,F401
 from .test_study_outer_loop_cases.fast_lane_closeout_cases import *  # noqa: F403,F401

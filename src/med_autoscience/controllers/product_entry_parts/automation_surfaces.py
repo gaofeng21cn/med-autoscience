@@ -39,9 +39,7 @@ def _build_automation_surface(
         ],
         target_command=refresh_command,
         domain_projection={
-            "service_status_command": str(
-                profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
-            ),
+            "service_status_command": f"{_command_prefix(profile_ref)} runtime supervision-status --profile {_profile_arg(profile_ref)}",
             "recommended_entry_surface": "workspace_cockpit",
         },
     )

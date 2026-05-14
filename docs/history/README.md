@@ -14,14 +14,14 @@ external-runtime cutover / WebUI / daemon documents without an explicit active
 owner belong here or under `docs/references/` as provenance, parity, explicit
 archive import, backend audit, or historical decision material. For current
 state, start from `docs/status.md`, `docs/architecture.md`, `docs/decisions.md`,
-`docs/program/program_portfolio_consolidation.md`, and durable
+`docs/active/program_portfolio_consolidation.md`, and durable
 runtime/controller surfaces.
 
 | archive | contents |
 | --- | --- |
-| [program](./program/README.md) | Closeouts, activation packages, retired boards, and dated intake snapshots. |
+| [program](./active/README.md) | Closeouts, activation packages, retired boards, and dated intake snapshots. |
 | [runtime](./runtime/README.md) | Completed runtime implementation plans and legacy runtime boundary records. |
-| [capabilities](./capabilities/README.md) | Capability-family history and retired medical-display records. |
+| [capabilities](./delivery/README.md) | Capability-family history and retired medical-display records. |
 | [omx](./omx/README.md) | OMX worktree startup/closeout history. |
 | [superpowers](./superpowers/README.md) | Repo-tracked historical process drafts; new local drafts stay untracked by default. |
 

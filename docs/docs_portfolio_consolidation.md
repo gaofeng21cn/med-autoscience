@@ -23,6 +23,12 @@ The stable root set is:
 
 Everything else belongs to a lifecycle directory.
 
+The OPL-family canonical docs taxonomy for managed framework/domain repos is
+`active/public/product/runtime/delivery/source/policies/specs/references/history`.
+MAS keeps existing `program/` and `capabilities/` as migration sources and
+path-stable support directories while active links are audited; they are not
+new long-term destination names for recurring material.
+
 ## Lifecycle Signals
 
 Every long-lived document must be classifiable by four signals:
@@ -49,7 +55,7 @@ Maintainers should review documents in this order:
 1. Identify the current factual claims, landed evidence, active work, recurring
    support lanes, and historical narrative inside the document.
 2. Merge current factual claims into the relevant core doc or owner doc.
-3. Keep active work in `docs/program/` only when it still needs execution order,
+3. Keep active work in `docs/active/` only when it still needs execution order,
    owner gates, or closeout evidence.
 4. Move recurring learning/support material to `docs/references/` plus dated
    `docs/history/program/` snapshots.
@@ -78,11 +84,17 @@ MAS adapts mature documentation practice this way:
 | directory | role | lifecycle rule |
 | --- | --- | --- |
 | `docs/` root | short technical entry plus core truth | Only root README, core five, and this governance file stay here. |
+| `docs/active/` | current execution, gap plans, and active baton | Routes current `program/` material; physical moves wait for inbound `human_doc:*` and contract review. |
+| `docs/public/` | public MAS narrative after the repository home | Keeps user-facing positioning sparse and subordinate to the repository home. |
+| `docs/product/` | direct app skill, product-entry, operator/workbench-facing guidance | Does not own study truth or publication verdicts. |
 | `docs/runtime/` | runtime contracts, control, projections, display, active designs | Completed implementation plans move to `docs/history/runtime/`. |
-| `docs/program/` | program lifecycle portfolio | Keep small: program README, portfolio entry, the P0 target/acceptance owner, P1/P2 active enablers, and P3/P3a landed foundation owner docs. |
-| `docs/capabilities/` | capability-family docs | Each family owns its board, contracts, catalogs, plans, provenance, and history links. |
-| `docs/references/` | support references | Group by `mainline`, `integration`, `mds-parity`, `positioning`, `verification`, `workspace`, and `med-deepscientist`. |
+| `docs/delivery/` | manuscript, package, submission/export, and delivery authority support | Domain authority remains in MAS runtime/artifact surfaces. |
+| `docs/source/` | workspace/source intake, source readiness, source truth consumption | Keeps source semantics MAS-owned and only generic shell candidates go up to OPL. |
 | `docs/policies/` | stable internal rules | Group by `quality`, `study-workflow`, `runtime-governance`, and `repo-ops`; do not store one-off plans here. |
+| `docs/specs/` | active technical specs and spec index | Older specs must be explicitly classified active or history before expansion. |
+| `docs/active/` | program lifecycle portfolio | Keep small: program README, portfolio entry, the P0 target/acceptance owner, P1/P2 active enablers, and P3/P3a landed foundation owner docs. |
+| `docs/delivery/` | capability-family docs | Each family owns its board, contracts, catalogs, plans, provenance, and history links. |
+| `docs/references/` | support references | Group by `mainline`, `integration`, `mds-parity`, `positioning`, `verification`, `workspace`, and `med-deepscientist`. |
 | `docs/history/` | dated snapshots, provenance, retired boards, process drafts | History cannot own active backlog, runtime truth, publication truth, or policy authority. |
 
 ## Current Subtree Rules
@@ -96,7 +108,7 @@ MAS adapts mature documentation practice this way:
 | `docs/runtime/designs/` | Named design owner | Active designs pending contract/test promotion. |
 | `docs/references/mds-parity/` | MAS/MDS parity owner | Behavior/capability parity oracle and cleanroom UX reference. |
 | `docs/policies/runtime-governance/` | Runtime governance owner | Long-lived runtime and MAS/MDS owner-boundary rules. |
-| `docs/capabilities/medical-display/` | Medical display owner | Portfolio, board, contracts, catalogs, plans, and provenance are separated in subdirectories. |
+| `docs/delivery/medical-display/` | Medical display owner | Portfolio, board, contracts, catalogs, plans, and provenance are separated in subdirectories. |
 
 ## Archive Rule
 
@@ -110,6 +122,12 @@ and must point readers back to the current owner surface when needed.
 After the MAS monolith closeout, documentation updates must classify legacy
 runtime material by current lifecycle role before editing prose:
 
+- The OPL-family global development reference is
+  `/Users/gaofeng/workspace/one-person-lab/docs/active/opl-family-development-reference.zh-CN.md`.
+  It owns global framework targets, cross-repo gap ordering, shared primitive
+  absorption, App/workbench targets, and same-name docs taxonomy. MAS docs only own
+  MAS target state, MAS gaps, MAS authority boundaries, and MAS-to-OPL
+  absorption candidates.
 - Active MAS docs describe MDS / DeepScientist as historical fixture, explicit
   archive import, backend audit, upstream intake, source provenance, or parity
   reference.
@@ -137,7 +155,7 @@ Before moving or deleting a document:
 
 ## Program Portfolio Rule
 
-`docs/program/` is read as a target/enabler/foundation map:
+`docs/active/` is read as a target/enabler/foundation map:
 
 | role | current MAS document role |
 | --- | --- |
@@ -153,6 +171,12 @@ editing: current target language stays in the target owner, implementation
 dependencies move to P1/P2 or OPL, landed evidence stays as guard/provenance,
 recurring support moves to references plus dated history snapshots, and retired
 route narratives move to history/tombstones.
+
+When a MAS program item is actually a generic framework primitive, record the
+MAS evidence and handoff boundary here, then move the implementation owner to
+OPL. Do not keep a parallel MAS plan for provider runtime, generic queue,
+memory locator/index, artifact lifecycle, workbench shell, route/review
+projection, or observability primitives once the owner is OPL.
 
 ## Machine Boundary
 

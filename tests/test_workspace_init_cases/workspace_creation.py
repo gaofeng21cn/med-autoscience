@@ -129,6 +129,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     maintain_runtime_storage = workspace_root / "ops" / "medautoscience" / "bin" / "maintain-runtime-storage"
     storage_audit = workspace_root / "ops" / "medautoscience" / "bin" / "storage-audit"
     progress_portal = workspace_root / "ops" / "medautoscience" / "bin" / "progress-portal"
+    install_watch_runtime_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
+    watch_runtime_service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
+    uninstall_watch_runtime_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
     resolve_journal_shortlist = workspace_root / "ops" / "medautoscience" / "bin" / "resolve-journal-shortlist"
     init_portfolio_memory = workspace_root / "ops" / "medautoscience" / "bin" / "init-portfolio-memory"
     portfolio_memory_status = workspace_root / "ops" / "medautoscience" / "bin" / "portfolio-memory-status"
@@ -148,6 +151,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert maintain_runtime_storage.is_file()
     assert storage_audit.is_file()
     assert progress_portal.is_file()
+    assert not install_watch_runtime_service.exists()
+    assert not watch_runtime_service_status.exists()
+    assert not uninstall_watch_runtime_service.exists()
     assert resolve_journal_shortlist.is_file()
     assert init_portfolio_memory.is_file()
     assert portfolio_memory_status.is_file()
@@ -242,6 +248,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     root_readme_text = root_readme.read_text(encoding="utf-8")
     assert "ops/medautoscience/bin/show-profile" in root_readme_text
     assert "ops/medautoscience/bin/progress-portal" in root_readme_text
+    assert "install-watch-runtime-service" not in root_readme_text
+    assert "watch-runtime-service-status" not in root_readme_text
+    assert "uninstall-watch-runtime-service" not in root_readme_text
     assert "ops/mas/progress/index.html" in root_readme_text
     assert "ops/mas/" in root_readme_text
     assert "ops/med-deepscientist" not in root_readme_text

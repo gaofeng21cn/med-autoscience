@@ -45,7 +45,7 @@ DOC_REFERENCE_GUARDED_FAMILIES: tuple[str, ...] = (
     "docs/README",
     "docs/status",
     "docs/policies",
-    "docs/program",
+    "docs/active",
     "docs/runtime",
     "docs/references",
 )

@@ -2,6 +2,80 @@ from __future__ import annotations
 
 from .shared import *
 
+
+def test_supervisor_scan_isolates_retired_manual_finish_contract_from_other_studies(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    bad_study_root = write_study(profile.workspace_root, "001-retired", quest_id="quest-retired")
+    good_study_root = write_study(profile.workspace_root, "002-live", quest_id="quest-live")
+
+    def fake_projection_inputs(*, study_id: str, **_: object) -> tuple[dict[str, object], dict[str, object], str | None, dict[str, object]]:
+        if study_id == "001-retired":
+            raise ValueError("manual_finish.compatibility_guard_only is retired; use manual_finish_guard_only")
+        return (
+            {
+                "study_id": study_id,
+                "study_root": str(good_study_root),
+                "quest_id": "quest-live",
+                "quest_root": str(profile.runtime_root / "quest-live"),
+                "quest_status": "running",
+                "active_run_id": "mas-run-002-live",
+                "runtime_liveness_audit": {
+                    "worker_running": True,
+                    "active_run_id": "mas-run-002-live",
+                    "runtime_audit": {
+                        "worker_running": True,
+                        "active_run_id": "mas-run-002-live",
+                    },
+                },
+                "runtime_health_snapshot": {
+                    "canonical_runtime_action": "continue_supervising_runtime",
+                    "worker_liveness_state": {
+                        "state": "live",
+                        "worker_running": True,
+                        "active_run_id": "mas-run-002-live",
+                    },
+                    "active_run_id": "mas-run-002-live",
+                },
+                "execution_owner_guard": {"supervisor_only": True},
+                "publication_eval": {},
+            },
+            {
+                "study_id": study_id,
+                "study_root": str(good_study_root),
+                "quest_id": "quest-live",
+                "current_stage": "publication_supervision",
+                "paper_stage": "write",
+                "refs": {},
+            },
+            "quest-live",
+            {},
+        )
+
+    monkeypatch.setattr(module, "_read_study_projection_inputs", fake_projection_inputs)
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=("001-retired", "002-live"),
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    studies = {study["study_id"]: study for study in result["studies"]}
+    assert studies["001-retired"]["why_not_applied"] == "study_projection_contract_error"
+    assert studies["001-retired"]["blocked_reason"] == "study_projection_contract_error"
+    assert studies["001-retired"]["projection_error"]["message"] == (
+        "manual_finish.compatibility_guard_only is retired; use manual_finish_guard_only"
+    )
+    assert studies["001-retired"]["action_queue"] == []
+    assert studies["002-live"]["active_run_id"] == "mas-run-002-live"
+    assert studies["002-live"]["runtime_health"]["worker_liveness_state"]["worker_running"] is True
+
+
 def test_supervisor_scan_queues_specificity_and_ai_reviewer_actions_without_quality_authority(
     monkeypatch,
     tmp_path: Path,

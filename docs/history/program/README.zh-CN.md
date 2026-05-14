@@ -4,13 +4,13 @@
 
 当前 program 治理入口是：
 
-- [Program Portfolio Consolidation](../../program/program_portfolio_consolidation.md)
-- [MAS Current Development Lines](../../program/current_development_lines.md)
-- [AI-first Paper Autonomy Closure Program](../../program/ai_first_paper_autonomy_closure_program.md)
-- [OPL App MAS Runtime Workbench Program](../../program/opl_app_mas_runtime_workbench_program.md)
-- [OPL Temporal MAS Runtime Retirement Program](../../program/opl_temporal_mas_runtime_retirement_program.md)
-- [MAS 单项目 MDS 吸收 Program](../../program/mas_single_project_mds_absorb_program.md)
-- [Runtime Lifecycle SQLite 迁移 Program](../../program/runtime_lifecycle_sqlite_migration_program.md)
+- [Program Portfolio Consolidation](../../active/program_portfolio_consolidation.md)
+- [MAS Current Development Lines](../../active/current_development_lines.md)
+- [AI-first Paper Autonomy Closure Program](../../active/ai_first_paper_autonomy_closure_program.md)
+- [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md)
+- [OPL Temporal MAS Runtime Retirement Program](../../active/opl_temporal_mas_runtime_retirement_program.md)
+- [MAS 单项目 MDS 吸收 Program](../../active/mas_single_project_mds_absorb_program.md)
+- [Runtime Lifecycle SQLite 迁移 Program](../../active/runtime_lifecycle_sqlite_migration_program.md)
 - [Plan Completion Ledger](../../references/verification/plan_completion_ledger.md)
 
 周期性支持线快照：

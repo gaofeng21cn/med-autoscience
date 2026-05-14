@@ -9,6 +9,7 @@ from med_autoscience.controllers import study_runtime_router
 from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers import publication_gate as publication_gate_controller
+from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import quality_repair_batch
 from med_autoscience.controllers.study_outer_loop_parts.decision_refs import (
     _build_study_decision_charter_ref,
@@ -105,6 +106,15 @@ _WORK_UNIT_TARGET_CONTEXT_KEYS = (
     "gaps",
     "source_path",
 )
+_BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
+_FINALIZE_WORK_UNIT_IDS = frozenset(
+    {
+        "submission_authority_sync_closure",
+        "submission_minimal_refresh",
+        "submission_delivery_sync_closure",
+        "publication_gate_replay",
+    }
+)
 
 
 def _utc_now() -> str:
@@ -165,6 +175,75 @@ def _specificity_target_context_from_publication_eval(
             if key in action
         }
     return {}
+
+
+def _gate_report_is_bundle_stage(gate_report: dict[str, Any]) -> bool:
+    status = str(gate_report.get("status") or "").strip()
+    if status not in {"blocked", "clear"}:
+        return False
+    if gate_report.get("allow_write") is False:
+        supervisor_phase = str(gate_report.get("supervisor_phase") or "").strip()
+        if supervisor_phase != "bundle_stage_blocked":
+            return False
+    if status == "clear":
+        blockers = [
+            str(item or "").strip()
+            for item in (gate_report.get("blockers") or [])
+            if str(item or "").strip()
+        ]
+        if blockers:
+            return False
+    current_required_action = str(gate_report.get("current_required_action") or "").strip()
+    if current_required_action not in _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS:
+        return False
+    return True
+
+
+def _status_payload_reports_bundle_stage(status_payload: dict[str, Any]) -> bool:
+    publication_supervisor_state = status_payload.get("publication_supervisor_state")
+    if not isinstance(publication_supervisor_state, dict):
+        return False
+    supervisor_phase = str(publication_supervisor_state.get("supervisor_phase") or "").strip()
+    if supervisor_phase not in {"bundle_stage_ready", "bundle_stage_blocked"}:
+        return False
+    current_required_action = str(publication_supervisor_state.get("current_required_action") or "").strip()
+    return current_required_action in _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS
+
+
+def _bundle_stage_finalize_action_from_publication_eval(
+    *,
+    publication_eval_payload: dict[str, Any],
+    gate_report: dict[str, Any],
+) -> dict[str, Any] | None:
+    if not _gate_report_is_bundle_stage(gate_report):
+        return None
+    action = _recommended_publication_eval_action(publication_eval_payload)
+    if action is None:
+        return None
+    work_unit_payload = publication_work_units.derive_publication_work_units(
+        gate_report,
+        specificity_targets=publication_work_units.specificity_targets_from_publication_eval(
+            publication_eval_payload
+        ),
+    )
+    next_work_unit = work_unit_payload.get("next_work_unit")
+    if not isinstance(next_work_unit, dict):
+        return action
+    unit_id = str(next_work_unit.get("unit_id") or "").strip()
+    if unit_id not in _FINALIZE_WORK_UNIT_IDS:
+        return action
+    return {
+        **action,
+        "route_target": "finalize",
+        "route_key_question": str(action.get("route_key_question") or "").strip()
+        or "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+        "route_rationale": str(action.get("route_rationale") or action.get("reason") or "").strip()
+        or "The publication gate is clear and bundle-stage work is now on the critical path.",
+        "work_unit_fingerprint": work_unit_payload.get("fingerprint"),
+        "blocking_work_units": work_unit_payload.get("blocking_work_units") or [],
+        "next_work_unit": dict(next_work_unit),
+        "blocking_artifact_refs": work_unit_payload.get("blocking_artifact_refs") or [],
+    }
 
 
 def _target_ready_next_work_unit(next_work_unit: dict[str, Any] | None, target_context: dict[str, Any]) -> dict[str, Any] | None:
@@ -280,10 +359,20 @@ def build_runtime_watch_outer_loop_tick_request(
             batch_action=batch_action,
         ) or _quality_repair_batch_preempts_task_intake(batch_action):
             task_intake_action = None
+        bundle_stage_finalize_action = (
+            _bundle_stage_finalize_action_from_publication_eval(
+                publication_eval_payload=publication_eval_payload,
+                gate_report=gate_report,
+            )
+            if bundle_stage_finalize_preempts_task_intake and _status_payload_reports_bundle_stage(status_payload)
+            else None
+        )
         if startup_freshness_gate and batch_action is not None:
             recommended_action = batch_action
         elif _quality_repair_batch_preempts_task_intake(batch_action):
             recommended_action = batch_action
+        elif bundle_stage_finalize_action is not None:
+            recommended_action = bundle_stage_finalize_action
         else:
             recommended_action = (
                 submission_milestone_autopark_action

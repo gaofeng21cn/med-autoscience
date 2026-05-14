@@ -201,7 +201,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
                 "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
             ],
             mapping_explanation=(
-                "Runtime sidecar contracts stay mapped to the current MAS adapter facades; new domain "
+                "Runtime sidecar contracts stay mapped to the current MAS adapter surfaces; new domain "
                 "stage, prompt, skill, knowledge, quality, and projection surfaces should use their "
                 "standard slots before adding sidecar code."
             ),
@@ -254,7 +254,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
         "workspace_runtime_artifact_root_locator_ref": "/product_entry_manifest/workspace_runtime_artifact_root_locator",
         "default_placement_policy": {
             "new_repo_source_surfaces_follow_standard_slots": True,
-            "preserve_legacy_facades_and_locators": True,
+            "preserve_current_locator_boundaries": True,
             "destructive_directory_reorganization_allowed": False,
             "real_workspace_artifacts_remain_locator_only": True,
         },

@@ -17,21 +17,42 @@ research teams.
 | Durable decisions | [Decisions](./decisions.md) |
 | Documentation lifecycle rules | [Docs portfolio governance](./docs_portfolio_consolidation.md) |
 
+## OPL Family Layering
+
+The global OPL-family development reference lives at
+`/Users/gaofeng/workspace/one-person-lab/docs/active/opl-family-development-reference.zh-CN.md`.
+It owns OPL Framework global targets, global gaps, generic primitive
+absorption, App/workbench targets, and cross-repo execution order.
+
+This MAS repo only owns the medical-research domain-agent target state, current
+gaps, study/publication/artifact authority, the direct MAS app-skill path,
+OPL-hosted sidecar/projection/receipt boundaries, and the list of generic
+runtime, memory, artifact lifecycle, workbench, and observability primitives
+that should move up into OPL. MAG, RCA, MDS, and OPL-owned App/workbench
+backlogs are not maintained in MAS docs.
+
 ## Directory Map
 
 | Directory | Purpose |
 | --- | --- |
+| [active](./active/README.md) | Current execution, current plans, current gaps, and active baton; older `program/` material is routed here. |
+| [public](./public/README.md) | MAS public narrative and first user-facing reading layer. |
+| [product](./product/README.md) | MAS app skill, direct product entry, and operator/workbench-facing guidance. |
 | [runtime](./runtime/README.md) | Runtime contracts, control surfaces, projections, display contracts, and active designs. |
-| [program](./program/README.md) | Program lifecycle portfolio: paper-autonomy target, active product/framework enablers, landed foundation owner docs, and program-level coordination. |
-| [capabilities](./capabilities/README.md) | Capability-family documentation such as medical display. |
-| [references](./references/README.md) | Supporting references, positioning, integration notes, parity material, and verification records. |
+| [delivery](./delivery/README.md) | Manuscript, package, submission/export, and medical-research delivery authority. |
+| [source](./source/README.md) | Study workspaces, source readiness, source truth consumption, and external research intake. |
 | [policies](./policies/README.md) | Stable internal rules and long-lived operating boundaries. |
+| [specs](./specs/README.md) | Current technical spec index; older specs must be classified as active or historical. |
+| [program](./active/README.md) | Program lifecycle portfolio: paper-autonomy target, active product/framework enablers, landed foundation owner docs, and program-level coordination. |
+| [capabilities](./delivery/README.md) | Capability-family documentation such as medical display. |
+| [references](./references/README.md) | Supporting references, positioning, integration notes, parity material, and verification records. |
 | [history](./history/README.md) | Dated snapshots, provenance, retired boards, archived plans, and process drafts. |
 
-Read this table as a lifecycle hierarchy. Core docs and runtime/policy owner
-surfaces carry current truth; `program` carries target/enabler/foundation
-coordination; `references` carry support context; `history` carries provenance
-and retired material.
+This table follows the OPL-family canonical docs taxonomy. `program/` and
+`capabilities/` are existing migration sources and path-stable support
+directories: files that still have contract, history, or active-baton links may
+remain in place, but new recurring material should enter
+`active/public/product/runtime/delivery/source/policies/specs/references/history`.
 
 ## Reading Rule
 

@@ -12,7 +12,7 @@ def test_run_preflight_treats_docs_as_review_only_without_running_commands(tmp_p
     module = importlib.import_module("med_autoscience.dev_preflight")
 
     result = module.run_preflight(
-        changed_files=["docs/program/untracked_runtime_contract.md"],
+        changed_files=["docs/active/untracked_runtime_contract.md"],
         repo_root=tmp_path,
     )
 

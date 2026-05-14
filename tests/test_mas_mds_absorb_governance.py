@@ -112,7 +112,7 @@ def test_doc_reference_semantic_guard_freezes_thin_hub_and_mas_owned_packaging()
         "docs/README",
         "docs/status",
         "docs/policies",
-        "docs/program",
+        "docs/active",
         "docs/runtime",
         "docs/references",
     ]

@@ -277,7 +277,7 @@ def test_classify_changed_files_routes_display_docs_to_review_only() -> None:
 
     result = module.classify_changed_files(
         [
-            "docs/capabilities/example-capability-guide.md",
+            "docs/delivery/example-capability-guide.md",
         ]
     )
 
@@ -326,7 +326,7 @@ def test_classify_changed_files_flags_unclassified_paths() -> None:
 
     result = module.classify_changed_files(
         [
-            "docs/program/untracked_runtime_contract.md",
+            "docs/active/untracked_runtime_contract.md",
         ]
     )
 
@@ -352,7 +352,7 @@ def test_classify_changed_files_routes_unknown_python_to_generic_regression() ->
 def test_classify_changed_files_keeps_unknown_docs_fail_closed() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
-    result = module.classify_changed_files(["docs/program/new_runtime_contract.md"])
+    result = module.classify_changed_files(["docs/active/new_runtime_contract.md"])
 
     assert result.matched_categories == ("documentation_review_only",)
     assert result.unclassified_changes == ()
@@ -422,7 +422,7 @@ def test_audit_preflight_contract_coverage_keeps_docs_review_only_and_workflow_f
 
     audit = module.audit_preflight_contract_coverage(
         [
-            "docs/program/new_runtime_contract.md",
+            "docs/active/new_runtime_contract.md",
             ".github/workflows/new-release.yml",
             "tox.ini",
         ],
@@ -430,7 +430,7 @@ def test_audit_preflight_contract_coverage_keeps_docs_review_only_and_workflow_f
             module.PreflightCoveragePathFamily(
                 family_id="program_docs",
                 exact_paths=(),
-                prefix_paths=("docs/program/",),
+                prefix_paths=("docs/active/",),
             ),
             module.PreflightCoveragePathFamily(
                 family_id="workflow_config",
@@ -440,7 +440,7 @@ def test_audit_preflight_contract_coverage_keeps_docs_review_only_and_workflow_f
         ),
     )
 
-    assert audit.explicit_classified_paths == ("docs/program/new_runtime_contract.md",)
+    assert audit.explicit_classified_paths == ("docs/active/new_runtime_contract.md",)
     assert audit.generic_python_regression_paths == ()
     assert audit.fail_closed_paths == (
         ".github/workflows/new-release.yml",
@@ -497,7 +497,7 @@ def test_classify_changed_files_matches_optional_provider_archive_audit_surface(
 
     result = module.classify_changed_files(
         [
-            "docs/program/example-runtime-gate.md",
+            "docs/active/example-runtime-gate.md",
             "docs/references/example-workspace-note.md",
             "src/med_autoscience/workspace_contracts.py",
         ]
@@ -545,7 +545,7 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
     result = module.classify_changed_files(
         [
             "docs/history/program/example-history-board.md",
-            "docs/program/example-backend-map.md",
+            "docs/active/example-backend-map.md",
             "docs/references/example-phase-ladder.md",
             "scripts/prepare-sentrux-gitstats-clone.sh",
             "scripts/run-parallel-test-lanes.sh",

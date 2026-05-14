@@ -1,7 +1,7 @@
 # MAS Single-Project MDS Absorb Program
 
 Archive state: `historical full record`
-Current owner: [MAS Single-Project MDS Absorb Program](../../program/mas_single_project_mds_absorb_program.md)
+Current owner: [MAS Single-Project MDS Absorb Program](../../active/mas_single_project_mds_absorb_program.md)
 Read rule: this file preserves the 2026-05-10 monolith/MDS absorb evidence trail. Do not read old lane tables, dated closeout notes, or target topology here as the current implementation queue unless the current owner document still references them.
 
 Status: `landed foundation owner doc; monolith / MDS provenance / compatibility guard maintenance active`

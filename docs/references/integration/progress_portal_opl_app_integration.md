@@ -114,7 +114,7 @@ progress_portal:
 
 OPL App 可以把该 bundle 映射到 family dashboard 和 App-native Runtime Workbench，但所有状态都应保留 MAS source refs 和 freshness。用户点击详情时，优先进 OPL App 的 MAS study workbench；workspace-local Portal 和 `browser_url` 对应的 hosted/runtime monitoring 面只作为 fallback / debug / no-App 路径。两类入口都保持 projection/action-transport 边界，不进入 OPL 自己维护的研究状态机。
 
-后续实现计划见 [OPL App MAS Runtime Workbench Program](../../program/opl_app_mas_runtime_workbench_program.md)。
+后续实现计划见 [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md)。
 
 ## 验收口径
 

@@ -23,7 +23,6 @@ from med_autoscience.controllers.progress_portal_parts import render_live_consol
 from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_behavior_equivalence_gate,
     _render_forward_script,
-    _render_install_watch_runtime_service_script,
     _render_mas_runtime_bridge_forward,
     _render_mas_runtime_bridge_shared,
     _render_mas_runtime_bridge_show_config,
@@ -36,6 +35,10 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_supervisor_reconcile_script,
     _render_supervisor_scan_script,
     _render_watch_runtime_script,
+)
+from med_autoscience.controllers.workspace_init_parts.retired_entries import (
+    retired_file_cleanup_reason,
+    retired_workspace_service_paths,
 )
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
@@ -144,7 +147,7 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
         "7. 运行 `ops/medautoscience/bin/progress-portal` 刷新固定进度入口，然后打开 `ops/mas/progress/index.html` 查看当前进度。\n\n"
         "8. 如需只读查看 runtime session、terminal/log stream 与 artifact refs，打开 `ops/mas/live-console/index.html` 或运行 `ops/mas/bin/live-console`。\n\n"
-        "9. 如需让 workspace 托管监管持续在线，运行 `ops/medautoscience/bin/install-watch-runtime-service`；后续用 `watch-runtime-service-status` / `uninstall-watch-runtime-service` 管理 MAS scheduler supervision job；Hermes 只在显式 `--manager hermes` 时作为 optional adapter。\n\n"
+        "9. 如需让 workspace 托管监管持续在线，运行 `medautosci runtime ensure-supervision --profile <profile>`；后续用 `runtime supervision-status` / `runtime remove-supervision` 管理 MAS scheduler supervision job；Hermes 只在显式 `--manager hermes` 时作为 optional adapter。\n\n"
         "10. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
         "11. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
         "12. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"
@@ -342,7 +345,6 @@ def _legacy_managed_runtime_entry_reason(*, path: Path, existing_content: str) -
         _legacy_mas_bridge_entry_reason,
         _legacy_medautoscience_shared_entry_reason,
         _legacy_watch_runtime_entry_reason,
-        _legacy_watch_runtime_service_entry_reason,
         _legacy_supervisor_entry_reason,
         _legacy_workspace_command_entry_reason,
     ):
@@ -424,41 +426,6 @@ def _legacy_watch_runtime_entry_reason(
             ):
                 return "legacy_watch_runtime_entry"
     return None
-
-
-def _legacy_watch_runtime_service_entry_reason(
-    *,
-    path: Path,
-    suffix: tuple[str, ...],
-    existing_content: str,
-) -> str | None:
-    _ = path
-    service_specs = (
-        (
-            ("ops", "medautoscience", "bin", "install-watch-runtime-service"),
-            (
-                "runtime ensure-supervision",
-                "Retired workspace-local service managers are cleanup evidence only",
-                "retired workspace-local service manager",
-            ),
-            "legacy_watch_runtime_service_install",
-        ),
-        (
-            ("ops", "medautoscience", "bin", "watch-runtime-service-status"),
-            ("runtime supervision-status",),
-            "legacy_watch_runtime_service_status",
-        ),
-        (
-            ("ops", "medautoscience", "bin", "uninstall-watch-runtime-service"),
-            ("runtime remove-supervision",),
-            "legacy_watch_runtime_service_uninstall",
-        ),
-    )
-    return _legacy_entry_reason_from_required_tokens(
-        suffix=suffix,
-        existing_content=existing_content,
-        specs=service_specs,
-    )
 
 
 def _legacy_supervisor_entry_reason(
@@ -630,12 +597,13 @@ def _merge_medautoscience_config_content(*, existing_content: str, workspace_roo
         )
     rendered_lines = rendered_content.splitlines()
     try:
-        comment_index = rendered_lines.index(
-            "# Optional: set the absolute path to node so managed runtime services can still launch node-backed backends under minimal PATH environments."
+        node_line_index = next(
+            index for index, line in enumerate(rendered_lines) if line.startswith("MED_AUTOSCIENCE_NODE_BIN=")
         )
-    except ValueError:
+    except StopIteration:
         return existing_content
-    node_block = "\n".join(rendered_lines[comment_index : comment_index + 2]).strip()
+    comment_index = node_line_index - 1 if node_line_index > 0 and rendered_lines[node_line_index - 1].startswith("#") else node_line_index
+    node_block = "\n".join(rendered_lines[comment_index : node_line_index + 1]).strip()
     if not node_block:
         return existing_content
     base = existing_content.rstrip()
@@ -904,21 +872,6 @@ def _rendered_files(
             executable=True,
         ),
         RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service",
-            content=_render_install_watch_runtime_service_script(),
-            executable=True,
-        ),
-        RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status",
-            content=_render_forward_script("runtime supervision-status", with_profile=True),
-            executable=True,
-        ),
-        RenderedFile(
-            path=workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service",
-            content=_render_forward_script("runtime remove-supervision", with_profile=True),
-            executable=True,
-        ),
-        RenderedFile(
             path=workspace_root / "ops" / "medautoscience" / "bin" / "publication-gate",
             content=_render_forward_script("publication gate"),
             executable=True,
@@ -1119,9 +1072,18 @@ def init_workspace(
     skipped_files: list[str] = []
     overwritten_files: list[str] = []
     upgraded_files: list[str] = []
+    removed_files: list[str] = []
+    retained_retired_files: list[str] = []
+    retired_service_paths = retired_workspace_service_paths(workspace_root)
 
     if dry_run:
         created_directories = [str(path) for path in directories if not path.exists()]
+        for path in retired_service_paths:
+            reason = retired_file_cleanup_reason(path)
+            if reason is not None:
+                removed_files.append(str(path))
+            elif path.exists():
+                retained_retired_files.append(str(path))
         for item in files:
             action = _rendered_file_action(item, force=force)
             if action == "create":
@@ -1138,6 +1100,13 @@ def init_workspace(
             if not path.exists():
                 path.mkdir(parents=True, exist_ok=True)
                 created_directories.append(str(path))
+        for path in retired_service_paths:
+            reason = retired_file_cleanup_reason(path)
+            if reason is not None:
+                path.unlink()
+                removed_files.append(str(path))
+            elif path.exists():
+                retained_retired_files.append(str(path))
         for item in files:
             action = _rendered_file_action(item, force=force)
             if action == "skip":
@@ -1165,6 +1134,8 @@ def init_workspace(
         "skipped_files": skipped_files,
         "overwritten_files": overwritten_files,
         "upgraded_files": upgraded_files,
+        "removed_files": removed_files,
+        "retained_retired_files": retained_retired_files,
         "workspace_git": workspace_git,
         "profile_path": str(profile_path),
         "next_steps": [

@@ -6,13 +6,13 @@
 
 History 是只读语境，不拥有 active backlog、runtime truth、controller decision、publication readiness、artifact authority 或 policy truth。
 
-MAS monolith closeout 之后，旧 MDS / DeepScientist / Hermes-first / 外部 runtime cutover / WebUI / daemon 文档若没有明确 active owner，只能在本目录或 `docs/references/` 中作为 provenance、parity、explicit archive import、backend audit 或历史决策材料保留。读者需要当前状态时，应回到 `docs/status.md`、`docs/architecture.md`、`docs/decisions.md`、`docs/program/program_portfolio_consolidation.md` 和 durable runtime/controller surfaces。
+MAS monolith closeout 之后，旧 MDS / DeepScientist / Hermes-first / 外部 runtime cutover / WebUI / daemon 文档若没有明确 active owner，只能在本目录或 `docs/references/` 中作为 provenance、parity、explicit archive import、backend audit 或历史决策材料保留。读者需要当前状态时，应回到 `docs/status.md`、`docs/architecture.md`、`docs/decisions.md`、`docs/active/program_portfolio_consolidation.md` 和 durable runtime/controller surfaces。
 
 | archive | contents |
 | --- | --- |
-| [program](./program/README.zh-CN.md) | Closeout、activation package、退役 board 和 dated intake snapshot。 |
+| [program](./active/README.zh-CN.md) | Closeout、activation package、退役 board 和 dated intake snapshot。 |
 | [runtime](./runtime/README.zh-CN.md) | 已完成 runtime implementation plan 和 legacy runtime boundary 记录。 |
-| [capabilities](./capabilities/README.zh-CN.md) | 能力族历史和退役 medical-display 记录。 |
+| [capabilities](./delivery/README.zh-CN.md) | 能力族历史和退役 medical-display 记录。 |
 | [omx](./omx/README.zh-CN.md) | OMX worktree 启动/收尾历史。 |
 | [superpowers](./superpowers/README.zh-CN.md) | repo-tracked 历史过程稿；新的本地草稿默认不跟踪。 |
 

@@ -1,7 +1,7 @@
 # Runtime Lifecycle SQLite Migration Program
 
 Archive state: `historical full record`
-Current owner: [Runtime Lifecycle SQLite Migration Program](../../program/runtime_lifecycle_sqlite_migration_program.md)
+Current owner: [Runtime Lifecycle SQLite Migration Program](../../active/runtime_lifecycle_sqlite_migration_program.md)
 Read rule: this file preserves the 2026-05-08 runtime lifecycle migration rationale and dated workspace evidence. Do not read schema sketches, lane tables, or old migration tasks here as the current queue unless the current owner document still references them.
 
 Status: `landed foundation owner doc; runtime lifecycle / restore-proof guard maintenance active`

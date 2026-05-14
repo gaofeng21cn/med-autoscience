@@ -340,7 +340,7 @@
         "tests/test_progress_portal.py"
       ],
       "docs": [
-        "docs/program/opl_app_mas_runtime_workbench_program.md"
+        "docs/active/opl_app_mas_runtime_workbench_program.md"
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "read_only_opl_app_projection_no_mas_truth_transfer",

@@ -17,7 +17,7 @@ verification history; they do not own execution gates or runtime truth.
 ## Rule
 
 If a reference becomes an active program owner surface, move it to
-`docs/program/`. If it becomes a stable rule, move it to `docs/policies/`. If
+`docs/active/`. If it becomes a stable rule, move it to `docs/policies/`. If
 it becomes a completed snapshot or retired board, archive it under
 `docs/history/`.
 

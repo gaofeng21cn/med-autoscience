@@ -205,7 +205,7 @@ Decision-stage availability is read-only context. `stage_knowledge_packet.author
 
 ## Planning Gate Classification
 
-Publication-route memory 的后续规划入口是 [MAS Current Development Lines](../../program/current_development_lines.md)，不是单独的 production closure plan。当前属于 `functional_follow_through_gate`：基础 policy、Markdown body、seed index、workspace pack、CLI inventory、typed closeout proposal、router receipt 和 body-free OPL/Aion projection 已落地，后续要增加真实 paper-line receipts 和维护纪律。
+Publication-route memory 的后续规划入口是 [MAS Current Development Lines](../../active/current_development_lines.md)，不是单独的 production closure plan。当前属于 `functional_follow_through_gate`：基础 policy、Markdown body、seed index、workspace pack、CLI inventory、typed closeout proposal、router receipt 和 body-free OPL/Aion projection 已落地，后续要增加真实 paper-line receipts 和维护纪律。
 
 | memory gate | gate class | current planning status | done evidence |
 | --- | --- | --- | --- |

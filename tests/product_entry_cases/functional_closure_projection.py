@@ -25,7 +25,7 @@ def test_product_entry_manifest_projects_current_development_lines_closure(
 
     assert closure["surface_kind"] == "mas_functional_closure_status_projection"
     assert closure["status"] == "functional_surfaces_projected_production_evidence_gated"
-    assert closure["planning_ref"] == "docs/program/current_development_lines.md"
+    assert closure["planning_ref"] == "docs/active/current_development_lines.md"
     assert closure["authority_boundary"]["read_only"] is True
     assert closure["authority_boundary"]["can_write_domain_truth"] is False
     assert closure["authority_boundary"]["can_write_memory_body"] is False

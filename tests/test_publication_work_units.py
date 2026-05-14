@@ -361,7 +361,7 @@ def test_bundle_stage_stale_submission_package_produces_finalize_refresh_work_un
     }
 
 
-def test_clear_continue_bundle_stage_does_not_create_submission_refresh_work_unit() -> None:
+def test_clear_continue_bundle_stage_routes_to_submission_authority_sync_work_unit() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 
     result = module.derive_publication_work_units(
@@ -377,11 +377,12 @@ def test_clear_continue_bundle_stage_does_not_create_submission_refresh_work_uni
 
     assert result["blockers"] == []
     assert result["fingerprint_blockers"] == []
-    assert result["actionability_status"] == "clear_or_unspecified"
+    assert result["actionability_status"] == "controller_bundle_stage_required"
     assert result["next_work_unit"] == {
-        "unit_id": "publication_gate_blocker_review",
-        "lane": "review",
-        "summary": "Review the current publication gate blockers and select the narrowest repair unit.",
+        "unit_id": "submission_authority_sync_closure",
+        "lane": "controller",
+        "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+        "control_surface": "gate_clearing_batch",
     }
 
 

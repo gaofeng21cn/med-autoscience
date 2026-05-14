@@ -118,10 +118,9 @@ def test_init_workspace_upgrades_current_managed_scripts_when_rscript_binding_is
     )
 
     assert str(shared) in result["upgraded_files"]
-    assert str(install_service) in result["upgraded_files"]
+    assert str(install_service) in result["removed_files"]
+    assert not install_service.exists()
     assert "MED_AUTOSCIENCE_RSCRIPT_BIN" in shared.read_text(encoding="utf-8")
-    install_text = install_service.read_text(encoding="utf-8")
-    assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
 
 
 def test_init_workspace_upgrades_current_managed_scripts_when_node_binding_is_missing(tmp_path: Path) -> None:
@@ -264,10 +263,9 @@ def test_init_workspace_upgrades_current_managed_scripts_when_node_binding_is_mi
     )
 
     assert str(shared) in result["upgraded_files"]
-    assert str(install_service) in result["upgraded_files"]
+    assert str(install_service) in result["removed_files"]
+    assert not install_service.exists()
     assert "MED_AUTOSCIENCE_NODE_BIN" in shared.read_text(encoding="utf-8")
-    install_text = install_service.read_text(encoding="utf-8")
-    assert 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"' in install_text
 
 
 def test_init_workspace_upgrades_medautoscience_config_with_detected_node_binding(tmp_path: Path, monkeypatch) -> None:

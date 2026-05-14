@@ -189,26 +189,6 @@ def _render_supervisor_reconcile_script() -> str:
     )
 
 
-def _render_install_watch_runtime_service_script() -> str:
-    return (
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then\n'
-        '  cat <<'"'"'EOF'"'"'\n'
-        "Install portable MAS runtime supervision.\n\n"
-        "Default:\n"
-        "  no --manager       register/refresh MAS scheduler contract local adapter\n\n"
-        "Optional adapters:\n"
-        "  --manager hermes    explicit Hermes gateway cron adapter\n\n"
-        "Retired workspace-local service managers are cleanup evidence only and are not CLI options.\n"
-        "EOF\n"
-        "  exit 0\n"
-        "fi\n\n"
-        'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"\n'
-    )
-
-
 def _render_mas_runtime_bridge_shared() -> str:
     return (
         "#!/usr/bin/env bash\n"
