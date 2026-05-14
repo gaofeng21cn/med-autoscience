@@ -12,7 +12,7 @@
 | [catalogs](./catalogs/) | 模板目录、arsenal、backlog 和 route cookbook。Catalog 可以很长；它们是 inventory，不是叙事入口。 |
 | [plans](./plans/) | 活跃 implementation plan 和 template-pack 设计。 |
 | [provenance](./provenance/) | 真实论文审计和能力 provenance。 |
-| [history](../../histo../delivery/medical-display/README.zh-CN.md) | 退役 owner brief、baseline program、exemplar intake 和 exhausted exploration record。 |
+| [history](../../history/capabilities/medical-display/README.zh-CN.md) | 退役 owner brief、baseline program、exemplar intake 和 exhausted exploration record。 |
 
 ## 主要入口
 

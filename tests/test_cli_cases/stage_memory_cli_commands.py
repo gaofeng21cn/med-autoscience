@@ -381,8 +381,8 @@ def test_publication_route_memory_inventory_cli_projects_accepted_and_rejected_w
             "stage_applicability": ["decision", "review"],
             "destination": "workspace_research_memory_proposal",
             "owner_target": "workspace_memory_owner",
-            "proposal_ref": accepted_receipt["accepted_refs"][0]["proposal_ref"],
-            "receipt_ref": accepted_receipt["accepted_refs"][0]["receipt_ref"],
+            "proposal_ref": accepted_receipt["accepted_writeback_refs"][0]["proposal_ref"],
+            "receipt_ref": accepted_receipt["accepted_writeback_refs"][0]["receipt_ref"],
             "source_receipt_ref": accepted_receipt["source_receipt_ref"],
             "writeback_receipt_ref": accepted_receipt["writeback_receipt_ref"],
             "reason": "",
@@ -391,13 +391,13 @@ def test_publication_route_memory_inventory_cli_projects_accepted_and_rejected_w
             "authority_boundary": "ref_only_not_memory_body_or_writeback_authority",
         }
     ]
-    assert accepted_receipt["writeback_refs"] == accepted_receipt["accepted_refs"]
+    assert accepted_receipt["writeback_refs"] == accepted_receipt["accepted_writeback_refs"]
     rejected_receipt = receipts["rejected-writeback-receipt"]
     assert rejected_receipt["receipt_status"] == "applied"
     assert rejected_receipt["stage"] == "review"
     assert rejected_receipt["route_family"] == "local_claim_boundary"
     assert rejected_receipt["reason"] == "study_specific_claim_not_workspace_memory"
-    assert rejected_receipt["rejected_refs"] == [
+    assert rejected_receipt["rejected_writeback_refs"] == [
         {
             "write_id": "rejected-local-claim",
             "route_family": "local_claim_boundary",
@@ -413,8 +413,9 @@ def test_publication_route_memory_inventory_cli_projects_accepted_and_rejected_w
         }
     ]
     assert rejected_receipt["route_back_refs"] == []
-    assert rejected_receipt["writeback_refs"] == rejected_receipt["rejected_refs"]
-    assert payload["authority_boundary"]["can_write_domain_truth"] is False
+    assert rejected_receipt["writeback_refs"] == rejected_receipt["rejected_writeback_refs"]
+    assert payload["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert payload["authority_boundary"]["can_replace_controller_decision"] is False
 
 
 def test_publication_route_memory_inventory_cli_can_include_body_for_maintainers(tmp_path: Path, capsys) -> None:

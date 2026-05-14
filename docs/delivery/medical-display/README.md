@@ -12,7 +12,7 @@ This is the active entry for the medical display capability family.
 | [catalogs](./catalogs/) | Template catalog, arsenal, backlog, and route cookbook. Catalogs can be long; they are inventory, not the narrative entry. |
 | [plans](./plans/) | Active implementation plans and template-pack design work. |
 | [provenance](./provenance/) | Real-paper audit and capability provenance. |
-| [history](../../histo../delivery/medical-display/README.md) | Retired owner briefs, baseline programs, exemplar intake, and exhausted exploration records. |
+| [history](../../history/capabilities/medical-display/README.md) | Retired owner briefs, baseline programs, exemplar intake, and exhausted exploration records. |
 
 ## Primary Entries
 

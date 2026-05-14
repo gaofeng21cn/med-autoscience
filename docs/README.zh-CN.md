@@ -25,14 +25,14 @@ MAS 本仓只维护医学研究 domain agent 的目标、当前差距、study/pu
 
 | 目录 | 用途 |
 | --- | --- |
-| [active](./active/README.md) | 当前执行、当前计划、当前差距与 active baton；旧 `program/` 内容由这里维护。 |
-| [public](./public/README.md) | MAS 对外公开叙事和用户第一阅读层。 |
-| [product](./product/README.md) | MAS app skill、direct product entry、operator/workbench-facing 指南。 |
-| [runtime](./runtime/README.md) | 运行时合同、控制面、读模型、展示合同和活跃设计。 |
-| [delivery](./delivery/README.md) | manuscript、package、submission/export 与医学研究交付 authority。 |
-| [source](./source/README.md) | study workspace、source readiness、source truth consumption 与 external research intake。 |
-| [policies](./policies/README.md) | 稳定内部规则和长期运行边界。 |
-| [specs](./specs/README.md) | 当前仍有效的技术规格索引；旧 spec 需标清 active/history。 |
+| [active](./active/README.zh-CN.md) | 当前执行、当前计划、当前差距与 active baton；旧 `program/` 内容由这里维护。 |
+| [public](./public/README.zh-CN.md) | MAS 对外公开叙事和用户第一阅读层。 |
+| [product](./product/README.zh-CN.md) | MAS app skill、direct product entry、operator/workbench-facing 指南。 |
+| [runtime](./runtime/README.zh-CN.md) | 运行时合同、控制面、读模型、展示合同和活跃设计。 |
+| [delivery](./delivery/README.zh-CN.md) | manuscript、package、submission/export 与医学研究交付 authority。 |
+| [source](./source/README.zh-CN.md) | study workspace、source readiness、source truth consumption 与 external research intake。 |
+| [policies](./policies/README.zh-CN.md) | 稳定内部规则和长期运行边界。 |
+| [specs](./specs/README.zh-CN.md) | 当前仍有效的技术规格索引；旧 spec 需标清 active/history。 |
 | [references](./references/README.zh-CN.md) | 支撑参考、定位、集成说明、parity 材料和验证记录。 |
 | [history](./history/README.zh-CN.md) | dated snapshot、provenance、退役 board、归档计划和过程稿。 |
 

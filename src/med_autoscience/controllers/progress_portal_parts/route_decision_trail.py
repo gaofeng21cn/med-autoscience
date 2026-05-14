@@ -26,14 +26,34 @@ def build_route_decision_trail_payload(
     controller = _controller_decision(resolved_progress)
     intervention_lane = _mapping(resolved_progress.get("intervention_lane"))
     graph = _candidate_path_graph(resolved_progress, controller)
-    nodes = _route_nodes(explicit, controller, intervention_lane, graph)
     active_path = _active_path(explicit, controller, intervention_lane, graph)
     winning_path = _winning_path(explicit, controller, intervention_lane, graph, active_path)
     progress_refs = _mapping(resolved_progress.get("refs"))
+    explicit_refs = _payload_source_refs(explicit)
+    controller_refs = _payload_source_refs(controller)
+    intervention_refs = _payload_source_refs(intervention_lane)
+    graph_refs = _payload_source_refs(graph)
     refs = _dedupe_refs(
-        source_refs(explicit, controller, intervention_lane, graph, progress_refs)
+        explicit_refs
+        + controller_refs
+        + intervention_refs
+        + graph_refs
         + _route_source_refs(progress_refs)
     )
+    node_fallback_refs = controller_refs or explicit_refs or intervention_refs or graph_refs
+    nodes = _route_nodes(
+        explicit,
+        controller,
+        intervention_lane,
+        graph,
+        active_path=active_path,
+        winning_path=winning_path,
+        fallback_refs=node_fallback_refs,
+    )
+    edge_fallback_refs = explicit_refs + controller_refs + intervention_refs
+    edges = _route_edges(nodes, edge_fallback_refs)
+    blockers = _route_blockers(nodes, node_fallback_refs)
+    paths = _route_paths(nodes=nodes, active_path=active_path, winning_path=winning_path)
     missing = _missing_route_conditions(
         explicit=explicit,
         controller=controller,
@@ -67,7 +87,11 @@ def build_route_decision_trail_payload(
         "status": "available" if nodes and not missing else "missing",
         "active_path": active_path,
         "winning_path": winning_path,
+        "next_owner": _next_owner(nodes=nodes, active_path=active_path, winning_path=winning_path),
+        "paths": paths,
         "nodes": nodes,
+        "edges": edges,
+        "blockers": blockers,
         "source_refs": refs,
         "conditions": {"missing": missing, "stale": [], "conflict": []},
     }
@@ -163,6 +187,10 @@ def _route_nodes(
     controller: Mapping[str, Any],
     intervention_lane: Mapping[str, Any],
     graph: Mapping[str, Any],
+    *,
+    active_path: str | None,
+    winning_path: str | None,
+    fallback_refs: list[str],
 ) -> list[dict[str, Any]]:
     explicit_nodes = _mapping_list(explicit.get("nodes")) or _mapping_list(explicit.get("route_nodes"))
     nodes = [_normalize_node(node, index=index + 1, source="route_decision_trail.nodes") for index, node in enumerate(explicit_nodes)]
@@ -178,7 +206,10 @@ def _route_nodes(
         node = _node_from_intervention_lane(intervention_lane)
         if node:
             nodes.append(node)
-    return _dedupe_nodes(nodes)
+    return [
+        _enrich_node(node, active_path=active_path, winning_path=winning_path, fallback_refs=fallback_refs)
+        for node in _dedupe_nodes(nodes)
+    ]
 
 
 def _normalize_node(node: Mapping[str, Any], *, index: int, source: str) -> dict[str, Any]:
@@ -192,6 +223,8 @@ def _normalize_node(node: Mapping[str, Any], *, index: int, source: str) -> dict
         "blocked_reason": _first_text(node.get("blocked_reason"), node.get("blocker"), node.get("stop_rule")),
         "pivot_rationale": _first_text(node.get("pivot_rationale"), node.get("route_rationale"), node.get("rationale")),
         "superseded_by": _first_text(node.get("superseded_by"), node.get("replaced_by")),
+        "next_owner": _first_text(node.get("next_owner"), node.get("owner"), node.get("route_owner")),
+        "source_refs": _node_source_refs(node),
         "source": source,
     }
 
@@ -209,6 +242,8 @@ def _node_from_candidate(candidate: Mapping[str, Any], *, index: int, controller
         "blocked_reason": _non_empty_text(candidate.get("stop_rule")) or ("; ".join(blockers) if decision in {"stop", "human_gate"} else None),
         "pivot_rationale": _first_text(controller.get("route_rationale"), controller.get("reason"), controller.get("route_control_decision")),
         "superseded_by": _non_empty_text(candidate.get("superseded_by")),
+        "next_owner": _first_text(candidate.get("next_owner"), controller.get("next_owner")),
+        "source_refs": _node_source_refs(candidate),
         "source": "candidate_path_graph.candidates",
     }
 
@@ -225,6 +260,8 @@ def _node_from_controller(controller: Mapping[str, Any]) -> dict[str, Any]:
         "blocked_reason": "; ".join(_string_list(controller.get("blockers"))) or None,
         "pivot_rationale": _first_text(controller.get("route_rationale"), controller.get("reason"), controller.get("route_control_decision")),
         "superseded_by": None,
+        "next_owner": _non_empty_text(controller.get("next_owner")),
+        "source_refs": _node_source_refs(controller),
         "source": "controller_decision",
     }
 
@@ -250,8 +287,139 @@ def _node_from_intervention_lane(intervention_lane: Mapping[str, Any]) -> dict[s
         "blocked_reason": _first_text(intervention_lane.get("blocked_reason"), intervention_lane.get("blocker")),
         "pivot_rationale": _first_text(intervention_lane.get("route_summary"), intervention_lane.get("summary")),
         "superseded_by": _non_empty_text(intervention_lane.get("superseded_by")),
+        "next_owner": _first_text(intervention_lane.get("next_owner"), intervention_lane.get("owner")),
+        "source_refs": _node_source_refs(intervention_lane),
         "source": "intervention_lane",
     }
+
+
+def _enrich_node(
+    node: Mapping[str, Any],
+    *,
+    active_path: str | None,
+    winning_path: str | None,
+    fallback_refs: list[str],
+) -> dict[str, Any]:
+    enriched = dict(node)
+    route_id = _non_empty_text(enriched.get("route_id"))
+    blocked_reason = _first_text(enriched.get("blocked_reason"), enriched.get("blocker_reason"))
+    path_status = "available"
+    if blocked_reason:
+        path_status = "blocked"
+    if _non_empty_text(enriched.get("superseded_by")):
+        path_status = "superseded"
+    if route_id and route_id == active_path and route_id == winning_path:
+        path_status = "active_winning"
+    elif route_id and route_id == active_path:
+        path_status = "active"
+    elif route_id and route_id == winning_path:
+        path_status = "winning"
+    explicit_refs = _string_list(enriched.get("source_refs"))
+    refs = _dedupe_refs(explicit_refs or fallback_refs)
+    enriched["node_kind"] = _non_empty_text(enriched.get("node_kind")) or "route"
+    enriched["path_status"] = path_status
+    enriched["blocker_reason"] = blocked_reason
+    enriched["next_owner"] = _non_empty_text(enriched.get("next_owner"))
+    enriched["source_refs"] = refs
+    return enriched
+
+
+def _route_edges(nodes: list[dict[str, Any]], fallback_refs: list[str]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    route_ids = {
+        _non_empty_text(node.get("route_id"))
+        for node in nodes
+        if _non_empty_text(node.get("route_id"))
+    }
+    for node in nodes:
+        route_id = _non_empty_text(node.get("route_id"))
+        superseded_by = _non_empty_text(node.get("superseded_by"))
+        if route_id is None or superseded_by is None or superseded_by not in route_ids:
+            continue
+        result.append(
+            {
+                "from": route_id,
+                "to": superseded_by,
+                "kind": "superseded_by",
+                "status": "superseded",
+                "label": f"{route_id} -> {superseded_by}",
+                "source_refs": _dedupe_refs(_string_list(node.get("source_refs")) + fallback_refs),
+            }
+        )
+    return result
+
+
+def _route_blockers(nodes: list[dict[str, Any]], fallback_refs: list[str]) -> list[dict[str, Any]]:
+    blockers: list[dict[str, Any]] = []
+    for node in nodes:
+        route_id = _non_empty_text(node.get("route_id"))
+        reason = _first_text(node.get("blocked_reason"), node.get("blocker_reason"))
+        if route_id is None or reason is None:
+            continue
+        blockers.append(
+            {
+                "route_id": route_id,
+                "reason": reason,
+                "next_owner": _non_empty_text(node.get("next_owner")),
+                "source_refs": _dedupe_refs(_string_list(node.get("source_refs")) or fallback_refs),
+            }
+        )
+    return blockers
+
+
+def _route_paths(
+    *,
+    nodes: list[dict[str, Any]],
+    active_path: str | None,
+    winning_path: str | None,
+) -> dict[str, Any]:
+    return {
+        "active": active_path,
+        "winning": winning_path,
+        "superseded": [
+            route_id
+            for route_id in (
+                _non_empty_text(node.get("route_id"))
+                for node in nodes
+                if _non_empty_text(node.get("superseded_by"))
+            )
+            if route_id is not None
+        ],
+    }
+
+
+def _next_owner(
+    *,
+    nodes: list[dict[str, Any]],
+    active_path: str | None,
+    winning_path: str | None,
+) -> str | None:
+    for target in (winning_path, active_path):
+        if target is None:
+            continue
+        for node in nodes:
+            if _non_empty_text(node.get("route_id")) == target:
+                owner = _non_empty_text(node.get("next_owner"))
+                if owner is not None:
+                    return owner
+    for node in nodes:
+        owner = _non_empty_text(node.get("next_owner"))
+        if owner is not None:
+            return owner
+    return None
+
+
+def _node_source_refs(node: Mapping[str, Any]) -> list[str]:
+    return _payload_source_refs(node)
+
+
+def _payload_source_refs(payload: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    for key in ("source_refs", "evidence_refs", "artifact_refs", "receipt_refs"):
+        refs.extend(_refs_from_ref_field(payload.get(key)))
+    for key in ("source_ref", "evidence_ref", "artifact_ref", "receipt_ref", "ref"):
+        refs.extend(_refs_from_ref_field(payload.get(key)))
+    return _dedupe_refs(ref for ref in refs if source_ref_allowed(ref))
 
 
 def _active_path(

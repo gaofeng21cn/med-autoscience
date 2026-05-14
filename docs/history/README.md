@@ -19,12 +19,11 @@ runtime/controller surfaces.
 
 | archive | contents |
 | --- | --- |
-| [program](./active/README.md) | Closeouts, activation packages, retired boards, and dated intake snapshots. |
+| [program](./program/README.md) | Closeouts, activation packages, retired boards, and dated intake snapshots. |
 | [runtime](./runtime/README.md) | Completed runtime implementation plans and legacy runtime boundary records. |
-| [capabilities](./delivery/README.md) | Capability-family history and retired medical-display records. |
+| [capabilities](./capabilities/README.md) | Capability-family history and retired medical-display records. |
 | [omx](./omx/README.md) | OMX worktree startup/closeout history. |
 | [superpowers](./superpowers/README.md) | Repo-tracked historical process drafts; new local drafts stay untracked by default. |
 
 Current truth starts from [Docs Guide](../README.md), the core five, runtime
-contracts, policies, active program docs, and durable runtime/controller
-surfaces.
+contracts, policies, `docs/active/`, and durable runtime/controller surfaces.

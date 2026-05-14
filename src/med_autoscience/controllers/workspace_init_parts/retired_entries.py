@@ -7,6 +7,7 @@ RETIRED_WORKSPACE_SERVICE_ENTRY_SUFFIXES: tuple[tuple[str, ...], ...] = (
     ("ops", "medautoscience", "bin", "install-watch-runtime-service"),
     ("ops", "medautoscience", "bin", "watch-runtime-service-status"),
     ("ops", "medautoscience", "bin", "uninstall-watch-runtime-service"),
+    ("ops", "medautoscience", "bin", "watch-runtime-service-runner"),
 )
 
 
@@ -44,4 +45,3 @@ def retired_workspace_service_entry_reason(*, path: Path, existing_content: str)
     if any(marker in existing_content for marker in generated_or_legacy_markers):
         return "retired_workspace_service_wrapper"
     return None
-

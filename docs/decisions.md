@@ -154,11 +154,12 @@
 - 理由：公开主语直接决定用户入口与 owner 语义。将 MAS 固定为独立 domain agent，并把稳定 surface 收口到单一 app skill，才能避免把 MAS 误写成 OPL 内部模块，也避免把桥接载荷写成第一主语。
 - 影响：README 与核心 docs 必须明确 domain agent、单一 app skill、CLI/workspace commands 和 durable surface 的主次关系；`OPL handoff`、`product-entry manifest` 与 OPL stage-led framework 术语只作为集成和运行框架边界，不作为对外第一身份。
 
-## 2026-04-11：统一 docs 骨架与分层
+## 2026-04-11：历史 docs 骨架与分层
 
-- 决策：以 `project / architecture / invariants / decisions / status` 作为 docs 核心骨架，并将其余文档收口到 `capabilities/`、`program/`、`runtime/`、`references/`、`history/omx/`。
+- 历史决策：以 `project / architecture / invariants / decisions / status` 作为 docs 核心骨架，并将其余文档收口到 `capabilities/`、`program/`、`runtime/`、`references/`、`history/omx/`。
 - 理由：避免文档平铺，确保入口明确、角色清晰、可维护。
 - 影响：删除冗余的 `documentation-governance.md`，统一文档规则入口。
+- 当前读法：本决策的核心骨架仍有效；目录 taxonomy 已被 2026-05 文档组合治理 supersede。当前 recurring material 使用 `active/public/product/runtime/delivery/source/policies/specs/references/history`，旧 `program/` 与 `capabilities/` 只作为历史迁移来源或 path-stable provenance 读取。
 
 ## 2026-04-11：OMX 退役并归档
 

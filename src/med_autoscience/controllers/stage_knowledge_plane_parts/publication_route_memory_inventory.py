@@ -260,11 +260,28 @@ def _publication_route_memory_opl_aion_receipt_inventory(*, pack_root: Path) -> 
         "body_included": False,
         "receipt_count": len(receipts),
         "receipts": receipts,
+        "by_receipt_status": _group_receipts_by_value(
+            receipts,
+            values_for_receipt=lambda receipt: [_text(receipt.get("receipt_status"))],
+            group_key="receipt_status",
+        ),
+        "by_stage": _group_receipts_by_value(
+            receipts,
+            values_for_receipt=lambda receipt: [_text(receipt.get("stage"))],
+            group_key="stage",
+        ),
+        "by_route_family": _group_receipts_by_value(
+            receipts,
+            values_for_receipt=lambda receipt: _text_list(receipt.get("route_family_tags")),
+            group_key="route_family",
+        ),
+        "receipt_review_summary": _receipt_review_summary(receipts),
         "display_policy": {
             "projection_owner": "MedAutoScience",
             "display_role": "receipt_ref_only",
             "can_read_memory_body": False,
             "can_write_memory_body": False,
+            "can_accept_or_reject_writeback": False,
             "can_score_winning_route": False,
             "can_authorize_publication_quality": False,
         },
@@ -273,17 +290,47 @@ def _publication_route_memory_opl_aion_receipt_inventory(*, pack_root: Path) -> 
 
 def _receipt_inventory_entry(*, path: Path, receipt_kind: str) -> dict[str, Any]:
     payload = _read_json(path)
+    source_receipt_ref = _receipt_source_receipt_ref(payload=payload, path=path)
+    writeback_receipt_ref = _receipt_writeback_receipt_ref(payload=payload, path=path)
+    accepted_writeback_refs = _receipt_writeback_refs(
+        payload=payload,
+        status="accepted",
+        source_receipt_ref=source_receipt_ref,
+        writeback_receipt_ref=writeback_receipt_ref,
+    )
+    rejected_writeback_refs = _receipt_writeback_refs(
+        payload=payload,
+        status="rejected",
+        source_receipt_ref=source_receipt_ref,
+        writeback_receipt_ref=writeback_receipt_ref,
+    )
+    writeback_refs = [*accepted_writeback_refs, *rejected_writeback_refs]
+    route_back_refs = [ref for ref in writeback_refs if _is_route_back_ref(ref)]
+    route_family_tags = _receipt_route_family_tags(
+        payload=payload,
+        writeback_refs=writeback_refs,
+        receipt_kind=receipt_kind,
+    )
     return {
         "ref_kind": "publication_route_memory_receipt",
         "receipt_kind": receipt_kind,
         "ref": str(path),
+        "idempotency_key": _text(payload.get("idempotency_key")),
         "study_id": _text(payload.get("study_id")),
         "stage": _text(payload.get("stage")),
+        "route_family": route_family_tags[0] if route_family_tags else "",
+        "route_family_tags": route_family_tags,
+        "source_receipt_ref": source_receipt_ref,
+        "writeback_receipt_ref": writeback_receipt_ref,
         "receipt_status": _text(payload.get("status")) or ("missing" if not path.exists() else "unknown"),
         "reason": _receipt_reason(payload),
         "freshness": _receipt_freshness(path),
         "accepted_refs": _receipt_accepted_refs(payload),
         "rejected_refs": _receipt_rejected_refs(payload),
+        "accepted_writeback_refs": accepted_writeback_refs,
+        "rejected_writeback_refs": rejected_writeback_refs,
+        "route_back_refs": route_back_refs,
+        "writeback_refs": writeback_refs,
         "typed_blocker_count": len(_mapping_list(payload.get("typed_blockers"))),
         "body_included": False,
         "authority_boundary": "read_only_display_not_mas_truth_authority",
@@ -294,6 +341,12 @@ def _receipt_reason(payload: Mapping[str, Any]) -> str:
     typed_blockers = _mapping_list(payload.get("typed_blockers"))
     if typed_blockers:
         return _text(typed_blockers[0].get("reason")) or _text(typed_blockers[0].get("blocker_id"))
+    rejected_writes = _mapping_list(payload.get("rejected_writes"))
+    if rejected_writes:
+        return _text(rejected_writes[0].get("reason"))
+    rejected_cards = _mapping_list(payload.get("rejected_cards"))
+    if rejected_cards:
+        return _text(rejected_cards[0].get("reason"))
     return _text(payload.get("reason"))
 
 
@@ -359,12 +412,161 @@ def _receipt_rejected_refs(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     return refs
 
 
+def _receipt_source_receipt_ref(*, payload: Mapping[str, Any], path: Path) -> str:
+    receipt_refs = _text_list(payload.get("receipt_refs"))
+    if receipt_refs:
+        return receipt_refs[0]
+    return _text(payload.get("receipt_ref")) or str(path)
+
+
+def _receipt_writeback_receipt_ref(*, payload: Mapping[str, Any], path: Path) -> str:
+    receipt_refs = _text_list(payload.get("receipt_refs"))
+    if len(receipt_refs) >= 2:
+        return receipt_refs[1]
+    if _mapping_list(payload.get("accepted_writes")) or _mapping_list(payload.get("rejected_writes")):
+        return str(path)
+    return ""
+
+
+def _receipt_writeback_refs(
+    *,
+    payload: Mapping[str, Any],
+    status: str,
+    source_receipt_ref: str,
+    writeback_receipt_ref: str,
+) -> list[dict[str, Any]]:
+    writes = _mapping_list(payload.get("accepted_writes" if status == "accepted" else "rejected_writes"))
+    receipt_status = _text(payload.get("status"))
+    refs: list[dict[str, Any]] = []
+    for write in writes:
+        payload_body = _mapping(write.get("payload"))
+        destination = _text(write.get("destination"))
+        if destination != "workspace_research_memory_proposal":
+            continue
+        ref = _drop_empty(
+            {
+                "write_id": _text(write.get("write_id")),
+                "memory_id": _memory_id_for_write(write) if status == "accepted" else "",
+                "route_family": _text(payload_body.get("route_family")),
+                "stage_applicability": _text_list(payload_body.get("stage_applicability")),
+                "destination": destination,
+                "owner_target": _text(write.get("owner_target")),
+                "proposal_ref": _text(write.get("proposal_ref")),
+                "receipt_ref": _text(write.get("receipt_ref")),
+                "source_receipt_ref": source_receipt_ref,
+                "writeback_receipt_ref": writeback_receipt_ref,
+                "status": status,
+                "receipt_status": receipt_status,
+                "authority_boundary": "ref_only_not_memory_body_or_writeback_authority",
+            }
+        )
+        ref["reason"] = _text(write.get("reason"))
+        refs.append(ref)
+    return refs
+
+
+def _receipt_route_family_tags(
+    *,
+    payload: Mapping[str, Any],
+    writeback_refs: Sequence[Mapping[str, Any]],
+    receipt_kind: str,
+) -> list[str]:
+    route_families = [
+        _text(ref.get("route_family"))
+        for ref in writeback_refs
+        if _text(ref.get("route_family"))
+    ]
+    for write in [*_mapping_list(payload.get("accepted_writes")), *_mapping_list(payload.get("rejected_writes"))]:
+        payload_body = _mapping(write.get("payload"))
+        if _text(payload_body.get("route_family")):
+            route_families.append(_text(payload_body.get("route_family")))
+    if not route_families and receipt_kind == "migration_receipt":
+        route_families.append("seed_migration")
+    return _dedupe_text(route_families)
+
+
+def _is_route_back_ref(ref: Mapping[str, Any]) -> bool:
+    route_family = _text(ref.get("route_family"))
+    if route_family.startswith("route_back"):
+        return True
+    return "route_back" in route_family
+
+
 def _memory_id_for_write(write: Mapping[str, Any]) -> str:
     payload = write.get("payload") if isinstance(write.get("payload"), Mapping) else {}
     if isinstance(payload, Mapping) and _text(payload.get("memory_id")):
         return _text(payload.get("memory_id"))
     write_id = _text(write.get("write_id"))
     return f"publication_route_memory_writeback__{_safe_key(write_id)}" if write_id else ""
+
+
+def _group_receipts_by_value(
+    receipts: Sequence[Mapping[str, Any]],
+    *,
+    values_for_receipt,
+    group_key: str,
+) -> list[dict[str, Any]]:
+    grouped: dict[str, list[Mapping[str, Any]]] = {}
+    for receipt in receipts:
+        values = [value for value in values_for_receipt(receipt) if value]
+        for value in values or ["unclassified"]:
+            grouped.setdefault(value, []).append(receipt)
+    return [
+        {
+            group_key: value,
+            "receipt_refs": _group_receipt_refs(grouped[value]),
+            "receipt_count": len(grouped[value]),
+        }
+        for value in sorted(grouped)
+    ]
+
+
+def _group_receipt_refs(receipts: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        _drop_empty(
+            {
+                "ref": _text(receipt.get("ref")),
+                "receipt_kind": _text(receipt.get("receipt_kind")),
+                "receipt_status": _text(receipt.get("receipt_status")),
+                "reason": _text(receipt.get("reason")),
+                "stage": _text(receipt.get("stage")),
+                "route_family": _text(receipt.get("route_family")),
+                "source_receipt_ref": _text(receipt.get("source_receipt_ref")),
+                "writeback_receipt_ref": _text(receipt.get("writeback_receipt_ref")),
+                "accepted_writeback_ref_count": len(_mapping_list(receipt.get("accepted_writeback_refs"))),
+                "rejected_writeback_ref_count": len(_mapping_list(receipt.get("rejected_writeback_refs"))),
+                "route_back_ref_count": len(_mapping_list(receipt.get("route_back_refs"))),
+                "body_included": False,
+                "authority_boundary": "ref_only_not_memory_body_or_writeback_authority",
+            }
+        )
+        for receipt in receipts
+    ]
+
+
+def _receipt_review_summary(receipts: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    accepted_writeback_ref_count = sum(
+        len(_mapping_list(receipt.get("accepted_writeback_refs")))
+        for receipt in receipts
+    )
+    rejected_writeback_ref_count = sum(
+        len(_mapping_list(receipt.get("rejected_writeback_refs")))
+        for receipt in receipts
+    )
+    route_back_ref_count = sum(
+        len(_mapping_list(receipt.get("route_back_refs")))
+        for receipt in receipts
+    )
+    return {
+        "surface": "publication_route_memory_receipt_review_summary",
+        "receipt_count": len(receipts),
+        "accepted_writeback_ref_count": accepted_writeback_ref_count,
+        "rejected_writeback_ref_count": rejected_writeback_ref_count,
+        "route_back_ref_count": route_back_ref_count,
+        "needs_maintainer_review_count": rejected_writeback_ref_count,
+        "body_included": False,
+        "authority_boundary": "review_signal_only_not_memory_body_or_writeback_authority",
+    }
 
 
 def _validate_publication_route_memory_stage(stage: str | None) -> str:
@@ -392,6 +594,10 @@ def _text_list(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [_text(item) for item in value if _text(item)]
+
+
+def _dedupe_text(items: Sequence[str]) -> list[str]:
+    return list(dict.fromkeys([item for item in items if item]))
 
 
 def _drop_empty(payload: Mapping[str, Any]) -> dict[str, Any]:

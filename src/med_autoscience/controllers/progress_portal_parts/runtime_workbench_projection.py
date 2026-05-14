@@ -429,6 +429,7 @@ def _safety_action_receipt_lane(
         "source_refs": refs,
         "direct_execution_intents": [],
         "can_execute_without_mas_receipt": False,
+        "receipt_policy": _safe_action_receipt_policy(),
         "authority": _lane_authority(),
     }
 
@@ -472,6 +473,19 @@ def _pending_lane(
             "display_only": True,
         },
         "authority": _lane_authority(),
+    }
+
+
+def _safe_action_receipt_policy() -> dict[str, Any]:
+    return {
+        "policy": "safe_action_requires_owner_receipt",
+        "required_receipt_surface": "mas_progress_portal_action_receipt",
+        "action_transport_owner": "OPL provider transport",
+        "domain_owner": "MedAutoScience",
+        "can_execute_without_mas_receipt": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_artifact_mutation": False,
     }
 
 

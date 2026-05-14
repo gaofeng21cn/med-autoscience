@@ -126,12 +126,17 @@ def test_study_workbench_route_map_renders_clickable_node_details_and_conversati
                         "evidence_point": "外部验证不足",
                         "blocked_reason": "外部验证未通过",
                         "superseded_by": "analysis-route-b",
+                        "next_owner": "ai_reviewer",
+                        "source_refs": [
+                            "studies/001-risk/artifacts/medical_paper/route-a-decision.json"
+                        ],
                     },
                     {
                         "route_id": "analysis-route-b",
                         "label": "新路线",
                         "decision": "continue",
                         "evidence_point": "亚组证据更强",
+                        "next_owner": "MedAutoScience",
                     },
                 ],
                 "source_refs": ["studies/001-risk/artifacts/controller_decisions/latest.json"],
@@ -154,17 +159,34 @@ def test_study_workbench_route_map_renders_clickable_node_details_and_conversati
     html = parts.render_study_workbench_sections(payload)
 
     edge_kinds = {edge["kind"] for edge in payload["route_map"]["edges"]}
-    assert {"advance", "blocked", "reroute", "artifact_generated"} <= edge_kinds
+    assert {"advance", "blocked", "superseded_by", "artifact_generated"} <= edge_kinds
     route_node = next(node for node in payload["route_map"]["nodes"] if node["id"] == "route-analysis-route-a")
     assert "conversation-seq-1" in route_node["conversation_refs"]
+    assert route_node["path_status"] == "superseded"
+    assert route_node["blocker_reason"] == "外部验证未通过"
+    assert route_node["next_owner"] == "ai_reviewer"
+    active_node = next(node for node in payload["route_map"]["nodes"] if node["id"] == "route-analysis-route-b")
+    assert active_node["path_status"] == "active_winning"
+    assert active_node["next_owner"] == "MedAutoScience"
     run_node = next(node for node in payload["route_map"]["nodes"] if node["kind"] == "run")
     assert run_node["conversation_refs"] == ["conversation-seq-2"]
+    assert payload["route_map"]["active_path"] == "analysis-route-b"
+    assert payload["route_map"]["winning_path"] == "analysis-route-b"
+    assert payload["route_map"]["superseded_paths"] == ["analysis-route-a"]
+    assert payload["route_map"]["blockers"] == [
+        {
+            "route_id": "analysis-route-a",
+            "reason": "外部验证未通过",
+            "next_owner": "ai_reviewer",
+            "source_refs": ["studies/001-risk/artifacts/medical_paper/route-a-decision.json"],
+        }
+    ]
     assert 'class="route-node-link" href="#route-node-detail-route-analysis-route-a"' in html
     assert 'id="route-node-detail-route-analysis-route-a"' in html
     assert '<a href="#conversation-seq-1">conversation-seq-1</a>' in html
     assert '<a href="#conversation-seq-2">conversation-seq-2</a>' in html
     assert "产物：studies/001-risk/paper/manuscript.md" in html
-    assert "route-edge--reroute" in html
+    assert "route-edge--superseded-by" in html
     assert "route-edge--artifact-generated" in html
     assert 'id="conversation-seq-1"' in html
     assert 'id="conversation-seq-2"' in html

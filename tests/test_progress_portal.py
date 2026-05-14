@@ -887,7 +887,7 @@ def test_study_workbench_helper_projects_path_stage_artifacts_and_source_refs_wi
     assert payload["route_decision_trail"]["surface_kind"] == "mas_progress_portal_route_decision_trail"
     assert payload["route_decision_trail"]["active_path"] == "analysis-route-b"
     assert payload["route_decision_trail"]["winning_path"] == "analysis-route-b"
-    assert payload["route_decision_trail"]["nodes"][0] == {
+    assert {key: payload["route_decision_trail"]["nodes"][0].get(key) for key in ("route_id", "label", "decision", "evidence_point", "blocked_reason", "pivot_rationale", "superseded_by", "source")} == {
         "route_id": "analysis-route-a",
         "label": "Start with broad risk model",
         "decision": None,

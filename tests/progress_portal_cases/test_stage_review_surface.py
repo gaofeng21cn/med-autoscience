@@ -574,6 +574,16 @@ def test_progress_portal_opl_projection_exposes_reference_lanes_as_read_only_dri
     assert lanes["memory_receipt"]["can_write_memory_body"] is False
     assert lanes["freshness"]["can_authorize_publication_readiness"] is False
     assert lanes["safety_action_receipts"]["can_execute_without_mas_receipt"] is False
+    assert lanes["safety_action_receipts"]["receipt_policy"] == {
+        "policy": "safe_action_requires_owner_receipt",
+        "required_receipt_surface": "mas_progress_portal_action_receipt",
+        "action_transport_owner": "OPL provider transport",
+        "domain_owner": "MedAutoScience",
+        "can_execute_without_mas_receipt": False,
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_artifact_mutation": False,
+    }
     assert "artifacts/provider_attempts/opl-attempt-dm002-001.json" in reference["source_refs"]
     assert "artifacts/autonomy/guarded_apply/receipt-001.json" in reference["source_refs"]
     assert "portfolio/research_memory/publication_route_memory/writeback_receipts/receipt-001.json" in reference[

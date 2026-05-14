@@ -23,6 +23,7 @@ def build_route_map_payload(
     route_trail = _mapping(route_decision_trail)
     route_nodes = _mapping_list(route_trail.get("nodes"))
     route_refs = _string_list(route_trail.get("source_refs"))
+    receipt_policy = _safe_action_receipt_policy()
     if _non_empty_text(route_trail.get("status")) != "available" or not route_nodes or not route_refs:
         return {
             "schema_version": 1,
@@ -31,15 +32,20 @@ def build_route_map_payload(
             "study_id": study_id,
             "active_path": _non_empty_text(route_trail.get("active_path")),
             "winning_path": _non_empty_text(route_trail.get("winning_path")),
+            "superseded_paths": [],
+            "blockers": [],
             "nodes": [],
             "edges": [],
             "source_refs": _dedupe_strings(ref for ref in route_refs if source_ref_allowed(ref)),
             "conditions": {"missing": ["route_lineage"], "stale": [], "conflict": []},
+            "safe_action_receipt_policy": receipt_policy,
             "authority": _authority(),
         }
 
     active_path = _non_empty_text(route_trail.get("active_path"))
     winning_path = _non_empty_text(route_trail.get("winning_path"))
+    superseded_paths = _string_list(_mapping(route_trail.get("paths")).get("superseded"))
+    blockers = _mapping_list(route_trail.get("blockers"))
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
     source_refs = _dedupe_strings(ref for ref in route_refs if source_ref_allowed(ref))
@@ -50,7 +56,7 @@ def build_route_map_payload(
         nodes.append(stage_node)
 
     previous_route_id: str | None = stage_node.get("id") if stage_node else None
-    reroute_edges: list[tuple[str, str]] = []
+    superseded_edges: list[tuple[str, str, list[str]]] = []
     for index, route in enumerate(route_nodes, start=1):
         route_node = _route_node(
             route,
@@ -66,7 +72,7 @@ def build_route_map_payload(
         previous_route_id = route_node["id"]
         superseded_by = _non_empty_text(route.get("superseded_by"))
         if superseded_by:
-            reroute_edges.append((route_node["id"], superseded_by))
+            superseded_edges.append((route_node["id"], superseded_by, _route_source_refs(route, fallback_refs=source_refs)))
 
         decision_node = _decision_node(
             route,
@@ -94,10 +100,10 @@ def build_route_map_payload(
         for node in nodes
         if node.get("kind") == "route" and _non_empty_text(node.get("route_id")) and _non_empty_text(node.get("id"))
     }
-    for from_id, target_route_id in reroute_edges:
+    for from_id, target_route_id, edge_refs in superseded_edges:
         target_id = route_node_ids.get(target_route_id)
         if target_id:
-            edges.append(_edge(from_id, target_id, kind="reroute", label="改道", source_refs=source_refs))
+            edges.append(_edge(from_id, target_id, kind="superseded_by", label="被替代", source_refs=edge_refs))
 
     artifact_nodes = _artifact_nodes(artifact_groups)
     if artifact_nodes and nodes:
@@ -137,10 +143,13 @@ def build_route_map_payload(
         "study_id": study_id,
         "active_path": active_path,
         "winning_path": winning_path,
+        "superseded_paths": superseded_paths,
+        "blockers": blockers,
         "nodes": nodes,
         "edges": edges,
         "source_refs": source_refs,
         "conditions": {"missing": missing, "stale": [], "conflict": []},
+        "safe_action_receipt_policy": receipt_policy,
         "authority": _authority(),
     }
 
@@ -210,6 +219,23 @@ def _authority() -> dict[str, Any]:
     }
 
 
+def _safe_action_receipt_policy() -> dict[str, Any]:
+    return {
+        "policy": "route_only_to_owner_no_direct_execution",
+        "required_receipt_surface": "mas_progress_portal_action_receipt",
+        "allowed_receipt_owners": [
+            "mas_runtime_owner",
+            "mas_controller",
+            "MedAutoScience",
+            "OPL provider transport",
+        ],
+        "can_authorize_quality_verdict": False,
+        "can_authorize_publication_readiness": False,
+        "can_authorize_artifact_mutation": False,
+        "missing_behavior": "display_missing_do_not_infer",
+    }
+
+
 def _stage_node(
     *,
     path_stage: Mapping[str, Any],
@@ -248,6 +274,9 @@ def _route_node(
         status = "active"
     if route_id == winning_path:
         status = "winning" if status == "available" else status
+    path_status = _non_empty_text(route.get("path_status")) or status
+    if route_id == active_path and route_id == winning_path:
+        path_status = "active_winning"
     summary = _first_text(route.get("evidence_point"), route.get("pivot_rationale"), route.get("decision"))
     return _node(
         node_id=f"route-{_slug(route_id)}",
@@ -255,9 +284,12 @@ def _route_node(
         label=_first_text(route.get("label"), route.get("route_id")) or route_id,
         status=status,
         summary=summary or "路线摘要未提供。",
-        source_refs=source_refs,
+        source_refs=_route_source_refs(route, fallback_refs=source_refs),
         conversation_refs=conversation_refs,
         route_id=route_id,
+        path_status=path_status,
+        blocker_reason=_first_text(route.get("blocker_reason"), route.get("blocked_reason")),
+        next_owner=_non_empty_text(route.get("next_owner")),
     )
 
 
@@ -386,6 +418,9 @@ def _node(
     conversation_refs: Iterable[str] | None = None,
     route_id: str | None = None,
     time: str | None = None,
+    path_status: str | None = None,
+    blocker_reason: str | None = None,
+    next_owner: str | None = None,
 ) -> dict[str, Any]:
     return {
         "id": node_id,
@@ -398,6 +433,9 @@ def _node(
         "artifact_refs": _dedupe_strings(artifact_refs or []),
         "conversation_refs": _dedupe_strings(conversation_refs or []),
         **({"route_id": route_id} if route_id else {}),
+        **({"path_status": path_status} if path_status else {}),
+        **({"blocker_reason": blocker_reason} if blocker_reason else {}),
+        **({"next_owner": next_owner} if next_owner else {}),
     }
 
 
@@ -552,6 +590,19 @@ def _first_route_node_id(nodes: list[dict[str, Any]]) -> str | None:
         if node.get("kind") == "route":
             return _non_empty_text(node.get("id"))
     return None
+
+
+def _route_source_refs(route: Mapping[str, Any], *, fallback_refs: list[str]) -> list[str]:
+    refs = _dedupe_strings(
+        [
+            *_string_list(route.get("source_refs")),
+            *_string_list(route.get("evidence_refs")),
+            _non_empty_text(route.get("source_ref")),
+            _non_empty_text(route.get("ref")),
+        ]
+    )
+    allowed_refs = [ref for ref in refs if source_ref_allowed(ref)]
+    return _dedupe_strings([*allowed_refs, *fallback_refs])
 
 
 def _dedupe_nodes(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
