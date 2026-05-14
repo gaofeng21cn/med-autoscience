@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -226,6 +229,26 @@ def test_ci_boundary_guards_mas_repo_only_contract_regression() -> None:
     assert "scripts/verify.sh ci-preflight" in quick_checks
     assert "make test-medical-paper-ops" in quick_checks
     assert "uv run python -m build --sdist --wheel" in quick_checks
+
+
+def test_sdist_build_projects_stage_route_contract_resource(tmp_path: Path) -> None:
+    fixture_root = tmp_path / "sdist-fixture"
+    ignored_roots = {".git", ".venv", ".worktrees", "dist", "build", ".pytest_cache", "__pycache__"}
+
+    def ignore(_dir: str, names: list[str]) -> set[str]:
+        return set(names) & ignored_roots
+
+    shutil.copytree(REPO_ROOT, fixture_root, ignore=ignore)
+
+    result = subprocess.run(
+        [sys.executable, "-m", "build", "--sdist", "--outdir", str(tmp_path / "dist")],
+        cwd=fixture_root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_advisory_workflow_only_prepares_study_runtime_analysis_bundle_for_display_lane() -> None:

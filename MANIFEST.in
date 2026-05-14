@@ -1,4 +1,5 @@
 include config/display_packs.toml
+include agent/stages/stage_route_contract.yaml
 graft display-packs
 prune src/med_autoscience/resources/display_pack_repo
 global-exclude __pycache__ *.py[cod] .DS_Store

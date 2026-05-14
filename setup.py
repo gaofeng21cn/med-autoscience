@@ -54,7 +54,12 @@ def _project_display_pack_repo(source_root: Path, target_root: Path) -> None:
 def _project_stage_route_contract(source_root: Path, target_path: Path) -> None:
     source_path = source_root / STAGE_ROUTE_CONTRACT_SOURCE_PATH
     if not source_path.is_file():
-        raise RuntimeError(f"missing stage route contract source: {source_path}")
+        source_path = source_root / STAGE_ROUTE_CONTRACT_RESOURCE_PATH
+    if not source_path.is_file():
+        raise RuntimeError(
+            "missing stage route contract source: "
+            f"{source_root / STAGE_ROUTE_CONTRACT_SOURCE_PATH} or {source_root / STAGE_ROUTE_CONTRACT_RESOURCE_PATH}"
+        )
     _copy_file(source_path, target_path)
 
 
