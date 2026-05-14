@@ -148,7 +148,7 @@ def test_mas_action_catalog_projects_sidecar_bridge_without_new_mcp_tool(tmp_pat
     assert sidecar_dispatch["surface_kind"] == "mas_family_sidecar_dispatch_receipt"
     assert "guarded dispatch receipt" in sidecar_dispatch["summary"]
     assert "OPL provider queue" in sidecar_dispatch["summary"]
-    assert "retire-after-parity" in sidecar_dispatch["summary"]
+    assert "explicit OPL opt-in executor/proof refs only" in sidecar_dispatch["summary"]
     assert "does not authorize domain truth" in sidecar_dispatch["summary"]
     assert "publication quality" in sidecar_dispatch["summary"]
     assert "artifact gate" in sidecar_dispatch["summary"]
@@ -631,7 +631,7 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
     assert tombstone["active_default_callers"] == []
     assert {item["classification"] for item in tombstone["retired_or_tombstoned_surfaces"]} == {
         "explicit_optional_executor_adapter",
-        "retire_after_parity",
+        "retired_no_default_caller",
         "fixture_or_provenance_only",
         "standalone_diagnostics_only",
     }
@@ -742,11 +742,12 @@ def test_product_entry_manifest_exposes_legacy_residue_audit_without_default_cal
     assert audit["summary"]["default_caller_count"] == 0
     assert audit["summary"]["cleanup_pending_count"] == 0
     assert audit["summary"]["tombstoned_count"] == 1
+    assert audit["summary"]["retired_no_default_caller_count"] == 1
     assert "provider_runtime_residency_read_model" in audit["replacement_surfaces"]
     by_id = {item["residue_id"]: item for item in audit["findings"]}
     assert by_id["hermes_agent_executor_adapter"]["default_caller"] is False
     assert by_id["hermes_agent_executor_adapter"]["disposition"] == "retain_reference"
-    assert by_id["hermes_gateway_cron_scheduler"]["disposition"] == "retire_after_parity"
+    assert by_id["hermes_gateway_cron_scheduler"]["disposition"] == "retired_no_default_caller"
     assert by_id["med_deepscientist_backend_reference"]["current_role"] == (
         "historical_fixture_provenance_parity_oracle"
     )

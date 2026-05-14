@@ -47,7 +47,7 @@ Stage card
 
 ### 理想目录口径
 
-当前 repo 已通过 `standard_domain_agent_skeleton` 把现有路径映射到标准 slot。后续更理想的物理形态是保留兼容 facade，同时把人读 stage surface 向标准目录收敛：
+当前 repo 已通过 `standard_domain_agent_skeleton` 把现有路径映射到标准 slot。后续更理想的物理形态是让新增人读 stage surface 默认进入标准目录，现有路径只保留为明确 repo mapping、生成资产或 provenance locator：
 
 | standard slot | owner | target content |
 | --- | --- | --- |
@@ -112,8 +112,8 @@ Stage card
 | Stage prompt、policy、quality rubric 仍需要持续守住 owner boundary | 新增或修改 skill 时必须继续消费 stage card、canonical route contract、stage knowledge obligations、quality pack refs、RH clean-room gates 和 MAS owner closeout packet，不能回退为 Markdown-only 规则。 | overlay / agent-entry asset validation 加上 focused route/knowledge/quality contract tests；新增 stage skill 必须带 machine-derived surface block。 |
 | 真实 paper-line review/index instance 仍需继续扩展 | repo-level workspace locator proof 已能物化 review page / index 并由 Portal / Workbench 只读展示；仍不能说 production provider-hosted paper automation 已自动生成真实论文线 closeout。 | provider-hosted attempt 在真实 paper line 上触发 MAS owner closeout，并留下 owner receipt、review/index locator、artifact freshness、gate replay 或 typed blocker。 |
 | publication-route memory 仍需更多真实 receipt 泛化 | body-free receipt inventory、operator grouping 和 stale/deprecated review summary 已能投影 migration/writeback accepted/rejected refs；更多 accepted / rejected reusable lessons 仍需从真实论文线进入 workspace memory pack。 | 多 paper-line `stage-memory-closeout-route -> memory_write_router_receipt -> inventory/export` proof，覆盖 accepted、rejected、route-back lessons、grouping 和 review summary。 |
-| repo-source skeleton 已有 physical anchors，仍需后续按新增 surface 持续使用 | `standard_domain_agent_skeleton.repo_source_anchor_status` 已证明最小 physical anchors；真实 workspace artifact body 仍 locator-only。 | 在不破坏现有 facade 的前提下，新增 material 默认按标准 slot 落位，并保留 locator/audit parity。 |
-| 旧 MDS / Hermes / local scheduler residue 已有 active-path tombstone | `legacy_residue_audit` 已说明 no-default-caller、replacement proof、retained reference 与 tombstoned disposition；仍需按无 active reference 与无 fixture/provenance dependency 逐项删除可删代码。 | stale scan + audit finding + no-default-caller proof + focused compatibility tests。 |
+| repo-source skeleton 已有 physical anchors，仍需后续按新增 surface 持续使用 | `standard_domain_agent_skeleton.repo_source_anchor_status` 已证明最小 physical anchors；真实 workspace artifact body 仍 locator-only。 | 新增 material 默认按标准 slot 落位；现有路径只保留明确 repo mapping、生成资产或 locator/provenance。 |
+| 旧 MDS / Hermes / local scheduler residue 已有 active-path tombstone | `legacy_residue_audit` 已说明 no-default-caller、replacement proof、retained reference 与 tombstoned disposition；仍需按无 active reference 与无 fixture/provenance dependency 逐项删除可删代码。 | stale scan + audit finding + no-default-caller proof + focused cleanup tests。 |
 
 ## Planning Gate Classification
 
@@ -139,7 +139,7 @@ Stage card
 | Stage deliverable review / index | `workspace_locator_proof_landed_more_instances_needed` | 字段、locator 和 Portal/Workbench 只读展示已落地；repo-level proof 可追到 paper-line workspace refs；还需要更多真实 workspace review page / index instance。 |
 | OPL-hosted execution | `production_proof_ingested_guarded_harness_landed_live_apply_pending` | descriptor、sidecar、typed closeout、forbidden-write proof、provider residency read model、OPL production proof ingestion、MAS provider availability 和 guarded apply harness 已有；还缺真实 domain activity soak 与 provider-hosted paper apply soak。 |
 | User-facing operation | `reference_projection_landed_app_polish_pending` | MAS Progress Portal / OPL descriptor/workbench projection 能读 provider/review/memory/safety refs；理想态还要 OPL App UI 完整 drilldown。 |
-| Legacy cleanup | `audit_landed_cleanup_pending` | 默认路径已迁走并有 legacy audit；旧词汇和 compat surface 要按替代证据逐项清理，避免误导后续维护者。 |
+| Legacy cleanup | `audit_landed_cleanup_pending` | 默认路径已迁走并有 legacy audit；旧词汇和 alias surface 要按替代证据逐项清理，避免误导后续维护者。 |
 
 因此，开发者的理解可以调整为：在 stage 内部，确实应主要维护自然语言 skill、stage prompt、知识包、工具边界和质控；但在 stage 与运行框架、workspace artifact、publication authority、human gate、provider live apply 的交界处，仍必须关心程序 contract、owner receipt 和验证证据。理想的分工不是“开发者完全不关心程序”，而是“日常科研语义维护尽量落在人读 stage surface，跨边界动作必须由 machine-owned MAS / OPL contract 兜住”。
 
@@ -324,7 +324,7 @@ nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clea
 | `P2` | `landed` | 抽出 reporting guideline quality pack 和 stage quality pack contract | `stage_quality_contract.py` + generated product-entry / family descriptor refs | `tests/test_stage_quality_contract.py` + product-entry action catalog parity |
 | `P2` | `landed` | 对齐 OPL descriptor 中的 stage/skill/quality locator | product-entry manifest / skeleton mapping update | product-entry / OPL family adapter tests |
 | `P2` | `documented` | 记录 nature-skills clean-room pattern absorption | `docs/references/mainline/nature_skills_learning_intake.md` + 本 program closeout note | `git diff --check` |
-| `P3` | `audit_landed_cleanup_pending` | 退役旧 compat vocabulary 或移入 history/reference | `legacy_residue_audit` + no default caller + replacement proof | `rg` stale scan + focused compatibility tests |
+| `P3` | `audit_landed_cleanup_pending` | 退役旧 alias vocabulary 或移入 history/reference | `legacy_residue_audit` + no default caller + replacement proof | `rg` stale scan + focused cleanup tests |
 | `P4` | `provider_live_apply_pending` | 在已 ingest 的 OPL production proof 之上，用真实 paper-line provider-hosted live apply 验证 | OPL attempt -> MAS owner receipt -> artifact delta / gate replay / blocker | real paper-line guarded apply evidence |
 
 ## 后续细化方案
@@ -340,8 +340,8 @@ nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clea
 | `stage_review_index_workspace_proof` | `locator_proof_landed; more_instances_needed` | MAS artifact locator + review/index projection | Portal / Workbench 已能从 `artifacts/stage_reviews/index.json` 读取 latest review page 与 index proof；后续 provider live apply 继续消费同一 contract。 | 多条真实 paper line 可以从 index 打开 latest review page，并能追到 MAS owner refs；UI 不写 truth。 |
 | `publication_route_memory_receipt_scaleout` | `body_free_grouping_review_landed; more_receipts_needed` | MAS stage knowledge plane / workspace memory pack | OPL/Aion body-free receipt inventory、operator grouping 和 stale/deprecated review summary 已落地；下一步从更多真实论文线收集 accepted / rejected route lessons。 | `publication-route-memory-inventory` 显示多条真实 receipt、ref-only grouping、review summary 和 freshness，OPL/Aion 不持有 memory body 或 acceptance authority。 |
 | `skill_change_guard` | `ongoing` | overlay installer + stage route/knowledge/quality contracts | 对后续任何 stage skill 变更保持 machine-derived stage surface block、canonical route refs、knowledge obligations、quality pack refs、closeout refs 和 forbidden actions。 | overlay / agent-entry focused tests 通过，且新增 prose 没有替代 machine truth。 |
-| `legacy_residue_retirement` | `tombstone_landed; selective_cleanup_pending` | P2 migration / P3 provenance guard | `legacy_residue_audit` 已列出 current role、replacement proof、no-default-caller 和 disposition；legacy active-path tombstone 已落地，下一步按 audit finding 删除可删代码或保留 provenance。 | stale scan + no-default-caller proof + focused compatibility tests；文档不再暗示旧 runtime 是默认形态。 |
-| `standard_skeleton_physicalization` | `slot_audit_landed; physical_move_later` | standard domain agent skeleton / repo source layout | 新增 surface 默认 slot、现有 repo path 映射和 mapping explanation 已落地；旧路径保留 facade 和 locator，避免一次性大搬迁。 | skeleton audit 能解释标准 slot 与实际路径；无破坏性目录重组。 |
+| `legacy_residue_retirement` | `tombstone_landed; selective_cleanup_pending` | P2 migration / P3 provenance guard | `legacy_residue_audit` 已列出 current role、replacement proof、no-default-caller 和 disposition；legacy active-path tombstone 已落地，下一步按 audit finding 删除可删代码或保留 provenance。 | stale scan + no-default-caller proof + focused cleanup tests；文档不再暗示旧 runtime 是默认形态。 |
+| `standard_skeleton_physicalization` | `slot_audit_landed; physical_move_later` | standard domain agent skeleton / repo source layout | 新增 surface 默认 slot、现有 repo path 映射和 mapping explanation 已落地；现有路径只保留明确 repo mapping、生成资产或 locator/provenance，避免一次性大搬迁。 | skeleton audit 能解释标准 slot 与实际路径；无破坏性目录重组。 |
 
 在 OPL umbrella plan 下的推荐执行顺序是：先由 OPL/OPL+domain lane 统一 provider readiness、owner receipt envelope 和 memory/lifecycle apply receipt；MAS 本 program 并行保持 `stage_review_index_workspace_proof`、`skill_change_guard` 和 `standard_skeleton_physicalization`，并把 stage locator / review/index refs 接入 owner receipt 与 workbench projection；最后用 `legacy_residue_retirement` 收口可维护性。真实 `provider_guarded_apply_soak` 继续作为 production evidence gate，不由本 stage surface program 单独宣布完成。
 

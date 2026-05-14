@@ -277,14 +277,26 @@ def test_show_stage_route_contract_outputs_canonical_payload(capsys) -> None:
     assert json.loads(captured.out) == render_stage_route_contract_payload()
 
 
-def test_show_agent_entry_modes_remains_compatibility_alias(capsys) -> None:
+def test_show_stage_route_contract_is_only_public_route_contract_command(capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
 
-    exit_code = cli.main(["doctor", "entry-modes"])
+    exit_code = cli.main(["doctor", "stage-route-contract"])
     captured = capsys.readouterr()
 
     assert exit_code == 0
     assert json.loads(captured.out) == render_stage_route_contract_payload()
+
+
+def test_old_entry_modes_alias_is_removed(capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["doctor", "entry-modes"])
+    captured = capsys.readouterr()
+
+    assert str(excinfo.value) == "Grouped command requires a supported subcommand under `doctor`."
+    assert captured.out == ""
+    assert captured.err == ""
 def test_sync_agent_entry_assets_command_writes_four_files(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     expected_assets = {

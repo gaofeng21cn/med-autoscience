@@ -64,6 +64,22 @@ def _artifact_payload_from_ref(*, study_root: Path, artifact_path: str) -> dict[
     return _read_json_mapping(path)
 
 
+def _publication_eval_payload_for_record(
+    *,
+    study_root: Path,
+    record: StudyDecisionRecord,
+) -> dict[str, Any]:
+    payload = _artifact_payload_from_ref(
+        study_root=study_root,
+        artifact_path=record.publication_eval_ref.artifact_path,
+    )
+    payload_eval_id = _text(payload.get("eval_id"))
+    record_eval_id = _text(record.publication_eval_ref.eval_id)
+    if payload_eval_id is not None and record_eval_id is not None and payload_eval_id != record_eval_id:
+        return {}
+    return payload
+
+
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -298,9 +314,9 @@ def _stable_publication_authority_fingerprint(
     study_root: Path,
     record: StudyDecisionRecord,
 ) -> str:
-    publication_eval_payload = _artifact_payload_from_ref(
+    publication_eval_payload = _publication_eval_payload_for_record(
         study_root=study_root,
-        artifact_path=record.publication_eval_ref.artifact_path,
+        record=record,
     )
     work_unit_context = _controller_decision_work_unit_context(record=record, study_root=study_root)
     canonical_payload: dict[str, Any] = {
@@ -411,9 +427,9 @@ def _controller_decision_work_unit_context(
     record: StudyDecisionRecord,
     study_root: Path,
 ) -> dict[str, Any]:
-    publication_eval_payload = _artifact_payload_from_ref(
+    publication_eval_payload = _publication_eval_payload_for_record(
         study_root=study_root,
-        artifact_path=record.publication_eval_ref.artifact_path,
+        record=record,
     )
     record_context = _record_work_unit_context(record)
     publication_context = {} if record_context else _publication_eval_work_unit_context(publication_eval_payload)

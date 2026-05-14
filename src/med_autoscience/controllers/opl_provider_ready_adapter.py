@@ -164,8 +164,6 @@ def _provider_topology(*, provider_availability: Mapping[str, Any] | None = None
         "target_provider": "temporal",
         "target_provider_owner": "one-person-lab",
         "provider_state": "production_residency_proven" if provider_available else "contract_ready_skeleton",
-        "legacy_provider": "hermes_legacy",
-        "legacy_provider_classification": "optional_diagnostics_or_retire_after_parity",
         "hosted_runtime_policy": "opl_explicit_opt_in_only",
         "provider_attempt_owner": OPL_OWNER,
         "domain_action_owner": DOMAIN_OWNER,

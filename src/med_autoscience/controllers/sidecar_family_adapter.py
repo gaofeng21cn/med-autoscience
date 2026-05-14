@@ -243,7 +243,7 @@ def export_family_sidecar(
                     "adapter_id": "hermes_agent",
                     "display_name": "Hermes-Agent",
                     "classification": "explicit_optional_executor_adapter",
-                    "retirement_policy": "retire_after_parity",
+                    "runtime_policy": "explicit_opl_opt_in_then_typed_receipt_only",
                     "executor_policy": "not_a_mas_executor_adapter",
                     "default_provider": False,
                 }

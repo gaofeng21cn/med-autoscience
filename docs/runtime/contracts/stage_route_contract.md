@@ -1,7 +1,6 @@
 # MAS Stage Route Contract
 
 Canonical source: `agent/stages/stage_route_contract.yaml`.
-Legacy `agent_entry_modes` names are compatibility aliases for this stage route contract.
 
 ## Compatible Agents
 - Codex, Claude Code, OpenClaw

@@ -264,7 +264,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
             "adapter_id": "hermes_agent",
             "display_name": "Hermes-Agent",
             "classification": "explicit_optional_executor_adapter",
-            "retirement_policy": "retire_after_parity",
+            "runtime_policy": "explicit_opl_opt_in_then_typed_receipt_only",
             "executor_policy": "not_a_mas_executor_adapter",
             "default_provider": False,
         }
@@ -291,9 +291,9 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
     assert provider["provider_topology"]["target_provider"] == "temporal"
     assert provider["provider_topology"]["provider_attempt_is_truth"] is False
-    assert provider["provider_topology"]["legacy_provider_classification"] == (
-        "optional_diagnostics_or_retire_after_parity"
-    )
+    assert "legacy_provider" not in provider["provider_topology"]
+    assert "legacy_provider_classification" not in provider["provider_topology"]
+    assert provider["legacy_retirement_tombstone_proof"]["status"] == "no_active_default_caller_proven"
     assert provider["executor_requirements"] == {
         "adapter_owner": "one-person-lab",
         "generic_executor_adapter_owner": "one-person-lab",

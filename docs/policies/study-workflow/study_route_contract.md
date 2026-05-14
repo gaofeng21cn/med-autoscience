@@ -4,7 +4,7 @@
 canonical source 位于 `agent/stages/stage_route_contract.yaml` 的 `route_contracts`。
 `modes` 只回答某个 entry mode 当前允许走哪些 route，正式 route 定义统一以 `route_contracts` 为准。
 
-`stage_route_contract.yaml` 当前是真实使用的 MAS route/stage contract 结构化源，供 `show-stage-route-contract`、stage surface contract、product-entry manifest、OPL/family descriptor 和测试读取。`show-agent-entry-modes` 和 `agent_entry` Python API 只作为兼容别名保留，内部读取同一个 canonical source。Markdown guide、Codex skill prompt 与 OpenClaw prompt 都从它派生。它不是 domain memory，也不是给 maintainer 维护自然语言经验的正文库；论文套路、路线偏置、reviewer lesson 和可复用 display lesson 应留在 Markdown-first memory 或 workspace memory 中。
+`stage_route_contract.yaml` 当前是真实使用的 MAS route/stage contract 结构化源，供 `show-stage-route-contract`、stage surface contract、product-entry manifest、OPL/family descriptor 和测试读取。旧 `show-agent-entry-modes` CLI 和 `agent_entry.modes` Python API 已退役；当前公开入口只保留 stage route contract。Markdown guide、Codex skill prompt 与 OpenClaw prompt 都从它派生。它不是 domain memory，也不是给 maintainer 维护自然语言经验的正文库；论文套路、路线偏置、reviewer lesson 和可复用 display lesson 应留在 Markdown-first memory 或 workspace memory 中。
 
 ## 固定字段
 

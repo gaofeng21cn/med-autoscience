@@ -1,16 +1,16 @@
 # MAS Single-Project MDS Absorb Program
 
-Status: `landed foundation owner doc; provenance and compatibility guard active`
+Status: `landed foundation owner doc; provenance archive parity guard active`
 Date: `2026-05-11`
 Owner: `MedAutoScience`
-Purpose: preserve the current MAS monolith outcome, MDS retained-role decisions, provenance rules, and compatibility guard boundaries.
-Machine boundary: this is a human-readable owner/provenance document. Machine truth remains in MAS runtime/controller/quality/artifact surfaces, source provenance records, parity fixtures, compatibility readers, archive/import ledgers, and live workspace evidence.
+Purpose: preserve the current MAS monolith outcome, MDS retained-role decisions, provenance rules, archive/import boundaries, and parity oracle boundaries.
+Machine boundary: this is a human-readable owner/provenance document. Machine truth remains in MAS runtime/controller/quality/artifact surfaces, source provenance records, parity fixtures, explicit archive/import readers, archive/import ledgers, and live workspace evidence.
 
 Full historical record: [2026-05-10 MAS/MDS absorb full record](../history/program/mas_single_project_mds_absorb_program_2026_05_10_full_record.md).
 
 ## Current Role
 
-This document is P3 in the MAS program portfolio. P3 is no longer an active implementation queue. It is the landed foundation owner for MAS monolith, MDS provenance, compatibility retirement, and future source-intake classification.
+This document is P3 in the MAS program portfolio. P3 is no longer an active implementation queue. It is the landed foundation owner for MAS monolith, MDS provenance, retired compatibility surfaces, and future source-intake classification.
 
 The current state is:
 
@@ -29,7 +29,7 @@ The current state is:
 | Artifacts and package authority | MAS Artifact OS and canonical manuscript/package rebuild proof | retained in MAS |
 | Old MDS code/history | external archive/provenance reference | no-history import only; no default dependency |
 | Old MDS capability signals | parity fixtures or audit oracles | cannot authorize quality or submission readiness |
-| Old MDS paths | explicit archive/import or compatibility readers | no new default writer |
+| Old MDS paths | explicit archive/import or provenance readers | no new default writer |
 
 ## Landed Facts
 
@@ -80,10 +80,10 @@ P3 claims should be verified through:
 - source provenance and author audit records;
 - retained capability and MDS behavior parity fixtures;
 - MAS runtime/controller/product-entry/Progress Portal contract tests;
-- explicit archive/import and compatibility-reader tests;
+- explicit archive/import and provenance-reader tests;
 - live workspace evidence only when discussing a specific workspace.
 
-Repo documentation is not proof that a real paper line progressed. P3 only proves ownership, provenance, and compatibility boundaries.
+Repo documentation is not proof that a real paper line progressed. P3 only proves ownership, provenance, archive/import boundaries, and parity reference boundaries.
 
 ## Historical Content Disposition
 

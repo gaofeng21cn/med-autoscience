@@ -548,7 +548,7 @@ def _legacy_blockers(legacy_residue_audit: Mapping[str, Any]) -> list[dict[str, 
                 _typed_blocker(
                     f"legacy_residue_delete_allowed:{item.get('residue_id')}",
                     owner=DOMAIN_OWNER,
-                    required_surface="focused compatibility tests and replacement proof",
+                    required_surface="focused cleanup tests and replacement proof",
                     reason="A legacy residue is deletable and needs a focused cleanup patch.",
                 )
             )

@@ -5,8 +5,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-from med_autoscience.agent_entry import load_entry_modes, load_entry_modes_payload
-from med_autoscience.agent_entry import modes as modes_module
 from med_autoscience import stage_route_contract as stage_route_contract_module
 from med_autoscience.stage_route_contract import (
     STAGE_ROUTE_CONTRACT_REF,
@@ -20,8 +18,8 @@ def test_stage_route_contract_source_uses_standard_agent_stage_slot() -> None:
     payload = load_stage_route_contract_payload()
 
     assert STAGE_ROUTE_CONTRACT_REF == "agent/stages/stage_route_contract.yaml"
-    assert payload == load_entry_modes_payload()
-    assert load_stage_route_contract() == load_entry_modes()
+    assert set(payload) >= {"compatible_agents", "route_contracts", "modes", "evidence_review_contract"}
+    assert load_stage_route_contract() == stage_entry_modes_from_payload(payload)
 
 
 def test_stage_route_contract_loader_falls_back_to_packaged_resource(
@@ -204,12 +202,8 @@ def test_stage_entry_modes_reject_mode_level_compatible_agents_override() -> Non
         stage_entry_modes_from_payload(payload)
 
 
-def test_agent_entry_loader_remains_compatibility_alias(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _payload_with_distinct_entry_actions() -> dict[str, object]:
-        payload = load_stage_route_contract_payload()
-        payload["modes"][0]["managed_entry_actions"] = ["doctor", "bootstrap"]
-        return payload
+def test_stage_route_contract_parser_preserves_distinct_entry_actions() -> None:
+    payload = load_stage_route_contract_payload()
+    payload["modes"][0]["managed_entry_actions"] = ["doctor", "bootstrap"]
 
-    monkeypatch.setattr(modes_module, "load_entry_modes_payload", _payload_with_distinct_entry_actions)
-
-    assert load_entry_modes()[0].managed_entry_actions == ("doctor", "bootstrap")
+    assert stage_entry_modes_from_payload(payload)[0].managed_entry_actions == ("doctor", "bootstrap")

@@ -9,7 +9,6 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("doctor", "mainline-status"): "mainline-status",
     ("doctor", "mainline-phase"): "mainline-phase",
     ("doctor", "stage-route-contract"): "show-stage-route-contract",
-    ("doctor", "entry-modes"): "show-agent-entry-modes",
     ("doctor", "sync-entry-assets"): "sync-agent-entry-assets",
     ("doctor", "preflight"): "preflight-changes",
     ("doctor", "preflight-contract-report"): "preflight-contract-report",
@@ -112,7 +111,7 @@ GROUPED_COMMAND_PROGS = {
     for (group, subcommand), flat_command in GROUPED_COMMAND_ALIASES.items()
 }
 GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
-    "doctor": "doctor 审计、profile、mainline 与 entry-mode 检查。",
+    "doctor": "doctor 审计、profile、mainline 与 stage-route contract 检查。",
     "workspace": "workspace 初始化与 readiness cockpit。",
     "data": "研究资产、public data、registry 与 literature/memory 准备。",
     "runtime": "runtime watch、MAS scheduler supervision、overlay、analysis bundle、storage maintenance 与 live console。",

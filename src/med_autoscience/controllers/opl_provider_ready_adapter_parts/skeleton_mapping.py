@@ -132,7 +132,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             ],
             mapping_explanation=(
                 "New stage definitions should land in the standard slot while existing stage policy "
-                "and stage knowledge controller paths remain the active facade-backed repo mapping."
+                "and stage knowledge controller paths remain the active repo mapping."
             ),
         ),
         _physical_skeleton_slot(
@@ -146,7 +146,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             ],
             mapping_explanation=(
                 "New prompt surfaces should land in the standard prompt slot; existing Codex and "
-                "OpenClaw entry templates stay as compatibility facades."
+                "OpenClaw entry templates stay as generated prompt assets."
             ),
         ),
         _physical_skeleton_slot(
@@ -160,7 +160,7 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
             ],
             mapping_explanation=(
                 "New skill-callable surfaces should land in the standard skill slot while the "
-                "current CLI, parser, and MCP wrapper remain the active callable facades."
+                "current CLI, parser, and MCP wrapper remain the active callable surfaces."
             ),
         ),
         _physical_skeleton_slot(

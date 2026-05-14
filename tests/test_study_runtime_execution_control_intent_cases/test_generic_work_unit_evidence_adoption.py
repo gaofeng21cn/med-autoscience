@@ -22,12 +22,14 @@ def _write_generic_controller_decision(
     decision_type: str,
     route_target: str,
     route_key_question: str,
+    publication_eval_id: str | None = None,
 ) -> None:
     decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    resolved_publication_eval_id = publication_eval_id or f"publication-eval::{study_id}::latest"
     publication_eval_path.parent.mkdir(parents=True, exist_ok=True)
     publication_eval_path.write_text(
-        json.dumps({"schema_version": 1, "eval_id": f"publication-eval::{study_id}::latest"}) + "\n",
+        json.dumps({"schema_version": 1, "eval_id": resolved_publication_eval_id}) + "\n",
         encoding="utf-8",
     )
     decision_path.parent.mkdir(parents=True, exist_ok=True)
@@ -50,7 +52,7 @@ def _write_generic_controller_decision(
                     "summary_ref": str(study_root / "artifacts" / "runtime" / "runtime_escalation_record.json"),
                 },
                 "publication_eval_ref": {
-                    "eval_id": f"publication-eval::{study_id}::latest",
+                    "eval_id": resolved_publication_eval_id,
                     "artifact_path": str(publication_eval_path),
                 },
                 "requires_human_confirmation": False,
@@ -330,6 +332,66 @@ def test_execute_noop_runtime_decision_adopts_generic_artifact_from_runtime_rela
     assert adoption["route_target"] == "write"
     assert adoption["result"]["boundary_revalidated"] is True
     assert adoption["result"]["publication_gate_recheck_required"] is True
+
+
+def test_controller_authorization_ignores_drifted_latest_publication_eval_work_unit_context(
+    tmp_path: Path,
+) -> None:
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    decision_id = f"study-decision::{study_id}::{quest_id}::continue_same_line::2026-05-13T22:00:42+00:00"
+    route_key_question = "MAS/MDS-supervised revised manuscript package"
+    original_eval_id = f"publication-eval::{study_id}::{quest_id}::2026-05-13T22:00:38+00:00"
+    study_root = tmp_path / "workspace" / "studies" / study_id
+    _write_generic_controller_decision(
+        study_root,
+        study_id=study_id,
+        quest_id=quest_id,
+        decision_id=decision_id,
+        emitted_at="2026-05-13T22:00:42+00:00",
+        decision_type="continue_same_line",
+        route_target="write",
+        route_key_question=route_key_question,
+        publication_eval_id=original_eval_id,
+    )
+    latest_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    latest_eval_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "eval_id": f"publication-eval::{study_id}::{quest_id}::2026-05-14T06:02:10+00:00",
+                "recommended_actions": [
+                    {
+                        "action_type": "route_back_same_line",
+                        "route_target": "finalize",
+                        "route_key_question": "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
+                        "work_unit_fingerprint": "publication-blockers::384926545bfa6f3a",
+                        "next_work_unit": {
+                            "unit_id": "submission_authority_sync_closure",
+                            "lane": "controller",
+                            "summary": "Regenerate submission authority signatures, then replay the publication gate.",
+                        },
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    assert authorization_context["publication_eval_id"] == original_eval_id
+    assert authorization_context["route_target"] == "write"
+    assert authorization_context["route_key_question"] == route_key_question
+    assert authorization_context["work_unit_id"] == route_key_question
+    assert authorization_context["next_work_unit"] == {}
+    assert authorization_context["blocking_work_units"] == []
 
 
 def test_execute_noop_runtime_decision_rejects_blocked_generic_work_unit_artifact(

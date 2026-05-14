@@ -803,65 +803,6 @@ def _has_prior_delivery_or_duplicate_for_business_key(
     )
 
 
-def _controller_target_context_matches(
-    *,
-    marker: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool:
-    return all(
-        key not in authorization_context or marker.get(key) == authorization_context.get(key)
-        for key in _WORK_UNIT_TARGET_CONTEXT_KEYS
-    )
-
-
-def _controller_intent_key_matches(
-    *,
-    marker: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool:
-    expected = _text(authorization_context.get("control_intent_key"))
-    observed = _text(marker.get("control_intent_key"))
-    return expected is not None and observed == expected
-
-
-def _controller_route_marker_matches(
-    *,
-    marker: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool:
-    return (
-        _text(marker.get("decision_id")) == _text(authorization_context.get("decision_id"))
-        and _text(marker.get("route_target")) == _text(authorization_context.get("route_target"))
-        and _text(marker.get("route_key_question")) == _text(authorization_context.get("route_key_question"))
-    )
-
-
-def _has_matching_relay_marker(
-    *,
-    quest_root: Path,
-    authorization_context: dict[str, Any],
-    active_run_id: str | None,
-) -> bool:
-    runtime_state_path = Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
-    runtime_state = _read_json_mapping(runtime_state_path)
-    marker = runtime_state.get(_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
-    if not isinstance(marker, dict):
-        return False
-    if _text(marker.get("delivery_mode")) not in {"managed_runtime_chat", "durable_queue_fallback"}:
-        return False
-    if _text(marker.get("message_id")) is None:
-        return False
-    current_active_run_id = _text(active_run_id)
-    marker_active_run_id = _text(marker.get("active_run_id"))
-    if current_active_run_id is not None and marker_active_run_id != current_active_run_id:
-        return False
-    if not _controller_target_context_matches(marker=marker, authorization_context=authorization_context):
-        return False
-    if _controller_intent_key_matches(marker=marker, authorization_context=authorization_context):
-        return True
-    return _controller_route_marker_matches(marker=marker, authorization_context=authorization_context)
-
-
 def adopt_controller_work_unit_evidence_if_present(
     *,
     study_root: Path,
@@ -887,10 +828,11 @@ def adopt_controller_work_unit_evidence_if_present(
         study_root=study_root,
         identity=identity,
     )
-    has_matching_relay_marker = _has_matching_relay_marker(
+    has_matching_relay_marker = generic_completed_work_unit.has_matching_relay_marker(
         quest_root=quest_root,
         authorization_context=authorization_context,
         active_run_id=active_run_id,
+        work_unit_target_context_keys=_WORK_UNIT_TARGET_CONTEXT_KEYS,
     )
     if (
         not has_delivery_for_current_decision

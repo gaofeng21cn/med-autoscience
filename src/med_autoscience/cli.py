@@ -427,7 +427,7 @@ def main(argv: list[str] | None = None) -> int:
             print(mainline_status.render_mainline_phase_markdown(result), end="")
         return 0
 
-    if args.command in {"show-stage-route-contract", "show-agent-entry-modes"}:
+    if args.command == "show-stage-route-contract":
         print(json.dumps(render_stage_route_contract_payload(), ensure_ascii=False, indent=2))
         return 0
 

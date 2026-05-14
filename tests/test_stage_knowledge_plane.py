@@ -150,7 +150,7 @@ def test_stage_knowledge_plane_contract_exposes_required_packet_surfaces() -> No
 
 @pytest.mark.parametrize("stage", EXPLORATORY_STAGES)
 def test_exploratory_route_contracts_require_stage_knowledge_and_closeout(stage: str) -> None:
-    payload = importlib.import_module("med_autoscience.agent_entry").load_entry_modes_payload()
+    payload = importlib.import_module("med_autoscience.stage_route_contract").load_stage_route_contract_payload()
     route_contract = payload["route_contracts"][stage]
 
     assert "knowledge_input_obligations" in route_contract
@@ -160,7 +160,7 @@ def test_exploratory_route_contracts_require_stage_knowledge_and_closeout(stage:
 
 
 def test_decision_route_contract_requires_route_memory_stage_knowledge_and_closeout() -> None:
-    payload = importlib.import_module("med_autoscience.agent_entry").load_entry_modes_payload()
+    payload = importlib.import_module("med_autoscience.stage_route_contract").load_stage_route_contract_payload()
     route_contract = payload["route_contracts"]["decision"]
 
     assert route_contract["knowledge_input_obligations"][:2] == [

@@ -298,9 +298,9 @@ def build_legacy_retirement_tombstone_proof() -> dict[str, Any]:
         },
         {
             "surface_id": "hermes_scheduler_hosted_runtime",
-            "classification": "retire_after_parity",
+            "classification": "retired_no_default_caller",
             "default_caller": False,
-            "retention_reason": "tombstoned_history_or_optional_provider_provenance",
+            "retention_reason": "tombstoned_history_reference_only",
             "replacement_ref": "/opl_provider_ready_contract/provider_topology",
             "tombstone_ref": "contracts/runtime/legacy-active-path-tombstones.json",
         },

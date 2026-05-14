@@ -21,14 +21,14 @@ def build_legacy_residue_audit() -> dict[str, Any]:
         ),
         _finding(
             residue_id="hermes_gateway_cron_scheduler",
-            current_role="explicit_optional_scheduler_adapter",
+            current_role="retired_no_default_caller_history_reference",
             default_caller=False,
             replacement_proof_refs=[
                 "runtime-supervision-status manager=local",
                 "MAS supervision scheduler contract local adapter",
             ],
-            retention_reason="kept for migration/parity diagnostics until optional jobs are removed with receipts",
-            disposition="retire_after_parity",
+            retention_reason="tombstoned; any remaining references are history or explicit diagnostics",
+            disposition="retired_no_default_caller",
         ),
         _finding(
             residue_id="med_deepscientist_backend_reference",
@@ -89,7 +89,9 @@ def build_legacy_residue_audit() -> dict[str, Any]:
             "tombstoned_count": sum(1 for item in findings if item["disposition"] == "tombstoned"),
             "retained_reference_count": sum(1 for item in findings if item["disposition"] == "retain_reference"),
             "retained_diagnostics_count": sum(1 for item in findings if item["disposition"] == "retain_diagnostics"),
-            "retire_after_parity_count": sum(1 for item in findings if item["disposition"] == "retire_after_parity"),
+            "retired_no_default_caller_count": sum(
+                1 for item in findings if item["disposition"] == "retired_no_default_caller"
+            ),
         },
         "authority_boundary": {
             "audit_can_delete_code": False,

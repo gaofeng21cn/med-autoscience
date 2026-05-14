@@ -183,7 +183,7 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
                 "MAS guarded dispatch receipt for OPL provider queue control. "
                 "It records a domain control receipt only and does not authorize domain truth, "
                 "publication quality, artifact gate, or current package writes; Hermes paths are "
-                "optional diagnostics/provenance or retire-after-parity only."
+                "explicit OPL opt-in executor/proof refs only, never MAS default runtime paths."
             ),
             "effect": "mutating",
             "command": "medautosci sidecar dispatch --task <task.json> --format json",

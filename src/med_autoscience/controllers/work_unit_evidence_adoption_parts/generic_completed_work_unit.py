@@ -7,6 +7,8 @@ from typing import Any
 
 RECOMMENDED_NEXT_ROUTE = "return_to_publication_gate_recheck"
 NEXT_OWNER = "publication_gate"
+CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
+RUNTIME_RELAY_DELIVERY_MODES = frozenset({"managed_runtime_chat", "durable_queue_fallback"})
 
 
 def report_candidates(
@@ -31,6 +33,36 @@ def report_candidates(
     active_run_candidates = [path for path in candidates if resolved_active_run_id in path.name]
     other_candidates = [path for path in candidates if path not in active_run_candidates]
     return tuple(active_run_candidates + other_candidates)
+
+
+def has_matching_relay_marker(
+    *,
+    quest_root: Path,
+    authorization_context: dict[str, Any],
+    active_run_id: str | None,
+    work_unit_target_context_keys: tuple[str, ...],
+) -> bool:
+    runtime_state = read_json_mapping(Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json")
+    marker = runtime_state.get(CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
+    if not isinstance(marker, dict):
+        return False
+    if _text(marker.get("delivery_mode")) not in RUNTIME_RELAY_DELIVERY_MODES:
+        return False
+    if _text(marker.get("message_id")) is None:
+        return False
+    current_active_run_id = _text(active_run_id)
+    marker_active_run_id = _text(marker.get("active_run_id"))
+    if current_active_run_id is not None and marker_active_run_id != current_active_run_id:
+        return False
+    if not _target_context_matches(
+        marker=marker,
+        authorization_context=authorization_context,
+        work_unit_target_context_keys=work_unit_target_context_keys,
+    ):
+        return False
+    if _intent_key_matches(marker=marker, authorization_context=authorization_context):
+        return True
+    return _route_marker_matches(marker=marker, authorization_context=authorization_context)
 
 
 def read_json_mapping(path: Path) -> dict[str, Any]:
@@ -93,6 +125,40 @@ def normalized_result(report_payload: dict[str, Any]) -> dict[str, Any]:
         }
     )
     return normalized
+
+
+def _target_context_matches(
+    *,
+    marker: dict[str, Any],
+    authorization_context: dict[str, Any],
+    work_unit_target_context_keys: tuple[str, ...],
+) -> bool:
+    return all(
+        key not in authorization_context or marker.get(key) == authorization_context.get(key)
+        for key in work_unit_target_context_keys
+    )
+
+
+def _intent_key_matches(
+    *,
+    marker: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    expected = _text(authorization_context.get("control_intent_key"))
+    observed = _text(marker.get("control_intent_key"))
+    return expected is not None and observed == expected
+
+
+def _route_marker_matches(
+    *,
+    marker: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    return (
+        _text(marker.get("decision_id")) == _text(authorization_context.get("decision_id"))
+        and _text(marker.get("route_target")) == _text(authorization_context.get("route_target"))
+        and _text(marker.get("route_key_question")) == _text(authorization_context.get("route_key_question"))
+    )
 
 
 def report_timestamp(payload: dict[str, Any]) -> str | None:

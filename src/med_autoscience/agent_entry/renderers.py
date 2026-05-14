@@ -13,10 +13,6 @@ def render_stage_route_contract_payload() -> dict[str, object]:
     return deepcopy(load_stage_route_contract_payload())
 
 
-def render_entry_modes_payload() -> dict[str, object]:
-    return render_stage_route_contract_payload()
-
-
 def render_stage_route_contract_guide() -> str:
     payload = render_stage_route_contract_payload()
     compatible_agents = _string_list(payload.get("compatible_agents"), field="compatible_agents")
@@ -29,7 +25,6 @@ def render_stage_route_contract_guide() -> str:
         "# MAS Stage Route Contract",
         "",
         f"Canonical source: `{STAGE_ROUTE_CONTRACT_REF}`.",
-        "Legacy `agent_entry_modes` names are compatibility aliases for this stage route contract.",
         "",
         "## Compatible Agents",
         f"- {', '.join(compatible_agents)}",
@@ -133,11 +128,6 @@ def render_stage_route_contract_guide() -> str:
         )
     )
     return "\n".join(lines).rstrip() + "\n"
-
-
-def render_entry_modes_guide() -> str:
-    return render_stage_route_contract_guide()
-
 
 def render_public_yaml() -> str:
     payload = render_stage_route_contract_payload()
