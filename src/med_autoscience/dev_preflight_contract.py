@@ -59,10 +59,12 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         exact_paths=(
             ".github/workflows/advisory.yml",
             ".github/workflows/ci.yml",
+            "MANIFEST.in",
             ".github/workflows/release.yml",
             ".github/workflows/sentrux-advisory.yml",
             "pyproject.toml",
             "scripts/install-macos.sh",
+            "setup.py",
             "tests/test_release_metadata.py",
             "tests/test_release_installer.py",
             "tests/test_release_workflow.py",

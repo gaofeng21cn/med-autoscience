@@ -539,6 +539,21 @@ def test_classify_changed_files_matches_ci_workflow_surface() -> None:
     assert result.unclassified_changes == ()
 
 
+def test_classify_changed_files_matches_packaging_workflow_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "MANIFEST.in",
+            "setup.py",
+            "tests/test_release_workflow.py",
+        ]
+    )
+
+    assert result.matched_categories == ("workflow_surface",)
+    assert result.unclassified_changes == ()
+
+
 def test_classify_changed_files_matches_integration_harness_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
