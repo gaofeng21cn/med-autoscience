@@ -317,7 +317,7 @@ nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clea
 
 | priority | status | task | output | validation |
 | --- | --- | --- | --- | --- |
-| `P0` | `landed` | 冻结 stage surface template | 本文 + program/README/current lines 引用 | `git diff --check` |
+| `P0` | `landed` | 冻结 stage surface template | 本文 + active/README/current lines 引用 | `git diff --check` |
 | `P1` | `landed` | 为所有主 stage 生成 stage card | `src/med_autoscience/stage_surface_contract.py` + `docs/runtime/contracts/stage_surfaces.md` generated facade | `tests/test_stage_surface_contract.py` + route contract path spot check |
 | `P1` | `landed` | 把 append-block 主 stage 升级为独立可读 skill surface，并消费 stage card / knowledge / quality pack / closeout refs | baseline / experiment / analysis-campaign / review stage skill | overlay installer tests + agent entry asset tests |
 | `P1` | `landed` | 补齐 knowledge / closeout obligations | 更新 `stage_knowledge_contract.py` 与 canonical YAML 中的 obligations | `tests/test_stage_knowledge_plane.py` + `tests/test_stage_route_assets.py` |

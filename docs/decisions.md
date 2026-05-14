@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-14：Domain transition table 集中管理，OPL 提供通用状态机执行底座
+
+- 决策：MAS 的论文控制面状态转换必须收口成 MAS-owned domain transition table / transition matrix，而不是继续分散在 `publication_work_units`、`study_outer_loop`、`owner_priority`、`controller_authorization` 等局部判断点里各自解释下一步。transition table 的输入至少包括 `publication_supervisor_state`、publication gate report、`publication_eval/latest.json` 推荐动作、task intake、controller decision authorization 与 runtime liveness；输出必须固定 `decision_type`、`route_target`、`next_work_unit`、`controller_action`、owner、idempotency/fingerprint 和 fail-closed blocker。
+- 理由：DM002/DM003/Obesity 等真实 paper line 反复暴露同类问题：状态转换概念上清晰，但实现分散会让 gate clear、bundle-stage、publishability blocked、stale authority、task-intake residue 和 runtime recovery 各层互相覆盖。集中 transition table 能把“输入状态组合 -> route/work_unit/action”的行为变成可审计矩阵，并用 table-driven oracle tests 防止同类漂移。
+- OPL/MAS 边界：通用状态机执行底座、transition schema、幂等 tick、attempt/retry/dead-letter、human gate transport、dispatch receipt、transition matrix runner 和 cross-domain parity 可以上移到 OPL framework。医学研究语义不得上移：`stale_submission_minimal_authority`、`publication_gate`、`bundle_stage_blocked`、claim/evidence/display blocker、AI reviewer judgement、submission authority、paper quality 与 artifact/package authority 仍由 MAS 定义并测试。OPL 执行 MAS 声明的 transition spec；MAS 持有 domain transition table 和 oracle fixtures。
+- 影响：后续控制面修复不能只补单点 if/else。凡新增或修改状态转换，必须同步更新 MAS domain transition table / matrix tests；当 OPL framework 的通用 state-machine runner 可用时，MAS 应把现有 domain transition table 作为 domain spec 接入 OPL runner，而不是让 OPL 重新解释医学状态。
+
 ## 2026-05-10：MAS 对齐 OPL Temporal-backed production runtime，Temporal 为 OPL 生产必需 substrate
 
 - 决策：MAS 与 OPL 的长期托管口径从 Hermes-first 更新为 Temporal-backed OPL family runtime：`OPL Runtime Manager / opl family-runtime -> Temporal-backed family runtime provider -> MAS sidecar export/dispatch -> MAS domain entry/projection`。Temporal 是 OPL production online runtime 的必需 substrate；Hermes-Agent 迁移后作为可选 Agent executor adapter、显式 hosted/proof backend 或可选安装模块保留，不再作为目标 24h session/wakeup substrate，local provider 只作为 MAS direct/local diagnostics 或 OPL dev/CI/offline baseline。

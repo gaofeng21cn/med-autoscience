@@ -25,9 +25,10 @@ Everything else belongs to a lifecycle directory.
 
 The OPL-family canonical docs taxonomy for managed framework/domain repos is
 `active/public/product/runtime/delivery/source/policies/specs/references/history`.
-MAS keeps existing `program/` and `capabilities/` as migration sources and
-path-stable support directories while active links are audited; they are not
-new long-term destination names for recurring material.
+MAS has physically retired the former `docs/program/` and `docs/capabilities/`
+active directories. Current program-baton material lives in `docs/active/`;
+medical-display capability material lives under `docs/delivery/medical-display/`.
+Those retired directory names may appear only in history/provenance records.
 
 ## Lifecycle Signals
 
@@ -84,16 +85,14 @@ MAS adapts mature documentation practice this way:
 | directory | role | lifecycle rule |
 | --- | --- | --- |
 | `docs/` root | short technical entry plus core truth | Only root README, core five, and this governance file stay here. |
-| `docs/active/` | current execution, gap plans, and active baton | Routes current `program/` material; physical moves wait for inbound `human_doc:*` and contract review. |
+| `docs/active/` | current execution, gap plans, active baton, and program lifecycle portfolio | Current owner for the former `docs/program/` active material: active README, portfolio entry, the P0 target/acceptance owner, P1/P2 active enablers, and P3/P3a landed foundation owner docs. `human_doc:*` remains a semantic ID, not a physical path promise. |
 | `docs/public/` | public MAS narrative after the repository home | Keeps user-facing positioning sparse and subordinate to the repository home. |
 | `docs/product/` | direct app skill, product-entry, operator/workbench-facing guidance | Does not own study truth or publication verdicts. |
 | `docs/runtime/` | runtime contracts, control, projections, display, active designs | Completed implementation plans move to `docs/history/runtime/`. |
-| `docs/delivery/` | manuscript, package, submission/export, and delivery authority support | Domain authority remains in MAS runtime/artifact surfaces. |
+| `docs/delivery/` | manuscript, package, submission/export, delivery authority support, and capability-family docs | Domain authority remains in MAS runtime/artifact surfaces. Medical-display capability docs now live at `docs/delivery/medical-display/`; each family owns its board, contracts, catalogs, plans, provenance, and history links. |
 | `docs/source/` | workspace/source intake, source readiness, source truth consumption | Keeps source semantics MAS-owned and only generic shell candidates go up to OPL. |
 | `docs/policies/` | stable internal rules | Group by `quality`, `study-workflow`, `runtime-governance`, and `repo-ops`; do not store one-off plans here. |
 | `docs/specs/` | active technical specs and spec index | Older specs must be explicitly classified active or history before expansion. |
-| `docs/active/` | program lifecycle portfolio | Keep small: program README, portfolio entry, the P0 target/acceptance owner, P1/P2 active enablers, and P3/P3a landed foundation owner docs. |
-| `docs/delivery/` | capability-family docs | Each family owns its board, contracts, catalogs, plans, provenance, and history links. |
 | `docs/references/` | support references | Group by `mainline`, `integration`, `mds-parity`, `positioning`, `verification`, `workspace`, and `med-deepscientist`. |
 | `docs/history/` | dated snapshots, provenance, retired boards, process drafts | History cannot own active backlog, runtime truth, publication truth, or policy authority. |
 

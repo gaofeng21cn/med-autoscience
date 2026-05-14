@@ -24,6 +24,8 @@
 
 - [`./study_runtime_control_surface.md`](./study_runtime_control_surface.md)
 
+与 `publication_supervisor_state`、publication gate、task intake、controller authorization 和 runtime liveness 如何转换成 `route_target` / `next_work_unit` / `controller_action` 相关的正式语义，必须按 MAS-owned domain transition table 理解。当前代码仍有多个实现入口，但 contract 目标是集中、可测试、可由 transition matrix 验证的 domain table。OPL 可以承载通用 state-machine runner、attempt/retry/human-gate/dispatch receipt 等框架能力；MAS 仍持有医学 domain transition table，不能把 publication gate、AI reviewer judgement、submission authority 或 claim/evidence/display blocker 的解释交给 OPL。
+
 与 `launch_report`、`runtime_escalation_record`、`publication_eval`、`study_decision_record` 以及 delivery/publication plane surface role 相关的 artifact 边界，现统一桥接到：
 
 - [`../contracts/delivery_plane_contract_map.md`](../contracts/delivery_plane_contract_map.md)
@@ -276,6 +278,21 @@ summary truth 约束：
 7. 结合 quest 是否存在、是否 live、是否 resumable，给出最终 decision / reason
 
 也就是说，`study_runtime_status(...)` 不是“把若干 dict 拼起来”，而是一个确定性的状态机读面。
+
+## Transition Table 与 OPL Framework 边界
+
+当前 runtime orchestration 有两层状态机，不能混成一个 owner：
+
+- OPL/framework generic state machine：stage attempt、provider abstraction、queue/wakeup、retry/dead-letter、human gate signal/query、attempt receipt、dispatch receipt、transition matrix runner、shared lifecycle/index/restore primitives。
+- MAS domain transition table：study truth、publication gate、AI reviewer、paper quality、submission authority、artifact/package authority、domain owner route、`decision_type`、`route_target`、`next_work_unit` 和 `controller_action`。
+
+因此，集中表是目标，但集中表的 owner 是 MAS domain table。OPL 后续可以提供统一 runner 和 schema，让 MAS/MAG/RCA 以 domain spec 的方式接入；OPL 不持有 MAS 的医学状态含义，也不能根据 OPL 自己的状态字段直接决定某篇论文是否 publishable、是否进入 finalize、是否刷新 package 或是否关闭 AI reviewer gate。
+
+任何新增 MAS transition 都应同时落三件事：
+
+1. domain transition table/spec 中的输入、guard、输出和 fail-closed reason。
+2. table-driven matrix test，覆盖正向转换和至少一个相邻误转场景。
+3. controller decision / runtime authorization 的 receipt 字段，保证 executor 看到的是同一个 `route_target`、`next_work_unit` 和 fingerprint。
 
 ## Future work-unit / route-unit attempt contract
 

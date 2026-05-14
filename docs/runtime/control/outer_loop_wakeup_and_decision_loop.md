@@ -186,6 +186,39 @@ runtime_escalation_ref:
 - `publication_eval`
 - `study_decision_record`
 
+## Domain Transition Table
+
+outer loop 的状态转换应按集中 domain transition table 理解，而不是由多个局部 helper 隐式拼出下一步。当前实现仍分散在 `publication_work_units`、`study_outer_loop`、`owner_priority`、`controller_authorization` 等模块；这是实现形态，不是目标 contract。目标 contract 是：MAS 在一个可审计的 transition matrix 中声明“输入状态组合 -> domain route/work-unit/controller action”，再由 controller tick materialize `study_decision_record`。
+
+MAS domain transition table 的输入至少包括：
+
+- `publication_supervisor_state`
+- publication gate report
+- `publication_eval/latest.json`
+- task intake / reviewer revision intake
+- latest `controller_decisions/latest.json` authorization
+- runtime liveness / retry / owner guard
+
+MAS domain transition table 的输出至少包括：
+
+- `decision_type`
+- `route_target`
+- `next_work_unit`
+- `controller_action`
+- owner / callable surface
+- work-unit fingerprint / source fingerprint / idempotency key
+- fail-closed blocker 或 human gate reason
+
+必须显式区分三类容易混淆的状态：
+
+- `bundle_stage_ready` / `continue_bundle_stage`：可以进入 finalize-level submission authority / delivery sync。
+- `bundle_stage_blocked` / `complete_bundle_stage`：只允许执行 controller-owned bundle-stage closure，例如 submission authority sync 或 delivery sync；不能回到 generic review loop。
+- `publishability_gate_blocked` / `bundle_tasks_downstream_only=true`：还不能进入 package/finalize；当前 next action 应留在 claim/evidence/display/story/AI reviewer 等 publication-quality repair owner。
+
+每次修改 transition 规则，都必须同步更新 table-driven transition matrix tests。测试对象不是单个 helper 的返回值，而是完整的 `status_payload + gate_report + publication_eval + task_intake -> decision_type + route_target + next_work_unit + controller_action`。
+
+长期边界是：OPL 可以提供通用 state-machine runner、transition schema、幂等 tick、attempt/retry/dead-letter、human gate transport、dispatch receipt 和 transition matrix runner；MAS 继续持有 domain transition table、医学状态语义、publication quality verdict、paper/package authority 和 oracle fixtures。OPL 只能执行 MAS 声明的 transition spec，不能自行解释 `publication_gate`、`stale_submission_minimal_authority`、AI reviewer judgement 或 claim/evidence/display blocker。
+
 ## `study_decision_record`
 
 当前实现的 study-level durable decision artifact 形态为：

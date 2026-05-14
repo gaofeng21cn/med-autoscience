@@ -35,7 +35,7 @@ backlogs are not maintained in MAS docs.
 
 | Directory | Purpose |
 | --- | --- |
-| [active](./active/README.md) | Current execution, current plans, current gaps, and active baton; older `program/` material is routed here. |
+| [active](./active/README.md) | Current execution, current plans, current gaps, and active baton; former `program/` material is maintained here. |
 | [public](./public/README.md) | MAS public narrative and first user-facing reading layer. |
 | [product](./product/README.md) | MAS app skill, direct product entry, and operator/workbench-facing guidance. |
 | [runtime](./runtime/README.md) | Runtime contracts, control surfaces, projections, display contracts, and active designs. |
@@ -43,16 +43,13 @@ backlogs are not maintained in MAS docs.
 | [source](./source/README.md) | Study workspaces, source readiness, source truth consumption, and external research intake. |
 | [policies](./policies/README.md) | Stable internal rules and long-lived operating boundaries. |
 | [specs](./specs/README.md) | Current technical spec index; older specs must be classified as active or historical. |
-| [program](./active/README.md) | Program lifecycle portfolio: paper-autonomy target, active product/framework enablers, landed foundation owner docs, and program-level coordination. |
-| [capabilities](./delivery/README.md) | Capability-family documentation such as medical display. |
 | [references](./references/README.md) | Supporting references, positioning, integration notes, parity material, and verification records. |
 | [history](./history/README.md) | Dated snapshots, provenance, retired boards, archived plans, and process drafts. |
 
-This table follows the OPL-family canonical docs taxonomy. `program/` and
-`capabilities/` are existing migration sources and path-stable support
-directories: files that still have contract, history, or active-baton links may
-remain in place, but new recurring material should enter
-`active/public/product/runtime/delivery/source/policies/specs/references/history`.
+This table follows the OPL-family canonical docs taxonomy. The former
+`program/` and `capabilities/` directories have been physically retired; use
+`active/` for program-baton material and `delivery/medical-display/` for the
+medical-display capability family.
 
 ## Reading Rule
 

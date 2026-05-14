@@ -7,11 +7,11 @@ Machine boundary: Human-readable index. Machine truth stays in contracts, schema
 
 This directory is the canonical OPL-family location for current MAS execution, current plans, current gaps, active baton, and closeout evidence.
 
-The former `docs/active/` active-baton layer has been physically retired.
+The former `docs/program/` active-baton layer has been physically retired.
 Current MAS execution maps, paper-autonomy target docs, framework migration
 owners, productization enablers, stage-form programs, and landed foundation
 guard docs live in this directory. `program_id` and `human_doc:program_*`
-remain semantic identifiers only; they do not imply a physical `docs/active/`
+remain semantic identifiers only; they do not imply a physical `docs/program/`
 directory.
 
 Start with:

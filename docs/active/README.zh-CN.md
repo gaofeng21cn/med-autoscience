@@ -7,7 +7,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 
 本目录是 OPL-family canonical 目录中承接 MAS 当前执行、当前计划、当前差距、active baton 和 closeout evidence 的位置。
 
-旧 `docs/active/` active-baton 层已物理退役。当前 MAS 执行地图、论文自治目标、framework migration owner、产品化依托、stage 形式计划和 landed foundation guard 文档都进入本目录。`program_id` 与 `human_doc:program_*` 只作为语义 ID 保留，不代表物理 `docs/active/` 目录。
+旧 `docs/program/` active-baton 层已物理退役。当前 MAS 执行地图、论文自治目标、framework migration owner、产品化依托、stage 形式计划和 landed foundation guard 文档都进入本目录。`program_id` 与 `human_doc:program_*` 只作为语义 ID 保留，不代表物理 `docs/program/` 目录。
 
 当前入口先看：
 

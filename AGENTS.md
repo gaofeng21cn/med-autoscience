@@ -39,11 +39,11 @@
 - `README*` 与 `docs/README*` 是默认对外与默认入口文档。
 - `docs/docs_portfolio_consolidation.md` 是当前文档组合治理入口；维护者应先读核心五件套，再按该文件判断新增、更新、归档或 tombstone。
 - 每份长期文档都必须能说明 `owner`、`purpose`、`state`、`machine boundary`；缺少任一信号时，先补入口或归位，再继续扩写。
-- 文档治理按内容生命周期判断，文件名和目录名只作为辅助信号；同一文档内的当前事实、活跃 program、support lane、closeout evidence 与历史叙事应分别归入当前 owner doc、program/support/reference 层或 history/tombstone 语境。
+- 文档治理按内容生命周期判断，文件名和目录名只作为辅助信号；同一文档内的当前事实、活跃执行、support lane、closeout evidence 与历史叙事应分别归入当前 owner doc、active/support/reference 层或 history/tombstone 语境。
 - 入口文档应先呈现当前状态、活跃层级、新旧关系和下一跳；已完成计划、旧校准记录和历史路线进入 evidence/provenance 层。
 - 对外文档保持中英双语；内部技术、规划、备忘文档默认中文，除非明确提升到双语公开面。
-- `docs/capabilities/`：能力族/专题面（如 medical display）。
-- `docs/program/`：当前 program 组合入口；P0 是目标与验收合同，P1/P2 是产品化与框架化实现依托，P3/P3a 是 landed foundation owner docs。
+- `docs/active/`：当前执行、当前计划、当前差距、active baton 与 program lifecycle portfolio；旧 `docs/program/` 已物理退役，`human_doc:*` 只保留语义 ID。
+- `docs/delivery/`：manuscript、package、submission/export、medical-display 等交付与能力族支撑；旧 `docs/capabilities/medical-display/` 已迁入 `docs/delivery/medical-display/`。
 - `docs/runtime/`：runtime contracts、control surfaces、read models、implementation plans 与待归档 history candidates；完成或退役的实现计划应迁入 `docs/history/runtime/`。
 - `docs/references/`：背景、定位、审计与非活跃参考。
 - `docs/history/`：历史归档，仅作历史参考入口。
