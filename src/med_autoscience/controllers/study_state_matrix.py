@@ -110,6 +110,34 @@ def render_study_state_matrix_markdown(payload: Mapping[str, Any]) -> str:
             )
             + " |"
         )
+    lines.extend(
+        [
+            "",
+            "## Domain Transition Table",
+            "",
+            "| study_id | decision_type | route_target | next_work_unit | controller_action | owner | blocker |",
+            "| --- | --- | --- | --- | --- | --- | --- |",
+        ]
+    )
+    for row in _dict(_dict(payload).get("domain_transition_table")).get("rows") or []:
+        transition = _dict(row)
+        next_work_unit = _dict(transition.get("next_work_unit"))
+        typed_blocker = _dict(transition.get("typed_blocker"))
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    _text(transition.get("study_id")) or "",
+                    _text(transition.get("decision_type")) or "",
+                    _text(transition.get("route_target")) or "",
+                    _text(next_work_unit.get("unit_id")) or "",
+                    _text(transition.get("controller_action")) or "",
+                    _text(transition.get("owner")) or "",
+                    _text(typed_blocker.get("blocker_id")) or "",
+                ]
+            )
+            + " |"
+        )
     return "\n".join(lines) + "\n"
 
 
