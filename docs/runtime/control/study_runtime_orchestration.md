@@ -171,7 +171,7 @@
 - `force`
 - `source`
 
-正式调用方应把这两个入口视为 controller contract，而不是直接拼 transport payload 或直接调用 `MedDeepScientist` runtime。
+正式调用方应把这两个入口视为 controller contract，而不是直接拼 transport payload 或直接调用 managed runtime backend。旧 `MedDeepScientist` runtime 只作为 frozen source archive、historical fixture、explicit archive import、backend audit 或 parity oracle reference 出现。
 
 ## 稳定 typed surface
 

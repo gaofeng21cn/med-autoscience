@@ -256,6 +256,16 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "ops/med-deepscientist" not in root_readme_text
     assert "portfolio/research_memory/" in root_readme_text
 
+    ops_readme = workspace_root / "ops" / "medautoscience" / "README.md"
+    assert ops_readme.is_file()
+    ops_readme_text = ops_readme.read_text(encoding="utf-8")
+    assert "medautosci runtime ensure-supervision --profile <profile>" in ops_readme_text
+    assert "medautosci runtime supervision-status --profile <profile>" in ops_readme_text
+    assert "medautosci runtime remove-supervision --profile <profile>" in ops_readme_text
+    assert "install-watch-runtime-service" not in ops_readme_text
+    assert "watch-runtime-service-status" not in ops_readme_text
+    assert "uninstall-watch-runtime-service" not in ops_readme_text
+
     root_agents = workspace_root / "AGENTS.md"
     assert root_agents.is_file()
     root_agents_text = root_agents.read_text(encoding="utf-8")

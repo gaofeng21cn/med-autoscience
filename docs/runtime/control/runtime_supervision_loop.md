@@ -514,7 +514,8 @@ medautosci runtime supervisor-scan \
 - study-level `studies/<study_id>/artifacts/supervision/consumer/default_executor_execution/latest.json`
 - study-level `studies/<study_id>/artifacts/supervision/requests/publication_gate_specificity/latest.json`
 - study-level `studies/<study_id>/artifacts/supervision/requests/ai_reviewer/latest.json`
-- quest-level `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+- quest-level `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
+- explicit archive import reference `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
 - study-level `studies/<study_id>/artifacts/runtime/last_launch_report.json`
 - physician-facing projection `study_progress`
 

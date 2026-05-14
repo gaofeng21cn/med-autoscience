@@ -4,7 +4,7 @@
 
 本文件冻结当前已经落地的正式 contract：
 
-- `MedDeepScientist` 负责 quest-owned native runtime truth
+- `MAS Runtime OS` / managed runtime backend 负责 quest-owned native runtime truth
 - `MedAutoScience` 负责 study-owned supervision / escalation / decision truth
 - managed runtime 的 outer loop 必须同时消费这两层正式输入，不能再靠本仓 controller 重写 quest-owned `runtime_events/*`
 
@@ -14,14 +14,14 @@
 
 ### 2.1 Quest-owned native runtime truth
 
-权威 owner：`MedDeepScientist runtime core`
+权威 owner：`MAS Runtime OS` / managed runtime backend
 
 稳定表面：
 
-- `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/runtime_events/<timestamp>_<event_kind>.json`
-- `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/runtime_events/latest.json`
+- `runtime/quests/<quest_id>/artifacts/reports/runtime_events/<timestamp>_<event_kind>.json`
+- `runtime/quests/<quest_id>/artifacts/reports/runtime_events/latest.json`
 
-这是 quest-owned truth，不是 launch report、runtime watch，也不是 study-owned controller summary。
+这是 quest-owned truth，不是 launch report、runtime watch，也不是 study-owned controller summary。旧 `ops/med-deepscientist/runtime/quests/<quest_id>/...` 路径只作为 historical fixture、explicit archive import、backend audit 或 parity oracle reference 保留，不再是当前默认 writer 或 active runtime target。
 
 ### 2.2 Study-owned outer-loop truth
 
@@ -142,7 +142,7 @@ native runtime truth 扩展字段：
 
 当前正式状态如下：
 
-- `P0 runtime native truth`：已完成，上游完成点为 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a`
+- `P0 runtime native truth`：已完成；旧 `med-deepscientist main@cb73b3d21c404d424e57d7765b5a9a409060700a` 只作为 provenance / parity reference 保留
 - `MedAutoScience` consumer-side cutover：已完成，managed runtime 不再覆盖 quest-owned `runtime_events/*`
 - `P1 workspace canonical literature / knowledge truth`：已完成
 - 当前剩余工作不在本 contract 内重开；default runtime closeout 以 MAS Runtime OS、MAS supervision scheduler contract（默认 adapter 是 local，Hermes 是 explicit optional adapter）和 behavior-equivalence matrix 为准

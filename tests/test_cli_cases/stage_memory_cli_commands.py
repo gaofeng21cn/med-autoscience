@@ -255,6 +255,168 @@ def test_publication_route_memory_inventory_cli_groups_stale_and_deprecated_revi
     assert all("prose_summary" not in ref for ref in by_status["active"]["memory_refs"])
 
 
+def test_publication_route_memory_inventory_cli_projects_accepted_and_rejected_writeback_receipts(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    first_study_root = workspace_root / "studies" / "S1"
+    second_study_root = workspace_root / "studies" / "S2"
+    first_closeout_payload = tmp_path / "accepted-closeout.json"
+    second_closeout_payload = tmp_path / "rejected-closeout.json"
+    _write_json(
+        first_closeout_payload,
+        {
+            "idempotency_key": "accepted-writeback-receipt",
+            "source_refs": ["stage:decision:s1"],
+            "reusable_lessons": [
+                {
+                    "write_id": "accepted-route-back-lesson",
+                    "scope": "workspace_reusable",
+                    "route_family": "route_back_repair",
+                    "stage_applicability": ["decision", "review"],
+                    "title": "Route-back repair lesson",
+                    "lesson": "Route back before rebuilding claims when reviewer evidence is underpowered.",
+                    "source_refs": ["stage:decision:s1"],
+                }
+            ],
+        },
+    )
+    _write_json(
+        second_closeout_payload,
+        {
+            "idempotency_key": "rejected-writeback-receipt",
+            "source_refs": ["stage:review:s2"],
+            "reusable_lessons": [
+                {
+                    "write_id": "rejected-local-claim",
+                    "scope": "study_specific_claim",
+                    "route_family": "local_claim_boundary",
+                    "stage_applicability": ["review"],
+                    "lesson": "Only this study can use the local endpoint boundary.",
+                    "source_refs": ["stage:review:s2"],
+                }
+            ],
+        },
+    )
+
+    for study_id, stage, study_root, closeout_payload in (
+        ("S1", "decision", first_study_root, first_closeout_payload),
+        ("S2", "review", second_study_root, second_closeout_payload),
+    ):
+        exit_code = cli.main(
+            [
+                "stage-memory-closeout-route",
+                "--study-id",
+                study_id,
+                "--stage",
+                stage,
+                "--study-root",
+                str(study_root),
+                "--workspace-root",
+                str(workspace_root),
+                "--closeout-payload",
+                str(closeout_payload),
+                "--materialize-closeout-packet",
+                "--apply",
+            ]
+        )
+        assert exit_code == 0
+        capsys.readouterr()
+
+    exit_code = cli.main(
+        [
+            "publication-route-memory-inventory",
+            "--workspace-root",
+            str(workspace_root),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["body_included"] is False
+    assert payload["card_count_total"] == 1
+    assert "prose_summary" not in payload["cards"][0]
+    assert "Route back before rebuilding claims" not in captured.out
+    assert "Only this study can use" not in captured.out
+
+    receipt_inventory = payload["opl_aion_receipt_inventory"]
+    assert receipt_inventory["body_included"] is False
+    assert receipt_inventory["display_policy"]["display_role"] == "receipt_ref_only"
+    assert receipt_inventory["display_policy"]["can_read_memory_body"] is False
+    assert receipt_inventory["display_policy"]["can_accept_or_reject_writeback"] is False
+    by_status = {item["receipt_status"]: item for item in receipt_inventory["by_receipt_status"]}
+    assert by_status["applied"]["receipt_count"] == 2
+    by_route_family = {
+        item["route_family"]: item
+        for item in receipt_inventory["by_route_family"]
+    }
+    assert by_route_family["route_back_repair"]["receipt_count"] == 1
+    assert by_route_family["local_claim_boundary"]["receipt_count"] == 1
+    by_stage = {item["stage"]: item for item in receipt_inventory["by_stage"]}
+    assert by_stage["decision"]["receipt_count"] == 1
+    assert by_stage["review"]["receipt_count"] == 1
+
+    receipts = {
+        receipt["idempotency_key"]: receipt
+        for receipt in receipt_inventory["receipts"]
+    }
+    accepted_receipt = receipts["accepted-writeback-receipt"]
+    assert accepted_receipt["receipt_status"] == "applied"
+    assert accepted_receipt["stage"] == "decision"
+    assert accepted_receipt["route_family"] == "route_back_repair"
+    assert accepted_receipt["source_receipt_ref"].endswith(
+        "artifacts/stage_knowledge/memory_write_router_receipts/accepted-writeback-receipt.json"
+    )
+    assert accepted_receipt["writeback_receipt_ref"].endswith(
+        "portfolio/research_memory/publication_route_memory/writeback_receipts/accepted-writeback-receipt.json"
+    )
+    assert accepted_receipt["route_back_refs"] == [
+        {
+            "write_id": "accepted-route-back-lesson",
+            "memory_id": "publication_route_memory_writeback__accepted-route-back-lesson",
+            "route_family": "route_back_repair",
+            "stage_applicability": ["decision", "review"],
+            "destination": "workspace_research_memory_proposal",
+            "owner_target": "workspace_memory_owner",
+            "proposal_ref": accepted_receipt["accepted_refs"][0]["proposal_ref"],
+            "receipt_ref": accepted_receipt["accepted_refs"][0]["receipt_ref"],
+            "source_receipt_ref": accepted_receipt["source_receipt_ref"],
+            "writeback_receipt_ref": accepted_receipt["writeback_receipt_ref"],
+            "reason": "",
+            "status": "accepted",
+            "receipt_status": "applied",
+            "authority_boundary": "ref_only_not_memory_body_or_writeback_authority",
+        }
+    ]
+    assert accepted_receipt["writeback_refs"] == accepted_receipt["accepted_refs"]
+    rejected_receipt = receipts["rejected-writeback-receipt"]
+    assert rejected_receipt["receipt_status"] == "applied"
+    assert rejected_receipt["stage"] == "review"
+    assert rejected_receipt["route_family"] == "local_claim_boundary"
+    assert rejected_receipt["reason"] == "study_specific_claim_not_workspace_memory"
+    assert rejected_receipt["rejected_refs"] == [
+        {
+            "write_id": "rejected-local-claim",
+            "route_family": "local_claim_boundary",
+            "stage_applicability": ["review"],
+            "destination": "workspace_research_memory_proposal",
+            "owner_target": "workspace_memory_owner",
+            "reason": "study_specific_claim_not_workspace_memory",
+            "source_receipt_ref": rejected_receipt["source_receipt_ref"],
+            "writeback_receipt_ref": rejected_receipt["writeback_receipt_ref"],
+            "status": "rejected",
+            "receipt_status": "applied",
+            "authority_boundary": "ref_only_not_memory_body_or_writeback_authority",
+        }
+    ]
+    assert rejected_receipt["route_back_refs"] == []
+    assert rejected_receipt["writeback_refs"] == rejected_receipt["rejected_refs"]
+    assert payload["authority_boundary"]["can_write_domain_truth"] is False
+
+
 def test_publication_route_memory_inventory_cli_can_include_body_for_maintainers(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"

@@ -32,10 +32,10 @@
 
 ## 四、系列一致性检查
 
-- 文档必须把 `Med Auto Science` 写成医学 `Research Ops` domain gateway 与 `Domain Harness OS`，而不是 `OPL` 顶层 gateway 或已经完成的 upstream Hermes runtime owner cutover。
+- 文档必须把 `Med Auto Science` 写成独立医学研究 `Foundry Agent` 与 `OPL-compatible package built on OPL Framework`，由 MAS 持有医学研究 truth、quality verdict、runtime owner、artifact/publication authority。`Domain Harness OS` 只能作为内部 controller/runtime/eval/delivery 边界语言或历史定位参考出现，不能作为公开第一身份、当前默认 runtime target 或 upstream Hermes cutover 完成声明。
 - 系列项目名称与角色要与四仓当前真相同步：`One Person Lab` 是顶层 gateway，`Med Auto Grant` 是 author-side `Grant Ops`，`RedCube AI` 是 visual-deliverable / `Presentation Ops`。
 - 若提到 `Hermes-Agent`，只能指上游外部 runtime 项目 / 服务；repo-side seam、adapter、pilot、helper 都不能被写成“已接入 Hermes-Agent”。
-- 默认公开入口、runtime/program/capabilities operator docs、stable policies 与历史档案必须继续分层，不把参考或历史重新挤进公开默认入口。
+- 默认公开入口、active/runtime/delivery operator docs、stable policies 与历史档案必须继续分层，不把参考或历史重新挤进公开默认入口。
 - 修改 docs skeleton、公开入口、runtime/product-entry contract、mainline wording 或 phase pointer 时，必须同步更新相关测试。
 
 ## 五、默认验证

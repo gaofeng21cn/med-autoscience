@@ -2,7 +2,7 @@
 
 这份维护者参考把 `Med Auto Science` 从“当前主线已成立”走到“更完整理想形态”的 5 个阶段固定下来。
 
-当前状态说明（2026-05-09）：本文是 historical / positioning reference。`functional_monolith_completion`、`mds_behavior_equivalence_audit` 与 supervision scheduler contract 已把默认运行口径收敛为 MAS Runtime OS + MAS-owned scheduler contract；默认 adapter 是 local，Hermes gateway cron 是 explicit optional adapter。外部 `MedDeepScientist` 不再是默认 backend，只保留 source archive / historical fixture / explicit legacy diagnostic / provenance reference。本文中早期“controlled research backend”表述不得作为当前 execution plan 使用。
+当前状态说明（2026-05-14）：本文是 historical / positioning reference。当前公开第一身份是独立医学研究 `Foundry Agent` 与 `OPL-compatible package built on OPL Framework`；`Domain Harness OS`、`domain gateway`、`Research Foundry` 梯子语汇只作为历史定位和内部边界语言保留。`functional_monolith_completion`、`mds_behavior_equivalence_audit` 与 supervision scheduler contract 已把默认运行口径收敛为 MAS Runtime OS + MAS-owned scheduler contract；默认 adapter 是 local，Hermes gateway cron 是 explicit optional adapter。外部 `MedDeepScientist` 不再是默认 backend，只保留 source archive / historical fixture / explicit legacy diagnostic / provenance reference。本文中早期“controlled research backend”“domain gateway”“Domain Harness OS”表述不得作为当前 execution plan 或公开第一身份使用。
 
 它解决三个问题：
 
@@ -17,11 +17,10 @@
 
 ## 理想形态
 
-按 `OPL -> Research Foundry -> Med Auto Science` 这条定位，最终目标不是单一仓库里的一套脚本，而是一条清楚分层、长期自治、可监管的产品链：
+按当前 owner 分层，目标不是单一仓库里的一套脚本，而是一条清楚分层、长期自治、可监管的产品链：
 
-- `OPL`：family-level federation / gateway language
-- `Research Foundry`：通用 `Research Ops` framework
-- `Med Auto Science`：medical domain gateway + `Domain Harness OS`
+- `OPL Framework`：stage-led family runtime framework，持有 attempt、queue、wakeup、retry/dead-letter、human gate transport、receipt/projection 与 shared lifecycle/index primitive
+- `Med Auto Science`：独立医学研究 `Foundry Agent` 与 OPL-compatible package，持有 study truth、medical stage semantics、quality verdict、runtime owner surface、artifact authority 和 publication authority
 - `MAS supervision scheduler contract`：长期唤醒与调度 owner；默认 adapter 是 `local`，Hermes/future hosted scheduler 是 optional adapter
 - `MedDeepScientist`：source archive、historical fixture、explicit legacy diagnostic / provenance reference
 

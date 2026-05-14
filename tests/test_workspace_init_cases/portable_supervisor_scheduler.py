@@ -86,14 +86,38 @@ def test_init_workspace_dry_run_reports_retired_service_wrapper_without_deleting
     module = importlib.import_module("med_autoscience.controllers.workspace_init")
     workspace_root = tmp_path / "dry-run-retired-wrapper"
     install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
-    install_service.parent.mkdir(parents=True, exist_ok=True)
-    install_service.write_text(
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
-        'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"\n',
-        encoding="utf-8",
-    )
+    service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
+    uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
+    runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
+    retired_payloads = {
+        install_service: (
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+            'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"\n'
+        ),
+        service_status: (
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+            'run_medautosci runtime supervision-status --profile "${PROFILE_PATH}" "$@"\n'
+        ),
+        uninstall_service: (
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+            'run_medautosci runtime remove-supervision --profile "${PROFILE_PATH}" "$@"\n'
+        ),
+        runner: (
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n\n'
+            'WATCH_RUNTIME_RUNNER="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime-service-runner"\n'
+        ),
+    }
+    for path, content in retired_payloads.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
 
     result = module.init_workspace(
         workspace_root=workspace_root,
@@ -102,9 +126,40 @@ def test_init_workspace_dry_run_reports_retired_service_wrapper_without_deleting
         force=False,
     )
 
-    assert str(install_service) in result["removed_files"]
-    assert str(install_service) not in result["retained_retired_files"]
-    assert install_service.exists()
+    for path in retired_payloads:
+        assert str(path) in result["removed_files"]
+        assert str(path) not in result["retained_retired_files"]
+        assert path.exists()
+
+
+def test_init_workspace_removes_retired_service_wrapper_family(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "remove-retired-wrapper-family"
+    install_service = workspace_root / "ops" / "medautoscience" / "bin" / "install-watch-runtime-service"
+    service_status = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-status"
+    uninstall_service = workspace_root / "ops" / "medautoscience" / "bin" / "uninstall-watch-runtime-service"
+    runner = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime-service-runner"
+    retired_payloads = {
+        install_service: 'run_medautosci runtime ensure-supervision --profile "${PROFILE_PATH}" "$@"\n',
+        service_status: 'run_medautosci runtime supervision-status --profile "${PROFILE_PATH}" "$@"\n',
+        uninstall_service: 'run_medautosci runtime remove-supervision --profile "${PROFILE_PATH}" "$@"\n',
+        runner: 'WATCH_RUNTIME_RUNNER="${WORKSPACE_ROOT}/ops/medautoscience/bin/watch-runtime-service-runner"\n',
+    }
+    for path, marker in retired_payloads.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("#!/usr/bin/env bash\n" + marker, encoding="utf-8")
+
+    result = module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="remove-retired-wrapper-family",
+        dry_run=False,
+        force=False,
+    )
+
+    for path in retired_payloads:
+        assert str(path) in result["removed_files"]
+        assert str(path) not in result["retained_retired_files"]
+        assert not path.exists()
 
 
 def test_init_workspace_retains_same_name_custom_service_file_without_retired_markers(tmp_path: Path) -> None:

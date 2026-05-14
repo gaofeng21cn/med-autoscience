@@ -83,7 +83,7 @@ You can start with prompts like:
 
 1. Potential users and medical experts should start here, then continue to the [Docs Guide](./docs/README.md).
 2. Technical readers and planners should read [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md).
-3. Developers and maintainers should continue from the [Docs Guide](./docs/README.md) into `docs/runtime/`, `docs/program/`, `docs/capabilities/`, `docs/references/`, and `docs/policies/`.
+3. Developers and maintainers should continue from the [Docs Guide](./docs/README.md) into `docs/active/`, `docs/runtime/`, `docs/delivery/`, `docs/references/`, and `docs/policies/`.
 
 ## Agent And Operator Quick Start
 
@@ -93,7 +93,7 @@ You can start with prompts like:
 - Read the [Docs Guide](./docs/README.md) first. It maps the current product boundary, operator entry surfaces, and the technical reading order.
 - If you need to bootstrap or take over a disease workspace, read [Bootstrap](./bootstrap/README.md) next. It explains the workspace-first model and the `init-workspace -> doctor -> show-profile -> bootstrap` path.
 - Treat [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md) as the repo-tracked human-readable truth set before changing runtime or docs.
-- The current operator entry surfaces are `CLI`, `MCP`, `product-entry`, and `controller`. Product-entry and runtime contracts live under `docs/runtime/` and `docs/program/`, so an agent can start there instead of reverse-engineering the codebase; the stable callable surface remains the local CLI, MCP tools, product-entry surfaces, controller-authorized workspace commands/scripts, durable surfaces, and repo-tracked contracts.
+- The current operator entry surfaces are `CLI`, `MCP`, `product-entry`, and `controller`. Current execution maps live under `docs/active/`, while product-entry and runtime contracts live under `docs/product/` and `docs/runtime/`, so an agent can start there instead of reverse-engineering the codebase; the stable callable surface remains the local CLI, MCP tools, product-entry surfaces, controller-authorized workspace commands/scripts, durable surfaces, and repo-tracked contracts.
 - MAS can be invoked directly through its Codex app skill or through OPL. Both routes use the same MAS-owned stage, controller, durable truth, and artifact surfaces; OPL framework metadata stays at the runtime-framework layer for indexing, wakeup, recovery, and projection.
 - New disease workspaces are no-root-Git / no-quest-Git by default. Runtime lifecycle status is read from file authority, `artifacts/runtime/runtime_lifecycle.sqlite`, `artifacts/runtime/lifecycle_migration`, `runtime/quests` manifests, and `runtime/restore_index`, not from Git history.
 - When an external agent needs the repo-tracked MAS skill surface directly, use `medautosci product skill-catalog --profile <profile> --format json`; it returns the single MAS app skill, the underlying command contracts, and a machine-readable `runtime_continuity` envelope projected from existing runtime/session/progress/artifact surfaces.

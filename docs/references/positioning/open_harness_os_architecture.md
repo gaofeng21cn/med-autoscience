@@ -4,15 +4,17 @@
 
 `MedAutoScience` 现在是医学自动科研系统。未来如果希望让整套 harness 能兼容其他领域的论文生产与研究运行，这条线应如何理解？
 
+当前状态说明（2026-05-14）：本文是 positioning / historical architecture reference，不是当前默认产品身份或执行计划。当前公开第一身份是独立医学研究 `Foundry Agent` 与 `OPL-compatible package built on OPL Framework`；OPL 负责 stage-led framework、provider-backed attempt、queue/wakeup、receipt/projection 和 shared primitives，MAS 持有医学研究 truth、quality verdict、runtime owner surface、artifact authority 和 publication authority。本文中的 `OPL Gateway`、`Domain Gateway`、`Domain Harness OS` 词汇只作为旧开放化讨论和内部边界语言保留。
+
 本文给出的正式结论是：
 
 - `MedAutoScience` 有能力成为开放 `Harness OS` 演化路线上的第一份成熟参考实现
 - 但不应把今天的 `MedAutoScience` 直接等同于通用 `Harness OS`
 - 正确方向是 `抽离内核`，不是 `完全重构重写`
 - 长期应形成：
-  - 上层：`OPL Gateway / federation`
-  - 中层：可复用的 `Harness OS core`
-  - 下层：各领域自己的 `domain pack`
+  - 上层：`OPL Framework` stage-led runtime、provider、queue、receipt/projection 与 shared primitives
+  - 中层：可复用的 runtime / memory locator / artifact lifecycle / workbench shell primitive
+  - 下层：各领域自己的 domain agent pack
 
 ## 一句话结论
 
@@ -22,24 +24,23 @@
 
 今天这个仓库的正式定位已经不是“医学脚本集合”，而是：
 
-- 对外：`Research Ops` 的 `domain gateway`
-- 对内：医学自动科研的 `Domain Harness OS`
+- 对外：独立医学研究 `Foundry Agent` 与 `OPL-compatible package built on OPL Framework`
+- 对内：MAS-owned controller、runtime、eval、delivery 边界；旧 `Domain Harness OS` 词汇只作内部边界语言
 
 这意味着它本来就有两层：
 
-1. `gateway` 层
-   - 负责稳定入口、公开 contract、审计边界、外部 handoff
-2. `harness OS` 层
+1. `domain-agent entry` 层
+   - 负责稳定入口、公开 contract、审计边界、direct skill 与 OPL handoff
+2. `MAS owner surface` 层
    - 负责 controller、runtime、eval、delivery 的长期运行链
 
-这套定义与 `OPL` 顶层 federation 语言兼容：
+这套定义与 `OPL` stage-led framework 语言兼容：
 
 ```text
 Human / Agent
-  -> OPL Gateway
-      -> Domain Gateway
-          -> Domain Harness OS
-              -> Runtime / Eval / Delivery
+  -> OPL Framework or direct MAS skill
+      -> MedAutoScience domain-agent entry
+          -> MAS controller / runtime / quality / artifact surfaces
 ```
 
 因此，未来的开放化方向，不应是否定 `MedAutoScience`，而应把它视为当前最成熟的 `Research Ops` domain reference implementation。

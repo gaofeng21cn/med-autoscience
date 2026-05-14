@@ -2,8 +2,8 @@
 
 这份文档回答一个当前主线里必须明确的问题：
 
-`MedAutoScience` 作为 `Domain Harness OS` 的 outer loop controller，不是常驻 runtime daemon。
-那么当 `MedDeepScientist` 内环跑到“不能再把当前情况当作本地迭代继续处理”时，`MedAutoScience` 以什么形式被唤醒，并继续往下推进？
+`MedAutoScience` 作为 MAS-owned study/runtime controller，不是常驻 monolithic runtime daemon。
+当 MAS Runtime OS 内层执行发现“不能再把当前情况当作本地迭代继续处理”时，`MedAutoScience` 以什么形式被唤醒，并继续往下推进？
 
 与 `stop / rerun / requires_human_confirmation` 相关的正式控制语义，现统一收口到：
 
@@ -18,15 +18,15 @@
 当前推荐机制不是：
 
 - 让 `MedAutoScience` 常驻监听所有 runtime
-- 也不是让 `MedDeepScientist` 直接越权决定 study-level 改向
+- 也不是让 managed runtime backend 直接越权决定 study-level 改向
 
 而是：
 
-**由 inner loop 写出 durable escalation artifact，由 outer loop 在显式 controller tick 中读取该 artifact、产出 study-level decision、再决定后续动作。**
+**由 runtime/backend loop 写出 durable escalation artifact，由 outer loop 在显式 controller tick 中读取该 artifact、产出 study-level decision、再决定后续动作。**
 
 换句话说：
 
-- inner loop 常驻
+- runtime/backend loop 可以持续执行或由 provider/scheduler 唤醒
 - outer loop 被显式唤醒
 - 二者通过 durable artifact + ref + controller tick 对接
 
@@ -34,7 +34,7 @@
 
 如果没有独立的 outer-loop wakeup 设计，系统会退化成两种坏形态之一：
 
-1. `MedDeepScientist` 自己判断整条研究线是否要改题、停题、换故事
+1. managed runtime backend 自己判断整条研究线是否要改题、停题、换故事
 2. `MedAutoScience` 理论上拥有 study-level authority，但实际上没有被正式唤醒的路径
 
 第一种会让 runtime 越权。
@@ -48,7 +48,7 @@
 
 ## 角色分工
 
-### `MedDeepScientist`
+### MAS Runtime OS / managed runtime backend
 
 负责：
 
@@ -78,7 +78,7 @@
 
 不负责：
 
-- 替代 runtime 成为 quest daemon
+- 替代 runtime 成为 resident quest daemon
 - 重写 runtime lifecycle 真相
 
 ## 当前正确的 wakeup 形态
@@ -87,7 +87,7 @@
 
 ### 1. runtime 发出 durable signal
 
-当 inner loop 需要升级回 outer loop 时，不直接修改 study-level truth，而是写出：
+当 runtime/backend loop 需要升级回 outer loop 时，不直接修改 study-level truth，而是写出：
 
 ```text
 quest_root/artifacts/reports/escalation/runtime_escalation_record.json
@@ -271,7 +271,7 @@ reason: "..."
 ```text
 1. study_charter defines outer-loop authority and autonomy envelope
 2. startup_contract projects the approved subset to runtime
-3. MedDeepScientist runs within the approved envelope
+3. MAS Runtime OS runs within the approved envelope
 4. runtime writes runtime_escalation_record when local autonomy is no longer enough
 5. MedAutoScience status/read-model exposes runtime_escalation_ref
 6. outer-loop supervisor tick reads:
@@ -298,7 +298,7 @@ reason: "..."
 
 回答：
 
-- 为什么 inner loop 不能继续只做本地迭代
+- 为什么 runtime/backend loop 不能继续只做本地迭代
 
 ### `publication_eval`
 
