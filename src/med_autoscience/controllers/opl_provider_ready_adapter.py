@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from med_autoscience.controllers.opl_functional_closure_surfaces import (
+    build_functional_closure_status_projection,
     build_lifecycle_apply_requests_surface,
     build_lifecycle_guarded_apply_proof_surface,
     build_owner_receipt_contract_surface,
@@ -227,6 +228,7 @@ __all__ = [
     "VERSION",
     "build_domain_agent_skeleton_mapping_surface",
     "build_forbidden_write_guard_proof",
+    "build_functional_closure_status_projection",
     "build_legacy_retirement_tombstone_proof",
     "build_lifecycle_apply_requests_surface",
     "build_lifecycle_guarded_apply_proof_surface",

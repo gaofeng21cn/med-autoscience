@@ -459,6 +459,163 @@ def test_execute_noop_runtime_decision_adopts_analysis_lane_exhausted_handoff(
     }
 
 
+def test_execute_noop_runtime_decision_adopts_stage_memory_analysis_handoff_payload(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_execution")
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    control_intent = importlib.import_module("med_autoscience.controllers.control_intent")
+    study_root = tmp_path / "workspace" / "studies" / "003-dpcc"
+    quest_root = tmp_path / "runtime" / "quest-003"
+    run_id = "mas-run-003-dpcc-20260513T231942824604Z"
+    _write_controller_decision_authorization(
+        study_root,
+        action_type="run_quality_repair_batch",
+        emitted_at="2026-05-13T23:40:50+00:00",
+        work_unit_fingerprint="publication-blockers::497d1260db522f01",
+        next_work_unit={
+            "unit_id": "analysis_claim_evidence_repair",
+            "lane": "analysis-campaign",
+            "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+        },
+        blocking_work_units=[
+            {
+                "unit_id": "analysis_claim_evidence_repair",
+                "lane": "analysis-campaign",
+                "summary": "Repair claim-evidence, story, figure, and results traceability blockers.",
+            },
+            {
+                "unit_id": "manuscript_story_repair",
+                "lane": "write",
+                "summary": "Repair the paper story around the current evidence and claim boundary.",
+            },
+        ],
+    )
+    _write_publication_eval_work_unit_authority(study_root)
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+    assert authorization_context is not None
+    identity = auth_module._controller_decision_authorization_identity(authorization_context)
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="delivered",
+        payload={"message_id": "msg-analysis-repair", "active_run_id": run_id},
+        recorded_at="2026-05-13T23:41:00+00:00",
+    )
+    control_intent.append_event(
+        study_root=study_root,
+        identity=identity,
+        event_type="skipped_duplicate",
+        payload={"reason": "same_fingerprint_no_artifact_delta", "active_run_id": run_id},
+        recorded_at="2026-05-13T23:44:00+00:00",
+    )
+    handoff_path = (
+        quest_root
+        / "artifacts"
+        / "runtime"
+        / "analysis_claim_evidence_repair"
+        / f"{run_id}_stage_memory_closeout_payload.json"
+    )
+    handoff_path.parent.mkdir(parents=True, exist_ok=True)
+    handoff_path.write_text(
+        json.dumps(
+            {
+                "idempotency_key": f"stage_memory_closeout:003-dpcc:analysis-campaign:{run_id}",
+                "source_refs": [
+                    "../../../studies/003-dpcc/artifacts/controller/repair_execution_evidence/latest.json",
+                    "artifacts/reports/publishability_gate/2026-05-13T232100Z.json",
+                    "artifacts/runtime/analysis_claim_evidence_repair/20260513T232604Z_target_traceability.json",
+                    "../../../studies/003-dpcc/paper/claim_evidence_map.json",
+                    "../../../studies/003-dpcc/paper/evidence_ledger.json",
+                    "../../../studies/003-dpcc/paper/review/review_ledger.json",
+                ],
+                "reusable_lessons": [
+                    {
+                        "status": "active",
+                        "route_family": "publication_gate_repair_dedupe",
+                        "prose_summary": (
+                            "The controller-owned analysis_claim_evidence_repair batch refreshed "
+                            "claim/evidence/review repair evidence for the active publication eval, "
+                            "but the next useful route is same-line write-stage manuscript story repair."
+                        ),
+                    }
+                ],
+                "failed_paths": [
+                    {
+                        "failed_path": (
+                            "Running analysis_claim_evidence_repair alone did not clear the publication gate "
+                            "after fresh controller evidence for the active eval."
+                        ),
+                        "lesson": "Route the residual work to write-stage manuscript story repair.",
+                    }
+                ],
+                "controller_decision_requests": [
+                    {
+                        "status": "requested",
+                        "requested_route": "return_to_write",
+                        "next_owner": "MAS/controller",
+                        "next_work_unit": "manuscript_story_repair",
+                        "reason": (
+                            "The active analysis-campaign repair produced meaningful controller-owned "
+                            "evidence for the current publication eval, but publication_gate.allow_write remains false."
+                        ),
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _write_runtime_state(quest_root, {"status": "running", "active_run_id": run_id, "pending_user_message_count": 0})
+    status_payload = _base_status_payload()
+    status_payload["study_root"] = str(study_root)
+    status_payload["quest_root"] = str(quest_root)
+    status_payload["quest_id"] = "quest-003"
+    status_payload["execution"]["quest_id"] = "quest-003"
+    status = module.StudyRuntimeStatus.from_payload(status_payload)
+
+    class FakeBackend:
+        def chat_quest(self, *, runtime_root: Path, quest_id: str, text: str, source: str) -> dict[str, object]:
+            raise AssertionError("stage-memory owner handoff must be adopted instead of relayed")
+
+    context = SimpleNamespace(
+        study_root=study_root,
+        quest_root=quest_root,
+        runtime_root=tmp_path / "runtime",
+        runtime_backend=FakeBackend(),
+        source="medautosci-test",
+    )
+
+    outcome = module._execute_runtime_decision(status=status, context=context)
+    events = control_intent.read_events(study_root=study_root)
+    adoption = status.to_dict()["controller_work_unit_evidence_adoption"]
+    next_route = status.to_dict()["controller_work_unit_next_route"]
+
+    assert outcome.binding_last_action is module.StudyRuntimeBindingAction.NOOP
+    assert [event["event_type"] for event in events] == [
+        "delivered",
+        "skipped_duplicate",
+        "artifact_written",
+        "owner_handoff",
+    ]
+    assert adoption["report_ref"] == str(handoff_path)
+    assert adoption["analysis_lane_status"] == "exhausted_for_current_fingerprint"
+    assert adoption["next_owner"] == "write/ai_reviewer"
+    assert adoption["next_work_unit"] == "manuscript_story_repair"
+    assert adoption["result"]["meaningful_artifact_delta"] is True
+    assert next_route == {
+        "recommended_next_route": "handoff_to_next_owner",
+        "owner": "write/ai_reviewer",
+        "next_work_unit": "manuscript_story_repair",
+        "quality_gate_relaxation_allowed": False,
+        "runtime_relaunch_required": False,
+    }
+
+
 def test_execute_noop_runtime_decision_adopts_current_run_repair_control_packet(
     tmp_path: Path,
 ) -> None:

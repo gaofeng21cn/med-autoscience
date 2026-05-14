@@ -99,10 +99,12 @@ def _relay_controller_decision_authorization_if_required(
         _write_runtime_state(quest_root=context.quest_root, runtime_state=runtime_state)
     active_run_id = _active_run_id_from_status_or_state(status=status, runtime_state=runtime_state)
     identity = _controller_decision_authorization_identity(authorization_context)
-    if not _platform_repair_controller_redrive_without_live_worker(
+    platform_repair_redrive_without_live_worker = _platform_repair_controller_redrive_without_live_worker(
         runtime_state=runtime_state,
         source=context.source,
-    ):
+    )
+
+    def adopt_current_evidence_if_present() -> bool:
         evidence_adoption = adopt_controller_work_unit_evidence_if_present(
             study_root=context.study_root,
             quest_root=context.quest_root,
@@ -120,6 +122,11 @@ def _relay_controller_decision_authorization_if_required(
                 authorization_context=authorization_context,
                 evidence_adoption=evidence_adoption,
             )
+            return True
+        return False
+
+    if not platform_repair_redrive_without_live_worker:
+        if adopt_current_evidence_if_present():
             return None
     if _runtime_state_awaits_artifact_delta_or_gate_replay(
         runtime_state=runtime_state,
@@ -175,6 +182,8 @@ def _relay_controller_decision_authorization_if_required(
         authorization_context=authorization_context,
     )
     if bool(lifecycle.get("delivery_blocked")) and not marker_lacks_target_context:
+        if not platform_repair_redrive_without_live_worker and adopt_current_evidence_if_present():
+            return None
         control_intent.append_skipped_duplicate_if_needed(
             study_root=context.study_root,
             identity=_controller_decision_authorization_identity(authorization_context),

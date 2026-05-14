@@ -641,8 +641,6 @@ def test_product_entry_manifest_consumes_opl_production_proof_for_provider_avail
     ]
     assert tombstone["removal_policy"]["current_action"] == "legacy_active_path_tombstones_landed"
     assert tombstone["authority_boundary"]["can_authorize_submission_readiness"] is False
-
-
 def test_product_entry_manifest_exposes_provider_residency_typed_blocker(
     tmp_path: Path,
 ) -> None:

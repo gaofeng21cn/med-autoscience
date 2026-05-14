@@ -5,6 +5,10 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import control_intent
+from med_autoscience.controllers.work_unit_evidence_adoption_parts import (
+    analysis_stage_memory_handoff,
+    generic_completed_work_unit,
+)
 
 
 _ANALYSIS_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
@@ -99,7 +103,18 @@ def _report_is_current_for_authorization(
     return report_time >= decision_time
 
 
-def _report_candidates(quest_root: Path) -> tuple[Path, ...]:
+def _stage_memory_closeout_candidates(
+    *,
+    quest_root: Path,
+    active_run_id: str | None,
+) -> tuple[Path, ...]:
+    return analysis_stage_memory_handoff.closeout_candidates(
+        quest_root=quest_root,
+        active_run_id=active_run_id,
+    )
+
+
+def _report_candidates(quest_root: Path, *, active_run_id: str | None = None) -> tuple[Path, ...]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     candidates = [
         resolved_quest_root / _ANALYSIS_REPAIR_REPORT_SUFFIX,
@@ -107,6 +122,12 @@ def _report_candidates(quest_root: Path) -> tuple[Path, ...]:
         resolved_quest_root / _MAS_QUALITY_REPAIR_REPORT_SUFFIX,
         resolved_quest_root / _CONTROLLER_CONSUMPTION_REPORT_SUFFIX,
     ]
+    candidates.extend(
+        _stage_memory_closeout_candidates(
+            quest_root=resolved_quest_root,
+            active_run_id=active_run_id,
+        )
+    )
     history_root = resolved_quest_root / ".ds" / "cold_archive" / "report_history"
     if history_root.exists():
         candidates.extend(
@@ -161,6 +182,26 @@ def _work_unit_fingerprint_explicitly_matches(
     if observed is None and isinstance(controller, dict):
         observed = _text(controller.get("work_unit_fingerprint"))
     return observed == expected
+
+
+def _is_analysis_repair_stage_memory_handoff(payload: dict[str, Any]) -> bool:
+    return analysis_stage_memory_handoff.is_handoff(payload)
+
+
+def _normalize_report_payload(
+    payload: dict[str, Any],
+    *,
+    authorization_context: dict[str, Any],
+) -> dict[str, Any]:
+    if _is_analysis_repair_stage_memory_handoff(payload):
+        return analysis_stage_memory_handoff.normalize_payload(
+            payload,
+            authorization_context=authorization_context,
+            analysis_repair_work_unit_id=_ANALYSIS_REPAIR_WORK_UNIT_ID,
+            handoff_report_type=_ANALYSIS_REPAIR_HANDOFF_REPORT_TYPE,
+            handoff_status=_ANALYSIS_REPAIR_HANDOFF_STATUS,
+        )
+    return payload
 
 
 def _specificity_target_count(authorization_context: dict[str, Any]) -> int:
@@ -581,6 +622,8 @@ def _report_recommended_next_route(report_payload: dict[str, Any]) -> str:
 def _result_requires_runtime_relaunch(result: dict[str, Any]) -> bool:
     if _text(result.get("analysis_lane_status")) == _ANALYSIS_REPAIR_HANDOFF_STATUS:
         return False
+    if result.get("publication_gate_recheck_required") is True:
+        return True
     for key in (
         "publication_gate_cleared",
         "writing_ready_after_repair",
@@ -760,6 +803,65 @@ def _has_prior_delivery_or_duplicate_for_business_key(
     )
 
 
+def _controller_target_context_matches(
+    *,
+    marker: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    return all(
+        key not in authorization_context or marker.get(key) == authorization_context.get(key)
+        for key in _WORK_UNIT_TARGET_CONTEXT_KEYS
+    )
+
+
+def _controller_intent_key_matches(
+    *,
+    marker: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    expected = _text(authorization_context.get("control_intent_key"))
+    observed = _text(marker.get("control_intent_key"))
+    return expected is not None and observed == expected
+
+
+def _controller_route_marker_matches(
+    *,
+    marker: dict[str, Any],
+    authorization_context: dict[str, Any],
+) -> bool:
+    return (
+        _text(marker.get("decision_id")) == _text(authorization_context.get("decision_id"))
+        and _text(marker.get("route_target")) == _text(authorization_context.get("route_target"))
+        and _text(marker.get("route_key_question")) == _text(authorization_context.get("route_key_question"))
+    )
+
+
+def _has_matching_relay_marker(
+    *,
+    quest_root: Path,
+    authorization_context: dict[str, Any],
+    active_run_id: str | None,
+) -> bool:
+    runtime_state_path = Path(quest_root).expanduser().resolve() / ".ds" / "runtime_state.json"
+    runtime_state = _read_json_mapping(runtime_state_path)
+    marker = runtime_state.get(_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
+    if not isinstance(marker, dict):
+        return False
+    if _text(marker.get("delivery_mode")) not in {"managed_runtime_chat", "durable_queue_fallback"}:
+        return False
+    if _text(marker.get("message_id")) is None:
+        return False
+    current_active_run_id = _text(active_run_id)
+    marker_active_run_id = _text(marker.get("active_run_id"))
+    if current_active_run_id is not None and marker_active_run_id != current_active_run_id:
+        return False
+    if not _controller_target_context_matches(marker=marker, authorization_context=authorization_context):
+        return False
+    if _controller_intent_key_matches(marker=marker, authorization_context=authorization_context):
+        return True
+    return _controller_route_marker_matches(marker=marker, authorization_context=authorization_context)
+
+
 def adopt_controller_work_unit_evidence_if_present(
     *,
     study_root: Path,
@@ -769,8 +871,6 @@ def adopt_controller_work_unit_evidence_if_present(
     active_run_id: str | None,
     source: str,
 ) -> dict[str, Any] | None:
-    if not _authorization_matches_analysis_repair(authorization_context):
-        return None
     existing_payload = existing_controller_work_unit_evidence_adoption(
         study_root=study_root,
         identity=identity,
@@ -787,71 +887,115 @@ def adopt_controller_work_unit_evidence_if_present(
         study_root=study_root,
         identity=identity,
     )
-    if not has_delivery_for_current_decision and not has_delivery_for_same_business_key:
+    has_matching_relay_marker = _has_matching_relay_marker(
+        quest_root=quest_root,
+        authorization_context=authorization_context,
+        active_run_id=active_run_id,
+    )
+    if (
+        not has_delivery_for_current_decision
+        and not has_delivery_for_same_business_key
+        and not has_matching_relay_marker
+    ):
         return None
-    for report_path in _report_candidates(quest_root):
-        if not report_path.exists():
-            continue
-        report_payload = _read_json_mapping(report_path)
-        if not _report_matches_analysis_repair(
+    if _authorization_matches_analysis_repair(authorization_context):
+        for report_path in _report_candidates(quest_root, active_run_id=active_run_id):
+            if not report_path.exists():
+                continue
+            report_payload = _normalize_report_payload(
+                _read_json_mapping(report_path),
+                authorization_context=authorization_context,
+            )
+            if not _report_matches_analysis_repair(
+                payload=report_payload,
+                authorization_context=authorization_context,
+            ):
+                continue
+            if not has_delivery_for_current_decision and not _is_analysis_repair_exhausted_handoff(report_payload):
+                continue
+            payload = {
+                "active_run_id": active_run_id,
+                "report_ref": str(report_path),
+                "created_at": _report_timestamp(report_payload),
+                "work_unit_id": _ANALYSIS_REPAIR_WORK_UNIT_ID,
+                "route_target": _ANALYSIS_REPAIR_ROUTE_TARGET,
+                "recommended_next_route": _report_recommended_next_route(report_payload),
+                "source": source,
+                "result": _normalized_repair_result(
+                    report_payload=report_payload,
+                    authorization_context=authorization_context,
+                ),
+            }
+            if artifact_kind := _text(report_payload.get("artifact_kind")):
+                payload["artifact_kind"] = artifact_kind
+            if report_status := _text(report_payload.get("status")):
+                payload["status"] = report_status
+            next_owner = _report_next_owner(report_payload)
+            next_work_unit = (
+                _report_next_work_unit(report_payload)
+                if _is_analysis_repair_exhausted_handoff(report_payload)
+                else None
+            )
+            if _is_analysis_repair_source_repair_packet(report_payload):
+                next_work_unit = None
+            analysis_lane_status = _text(report_payload.get("analysis_lane_status"))
+            if analysis_lane_status is not None:
+                payload["analysis_lane_status"] = analysis_lane_status
+            if next_owner is not None:
+                payload["next_owner"] = next_owner
+            if next_work_unit is not None:
+                payload["next_work_unit"] = next_work_unit
+            if dedupe_recommendation := _text(report_payload.get("dedupe_recommendation")):
+                payload["dedupe_recommendation"] = dedupe_recommendation
+            control_intent.append_event(
+                study_root=study_root,
+                identity=identity,
+                event_type="artifact_written",
+                payload=payload,
+            )
+            if analysis_lane_status == _ANALYSIS_REPAIR_HANDOFF_STATUS and next_owner is not None:
+                control_intent.append_event(
+                    study_root=study_root,
+                    identity=identity,
+                    event_type="owner_handoff",
+                    payload={
+                        "reason": _ANALYSIS_REPAIR_HANDOFF_STATUS,
+                        "next_owner": next_owner,
+                        "next_work_unit": next_work_unit,
+                        "report_ref": str(report_path),
+                        "source": source,
+                    },
+                )
+            return payload
+        return None
+    for report_path in generic_completed_work_unit.report_candidates(quest_root, active_run_id=active_run_id):
+        report_payload = generic_completed_work_unit.read_json_mapping(report_path)
+        if not generic_completed_work_unit.matches_completed_work_unit(
             payload=report_payload,
             authorization_context=authorization_context,
+            analysis_repair_authorized=False,
         ):
-            continue
-        if not has_delivery_for_current_decision and not _is_analysis_repair_exhausted_handoff(report_payload):
             continue
         payload = {
             "active_run_id": active_run_id,
             "report_ref": str(report_path),
-            "created_at": _report_timestamp(report_payload),
-            "work_unit_id": _ANALYSIS_REPAIR_WORK_UNIT_ID,
-            "route_target": _ANALYSIS_REPAIR_ROUTE_TARGET,
-            "recommended_next_route": _report_recommended_next_route(report_payload),
+            "created_at": generic_completed_work_unit.report_timestamp(report_payload),
+            "work_unit_id": _text(authorization_context.get("work_unit_id")),
+            "route_target": _text(authorization_context.get("route_target")),
+            "recommended_next_route": generic_completed_work_unit.RECOMMENDED_NEXT_ROUTE,
             "source": source,
-            "result": _normalized_repair_result(
-                report_payload=report_payload,
-                authorization_context=authorization_context,
-            ),
+            "next_owner": generic_completed_work_unit.NEXT_OWNER,
+            "result": generic_completed_work_unit.normalized_result(report_payload),
         }
         if artifact_kind := _text(report_payload.get("artifact_kind")):
             payload["artifact_kind"] = artifact_kind
         if report_status := _text(report_payload.get("status")):
             payload["status"] = report_status
-        next_owner = _report_next_owner(report_payload)
-        next_work_unit = (
-            _report_next_work_unit(report_payload)
-            if _is_analysis_repair_exhausted_handoff(report_payload)
-            else None
-        )
-        if _is_analysis_repair_source_repair_packet(report_payload):
-            next_work_unit = None
-        analysis_lane_status = _text(report_payload.get("analysis_lane_status"))
-        if analysis_lane_status is not None:
-            payload["analysis_lane_status"] = analysis_lane_status
-        if next_owner is not None:
-            payload["next_owner"] = next_owner
-        if next_work_unit is not None:
-            payload["next_work_unit"] = next_work_unit
-        if dedupe_recommendation := _text(report_payload.get("dedupe_recommendation")):
-            payload["dedupe_recommendation"] = dedupe_recommendation
         control_intent.append_event(
             study_root=study_root,
             identity=identity,
             event_type="artifact_written",
             payload=payload,
         )
-        if analysis_lane_status == _ANALYSIS_REPAIR_HANDOFF_STATUS and next_owner is not None:
-            control_intent.append_event(
-                study_root=study_root,
-                identity=identity,
-                event_type="owner_handoff",
-                payload={
-                    "reason": _ANALYSIS_REPAIR_HANDOFF_STATUS,
-                    "next_owner": next_owner,
-                    "next_work_unit": next_work_unit,
-                    "report_ref": str(report_path),
-                    "source": source,
-                },
-            )
         return payload
     return None

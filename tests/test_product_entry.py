@@ -12,3 +12,4 @@ from tests.product_entry_cases.open_auto_research_projection import *
 from tests.product_entry_cases.portable_supervisor_dashboard_projection import *
 from tests.product_entry_cases.delivery_inspection_visibility import *
 from tests.product_entry_cases.action_catalog_parity import *
+from tests.product_entry_cases.functional_closure_projection import *

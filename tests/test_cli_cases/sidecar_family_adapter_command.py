@@ -478,6 +478,20 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
         item["status"] == "provider_available_guarded_apply_pending"
         for item in read_model["target_coverage"]
     )
+    closure = payload["mas_functional_closure_status_projection"]
+    assert closure["surface_kind"] == "mas_functional_closure_status_projection"
+    assert closure["summary"]["production_evidence_pending_count"] == 2
+    assert closure["authority_boundary"]["provider_completion_is_paper_closure"] is False
+    by_line = {line["line_id"]: line for line in closure["lines"]}
+    assert by_line["p2_provider_residency_and_activity_soak"]["status"] == (
+        "provider_residency_projected_domain_activity_soak_pending"
+    )
+    assert by_line["p0_live_paper_autonomy_acceptance"]["typed_blockers"][0]["blocker_id"] == (
+        "provider_hosted_live_paper_apply_pending"
+    )
+    assert by_line["legacy_residue_retirement"]["status"] == (
+        "no_active_default_caller_proven_cleanup_policy_satisfied"
+    )
     guarded_apply_tasks = [
         task for task in payload["pending_family_tasks"]
         if task["task_kind"] == "paper_autonomy/guarded-apply"

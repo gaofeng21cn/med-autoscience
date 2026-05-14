@@ -10,7 +10,7 @@ Date: `2026-05-14`
 
 理想状态下，`Med Auto Science` 是医学研究与医学论文交付的完整 domain agent。它能从研究问题进入同一条 study line，持续管理 workspace 语境、证据、分析、写作、审阅、投稿准备、运行状态、human gate、交付包和事后记忆，直到给出可审计的 artifact delta、quality verdict、publication route、submission package 或明确 blocker。
 
-MAS 的核心价值不是维护通用 agent runtime，而是持有医学研究的 truth、quality verdict、publication authority 和 artifact authority。`OPL Framework` 提供 stage-led、provider-backed、可恢复的外层运行框架；MAS 作为 admitted medical research domain agent 暴露 stage descriptor、sidecar、receipt、artifact locator、projection 和 authority refs。经 OPL 托管运行或通过 MAS app skill 直接调用，最终都必须回到同一套 MAS-owned stage、controller、ledger、review、quality gate 和 artifact surface。
+MAS 的核心价值不是维护通用 agent runtime、通用 memory service、通用 artifact lifecycle 或通用用户工作台，而是持有医学研究知识、研究路线、stage 语义、quality verdict、publication authority 和 artifact authority。`OPL Framework` 提供 stage-led、provider-backed、可恢复的外层运行框架，以及尽量可复用的 queue、wakeup、attempt ledger、memory locator、artifact lifecycle、projection 和 workbench shell；MAS 作为 admitted medical research domain agent 暴露 stage descriptor、sidecar、receipt、artifact locator、projection 和 authority refs。经 OPL 托管运行或通过 MAS app skill 直接调用，最终都必须回到同一套 MAS-owned stage、controller、ledger、review、quality gate 和 artifact surface。
 
 本文描述目标态，不替代当前状态判断。当前落地程度、生产证据缺口和开发顺序以 [当前状态](../../status.md)、[架构](../../architecture.md)、[MAS 当前开发线路](../../program/current_development_lines.md) 与 [MAS AI-first Research OS Architecture](../mainline/ai_first_research_os_architecture.md) 为准。
 
@@ -20,12 +20,12 @@ MAS 的理想产品认知保持四层：
 
 1. `MAS Domain Agent`
    面向用户和通用 agent 的医学研究入口。它承接研究问题、workspace、进度、human gate、论文文件和交付状态。
-2. `MAS Research OS`
-   MAS 内部的医学研究 operating system。它由 Study OS、Quality OS、Runtime OS、Artifact OS、Memory OS、Evaluation OS 和 Observability OS 组成，并统一回到 MAS owner surfaces。
+2. `MAS Domain Knowledge / Authority Pack`
+   MAS 提供医学研究 stage pack、研究路线知识、publication-route memory policy、quality rubric、AI reviewer policy、artifact authority contract、owner receipt schema 和 domain projection builder。它优先调用 OPL 提供的通用 runtime / memory locator / lifecycle / workbench primitive，而不是在 MAS 内重复实现一套通用 OS。
 3. `OPL Framework Integration`
-   OPL 承担 stage attempt、queue、wakeup、retry/dead-letter、human gate transport、provider receipt、projection 和 shared lifecycle/index primitive。MAS 只暴露可托管边界，不把医学研究 truth 上收到 OPL。
+   OPL 承担 stage attempt、queue、wakeup、retry/dead-letter、human gate transport、provider receipt、memory locator/index、artifact lifecycle、projection 和 shared lifecycle/index primitive。MAS 只暴露可托管边界，不把医学研究 truth、route choice、quality verdict 或 artifact authority 上收到 OPL。
 4. `User Workbench`
-   Codex App、OPL App、Progress Portal、Live Console 或其他 UI 只读消费 MAS projection、receipt refs、artifact refs 和 safe action receipts。用户界面不成为第二 runtime owner 或 publication authority。
+   Codex App、OPL App、Progress Portal、Live Console 或其他 UI 只读消费 MAS projection、receipt refs、artifact refs、研究路线地图和 safe action receipts。用户界面不成为第二 runtime owner 或 publication authority。
 
 目标链路如下：
 
@@ -49,55 +49,42 @@ OPL Framework
   -> MAS owner receipt or typed blocker
 ```
 
-## MAS 的理想职责
+## MAS Domain Agent 的理想职责
 
-MAS 长期职责是把医学研究领域内的判断、证据、质量、运行与交付收口成可审计的 domain-owned system。
+MAS 长期职责是把医学研究领域内的判断、证据、路线、质量和交付 authority 收口成可审计的 domain-owned surface。通用运行能力、通用 memory/index、通用 artifact lifecycle、通用 workbench shell 和 provider 运维能力应优先由 OPL 或 shared family primitives 实现；MAS 只保留领域知识、领域 policy、owner receipt、quality gate、artifact authority 和必要的薄适配。
 
-### Study OS
+### 职责边界
 
-- 持有 study charter、research question、claim boundary、population/outcome/timepoint、analysis plan、source asset refs 和 study-level owner route。
-- 把用户输入、导师反馈、审稿意见、revision request 和 stop/pivot decision 纳入同一条 durable study line。
-- 通过 `StudyTruthKernel`、`study_macro_state`、`owner_route` 和 controller decisions 统一用户可见 next action。
-- 明确哪些状态允许自动推进，哪些状态需要 human gate，哪些状态只能停驻或止损。
+| 能力族 | 理想通用 owner | MAS 理想职责 |
+| --- | --- | --- |
+| Long-running runtime | OPL provider / OPL Framework | 声明 stage、owner route、allowed task、domain receipt 和 forbidden writes；接收 OPL dispatch 后回到 MAS owner chain。 |
+| Queue / retry / dead-letter / human gate transport | OPL Framework | 给出 human gate 边界、resume 语义、stop-loss 语义和 domain blocker，不重复维护通用 transport。 |
+| Memory locator / index / writeback transport | OPL shared primitive + MAS workspace owner surface | MAS 持有 publication-route memory 正文、领域检索策略、接受/拒绝规则和 writeback receipt；OPL 只持 locator、refs、freshness 和展示分组。 |
+| Artifact lifecycle / restore / retention | OPL shared primitive + MAS artifact owner surface | MAS 持有 canonical manuscript/package authority、artifact mutation permission 和 rebuild proof；OPL 只处理 locator、restore/retention primitive 和 operator projection。 |
+| Product workbench shell | OPL App / shared workbench | MAS 提供 per-study projection、研究路线地图、stage/review/artifact refs 和 action receipt；Workbench 只展示和路由，不裁决。 |
+| Observability / diagnostics | OPL/shared observability + MAS read models | MAS 提供 domain blocker、quality/source refs、runtime health facts 和 safe repair hints；观测结果不授权 publication 或 artifact 写入。 |
 
-### Quality OS
+### MAS 必须持有的领域内容
 
-- 在写作前暴露研究问题、数据资产支撑、reporting guideline、display-to-claim map 和 manuscript-native prose contract。
-- 由 AI reviewer workflow 持有科学质量、医学写作质量、publishability 和 submission-facing readiness。
-- 使用 evidence ledger、review ledger、publication eval、quality packs 和 stage review index 组织质量证据。
-- 机械 gate 只持有完整性、结构、provenance、blocker 和 replay proof；它不能替代 AI reviewer 或医学作者判断。
+- `study charter`、research question、claim boundary、population/outcome/timepoint、analysis plan、source asset refs 和 study-level owner route。
+- 医学 stage pack：`scout`、`idea`、`baseline`、`experiment`、`analysis-campaign`、`write`、`review`、`finalize`、`decision`、`journal-resolution` 的目标、知识、prompt/skill 和输出义务。
+- 研究路线知识：route archetype、publication-route memory、route decision rationale、pivot/stop rules、minimum evidence package 和 rejected alternative 背景。
+- 质量知识：reporting guideline、display-to-claim map、medical manuscript prose contract、AI reviewer rubric、review ledger 和 publication gate policy。
+- Artifact authority：canonical manuscript、figures/tables、submission package、delivery freshness、rebuild proof 和 current package 写入授权。
+- Domain receipts：stage closeout、owner receipt、quality verdict、artifact delta、human gate、stop-loss、memory writeback receipt 和 typed blocker。
 
-### Runtime OS
+### MAS 应尽量调用而非重复实现的功能
 
-- 把长时间医学研究推进拆成可恢复、可重放、可审计的 stage work units。
-- 使用 MAS-owned runtime surfaces 记录 worker liveness、retry budget、controller-owned resume action、human gate、runtime escalation 和 paper progress SLO。
-- 在 standalone/local diagnostics 中保持 MAS local scheduler 可用；在 OPL Full online path 中由 OPL provider 唤醒和派发，再回到 MAS sidecar dispatch 与 MAS owner receipt。
-- 以 paper progress 为最高运行目标：长期运行必须能产生 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或解释充分的 typed blocker。
+以下能力在理想目标态中优先向 OPL / shared family layer 上收。MAS 可以保留 direct/local diagnostic path，但不应把它们写成 MAS 长期产品内核：
 
-### Artifact OS
+- provider-backed workflow、worker residency、attempt start/query/signal、retry/dead-letter 和 restart recovery；
+- generic queue、approval transport、human gate signal、resume token、operator action ledger；
+- generic memory locator、memory index、body-free inventory projection、freshness、writeback transport 和 App grouping；
+- generic artifact locator、retention、cleanup、restore proof、migration ledger 和 file lifecycle index；
+- generic workbench navigation、attention queue、running/recent items、notification 和 cross-domain dashboard；
+- generic observability transport、trace/log/event collection、stale scan 和 repair command projection。
 
-- 坚持 canonical-source-first：manuscript、figures、tables、submission package 和 delivery mirror 都必须能从 canonical source 重建。
-- 交付判断依赖 artifact rebuild proof、freshness proof、package manifest、checksum、restore proof 和 MAS owner receipt。
-- `current_package`、submission package、paper/manuscript 文件和真实 workspace artifacts 归 MAS workspace / artifact owner surface。
-- Portal、Workbench、OPL 或 provider 只能展示 locator、freshness、receipt 和 blocker，不能直接写 artifact authority。
-
-### Memory OS
-
-- Publication-route memory 以自然语言 memory card、small-set stage refs、typed closeout proposal 和 router receipt 运行。
-- MAS workspace 持有 memory body、accepted/rejected writeback receipt、migration receipt 和 review discipline。
-- OPL/Aion/Workbench 只读展示 body-free locator、consumed refs、writeback receipt refs、freshness、rejected reason 和 grouping。
-- 记忆用于增强 stage reasoning 和 route context，不能成为 recipe engine、winning-route scorer 或 publication authority。
-
-### Evaluation OS
-
-- 把历史返工、审稿失败、路线误判、artifact stale 和 paper progress stall 转成 calibration corpus、quality regression、AI-first drift audit 和 route-back lessons。
-- 区分 objective evidence、AI reviewer quality evidence、runtime evidence 和 artifact proof。
-- 投稿结果、审稿反馈和真实论文 soak 进入可回放的评价闭环，而不是散落在聊天记录或临时报告里。
-
-### Observability OS
-
-- 面向维护者展示 drift、trace、runtime health、freshness、route-back、cache state、artifact stale、legacy residue 和 safe repair command。
-- Observability 只做证据、投影、诊断和 replay proof；它不授权 finalize、submission、publication readiness、artifact mutation 或 runtime recovery。
+这个边界的目的，是让 MAS 成为高质量医学研究 domain brain，而不是又维护一套通用平台。
 
 ## Stage 是医学专家工作的组织单元
 
@@ -160,11 +147,13 @@ OPL / provider 保存：
 
 ## 用户工作台理想职责
 
-理想用户工作台面向医生、PI、研究团队和维护者，而不是展示内部模块列表。
+理想用户工作台面向医生、PI、研究团队和维护者，而不是展示内部模块列表。它可以由 OPL App 承担主产品面，MAS 提供 domain-owned projection、route map、stage/review/artifact refs 和 safe action receipts。旧 MDS / 上游 DeepScientist 的 per-project / per-quest workspace、canvas、stage history 和 terminal 可作为 clean-room UX oracle；MAS 不导入旧代码、旧产品身份或旧 daemon owner。
 
 它应展示：
 
 - `Study Line`：研究问题、当前阶段、owner、paper progress、next action 和 human gate。
+- `研究路线地图`：用节点和边展示研究路线演进，包括阶段、路线、决策、阻塞、产物、执行回合、推进、阻塞、改道/替代和产物关系。
+- `路线/决策轨迹`：展示先尝试哪条分析/写作路径，哪一步因为证据、质量、数据或运行 blocker 走不通，为什么切换到另一条路线，哪些 path 已 superseded，当前 active/winning path 是什么。
 - `Evidence`：source refs、evidence ledger、analysis outputs、claim-to-display map 和 freshness。
 - `Review`：AI reviewer verdict、stage review page、review ledger、publication blocker 和 route-back。
 - `Artifacts`：canonical manuscript、figures/tables、package freshness、delivery refs、restore proof。
@@ -174,6 +163,8 @@ OPL / provider 保存：
 
 工作台不得把 UI 状态、provider completion、read-only projection 或 observability finding 写成 quality ready、submission ready 或 publication ready。
 
+研究路线视图必须是理想工作台的一等对象。只列当前 stage 或 artifact refs 不够；它要像旧 MDS/DeepScientist 的路线感一样，让用户直观看到路线分叉、失败路径、阻塞原因、转向理由和当前仍成立的主线。该视图只消费 `mas_progress_portal_route_decision_trail`、`mas_progress_portal_route_map`、controller decisions、intervention lane、evidence/review ledgers、runtime lifecycle lineage 和 source refs；缺少输入时必须显示 missing，不能从文件名、stage 文案或 artifact path 猜测研究路线。
+
 ## 理想完成门槛
 
 MAS 达到理想生产级状态时，应满足以下门槛：
@@ -181,8 +172,10 @@ MAS 达到理想生产级状态时，应满足以下门槛：
 - Direct MAS app skill path 与 OPL-hosted path 使用同一 MAS owner surfaces，并有语义等价与 forbidden-write 证据。
 - 每个真实 paper-line stage attempt 都留下 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。
 - OPL provider 能长期托管 MAS stage attempt，并证明 restart/re-query、signal、retry/dead-letter、human gate/resume 和 no-forbidden-write。
+- 通用 runtime、queue、memory locator、artifact lifecycle、restore/retention、projection 和 workbench shell 已尽量上收到 OPL / shared family layer；MAS 只保留领域知识、authority、owner receipt 和薄适配。
 - Study charter、evidence ledger、review ledger、publication eval、controller decisions、runtime status 和 artifact rebuild proof 构成同一条 current truth。
 - Publication-route memory 在多个真实 paper line 上产生 accepted/rejected writeback receipts，并可被后续 stage 小集合检索。
+- 单篇论文工作台能稳定展示研究路线地图和路线/决策轨迹，包括分支、失败/阻塞原因、转向理由、superseded path、active/winning path、route map node/edge 和 source refs。
 - Stage Deliverable Review Page / Index 在真实 workspace 中持续更新，并被 Portal / Workbench 只读展示。
 - Artifact lifecycle、retention、cleanup、restore proof 和 SQLite/file authority 边界在真实 workspace 中可运行。
 - AI reviewer workflow 前置进入 pre-draft 和 revision route，不再依赖机械 gate 后置补救论文质量。

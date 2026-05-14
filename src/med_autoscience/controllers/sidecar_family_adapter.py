@@ -16,6 +16,9 @@ from . import runtime_supervisor_dispatch_executor
 from . import runtime_supervisor_reconcile
 from . import stage_knowledge_plane
 from .real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
+from .sidecar_family_adapter_parts.functional_closure import (
+    build_sidecar_functional_closure_projection,
+)
 from .sidecar_family_adapter_parts.guarded_apply_tasks import provider_hosted_guarded_apply_tasks
 
 
@@ -181,6 +184,13 @@ def export_family_sidecar(
         opl_production_proof=opl_production_proof,
         proof_ref=opl_production_proof_ref,
     )
+    functional_closure = build_sidecar_functional_closure_projection(
+        profile=profile,
+        profile_ref=profile_ref,
+        allowed_task_kinds=_ALLOWED_TASK_KINDS,
+        opl_production_proof=opl_production_proof,
+        opl_production_proof_ref=opl_production_proof_ref,
+    )
     pending_tasks = _pending_family_tasks(
         studies=studies,
         profile=profile,
@@ -248,13 +258,7 @@ def export_family_sidecar(
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
         },
         "authority_boundary": _authority_boundary_payload(),
-        "provider_ready_adapter": opl_provider_ready_adapter.build_opl_provider_ready_contract(
-            profile=profile,
-            profile_ref=profile_ref,
-            allowed_task_kinds=_ALLOWED_TASK_KINDS,
-            opl_production_proof=opl_production_proof,
-            opl_production_proof_ref=opl_production_proof_ref,
-        ),
+        "provider_ready_adapter": functional_closure["provider_ready_contract"],
         "managed_temporal_state_consistency": (
             opl_provider_ready_adapter.build_managed_temporal_state_consistency_read_model(
                 provider_availability=provider_availability,
@@ -271,6 +275,12 @@ def export_family_sidecar(
             opl_provider_ready_adapter.build_lifecycle_guarded_apply_proof_surface()
         ),
         "legacy_retirement_tombstone_proof": opl_provider_ready_adapter.build_legacy_retirement_tombstone_proof(),
+        "workspace_runtime_evidence_receipt": functional_closure["workspace_runtime_evidence_receipt"],
+        "legacy_residue_audit": functional_closure["legacy_residue_audit"],
+        "standard_domain_agent_skeleton": functional_closure["standard_domain_agent_skeleton"],
+        "mas_functional_closure_status_projection": (
+            functional_closure["functional_closure_status_projection"]
+        ),
         "family_runtime_supervision": {
             "surface_kind": "family_runtime_supervision",
             "version": "family-runtime-supervision.v1",

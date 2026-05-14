@@ -99,3 +99,29 @@ def test_sidecar_export_exposes_functional_closeout_contracts(tmp_path: Path, ca
     assert lifecycle_proof["domain_receipt_required_count"] == 2
     assert lifecycle_proof["authority_boundary"]["opl_writes_domain_artifact"] is False
     assert lifecycle_proof["authority_boundary"]["domain_artifact_mutation_requires_mas_receipt"] is True
+    closure = payload["mas_functional_closure_status_projection"]
+    assert closure["surface_kind"] == "mas_functional_closure_status_projection"
+    assert closure["status"] == "functional_surfaces_projected_production_evidence_gated"
+    assert closure["authority_boundary"]["read_only"] is True
+    assert closure["authority_boundary"]["can_write_domain_truth"] is False
+    assert closure["authority_boundary"]["can_authorize_submission_readiness"] is False
+    assert closure["authority_boundary"]["provider_completion_is_paper_closure"] is False
+    assert closure["summary"]["line_count"] == 9
+    assert closure["summary"]["production_evidence_gate_count"] == 2
+    assert closure["summary"]["production_evidence_pending_count"] == 2
+    by_line = {line["line_id"]: line for line in closure["lines"]}
+    assert by_line["p2_provider_residency_and_activity_soak"]["status"] == (
+        "provider_residency_projected_domain_activity_soak_pending"
+    )
+    assert by_line["p2_provider_residency_and_activity_soak"]["production_evidence_complete"] is False
+    assert by_line["p0_live_paper_autonomy_acceptance"]["status"] == (
+        "guarded_apply_surface_landed_live_provider_apply_pending"
+    )
+    assert by_line["p0_live_paper_autonomy_acceptance"]["production_evidence_complete"] is False
+    assert by_line["stage_surface_standardization"]["mas_repo_functional_surface_complete"] is True
+    assert by_line["publication_route_memory_management"]["status"] == (
+        "body_free_descriptor_landed_receipt_scaleout_pending"
+    )
+    blocker_ids = {blocker["blocker_id"] for blocker in closure["open_typed_blockers"]}
+    assert "provider_hosted_live_paper_apply_pending" in blocker_ids
+    assert "mas_domain_activity_long_soak_pending" in blocker_ids

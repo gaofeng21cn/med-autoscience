@@ -505,6 +505,25 @@ def build_product_entry_manifest(
     standard_domain_agent_skeleton = (
         opl_provider_ready_adapter.build_standard_domain_agent_skeleton_surface()
     )
+    workspace_runtime_evidence_receipt = opl_provider_ready_contract["workspace_runtime_evidence_receipt"]
+    functional_closure_status_projection = (
+        opl_provider_ready_adapter.build_functional_closure_status_projection(
+            provider_residency_read_model=provider_residency_read_model,
+            provider_guarded_soak_read_model=provider_guarded_soak_read_model,
+            managed_temporal_state_consistency=(
+                opl_provider_ready_contract["managed_temporal_state_consistency"]
+            ),
+            owner_receipt_contract=opl_provider_ready_contract["owner_receipt_contract"],
+            lifecycle_guarded_apply_proof=opl_provider_ready_contract["lifecycle_guarded_apply_proof"],
+            workspace_runtime_evidence_receipt=workspace_runtime_evidence_receipt,
+            legacy_retirement_tombstone_proof=(
+                opl_provider_ready_contract["legacy_retirement_tombstone_proof"]
+            ),
+            legacy_residue_audit=legacy_residue_audit,
+            standard_domain_agent_skeleton=standard_domain_agent_skeleton,
+            domain_memory_descriptor=domain_memory_descriptor,
+        )
+    )
     skill_catalog = _build_skill_catalog_surface(
         runtime=runtime,
         family_orchestration=family_orchestration,
@@ -633,8 +652,9 @@ def build_product_entry_manifest(
                 opl_provider_ready_contract["workspace_runtime_artifact_root_locator"]
             ),
             "workspace_runtime_evidence_receipt": (
-                opl_provider_ready_contract["workspace_runtime_evidence_receipt"]
+                workspace_runtime_evidence_receipt
             ),
+            "mas_functional_closure_status_projection": functional_closure_status_projection,
             "stage_quality_pack_contract": stage_quality_pack_contract,
             "stage_skill_surface_projection": build_stage_skill_surface_projection(),
             "provider_guarded_soak_read_model": provider_guarded_soak_read_model,
