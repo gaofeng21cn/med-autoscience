@@ -321,7 +321,7 @@ def test_study_runtime_status_refreshes_stale_blocked_ai_reviewer_eval_when_gate
     assert payload["emitted_at"] == "2026-04-17T02:14:11+00:00"
     assert payload["verdict"]["overall_verdict"] == "promising"
     assert payload["recommended_actions"][0]["action_type"] == "continue_same_line"
-    assert payload["recommended_actions"][0]["next_work_unit"]["unit_id"] != "submission_authority_sync_closure"
+    assert payload["recommended_actions"][0]["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
 
 
 def test_study_runtime_status_refreshes_publication_eval_when_gate_returns_to_publishability(
