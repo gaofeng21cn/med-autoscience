@@ -14,6 +14,11 @@ from .route_decision_trail import (
 from .source_refs import source_ref_allowed, source_refs
 from .stage_review import build_stage_review_index, render_stage_review_section
 from .status_display import display_text
+from .study_workbench_parts import (
+    action_owner_routing_policy as _action_owner_routing_policy,
+    render_action_owner_routing_section as _action_owner_routing_section,
+    workbench_summary as _workbench_summary,
+)
 from med_autoscience.controllers.stage_knowledge_visibility import build_stage_knowledge_visibility
 
 
@@ -240,125 +245,6 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
             + list_html(_condition_items(conditions), empty_text="当前没有 workbench 条件。")
             + "</section>",
         ]
-    )
-
-
-def _action_owner_routing_policy(
-    *,
-    route_decision_trail: Mapping[str, Any],
-    route_map: Mapping[str, Any],
-) -> dict[str, Any]:
-    route_available = _non_empty_text(route_decision_trail.get("status")) == "available"
-    receipt_policy = _mapping(route_map.get("safe_action_receipt_policy")) or _default_safe_action_receipt_policy()
-    next_owner = _non_empty_text(route_decision_trail.get("next_owner"))
-    missing: list[str] = []
-    available: list[str] = []
-    if route_available:
-        available.append("route_decision_trail")
-    else:
-        missing.append("route_decision_trail")
-    if receipt_policy:
-        available.append("safe_action_receipt_policy")
-    else:
-        missing.append("safe_action_receipt")
-    status = "available" if route_available and next_owner else "missing"
-    if status != "available" and "safe_action_receipt" not in missing:
-        missing.append("safe_action_receipt")
-    if next_owner is None:
-        missing.append("next_owner")
-    return {
-        "status": status,
-        "next_owner": next_owner,
-        "routing_role": "display_and_owner_route_projection",
-        "safe_action_receipt_policy": receipt_policy,
-        "conditions": {
-            "available": available,
-            "missing": missing,
-            "stale": [],
-            "conflict": [],
-        },
-        "authority": {
-            "writes_authority_surface": False,
-            "can_execute_controller_actions": False,
-            "can_authorize_quality_verdict": False,
-            "can_authorize_publication_readiness": False,
-            "can_authorize_artifact_mutation": False,
-        },
-    }
-
-
-def _default_safe_action_receipt_policy() -> dict[str, Any]:
-    return {
-        "policy": "route_only_to_owner_no_direct_execution",
-        "required_receipt_surface": "mas_progress_portal_action_receipt",
-        "allowed_receipt_owners": [
-            "mas_runtime_owner",
-            "mas_controller",
-            "MedAutoScience",
-            "OPL provider transport",
-        ],
-        "can_authorize_quality_verdict": False,
-        "can_authorize_publication_readiness": False,
-        "can_authorize_artifact_mutation": False,
-        "missing_behavior": "display_missing_do_not_infer",
-    }
-
-
-def _workbench_summary(
-    *,
-    overview: Mapping[str, Any],
-    route_map: Mapping[str, Any],
-    route_decision_trail: Mapping[str, Any],
-    action_owner_routing_policy: Mapping[str, Any],
-    refs: list[str],
-) -> dict[str, list[str]]:
-    available: list[str] = []
-    missing: list[str] = []
-    if any(
-        value not in (None, "", [], {})
-        for key, value in overview.items()
-        if key != "study_id"
-    ):
-        available.append("overview")
-    else:
-        missing.append("overview")
-    for key, payload in (
-        ("route_map", route_map),
-        ("route_decision_trail", route_decision_trail),
-    ):
-        if _non_empty_text(payload.get("status")) == "available":
-            available.append(key)
-        else:
-            missing.append(key)
-    if action_owner_routing_policy:
-        available.append("action_owner_routing_policy")
-    else:
-        missing.append("action_owner_routing_policy")
-    if refs:
-        available.append("source_refs")
-    else:
-        missing.append("source_refs")
-    return {"available": available, "missing": missing}
-
-
-def _action_owner_routing_section(policy: Mapping[str, Any]) -> str:
-    receipt_policy = _mapping(policy.get("safe_action_receipt_policy"))
-    values = {
-        "status": display_text(policy.get("status"), fallback="missing", preserve_known_token=True),
-        "next_owner": display_text(policy.get("next_owner"), fallback="缺失", preserve_known_token=True),
-        "required_receipt": display_text(
-            receipt_policy.get("required_receipt_surface"),
-            fallback="缺失",
-            preserve_known_token=True,
-        ),
-    }
-    return (
-        '<section class="panel wide"><h2>Action Owner Routing '
-        + status_chip(policy.get("status") or "missing")
-        + "</h2>"
-        + _key_value_table(values)
-        + list_html(_condition_items(_mapping(policy.get("conditions"))), empty_text="当前没有 action owner routing 条件。")
-        + "</section>"
     )
 
 
