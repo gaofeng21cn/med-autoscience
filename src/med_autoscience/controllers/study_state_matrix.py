@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers import study_macro_state
 from med_autoscience.study_manual_finish import _delivered_package_ready
 
@@ -29,6 +30,7 @@ def build_study_state_matrix(
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_ids or ()) or resolve_study_ids(profile)
     studies: list[dict[str, Any]] = []
+    transitions: list[dict[str, Any]] = []
     counts: dict[str, int] = {}
     for study_id in resolved_study_ids:
         status = _dict(
@@ -51,6 +53,15 @@ def build_study_state_matrix(
         active_run_id = _resolved_active_run_id(status=status, macro_state=macro)
         writer_state = str(macro["writer_state"])
         counts[writer_state] = counts.get(writer_state, 0) + 1
+        transition = study_domain_transition_table.project_domain_transition(
+            study_id=study_id,
+            study_root=study_root,
+            status=status,
+            macro_state=macro,
+            active_run_id=active_run_id,
+            delivered_package=delivered_package,
+        )
+        transitions.append(transition)
         studies.append(
             {
                 "study_id": study_id,
@@ -59,6 +70,7 @@ def build_study_state_matrix(
                 "active_run_id": active_run_id,
                 "delivered_package": delivered_package or None,
                 "study_macro_state": macro,
+                "domain_transition": transition,
             }
         )
     return {
@@ -68,6 +80,7 @@ def build_study_state_matrix(
         "study_count": len(studies),
         "counts": counts,
         "studies": studies,
+        "domain_transition_table": study_domain_transition_table.build_domain_transition_table(transitions),
     }
 
 
@@ -93,6 +106,34 @@ def render_study_state_matrix_markdown(payload: Mapping[str, Any]) -> str:
                     _text(macro.get("user_next")) or "",
                     _text(macro.get("reason")) or "",
                     _text(study_payload.get("active_run_id")) or "",
+                ]
+            )
+            + " |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Domain Transition Table",
+            "",
+            "| study_id | decision_type | route_target | next_work_unit | controller_action | owner | blocker |",
+            "| --- | --- | --- | --- | --- | --- | --- |",
+        ]
+    )
+    for row in _dict(_dict(payload).get("domain_transition_table")).get("rows") or []:
+        transition = _dict(row)
+        next_work_unit = _dict(transition.get("next_work_unit"))
+        typed_blocker = _dict(transition.get("typed_blocker"))
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    _text(transition.get("study_id")) or "",
+                    _text(transition.get("decision_type")) or "",
+                    _text(transition.get("route_target")) or "",
+                    _text(next_work_unit.get("unit_id")) or "",
+                    _text(transition.get("controller_action")) or "",
+                    _text(transition.get("owner")) or "",
+                    _text(typed_blocker.get("blocker_id")) or "",
                 ]
             )
             + " |"
@@ -173,6 +214,7 @@ def _resolved_active_run_id(*, status: Mapping[str, Any], macro_state: Mapping[s
     return (
         _text(status.get("active_run_id"))
         or _text(_dict(status.get("study_truth_snapshot")).get("active_run_id"))
+        or _text(_dict(_dict(status.get("study_truth_snapshot")).get("execution_owner")).get("active_run_id"))
         or _text(_dict(macro_state.get("details")).get("active_run_id"))
     )
 

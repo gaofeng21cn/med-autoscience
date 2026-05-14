@@ -375,6 +375,8 @@ def _active_run_id(*, status: Mapping[str, Any], progress: Mapping[str, Any], tr
         return None
     return (
         _text(status.get("active_run_id"))
+        or _text(truth.get("active_run_id"))
+        or _text(_mapping(truth.get("execution_owner")).get("active_run_id"))
         or _text(progress.get("active_run_id"))
         or _text(_mapping(progress.get("supervision")).get("active_run_id"))
     )
