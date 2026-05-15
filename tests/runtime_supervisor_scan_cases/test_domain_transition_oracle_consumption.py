@@ -98,6 +98,34 @@ def test_action_queue_does_not_redrive_fail_closed_domain_transition() -> None:
     assert actions == []
 
 
+def test_action_queue_does_not_redrive_memory_writeback_receipt_consumed_transition() -> None:
+    actions = _queue(
+        {
+            "domain_transition": {
+                "decision_type": "memory_writeback_receipt_consumed",
+                "route_target": "inspect",
+                "controller_action": "review_publication_route_memory_writeback",
+                "next_work_unit": {"unit_id": "publication_route_memory_writeback_receipt"},
+                "guard_boundary": {
+                    "opl_generic_runner_may_resume": False,
+                    "memory_body_included": False,
+                    "quality_authorized": False,
+                    "submission_authorized": False,
+                },
+            },
+            "runtime_health_snapshot": {"canonical_runtime_action": "external_supervisor_required"},
+            "controller_work_unit_next_route": {
+                "recommended_next_route": "handoff_to_next_owner",
+                "runtime_relaunch_required": False,
+                "owner": "write/ai_reviewer",
+                "next_work_unit": "stale_memory_redrive",
+            },
+        }
+    )
+
+    assert actions == []
+
+
 def test_action_queue_routes_publication_blocker_through_domain_transition_work_unit() -> None:
     actions = _queue(
         {

@@ -12,6 +12,7 @@ TERMINAL_OR_HANDOFF_DECISION_TYPES = frozenset(
         "delivered_package_handoff",
         "fail_closed",
         "human_gate",
+        "memory_writeback_receipt_consumed",
         "stop_loss",
         "owner_apply_receipt_consumed",
         "artifact_delta_live_apply",
