@@ -393,6 +393,129 @@ def test_study_state_matrix_projects_ai_reviewer_re_eval_transition(
     assert transition["guard_boundary"]["required_owner_surface"] == "artifacts/publication_eval/latest.json"
 
 
+def test_study_state_matrix_projects_ai_reviewer_required_before_finalize(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "003-dpcc"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 003-dpcc\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+                "ai_reviewer_required": True,
+            },
+            "recommended_actions": [
+                {
+                    "action_type": "continue_same_line",
+                    "route_target": "finalize",
+                    "requires_controller_decision": True,
+                    "next_work_unit": {
+                        "unit_id": "submission_authority_sync_closure",
+                        "lane": "controller",
+                    },
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "003-dpcc",
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "active_run_id": "run-live-003",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    transition = json.loads(captured.out)["studies"][0]["domain_transition"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "ai_reviewer_re_eval"
+    assert transition["route_target"] == "review"
+    assert transition["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert transition["owner"] == "ai_reviewer"
+
+
+def test_study_state_matrix_projects_bundle_stage_finalize_even_with_active_run(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "002-dm"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 002-dm\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "current_required_action": "continue_bundle_stage",
+            "recommended_actions": [
+                {
+                    "action_type": "continue_same_line",
+                    "route_target": "finalize",
+                    "requires_controller_decision": True,
+                    "next_work_unit": {
+                        "unit_id": "submission_authority_sync_closure",
+                        "lane": "controller",
+                        "summary": "Synchronize submission authority and package closure.",
+                    },
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "002-dm",
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "active_run_id": "run-live-002",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+                "publication_gate_allows_direct_write": True,
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    transition = json.loads(captured.out)["studies"][0]["domain_transition"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "bundle_stage_finalize"
+    assert transition["route_target"] == "finalize"
+    assert transition["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert transition["controller_action"] == "continue_bundle_stage"
+    assert transition["owner"] == "publication_gate"
+    assert transition["guard_boundary"]["required_owner_surface"] == "artifacts/publication_eval/latest.json"
+
+
 def test_study_state_matrix_projects_artifact_delta_live_apply_transition(
     monkeypatch,
     tmp_path: Path,

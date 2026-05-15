@@ -12,7 +12,7 @@ STABLE_PUBLICATION_WORK_UNIT_LIFECYCLE_RELATIVE_PATH = Path(
 )
 _BLOCKING_STATUSES = frozenset({"failed", "missing", "skipped_failed_dependency", "skipped_authority_not_settled"})
 _HARD_BLOCKING_STATUSES = _BLOCKING_STATUSES - frozenset({"skipped_authority_not_settled"})
-_CLOSED_WORK_UNIT_LIFECYCLE_STATUSES = frozenset({"done"})
+_CLOSED_WORK_UNIT_LIFECYCLE_STATUSES = frozenset({"done", "owner_handoff"})
 _OPEN_LIFECYCLE_UNIT_STATUSES = _BLOCKING_STATUSES | frozenset(
     {
         "blocked_matching_failed_unit_fingerprint",
@@ -155,7 +155,10 @@ def unit_statuses_block_lifecycle_closure(unit_statuses: object) -> bool:
 
 
 def lifecycle_payload_is_closed(payload: dict[str, Any]) -> bool:
-    if str(payload.get("status") or "").strip() not in _CLOSED_WORK_UNIT_LIFECYCLE_STATUSES:
+    status = str(payload.get("status") or "").strip()
+    if status not in _CLOSED_WORK_UNIT_LIFECYCLE_STATUSES:
+        return False
+    if status == "owner_handoff" and payload.get("terminal_consumed") is not True:
         return False
     return not unit_statuses_block_lifecycle_closure(payload.get("unit_statuses"))
 

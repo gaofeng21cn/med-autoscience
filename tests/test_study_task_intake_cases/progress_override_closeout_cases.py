@@ -1,6 +1,13 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
+
+
+def _write_json(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def test_task_intake_progress_override_yields_to_deterministic_submission_closeout() -> None:
@@ -303,3 +310,218 @@ def test_reviewer_revision_intake_does_not_yield_to_submission_closeout_with_ope
     assert override is not None
     assert override["quality_closure_truth"]["state"] == "quality_repair_required"
     assert override["paper_stage"] == "write"
+
+
+def test_reviewer_revision_yields_to_complete_rebuttal_route_coverage_closeout(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "study"
+
+    payload = {
+        "task_id": "study-task::002::reviewer-feedback",
+        "emitted_at": "2026-04-27T02:05:48+00:00",
+        "task_intent": "Reviewer revision: update review matrix and action plan for all reviewer feedback.",
+        "constraints": ["Do not write current_package directly."],
+        "first_cycle_outputs": ["paper/rebuttal/review_matrix.md and action_plan.md"],
+    }
+    _write_json(
+        study_root
+        / "artifacts"
+        / "stage_knowledge"
+        / "analysis-campaign"
+        / "closeouts"
+        / "rebuttal_route_coverage_20260515T004548Z.json",
+        {
+            "generated_at": "2026-05-15T00:45:48Z",
+            "route_outcome": "bounded_analysis_complete",
+            "coverage_complete": True,
+            "feedback_items_total": 11,
+            "items_with_valid_route": 11,
+            "required_route_classes_present": 5,
+            "active_upstream_repair_units": 0,
+            "next_owner_recommendation": "MAS finalize/bundle-stage owner",
+            "slice_ledger": [
+                {
+                    "slice_id": "reviewer_revision_route_coverage",
+                    "status": "complete",
+                    "covered_items": 11,
+                    "route_families": [
+                        "paper_text",
+                        "figure_table",
+                        "analysis",
+                        "claim_evidence",
+                        "package",
+                    ],
+                }
+            ],
+            "authority_boundary": {
+                "mutated_submission_package": False,
+                "mutated_current_package": False,
+            },
+        },
+    )
+    gate_report = {
+        "generated_at": "2026-05-15T00:45:49Z",
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+        "supervisor_phase": "bundle_stage_ready",
+    }
+    evaluation_summary = {
+        "emitted_at": "2026-05-15T00:45:50Z",
+        "quality_closure_truth": {
+            "state": "bundle_only_remaining",
+            "current_required_action": "continue_bundle_stage",
+        },
+        "study_quality_truth": {
+            "contract_closed": True,
+            "reviewer_first": {
+                "ready": False,
+                "status": "blocked",
+                "open_concern_count": 1,
+            },
+        },
+        "quality_review_loop": {"closure_state": "bundle_only_remaining"},
+    }
+
+    assert module.task_intake_is_reviewer_revision(payload) is True
+    assert module.build_task_intake_progress_override(
+        payload,
+        study_root=study_root,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
+    ) is None
+
+
+def test_reviewer_revision_keeps_override_when_rebuttal_route_coverage_incomplete(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "study"
+
+    payload = {
+        "task_id": "study-task::002::reviewer-feedback",
+        "emitted_at": "2026-04-27T02:05:48+00:00",
+        "task_intent": "Reviewer revision: update review matrix and action plan for all reviewer feedback.",
+        "first_cycle_outputs": ["paper/rebuttal/review_matrix.md and action_plan.md"],
+    }
+    _write_json(
+        study_root
+        / "artifacts"
+        / "stage_knowledge"
+        / "analysis-campaign"
+        / "closeouts"
+        / "rebuttal_route_coverage_20260515T004548Z.json",
+        {
+            "generated_at": "2026-05-15T00:45:48Z",
+            "coverage_complete": False,
+            "feedback_items_total": 11,
+            "items_with_valid_route": 10,
+            "active_upstream_repair_units": 1,
+            "next_owner_recommendation": "MAS finalize/bundle-stage owner",
+            "slice_ledger": [
+                {
+                    "slice_id": "reviewer_revision_route_coverage",
+                    "status": "partial",
+                    "covered_items": 10,
+                }
+            ],
+        },
+    )
+    gate_report = {
+        "generated_at": "2026-05-15T00:45:49Z",
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+    }
+    evaluation_summary = {
+        "emitted_at": "2026-05-15T00:45:50Z",
+        "quality_closure_truth": {"state": "bundle_only_remaining"},
+        "study_quality_truth": {
+            "reviewer_first": {
+                "ready": False,
+                "status": "blocked",
+                "open_concern_count": 1,
+            },
+        },
+        "quality_review_loop": {"closure_state": "bundle_only_remaining"},
+    }
+
+    override = module.build_task_intake_progress_override(
+        payload,
+        study_root=study_root,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
+    )
+
+    assert override is not None
+    assert override["paper_stage"] == "write"
+
+
+def test_reviewer_revision_route_coverage_closeout_cannot_override_publishability_gate_block(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "study"
+
+    payload = {
+        "task_id": "study-task::002::reviewer-feedback",
+        "emitted_at": "2026-04-27T02:05:48+00:00",
+        "task_intent": "Reviewer revision: update review matrix and action plan for all reviewer feedback.",
+        "first_cycle_outputs": ["paper/rebuttal/review_matrix.md and action_plan.md"],
+    }
+    _write_json(
+        study_root
+        / "artifacts"
+        / "stage_knowledge"
+        / "analysis-campaign"
+        / "closeouts"
+        / "rebuttal_route_coverage_20260515T004548Z.json",
+        {
+            "generated_at": "2026-05-15T00:45:48Z",
+            "coverage_complete": True,
+            "feedback_items_total": 11,
+            "items_with_valid_route": 11,
+            "required_route_classes_present": 5,
+            "active_upstream_repair_units": 0,
+            "next_owner_recommendation": "MAS finalize/bundle-stage owner",
+            "slice_ledger": [
+                {
+                    "slice_id": "reviewer_revision_route_coverage",
+                    "status": "complete",
+                    "covered_items": 11,
+                }
+            ],
+        },
+    )
+    gate_report = {
+        "generated_at": "2026-05-15T00:45:49Z",
+        "status": "blocked",
+        "allow_write": False,
+        "blockers": ["medical_publication_surface_blocked"],
+        "current_required_action": "return_to_publishability_gate",
+    }
+    evaluation_summary = {
+        "emitted_at": "2026-05-15T00:45:50Z",
+        "quality_closure_truth": {"state": "quality_repair_required"},
+        "study_quality_truth": {
+            "reviewer_first": {
+                "ready": False,
+                "status": "blocked",
+                "open_concern_count": 1,
+            },
+        },
+    }
+
+    override = module.build_task_intake_progress_override(
+        payload,
+        study_root=study_root,
+        publishability_gate_report=gate_report,
+        evaluation_summary=evaluation_summary,
+    )
+
+    assert override is not None
+    assert override["quality_closure_truth"]["state"] == "quality_repair_required"
