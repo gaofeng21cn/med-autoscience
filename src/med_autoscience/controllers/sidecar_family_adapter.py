@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,6 +19,7 @@ from .real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
 from .sidecar_family_adapter_parts.functional_closure import (
     build_sidecar_functional_closure_projection,
 )
+from .sidecar_family_adapter_parts.dispatch_receipts import write_dispatch_receipt
 from .sidecar_family_adapter_parts.guarded_apply_tasks import provider_hosted_guarded_apply_tasks
 
 
@@ -600,11 +600,6 @@ def _profile_from_task(task: Mapping[str, Any]) -> tuple[WorkspaceProfile | None
     return load_profile(path), path
 
 
-def _receipt_path(*, profile: WorkspaceProfile, task_id: str) -> Path:
-    digest = hashlib.sha256(task_id.encode("utf-8")).hexdigest()[:20]
-    return profile.workspace_root / "artifacts" / "runtime" / "opl_family_sidecar" / "dispatch_receipts" / f"{digest}.json"
-
-
 def _recommended_command(action_type: str, *, profile_ref: Path | None, study_id: str | None) -> str:
     profile_part = f" --profile {profile_ref}" if profile_ref is not None else " --profile <profile>"
     study_part = f" --studies {study_id}" if study_id else ""
@@ -726,8 +721,9 @@ def _base_dispatch_receipt(
     action_type: str,
     profile_ref: Path | None,
     study_id: str | None,
+    source_fingerprint: str | None,
 ) -> dict[str, Any]:
-    return {
+    receipt = {
         "surface_kind": "mas_family_sidecar_dispatch_receipt",
         "version": "mas-family-sidecar.v1",
         "accepted": True,
@@ -750,6 +746,9 @@ def _base_dispatch_receipt(
             requested_writes=(),
         ),
     }
+    if source_fingerprint is not None:
+        receipt["source_fingerprint"] = source_fingerprint
+    return receipt
 
 
 def _apply_dispatch_action(
@@ -844,58 +843,24 @@ def _write_dispatch_receipt(
     receipt: dict[str, Any],
     profile: WorkspaceProfile | None,
     task_id: str,
+    source_fingerprint: str | None = None,
 ) -> dict[str, Any]:
-    if profile is None:
-        return receipt
-    path = _receipt_path(profile=profile, task_id=task_id)
-    if path.exists():
-        existing = _read_json_object(path)
-        if existing is not None:
-            existing_result = _mapping(_mapping(existing.get("dispatch")).get("result"))
-            new_result = _mapping(_mapping(receipt.get("dispatch")).get("result"))
-            if _text(existing_result.get("source_fingerprint")) != _text(new_result.get("source_fingerprint")):
-                return _conflicting_dispatch_receipt(
-                    existing=existing,
-                    receipt=receipt,
-                    profile=profile,
-                    path=path,
-                )
-            existing["idempotent_noop"] = True
-            return existing
-    receipt["receipt_ref"] = _workspace_relative(path, workspace_root=profile.workspace_root)
-    _write_json(path, receipt)
-    return receipt
-
-
-def _conflicting_dispatch_receipt(
-    *,
-    existing: Mapping[str, Any],
-    receipt: Mapping[str, Any],
-    profile: WorkspaceProfile,
-    path: Path,
-) -> dict[str, Any]:
-    existing_result = _mapping(_mapping(existing.get("dispatch")).get("result"))
-    new_result = _mapping(_mapping(receipt.get("dispatch")).get("result"))
-    return {
-        "surface_kind": "mas_family_sidecar_dispatch_receipt",
-        "version": "mas-family-sidecar.v1",
-        "accepted": False,
-        "task_id": _text(receipt.get("task_id")) or _text(existing.get("task_id")),
-        "task_kind": _text(receipt.get("task_kind")) or _text(existing.get("task_kind")),
-        "generated_at": _now_iso(),
-        "reason": "idempotency_key_intent_conflict",
-        "existing_receipt_ref": _workspace_relative(path, workspace_root=profile.workspace_root),
-        "existing_source_fingerprint": _text(existing_result.get("source_fingerprint")),
-        "requested_source_fingerprint": _text(new_result.get("source_fingerprint")),
-        "forbidden_domain_truth_write": False,
-        "authority_boundary": _authority_boundary_payload(),
-        "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(
-            result="blocked",
-            task_id=_text(receipt.get("task_id")),
-            task_kind=_text(receipt.get("task_kind")),
-            requested_writes=(),
-        ),
-    }
+    return write_dispatch_receipt(
+        receipt=receipt,
+        profile=profile,
+        task_id=task_id,
+        source_fingerprint=source_fingerprint,
+        read_json_object=_read_json_object,
+        write_json=_write_json,
+        workspace_relative=lambda path: _workspace_relative(path, workspace_root=profile.workspace_root)
+        if profile is not None
+        else str(path),
+        text=_text,
+        mapping=_mapping,
+        now_iso=_now_iso,
+        authority_boundary_payload=_authority_boundary_payload,
+        forbidden_write_guard_proof=opl_provider_ready_adapter.build_forbidden_write_guard_proof,
+    )
 
 
 def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
@@ -935,7 +900,9 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
             detail=f"Unsupported MAS sidecar task kind: {task_kind}",
         )
     profile, profile_ref = _profile_from_task(task)
-    study_id = _text(_mapping(task.get("payload")).get("study_id"))
+    payload = _mapping(task.get("payload"))
+    study_id = _text(payload.get("study_id"))
+    source_fingerprint = _text(task.get("source_fingerprint"))
     receipt = _base_dispatch_receipt(
         generated_at=generated_at,
         task_id=task_id,
@@ -944,6 +911,7 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
         action_type=action_type,
         profile_ref=profile_ref,
         study_id=study_id,
+        source_fingerprint=source_fingerprint,
     )
     receipt = _apply_dispatch_action(
         receipt=receipt,
@@ -953,7 +921,12 @@ def dispatch_family_sidecar_task(*, task_path: Path) -> dict[str, Any]:
         study_id=study_id,
         task=task,
     )
-    return _write_dispatch_receipt(receipt=receipt, profile=profile, task_id=task_id)
+    return _write_dispatch_receipt(
+        receipt=receipt,
+        profile=profile,
+        task_id=task_id,
+        source_fingerprint=source_fingerprint,
+    )
 
 
 def _dispatch_error(

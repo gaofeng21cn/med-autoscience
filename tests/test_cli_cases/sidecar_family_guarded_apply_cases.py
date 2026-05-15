@@ -237,6 +237,75 @@ def test_sidecar_dispatch_guarded_apply_records_provider_unavailable_typed_block
     assert result["summary"]["writes_performed"] is False
 
 
+def test_sidecar_dispatch_keys_guarded_apply_receipts_by_task_source_fingerprint(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+
+    def fake_guarded_apply(**_: object) -> dict[str, object]:
+        return {
+            "surface": "real_paper_autonomy_provider_hosted_guarded_apply_receipt",
+            "schema_version": 1,
+            "status": "typed_blocker",
+            "source_fingerprint": "stable-domain-result",
+            "summary": {"status": "typed_blocker"},
+            "authority_boundary": {"provider_attempt_is_truth": False},
+        }
+
+    monkeypatch.setattr(
+        adapter.real_paper_autonomy_soak_inventory,
+        "build_real_paper_autonomy_provider_hosted_guarded_apply_receipt",
+        fake_guarded_apply,
+    )
+
+    task_path = tmp_path / "task.json"
+    base_task = {
+        "task_id": "frt_provider_guarded",
+        "domain_id": "medautoscience",
+        "task_kind": "paper_autonomy/guarded-apply",
+        "payload": {
+            "profile": str(profile_path),
+            "study_id": "DM002",
+            "target_studies": ["DM002"],
+            "provider_attempt_id": "opl-temporal:nfpitnet:DM002:provider-hosted-guarded-apply",
+            "idempotency_key": "mas:nfpitnet:DM002:provider-hosted-guarded-apply:opl-temporal",
+        },
+    }
+    _write_json(task_path, {**base_task, "source_fingerprint": "proof-fingerprint-v1"})
+    first_exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    first_payload = json.loads(capsys.readouterr().out)
+
+    assert first_exit_code == 0
+    assert first_payload["accepted"] is True
+    assert first_payload["source_fingerprint"] == "proof-fingerprint-v1"
+    assert first_payload["dispatch"]["result"]["source_fingerprint"] == "stable-domain-result"
+    assert first_payload["receipt_ref"].startswith("artifacts/runtime/opl_family_sidecar/dispatch_receipts/")
+
+    repeat_exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    repeat_payload = json.loads(capsys.readouterr().out)
+
+    assert repeat_exit_code == 0
+    assert repeat_payload["receipt_ref"] == first_payload["receipt_ref"]
+    assert repeat_payload["idempotent_noop"] is True
+
+    _write_json(task_path, {**base_task, "source_fingerprint": "proof-fingerprint-v2"})
+    updated_exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    updated_payload = json.loads(capsys.readouterr().out)
+
+    assert updated_exit_code == 0
+    assert updated_payload["accepted"] is True
+    assert updated_payload["source_fingerprint"] == "proof-fingerprint-v2"
+    assert updated_payload["dispatch"]["result"]["source_fingerprint"] == "stable-domain-result"
+    assert updated_payload["receipt_ref"] != first_payload["receipt_ref"]
+    assert updated_payload.get("idempotent_noop") is None
+
+
 def test_sidecar_dispatch_guarded_apply_replays_duplicate_attempt_idempotently(
     tmp_path: Path,
     capsys,
