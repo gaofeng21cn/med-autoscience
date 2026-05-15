@@ -33,19 +33,28 @@ def build_study_state_matrix(
     transitions: list[dict[str, Any]] = []
     counts: dict[str, int] = {}
     for study_id in resolved_study_ids:
-        status = _dict(
-            study_runtime_router.study_runtime_status(
+        try:
+            status = _dict(
+                study_runtime_router.study_runtime_status(
+                    profile=profile,
+                    study_id=study_id,
+                    study_root=None,
+                    entry_mode=entry_mode,
+                )
+            )
+        except Exception as exc:
+            status = _status_projection_error(
                 profile=profile,
                 study_id=study_id,
-                study_root=None,
-                entry_mode=entry_mode,
+                exc=exc,
             )
-        )
         delivered_package = _delivered_package_observation(status=status)
         if delivered_package.get("observed") is True:
             status = {**status, "delivered_package": delivered_package}
         study_root = _study_root_from_status(profile=profile, study_id=study_id, status=status)
-        macro = _read_materialized_macro_state(study_root=study_root) or study_macro_state.derive_study_macro_state(
+        macro = _projection_error_macro_state(study_id=study_id, status=status) or _read_materialized_macro_state(
+            study_root=study_root
+        ) or study_macro_state.derive_study_macro_state(
             study_id=study_id,
             status=status,
             progress={},
@@ -172,6 +181,8 @@ def _read_materialized_macro_state(*, study_root: Path) -> dict[str, Any] | None
 
 
 def _delivered_package_observation(*, status: Mapping[str, Any]) -> dict[str, Any]:
+    if status.get("status_projection_error"):
+        return {"observed": False}
     study_root_text = _text(status.get("study_root"))
     if not study_root_text:
         return {}
@@ -206,6 +217,44 @@ def _delivered_package_observation(*, status: Mapping[str, Any]) -> dict[str, An
                 "authority_role": "user_visible_milestone_package_not_quality_authority",
             }
     return {"observed": False}
+
+
+def _status_projection_error(*, profile: Any, study_id: str, exc: Exception) -> dict[str, Any]:
+    message = str(exc) or exc.__class__.__name__
+    study_root = Path(profile.studies_root).expanduser().resolve() / study_id
+    return {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_status": "projection_error",
+        "active_run_id": None,
+        "status_projection_error": {
+            "error_type": exc.__class__.__name__,
+            "message": message,
+        },
+    }
+
+
+def _projection_error_macro_state(*, study_id: str, status: Mapping[str, Any]) -> dict[str, Any] | None:
+    projection_error = _dict(status.get("status_projection_error")) or _dict(status.get("projection_error"))
+    if not projection_error:
+        return None
+    return {
+        "surface": "study_macro_state",
+        "schema_version": 1,
+        "study_id": study_id,
+        "writer_state": "conflict",
+        "user_next": "inspect",
+        "reason": "truth_conflict",
+        "details": {"status_projection_error": projection_error},
+        "conditions": [
+            {
+                "type": "StatusProjectionError",
+                "status": "true",
+                "reason": "study status projection failed and must be inspected before routing",
+            }
+        ],
+        "source_fingerprint": f"study-macro-state:projection-error:{study_id}",
+    }
 
 
 def _resolved_active_run_id(*, status: Mapping[str, Any], macro_state: Mapping[str, Any]) -> str | None:

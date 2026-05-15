@@ -393,6 +393,254 @@ def test_study_state_matrix_projects_ai_reviewer_re_eval_transition(
     assert transition["guard_boundary"]["required_owner_surface"] == "artifacts/publication_eval/latest.json"
 
 
+def test_study_state_matrix_projects_ai_reviewer_required_before_finalize(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "003-dpcc"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 003-dpcc\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+                "ai_reviewer_required": True,
+            },
+            "recommended_actions": [
+                {
+                    "action_type": "continue_same_line",
+                    "route_target": "finalize",
+                    "requires_controller_decision": True,
+                    "next_work_unit": {
+                        "unit_id": "submission_authority_sync_closure",
+                        "lane": "controller",
+                    },
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "003-dpcc",
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "active_run_id": "run-live-003",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    transition = json.loads(captured.out)["studies"][0]["domain_transition"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "ai_reviewer_re_eval"
+    assert transition["route_target"] == "review"
+    assert transition["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert transition["owner"] == "ai_reviewer"
+
+
+def test_study_state_matrix_routes_ai_reviewer_backed_blocked_eval_to_publication_gate(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "obesity-atlas"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: obesity-atlas\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "ai_reviewer_required": False,
+            },
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "partial",
+            },
+            "gaps": [
+                {
+                    "gap_id": "gap-001",
+                    "gap_type": "claim",
+                    "severity": "must_fix",
+                    "summary": "claim_evidence_consistency_failed",
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_type": "bounded_analysis",
+                    "route_target": "analysis-campaign",
+                    "next_work_unit": {
+                        "unit_id": "analysis_claim_evidence_repair",
+                        "lane": "analysis-campaign",
+                    },
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "obesity-atlas",
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "active_run_id": "run-obesity",
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    transition = json.loads(captured.out)["studies"][0]["domain_transition"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "publication_gate_blocker"
+    assert transition["route_target"] == "review"
+    assert transition["controller_action"] == "run_gate_clearing_batch"
+    assert transition["owner"] == "publication_gate"
+    assert transition["typed_blocker"]["blocker_id"] == "publication_gate_blocked"
+
+
+def test_study_state_matrix_projects_bundle_stage_finalize_even_with_active_run(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "002-dm"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 002-dm\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "current_required_action": "continue_bundle_stage",
+            "recommended_actions": [
+                {
+                    "action_type": "continue_same_line",
+                    "route_target": "finalize",
+                    "requires_controller_decision": True,
+                    "next_work_unit": {
+                        "unit_id": "submission_authority_sync_closure",
+                        "lane": "controller",
+                        "summary": "Synchronize submission authority and package closure.",
+                    },
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "002-dm",
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "active_run_id": "run-live-002",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+                "publication_gate_allows_direct_write": True,
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    transition = json.loads(captured.out)["studies"][0]["domain_transition"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "bundle_stage_finalize"
+    assert transition["route_target"] == "finalize"
+    assert transition["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert transition["controller_action"] == "continue_bundle_stage"
+    assert transition["owner"] == "publication_gate"
+    assert transition["guard_boundary"]["required_owner_surface"] == "artifacts/publication_eval/latest.json"
+
+
+def test_study_state_matrix_bundle_stage_ignores_stale_publication_gate_review_unit(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "002-dm"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 002-dm\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "ai_reviewer"},
+            "verdict": {"overall_verdict": "promising"},
+            "recommended_actions": [
+                {
+                    "action_type": "continue_same_line",
+                    "route_target": "finalize",
+                    "next_work_unit": {
+                        "unit_id": "publication_gate_blocker_review",
+                        "lane": "review",
+                        "summary": "Review the current publication gate blockers.",
+                    },
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "002-dm",
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "active_run_id": "run-live-002",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    transition = json.loads(captured.out)["studies"][0]["domain_transition"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "bundle_stage_finalize"
+    assert transition["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert transition["next_work_unit"]["lane"] == "controller"
+    assert transition["controller_action"] == "continue_bundle_stage"
+
+
 def test_study_state_matrix_projects_artifact_delta_live_apply_transition(
     monkeypatch,
     tmp_path: Path,
@@ -574,3 +822,46 @@ def test_study_state_matrix_projects_delivered_package_and_unclassified_fail_clo
     assert rows["package-ready"]["guard_boundary"]["opl_generic_runner_may_resume"] is False
     assert rows["unknown"]["decision_type"] == "fail_closed"
     assert rows["unknown"]["typed_blocker"]["blocker_id"] == "domain_transition_unclassified"
+
+
+def test_study_state_matrix_fails_closed_per_study_status_projection_error(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    for study_id in ("old-config", "still-running"):
+        study_root = workspace_root / "studies" / study_id
+        study_root.mkdir(parents=True)
+        (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+
+    def fake_status(*, study_id, **_):
+        study_root = workspace_root / "studies" / study_id
+        if study_id == "old-config":
+            raise ValueError("manual_finish.compatibility_guard_only is retired; use manual_finish_guard_only")
+        return {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "active_run_id": "run-still-running",
+        }
+
+    monkeypatch.setattr(cli.study_runtime_router, "study_runtime_status", fake_status)
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    rows = {row["study_id"]: row for row in payload["domain_transition_table"]["rows"]}
+    studies = {study["study_id"]: study for study in payload["studies"]}
+
+    assert exit_code == 0
+    assert payload["counts"] == {"conflict": 1, "live": 1}
+    assert rows["old-config"]["decision_type"] == "fail_closed"
+    assert rows["old-config"]["typed_blocker"]["blocker_id"] == "study_status_projection_error"
+    assert "manual_finish.compatibility_guard_only" in (
+        studies["old-config"]["study_macro_state"]["details"]["status_projection_error"]["message"]
+    )
+    assert rows["still-running"]["decision_type"] == "active_runtime_watch"

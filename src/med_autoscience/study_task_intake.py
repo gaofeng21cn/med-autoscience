@@ -42,6 +42,9 @@ from med_autoscience.study_task_intake_reviewer_quality import (
     evaluation_summary_has_open_reviewer_first_blockers as _evaluation_summary_has_open_reviewer_first_blockers,
     reviewer_revision_has_open_reviewer_first_blockers,
 )
+from med_autoscience.study_task_intake_rebuttal_closeout import (
+    task_intake_yields_to_rebuttal_route_coverage_closeout as _rebuttal_route_coverage_closeout_yields_task_intake,
+)
 from med_autoscience.submission_revision_operating_contract import build_submission_revision_operating_contract
 
 SCHEMA_VERSION = 1
@@ -601,6 +604,13 @@ def task_intake_yields_to_deterministic_submission_closeout(
         return True
     blocked_submission_closeout = _task_intake_yields_to_blocked_submission_closeout(publishability_gate_report)
     if task_intake_is_reviewer_revision(payload):
+        if _rebuttal_route_coverage_closeout_yields_task_intake(
+            task_intake_payload=payload,
+            study_root=study_root,
+            publishability_gate_report=publishability_gate_report,
+            evaluation_summary=evaluation_summary,
+        ):
+            return True
         if _task_intake_yields_to_verified_reviewer_quality_closeout(
             payload=payload,
             study_root=study_root,

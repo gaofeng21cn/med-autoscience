@@ -15,6 +15,15 @@ FAMILY_TRANSITION_OWNER = "med-autoscience"
 PUBLICATION_EVAL_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 CONTROLLER_DECISION_RELATIVE_PATH = Path("artifacts/controller_decisions/latest.json")
 REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH = Path("artifacts/controller/repair_execution_evidence/latest.json")
+_BUNDLE_STAGE_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
+_FINALIZE_WORK_UNIT_IDS = frozenset(
+    {
+        "publication_gate_replay",
+        "submission_authority_sync_closure",
+        "submission_delivery_sync_closure",
+        "submission_minimal_refresh",
+    }
+)
 
 
 def project_domain_transition(
@@ -37,6 +46,30 @@ def project_domain_transition(
         "study_runtime_status",
         "study_macro_state",
     )
+
+    projection_error = _mapping(status.get("status_projection_error")) or _mapping(status.get("projection_error"))
+    if projection_error:
+        return _transition(
+            study_id=study_id,
+            decision_type="fail_closed",
+            route_target="inspect",
+            next_work_unit=_work_unit(
+                "study_status_projection_inspection",
+                "controller",
+                "Inspect study status projection error before any transition or write.",
+            ),
+            controller_action="none",
+            owner="med-autoscience",
+            typed_blocker=_typed_blocker(
+                blocker_id="study_status_projection_error",
+                blocker_type="projection_contract_error",
+                summary=_text(projection_error.get("message"))
+                or "Study status projection failed; MAS must fail closed for this study.",
+                required_owner_surface="study_runtime_status",
+            ),
+            guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
+            source_refs=source_refs,
+        )
 
     if _text(macro_state.get("writer_state")) == "conflict" or _text(macro_state.get("reason")) == "truth_conflict":
         return _transition(
@@ -138,6 +171,24 @@ def project_domain_transition(
             ),
             controller_action="return_to_ai_reviewer_workflow",
             owner="ai_reviewer",
+            typed_blocker=None,
+            guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
+            source_refs=source_refs,
+        )
+
+    bundle_stage_work_unit = _bundle_stage_finalize_work_unit(
+        status=status,
+        publication_eval=publication_eval,
+        controller_decision=controller_decision,
+    )
+    if bundle_stage_work_unit is not None:
+        return _transition(
+            study_id=study_id,
+            decision_type="bundle_stage_finalize",
+            route_target="finalize",
+            next_work_unit=bundle_stage_work_unit,
+            controller_action="continue_bundle_stage",
+            owner="publication_gate",
             typed_blocker=None,
             guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
             source_refs=source_refs,
@@ -609,19 +660,100 @@ def _is_stop_loss(
 
 
 def _publication_gate_blocked(publication_eval: Mapping[str, Any]) -> bool:
-    if _text(_mapping(publication_eval.get("assessment_provenance")).get("owner")) == "ai_reviewer":
-        return False
     if _text(publication_eval.get("domain_ready_verdict")) == "ai_reviewer_re_eval":
         return False
-    return _text(publication_eval.get("status")) == "blocked" or bool(publication_eval.get("blockers"))
+    verdict = _mapping(publication_eval.get("verdict"))
+    gaps = [item for item in publication_eval.get("gaps") or [] if isinstance(item, Mapping)]
+    return (
+        _text(publication_eval.get("status")) == "blocked"
+        or bool(publication_eval.get("blockers"))
+        or _text(verdict.get("overall_verdict")) == "blocked"
+        or any(_text(item.get("severity")) in {"must_fix", "blocking", "blocked"} for item in gaps)
+    )
 
 
 def _ai_reviewer_re_eval(publication_eval: Mapping[str, Any]) -> bool:
     provenance = _mapping(publication_eval.get("assessment_provenance"))
     return _text(publication_eval.get("domain_ready_verdict")) == "ai_reviewer_re_eval" or (
-        _text(provenance.get("owner")) == "ai_reviewer"
-        and _text(provenance.get("source_kind")) == "publication_eval_ai_reviewer"
+        provenance.get("ai_reviewer_required") is True
+        and _text(provenance.get("owner")) != "ai_reviewer"
     )
+
+
+def _bundle_stage_finalize_work_unit(
+    *,
+    status: Mapping[str, Any],
+    publication_eval: Mapping[str, Any],
+    controller_decision: Mapping[str, Any],
+) -> dict[str, str] | None:
+    if not _status_reports_bundle_stage(status) and not _publication_eval_reports_bundle_stage(publication_eval):
+        return None
+    if not _publication_eval_clear(publication_eval):
+        return None
+    unit = _first_finalize_work_unit(publication_eval.get("recommended_actions"))
+    if unit is not None:
+        return unit
+    unit = _compact_work_unit(controller_decision.get("next_work_unit"))
+    if unit is not None and _work_unit_is_finalize(unit):
+        return unit
+    return _work_unit(
+        "submission_authority_sync_closure",
+        "controller",
+        "Synchronize submission authority and package closure for the bundle-stage.",
+    )
+
+
+def _status_reports_bundle_stage(status: Mapping[str, Any]) -> bool:
+    supervisor = _mapping(status.get("publication_supervisor_state"))
+    phase = _text(supervisor.get("supervisor_phase"))
+    action = _text(supervisor.get("current_required_action"))
+    return phase in {"bundle_stage_ready", "bundle_stage_blocked"} and action in _BUNDLE_STAGE_ACTIONS
+
+
+def _publication_eval_reports_bundle_stage(publication_eval: Mapping[str, Any]) -> bool:
+    return _text(publication_eval.get("current_required_action")) in _BUNDLE_STAGE_ACTIONS
+
+
+def _publication_eval_clear(publication_eval: Mapping[str, Any]) -> bool:
+    if _text(publication_eval.get("status")) not in {"clear", ""}:
+        return False
+    if publication_eval.get("allow_write") is False:
+        return False
+    blockers = [_text(item) for item in publication_eval.get("blockers") or []]
+    return not any(blockers)
+
+
+def _first_finalize_work_unit(actions: object) -> dict[str, str] | None:
+    if not isinstance(actions, list):
+        return None
+    for action in actions:
+        if not isinstance(action, Mapping):
+            continue
+        route_target = _text(action.get("route_target"))
+        unit = _compact_work_unit(action.get("next_work_unit"))
+        if route_target == "finalize" and unit is not None and _work_unit_is_finalize(unit):
+            return unit
+        if unit is not None and _work_unit_is_finalize(unit):
+            return unit
+    return None
+
+
+def _compact_work_unit(value: object) -> dict[str, str] | None:
+    if not isinstance(value, Mapping):
+        return None
+    unit_id = _text(value.get("unit_id"))
+    if not unit_id:
+        return None
+    payload = {"unit_id": unit_id}
+    for key in ("lane", "summary"):
+        text = _text(value.get(key))
+        if text:
+            payload[key] = text
+    return payload
+
+
+def _work_unit_is_finalize(unit: Mapping[str, Any]) -> bool:
+    return _text(unit.get("lane")) == "finalize" or _text(unit.get("unit_id")) in _FINALIZE_WORK_UNIT_IDS
 
 
 def _meaningful_artifact_delta(repair_evidence: Mapping[str, Any]) -> bool:

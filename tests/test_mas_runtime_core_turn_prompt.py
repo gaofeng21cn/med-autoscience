@@ -290,6 +290,99 @@ def test_codex_exec_runner_prompt_skips_closed_publication_work_unit_authorizati
     assert runtime_state["continuation_reason"] == "closed_controller_work_unit_authorization_cleared"
 
 
+def test_codex_exec_runner_prompt_skips_owner_handoff_publication_work_unit_authorization(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    workspace_root = tmp_path / "workspace"
+    quest_id = "obesity_multicenter_phenotype_atlas"
+    quest_root = workspace_root / "runtime" / "quests" / quest_id
+    runtime_root = workspace_root / "runtime"
+    study_root = workspace_root / "studies" / quest_id
+    _write_workspace_python(quest_root)
+    study_root.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text(f"study_id: {quest_id}\n", encoding="utf-8")
+    lifecycle_path = study_root / "artifacts" / "controller" / "publication_work_unit_lifecycle" / "latest.json"
+    lifecycle_path.parent.mkdir(parents=True, exist_ok=True)
+    lifecycle_path.write_text(
+        """
+{
+  "schema_version": 1,
+  "source_eval_id": "publication-eval::obesity::latest",
+  "study_id": "obesity_multicenter_phenotype_atlas",
+  "quest_id": "obesity_multicenter_phenotype_atlas",
+  "status": "owner_handoff",
+  "work_unit": {
+    "unit_id": "analysis_claim_evidence_repair",
+    "lane": "analysis-campaign"
+  },
+  "unit_statuses": [
+    {"unit_id": "analysis_claim_evidence_repair", "status": "owner_handoff"}
+  ],
+  "terminal_consumed": true,
+  "recommended_next_route": "handoff_to_next_owner",
+  "next_owner": "write/ai_reviewer"
+}
+""",
+        encoding="utf-8",
+    )
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "active_run_id": "run-live-obesity",
+  "last_controller_decision_authorization": {
+    "decision_id": "decision-analysis-obesity-stale",
+    "publication_eval_id": "publication-eval::obesity::latest",
+    "controller_actions": ["run_quality_repair_batch"],
+    "route_target": "analysis-campaign",
+    "work_unit_id": "analysis_claim_evidence_repair",
+    "work_unit_fingerprint": "publication-blockers::f11710a114497b27",
+    "next_work_unit": {
+      "unit_id": "analysis_claim_evidence_repair",
+      "lane": "analysis-campaign",
+      "summary": "Repair claim-evidence blockers."
+    },
+    "controller_work_unit_lifecycle": {
+      "lifecycle_state": "owner_handoff",
+      "terminal_consumed": true
+    }
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id="run-obesity",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+
+    assert "Active MAS controller work unit" not in prompt
+    assert "analysis_claim_evidence_repair" not in prompt
+    assert "publication-blockers::f11710a114497b27" not in prompt
+    assert "last_controller_decision_authorization" not in runtime_state
+    assert runtime_state["last_runtime_turn_state_sanitization"]["reason"] == "publication_work_unit_lifecycle_done"
+    assert runtime_state["last_runtime_turn_state_sanitization"]["cleared_keys"] == [
+        "last_controller_decision_authorization"
+    ]
+
+
 def test_codex_exec_runner_default_turn_is_not_terminal_attach_capable(monkeypatch, tmp_path: Path) -> None:
     runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
     quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-001"
