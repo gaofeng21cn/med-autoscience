@@ -12,6 +12,18 @@ from ..supervisor_action_request_lifecycle import stable_ai_reviewer_request_pat
 
 
 PUBLICATION_EVAL_LATEST_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
+_AI_REVIEWER_REQUIRED_RECORD_FIELDS = (
+    "quality_assessment",
+    "future_facing_limitations_plan",
+)
+_AI_REVIEWER_REQUIRED_REVIEWER_OS_FIELDS = (
+    "input_bundle",
+    "rubric_scores",
+    "decision_matrix",
+    "provenance_checks",
+    "route_back_decision",
+    "future_facing_limitations_plan",
+)
 
 
 def _text(value: object) -> str | None:
@@ -294,9 +306,11 @@ def execute_ai_reviewer_workflow(
     request = _read_json_object(request_path)
     if request is None:
         return _blocked_ai_reviewer_execution(apply=apply, reason="ai_reviewer_request_missing", request_path=request_path)
-    record = _mapping(_read_json_object(_publication_eval_latest_path(study_root)))
-    if not record:
-        record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
+    record, record_blocker = _ai_reviewer_record_for_execution(request=request, study_root=study_root)
+    if record_blocker:
+        payload = _blocked_ai_reviewer_execution(apply=apply, reason=record_blocker["reason"], request_path=request_path)
+        payload.update(record_blocker["payload"])
+        return payload
     if not record:
         return _blocked_ai_reviewer_execution(apply=apply, reason="ai_reviewer_record_missing", request_path=request_path)
     required_refs = _ai_reviewer_required_refs(request)
@@ -350,6 +364,87 @@ def _blocked_ai_reviewer_execution(*, apply: bool, reason: str, request_path: Pa
         "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
         "next_owner": "ai_reviewer",
         "required_input_surface": str(request_path),
+    }
+
+
+def _ai_reviewer_record_for_execution(
+    *,
+    request: Mapping[str, Any],
+    study_root: Path,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    current_record = _mapping(_read_json_object(_publication_eval_latest_path(study_root)))
+    request_record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
+
+    if current_record and _ai_reviewer_owned_record(current_record):
+        missing_fields = _missing_ai_reviewer_record_fields(current_record)
+        if missing_fields:
+            return {}, {
+                "reason": "ai_reviewer_record_incomplete",
+                "payload": {
+                    "missing_record_fields": missing_fields,
+                    "owner_record_requirements": _ai_reviewer_record_requirements(),
+                },
+            }
+        return current_record, None
+
+    if request_record:
+        if not _request_record_owner_acceptable(request_record):
+            return {}, {
+                "reason": "ai_reviewer_record_missing",
+                "payload": {
+                    "owner_record_requirements": _ai_reviewer_record_requirements(),
+                },
+            }
+        missing_fields = _missing_ai_reviewer_record_fields(request_record)
+        if missing_fields:
+            return {}, {
+                "reason": "ai_reviewer_record_incomplete",
+                "payload": {
+                    "missing_record_fields": missing_fields,
+                    "owner_record_requirements": _ai_reviewer_record_requirements(),
+                },
+            }
+        return request_record, None
+
+    return {}, {
+        "reason": "ai_reviewer_record_missing",
+        "payload": {
+            "owner_record_requirements": _ai_reviewer_record_requirements(),
+        },
+    }
+
+
+def _ai_reviewer_owned_record(record: Mapping[str, Any]) -> bool:
+    provenance = _mapping(record.get("assessment_provenance"))
+    return (
+        _text(provenance.get("owner")) == "ai_reviewer"
+        and _text(provenance.get("source_kind")) == "publication_eval_ai_reviewer"
+        and provenance.get("ai_reviewer_required") is False
+    )
+
+
+def _request_record_owner_acceptable(record: Mapping[str, Any]) -> bool:
+    provenance = _mapping(record.get("assessment_provenance"))
+    if not provenance:
+        return True
+    return _ai_reviewer_owned_record(record)
+
+
+def _missing_ai_reviewer_record_fields(record: Mapping[str, Any]) -> list[str]:
+    missing: list[str] = []
+    quality_assessment = record.get("quality_assessment")
+    if not isinstance(quality_assessment, Mapping):
+        missing.append("quality_assessment")
+    future_plan = record.get("future_facing_limitations_plan")
+    if not isinstance(future_plan, list) or not future_plan:
+        missing.append("future_facing_limitations_plan")
+    return missing
+
+
+def _ai_reviewer_record_requirements() -> dict[str, list[str]]:
+    return {
+        "required_record_fields": list(_AI_REVIEWER_REQUIRED_RECORD_FIELDS),
+        "required_reviewer_operating_system_fields": list(_AI_REVIEWER_REQUIRED_REVIEWER_OS_FIELDS),
     }
 
 

@@ -235,6 +235,18 @@ def test_ai_reviewer_publication_eval_request_packet_is_reviewer_owned_without_a
         "owner": "ai_reviewer",
         "source_kind": "publication_eval_ai_reviewer",
         "writeback_required": True,
+        "required_record_fields": [
+            "quality_assessment",
+            "future_facing_limitations_plan",
+        ],
+        "required_reviewer_operating_system_fields": [
+            "input_bundle",
+            "rubric_scores",
+            "decision_matrix",
+            "provenance_checks",
+            "route_back_decision",
+            "future_facing_limitations_plan",
+        ],
         "assessment_written_lifecycle_state": "assessment_written",
         "pre_writeback_authority": "observability_only",
         "pre_writeback_can_authorize_quality": False,
@@ -297,6 +309,7 @@ def test_ai_reviewer_request_accepts_required_input_refs_and_lifecycle_assignmen
     assert packet["authority"] == "observability_only"
     assert packet["can_clear_quality_gate"] is False
     assert packet["required_output"]["pre_writeback_can_authorize_quality"] is False
+    assert "future_facing_limitations_plan" in packet["required_output"]["required_record_fields"]
 
 
 def test_ai_reviewer_request_lifecycle_projects_blocked_and_assessment_written(tmp_path) -> None:
