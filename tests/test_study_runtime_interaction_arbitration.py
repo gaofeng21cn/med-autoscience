@@ -421,3 +421,30 @@ def test_arbitrate_waiting_for_user_routes_publication_blocker_as_oracle_blocker
     assert result["valid_blocking"] is False
     assert result["domain_transition_decision_type"] == "publication_gate_blocker"
     assert result["next_work_unit_id"] == "publication_gate_replay"
+
+
+def test_arbitrate_waiting_for_user_routes_ai_reviewer_re_eval_as_oracle_redrive() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        domain_transition={
+            "decision_type": "ai_reviewer_re_eval",
+            "route_target": "review",
+            "controller_action": "return_to_ai_reviewer_workflow",
+            "next_work_unit": {"unit_id": "ai_reviewer_medical_prose_quality_review"},
+            "guard_boundary": {
+                "required_owner_surface": "artifacts/publication_eval/latest.json",
+                "opl_generic_runner_may_resume": True,
+            },
+        },
+    )
+
+    assert result["classification"] == "domain_transition_runtime_redrive"
+    assert result["action"] == "resume"
+    assert result["reason_code"] == "domain_transition_ai_reviewer_re_eval"
+    assert result["valid_blocking"] is False
+    assert result["domain_transition_decision_type"] == "ai_reviewer_re_eval"
+    assert result["next_work_unit_id"] == "ai_reviewer_medical_prose_quality_review"

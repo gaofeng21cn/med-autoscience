@@ -605,3 +605,84 @@ def test_runtime_watch_outer_loop_controller_transition_matrix(
     assert request["route_target"] == case.expected_route_target
     assert request["controller_actions"][0]["action_type"] == case.expected_controller_action_type
     assert request["next_work_unit"]["unit_id"] == case.expected_unit_id
+
+
+def test_domain_transition_arbitration_candidates_ai_reviewer_prose_quality_gap(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_decision_parts.domain_transition_arbitration"
+    )
+    status_module = importlib.import_module("med_autoscience.controllers.study_runtime_status_parts")
+    study_root = tmp_path / "studies" / "001-risk"
+    study_root.mkdir(parents=True)
+    _write_charter(study_root)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        _publication_eval_payload(
+            study_root=study_root,
+            quest_root=tmp_path / "runtime" / "quests" / "quest-001",
+            action=_finalize_review_only_action(study_root),
+            verdict="promising",
+            quality_assessment={
+                "clinical_significance": {
+                    "status": "ready",
+                    "summary": "Clinical significance is ready.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "evidence_strength": {
+                    "status": "ready",
+                    "summary": "Evidence strength is ready.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "novelty_positioning": {
+                    "status": "ready",
+                    "summary": "Novelty positioning is ready.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "human_review_readiness": {
+                    "status": "ready",
+                    "summary": "Human review readiness is ready.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "medical_journal_prose_quality": {
+                    "status": "underdefined",
+                    "summary": "AI reviewer has not yet closed medical-journal prose quality.",
+                    "evidence_refs": [str(study_root / "paper")],
+                },
+            },
+        ),
+    )
+    status = status_module.StudyRuntimeStatus.from_payload(
+        {
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "study_root": str(study_root),
+            "entry_mode": "full_research",
+            "execution": {
+                "engine": "med-deepscientist",
+                "runtime_backend": "mas_runtime_core",
+                "decision_policy": "autonomous",
+            },
+            "quest_id": "quest-001",
+            "quest_root": str(tmp_path / "runtime" / "quests" / "quest-001"),
+            "quest_exists": True,
+            "quest_status": "waiting_for_user",
+            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
+            "runtime_binding_exists": True,
+            "decision": "blocked",
+            "reason": "quest_waiting_for_user",
+            "publication_supervisor_state": {
+            "supervisor_phase": "bundle_stage_ready",
+            "current_required_action": "continue_bundle_stage",
+            },
+        }
+    )
+
+    module.record_domain_transition_if_required(status=status, study_root=study_root)
+
+    transition = status.extras["domain_transition"]
+    assert transition["decision_type"] == "ai_reviewer_re_eval"
+    assert transition["route_target"] == "review"
+    assert transition["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert transition["next_work_unit"]["unit_id"] == "ai_reviewer_medical_prose_quality_review"

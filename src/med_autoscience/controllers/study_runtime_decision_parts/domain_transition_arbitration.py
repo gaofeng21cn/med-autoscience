@@ -55,9 +55,9 @@ def _domain_transition_status_candidate(
     if isinstance(supervisor_state, dict):
         supervisor_phase = str(supervisor_state.get("supervisor_phase") or "").strip()
         current_required_action = str(supervisor_state.get("current_required_action") or "").strip()
-        if supervisor_phase in {"stop_loss", "bundle_stage_blocked"}:
+        if supervisor_phase in {"stop_loss", "bundle_stage_ready", "bundle_stage_blocked"}:
             return True
-        if current_required_action in {"stop_loss", "stop_runtime", "complete_bundle_stage"}:
+        if current_required_action in {"stop_loss", "stop_runtime", "continue_bundle_stage", "complete_bundle_stage"}:
             return True
     controller_decision = _load_json_dict(study_root / "artifacts" / "controller_decisions" / "latest.json")
     if controller_decision.get("requires_human_confirmation") is True:
@@ -72,7 +72,13 @@ def _domain_transition_status_candidate(
 
 def _domain_transition_consumable_by_interaction_arbitration(transition: dict[str, object]) -> bool:
     decision_type = str(transition.get("decision_type") or "").strip()
-    return decision_type in {"delivered_package_handoff", "human_gate", "publication_gate_blocker", "stop_loss"}
+    return decision_type in {
+        "ai_reviewer_re_eval",
+        "delivered_package_handoff",
+        "human_gate",
+        "publication_gate_blocker",
+        "stop_loss",
+    }
 
 
 __all__ = ["record_domain_transition_if_required"]

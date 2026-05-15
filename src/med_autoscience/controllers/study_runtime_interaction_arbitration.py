@@ -254,6 +254,21 @@ def _domain_transition_arbitration(domain_transition: dict[str, Any] | None) -> 
                 "route to the owner work unit instead of treating an old completion request as user wait."
             ),
         }
+    if decision_type in domain_transition_guard.RUNTIME_REDRIVE_DECISION_TYPES:
+        return {
+            **base,
+            "classification": "domain_transition_runtime_redrive",
+            "action": "resume",
+            "reason_code": domain_transition_guard.REASON_BY_DECISION_TYPE.get(
+                decision_type,
+                f"domain_transition_{decision_type}",
+            ),
+            "valid_blocking": False,
+            "controller_stage_note": (
+                "MAS domain transition oracle selected a runtime redrive owner; resume controller dispatch "
+                "instead of treating the waiting state as a user wait."
+            ),
+        }
     if decision_type in domain_transition_guard.TERMINAL_OR_HANDOFF_DECISION_TYPES:
         return {
             **base,
