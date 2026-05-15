@@ -605,7 +605,9 @@ def _status_state(
     if quest_status in _RESUMABLE_QUEST_STATUSES:
         if _user_pause_contract_without_live_worker(
             result,
-        ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(result):
+        ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
+            result
+        ) or _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result):
             from med_autoscience.controllers.study_runtime_execution_parts import (
                 runtime_events as runtime_execution_events,
             )
@@ -637,7 +639,9 @@ def _status_state(
             return _finalize_result()
         if _user_pause_contract_without_live_worker(
             result,
-        ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(result):
+        ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
+            result
+        ) or _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,

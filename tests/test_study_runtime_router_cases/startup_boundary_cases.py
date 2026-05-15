@@ -534,7 +534,11 @@ def test_ensure_study_runtime_blocks_resume_when_startup_boundary_disallows_comp
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id="001-risk")
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id="001-risk",
+        explicit_user_wakeup=True,
+    )
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "startup_boundary_not_ready_for_resume"

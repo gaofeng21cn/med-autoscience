@@ -639,13 +639,16 @@ def test_relay_repeats_when_existing_authorization_marker_lacks_target_context(
     write_text(
         runtime_state_path,
         json.dumps(
-            {
-                "status": "paused",
-                "active_run_id": None,
-                "worker_running": False,
-                "last_controller_decision_authorization": {
-                    "decision_id": "decision-1",
-                    "route_target": "analysis-campaign",
+                {
+                    "status": "paused",
+                    "active_run_id": None,
+                    "worker_running": False,
+                    "continuation_policy": "auto",
+                    "continuation_anchor": "decision",
+                    "continuation_reason": "controller_work_unit_pending",
+                    "last_controller_decision_authorization": {
+                        "decision_id": "decision-1",
+                        "route_target": "analysis-campaign",
                     "route_key_question": "analysis_claim_evidence_repair: Repair blockers.",
                     "control_intent_key": "control-intent::same",
                 },

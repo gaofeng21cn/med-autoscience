@@ -182,6 +182,33 @@ def _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
     )
 
 
+def _bare_paused_quest_requires_explicit_wakeup_without_live_worker(
+    status: StudyRuntimeStatus,
+    *,
+    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+) -> bool:
+    if audit_status is not None and audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+        return False
+    if status.quest_status is not StudyRuntimeQuestStatus.PAUSED:
+        return False
+    runtime_state = _load_json_dict(_runtime_state_path(Path(status.quest_root)))
+    if str(runtime_state.get("status") or "").strip().lower() != StudyRuntimeQuestStatus.PAUSED.value:
+        return False
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return False
+    if bool(runtime_state.get("worker_running")) or bool(runtime_state.get("worker_pending")):
+        return False
+    stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
+    if stop_reason is not None:
+        return False
+    continuation_policy = str(runtime_state.get("continuation_policy") or "").strip() or None
+    continuation_anchor = str(runtime_state.get("continuation_anchor") or "").strip() or None
+    continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
+    if continuation_policy is not None or continuation_anchor is not None:
+        return False
+    return continuation_reason in {None, "quest_paused"}
+
+
 def _has_delivered_human_package_surface(study_root: Path) -> bool:
     return resolve_delivered_submission_package_manual_finish_contract(study_root=study_root) is not None
 

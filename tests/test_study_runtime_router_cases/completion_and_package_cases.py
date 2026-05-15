@@ -877,7 +877,7 @@ def test_pause_study_runtime_clears_stale_platform_repair_redrive(monkeypatch, t
     assert runtime_state["human_takeover_contract"]["source"] == "test-human-takeover"
 
 
-def test_ensure_study_runtime_persists_legacy_resume_daemon_result_shape(
+def test_ensure_study_runtime_persists_legacy_resume_daemon_result_shape_after_explicit_wakeup(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -897,7 +897,8 @@ def test_ensure_study_runtime_persists_legacy_resume_daemon_result_shape(
     )
     quest_root = profile.runtime_root / "001-risk"
     write_text(quest_root / "quest.yaml", "quest_id: 001-risk\n")
-    write_text(quest_root / ".ds" / "runtime_state.json", '{"status":"paused"}\n')
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(runtime_state_path, '{"status":"paused"}\n')
     seen: dict[str, object] = {}
 
     monkeypatch.setattr(
@@ -947,12 +948,20 @@ def test_ensure_study_runtime_persists_legacy_resume_daemon_result_shape(
         ),
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id="001-risk",
+        explicit_user_wakeup=True,
+        source="medautosci-test",
+    )
 
     assert result["decision"] == "resume"
+    assert result["explicit_user_wakeup"]["cleared_bare_paused"] is True
     assert len(seen["persist_calls"]) == 1
     assert seen["persist_calls"][0]["last_action"] == "resume"
     assert seen["persist_calls"][0]["daemon_result"] == {"ok": True, "status": "active"}
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert runtime_state["last_explicit_user_wakeup"]["cleared_bare_paused"] is True
 
 
 def test_execute_runtime_decision_rejects_unknown_decision(tmp_path: Path) -> None:
