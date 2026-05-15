@@ -278,6 +278,91 @@ def test_resolve_effective_study_manual_finish_contract_suppresses_auto_parking_
     assert contract is None
 
 
+def test_resolve_effective_study_manual_finish_contract_consumes_stale_revision_intake_after_current_package_delivery(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_manual_finish")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="clinical_epidemiology",
+    )
+    quest_root = profile.runtime_root / "002-attribution"
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="002-attribution",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent="用户已对糖尿病002投稿包给出明确审稿式反馈，必须作为 reviewer_revision 重新激活同一论文线。",
+        constraints=("完成前维持 audit preview only / not submission-ready 判断。",),
+        first_cycle_outputs=("paper/rebuttal/review_matrix.md and action_plan.md covering all feedback items.",),
+    )
+    write_synced_submission_delivery(study_root, quest_root, include_submission_checklist=False)
+    current_package_root = study_root / "manuscript" / "current_package"
+    write_text(current_package_root / "figures" / "Figure1.png", "figure placeholder")
+    write_text(current_package_root / "tables" / "Table1.md", "table placeholder")
+    write_text(
+        current_package_root / "audit" / "submission_manifest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "manuscript": {"surface_qc": {"status": "pass", "failures": []}},
+                "figures": [{"figure_id": "Figure1"}],
+                "tables": [{"table_id": "Table1"}],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        current_package_root / "SUBMISSION_TODO.md",
+        "# Submission TODO\n\n- author affiliations\n- ethics approval number\n- conflict of interest\n",
+    )
+    delivery_manifest_path = study_root / "manuscript" / "delivery_manifest.json"
+    delivery_manifest = json.loads(delivery_manifest_path.read_text(encoding="utf-8"))
+    delivery_manifest["generated_at"] = "2099-01-01T00:00:00+00:00"
+    delivery_manifest_path.write_text(json.dumps(delivery_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_text(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
+        json.dumps(
+            {
+                "emitted_at": "2099-01-01T00:01:00+00:00",
+                "promotion_gate_status": {
+                    "generated_at": "2099-01-01T00:00:30+00:00",
+                    "status": "clear",
+                    "allow_write": True,
+                    "blockers": [],
+                    "current_required_action": "continue_bundle_stage",
+                    "supervisor_phase": "bundle_stage_ready",
+                },
+                "quality_closure_truth": {
+                    "state": "bundle_only_remaining",
+                    "current_required_action": "continue_bundle_stage",
+                },
+                "quality_review_loop": {"closure_state": "bundle_only_remaining"},
+                "quality_assessment": {"human_review_readiness": {"status": "ready"}},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+
+    contract = module.resolve_effective_study_manual_finish_contract(
+        study_root=study_root,
+        quest_root=quest_root,
+    )
+
+    assert contract is not None
+    assert contract.manual_finish_guard_only is True
+    assert "投稿包里程碑" in contract.summary
+
+
 def test_resolve_effective_study_manual_finish_contract_restores_bundle_only_parking_after_fresh_closeout(
     tmp_path: Path,
 ) -> None:

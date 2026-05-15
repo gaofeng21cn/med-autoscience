@@ -236,6 +236,26 @@ def _read_json_dict(path: Path) -> dict[str, object]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _task_intake_closeout_gate_report(
+    *,
+    study_root: Path | None,
+    quest_root: Path | None,
+    evaluation_summary: dict[str, object],
+) -> dict[str, object] | None:
+    promotion_gate_status = evaluation_summary.get("promotion_gate_status")
+    if isinstance(promotion_gate_status, dict):
+        return dict(promotion_gate_status)
+    if quest_root is not None:
+        quest_gate_report = _read_json_dict(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
+        if quest_gate_report:
+            return quest_gate_report
+    if study_root is not None:
+        study_gate_report = _read_json_dict(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
+        if study_gate_report:
+            return study_gate_report
+    return None
+
+
 def _manifest_surface_qc_accepts_delivered_package(manifest_payload: dict[str, object]) -> bool:
     manuscript_payload = manifest_payload.get("manuscript")
     manuscript = manuscript_payload if isinstance(manuscript_payload, dict) else {}
@@ -530,6 +550,7 @@ def resolve_effective_study_manual_finish_contract(
         read_latest_task_intake(study_root=resolved_study_root) if resolved_study_root is not None else None
     )
     if task_intake_overrides_auto_manual_finish(latest_task_intake):
+        resolved_quest_root = Path(quest_root).expanduser().resolve() if quest_root is not None else None
         evaluation_summary_payload = (
             _read_json_dict(
                 resolved_study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json"
@@ -537,9 +558,15 @@ def resolve_effective_study_manual_finish_contract(
             if resolved_study_root is not None
             else {}
         )
+        publishability_gate_report = _task_intake_closeout_gate_report(
+            study_root=resolved_study_root,
+            quest_root=resolved_quest_root,
+            evaluation_summary=evaluation_summary_payload,
+        )
         if not task_intake_yields_to_deterministic_submission_closeout(
             latest_task_intake,
-            publishability_gate_report=None,
+            study_root=resolved_study_root,
+            publishability_gate_report=publishability_gate_report,
             evaluation_summary=evaluation_summary_payload,
         ):
             return None
