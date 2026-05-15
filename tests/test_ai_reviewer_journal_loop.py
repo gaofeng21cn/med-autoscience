@@ -54,6 +54,14 @@ def _reviewer_operating_system() -> dict[str, Any]:
             }
             for dimension, score in rubric_scores.items()
         ],
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Authoring authorization is limited to the reviewed manuscript snapshot.",
+                "impact_on_claim": "Finding language must stay within reviewed claim-evidence support.",
+                "required_future_analysis_data_or_design": "Repeat AI reviewer calibration after substantive manuscript changes.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
             "policy_id": "medical_publication_critique_v1",

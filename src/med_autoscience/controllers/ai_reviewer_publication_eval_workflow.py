@@ -164,6 +164,41 @@ def _route_back_decision(record_payload: Mapping[str, Any]) -> dict[str, str]:
     }
 
 
+def _future_facing_limitations_plan(record_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    raw_plan = record_payload.get("future_facing_limitations_plan")
+    if not isinstance(raw_plan, list) or not raw_plan:
+        raise ValueError("AI reviewer publication eval workflow missing future_facing_limitations_plan")
+    plan: list[dict[str, Any]] = []
+    for index, raw_item in enumerate(raw_plan):
+        if not isinstance(raw_item, Mapping):
+            raise ValueError(f"AI reviewer publication eval workflow future_facing_limitations_plan[{index}] must be an object")
+        item = dict(raw_item)
+        for field in (
+            "limitation",
+            "impact_on_claim",
+            "required_future_analysis_data_or_design",
+        ):
+            if not _text(item.get(field)):
+                raise ValueError(
+                    "AI reviewer publication eval workflow "
+                    f"future_facing_limitations_plan[{index}].{field} missing"
+                )
+        if "current_manuscript_wording_must_be_restrained" not in item:
+            raise ValueError(
+                "AI reviewer publication eval workflow "
+                "future_facing_limitations_plan"
+                f"[{index}].current_manuscript_wording_must_be_restrained missing"
+            )
+        plan.append(item)
+    return plan
+
+
+def _record_payload_without_workflow_only_fields(record_payload: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(record_payload)
+    payload.pop("future_facing_limitations_plan", None)
+    return payload
+
+
 def build_ai_reviewer_publication_eval_workflow_trace(
     *,
     manuscript_ref: str | Path,
@@ -197,6 +232,7 @@ def build_ai_reviewer_publication_eval_workflow_trace(
         "input_bundle": ref_bundle,
         "rubric_scores": rubric_scores,
         "decision_matrix": decision_matrix,
+        "future_facing_limitations_plan": _future_facing_limitations_plan(record_payload),
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
             "policy_id": DEFAULT_PUBLICATION_CRITIQUE_POLICY["policy_id"],
@@ -217,7 +253,7 @@ def _record_with_trace(
     trace: Mapping[str, Any],
     emitted_at: str | None = None,
 ) -> dict[str, Any]:
-    payload = _record_payload(record)
+    payload = _record_payload_without_workflow_only_fields(_record_payload(record))
     if emitted_at is not None:
         payload["emitted_at"] = emitted_at
     payload["reviewer_operating_system"] = dict(trace)

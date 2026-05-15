@@ -154,6 +154,14 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
             }
             for dimension, score in rubric_scores.items()
         ],
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Reviewer refinement closure is limited to the current evidence ledger.",
+                "impact_on_claim": "Package acceptance cannot expand claim strength beyond the reviewed ledger.",
+                "required_future_analysis_data_or_design": "Rerun reviewer refinement after evidence or manuscript changes.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
             "policy_id": "medical_publication_critique_v1",

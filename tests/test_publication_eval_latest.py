@@ -155,6 +155,14 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, object]:
             }
             for dimension, score in rubric_scores.items()
         ],
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Current AI reviewer closure depends on the manuscript and ledger snapshot.",
+                "impact_on_claim": "Claim strength must remain tied to the reviewed evidence snapshot.",
+                "required_future_analysis_data_or_design": "Rerun AI reviewer if the manuscript or evidence ledger changes.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
             "policy_id": "medical_publication_critique_v1",

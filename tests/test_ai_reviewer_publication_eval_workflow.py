@@ -113,6 +113,14 @@ def _publication_eval_record(study_root: Path) -> dict[str, Any]:
                 "requires_controller_decision": True,
             }
         ],
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Medication coverage is based on recorded medication fields.",
+                "impact_on_claim": "Treatment-gap language must remain documentation-aware.",
+                "required_future_analysis_data_or_design": "Link pharmacy or insurance dispensing data.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
     }
 
 
@@ -153,6 +161,14 @@ def test_ai_reviewer_publication_eval_workflow_materializes_latest_with_reviewer
         "recommended_action": "continue_same_line",
         "rationale": "Proceed to first full draft.",
     }
+    assert latest["reviewer_operating_system"]["future_facing_limitations_plan"] == [
+        {
+            "limitation": "Medication coverage is based on recorded medication fields.",
+            "impact_on_claim": "Treatment-gap language must remain documentation-aware.",
+            "required_future_analysis_data_or_design": "Link pharmacy or insurance dispensing data.",
+            "current_manuscript_wording_must_be_restrained": True,
+        }
+    ]
 
 
 def test_ai_reviewer_publication_eval_workflow_fails_closed_when_required_ref_missing(
@@ -180,5 +196,75 @@ def test_ai_reviewer_publication_eval_workflow_fails_closed_when_required_ref_mi
         assert "missing input ref for publication_gate_projection" in str(exc)
     else:
         raise AssertionError("workflow accepted incomplete reviewer OS input refs")
+
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_ai_reviewer_publication_eval_workflow_fails_closed_without_future_facing_limitations_plan(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    record = _publication_eval_record(study_root)
+    record.pop("future_facing_limitations_plan")
+
+    try:
+        module.run_ai_reviewer_publication_eval_workflow(
+            study_root=study_root,
+            manuscript_ref=refs["manuscript"],
+            evidence_ref=refs["evidence_ledger"],
+            review_ref=refs["review_ledger"],
+            charter_ref=refs["study_charter"],
+            additional_refs={
+                "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+                "claim_evidence_map": refs["claim_evidence_map"],
+                "medical_prose_review": refs["medical_prose_review"],
+                "publication_gate_projection": refs["publication_gate_projection"],
+            },
+            record=record,
+        )
+    except ValueError as exc:
+        assert "future_facing_limitations_plan" in str(exc)
+    else:
+        raise AssertionError("workflow accepted AI reviewer trace without future-facing limitations plan")
+
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_ai_reviewer_publication_eval_workflow_rejects_disclosure_only_limitations(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    record = _publication_eval_record(study_root)
+    record["future_facing_limitations_plan"] = [
+        {
+            "limitation": "Blood pressure fields are semantically unstable.",
+            "impact_on_claim": "Blood-pressure-control claims must be withheld.",
+            "current_manuscript_wording_must_be_restrained": True,
+        }
+    ]
+
+    try:
+        module.run_ai_reviewer_publication_eval_workflow(
+            study_root=study_root,
+            manuscript_ref=refs["manuscript"],
+            evidence_ref=refs["evidence_ledger"],
+            review_ref=refs["review_ledger"],
+            charter_ref=refs["study_charter"],
+            additional_refs={
+                "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+                "claim_evidence_map": refs["claim_evidence_map"],
+                "medical_prose_review": refs["medical_prose_review"],
+                "publication_gate_projection": refs["publication_gate_projection"],
+            },
+            record=record,
+        )
+    except ValueError as exc:
+        assert "required_future_analysis_data_or_design" in str(exc)
+    else:
+        raise AssertionError("workflow accepted disclosure-only limitation without future analysis or design")
 
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()

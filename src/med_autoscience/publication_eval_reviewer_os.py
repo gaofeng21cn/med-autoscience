@@ -14,6 +14,7 @@ _ALLOWED_REVIEWER_OS_FIELDS = frozenset(
         "input_bundle",
         "rubric_scores",
         "decision_matrix",
+        "future_facing_limitations_plan",
         "provenance_checks",
         "route_back_decision",
     }
@@ -73,6 +74,28 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
     for dimension in contract["rubric_dimensions"]:
         if dimension not in covered_dimensions:
             errors.append(f"reviewer_operating_system.decision_matrix missing {dimension}")
+
+    future_limitations_plan = _list_of_mappings(payload.get("future_facing_limitations_plan"))
+    future_limitations_contract = _mapping(contract.get("future_facing_limitations_plan"))
+    required_future_limitations_fields = tuple(
+        _text(item) for item in future_limitations_contract.get("required_fields", []) if _text(item)
+    )
+    if not future_limitations_plan:
+        errors.append("reviewer_operating_system.future_facing_limitations_plan must not be empty")
+    for index, item in enumerate(future_limitations_plan):
+        for field in required_future_limitations_fields:
+            if field == "current_manuscript_wording_must_be_restrained":
+                if field not in item or item.get(field) is None:
+                    errors.append(
+                        "reviewer_operating_system.future_facing_limitations_plan"
+                        f"[{index}].{field} must be present"
+                    )
+                continue
+            if not _text(item.get(field)):
+                errors.append(
+                    "reviewer_operating_system.future_facing_limitations_plan"
+                    f"[{index}].{field} must be non-empty"
+                )
 
     provenance_checks = _mapping(payload.get("provenance_checks"))
     required_provenance = _mapping(contract.get("required_provenance"))

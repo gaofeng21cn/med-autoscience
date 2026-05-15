@@ -56,6 +56,14 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
             }
             for dimension in dimensions
         ],
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Finalize authorization is scoped to the reviewed paper snapshot.",
+                "impact_on_claim": "Final claims must remain restrained to reviewed evidence support.",
+                "required_future_analysis_data_or_design": "Refresh AI reviewer workflow before future substantive changes.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
             "policy_id": "medical_publication_critique_v1",

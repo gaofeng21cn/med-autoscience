@@ -171,6 +171,14 @@ def _reviewer_operating_system() -> dict[str, object]:
             }
             for dimension in dimensions
         ],
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Readiness is limited to the current reviewed manuscript snapshot.",
+                "impact_on_claim": "Publication-facing claims must remain within reviewed evidence support.",
+                "required_future_analysis_data_or_design": "Repeat reviewer readiness checks after substantive changes.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
             "policy_id": "medical_publication_critique_v1",
