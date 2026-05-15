@@ -241,13 +241,19 @@ def _conditions(
 def _source_payload_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     if not payload:
         return {"available": False}
-    return {
+    summary = {
         "available": True,
         "study_id": _non_empty_text(payload.get("study_id")),
         "generated_at": _non_empty_text(payload.get("generated_at")) or _non_empty_text(payload.get("emitted_at")),
         "status": _non_empty_text(payload.get("status")),
         "surface_kind": _non_empty_text(payload.get("surface_kind")),
     }
+    projection_error = _mapping(payload.get("projection_error"))
+    if projection_error:
+        summary["projection_error"] = True
+        summary["projection_error_type"] = _non_empty_text(projection_error.get("error_type"))
+        summary["projection_error_handled_as"] = _non_empty_text(projection_error.get("handled_as"))
+    return summary
 
 def _opl_handoff_projection(
     *,

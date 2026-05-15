@@ -177,6 +177,81 @@ def test_materialized_study_page_reads_existing_stage_review_locator_without_wri
     assert not (study_root / "artifacts" / "publication_eval").exists()
 
 
+def test_materialize_progress_portal_isolates_unselected_study_projection_error(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.progress_portal")
+    study_progress = importlib.import_module("med_autoscience.controllers.study_progress")
+    profile = make_profile(tmp_path)
+    selected_id = "002-running"
+    blocked_id = "001-old-config"
+    write_text(profile.studies_root / selected_id / "study.yaml", f"study_id: {selected_id}\n")
+    write_text(profile.studies_root / blocked_id / "study.yaml", f"study_id: {blocked_id}\n")
+
+    def fake_read_study_progress(**kwargs):
+        assert kwargs["sync_runtime_summary"] is False
+        if kwargs["study_id"] == blocked_id:
+            raise ValueError("manual_finish.compatibility_guard_only is retired; use manual_finish_guard_only")
+        return _progress_payload(kwargs["study_id"])
+
+    monkeypatch.setattr(study_progress, "read_study_progress", fake_read_study_progress)
+
+    result = module.materialize_progress_portal(
+        profile=profile,
+        study_id=selected_id,
+        progress_payload=_progress_payload(selected_id),
+        cockpit_payload={
+            "workspace_status": "attention_required",
+            "workspace_alerts": [
+                f"{blocked_id} study progress projection failed: manual_finish.compatibility_guard_only is retired; use manual_finish_guard_only"
+            ],
+            "studies": [
+                {
+                    "study_id": blocked_id,
+                    "state_label": "进度投影异常",
+                    "state_summary": "该 study 的进度投影失败；其他 study 仍可继续显示和监管。",
+                    "current_stage": "projection_blocked",
+                    "paper_stage": "projection_blocked",
+                    "current_blockers": [
+                        f"{blocked_id} study progress projection failed: manual_finish.compatibility_guard_only is retired; use manual_finish_guard_only"
+                    ],
+                    "progress_freshness": {
+                        "status": "invalid",
+                        "summary": (
+                            "study progress projection failed: "
+                            "manual_finish.compatibility_guard_only is retired; use manual_finish_guard_only"
+                        ),
+                    },
+                    "monitoring": {"health_status": "blocked", "supervisor_tick_status": "unknown"},
+                    "intervention_lane": {
+                        "lane_id": "study_projection_error",
+                        "title": "Repair study progress projection",
+                    },
+                },
+                {"study_id": selected_id, "state_label": "自动运行中"},
+            ],
+        },
+        generated_at="2026-05-08T01:05:00+00:00",
+    )
+
+    assert set(result["study_pages"]) == {blocked_id, selected_id}
+    selected_payload = json.loads(Path(result["study_pages"][selected_id]["payload_path"]).read_text(encoding="utf-8"))
+    blocked_payload = json.loads(Path(result["study_pages"][blocked_id]["payload_path"]).read_text(encoding="utf-8"))
+    blocked_html = Path(result["study_pages"][blocked_id]["html_path"]).read_text(encoding="utf-8")
+
+    assert selected_payload["study"]["study_id"] == selected_id
+    assert selected_payload["study"]["state_label"] == "质量修复/复审中"
+    assert blocked_payload["study"]["study_id"] == blocked_id
+    assert blocked_payload["study"]["current_stage"] == "projection_blocked"
+    assert blocked_payload["freshness"]["status"] == "invalid"
+    assert blocked_payload["study"]["supervision"]["health_status"] == "blocked"
+    assert blocked_payload["study_workbench"]["overview"]["state_label"] == "进度投影异常"
+    assert blocked_payload["source_payloads"]["progress"]["projection_error"] is True
+    assert "manual_finish.compatibility_guard_only" in blocked_html
+    assert Path(result["workspace_html_path"]).exists()
+
+
 def test_materialized_study_page_projects_real_paper_line_workspace_proof_as_read_only_locators(
     tmp_path: Path,
 ) -> None:

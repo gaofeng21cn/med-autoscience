@@ -18,6 +18,8 @@ SURFACE_KIND = "mas_runtime_conversation_read_model"
 OWNER = "MedAutoScience"
 CONVERSATION_READ_MODEL_REF = "artifacts/runtime/conversation_read_model/latest.json"
 CONVERSATION_READ_MODEL_HISTORY_REF = "artifacts/runtime/conversation_read_model/history.jsonl"
+JSONL_TAIL_READ_BYTES = 1_048_576
+JSONL_MAX_ITEMS = 200
 
 
 def build_conversation_read_model(
@@ -235,7 +237,11 @@ def _read_jsonl_source(path: Path) -> dict[str, Any]:
         return {"path": None, "items": []}
     items: list[dict[str, Any]] = []
     parse_errors: list[dict[str, Any]] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), start=1):
+    lines, metadata = _read_jsonl_tail(path)
+    total_lines = metadata.pop("line_count", None)
+    start_line_number = int(total_lines or 0) - len(lines) + 1 if total_lines is not None else 1
+    for offset, line in enumerate(lines):
+        line_number = start_line_number + offset
         if not line.strip():
             continue
         try:
@@ -247,10 +253,37 @@ def _read_jsonl_source(path: Path) -> dict[str, Any]:
             items.append(dict(payload))
         else:
             parse_errors.append({"line_number": line_number, "error": "jsonl line is not an object"})
-    result: dict[str, Any] = {"path": path.resolve(), "items": items}
+    if len(items) > JSONL_MAX_ITEMS:
+        items = items[-JSONL_MAX_ITEMS:]
+        metadata["items_truncated"] = True
+        metadata["max_items"] = JSONL_MAX_ITEMS
+    result: dict[str, Any] = {"path": path.resolve(), "items": items, **metadata}
     if parse_errors:
         result["parse_errors"] = parse_errors
     return result
+
+
+def _read_jsonl_tail(path: Path) -> tuple[list[str], dict[str, Any]]:
+    size_bytes = path.stat().st_size
+    if size_bytes <= JSONL_TAIL_READ_BYTES:
+        return path.read_text(encoding="utf-8", errors="replace").splitlines(), {
+            "truncated": False,
+            "size_bytes": size_bytes,
+            "bytes_read": size_bytes,
+        }
+    with path.open("rb") as handle:
+        handle.seek(-JSONL_TAIL_READ_BYTES, 2)
+        data = handle.read(JSONL_TAIL_READ_BYTES)
+    text = data.decode("utf-8", errors="replace")
+    lines = text.splitlines()
+    if lines:
+        lines = lines[1:]
+    return lines, {
+        "truncated": True,
+        "size_bytes": size_bytes,
+        "bytes_read": len(data),
+        "tail_bytes_read": len(data),
+    }
 
 
 def _live_console_session_model(
@@ -571,14 +604,20 @@ def _source_refs(*, contexts: Iterable[Mapping[str, Any]], live_console: Mapping
             ref = str(path)
             if ref in seen:
                 continue
-            refs.append(
-                {
-                    "surface_kind": surface_kind,
-                    "study_id": context["study_id"],
-                    "source_ref": ref,
-                    "read_only": True,
-                }
-            )
+            source_ref = {
+                "surface_kind": surface_kind,
+                "study_id": context["study_id"],
+                "source_ref": ref,
+                "read_only": True,
+            }
+            if "truncated" in surface:
+                source_ref["truncated"] = surface.get("truncated") is True
+                source_ref["size_bytes"] = _optional_int(surface.get("size_bytes"))
+                source_ref["bytes_read"] = _optional_int(surface.get("bytes_read"))
+            if "items_truncated" in surface:
+                source_ref["items_truncated"] = surface.get("items_truncated") is True
+                source_ref["max_items"] = _optional_int(surface.get("max_items"))
+            refs.append(source_ref)
             seen.add(ref)
     live_path = live_console.get("path")
     if live_path is not None and str(live_path) not in seen:

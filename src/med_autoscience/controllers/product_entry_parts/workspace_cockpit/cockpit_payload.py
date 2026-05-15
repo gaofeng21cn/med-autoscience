@@ -347,11 +347,19 @@ def _workspace_cockpit_study_snapshot(
     profile_ref: str | Path | None,
     study_root: Path,
 ) -> tuple[dict[str, Any], list[str]]:
-    progress_payload = study_progress.read_study_progress(
-        profile=profile,
-        profile_ref=profile_ref,
-        study_root=study_root,
-    )
+    try:
+        progress_payload = study_progress.read_study_progress(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_root=study_root,
+        )
+    except Exception as exc:
+        item = _study_projection_error_item(
+            profile_ref=profile_ref,
+            study_root=study_root,
+            error=exc,
+        )
+        return item, list(item["current_blockers"])
     item = _study_item(progress_payload=progress_payload, profile_ref=profile_ref)
     if not item.get("medical_paper_readiness"):
         item["medical_paper_readiness"] = _read_medical_paper_readiness_projection(study_root=study_root) or None
@@ -368,6 +376,95 @@ def _workspace_cockpit_study_snapshot(
     if _non_empty_text(progress_freshness.get("status")) in {"stale", "missing"} and progress_summary is not None:
         alerts.append(progress_summary)
     return item, alerts
+
+
+def _study_projection_error_item(
+    *,
+    profile_ref: str | Path | None,
+    study_root: Path,
+    error: Exception,
+) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    study_id = resolved_study_root.name
+    message = str(error) or error.__class__.__name__
+    commands = study_commands(profile_ref=profile_ref, study_id=study_id)
+    return {
+        "study_id": study_id,
+        "study_root": str(resolved_study_root),
+        "current_stage": "projection_blocked",
+        "current_stage_summary": "Study progress projection failed before cockpit aggregation could complete.",
+        "state_label": "进度投影异常",
+        "state_summary": "该 study 的进度投影失败；其他 study 仍可继续显示和监管。",
+        "paper_stage": "projection_blocked",
+        "next_system_action": "Inspect and repair the study progress projection contract before routing this study.",
+        "current_blockers": [f"{study_id} study progress projection failed: {message}"],
+        "progress_freshness": {
+            "status": "invalid",
+            "summary": f"study progress projection failed: {message}",
+        },
+        "monitoring": {
+            "browser_url": None,
+            "quest_session_api_url": None,
+            "active_run_id": None,
+            "health_status": "blocked",
+            "supervisor_tick_status": "unknown",
+        },
+        "intervention_lane": {
+            "lane_id": "study_projection_error",
+            "title": "Repair study progress projection",
+            "severity": "critical",
+            "summary": f"study progress projection failed: {message}",
+            "recommended_action_id": "inspect_study_progress_projection",
+        },
+        "operator_verdict": {
+            "surface_kind": "study_operator_verdict",
+            "study_id": study_id,
+            "lane_id": "study_projection_error",
+            "severity": "critical",
+            "decision_mode": "intervene_now",
+            "needs_intervention": True,
+            "focus_scope": "study",
+            "summary": f"study progress projection failed: {message}",
+            "reason_summary": message,
+            "primary_step_id": "inspect_study_progress_projection",
+            "primary_surface_kind": "study_progress",
+            "primary_command": commands["progress"],
+        },
+        "recommended_command": commands["progress"],
+        "recommended_commands": [
+            {
+                "step_id": "inspect_study_progress_projection",
+                "title": "Inspect study progress projection",
+                "surface_kind": "study_progress",
+                "command": commands["progress"],
+            }
+        ],
+        "recovery_contract": {
+            "contract_kind": "study_recovery_contract",
+            "lane_id": "study_projection_error",
+            "action_mode": "inspect_progress_projection",
+            "summary": f"study progress projection failed: {message}",
+            "recommended_step_id": "inspect_study_progress_projection",
+            "steps": [
+                {
+                    "step_id": "inspect_study_progress_projection",
+                    "title": "Inspect study progress projection",
+                    "surface_kind": "study_progress",
+                    "command": commands["progress"],
+                }
+            ],
+        },
+        "needs_user_decision": False,
+        "needs_physician_decision": False,
+        "task_intake": {},
+        "commands": commands,
+        "projection_error": {
+            "error_type": error.__class__.__name__,
+            "message": message,
+            "handled_as": "study_progress_projection_error",
+            "study_root": str(resolved_study_root),
+        },
+    }
 
 
 def read_workspace_cockpit(

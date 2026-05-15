@@ -451,13 +451,71 @@ def _study_progress_payload_for_materialized_page(
         return {}
     from med_autoscience.controllers import study_progress
 
-    return study_progress.read_study_progress(
-        profile=profile,
-        profile_ref=profile_ref,
-        study_id=study_id,
-        study_root=study_root,
-        sync_runtime_summary=False,
-    )
+    try:
+        return study_progress.read_study_progress(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            study_root=study_root,
+            sync_runtime_summary=False,
+        )
+    except Exception as exc:
+        return _progress_projection_error_payload(
+            study_id=study_id,
+            study_root=study_root,
+            error=exc,
+        )
+
+
+def _progress_projection_error_payload(
+    *,
+    study_id: str,
+    study_root: Path,
+    error: Exception,
+) -> dict[str, Any]:
+    message = str(error) or error.__class__.__name__
+    return {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "user_visible_projection": {
+            "schema_version": 2,
+            "writer_state": "blocked",
+            "user_next": "wait",
+            "reason": "study_progress_projection_error",
+            "state_label": "进度投影异常",
+            "state_summary": "该 study 的进度投影读取失败；Portal 仅显示阻塞状态，其他 study 页面继续生成。",
+            "current_stage": "projection_blocked",
+            "current_stage_summary": "Study progress projection failed during portal materialization.",
+            "paper_stage": "projection_blocked",
+            "paper_stage_summary": "论文线状态需要先修复 canonical progress projection。",
+            "current_blockers": [f"{study_id} study progress projection failed: {message}"],
+            "next_system_action": "Inspect and repair the study progress projection contract before routing this study.",
+            "needs_physician_decision": False,
+        },
+        "progress_freshness": {
+            "status": "invalid",
+            "summary": f"study progress projection failed: {message}",
+        },
+        "supervision": {
+            "active_run_id": None,
+            "health_status": "blocked",
+            "supervisor_tick_status": "unknown",
+        },
+        "intervention_lane": {
+            "lane_id": "study_projection_error",
+            "title": "Repair study progress projection",
+            "severity": "critical",
+            "summary": f"study progress projection failed: {message}",
+            "recommended_action_id": "inspect_study_progress_projection",
+        },
+        "projection_error": {
+            "error_type": error.__class__.__name__,
+            "message": message,
+            "handled_as": "study_progress_projection_error",
+            "study_root": str(study_root),
+        },
+        "refs": {"study_root": str(study_root)},
+    }
 
 
 def _cockpit_from_workspace_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -473,18 +531,27 @@ def _progress_from_workspace_study_row(study: Mapping[str, Any]) -> dict[str, An
     study_id = _non_empty_text(study.get("study_id")) or "unknown-study"
     state_label = _non_empty_text(study.get("state_label")) or "状态投影缺失"
     state_summary = _non_empty_text(study.get("state_summary")) or "该论文线缺少 canonical study-progress projection。"
+    current_stage = _non_empty_text(study.get("current_stage"))
+    paper_stage = _non_empty_text(study.get("paper_stage"))
+    next_system_action = (
+        _non_empty_text(study.get("next_system_action"))
+        or _non_empty_text(study.get("operator_focus"))
+        or "刷新 canonical study-progress projection。"
+    )
+    current_blockers = _string_list(study.get("current_blockers"))
     return {
         "study_id": study_id,
         "user_visible_projection": {
             "schema_version": 2,
+            "writer_state": "blocked" if current_stage == "projection_blocked" else "unknown",
+            "user_next": "wait",
+            "reason": "study_progress_projection_error" if current_stage == "projection_blocked" else "workspace_study_row_projection",
             "state_label": state_label,
             "state_summary": state_summary,
-            "current_stage": _non_empty_text(study.get("current_stage")),
-            "paper_stage": _non_empty_text(study.get("paper_stage")),
-            "next_system_action": _non_empty_text(study.get("next_system_action"))
-            or _non_empty_text(study.get("operator_focus"))
-            or "刷新 canonical study-progress projection。",
-            "current_blockers": [],
+            "current_stage": current_stage,
+            "paper_stage": paper_stage,
+            "next_system_action": next_system_action,
+            "current_blockers": current_blockers,
             "needs_physician_decision": False,
         },
         "progress_freshness": {
@@ -496,6 +563,7 @@ def _progress_from_workspace_study_row(study: Mapping[str, Any]) -> dict[str, An
             "health_status": _non_empty_text(study.get("runtime_health_status")),
             "supervisor_tick_status": _non_empty_text(study.get("supervisor_tick_status")),
         },
+        "projection_error": _mapping(study.get("projection_error")),
         "refs": {},
     }
 

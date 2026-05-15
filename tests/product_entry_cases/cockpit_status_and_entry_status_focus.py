@@ -7,5 +7,6 @@ from .cockpit_status_and_entry_status_focus_cases.test_gate_clearing_followthrou
 from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness import *  # noqa: F403,F401
 from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_ops_health import *  # noqa: F403,F401
 from .cockpit_status_and_entry_status_focus_cases.test_medical_paper_readiness_v2_actions import *  # noqa: F403,F401
+from .cockpit_status_and_entry_status_focus_cases.test_projection_error_isolation import *  # noqa: F403,F401
 from .cockpit_status_and_entry_status_focus_cases.test_quality_lane import *  # noqa: F403,F401
 from .cockpit_status_and_entry_status_focus_cases.test_status_cards import *  # noqa: F403,F401
