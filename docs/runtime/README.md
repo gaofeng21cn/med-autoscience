@@ -1,4 +1,4 @@
-# Runtime Documentation Lifecycle
+# Runtime 文档生命周期
 
 Status: `active runtime docs index`
 Owner: `MedAutoScience`
@@ -6,44 +6,36 @@ Purpose: `runtime_docs_index`
 State: `active_support`
 Machine boundary: 本目录是 MAS domain runtime-facing 文档索引。机器真相继续归 contracts、schema、CLI/MCP/API payload、product-entry manifest、sidecar receipt、runtime/controller durable surfaces 和真实 workspace artifact。
 
-`docs/runtime/` is organized by lifecycle role.
+`docs/runtime/` 按生命周期角色组织。
 
 当前口径：MAS runtime docs 只定义医学研究 domain agent 的 runtime-facing owner surfaces、controller truth、typed blocker、owner receipt、artifact locator 和 projection/display contract。通用 stage attempt、provider workflow、queue、retry/dead-letter、human gate transport、attempt ledger、generic state-machine runner、generic memory/artifact/workbench primitive 与跨 domain projection 属于 OPL Framework / shared family layer。MAS standalone/local scheduler 和 one-shot reconcile 只服务 direct/local diagnostics，不构成 MAS 自己维护 generic runtime platform。
 
-| directory | role |
+| 目录 | 角色 |
 | --- | --- |
-| [contracts](./contracts/) | Runtime contracts, owner boundaries, durable surfaces, artifact authority, and backend/interface rules. |
-| [control](./control/) | Controller, supervision, orchestration, outer-loop, scheduler, and runtime action surfaces. |
-| [projections](./projections/) | Read models, user-visible status, observability, and non-authoritative summaries. |
-| [display](./display/) | Progress Portal and Live Console display contracts. |
-| [designs](./designs/) | Active designs that are not yet stable contracts. |
+| [contracts](./contracts/) | MAS runtime-facing contracts、owner boundary、durable surface、artifact authority 和 backend/interface 规则。 |
+| [control](./control/) | MAS controller、domain supervision、outer-loop、direct/local diagnostic scheduler 与 runtime action surface。通用 provider/queue/attempt 归 OPL。 |
+| [projections](./projections/) | Read model、用户可见状态、observability 和非权威摘要。 |
+| [display](./display/) | Progress Portal 与 Live Console 的展示合同。 |
+| [designs](./designs/) | 尚未稳定成 contract 的活跃设计。 |
 
-## Primary Entries
+## 主入口
 
 - [Runtime boundary](./contracts/runtime_boundary.md)
 - [Agent runtime interface](./contracts/agent_runtime_interface.md)
 - [Runtime handle and durable surface contract](./contracts/runtime_handle_and_durable_surface_contract.md)
-- [Runtime supervision loop](./control/runtime_supervision_loop.md)
-- [Supervision scheduler contract](./control/supervision_scheduler_contract.md)
+- [Runtime supervision loop](./control/runtime_supervision_loop.md)：MAS domain supervision / read-model / owner receipt 入口；不作为 generic scheduler/platform owner。
+- [Supervision scheduler contract](./control/supervision_scheduler_contract.md)：MAS direct/local diagnostic scheduler contract；OPL-hosted production provider 生命周期归 OPL。
 - [Study runtime control surface](./control/study_runtime_control_surface.md)
 - [Study progress projection](./projections/study_progress_projection.md)
 - [Progress Portal](./display/progress_portal.md)
 - [Live Console UI contract](./display/live_console_ui_contract.md)
 
-## History
+## 历史
 
-Completed runtime implementation plans are archived under
-[history/runtime](../history/runtime/). They are provenance, not active backlog
-or authority for reopening old MDS daemon, WebUI, Hermes-first default path,
-workspace-local service paths, or MAS-owned generic runtime/platform work.
+已完成 runtime implementation plans 归档到 [history/runtime](../history/runtime/)。这些材料只作 provenance，不是 active backlog，也不能用来重开旧 MDS daemon、WebUI、Hermes-first default path、workspace-local service path 或 MAS-owned generic runtime/platform work。
 
-## Rule
+## 规则
 
-Contracts/control docs may describe authority. Projection/display docs may only
-describe how existing truth is read or shown. New runtime docs must enter one of
-the subdirectories above and state owner, purpose, state, and machine boundary.
-If a runtime doc needs generic scheduling, queue, attempt, memory, artifact
-lifecycle, workbench, or observability primitives, it must phrase them as OPL /
-shared-family owner requirements and keep MAS limited to domain transition
-specs, owner receipts, typed blockers, quality/artifact authority, and
-runtime-facing projections.
+Contracts/control docs 可以描述 authority。Projection/display docs 只能描述既有 truth 如何被读取或展示。新增 runtime docs 必须进入上方子目录之一，并写明 owner、purpose、state 和 machine boundary。
+
+如果 runtime 文档需要 generic scheduling、queue、attempt、memory、artifact lifecycle、workbench 或 observability primitive，必须写成 OPL / shared-family owner requirement；MAS 只维护 domain transition spec、owner receipt、typed blocker、quality/artifact authority 和 runtime-facing projection。
