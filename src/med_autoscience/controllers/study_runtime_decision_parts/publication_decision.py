@@ -10,6 +10,58 @@ from med_autoscience.controllers.study_runtime_decision_parts import publication
 
 SpecificityTargetsFn = Callable[[dict[str, object]], tuple[dict[str, str], ...]]
 
+_BUNDLE_STAGE_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
+_READY_QUALITY_STATUS = "ready"
+_PROSE_REVIEW_ROUTE = {
+    "route_target": "review",
+    "route_key_question": "Which AI-reviewer manuscript-quality issue must close before finalize?",
+    "route_rationale": (
+        "AI reviewer medical_journal_prose_quality is not ready; route back to the same paper-line "
+        "quality review before any finalize-stage handoff."
+    ),
+}
+_PROSE_REVIEW_WORK_UNIT = {
+    "unit_id": "ai_reviewer_medical_prose_quality_review",
+    "lane": "review",
+    "summary": "Re-run AI reviewer manuscript-quality review and close medical_journal_prose_quality before finalize.",
+}
+
+
+def _medical_prose_quality_status(report: dict[str, object]) -> str:
+    status = str(report.get("medical_prose_review_status") or "").strip()
+    return status or "underdefined"
+
+
+def _clear_bundle_stage_has_unready_prose_quality(report: dict[str, object]) -> bool:
+    if str(report.get("status") or "").strip() != "clear":
+        return False
+    current_required_action = str(report.get("current_required_action") or "").strip()
+    if current_required_action not in _BUNDLE_STAGE_ACTIONS:
+        return False
+    status = _medical_prose_quality_status(report)
+    return status != _READY_QUALITY_STATUS
+
+
+def _prose_quality_route_action() -> tuple[str, dict[str, str]]:
+    return "route_back_same_line", dict(_PROSE_REVIEW_ROUTE)
+
+
+def _prose_quality_route_reason(report: dict[str, object]) -> str:
+    status = _medical_prose_quality_status(report)
+    return (
+        f"AI reviewer medical_journal_prose_quality is {status}; "
+        "a clear publication gate cannot authorize finalize until that quality dimension is ready."
+    )
+
+
+def _prose_quality_work_unit_payload(report: dict[str, object]) -> dict[str, object]:
+    status = _medical_prose_quality_status(report)
+    return {
+        "fingerprint": f"medical-prose-quality::{status}",
+        "blocking_work_units": [dict(_PROSE_REVIEW_WORK_UNIT)],
+        "next_work_unit": dict(_PROSE_REVIEW_WORK_UNIT),
+    }
+
 
 def _route_contract_for_action(
     *,
@@ -95,6 +147,8 @@ def _blocked_route_action(report: dict[str, object]) -> tuple[str, dict[str, str
 
 
 def _clear_publication_action(report: dict[str, object]) -> tuple[str, dict[str, str]]:
+    if _clear_bundle_stage_has_unready_prose_quality(report):
+        return _prose_quality_route_action()
     current_required_action = str(report.get("current_required_action") or "").strip()
     if current_required_action == "prepare_promotion_review":
         action_type = "prepare_promotion_review"
@@ -129,7 +183,9 @@ def publication_eval_action(
     if status == "clear":
         action_type, route_contract = _clear_publication_action(report)
         reason = (
-            str(report.get("controller_stage_note") or "").strip()
+            _prose_quality_route_reason(report)
+            if _clear_bundle_stage_has_unready_prose_quality(report)
+            else str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is clear and the current line can continue."
         )
     else:
@@ -138,7 +194,10 @@ def publication_eval_action(
             str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is blocked and requires controller review."
         )
-    work_unit_payload = publication_work_units.derive_publication_work_units(report)
+    if _clear_bundle_stage_has_unready_prose_quality(report):
+        work_unit_payload = _prose_quality_work_unit_payload(report)
+    else:
+        work_unit_payload = publication_work_units.derive_publication_work_units(report)
     if publication_stop_loss.non_actionable_gate_overrides(status=status, action_type=action_type, work_unit_payload=work_unit_payload):
         action_type = "return_to_controller"
         route_contract = {}

@@ -320,8 +320,14 @@ def test_study_runtime_status_refreshes_stale_blocked_ai_reviewer_eval_when_gate
     assert payload["assessment_provenance"]["ai_reviewer_required"] is True
     assert payload["emitted_at"] == "2026-04-17T02:14:11+00:00"
     assert payload["verdict"]["overall_verdict"] == "promising"
-    assert payload["recommended_actions"][0]["action_type"] == "continue_same_line"
-    assert payload["recommended_actions"][0]["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert payload["recommended_actions"][0]["action_type"] == "route_back_same_line"
+    assert payload["recommended_actions"][0]["route_target"] == "review"
+    assert payload["recommended_actions"][0]["reason"] == (
+        "AI reviewer medical_journal_prose_quality is underdefined; "
+        "a clear publication gate cannot authorize finalize until that quality dimension is ready."
+    )
+    assert payload["recommended_actions"][0]["next_work_unit"]["unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert payload["recommended_actions"][0]["next_work_unit"]["lane"] == "review"
 
 
 def test_study_runtime_status_refreshes_publication_eval_when_gate_returns_to_publishability(

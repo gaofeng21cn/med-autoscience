@@ -347,6 +347,27 @@ def test_mechanical_publication_eval_is_projection_only_and_review_required(tmp_
     assert state["route_back"]["target"] == "ai_reviewer"
 
 
+def test_ai_reviewer_publication_eval_with_unready_prose_quality_blocks_finalize_and_submission(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_complete_workflow(study_root)
+    payload = _publication_eval_payload(study_root, owner="ai_reviewer")
+    payload["quality_assessment"]["medical_journal_prose_quality"]["status"] = "underdefined"
+    payload["quality_assessment"]["medical_journal_prose_quality"]["summary"] = (
+        "AI reviewer has not closed manuscript-native medical journal prose quality."
+    )
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+
+    state = module.build_ai_reviewer_runtime_workflow_state(study_root)
+
+    assert state["quality_authority"]["state"] == "review_required"
+    assert state["finalize_authorization"]["authorized"] is False
+    assert state["submission_authorization"]["authorized"] is False
+    assert "medical_journal_prose_quality_not_ready" in state["blockers"]
+
+
 def test_missing_medical_prose_review_blocks_finalize_and_submission(tmp_path: Path) -> None:
     module = importlib.import_module(MODULE_NAME)
     study_root = tmp_path / "workspace" / "studies" / "001-risk"

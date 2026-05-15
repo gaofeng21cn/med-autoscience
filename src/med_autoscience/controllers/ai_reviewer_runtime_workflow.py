@@ -104,6 +104,7 @@ def _publication_eval_authorized(payload: Mapping[str, Any]) -> bool:
         and provenance.get("ai_reviewer_required") is False
         and provenance.get("policy_id") == _POLICY_ID
         and bool(_text(prose_quality.get("summary")))
+        and _text(prose_quality.get("status")) == "ready"
         and not validate_ai_reviewer_operating_system_trace(reviewer_os)
     )
 
@@ -199,8 +200,13 @@ def build_ai_reviewer_runtime_workflow_state(study_root: str | Path) -> dict[str
     publication_eval_ai_authorized = bool(publication_eval_valid and _publication_eval_authorized(publication_eval))
     provenance = _mapping(publication_eval.get("assessment_provenance"))
     assessment_owner = _text(provenance.get("owner")) or "mechanical_projection"
+    quality_assessment = _mapping(publication_eval.get("quality_assessment"))
+    prose_quality = _mapping(quality_assessment.get("medical_journal_prose_quality"))
+    prose_quality_status = _text(prose_quality.get("status"))
     if publication_eval_valid and not publication_eval_ai_authorized:
         blockers.append("publication_eval_not_ai_reviewer_authority")
+        if assessment_owner == "ai_reviewer" and prose_quality_status and prose_quality_status != "ready":
+            blockers.append("medical_journal_prose_quality_not_ready")
 
     route_back = (
         _medical_prose_review_route_back(medical_prose_review)

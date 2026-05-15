@@ -339,6 +339,8 @@ def test_study_runtime_status_publication_eval_keeps_bundle_stage_as_same_line_w
             "results_summary": "bundle-stage work is unlocked and can proceed on the critical path",
             "conclusion": "bundle-stage work is unlocked and can proceed on the critical path",
             "controller_note": "The controller does not decide scientific publishability by itself.",
+            "medical_prose_review_status": "ready",
+            "medical_prose_review_summary": "AI reviewer closed manuscript-native medical journal prose quality.",
             "supervisor_phase": "bundle_stage_ready",
             "phase_owner": "publication_gate",
             "upstream_scientific_anchor_ready": True,

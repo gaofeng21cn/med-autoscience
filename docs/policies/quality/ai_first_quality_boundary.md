@@ -33,6 +33,7 @@
 
 - 新增质量 read-model 时，先决定它消费的是 AI reviewer judgment 还是 mechanical projection。
 - 如果消费 AI reviewer judgment，入口必须 fail-closed 检查 `assessment_provenance.owner=ai_reviewer` 和 `ai_reviewer_required=false`。
+- 如果入口会投影 `finalize`、`bundle-only remaining`、`human-review ready` 或 `submission-facing closure`，还必须确认 `quality_assessment.medical_journal_prose_quality.status=ready`。缺失、`underdefined`、`partial` 或 `blocked` 都表示 AI reviewer 主观稿件质量尚未闭合，只能 route back 到同一论文线的 `review` / AI reviewer workflow。
 - 如果消费 mechanical projection，输出文案必须明确它只是 projection，不得写成科学审稿结论。
 - 医学论文文体、reader flow、段落论证节奏、是否像工作汇报、claim restraint、讨论克制性等主观质量，只能由 AI reviewer-backed `medical_prose_review` 或 AI reviewer-backed `publication_eval/latest.json` 判定。
 - Regex / pattern / deterministic scanner 可以保留为 `mechanical_safety_flags`、evidence snippets 或内部术语泄漏安全护栏；它们不得单独触发或清除 `medical_journal_prose_style_not_met` 这类主观文体 blocker。
@@ -59,6 +60,17 @@
 - `stale_ai_cache`：paper contract health cache 没有纳入 AI review、blueprint、publication eval、style corpus、review ledger 等 AI-first surfaces。
 - `prompt_only_gates`：质量边界只写在 prompt / skill 文案里，没有结构化 contract 或测试保护。
 - `ai_reviewer_os_trace_missing`：AI reviewer 只输出结论或自然语言审稿意见，缺少结构化输入、rubric、decision matrix 与 provenance trace。
+
+## DM002 质量路由事故复盘
+
+DM002 暴露的顶层缺陷不是英文润色能力不足，也不是缺少一条程序化 manuscript scanner。真实问题是 owner chain：`publication_gate` 已 clear，`current_required_action=continue_bundle_stage`，但 AI reviewer 的 `medical_journal_prose_quality` 仍是 `underdefined`；下游 action 决策却继续把线路推进到 `finalize` / human-facing bundle。这等于让交付 gate 覆盖了主观医学论文质量 owner。
+
+修复口径：
+
+- `medical_prose_review_status` 缺失时按 `underdefined` 处理。
+- clear bundle-stage gate 只有在 `medical_journal_prose_quality.status=ready` 时才能进入 `finalize`。
+- 未 ready 时推荐动作必须是同线 `route_back_same_line`，`route_target=review`，由 AI reviewer / prose review workflow 关闭稿件质量维度。
+- 机械检查、pattern scan 和 completeness projection 只能提供 evidence、blocker 或 safety flag，不能授权初稿质量、人工审阅 readiness、定稿或投稿面 closure。
 
 外部工程依据：
 

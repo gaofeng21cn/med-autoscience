@@ -60,3 +60,14 @@ Before a first full draft is treated as generated:
 - paper-scaffold labels such as `paper protagonist` or `bounded complexity benchmark`
 
 The gate is not the primary writing strategy. The primary strategy is contract-first generation through study charter and quality OS surfaces.
+
+## Finalize 授权边界
+
+初稿或修复稿进入 bundle/finalize 阶段前，MAS 必须同时满足交付 gate 与 AI reviewer 稿件质量闭合。`publication_gate` clear 只能说明机械完整性、证据投影或交付面阻塞已经清掉；它不能替代医学期刊论文质量判断。
+
+因此，`current_required_action=continue_bundle_stage` 或 `complete_bundle_stage` 时：
+
+- `medical_journal_prose_quality.status=ready` 才能继续进入 `finalize`；
+- 缺少 `medical_prose_review_status` 时按 `underdefined` 处理；
+- `underdefined`、`partial` 或 `blocked` 必须 route back 到同一论文线 `review`，由 AI reviewer 关闭 manuscript-native prose quality；
+- 不得新增“脚本检查论文是否完整 / 是否像医学论文”的质量授权门。程序化检查只允许成为 evidence snippets、mechanical safety flags 或投影 blocker，不能成为主观稿件质量 owner。
