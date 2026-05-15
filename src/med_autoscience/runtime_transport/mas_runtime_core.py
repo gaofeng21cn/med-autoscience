@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from med_autoscience.runtime_transport import mas_runtime_core_turns as turn_lifecycle
+from med_autoscience.runtime_transport import mas_runtime_core_delayed_turns as delayed_turns
 from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import (
     terminate_orphan_worker_leases,
     terminate_worker_leases,
@@ -209,6 +210,16 @@ def pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, 
         write_json=_write_json,
         append_runtime_event=_append_event,
     )
+    delayed_turn_cancellation = delayed_turns.cancel_delayed_turn(
+        quest_root=quest_root,
+        source=source,
+        reason="pause_quest",
+        delayed_turn_path=turn_lifecycle.delayed_turn_path,
+        read_json=_read_json,
+        text=lambda value: str(value).strip() or None if value is not None else None,
+        utc_now=_utc_now,
+        append_runtime_event=_append_event,
+    )
     _persist_state(
         quest_root=quest_root,
         status="paused",
@@ -217,9 +228,18 @@ def pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, 
         worker_running=False,
         worker_pending=False,
         stop_requested=False,
-        extra={"last_worker_cleanup": worker_cleanup},
+        extra={
+            "last_worker_cleanup": worker_cleanup,
+            "last_delayed_turn_cancellation": delayed_turn_cancellation,
+        },
     )
-    return _result(quest_root=quest_root, status="paused", source="mas_runtime_core", worker_cleanup=worker_cleanup)
+    return _result(
+        quest_root=quest_root,
+        status="paused",
+        source="mas_runtime_core",
+        worker_cleanup=worker_cleanup,
+        delayed_turn_cancellation=delayed_turn_cancellation,
+    )
 
 
 def stop_quest(
@@ -243,6 +263,16 @@ def stop_quest(
         write_json=_write_json,
         append_runtime_event=_append_event,
     )
+    delayed_turn_cancellation = delayed_turns.cancel_delayed_turn(
+        quest_root=quest_root,
+        source=source,
+        reason="stop_quest",
+        delayed_turn_path=turn_lifecycle.delayed_turn_path,
+        read_json=_read_json,
+        text=lambda value: str(value).strip() or None if value is not None else None,
+        utc_now=_utc_now,
+        append_runtime_event=_append_event,
+    )
     _persist_state(
         quest_root=quest_root,
         status="stopped",
@@ -251,9 +281,19 @@ def stop_quest(
         worker_running=False,
         worker_pending=False,
         stop_requested=True,
-        extra={"daemon_url": daemon_url, "last_worker_cleanup": worker_cleanup},
+        extra={
+            "daemon_url": daemon_url,
+            "last_worker_cleanup": worker_cleanup,
+            "last_delayed_turn_cancellation": delayed_turn_cancellation,
+        },
     )
-    return _result(quest_root=quest_root, status="stopped", source="mas_runtime_core", worker_cleanup=worker_cleanup)
+    return _result(
+        quest_root=quest_root,
+        status="stopped",
+        source="mas_runtime_core",
+        worker_cleanup=worker_cleanup,
+        delayed_turn_cancellation=delayed_turn_cancellation,
+    )
 
 
 def get_quest_session(

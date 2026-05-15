@@ -890,7 +890,7 @@ def test_pause_study_runtime_records_human_takeover_without_user_pause_contract(
     assert runtime_state["continuation_reason"] == "human_takeover_requested"
     assert "user_pause_contract" not in runtime_state
     assert runtime_state["human_takeover_contract"]["source"] == "test-human-takeover"
-    assert runtime_state["human_takeover_contract"]["resume_requires_explicit_wakeup"] is False
+    assert runtime_state["human_takeover_contract"]["resume_requires_explicit_wakeup"] is True
     assert result["human_takeover_contract"]["status"] == "recorded"
 
 

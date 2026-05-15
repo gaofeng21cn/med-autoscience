@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.runtime_transport import mas_runtime_core_turn_monitor as turn_monitor
+from med_autoscience.runtime_transport import mas_runtime_core_turn_blocks as turn_blocks
 from med_autoscience.runtime_transport.mas_runtime_core_turn_completion import (
     BLOCKED_CLOSEOUT_RUNNER_STATUS,
     INCOMPLETE_RUNNER_STATUS,
@@ -35,6 +36,7 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_liveness import (
     watchdog_projection as _watchdog_projection,
 )
 from med_autoscience.runtime_transport import mas_runtime_core_turn_timers as turn_timers
+from med_autoscience.runtime_transport import mas_runtime_core_delayed_turns as delayed_turns
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     idempotency_key as make_idempotency_key,
     message_id as make_message_id,
@@ -257,6 +259,18 @@ def schedule_turn(
     terminal_attach_capable: bool = False,
 ) -> dict[str, Any]:
     state = load_state(quest_root=quest_root)
+    runtime_status = text(state.get("status"))
+    if runtime_status in TERMINAL_STATUSES:
+        return turn_blocks.terminal_runtime_schedule_block(
+            quest_root=quest_root,
+            quest_id=quest_id,
+            reason=reason,
+            state=state,
+            runtime_status=runtime_status,
+            backend_id=BACKEND_ID,
+            text=text,
+            snapshot=snapshot,
+        )
     active_run_id = text(state.get("active_run_id"))
     if state.get("worker_running") is True and active_run_id:
         if not _worker_lease_live(quest_root=quest_root, run_id=active_run_id):
@@ -378,6 +392,18 @@ def start_turn(
     terminal_attach_capable: bool = False,
 ) -> dict[str, Any]:
     state = load_state(quest_root=quest_root)
+    runtime_status = text(state.get("status"))
+    if runtime_status in TERMINAL_STATUSES:
+        return turn_blocks.terminal_runtime_schedule_block(
+            quest_root=quest_root,
+            quest_id=quest_id,
+            reason=reason,
+            state=state,
+            runtime_status=runtime_status,
+            backend_id=BACKEND_ID,
+            text=text,
+            snapshot=snapshot,
+        )
     new_run_id = run_id(quest_id=quest_id)
     claimed_messages = claim_pending_user_messages(quest_root=quest_root, run_id=new_run_id)
     now = utc_now()
@@ -719,11 +745,17 @@ def drain_due_delayed_turn(*, quest_root: Path, source: str) -> dict[str, Any] |
     delayed = read_json(delayed_turn_path(quest_root))
     if not delayed:
         return None
+    state = load_state(quest_root=quest_root)
+    if text(state.get("status")) in TERMINAL_STATUSES:
+        delayed_turns.cancel_delayed_turn(
+            quest_root=quest_root, source=source, reason="terminal_state", delayed_turn_path=delayed_turn_path,
+            read_json=read_json, text=text, utc_now=utc_now, append_runtime_event=append_runtime_event,
+        )
+        return None
     scheduled_at = parse_time(text(delayed.get("scheduled_at")))
     delay_seconds = float(delayed.get("delay_seconds") or 0)
     if scheduled_at is None or (_NOW().astimezone(UTC) - scheduled_at).total_seconds() < delay_seconds:
         return None
-    state = load_state(quest_root=quest_root)
     if state.get("worker_running") is True and text(state.get("active_run_id")):
         return None
     try:

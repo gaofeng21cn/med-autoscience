@@ -130,6 +130,7 @@ def record_human_takeover_contract_after_pause(
     *,
     quest_root: Path,
     source: str,
+    resume_requires_explicit_wakeup: bool = True,
 ) -> dict[str, Any] | None:
     runtime_state_path = Path(quest_root) / ".ds" / "runtime_state.json"
     try:
@@ -157,7 +158,7 @@ def record_human_takeover_contract_after_pause(
     runtime_state["human_takeover_contract"] = {
         "source": source,
         "recorded_at": recorded_at,
-        "resume_requires_explicit_wakeup": False,
+        "resume_requires_explicit_wakeup": resume_requires_explicit_wakeup,
         "recommended_actions": [
             "manual_runtime_review_required",
             "controller_review_required",
@@ -212,6 +213,7 @@ def repair_legacy_human_takeover_user_pause_contract(
     repaired = record_human_takeover_contract_after_pause(
         quest_root=quest_root,
         source=source,
+        resume_requires_explicit_wakeup=False,
     )
     if repaired is None:
         return None

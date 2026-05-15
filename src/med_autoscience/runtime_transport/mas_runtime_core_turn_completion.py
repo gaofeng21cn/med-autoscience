@@ -19,6 +19,7 @@ STALE_COMPLETION_STATUS = "stale_completion_ignored"
 BLOCKED_CLOSEOUT_STATUS = "blocked"
 BLOCKED_CLOSEOUT_RUNNER_STATUS = "blocked_waiting_for_user"
 BLOCKED_CLOSEOUT_REASON = "blocked_turn_closeout_waiting_for_owner"
+TERMINAL_RUNTIME_STATUSES = frozenset({"stopped", "paused", "completed", "failed", "error", "cancelled"})
 
 
 def blocked_closeout_wait_state(*, completion: Mapping[str, Any], run_id: str) -> dict[str, Any]:
@@ -169,7 +170,8 @@ def stale_runner_completion_result(
     active_run_id = _text(previous.get("active_run_id"))
     if active_run_id == run_id:
         return None
-    if active_run_id is None and previous.get("worker_running") is not True:
+    previous_status = _text(previous.get("status"))
+    if active_run_id is None and previous.get("worker_running") is not True and previous_status not in TERMINAL_RUNTIME_STATUSES:
         return None
     payload = {
         "event": "stale_runner_completion_ignored",
@@ -178,6 +180,7 @@ def stale_runner_completion_result(
         "quest_id": quest_id,
         "run_id": run_id,
         "active_run_id": active_run_id,
+        "runtime_status": previous_status,
         "runner_status": _text(runner_status) or "succeeded",
         "worker_running": previous.get("worker_running") is True,
     }

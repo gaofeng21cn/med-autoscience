@@ -76,11 +76,13 @@
 - 立即通过 daemon `pause` 收回 compute
 - quest 保持当前 identity
 - 这是 **recoverable runtime state**
+- 成功暂停会写入 `human_takeover_contract.resume_requires_explicit_wakeup=true`；普通 `study_runtime_status` 读取、due delayed turn、旧 worker closeout、retry backoff 和 runtime supervisor scan 都不得隐式恢复 writer
 
 后果：
 
 - `quest_status=paused`
-- 在 startup / reentry gates 允许且 controller policy 允许时，`ensure_study_runtime(...)` 可以再次把它推进到 `resume`
+- 后续恢复必须来自显式 user wakeup、明确 controller takeover release 或同等 durable resume contract
+- 在没有显式恢复 contract 前，`study_runtime_status(...)` 必须保持 `blocked / quest_user_paused_requires_explicit_wakeup`
 
 ### 3.2 `stop_runtime`
 
@@ -233,6 +235,7 @@
 `pause_runtime`、`resume` 和 `stop_runtime` 对 queued user messages 的处理必须保持单义：
 
 - `pause_runtime` 收回 compute，但保留 queued user messages、quest identity、artifact 和 branch。
+- `pause_runtime` 必须取消 pending delayed turn，并让后到的旧 worker completion 只能记录为 stale ignored，不能把 paused 重新写成 active/running。
 - `resume` 在 startup / reentry gate 清除后继续同一 quest identity，并允许后续 interaction point 消费 queued user messages。
 - `stop_runtime` 是 terminal control action，必须取消自动 dispatch；queued user messages 不得被静默 replay 成新的研究动作。
 - stopped quest 的后续动作只能走显式 stopped-quest relaunch policy，并在 controller 记录中标注为 relaunch。
@@ -245,6 +248,7 @@
 2. 人工修改只写入对应的 controller-owned artifact、study docs、paper surface 或明确的 workspace 文件。
 3. 接管完成后，通过 `study_decision_record` 或 runtime-facing startup projection 表达新的恢复点。
 4. `ensure_study_runtime(...)` 只能从该恢复点继续，不得根据旧队列或旧 launch summary 隐式重放。
+5. 接管停驻期间，任何后台 supervisor / status projection 只能报告停驻与显式唤醒需求，不能创建新的 run。
 
 ### 6.4 durable surface 分工
 
