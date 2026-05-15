@@ -12,6 +12,23 @@ from tests.runtime_supervisor_dispatch_executor_helpers import (
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
+def _minimal_ai_reviewer_record(study_id: str, quest_id: str, eval_id: str) -> dict[str, object]:
+    return {
+        "eval_id": eval_id,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Medication coverage is based on recorded medication fields.",
+                "impact_on_claim": "Treatment-gap claims must remain documentation-aware.",
+                "required_future_analysis_data_or_design": "Link pharmacy or insurance dispensing data.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+    }
+
+
 def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
     monkeypatch,
     tmp_path: Path,
@@ -199,11 +216,11 @@ def test_execute_dispatch_runs_ai_reviewer_owner_workflow(monkeypatch, tmp_path:
                 "all_required_refs_present": True,
                 "missing_or_invalid_refs": [],
             },
-            "ai_reviewer_record": {
-                "eval_id": "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
-                "study_id": study_id,
-                "quest_id": f"quest-{study_id}",
-            },
+            "ai_reviewer_record": _minimal_ai_reviewer_record(
+                study_id,
+                f"quest-{study_id}",
+                "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
+            ),
         },
     )
     dispatch_path = (
@@ -330,11 +347,11 @@ def test_execute_dispatch_passes_reporting_guideline_and_calibration_refs_to_ai_
             "request_kind": "return_to_ai_reviewer_workflow",
             "request_owner": "ai_reviewer",
             "input_contract": {"required_refs": input_refs},
-            "ai_reviewer_record": {
-                "eval_id": "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
-                "study_id": study_id,
-                "quest_id": f"quest-{study_id}",
-            },
+            "ai_reviewer_record": _minimal_ai_reviewer_record(
+                study_id,
+                f"quest-{study_id}",
+                "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
+            ),
         },
     )
     dispatch_path = (
@@ -435,11 +452,11 @@ def test_execute_dispatch_runs_ai_reviewer_when_current_owner_route_carries_term
             "request_kind": "return_to_ai_reviewer_workflow",
             "request_owner": "write/ai_reviewer",
             "input_contract": {"required_refs": input_refs},
-            "ai_reviewer_record": {
-                "eval_id": "publication-eval::003::quest::2026-05-09T00:00:00+00:00",
-                "study_id": study_id,
-                "quest_id": f"quest-{study_id}",
-            },
+            "ai_reviewer_record": _minimal_ai_reviewer_record(
+                study_id,
+                f"quest-{study_id}",
+                "publication-eval::003::quest::2026-05-09T00:00:00+00:00",
+            ),
         },
     )
     route = {
@@ -553,7 +570,7 @@ def test_execute_dispatch_runs_ai_reviewer_when_current_owner_route_carries_term
     assert called["study_root"] == study_root
 
 
-def test_execute_dispatch_uses_existing_publication_eval_for_ai_reviewer_record(
+def test_execute_dispatch_blocks_mechanical_publication_eval_as_ai_reviewer_record(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -615,6 +632,11 @@ def test_execute_dispatch_uses_existing_publication_eval_for_ai_reviewer_record(
             "eval_id": "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
             "study_id": study_id,
             "quest_id": f"quest-{study_id}",
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+                "ai_reviewer_required": True,
+            },
             "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
         },
     )
@@ -637,27 +659,6 @@ def test_execute_dispatch_uses_existing_publication_eval_for_ai_reviewer_record(
         profile,
         dispatch,
     )
-    called: dict[str, object] = {}
-
-    def fake_run_ai_reviewer_publication_eval_workflow(**kwargs) -> dict[str, object]:
-        called.update(kwargs)
-        _write_json(
-            study_root / "artifacts" / "publication_eval" / "latest.json",
-            {"assessment_provenance": {"owner": "ai_reviewer"}},
-        )
-        return {
-            "surface": "ai_reviewer_publication_eval_workflow",
-            "status": "materialized",
-            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-            "eval_id": "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
-        }
-
-    monkeypatch.setattr(
-        module.ai_reviewer_publication_eval_workflow,
-        "run_ai_reviewer_publication_eval_workflow",
-        fake_run_ai_reviewer_publication_eval_workflow,
-    )
-
     result = module.execute_default_executor_dispatches(
         profile=profile,
         study_ids=(study_id,),
@@ -666,16 +667,18 @@ def test_execute_dispatch_uses_existing_publication_eval_for_ai_reviewer_record(
         apply=True,
     )
 
-    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 1
     execution = result["executions"][0]
-    assert execution["execution_status"] == "executed"
-    assert execution["blocked_reason"] is None
-    assert called["record"]["eval_id"] == "publication-eval::001::quest::2026-05-05T00:00:00+00:00"
-    assert called["record"]["quality_assessment"]["medical_journal_prose_quality"]["status"] == "underdefined"
-    assert called["additional_refs"]["publication_gate_projection"] == input_refs["publication_gate_projection"]["path"]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "ai_reviewer_record_missing"
+    assert execution["next_owner"] == "ai_reviewer"
+    assert execution["owner_record_requirements"]["required_record_fields"] == [
+        "quality_assessment",
+        "future_facing_limitations_plan",
+    ]
 
 
-def test_execute_dispatch_prefers_current_publication_eval_over_stale_request_record(
+def test_execute_dispatch_rejects_request_record_without_future_facing_limitations_plan(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -726,28 +729,17 @@ def test_execute_dispatch_prefers_current_publication_eval_over_stale_request_re
             "request_owner": "ai_reviewer",
             "input_contract": {"required_refs": input_refs},
             "ai_reviewer_record": {
-                "eval_id": "publication-eval::stale-request-record",
+                "eval_id": "publication-eval::request-record-missing-limitations",
                 "study_id": study_id,
                 "quest_id": f"quest-{study_id}",
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
                 "recommended_actions": [{"specificity_targets": [{"target_kind": "claim"}]}],
             },
-        },
-    )
-    _write_json(
-        study_root / "artifacts" / "publication_eval" / "latest.json",
-        {
-            "eval_id": "publication-eval::current-projection",
-            "study_id": study_id,
-            "quest_id": f"quest-{study_id}",
-            "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
-            "recommended_actions": [
-                {
-                    "specificity_targets": [
-                        {"target_kind": "claim"},
-                        {"target_kind": "metric"},
-                    ]
-                }
-            ],
         },
     )
     dispatch_path = (
@@ -769,22 +761,6 @@ def test_execute_dispatch_prefers_current_publication_eval_over_stale_request_re
         profile,
         dispatch,
     )
-    called: dict[str, object] = {}
-
-    def fake_run_ai_reviewer_publication_eval_workflow(**kwargs) -> dict[str, object]:
-        called.update(kwargs)
-        return {
-            "surface": "ai_reviewer_publication_eval_workflow",
-            "status": "materialized",
-            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-            "eval_id": "publication-eval::current-projection",
-        }
-
-    monkeypatch.setattr(
-        module.ai_reviewer_publication_eval_workflow,
-        "run_ai_reviewer_publication_eval_workflow",
-        fake_run_ai_reviewer_publication_eval_workflow,
-    )
 
     result = module.execute_default_executor_dispatches(
         profile=profile,
@@ -794,9 +770,8 @@ def test_execute_dispatch_prefers_current_publication_eval_over_stale_request_re
         apply=True,
     )
 
-    assert result["executed_count"] == 1
-    assert called["record"]["eval_id"] == "publication-eval::current-projection"
-    assert called["record"]["recommended_actions"][0]["specificity_targets"] == [
-        {"target_kind": "claim"},
-        {"target_kind": "metric"},
-    ]
+    assert result["blocked_count"] == 1
+    execution = result["executions"][0]
+    assert execution["execution_status"] == "blocked"
+    assert execution["blocked_reason"] == "ai_reviewer_record_incomplete"
+    assert execution["missing_record_fields"] == ["future_facing_limitations_plan"]

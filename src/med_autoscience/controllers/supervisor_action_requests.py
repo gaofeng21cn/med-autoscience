@@ -32,6 +32,18 @@ _REQUEST_AUTHORITY_CONTRACT = {
         "medical_claim_authoring",
     ],
 }
+_AI_REVIEWER_REQUIRED_RECORD_FIELDS = (
+    "quality_assessment",
+    "future_facing_limitations_plan",
+)
+_AI_REVIEWER_REQUIRED_REVIEWER_OS_FIELDS = (
+    "input_bundle",
+    "rubric_scores",
+    "decision_matrix",
+    "provenance_checks",
+    "route_back_decision",
+    "future_facing_limitations_plan",
+)
 _SPECIFICITY_TARGET_TYPES = ("claim", "figure", "table", "metric", "source_path")
 _SPECIFICITY_NEXT_CONTROLLER_WRITE = {
     "surface": "publication_eval/latest.json",
@@ -290,6 +302,8 @@ def build_ai_reviewer_publication_eval_request(
                 "owner": "ai_reviewer",
                 "source_kind": "publication_eval_ai_reviewer",
                 "writeback_required": True,
+                "required_record_fields": list(_AI_REVIEWER_REQUIRED_RECORD_FIELDS),
+                "required_reviewer_operating_system_fields": list(_AI_REVIEWER_REQUIRED_REVIEWER_OS_FIELDS),
                 "assessment_written_lifecycle_state": "assessment_written",
                 "pre_writeback_authority": "observability_only",
                 "pre_writeback_can_authorize_quality": False,
