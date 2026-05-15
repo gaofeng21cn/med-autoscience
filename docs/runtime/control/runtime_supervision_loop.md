@@ -310,6 +310,7 @@ controller work-unit evidence adoption 采用同一条 AI-first 边界：
 - 若受控 worker 已经完成同一 work unit，supervisor 必须进入 gate recheck、owner route 前进或下一 owner handoff；不得因为 stale queue、fresh timestamp、archived report 或 report replay 重复派发同一 work unit。
 - repo-side fix landed、archive proof verified、report history 可读取，只能说明平台或证据面已有修复证据；它不等同于具体 study 已恢复、live worker 已存在、论文质量已放行或 `current_package` / `submission_minimal` 已成为当前 authority。
 - `domain-transition::*` 是 MAS controller transition authority，不能被当成普通 publication eval action 处理。controller refresh materialize 后，runtime authorization 必须消费当前 `controller_decisions/latest.json` 中的 transition work unit；prompt 只读取该 authorization，不回退到旧 prompt、旧 task-intake、旧 default executor dispatch 或缺少当前 fingerprint 的 `publication_eval.recommended_actions`。允许 relay 的最低条件是：controller decision 当前、未要求 human confirmation、transition fingerprint 中的 work unit id 与 `next_work_unit.unit_id` 一致、controller action 属于该 transition 的白名单。
+- live Codex CLI prompt 是 run 启动时生成的 executor snapshot。刷新 `runtime_state.last_controller_decision_authorization` 不会改写已经运行的 Codex CLI 进程；因此 controller refresh 的 postcondition 必须读取当前 `active_run_id` 的 `prompt.md`，确认它包含当前 work-unit fingerprint 或 work-unit id。若 prompt 仍指向旧 work unit，或 live worker 缺少可验证 prompt，MAS 必须用 controller-owned pause/resume 生成 fresh turn，再让新 prompt 消费当前 authorization；不得把新 work unit 仅 queue 到旧进程。
 
 runtime repair 与 publication gate 的 owner routing 使用 controller terminal 证据，而不是泛化的 gate blocker：
 
