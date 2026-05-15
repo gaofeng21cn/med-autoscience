@@ -37,6 +37,9 @@
 - 医学论文文体、reader flow、段落论证节奏、是否像工作汇报、claim restraint、讨论克制性等主观质量，只能由 AI reviewer-backed `medical_prose_review` 或 AI reviewer-backed `publication_eval/latest.json` 判定。
 - Regex / pattern / deterministic scanner 可以保留为 `mechanical_safety_flags`、evidence snippets 或内部术语泄漏安全护栏；它们不得单独触发或清除 `medical_journal_prose_style_not_met` 这类主观文体 blocker。
 - deterministic gate 可以继续阻断可验证事实缺口，例如缺文件、schema 不完整、claim-evidence 缺失、submission 包 stale、内部控制术语泄漏或 provenance 损坏。
+- literature hygiene 的 key / provenance 检查只能证明 citation key、ledger provenance、重复项和基本同步关系没有机械漂移。它不能授权 reference style、医学引用充分性、文献选择合理性或 publication-quality bibliography。
+- rendered bibliography audit 可以阻断已渲染参考文献中的可验证样式缺陷，例如 initials-first 作者缩写、明显不规范的期刊名大小写或缺少可用 DOI/URL 的提示；它是 publication-quality 输入和 safety flag，不替代 AI reviewer、医学质量 owner 或投稿前人工/作者判断。
+- 003 暴露的初稿质量缺陷必须按 MAS 层边界修复：机械 hygiene 负责发现可重放的 citation/rendered-reference 缺陷，AI reviewer 负责审稿式质量判断，study / publication owner 负责最终路线和质量裁决。任何一层都不得把自己的 projection 写成完整医学质量结论。
 - 不得用 hidden templates、heuristic-only reviewer verdict、scorecard-only ready verdict 或程序化正文/论文质量判断替代 AI reviewer artifact。
 - 需要新增可调用面时，优先挂在现有 controller / publication-eval surface 下，不新增第二前台入口。
 - 外部 skill/workflow 材料只能作为 clean-room 学习背景。reviewer response、data、Figure/display、source-grounded deliverable patterns 必须吸收到 MAS stage quality pack、AI reviewer、evidence/review ledgers、publication gate、controller decisions、Stage Deliverable Review Page / Index 或 Portal read model；不得把 vendor prompt、runtime、HTML exporter、citation UI、skill runner 或 checklist 写成质量 owner、publication authority、default skill source 或外部 runtime dependency。当前 nature-skills intake 见 [Nature-skills Learning Intake](../../references/mainline/nature_skills_learning_intake.md)。
