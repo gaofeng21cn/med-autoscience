@@ -584,6 +584,63 @@ def test_study_state_matrix_projects_bundle_stage_finalize_even_with_active_run(
     assert transition["guard_boundary"]["required_owner_surface"] == "artifacts/publication_eval/latest.json"
 
 
+def test_study_state_matrix_bundle_stage_ignores_stale_publication_gate_review_unit(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "002-dm"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 002-dm\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "ai_reviewer"},
+            "verdict": {"overall_verdict": "promising"},
+            "recommended_actions": [
+                {
+                    "action_type": "continue_same_line",
+                    "route_target": "finalize",
+                    "next_work_unit": {
+                        "unit_id": "publication_gate_blocker_review",
+                        "lane": "review",
+                        "summary": "Review the current publication gate blockers.",
+                    },
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "002-dm",
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "active_run_id": "run-live-002",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    transition = json.loads(captured.out)["studies"][0]["domain_transition"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "bundle_stage_finalize"
+    assert transition["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert transition["next_work_unit"]["lane"] == "controller"
+    assert transition["controller_action"] == "continue_bundle_stage"
+
+
 def test_study_state_matrix_projects_artifact_delta_live_apply_transition(
     monkeypatch,
     tmp_path: Path,

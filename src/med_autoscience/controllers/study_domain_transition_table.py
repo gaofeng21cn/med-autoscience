@@ -731,7 +731,7 @@ def _first_finalize_work_unit(actions: object) -> dict[str, str] | None:
             continue
         route_target = _text(action.get("route_target"))
         unit = _compact_work_unit(action.get("next_work_unit"))
-        if route_target == "finalize" and unit is not None:
+        if route_target == "finalize" and unit is not None and _work_unit_is_finalize(unit):
             return unit
         if unit is not None and _work_unit_is_finalize(unit):
             return unit
