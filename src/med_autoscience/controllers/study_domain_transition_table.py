@@ -6,6 +6,8 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import study_transition_receipt_consumption
+
 
 SURFACE = "study_domain_transition_table"
 SCHEMA_VERSION = 1
@@ -39,10 +41,12 @@ def project_domain_transition(
     publication_eval, publication_eval_ref = _read_relative_json(root, PUBLICATION_EVAL_RELATIVE_PATH)
     controller_decision, controller_decision_ref = _read_relative_json(root, CONTROLLER_DECISION_RELATIVE_PATH)
     repair_evidence, repair_evidence_ref = _read_relative_json(root, REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH)
+    execution_receipt_consumption = study_transition_receipt_consumption.execution_receipt_consumption(status)
     source_refs = _present_refs(
         publication_eval_ref,
         controller_decision_ref,
         repair_evidence_ref,
+        _text(execution_receipt_consumption.get("source_ref")),
         "study_runtime_status",
         "study_macro_state",
     )
@@ -69,6 +73,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if _text(macro_state.get("writer_state")) == "conflict" or _text(macro_state.get("reason")) == "truth_conflict":
@@ -91,6 +96,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if _requires_human_gate(controller_decision):
@@ -113,6 +119,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if _is_stop_loss(macro_state=macro_state, controller_decision=controller_decision, status=status):
@@ -135,6 +142,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if _publication_gate_blocked(publication_eval):
@@ -157,6 +165,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if _ai_reviewer_re_eval(publication_eval):
@@ -174,6 +183,7 @@ def project_domain_transition(
             typed_blocker=None,
             guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     bundle_stage_work_unit = _bundle_stage_finalize_work_unit(
@@ -182,6 +192,45 @@ def project_domain_transition(
         controller_decision=controller_decision,
     )
     if bundle_stage_work_unit is not None:
+        bundle_stage_consumption = study_transition_receipt_consumption.bundle_stage_completion_receipt_consumption(
+            study_root=root,
+            publication_eval=publication_eval,
+            work_unit=bundle_stage_work_unit,
+            controller_decision=controller_decision,
+        )
+        if bundle_stage_consumption:
+            completion_source_refs = _present_refs(
+                publication_eval_ref,
+                controller_decision_ref,
+                _text(bundle_stage_consumption.get("completion_ref")),
+                _text(bundle_stage_consumption.get("artifact_ref")),
+                "study_runtime_status",
+                "study_macro_state",
+            )
+            return _transition(
+                study_id=study_id,
+                decision_type="completion_receipt_consumed",
+                route_target="human_gate",
+                next_work_unit=_work_unit(
+                    "package_closure_consumed_handoff",
+                    "finalize",
+                    "Expose the completed package closure receipt without redriving the consumed work unit.",
+                ),
+                controller_action="none",
+                owner="med-autoscience",
+                typed_blocker=_typed_blocker(
+                    blocker_id="completed_work_unit_consumed",
+                    blocker_type="completion_receipt",
+                    summary=(
+                        "Bundle-stage package closure has already consumed this work unit; automatic redrive is forbidden."
+                    ),
+                    required_owner_surface=_text(bundle_stage_consumption.get("completion_ref"))
+                    or "runtime_turn_closeout",
+                ),
+                guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
+                source_refs=completion_source_refs,
+                completion_receipt_consumption=bundle_stage_consumption,
+            )
         return _transition(
             study_id=study_id,
             decision_type="bundle_stage_finalize",
@@ -192,6 +241,7 @@ def project_domain_transition(
             typed_blocker=None,
             guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if _meaningful_artifact_delta(repair_evidence):
@@ -212,6 +262,7 @@ def project_domain_transition(
                 mas_owner_apply_receipt_required=True,
             ),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if active_run_id:
@@ -225,6 +276,7 @@ def project_domain_transition(
             typed_blocker=None,
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=True),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if _text(macro_state.get("user_next")) == "submit_info":
@@ -247,6 +299,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if delivered_package and delivered_package.get("observed") is True:
@@ -269,6 +322,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     return _transition(
@@ -290,6 +344,7 @@ def project_domain_transition(
         ),
         guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
         source_refs=source_refs,
+        completion_receipt_consumption=execution_receipt_consumption,
     )
 
 
@@ -373,6 +428,9 @@ def build_family_transition_spec(rows: Iterable[Mapping[str, Any]]) -> dict[str,
                 "opl_interprets_domain_quality": False,
             },
         }
+        receipt_consumption = _mapping(representative.get("completion_receipt_consumption"))
+        if receipt_consumption:
+            transition["receipt"]["completion_receipt_consumption"] = dict(receipt_consumption)
         typed_blocker = _family_typed_blocker(representative)
         if typed_blocker is not None:
             transition["typed_blocker"] = typed_blocker
@@ -413,6 +471,16 @@ def build_family_transition_matrix_cases(rows: Iterable[Mapping[str, Any]]) -> l
         context = {"receipt_ref": _receipt_ref(row_payload)}
         if source_ref:
             context = {"source_ref": source_ref, **context}
+        receipt_consumption = _mapping(row_payload.get("completion_receipt_consumption"))
+        if receipt_consumption:
+            context["completion_receipt_consumption"] = dict(receipt_consumption)
+        expected = {
+            "decision_type": _text(row_payload.get("decision_type")) or "unknown",
+            "route_target": _text(row_payload.get("route_target")) or "inspect",
+            "next_work_unit_id": _text(_mapping(row_payload.get("next_work_unit")).get("unit_id")),
+            "controller_action": _text(row_payload.get("controller_action")) or "none",
+            "owner": _text(row_payload.get("owner")) or FAMILY_TRANSITION_OWNER,
+        }
         cases.append(
             {
                 "case_id": f"{study_id}:{key}",
@@ -421,6 +489,7 @@ def build_family_transition_matrix_cases(rows: Iterable[Mapping[str, Any]]) -> l
                 "event": "domain_tick",
                 "guards": {_guard_id(key): True},
                 "context": context,
+                "expected": expected,
             }
         )
     return cases
@@ -437,8 +506,9 @@ def _transition(
     typed_blocker: Mapping[str, Any] | None,
     guard_boundary: Mapping[str, Any],
     source_refs: Iterable[str],
+    completion_receipt_consumption: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "study_id": study_id,
         "decision_type": decision_type,
         "route_target": route_target,
@@ -449,6 +519,9 @@ def _transition(
         "guard_boundary": dict(guard_boundary),
         "source_refs": list(source_refs),
     }
+    if completion_receipt_consumption:
+        payload["completion_receipt_consumption"] = dict(completion_receipt_consumption)
+    return payload
 
 
 def _work_unit(unit_id: str, lane: str, summary: str) -> dict[str, str]:

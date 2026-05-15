@@ -347,6 +347,13 @@ def test_study_state_matrix_projects_publication_gate_blocker_transition(
                 "source_ref": "artifacts/publication_eval/latest.json",
                 "receipt_ref": "mas-domain-transition:003-gate:publication_gate_replay",
             },
+            "expected": {
+                "decision_type": "publication_gate_blocker",
+                "route_target": "review",
+                "next_work_unit_id": "publication_gate_replay",
+                "controller_action": "run_gate_clearing_batch",
+                "owner": "publication_gate",
+            },
         }
     ]
     rule = next(
