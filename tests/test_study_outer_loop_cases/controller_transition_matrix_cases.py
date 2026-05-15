@@ -113,6 +113,7 @@ class OuterLoopTransitionCase:
     expected_controller_action_type: str
     expected_unit_id: str
     task_intake_action: dict[str, object] | None = None
+    assessment_provenance: dict[str, object] | None = None
 
 
 def _publication_eval_payload(
@@ -121,9 +122,10 @@ def _publication_eval_payload(
     quest_root: Path,
     action: dict[str, object],
     verdict: str,
+    assessment_provenance: dict[str, object] | None = None,
 ) -> dict[str, object]:
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
-    return {
+    payload = {
         "schema_version": 1,
         "eval_id": "publication-eval::001-risk::quest-001::transition-matrix",
         "study_id": "001-risk",
@@ -145,6 +147,14 @@ def _publication_eval_payload(
             "paper_root_ref": str(study_root / "paper"),
             "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
         },
+        "assessment_provenance": assessment_provenance
+        or {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [str(study_root / "paper" / "manuscript.md")],
+            "ai_reviewer_required": False,
+        },
         "verdict": {
             "overall_verdict": verdict,
             "primary_claim_status": "supported" if verdict == "promising" else "partial",
@@ -162,6 +172,7 @@ def _publication_eval_payload(
         ],
         "recommended_actions": [action],
     }
+    return payload
 
 
 def _finalize_review_only_action(study_root: Path) -> dict[str, object]:
@@ -243,6 +254,152 @@ def _stale_write_task_intake_action() -> dict[str, object]:
 @pytest.mark.parametrize(
     "case_factory",
     (
+        lambda study_root: OuterLoopTransitionCase(
+            case_id="domain_transition_bundle_finalize_preempts_stale_rebuttal_task_intake",
+            gate_report={
+                "status": "clear",
+                "allow_write": True,
+                "blockers": [],
+                "current_required_action": "continue_bundle_stage",
+                "medical_publication_surface_status": "clear",
+                "study_delivery_status": "current",
+                "submission_minimal_authority_status": "current",
+            },
+            publication_eval_action={
+                "action_id": "action-stale-rebuttal-coverage",
+                "action_type": "bounded_analysis",
+                "priority": "now",
+                "reason": "Stale rebuttal coverage closeout should yield to bundle-stage authority.",
+                "route_target": "analysis-campaign",
+                "route_key_question": "paper/rebuttal/review_matrix.md and action_plan.md coverage closeout",
+                "route_rationale": "Old analysis-campaign route residue.",
+                "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                "requires_controller_decision": True,
+                "next_work_unit": {
+                    "unit_id": "rebuttal_coverage_closeout",
+                    "lane": "analysis-campaign",
+                    "summary": "Confirm reviewer feedback coverage.",
+                },
+                "blocking_work_units": [
+                    {
+                        "unit_id": "rebuttal_coverage_closeout",
+                        "lane": "analysis-campaign",
+                        "summary": "Confirm reviewer feedback coverage.",
+                    }
+                ],
+            },
+            publication_eval_verdict="promising",
+            publication_supervisor_state={
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+                "publication_gate_allows_direct_write": True,
+            },
+            task_intake_action={
+                "action_id": "task-intake::001-risk::rebuttal",
+                "action_type": "bounded_analysis",
+                "priority": "now",
+                "reason": "Old rebuttal coverage task intake residue.",
+                "route_target": "analysis-campaign",
+                "route_key_question": "paper/rebuttal/review_matrix.md and action_plan.md coverage closeout",
+                "route_rationale": "Old analysis-campaign route residue.",
+                "requires_controller_decision": True,
+                "controller_action_type": "ensure_study_runtime",
+                "next_work_unit": {
+                    "unit_id": "rebuttal_coverage_closeout",
+                    "lane": "analysis-campaign",
+                    "summary": "Confirm reviewer feedback coverage.",
+                },
+                "work_unit_fingerprint": "publication-blockers::stale-rebuttal",
+            },
+            expected_decision_type="continue_same_line",
+            expected_route_target="finalize",
+            expected_controller_action_type="ensure_study_runtime",
+            expected_unit_id="submission_authority_sync_closure",
+        ),
+        lambda study_root: OuterLoopTransitionCase(
+            case_id="domain_transition_ai_reviewer_required_preempts_stale_write_task_intake",
+            gate_report={
+                "status": "clear",
+                "allow_write": True,
+                "blockers": [],
+                "current_required_action": "continue_bundle_stage",
+                "medical_publication_surface_status": "clear",
+            },
+            publication_eval_action={
+                "action_id": "action-stale-write",
+                "action_type": "continue_same_line",
+                "priority": "now",
+                "reason": "Old manuscript write task should yield to AI reviewer assessment.",
+                "route_target": "write",
+                "route_key_question": "MAS/MDS-supervised revised manuscript package",
+                "route_rationale": "Old write route residue.",
+                "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                "requires_controller_decision": True,
+                "next_work_unit": {
+                    "unit_id": "revised_manuscript_package",
+                    "lane": "write",
+                    "summary": "Continue canonical manuscript revisions.",
+                },
+            },
+            publication_eval_verdict="promising",
+            assessment_provenance={
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+                "policy_id": "publication_gate_projection_v1",
+                "source_refs": [str(study_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")],
+                "ai_reviewer_required": True,
+            },
+            publication_supervisor_state={
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+                "publication_gate_allows_direct_write": True,
+            },
+            task_intake_action=_stale_write_task_intake_action(),
+            expected_decision_type="continue_same_line",
+            expected_route_target="review",
+            expected_controller_action_type="return_to_ai_reviewer_workflow",
+            expected_unit_id="ai_reviewer_recheck",
+        ),
+        lambda study_root: OuterLoopTransitionCase(
+            case_id="domain_transition_gate_blocker_replays_gate_after_terminal_analysis_handoff",
+            gate_report={
+                "status": "blocked",
+                "allow_write": False,
+                "blockers": ["medical_publication_surface_blocked", "claim_evidence_consistency_failed"],
+                "current_required_action": "return_to_publishability_gate",
+                "supervisor_phase": "publishability_gate_blocked",
+                "bundle_tasks_downstream_only": True,
+                "medical_publication_surface_status": "blocked",
+                "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+            },
+            publication_eval_action={
+                "action_id": "action-stale-terminal-analysis",
+                "action_type": "bounded_analysis",
+                "priority": "now",
+                "reason": "Old terminal analysis repair should not be redriven without gate replay.",
+                "route_target": "analysis-campaign",
+                "route_key_question": "analysis_claim_evidence_repair",
+                "route_rationale": "Old terminal repair route residue.",
+                "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                "requires_controller_decision": True,
+                "next_work_unit": {
+                    "unit_id": "analysis_claim_evidence_repair",
+                    "lane": "analysis-campaign",
+                    "summary": "Repair claim-evidence blockers.",
+                },
+            },
+            publication_eval_verdict="blocked",
+            publication_supervisor_state={
+                "supervisor_phase": "publishability_gate_blocked",
+                "current_required_action": "return_to_publishability_gate",
+                "bundle_tasks_downstream_only": True,
+                "publication_gate_allows_direct_write": False,
+            },
+            expected_decision_type="bounded_analysis",
+            expected_route_target="review",
+            expected_controller_action_type="run_gate_clearing_batch",
+            expected_unit_id="publication_gate_replay",
+        ),
         lambda study_root: OuterLoopTransitionCase(
             case_id="clear_bundle_stage_preempts_stale_write_task_intake",
             gate_report={
@@ -341,6 +498,7 @@ def test_runtime_watch_outer_loop_controller_transition_matrix(
             quest_root=quest_root,
             action=case.publication_eval_action,
             verdict=case.publication_eval_verdict,
+            assessment_provenance=case.assessment_provenance,
         ),
     )
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)

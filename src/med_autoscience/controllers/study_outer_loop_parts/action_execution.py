@@ -7,6 +7,8 @@ from typing import Callable
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionControllerAction
+from med_autoscience.controllers import supervisor_action_requests
+from med_autoscience.controllers import supervisor_action_request_lifecycle
 
 
 EnsureStudyRuntime = Callable[..., dict[str, Any]]
@@ -108,6 +110,40 @@ def execute_controller_action(
             "ok": True,
             "status": "recorded",
             "action": StudyDecisionActionType.REQUEST_GATE_SPECIFICITY.value,
+        }
+    elif action.action_type is StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW:
+        input_refs = supervisor_action_request_lifecycle.default_ai_reviewer_request_input_refs(
+            study_root=study_root,
+        )
+        packet = supervisor_action_requests.build_ai_reviewer_publication_eval_request(
+            study_id=study_id,
+            quest_id=quest_id,
+            source_surface="controller_decisions/latest.json",
+            workflow_state={
+                "quality_authority": {
+                    "owner": "ai_reviewer",
+                    "state": "requested",
+                },
+                "route_back": {
+                    "required": True,
+                    "target": "publication_eval/latest.json",
+                },
+                "blockers": ["ai_reviewer_assessment_required"],
+            },
+            input_refs=input_refs,
+        )
+        materialized = supervisor_action_request_lifecycle.materialize_ai_reviewer_request(
+            study_root=study_root,
+            packet=packet,
+        )
+        result = {
+            "ok": True,
+            "status": "recorded",
+            "action": StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW.value,
+            "request_path": materialized.get("path"),
+            "paper_package_mutation_allowed": False,
+            "quality_gate_relaxation_allowed": False,
+            "manual_study_patch_allowed": False,
         }
     else:
         raise ValueError(f"unsupported study outer-loop controller action: {action.action_type.value}")

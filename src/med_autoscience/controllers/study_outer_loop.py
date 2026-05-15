@@ -21,6 +21,9 @@ from med_autoscience.controllers.study_outer_loop_parts.decision_refs import (
     _resolve_publication_eval_ref,
     read_publication_eval_latest,
 )
+from med_autoscience.controllers.study_outer_loop_parts.domain_transition_actions import (
+    domain_transition_recommended_action,
+)
 from med_autoscience.controllers.study_outer_loop_parts.action_execution import (
     execute_controller_action as _execute_controller_action_impl,
 )
@@ -234,6 +237,7 @@ def _bundle_stage_finalize_action_from_publication_eval(
         return action
     return {
         **action,
+        "action_type": StudyDecisionType.CONTINUE_SAME_LINE.value,
         "route_target": "finalize",
         "route_key_question": str(action.get("route_key_question") or "").strip()
         or "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？",
@@ -315,13 +319,19 @@ def build_runtime_watch_outer_loop_tick_request(
             publishability_gate_report=gate_report,
             evaluation_summary=evaluation_summary,
         )
+        domain_transition_action = domain_transition_recommended_action(
+            study_id=str(status_payload.get("study_id") or resolved_study_root.name),
+            study_root=resolved_study_root,
+            status_payload={**status_payload, "publication_gate_report": dict(gate_report)},
+            active_run_id=str(status_payload.get("active_run_id") or "").strip() or None,
+        )
         bundle_stage_finalize_preempts_task_intake = bundle_stage_publication_eval_preempts_task_intake(
             status_payload=status_payload,
             gate_report=gate_report,
             publication_eval_payload=publication_eval_payload,
             task_intake_action=task_intake_action,
         )
-        if bundle_stage_finalize_preempts_task_intake:
+        if domain_transition_action is not None or bundle_stage_finalize_preempts_task_intake:
             task_intake_action = None
         batch_action = None
         startup_freshness_gate = startup_freshness_requires_gate_clearing(status_payload)
@@ -367,7 +377,9 @@ def build_runtime_watch_outer_loop_tick_request(
             if bundle_stage_finalize_preempts_task_intake and _status_payload_reports_bundle_stage(status_payload)
             else None
         )
-        if startup_freshness_gate and batch_action is not None:
+        if domain_transition_action is not None:
+            recommended_action = domain_transition_action
+        elif startup_freshness_gate and batch_action is not None:
             recommended_action = batch_action
         elif _quality_repair_batch_preempts_task_intake(batch_action):
             recommended_action = batch_action

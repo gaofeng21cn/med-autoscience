@@ -60,6 +60,7 @@ class StudyDecisionActionType(StrEnum):
     RUN_GATE_CLEARING_BATCH = "run_gate_clearing_batch"
     RUN_QUALITY_REPAIR_BATCH = "run_quality_repair_batch"
     REQUEST_GATE_SPECIFICITY = "request_gate_specificity"
+    RETURN_TO_AI_REVIEWER_WORKFLOW = "return_to_ai_reviewer_workflow"
 
 
 def _reject_unknown_fields(label: str, payload: dict[str, Any], allowed_fields: frozenset[str]) -> None:
