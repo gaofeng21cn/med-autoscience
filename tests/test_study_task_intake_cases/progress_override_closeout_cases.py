@@ -173,6 +173,74 @@ def test_reviewer_revision_intake_yields_to_reviewer_first_bundle_stage_closeout
     ) is None
 
 
+def test_reviewer_revision_intake_yields_to_current_delivery_package_closeout(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+    study_root = tmp_path / "studies" / "002-dm"
+    package_root = study_root / "manuscript" / "current_package"
+    (package_root / "figures").mkdir(parents=True)
+    (package_root / "tables").mkdir()
+    for path in (
+        package_root / "manuscript.docx",
+        package_root / "paper.pdf",
+        package_root / "references.bib",
+        package_root / "figures" / "Figure1.png",
+        package_root / "tables" / "Table1.md",
+    ):
+        path.write_text("package artifact\n", encoding="utf-8")
+    (package_root / "SUBMISSION_TODO.md").write_text("# Submission TODO\n", encoding="utf-8")
+    (study_root / "manuscript" / "current_package.zip").write_text("zip\n", encoding="utf-8")
+    _write_json(
+        package_root / "audit" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [{"figure_id": "Figure1"}],
+            "tables": [{"table_id": "Table1"}],
+            "manuscript": {"surface_qc": {"status": "pass", "failures": []}},
+        },
+    )
+    _write_json(
+        study_root / "manuscript" / "delivery_manifest.json",
+        {
+            "schema_version": 1,
+            "generated_at": "2026-05-13T05:27:45+00:00",
+            "stage": "submission_minimal",
+            "source_signature": "source::ready",
+            "evaluated_source_signature": "source::ready",
+            "authority_source_signature": "source::ready",
+            "surface_roles": {
+                "controller_authorized_paper_root": str(study_root / "paper"),
+                "human_facing_current_package_root": str(package_root),
+                "human_facing_current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
+            },
+        },
+    )
+    payload = {
+        "emitted_at": "2026-04-27T02:05:48+00:00",
+        "task_intent": "用户已对糖尿病002投稿包给出明确审稿式反馈，必须作为 reviewer_revision 重新激活同一论文线。",
+        "constraints": ["完成前维持 audit preview only / not submission-ready 判断。"],
+        "first_cycle_outputs": [
+            "paper/rebuttal/review_matrix.md and action_plan.md covering all feedback items.",
+        ],
+    }
+    gate_report = {
+        "generated_at": "2026-05-15T05:28:48+00:00",
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "current_required_action": "continue_bundle_stage",
+        "supervisor_phase": "bundle_stage_ready",
+    }
+
+    assert module.task_intake_is_reviewer_revision(payload) is True
+    assert module.build_task_intake_progress_override(
+        payload,
+        study_root=study_root,
+        publishability_gate_report=gate_report,
+    ) is None
+
+
 def test_reviewer_revision_intake_yields_to_evaluation_promotion_gate_when_gate_report_not_loaded() -> None:
     module = importlib.import_module("med_autoscience.study_task_intake")
 

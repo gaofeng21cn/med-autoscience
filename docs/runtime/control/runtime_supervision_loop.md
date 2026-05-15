@@ -232,6 +232,8 @@ consumer 只能传播该 route，不能重新解释 owner。request handoff 和 
 
 完成态与停驻态也属于 current truth。若 `study_runtime_status` / `study_progress` 已经给出 `quest_status=completed` 且 completion contract resolved，或 `auto_runtime_parked.parked=true` / `canonical_runtime_action=await_explicit_resume` 且没有 live worker，scan 必须清空 stale lifecycle、不给 AI reviewer 或 external supervisor 排队，并把 `owner_route.current_owner` 投为 `controller_stop` 或 completed truth。manual hold、publishability stop-loss、package-ready handoff 和 external metadata pending 都只能等待显式 resume / revision intake，不能被 no-live 噪声、旧 publication gate 或旧 AI reviewer required 重新打开 writer。
 
+投稿包里程碑本身也是停驻边界。若最新 task intake 早于 controller-authorized delivery manifest / current_package，且 delivery manifest 签名一致、`current_package.zip` 与 audit manifest 存在、publication gate 为 clear / bundle-stage-ready，则这份交付面消费旧 task intake，系统必须投成 package-ready handoff / explicit-resume wait。旧 Codex CLI prompt、旧 `controller_work_unit_pending`、旧 reviewer-revision intake 或 active run 标签不能覆盖这个终局；只有更新的用户修改请求、stale delivery / authority blocker、AI reviewer-backed quality blocker 或显式 resume 才能重新打开 writer。
+
 同一轮 owner action 必须满足幂等合同。`route_epoch` 和 `source_fingerprint` 决定本轮 owner routing，具体 repo-side owner 还必须给自己的 work unit 写稳定 fingerprint：
 
 - fingerprint 只表达语义输入，不表达普通观测时间；内容相同的 JSON/资产被同一 owner 重写后，不能因为 `mtime` 变化制造新 work unit。
@@ -318,7 +320,7 @@ controller work-unit evidence adoption 采用同一条 AI-first 边界：
 runtime repair 与 publication gate 的 owner routing 使用 controller terminal 证据，而不是泛化的 gate blocker：
 
 - `gate_specificity.required=true` 本身不足以阻止 runtime relaunch；异常 stopped、paused/resume 无 live worker、active/running 但无 live worker、retry budget exhausted 仍必须进入 runtime platform repair。
-- 已交付人审/投稿包且无 live worker 的 parked handoff 是例外：当 `auto_runtime_parked` 或 delivery/current_package handoff 证据成立时，平台 repair redrive 不能自动重开 writer，只能等待显式 resume / revision intake。
+- 已交付人审/投稿包的 parked handoff 是例外：当 `auto_runtime_parked` 或 delivery/current_package handoff 证据成立时，平台 repair redrive 不能自动重开 writer；若仍有 live worker，controller 应优先 pause 旧 run 并等待显式 resume / revision intake。
 - 若 latest task intake 明确是 reviewer revision 或 submission refresh，用户显式唤醒可以释放 delivered-package parking；`runtime_platform_repair` source 不能借同一个 intake 自动释放该停驻。
 - 只有 resume/postcondition 或 runtime status 明确给出 `gate_needs_specificity` / `needs_specificity` / `publication_gate_specificity_required`，并且来源是 controller work-unit authorization 时，supervisor 才把 no-live-worker relaunch 转交给 publication gate。
 - 若 stale specificity terminal 已被带完整 targets 的 publication eval 证明满足，platform repair 可以清掉旧 terminal，并把队列推进到下一 owner；已 applied 的 runtime repair 不应继续留在当次 action queue。

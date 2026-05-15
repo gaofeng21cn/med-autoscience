@@ -260,6 +260,53 @@ def _closeout_surface_is_fresher_than_task_intake(
     return latest_surface_emitted_at is not None and latest_surface_emitted_at >= task_intake_emitted_at
 
 
+def _delivery_manifest_current_payload(*, study_root: Path | None) -> dict[str, Any] | None:
+    if study_root is None:
+        return None
+    root = Path(study_root).expanduser().resolve()
+    manifest_path = root / "manuscript" / "delivery_manifest.json"
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if _non_empty_text(payload.get("stage")) != "submission_minimal":
+        return None
+    source_signature = _non_empty_text(payload.get("source_signature"))
+    evaluated_signature = _non_empty_text(payload.get("evaluated_source_signature"))
+    authority_signature = _non_empty_text(payload.get("authority_source_signature"))
+    if source_signature is None or source_signature != evaluated_signature or source_signature != authority_signature:
+        return None
+    surface_roles = _mapping_value(payload.get("surface_roles"))
+    package_root_text = _non_empty_text(surface_roles.get("human_facing_current_package_root"))
+    package_zip_text = _non_empty_text(surface_roles.get("human_facing_current_package_zip"))
+    package_root = (
+        Path(package_root_text).expanduser()
+        if package_root_text is not None
+        else root / "manuscript" / "current_package"
+    )
+    package_zip = (
+        Path(package_zip_text).expanduser()
+        if package_zip_text is not None
+        else root / "manuscript" / "current_package.zip"
+    )
+    if not package_root.exists() or not package_zip.exists():
+        return None
+    required_files = (
+        "manuscript.docx",
+        "paper.pdf",
+        "references.bib",
+        "SUBMISSION_TODO.md",
+    )
+    if not all((package_root / relative_path).exists() for relative_path in required_files):
+        return None
+    submission_manifest = package_root / "audit" / "submission_manifest.json"
+    if not submission_manifest.exists():
+        return None
+    return payload
+
+
 def _latest_revision_handoff_verification(*, study_root: Path | None) -> dict[str, Any] | None:
     if study_root is None:
         return None
@@ -447,6 +494,24 @@ def _task_intake_yields_to_blocked_submission_closeout(
     return True
 
 
+def _task_intake_yields_to_current_delivery_package_closeout(
+    *,
+    payload: dict[str, Any] | None,
+    study_root: Path | None,
+    publishability_gate_report: dict[str, Any] | None,
+) -> bool:
+    delivery_manifest = _delivery_manifest_current_payload(study_root=study_root)
+    if delivery_manifest is None:
+        return False
+    if not _gate_report_clear_for_quality_closeout(publishability_gate_report):
+        return False
+    return _closeout_surface_is_fresher_than_task_intake(
+        payload,
+        delivery_manifest,
+        publishability_gate_report,
+    )
+
+
 def _task_intake_yields_to_bundle_only_submission_closeout(
     *,
     payload: dict[str, Any] | None,
@@ -623,6 +688,12 @@ def task_intake_yields_to_deterministic_submission_closeout(
             study_root=study_root,
             publishability_gate_report=publishability_gate_report,
             evaluation_summary=evaluation_summary,
+        ):
+            return True
+        if _task_intake_yields_to_current_delivery_package_closeout(
+            payload=payload,
+            study_root=study_root,
+            publishability_gate_report=publishability_gate_report,
         ):
             return True
         if _evaluation_summary_has_open_reviewer_first_blockers(evaluation_summary):
