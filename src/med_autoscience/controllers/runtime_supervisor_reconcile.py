@@ -193,6 +193,7 @@ def supervisor_reconcile(
         action_types=(),
         mode=mode,
         apply=apply,
+        consumer_payload=consumed,
     )
     resolved_study_ids = _resolve_study_ids(
         requested=requested_study_ids,

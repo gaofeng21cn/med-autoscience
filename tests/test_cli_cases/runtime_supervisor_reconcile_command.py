@@ -6,6 +6,10 @@ from pathlib import Path
 
 import pytest
 
+from med_autoscience import profiles
+from tests.runtime_supervisor_dispatch_executor_helpers import dispatch as _dispatch
+from tests.runtime_supervisor_dispatch_executor_helpers import owner_route as _owner_route
+from tests.runtime_supervisor_dispatch_executor_helpers import write_json as _write_json
 from .shared import write_profile
 
 
@@ -80,8 +84,11 @@ def test_runtime_supervisor_reconcile_command_runs_one_shot_and_writes_receipt(
         mode: str,
         apply: bool,
         managed_runtime_worker: bool = False,
+        consumer_payload=None,
     ) -> dict[str, object]:
         calls.append(("execute-dispatch", tuple(study_ids)))
+        assert consumer_payload is not None
+        assert consumer_payload["default_executor_dispatches"][0]["study_id"] == "DM002"
         return {
             "surface": "default_executor_dispatch_executor",
             "requested_studies": list(study_ids),
@@ -189,7 +196,7 @@ def test_runtime_supervisor_reconcile_dry_run_never_dispatches_llm(
     monkeypatch.setattr(
         reconcile.runtime_supervisor_dispatch_executor,
         "execute_default_executor_dispatches",
-        lambda **_: {
+        lambda **kwargs: {
             "surface": "default_executor_dispatch_executor",
             "execution_count": 1,
             "executed_count": 0,
@@ -232,3 +239,112 @@ def test_runtime_supervisor_reconcile_dry_run_never_dispatches_llm(
     assert payload["paper_progress_reconcile"]["dry_run"] is True
     assert payload["paper_progress_reconcile"]["decisions"][0]["action_receipt"]["receipt_status"] == "dry_run_not_recorded"
     assert payload["executed_dispatch"]["executions"][0]["will_start_llm"] is False
+
+
+def test_runtime_supervisor_reconcile_executes_current_consume_payload_without_writing_consumer_latest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    reconcile = importlib.import_module("med_autoscience.controllers.runtime_supervisor_reconcile")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    profile = profiles.load_profile(profile_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root = workspace_root / "studies" / study_id
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    stale_route = _owner_route(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+    )
+    stale_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=stale_route,
+    )
+    stale_dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
+    _write_json(dispatch_path, stale_dispatch)
+    _write_json(
+        workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json",
+        {
+            "surface": "runtime_supervisor_consumer",
+            "schema_version": 1,
+            "default_executor_dispatch_count": 1,
+            "default_executor_dispatches": [stale_dispatch],
+        },
+    )
+    current_route = dict(
+        stale_route,
+        runtime_health_epoch="runtime-health-current",
+        work_unit_fingerprint="truth-snapshot::current-ai-reviewer",
+        source_fingerprint="truth-snapshot::current-ai-reviewer",
+        idempotency_key="owner-route::003::current-ai-reviewer",
+    )
+    current_dispatch = _dispatch(
+        study_id=study_id,
+        action_type="return_to_ai_reviewer_workflow",
+        owner="ai_reviewer",
+        required_output_surface="artifacts/publication_eval/latest.json",
+        owner_route=current_route,
+    )
+    current_dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
+
+    def fake_supervisor_scan(**kwargs) -> dict[str, object]:
+        payload = {
+            "surface": "portable_runtime_supervisor_scan",
+            "workspace_root": str(kwargs["profile"].workspace_root),
+            "studies": [{"study_id": study_id, "owner_route": current_route}],
+            "action_queue": [],
+        }
+        _write_json(workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json", payload)
+        return payload
+
+    monkeypatch.setattr(reconcile.runtime_supervisor_scan, "supervisor_scan", fake_supervisor_scan)
+    monkeypatch.setattr(
+        reconcile.runtime_supervisor_consumer,
+        "supervisor_consume",
+        lambda **_: {
+            "surface": "runtime_supervisor_consumer",
+            "schema_version": 1,
+            "dry_run": True,
+            "default_executor_dispatch_count": 1,
+            "default_executor_dispatches": [current_dispatch],
+        },
+    )
+    monkeypatch.setattr(
+        reconcile.runtime_supervisor_dispatch_executor,
+        "_execute_ai_reviewer_workflow",
+        lambda **_: {
+            "execution_status": "dry_run",
+            "blocked_reason": None,
+            "owner_callable_surface": "ai_reviewer_publication_eval_workflow",
+        },
+    )
+
+    result = reconcile.supervisor_reconcile(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=False,
+    )
+
+    execution = result["executed_dispatch"]["executions"][0]
+    assert execution["blocked_reason"] is None
+    assert execution["execution_status"] == "dry_run"
+    assert execution["owner_route"]["work_unit_fingerprint"] == "truth-snapshot::current-ai-reviewer"
+    consumer_latest = json.loads(
+        (workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").read_text(encoding="utf-8")
+    )
+    assert consumer_latest["default_executor_dispatches"][0]["owner_route"]["work_unit_fingerprint"] != (
+        "truth-snapshot::current-ai-reviewer"
+    )

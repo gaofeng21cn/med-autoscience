@@ -116,8 +116,13 @@ def _current_scan_stall(profile: WorkspaceProfile, study_id: str) -> dict[str, A
     return _mapping(_mapping(_current_scan_study(profile, study_id)).get("paper_progress_stall"))
 
 
-def _current_consumer_dispatches(profile: WorkspaceProfile, study_id: str) -> list[dict[str, Any]]:
-    latest = _read_json_object(_consumer_latest_path(profile))
+def _current_consumer_dispatches(
+    profile: WorkspaceProfile,
+    study_id: str,
+    *,
+    consumer_payload: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    latest = dict(consumer_payload) if consumer_payload is not None else _read_json_object(_consumer_latest_path(profile))
     if latest is None:
         return []
     dispatches: list[dict[str, Any]] = []
@@ -140,8 +145,14 @@ def _current_consumer_dispatches(profile: WorkspaceProfile, study_id: str) -> li
     return dispatches
 
 
-def _dispatches(profile: WorkspaceProfile, study_id: str, action_types: tuple[str, ...]) -> list[dict[str, Any]]:
-    current_dispatches = _current_consumer_dispatches(profile, study_id)
+def _dispatches(
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_types: tuple[str, ...],
+    *,
+    consumer_payload: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    current_dispatches = _current_consumer_dispatches(profile, study_id, consumer_payload=consumer_payload)
     if action_types:
         requested = set(action_types)
         return [payload for payload in current_dispatches if _text(payload.get("action_type")) in requested]
@@ -155,14 +166,19 @@ def _dispatch_path(dispatch: Mapping[str, Any]) -> Path:
     return Path(path_text).expanduser().resolve()
 
 
-def _resolve_study_ids(profile: WorkspaceProfile, study_ids: Iterable[str]) -> tuple[str, ...]:
+def _resolve_study_ids(
+    profile: WorkspaceProfile,
+    study_ids: Iterable[str],
+    *,
+    consumer_payload: Mapping[str, Any] | None = None,
+) -> tuple[str, ...]:
     explicit = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
     if explicit:
         return explicit
     if not profile.studies_root.is_dir():
         return ()
     resolved: list[str] = []
-    latest = _read_json_object(_consumer_latest_path(profile)) or {}
+    latest = dict(consumer_payload) if consumer_payload is not None else (_read_json_object(_consumer_latest_path(profile)) or {})
     for dispatch in latest.get("default_executor_dispatches") or []:
         if isinstance(dispatch, Mapping) and (study_id := _text(dispatch.get("study_id"))) is not None:
             resolved.append(study_id)
@@ -847,6 +863,7 @@ def execute_default_executor_dispatches(
     apply: bool,
     action_types: Iterable[str] = (),
     managed_runtime_worker: bool = False,
+    consumer_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     generated_at = _utc_now()
     developer_mode = resolve_developer_supervisor_mode(
@@ -856,12 +873,12 @@ def execute_default_executor_dispatches(
         scheduler_owner="default_executor_dispatch_executor",
     )
     developer_mode_payload = developer_mode.to_dict()
-    resolved_study_ids = _resolve_study_ids(profile, study_ids)
+    resolved_study_ids = _resolve_study_ids(profile, study_ids, consumer_payload=consumer_payload)
     resolved_action_types = tuple(action_type for item in action_types if (action_type := _text(item)) is not None)
     executions: list[dict[str, Any]] = []
     written_files: list[str] = []
     for study_id in resolved_study_ids:
-        for dispatch in _dispatches(profile, study_id, resolved_action_types):
+        for dispatch in _dispatches(profile, study_id, resolved_action_types, consumer_payload=consumer_payload):
             execution = _execute_dispatch(
                 profile=profile,
                 study_id=study_id,
