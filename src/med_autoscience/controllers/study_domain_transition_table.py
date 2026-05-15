@@ -47,6 +47,30 @@ def project_domain_transition(
         "study_macro_state",
     )
 
+    projection_error = _mapping(status.get("status_projection_error")) or _mapping(status.get("projection_error"))
+    if projection_error:
+        return _transition(
+            study_id=study_id,
+            decision_type="fail_closed",
+            route_target="inspect",
+            next_work_unit=_work_unit(
+                "study_status_projection_inspection",
+                "controller",
+                "Inspect study status projection error before any transition or write.",
+            ),
+            controller_action="none",
+            owner="med-autoscience",
+            typed_blocker=_typed_blocker(
+                blocker_id="study_status_projection_error",
+                blocker_type="projection_contract_error",
+                summary=_text(projection_error.get("message"))
+                or "Study status projection failed; MAS must fail closed for this study.",
+                required_owner_surface="study_runtime_status",
+            ),
+            guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
+            source_refs=source_refs,
+        )
+
     if _text(macro_state.get("writer_state")) == "conflict" or _text(macro_state.get("reason")) == "truth_conflict":
         return _transition(
             study_id=study_id,
@@ -636,19 +660,21 @@ def _is_stop_loss(
 
 
 def _publication_gate_blocked(publication_eval: Mapping[str, Any]) -> bool:
-    if _text(_mapping(publication_eval.get("assessment_provenance")).get("owner")) == "ai_reviewer":
-        return False
     if _text(publication_eval.get("domain_ready_verdict")) == "ai_reviewer_re_eval":
         return False
-    return _text(publication_eval.get("status")) == "blocked" or bool(publication_eval.get("blockers"))
+    verdict = _mapping(publication_eval.get("verdict"))
+    gaps = [item for item in publication_eval.get("gaps") or [] if isinstance(item, Mapping)]
+    return (
+        _text(publication_eval.get("status")) == "blocked"
+        or bool(publication_eval.get("blockers"))
+        or _text(verdict.get("overall_verdict")) == "blocked"
+        or any(_text(item.get("severity")) in {"must_fix", "blocking", "blocked"} for item in gaps)
+    )
 
 
 def _ai_reviewer_re_eval(publication_eval: Mapping[str, Any]) -> bool:
     provenance = _mapping(publication_eval.get("assessment_provenance"))
     return _text(publication_eval.get("domain_ready_verdict")) == "ai_reviewer_re_eval" or (
-        _text(provenance.get("owner")) == "ai_reviewer"
-        and _text(provenance.get("source_kind")) == "publication_eval_ai_reviewer"
-    ) or (
         provenance.get("ai_reviewer_required") is True
         and _text(provenance.get("owner")) != "ai_reviewer"
     )
