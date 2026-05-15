@@ -56,6 +56,109 @@ def _write_managed_study(profile, study_id: str) -> tuple[Path, Path]:
     return study_root, quest_root
 
 
+def test_waiting_owner_closeout_superseded_by_default_executor_execution_redrives(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    study_root, quest_root = _write_managed_study(profile, study_id)
+    closeout_path = quest_root / "artifacts" / "runtime" / "turn_closeouts" / "run-old.json"
+    write_text(
+        closeout_path,
+        json.dumps(
+            {
+                "schema_version": 1,
+                "quest_id": study_id,
+                "run_id": "run-old",
+                "status": "blocked",
+                "completed_at": "2026-05-15T05:57:00+00:00",
+                "blocked_reason": "owner_route_stale",
+                "next_owner": "MAS/controller owner-route dispatcher",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "waiting_for_user",
+                "active_run_id": None,
+                "worker_running": False,
+                "pending_user_message_count": 0,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "turn_closeout",
+                "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+                "continuation_updated_at": "2026-05-15T05:57:00+00:00",
+                "blocked_turn_closeout": {
+                    "run_id": "run-old",
+                    "blocked_reason": "return_to_ai_reviewer_workflow dispatch was superseded by a later owner execution.",
+                    "next_owner": "MAS/controller owner-route dispatcher",
+                    "closeout_path": str(closeout_path),
+                },
+                "last_controller_decision_authorization": {
+                    "decision_id": "decision-ai-reviewer-current",
+                    "controller_actions": ["return_to_ai_reviewer_workflow"],
+                    "route_target": "review",
+                    "work_unit_id": "ai_reviewer_recheck",
+                    "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::ai_reviewer_recheck",
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "surface": "default_executor_dispatch_execution_study_latest",
+                "generated_at": "2026-05-15T07:48:49+00:00",
+                "executed_count": 1,
+                "blocked_count": 0,
+                "executions": [
+                    {
+                        "execution_id": f"execution::{study_id}::return_to_ai_reviewer_workflow::2026-05-15T07:48:49+00:00",
+                        "study_id": study_id,
+                        "quest_id": study_id,
+                        "action_type": "return_to_ai_reviewer_workflow",
+                        "execution_status": "executed",
+                        "blocked_reason": None,
+                        "generated_at": "2026-05-15T07:48:49+00:00",
+                        "owner_callable_surface": (
+                            "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
+                        ),
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+
+    status = module.study_runtime_status(
+        profile=profile,
+        study_id=study_id,
+        include_progress_projection=False,
+    )
+
+    assert status["decision"] == "resume"
+    assert status["reason"] == "quest_waiting_platform_repair_redrive"
+    assert status["interaction_arbitration"]["classification"] == "platform_repair_decision_redrive"
+    assert status["continuation_state"]["continuation_reason"] == "runtime_platform_repair_redrive"
+    assert "blocked_turn_closeout" not in status
+    assert status["blocked_turn_closeout_supersession"]["source_surface"] == "default_executor_execution/latest.json"
+    assert status["blocked_turn_closeout_supersession"]["superseded_run_id"] == "run-old"
+
+
 def test_waiting_controller_colon_owner_closeout_resumes_after_explicit_user_wakeup(
     monkeypatch,
     tmp_path: Path,

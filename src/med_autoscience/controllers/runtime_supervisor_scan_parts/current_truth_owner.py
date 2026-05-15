@@ -111,6 +111,7 @@ def current_controller_runtime_route(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
         work_unit_id=work_unit_id,
+        work_unit_fingerprint=decision_fingerprint,
     ):
         return None
     return {
@@ -191,25 +192,129 @@ def _publication_work_unit_closed(
     study_root: Path,
     publication_eval_payload: Mapping[str, Any],
     work_unit_id: str,
+    work_unit_fingerprint: str | None = None,
 ) -> bool:
+    resolved_study_root = Path(study_root).expanduser().resolve()
     lifecycle_path = (
-        Path(study_root).expanduser().resolve()
+        resolved_study_root
         / "artifacts"
         / "controller"
         / "publication_work_unit_lifecycle"
         / "latest.json"
     )
     lifecycle = _read_json_object(lifecycle_path)
-    if lifecycle is None:
+    if lifecycle is not None and publication_work_unit_lifecycle.lifecycle_payload_is_closed(lifecycle):
+        source_eval_id = _text(lifecycle.get("source_eval_id"))
+        current_eval_id = _text(publication_eval_payload.get("eval_id"))
+        if source_eval_id is not None and current_eval_id is not None and source_eval_id == current_eval_id:
+            lifecycle_work_unit = _mapping(lifecycle.get("work_unit"))
+            if _text(lifecycle_work_unit.get("unit_id")) == work_unit_id:
+                return True
+    return _runtime_turn_closeout_closes_work_unit(
+        study_root=resolved_study_root,
+        publication_eval_payload=publication_eval_payload,
+        work_unit_id=work_unit_id,
+        work_unit_fingerprint=work_unit_fingerprint,
+    )
+
+
+def _runtime_turn_closeout_closes_work_unit(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+    work_unit_id: str,
+    work_unit_fingerprint: str | None,
+) -> bool:
+    quest_root = _publication_eval_quest_root(publication_eval_payload)
+    if quest_root is None:
         return False
-    if not publication_work_unit_lifecycle.lifecycle_payload_is_closed(lifecycle):
+    closeout_root = quest_root / "artifacts" / "runtime" / "turn_closeouts"
+    if not closeout_root.exists():
         return False
-    source_eval_id = _text(lifecycle.get("source_eval_id"))
-    current_eval_id = _text(publication_eval_payload.get("eval_id"))
-    if source_eval_id is None or current_eval_id is None or source_eval_id != current_eval_id:
+    for closeout_path in sorted(closeout_root.glob("*.json")):
+        closeout = _read_json_object(closeout_path)
+        if closeout is None or closeout.get("status") != "completed":
+            continue
+        if closeout.get("meaningful_artifact_delta") is not True:
+            continue
+        for artifact_ref in closeout.get("artifact_refs") or []:
+            artifact_path = _resolve_runtime_artifact_ref(quest_root, artifact_ref)
+            if artifact_path is None:
+                continue
+            package_closure = _read_json_object(artifact_path)
+            if _package_closure_matches_work_unit(
+                package_closure,
+                study_root=study_root,
+                work_unit_id=work_unit_id,
+                work_unit_fingerprint=work_unit_fingerprint,
+            ):
+                return True
+    return False
+
+
+def _publication_eval_quest_root(publication_eval_payload: Mapping[str, Any]) -> Path | None:
+    runtime_context_refs = _mapping(publication_eval_payload.get("runtime_context_refs"))
+    runtime_escalation_ref = _text(runtime_context_refs.get("runtime_escalation_ref"))
+    if runtime_escalation_ref is not None:
+        path = Path(runtime_escalation_ref).expanduser()
+        parts = path.parts
+        if "artifacts" in parts:
+            artifacts_index = parts.index("artifacts")
+            if artifacts_index > 0:
+                return Path(*parts[:artifacts_index]).resolve()
+    return None
+
+
+def _resolve_runtime_artifact_ref(quest_root: Path, artifact_ref: object) -> Path | None:
+    text = _text(artifact_ref)
+    if text is None:
+        return None
+    path = Path(text).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (quest_root / path).resolve()
+
+
+def _package_closure_matches_work_unit(
+    payload: Mapping[str, Any] | None,
+    *,
+    study_root: Path,
+    work_unit_id: str,
+    work_unit_fingerprint: str | None,
+) -> bool:
+    if payload is None:
         return False
-    lifecycle_work_unit = _mapping(lifecycle.get("work_unit"))
-    return _text(lifecycle_work_unit.get("unit_id")) == work_unit_id
+    if _text(payload.get("artifact_kind")) != work_unit_id:
+        return False
+    work_unit = _mapping(payload.get("work_unit"))
+    if _text(work_unit.get("unit_id")) != work_unit_id:
+        return False
+    if work_unit_fingerprint is not None and _text(work_unit.get("fingerprint")) != work_unit_fingerprint:
+        return False
+    authority_closure = _mapping(payload.get("authority_closure"))
+    if _text(authority_closure.get("status")) != "closed_for_bundle_stage":
+        return False
+    if _text(authority_closure.get("publication_gate_status")) != "clear":
+        return False
+    if authority_closure.get("publication_gate_allow_write") is not True:
+        return False
+    if list(authority_closure.get("publication_gate_blockers") or []):
+        return False
+    submission_authority = _mapping(payload.get("submission_minimal_authority"))
+    if _text(submission_authority.get("status")) != "current":
+        return False
+    human_facing_delivery = _mapping(payload.get("human_facing_delivery"))
+    current_package_zip = _text(human_facing_delivery.get("current_package_zip"))
+    if current_package_zip is None:
+        return False
+    package_path = Path(current_package_zip).expanduser()
+    if not package_path.is_absolute():
+        package_path = study_root / package_path
+    try:
+        package_path.resolve().relative_to(study_root.resolve())
+    except ValueError:
+        return False
+    return _text(human_facing_delivery.get("status")) == "current"
 
 
 def _controller_action_types(payload: Mapping[str, Any]) -> set[str]:

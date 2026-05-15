@@ -184,6 +184,148 @@ def _record_blocked_closeout_if_present(*, status: StudyRuntimeStatus, quest_roo
     status.extras["blocked_turn_closeout"] = payload
 
 
+def _execution_latest_path(study_root: Path) -> Path:
+    return (
+        Path(study_root).expanduser().resolve()
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_execution"
+        / "latest.json"
+    )
+
+
+def _datetime_value(value: object):
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _blocked_closeout_time(*, blocked_closeout: dict[str, object], runtime_state: dict[str, object]) -> object:
+    closeout_path_text = str(blocked_closeout.get("closeout_path") or "").strip()
+    if closeout_path_text:
+        closeout = _load_json_dict(Path(closeout_path_text).expanduser())
+        completed_at = closeout.get("completed_at")
+        if completed_at:
+            return completed_at
+    return runtime_state.get("continuation_updated_at")
+
+
+def _execution_is_later_than_closeout(
+    *,
+    execution: dict[str, object],
+    blocked_closeout: dict[str, object],
+    runtime_state: dict[str, object],
+) -> bool:
+    closeout_at = _datetime_value(_blocked_closeout_time(blocked_closeout=blocked_closeout, runtime_state=runtime_state))
+    execution_at = _datetime_value(execution.get("generated_at"))
+    if closeout_at is None or execution_at is None:
+        return False
+    return execution_at > closeout_at
+
+
+def _controller_action_types(runtime_state: dict[str, object]) -> set[str]:
+    authorization = runtime_state.get("last_controller_decision_authorization")
+    if not isinstance(authorization, dict):
+        return set()
+    values = authorization.get("controller_actions")
+    if not isinstance(values, list):
+        return set()
+    return {str(item).strip() for item in values if str(item or "").strip()}
+
+
+def _superseding_default_executor_execution(
+    *,
+    status: StudyRuntimeStatus,
+    study_root: Path,
+    runtime_state: dict[str, object],
+    blocked_closeout: dict[str, object],
+) -> dict[str, object] | None:
+    execution_path = _execution_latest_path(study_root)
+    payload = _load_json_dict(execution_path)
+    if not payload:
+        return None
+    if str(payload.get("surface") or "").strip() != "default_executor_dispatch_execution_study_latest":
+        return None
+    if int(payload.get("blocked_count") or 0) != 0:
+        return None
+    controller_actions = _controller_action_types(runtime_state)
+    if not controller_actions:
+        return None
+    blocked_run_id = str(blocked_closeout.get("run_id") or "").strip() or None
+    for item in payload.get("executions") or []:
+        if not isinstance(item, dict):
+            continue
+        action_type = str(item.get("action_type") or "").strip()
+        if action_type not in controller_actions:
+            continue
+        if str(item.get("execution_status") or "").strip() != "executed":
+            continue
+        if str(item.get("blocked_reason") or "").strip():
+            continue
+        if str(item.get("study_id") or "").strip() != status.study_id:
+            continue
+        if str(item.get("quest_id") or "").strip() not in {"", status.quest_id}:
+            continue
+        if not _execution_is_later_than_closeout(
+            execution=item,
+            blocked_closeout=blocked_closeout,
+            runtime_state=runtime_state,
+        ):
+            continue
+        return {
+            "source_surface": "default_executor_execution/latest.json",
+            "source_path": str(execution_path),
+            "superseded_run_id": blocked_run_id,
+            "execution_id": str(item.get("execution_id") or "").strip() or None,
+            "action_type": action_type,
+            "execution_status": "executed",
+            "generated_at": str(item.get("generated_at") or "").strip() or None,
+            "owner_callable_surface": str(item.get("owner_callable_surface") or "").strip() or None,
+        }
+    return None
+
+
+def _record_blocked_closeout_supersession_if_present(
+    *,
+    status: StudyRuntimeStatus,
+    study_root: Path,
+    quest_root: Path,
+) -> None:
+    blocked_closeout = status.extras.get("blocked_turn_closeout")
+    if not isinstance(blocked_closeout, dict):
+        return
+    runtime_state_path = _runtime_state_path(quest_root)
+    runtime_state = _load_json_dict(runtime_state_path)
+    supersession = _superseding_default_executor_execution(
+        status=status,
+        study_root=study_root,
+        runtime_state=runtime_state,
+        blocked_closeout=blocked_closeout,
+    )
+    if supersession is None:
+        return
+    status.extras.pop("blocked_turn_closeout", None)
+    status.extras["blocked_turn_closeout_supersession"] = supersession
+    status.record_continuation_state(
+        StudyRuntimeContinuationState.from_payload(
+            {
+                "quest_status": status.quest_status.value if status.quest_status is not None else None,
+                "active_run_id": None,
+                "continuation_policy": "auto",
+                "continuation_anchor": "decision",
+                "continuation_reason": "runtime_platform_repair_redrive",
+                "pending_user_message_count": int(runtime_state.get("pending_user_message_count") or 0),
+                "runtime_state_path": str(runtime_state_path),
+            }
+        )
+    )
+
+
 def _record_continuation_state_if_present(*, status: StudyRuntimeStatus, quest_root: Path) -> None:
     payload = _continuation_state_payload(quest_root=quest_root, quest_status=status.quest_status)
     if payload is None:

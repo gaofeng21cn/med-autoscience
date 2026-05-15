@@ -180,6 +180,11 @@ def _status_state(
     _record_continuation_state_if_present(status=result, quest_root=quest_root)
     _record_controller_authorization_if_present(status=result, quest_root=quest_root)
     _record_blocked_closeout_if_present(status=result, quest_root=quest_root)
+    _record_blocked_closeout_supersession_if_present(
+        status=result,
+        study_root=study_root,
+        quest_root=quest_root,
+    )
     _record_pending_user_interaction_if_required(
         status=result,
         runtime_root=runtime_root,
