@@ -179,6 +179,10 @@ def test_worker_wrapper_isolates_codex_child_from_user_home(monkeypatch, tmp_pat
     assert seen["env"]["XDG_DATA_HOME"] == str(runtime_home / ".local" / "share")
     assert seen["env"]["NPM_CONFIG_CACHE"] == str(runtime_home / ".npm")
     assert seen["env"]["UV_CACHE_DIR"] == str(runtime_home / ".cache" / "uv")
+    assert seen["env"]["MED_AUTOSCIENCE_MANAGED_RUNTIME_WORKER"] == "1"
+    assert seen["env"]["MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ROOT"] == str(quest_root)
+    assert seen["env"]["MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ID"] == "quest-001"
+    assert seen["env"]["MED_AUTOSCIENCE_MANAGED_RUNTIME_RUN_ID"] == "run-001"
     assert (runtime_codex_home / "auth.json").read_text(encoding="utf-8") == '{"OPENAI_API_KEY":"test-token"}\n'
     config = tomllib.loads((runtime_codex_home / "config.toml").read_text(encoding="utf-8"))
     assert config["model_provider"] == "gflab"
@@ -207,6 +211,10 @@ def test_worker_wrapper_preserves_host_nvm_codex_for_isolated_home(monkeypatch, 
 
     assert env["HOME"] == str(quest_root / ".ds" / "codex_homes" / "run-001")
     assert env["CODEX_CANONICAL_BIN"] == str(host_codex)
+    assert env["MED_AUTOSCIENCE_MANAGED_RUNTIME_WORKER"] == "1"
+    assert env["MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ROOT"] == str(quest_root)
+    assert env["MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ID"] == "quest-001"
+    assert env["MED_AUTOSCIENCE_MANAGED_RUNTIME_RUN_ID"] == "run-001"
 
 
 def test_launch_report_write_truncates_stale_tail(tmp_path: Path) -> None:

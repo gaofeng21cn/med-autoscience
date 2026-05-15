@@ -560,6 +560,7 @@ def main(argv: list[str] | None = None) -> int:
             action_types=tuple(args.action_types or ()),
             mode=args.mode,
             apply=bool(args.apply),
+            managed_runtime_worker=bool(args.managed_runtime_worker),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

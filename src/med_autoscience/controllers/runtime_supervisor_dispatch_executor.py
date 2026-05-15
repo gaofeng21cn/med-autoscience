@@ -15,6 +15,7 @@ from med_autoscience.runtime_protocol import runtime_lifecycle_store
 from . import runtime_dispatch_cost, study_runtime_router
 from .runtime_supervisor_dispatch_executor_parts import action_execution
 from .runtime_supervisor_dispatch_executor_parts import controller_refresh
+from .runtime_supervisor_dispatch_executor_parts import managed_runtime_authorization
 from .runtime_supervisor_dispatch_executor_parts import output_readiness
 from .runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
 from .runtime_supervisor_consumer import (
@@ -578,6 +579,7 @@ def _execute_dispatch(
     dispatch_path: Path,
     developer_mode_payload: Mapping[str, Any],
     apply: bool,
+    managed_runtime_worker: bool,
 ) -> dict[str, Any]:
     generated_at = _utc_now()
     dispatch = _read_json_object(dispatch_path)
@@ -590,13 +592,27 @@ def _execute_dispatch(
             "blocked_reason": "dispatch_payload_missing_or_invalid",
         }
     action_type = _text(dispatch.get("action_type")) or "unknown_action"
+    managed_authorization = managed_runtime_authorization.resolve_managed_runtime_authorization(
+        profile=profile,
+        study_id=study_id,
+        dispatch=dispatch,
+        action_type=action_type,
+        requested=managed_runtime_worker,
+    )
+    if managed_authorization.get("status") == "authorized":
+        dispatch = managed_runtime_authorization.runtime_authorized_dispatch(
+            dispatch=dispatch,
+            action_type=action_type,
+            authorization=managed_authorization,
+            supported_action_types=SUPPORTED_ACTION_TYPES,
+        )
     action_fingerprint = runtime_dispatch_cost.dispatch_action_fingerprint(
         dispatch=dispatch,
         dispatch_path=dispatch_path,
     )
     guard_ok, guard_reason = _contract_guard(dispatch)
-    current_route = _current_owner_route(profile, study_id)
-    owner_route_block_reason = _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
+    current_route = _dispatch_owner_route(dispatch) if managed_authorization.get("status") == "authorized" else _current_owner_route(profile, study_id)
+    owner_route_block_reason = None if managed_authorization.get("status") == "authorized" else _owner_route_block_reason(dispatch=dispatch, current_route=current_route)
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     current_study = _current_scan_study(profile, study_id)
     required_output_pending = output_readiness.required_output_pending(
@@ -627,6 +643,7 @@ def _execute_dispatch(
         repeat_guard=repeat_guard,
         developer_mode_payload=developer_mode_payload,
         apply=apply,
+        managed_authorization=managed_authorization,
     ) or _execute_owner_dispatch_action(
         profile=profile,
         study_id=study_id,
@@ -658,6 +675,7 @@ def _execute_dispatch(
         apply=apply,
         developer_mode_payload=developer_mode_payload,
         execution=execution,
+        managed_authorization=managed_authorization,
     )
 
 
@@ -671,6 +689,7 @@ def _dispatch_pre_execution_block(
     repeat_guard: Mapping[str, Any],
     developer_mode_payload: Mapping[str, Any],
     apply: bool,
+    managed_authorization: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     if not guard_ok:
         return {
@@ -701,6 +720,15 @@ def _dispatch_pre_execution_block(
             "repeat_suppressed": True,
             "why_not_applied": repeat_suppression.REPEAT_SUPPRESSED_REASON,
         }
+    if managed_authorization.get("status") == "blocked":
+        return {
+            "execution_status": "blocked",
+            "blocked_reason": _text(managed_authorization.get("blocked_reason")) or "managed_runtime_authorization_blocked",
+            "owner_callable_surface": None,
+            "managed_runtime_authorization": dict(managed_authorization),
+        }
+    if managed_authorization.get("status") == "authorized":
+        return None
     if apply and (
         _text(developer_mode_payload.get("mode")) != SUPPORTED_MODE
         or developer_mode_payload.get("safe_actions_enabled") is not True
@@ -756,6 +784,7 @@ def _dispatch_execution_payload(
     apply: bool,
     developer_mode_payload: Mapping[str, Any],
     execution: Mapping[str, Any],
+    managed_authorization: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
         "surface": "default_executor_dispatch_execution",
@@ -769,6 +798,8 @@ def _dispatch_execution_payload(
         "next_executable_owner": _text(dispatch.get("next_executable_owner")),
         "required_output_surface": _text(dispatch.get("required_output_surface")),
         "dispatch_path": str(dispatch_path),
+        "dispatch_authority": _text(dispatch.get("dispatch_authority")) or "consumer_default_executor_dispatch",
+        "managed_runtime_authorization": dict(managed_authorization),
         "dispatch_contract_valid": guard_ok,
         "dispatch_contract_blocked_reason": guard_reason,
         "executor_boundary": _executor_boundary(dispatch),
@@ -806,6 +837,7 @@ def execute_default_executor_dispatches(
     mode: str,
     apply: bool,
     action_types: Iterable[str] = (),
+    managed_runtime_worker: bool = False,
 ) -> dict[str, Any]:
     generated_at = _utc_now()
     developer_mode = resolve_developer_supervisor_mode(
@@ -827,6 +859,7 @@ def execute_default_executor_dispatches(
                 dispatch_path=dispatch_path,
                 developer_mode_payload=developer_mode_payload,
                 apply=apply,
+                managed_runtime_worker=managed_runtime_worker,
             )
             executions.append(execution)
         study_executions = [execution for execution in executions if execution["study_id"] == study_id]
@@ -880,6 +913,7 @@ def execute_default_executor_dispatches(
         "developer_supervisor_mode": developer_mode_payload,
         "requested_studies": list(resolved_study_ids),
         "requested_action_types": list(resolved_action_types),
+        "managed_runtime_worker": bool(managed_runtime_worker),
         "execution_count": len(executions),
         "executed_count": sum(item.get("execution_status") == "executed" for item in executions),
         "blocked_count": sum(item.get("execution_status") == "blocked" for item in executions),

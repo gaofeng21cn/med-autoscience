@@ -755,7 +755,15 @@ def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executo
     write_profile(profile_path, workspace_root=workspace_root)
     calls: list[dict[str, object]] = []
 
-    def fake_execute_default_executor_dispatches(*, profile, study_ids, action_types, mode: str, apply: bool) -> dict[str, object]:
+    def fake_execute_default_executor_dispatches(
+        *,
+        profile,
+        study_ids,
+        action_types,
+        mode: str,
+        apply: bool,
+        managed_runtime_worker: bool = False,
+    ) -> dict[str, object]:
         calls.append(
             {
                 "profile": profile.name,

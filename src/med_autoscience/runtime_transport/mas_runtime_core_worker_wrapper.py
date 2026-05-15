@@ -139,6 +139,10 @@ def _apply_managed_runtime_home(*, env: dict[str, str], quest_root: Path, run_id
     runtime_codex_home = runtime_home / ".codex"
     runtime_home.mkdir(parents=True, exist_ok=True)
     _prepare_runtime_codex_home(source_codex_home=source_codex_home, runtime_codex_home=runtime_codex_home)
+    env["MED_AUTOSCIENCE_MANAGED_RUNTIME_WORKER"] = "1"
+    env["MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ROOT"] = str(quest_root)
+    env["MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ID"] = quest_root.name
+    env["MED_AUTOSCIENCE_MANAGED_RUNTIME_RUN_ID"] = run_id
     env["HOME"] = str(runtime_home)
     env["CODEX_HOME"] = str(runtime_codex_home)
     env["XDG_CACHE_HOME"] = str(runtime_home / ".cache")

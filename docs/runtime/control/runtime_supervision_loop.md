@@ -279,6 +279,8 @@ medautosci runtime supervisor-execute-dispatch \
   --apply
 ```
 
+MAS managed Codex CLI worker 在 prompt 内执行 controller action 时会额外传入 `--managed-runtime-worker`。这不是外层开发者权限开关；它是受限的内层 worker identity。`runtime supervisor-execute-dispatch` 只有在环境和 runtime truth 同时证明当前进程属于同一 `quest_id` / `active_run_id`，并且 `.ds/runtime_state.json:last_controller_decision_authorization` 明确授权该 `controller_action` 时，才允许用当前 runtime authorization 重建本次 action 的 owner route。外层 heartbeat、人工 CLI、OPL sidecar 和普通 supervisor tick 不能使用这条通道绕过 `developer_apply_safe` gate。
+
 如果未显式传 `--studies`，`supervisor-consume` 从最新 `hourly/latest.json` 的 `action_queue` 推导需要消费的 study 列表。consumer 会额外写出 study-level default executor dispatch request：
 
 - `studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/<action_type>.json`
@@ -311,6 +313,7 @@ controller work-unit evidence adoption 采用同一条 AI-first 边界：
 - repo-side fix landed、archive proof verified、report history 可读取，只能说明平台或证据面已有修复证据；它不等同于具体 study 已恢复、live worker 已存在、论文质量已放行或 `current_package` / `submission_minimal` 已成为当前 authority。
 - `domain-transition::*` 是 MAS controller transition authority，不能被当成普通 publication eval action 处理。controller refresh materialize 后，runtime authorization 必须消费当前 `controller_decisions/latest.json` 中的 transition work unit；prompt 只读取该 authorization，不回退到旧 prompt、旧 task-intake、旧 default executor dispatch 或缺少当前 fingerprint 的 `publication_eval.recommended_actions`。允许 relay 的最低条件是：controller decision 当前、未要求 human confirmation、transition fingerprint 中的 work unit id 与 `next_work_unit.unit_id` 一致、controller action 属于该 transition 的白名单。
 - live Codex CLI prompt 是 run 启动时生成的 executor snapshot。刷新 `runtime_state.last_controller_decision_authorization` 不会改写已经运行的 Codex CLI 进程；因此 controller refresh 的 postcondition 必须读取当前 `active_run_id` 的 `prompt.md`，确认它包含当前 work-unit fingerprint 或 work-unit id。若 prompt 仍指向旧 work unit，或 live worker 缺少可验证 prompt，MAS 必须用 controller-owned pause/resume 生成 fresh turn，再让新 prompt 消费当前 authorization；不得把新 work unit 仅 queue 到旧进程。
+- 若 fresh prompt 内的 managed worker 执行 `return_to_ai_reviewer_workflow` 等 controller action 时发现 consumer dispatch 仍是旧 owner route，当前 runtime authorization 优先级高于旧 dispatch 文件。执行器应把旧 dispatch 作为输入壳，按 `last_controller_decision_authorization` 重建 owner route、idempotency key 和 repeat key；只有同一 run identity、授权 action 白名单、work-unit fingerprint 和 runtime state 全部匹配时才放行。否则 fail closed 为 managed runtime authorization blocker，不能回落成旧 dispatch 重跑。
 
 runtime repair 与 publication gate 的 owner routing 使用 controller terminal 证据，而不是泛化的 gate blocker：
 

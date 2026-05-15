@@ -807,4 +807,5 @@ def test_codex_exec_runner_prompt_maps_ai_reviewer_workflow_to_dispatch_command(
     assert "python -m med_autoscience.cli runtime-supervisor-execute-dispatch" in prompt
     assert "--action-types return_to_ai_reviewer_workflow" in prompt
     assert "--mode developer_apply_safe --apply" in prompt
+    assert "--managed-runtime-worker" in prompt
     assert "No callable MAS CLI command is registered" not in prompt

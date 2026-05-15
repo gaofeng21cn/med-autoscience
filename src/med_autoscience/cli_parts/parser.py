@@ -170,6 +170,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_supervisor_execute_dispatch_parser.add_argument("--profile", required=True)
     runtime_supervisor_execute_dispatch_parser.add_argument("--studies", nargs="+")
     runtime_supervisor_execute_dispatch_parser.add_argument("--action-types", nargs="+")
+    runtime_supervisor_execute_dispatch_parser.add_argument("--managed-runtime-worker", action="store_true")
     runtime_supervisor_execute_dispatch_parser.add_argument(
         "--mode",
         choices=("developer_apply_safe",),

@@ -755,7 +755,7 @@ def _controller_action_command(*, action_name: str, quest_id: str) -> str | None
             '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}" '
             "python -m med_autoscience.cli runtime-supervisor-execute-dispatch "
             '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --studies <study_id> '
-            f"--action-types {action_name} --mode developer_apply_safe --apply"
+            f"--action-types {action_name} --mode developer_apply_safe --apply --managed-runtime-worker"
         )
     command_by_action = {
         "run_quality_repair_batch": "quality-repair-batch",

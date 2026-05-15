@@ -79,6 +79,7 @@ def test_runtime_supervisor_reconcile_command_runs_one_shot_and_writes_receipt(
         action_types,
         mode: str,
         apply: bool,
+        managed_runtime_worker: bool = False,
     ) -> dict[str, object]:
         calls.append(("execute-dispatch", tuple(study_ids)))
         return {
