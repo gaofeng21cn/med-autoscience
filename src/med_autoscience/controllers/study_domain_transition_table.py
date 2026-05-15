@@ -219,11 +219,7 @@ def project_domain_transition(
             study_id=study_id,
             decision_type="ai_reviewer_re_eval",
             route_target="review",
-            next_work_unit=_work_unit(
-                "ai_reviewer_recheck",
-                "review",
-                "Return the current manuscript and evidence refs to the AI reviewer workflow.",
-            ),
+            next_work_unit=_ai_reviewer_re_eval_work_unit(publication_eval),
             controller_action="return_to_ai_reviewer_workflow",
             owner="ai_reviewer",
             typed_blocker=None,
@@ -861,6 +857,29 @@ def _ai_reviewer_re_eval(publication_eval: Mapping[str, Any]) -> bool:
     return _text(publication_eval.get("domain_ready_verdict")) == "ai_reviewer_re_eval" or (
         provenance.get("ai_reviewer_required") is True
         and _text(provenance.get("owner")) != "ai_reviewer"
+    ) or _ai_reviewer_medical_prose_quality_unready(publication_eval)
+
+
+def _ai_reviewer_medical_prose_quality_unready(publication_eval: Mapping[str, Any]) -> bool:
+    provenance = _mapping(publication_eval.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
+        return False
+    quality_assessment = _mapping(publication_eval.get("quality_assessment"))
+    prose_quality = _mapping(quality_assessment.get("medical_journal_prose_quality"))
+    return _text(prose_quality.get("status")) != "ready"
+
+
+def _ai_reviewer_re_eval_work_unit(publication_eval: Mapping[str, Any]) -> dict[str, str]:
+    if _ai_reviewer_medical_prose_quality_unready(publication_eval):
+        return _work_unit(
+            "ai_reviewer_medical_prose_quality_review",
+            "review",
+            "Re-run AI reviewer manuscript-quality review and close medical_journal_prose_quality before finalize.",
+        )
+    return _work_unit(
+        "ai_reviewer_recheck",
+        "review",
+        "Return the current manuscript and evidence refs to the AI reviewer workflow.",
     )
 
 

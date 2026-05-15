@@ -114,6 +114,7 @@ class OuterLoopTransitionCase:
     expected_unit_id: str
     task_intake_action: dict[str, object] | None = None
     assessment_provenance: dict[str, object] | None = None
+    quality_assessment: dict[str, object] | None = None
 
 
 def _publication_eval_payload(
@@ -123,8 +124,14 @@ def _publication_eval_payload(
     action: dict[str, object],
     verdict: str,
     assessment_provenance: dict[str, object] | None = None,
+    quality_assessment: dict[str, object] | None = None,
 ) -> dict[str, object]:
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    default_quality_dimension = {
+        "status": "ready",
+        "summary": "Transition matrix fixture quality dimension is ready.",
+        "evidence_refs": [str(publication_eval_path)],
+    }
     payload = {
         "schema_version": 1,
         "eval_id": "publication-eval::001-risk::quest-001::transition-matrix",
@@ -170,6 +177,17 @@ def _publication_eval_payload(
                 "evidence_refs": [str(publication_eval_path)],
             }
         ],
+        "quality_assessment": quality_assessment
+        or {
+            "clinical_significance": dict(default_quality_dimension),
+            "evidence_strength": dict(default_quality_dimension),
+            "novelty_positioning": dict(default_quality_dimension),
+            "human_review_readiness": dict(default_quality_dimension),
+            "medical_journal_prose_quality": {
+                **default_quality_dimension,
+                "summary": "AI reviewer judged the medical-journal prose quality ready.",
+            },
+        },
         "recommended_actions": [action],
     }
     return payload
@@ -361,6 +379,58 @@ def _stale_write_task_intake_action() -> dict[str, object]:
             expected_unit_id="ai_reviewer_recheck",
         ),
         lambda study_root: OuterLoopTransitionCase(
+            case_id="ai_reviewer_underdefined_medical_prose_preempts_bundle_finalize",
+            gate_report={
+                "status": "clear",
+                "allow_write": True,
+                "blockers": [],
+                "current_required_action": "continue_bundle_stage",
+                "medical_publication_surface_status": "clear",
+                "study_delivery_status": "current",
+                "submission_minimal_authority_status": "current",
+            },
+            publication_eval_action=_finalize_review_only_action(study_root),
+            publication_eval_verdict="promising",
+            publication_supervisor_state={
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+                "publication_gate_allows_direct_write": True,
+            },
+            quality_assessment={
+                "clinical_significance": {
+                    "status": "ready",
+                    "summary": "Clinical significance is ready.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "evidence_strength": {
+                    "status": "ready",
+                    "summary": "Evidence strength is ready.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "novelty_positioning": {
+                    "status": "ready",
+                    "summary": "Novelty positioning is ready.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "human_review_readiness": {
+                    "status": "ready",
+                    "summary": "Human review readiness is ready.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "medical_journal_prose_quality": {
+                    "status": "underdefined",
+                    "summary": (
+                        "AI reviewer has not yet closed medical-journal prose quality for this manuscript."
+                    ),
+                    "evidence_refs": [str(study_root / "paper")],
+                }
+            },
+            expected_decision_type="continue_same_line",
+            expected_route_target="review",
+            expected_controller_action_type="return_to_ai_reviewer_workflow",
+            expected_unit_id="ai_reviewer_medical_prose_quality_review",
+        ),
+        lambda study_root: OuterLoopTransitionCase(
             case_id="domain_transition_gate_blocker_replays_gate_after_terminal_analysis_handoff",
             gate_report={
                 "status": "blocked",
@@ -499,6 +569,7 @@ def test_runtime_watch_outer_loop_controller_transition_matrix(
             action=case.publication_eval_action,
             verdict=case.publication_eval_verdict,
             assessment_provenance=case.assessment_provenance,
+            quality_assessment=case.quality_assessment,
         ),
     )
     monkeypatch.setattr(module.gate_clearing_batch, "resolve_profile_for_study_root", lambda root: profile)
