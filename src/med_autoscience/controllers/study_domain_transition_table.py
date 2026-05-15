@@ -93,7 +93,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption,
+            completion_receipt_consumption=owner_apply_receipt_consumption or execution_receipt_consumption,
         )
 
     if _text(macro_state.get("writer_state")) == "conflict" or _text(macro_state.get("reason")) == "truth_conflict":
@@ -116,7 +116,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption,
+            completion_receipt_consumption=owner_apply_receipt_consumption or execution_receipt_consumption,
         )
 
     if human_gate_resume_receipt_consumption:
@@ -161,6 +161,7 @@ def project_domain_transition(
         )
 
     if _is_stop_loss(macro_state=macro_state, controller_decision=controller_decision, status=status):
+        stop_loss_receipt_consumption = owner_apply_receipt_consumption or execution_receipt_consumption
         return _transition(
             study_id=study_id,
             decision_type="stop_loss",
@@ -180,7 +181,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption,
+            completion_receipt_consumption=stop_loss_receipt_consumption,
         )
 
     if _publication_gate_blocked(publication_eval):

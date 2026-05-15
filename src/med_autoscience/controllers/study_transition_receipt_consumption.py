@@ -221,11 +221,19 @@ def _controller_decision_owner_receipt_consumption(
 ) -> dict[str, Any]:
     if controller_decision.get("requires_human_confirmation") is True:
         return {}
+    decision_type = _text(controller_decision.get("decision_type"))
     route_decision = _text(controller_decision.get("route_decision"))
     route_target = _text(controller_decision.get("route_target"))
     runtime_decision = _text(controller_decision.get("runtime_decision"))
-    if route_decision in {"stop_loss", "terminal_stop"} or route_target == "stop":
-        return {}
+    if decision_type == "stop_loss" or route_decision in {"stop_loss", "terminal_stop"} or route_target == "stop":
+        return {
+            "status": "consumed",
+            "receipt_kind": "mas_owner_stop_loss_receipt",
+            "apply_result": "terminal_stop",
+            "receipt_ref": str(controller_decision_ref),
+            "decision_id": _text(controller_decision.get("decision_id")),
+            "next_action": "honor_mas_owner_terminal_stop",
+        }
     if route_decision in {"stable_blocker", "blocked"} or runtime_decision == "blocked" or _text(
         controller_decision.get("blocked_reason")
     ):

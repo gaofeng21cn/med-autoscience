@@ -424,6 +424,125 @@ def test_study_state_matrix_consumes_controller_route_decision_owner_receipt(
     assert case["context"]["completion_receipt_consumption"]["apply_result"] == "route_decision"
 
 
+def test_study_state_matrix_consumes_controller_stop_loss_owner_receipt(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-stop-loss"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    decision_id = "study-decision::002-stop-loss::quest-002::stop_loss::2026-05-15T10:00:00+00:00"
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": decision_id,
+            "study_id": study_id,
+            "quest_id": "quest-002",
+            "emitted_at": "2026-05-15T10:00:00+00:00",
+            "decision_type": "stop_loss",
+            "route_decision": "stop_loss",
+            "route_target": "stop",
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "stop_runtime"}],
+            "reason": "MAS owner stop-loss policy parked this study line.",
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "paused",
+            "active_run_id": None,
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    transition = payload["studies"][0]["domain_transition"]
+    case = payload["domain_transition_table"]["family_transition_matrix_cases"][0]
+    rule = payload["domain_transition_table"]["family_transition_spec"]["transitions"][0]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "stop_loss"
+    assert transition["route_target"] == "stop"
+    assert transition["next_work_unit"]["unit_id"] == "stop_loss_handoff"
+    assert transition["controller_action"] == "stop_runtime"
+    assert transition["owner"] == "med-autoscience"
+    assert transition["completion_receipt_consumption"] == {
+        "status": "consumed",
+        "receipt_kind": "mas_owner_stop_loss_receipt",
+        "apply_result": "terminal_stop",
+        "receipt_ref": "artifacts/controller_decisions/latest.json",
+        "decision_id": decision_id,
+        "next_action": "honor_mas_owner_terminal_stop",
+    }
+    assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is False
+    assert case["expected"]["decision_type"] == "stop_loss"
+    assert case["context"]["completion_receipt_consumption"]["receipt_kind"] == "mas_owner_stop_loss_receipt"
+    assert rule["receipt"]["completion_receipt_consumption"]["next_action"] == "honor_mas_owner_terminal_stop"
+
+
+def test_study_state_matrix_does_not_consume_pending_stop_loss_human_gate_receipt(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-stop-loss-gated"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "study-decision::002-stop-loss-gated::quest-002::stop_loss::2026-05-15T10:05:00+00:00",
+            "study_id": study_id,
+            "quest_id": "quest-002",
+            "decision_type": "stop_loss",
+            "route_decision": "stop_loss",
+            "route_target": "stop",
+            "requires_human_confirmation": True,
+            "family_human_gates": [{"gate_id": f"controller-human-confirmation-{study_id}"}],
+            "controller_actions": [{"action_type": "stop_runtime"}],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "paused",
+            "active_run_id": None,
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    transition = json.loads(captured.out)["studies"][0]["domain_transition"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "human_gate"
+    assert transition["controller_action"] == "wait_for_human_gate"
+    assert "completion_receipt_consumption" not in transition
+
+
 def test_study_state_matrix_consumes_human_gate_resume_receipt(
     monkeypatch,
     tmp_path: Path,
