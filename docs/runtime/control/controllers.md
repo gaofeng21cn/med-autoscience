@@ -115,7 +115,7 @@ Generic sidecar provider 是 bounded extension 的统一 controller surface。Pr
 
 `stale_study_delivery_mirror` 归属下游 package/delivery lane。若 canonical paper 与 submission authority 已 current，但缺少 current package freshness proof，controller 必须产出 `submission_delivery_terminal_blocker` 这类 controller-owned blocker，说明 delivery lane 自身不闭合的原因；它不得长期把 analysis-campaign/write stage 路由回 `gate_needs_specificity`，也不得让 Codex CLI 重放同一个不可执行的 package replay loop。
 
-AI reviewer-backed `return_to_ai_reviewer_workflow` 属于医学质量 owner redrive。即使当前交付包只剩 submission metadata external gaps，只要 `publication_eval/latest.json` 与 `controller_decisions/latest.json` 当前一致指向 `ai_reviewer_re_eval` / `domain_transition_ai_reviewer_re_eval`，managed study runtime 应优先恢复到 AI reviewer workflow，由 AI reviewer 关闭写作质量判断；普通 metadata-only submission parking 仍保持停靠，不因该路径获得自动放行。
+AI reviewer-backed `return_to_ai_reviewer_workflow` 属于医学质量 owner redrive。即使当前交付包只剩 submission metadata external gaps，只要 `publication_eval/latest.json` 与 `controller_decisions/latest.json` 当前一致指向 `ai_reviewer_re_eval` / `domain_transition_ai_reviewer_re_eval`，managed study runtime 应优先保持或恢复到 AI reviewer workflow，由 AI reviewer 关闭写作质量判断；普通 metadata-only submission parking 仍保持停靠，live worker 也可被 pause 等待外部信息，不因该路径获得自动放行。
 
 ## Inspection package 契约
 

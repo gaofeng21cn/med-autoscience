@@ -10,6 +10,7 @@ from med_autoscience.controllers.study_runtime_decision_parts.runtime_events.pen
     _stopped_controller_owned_auto_recovery_context,
 )
 from med_autoscience.controllers.study_runtime_types import (
+    StudyRuntimeDecision,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
     StudyRuntimeStatus,
@@ -75,7 +76,52 @@ def _domain_transition_runtime_redrive_reason(status: StudyRuntimeStatus) -> Stu
         return StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
 
 
+def _apply_ai_reviewer_domain_redrive_decision(
+    status: StudyRuntimeStatus,
+    *,
+    reason: StudyRuntimeReason | None,
+    execution: dict[str, object],
+    running_quest: bool,
+) -> bool:
+    if reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
+        return False
+    if not status.startup_boundary_allows_compute_stage:
+        status.set_decision(
+            StudyRuntimeDecision.PAUSE if running_quest else StudyRuntimeDecision.BLOCKED,
+            (
+                StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RUNNING_QUEST
+                if running_quest
+                else StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME
+            ),
+        )
+    elif not status.runtime_reentry_allows_runtime_entry:
+        status.set_decision(
+            StudyRuntimeDecision.PAUSE if running_quest else StudyRuntimeDecision.BLOCKED,
+            (
+                StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RUNNING_QUEST
+                if running_quest
+                else StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME
+            ),
+        )
+    elif execution.get("auto_resume") is True:
+        status.set_decision(
+            StudyRuntimeDecision.RESUME,
+            reason,
+        )
+    else:
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            (
+                StudyRuntimeReason.QUEST_MARKED_RUNNING_BUT_AUTO_RESUME_DISABLED
+                if running_quest
+                else StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED
+            ),
+        )
+    return True
+
+
 __all__ = [
+    "_apply_ai_reviewer_domain_redrive_decision",
     "_record_interaction_arbitration_if_required",
     "_domain_transition_runtime_redrive_reason",
 ]

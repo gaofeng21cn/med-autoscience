@@ -865,6 +865,8 @@ def _ai_reviewer_medical_prose_quality_unready(publication_eval: Mapping[str, An
     if _text(provenance.get("owner")) != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
         return False
     quality_assessment = _mapping(publication_eval.get("quality_assessment"))
+    if "medical_journal_prose_quality" not in quality_assessment:
+        return False
     prose_quality = _mapping(quality_assessment.get("medical_journal_prose_quality"))
     return _text(prose_quality.get("status")) != "ready"
 

@@ -397,27 +397,12 @@ def _status_state(
         or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(result)
     ):
         domain_redrive_reason = _domain_transition_runtime_redrive_reason(result)
-        if domain_redrive_reason is StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
-            if not result.startup_boundary_allows_compute_stage:
-                result.set_decision(
-                    StudyRuntimeDecision.BLOCKED,
-                    StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
-                )
-            elif not result.runtime_reentry_allows_runtime_entry:
-                result.set_decision(
-                    StudyRuntimeDecision.BLOCKED,
-                    StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
-                )
-            elif execution.get("auto_resume") is True:
-                result.set_decision(
-                    StudyRuntimeDecision.RESUME,
-                    domain_redrive_reason,
-                )
-            else:
-                result.set_decision(
-                    StudyRuntimeDecision.BLOCKED,
-                    StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED,
-                )
+        if _apply_ai_reviewer_domain_redrive_decision(
+            result,
+            reason=domain_redrive_reason,
+            execution=execution,
+            running_quest=False,
+        ):
             return _finalize_result()
 
     if (
@@ -457,6 +442,7 @@ def _status_state(
             result,
             study_root=study_root,
         )
+        domain_redrive_reason = _domain_transition_runtime_redrive_reason(result)
         if _user_pause_contract_without_live_worker(
             result,
             audit_status=audit_status,
@@ -484,11 +470,18 @@ def _status_state(
                 StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,
             )
             return _finalize_result()
-        if _should_park_delivered_or_redriven_package_without_live_worker(
-            result, study_root=study_root, audit_status=audit_status, manual_finish_compatibility_guard=manual_finish_compatibility_guard
-        ) and (
-            not reviewer_revision_open_blockers_release_manual_finish_parking
-            or task_intake_yields_to_submission_closeout
+        if (
+            domain_redrive_reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL
+            and _should_park_delivered_or_redriven_package_without_live_worker(
+                result,
+                study_root=study_root,
+                audit_status=audit_status,
+                manual_finish_compatibility_guard=manual_finish_compatibility_guard,
+            )
+            and (
+                not reviewer_revision_open_blockers_release_manual_finish_parking
+                or task_intake_yields_to_submission_closeout
+            )
         ):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
@@ -502,8 +495,13 @@ def _status_state(
             )
             return _finalize_result()
         if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
-            if manual_finish_compatibility_guard and (
-                not task_intake_releases_manual_finish_parking or task_intake_yields_to_submission_closeout
+            if (
+                domain_redrive_reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL
+                and manual_finish_compatibility_guard
+                and (
+                    not task_intake_releases_manual_finish_parking
+                    or task_intake_yields_to_submission_closeout
+                )
             ):
                 result.set_decision(
                     StudyRuntimeDecision.BLOCKED,
@@ -520,7 +518,14 @@ def _status_state(
                     execution=execution,
                 )
         elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
-            if manual_finish_compatibility_guard and (
+            if _apply_ai_reviewer_domain_redrive_decision(
+                result,
+                reason=domain_redrive_reason,
+                execution=execution,
+                running_quest=True,
+            ):
+                pass
+            elif manual_finish_compatibility_guard and (
                 not task_intake_releases_manual_finish_parking or task_intake_yields_to_submission_closeout
             ):
                 result.set_decision(
