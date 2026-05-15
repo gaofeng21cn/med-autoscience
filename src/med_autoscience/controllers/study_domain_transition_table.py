@@ -495,7 +495,15 @@ def build_family_transition_spec_descriptor() -> dict[str, Any]:
         "target_domain_id": FAMILY_TRANSITION_TARGET_DOMAIN_ID,
         "spec_surface_kind": "family_transition_spec",
         "contract_version": FAMILY_TRANSITION_SPEC_VERSION,
-        "refresh_policy": "rebuild_study_state_matrix_or_sidecar_export_before_opl_runner",
+        "refresh_policy": "rebuild_study_state_matrix_before_opl_runner",
+        "materialized_surfaces": {
+            "study_state_matrix": [
+                "domain_transition_table.family_transition_spec",
+                "domain_transition_table.family_transition_matrix_cases",
+            ],
+            "sidecar_export": ["family_transition_spec_descriptor"],
+            "product_entry_manifest": ["family_transition_spec_descriptor"],
+        },
         "authority_boundary": {
             "runner_owner": "OPL Framework",
             "domain_transition_owner": "MedAutoScience",
@@ -505,12 +513,14 @@ def build_family_transition_spec_descriptor() -> dict[str, Any]:
         },
         "locator_refs": {
             "study_state_matrix_spec": "/study_state_matrix/domain_transition_table/family_transition_spec",
-            "sidecar_export_spec": "/mas_family_sidecar_export/family_transition_spec",
+            "study_state_matrix_cases": "/study_state_matrix/domain_transition_table/family_transition_matrix_cases",
+            "sidecar_export_descriptor": "/mas_family_sidecar_export/family_transition_spec_descriptor",
             "product_entry_manifest_descriptor": "/product_entry_manifest/family_transition_spec_descriptor",
         },
         "source_refs": {
-            "domain_transition_table": "/study_state_matrix/domain_transition_table",
-            "sidecar_export": "/mas_family_sidecar_export/domain_transition_table",
+            "study_state_matrix_domain_transition_table": "/study_state_matrix/domain_transition_table",
+            "sidecar_export_descriptor": "/mas_family_sidecar_export/family_transition_spec_descriptor",
+            "product_entry_manifest_descriptor": "/product_entry_manifest/family_transition_spec_descriptor",
         },
     }
 
