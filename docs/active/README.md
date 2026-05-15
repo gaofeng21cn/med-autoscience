@@ -14,6 +14,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 - [文档索引](../README.md)
 - [当前状态](../status.md)
 - [Program Portfolio Consolidation](./program_portfolio_consolidation.md)
+- [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)
 - [MAS Current Development Lines](./current_development_lines.md)
 - [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)
 - [MAS Stage Surfaces](../runtime/contracts/stage_surfaces.md)
@@ -22,6 +23,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 
 | 层次 | 文档 | 当前作用 |
 | --- | --- | --- |
+| 理想差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 对照 MAS 理想目标态，维护当前差距矩阵、后续执行顺序、MAS-to-OPL 上收边界和禁止误写口径。 |
 | 目标 / 验收 | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | 定义当前 MAS 论文自治目标和最终验收合同：reviewer finding、repair work unit、gate replay、路线决策、stage knowledge/memory、真实 paper soak 和质量边界。 |
 | 当前执行优先级 | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | framework-first 迁移线路：先完成 OPL 完整智能体框架，再迁移 MAS、分层沉淀新旧功能、退役旧默认依赖和兼容面。 |
 | 横向 stage 形式 | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | 统一每个 MAS stage 的 stage card、route contract、prompt/skill、tool surface、knowledge packet、closeout obligation、一页式 Stage Deliverable Review Page / Index、quality gate 和 OPL projection boundary。 |
