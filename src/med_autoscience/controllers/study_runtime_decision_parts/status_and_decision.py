@@ -425,7 +425,13 @@ def _status_state(
             result,
             study_root=study_root,
         )
-        if _user_pause_contract_without_live_worker(result, audit_status=audit_status):
+        if _user_pause_contract_without_live_worker(
+            result,
+            audit_status=audit_status,
+        ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
+            result,
+            audit_status=audit_status,
+        ):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
@@ -597,7 +603,9 @@ def _status_state(
         return _finalize_result()
 
     if quest_status in _RESUMABLE_QUEST_STATUSES:
-        if _user_pause_contract_without_live_worker(result):
+        if _user_pause_contract_without_live_worker(
+            result,
+        ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(result):
             from med_autoscience.controllers.study_runtime_execution_parts import (
                 runtime_events as runtime_execution_events,
             )
@@ -627,7 +635,9 @@ def _status_state(
                 return _finalize_result()
         if quest_status not in _RESUMABLE_QUEST_STATUSES:
             return _finalize_result()
-        if _user_pause_contract_without_live_worker(result):
+        if _user_pause_contract_without_live_worker(
+            result,
+        ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(result):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
@@ -679,7 +689,9 @@ def _status_state(
         return _finalize_result()
 
     if quest_status in {StudyRuntimeQuestStatus.STOPPED, StudyRuntimeQuestStatus.FAILED}:
-        if _user_pause_contract_without_live_worker(result):
+        if _user_pause_contract_without_live_worker(
+            result,
+        ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(result):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,

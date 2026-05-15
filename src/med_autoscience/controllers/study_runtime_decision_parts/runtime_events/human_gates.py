@@ -156,6 +156,32 @@ def _user_pause_contract_without_live_worker(
     return continuation_state.active_run_id is None and continuation_state.stop_reason == "user_pause"
 
 
+def _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
+    status: StudyRuntimeStatus,
+    *,
+    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+) -> bool:
+    if audit_status is not None and audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+        return False
+    if (
+        status.quest_status not in _LIVE_QUEST_STATUSES
+        and status.quest_status not in _RESUMABLE_QUEST_STATUSES
+        and status.quest_status is not StudyRuntimeQuestStatus.STOPPED
+    ):
+        return False
+    try:
+        continuation_state = status.continuation_state
+    except KeyError:
+        return False
+    runtime_state = _load_json_dict(Path(continuation_state.runtime_state_path))
+    contract = runtime_state.get("human_takeover_contract")
+    return (
+        continuation_state.active_run_id is None
+        and isinstance(contract, dict)
+        and contract.get("resume_requires_explicit_wakeup") is True
+    )
+
+
 def _has_delivered_human_package_surface(study_root: Path) -> bool:
     return resolve_delivered_submission_package_manual_finish_contract(study_root=study_root) is not None
 

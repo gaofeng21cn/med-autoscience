@@ -110,3 +110,70 @@ def test_explicit_user_wakeup_keeps_typed_blocker_when_runtime_state_cannot_reco
     assert "explicit_user_wakeup" not in result
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
     assert "last_explicit_user_wakeup" not in runtime_state
+
+
+def test_explicit_user_wakeup_resumes_human_takeover_pause_contract(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    _, quest_root = _write_managed_study(profile, study_id)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "paused",
+                "active_run_id": None,
+                "worker_running": False,
+                "continuation_policy": "controller_review",
+                "continuation_anchor": "human_takeover",
+                "continuation_reason": "human_takeover_requested",
+                "human_takeover_contract": {
+                    "recorded_at": "2026-05-15T16:22:57+00:00",
+                    "resume_requires_explicit_wakeup": True,
+                    "source": "cli",
+                    "recommended_actions": [
+                        "manual_runtime_review_required",
+                        "controller_review_required",
+                    ],
+                },
+            }
+        )
+        + "\n",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        module.managed_runtime_transport,
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
+        or {"ok": True, "status": "running", "snapshot": {"status": "running", "active_run_id": "run-explicit"}},
+    )
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id=study_id,
+        explicit_user_wakeup=True,
+        source="user_explicit_wakeup",
+    )
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "quest_paused"
+    assert result["quest_status"] == "running"
+    assert result["explicit_user_wakeup"]["status"] == "recorded"
+    assert result["explicit_user_wakeup"]["cleared_human_takeover"] is True
+    assert calls == ["sync_context", "resume"]
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert "human_takeover_contract" not in runtime_state
+    assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
+    assert runtime_state["last_explicit_user_wakeup"]["cleared_human_takeover"] is True

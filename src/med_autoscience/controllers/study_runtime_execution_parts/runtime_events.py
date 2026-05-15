@@ -250,6 +250,14 @@ def record_explicit_user_wakeup(
         return None
     if bool(runtime_state.get("worker_running")):
         return None
+    human_takeover_contract = runtime_state.get("human_takeover_contract")
+    if isinstance(human_takeover_contract, dict) and human_takeover_contract.get("resume_requires_explicit_wakeup") is True:
+        return record_explicit_human_takeover_wakeup(
+            quest_root=quest_root,
+            source=source,
+            runtime_state=runtime_state,
+            runtime_state_path=runtime_state_path,
+        )
     if str(runtime_state.get("stop_reason") or "").strip() != "user_pause":
         return None
     cleared_keys = [
@@ -284,6 +292,60 @@ def record_explicit_user_wakeup(
         "recorded_at": recorded_at,
         "cleared_keys": cleared_keys,
         "cleared_stop_reason": cleared_stop_reason,
+    }
+
+
+def record_explicit_human_takeover_wakeup(
+    *,
+    quest_root: Path,
+    source: str,
+    runtime_state: dict[str, Any],
+    runtime_state_path: Path,
+) -> dict[str, Any] | None:
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return None
+    if bool(runtime_state.get("worker_running")):
+        return None
+    contract = runtime_state.get("human_takeover_contract")
+    if not isinstance(contract, dict) or contract.get("resume_requires_explicit_wakeup") is not True:
+        return None
+    if str(runtime_state.get("continuation_anchor") or "").strip() != "human_takeover":
+        return None
+    if str(runtime_state.get("continuation_reason") or "").strip() != "human_takeover_requested":
+        return None
+    cleared_keys = [
+        key
+        for key in (
+            "continuation_policy",
+            "continuation_anchor",
+            "continuation_reason",
+            "human_takeover_contract",
+        )
+        if key in runtime_state
+    ]
+    previous_continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
+    for key in cleared_keys:
+        runtime_state.pop(key, None)
+    recorded_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    runtime_state["last_explicit_user_wakeup"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": cleared_keys,
+        "cleared_human_takeover": True,
+        "previous_continuation_reason": previous_continuation_reason,
+    }
+    runtime_state_path.write_text(
+        json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "recorded",
+        "runtime_state_path": str(runtime_state_path),
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": cleared_keys,
+        "cleared_human_takeover": True,
+        "previous_continuation_reason": previous_continuation_reason,
     }
 
 
