@@ -6,7 +6,7 @@
 
 ## 工作方式
 
-- `Med Auto Science` 是独立医学研究 domain agent，也可以作为 `OPL` stage-led 智能体运行框架中的 admitted domain agent 被托管。`Stage` 表示大型研究步骤，Agent executor 是 stage 内最小执行单位；`Codex CLI` 是当前第一公民 executor，其他 executor adapter 只能显式接入且不承诺行为效果等价。MAS 持有医学研究 truth、quality verdict、runtime-facing owner surface、owner receipt 和 artifact authority；通用 runtime、queue、attempt ledger、state-machine runner、workspace/artifact/memory locator 与 App/workbench shell 归 OPL Framework / shared family layer。
+- `Med Auto Science` 是独立医学研究 domain agent，也可以作为 `OPL` stage-led 智能体运行框架中的 admitted domain agent 被托管。`Stage` 表示大型研究步骤，Agent executor 是 stage 内最小执行单位；`Codex CLI` 是当前第一公民 executor，其他 executor adapter 只能显式接入且不承诺行为效果等价。MAS 持有医学研究 truth、quality verdict、publication/study/artifact authority、runtime-facing owner surface 和 owner receipt；通用 runtime、queue、attempt ledger、state-machine runner、workspace/source/artifact/memory locator、lifecycle shell 与 App/workbench shell 归 OPL Framework / shared family layer。
 - `MDS / DeepScientist` 的当前角色是 MAS 显式声明的 source provenance、historical fixture、explicit archive import、backend audit、upstream learning 和 parity oracle reference。
 - 保持变更可审查、可回退，避免不必要的大范围改动。
 - 能删就别加；能复用现有模式就别新起抽象；没有明确必要不要新增依赖。
@@ -17,6 +17,7 @@
 - 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、兼容层或回归基线存在。
 - `family shared modules / shared boundary refactor` 是当前允许推进的 lane；它服务四仓复用、shared helper 收口与 future monorepo readiness。
 - external runtime gate、workspace / human gate 与对象边界仍然约束 `physical migration / monorepo absorb / runtime core ingest / controlled cutover`；`monorepo / runtime core ingest / controlled cutover` 继续作为后置长线推进。
+- 已被当前 owner surface 替代的模块、接口、CLI alias、wrapper、facade、聚合测试和文档入口，默认迁移 active caller 后直接退役；需要来龙去脉时只保留 history/tombstone/provenance，不新增 compatibility shim、别名或兼容测试。
 
 ## 运行语义一致性
 
@@ -43,12 +44,17 @@
 - 入口文档应先呈现当前状态、活跃层级、新旧关系和下一跳；已完成计划、旧校准记录和历史路线进入 evidence/provenance 层。
 - `docs/**` 默认只维护中文 canonical 内容；稳定路径优先使用无语言后缀 `.md`。
 - 根层 `README*` 是否保留公开双语入口，由产品分发和 public 需求单独决定。
+- MAS 采用 OPL-family canonical docs taxonomy：`active/public/product/runtime/delivery/source/policies/specs/references/history`。目录按长期生命周期职责保留，不按当前文件数量判断。
 - `docs/active/`：当前执行、当前计划、当前差距、active baton 与 program lifecycle portfolio；旧 `docs/program/` 已物理退役，`human_doc:*` 只保留语义 ID。
+- `docs/public/`：MAS 对外公开叙事和用户第一阅读层；不承载 study truth。
+- `docs/product/`：MAS app skill、direct product entry、operator/workbench-facing 指南。
+- `docs/runtime/`：runtime contracts、control surfaces、read models、display/projection 与活跃设计；完成或退役计划进入 `docs/history/runtime/`。
 - `docs/delivery/`：manuscript、package、submission/export、medical-display 等交付与能力族支撑；旧 `docs/capabilities/medical-display/` 已迁入 `docs/delivery/medical-display/`。
-- `docs/runtime/`：runtime contracts、control surfaces、read models、implementation plans 与待归档 history candidates；完成或退役的实现计划应迁入 `docs/history/runtime/`。
-- `docs/references/`：背景、定位、审计与非活跃参考。
-- `docs/history/`：历史归档，仅作历史参考入口。
-- `docs/policies/`：稳定内部规则，默认中文维护。
+- `docs/source/`：study workspace、source readiness、external intake 与 source truth consumption 支撑。
+- `docs/policies/`：稳定内部规则和长期运行边界，默认中文维护。
+- `docs/specs/`：当前仍有效技术规格索引；新增 active spec 前先确认是否更适合 runtime/policies/references 或 machine contract。
+- `docs/references/`：背景、定位、审计、MDS parity、workspace 与非活跃参考。
+- `docs/history/`：历史归档，仅作 provenance、tombstone 和历史参考入口。
 - `docs/history/superpowers/`：存量 repo-tracked 历史设计材料归档；新增本地 AI/Superpowers 过程草稿默认保持未跟踪。
 - `README*`、`docs/**` 与参考文档是人读面。代码、测试、contracts、dashboard 或 runtime 不得把 prose path、Markdown 章节或文案当成稳定机器接口；确需关联人读材料时，使用 durable JSON/schema/source surface 或 `human_doc:*` / `program:*` / `policy:*` / `runtime:*` 语义 ID。
 - MAS 的 study、publication、runtime 与 display 真相优先归属 stable runtime / controller / contract / generated artifact surface；文档只做解释、导航、治理与 provenance，不制造第二真相源。

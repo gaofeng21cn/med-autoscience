@@ -1,9 +1,16 @@
 # Outer-Loop Wakeup And Decision Loop
 
+Owner: `MedAutoScience`
+Purpose: `domain_transition_and_outer_loop_wakeup_contract`
+State: `active_runtime_control_support`
+Machine boundary: 本文是 MAS 医学研究 domain controller 的人读解释。机器真相继续归 MAS contracts、schema、CLI/MCP/API payload、`study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、sidecar receipt 和真实 workspace artifact；通用 provider workflow、queue、attempt ledger、retry/dead-letter、memory/artifact locator、operator projection 与 App/workbench shell 归 OPL Framework / shared family layer。
+
+当前阅读规则：本文不再描述 `Domain Harness OS` 时代的通用 runtime 计划，也不把 MAS 写成 generic runtime platform。这里的 `outer loop` 只指 MAS 如何把医学研究状态、publication quality、runtime-facing blocker 和 owner receipt 收成 domain transition / controller decision。OPL 可以托管 tick、queue、provider、attempt 与投影，但不能解释或改写 MAS 的医学研究 truth、publication verdict、paper/package authority 或 artifact gate。
+
 这份文档回答一个当前主线里必须明确的问题：
 
-`MedAutoScience` 作为 MAS-owned study/runtime controller，不是常驻 monolithic runtime daemon。
-当 MAS Runtime OS 内层执行发现“不能再把当前情况当作本地迭代继续处理”时，`MedAutoScience` 以什么形式被唤醒，并继续往下推进？
+`MedAutoScience` 作为 MAS-owned study/runtime-facing controller，不是常驻 monolithic runtime daemon，也不是 OPL 的 generic runtime kernel。
+当 MAS domain execution / runtime-facing owner surface 发现“当前状态不能再只作为本地研究迭代继续处理”时，`MedAutoScience` 以什么形式被唤醒、读取哪些 durable refs，并继续往下推进？
 
 与 `stop / rerun / requires_human_confirmation` 相关的正式控制语义，现统一收口到：
 
@@ -15,26 +22,27 @@
 
 ## 一句话结论
 
-当前推荐机制不是：
+当前机制不是：
 
 - 让 `MedAutoScience` 常驻监听所有 runtime
-- 也不是让 managed runtime backend 直接越权决定 study-level 改向
+- 让 MAS 自建通用 scheduler / queue / state-machine platform
+- 让 provider、local scheduler 或 runtime-facing helper 直接越权决定 study-level 改向
 
 而是：
 
-**由 runtime/backend loop 写出 durable escalation artifact，由 outer loop 在显式 controller tick 中读取该 artifact、产出 study-level decision、再决定后续动作。**
+**由 MAS runtime-facing surface 写出 durable escalation / blocker / owner refs，由 MAS outer loop 在显式 controller tick 中读取这些 refs、按 domain transition table 产出 study-level decision、再把可执行动作交给当前 owner surface 或 OPL-hosted provider。**
 
 换句话说：
 
-- runtime/backend loop 可以持续执行或由 provider/scheduler 唤醒
-- outer loop 被显式唤醒
-- 二者通过 durable artifact + ref + controller tick 对接
+- provider / scheduler / local diagnostic shell 可以触发 tick
+- MAS outer loop 的裁决必须显式、可审计、可重放
+- OPL 与 MAS 通过 durable artifact + ref + owner receipt + controller tick 对接
 
 ## 为什么必须这样设计
 
 如果没有独立的 outer-loop wakeup 设计，系统会退化成两种坏形态之一：
 
-1. managed runtime backend 自己判断整条研究线是否要改题、停题、换故事
+1. provider / runtime-facing helper 自己判断整条研究线是否要改题、停题、换故事
 2. `MedAutoScience` 理论上拥有 study-level authority，但实际上没有被正式唤醒的路径
 
 第一种会让 runtime 越权。
@@ -42,21 +50,20 @@
 
 因此必须明确：
 
-- runtime 在什么情况下发出升级信号
+- runtime-facing surface 在什么情况下发出升级信号
 - outer loop 通过什么正式入口读到这个信号
 - outer loop 做完判断后，结果以什么 durable artifact 写回
 
 ## 角色分工
 
-### MAS Runtime OS / managed runtime backend
+### MAS runtime-facing execution surface
 
 负责：
 
-- quest runtime lifecycle
-- 长时间执行
-- quest-local branch / iterate / diagnose
-- within-envelope local autonomy
-- 发现“这已经不是纯本地迭代问题”并发出 escalation
+- 执行 MAS 已授权的研究 work unit、repair work unit 或 delivery sync
+- 暴露 runtime liveness、owner route、typed blocker、artifact locator、receipt ref 和 escalation ref
+- 在 MAS 授权范围内做 quest-local diagnose / repair / iterate
+- 发现“这已经不是纯本地迭代问题”并发出 escalation 或 typed blocker
 
 不负责：
 
@@ -65,6 +72,7 @@
 - 改 endpoint / cohort contract
 - 放宽 publication evidence standard
 - 最终决定整条研究线 stop / continue / relaunch
+- generic scheduler、generic queue、attempt ledger、retry/dead-letter、operator projection 或 App/workbench runtime
 
 ### `MedAutoScience`
 
@@ -79,15 +87,16 @@
 不负责：
 
 - 替代 runtime 成为 resident quest daemon
-- 重写 runtime lifecycle 真相
+- 维护 generic runtime platform
+- 重写 provider / OPL attempt lifecycle 真相
 
 ## 当前正确的 wakeup 形态
 
 当前最正确的设计是：
 
-### 1. runtime 发出 durable signal
+### 1. runtime-facing surface 发出 durable signal
 
-当 runtime/backend loop 需要升级回 outer loop 时，不直接修改 study-level truth，而是写出：
+当 MAS runtime-facing surface 需要升级回 outer loop 时，不直接修改 study-level truth，而是写出：
 
 ```text
 quest_root/artifacts/reports/escalation/runtime_escalation_record.json
@@ -128,7 +137,7 @@ runtime_escalation_ref:
 - `study_runtime_status(...)`
 - `ensure_study_runtime(...)`
 - `runtime_watch`
-- future MCP / automation 定期调度
+- OPL-hosted provider / MCP / automation 定期调度
 
 也就是说，outer loop 的唤醒是：
 
@@ -144,7 +153,7 @@ runtime_escalation_ref:
 
 用途：
 
-- 只读当前 managed study runtime 状态
+- 只读当前 MAS study runtime-facing 状态
 - 在受控条件下读到 `runtime_escalation_ref`
 
 它适合：
@@ -168,14 +177,14 @@ runtime_escalation_ref:
 
 用途：
 
-- 对 quest root 或 runtime root 做周期性扫描
-- 聚合 controller runners
-- 为 future outer-loop supervisor 提供天然的 poll 点
+- 对 quest root 或 runtime-facing roots 做周期性扫描
+- 聚合 MAS controller / owner-route / receipt refs
+- 为 OPL-hosted provider、automation 或 direct/local diagnostic shell 提供 poll 点
 
 它适合：
 
-- 被定时器、automation 或上层 agent 周期调用
-- 作为 outer-loop wakeup 的默认执行外壳
+- 被 OPL provider、定时器、automation 或上层 agent 周期调用
+- 作为 MAS outer-loop wakeup 的 domain read / receipt shell
 
 ## 当前 P0 已落地的对象
 
@@ -272,7 +281,7 @@ reason: "..."
 1. study_charter defines outer-loop authority and autonomy envelope
 2. startup_contract projects the approved subset to runtime
 3. MAS Runtime OS runs within the approved envelope
-4. runtime writes runtime_escalation_record when local autonomy is no longer enough
+4. MAS runtime-facing surface writes runtime_escalation_record when local autonomy is no longer enough
 5. MedAutoScience status/read-model exposes runtime_escalation_ref
 6. outer-loop supervisor tick reads:
    - study_charter
@@ -280,7 +289,7 @@ reason: "..."
    - publication_eval
    - current delivery/readiness surfaces when needed
 7. MedAutoScience writes study_decision_record
-8. controller executes the allowed next action
+8. controller dispatches the allowed next action through MAS owner surface or OPL-hosted provider
 9. system returns to runtime loop or moves to delivery / stop-loss / reroute
 ```
 
@@ -312,17 +321,17 @@ reason: "..."
 
 - outer loop 最终决定怎么做
 
-## 技术实现建议
+## 当前实现与后续收口
 
-## Phase A. 完成当前已有对象
+## Phase A. 维护当前已有对象
 
-先继续完成并吸收当前主线已在推进的对象：
+当前对象继续作为 MAS-owned decision loop 的 durable anchors：
 
 - `study_charter`
 - `runtime_escalation_record`
 - `publication_eval`
 
-没有这三者，outer-loop wakeup 设计只会重新退化成 prompt 讨论。
+没有这三者，outer-loop wakeup 会重新退化成 prompt 讨论或 provider 自行解释 domain state。
 
 ## Phase B. 新增 outer-loop supervisor controller
 
@@ -362,15 +371,15 @@ reason: "..."
 
 ## Phase C. 把 wakeup 挂到稳定 poll surface
 
-推荐的挂载方式不是引入第二个 daemon，而是：
+推荐的挂载方式不是引入第二个 daemon，也不是让 MAS 维护 generic queue，而是：
 
-- 让 `runtime_watch` 成为默认 poll shell
-- 由 MCP automation / cron / external scheduler 周期调用
+- 让 `runtime_watch` 成为 MAS domain poll / receipt shell
+- 由 OPL provider、MCP automation、cron 或 external scheduler 周期调用
 - 或由 agent 在关键节点显式调用
 
 最稳妥的方式是：
 
-- poll-based controller wakeup
+- poll-based / provider-triggered controller wakeup
 - durable artifact handoff
 - non-callback orchestration
 
@@ -395,27 +404,30 @@ reason: "..."
 
 ## 与 automation 的关系
 
-future automation 不应直接替代 outer-loop authority。
+future automation 或 OPL provider 不应直接替代 MAS outer-loop authority。
 它更适合承担：
 
 - 周期触发 `runtime_watch`
 - 周期触发 `study_outer_loop_tick`
 - 汇总需要人工审核的 study-level decisions
+- queue、retry、dead-letter、attempt receipt 和 operator projection
 
 也就是说：
 
-- automation 负责唤醒
-- controller 负责裁决
-- runtime 负责执行
+- OPL / automation / scheduler 负责唤醒和承载 attempt
+- MAS controller 负责 domain 裁决
+- MAS owner surface 负责医学研究 truth、quality verdict、artifact/package authority 和 receipt
 
 ## 最关键的边界
 
 这套设计里最关键的边界是：
 
-- `MAS Runtime OS` 可以发现 runtime 不可继续推进
+- MAS runtime-facing surface 可以发现当前研究执行不可继续推进
 - 但不能自主宣布“整条研究线改题”
 - `MedAutoScience` 不需要常驻 daemon
 - 但必须拥有稳定的 wakeup tick 和 decision artifact
+- OPL 可以托管 wakeup / queue / provider / attempt / projection
+- 但不能替代 MAS 解释 publication gate、AI reviewer judgement、claim/evidence/display blocker 或 paper/package readiness
 
 因此，正确问题不是：
 
@@ -429,5 +441,5 @@ future automation 不应直接替代 outer-loop authority。
 
 今后统一按下面这条口径理解：
 
-`MAS Runtime OS` 是默认 runtime/backend owner；`MAS supervision scheduler contract` 是默认 wakeup owner，默认 adapter 是 MAS-owned `local` scheduler，macOS backend 已落地为 LaunchAgent；`Hermes gateway cron` 只在显式选择时作为 optional adapter；`MedAutoScience` 是 tick-driven controller。
-它们通过 `study_charter -> startup projection -> runtime_escalation_record -> publication_eval -> study_decision_record` 这条 durable artifact loop 对接，而不是通过隐式回调耦合成一个常驻大运行体。旧 MDS resident daemon 只作为 historical fixture / explicit archive import reference，不是当前默认执行形态。
+`MedAutoScience` 是医学研究 domain controller；MAS runtime-facing owner surfaces 只执行 MAS 授权的 work unit、写出 blocker / escalation / receipt refs；OPL Framework 可以承载 provider-backed tick、queue、attempt、retry/dead-letter、operator projection 和 App/workbench shell；`Hermes gateway cron`、local scheduler 与旧 MDS daemon 只作为显式 optional adapter、direct/local diagnostic 或 historical fixture / explicit archive import reference 读取。
+MAS 与 OPL 通过 `study_charter -> startup projection -> runtime_escalation_record -> publication_eval -> study_decision_record -> owner receipt` 这条 durable artifact loop 对接，而不是通过隐式回调耦合成一个常驻大运行体。后续发现旧 module、interface、CLI alias、wrapper 或测试入口已无 active caller 且已有 replacement proof 时，直接退役清理或归档到 history/tombstone，不保留兼容面。
