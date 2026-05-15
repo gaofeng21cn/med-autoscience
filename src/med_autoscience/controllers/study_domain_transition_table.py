@@ -42,6 +42,12 @@ def project_domain_transition(
     controller_decision, controller_decision_ref = _read_relative_json(root, CONTROLLER_DECISION_RELATIVE_PATH)
     repair_evidence, repair_evidence_ref = _read_relative_json(root, REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH)
     execution_receipt_consumption = study_transition_receipt_consumption.execution_receipt_consumption(status)
+    ai_reviewer_receipt_consumption = (
+        study_transition_receipt_consumption.ai_reviewer_publication_eval_receipt_consumption(
+            publication_eval=publication_eval,
+            publication_eval_ref=PUBLICATION_EVAL_RELATIVE_PATH,
+        )
+    )
     owner_apply_receipt_consumption = study_transition_receipt_consumption.mas_owner_apply_receipt_consumption(
         study_root=root
     )
@@ -170,7 +176,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
             source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption,
+            completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
         )
 
     if _ai_reviewer_re_eval(publication_eval):
@@ -188,7 +194,7 @@ def project_domain_transition(
             typed_blocker=None,
             guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
             source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption,
+            completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
         )
 
     bundle_stage_work_unit = _bundle_stage_finalize_work_unit(
@@ -246,7 +252,7 @@ def project_domain_transition(
             typed_blocker=None,
             guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
             source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption,
+            completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
         )
 
     if owner_apply_receipt_consumption or _meaningful_artifact_delta(repair_evidence):

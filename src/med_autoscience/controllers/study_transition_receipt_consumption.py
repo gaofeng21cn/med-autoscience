@@ -32,6 +32,33 @@ def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def ai_reviewer_publication_eval_receipt_consumption(
+    *,
+    publication_eval: Mapping[str, Any],
+    publication_eval_ref: Path,
+) -> dict[str, Any]:
+    provenance = _mapping(publication_eval.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer":
+        return {}
+    if _text(provenance.get("source_kind")) != "publication_eval_ai_reviewer":
+        return {}
+    if provenance.get("ai_reviewer_required") is not False:
+        return {}
+    if not _mapping(publication_eval.get("reviewer_operating_system")):
+        return {}
+    eval_id = _text(publication_eval.get("eval_id"))
+    if not eval_id:
+        return {}
+    return {
+        "status": "consumed",
+        "receipt_kind": "ai_reviewer_publication_eval",
+        "receipt_ref": str(publication_eval_ref),
+        "eval_id": eval_id,
+        "reviewer_trace_ref": f"{publication_eval_ref}#reviewer_operating_system",
+        "next_action": "honor_ai_reviewer_publication_eval_authority",
+    }
+
+
 def bundle_stage_completion_receipt_consumption(
     *,
     study_root: Path,
@@ -276,6 +303,7 @@ def _text(value: object) -> str:
 
 
 __all__ = [
+    "ai_reviewer_publication_eval_receipt_consumption",
     "bundle_stage_completion_receipt_consumption",
     "execution_receipt_consumption",
     "mas_owner_apply_receipt_consumption",

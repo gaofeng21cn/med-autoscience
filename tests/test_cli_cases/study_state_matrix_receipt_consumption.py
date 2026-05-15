@@ -422,3 +422,94 @@ def test_study_state_matrix_consumes_controller_route_decision_owner_receipt(
     assert transition["guard_boundary"]["mas_owner_apply_receipt_required"] is True
     assert case["expected"]["decision_type"] == "owner_apply_receipt_consumed"
     assert case["context"]["completion_receipt_consumption"]["apply_result"] == "route_decision"
+
+
+def test_study_state_matrix_consumes_ai_reviewer_publication_eval_receipt(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-review"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "schema_version": 1,
+            "eval_id": "publication-eval::002-review::ai-reviewer::2026-05-15T08:20:00+00:00",
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "current_required_action": "continue_bundle_stage",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "policy_id": "medical_publication_critique_v1",
+                "source_refs": [str(study_root / "paper" / "manuscript.md")],
+                "ai_reviewer_required": False,
+            },
+            "reviewer_operating_system": {
+                "contract_id": "medical_publication_ai_reviewer_os_v1",
+                "input_bundle": {"manuscript": str(study_root / "paper" / "manuscript.md")},
+                "route_back_decision": {
+                    "recommended_action": "continue_same_line",
+                    "rationale": "AI reviewer-backed bundle-stage closure is current.",
+                },
+            },
+            "recommended_actions": [
+                {
+                    "action_type": "continue_same_line",
+                    "route_target": "finalize",
+                    "requires_controller_decision": True,
+                    "next_work_unit": {
+                        "unit_id": "submission_authority_sync_closure",
+                        "lane": "controller",
+                        "summary": "Synchronize submission authority and package closure.",
+                    },
+                }
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "running",
+            "active_run_id": "run-ai-reviewer-002",
+            "publication_supervisor_state": {
+                "supervisor_phase": "bundle_stage_ready",
+                "current_required_action": "continue_bundle_stage",
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    transition = payload["studies"][0]["domain_transition"]
+    case = payload["domain_transition_table"]["family_transition_matrix_cases"][0]
+    rule = payload["domain_transition_table"]["family_transition_spec"]["transitions"][0]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "bundle_stage_finalize"
+    assert transition["completion_receipt_consumption"] == {
+        "status": "consumed",
+        "receipt_kind": "ai_reviewer_publication_eval",
+        "receipt_ref": "artifacts/publication_eval/latest.json",
+        "eval_id": "publication-eval::002-review::ai-reviewer::2026-05-15T08:20:00+00:00",
+        "reviewer_trace_ref": "artifacts/publication_eval/latest.json#reviewer_operating_system",
+        "next_action": "honor_ai_reviewer_publication_eval_authority",
+    }
+    assert transition["guard_boundary"]["can_write_domain_truth"] is False
+    assert "quality_authorized" not in transition["completion_receipt_consumption"]
+    assert "submission_authorized" not in transition["completion_receipt_consumption"]
+    assert case["context"]["completion_receipt_consumption"]["receipt_kind"] == "ai_reviewer_publication_eval"
+    assert rule["receipt"]["completion_receipt_consumption"]["receipt_kind"] == "ai_reviewer_publication_eval"
