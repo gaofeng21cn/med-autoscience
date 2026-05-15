@@ -1,5 +1,12 @@
 # Open Harness OS Architecture
 
+Owner: `MedAutoScience`
+Purpose: `historical_positioning_reference`
+State: `history_only_superseded`
+Machine boundary: 本文只保存旧 Open Harness OS 开放化讨论。当前 MAS 不承担 generic framework/runtime、generic memory service、generic artifact lifecycle 或 generic workbench shell；当前 owner 边界以 [MAS 理想目标态](../../references/positioning/mas_ideal_state.md)、[MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)、OPL family 主参考和 durable runtime/controller surfaces 为准。
+
+Superseded reading note: 本文中的 `Harness OS core`、`Domain Gateway`、`Domain Harness OS` 和开放化三层结构只能作为历史设计素材读取。当前可复用 primitive 的 owner 是 OPL Framework / shared family layer；MAS 只输出 medical domain pack、domain transition spec、owner receipt、artifact locator、quality gate 和 projection builder。
+
 这份文档回答一个长期架构问题：
 
 `MedAutoScience` 现在是医学自动科研系统。未来如果希望让整套 harness 能兼容其他领域的论文生产与研究运行，这条线应如何理解？

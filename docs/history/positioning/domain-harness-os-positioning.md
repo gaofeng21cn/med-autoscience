@@ -1,5 +1,12 @@
 # Unified Harness Engineering Substrate 下的 Domain Harness OS 定位
 
+Owner: `MedAutoScience`
+Purpose: `historical_positioning_reference`
+State: `history_only_superseded`
+Machine boundary: 本文只保存 2026-05-08 前后的旧内部定位语汇。当前 MAS 不是 generic framework/runtime owner；当前 owner 边界以 [MAS 理想目标态](../../references/positioning/mas_ideal_state.md)、[MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)、核心五件套和 durable runtime/controller surfaces 为准。
+
+Superseded reading note: 本文中的 `Unified Harness Engineering Substrate`、`Domain Harness OS`、`MAS Runtime OS`、local scheduler 默认链路和 MDS 迁移链路，均不得作为当前 active truth、默认 runtime topology、generic framework owner 或兼容接口保留理由。当前口径是 OPL 持有通用 stage-led framework/runtime primitive，MAS 持有 medical research domain truth 与 domain package 薄程序面。
+
 ## 文档目的
 
 这份文档用于统一内部口径：`Med Auto Science` 不是一个独立新造的公共基础框架，而是运行在共享 `Unified Harness Engineering Substrate` 上的医学 `Research Ops` `Domain Harness OS`。
