@@ -239,3 +239,74 @@ def test_study_state_matrix_marks_default_executor_execution_receipt_supersessio
     assert case["expected"]["decision_type"] == "ai_reviewer_re_eval"
     assert case["context"]["completion_receipt_consumption"]["status"] == "superseded_stale_closeout"
     assert case["context"]["completion_receipt_consumption"]["next_action"] == "honor_newer_owner_execution_receipt"
+
+
+def test_study_state_matrix_consumes_mas_owner_apply_receipt_as_artifact_delta(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-dm"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json",
+        {
+            "surface": "paper_repair_owner_receipt",
+            "accepted": True,
+            "execution_status": "executed",
+            "canonical_artifact_delta_refs": [{"path": str(study_root / "paper" / "manuscript.md")}],
+            "direct_current_package_write": False,
+            "quality_authorized": False,
+            "submission_authorized": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json",
+        {
+            "canonical_artifact_delta": {"meaningful_artifact_delta": True},
+            "progress_delta_candidate": True,
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "paused",
+            "active_run_id": None,
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    transition = payload["studies"][0]["domain_transition"]
+    case = payload["domain_transition_table"]["family_transition_matrix_cases"][0]
+    rule = payload["domain_transition_table"]["family_transition_spec"]["transitions"][0]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "owner_apply_receipt_consumed"
+    assert transition["route_target"] == "finalize"
+    assert transition["next_work_unit"]["unit_id"] == "provider_hosted_guarded_apply"
+    assert transition["controller_action"] == "paper_autonomy_guarded_apply"
+    assert transition["owner"] == "med-autoscience"
+    assert transition["completion_receipt_consumption"] == {
+        "status": "consumed",
+        "receipt_kind": "mas_owner_apply_receipt",
+        "apply_result": "artifact_delta",
+        "receipt_ref": "artifacts/controller/repair_execution_receipts/latest.json",
+        "evidence_ref": "artifacts/controller/repair_execution_evidence/latest.json",
+        "next_action": "allow_mas_owner_guarded_apply",
+    }
+    assert transition["guard_boundary"]["mas_owner_apply_receipt_required"] is True
+    assert case["expected"]["decision_type"] == "owner_apply_receipt_consumed"
+    assert case["context"]["completion_receipt_consumption"]["receipt_kind"] == "mas_owner_apply_receipt"
+    assert rule["receipt"]["completion_receipt_consumption"]["apply_result"] == "artifact_delta"

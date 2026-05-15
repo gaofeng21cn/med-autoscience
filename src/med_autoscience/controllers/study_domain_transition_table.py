@@ -42,11 +42,16 @@ def project_domain_transition(
     controller_decision, controller_decision_ref = _read_relative_json(root, CONTROLLER_DECISION_RELATIVE_PATH)
     repair_evidence, repair_evidence_ref = _read_relative_json(root, REPAIR_EXECUTION_EVIDENCE_RELATIVE_PATH)
     execution_receipt_consumption = study_transition_receipt_consumption.execution_receipt_consumption(status)
+    owner_apply_receipt_consumption = study_transition_receipt_consumption.mas_owner_apply_receipt_consumption(
+        study_root=root
+    )
     source_refs = _present_refs(
         publication_eval_ref,
         controller_decision_ref,
         repair_evidence_ref,
         _text(execution_receipt_consumption.get("source_ref")),
+        _text(owner_apply_receipt_consumption.get("receipt_ref")),
+        _text(owner_apply_receipt_consumption.get("evidence_ref")),
         "study_runtime_status",
         "study_macro_state",
     )
@@ -244,10 +249,12 @@ def project_domain_transition(
             completion_receipt_consumption=execution_receipt_consumption,
         )
 
-    if _meaningful_artifact_delta(repair_evidence):
+    if owner_apply_receipt_consumption or _meaningful_artifact_delta(repair_evidence):
         return _transition(
             study_id=study_id,
-            decision_type="artifact_delta_live_apply",
+            decision_type="owner_apply_receipt_consumed"
+            if owner_apply_receipt_consumption
+            else "artifact_delta_live_apply",
             route_target="finalize",
             next_work_unit=_work_unit(
                 "provider_hosted_guarded_apply",
@@ -262,7 +269,7 @@ def project_domain_transition(
                 mas_owner_apply_receipt_required=True,
             ),
             source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption,
+            completion_receipt_consumption=owner_apply_receipt_consumption or execution_receipt_consumption,
         )
 
     if active_run_id:

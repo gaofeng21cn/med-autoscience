@@ -70,6 +70,40 @@ def bundle_stage_completion_receipt_consumption(
     return {}
 
 
+def mas_owner_apply_receipt_consumption(*, study_root: Path) -> dict[str, Any]:
+    receipt_ref = Path("artifacts/controller/repair_execution_receipts/latest.json")
+    evidence_ref = Path("artifacts/controller/repair_execution_evidence/latest.json")
+    receipt = _read_json_object(study_root / receipt_ref)
+    evidence = _read_json_object(study_root / evidence_ref)
+    if receipt is None or evidence is None:
+        return {}
+    if receipt.get("surface") != "paper_repair_owner_receipt":
+        return {}
+    if receipt.get("accepted") is not True or receipt.get("execution_status") != "executed":
+        return {}
+    if receipt.get("direct_current_package_write") is not False:
+        return {}
+    if receipt.get("quality_authorized") is not False:
+        return {}
+    if receipt.get("submission_authorized") is not False:
+        return {}
+    progress_observed = (
+        _mapping(evidence.get("canonical_artifact_delta")).get("meaningful_artifact_delta") is True
+        or evidence.get("progress_delta_candidate") is True
+        or bool(receipt.get("canonical_artifact_delta_refs"))
+    )
+    if not progress_observed:
+        return {}
+    return {
+        "status": "consumed",
+        "receipt_kind": "mas_owner_apply_receipt",
+        "apply_result": "artifact_delta",
+        "receipt_ref": str(receipt_ref),
+        "evidence_ref": str(evidence_ref),
+        "next_action": "allow_mas_owner_guarded_apply",
+    }
+
+
 def relative_study_artifact_ref(path_text: str) -> str:
     if not path_text:
         return ""
@@ -177,5 +211,6 @@ def _text(value: object) -> str:
 __all__ = [
     "bundle_stage_completion_receipt_consumption",
     "execution_receipt_consumption",
+    "mas_owner_apply_receipt_consumption",
     "relative_study_artifact_ref",
 ]
