@@ -127,6 +127,78 @@ def test_current_controller_route_accepts_domain_transition_without_publication_
     assert route["work_unit_fingerprint"] == work_unit_fingerprint
 
 
+def test_current_controller_route_ignores_non_json_turn_closeout_artifact_refs(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.runtime_supervisor_scan_parts.current_truth_owner"
+    )
+    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
+    quest_id = study_id
+    work_unit_fingerprint = "domain-transition::ai_reviewer_re_eval::ai_reviewer_recheck"
+    study_root = write_study(tmp_path, study_id, quest_id=quest_id)
+    workspace_root = study_root.parent.parent
+    quest_root = workspace_root / "runtime" / "quests" / quest_id
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": f"publication-eval::{study_id}::current",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "runtime_context_refs": {
+            "runtime_escalation_ref": str(
+                quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+            ),
+        },
+        "recommended_actions": [],
+    }
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "domain-transition-ai-reviewer-route",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "return_to_ai_reviewer_workflow"}],
+            "route_target": "review",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "next_work_unit": {
+                "unit_id": "ai_reviewer_recheck",
+                "lane": "review",
+                "summary": "Return current manuscript and evidence refs to the AI reviewer workflow.",
+            },
+        },
+    )
+    figure_ref = "../../../studies/003-dpcc-primary-care-phenotype-treatment-gap/paper/figures/generated/F1_cohort_flow.png"
+    figure_path = quest_root / figure_ref
+    figure_path.parent.mkdir(parents=True, exist_ok=True)
+    figure_path.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+    _write_json(
+        quest_root / "artifacts" / "runtime" / "turn_closeouts" / "mas-run-003-ai-reviewer.json",
+        {
+            "schema_version": 1,
+            "quest_id": quest_id,
+            "run_id": "mas-run-003-ai-reviewer",
+            "status": "completed",
+            "completed_at": "2026-05-15T15:20:00Z",
+            "meaningful_artifact_delta": True,
+            "artifact_refs": [figure_ref],
+            "blocked_reason": None,
+            "next_owner": None,
+        },
+    )
+
+    route = module.current_controller_runtime_route(
+        study_root=study_root,
+        publication_eval_payload=publication_eval,
+    )
+
+    assert route is not None
+    assert route["route_target"] == "review"
+    assert route["work_unit_id"] == "ai_reviewer_recheck"
+    assert route["work_unit_fingerprint"] == work_unit_fingerprint
+
+
 def test_current_controller_route_accepts_bundle_stage_domain_transition_without_publication_action(
     tmp_path: Path,
 ) -> None:

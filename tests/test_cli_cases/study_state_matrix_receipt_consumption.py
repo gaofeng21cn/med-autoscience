@@ -114,11 +114,17 @@ def test_study_state_matrix_consumes_bundle_stage_package_closure_receipt(
             "status": "completed",
             "completed_at": "2026-05-15T07:56:12Z",
             "meaningful_artifact_delta": True,
-            "artifact_refs": [package_closure_ref],
+            "artifact_refs": [
+                "paper/figures/generated/F1_cohort_flow.png",
+                package_closure_ref,
+            ],
             "blocked_reason": None,
             "next_owner": None,
         },
     )
+    figure_path = quest_root / "paper" / "figures" / "generated" / "F1_cohort_flow.png"
+    figure_path.parent.mkdir(parents=True, exist_ok=True)
+    figure_path.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
 
     monkeypatch.setattr(
         cli.study_runtime_router,

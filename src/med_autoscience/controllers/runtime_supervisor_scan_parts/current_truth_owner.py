@@ -239,9 +239,9 @@ def _runtime_turn_closeout_closes_work_unit(
             continue
         for artifact_ref in closeout.get("artifact_refs") or []:
             artifact_path = _resolve_runtime_artifact_ref(quest_root, artifact_ref)
-            if artifact_path is None:
+            if artifact_path is None or not _runtime_artifact_ref_is_json_payload(artifact_path):
                 continue
-            package_closure = _read_json_object(artifact_path)
+            package_closure = _read_json_artifact_object(artifact_path)
             if _package_closure_matches_work_unit(
                 package_closure,
                 study_root=study_root,
@@ -273,6 +273,18 @@ def _resolve_runtime_artifact_ref(quest_root: Path, artifact_ref: object) -> Pat
     if path.is_absolute():
         return path.resolve()
     return (quest_root / path).resolve()
+
+
+def _runtime_artifact_ref_is_json_payload(path: Path) -> bool:
+    return path.suffix.lower() == ".json"
+
+
+def _read_json_artifact_object(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    return dict(payload) if isinstance(payload, Mapping) else None
 
 
 def _package_closure_matches_work_unit(

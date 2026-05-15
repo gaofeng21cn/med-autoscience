@@ -96,7 +96,9 @@ def bundle_stage_completion_receipt_consumption(
         for artifact_ref in closeout.get("artifact_refs") or []:
             artifact_ref_text = _text(artifact_ref)
             artifact_path = _resolve_runtime_artifact_ref(quest_root, artifact_ref_text)
-            package_closure = _read_json_object(artifact_path) if artifact_path is not None else None
+            if artifact_path is None or not _runtime_artifact_ref_is_json_payload(artifact_path):
+                continue
+            package_closure = _read_json_object(artifact_path)
             if not _package_closure_matches_work_unit(
                 package_closure,
                 study_root=study_root,
@@ -365,6 +367,10 @@ def _resolve_runtime_artifact_ref(quest_root: Path, artifact_ref: str) -> Path |
     return (quest_root / path).resolve()
 
 
+def _runtime_artifact_ref_is_json_payload(path: Path) -> bool:
+    return path.suffix.lower() == ".json"
+
+
 def _package_closure_matches_work_unit(
     payload: Mapping[str, Any] | None,
     *,
@@ -428,7 +434,7 @@ def _read_json_object(path: Path | None) -> dict[str, Any] | None:
         return None
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None
     if not isinstance(payload, Mapping):
         return None
