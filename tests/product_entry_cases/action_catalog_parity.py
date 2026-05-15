@@ -200,6 +200,34 @@ def test_product_entry_manifest_exposes_foundry_agent_product_positioning(tmp_pa
     }
 
 
+def test_product_entry_manifest_exposes_domain_transition_spec_descriptor(tmp_path: Path) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    descriptor = manifest["family_transition_spec_descriptor"]
+
+    assert descriptor["surface_kind"] == "family_transition_spec_descriptor"
+    assert descriptor["target_domain_id"] == "medautoscience"
+    assert descriptor["spec_surface_kind"] == "family_transition_spec"
+    assert descriptor["contract_version"] == "family-transition-runner.v1"
+    assert descriptor["refresh_policy"] == "rebuild_study_state_matrix_or_sidecar_export_before_opl_runner"
+    assert descriptor["authority_boundary"] == {
+        "runner_owner": "OPL Framework",
+        "domain_transition_owner": "MedAutoScience",
+        "can_write_domain_truth": False,
+        "opl_interprets_domain_quality": False,
+        "opl_executes_domain_action": False,
+    }
+    assert descriptor["locator_refs"] == {
+        "study_state_matrix_spec": "/study_state_matrix/domain_transition_table/family_transition_spec",
+        "sidecar_export_spec": "/mas_family_sidecar_export/family_transition_spec",
+        "product_entry_manifest_descriptor": "/product_entry_manifest/family_transition_spec_descriptor",
+    }
+
+
 def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descriptor(tmp_path: Path) -> None:
     stage_knowledge_plane = importlib.import_module("med_autoscience.controllers.stage_knowledge_plane")
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")

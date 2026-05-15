@@ -805,6 +805,40 @@ def test_sidecar_export_does_not_auto_ticket_stop_loss_or_human_gate(tmp_path: P
     assert payload["studies"][1]["autonomy_continuation"]["eligible_for_auto_dispatch"] is False
 
 
+def test_sidecar_export_exposes_domain_declared_transition_spec_without_domain_truth_write(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "publication-blocked"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "status": "blocked",
+            "blockers": ["claim_specificity_gap"],
+            "assessment_provenance": {"owner": "publication_gate"},
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    descriptor = payload["family_transition_spec_descriptor"]
+    assert descriptor["surface_kind"] == "family_transition_spec_descriptor"
+    assert descriptor["target_domain_id"] == "medautoscience"
+    assert descriptor["spec_surface_kind"] == "family_transition_spec"
+    assert descriptor["contract_version"] == "family-transition-runner.v1"
+    assert descriptor["authority_boundary"]["runner_owner"] == "OPL Framework"
+    assert descriptor["authority_boundary"]["can_write_domain_truth"] is False
+    assert descriptor["authority_boundary"]["opl_interprets_domain_quality"] is False
+    assert descriptor["locator_refs"]["study_state_matrix_spec"] == "/study_state_matrix/domain_transition_table/family_transition_spec"
+    assert payload["authority_boundary"]["writes_domain_truth"] is False
+
+
 def test_sidecar_dispatch_rejects_domain_truth_writes(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     task_path = tmp_path / "task.json"

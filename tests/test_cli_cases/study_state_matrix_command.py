@@ -308,6 +308,41 @@ def test_study_state_matrix_projects_publication_gate_blocker_transition(
     assert transition["typed_blocker"]["write_permitted"] is False
     assert transition["guard_boundary"]["runner_boundary"] == "mas_domain_read_model_only"
     assert transition["guard_boundary"]["can_execute_generic_state_machine"] is False
+    spec = payload["domain_transition_table"]["family_transition_spec"]
+    cases = payload["domain_transition_table"]["family_transition_matrix_cases"]
+    assert spec["surface_kind"] == "family_transition_spec"
+    assert spec["version"] == "family-transition-runner.v1"
+    assert spec["target_domain_id"] == "medautoscience"
+    assert spec["authority_boundary"]["opl"] == "transition_runner_transport_projection_only"
+    assert spec["authority_boundary"]["domain"] == "truth_quality_artifact_gate_owner"
+    assert spec["authority_boundary"]["opl_interprets_domain_quality"] is False
+    assert spec["authority_boundary"]["opl_writes_domain_truth"] is False
+    assert cases == [
+        {
+            "case_id": "003-gate:publication_gate_replay",
+            "domain_id": "medautoscience",
+            "current_state": "mas_domain_transition:publication_gate_replay",
+            "event": "domain_tick",
+            "guards": {"mas_guard_publication_gate_replay": True},
+            "context": {
+                "source_ref": "artifacts/publication_eval/latest.json",
+                "receipt_ref": "mas-domain-transition:003-gate:publication_gate_replay",
+            },
+        }
+    ]
+    rule = next(
+        item
+        for item in spec["transitions"]
+        if item["transition_id"] == "mas-transition-publication_gate_replay"
+    )
+    assert rule["current_state"] == "mas_domain_transition:publication_gate_replay"
+    assert rule["required_guards"] == ["mas_guard_publication_gate_replay"]
+    assert rule["next_state"] == "mas_route:review"
+    assert rule["owner_route"]["owner"] == "publication_gate"
+    assert rule["owner_route"]["route_ref"] == "mas-route:review"
+    assert rule["next_work_unit"]["work_unit_ref"] == "mas-work-unit:publication_gate_replay"
+    assert rule["typed_blocker"]["blocker_code"] == "publication_gate_blocked"
+    assert rule["authority_boundary"]["can_write_domain_truth"] is False
 
 
 def test_study_state_matrix_projects_ai_reviewer_re_eval_transition(

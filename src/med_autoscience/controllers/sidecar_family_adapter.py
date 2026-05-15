@@ -15,6 +15,7 @@ from . import reviewer_refinement_loop
 from . import runtime_supervisor_dispatch_executor
 from . import runtime_supervisor_reconcile
 from . import stage_knowledge_plane
+from . import study_domain_transition_table
 from .real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
 from .sidecar_family_adapter_parts.functional_closure import (
     build_sidecar_functional_closure_projection,
@@ -258,6 +259,9 @@ def export_family_sidecar(
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
         },
         "authority_boundary": _authority_boundary_payload(),
+        "family_transition_spec_descriptor": (
+            study_domain_transition_table.build_family_transition_spec_descriptor()
+        ),
         "provider_ready_adapter": functional_closure["provider_ready_contract"],
         "managed_temporal_state_consistency": (
             opl_provider_ready_adapter.build_managed_temporal_state_consistency_read_model(
