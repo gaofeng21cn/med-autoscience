@@ -622,4 +622,7 @@ def test_study_runtime_status_parks_waiting_user_after_revision_intake_consumed_
     assert result["decision"] == "blocked"
     assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["auto_runtime_parked"]["parked"] is True
-    assert result["interaction_arbitration"]["classification"] == "blocked_closeout_owner_redrive"
+    assert result["interaction_arbitration"]["classification"] == "domain_transition_terminal_or_handoff"
+    assert result["interaction_arbitration"]["reason_code"] == "domain_transition_delivered_package_handoff"
+    assert result["interaction_arbitration"]["domain_transition_decision_type"] == "delivered_package_handoff"
+    assert result["interaction_arbitration"]["next_work_unit_id"] == "package_review_handoff"

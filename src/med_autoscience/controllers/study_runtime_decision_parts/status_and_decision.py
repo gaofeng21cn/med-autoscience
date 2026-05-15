@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
+    from .domain_transition_arbitration import *  # noqa: F403
     from .manual_finish_dominance import *  # noqa: F403
     from .publication_and_submission import *  # noqa: F403
     from .runtime_events import *  # noqa: F403
@@ -32,6 +33,7 @@ def _record_interaction_arbitration_if_required(
     blocked_closeout = status.extras.get("blocked_turn_closeout")
     continuation_state = status.extras.get("continuation_state")
     controller_authorization = status.extras.get("last_controller_decision_authorization")
+    domain_transition = status.extras.get("domain_transition")
     arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
         pending_interaction=payload if isinstance(payload, dict) else None,
         decision_policy=str(execution.get("decision_policy") or "").strip() or None,
@@ -40,6 +42,7 @@ def _record_interaction_arbitration_if_required(
         blocked_closeout=blocked_closeout if isinstance(blocked_closeout, dict) else None,
         continuation_state=continuation_state if isinstance(continuation_state, dict) else None,
         controller_authorization=controller_authorization if isinstance(controller_authorization, dict) else None,
+        domain_transition=domain_transition if isinstance(domain_transition, dict) else None,
     )
     status.record_interaction_arbitration(arbitration)
 
@@ -185,6 +188,7 @@ def _status_state(
         study_root=study_root,
         quest_root=quest_root,
     )
+    record_domain_transition_if_required(status=result, study_root=study_root)
     _record_pending_user_interaction_if_required(
         status=result,
         runtime_root=runtime_root,

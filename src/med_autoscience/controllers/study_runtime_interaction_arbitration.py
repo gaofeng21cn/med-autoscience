@@ -88,6 +88,7 @@ def arbitrate_waiting_for_user(
     blocked_closeout: dict[str, Any] | None = None,
     continuation_state: dict[str, Any] | None = None,
     controller_authorization: dict[str, Any] | None = None,
+    domain_transition: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if submission_metadata_only:
         return {
@@ -103,6 +104,10 @@ def arbitrate_waiting_for_user(
                 "Submission metadata gaps stay controller-owned and must not block autonomous runtime continuation."
             ),
         }
+
+    domain_transition_arbitration = _domain_transition_arbitration(domain_transition)
+    if domain_transition_arbitration is not None:
+        return domain_transition_arbitration
 
     if not isinstance(pending_interaction, dict):
         pending_redrive = _pending_user_message_redrive(continuation_state)
@@ -213,6 +218,61 @@ def arbitrate_waiting_for_user(
             "inside the MAS outer loop; runtime blocking may only ask for external secrets or credentials."
         ),
     }
+
+
+def _domain_transition_arbitration(domain_transition: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(domain_transition, dict):
+        return None
+    decision_type = _text(domain_transition.get("decision_type"))
+    if decision_type is None:
+        return None
+    next_work_unit = domain_transition.get("next_work_unit")
+    next_work_unit_id = _text(next_work_unit.get("unit_id")) if isinstance(next_work_unit, dict) else None
+    typed_blocker = domain_transition.get("typed_blocker")
+    typed_blocker_id = _text(typed_blocker.get("blocker_id")) if isinstance(typed_blocker, dict) else None
+    route_target = _text(domain_transition.get("route_target"))
+    controller_action = _text(domain_transition.get("controller_action"))
+    if decision_type == "publication_gate_blocker":
+        return {
+            "classification": "domain_transition_publication_blocker",
+            "action": "resume",
+            "reason_code": "domain_transition_publication_gate_blocker",
+            "requires_user_input": False,
+            "valid_blocking": False,
+            "kind": "domain_transition",
+            "decision_type": None,
+            "source_artifact_path": None,
+            "domain_transition_decision_type": decision_type,
+            "domain_transition_route_target": route_target,
+            "domain_transition_controller_action": controller_action,
+            "typed_blocker_id": typed_blocker_id,
+            "next_work_unit_id": next_work_unit_id,
+            "controller_stage_note": (
+                "MAS domain transition selected the publication gate blocker route; resume the controller-owned "
+                "repair work unit instead of treating the runtime wait as a user decision."
+            ),
+        }
+    if decision_type in {"delivered_package_handoff", "human_gate", "stop_loss"}:
+        return {
+            "classification": "domain_transition_terminal_or_handoff",
+            "action": "block",
+            "reason_code": f"domain_transition_{decision_type}",
+            "requires_user_input": False,
+            "valid_blocking": True,
+            "kind": "domain_transition",
+            "decision_type": None,
+            "source_artifact_path": None,
+            "domain_transition_decision_type": decision_type,
+            "domain_transition_route_target": route_target,
+            "domain_transition_controller_action": controller_action,
+            "typed_blocker_id": typed_blocker_id,
+            "next_work_unit_id": next_work_unit_id,
+            "controller_stage_note": (
+                "MAS domain transition selected a terminal or handoff route; preserve the owner boundary "
+                "instead of redriving an older runtime wait state."
+            ),
+        }
+    return None
 
 
 def _pending_user_message_redrive(continuation_state: dict[str, Any] | None) -> dict[str, Any] | None:

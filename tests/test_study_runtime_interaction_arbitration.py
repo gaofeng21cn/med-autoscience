@@ -282,3 +282,142 @@ def test_arbitrate_waiting_for_user_redrives_mas_controller_colon_owner() -> Non
     assert result["action"] == "resume"
     assert result["requires_user_input"] is False
     assert result["valid_blocking"] is False
+
+
+def test_arbitrate_waiting_for_user_respects_delivered_package_oracle_over_blocked_closeout_redrive() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        blocked_closeout={
+            "run_id": "run-old",
+            "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-old.json",
+            "blocked_reason": "old owner_handoff",
+            "next_owner": "MAS/controller",
+        },
+        domain_transition={
+            "decision_type": "delivered_package_handoff",
+            "route_target": "human_gate",
+            "controller_action": "wait_for_human_gate",
+            "next_work_unit": {"unit_id": "package_review_handoff"},
+            "guard_boundary": {"opl_generic_runner_may_resume": False},
+            "typed_blocker": {"blocker_id": "package_delivered_not_publication_authority"},
+        },
+    )
+
+    assert result["classification"] == "domain_transition_terminal_or_handoff"
+    assert result["action"] == "block"
+    assert result["reason_code"] == "domain_transition_delivered_package_handoff"
+    assert result["requires_user_input"] is False
+    assert result["valid_blocking"] is True
+    assert result["domain_transition_decision_type"] == "delivered_package_handoff"
+    assert result["next_work_unit_id"] == "package_review_handoff"
+
+
+def test_arbitrate_waiting_for_user_respects_human_gate_oracle_over_auto_resume() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        continuation_state={
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "controller_work_unit_pending",
+            "pending_user_message_count": 0,
+        },
+        controller_authorization={
+            "decision_id": "decision-human-gate",
+            "work_unit_id": "submission_authority_sync_closure",
+            "work_unit_fingerprint": "fingerprint-human-gate",
+        },
+        domain_transition={
+            "decision_type": "human_gate",
+            "route_target": "human_gate",
+            "controller_action": "wait_for_human_gate",
+            "next_work_unit": {"unit_id": "human_gate_resume"},
+            "guard_boundary": {"opl_generic_runner_may_resume": False},
+            "typed_blocker": {"blocker_id": "human_gate_required"},
+        },
+    )
+
+    assert result["classification"] == "domain_transition_terminal_or_handoff"
+    assert result["action"] == "block"
+    assert result["reason_code"] == "domain_transition_human_gate"
+    assert result["domain_transition_decision_type"] == "human_gate"
+
+
+def test_arbitrate_waiting_for_user_respects_stop_loss_oracle_over_platform_redrive() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        continuation_state={
+            "continuation_policy": "auto",
+            "continuation_anchor": "decision",
+            "continuation_reason": "runtime_platform_repair_redrive",
+            "pending_user_message_count": 0,
+        },
+        domain_transition={
+            "decision_type": "stop_loss",
+            "route_target": "stop",
+            "controller_action": "stop_runtime",
+            "next_work_unit": {"unit_id": "stop_loss_handoff"},
+            "guard_boundary": {"opl_generic_runner_may_resume": False},
+            "typed_blocker": {"blocker_id": "stop_loss_active"},
+        },
+    )
+
+    assert result["classification"] == "domain_transition_terminal_or_handoff"
+    assert result["action"] == "block"
+    assert result["reason_code"] == "domain_transition_stop_loss"
+    assert result["domain_transition_decision_type"] == "stop_loss"
+
+
+def test_arbitrate_waiting_for_user_routes_publication_blocker_as_oracle_blocker_not_user_wait() -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_interaction_arbitration")
+
+    result = module.arbitrate_waiting_for_user(
+        pending_interaction={
+            "interaction_id": "decision-completion-001",
+            "kind": "decision",
+            "reply_mode": "blocking",
+            "expects_reply": True,
+            "allow_free_text": False,
+            "reply_schema": {"decision_type": "quest_completion_approval"},
+            "decision_type": "quest_completion_approval",
+            "options_count": 0,
+            "guidance_requires_user_decision": True,
+            "source_artifact_path": "/tmp/runtime/quests/quest-001/artifacts/decisions/decision-completion-001.json",
+        },
+        decision_policy="autonomous",
+        submission_metadata_only=False,
+        publication_gate_report={
+            "status": "blocked",
+            "blockers": ["claim_specificity_gap"],
+            "current_required_action": "complete_bundle_stage",
+        },
+        domain_transition={
+            "decision_type": "publication_gate_blocker",
+            "route_target": "review",
+            "controller_action": "run_gate_clearing_batch",
+            "next_work_unit": {"unit_id": "publication_gate_replay"},
+            "guard_boundary": {
+                "required_owner_surface": "artifacts/publication_eval/latest.json",
+                "opl_generic_runner_may_resume": False,
+            },
+            "typed_blocker": {"blocker_id": "publication_gate_blocked"},
+        },
+    )
+
+    assert result["classification"] == "domain_transition_publication_blocker"
+    assert result["action"] == "resume"
+    assert result["reason_code"] == "domain_transition_publication_gate_blocker"
+    assert result["valid_blocking"] is False
+    assert result["domain_transition_decision_type"] == "publication_gate_blocker"
+    assert result["next_work_unit_id"] == "publication_gate_replay"
