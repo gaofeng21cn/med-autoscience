@@ -236,7 +236,7 @@
 
 - `pause_runtime` 收回 compute，但保留 queued user messages、quest identity、artifact 和 branch。
 - `pause_runtime` 必须取消 pending delayed turn，并让后到的旧 worker completion 只能记录为 stale ignored，不能把 paused 重新写成 active/running。
-- `resume` 在 startup / reentry gate 清除后继续同一 quest identity，并允许后续 interaction point 消费 queued user messages。
+- `resume` 在 startup / reentry gate 清除后继续同一 quest identity，并允许后续 interaction point 消费 queued user messages；transport 只允许 `resume_quest` 产生的 `explicit_resume` 释放 paused barrier，普通 schedule / delayed turn / retry / supervisor scan 不能借 paused 状态启动 writer。
 - `stop_runtime` 是 terminal control action，必须取消自动 dispatch；queued user messages 不得被静默 replay 成新的研究动作。
 - stopped quest 的后续动作只能走显式 stopped-quest relaunch policy，并在 controller 记录中标注为 relaunch。
 

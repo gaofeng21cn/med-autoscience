@@ -37,6 +37,16 @@ from med_autoscience.runtime_transport.mas_runtime_core_turn_liveness import (
 )
 from med_autoscience.runtime_transport import mas_runtime_core_turn_timers as turn_timers
 from med_autoscience.runtime_transport import mas_runtime_core_delayed_turns as delayed_turns
+from med_autoscience.runtime_transport.mas_runtime_core_pause_resume import release_paused_explicit_resume
+from med_autoscience.runtime_transport.mas_runtime_core_turn_paths import (
+    delayed_turn_path,
+    event_log_path,
+    queue_path,
+    run_root as _run_root,
+    state_path,
+    turn_receipts_path,
+    worker_lease_path,
+)
 from med_autoscience.runtime_transport.mas_runtime_core_turn_utils import (
     idempotency_key as make_idempotency_key,
     message_id as make_message_id,
@@ -96,34 +106,6 @@ def run_id(*, quest_id: str) -> str:
     slug = _NOW().astimezone(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     safe_quest_id = "".join(ch if ch.isalnum() or ch in "-_." else "-" for ch in quest_id).strip("-") or "quest"
     return f"mas-run-{safe_quest_id}-{slug}"
-
-
-def state_path(quest_root: Path) -> Path:
-    return quest_root / ".ds" / "runtime_state.json"
-
-
-def event_log_path(quest_root: Path) -> Path:
-    return quest_root / "artifacts" / "runtime" / "mas_runtime_events.jsonl"
-
-
-def queue_path(quest_root: Path) -> Path:
-    return quest_root / "artifacts" / "runtime" / "user_message_queue.json"
-
-
-def turn_receipts_path(quest_root: Path) -> Path:
-    return quest_root / "artifacts" / "runtime" / "turn_receipts.jsonl"
-
-
-def delayed_turn_path(quest_root: Path) -> Path:
-    return quest_root / "artifacts" / "runtime" / "delayed_turns.json"
-
-
-def _run_root(*, quest_root: Path, run_id: str) -> Path:
-    return quest_root / ".ds" / "runs" / run_id
-
-
-def worker_lease_path(*, quest_root: Path, run_id: str) -> Path:
-    return _run_root(quest_root=quest_root, run_id=run_id) / "worker_lease.json"
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -257,9 +239,23 @@ def schedule_turn(
     source: str,
     delay_seconds: float | None = None,
     terminal_attach_capable: bool = False,
+    allow_paused_explicit_resume: bool = False,
 ) -> dict[str, Any]:
     state = load_state(quest_root=quest_root)
     runtime_status = text(state.get("status"))
+    released_state = release_paused_explicit_resume(
+        quest_root=quest_root,
+        state=state,
+        reason=reason,
+        source=source,
+        allow_paused_explicit_resume=allow_paused_explicit_resume,
+        text=text,
+        utc_now=utc_now,
+        persist_state=persist_state,
+    )
+    if released_state is not None:
+        state = released_state
+        runtime_status = text(state.get("status"))
     if runtime_status in TERMINAL_STATUSES:
         return turn_blocks.terminal_runtime_schedule_block(
             quest_root=quest_root,

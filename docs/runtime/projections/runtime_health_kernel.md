@@ -53,7 +53,7 @@ uv run python -m med_autoscience.cli runtime reconcile-health --profile <profile
 - retry budget 耗尽后必须输出 `canonical_runtime_action=escalate_runtime`，并禁止继续伪装成自动恢复中。
 - 已交付人审/投稿包的 study 如果没有 live worker，且 runtime state 只残留 `runtime_platform_repair_redrive`，必须投影为 `await_explicit_resume` / parked handoff，而不是重新解释成 writer。`delivery_manifest.json`、`manuscript/current_package/` 与 `manuscript/current_package.zip` 是 human-facing handoff 证据；它们不能成为 edit authority，但足以阻止平台 repair 自动重开 writer。
 - `pause-runtime` 成功后若 quest 已 paused、无 `active_run_id`、无 worker，必须清理 stale `runtime_platform_repair_redrive` continuation 三元组，避免下一次 status read 把人工/投稿停驻重新投影成自动恢复。
-- `pause-runtime` 后的 terminal control barrier 必须覆盖三个竞态源：due delayed turn 不得 drain 成新 run；旧 active worker 的 late completion 不得把 paused 改回 active；普通 `study_runtime_status` 读取必须投影为 `quest_user_paused_requires_explicit_wakeup`，直到显式 resume contract 释放。
+- `pause-runtime` 后的 terminal control barrier 必须覆盖三个竞态源：due delayed turn 不得 drain 成新 run；旧 active worker 的 late completion 不得把 paused 改回 active；普通 `study_runtime_status` 读取必须投影为 `quest_user_paused_requires_explicit_wakeup`，直到显式 resume contract 释放。transport 层的释放点固定为 `resume_quest` 发出的 `explicit_resume`，它可以把同一 quest identity 从 paused 重入 running；其他 schedule 原因仍必须被 `terminal_runtime_state` 阻断。
 - runtime health 只能影响 runtime action；不得反向覆盖 `StudyTruthKernel.canonical_next_action`、publication gate、package authority 或 delivery state。
 
 ## MDS 边界

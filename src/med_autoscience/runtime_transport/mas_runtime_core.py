@@ -194,6 +194,7 @@ def resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str,
         quest_id=quest_root.name,
         reason="explicit_resume",
         source=source,
+        allow_paused_explicit_resume=True,
     )
 
 

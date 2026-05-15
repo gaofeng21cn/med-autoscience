@@ -108,3 +108,48 @@ def test_terminal_runtime_state_blocks_direct_schedule_attempt(tmp_path: Path) -
     assert state["status"] == "paused"
     assert state["active_run_id"] is None
     assert state["worker_running"] is False
+
+
+def test_terminal_runtime_state_blocks_direct_explicit_resume_schedule_attempt(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+    module.pause_quest(runtime_root=runtime_root, quest_id="quest-001", source="test-pause")
+
+    scheduled = module.schedule_turn(
+        runtime_root=runtime_root,
+        quest_id="quest-001",
+        reason="explicit_resume",
+        source="direct-schedule",
+    )
+
+    state = json.loads((runtime_root / "quests" / "quest-001" / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert scheduled["status"] == "blocked"
+    assert scheduled["blocked_reason"] == "terminal_runtime_state"
+    assert scheduled["started"] is False
+    assert scheduled["scheduled"] is False
+    assert state["status"] == "paused"
+    assert state["active_run_id"] is None
+    assert state["worker_running"] is False
+
+
+def test_explicit_resume_restarts_paused_quest_without_opening_auto_schedule(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core")
+    runtime_root = tmp_path / "workspace" / "runtime"
+    module.create_quest(runtime_root=runtime_root, payload={"quest_id": "quest-001"})
+    first = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="test")
+    module.pause_quest(runtime_root=runtime_root, quest_id="quest-001", source="test-pause")
+
+    resumed = module.resume_quest(runtime_root=runtime_root, quest_id="quest-001", source="explicit-user-wakeup")
+
+    state = json.loads((runtime_root / "quests" / "quest-001" / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert resumed["status"] == "running"
+    assert resumed["scheduled"] is True
+    assert resumed["started"] is True
+    assert resumed["queued"] is False
+    assert resumed["turn_reason"] == "explicit_resume"
+    assert resumed["active_run_id"] != first["active_run_id"]
+    assert state["status"] == "running"
+    assert state["active_run_id"] == resumed["active_run_id"]
+    assert state["worker_running"] is True
