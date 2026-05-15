@@ -19,6 +19,14 @@ _MANUSCRIPT_SURFACE_CANDIDATES: tuple[tuple[str, ...], ...] = (
     ("manuscript.md",),
     ("submission_minimal", "manuscript.md"),
 )
+_RENDERED_BIBLIOGRAPHY_CANDIDATES: tuple[tuple[str, ...], ...] = (
+    ("references_rendered.txt",),
+    ("submission_minimal", "references_rendered.txt"),
+    ("build", "references_rendered.txt"),
+)
+_INITIALS_FIRST_AUTHOR_RE = re.compile(
+    r"(?m)^\s*[A-Z](?:\s+[A-Z])?(?:,\s*[A-Z](?:\s+[A-Z])?){2,}\b"
+)
 
 
 def _text(value: object) -> str | None:
@@ -67,6 +75,11 @@ def _blocked_projection(
         },
         "duplicate_citation_keys": [],
         "unsupported_citation_blockers": [],
+        "bibliography_style_audit": {
+            "status": "not_checked",
+            "checked_path": None,
+            "issues": [],
+        },
     }
 
 
@@ -190,7 +203,77 @@ def _unsupported_citation_blockers(
     return blockers
 
 
-def build_medical_literature_hygiene_projection(*, paper_root: Path) -> dict[str, Any]:
+def _rendered_bibliography_path(paper_root: Path) -> Path | None:
+    for parts in _RENDERED_BIBLIOGRAPHY_CANDIDATES:
+        path = paper_root.joinpath(*parts)
+        if path.exists():
+            return path
+    return None
+
+
+def _build_bibliography_style_audit(
+    *,
+    paper_root: Path,
+    require_rendered_bibliography: bool,
+) -> dict[str, Any]:
+    rendered_path = _rendered_bibliography_path(paper_root)
+    if rendered_path is None:
+        if not require_rendered_bibliography:
+            return {
+                "status": "not_checked",
+                "checked_path": None,
+                "issues": [],
+            }
+        return {
+            "status": "blocked",
+            "checked_path": None,
+            "issues": [
+                {
+                    "code": "rendered_bibliography_missing",
+                    "severity": "blocker",
+                    "detail": "Rendered bibliography surface is required but was not found.",
+                }
+            ],
+        }
+
+    rendered_text = rendered_path.read_text(encoding="utf-8")
+    issues: list[dict[str, str]] = []
+    if _INITIALS_FIRST_AUTHOR_RE.search(rendered_text):
+        issues.append(
+            {
+                "code": "initials_first_author_abbreviation",
+                "severity": "blocker",
+                "detail": "Rendered bibliography contains initials-first author abbreviations.",
+            }
+        )
+    if "The lancet Diabetes & endocrinology" in rendered_text:
+        issues.append(
+            {
+                "code": "journal_title_case_mismatch",
+                "severity": "blocker",
+                "detail": "Rendered bibliography contains an improperly cased journal title.",
+            }
+        )
+    if not re.search(r"\b(?:doi|https?://)\b", rendered_text, flags=re.IGNORECASE):
+        issues.append(
+            {
+                "code": "missing_doi_or_url",
+                "severity": "issue",
+                "detail": "Rendered bibliography entries should include DOI or URL when available.",
+            }
+        )
+    return {
+        "status": "blocked" if any(issue["severity"] == "blocker" for issue in issues) else "clear",
+        "checked_path": str(rendered_path),
+        "issues": issues,
+    }
+
+
+def build_medical_literature_hygiene_projection(
+    *,
+    paper_root: Path,
+    require_rendered_bibliography: bool = False,
+) -> dict[str, Any]:
     resolved_paper_root = Path(paper_root).expanduser().resolve()
     references_bib_path = resolved_paper_root / "references.bib"
     evidence_ledger_path = resolved_paper_root / "evidence_ledger.json"
@@ -227,6 +310,10 @@ def build_medical_literature_hygiene_projection(*, paper_root: Path) -> dict[str
         manuscript_keys=manuscript_keys,
         ledger_key_map=ledger_key_map,
     )
+    bibliography_style_audit = _build_bibliography_style_audit(
+        paper_root=resolved_paper_root,
+        require_rendered_bibliography=require_rendered_bibliography,
+    )
 
     blockers: list[str] = []
     if duplicate_citation_keys:
@@ -235,6 +322,12 @@ def build_medical_literature_hygiene_projection(*, paper_root: Path) -> dict[str
         blockers.append("citation_key_sync_failed")
     if unsupported_citation_blockers:
         blockers.append("unsupported_citation_blockers_present")
+    if bibliography_style_audit["status"] == "blocked":
+        issue_codes = {issue.get("code") for issue in bibliography_style_audit["issues"]}
+        if "rendered_bibliography_missing" in issue_codes:
+            blockers.append("rendered_bibliography_missing")
+        else:
+            blockers.append("rendered_bibliography_style_mismatch")
 
     return {
         "schema_version": 1,
@@ -254,4 +347,5 @@ def build_medical_literature_hygiene_projection(*, paper_root: Path) -> dict[str
         "citation_key_sync": citation_key_sync,
         "duplicate_citation_keys": duplicate_citation_keys,
         "unsupported_citation_blockers": unsupported_citation_blockers,
+        "bibliography_style_audit": bibliography_style_audit,
     }
