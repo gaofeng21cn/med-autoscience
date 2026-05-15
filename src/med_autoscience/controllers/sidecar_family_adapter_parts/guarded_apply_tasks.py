@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -18,6 +20,17 @@ def provider_hosted_guarded_apply_tasks(
     proof_ref = _text(opl_production_proof_ref)
     target = "DM002"
     dedupe_key = f"mas:{profile.name}:{target}:provider-hosted-guarded-apply:opl-temporal"
+    provider_attempt_id = f"opl-temporal:{profile.name}:{target}:provider-hosted-guarded-apply"
+    source_fingerprint = _fingerprint(
+        {
+            "provider_attempt_id": provider_attempt_id,
+            "dedupe_key": dedupe_key,
+            "profile": profile.name,
+            "target": target,
+            "opl_production_proof_ref": proof_ref,
+            "provider_availability": provider_availability,
+        }
+    )
     return [
         {
             "domain_id": "medautoscience",
@@ -26,11 +39,12 @@ def provider_hosted_guarded_apply_tasks(
             "source": "mas-sidecar-export",
             "requires_approval": False,
             "dedupe_key": dedupe_key,
+            "source_fingerprint": source_fingerprint,
             "payload": {
                 "profile": str(profile_ref),
                 "study_id": target,
                 "target_studies": [target],
-                "provider_attempt_id": f"opl-temporal:{profile.name}:{target}:provider-hosted-guarded-apply",
+                "provider_attempt_id": provider_attempt_id,
                 "idempotency_key": dedupe_key,
                 "paper_autonomy_reason": "provider_hosted_guarded_apply_soak",
                 "authority_boundary": "mas_owner_guarded_apply_only",
@@ -56,3 +70,8 @@ def provider_hosted_guarded_apply_tasks(
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _fingerprint(value: object) -> str:
+    rendered = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()[:16]
