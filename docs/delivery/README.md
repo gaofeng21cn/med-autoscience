@@ -12,3 +12,4 @@ Machine boundary: 人读索引。交付 authority 继续归 study workspaces、a
 - [架构](../architecture.md)
 - [当前状态](../status.md)
 - [Runtime docs](../runtime/README.md)
+- [Inspection package 交付契约](inspection_package.md)

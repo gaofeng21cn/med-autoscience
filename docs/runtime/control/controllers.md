@@ -23,6 +23,7 @@
 9. runtime storage maintenance
 10. MAS sidecar family bridge export/dispatch
 11. generic sidecar provider recommendation/provision/import
+12. delivery inspection / inspection package contract
 
 对应的 Python 实现在包内：
 
@@ -39,6 +40,8 @@
 - `src/med_autoscience/controllers/runtime_storage_maintenance.py`
 - `src/med_autoscience/controllers/sidecar_family_adapter.py`
 - `src/med_autoscience/controllers/sidecar_provider.py`
+- `src/med_autoscience/controllers/delivery_inspector.py`
+- `src/med_autoscience/controllers/submission_inspection_export.py`
 
 对应测试：
 
@@ -56,6 +59,9 @@
 - `tests/test_sidecar_provider_aris.py`
 - `tests/test_sidecar_provider_adapter.py`
 - `tests/test_sidecar_provider_registry.py`
+- `tests/test_delivery_inspector.py`
+- `tests/test_delivery_visibility.py`
+- `tests/test_inspection_package_contract.py`
 
 当前迁移策略是：
 
@@ -108,3 +114,21 @@ Generic sidecar provider 是 bounded extension 的统一 controller surface。Pr
 `publication gate` 的 `allow_write=false` 只约束下游投稿包、bundle、submission proofing 和 `current_package` 写面。MAS managed runtime worker 在当前 controller work unit 明确授权时，仍可修改 canonical `paper/` 下的 manuscript、evidence ledger、review ledger、revision log 或分析修订材料；这些写入属于上游 analysis-campaign/write stage，不属于前台人工接管。`execution_owner_guard.supervisor_only=true` 继续阻止 Codex App 前台绕开 MAS 直接改论文，但不能关掉 MAS 自己派发给 managed worker 的 canonical paper 修订权限。
 
 `stale_study_delivery_mirror` 归属下游 package/delivery lane。若 canonical paper 与 submission authority 已 current，但缺少 current package freshness proof，controller 必须产出 `submission_delivery_terminal_blocker` 这类 controller-owned blocker，说明 delivery lane 自身不闭合的原因；它不得长期把 analysis-campaign/write stage 路由回 `gate_needs_specificity`，也不得让 Codex CLI 重放同一个不可执行的 package replay loop。
+
+## Inspection package 契约
+
+`delivery_inspector` 与 `inspection_package` 都服务人工检查，不是投稿授权面。`delivery_inspector` 当前是 read-only controller：它读取 `submission_minimal`、`current_package`、journal mirrors、zip 与 delivery manifest，输出 freshness、layout migration 和 source/mirror 标签；它的 `mutation_policy.read_only=true` 且 `writes_package=false`，不得派生 submission authorization 或 publication quality verdict。
+
+`inspection_package` 是 human-inspection-only delivery surface。它允许在 `publishability_gate` 或 bundle gate blocked 时，把当前 draft / canonical paper surfaces 导出到 `manuscript/inspection_package/` 与 `artifacts/inspection_package/`，供人工审阅当前稿件、证据、图表、review ledger 和 blocked context。它不属于 `study_delivery_sync` 的正式 handoff，不写 `paper/submission_minimal/`，不写 `manuscript/current_package/`，不写 `current_package.zip`，也不更新 `publication_eval/latest.json` 或 `controller_decisions/latest.json`。
+
+该 surface 的实现契约应包含：
+
+- `surface_kind = inspection_package`
+- `authority = human_inspection_only`
+- `can_authorize_submission = false`
+- `can_authorize_publication_quality = false`
+- `can_clear_publishability_gate = false`
+- `can_dispatch_delivery_sync = false`
+- `forbidden_writes` 必须覆盖 `paper/submission_minimal/`、`manuscript/current_package/`、`manuscript/current_package.zip`、`artifacts/publication_eval/latest.json` 与 `artifacts/controller_decisions/latest.json`
+
+任何需要投稿、正式 bundle handoff 或质量放行的后续动作，必须回到 MAS owner chain：AI reviewer / publication gate / controller decision / `submission_minimal` / `study_delivery_sync`。人工在 inspection package 中发现的问题只能形成 reviewer feedback、durable task intake 或 canonical paper repair input，不能直接 patch inspection package 后声明 gate cleared。

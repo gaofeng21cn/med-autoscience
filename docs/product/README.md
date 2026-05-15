@@ -12,3 +12,4 @@ Machine boundary: 人读索引。可调用真相继续归 MAS app skill、CLI/MC
 - [项目概览](../project.md)
 - [架构](../architecture.md)
 - [Runtime docs](../runtime/README.md)
+- [Inspection package 产品契约](inspection_package.md)

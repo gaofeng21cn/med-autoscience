@@ -292,6 +292,7 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
         "step:submit_task",
         "step:continue_study",
         "step:inspect_progress",
+        "step:export_inspection_package",
     ]
     assert payload["family_orchestration"]["action_graph"]["edges"] == [
         {
@@ -319,6 +320,11 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
             "to": "step:inspect_progress",
             "on": "progress_refresh",
         },
+        {
+            "from": "step:inspect_progress",
+            "to": "step:export_inspection_package",
+            "on": "human_style_review_requested",
+        },
     ]
     assert payload["family_orchestration"]["action_graph"]["entry_nodes"] == [
         "step:open_product_entry",
@@ -326,6 +332,7 @@ def _assert_phase4_backend_deconstruction_lane(*, module, payload, profile, prof
     assert payload["family_orchestration"]["action_graph"]["exit_nodes"] == [
         "step:continue_study",
         "step:inspect_progress",
+        "step:export_inspection_package",
     ]
     assert payload["family_orchestration"]["action_graph"]["human_gates"] == [
         {

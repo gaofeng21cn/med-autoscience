@@ -125,6 +125,7 @@ def _assert_mainline_boundary_surface(*, module, payload, profile, profile_ref) 
         "submit_task",
         "continue_study",
         "inspect_progress",
+        "export_inspection_package",
     ]
     assert payload["product_entry_quickstart"]["steps"][0]["command"].endswith(
         "product-entry-status --profile " + str(profile_ref.resolve())
@@ -134,6 +135,10 @@ def _assert_mainline_boundary_surface(*, module, payload, profile, profile_ref) 
         "launch-study --profile " + str(profile_ref.resolve()) + " --study-id <study_id>"
     )
     assert payload["product_entry_quickstart"]["steps"][3]["surface_kind"] == "study_progress"
+    assert payload["product_entry_quickstart"]["steps"][4]["surface_kind"] == (
+        "publication_inspection_package_export"
+    )
+    assert payload["product_entry_quickstart"]["steps"][4]["authority"] == "human_inspection_only"
     assert payload["repo_mainline"]["program_id"] == "research-foundry-medical-mainline"
     assert payload["repo_mainline"]["current_program_phase_id"] == "phase_2_user_product_loop"
     assert payload["repo_mainline"]["current_stage_summary"] == "继续收口 blocker 并把用户入口壳压实。"

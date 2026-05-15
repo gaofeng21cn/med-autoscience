@@ -237,6 +237,8 @@ def inspect_study_delivery(
     study_root: Path | None = None,
     publication_profile: str | None = None,
 ) -> dict[str, Any]:
+    from med_autoscience.controllers import submission_inspection_export
+
     resolved_study_root = _resolve_study_root(profile=profile, study_id=study_id, study_root=study_root)
     resolved_publication_profile = publication_profile or profile.default_publication_profile
     manuscript_root = resolved_study_root / "manuscript"
@@ -303,6 +305,7 @@ def inspect_study_delivery(
     ).expanduser().resolve()
     source_package = _inspect_package(package_root=source_root, role="controller_authorized_source")
     human_package = _inspect_package(package_root=human_root, role="human_facing_mirror")
+    inspection_package = submission_inspection_export.inspect_inspection_package(study_root=resolved_study_root)
 
     try:
         delivery_status = study_delivery_sync.describe_submission_delivery(
@@ -356,6 +359,7 @@ def inspect_study_delivery(
         "source_resolution": source_resolution,
         "source_package": source_package,
         "human_package": human_package,
+        "inspection_package": inspection_package,
         "zip": _inspect_zip(current_package_zip),
         "journal_packages": _inspect_journal_packages(study_root=resolved_study_root),
         "source_signature": source_signature,
@@ -371,9 +375,15 @@ def inspect_study_delivery(
             f"--stage submission_minimal "
             f"--publication-profile {resolved_publication_profile}"
         ),
+        "next_inspection_export_command": (
+            "medautosci publication export-inspection-package "
+            f"--profile {Path(profile_ref).expanduser().resolve() if profile_ref is not None else '<profile>'} "
+            f"--study-id {resolved_study_root.name}"
+        ),
         "wording": {
             "source": "submission_minimal = controller-authorized source",
             "mirror": "current_package = human-facing mirror",
+            "inspection": "inspection_package = human-inspection-only snapshot; not submission authority",
             "legacy_upgrade": "Legacy layout upgrades on the next authorized sync.",
         },
     }
@@ -409,6 +419,7 @@ def compact_delivery_inspection(payload: Mapping[str, Any]) -> dict[str, Any]:
             if isinstance(payload.get("human_package"), dict)
             else None,
         },
+        "inspection_package": payload.get("inspection_package"),
         "zip": payload.get("zip"),
         "journal_package_count": len(payload.get("journal_packages") or []),
         "next_sync_command": payload.get("next_sync_command"),

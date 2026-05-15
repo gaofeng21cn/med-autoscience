@@ -136,6 +136,36 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             "mcp_public_runtime": True,
         },
         {
+            "action_id": "export_inspection_package",
+            "title": "Export human inspection package",
+            "summary": (
+                "Export a human inspection only paper snapshot for writing-style review. "
+                "It is not current_package, not submission_minimal authority, and cannot authorize "
+                "publication quality or submission readiness."
+            ),
+            "effect": "read_only",
+            "command": "{prefix} publication export-inspection-package --profile {profile} --study-id <study_id>",
+            "surface_kind": "publication_inspection_package_export",
+            "workspace_locator_fields": ["profile_ref", "study_id"],
+            "mcp_public_runtime": False,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": "one-person-lab",
+                "helper_write_policy": "no_domain_truth_writes",
+                "surface_authority": "human_inspection_only",
+                "can_write_current_package": False,
+                "can_write_submission_minimal": False,
+                "can_authorize_publication_quality": False,
+                "can_authorize_submission_readiness": False,
+                "authoritative_truth_refs": [
+                    "/study_runtime_status",
+                    "/runtime_watch",
+                    "/publication_eval/latest.json",
+                    "/controller_decisions/latest.json",
+                ],
+            },
+        },
+        {
             "action_id": "mainline_status",
             "title": "Inspect MAS mainline status",
             "summary": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",
@@ -207,7 +237,7 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             workspace_locator_fields=tuple(spec.get("workspace_locator_fields") or ()),
             human_gate_ids=tuple(spec.get("human_gate_ids") or ()),
             mcp_public_runtime=bool(spec.get("mcp_public_runtime", True)),
-            authority_boundary=_authority_boundary(),
+            authority_boundary=dict(spec.get("authority_boundary") or _authority_boundary()),
         )
         mcp_tool_name = str(spec.get("mcp_tool_name") or "").strip()
         if mcp_tool_name:
@@ -270,7 +300,7 @@ def _product_entry_projection(action: Mapping[str, Any]) -> dict[str, Any]:
     source_command = action.get("source_command")
     if not isinstance(source_command, Mapping):
         raise ValueError("MAS action catalog action 缺少 source_command")
-    return {
+    payload = {
         "action_key": _required_text(descriptor.get("action_key") or action.get("action_id"), "action_key"),
         "command": _required_text(descriptor.get("command") or source_command.get("command"), "command"),
         "surface_kind": _required_text(
@@ -283,6 +313,10 @@ def _product_entry_projection(action: Mapping[str, Any]) -> dict[str, Any]:
             for item in list(action.get("workspace_locator_fields") or [])
         ],
     }
+    authority_boundary = action.get("authority_boundary")
+    if isinstance(authority_boundary, Mapping):
+        payload["authority_boundary"] = dict(authority_boundary)
+    return payload
 
 
 def _with_input_schema(projection: dict[str, Any], action: object) -> dict[str, Any]:
@@ -304,6 +338,11 @@ def product_entry_shell_from_action_catalog(catalog: Mapping[str, Any]) -> dict[
             "purpose": str(item["summary"]),
             "surface_kind": str(item["surface_kind"]),
             "action_catalog_ref": f"/action_catalog/actions/{index}",
+            **(
+                {"authority_boundary": dict(item["authority_boundary"])}
+                if isinstance(item.get("authority_boundary"), Mapping)
+                else {}
+            ),
         }
         for index, item in enumerate(project_mas_action_catalog("product_entry", catalog))
     }

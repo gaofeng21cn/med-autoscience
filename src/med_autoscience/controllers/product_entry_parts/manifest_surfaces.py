@@ -36,6 +36,16 @@ from med_autoscience.stage_skill_surface_projection import build_stage_skill_sur
 from med_autoscience.stage_quality_contract import build_stage_quality_pack_contract
 
 
+def _inspection_package_operator_authority() -> dict[str, Any]:
+    return {
+        "authority": "human_inspection_only",
+        "can_write_current_package": False,
+        "can_write_submission_minimal": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
+    }
+
+
 def _build_product_positioning() -> dict[str, Any]:
     return {
         "surface_kind": "mas_product_positioning",
@@ -150,6 +160,13 @@ def build_product_entry_manifest(
             "summary": "读取某个 study 的当前阶段、阻塞和监督 freshness。",
             "requires": ["study_id"],
         },
+        "export_inspection_package": {
+            "command": product_entry_shell["export_inspection_package"]["command"],
+            "surface_kind": "publication_inspection_package_export",
+            "summary": product_entry_shell["export_inspection_package"]["purpose"],
+            "requires": ["study_id"],
+            **_inspection_package_operator_authority(),
+        },
     })
     family_orchestration = build_family_product_entry_orchestration(
         graph_id="mas_workspace_product_entry_study_runtime_graph",
@@ -184,6 +201,13 @@ def build_product_entry_manifest(
                 "surface_kind": "study_progress",
                 "produces_checkpoint": True,
             },
+            {
+                "node_id": "step:export_inspection_package",
+                "node_kind": "operator_step",
+                "title": "Export human inspection package",
+                "surface_kind": "publication_inspection_package_export",
+                "produces_checkpoint": False,
+            },
         ],
         edges=[
             {
@@ -211,9 +235,14 @@ def build_product_entry_manifest(
                 "to": "step:inspect_progress",
                 "on": "progress_refresh",
             },
+            {
+                "from": "step:inspect_progress",
+                "to": "step:export_inspection_package",
+                "on": "human_style_review_requested",
+            },
         ],
         entry_nodes=["step:open_product_entry"],
-        exit_nodes=["step:continue_study", "step:inspect_progress"],
+        exit_nodes=["step:continue_study", "step:inspect_progress", "step:export_inspection_package"],
         human_gates=[
             {
                 "gate_id": "study_user_decision_gate", "legacy_gate_id": "study_physician_decision_gate",
@@ -313,10 +342,19 @@ def build_product_entry_manifest(
                 "summary": operator_loop_actions["inspect_progress"]["summary"],
                 "requires": list(operator_loop_actions["inspect_progress"]["requires"]),
             },
+            {
+                "step_id": "export_inspection_package",
+                "title": "导出人工检查包",
+                "command": product_entry_shell["export_inspection_package"]["command"],
+                "surface_kind": "publication_inspection_package_export",
+                "summary": operator_loop_actions["export_inspection_package"]["summary"],
+                "requires": list(operator_loop_actions["export_inspection_package"]["requires"]),
+            },
         ],
         resume_contract=dict(family_orchestration["resume_contract"]),
         human_gate_ids=_collect_family_human_gate_ids(family_orchestration),
     )
+    product_entry_quickstart["steps"][-1].update(_inspection_package_operator_authority())
     product_entry_start = _build_product_entry_start(
         product_entry_shell=product_entry_shell,
         operator_loop_actions=operator_loop_actions,
@@ -834,6 +872,7 @@ def build_product_entry_status(
             "submit_task": dict(product_entry_shell.get("submit_study_task") or {}),
             "launch_study": dict(product_entry_shell.get("launch_study") or {}),
             "study_progress": dict(product_entry_shell.get("study_progress") or {}),
+            "export_inspection_package": dict(product_entry_shell.get("export_inspection_package") or {}),
             "mainline_status": dict(product_entry_shell.get("mainline_status") or {}),
             "mainline_phase": dict(product_entry_shell.get("mainline_phase") or {}),
             "direct_entry_builder": dict(shared_handoff.get("direct_entry_builder") or {}),

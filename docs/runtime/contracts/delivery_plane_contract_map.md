@@ -62,6 +62,32 @@
 
 稳定消费，但它们也只是 **controller-authorized delivery source**，不是新的 study authority root。
 
+### 1.2.1 `inspection_package` human-inspection-only surface
+
+`inspection_package` 是 delivery plane 的 human-inspection-only export surface，用于在 `publishability_gate` 或 bundle gate blocked 时，把当前 draft / canonical paper surfaces 导出给人工检查。它只回答“当前稿件和 canonical 证据长什么样”，不回答“是否可投稿”。
+
+允许读取的 source 只来自当前 study 的 canonical paper surfaces 与只读 gate context：
+
+- `study_root/paper/` 下的 manuscript draft、canonical manuscript source、figures、tables、evidence ledger、review ledger、study charter、revision / rebuttal intake 等当前 paper-owned surface
+- 已存在的 generated paper artifact 只能作为 snapshot 输入，必须在 inspection manifest 中标记为 existing projection，不得把它提升为 authority
+- `publication_gate` / `publication_supervisor_state` / `runtime_watch` 的 blocked context 只能作为导出原因和 provenance
+
+允许写入的 surface 只能是 inspection 专属输出：
+
+- `study_root/manuscript/inspection_package/`
+- `study_root/manuscript/inspection_package.zip`
+- `study_root/artifacts/inspection_package/` 下的 inspection manifest、source inventory、checksum、blocked-context provenance 与 export receipt
+
+明确不允许：
+
+- 写入或刷新 `study_root/paper/submission_minimal/`
+- 写入或刷新 `study_root/manuscript/current_package/` 或 `current_package.zip`
+- 写入 `study_root/artifacts/publication_eval/latest.json`
+- 写入 `study_root/artifacts/controller_decisions/latest.json`
+- 把 inspection manifest 当成 publication verdict、bundle completion proof、submission authority、quality gate closeout 或 controller decision receipt
+
+因此，`inspection_package` 可以在 publishability / bundle gate blocked 时导出，但导出结果必须带 `human_inspection_only`、`not_for_submission`、`gate_blocked_snapshot` 与 source inventory。它不得触发 `study_delivery_sync`、`submission_minimal`、journal package materialization、AI reviewer publication eval 或 outer-loop decision refresh。
+
 ### 1.3 当前只允许作为 projection / shell / consumer surface 的对象
 
 以下对象当前只能是 projection / shell / guard / report，不得被反向抬升成 authority root：
@@ -70,6 +96,9 @@
 - `study_root/artifacts/final/`
 - `study_root/manuscript/current_package/`
 - `study_root/manuscript/current_package.zip`
+- `study_root/manuscript/inspection_package/`
+- `study_root/manuscript/inspection_package.zip`
+- `study_root/artifacts/inspection_package/`
 - `study_root/manuscript/journal_package_mirrors/<publication_profile>/`
 - `quest_root/artifacts/reports/publishability_gate/*.json`
 - `quest_root/artifacts/reports/runtime_watch/*.json`
@@ -84,6 +113,7 @@
 | `publication_eval` | eval-owned verdict artifact | `study_root/artifacts/publication_eval/latest.json` | 表达 publishability verdict / gaps / recommended actions；读取 `runtime_context_refs` 与 `delivery_context_refs` | 从 runtime path 或 publication shell path 读取“伪 latest” |
 | `study_decision_record` | controller-owned outer-loop decision artifact | `study_root/artifacts/controller_decisions/<timestamp>_<decision_id>.json` + `latest.json` | 把 `runtime_escalation_ref` 与 `publication_eval_ref` 收口成 next controller action | 绕过 eval 或 human gate 直接 dispatch 未冻结动作 |
 | `study_delivery_sync` | controller-owned delivery materializer | `study_root/manuscript/delivery_manifest.json` 与同步出的 `manuscript/`、`artifacts/final/` | 把 controller-authorized `paper/` package 投影成 human-facing handoff surface | 把 `manuscript/` / zip / mirror 反向当成 authority root |
+| `inspection_package` | delivery-plane inspection export | `study_root/manuscript/inspection_package/` + `study_root/artifacts/inspection_package/` | 在 publishability / bundle gate blocked 时导出 current draft / canonical paper snapshot 给人工检查 | 授权投稿、写 `current_package`、写 `submission_minimal`、更新 `publication_eval` 或 `controller_decisions` |
 | `publication_gate` | controller-owned delivery guard | `quest_root/artifacts/reports/publishability_gate/*.json` | 检查 `paper/`、`paper_bundle_manifest`、`submission_minimal`、medical publication surface 是否允许继续写 | 从 unmanaged submission surface 或 shell mirror 推回 controller truth |
 | `runtime_watch` | controller-owned poll/report shell | `quest_root/artifacts/reports/runtime_watch/*.json` + `state.json` | 周期扫描 controller reports，并汇总 managed study actions | 充当新的 authority root 或直接重写 delivery truth |
 
@@ -116,6 +146,7 @@
 3. `study_delivery_sync` 不得把 `manuscript/`、zip、journal mirror 当作 authority root
 4. `publication_gate` 发现 unmanaged submission surface 时必须阻塞
 5. `runtime_watch` 只记录/聚合 controller report，不重新定义 controller truth
+6. `inspection_package` 只能写 inspection 专属输出，不得刷新投稿包、不得关闭 quality / bundle gate、不得 materialize eval 或 decision artifact
 
 ## 5. 与现有文档的桥接
 

@@ -116,6 +116,7 @@ study_runtime_router = _LazyModuleProxy(lambda: _load_controller("study_runtime_
 study_state_matrix = _LazyModuleProxy(lambda: _load_controller("study_state_matrix"))
 study_truth_kernel = _LazyModuleProxy(lambda: _load_controller("study_truth_kernel"))
 study_delivery_sync = _LazyModuleProxy(lambda: _load_controller("study_delivery_sync"))
+submission_inspection_export = _LazyModuleProxy(lambda: _load_controller("submission_inspection_export"))
 submission_minimal = _LazyModuleProxy(lambda: _load_controller("submission_minimal"))
 submission_targets_controller = _LazyModuleProxy(lambda: _load_controller("submission_targets"))
 time_to_event_direct_migration = _LazyModuleProxy(lambda: _load_controller("time_to_event_direct_migration"))
@@ -976,6 +977,21 @@ def main(argv: list[str] | None = None) -> int:
             paper_root=Path(args.paper_root),
             publication_profile=args.publication_profile,
             citation_style=args.citation_style,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "export-inspection-package":
+        profile_ref = Path(args.profile)
+        profile = load_profile(profile_ref)
+        result = submission_inspection_export.export_inspection_package(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=args.study_id,
+            study_root=Path(args.study_root) if args.study_root else None,
+            publication_profile=args.publication_profile,
+            force_materialize=args.force_materialize,
+            source="cli",
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

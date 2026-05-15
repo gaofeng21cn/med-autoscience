@@ -136,6 +136,73 @@ def test_product_entry_surfaces_delivery_inspection_in_cockpit_and_entry_status(
         assert markdown.strip()
 
 
+def test_product_entry_exposes_publication_inspection_package_operator_surface(tmp_path: Path) -> None:
+    action_catalog = importlib.import_module("med_autoscience.action_catalog")
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    mcp_server = importlib.import_module("med_autoscience.mcp_server")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    catalog = action_catalog.build_mas_action_catalog(profile_ref=profile_ref)
+    neutral_catalog = action_catalog.build_mas_action_catalog()
+    manifest = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    entry_status = module.build_product_entry_status(profile=profile, profile_ref=profile_ref)
+
+    profile_arg = str(profile_ref.resolve())
+    expected_command = (
+        "uv run python -m med_autoscience.cli publication export-inspection-package --profile "
+        + profile_arg
+        + " --study-id <study_id>"
+    )
+
+    cli_projection = {item["action_id"]: item for item in action_catalog.project_mas_action_catalog("cli", catalog)}
+    inspection_action = cli_projection["export_inspection_package"]
+    assert inspection_action["effect"] == "read_only"
+    assert inspection_action["command"] == expected_command
+    assert inspection_action["surface_kind"] == "publication_inspection_package_export"
+    assert "human inspection only" in inspection_action["summary"]
+    assert "not current_package" in inspection_action["summary"]
+    assert "not submission_minimal authority" in inspection_action["summary"]
+    mcp_projection = {
+        item["name"]: item for item in action_catalog.project_mas_action_catalog("mcp", neutral_catalog)
+    }
+    assert mcp_projection["export_inspection_package"]["descriptor_only"] is True
+    assert mcp_projection["export_inspection_package"]["public_runtime"] is False
+    assert "export_inspection_package" not in {tool["name"] for tool in mcp_server.build_tool_manifest()}
+
+    shell_surface = manifest["product_entry_shell"]["export_inspection_package"]
+    assert shell_surface["command"] == expected_command
+    assert shell_surface["surface_kind"] == "publication_inspection_package_export"
+    assert shell_surface["purpose"] == inspection_action["summary"]
+    assert shell_surface["authority_boundary"]["surface_authority"] == "human_inspection_only"
+    assert shell_surface["authority_boundary"]["can_write_current_package"] is False
+    assert shell_surface["authority_boundary"]["can_write_submission_minimal"] is False
+
+    operator_action = manifest["operator_loop_actions"]["export_inspection_package"]
+    assert operator_action["command"] == expected_command
+    assert operator_action["surface_kind"] == "publication_inspection_package_export"
+    assert operator_action["requires"] == ["study_id"]
+    assert operator_action["authority"] == "human_inspection_only"
+    assert operator_action["can_write_current_package"] is False
+    assert operator_action["can_write_submission_minimal"] is False
+    assert operator_action["can_authorize_publication_quality"] is False
+    assert operator_action["can_authorize_submission_readiness"] is False
+
+    quickstart_step = manifest["product_entry_quickstart"]["steps"][-1]
+    assert quickstart_step["step_id"] == "export_inspection_package"
+    assert quickstart_step["command"] == expected_command
+    assert quickstart_step["authority"] == "human_inspection_only"
+    assert quickstart_step["can_write_current_package"] is False
+    assert quickstart_step["can_write_submission_minimal"] is False
+
+    assert entry_status["entry_surfaces"]["export_inspection_package"]["command"] == expected_command
+    assert entry_status["entry_surfaces"]["export_inspection_package"]["surface_kind"] == (
+        "publication_inspection_package_export"
+    )
+    assert entry_status["operator_loop_actions"]["export_inspection_package"] == operator_action
+
+
 def test_product_entry_counts_layout_migration_even_when_stale_status_is_primary(
     monkeypatch,
     tmp_path: Path,

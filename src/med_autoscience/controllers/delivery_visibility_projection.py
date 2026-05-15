@@ -76,8 +76,10 @@ def compact_delivery_inspection_projection(value: object) -> dict[str, Any] | No
         "source_package",
         "human_package",
         "zip",
+        "inspection_package",
         "journal_package_count",
         "next_sync_command",
+        "next_inspection_export_command",
         "layout_migration",
     ):
         if key in inspection:
@@ -89,6 +91,7 @@ def compact_delivery_inspection_projection(value: object) -> dict[str, Any] | No
     compact["source_labels"] = {
         "submission_minimal": SUBMISSION_MINIMAL_LABEL,
         "current_package": CURRENT_PACKAGE_LABEL,
+        "inspection_package": "human-inspection-only snapshot",
     }
     compact["layout_migration_upgrade_note"] = LAYOUT_MIGRATION_UPGRADE_NOTE
     delivery_visibility = build_delivery_visibility_read_model(inspection)
@@ -100,6 +103,14 @@ def compact_delivery_inspection_projection(value: object) -> dict[str, Any] | No
     compact["can_authorize_submission"] = False
     compact["can_authorize_publication_quality"] = False
     compact["can_dispatch_delivery_sync"] = False
+    inspection_package = _mapping(compact.get("inspection_package"))
+    if inspection_package:
+        compact["inspection_package_status"] = inspection_package.get("status")
+        compact["inspection_package_available"] = bool(
+            inspection_package.get("zip_exists")
+            or inspection_package.get("exists")
+            or inspection_package.get("manifest_status") == "present"
+        )
     return compact
 
 
@@ -150,6 +161,7 @@ def render_delivery_inspection_markdown_lines(value: object, *, heading: str) ->
         "",
         "- submission_minimal = controller-authorized source",
         "- current_package = human-facing mirror",
+        "- inspection_package = human-inspection-only snapshot",
         f"- layout migration: {LAYOUT_MIGRATION_UPGRADE_NOTE}",
         f"- 当前状态: `{projection.get('status') or 'unknown'}`",
     ]
@@ -165,6 +177,12 @@ def render_delivery_inspection_markdown_lines(value: object, *, heading: str) ->
         layout_migration_queue = delivery_visibility.get("legacy_upgrade_queue")
     if isinstance(layout_migration_queue, list):
         lines.append(f"- layout migration queue: `{len(layout_migration_queue)}` item(s)")
+    inspection_package = _mapping(projection.get("inspection_package"))
+    if inspection_package:
+        lines.append(f"- inspection package: `{inspection_package.get('status') or 'unknown'}`")
+    next_inspection_export_command = str(projection.get("next_inspection_export_command") or "").strip()
+    if next_inspection_export_command:
+        lines.append(f"- inspection export command: `{next_inspection_export_command}`")
     blocker_report = _mapping(delivery_visibility.get("backfill_blocker_report"))
     if blocker_report:
         lines.append(

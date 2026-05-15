@@ -176,6 +176,7 @@ def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestra
         "step:submit_task",
         "step:continue_study",
         "step:inspect_progress",
+        "step:export_inspection_package",
     ]
     assert [edge["on"] for edge in captured["edges"]] == [
         "new_task",
@@ -183,9 +184,14 @@ def test_build_product_entry_manifest_uses_shared_family_product_entry_orchestra
         "inspect_status",
         "task_written",
         "progress_refresh",
+        "human_style_review_requested",
     ]
     assert captured["entry_nodes"] == ["step:open_product_entry"]
-    assert captured["exit_nodes"] == ["step:continue_study", "step:inspect_progress"]
+    assert captured["exit_nodes"] == [
+        "step:continue_study",
+        "step:inspect_progress",
+        "step:export_inspection_package",
+    ]
     assert captured["checkpoint_nodes"] == [
         "step:submit_task",
         "step:continue_study",

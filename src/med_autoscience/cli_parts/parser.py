@@ -284,6 +284,14 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     export_parser.add_argument("--publication-profile", default="general_medical_journal")
     export_parser.add_argument("--citation-style", default="auto")
 
+    inspection_export_parser = subparsers.add_parser("export-inspection-package")
+    inspection_export_parser.add_argument("--profile", required=True)
+    inspection_export_study = inspection_export_parser.add_mutually_exclusive_group(required=True)
+    inspection_export_study.add_argument("--study-id", type=str)
+    inspection_export_study.add_argument("--study-root", type=str)
+    inspection_export_parser.add_argument("--publication-profile", type=str)
+    inspection_export_parser.add_argument("--force-materialize", action="store_true")
+
     display_surface_parser = subparsers.add_parser("materialize-display-surface")
     display_surface_parser.add_argument("--paper-root", required=True)
 
