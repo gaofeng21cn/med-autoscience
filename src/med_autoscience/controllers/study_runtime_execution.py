@@ -247,9 +247,9 @@ def _enable_explicit_user_wakeup_if_requested(
         quest_root=context.quest_root,
         source=context.source,
     )
-    status._record_dict_extra("explicit_user_wakeup", wakeup_record)
     if wakeup_record is None:
         return
+    status._record_dict_extra("explicit_user_wakeup", wakeup_record)
     if status.quest_status is StudyRuntimeQuestStatus.STOPPED:
         status.set_decision(
             StudyRuntimeDecision.RELAUNCH_STOPPED,
