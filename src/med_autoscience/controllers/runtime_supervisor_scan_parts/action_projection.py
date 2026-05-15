@@ -52,6 +52,12 @@ def action_queue(
             publication_eval_payload=publication_eval_payload,
             gate_specificity=gate_specificity,
         )
+        or runtime_facts.current_controller_owner_handoff_redrive_required(
+            status=status,
+            progress=progress,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
         or _external_supervisor_runtime_repair_required(status, progress)
     ):
         actions.append(

@@ -116,12 +116,12 @@ def _current_scan_stall(profile: WorkspaceProfile, study_id: str) -> dict[str, A
     return _mapping(_mapping(_current_scan_study(profile, study_id)).get("paper_progress_stall"))
 
 
-def _current_consumer_dispatch_files(profile: WorkspaceProfile, study_id: str) -> list[Path]:
+def _current_consumer_dispatches(profile: WorkspaceProfile, study_id: str) -> list[dict[str, Any]]:
     latest = _read_json_object(_consumer_latest_path(profile))
     if latest is None:
         return []
-    files: list[Path] = []
-    seen: set[Path] = set()
+    dispatches: list[dict[str, Any]] = []
+    seen: set[tuple[str | None, str | None]] = set()
     for dispatch in latest.get("default_executor_dispatches") or []:
         payload = _mapping(dispatch)
         if _text(payload.get("study_id")) != study_id:
@@ -132,23 +132,27 @@ def _current_consumer_dispatch_files(profile: WorkspaceProfile, study_id: str) -
         dispatch_path = _text(refs.get("dispatch_path"))
         if dispatch_path is None:
             continue
-        path = Path(dispatch_path).expanduser().resolve()
-        if path.is_file() and path not in seen:
-            files.append(path)
-            seen.add(path)
-    return files
+        key = (dispatch_path, _text(payload.get("action_type")))
+        if key in seen:
+            continue
+        seen.add(key)
+        dispatches.append(payload)
+    return dispatches
 
 
-def _dispatch_files(profile: WorkspaceProfile, study_id: str, action_types: tuple[str, ...]) -> list[Path]:
-    current_files = _current_consumer_dispatch_files(profile, study_id)
+def _dispatches(profile: WorkspaceProfile, study_id: str, action_types: tuple[str, ...]) -> list[dict[str, Any]]:
+    current_dispatches = _current_consumer_dispatches(profile, study_id)
     if action_types:
         requested = set(action_types)
-        return [
-            path
-            for path in current_files
-            if (payload := _read_json_object(path)) is not None and _text(payload.get("action_type")) in requested
-        ]
-    return current_files
+        return [payload for payload in current_dispatches if _text(payload.get("action_type")) in requested]
+    return current_dispatches
+
+
+def _dispatch_path(dispatch: Mapping[str, Any]) -> Path:
+    path_text = _text(_mapping(dispatch.get("refs")).get("dispatch_path"))
+    if path_text is None:
+        return Path("<consumer-latest-inline-dispatch>")
+    return Path(path_text).expanduser().resolve()
 
 
 def _resolve_study_ids(profile: WorkspaceProfile, study_ids: Iterable[str]) -> tuple[str, ...]:
@@ -158,6 +162,10 @@ def _resolve_study_ids(profile: WorkspaceProfile, study_ids: Iterable[str]) -> t
     if not profile.studies_root.is_dir():
         return ()
     resolved: list[str] = []
+    latest = _read_json_object(_consumer_latest_path(profile)) or {}
+    for dispatch in latest.get("default_executor_dispatches") or []:
+        if isinstance(dispatch, Mapping) and (study_id := _text(dispatch.get("study_id"))) is not None:
+            resolved.append(study_id)
     for dispatch_dir in sorted(
         profile.studies_root.glob(f"*/{DEFAULT_EXECUTOR_DISPATCH_RELATIVE_ROOT.as_posix()}"),
         key=lambda item: item.as_posix(),
@@ -576,14 +584,15 @@ def _execute_dispatch(
     *,
     profile: WorkspaceProfile,
     study_id: str,
-    dispatch_path: Path,
+    dispatch_payload: Mapping[str, Any],
     developer_mode_payload: Mapping[str, Any],
     apply: bool,
     managed_runtime_worker: bool,
 ) -> dict[str, Any]:
     generated_at = _utc_now()
-    dispatch = _read_json_object(dispatch_path)
-    if dispatch is None:
+    dispatch = _mapping(dispatch_payload)
+    dispatch_path = _dispatch_path(dispatch)
+    if not dispatch:
         return {
             "generated_at": generated_at,
             "study_id": study_id,
@@ -852,11 +861,11 @@ def execute_default_executor_dispatches(
     executions: list[dict[str, Any]] = []
     written_files: list[str] = []
     for study_id in resolved_study_ids:
-        for dispatch_path in _dispatch_files(profile, study_id, resolved_action_types):
+        for dispatch in _dispatches(profile, study_id, resolved_action_types):
             execution = _execute_dispatch(
                 profile=profile,
                 study_id=study_id,
-                dispatch_path=dispatch_path,
+                dispatch_payload=dispatch,
                 developer_mode_payload=developer_mode_payload,
                 apply=apply,
                 managed_runtime_worker=managed_runtime_worker,

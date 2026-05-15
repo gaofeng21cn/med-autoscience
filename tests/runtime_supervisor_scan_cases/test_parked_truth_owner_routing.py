@@ -353,6 +353,114 @@ def test_targets_resolved_auto_runtime_parked_routes_to_mas_controller_redrive(
     assert study["owner_route"]["allowed_actions"] == ["runtime_platform_repair"]
 
 
+def test_bundle_stage_finalize_controller_route_redrives_parked_mas_controller_closeout(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    work_unit_fingerprint = "domain-transition::bundle_stage_finalize::submission_authority_sync_closure"
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": f"publication-eval::{study_id}::current",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        "recommended_actions": [],
+    }
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "domain-transition-bundle-stage-route",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "requires_human_confirmation": False,
+            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+            "route_target": "finalize",
+            "work_unit_fingerprint": work_unit_fingerprint,
+            "next_work_unit": {
+                "unit_id": "submission_authority_sync_closure",
+                "lane": "controller",
+                "summary": "Synchronize submission authority and package closure for the bundle-stage.",
+            },
+        },
+    )
+    status_payload = _parked_status(
+        study_root=study_root,
+        quest_id=quest_id,
+        parked_state="explicit_resume_pending",
+        reason="quest_waiting_for_user",
+    )
+    status_payload.update(
+        {
+            "quest_status": "waiting_for_user",
+            "quest_root": str(quest_root),
+            "publication_eval": publication_eval,
+            "continuation_state": {
+                "quest_status": "waiting_for_user",
+                "active_run_id": None,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "turn_closeout",
+                "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+                "pending_user_message_count": 0,
+                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
+            },
+            "blocked_turn_closeout": {
+                "run_id": "mas-run-002-stale",
+                "blocked_reason": "bundle-stage closure still belongs to MAS/controller",
+                "next_owner": "MAS/controller",
+            },
+            "runtime_health_snapshot": {
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch-dm002-finalize",
+                "source_signature": "truth-source-dm002-finalize",
+            },
+        }
+    )
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "publication_supervision",
+        "paper_stage": "analysis-campaign",
+        "auto_runtime_parked": status_payload["auto_runtime_parked"],
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["runtime_platform_repair"]
+    assert study["action_queue"][0]["reason"] == "runtime_controller_redrive_required"
+    assert study["blocked_reason"] == "runtime_controller_redrive_required"
+    assert study["next_owner"] == "mas_controller"
+    assert study["owner_route"]["allowed_actions"] == ["runtime_platform_repair"]
+
+
 def test_explicit_resume_pending_with_current_controller_route_queues_ai_reviewer_workflow(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
