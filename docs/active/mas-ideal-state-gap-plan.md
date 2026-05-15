@@ -12,13 +12,15 @@ Date: `2026-05-14`
 
 MAS 当前已经具备独立 medical research domain agent 的主要边界：direct MAS app skill path、CLI/MCP/product-entry/controller、stage-led autonomy、publication-route memory、sidecar export/dispatch、functional closure projection、OPL production proof ingestion、owner receipt contract、legacy residue tombstone proof 和 body-free OPL/Aion projection 都已进入 repo surface。当前差距集中在真实 paper-line production evidence，而不是 descriptor 或定位。
 
+MAS 的单仓计划只维护医学领域真相和 domain package 薄程序面。薄程序面包括 descriptor、contract/schema、sidecar/thin adapter、projection builder、domain transition spec/table、quality gate、artifact locator、receipt schema、tests 和 domain entry；它们服务 OPL 发现、托管、审计和投影，不构成第二套 generic framework/runtime。
+
 OPL 系列项目的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/docs/active/opl-family-development-reference.md`。涉及跨仓总顺序、shared primitive owner、App/workbench 通用目标和旧兼容面退役纪律时，以该主参考和 OPL docs 为准。
 
 ## 总体差距矩阵
 
 | 目标面 | 当前实际 | 差距 | 完善方向 |
 | --- | --- | --- | --- |
-| MAS domain authority pack | 医学 stage pack、publication-route memory、AI reviewer / quality rubric、artifact authority、owner receipt schema 和 projection builder 已成主线 | 仍有部分 runtime / workbench / lifecycle 需求容易继续在 MAS 内复制 | MAS 只保留医学研究路线、质量 judgment、artifact authority 和薄 sidecar；通用外围转成 OPL primitive 需求。 |
+| MAS domain authority pack | 医学 stage pack、publication-route memory、AI reviewer / quality rubric、artifact authority、owner receipt schema 和 projection builder 已成主线 | 仍有部分 runtime / workbench / lifecycle 需求容易继续在 MAS 内复制 | MAS 只保留医学研究路线、质量 judgment、artifact authority 和 domain package 薄程序面；通用外围转成 OPL primitive 需求。 |
 | OPL-hosted paper-line apply | OPL provider proof 可被 MAS 读取；sidecar dispatch 能回到 MAS owner chain 并返回 receipt / typed blocker | 真实 provider-hosted paper-line guarded apply 还没有连续产出 MAS owner apply receipt、artifact delta、AI reviewer update、route decision 或 human gate/resume 证据 | 用 DM002、DM003、Obesity 等真实 paper line 跑 guarded apply；每条线返回 owner receipt、typed blocker、stop-loss 或 human gate，而不是把 provider completion 写成 paper closure。 |
 | Publication-route memory | Markdown body、seed index、workspace pack、inventory、typed closeout proposal、router receipt 和 body-free OPL/Aion projection 已落地 | accepted/rejected writeback receipt 还需要在更多真实 paper line 上泛化；memory body 仍不能复制到 OPL | 继续由 MAS workspace/runtime owner 接受或拒绝 writeback；OPL/App 只展示 locator、consumed refs、receipt refs、freshness 和 grouping。 |
 | Artifact lifecycle | MAS 已暴露 artifact locator、lifecycle apply request、guarded apply proof 和 no-forbidden-write 边界 | 真实 workspace 的 cleanup / restore / retention receipt 还需要按 owner 授权闭合 | OPL 可提供 lifecycle ledger、restore/retention shell 和 operator projection；artifact mutation permission 与 canonical package authority 仍由 MAS receipt 给出。 |
