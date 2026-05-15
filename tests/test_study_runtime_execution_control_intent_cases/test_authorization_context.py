@@ -115,6 +115,33 @@ def test_controller_authorization_prefers_current_decision_work_unit_over_stale_
     assert authorization_context["control_intent_identity"]["work_unit_id"] == "submission_minimal_refresh"
 
 
+def test_controller_authorization_accepts_ai_reviewer_workflow_runtime_action(
+    tmp_path: Path,
+) -> None:
+    auth_module = importlib.import_module(
+        "med_autoscience.controllers.study_runtime_execution_parts.controller_authorization"
+    )
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    _write_controller_decision_authorization(
+        study_root,
+        action_type="return_to_ai_reviewer_workflow",
+        work_unit_fingerprint="domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review",
+        next_work_unit={
+            "unit_id": "ai_reviewer_medical_prose_quality_review",
+            "lane": "review",
+            "summary": "Re-run AI reviewer manuscript-quality review.",
+        },
+    )
+
+    authorization_context = auth_module._load_controller_decision_authorization_context(study_root=study_root)
+
+    assert authorization_context is not None
+    assert auth_module._controller_decision_authorizes_runtime(authorization_context) is True
+    assert authorization_context["controller_actions"] == ("return_to_ai_reviewer_workflow",)
+    assert authorization_context["work_unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert authorization_context["route_target"] == "analysis-campaign"
+
+
 def test_controller_authorization_projects_finalize_route_for_controller_owned_submission_unit(
     tmp_path: Path,
 ) -> None:

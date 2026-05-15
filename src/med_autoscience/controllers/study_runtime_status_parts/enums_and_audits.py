@@ -110,6 +110,7 @@ class StudyRuntimeReason(StrEnum):
     QUEST_WAITING_ON_INVALID_BLOCKING = "quest_waiting_on_invalid_blocking"
     QUEST_WAITING_USER_MESSAGE_REDRIVE = "quest_waiting_user_message_redrive"
     QUEST_WAITING_PLATFORM_REPAIR_REDRIVE = "quest_waiting_platform_repair_redrive"
+    DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL = "domain_transition_ai_reviewer_re_eval"
     QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR = (
         "quest_completion_requested_before_publication_gate_clear"
     )

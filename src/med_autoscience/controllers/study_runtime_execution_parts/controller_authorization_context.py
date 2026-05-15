@@ -15,6 +15,7 @@ _CONTROLLER_DECISION_RUNTIME_AUTHORIZATION_ACTIONS = {
     "ensure_study_runtime_relaunch_stopped",
     "run_gate_clearing_batch",
     "run_quality_repair_batch",
+    "return_to_ai_reviewer_workflow",
 }
 _WORK_UNIT_TARGET_CONTEXT_KEYS = (
     "specificity_targets",

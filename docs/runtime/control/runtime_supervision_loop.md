@@ -234,6 +234,8 @@ consumer 只能传播该 route，不能重新解释 owner。request handoff 和 
 
 投稿包里程碑本身也是停驻边界。若最新 task intake 早于 controller-authorized delivery manifest / current_package，且 delivery manifest 签名一致、`current_package.zip` 与 audit manifest 存在、publication gate 为 clear / bundle-stage-ready，则这份交付面消费旧 task intake，系统必须投成 package-ready handoff / explicit-resume wait。旧 Codex CLI prompt、旧 `controller_work_unit_pending`、旧 reviewer-revision intake 或 active run 标签不能覆盖这个终局；只有更新的用户修改请求、stale delivery / authority blocker、AI reviewer-backed quality blocker 或显式 resume 才能重新打开 writer。
 
+AI reviewer-backed quality blocker 是该停驻边界的正式例外，owner 仍然是 `ai_reviewer`，不是 submission metadata lane。若 `publication_eval/latest.json` 与 `controller_decisions/latest.json` 当前一致指向 `return_to_ai_reviewer_workflow`，并且 domain transition 为 `ai_reviewer_re_eval` / `domain_transition_ai_reviewer_re_eval`，paused / resumable runtime 必须优先恢复到 AI reviewer owner route，让 AI reviewer 关闭医学论文写作质量判断。普通仅缺作者信息、伦理声明、AI declaration 或期刊 metadata 的 submission metadata parking 仍保持 explicit-resume wait，不能因这个例外被放宽成自动写作或自动交付。
+
 同一轮 owner action 必须满足幂等合同。`route_epoch` 和 `source_fingerprint` 决定本轮 owner routing，具体 repo-side owner 还必须给自己的 work unit 写稳定 fingerprint：
 
 - fingerprint 只表达语义输入，不表达普通观测时间；内容相同的 JSON/资产被同一 owner 重写后，不能因为 `mtime` 变化制造新 work unit。

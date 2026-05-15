@@ -25,6 +25,7 @@ from .test_study_runtime_router_cases.submission_metadata_resume_signal_cases im
 from .test_study_runtime_router_cases.submission_metadata_drift_cases import *  # noqa: F403
 from .test_study_runtime_router_cases.submission_metadata_cases import *  # noqa: F403
 from .test_study_runtime_router_cases.submission_metadata_revision_intake_cases import *  # noqa: F403
+from .test_study_runtime_router_cases.ai_reviewer_submission_metadata_cases import *  # noqa: F403
 from .test_study_runtime_router_cases.live_write_drift_cases import *  # noqa: F403
 from .test_study_runtime_router_cases.live_reviewer_closeout_cases import *  # noqa: F403
 from .test_study_runtime_router_cases.restart_and_submission_cases import *  # noqa: F403

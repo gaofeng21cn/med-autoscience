@@ -11,6 +11,7 @@ from med_autoscience.controllers.study_runtime_decision_parts.runtime_events.pen
 )
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeQuestStatus,
+    StudyRuntimeReason,
     StudyRuntimeStatus,
 )
 
@@ -52,6 +53,29 @@ def _record_interaction_arbitration_if_required(
     status.record_interaction_arbitration(arbitration)
 
 
+def _domain_transition_runtime_redrive_reason(status: StudyRuntimeStatus) -> StudyRuntimeReason | None:
+    domain_transition = status.extras.get("domain_transition")
+    if not isinstance(domain_transition, dict):
+        return None
+    arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
+        pending_interaction=None,
+        decision_policy=str(status.execution.get("decision_policy") or "").strip() or None,
+        submission_metadata_only=False,
+        domain_transition=domain_transition,
+    )
+    if str(arbitration.get("classification") or "").strip() != "domain_transition_runtime_redrive":
+        return None
+    if str(arbitration.get("action") or "").strip() != "resume":
+        return None
+    status.record_interaction_arbitration(arbitration)
+    reason_code = str(arbitration.get("reason_code") or "").strip()
+    try:
+        return StudyRuntimeReason(reason_code)
+    except ValueError:
+        return StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+
+
 __all__ = [
     "_record_interaction_arbitration_if_required",
+    "_domain_transition_runtime_redrive_reason",
 ]

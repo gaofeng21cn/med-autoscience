@@ -144,6 +144,10 @@ def _status_state(
     bundle_only_manual_finish = manual_finish_state["bundle_only_manual_finish"]
     manual_finish_compatibility_guard = manual_finish_state["manual_finish_compatibility_guard"]
     submission_metadata_only_wait = manual_finish_state["submission_metadata_only_wait"]
+    task_intake_releases_bare_paused_parking = (
+        task_intake_releases_manual_finish_parking
+        and not task_intake_yields_to_submission_closeout
+    )
     _record_continuation_state_if_present(status=result, quest_root=quest_root)
     _record_controller_authorization_if_present(status=result, quest_root=quest_root)
     _record_blocked_closeout_if_present(status=result, quest_root=quest_root)
@@ -388,6 +392,34 @@ def _status_state(
         )
         return _finalize_result()
 
+    if quest_status in _RESUMABLE_QUEST_STATUSES and not (
+        _user_pause_contract_without_live_worker(result)
+        or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(result)
+    ):
+        domain_redrive_reason = _domain_transition_runtime_redrive_reason(result)
+        if domain_redrive_reason is StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
+            if not result.startup_boundary_allows_compute_stage:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+                )
+            elif not result.runtime_reentry_allows_runtime_entry:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+                )
+            elif execution.get("auto_resume") is True:
+                result.set_decision(
+                    StudyRuntimeDecision.RESUME,
+                    domain_redrive_reason,
+                )
+            else:
+                result.set_decision(
+                    StudyRuntimeDecision.BLOCKED,
+                    StudyRuntimeReason.QUEST_PAUSED_BUT_AUTO_RESUME_DISABLED,
+                )
+            return _finalize_result()
+
     if (
         manual_finish_compatibility_guard
         and (not task_intake_releases_manual_finish_parking or task_intake_yields_to_submission_closeout)
@@ -607,7 +639,10 @@ def _status_state(
             result,
         ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
             result
-        ) or _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result):
+        ) or (
+            _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result)
+            and not task_intake_releases_bare_paused_parking
+        ):
             from med_autoscience.controllers.study_runtime_execution_parts import (
                 runtime_events as runtime_execution_events,
             )
@@ -641,7 +676,10 @@ def _status_state(
             result,
         ) or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
             result
-        ) or _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result):
+        ) or (
+            _bare_paused_quest_requires_explicit_wakeup_without_live_worker(result)
+            and not task_intake_releases_bare_paused_parking
+        ):
             result.set_decision(
                 StudyRuntimeDecision.BLOCKED,
                 StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
@@ -778,6 +816,8 @@ def _status_state(
                 elif execution.get("auto_resume") is True:
                     resume_reason = {
                         "submission_metadata_only": StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                        "domain_transition_runtime_redrive": _domain_transition_runtime_redrive_reason(result)
+                        or StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
                         "premature_completion_request": (
                             StudyRuntimeReason.QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR
                         ),
@@ -877,6 +917,8 @@ def _status_state(
             if action == "resume":
                 resume_reason = {
                     "submission_metadata_only": StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+                    "domain_transition_runtime_redrive": _domain_transition_runtime_redrive_reason(result)
+                    or StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE,
                     "premature_completion_request": (
                         StudyRuntimeReason.QUEST_COMPLETION_REQUESTED_BEFORE_PUBLICATION_GATE_CLEAR
                     ),
