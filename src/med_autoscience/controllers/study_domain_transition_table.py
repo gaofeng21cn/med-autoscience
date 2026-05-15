@@ -648,6 +648,9 @@ def _ai_reviewer_re_eval(publication_eval: Mapping[str, Any]) -> bool:
     return _text(publication_eval.get("domain_ready_verdict")) == "ai_reviewer_re_eval" or (
         _text(provenance.get("owner")) == "ai_reviewer"
         and _text(provenance.get("source_kind")) == "publication_eval_ai_reviewer"
+    ) or (
+        provenance.get("ai_reviewer_required") is True
+        and _text(provenance.get("owner")) != "ai_reviewer"
     )
 
 
