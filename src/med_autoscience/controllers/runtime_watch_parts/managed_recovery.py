@@ -37,6 +37,38 @@ def recovery_failure_payload(
     return payload
 
 
+def projection_error_payload(
+    *,
+    study_root: Path,
+    error: Exception,
+) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    study_id = resolved_study_root.name
+    return {
+        "schema_version": 1,
+        "study_id": study_id,
+        "study_root": str(resolved_study_root),
+        "entry_mode": "",
+        "execution": {},
+        "quest_id": study_id,
+        "quest_root": "",
+        "quest_exists": False,
+        "quest_status": None,
+        "runtime_binding_path": str(resolved_study_root / "runtime_binding.yaml"),
+        "runtime_binding_exists": (resolved_study_root / "runtime_binding.yaml").exists(),
+        "study_completion_contract": {},
+        "decision": "blocked",
+        "reason": "study_projection_contract_error",
+        "projection_error": {
+            "error_type": type(error).__name__,
+            "message": str(error),
+            "study_root": str(resolved_study_root),
+        },
+        "runtime_execution_error": str(error),
+        "runtime_watch_error_isolated": True,
+    }
+
+
 def _managed_study_roots(profile: WorkspaceProfile) -> list[Path]:
     return [
         study_root
@@ -66,7 +98,10 @@ def _apply_managed_study_status(
     runtime_recovery_payloads: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     if _study_requests_gate_specificity_terminal(study_root=study_root):
-        return runtime_status_payload(ports=runtime_control_ports, profile=profile, study_root=study_root)
+        try:
+            return runtime_status_payload(ports=runtime_control_ports, profile=profile, study_root=study_root)
+        except Exception as exc:
+            return projection_error_payload(study_root=study_root, error=exc)
     try:
         action_payload = ensure_runtime(
             ports=runtime_control_ports,
@@ -81,11 +116,14 @@ def _apply_managed_study_status(
         )
         return action_payload
     except Exception as exc:
-        preflight_payload = runtime_status_payload(
-            ports=runtime_control_ports,
-            profile=profile,
-            study_root=study_root,
-        )
+        try:
+            preflight_payload = runtime_status_payload(
+                ports=runtime_control_ports,
+                profile=profile,
+                study_root=study_root,
+            )
+        except Exception:
+            return projection_error_payload(study_root=study_root, error=exc)
         action_payload = recovery_failure_payload(
             preflight_payload=preflight_payload,
             error=exc,
@@ -157,7 +195,10 @@ def _read_or_auto_recover_managed_study(
     recovery_holds: list[dict[str, Any]],
     runtime_recovery_payloads: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
-    action_payload = runtime_status_payload(ports=runtime_control_ports, profile=profile, study_root=study_root)
+    try:
+        action_payload = runtime_status_payload(ports=runtime_control_ports, profile=profile, study_root=study_root)
+    except Exception as exc:
+        return projection_error_payload(study_root=study_root, error=exc)
     if not _should_hard_auto_recover_managed_study(action_payload):
         return action_payload
     preflight_payload = action_payload

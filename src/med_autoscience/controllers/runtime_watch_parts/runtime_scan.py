@@ -214,6 +214,9 @@ def run_watch_for_runtime(
         rerouted_managed_study_statuses: list[tuple[Path, dict[str, Any]]] = []
         for study_root, status_payload in managed_study_statuses:
             resolved_status_payload = status_payload
+            if status_payload.get("runtime_watch_error_isolated") is True:
+                rerouted_managed_study_statuses.append((study_root, resolved_status_payload))
+                continue
             quest_root = status_payload.get("quest_root")
             quest_report = report_by_quest_root.get(str(Path(str(quest_root)).expanduser().resolve())) if quest_root else None
             if _quest_report_requests_managed_study_reroute(quest_report):
@@ -239,11 +242,14 @@ def run_watch_for_runtime(
         study_root_key = str(Path(study_root).expanduser().resolve())
         current_study_outer_loop_dispatched = False
         if profile is not None:
-            status_payload = runtime_control_ports.refresh_status_after_ensure(
-                profile=profile,
-                study_root=study_root,
-                status_payload=status_payload,
-            )
+            if status_payload.get("runtime_watch_error_isolated") is not True:
+                status_payload = runtime_control_ports.refresh_status_after_ensure(
+                    profile=profile,
+                    study_root=study_root,
+                    status_payload=status_payload,
+                )
+        if status_payload.get("runtime_watch_error_isolated") is True:
+            continue
         quest_root = _candidate_path(status_payload.get("quest_root"))
         quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
         if apply and profile is not None:
@@ -625,18 +631,20 @@ def run_watch_for_runtime(
                 managed_study_outer_loop_wakeup_audits.append(wakeup_audit)
         quest_root = _candidate_path(status_payload.get("quest_root"))
         quest_report = report_by_quest_root.get(str(quest_root)) if quest_root is not None else None
-        supervision_report = runtime_control_ports.materialize_supervision(
-            study_root=study_root,
-            status_payload=status_payload,
-            recorded_at=utc_now(),
-            apply=apply,
-            runtime_watch_report_path=(
-                Path(str(quest_report.get("latest_report_json") or quest_report.get("report_json")))
-                if isinstance(quest_report, dict)
-                and str(quest_report.get("latest_report_json") or quest_report.get("report_json") or "").strip()
-                else None
-            ),
-        )
+        supervision_report = None
+        if status_payload.get("runtime_watch_error_isolated") is not True:
+            supervision_report = runtime_control_ports.materialize_supervision(
+                study_root=study_root,
+                status_payload=status_payload,
+                recorded_at=utc_now(),
+                apply=apply,
+                runtime_watch_report_path=(
+                    Path(str(quest_report.get("latest_report_json") or quest_report.get("report_json")))
+                    if isinstance(quest_report, dict)
+                    and str(quest_report.get("latest_report_json") or quest_report.get("report_json") or "").strip()
+                    else None
+                ),
+            )
         if supervision_report is not None:
             managed_study_supervision.append(supervision_report)
             alert_delivery = runtime_control_ports.deliver_alert(
@@ -659,7 +667,7 @@ def run_watch_for_runtime(
                     status_payload=status_payload,
                     recorded_at=utc_now(),
                 )
-        if profile is not None:
+        if profile is not None and status_payload.get("runtime_watch_error_isolated") is not True:
             managed_study_autonomy_slo_statuses.append(
                 runtime_control_ports.materialize_autonomy_slo(
                     profile=profile,

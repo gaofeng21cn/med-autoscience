@@ -69,6 +69,80 @@ def test_watch_runtime_records_failed_managed_recovery_without_aborting_tick(tmp
     ]
 
 
+def test_watch_runtime_isolates_managed_study_projection_errors(tmp_path: Path, monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_watch")
+    profiles = importlib.import_module("med_autoscience.profiles")
+    workspace_root = tmp_path / "workspace"
+    profile = profiles.WorkspaceProfile(
+        name="diabetes",
+        workspace_root=workspace_root,
+        runtime_root=workspace_root / "runtime" / "quests",
+        studies_root=workspace_root / "studies",
+        portfolio_root=workspace_root / "portfolio",
+        med_deepscientist_runtime_root=workspace_root / "legacy" / "runtime",
+        med_deepscientist_repo_root=None,
+        default_publication_profile="general_medical_journal",
+        default_citation_style="AMA",
+        enable_medical_overlay=True,
+        medical_overlay_scope="workspace",
+        medical_overlay_skills=("intake-audit", "baseline"),
+        research_route_bias_policy="high_plasticity_medical",
+        preferred_study_archetypes=("clinical_classifier",),
+        default_submission_targets=(),
+    )
+    bad_study = profile.studies_root / "001-retired"
+    good_study = profile.studies_root / "002-live"
+    bad_study.mkdir(parents=True, exist_ok=True)
+    good_study.mkdir(parents=True, exist_ok=True)
+    (bad_study / "study.yaml").write_text("study_id: 001-retired\n", encoding="utf-8")
+    (good_study / "study.yaml").write_text("study_id: 002-live\n", encoding="utf-8")
+
+    def fake_status(*, study_root: Path, **_: object) -> dict[str, object]:
+        if Path(study_root).name == "001-retired":
+            raise ValueError("manual_finish.compatibility_guard_only is retired; use manual_finish_guard_only")
+        return {
+            **make_study_runtime_status_payload(
+                study_id="002-live",
+                decision="noop",
+                reason="quest_already_running",
+            ),
+            "study_root": str(good_study),
+            "quest_id": "002-live",
+            "quest_root": str(profile.runtime_root / "002-live"),
+            "quest_status": "running",
+            "active_run_id": "run-002",
+        }
+
+    monkeypatch.setattr(module.study_runtime_router, "study_runtime_status", fake_status)
+    monkeypatch.setattr(module.study_runtime_router, "ensure_study_runtime", lambda **kwargs: fake_status(**kwargs))
+    monkeypatch.setattr(module.quest_state, "iter_active_quests", lambda runtime_root: [])
+    outer_loop_calls: list[str] = []
+
+    def fake_outer_loop_request(*, study_root: Path, **_: object) -> None:
+        outer_loop_calls.append(Path(study_root).name)
+        if Path(study_root).name == "001-retired":
+            raise AssertionError("isolated projection errors must not enter outer-loop wakeup")
+        return None
+
+    monkeypatch.setattr(module.study_outer_loop, "build_runtime_watch_outer_loop_tick_request", fake_outer_loop_request)
+
+    result = module.run_watch_loop(
+        runtime_root=profile.runtime_root,
+        apply=True,
+        profile=profile,
+        ensure_study_runtimes=True,
+        interval_seconds=300,
+        max_ticks=1,
+    )
+
+    actions = {action["study_id"]: action for action in result["last_result"]["managed_study_actions"]}
+    assert result["tick_errors"] == []
+    assert actions["001-retired"]["decision"] == "blocked"
+    assert actions["001-retired"]["reason"] == "study_projection_contract_error"
+    assert actions["002-live"]["decision"] == "noop"
+    assert outer_loop_calls == ["002-live"]
+
+
 def test_watch_runtime_managed_recovery_uses_turn_lifecycle_receipt(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.runtime_watch")
     profiles = importlib.import_module("med_autoscience.profiles")

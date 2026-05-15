@@ -88,6 +88,7 @@ class StudyRuntimeReason(StrEnum):
     WORKSPACE_CONTRACT_NOT_READY = "workspace_contract_not_ready"
     STUDY_DATA_READINESS_BLOCKED = "study_data_readiness_blocked"
     STARTUP_CONTRACT_RESOLUTION_FAILED = "startup_contract_resolution_failed"
+    STUDY_PROJECTION_CONTRACT_ERROR = "study_projection_contract_error"
     QUEST_MISSING = "quest_missing"
     CREATE_REQUEST_FAILED = "create_request_failed"
     RUNTIME_REENTRY_NOT_READY_FOR_AUTO_START = "runtime_reentry_not_ready_for_auto_start"
