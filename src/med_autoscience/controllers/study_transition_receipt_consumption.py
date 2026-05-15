@@ -6,6 +6,16 @@ from pathlib import Path
 from typing import Any
 
 
+_ROUTE_DECISION_OWNER_RECEIPT_VALUES = frozenset(
+    {
+        "proceed_to_baseline",
+        "return_to_scout",
+        "switch_line",
+        "bounded_repair",
+    }
+)
+
+
 def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
     supersession = _mapping(status.get("blocked_turn_closeout_supersession"))
     if not supersession:
@@ -73,10 +83,34 @@ def bundle_stage_completion_receipt_consumption(
 def mas_owner_apply_receipt_consumption(*, study_root: Path) -> dict[str, Any]:
     receipt_ref = Path("artifacts/controller/repair_execution_receipts/latest.json")
     evidence_ref = Path("artifacts/controller/repair_execution_evidence/latest.json")
+    controller_decision_ref = Path("artifacts/controller_decisions/latest.json")
     receipt = _read_json_object(study_root / receipt_ref)
     evidence = _read_json_object(study_root / evidence_ref)
-    if receipt is None or evidence is None:
-        return {}
+    if receipt is not None and evidence is not None:
+        artifact_delta = _artifact_delta_owner_receipt_consumption(
+            receipt=receipt,
+            evidence=evidence,
+            receipt_ref=receipt_ref,
+            evidence_ref=evidence_ref,
+        )
+        if artifact_delta:
+            return artifact_delta
+    controller_decision = _read_json_object(study_root / controller_decision_ref)
+    if controller_decision is not None:
+        return _controller_decision_owner_receipt_consumption(
+            controller_decision=controller_decision,
+            controller_decision_ref=controller_decision_ref,
+        )
+    return {}
+
+
+def _artifact_delta_owner_receipt_consumption(
+    *,
+    receipt: Mapping[str, Any],
+    evidence: Mapping[str, Any],
+    receipt_ref: Path,
+    evidence_ref: Path,
+) -> dict[str, Any]:
     if receipt.get("surface") != "paper_repair_owner_receipt":
         return {}
     if receipt.get("accepted") is not True or receipt.get("execution_status") != "executed":
@@ -102,6 +136,39 @@ def mas_owner_apply_receipt_consumption(*, study_root: Path) -> dict[str, Any]:
         "evidence_ref": str(evidence_ref),
         "next_action": "allow_mas_owner_guarded_apply",
     }
+
+
+def _controller_decision_owner_receipt_consumption(
+    *,
+    controller_decision: Mapping[str, Any],
+    controller_decision_ref: Path,
+) -> dict[str, Any]:
+    if controller_decision.get("requires_human_confirmation") is True:
+        return {}
+    route_decision = _text(controller_decision.get("route_decision"))
+    route_target = _text(controller_decision.get("route_target"))
+    runtime_decision = _text(controller_decision.get("runtime_decision"))
+    if route_decision in {"stop_loss", "terminal_stop"} or route_target == "stop":
+        return {}
+    if route_decision in {"stable_blocker", "blocked"} or runtime_decision == "blocked" or _text(
+        controller_decision.get("blocked_reason")
+    ):
+        return {
+            "status": "consumed",
+            "receipt_kind": "mas_owner_apply_receipt",
+            "apply_result": "stable_blocker",
+            "receipt_ref": str(controller_decision_ref),
+            "next_action": "record_mas_owner_stable_blocker",
+        }
+    if route_decision in _ROUTE_DECISION_OWNER_RECEIPT_VALUES:
+        return {
+            "status": "consumed",
+            "receipt_kind": "mas_owner_apply_receipt",
+            "apply_result": "route_decision",
+            "receipt_ref": str(controller_decision_ref),
+            "next_action": "record_mas_owner_route_decision",
+        }
+    return {}
 
 
 def relative_study_artifact_ref(path_text: str) -> str:

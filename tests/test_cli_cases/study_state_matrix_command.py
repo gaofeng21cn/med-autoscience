@@ -729,6 +729,7 @@ def test_study_state_matrix_fails_closed_for_human_gate_stop_loss_and_conflict_n
     _write_json(
         workspace_root / "studies" / "human-gate" / "artifacts" / "controller_decisions" / "latest.json",
         {
+            "route_decision": "human_gate",
             "requires_human_confirmation": True,
             "family_human_gates": [{"gate_id": "confirm-target"}],
         },
@@ -775,10 +776,12 @@ def test_study_state_matrix_fails_closed_for_human_gate_stop_loss_and_conflict_n
     assert rows["human-gate"]["controller_action"] == "wait_for_human_gate"
     assert rows["human-gate"]["typed_blocker"]["blocker_id"] == "human_gate_required"
     assert rows["human-gate"]["guard_boundary"]["opl_generic_runner_may_resume"] is False
+    assert "completion_receipt_consumption" not in rows["human-gate"]
     assert rows["stop-loss"]["decision_type"] == "stop_loss"
     assert rows["stop-loss"]["route_target"] == "stop"
     assert rows["stop-loss"]["controller_action"] == "stop_runtime"
     assert rows["stop-loss"]["guard_boundary"]["opl_generic_runner_may_resume"] is False
+    assert "completion_receipt_consumption" not in rows["stop-loss"]
     assert rows["truth-conflict"]["decision_type"] == "fail_closed"
     assert rows["truth-conflict"]["route_target"] == "inspect"
     assert rows["truth-conflict"]["controller_action"] == "none"

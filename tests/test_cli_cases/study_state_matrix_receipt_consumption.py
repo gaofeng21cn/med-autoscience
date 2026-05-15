@@ -310,3 +310,115 @@ def test_study_state_matrix_consumes_mas_owner_apply_receipt_as_artifact_delta(
     assert case["expected"]["decision_type"] == "owner_apply_receipt_consumed"
     assert case["context"]["completion_receipt_consumption"]["receipt_kind"] == "mas_owner_apply_receipt"
     assert rule["receipt"]["completion_receipt_consumption"]["apply_result"] == "artifact_delta"
+
+
+def test_study_state_matrix_consumes_controller_decision_owner_receipt_as_stable_blocker(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-dm"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "route_decision": "stable_blocker",
+            "runtime_decision": "blocked",
+            "blocked_reason": "owner surface blocked by publication gate specificity",
+            "next_owner": "publication_gate",
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "paused",
+            "active_run_id": None,
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    transition = payload["studies"][0]["domain_transition"]
+    case = payload["domain_transition_table"]["family_transition_matrix_cases"][0]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "owner_apply_receipt_consumed"
+    assert transition["route_target"] == "finalize"
+    assert transition["next_work_unit"]["unit_id"] == "provider_hosted_guarded_apply"
+    assert transition["controller_action"] == "paper_autonomy_guarded_apply"
+    assert transition["completion_receipt_consumption"] == {
+        "status": "consumed",
+        "receipt_kind": "mas_owner_apply_receipt",
+        "apply_result": "stable_blocker",
+        "receipt_ref": "artifacts/controller_decisions/latest.json",
+        "next_action": "record_mas_owner_stable_blocker",
+    }
+    assert transition["guard_boundary"]["mas_owner_apply_receipt_required"] is True
+    assert case["context"]["completion_receipt_consumption"]["apply_result"] == "stable_blocker"
+
+
+def test_study_state_matrix_consumes_controller_route_decision_owner_receipt(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-dm"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "route_decision": "switch_line",
+            "route_target": "scout",
+            "selected_line_id": "dm-biomarker-line",
+            "requires_human_confirmation": False,
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "paused",
+            "active_run_id": None,
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    transition = payload["studies"][0]["domain_transition"]
+    case = payload["domain_transition_table"]["family_transition_matrix_cases"][0]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "owner_apply_receipt_consumed"
+    assert transition["route_target"] == "finalize"
+    assert transition["next_work_unit"]["unit_id"] == "provider_hosted_guarded_apply"
+    assert transition["completion_receipt_consumption"] == {
+        "status": "consumed",
+        "receipt_kind": "mas_owner_apply_receipt",
+        "apply_result": "route_decision",
+        "receipt_ref": "artifacts/controller_decisions/latest.json",
+        "next_action": "record_mas_owner_route_decision",
+    }
+    assert transition["guard_boundary"]["mas_owner_apply_receipt_required"] is True
+    assert case["expected"]["decision_type"] == "owner_apply_receipt_consumed"
+    assert case["context"]["completion_receipt_consumption"]["apply_result"] == "route_decision"
