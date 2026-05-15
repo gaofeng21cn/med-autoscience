@@ -64,8 +64,48 @@ TREATMENT_GAP_REPORTING_ITEMS = (
     "table_role_consistency",
     "figure_legend_uniqueness",
     "non_causal_claim_guardrail",
+    "numerator",
+    "denominator",
+    "eligibility",
+    "time_window",
+    "medication_data_source",
+    "interpretation_label_or_guardrail",
 )
-PHENOTYPE_ARCHETYPE_TOKENS = ("phenotype", "subtype", "cluster", "real_world")
+PHENOTYPE_DERIVATION_REPORTING_ITEMS = (
+    "assignment_method",
+    "clinical_domains_or_features",
+    "assignment_rules_or_algorithm",
+    "class_count_rationale",
+    "reproducibility_or_new_patient_assignment",
+    "analysis_plan_or_prespecification_status",
+)
+BASELINE_CHARACTERISTICS_REPORTING_ITEMS = (
+    "population_total_n",
+    "group_columns",
+    "denominators",
+    "missingness",
+    "core_clinical_variables",
+    "units_or_scale",
+    "comparison_or_balance_statistic",
+)
+DATA_QUALITY_REPORTING_ITEMS = (
+    "source_record_checks",
+    "range_plausibility_checks",
+    "missingness_by_variable",
+    "semantic_field_checks",
+    "cohort_attrition_denominators",
+    "claim_impact_or_downgrade",
+)
+PHENOTYPE_ARCHETYPE_TOKENS = (
+    "phenotype",
+    "subtype",
+    "clinical_subtype",
+    "cluster",
+    "real_world",
+    "treatment_gap",
+    "treatment-gap",
+    "treatment gap",
+)
 
 REPORTING_CHECKLIST_BLOCKER_KEYS = frozenset(
     {
@@ -80,6 +120,9 @@ REPORTING_CHECKLIST_BLOCKER_KEYS = frozenset(
         "baseline_balance_reporting_incomplete",
         "competing_risk_reporting_incomplete",
         "treatment_gap_reporting_incomplete",
+        "phenotype_derivation_reporting_incomplete",
+        "baseline_characteristics_reporting_incomplete",
+        "data_quality_reporting_incomplete",
     }
 )
 
@@ -257,6 +300,9 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
             "prediction_performance_reporting",
             "baseline_balance_reporting",
             "competing_risk_reporting",
+            "phenotype_derivation_reporting",
+            "baseline_characteristics_reporting",
+            "data_quality_reporting",
         )
     )
     if not actionability_required and not prediction_required and not explicit_structured_contract:
@@ -278,6 +324,13 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
             "baseline_balance_reporting": _not_required_section(BASELINE_BALANCE_REPORTING_ITEMS),
             "competing_risk_reporting": _not_required_section(COMPETING_RISK_REPORTING_ITEMS),
             "treatment_gap_reporting": _not_required_section(TREATMENT_GAP_REPORTING_ITEMS),
+            "phenotype_derivation_reporting": _not_required_section(
+                PHENOTYPE_DERIVATION_REPORTING_ITEMS
+            ),
+            "baseline_characteristics_reporting": _not_required_section(
+                BASELINE_CHARACTERISTICS_REPORTING_ITEMS
+            ),
+            "data_quality_reporting": _not_required_section(DATA_QUALITY_REPORTING_ITEMS),
         }
     methods = _section_status(contract.get("methods_completeness"), METHODS_COMPLETENESS_ITEMS)
     statistics = _section_status(contract.get("statistical_reporting"), STATISTICAL_REPORTING_ITEMS)
@@ -330,6 +383,27 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
             "missing_items": [],
         }
     )
+    phenotype_derivation_reporting = (
+        _section_status(
+            contract.get("phenotype_derivation_reporting"),
+            PHENOTYPE_DERIVATION_REPORTING_ITEMS,
+        )
+        if actionability_required
+        else _not_required_section(PHENOTYPE_DERIVATION_REPORTING_ITEMS)
+    )
+    baseline_characteristics_reporting = (
+        _section_status(
+            contract.get("baseline_characteristics_reporting"),
+            BASELINE_CHARACTERISTICS_REPORTING_ITEMS,
+        )
+        if actionability_required
+        else _not_required_section(BASELINE_CHARACTERISTICS_REPORTING_ITEMS)
+    )
+    data_quality_reporting = (
+        _section_status(contract.get("data_quality_reporting"), DATA_QUALITY_REPORTING_ITEMS)
+        if actionability_required
+        else _not_required_section(DATA_QUALITY_REPORTING_ITEMS)
+    )
     blockers: list[str] = []
     if methods["status"] == "blocked":
         blockers.append("methods_completeness_incomplete")
@@ -353,6 +427,12 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
         blockers.append("competing_risk_reporting_incomplete")
     if treatment_gap_reporting["status"] == "blocked":
         blockers.append("treatment_gap_reporting_incomplete")
+    if phenotype_derivation_reporting["status"] == "blocked":
+        blockers.append("phenotype_derivation_reporting_incomplete")
+    if baseline_characteristics_reporting["status"] == "blocked":
+        blockers.append("baseline_characteristics_reporting_incomplete")
+    if data_quality_reporting["status"] == "blocked":
+        blockers.append("data_quality_reporting_incomplete")
     return {
         "status": "blocked" if blockers else "clear",
         "blockers": blockers,
@@ -367,6 +447,9 @@ def build_structured_reporting_checklist(contract: dict[str, Any]) -> dict[str, 
         "baseline_balance_reporting": baseline_balance,
         "competing_risk_reporting": competing_risk,
         "treatment_gap_reporting": treatment_gap_reporting,
+        "phenotype_derivation_reporting": phenotype_derivation_reporting,
+        "baseline_characteristics_reporting": baseline_characteristics_reporting,
+        "data_quality_reporting": data_quality_reporting,
     }
 
 
