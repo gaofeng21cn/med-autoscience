@@ -14,6 +14,7 @@ __all__ = [
     "journal_shortlist",
     "medical_analysis_contract",
     "medical_literature_audit",
+    "medical_paper_readiness_owner_blocker",
     "medical_paper_readiness",
     "phase_gate_handoff",
     "medical_reporting_contract",

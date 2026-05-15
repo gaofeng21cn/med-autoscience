@@ -21,6 +21,7 @@ from .sidecar_family_adapter_parts.functional_closure import (
 )
 from .sidecar_family_adapter_parts.dispatch_receipts import write_dispatch_receipt
 from .sidecar_family_adapter_parts.guarded_apply_tasks import provider_hosted_guarded_apply_tasks
+from .sidecar_family_adapter_parts.owner_source_refs import owner_controller_decision_refs
 
 
 _FORBIDDEN_PAYLOAD_FLAGS = (
@@ -468,6 +469,10 @@ def _pending_family_tasks(
             profile_ref=profile_ref,
             provider_availability=provider_availability,
             opl_production_proof_ref=opl_production_proof_ref,
+            owner_source_refs=owner_controller_decision_refs(
+                profile=profile,
+                target_study_id="DM002",
+            ),
         )
     )
     for study in studies:

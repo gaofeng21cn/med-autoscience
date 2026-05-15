@@ -8,12 +8,16 @@ from typing import Any, Mapping
 from med_autoscience.profiles import WorkspaceProfile
 
 
+GUARDED_APPLY_OWNER_RECEIPT_CONTRACT = "mas-guarded-apply-owner-receipt.v2"
+
+
 def provider_hosted_guarded_apply_tasks(
     *,
     profile: WorkspaceProfile,
     profile_ref: Path,
     provider_availability: Mapping[str, Any],
     opl_production_proof_ref: str | Path | None,
+    owner_source_refs: list[Mapping[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     if provider_availability.get("provider_attempt_available") is not True:
         return []
@@ -29,8 +33,28 @@ def provider_hosted_guarded_apply_tasks(
             "target": target,
             "opl_production_proof_ref": proof_ref,
             "provider_availability": provider_availability,
+            "guarded_apply_owner_receipt_contract": GUARDED_APPLY_OWNER_RECEIPT_CONTRACT,
+            "owner_source_refs": owner_source_refs or [],
         }
     )
+    source_refs = [
+        {
+            "role": "opl_production_proof",
+            "ref": proof_ref,
+            "exists": proof_ref is not None,
+        },
+        {
+            "role": "provider_guarded_soak_read_model",
+            "ref": "/provider_ready_adapter/provider_guarded_soak_read_model",
+            "exists": True,
+        },
+        {
+            "role": "mas_guarded_apply_owner_receipt_contract",
+            "ref": GUARDED_APPLY_OWNER_RECEIPT_CONTRACT,
+            "exists": True,
+        },
+        *[dict(ref) for ref in owner_source_refs or []],
+    ]
     return [
         {
             "domain_id": "medautoscience",
@@ -51,18 +75,7 @@ def provider_hosted_guarded_apply_tasks(
             },
             "dispatch_owner": "med-autoscience",
             "profile_name": profile.name,
-            "source_refs": [
-                {
-                    "role": "opl_production_proof",
-                    "ref": proof_ref,
-                    "exists": proof_ref is not None,
-                },
-                {
-                    "role": "provider_guarded_soak_read_model",
-                    "ref": "/provider_ready_adapter/provider_guarded_soak_read_model",
-                    "exists": True,
-                },
-            ],
+            "source_refs": source_refs,
         }
     ]
 

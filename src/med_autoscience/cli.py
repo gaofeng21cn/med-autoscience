@@ -86,6 +86,7 @@ journal_requirements_controller = _LazyModuleProxy(lambda: _load_controller("jou
 journal_shortlist_controller = _LazyModuleProxy(lambda: _load_controller("journal_shortlist"))
 ai_reviewer_publication_eval = _LazyModuleProxy(lambda: _load_controller("ai_reviewer_publication_eval"))
 medical_literature_audit = _LazyModuleProxy(lambda: _load_controller("medical_literature_audit"))
+medical_paper_readiness_owner_blocker = _LazyModuleProxy(lambda: _load_controller("medical_paper_readiness_owner_blocker"))
 medical_publication_surface = _LazyModuleProxy(lambda: _load_controller("medical_publication_surface"))
 medical_reporting_audit = _LazyModuleProxy(lambda: _load_controller("medical_reporting_audit"))
 control_plane_migration_audit = _LazyModuleProxy(lambda: _load_controller("control_plane_migration_audit"))
@@ -580,6 +581,15 @@ def main(argv: list[str] | None = None) -> int:
             profile=profile,
             study_ids=tuple(args.studies or ()),
             mode=args.mode,
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "medical-paper-readiness-owner-blocker":
+        result = medical_paper_readiness_owner_blocker.materialize_readiness_owner_blocker(
+            study_root=Path(args.study_root),
+            source=args.source,
             apply=bool(args.apply),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))

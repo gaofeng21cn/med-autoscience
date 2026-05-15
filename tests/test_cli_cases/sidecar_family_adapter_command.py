@@ -530,6 +530,16 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
                 "ref": "/provider_ready_adapter/provider_guarded_soak_read_model",
                 "exists": True,
             },
+            {
+                "role": "mas_guarded_apply_owner_receipt_contract",
+                "ref": "mas-guarded-apply-owner-receipt.v2",
+                "exists": True,
+            },
+            {
+                "role": "mas_owner_controller_decision",
+                "ref": "studies/DM002/artifacts/controller_decisions/latest.json",
+                "exists": False,
+            },
         ],
     }
     repeat_exit_code = cli.main(

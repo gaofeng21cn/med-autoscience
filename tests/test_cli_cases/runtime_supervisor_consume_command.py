@@ -212,3 +212,36 @@ def test_runtime_supervisor_refresh_controller_decisions_command_dispatches_cont
     assert called["mode"] == "developer_apply_safe"
     assert called["apply"] is True
     assert json.loads(captured.out)["surface"] == "runtime_supervisor_controller_decision_refresh"
+
+
+def test_medical_paper_readiness_owner_blocker_command_materializes_controller_decision(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_root = tmp_path / "study"
+
+    exit_code = cli.main(
+        [
+            "medical-paper-readiness-owner-blocker",
+            "--study-root",
+            str(study_root),
+            "--source",
+            "test-cli",
+            "--apply",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+
+    assert exit_code == 0
+    assert payload["surface"] == "medical_paper_readiness_owner_blocker"
+    assert payload["status"] == "materialized"
+    assert payload["applied"] is True
+    assert payload["controller_decision_ref"] == str(decision_path.resolve())
+    decision = json.loads(decision_path.read_text(encoding="utf-8"))
+    assert decision["route_decision"] == "stable_blocker"
+    assert decision["runtime_decision"] == "blocked"
+    assert decision["quality_claim_authorized"] is False
+    assert decision["submission_authorized"] is False

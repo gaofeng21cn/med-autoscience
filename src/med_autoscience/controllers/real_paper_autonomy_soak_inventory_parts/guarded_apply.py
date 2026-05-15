@@ -26,12 +26,13 @@ def build_guarded_apply_proof_from_provider_proof(
     guarded_receipts = [_guarded_apply_receipt(packet) for packet in closeout_packets]
     accepted_receipts = [receipt for receipt in guarded_receipts if receipt.get("apply_result") != "typed_blocker"]
     typed_blockers = [receipt for receipt in guarded_receipts if receipt.get("apply_result") == "typed_blocker"]
-    progress_receipts = [
+    mutation_receipts = [
         receipt
         for receipt in accepted_receipts
-        if receipt.get("apply_result") in {"artifact_delta", "gate_replay", "route_decision", "stop_loss", "human_gate"}
+        if _receipt_observes_workspace_mutation(receipt)
     ]
-    guarded_apply_performed = bool(accepted_receipts)
+    owner_receipt_observed = bool(accepted_receipts)
+    guarded_apply_performed = bool(mutation_receipts)
     memory_final_proof = _dm002_publication_route_memory_final_proof(closeout_packets)
     forbidden_guard = _mapping(provider_proof.get("forbidden_write_guard"))
     return {
@@ -40,7 +41,7 @@ def build_guarded_apply_proof_from_provider_proof(
         "mode": "mas_owned_guarded_apply_proof",
         "guarded_apply_status": (
             "mas_owner_apply_receipt_observed"
-            if guarded_apply_performed
+            if owner_receipt_observed
             else "blocked_no_mas_owner_apply_receipt"
         ),
         "provider_attempt_projection": {
@@ -58,12 +59,13 @@ def build_guarded_apply_proof_from_provider_proof(
             "guarded_receipt_count": len(guarded_receipts),
             "typed_blocker_count": len(typed_blockers),
             "mas_owner_apply_receipt_count": len(accepted_receipts),
-            "artifact_delta_or_gate_progress_count": len(progress_receipts),
+            "artifact_delta_or_gate_progress_count": len(mutation_receipts),
             "memory_final_proof_status": memory_final_proof["status"],
             "forbidden_write_guard_result": forbidden_guard.get("aggregate_result"),
             "writes_performed": guarded_apply_performed,
             "real_workspace_mutation_allowed": guarded_apply_performed,
             "guarded_apply_performed": guarded_apply_performed,
+            "mas_owner_receipt_observed": owner_receipt_observed,
         },
         "authority_boundary": _guarded_apply_authority_boundary(),
         "source_provider_proof_summary": {
@@ -114,7 +116,9 @@ def _guarded_apply_receipt(packet: Mapping[str, Any]) -> dict[str, Any]:
         "domain_ready_verdict": verdict,
         "mas_owner_apply_receipt_refs": owner_refs,
         "typed_blocker": None,
-        "workspace_mutation": _workspace_mutation_summary(allowed=True),
+        "workspace_mutation": _workspace_mutation_summary(
+            allowed=_verdict_observes_workspace_mutation(verdict),
+        ),
         "source_refs": list(packet.get("consumed_refs") or []),
         "authority_boundary": _guarded_apply_authority_boundary(),
     }
@@ -141,6 +145,14 @@ def _workspace_mutation_summary(*, allowed: bool) -> dict[str, Any]:
             "memory_body",
         ],
     }
+
+
+def _receipt_observes_workspace_mutation(receipt: Mapping[str, Any]) -> bool:
+    return _mapping(receipt.get("workspace_mutation")).get("writes_performed") is True
+
+
+def _verdict_observes_workspace_mutation(verdict: str) -> bool:
+    return verdict in {"artifact_delta", "gate_replay", "route_decision", "stop_loss", "human_gate"}
 
 
 def _dm002_publication_route_memory_final_proof(closeout_packets: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
