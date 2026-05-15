@@ -368,6 +368,51 @@ def test_study_state_matrix_consumes_controller_decision_owner_receipt_as_stable
     assert case["context"]["completion_receipt_consumption"]["apply_result"] == "stable_blocker"
 
 
+def test_study_state_matrix_projection_error_does_not_consume_controller_owner_receipt(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-projection-error"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "route_decision": "stable_blocker",
+            "runtime_decision": "blocked",
+            "blocked_reason": "owner surface is present but the projection error is stronger",
+            "next_owner": "publication_gate",
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "paused",
+            "active_run_id": None,
+            "status_projection_error": {"message": "study status projection failed"},
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    transition = json.loads(captured.out)["studies"][0]["domain_transition"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "fail_closed"
+    assert transition["typed_blocker"]["blocker_id"] == "study_status_projection_error"
+    assert "completion_receipt_consumption" not in transition
+
+
 def test_study_state_matrix_consumes_controller_route_decision_owner_receipt(
     monkeypatch,
     tmp_path: Path,

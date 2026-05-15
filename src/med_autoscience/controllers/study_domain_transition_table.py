@@ -93,7 +93,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
-            completion_receipt_consumption=owner_apply_receipt_consumption or execution_receipt_consumption,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if _text(macro_state.get("writer_state")) == "conflict" or _text(macro_state.get("reason")) == "truth_conflict":
@@ -116,7 +116,7 @@ def project_domain_transition(
             ),
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
-            completion_receipt_consumption=owner_apply_receipt_consumption or execution_receipt_consumption,
+            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     if human_gate_resume_receipt_consumption:
