@@ -9,7 +9,9 @@ from typing import Any
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import abnormal_stopped_runtime
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_current_controller
+from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_closeout_redrive
+from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_domain_transition
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_owner_handoff_redrive
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_pending_redrive
 from med_autoscience.controllers.runtime_supervisor_scan_parts import platform_repair_postcondition
@@ -543,37 +545,6 @@ def _publication_gate_ready_for_specificity_redrive(quest_root: str | None) -> d
     }
 
 
-def _controller_action_types(payload: Mapping[str, Any]) -> set[str]:
-    return platform_current_controller.controller_action_types(payload)
-
-
-def _mapping_has_actionable_controller_target(payload: Mapping[str, Any]) -> bool:
-    return platform_current_controller.mapping_has_actionable_controller_target(payload)
-
-
-def _publication_action_for_work_unit(
-    *,
-    publication_eval_payload: Mapping[str, Any],
-    work_unit_fingerprint: str | None,
-) -> dict[str, Any] | None:
-    return platform_current_controller.publication_action_for_work_unit(
-        publication_eval_payload=publication_eval_payload,
-        work_unit_fingerprint=work_unit_fingerprint,
-    )
-
-
-def _current_controller_authorization_payload(
-    *,
-    study_root: Path,
-    publication_eval_payload: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    return platform_current_controller.current_controller_authorization_payload(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-        read_json_object=_read_json_object,
-    )
-
-
 def _write_current_controller_authorization(
     *,
     runtime_state_path: Path,
@@ -742,6 +713,22 @@ def apply_runtime_platform_repair(
     runtime_state = _read_json_object(runtime_path)
     if runtime_state is None:
         return {**base, "dispatch_status": "blocked", "reason": "runtime_state_missing_or_invalid"}
+    transition_block = domain_transition_guard.redrive_block_payload(status)
+    if transition_block is not None:
+        return {**base, **transition_block}
+    domain_transition_redrive = platform_repair_domain_transition.apply_domain_transition_runtime_redrive(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        runtime_state_path=runtime_path,
+        quest_id=_text(status.get("quest_id")) or _text(progress.get("quest_id")),
+        status=status,
+        publication_eval_payload=publication_eval_payload,
+        base=base,
+        apply_current_controller_runtime_redrive=_apply_current_controller_runtime_redrive,
+    )
+    if domain_transition_redrive is not None:
+        return domain_transition_redrive
     closeout_redrive = platform_repair_closeout_redrive.apply_if_targets_resolved(
         profile=profile,
         study_id=study_id,

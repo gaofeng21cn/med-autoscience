@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 
 
@@ -59,6 +60,10 @@ def platform_repair_required_from_scan(
     gate_specificity: Mapping[str, Any] | None,
     submission_milestone_parked: bool,
 ) -> bool:
+    if domain_transition_guard.blocks_auto_redrive(status):
+        return False
+    if domain_transition_guard.runtime_redrive_decision_type(status) is not None:
+        return True
     base_required = runtime_facts.runtime_platform_repair_apply_required(
         status=status,
         progress=progress,

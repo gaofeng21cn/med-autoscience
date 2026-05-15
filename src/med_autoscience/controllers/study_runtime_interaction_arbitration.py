@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 from med_autoscience.runtime_control import callable_owner_names
 
 
@@ -90,6 +91,10 @@ def arbitrate_waiting_for_user(
     controller_authorization: dict[str, Any] | None = None,
     domain_transition: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    domain_transition_arbitration = _domain_transition_arbitration(domain_transition)
+    if domain_transition_arbitration is not None:
+        return domain_transition_arbitration
+
     if submission_metadata_only:
         return {
             "classification": "submission_metadata_only",
@@ -104,10 +109,6 @@ def arbitrate_waiting_for_user(
                 "Submission metadata gaps stay controller-owned and must not block autonomous runtime continuation."
             ),
         }
-
-    domain_transition_arbitration = _domain_transition_arbitration(domain_transition)
-    if domain_transition_arbitration is not None:
-        return domain_transition_arbitration
 
     if not isinstance(pending_interaction, dict):
         pending_redrive = _pending_user_message_redrive(continuation_state)
@@ -229,47 +230,40 @@ def _domain_transition_arbitration(domain_transition: dict[str, Any] | None) -> 
     next_work_unit = domain_transition.get("next_work_unit")
     next_work_unit_id = _text(next_work_unit.get("unit_id")) if isinstance(next_work_unit, dict) else None
     typed_blocker = domain_transition.get("typed_blocker")
-    typed_blocker_id = _text(typed_blocker.get("blocker_id")) if isinstance(typed_blocker, dict) else None
-    route_target = _text(domain_transition.get("route_target"))
-    controller_action = _text(domain_transition.get("controller_action"))
+    blocker_id = _text(typed_blocker.get("blocker_id")) if isinstance(typed_blocker, dict) else None
+    base = {
+        "requires_user_input": False,
+        "kind": "domain_transition",
+        "decision_type": None,
+        "source_artifact_path": None,
+        "domain_transition_decision_type": decision_type,
+        "domain_transition_route_target": _text(domain_transition.get("route_target")),
+        "domain_transition_controller_action": _text(domain_transition.get("controller_action")),
+        "next_work_unit_id": next_work_unit_id,
+        "typed_blocker_id": blocker_id,
+    }
     if decision_type == "publication_gate_blocker":
         return {
+            **base,
             "classification": "domain_transition_publication_blocker",
             "action": "resume",
             "reason_code": "domain_transition_publication_gate_blocker",
-            "requires_user_input": False,
             "valid_blocking": False,
-            "kind": "domain_transition",
-            "decision_type": None,
-            "source_artifact_path": None,
-            "domain_transition_decision_type": decision_type,
-            "domain_transition_route_target": route_target,
-            "domain_transition_controller_action": controller_action,
-            "typed_blocker_id": typed_blocker_id,
-            "next_work_unit_id": next_work_unit_id,
             "controller_stage_note": (
-                "MAS domain transition selected the publication gate blocker route; resume the controller-owned "
-                "repair work unit instead of treating the runtime wait as a user decision."
+                "MAS domain transition oracle classifies the current state as a publication blocker; "
+                "route to the owner work unit instead of treating an old completion request as user wait."
             ),
         }
-    if decision_type in {"delivered_package_handoff", "human_gate", "stop_loss"}:
+    if decision_type in domain_transition_guard.TERMINAL_OR_HANDOFF_DECISION_TYPES:
         return {
+            **base,
             "classification": "domain_transition_terminal_or_handoff",
             "action": "block",
             "reason_code": f"domain_transition_{decision_type}",
-            "requires_user_input": False,
             "valid_blocking": True,
-            "kind": "domain_transition",
-            "decision_type": None,
-            "source_artifact_path": None,
-            "domain_transition_decision_type": decision_type,
-            "domain_transition_route_target": route_target,
-            "domain_transition_controller_action": controller_action,
-            "typed_blocker_id": typed_blocker_id,
-            "next_work_unit_id": next_work_unit_id,
             "controller_stage_note": (
-                "MAS domain transition selected a terminal or handoff route; preserve the owner boundary "
-                "instead of redriving an older runtime wait state."
+                "MAS domain transition oracle blocks automatic redrive for terminal, delivered-package, "
+                "or human-gated states."
             ),
         }
     return None

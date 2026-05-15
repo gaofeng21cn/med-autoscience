@@ -5,46 +5,10 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .manual_finish_dominance import *  # noqa: F403
     from .publication_and_submission import *  # noqa: F403
     from .runtime_events import *  # noqa: F403
+    from .domain_transition_status import *  # noqa: F403
     from .runtime_health_dominance import *  # noqa: F403
     from .status_finalization import *  # noqa: F403
     from .supervisor_state_overrides import *  # noqa: F403
-
-
-def _record_interaction_arbitration_if_required(
-    *,
-    status: StudyRuntimeStatus,
-    quest_root: Path,
-    execution: dict[str, object],
-    submission_metadata_only: bool,
-    publication_gate_report: dict[str, object] | None,
-) -> None:
-    stopped_recovery_context = _stopped_controller_owned_auto_recovery_context(
-        status=status,
-        quest_root=quest_root,
-        publication_gate_report=publication_gate_report,
-    )
-    if (
-        status.quest_status is not StudyRuntimeQuestStatus.WAITING_FOR_USER
-        and not _is_controller_owned_finalize_parking(status)
-        and stopped_recovery_context is None
-    ):
-        return
-    payload = status.extras.get("pending_user_interaction")
-    blocked_closeout = status.extras.get("blocked_turn_closeout")
-    continuation_state = status.extras.get("continuation_state")
-    controller_authorization = status.extras.get("last_controller_decision_authorization")
-    domain_transition = status.extras.get("domain_transition")
-    arbitration = interaction_arbitration_controller.arbitrate_waiting_for_user(
-        pending_interaction=payload if isinstance(payload, dict) else None,
-        decision_policy=str(execution.get("decision_policy") or "").strip() or None,
-        submission_metadata_only=submission_metadata_only,
-        publication_gate_report=publication_gate_report if isinstance(publication_gate_report, dict) else None,
-        blocked_closeout=blocked_closeout if isinstance(blocked_closeout, dict) else None,
-        continuation_state=continuation_state if isinstance(continuation_state, dict) else None,
-        controller_authorization=controller_authorization if isinstance(controller_authorization, dict) else None,
-        domain_transition=domain_transition if isinstance(domain_transition, dict) else None,
-    )
-    status.record_interaction_arbitration(arbitration)
 
 
 def _status_state(
@@ -910,6 +874,9 @@ def _status_state(
                     ),
                     "blocked_closeout_owner_redrive": (
                         StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
+                    ),
+                    "domain_transition_publication_blocker": (
+                        StudyRuntimeReason.STUDY_COMPLETION_PUBLISHABILITY_GATE_BLOCKED
                     ),
                 }.get(classification, StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING)
                 result.set_decision(
