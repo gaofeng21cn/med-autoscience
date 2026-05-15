@@ -12,6 +12,7 @@ MAS monolith closeout 之后，旧 MDS / DeepScientist / Hermes-first / 外部 r
 | --- | --- |
 | [program](./program/README.md) | Closeout、activation package、退役 board 和 dated intake snapshot。 |
 | [runtime](./runtime/README.md) | 已完成 runtime implementation plan 和 legacy runtime boundary 记录。 |
+| [positioning](./positioning/README.md) | 旧 Domain Harness OS / Open Harness OS / Research Foundry 定位材料；只作历史参考。 |
 | [capabilities](./capabilities/README.md) | 能力族历史和退役 medical-display 记录。 |
 | [omx](./omx/README.md) | OMX worktree 启动/收尾历史。 |
 | [superpowers](./superpowers/README.md) | repo-tracked 历史过程稿；新的本地草稿默认不跟踪。 |
