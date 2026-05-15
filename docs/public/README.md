@@ -1,14 +1,14 @@
-# Public Docs
+# 公开文档
 
 Owner: `MedAutoScience`
 Purpose: `public_narrative_index`
 State: `active_support`
-Machine boundary: Human-readable public index. Product truth remains in core docs, contracts, source, runtime evidence, and domain artifacts.
+Machine boundary: 人读公开索引。产品真相继续归核心文档、contracts、source、runtime evidence 与 domain artifacts。
 
-This directory is the canonical OPL-family location for MAS public narrative after the repository home. Keep it sparse and user-facing; detailed runtime and publication authority belong in core docs, runtime, delivery, source, or references.
+本目录是 OPL-family canonical 目录中承接 MAS 仓库首页之后公开叙事的位置。保持稀疏、面向用户；详细 runtime 和 publication authority 回到核心文档、runtime、delivery、source 或 references。
 
-Start with:
+当前入口先看：
 
-- [Repository home](../../README.md)
-- [Project](../project.md)
-- [Status](../status.md)
+- [仓库首页](../../README.md)
+- [项目概览](../project.md)
+- [当前状态](../status.md)

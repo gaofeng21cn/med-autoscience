@@ -1,14 +1,14 @@
-# Source Docs
+# Source 文档
 
 Owner: `MedAutoScience`
 Purpose: `medical_source_workspace_support`
 State: `active_support`
-Machine boundary: Human-readable index. Source truth remains in study workspaces, external-source ledgers, canonical data, manifests, source contracts, and owner receipts.
+Machine boundary: 人读索引。Source truth 继续归 study workspaces、external-source ledgers、canonical data、manifests、source contracts 与 owner receipts。
 
-This directory holds MAS study workspace, source readiness, external research intake, source provenance, and source truth consumption support. Generic workspace/source shell candidates should be recorded as MAS-to-OPL absorption candidates.
+本目录承接 MAS study workspace、source readiness、external research intake、source provenance 和 source truth consumption 支撑。通用 workspace/source shell 候选应记录为 MAS-to-OPL 上收候选。
 
-Start with:
+当前入口先看：
 
-- [Architecture](../architecture.md)
-- [Status](../status.md)
+- [架构](../architecture.md)
+- [当前状态](../status.md)
 - [References](../references/README.md)

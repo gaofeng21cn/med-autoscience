@@ -41,7 +41,8 @@
 - `docs/project.md`、`docs/architecture.md`、`docs/invariants.md`、`docs/decisions.md`、`docs/status.md` 是核心骨架。
 - 文档按 `active/`、`public/`、`product/`、`runtime/`、`delivery/`、`source/`、`policies/`、`specs/`、`references/`、`history/` 分类收口，不得平铺堆放；旧 `program/` 与 `capabilities/` 只作为 `docs/history/**` 中的迁移来源或 provenance 目录名出现。
 - `contracts/` 是机器可读 contract root；模块边界 contract 归入 `contracts/modules/`，叙述性说明留在 `docs/`。
-- 对外文档必须提供中英双语镜像；内部技术与规划文档默认中文。
+- `docs/**` 是中文内部开发与维护参考；稳定路径优先使用无语言后缀 `.md` 承载中文 canonical 内容。
+- 根层 `README*` 是否保留公开双语入口，由产品分发和 public 需求单独决定。
 
 ## 验证
 

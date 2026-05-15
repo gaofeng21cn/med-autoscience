@@ -12,7 +12,7 @@ Purpose: `development_plan`
 Machine boundary: this is a human-readable program plan. Machine truth must remain in MAS controller/runtime surfaces, OPL provider contracts, sidecar receipts, attempt ledgers, durable schemas, CLI/API behavior, and live workspace evidence.
 Content lifecycle role: archived P2 full record. The current content-level owner document owns active MAS-side alignment with the OPL stage-led framework with Agent executors as the minimum execution unit and provider-backed runtime.
 
-Master entry: OPL family framework 的总开发入口是 `/Users/gaofeng/workspace/one-person-lab/docs/references/runtime-substrate/opl-stage-led-agent-framework-roadmap.zh-CN.md`。OPL 在这里指 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架，可作为 MAS 外部依赖；`Stage` 是大型任务步骤，`Codex CLI` 是 stage 内默认 concrete executor 和最小执行单元。本文是 MAS domain-side runtime retirement 子计划，负责把 MAS 内部 scheduler / watchdog / MDS / Hermes / Portal/Console 等 runtime-adjacent surface 按 OPL master plan 迁移、降级或退役。
+Master entry: OPL family framework 的总开发入口是 `/Users/gaofeng/workspace/one-person-lab/docs/references/runtime-substrate/opl-stage-led-agent-framework-roadmap.md`。OPL 在这里指 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架，可作为 MAS 外部依赖；`Stage` 是大型任务步骤，`Codex CLI` 是 stage 内默认 concrete executor 和最小执行单元。本文是 MAS domain-side runtime retirement 子计划，负责把 MAS 内部 scheduler / watchdog / MDS / Hermes / Portal/Console 等 runtime-adjacent surface 按 OPL master plan 迁移、降级或退役。
 
 ## 结论
 

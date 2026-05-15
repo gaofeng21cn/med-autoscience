@@ -2,19 +2,19 @@
 
 这份文档写给 `Codex` 等 Agent、内部技术合作者，以及需要审阅 Agent 行为的人。
 
-它属于仓库跟踪的运行面文档层，因此收口在 `docs/runtime/`，但不属于首页默认双语公开面。
+它属于仓库跟踪的运行面文档层，因此收口在 `docs/runtime/`，但不属于默认公开入口。
 与之相对，`docs/history/superpowers/` 只保留历史内部设计稿、plan、spec 和 agent 工作过程产物，不作为公开主入口。
-如果未来要把这份文档提升到默认公开面，必须同步提供英文 `.md` 与中文 `.zh-CN.md` 镜像。
+如果未来要把这份文档提升为公开入口，先更新 `docs/public/` / `docs/product/` 的 owner 文档与核心五件套；不恢复 docs 层双语镜像。
 
 `MedAutoScience` 对外可以继续称为医学自动科研平台，但更准确的理解是：它是独立 medical research domain agent，对内由一个 `Agent-first, human-auditable` 的医学自动科研 harness 驱动：
 
 - 人类负责提出研究任务、提供数据、审阅结果和做关键决策
 - Agent 负责调用稳定接口，推进数据治理、研究执行和论文交付组织
-- 平台负责提供可验证、可审计、可重复调用的 gateway 入口，而不是要求医学用户手工维护底层状态
+- 平台负责提供可验证、可审计、可重复调用的 domain entry 与 owner surface，而不是要求医学用户手工维护底层状态
 
 当前 repo-tracked 运行拓扑固定为：
 
-- `MedAutoScience` = 唯一研究入口与 research gateway
+- `MedAutoScience` = 唯一研究 domain entry 与 research owner surface
 - `MAS supervision scheduler contract` = outer supervision scheduler owner；默认 adapter 是 MAS-owned `local` scheduler，macOS backend 已落地为 LaunchAgent；`Hermes gateway cron` 是 explicit optional adapter
 - `MAS Runtime OS` = 默认 runtime/backend state、event、recovery 与 quest lifecycle owner
 - `MedDeepScientist` = frozen source archive、historical fixture、explicit archive import / backend-audit / provenance reference

@@ -1,10 +1,10 @@
-# MedDeepScientist References
+# MedDeepScientist 参考材料
 
-These files preserve MDS learning, deconstruction, upstream intake, provenance, and historical/migration-period reference material.
+本目录保存 MDS 学习、解构、upstream intake、provenance 和历史/迁移期参考材料。
 
-DeepScientist latest-update learning is now driven directly by `MAS` against upstream. The policy and protocol below are the active owner surfaces; `MDS` only appears as an explicit legacy diagnostic, source archive, parity fixture, or provenance audit surface. Dated intake records live in `docs/history/program/` as snapshots of completed rounds.
+DeepScientist latest-update learning 现在由 `MAS` 直接面向 upstream 执行。下面的 policy/protocol 是 active owner surface；`MDS` 只在显式 legacy diagnostic、source archive、parity fixture 或 provenance 审计场景下出现。dated intake 记录保存在 `docs/history/program/`，作为已完成轮次的快照。
 
-This reference family is covered by the MAS/MDS doc-reference semantic guard. Wording changes must keep MDS in archive / fixture / diagnostic / provenance roles and keep MAS as the owner of default runtime, progress, quality, publication, and hosted packaging surfaces.
+这个 reference family 也受 MAS/MDS doc-reference semantic guard 约束。文案更新必须继续把 MDS 保持在 archive / fixture / diagnostic / provenance 角色里，并把默认 runtime、进度、质量、发表和 hosted packaging surface 留给 MAS。
 
 - [DeepScientist continuous learning policy](./deepscientist_continuous_learning_policy.md)
 - [DeepScientist latest-update learning protocol](./deepscientist_latest_update_learning_protocol.md)
@@ -14,4 +14,4 @@ This reference family is covered by the MAS/MDS doc-reference semantic guard. Wo
 - [MedDeepScientist upstream source provenance](./med_deepscientist_upstream_source_provenance.md)
 - [Upstream intake guide](./upstream_intake.md)
 
-These are references, not independent program boards. Current execution is governed by [Program portfolio consolidation](../../active/program_portfolio_consolidation.md), and the learning entry point is [DeepScientist latest-update learning protocol](./deepscientist_latest_update_learning_protocol.md).
+这些是参考材料，不是独立 program board。当前执行队列以 [Program portfolio consolidation](../../active/program_portfolio_consolidation.md) 为准，学习入口以 [DeepScientist latest-update learning protocol](./deepscientist_latest_update_learning_protocol.md) 为准。

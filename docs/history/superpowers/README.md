@@ -1,21 +1,19 @@
-# Superpowers Process Draft Archive
+# Superpowers 过程草稿归档
 
-**English** | [中文](./README.zh-CN.md)
+[English](./README.md) | **中文**
 
-This directory stores legacy repo-tracked Superpowers planning and spec drafts.
+这里保存历史 repo-tracked Superpowers plan / spec 草稿。
 
-These files are historical process artifacts. They are not active MAS contracts,
-runtime truth, policy truth, or regression oracles. New local AI/Superpowers
-process drafts should stay untracked unless explicitly promoted into a stable
-repo document.
+这些文件是历史过程材料，不是当前 MAS contract、runtime truth、policy truth 或 regression oracle。
+新的本地 AI / Superpowers 过程草稿默认保持未跟踪，除非明确提升为稳定仓库文档。
 
-Current repo work should start from:
+当前仓库工作应先读：
 
-- [Docs guide](../../README.md)
-- [Documentation portfolio consolidation](../../docs_portfolio_consolidation.md)
+- [文档索引](../../README.md)
+- [文档组合治理](../../docs_portfolio_consolidation.md)
 - [Program portfolio consolidation](../../active/program_portfolio_consolidation.md)
 
-Archived groups:
+归档分组：
 
 - `plans/`
 - `specs/`

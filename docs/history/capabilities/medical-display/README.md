@@ -1,23 +1,23 @@
-# Medical Display History Archive
+# 医学展示历史归档
 
-**English** | [中文](./README.zh-CN.md)
+[English](./README.md) | **中文**
 
-These files are historical or provenance-only records for the medical display capability family.
-They are useful for audit and learning history, but they are not the active execution surface.
+这些文件是医学展示能力线的历史记录或 provenance-only 记录。
+它们用于审计和学习脉络，不作为当前 active execution surface。
 
-Current capability entry:
+当前能力线入口：
 
-- [Medical display capability entry](../../../delivery/medical-display/README.md)
+- [医学展示能力线入口](../../../delivery/medical-display/README.md)
 
-Current active surfaces:
+当前 active surface：
 
-- [Medical display active board](../../../delivery/medical-display/board/medical_display_active_board.md)
-- [Medical display platform mainline](../../../delivery/medical-display/contracts/medical_display_platform_mainline.md)
-- [Medical display audit guide](../../../delivery/medical-display/contracts/medical_display_audit_guide.md)
-- [Medical display template catalog](../../../delivery/medical-display/catalogs/medical_display_template_catalog.md)
-- [Medical display portfolio consolidation](../../../delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md)
+- [医学展示 active board](../../../delivery/medical-display/board/medical_display_active_board.md)
+- [医学展示平台主线](../../../delivery/medical-display/contracts/medical_display_platform_mainline.md)
+- [医学展示审计指南](../../../delivery/medical-display/contracts/medical_display_audit_guide.md)
+- [医学展示模板目录](../../../delivery/medical-display/catalogs/medical_display_template_catalog.md)
+- [医学展示文档组合治理](../../../delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md)
 
-Archived records:
+归档记录：
 
 - `medical_display_arsenal_history.md`
 - `medical_display_family_baseline_program.md`

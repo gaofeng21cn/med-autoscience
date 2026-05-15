@@ -41,7 +41,8 @@
 - 每份长期文档都必须能说明 `owner`、`purpose`、`state`、`machine boundary`；缺少任一信号时，先补入口或归位，再继续扩写。
 - 文档治理按内容生命周期判断，文件名和目录名只作为辅助信号；同一文档内的当前事实、活跃执行、support lane、closeout evidence 与历史叙事应分别归入当前 owner doc、active/support/reference 层或 history/tombstone 语境。
 - 入口文档应先呈现当前状态、活跃层级、新旧关系和下一跳；已完成计划、旧校准记录和历史路线进入 evidence/provenance 层。
-- 对外文档保持中英双语；内部技术、规划、备忘文档默认中文，除非明确提升到双语公开面。
+- `docs/**` 默认只维护中文 canonical 内容；稳定路径优先使用无语言后缀 `.md`。
+- 根层 `README*` 是否保留公开双语入口，由产品分发和 public 需求单独决定。
 - `docs/active/`：当前执行、当前计划、当前差距、active baton 与 program lifecycle portfolio；旧 `docs/program/` 已物理退役，`human_doc:*` 只保留语义 ID。
 - `docs/delivery/`：manuscript、package、submission/export、medical-display 等交付与能力族支撑；旧 `docs/capabilities/medical-display/` 已迁入 `docs/delivery/medical-display/`。
 - `docs/runtime/`：runtime contracts、control surfaces、read models、implementation plans 与待归档 history candidates；完成或退役的实现计划应迁入 `docs/history/runtime/`。

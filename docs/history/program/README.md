@@ -1,19 +1,19 @@
-# Program History Archive
+# Program 历史归档
 
-This directory contains dated records, not a single "retired only" bucket. It includes retired program records, landed closeout notes, dated recurring support-lane intake snapshots, activation packages, and superseded plans.
+本目录不是单纯的“已退役”桶。它保存已退役 program 记录、已落地 closeout、周期性支持线的 dated intake 快照、activation package 和已被新主线覆盖的旧计划。
 
-Current program governance lives in:
+当前 program 治理入口是：
 
 - [Program Portfolio Consolidation](../../active/program_portfolio_consolidation.md)
 - [MAS Current Development Lines](../../active/current_development_lines.md)
 - [AI-first Paper Autonomy Closure Program](../../active/ai_first_paper_autonomy_closure_program.md)
 - [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md)
 - [OPL Temporal MAS Runtime Retirement Program](../../active/opl_temporal_mas_runtime_retirement_program.md)
-- [MAS Single-Project MDS Absorb Program](../../active/mas_single_project_mds_absorb_program.md)
-- [Runtime Lifecycle SQLite Migration Program](../../active/runtime_lifecycle_sqlite_migration_program.md)
+- [MAS 单项目 MDS 吸收 Program](../../active/mas_single_project_mds_absorb_program.md)
+- [Runtime Lifecycle SQLite 迁移 Program](../../active/runtime_lifecycle_sqlite_migration_program.md)
 - [Plan Completion Ledger](../../references/verification/plan_completion_ledger.md)
 
-Recurring support-lane snapshots:
+周期性支持线快照：
 
 - [DeepScientist learning intake 2026-04-25](./deepscientist_learning_intake_2026_04_25.md)
 - [DeepScientist learning intake 2026-04-28](./deepscientist_learning_intake_2026_04_28.md)
@@ -24,9 +24,9 @@ Recurring support-lane snapshots:
 - [PaperOrchestra learning intake 2026-05-02](./paper_orchestra_learning_intake_2026_05_02.md)
 - [Research Harness learning intake 2026-05-11](./research_harness_learning_intake_2026_05_11.md)
 
-These snapshots do not create active backlog items by themselves. The corresponding recurring lanes remain active only through `docs/status.md`, `docs/references/**`, or another current owner document. Snapshot-local protocols are dated provenance until promoted out of this archive.
+这些快照本身不再作为 active backlog 项重复追踪。对应的 recurring lane 只能由 `docs/status.md`、`docs/references/**` 或其他当前 owner 文档触发。快照内的协议只属于 dated provenance，除非被提升出历史归档层。
 
-Landed closeouts and activation records:
+已落地 closeout 与 activation 记录：
 
 - [AI-first paper autonomy full record 2026-05-10](./ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md)
 - [AI-first closeout handoff governance](./ai_first_closeout_handoff_governance.md)
@@ -39,12 +39,12 @@ Landed closeouts and activation records:
 - [OPL Temporal MAS Runtime Retirement full record 2026-05-11](./opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md)
 - [Runtime lifecycle SQLite migration full record 2026-05-08](./runtime_lifecycle_sqlite_migration_program_2026_05_08_full_record.md)
 
-Retired or superseded boards and plans:
+已退役或被新主线覆盖的 board / plan：
 
 - [Hermes backend continuation board](./hermes_backend_continuation_board.md)
 - [Journal package builtins upgrade plan](./journal_package_builtins_upgrade_plan.md)
-- [MAS/MDS autonomy operating system program](./mas_mds_autonomy_operating_system_program.md)
-- [MAS/MDS unified enhancement program](./mas_mds_unified_enhancement_program.md)
+- [MAS/MDS 自治操作系统 program](./mas_mds_autonomy_operating_system_program.md)
+- [MAS/MDS 统一增强 program](./mas_mds_unified_enhancement_program.md)
 - [Open Harness OS freeze plan](./open_harness_os_freeze_plan.md)
 - [Research Foundry medical execution map](./research_foundry_medical_execution_map.md)
 - [Research Foundry medical mainline](./research_foundry_medical_mainline.md)

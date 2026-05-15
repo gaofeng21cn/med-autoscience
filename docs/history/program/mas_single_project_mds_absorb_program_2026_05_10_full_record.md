@@ -223,7 +223,7 @@ repo 吸收必须采用 `no-history import`。
 
 ## Functional Monolith Completion Campaign
 
-这不是新建第二套 program board；它是本 program 在 no-history physical absorb closeout 之后的 functional monolith closeout。验收标准已从“外部 MDS 不再是默认依赖”提升并落地为“同一目的下不需要再运行 MDS WebUI、MDS daemon 或 MDS repo 来获得 MAS 日常能力”。该标准不声明 full daemon behavior equivalence；行为差异由 [MDS Behavior Equivalence Gap Matrix](../references/mds-parity/mds_behavior_equivalence_gap_matrix.md) 持有。
+这不是新建第二套 program board；它是本 program 在 no-history physical absorb closeout 之后的 functional monolith closeout。验收标准已从“外部 MDS 不再是默认依赖”提升并落地为“同一目的下不需要再运行 MDS WebUI、MDS daemon 或 MDS repo 来获得 MAS 日常能力”。该标准不声明 full daemon behavior equivalence；行为差异由 [MDS Behavior Equivalence Gap Matrix](../../references/mds-parity/mds_behavior_equivalence_gap_matrix.md) 持有。
 
 | lane | write set | target | contributor rule |
 | --- | --- | --- | --- |

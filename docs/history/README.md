@@ -1,29 +1,19 @@
-# History Archive
+# 历史归档
 
-**English** | [中文](./README.zh-CN.md)
+[English](./README.md) | **中文**
 
-This directory stores repo-tracked history: dated snapshots, provenance,
-retired boards, archived implementation plans, and process drafts.
+本目录保存 repo-tracked 历史材料：dated snapshot、provenance、退役 board、归档 implementation plan 和过程稿。
 
-History is read-only context. It does not own active backlog, runtime truth,
-controller decisions, publication readiness, artifact authority, or policy
-truth.
+History 是只读语境，不拥有 active backlog、runtime truth、controller decision、publication readiness、artifact authority 或 policy truth。
 
-After the MAS monolith closeout, old MDS / DeepScientist / Hermes-first /
-external-runtime cutover / WebUI / daemon documents without an explicit active
-owner belong here or under `docs/references/` as provenance, parity, explicit
-archive import, backend audit, or historical decision material. For current
-state, start from `docs/status.md`, `docs/architecture.md`, `docs/decisions.md`,
-`docs/active/program_portfolio_consolidation.md`, and durable
-runtime/controller surfaces.
+MAS monolith closeout 之后，旧 MDS / DeepScientist / Hermes-first / 外部 runtime cutover / WebUI / daemon 文档若没有明确 active owner，只能在本目录或 `docs/references/` 中作为 provenance、parity、explicit archive import、backend audit 或历史决策材料保留。读者需要当前状态时，应回到 `docs/status.md`、`docs/architecture.md`、`docs/decisions.md`、`docs/active/program_portfolio_consolidation.md` 和 durable runtime/controller surfaces。
 
 | archive | contents |
 | --- | --- |
-| [program](./program/README.md) | Closeouts, activation packages, retired boards, and dated intake snapshots. |
-| [runtime](./runtime/README.md) | Completed runtime implementation plans and legacy runtime boundary records. |
-| [capabilities](./capabilities/README.md) | Capability-family history and retired medical-display records. |
-| [omx](./omx/README.md) | OMX worktree startup/closeout history. |
-| [superpowers](./superpowers/README.md) | Repo-tracked historical process drafts; new local drafts stay untracked by default. |
+| [program](./program/README.md) | Closeout、activation package、退役 board 和 dated intake snapshot。 |
+| [runtime](./runtime/README.md) | 已完成 runtime implementation plan 和 legacy runtime boundary 记录。 |
+| [capabilities](./capabilities/README.md) | 能力族历史和退役 medical-display 记录。 |
+| [omx](./omx/README.md) | OMX worktree 启动/收尾历史。 |
+| [superpowers](./superpowers/README.md) | repo-tracked 历史过程稿；新的本地草稿默认不跟踪。 |
 
-Current truth starts from [Docs Guide](../README.md), the core five, runtime
-contracts, policies, `docs/active/`, and durable runtime/controller surfaces.
+当前真相从 [文档索引](../README.md)、核心五件套、runtime contracts、policies、`docs/active/` 和 durable runtime/controller surfaces 开始。

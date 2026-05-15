@@ -6,11 +6,9 @@ Owner: `MedAutoScience`
 
 ## Role
 
-This document is the portfolio map for `docs/delivery/medical-display/`.
-It separates current execution and contract surfaces from historical provenance,
-exemplar intake, and one-off owner briefs.
+本文是 `docs/delivery/medical-display/` 的 portfolio map，用来区分当前执行面、合同面、历史 provenance、exemplar intake 和一次性 owner brief。
 
-The subtree entry point is [README.md](../README.md) / [README.zh-CN.md](../README.zh-CN.md).
+本子树入口是 [README.md](../README.md)。
 
 ## Lifecycle Map
 
@@ -21,7 +19,7 @@ The subtree entry point is [README.md](../README.md) / [README.zh-CN.md](../READ
 | roadmap / backlog | `medical_display_family_roadmap.md`, `medical_display_template_backlog.md` | long-horizon direction and inactive candidate pool |
 | implementation plan | `medical_display_template_pack_architecture.md`, `medical_display_template_pack_implementation_plan.md`, `medical_display_platform_mainline.md` | platform and template-pack execution model |
 | review discipline / route references | `medical_display_visual_audit_protocol.md`, `medical_figure_route_cookbook.md`, `sidecar_figure_routes.md`, `medical_display_anchor_paper_audit.md` | review, route, and anchor-paper references |
-| history / provenance | `../../../histo../delivery/medical-display/` | historical records only |
+| history / provenance | `../../../history/capabilities/medical-display/` | historical records only |
 
 ## Active Tree Set
 
@@ -39,7 +37,7 @@ The subtree entry point is [README.md](../README.md) / [README.zh-CN.md](../READ
 
 ## Historical Records
 
-Historical and provenance-only records live in `docs/histo../delivery/medical-display/`:
+Historical and provenance-only records live in `docs/history/capabilities/medical-display/`:
 
 - `medical_display_arsenal_history.md`
 - `medical_display_family_baseline_program.md`
@@ -56,4 +54,4 @@ These files are readable context, not active owner boards.
 3. Historical exemplar intake remains link-only provenance unless a real MAS paper demand reopens it through the active board.
 4. Inactive backlog and historical exemplar records must not be reported as active blockers.
 5. Tests and code must not use these narrative docs as machine truth. Machine truth belongs in schemas, registries, runtime surfaces, generated catalogs, and durable artifacts.
-6. If a historical document is needed for human context, link to the `docs/histo../delivery/medical-display/` path rather than moving it back into the active capability directory.
+6. If a historical document is needed for human context, link to the `docs/history/capabilities/medical-display/` path rather than moving it back into the active capability directory.

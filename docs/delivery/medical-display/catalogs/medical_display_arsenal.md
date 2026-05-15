@@ -14,7 +14,7 @@
 - 具体模板、输入契约、渲染器和质控配置，以 [medical_display_template_catalog.md](./medical_display_template_catalog.md) 为准。
 - 论文问题层的长期路线，以 [medical_display_family_roadmap.md](../portfolio/medical_display_family_roadmap.md) 为准。
 - 工程审计层的严格真相，以 [medical_display_audit_guide.md](../contracts/medical_display_audit_guide.md) 为准。
-- 军火库扩充时间线，以 [medical_display_arsenal_history.md](../../../histo../delivery/medical-display/medical_display_arsenal_history.md) 为准。
+- 军火库扩充时间线，以 [medical_display_arsenal_history.md](../../../history/capabilities/medical-display/medical_display_arsenal_history.md) 为准。
 - 模板包化与军火库独立演进架构，以 [medical_display_template_pack_architecture.md](../plans/medical_display_template_pack_architecture.md) 为准。
 
 ## 统计口径
@@ -582,6 +582,6 @@
 后续每次军火库扩充，至少要同步更新两份文档：
 
 1. 本文：更新当前总览、家族全貌与已吸收能力；
-2. [medical_display_arsenal_history.md](../../../histo../delivery/medical-display/medical_display_arsenal_history.md)：追加时间、来源、学到的结构、提升到的家族或模板。
+2. [medical_display_arsenal_history.md](../../../history/capabilities/medical-display/medical_display_arsenal_history.md)：追加时间、来源、学到的结构、提升到的家族或模板。
 
 这样做的目的，是让“现在会什么”和“怎么学会的”始终保持分离但一致。

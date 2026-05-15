@@ -1,16 +1,16 @@
-# Capability History Archive
+# 能力线历史归档
 
-**English** | [中文](./README.zh-CN.md)
+[English](./README.md) | **中文**
 
-This directory stores retired or provenance-only capability-family documents.
+这里保存已经退役或仅作 provenance 的能力线文档。
 
-Current capability work should start from:
+当前能力线工作应先读：
 
-- [Docs guide](../../README.md)
-- [Medical display capability entry](../../delivery/medical-display/README.md)
-- [Medical display active board](../../delivery/medical-display/board/medical_display_active_board.md)
-- [Medical display portfolio consolidation](../../delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md)
+- [文档索引](../../README.md)
+- [医学展示能力线入口](../../delivery/medical-display/README.md)
+- [医学展示 active board](../../delivery/medical-display/board/medical_display_active_board.md)
+- [医学展示文档组合治理](../../delivery/medical-display/portfolio/medical_display_portfolio_consolidation.md)
 
-Archived capability families:
+当前归档能力线：
 
-- [Medical display history](./medical-display/README.md)
+- [医学展示历史归档](./medical-display/README.md)

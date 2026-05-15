@@ -90,7 +90,7 @@
 只有 reroute 固定后，才允许再触碰：
 
 - 对应新 cluster 的 registry / schema / source contract / materialization / renderer / QC / regression 文件
-- 以及仅在 template inventory 真相变化后需要同步的 `medical_display_arsenal.md`、`medical_display_audit_guide.md`、`medical_display_template_catalog.md`、`medical_display_family_roadmap.md`；历史扩充账本只在追加 provenance 时更新：`docs/histo../delivery/medical-display/medical_display_arsenal_history.md`
+- 以及仅在 template inventory 真相变化后需要同步的 `medical_display_arsenal.md`、`medical_display_audit_guide.md`、`medical_display_template_catalog.md`、`medical_display_family_roadmap.md`；历史扩充账本只在追加 provenance 时更新：`docs/history/capabilities/medical-display/medical_display_arsenal_history.md`
 
 ## 最低退出条件
 

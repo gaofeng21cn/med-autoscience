@@ -331,7 +331,7 @@ nature-skills 类外部 skill/workflow 材料的吸收口径已经固定为 clea
 
 后续不应再按“一个 stage 一个 stage”顺序推进。当前可并行的工作应按缺口 owner 拆线，每条线都必须以 MAS owner receipt、OPL framework receipt 或 read-only locator 作为完成证据。
 
-本节只覆盖 MAS stage surface 相关 follow-through。更大的 production functional closure 已由 OPL `production-functional-closure-plan.zh-CN.md` 持有；本 program 在其中只承担 `stage_review_index_live_provider_followthrough`、`skill_change_guard`、`standard_skeleton_followthrough` 以及与 receipt/memory/workbench projection 的 stage locator 部分。不要把本 program 当作 OPL production functional closure 的平行总计划。
+本节只覆盖 MAS stage surface 相关 follow-through。更大的 production/framework closure 当前由 OPL `/Users/gaofeng/workspace/one-person-lab/docs/active/production-framework-closure-gap-matrix.md` 持有；本 program 在其中只承担 `stage_review_index_live_provider_followthrough`、`skill_change_guard`、`standard_skeleton_followthrough` 以及与 receipt/memory/workbench projection 的 stage locator 部分。旧 OPL `production-functional-closure-plan` 只按 history provenance 阅读。不要把本 program 当作 OPL production/framework closure 的平行总计划。
 
 | lane | status | owner boundary | next work | done signal |
 | --- | --- | --- | --- | --- |

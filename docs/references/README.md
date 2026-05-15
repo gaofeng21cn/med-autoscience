@@ -1,26 +1,21 @@
 # References
 
-This directory holds support material. References explain background,
-integration shape, parity evidence, positioning, workspace context, and
-verification history; they do not own execution gates or runtime truth.
+本目录保存支撑材料。References 解释背景、集成形态、parity 证据、定位、workspace 语境和验证历史；它们不拥有执行 gate 或 runtime truth。
 
 | directory | purpose |
 | --- | --- |
-| [mainline](./mainline/) | Current MAS quality, autonomy, modularity, repair-priority, and docs-governance context. |
-| [integration](./integration/) | Codex/plugin, OPL handoff, product-entry, family integration references, and Stage-Led Autonomy family inventory. |
-| [mds-parity](./mds-parity/) | MDS behavior/capability parity, WebUI cleanroom behavior, and user parity gap reviews. |
-| [positioning](./positioning/) | MAS ideal target state, Research Foundry, Domain/Harness OS, and repo-positioning rationale. |
-| [verification](./verification/) | Completion ledgers and real-study verification narratives. |
-| [workspace](./workspace/) | Workspace architecture and quickstart references. |
-| [med-deepscientist](./med-deepscientist/README.md) | Upstream learning, provenance, method, and deconstruction references. |
+| [mainline](./mainline/) | 当前 MAS 质量、自治、模块化、修复优先级和文档治理参考。 |
+| [integration](./integration/) | Codex/plugin、OPL handoff、product-entry、family integration 和 Stage-Led Autonomy family inventory 参考。 |
+| [mds-parity](./mds-parity/) | MDS 行为/能力 parity、WebUI cleanroom 行为和用户体验差距评估。 |
+| [positioning](./positioning/) | MAS 理想目标态、Research Foundry、Domain/Harness OS 和 repo 定位说明。 |
+| [verification](./verification/) | 完成 ledger 和真实 study 验证记录。 |
+| [workspace](./workspace/) | Workspace 架构和 quickstart 参考。 |
+| [med-deepscientist](./med-deepscientist/README.md) | 上游学习、provenance、method 和 deconstruction 参考。 |
 
-## Rule
+## 规则
 
-If a reference becomes an active program owner surface, move it to
-`docs/active/`. If it becomes a stable rule, move it to `docs/policies/`. If
-it becomes a completed snapshot or retired board, archive it under
-`docs/history/`.
+Reference 如果变成当前执行队列，应迁入 `docs/active/`；如果变成稳定规则，应迁入 `docs/policies/`；如果变成完成快照或退役 board，应归档到 `docs/history/`。
 
-## Positioning References
+## 定位参考
 
-- [MAS ideal target state](./positioning/mas_ideal_state.zh-CN.md): north-star target boundary for MAS as a medical research domain agent, including its ideal split with OPL, workspaces, runtime artifacts, quality gates, memory, and workbench surfaces.
+- [MAS 理想目标态](./positioning/mas_ideal_state.md)：MAS 作为医学研究 domain agent 的 north-star 目标边界，以及它与 OPL、workspace、runtime artifact、quality gate、memory 和 workbench 的理想分工。

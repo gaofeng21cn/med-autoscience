@@ -1,20 +1,18 @@
 # Medical Display Capability
 
-**English** | [中文](./README.zh-CN.md)
-
-This is the active entry for the medical display capability family.
+这是医学展示能力族的活跃入口。
 
 | directory | role |
 | --- | --- |
-| [portfolio](./portfolio/) | Portfolio map and long-horizon roadmap. |
-| [board](./board/) | Current active board and next executable display round. |
-| [contracts](./contracts/) | Platform mainline, audit guide, visual audit protocol, and route contracts. |
-| [catalogs](./catalogs/) | Template catalog, arsenal, backlog, and route cookbook. Catalogs can be long; they are inventory, not the narrative entry. |
-| [plans](./plans/) | Active implementation plans and template-pack design work. |
-| [provenance](./provenance/) | Real-paper audit and capability provenance. |
-| [history](../../history/capabilities/medical-display/README.md) | Retired owner briefs, baseline programs, exemplar intake, and exhausted exploration records. |
+| [portfolio](./portfolio/) | Portfolio map 和长期 roadmap。 |
+| [board](./board/) | 当前 active board 和下一轮可执行 display round。 |
+| [contracts](./contracts/) | 平台主线、审计指南、视觉审计协议和 route contract。 |
+| [catalogs](./catalogs/) | 模板目录、arsenal、backlog 和 route cookbook。Catalog 可以很长；它们是 inventory，不是叙事入口。 |
+| [plans](./plans/) | 活跃 implementation plan 和 template-pack 设计。 |
+| [provenance](./provenance/) | 真实论文审计和能力 provenance。 |
+| [history](../../history/capabilities/medical-display/README.md) | 退役 owner brief、baseline program、exemplar intake 和 exhausted exploration record。 |
 
-## Primary Entries
+## 主要入口
 
 - [Portfolio consolidation](./portfolio/medical_display_portfolio_consolidation.md)
 - [Active board](./board/medical_display_active_board.md)
@@ -22,15 +20,13 @@ This is the active entry for the medical display capability family.
 - [Audit guide](./contracts/medical_display_audit_guide.md)
 - [Template catalog](./catalogs/medical_display_template_catalog.md)
 
-Historical exemplars and retired briefs are provenance only unless a real MAS
-paper demand reopens them through the active board.
+历史 exemplar 和退役 brief 只保留 provenance；除非真实 MAS 论文需求通过 active board 重开，否则不作为当前 backlog。
 
-## Memory Boundary
+## Memory 边界
 
-Medical display has two different reuse layers:
+医学展示有两层复用内容：
 
-- audited templates, input schemas, renderer families, layout QC profiles, shell contracts, generated catalogs, and packaging manifests are strong display contracts;
-- paper-facing figure choice rationale, visual-audit lessons, recurring readability failures, article-level style tradeoffs, and route-selection caveats are natural-language experience memory candidates.
+- 已审计模板、input schema、renderer family、layout QC profile、shell contract、生成型 catalog 和 packaging manifest 是强 display contract；
+- 论文为什么选某类图、视觉审计中反复出现的可读性失败、文章级风格取舍、图表路线选择 caveat，适合作为自然语言经验记忆。
 
-The first layer belongs in this capability tree and source/contract surfaces.
-The second layer may be referenced by MAS stage knowledge packets and publication-route memory, but it must not replace rendered figure review or template/QC contracts.
+第一层归属本能力树和 source/contract surface。第二层可以被 MAS stage knowledge packet 和 publication route memory 引用，但不能替代实际渲染图审阅、模板合同或 QC 合同。

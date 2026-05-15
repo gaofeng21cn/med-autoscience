@@ -1,14 +1,14 @@
-# Product Docs
+# Product 文档
 
 Owner: `MedAutoScience`
 Purpose: `domain_product_entry_support`
 State: `active_support`
-Machine boundary: Human-readable index. Callable truth remains in MAS app skill, CLI/MCP/API, contracts, source, and product-entry manifests.
+Machine boundary: 人读索引。可调用真相继续归 MAS app skill、CLI/MCP/API、contracts、source 与 product-entry manifests。
 
-This directory holds MAS direct app-skill/product-entry/operator guidance. It does not own study truth, publication verdicts, manuscript/package authority, or OPL framework primitives.
+本目录承接 MAS direct app-skill、product-entry 与 operator 指南。它不持有 study truth、publication verdict、manuscript/package authority 或 OPL framework primitive。
 
-Start with:
+当前入口先看：
 
-- [Project](../project.md)
-- [Architecture](../architecture.md)
+- [项目概览](../project.md)
+- [架构](../architecture.md)
 - [Runtime docs](../runtime/README.md)
