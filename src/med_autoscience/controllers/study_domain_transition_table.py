@@ -58,6 +58,11 @@ def project_domain_transition(
     owner_apply_receipt_consumption = study_transition_receipt_consumption.mas_owner_apply_receipt_consumption(
         study_root=root
     )
+    memory_writeback_receipt_consumption = (
+        study_transition_receipt_consumption.publication_route_memory_writeback_receipt_consumption(
+            study_root=root
+        )
+    )
     source_refs = _present_refs(
         publication_eval_ref,
         controller_decision_ref,
@@ -67,6 +72,8 @@ def project_domain_transition(
         _text(human_gate_resume_receipt_consumption.get("decision_ref")),
         _text(owner_apply_receipt_consumption.get("receipt_ref")),
         _text(owner_apply_receipt_consumption.get("evidence_ref")),
+        *_text_list(memory_writeback_receipt_consumption.get("router_receipt_refs")),
+        *_text_list(memory_writeback_receipt_consumption.get("writeback_receipt_refs")),
         "study_runtime_status",
         "study_macro_state",
     )
@@ -329,6 +336,35 @@ def project_domain_transition(
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=True),
             source_refs=source_refs,
             completion_receipt_consumption=execution_receipt_consumption,
+        )
+
+    if memory_writeback_receipt_consumption:
+        return _transition(
+            study_id=study_id,
+            decision_type="memory_writeback_receipt_consumed",
+            route_target="inspect",
+            next_work_unit=_work_unit(
+                "publication_route_memory_writeback_receipt_review",
+                "inspect",
+                "Review MAS-owned publication-route memory writeback receipt refs without reading memory body.",
+            ),
+            controller_action="none",
+            owner="med-autoscience",
+            typed_blocker=_typed_blocker(
+                blocker_id="memory_writeback_receipt_observed",
+                blocker_type="memory_writeback_receipt",
+                summary=(
+                    "Publication-route memory writeback receipt was observed; MAS exposes refs only and keeps "
+                    "generic runner resume disabled."
+                ),
+                required_owner_surface="artifacts/stage_knowledge/memory_write_router_receipts",
+            ),
+            guard_boundary=_guard_boundary(
+                required_owner_surface="memory_write_router_receipt",
+                opl_generic_runner_may_resume=False,
+            ),
+            source_refs=source_refs,
+            completion_receipt_consumption=memory_writeback_receipt_consumption,
         )
 
     if _text(macro_state.get("user_next")) == "submit_info":
@@ -914,6 +950,12 @@ def _mapping(value: object) -> Mapping[str, Any]:
 
 def _text(value: object) -> str:
     return str(value or "").strip()
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [_text(item) for item in value if _text(item)]
 
 
 __all__ = [

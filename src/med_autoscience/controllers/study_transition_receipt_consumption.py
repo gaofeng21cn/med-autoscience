@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +21,8 @@ _HUMAN_GATE_RESUME_ACTIONS = frozenset(
         "resume_runtime",
     }
 )
+_PUBLICATION_ROUTE_MEMORY_FAMILY = "publication_route_memory"
+_MEMORY_WRITEBACK_CONSUMABLE_STATUSES = frozenset({"applied", "blocked"})
 
 
 def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
@@ -136,6 +138,80 @@ def mas_owner_apply_receipt_consumption(*, study_root: Path) -> dict[str, Any]:
             controller_decision_ref=controller_decision_ref,
         )
     return {}
+
+
+def publication_route_memory_writeback_receipt_consumption(*, study_root: Path) -> dict[str, Any]:
+    receipt_root = study_root / "artifacts" / "stage_knowledge" / "memory_write_router_receipts"
+    if not receipt_root.exists():
+        return {}
+    receipt_payloads: list[dict[str, Any]] = []
+    for receipt_path in sorted(receipt_root.glob("*.json")):
+        receipt = _read_json_object(receipt_path)
+        if receipt is None:
+            continue
+        if _text(receipt.get("surface")) != "memory_write_router_receipt":
+            continue
+        if _text(receipt.get("memory_family")) != _PUBLICATION_ROUTE_MEMORY_FAMILY:
+            continue
+        receipt_status = _text(receipt.get("status"))
+        if receipt_status not in _MEMORY_WRITEBACK_CONSUMABLE_STATUSES:
+            continue
+        accepted = _mapping_list(receipt.get("accepted_writes"))
+        rejected = _mapping_list(receipt.get("rejected_writes"))
+        typed_blockers = _mapping_list(receipt.get("typed_blockers"))
+        writeback_refs = _writeback_receipt_refs(study_root=study_root, receipt=receipt)
+        if not writeback_refs:
+            continue
+        if not accepted and not rejected and not typed_blockers:
+            continue
+        receipt_payloads.append(
+            {
+                "receipt": receipt,
+                "receipt_ref": _study_relative_ref(study_root=study_root, path=receipt_path),
+                "writeback_refs": writeback_refs,
+                "receipt_status": receipt_status,
+                "accepted_count": len(accepted),
+                "rejected_count": len(rejected),
+                "typed_blocker_count": len(typed_blockers),
+                "rejected_reasons": _unique_texts(_text(item.get("reason")) for item in rejected),
+                "typed_blocker_ids": _unique_texts(_text(item.get("blocker_id")) for item in typed_blockers),
+                "typed_blocker_reasons": _unique_texts(_text(item.get("reason")) for item in typed_blockers),
+            }
+        )
+    if not receipt_payloads:
+        return {}
+
+    router_receipt_refs = [item["receipt_ref"] for item in receipt_payloads]
+    writeback_receipt_refs = _unique_texts(ref for item in receipt_payloads for ref in item["writeback_refs"])
+    accepted_count = sum(int(item["accepted_count"]) for item in receipt_payloads)
+    rejected_count = sum(int(item["rejected_count"]) for item in receipt_payloads)
+    typed_blocker_count = sum(int(item["typed_blocker_count"]) for item in receipt_payloads)
+    if accepted_count > 0:
+        next_action = "honor_mas_memory_owner_writeback_receipt"
+    elif rejected_count > 0:
+        next_action = "record_rejected_memory_writeback_receipt"
+    else:
+        next_action = "record_blocked_memory_writeback_receipt"
+    return {
+        "status": "consumed",
+        "receipt_kind": "publication_route_memory_writeback_receipt",
+        "router_receipt_refs": router_receipt_refs,
+        "writeback_receipt_refs": writeback_receipt_refs,
+        "receipt_statuses": _unique_texts(item["receipt_status"] for item in receipt_payloads),
+        "accepted_writeback_ref_count": accepted_count,
+        "rejected_writeback_ref_count": rejected_count,
+        "typed_blocker_count": typed_blocker_count,
+        "rejected_reasons": _unique_texts(reason for item in receipt_payloads for reason in item["rejected_reasons"]),
+        "typed_blocker_ids": _unique_texts(reason for item in receipt_payloads for reason in item["typed_blocker_ids"]),
+        "typed_blocker_reasons": _unique_texts(
+            reason for item in receipt_payloads for reason in item["typed_blocker_reasons"]
+        ),
+        "body_included": False,
+        "quality_authorized": False,
+        "submission_authorized": False,
+        "can_accept_or_reject_writeback": False,
+        "next_action": next_action,
+    }
 
 
 def human_gate_resume_receipt_consumption(
@@ -339,6 +415,14 @@ def _quest_relative_ref(*, quest_root: Path, path: Path) -> str:
         return str(resolved_path)
 
 
+def _study_relative_ref(*, study_root: Path, path: Path) -> str:
+    resolved_path = path.expanduser().resolve()
+    try:
+        return str(resolved_path.relative_to(study_root.expanduser().resolve()))
+    except ValueError:
+        return str(resolved_path)
+
+
 def _read_json_object(path: Path | None) -> dict[str, Any] | None:
     if path is None:
         return None
@@ -349,6 +433,49 @@ def _read_json_object(path: Path | None) -> dict[str, Any] | None:
     if not isinstance(payload, Mapping):
         return None
     return dict(payload)
+
+
+def _writeback_receipt_refs(*, study_root: Path, receipt: Mapping[str, Any]) -> list[str]:
+    refs: list[str] = []
+    receipt_refs = _text_list(receipt.get("receipt_refs"))
+    if len(receipt_refs) >= 2:
+        refs.append(receipt_refs[1])
+    writeback_locator = _text(receipt.get("writeback_receipt_locator_ref"))
+    idempotency_key = _text(receipt.get("idempotency_key"))
+    workspace_root = _workspace_root_from_study_root(study_root)
+    if workspace_root is not None and writeback_locator and idempotency_key:
+        refs.append(str(workspace_root / writeback_locator / f"{idempotency_key}.json"))
+    return _unique_texts(refs)
+
+
+def _workspace_root_from_study_root(study_root: Path) -> Path | None:
+    resolved = study_root.expanduser().resolve()
+    if resolved.parent.name == "studies":
+        return resolved.parent.parent
+    return None
+
+
+def _mapping_list(value: object) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [_text(item) for item in value if _text(item)]
+
+
+def _unique_texts(values: Iterable[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        text = _text(value)
+        if text and text not in seen:
+            seen.add(text)
+            result.append(text)
+    return result
 
 
 def _mapping(value: object) -> Mapping[str, Any]:
@@ -364,5 +491,6 @@ __all__ = [
     "bundle_stage_completion_receipt_consumption",
     "execution_receipt_consumption",
     "mas_owner_apply_receipt_consumption",
+    "publication_route_memory_writeback_receipt_consumption",
     "relative_study_artifact_ref",
 ]
