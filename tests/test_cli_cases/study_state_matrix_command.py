@@ -547,7 +547,7 @@ def test_study_state_matrix_routes_ai_reviewer_backed_blocked_eval_to_publicatio
     assert transition["typed_blocker"]["blocker_id"] == "publication_gate_blocked"
 
 
-def test_study_state_matrix_projects_bundle_stage_finalize_even_with_active_run(
+def test_study_state_matrix_hands_off_delivered_bundle_stage_package_even_with_active_run(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -557,8 +557,30 @@ def test_study_state_matrix_projects_bundle_stage_finalize_even_with_active_run(
     workspace_root = tmp_path / "workspace"
     write_profile(profile_path, workspace_root=workspace_root)
     study_root = workspace_root / "studies" / "002-dm"
-    study_root.mkdir(parents=True)
+    package_root = study_root / "manuscript" / "current_package"
+    (package_root / "figures").mkdir(parents=True)
+    (package_root / "tables").mkdir()
+    study_root.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: 002-dm\n", encoding="utf-8")
+    for path in (
+        package_root / "manuscript.docx",
+        package_root / "paper.pdf",
+        package_root / "references.bib",
+        package_root / "figures" / "Figure1.png",
+        package_root / "tables" / "Table1.md",
+    ):
+        path.write_text("package artifact\n", encoding="utf-8")
+    (package_root / "SUBMISSION_TODO.md").write_text("# Submission TODO\n", encoding="utf-8")
+    (study_root / "manuscript" / "current_package.zip").write_text("zip\n", encoding="utf-8")
+    _write_json(
+        package_root / "audit" / "submission_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [{"figure_id": "Figure1"}],
+            "tables": [{"table_id": "Table1"}],
+            "manuscript": {"surface_qc": {"status": "pass", "failures": []}},
+        },
+    )
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         {
@@ -602,12 +624,12 @@ def test_study_state_matrix_projects_bundle_stage_finalize_even_with_active_run(
     transition = json.loads(captured.out)["studies"][0]["domain_transition"]
 
     assert exit_code == 0
-    assert transition["decision_type"] == "bundle_stage_finalize"
-    assert transition["route_target"] == "finalize"
-    assert transition["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
-    assert transition["controller_action"] == "continue_bundle_stage"
-    assert transition["owner"] == "publication_gate"
-    assert transition["guard_boundary"]["required_owner_surface"] == "artifacts/publication_eval/latest.json"
+    assert transition["decision_type"] == "delivered_package_handoff"
+    assert transition["route_target"] == "human_gate"
+    assert transition["next_work_unit"]["unit_id"] == "package_review_handoff"
+    assert transition["controller_action"] == "wait_for_human_gate"
+    assert transition["owner"] == "med-autoscience"
+    assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is False
 
 
 def test_study_state_matrix_bundle_stage_ignores_stale_publication_gate_review_unit(

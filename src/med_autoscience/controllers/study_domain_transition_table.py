@@ -197,6 +197,17 @@ def project_domain_transition(
             completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
         )
 
+    if (
+        delivered_package
+        and delivered_package.get("observed") is True
+        and _publication_eval_clear(publication_eval)
+    ):
+        return _delivered_package_handoff_transition(
+            study_id=study_id,
+            source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
+        )
+
     bundle_stage_work_unit = _bundle_stage_finalize_work_unit(
         status=status,
         publication_eval=publication_eval,
@@ -316,24 +327,8 @@ def project_domain_transition(
         )
 
     if delivered_package and delivered_package.get("observed") is True:
-        return _transition(
+        return _delivered_package_handoff_transition(
             study_id=study_id,
-            decision_type="delivered_package_handoff",
-            route_target="human_gate",
-            next_work_unit=_work_unit(
-                "package_review_handoff",
-                "finalize",
-                "Expose the delivered package as a user-visible milestone without reopening quality authority.",
-            ),
-            controller_action="wait_for_human_gate",
-            owner="med-autoscience",
-            typed_blocker=_typed_blocker(
-                blocker_id="package_delivered_not_publication_authority",
-                blocker_type="artifact_authority",
-                summary="Delivered package is a milestone, not a publication-ready quality verdict.",
-                required_owner_surface="artifact_rebuild_proof",
-            ),
-            guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
             completion_receipt_consumption=execution_receipt_consumption,
         )
@@ -358,6 +353,35 @@ def project_domain_transition(
         guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
         source_refs=source_refs,
         completion_receipt_consumption=execution_receipt_consumption,
+    )
+
+
+def _delivered_package_handoff_transition(
+    *,
+    study_id: str,
+    source_refs: list[str],
+    completion_receipt_consumption: Mapping[str, Any],
+) -> dict[str, Any]:
+    return _transition(
+        study_id=study_id,
+        decision_type="delivered_package_handoff",
+        route_target="human_gate",
+        next_work_unit=_work_unit(
+            "package_review_handoff",
+            "finalize",
+            "Expose the delivered package as a user-visible milestone without reopening quality authority.",
+        ),
+        controller_action="wait_for_human_gate",
+        owner="med-autoscience",
+        typed_blocker=_typed_blocker(
+            blocker_id="package_delivered_not_publication_authority",
+            blocker_type="artifact_authority",
+            summary="Delivered package is a milestone, not a publication-ready quality verdict.",
+            required_owner_surface="artifact_rebuild_proof",
+        ),
+        guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
+        source_refs=source_refs,
+        completion_receipt_consumption=completion_receipt_consumption,
     )
 
 

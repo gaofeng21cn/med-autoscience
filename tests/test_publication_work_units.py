@@ -361,7 +361,46 @@ def test_bundle_stage_stale_submission_package_produces_finalize_refresh_work_un
     }
 
 
-def test_clear_continue_bundle_stage_routes_to_submission_authority_sync_work_unit() -> None:
+def test_clear_current_bundle_stage_package_routes_to_terminal_handoff_not_sync_work_unit() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "clear",
+            "current_required_action": "continue_bundle_stage",
+            "blockers": [],
+            "study_delivery_status": "current",
+            "submission_minimal_authority_status": "current",
+            "medical_publication_surface_status": "clear",
+            "submission_minimal_evaluated_source_signature": "source::ready",
+            "submission_minimal_authority_source_signature": "source::ready",
+            "study_delivery_evaluated_source_signature": "source::ready",
+            "study_delivery_authority_source_signature": "source::ready",
+            "current_package_freshness": {
+                "status": "current",
+                "proof_path": "/tmp/study/artifacts/controller/current_package_freshness/latest.json",
+                "current_package_root": "/tmp/study/manuscript/current_package",
+                "current_package_zip": "/tmp/study/manuscript/current_package.zip",
+                "submission_manifest_path": "/tmp/study/paper/submission_minimal/submission_manifest.json",
+                "source_signature": "source::ready",
+                "authority_source_signature": "source::ready",
+            },
+        }
+    )
+
+    assert result["blockers"] == []
+    assert result["fingerprint_blockers"] == []
+    assert result["actionability_status"] == "terminal_package_ready_handoff"
+    assert result["next_work_unit"] == {
+        "unit_id": "package_ready_handoff",
+        "lane": "human_gate",
+        "summary": "Submission package is current; park automation until explicit user resume.",
+        "controller_work_unit_executable": False,
+        "non_executable_reason": "package_ready_waiting_for_explicit_resume",
+    }
+
+
+def test_clear_continue_bundle_stage_without_package_freshness_proof_still_syncs_authority() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 
     result = module.derive_publication_work_units(

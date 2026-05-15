@@ -592,6 +592,38 @@ def _append_submission_refresh_unit(
         )
 
 
+def _clear_current_bundle_package_ready(report: Mapping[str, Any]) -> bool:
+    current_required_action = str(report.get("current_required_action") or "").strip()
+    if current_required_action not in {"continue_bundle_stage", "complete_bundle_stage"}:
+        return False
+    if str(report.get("status") or "").strip() != "clear":
+        return False
+    delivery_status = str(report.get("study_delivery_status") or "").strip()
+    if delivery_status and delivery_status not in _NON_BLOCKING_DELIVERY_STATUSES:
+        return False
+    publication_surface_status = str(report.get("medical_publication_surface_status") or "").strip()
+    if publication_surface_status not in {"", "clear", "current", "ok"}:
+        return False
+    authority_currentness = resolve_gate_authority_currentness(report)
+    return (
+        authority_currentness.submission_authority_current
+        and authority_currentness.delivery_current_after_sync
+        and authority_currentness.current_package_fresh
+    )
+
+
+def _append_package_ready_handoff_unit(units: list[dict[str, str]]) -> None:
+    units.append(
+        _unit(
+            "package_ready_handoff",
+            "human_gate",
+            "Submission package is current; park automation until explicit user resume.",
+            controller_work_unit_executable=False,
+            non_executable_reason="package_ready_waiting_for_explicit_resume",
+        )
+    )
+
+
 def _complete_actionability_units(
     report: Mapping[str, Any],
     *,
@@ -600,6 +632,9 @@ def _complete_actionability_units(
 ) -> tuple[str, tuple[str, ...]]:
     if units:
         return "actionable", ()
+    if _clear_current_bundle_package_ready(report):
+        _append_package_ready_handoff_unit(units)
+        return "terminal_package_ready_handoff", ()
     current_required_action = str(report.get("current_required_action") or "").strip()
     if str(report.get("status") or "").strip() == "clear" and current_required_action in {
         "continue_bundle_stage",
