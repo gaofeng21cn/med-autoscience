@@ -130,11 +130,17 @@ def current_controller_authorization_payload(
         return None
     work_unit = mapping(decision.get("next_work_unit"))
     work_unit_fingerprint = text(route.get("work_unit_fingerprint"))
+    action_types = controller_action_types(decision)
     publication_action = publication_action_for_work_unit(
         publication_eval_payload=publication_eval_payload,
         work_unit_fingerprint=work_unit_fingerprint,
     )
-    if publication_action is None:
+    domain_transition_allowed = current_truth_owner.domain_transition_runtime_route_allowed(
+        work_unit_fingerprint=work_unit_fingerprint,
+        action_types=action_types,
+        work_unit_id=text(work_unit.get("unit_id")),
+    )
+    if publication_action is None and not domain_transition_allowed:
         return None
     authorization: dict[str, Any] = {
         "decision_id": text(decision.get("decision_id")),
@@ -143,11 +149,13 @@ def current_controller_authorization_payload(
         "work_unit_fingerprint": work_unit_fingerprint,
         "publication_eval_id": text(publication_eval_payload.get("eval_id")),
         "publication_eval_ref": mapping(decision.get("publication_eval_ref")),
-        "next_work_unit": _target_ready_next_work_unit(work_unit, publication_action),
-        "controller_actions": sorted(controller_action_types(decision)),
+        "next_work_unit": _target_ready_next_work_unit(work_unit, publication_action or {}),
+        "controller_actions": sorted(action_types),
         "source": RUNTIME_PLATFORM_REPAIR_SOURCE,
         "authorized_at": utc_now(),
     }
+    if domain_transition_allowed:
+        authorization["authorization_basis"] = "controller_domain_transition"
     for key in (
         "specificity_targets",
         "work_unit_targets",
@@ -157,7 +165,7 @@ def current_controller_authorization_payload(
         "gaps",
         "source_path",
     ):
-        if key in publication_action:
+        if publication_action is not None and key in publication_action:
             authorization[key] = publication_action[key]
     return authorization
 

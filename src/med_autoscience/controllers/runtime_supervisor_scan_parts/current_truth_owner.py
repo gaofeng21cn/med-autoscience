@@ -17,6 +17,11 @@ RUNTIME_REDRIVE_ACTIONS = {
     "run_gate_clearing_batch",
     "run_quality_repair_batch",
 }
+DOMAIN_TRANSITION_ACTIONS_BY_DECISION_TYPE = {
+    "ai_reviewer_re_eval": {"return_to_ai_reviewer_workflow"},
+    "bundle_stage_finalize": {"ensure_study_runtime"},
+    "publication_gate_blocker": {"run_gate_clearing_batch"},
+}
 
 
 def runtime_platform_repair_action(
@@ -78,17 +83,25 @@ def current_controller_runtime_route(
     if decision is None or decision.get("requires_human_confirmation") is True:
         return None
     action_types = _controller_action_types(decision)
-    if not action_types & RUNTIME_REDRIVE_ACTIONS:
-        return None
     work_unit = _mapping(decision.get("next_work_unit"))
     work_unit_id = _text(work_unit.get("unit_id"))
     if work_unit_id is None:
         return None
     decision_fingerprint = _text(decision.get("work_unit_fingerprint")) or _text(work_unit.get("fingerprint"))
-    publication_fingerprints = _publication_work_unit_fingerprints(publication_eval_payload)
-    if decision_fingerprint is None or decision_fingerprint not in publication_fingerprints:
+    if decision_fingerprint is None:
         return None
-    if work_unit_id in SPECIFICITY_WORK_UNIT_IDS:
+    domain_transition_allowed = domain_transition_runtime_route_allowed(
+        work_unit_fingerprint=decision_fingerprint,
+        action_types=action_types,
+        work_unit_id=work_unit_id,
+    )
+    if not domain_transition_allowed:
+        if not action_types & RUNTIME_REDRIVE_ACTIONS:
+            return None
+        publication_fingerprints = _publication_work_unit_fingerprints(publication_eval_payload)
+        if decision_fingerprint not in publication_fingerprints:
+            return None
+    if work_unit_id in SPECIFICITY_WORK_UNIT_IDS and not domain_transition_allowed:
         if not _publication_eval_specificity_targets_complete_for_fingerprint(
             publication_eval_payload,
             decision_fingerprint=decision_fingerprint,
@@ -108,6 +121,31 @@ def current_controller_runtime_route(
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": decision_fingerprint,
     }
+
+
+def domain_transition_runtime_route_allowed(
+    *,
+    work_unit_fingerprint: str | None,
+    action_types: set[str],
+    work_unit_id: str | None,
+) -> bool:
+    decision_type, fingerprint_work_unit_id = _domain_transition_fingerprint_parts(work_unit_fingerprint)
+    if decision_type is None or fingerprint_work_unit_id is None or work_unit_id is None:
+        return False
+    if fingerprint_work_unit_id != work_unit_id:
+        return False
+    allowed_actions = DOMAIN_TRANSITION_ACTIONS_BY_DECISION_TYPE.get(decision_type, set())
+    return bool(action_types & allowed_actions)
+
+
+def _domain_transition_fingerprint_parts(work_unit_fingerprint: str | None) -> tuple[str | None, str | None]:
+    fingerprint = _text(work_unit_fingerprint)
+    if fingerprint is None:
+        return None, None
+    parts = fingerprint.split("::", 2)
+    if len(parts) != 3 or parts[0] != "domain-transition" or not parts[1] or not parts[2]:
+        return None, None
+    return parts[1], parts[2]
 
 
 def _runtime_repair_summary(reason: str) -> str:

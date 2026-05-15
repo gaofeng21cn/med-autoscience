@@ -754,3 +754,57 @@ def test_codex_exec_runner_prompt_maps_complete_specificity_request_to_quality_r
     assert "--quest-id quest-004" in prompt
     assert "No callable MAS CLI command is registered" not in prompt
     assert "Requested controller actions: request_gate_specificity" not in prompt
+
+
+def test_codex_exec_runner_prompt_maps_ai_reviewer_workflow_to_dispatch_command(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-003"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "last_controller_decision_authorization": {
+    "decision_id": "decision-ai-reviewer-003",
+    "controller_actions": ["return_to_ai_reviewer_workflow"],
+    "route_target": "review",
+    "work_unit_id": "ai_reviewer_recheck",
+    "next_work_unit": {
+      "unit_id": "ai_reviewer_recheck",
+      "lane": "review",
+      "summary": "Return current manuscript and evidence refs to the AI reviewer workflow."
+    }
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-003",
+        run_id="run-003",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+
+    assert "Controller action execution contract" in prompt
+    assert "return_to_ai_reviewer_workflow" in prompt
+    assert "python -m med_autoscience.cli runtime-supervisor-execute-dispatch" in prompt
+    assert "--action-types return_to_ai_reviewer_workflow" in prompt
+    assert "--mode developer_apply_safe --apply" in prompt
+    assert "No callable MAS CLI command is registered" not in prompt

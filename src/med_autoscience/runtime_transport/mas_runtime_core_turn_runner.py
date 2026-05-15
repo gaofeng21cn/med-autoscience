@@ -212,6 +212,7 @@ _RUNTIME_REDRIVE_ACTION_NAMES = frozenset(
         "ensure_study_runtime_relaunch_stopped",
     }
 )
+_SUPERVISOR_DISPATCH_ACTION_NAMES = frozenset({"return_to_ai_reviewer_workflow"})
 _SPECIFICITY_WORK_UNIT_IDS = frozenset({"gate_needs_specificity", "needs_specificity"})
 
 
@@ -670,7 +671,10 @@ def _controller_action_names(authorization: Mapping[str, Any]) -> list[str]:
 
 
 def _controller_callable_action_present(action_names: list[str]) -> bool:
-    return any(name in {"run_quality_repair_batch", "run_gate_clearing_batch"} for name in action_names)
+    return any(
+        name in {"run_quality_repair_batch", "run_gate_clearing_batch"} or name in _SUPERVISOR_DISPATCH_ACTION_NAMES
+        for name in action_names
+    )
 
 
 def _runtime_redrive_action_present(action_names: list[str]) -> bool:
@@ -746,6 +750,13 @@ def _primary_controller_work_unit_ids(authorization: Mapping[str, Any]) -> list[
 
 
 def _controller_action_command(*, action_name: str, quest_id: str) -> str | None:
+    if action_name in _SUPERVISOR_DISPATCH_ACTION_NAMES:
+        return (
+            '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}" '
+            "python -m med_autoscience.cli runtime-supervisor-execute-dispatch "
+            '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --studies <study_id> '
+            f"--action-types {action_name} --mode developer_apply_safe --apply"
+        )
     command_by_action = {
         "run_quality_repair_batch": "quality-repair-batch",
         "run_gate_clearing_batch": "gate-clearing-batch",

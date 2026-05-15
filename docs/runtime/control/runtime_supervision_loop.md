@@ -309,6 +309,7 @@ controller work-unit evidence adoption 采用同一条 AI-first 边界：
 - 对 `analysis_claim_evidence_repair`，adoption 可采纳同一 work-unit fingerprint 绑定的 `artifacts/reports/mas_quality_repair/latest.json`、`report_history/artifacts/reports/report-*.json` 或 legacy traceability reaudit report；采纳条件只证明同一 controller work unit 已写出可归属修复证据，下一步仍必须回到 publication gate recheck。
 - 若受控 worker 已经完成同一 work unit，supervisor 必须进入 gate recheck、owner route 前进或下一 owner handoff；不得因为 stale queue、fresh timestamp、archived report 或 report replay 重复派发同一 work unit。
 - repo-side fix landed、archive proof verified、report history 可读取，只能说明平台或证据面已有修复证据；它不等同于具体 study 已恢复、live worker 已存在、论文质量已放行或 `current_package` / `submission_minimal` 已成为当前 authority。
+- `domain-transition::*` 是 MAS controller transition authority，不能被当成普通 publication eval action 处理。controller refresh materialize 后，runtime authorization 必须消费当前 `controller_decisions/latest.json` 中的 transition work unit；prompt 只读取该 authorization，不回退到旧 prompt、旧 task-intake、旧 default executor dispatch 或缺少当前 fingerprint 的 `publication_eval.recommended_actions`。允许 relay 的最低条件是：controller decision 当前、未要求 human confirmation、transition fingerprint 中的 work unit id 与 `next_work_unit.unit_id` 一致、controller action 属于该 transition 的白名单。
 
 runtime repair 与 publication gate 的 owner routing 使用 controller terminal 证据，而不是泛化的 gate blocker：
 
