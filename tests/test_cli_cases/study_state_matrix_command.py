@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+from tests.transition_descriptor_assertions import resolve_json_pointer
+
 from .shared import write_profile
 
 
@@ -310,6 +312,7 @@ def test_study_state_matrix_projects_publication_gate_blocker_transition(
     assert transition["guard_boundary"]["can_execute_generic_state_machine"] is False
     spec = payload["domain_transition_table"]["family_transition_spec"]
     cases = payload["domain_transition_table"]["family_transition_matrix_cases"]
+    locator_payload = {"study_state_matrix": payload}
     assert spec["surface_kind"] == "family_transition_spec"
     assert spec["version"] == "family-transition-runner.v1"
     assert spec["target_domain_id"] == "medautoscience"
@@ -317,6 +320,22 @@ def test_study_state_matrix_projects_publication_gate_blocker_transition(
     assert spec["authority_boundary"]["domain"] == "truth_quality_artifact_gate_owner"
     assert spec["authority_boundary"]["opl_interprets_domain_quality"] is False
     assert spec["authority_boundary"]["opl_writes_domain_truth"] is False
+    assert "family_transition_spec" in payload["domain_transition_table"]
+    assert "family_transition_matrix_cases" in payload["domain_transition_table"]
+    assert (
+        resolve_json_pointer(
+            locator_payload,
+            "/study_state_matrix/domain_transition_table/family_transition_spec",
+        )
+        == spec
+    )
+    assert (
+        resolve_json_pointer(
+            locator_payload,
+            "/study_state_matrix/domain_transition_table/family_transition_matrix_cases",
+        )
+        == cases
+    )
     assert cases == [
         {
             "case_id": "003-gate:publication_gate_replay",
