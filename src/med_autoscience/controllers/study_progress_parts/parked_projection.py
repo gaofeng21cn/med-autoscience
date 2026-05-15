@@ -17,6 +17,9 @@ def build_progress_parked_projection(
     task_intake_progress_override: Mapping[str, Any] | None,
     publication_eval_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    existing_projection = dict(status.get("auto_runtime_parked") or {}) if isinstance(status.get("auto_runtime_parked"), Mapping) else {}
+    if is_auto_runtime_parked(existing_projection):
+        return existing_projection
     projection = build_auto_runtime_parked_projection(
         status,
         needs_user_decision=needs_user_decision,

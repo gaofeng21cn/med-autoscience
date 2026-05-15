@@ -378,6 +378,7 @@ def _task_intake_yields_to_submission_closeout_active(
     )
     return task_intake_yields_to_deterministic_submission_closeout(
         payload,
+        study_root=study_root,
         publishability_gate_report=dict(publication_gate_report) if isinstance(publication_gate_report, dict) else None,
         evaluation_summary=evaluation_summary_payload,
     )

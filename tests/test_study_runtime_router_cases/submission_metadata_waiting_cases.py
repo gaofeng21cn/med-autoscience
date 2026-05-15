@@ -450,3 +450,176 @@ def test_ensure_study_runtime_pauses_live_delivered_submission_package_milestone
     assert result["reason"] == "quest_waiting_for_submission_metadata"
     assert result["quest_status"] == "paused"
     assert calls == [("pause", "001-risk")]
+
+
+def test_study_runtime_status_parks_waiting_user_after_revision_intake_consumed_by_current_package(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    task_intake_module = importlib.import_module("med_autoscience.study_task_intake")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-attribution",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical epidemiology framing is fixed around diabetes mortality attribution.",
+        paper_urls=["https://example.org/paper-2"],
+        journal_shortlist=["Diabetes Research and Clinical Practice", "BMJ Open Diabetes Research & Care"],
+        minimum_sci_ready_evidence_package=["attribution_model", "cross_cohort_comparison"],
+    )
+    quest_root = profile.runtime_root / "002-attribution"
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "waiting_for_user",
+                "active_run_id": None,
+                "worker_running": False,
+                "pending_user_message_count": 0,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "turn_closeout",
+                "continuation_reason": "blocked_turn_closeout_waiting_for_owner",
+                "blocked_turn_closeout": {
+                    "run_id": "run-stale-revision-closeout",
+                    "blocked_reason": "controller_duplicate_eval_no_new_work_unit_artifact_delta",
+                    "next_owner": "MAS/controller",
+                    "closeout_path": str(
+                        quest_root
+                        / "artifacts"
+                        / "runtime"
+                        / "turn_closeouts"
+                        / "run-stale-revision-closeout.json"
+                    ),
+                },
+                "last_controller_decision_authorization": {
+                    "source": "runtime_supervisor_scan_platform_repair",
+                    "work_unit_id": "submission_authority_sync_closure",
+                    "work_unit_fingerprint": "domain-transition::bundle_stage_finalize::submission_authority_sync_closure",
+                    "route_target": "finalize",
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    task_intake_module.write_task_intake(
+        profile=profile,
+        study_id="002-attribution",
+        study_root=study_root,
+        entry_mode="full_research",
+        task_intent="用户已对糖尿病002投稿包给出明确审稿式反馈，必须作为 reviewer_revision 重新激活同一论文线。",
+        constraints=("完成前维持 audit preview only / not submission-ready 判断。",),
+        first_cycle_outputs=("paper/rebuttal/review_matrix.md and action_plan.md covering all feedback items.",),
+    )
+    write_synced_submission_delivery(study_root, quest_root, include_submission_checklist=False)
+    current_package_root = study_root / "manuscript" / "current_package"
+    write_text(current_package_root / "figures" / "Figure1.png", "figure placeholder")
+    write_text(current_package_root / "tables" / "Table1.md", "table placeholder")
+    write_text(
+        current_package_root / "audit" / "submission_manifest.json",
+        json.dumps(
+            {
+                "schema_version": 1,
+                "manuscript": {"surface_qc": {"status": "pass", "failures": []}},
+                "figures": [{"figure_id": "Figure1"}],
+                "tables": [{"table_id": "Table1"}],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_text(
+        current_package_root / "SUBMISSION_TODO.md",
+        "# Submission TODO\n\n- author affiliations\n- ethics approval number\n- conflict of interest\n",
+    )
+    delivery_manifest_path = study_root / "manuscript" / "delivery_manifest.json"
+    delivery_manifest = json.loads(delivery_manifest_path.read_text(encoding="utf-8"))
+    delivery_manifest["generated_at"] = "2099-01-01T00:00:00+00:00"
+    delivery_manifest_path.write_text(json.dumps(delivery_manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_text(
+        study_root / "artifacts" / "eval_hygiene" / "evaluation_summary" / "latest.json",
+        json.dumps(
+            {
+                "emitted_at": "2099-01-01T00:01:00+00:00",
+                "promotion_gate_status": {
+                    "generated_at": "2099-01-01T00:00:30+00:00",
+                    "status": "clear",
+                    "allow_write": True,
+                    "blockers": [],
+                    "current_required_action": "continue_bundle_stage",
+                    "supervisor_phase": "bundle_stage_ready",
+                },
+                "quality_closure_truth": {
+                    "state": "bundle_only_remaining",
+                    "current_required_action": "continue_bundle_stage",
+                },
+                "quality_review_loop": {"closure_state": "bundle_only_remaining"},
+                "quality_assessment": {"human_review_readiness": {"status": "ready"}},
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "002-attribution"),
+    )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "generated_at": "2099-01-01T00:00:30+00:00",
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "current_required_action": "continue_bundle_stage",
+            "supervisor_phase": "bundle_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "deferred_downstream_actions": [],
+            "controller_stage_note": "bundle-stage work is unlocked and can proceed on the critical path",
+        },
+    )
+    monkeypatch.setattr(
+        module.study_runtime_protocol,
+        "validate_startup_contract_resolution",
+        lambda *, startup_contract: module.study_runtime_protocol.StartupContractValidation(
+            status="clear",
+            blockers=(),
+            medical_analysis_contract_status="resolved",
+            medical_reporting_contract_status="resolved",
+            medical_analysis_reason_code=None,
+            medical_reporting_reason_code=None,
+        ),
+    )
+
+    result = module.study_runtime_status(
+        profile=profile,
+        study_id="002-attribution",
+        include_progress_projection=False,
+    )
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_waiting_for_submission_metadata"
+    assert result["auto_runtime_parked"]["parked"] is True
+    assert result["interaction_arbitration"]["classification"] == "blocked_closeout_owner_redrive"

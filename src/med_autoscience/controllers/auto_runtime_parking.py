@@ -266,6 +266,8 @@ def _state_from_reason(
     if reason in _NON_PARKED_RUNTIME_REASONS:
         return None
     interaction_classification = _text(interaction_arbitration.get("classification"))
+    if reason in _EXTERNAL_METADATA_REASONS:
+        return "external_metadata_pending"
     if interaction_classification in {
         "blocked_closeout_owner_redrive",
         "controller_work_unit_pending_redrive",
@@ -273,8 +275,6 @@ def _state_from_reason(
         "pending_user_message_redrive",
     }:
         return None
-    if reason in _EXTERNAL_METADATA_REASONS:
-        return "external_metadata_pending"
     if reason == "publishability_stop_loss_recommended":
         return "publishability_stop_loss"
     if reason == "quest_waiting_for_explicit_wakeup_after_manual_hold":
