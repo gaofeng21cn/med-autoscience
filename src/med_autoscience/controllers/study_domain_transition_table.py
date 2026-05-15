@@ -48,6 +48,13 @@ def project_domain_transition(
             publication_eval_ref=PUBLICATION_EVAL_RELATIVE_PATH,
         )
     )
+    human_gate_resume_receipt_consumption = (
+        study_transition_receipt_consumption.human_gate_resume_receipt_consumption(
+            study_root=root,
+            controller_decision=controller_decision,
+            controller_decision_ref=CONTROLLER_DECISION_RELATIVE_PATH,
+        )
+    )
     owner_apply_receipt_consumption = study_transition_receipt_consumption.mas_owner_apply_receipt_consumption(
         study_root=root
     )
@@ -56,6 +63,8 @@ def project_domain_transition(
         controller_decision_ref,
         repair_evidence_ref,
         _text(execution_receipt_consumption.get("source_ref")),
+        _text(human_gate_resume_receipt_consumption.get("receipt_ref")),
+        _text(human_gate_resume_receipt_consumption.get("decision_ref")),
         _text(owner_apply_receipt_consumption.get("receipt_ref")),
         _text(owner_apply_receipt_consumption.get("evidence_ref")),
         "study_runtime_status",
@@ -108,6 +117,24 @@ def project_domain_transition(
             guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
             source_refs=source_refs,
             completion_receipt_consumption=execution_receipt_consumption,
+        )
+
+    if human_gate_resume_receipt_consumption:
+        return _transition(
+            study_id=study_id,
+            decision_type="human_gate_resume_receipt_consumed",
+            route_target="runtime",
+            next_work_unit=_work_unit(
+                "human_gate_resume_receipt",
+                "runtime",
+                "Resume only after consuming the MAS-owned human gate receipt.",
+            ),
+            controller_action="resume_runtime_after_human_gate",
+            owner="med-autoscience",
+            typed_blocker=None,
+            guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
+            source_refs=source_refs,
+            completion_receipt_consumption=human_gate_resume_receipt_consumption,
         )
 
     if _requires_human_gate(controller_decision):

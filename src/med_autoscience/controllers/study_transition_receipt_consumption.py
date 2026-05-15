@@ -14,6 +14,13 @@ _ROUTE_DECISION_OWNER_RECEIPT_VALUES = frozenset(
         "bounded_repair",
     }
 )
+_HUMAN_GATE_RESUME_ACTIONS = frozenset(
+    {
+        "ensure_study_runtime",
+        "ensure_study_runtime_relaunch_stopped",
+        "resume_runtime",
+    }
+)
 
 
 def execution_receipt_consumption(status: Mapping[str, Any]) -> dict[str, Any]:
@@ -129,6 +136,48 @@ def mas_owner_apply_receipt_consumption(*, study_root: Path) -> dict[str, Any]:
             controller_decision_ref=controller_decision_ref,
         )
     return {}
+
+
+def human_gate_resume_receipt_consumption(
+    *,
+    study_root: Path,
+    controller_decision: Mapping[str, Any],
+    controller_decision_ref: Path,
+) -> dict[str, Any]:
+    if controller_decision.get("requires_human_confirmation") is not True and not controller_decision.get(
+        "family_human_gates"
+    ):
+        return {}
+    summary_ref = Path("artifacts/controller/controller_confirmation_summary.json")
+    summary = _read_json_object(study_root / summary_ref)
+    if summary is None:
+        return {}
+    decision_status = _text(summary.get("status"))
+    if decision_status not in {"approved", "consumed"}:
+        return {}
+    controller_action_types = [
+        action
+        for action in (_text(item) for item in (summary.get("controller_action_types") or []))
+        if action
+    ]
+    if not controller_action_types or not any(action in _HUMAN_GATE_RESUME_ACTIONS for action in controller_action_types):
+        return {}
+    decision_ref_payload = _mapping(summary.get("decision_ref"))
+    summary_decision_id = _text(decision_ref_payload.get("decision_id"))
+    controller_decision_id = _text(controller_decision.get("decision_id"))
+    if controller_decision_id and summary_decision_id and summary_decision_id != controller_decision_id:
+        return {}
+    return {
+        "status": "consumed",
+        "receipt_kind": "human_gate_resume_receipt",
+        "gate_id": _text(summary.get("gate_id")),
+        "decision_id": summary_decision_id or controller_decision_id,
+        "decision_status": decision_status,
+        "receipt_ref": str(summary_ref),
+        "decision_ref": str(controller_decision_ref),
+        "controller_action_types": controller_action_types,
+        "next_action": "honor_human_gate_resume_receipt",
+    }
 
 
 def _artifact_delta_owner_receipt_consumption(

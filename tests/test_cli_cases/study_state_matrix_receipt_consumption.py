@@ -424,6 +424,101 @@ def test_study_state_matrix_consumes_controller_route_decision_owner_receipt(
     assert case["context"]["completion_receipt_consumption"]["apply_result"] == "route_decision"
 
 
+def test_study_state_matrix_consumes_human_gate_resume_receipt(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_id = "002-human-gate"
+    study_root = workspace_root / "studies" / study_id
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
+    decision_id = "study-decision::002-human-gate::quest-002::resume::2026-05-15T09:00:00+00:00"
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": decision_id,
+            "study_id": study_id,
+            "quest_id": "quest-002",
+            "emitted_at": "2026-05-15T09:00:00+00:00",
+            "route_decision": "human_gate",
+            "route_target": "runtime",
+            "requires_human_confirmation": True,
+            "family_human_gates": [{"gate_id": f"controller-human-confirmation-{study_id}"}],
+            "controller_actions": [{"action_type": "ensure_study_runtime"}],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "controller_confirmation_summary.json",
+        {
+            "schema_version": 1,
+            "summary_id": f"controller-confirmation::{study_id}::{decision_id}",
+            "study_id": study_id,
+            "quest_id": "quest-002",
+            "decision_ref": {
+                "decision_id": decision_id,
+                "artifact_path": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+            },
+            "gate_id": f"controller-human-confirmation-{study_id}",
+            "status": "approved",
+            "requested_at": "2026-05-15T09:00:00+00:00",
+            "resolved_at": "2026-05-15T09:05:00+00:00",
+            "decision_type": "resume_runtime",
+            "request_reason": "用户确认恢复当前研究线。",
+            "question_for_user": "请确认是否允许 MAS 继续托管推进当前研究。",
+            "allowed_responses": ["approve", "request_changes", "reject"],
+            "controller_action_types": ["ensure_study_runtime"],
+            "next_action_if_approved": "继续托管推进当前研究运行",
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": study_id,
+            "study_root": str(study_root),
+            "quest_status": "paused",
+            "active_run_id": None,
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    transition = payload["studies"][0]["domain_transition"]
+    case = payload["domain_transition_table"]["family_transition_matrix_cases"][0]
+    rule = payload["domain_transition_table"]["family_transition_spec"]["transitions"][0]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "human_gate_resume_receipt_consumed"
+    assert transition["route_target"] == "runtime"
+    assert transition["next_work_unit"]["unit_id"] == "human_gate_resume_receipt"
+    assert transition["controller_action"] == "resume_runtime_after_human_gate"
+    assert transition["owner"] == "med-autoscience"
+    assert transition["typed_blocker"] is None
+    assert transition["completion_receipt_consumption"] == {
+        "status": "consumed",
+        "receipt_kind": "human_gate_resume_receipt",
+        "gate_id": f"controller-human-confirmation-{study_id}",
+        "decision_id": decision_id,
+        "decision_status": "approved",
+        "receipt_ref": "artifacts/controller/controller_confirmation_summary.json",
+        "decision_ref": "artifacts/controller_decisions/latest.json",
+        "controller_action_types": ["ensure_study_runtime"],
+        "next_action": "honor_human_gate_resume_receipt",
+    }
+    assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is False
+    assert case["expected"]["decision_type"] == "human_gate_resume_receipt_consumed"
+    assert case["context"]["completion_receipt_consumption"]["receipt_kind"] == "human_gate_resume_receipt"
+    assert rule["receipt"]["completion_receipt_consumption"]["next_action"] == "honor_human_gate_resume_receipt"
+
+
 def test_study_state_matrix_consumes_ai_reviewer_publication_eval_receipt(
     monkeypatch,
     tmp_path: Path,
