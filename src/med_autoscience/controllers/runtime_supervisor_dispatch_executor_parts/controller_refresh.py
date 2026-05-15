@@ -152,6 +152,25 @@ def _request_runtime_resume(
     source: str,
     existing_pending_user_message_resume: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    active_prompt_refresh = _force_fresh_turn_if_active_prompt_is_stale(
+        profile=profile,
+        study_id=study_id,
+        study_root=study_root,
+        authorization=authorization,
+        source=source,
+    )
+    if active_prompt_refresh is not None and active_prompt_refresh.get("status") == "blocked":
+        payload: dict[str, Any] = {
+            "authorization_status": authorization_status,
+            "current_controller_authorization": dict(authorization),
+            "runtime_resume_status": "blocked",
+            "runtime_resume_blocked_reason": _text(active_prompt_refresh.get("reason"))
+            or "active_prompt_refresh_failed",
+            "active_prompt_refresh": active_prompt_refresh,
+        }
+        if existing_pending_user_message_resume is not None:
+            payload["existing_pending_user_message_resume"] = dict(existing_pending_user_message_resume)
+        return payload
     try:
         resume_result = study_runtime_router.ensure_study_runtime(
             profile=profile,
@@ -169,6 +188,8 @@ def _request_runtime_resume(
         }
         if existing_pending_user_message_resume is not None:
             payload["existing_pending_user_message_resume"] = dict(existing_pending_user_message_resume)
+        if active_prompt_refresh is not None:
+            payload["active_prompt_refresh"] = active_prompt_refresh
         return payload
     payload = {
         "authorization_status": authorization_status,
@@ -176,9 +197,95 @@ def _request_runtime_resume(
         "runtime_resume_status": "requested",
         "resume_result": dict(resume_result) if isinstance(resume_result, Mapping) else resume_result,
     }
+    if active_prompt_refresh is not None:
+        active_prompt_refresh = {
+            **active_prompt_refresh,
+            "post_resume_alignment": _active_prompt_alignment(authorization=authorization),
+        }
+        if active_prompt_refresh["post_resume_alignment"].get("status") == "stale":
+            payload["runtime_resume_status"] = "blocked"
+            payload["runtime_resume_blocked_reason"] = "fresh_turn_prompt_still_stale"
+        payload["active_prompt_refresh"] = active_prompt_refresh
     if existing_pending_user_message_resume is not None:
         payload["existing_pending_user_message_resume"] = dict(existing_pending_user_message_resume)
     return payload
+
+
+def _force_fresh_turn_if_active_prompt_is_stale(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    study_root: Path,
+    authorization: Mapping[str, Any],
+    source: str,
+) -> dict[str, Any] | None:
+    alignment = _active_prompt_alignment(authorization=authorization)
+    if alignment.get("status") not in {"prompt_unavailable", "stale"}:
+        return None
+    try:
+        pause_result = study_runtime_router.pause_study_runtime(
+            profile=profile,
+            study_id=study_id,
+            study_root=study_root,
+            source=source,
+        )
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        return {
+            **alignment,
+            "status": "blocked",
+            "reason": "stale_active_prompt_pause_failed",
+            "error": str(exc),
+        }
+    return {
+        **alignment,
+        "status": "fresh_turn_forced",
+        "reason": "active_codex_prompt_stale_for_current_controller_authorization",
+        "pause_result": dict(pause_result) if isinstance(pause_result, Mapping) else pause_result,
+    }
+
+
+def _active_prompt_alignment(*, authorization: Mapping[str, Any]) -> dict[str, Any]:
+    runtime_state_path = _text(authorization.get("path"))
+    if runtime_state_path is None:
+        return {"status": "runtime_state_path_unavailable"}
+    runtime_state = _read_json_object(Path(runtime_state_path))
+    if runtime_state is None:
+        return {"status": "runtime_state_missing_or_invalid", "runtime_state_path": runtime_state_path}
+    active_run_id = _text(runtime_state.get("active_run_id"))
+    if runtime_state.get("worker_running") is not True or active_run_id is None:
+        return {
+            "status": "no_live_active_prompt",
+            "runtime_state_path": runtime_state_path,
+            "active_run_id": active_run_id,
+        }
+    prompt_path = Path(runtime_state_path).parent / "runs" / active_run_id / "prompt.md"
+    expected_fingerprint = _text(authorization.get("work_unit_fingerprint"))
+    expected_work_unit_id = _text(authorization.get("work_unit_id"))
+    try:
+        prompt_text = prompt_path.read_text(encoding="utf-8")
+    except OSError:
+        return {
+            "status": "prompt_unavailable",
+            "runtime_state_path": runtime_state_path,
+            "active_run_id": active_run_id,
+            "prompt_path": str(prompt_path),
+            "expected_work_unit_fingerprint": expected_fingerprint,
+            "expected_work_unit_id": expected_work_unit_id,
+        }
+    fingerprint_matches = expected_fingerprint is not None and expected_fingerprint in prompt_text
+    work_unit_matches = expected_work_unit_id is not None and expected_work_unit_id in prompt_text
+    status = "aligned" if fingerprint_matches or work_unit_matches else "stale"
+    return {
+        "status": status,
+        "runtime_state_path": runtime_state_path,
+        "active_run_id": active_run_id,
+        "stale_active_run_id": active_run_id if status == "stale" else None,
+        "prompt_path": str(prompt_path),
+        "expected_work_unit_fingerprint": expected_fingerprint,
+        "expected_work_unit_id": expected_work_unit_id,
+        "fingerprint_matches": fingerprint_matches,
+        "work_unit_matches": work_unit_matches,
+    }
 
 
 def runtime_state_path_for_status(
