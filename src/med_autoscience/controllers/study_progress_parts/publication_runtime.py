@@ -273,6 +273,48 @@ def _publication_supervisor_state_conflicts(
     return any(candidate_marker[key] != current_marker[key] for key in current_marker)
 
 
+def _publication_eval_has_closed_ai_reviewer_authority(payload: dict[str, Any] | None) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    provenance = payload.get("assessment_provenance")
+    if not isinstance(provenance, dict):
+        return False
+    if _non_empty_text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    if _non_empty_text(provenance.get("source_kind")) != "publication_eval_ai_reviewer":
+        return False
+    if provenance.get("ai_reviewer_required") is not False:
+        return False
+    reviewer_os = payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, dict):
+        return False
+    provenance_checks = reviewer_os.get("provenance_checks")
+    if not isinstance(provenance_checks, dict):
+        return False
+    return (
+        _non_empty_text(reviewer_os.get("contract_id")) == "medical_publication_ai_reviewer_os_v1"
+        and _non_empty_text(provenance_checks.get("assessment_owner")) == "ai_reviewer"
+        and provenance_checks.get("ai_reviewer_required") is False
+        and provenance_checks.get("mechanical_projection_used_as_quality_authority") is False
+    )
+
+
+def _gate_report_is_clear_progress_projection(payload: dict[str, Any] | None) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    blockers = [
+        _non_empty_text(item)
+        for item in (payload.get("blockers") or [])
+        if _non_empty_text(item) is not None
+    ]
+    if blockers:
+        return False
+    current_required_action = _non_empty_text(payload.get("current_required_action"))
+    if current_required_action == "return_to_publishability_gate":
+        return False
+    return _non_empty_text(payload.get("status")) == "clear" or payload.get("allow_write") is True
+
+
 def _latest_runtime_watch_report(quest_root: Path | None) -> Path | None:
     if quest_root is None:
         return None
@@ -502,6 +544,10 @@ def _refresh_publication_surfaces_from_gate_report(
         and publishability_gate_payload is not None
         and quest_root is not None
         and _non_empty_text(publishability_gate_payload.get("gate_kind")) == "publishability_control"
+        and not (
+            _gate_report_is_clear_progress_projection(publishability_gate_payload)
+            and _publication_eval_has_closed_ai_reviewer_authority(publication_eval_payload)
+        )
         and (
             _timestamp_is_newer(gate_generated_at, eval_emitted_at)
             or _publication_eval_semantically_stale_against_gate(
