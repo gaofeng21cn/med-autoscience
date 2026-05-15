@@ -3,12 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from med_autoscience.profiles import WorkspaceProfile
 
 
 GUARDED_APPLY_OWNER_RECEIPT_CONTRACT = "mas-guarded-apply-owner-receipt.v2"
+DEFAULT_GUARDED_APPLY_TARGETS = ("DM002", "DM003", "Obesity")
 
 
 def provider_hosted_guarded_apply_tasks(
@@ -17,12 +18,43 @@ def provider_hosted_guarded_apply_tasks(
     profile_ref: Path,
     provider_availability: Mapping[str, Any],
     opl_production_proof_ref: str | Path | None,
-    owner_source_refs: list[Mapping[str, Any]] | None = None,
+    owner_source_refs_by_target: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
+    target_studies: Sequence[str] = DEFAULT_GUARDED_APPLY_TARGETS,
 ) -> list[dict[str, Any]]:
     if provider_availability.get("provider_attempt_available") is not True:
         return []
     proof_ref = _text(opl_production_proof_ref)
-    target = "DM002"
+    tasks: list[dict[str, Any]] = []
+    for target in target_studies:
+        target_text = _text(target)
+        if target_text is None:
+            continue
+        target_owner_refs = [
+            dict(ref)
+            for ref in (owner_source_refs_by_target or {}).get(target_text, [])
+        ]
+        tasks.append(
+            _provider_hosted_guarded_apply_task(
+                profile=profile,
+                profile_ref=profile_ref,
+                provider_availability=provider_availability,
+                proof_ref=proof_ref,
+                target=target_text,
+                owner_source_refs=target_owner_refs,
+            )
+        )
+    return tasks
+
+
+def _provider_hosted_guarded_apply_task(
+    *,
+    profile: WorkspaceProfile,
+    profile_ref: Path,
+    provider_availability: Mapping[str, Any],
+    proof_ref: str | None,
+    target: str,
+    owner_source_refs: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
     dedupe_key = f"mas:{profile.name}:{target}:provider-hosted-guarded-apply:opl-temporal"
     provider_attempt_id = f"opl-temporal:{profile.name}:{target}:provider-hosted-guarded-apply"
     source_fingerprint = _fingerprint(
@@ -34,7 +66,7 @@ def provider_hosted_guarded_apply_tasks(
             "opl_production_proof_ref": proof_ref,
             "provider_availability": provider_availability,
             "guarded_apply_owner_receipt_contract": GUARDED_APPLY_OWNER_RECEIPT_CONTRACT,
-            "owner_source_refs": owner_source_refs or [],
+            "owner_source_refs": owner_source_refs,
         }
     )
     source_refs = [
@@ -53,31 +85,29 @@ def provider_hosted_guarded_apply_tasks(
             "ref": GUARDED_APPLY_OWNER_RECEIPT_CONTRACT,
             "exists": True,
         },
-        *[dict(ref) for ref in owner_source_refs or []],
+        *[dict(ref) for ref in owner_source_refs],
     ]
-    return [
-        {
-            "domain_id": "medautoscience",
-            "task_kind": "paper_autonomy/guarded-apply",
-            "priority": 30,
-            "source": "mas-sidecar-export",
-            "requires_approval": False,
-            "dedupe_key": dedupe_key,
-            "source_fingerprint": source_fingerprint,
-            "payload": {
-                "profile": str(profile_ref),
-                "study_id": target,
-                "target_studies": [target],
-                "provider_attempt_id": provider_attempt_id,
-                "idempotency_key": dedupe_key,
-                "paper_autonomy_reason": "provider_hosted_guarded_apply_soak",
-                "authority_boundary": "mas_owner_guarded_apply_only",
-            },
-            "dispatch_owner": "med-autoscience",
-            "profile_name": profile.name,
-            "source_refs": source_refs,
-        }
-    ]
+    return {
+        "domain_id": "medautoscience",
+        "task_kind": "paper_autonomy/guarded-apply",
+        "priority": 30,
+        "source": "mas-sidecar-export",
+        "requires_approval": False,
+        "dedupe_key": dedupe_key,
+        "source_fingerprint": source_fingerprint,
+        "payload": {
+            "profile": str(profile_ref),
+            "study_id": target,
+            "target_studies": [target],
+            "provider_attempt_id": provider_attempt_id,
+            "idempotency_key": dedupe_key,
+            "paper_autonomy_reason": "provider_hosted_guarded_apply_soak",
+            "authority_boundary": "mas_owner_guarded_apply_only",
+        },
+        "dispatch_owner": "med-autoscience",
+        "profile_name": profile.name,
+        "source_refs": source_refs,
+    }
 
 
 def _text(value: object) -> str | None:

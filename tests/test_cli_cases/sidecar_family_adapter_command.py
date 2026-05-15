@@ -496,52 +496,65 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
         task for task in payload["pending_family_tasks"]
         if task["task_kind"] == "paper_autonomy/guarded-apply"
     ]
-    assert len(guarded_apply_tasks) == 1
-    guarded_apply_task = guarded_apply_tasks[0]
-    source_fingerprint = guarded_apply_task.pop("source_fingerprint")
-    assert isinstance(source_fingerprint, str)
-    assert len(source_fingerprint) == 16
-    assert guarded_apply_task == {
-        "domain_id": "medautoscience",
-        "task_kind": "paper_autonomy/guarded-apply",
-        "priority": 30,
-        "source": "mas-sidecar-export",
-        "requires_approval": False,
-        "dedupe_key": "mas:nfpitnet:DM002:provider-hosted-guarded-apply:opl-temporal",
-        "payload": {
-            "profile": str(profile_path),
-            "study_id": "DM002",
-            "target_studies": ["DM002"],
-            "provider_attempt_id": "opl-temporal:nfpitnet:DM002:provider-hosted-guarded-apply",
-            "idempotency_key": "mas:nfpitnet:DM002:provider-hosted-guarded-apply:opl-temporal",
-            "paper_autonomy_reason": "provider_hosted_guarded_apply_soak",
-            "authority_boundary": "mas_owner_guarded_apply_only",
-        },
-        "dispatch_owner": "med-autoscience",
-        "profile_name": "nfpitnet",
-        "source_refs": [
-            {
-                "role": "opl_production_proof",
-                "ref": str(proof_ref),
-                "exists": True,
-            },
-            {
-                "role": "provider_guarded_soak_read_model",
-                "ref": "/provider_ready_adapter/provider_guarded_soak_read_model",
-                "exists": True,
-            },
-            {
-                "role": "mas_guarded_apply_owner_receipt_contract",
-                "ref": "mas-guarded-apply-owner-receipt.v2",
-                "exists": True,
-            },
-            {
-                "role": "mas_owner_controller_decision",
-                "ref": "studies/DM002/artifacts/controller_decisions/latest.json",
-                "exists": False,
-            },
-        ],
+    assert [task["payload"]["study_id"] for task in guarded_apply_tasks] == [
+        "DM002",
+        "DM003",
+        "Obesity",
+    ]
+    fingerprints = {
+        task["payload"]["study_id"]: task.pop("source_fingerprint")
+        for task in guarded_apply_tasks
     }
+    assert all(isinstance(value, str) and len(value) == 16 for value in fingerprints.values())
+    expected_refs = {
+        "DM002": "studies/DM002/artifacts/controller_decisions/latest.json",
+        "DM003": "studies/DM003/artifacts/controller_decisions/latest.json",
+        "Obesity": "studies/Obesity/artifacts/controller_decisions/latest.json",
+    }
+    for task in guarded_apply_tasks:
+        study_id = task["payload"]["study_id"]
+        dedupe_key = f"mas:nfpitnet:{study_id}:provider-hosted-guarded-apply:opl-temporal"
+        assert task == {
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/guarded-apply",
+            "priority": 30,
+            "source": "mas-sidecar-export",
+            "requires_approval": False,
+            "dedupe_key": dedupe_key,
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": study_id,
+                "target_studies": [study_id],
+                "provider_attempt_id": f"opl-temporal:nfpitnet:{study_id}:provider-hosted-guarded-apply",
+                "idempotency_key": dedupe_key,
+                "paper_autonomy_reason": "provider_hosted_guarded_apply_soak",
+                "authority_boundary": "mas_owner_guarded_apply_only",
+            },
+            "dispatch_owner": "med-autoscience",
+            "profile_name": "nfpitnet",
+            "source_refs": [
+                {
+                    "role": "opl_production_proof",
+                    "ref": str(proof_ref),
+                    "exists": True,
+                },
+                {
+                    "role": "provider_guarded_soak_read_model",
+                    "ref": "/provider_ready_adapter/provider_guarded_soak_read_model",
+                    "exists": True,
+                },
+                {
+                    "role": "mas_guarded_apply_owner_receipt_contract",
+                    "ref": "mas-guarded-apply-owner-receipt.v2",
+                    "exists": True,
+                },
+                {
+                    "role": "mas_owner_controller_decision",
+                    "ref": expected_refs[study_id],
+                    "exists": False,
+                },
+            ],
+        }
     repeat_exit_code = cli.main(
         [
             "sidecar",
@@ -556,11 +569,14 @@ def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
     )
     repeat_payload = json.loads(capsys.readouterr().out)
     assert repeat_exit_code == 0
-    repeat_task = [
+    repeat_tasks = [
         task for task in repeat_payload["pending_family_tasks"]
         if task["task_kind"] == "paper_autonomy/guarded-apply"
-    ][0]
-    assert repeat_task["source_fingerprint"] == source_fingerprint
+    ]
+    assert {
+        task["payload"]["study_id"]: task["source_fingerprint"]
+        for task in repeat_tasks
+    } == fingerprints
 
 
 def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path, capsys) -> None:

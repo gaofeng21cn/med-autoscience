@@ -86,29 +86,32 @@ def test_sidecar_export_guarded_apply_fingerprint_tracks_mas_owner_decision(
     first_payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
-    first_task = [
+    first_tasks = [
         task for task in first_payload["pending_family_tasks"]
         if task["task_kind"] == "paper_autonomy/guarded-apply"
-    ][0]
-    first_fingerprint = first_task["source_fingerprint"]
-    first_owner_ref = [
-        ref for ref in first_task["source_refs"]
-        if ref["role"] == "mas_owner_controller_decision"
-    ][0]
-    contract_ref = [
-        ref for ref in first_task["source_refs"]
-        if ref["role"] == "mas_guarded_apply_owner_receipt_contract"
-    ][0]
-    assert contract_ref == {
-        "role": "mas_guarded_apply_owner_receipt_contract",
-        "ref": "mas-guarded-apply-owner-receipt.v2",
-        "exists": True,
-    }
-    assert first_owner_ref == {
-        "role": "mas_owner_controller_decision",
-        "ref": "studies/DM002/artifacts/controller_decisions/latest.json",
-        "exists": False,
-    }
+    ]
+    assert [task["payload"]["study_id"] for task in first_tasks] == ["DM002", "DM003", "Obesity"]
+    first_fingerprints = {task["payload"]["study_id"]: task["source_fingerprint"] for task in first_tasks}
+    for task in first_tasks:
+        study_id = task["payload"]["study_id"]
+        owner_ref = [
+            ref for ref in task["source_refs"]
+            if ref["role"] == "mas_owner_controller_decision"
+        ][0]
+        contract_ref = [
+            ref for ref in task["source_refs"]
+            if ref["role"] == "mas_guarded_apply_owner_receipt_contract"
+        ][0]
+        assert contract_ref == {
+            "role": "mas_guarded_apply_owner_receipt_contract",
+            "ref": "mas-guarded-apply-owner-receipt.v2",
+            "exists": True,
+        }
+        assert owner_ref == {
+            "role": "mas_owner_controller_decision",
+            "ref": f"studies/{study_id}/artifacts/controller_decisions/latest.json",
+            "exists": False,
+        }
 
     _write_json(
         decision_path,
@@ -137,15 +140,18 @@ def test_sidecar_export_guarded_apply_fingerprint_tracks_mas_owner_decision(
     repeat_payload = json.loads(capsys.readouterr().out)
 
     assert repeat_exit_code == 0
-    repeat_task = [
+    repeat_tasks = [
         task for task in repeat_payload["pending_family_tasks"]
         if task["task_kind"] == "paper_autonomy/guarded-apply"
-    ][0]
+    ]
+    repeat_by_study = {task["payload"]["study_id"]: task for task in repeat_tasks}
     repeat_owner_ref = [
-        ref for ref in repeat_task["source_refs"]
+        ref for ref in repeat_by_study["DM002"]["source_refs"]
         if ref["role"] == "mas_owner_controller_decision"
     ][0]
     assert repeat_owner_ref["ref"] == "studies/002-early-residual-risk/artifacts/controller_decisions/latest.json"
     assert repeat_owner_ref["exists"] is True
     assert repeat_owner_ref["content_sha256"]
-    assert repeat_task["source_fingerprint"] != first_fingerprint
+    assert repeat_by_study["DM002"]["source_fingerprint"] != first_fingerprints["DM002"]
+    assert repeat_by_study["DM003"]["source_fingerprint"] == first_fingerprints["DM003"]
+    assert repeat_by_study["Obesity"]["source_fingerprint"] == first_fingerprints["Obesity"]

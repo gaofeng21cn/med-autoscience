@@ -20,7 +20,10 @@ from .sidecar_family_adapter_parts.functional_closure import (
     build_sidecar_functional_closure_projection,
 )
 from .sidecar_family_adapter_parts.dispatch_receipts import write_dispatch_receipt
-from .sidecar_family_adapter_parts.guarded_apply_tasks import provider_hosted_guarded_apply_tasks
+from .sidecar_family_adapter_parts.guarded_apply_tasks import (
+    DEFAULT_GUARDED_APPLY_TARGETS,
+    provider_hosted_guarded_apply_tasks,
+)
 from .sidecar_family_adapter_parts.owner_source_refs import owner_controller_decision_refs
 
 
@@ -469,10 +472,13 @@ def _pending_family_tasks(
             profile_ref=profile_ref,
             provider_availability=provider_availability,
             opl_production_proof_ref=opl_production_proof_ref,
-            owner_source_refs=owner_controller_decision_refs(
-                profile=profile,
-                target_study_id="DM002",
-            ),
+            owner_source_refs_by_target={
+                target: owner_controller_decision_refs(
+                    profile=profile,
+                    target_study_id=target,
+                )
+                for target in DEFAULT_GUARDED_APPLY_TARGETS
+            },
         )
     )
     for study in studies:
