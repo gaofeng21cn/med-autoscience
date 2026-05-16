@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -52,6 +53,27 @@ def _list(value: object) -> list[object]:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"AI reviewer publication eval workflow ref is not a JSON object: {path}")
+    return dict(payload)
+
+
+def _resolve_ref(*, study_root: Path, ref: str | Path) -> Path:
+    candidate = Path(ref).expanduser()
+    if candidate.is_absolute():
+        return candidate.resolve()
+    return (study_root / candidate).resolve()
+
+
+def _refs_match(*, study_root: Path, left: str, right: str) -> bool:
+    return _resolve_ref(study_root=study_root, ref=left) == _resolve_ref(
+        study_root=study_root,
+        ref=right,
+    )
 
 
 def _record_payload(record: PublicationEvalRecord | Mapping[str, Any]) -> dict[str, Any]:
@@ -193,6 +215,118 @@ def _future_facing_limitations_plan(record_payload: Mapping[str, Any]) -> list[d
     return plan
 
 
+def _medical_prose_review_currentness(
+    *,
+    study_root: Path,
+    ref_bundle: Mapping[str, str],
+) -> dict[str, Any]:
+    prose_ref = _text(ref_bundle.get("medical_prose_review"))
+    if not prose_ref:
+        raise ValueError("AI reviewer publication eval workflow missing medical_prose_review")
+    prose_path = _resolve_ref(study_root=study_root, ref=prose_ref)
+    prose_payload = _read_json(prose_path)
+    provenance = _mapping(prose_payload.get("assessment_provenance"))
+    request_digest = _text(provenance.get("request_digest"))
+    manuscript_ref = _text(provenance.get("manuscript_ref"))
+    manuscript_digest = _text(provenance.get("manuscript_digest"))
+    if not request_digest:
+        raise ValueError("medical_prose_review_request_digest_missing")
+    if not manuscript_ref:
+        raise ValueError("medical_prose_review_manuscript_ref_missing")
+    if not manuscript_digest:
+        raise ValueError("medical_prose_review_manuscript_digest_missing")
+
+    request_ref = _text(provenance.get("request_ref")) or str(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
+    )
+    request_payload = _read_json(_resolve_ref(study_root=study_root, ref=request_ref))
+    current_request_digest = _text(request_payload.get("request_digest"))
+    if current_request_digest and current_request_digest != request_digest:
+        raise ValueError("medical_prose_review_request_digest_mismatch")
+    request_manuscript = _mapping(request_payload.get("manuscript"))
+    request_manuscript_ref = _text(request_manuscript.get("path"))
+    request_manuscript_digest = _text(request_manuscript.get("digest"))
+    if request_manuscript_ref and not _refs_match(
+        study_root=study_root,
+        left=request_manuscript_ref,
+        right=manuscript_ref,
+    ):
+        raise ValueError("medical_prose_review_manuscript_ref_mismatch")
+    if request_manuscript_digest and request_manuscript_digest != manuscript_digest:
+        raise ValueError("medical_prose_review_manuscript_digest_mismatch")
+    manuscript_input_ref = _text(ref_bundle.get("manuscript"))
+    if manuscript_input_ref and not _refs_match(
+        study_root=study_root,
+        left=manuscript_input_ref,
+        right=manuscript_ref,
+    ):
+        raise ValueError("medical_prose_review_reviewer_os_manuscript_ref_mismatch")
+
+    quality = _mapping(prose_payload.get("medical_journal_prose_quality"))
+    route_back = _mapping(quality.get("route_back_recommendation"))
+    if route_back.get("required") is True:
+        raise ValueError("medical_prose_review_route_back_required")
+    if _text(quality.get("status")) != "ready" or _text(quality.get("overall_style_verdict")) != "clear":
+        raise ValueError("medical_prose_review_not_clear")
+
+    return {
+        "status": "current",
+        "ref": str(prose_path),
+        "request_ref": str(_resolve_ref(study_root=study_root, ref=request_ref)),
+        "request_digest": request_digest,
+        "manuscript_ref": manuscript_ref,
+        "manuscript_digest": manuscript_digest,
+    }
+
+
+def _current_package_freshness(
+    *,
+    study_root: Path,
+    eval_id: str,
+) -> dict[str, Any]:
+    path = study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
+    if not path.exists():
+        raise ValueError("current_package_freshness_missing")
+    payload = _read_json(path)
+    if _text(payload.get("status")) != "fresh":
+        raise ValueError("current_package_freshness_not_fresh")
+    source_eval_id = _text(payload.get("source_eval_id"))
+    if source_eval_id != eval_id:
+        raise ValueError("current_package_freshness_source_eval_id_mismatch")
+    if not (_text(payload.get("current_package_root")) or _text(payload.get("current_package_zip"))):
+        raise ValueError("current_package_freshness_missing_package_ref")
+    return {
+        "status": "fresh",
+        "ref": str(path.resolve()),
+        "source_eval_id": source_eval_id,
+        "current_package_root": _text(payload.get("current_package_root")),
+        "current_package_zip": _text(payload.get("current_package_zip")),
+        "source_signature": _text(payload.get("source_signature")),
+        "authority_source_signature": _text(payload.get("authority_source_signature")),
+    }
+
+
+def _currentness_checks(
+    *,
+    study_root: Path,
+    record_payload: Mapping[str, Any],
+    ref_bundle: Mapping[str, str],
+) -> dict[str, Any]:
+    eval_id = _text(record_payload.get("eval_id"))
+    if not eval_id:
+        raise ValueError("AI reviewer publication eval workflow record missing eval_id")
+    return {
+        "medical_prose_review": _medical_prose_review_currentness(
+            study_root=study_root,
+            ref_bundle=ref_bundle,
+        ),
+        "current_package_freshness": _current_package_freshness(
+            study_root=study_root,
+            eval_id=eval_id,
+        ),
+    }
+
+
 def _record_payload_without_workflow_only_fields(record_payload: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(record_payload)
     payload.pop("future_facing_limitations_plan", None)
@@ -201,6 +335,7 @@ def _record_payload_without_workflow_only_fields(record_payload: Mapping[str, An
 
 def build_ai_reviewer_publication_eval_workflow_trace(
     *,
+    study_root: str | Path,
     manuscript_ref: str | Path,
     evidence_ref: str | Path,
     review_ref: str | Path,
@@ -208,6 +343,7 @@ def build_ai_reviewer_publication_eval_workflow_trace(
     record: PublicationEvalRecord | Mapping[str, Any],
     additional_refs: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    resolved_study_root = Path(study_root).expanduser().resolve()
     record_payload = _record_payload(record)
     ref_bundle = _normalize_ref_bundle(
         manuscript_ref=manuscript_ref,
@@ -232,6 +368,11 @@ def build_ai_reviewer_publication_eval_workflow_trace(
         "input_bundle": ref_bundle,
         "rubric_scores": rubric_scores,
         "decision_matrix": decision_matrix,
+        "currentness_checks": _currentness_checks(
+            study_root=resolved_study_root,
+            record_payload=record_payload,
+            ref_bundle=ref_bundle,
+        ),
         "future_facing_limitations_plan": _future_facing_limitations_plan(record_payload),
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
@@ -284,6 +425,7 @@ def run_ai_reviewer_publication_eval_workflow(
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     trace = build_ai_reviewer_publication_eval_workflow_trace(
+        study_root=resolved_study_root,
         manuscript_ref=manuscript_ref,
         evidence_ref=evidence_ref,
         review_ref=review_ref,

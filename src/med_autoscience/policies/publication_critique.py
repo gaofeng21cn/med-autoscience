@@ -102,6 +102,7 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
             "input_bundle",
             "rubric_scores",
             "decision_matrix",
+            "currentness_checks",
             "provenance_checks",
             "route_back_decision",
             "future_facing_limitations_plan",
@@ -175,6 +176,7 @@ def build_ai_reviewer_operating_system_contract(policy: dict[str, Any]) -> dict[
         "provenance_checks",
         "route_back_decision",
         "future_facing_limitations_plan",
+        "currentness_checks",
     ):
         if required_field not in normalized_trace_fields:
             raise ValueError(f"AI reviewer operating system 缺少 trace 字段: {required_field}")

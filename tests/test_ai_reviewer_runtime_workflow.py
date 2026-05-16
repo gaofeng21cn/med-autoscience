@@ -30,6 +30,9 @@ def _surface_refs(study_root: Path) -> dict[str, str]:
 
 def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
     refs = _surface_refs(study_root)
+    eval_id = "publication-eval::001-risk::quest-001::2026-05-02T08:00:00+00:00"
+    request_digest = "sha256:" + ("a" * 64)
+    manuscript_digest = "sha256:" + ("c" * 64)
     dimensions = (
         "clinical_significance",
         "evidence_strength",
@@ -56,6 +59,18 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
             }
             for dimension in dimensions
         ],
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_digest": request_digest,
+                "manuscript_ref": refs["manuscript"],
+                "manuscript_digest": manuscript_digest,
+            },
+            "current_package_freshness": {
+                "status": "fresh",
+                "source_eval_id": eval_id,
+            },
+        },
         "future_facing_limitations_plan": [
             {
                 "limitation": "Finalize authorization is scoped to the reviewed paper snapshot.",
@@ -208,6 +223,9 @@ def _style_currentness(study_root: Path) -> dict[str, Any]:
 
 def _medical_prose_review_payload(study_root: Path, *, route_back_required: bool = False) -> dict[str, Any]:
     request_digest = "sha256:" + ("a" * 64)
+    manuscript_digest = "sha256:" + ("c" * 64)
+    manuscript_ref = str(study_root / "paper" / "manuscript.md")
+    request_ref = str(study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json")
     return {
         "schema_version": 1,
         "surface": "medical_prose_review",
@@ -216,7 +234,10 @@ def _medical_prose_review_payload(study_root: Path, *, route_back_required: bool
             "source_kind": "medical_prose_review",
             "policy_id": "medical_publication_critique_v1",
             "ai_reviewer_required": False,
+            "request_ref": request_ref,
             "request_digest": request_digest,
+            "manuscript_ref": manuscript_ref,
+            "manuscript_digest": manuscript_digest,
         },
         "style_currentness": _style_currentness(study_root),
         "medical_journal_prose_quality": {
@@ -235,6 +256,18 @@ def _medical_prose_review_payload(study_root: Path, *, route_back_required: bool
 
 
 def _write_medical_prose_review(study_root: Path, *, route_back_required: bool = False) -> None:
+    refs = _surface_refs(study_root)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json",
+        {
+            "surface": "medical_prose_review_request",
+            "request_digest": "sha256:" + ("a" * 64),
+            "manuscript": {
+                "path": refs["manuscript"],
+                "digest": "sha256:" + ("c" * 64),
+            },
+        },
+    )
     _write_json(
         study_root / "artifacts" / "publication_eval" / "medical_prose_review.json",
         _medical_prose_review_payload(study_root, route_back_required=route_back_required),
@@ -294,6 +327,16 @@ def _write_complete_workflow(study_root: Path) -> None:
     _write_publication_eval(study_root)
     _write_medical_prose_review(study_root)
     _write_closed_ledgers(study_root)
+    _write_json(
+        study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "fresh",
+            "source_eval_id": "publication-eval::001-risk::quest-001::2026-05-02T08:00:00+00:00",
+            "current_package_root": str(study_root / "manuscript" / "current_package"),
+            "current_package_zip": str(study_root / "manuscript" / "current_package.zip"),
+        },
+    )
 
 
 def test_complete_ai_reviewer_workflow_authorizes_finalize_and_submission(tmp_path: Path) -> None:

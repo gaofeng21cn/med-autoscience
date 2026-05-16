@@ -234,6 +234,17 @@ def validate_medical_prose_review(payload: object) -> list[str]:
         return ["assessment_provenance.owner must be ai_reviewer"]
     if provenance.get("ai_reviewer_required") is not False:
         return ["assessment_provenance.ai_reviewer_required must be false"]
+    request_digest = _text(provenance.get("request_digest"))
+    manuscript_ref = _text(provenance.get("manuscript_ref"))
+    manuscript_digest = _text(provenance.get("manuscript_digest"))
+    if request_digest is not None and _text(provenance.get("request_ref")) is None:
+        return ["assessment_provenance.request_ref must be non-empty when request_digest is present"]
+    if request_digest is not None and not request_digest.startswith("sha256:"):
+        return ["assessment_provenance.request_digest must be a sha256 digest"]
+    if manuscript_ref is not None and manuscript_digest is None:
+        return ["assessment_provenance.manuscript_digest must be non-empty when manuscript_ref is present"]
+    if manuscript_digest is not None and not manuscript_digest.startswith("sha256:"):
+        return ["assessment_provenance.manuscript_digest must be a sha256 digest"]
     style_currentness = payload.get("style_currentness")
     if not isinstance(style_currentness, Mapping):
         return ["style_currentness must be an object"]

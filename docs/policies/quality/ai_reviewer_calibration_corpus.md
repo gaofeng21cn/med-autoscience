@@ -43,6 +43,14 @@ readiness verdict 必须绑定 `assessment_provenance.owner=ai_reviewer`、`asse
 
 机械输入只能是 evidence-only：它们可以证明 checklist、coverage、inventory 或 claim map 的事实状态，不能生成 ready verdict，不能关闭质量 gate，不能替代 reviewer provenance。
 
+## AI Reviewer Currentness Contract
+
+AI reviewer 的主观医学质量判断必须绑定它实际审阅的输入快照。`medical_prose_review` 的 provenance 必须记录 `request_ref`、`request_digest`、`manuscript_ref` 与 `manuscript_digest`；`publication_eval/latest.json` 的 `reviewer_operating_system` 必须记录 `currentness_checks.medical_prose_review`。如果最新 request digest、manuscript digest 或 reviewer trace 不一致，MAS 必须 fail-closed 回到 `ai_reviewer` / `write` / `review` owner，不能把旧 prose review 重新包装成 ready。
+
+AI reviewer 的 clear verdict 还必须包含 IMRAD 关键段落的 section-level diagnosis 和 representative rewrite evidence。空泛的 “looks formal enough” 或只给概括性 ready 的回答不能关闭 `medical_journal_prose_quality`。
+
+质量闭合不等于交付投影已刷新。bundle-stage 或 human-facing package 需要继续绑定 `current_package_freshness` proof；该 proof 的 `source_eval_id` 必须匹配当前 AI reviewer publication eval。旧 package freshness、旧 zip、旧 DOCX 或旧 `manuscript/current_package` 不能因为新的 `publication_eval` ready 标签而被视为最新论文。
+
 ## Drift Audit
 
 `ai_first_drift_audit` 必须检查 calibration corpus 与 pre-draft materialization contract 的代码 surface。验收点包括：六类历史返工模式仍在 corpus 中，prompt-only calibration 被禁止，AI reviewer provenance 字段仍是结构化要求，pre-draft readiness 缺 provenance 时 fail-closed，mechanical supporting inputs 只能提供 evidence-only。

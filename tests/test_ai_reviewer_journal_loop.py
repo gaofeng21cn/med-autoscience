@@ -21,6 +21,7 @@ AUTHORING_CALIBRATION_REFS = (
     "ai_reviewer_calibration_corpus#thin_first_draft",
     "ai_reviewer_calibration_corpus#overstrong_claim",
 )
+PUBLICATION_EVAL_ID = "publication-eval::001-risk::quest-001::2026-05-04T00:00:00+00:00"
 
 
 def _reviewer_operating_system() -> dict[str, Any]:
@@ -54,6 +55,18 @@ def _reviewer_operating_system() -> dict[str, Any]:
             }
             for dimension, score in rubric_scores.items()
         ],
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_digest": "sha256:" + "a" * 64,
+                "manuscript_ref": input_bundle["manuscript"],
+                "manuscript_digest": "sha256:" + "c" * 64,
+            },
+            "current_package_freshness": {
+                "status": "fresh",
+                "source_eval_id": PUBLICATION_EVAL_ID,
+            },
+        },
         "future_facing_limitations_plan": [
             {
                 "limitation": "Authoring authorization is limited to the reviewed manuscript snapshot.",
@@ -82,6 +95,7 @@ def _reviewer_operating_system() -> dict[str, Any]:
 
 def _publication_eval() -> dict[str, Any]:
     return {
+        "eval_id": PUBLICATION_EVAL_ID,
         "assessment_provenance": {
             "owner": "ai_reviewer",
             "source_kind": "publication_eval_ai_reviewer",

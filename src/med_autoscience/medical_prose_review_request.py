@@ -115,6 +115,10 @@ def _canonical_json(payload: Mapping[str, Any]) -> bytes:
     ).encode("utf-8")
 
 
+def _sha256_text(text: str) -> str:
+    return f"sha256:{hashlib.sha256(text.encode('utf-8')).hexdigest()}"
+
+
 def compute_medical_prose_review_request_digest(payload: Mapping[str, Any]) -> str:
     digest_payload = {
         key: value
@@ -214,6 +218,7 @@ def build_medical_prose_review_request(
         "manuscript": {
             "path": str(resolved_manuscript_path),
             "character_count": len(manuscript_text),
+            "digest": _sha256_text(manuscript_text),
             "text": manuscript_text,
         },
         "mechanical_safety_flags": list(mechanical_safety_flags or []),
@@ -382,6 +387,20 @@ def validate_ai_medical_prose_review_response(payload: object) -> list[str]:
         return ["clear AI prose response must route to none"]
     if verdict != "clear" and route_target == "none":
         return ["non-clear AI prose response must include a route target"]
+    section_level_diagnosis = payload.get("section_level_diagnosis")
+    if isinstance(section_level_diagnosis, Mapping):
+        missing_sections = [
+            section
+            for section in ("introduction", "methods", "results", "discussion")
+            if not _text(section_level_diagnosis.get(section))
+        ]
+        if missing_sections:
+            return [
+                "AI prose response section_level_diagnosis must cover: "
+                + ", ".join(missing_sections)
+            ]
+    if verdict == "clear" and not rewrites:
+        return ["clear AI prose response must include representative rewrite evidence"]
     return []
 
 
@@ -398,6 +417,9 @@ def materialize_ai_medical_prose_review_from_response(
     route_back = dict(response_payload.get("route_back_recommendation") or {})
     request_digest = _text(request.get("request_digest")) or compute_medical_prose_review_request_digest(request)
     style_currentness = dict(request.get("style_currentness") or {})
+    manuscript = dict(request.get("manuscript") or {})
+    manuscript_ref = _text(manuscript.get("path"))
+    manuscript_digest = _text(manuscript.get("digest"))
     source_refs = [
         ref
         for ref in [
@@ -417,6 +439,8 @@ def materialize_ai_medical_prose_review_from_response(
             "request_ref": str(stable_medical_prose_review_request_path(study_root=study_root)),
             "request_digest": request_digest,
             "request_currentness": dict(request.get("request_currentness") or {}),
+            "manuscript_ref": manuscript_ref,
+            "manuscript_digest": manuscript_digest,
         },
         "style_currentness": style_currentness,
         "medical_journal_prose_quality": {

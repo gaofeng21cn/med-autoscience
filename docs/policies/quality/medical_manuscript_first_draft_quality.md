@@ -68,6 +68,9 @@ The gate is not the primary writing strategy. The primary strategy is contract-f
 因此，`current_required_action=continue_bundle_stage` 或 `complete_bundle_stage` 时：
 
 - `medical_journal_prose_quality.status=ready` 才能继续进入 `finalize`；
+- `ready` 必须来自当前 AI reviewer request / manuscript 快照，`request_digest`、`manuscript_ref` 与 `manuscript_digest` 必须能在 reviewer trace 中对齐；
+- AI reviewer clear verdict 必须包含 IMRAD 关键段落诊断和代表性改写证据，不能只给概括性通过语；
+- `current_package_freshness.source_eval_id` 必须匹配当前 AI reviewer publication eval，旧 human-facing package 不能被新的质量标签隐式授权；
 - 缺少 `medical_prose_review_status` 时按 `underdefined` 处理；
 - `underdefined`、`partial` 或 `blocked` 必须 route back 到同一论文线 `review`，由 AI reviewer 关闭 manuscript-native prose quality；
 - 不得新增“脚本检查论文是否完整 / 是否像医学论文”的质量授权门。程序化检查只允许成为 evidence snippets、mechanical safety flags 或投影 blocker，不能成为主观稿件质量 owner。

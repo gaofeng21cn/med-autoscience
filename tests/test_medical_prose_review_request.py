@@ -122,6 +122,8 @@ def test_ai_response_materializes_ai_owned_prose_review(tmp_path: Path) -> None:
             "overall_style_verdict": "revise",
             "summary": "Results are still display-led and sound like a work report.",
             "section_level_diagnosis": {
+                "introduction": "Clinical problem and evidence gap are readable.",
+                "methods": "Methods wording is sufficiently reader-facing for this route-back.",
                 "results": "Clinical findings should lead before display citations.",
                 "discussion": "Discussion should open with the principal finding.",
             },
@@ -144,6 +146,8 @@ def test_ai_response_materializes_ai_owned_prose_review(tmp_path: Path) -> None:
     assert review["assessment_provenance"]["owner"] == "ai_reviewer"
     assert review["assessment_provenance"]["request_ref"].endswith("medical_prose_review_request.json")
     assert review["assessment_provenance"]["request_digest"].startswith("sha256:")
+    assert review["assessment_provenance"]["manuscript_ref"].endswith("paper/draft.md")
+    assert review["assessment_provenance"]["manuscript_digest"].startswith("sha256:")
     assert review["style_currentness"]["status"] == "current"
     assert review["style_currentness"]["style_version"] == "medical_journal_prose_style_v2"
     assert review["style_currentness"]["style_digest"].startswith("sha256:")
@@ -168,6 +172,35 @@ def test_ai_response_rejects_non_clear_without_route_back(tmp_path: Path) -> Non
                 "overall_style_verdict": "revise",
                 "summary": "Needs revision.",
                 "section_level_diagnosis": {"results": "Needs revision."},
+                "representative_bad_sentences": [],
+                "representative_rewrites": [],
+                "route_back_recommendation": {"route_target": "none", "reason": "none"},
+            },
+        )
+
+
+def test_clear_ai_response_requires_substantive_journal_quality_evidence(tmp_path: Path) -> None:
+    from med_autoscience.medical_prose_review_request import (
+        materialize_ai_medical_prose_review_from_response,
+        materialize_medical_prose_review_request,
+    )
+
+    study_root = tmp_path / "study"
+    _write_review_request_inputs(study_root)
+    materialize_medical_prose_review_request(study_root=study_root)
+
+    with pytest.raises(ValueError, match="clear AI prose response"):
+        materialize_ai_medical_prose_review_from_response(
+            study_root=study_root,
+            response_payload={
+                "overall_style_verdict": "clear",
+                "summary": "The manuscript is formal enough.",
+                "section_level_diagnosis": {
+                    "introduction": "Looks acceptable.",
+                    "methods": "Looks acceptable.",
+                    "results": "Looks acceptable.",
+                    "discussion": "Looks acceptable.",
+                },
                 "representative_bad_sentences": [],
                 "representative_rewrites": [],
                 "route_back_recommendation": {"route_target": "none", "reason": "none"},

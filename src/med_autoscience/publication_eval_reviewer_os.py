@@ -14,6 +14,7 @@ _ALLOWED_REVIEWER_OS_FIELDS = frozenset(
         "input_bundle",
         "rubric_scores",
         "decision_matrix",
+        "currentness_checks",
         "future_facing_limitations_plan",
         "provenance_checks",
         "route_back_decision",
@@ -74,6 +75,25 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
     for dimension in contract["rubric_dimensions"]:
         if dimension not in covered_dimensions:
             errors.append(f"reviewer_operating_system.decision_matrix missing {dimension}")
+
+    currentness_checks = _mapping(payload.get("currentness_checks"))
+    if not currentness_checks:
+        errors.append("reviewer_operating_system.currentness_checks must be non-empty")
+    medical_prose_review = _mapping(currentness_checks.get("medical_prose_review"))
+    for field in ("request_digest", "manuscript_ref", "manuscript_digest"):
+        if not _text(medical_prose_review.get(field)):
+            errors.append(f"reviewer_operating_system.currentness_checks.medical_prose_review.{field} must be non-empty")
+    if _text(medical_prose_review.get("status")) not in {"current", "ready"}:
+        errors.append("reviewer_operating_system.currentness_checks.medical_prose_review.status must be current")
+    package_freshness = _mapping(currentness_checks.get("current_package_freshness"))
+    if not package_freshness:
+        errors.append("reviewer_operating_system.currentness_checks.current_package_freshness must be non-empty")
+    elif _text(package_freshness.get("status")) != "fresh":
+        errors.append("reviewer_operating_system.currentness_checks.current_package_freshness.status must be fresh")
+    elif not _text(package_freshness.get("source_eval_id")):
+        errors.append(
+            "reviewer_operating_system.currentness_checks.current_package_freshness.source_eval_id must be non-empty"
+        )
 
     future_limitations_plan = _list_of_mappings(payload.get("future_facing_limitations_plan"))
     future_limitations_contract = _mapping(contract.get("future_facing_limitations_plan"))
