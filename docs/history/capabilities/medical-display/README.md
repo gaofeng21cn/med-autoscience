@@ -1,7 +1,5 @@
 # 医学展示历史归档
 
-[English](./README.md) | **中文**
-
 这些文件是医学展示能力线的历史记录或 provenance-only 记录。
 它们用于审计和学习脉络，不作为当前 active execution surface。
 

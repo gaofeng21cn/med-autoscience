@@ -31,7 +31,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 | 已落地基础 | [MAS 单项目 MDS 吸收 program](./mas_single_project_mds_absorb_program.md) | 已落地的 monolith / provenance owner 文档，只保存当前边界和 guard；完整历史记录在 `docs/history/program/`。 |
 | 已落地基础 | [Runtime lifecycle SQLite 迁移 program](./runtime_lifecycle_sqlite_migration_program.md) | 已落地的 runtime lifecycle guard 文档，只保存当前 SQLite/file authority、quest/root Git retirement 和 drift 维护规则；完整历史记录在 `docs/history/program/`。 |
 
-实际开发按内容块推进，不按整份旧文档推进。P1/P2 的完整旧记录已经归档；当前文件只保留 owner 边界、优先级和可执行内容线。
+实际开发按内容块推进，不按整份旧文档推进。P0/P2/P3/P3a 的完整旧记录已经归档；当前 active owner 文档只保留当前 owner 边界、优先级、gate 分类和可执行内容线。旧 full record、旧 board 和旧 activation package 只作为 history provenance 读取。
 
 ## 放置规则
 

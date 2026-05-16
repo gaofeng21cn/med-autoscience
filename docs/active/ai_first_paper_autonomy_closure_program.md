@@ -1,134 +1,62 @@
-# AI-first Paper Autonomy Closure Program
+# AI-first 论文自治闭环
 
-Status: `active target and acceptance owner`
-Date: `2026-05-14`
+Status: `active_target_and_acceptance_owner`
+Date: `2026-05-16`
 Owner: `MedAutoScience`
-Purpose: define the current MAS paper-autonomy objective, acceptance gates, and live-soak evidence requirements.
-Machine boundary: this is a human-readable program owner. Machine truth remains in `study_charter`, `paper/evidence_ledger.json`, `paper/review_ledger.json`, `artifacts/publication_eval/latest.json`, `artifacts/controller_decisions/latest.json`, `study_runtime_status`, `runtime_watch`, runtime supervision receipts, owner-route dispatch receipts, manuscript/package rebuild proof, and live study artifact refs.
+Purpose: `paper_autonomy_acceptance_contract`
+State: `active_plan`
+Machine boundary: 本文是人读目标和验收合同。机器真相继续归 `study_charter`、evidence/review ledger、`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_runtime_status`、`runtime_watch`、sidecar receipt、owner-route receipt、manuscript/package rebuild proof 和真实 workspace artifact refs。
 
-Full historical record: [2026-05-10 AI-first paper autonomy full record](../history/program/ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md).
+完整历史记录见 [2026-05-10 AI-first paper autonomy full record](../history/program/ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md)。历史 full record 只用于追溯当时的 lane、证据和外部工程参考；当前执行口径以本文、[MAS 当前开发线路](./current_development_lines.md) 和 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 为准。
 
-## Current Role
+## 当前定位
 
-This document is P0 in the MAS program portfolio. P0 is the target and acceptance contract for AI-first paper autonomy. It states the research outcome MAS must deliver and the evidence that can prove progress on a real paper line.
+本文是 MAS 论文自治的目标和验收面。它定义 MAS 要在真实 paper line 上交付什么证据：AI reviewer finding、repair work unit、canonical artifact delta、publication gate replay、AI reviewer recheck、route decision、human gate、stop-loss 或明确 typed blocker。
 
-P0 was created before the current OPL framework split was clear. During implementation, the target proved larger than a MAS-only runtime problem. The current answer is:
+它不持有 OPL provider 实现、One Person Lab App UI、通用 queue / attempt ledger / retry-dead-letter / human-gate transport，也不维护旧 MDS/Hermes/local scheduler 的退役清单。通用运行外围归 OPL Framework；MAS 持有医学研究 truth、paper quality、publication judgment、reviewer repair、route decision、evidence/review ledger、canonical manuscript/package authority 和 owner receipt。
 
-- `MAS` owns medical research truth, paper quality, publication judgment, reviewer repair, route decisions, evidence/review ledgers, and canonical manuscript/package authority.
-- `OPL` owns the stage-led runtime framework with Agent executors as the minimum execution unit that can host MAS as a domain agent: stage attempt, queue, wakeup, receipt, recovery, approval/human gate transport, lifecycle primitives, projection, and shared indexes.
-- P0 remains the MAS target. P1 and P2 are the implementation dependencies that make the target usable as a product and durable as a framework-backed runtime. P3 and P3a are completed foundations that keep the MAS monolith, provenance, runtime lifecycle, and restore-proof boundary stable.
+## 当前状态
 
-## Current State
+repo-level 论文自治 loop 已具备 callable surface、owner receipt 和 focused proof，但仍处在 production evidence gate：
 
-The repo-level MAS paper loop is implemented enough to be called, tested, and inspected:
-
-| area | current state | owner |
+| 面 | 当前状态 | owner |
 | --- | --- | --- |
-| AI reviewer finding to repair | `repo surface landed` | MAS reviewer/refinement/repair owner surfaces |
-| Repair execution | `repo surface landed` | `paper_repair_executor`, canonical paper sources, ledgers, owner receipts |
-| Gate replay and reviewer recheck request | `repo surface landed` | MAS publication gate and AI reviewer workflow |
-| Weak/negative result route decision | `repo surface landed` | MAS route decision and controller decision surfaces |
-| Stage knowledge and memory packets | `repo contract/read-model landed` | MAS stage knowledge packet, closeout packet, memory write router, recall index |
-| Real paper closure | `evidence-gated live soak` | live MAS study truth surfaces |
-| Product visibility | `depends on P1` | OPL App Runtime Workbench consuming MAS projections |
-| Durable hosted runtime | `production proof ingested; live paper apply pending` | OPL stage-led framework and provider-backed runtime consuming MAS sidecar/receipts |
+| reviewer finding -> repair | `repo_surface_landed` | MAS reviewer / repair owner surfaces |
+| canonical delta / gate replay / reviewer recheck | `repo_surface_landed` | MAS publication gate、AI reviewer workflow、artifact authority |
+| route decision / weak-result handling | `repo_surface_landed` | MAS route decision 与 controller decision surfaces |
+| stage knowledge / publication-route memory | `repo_contract_and_read_model_landed` | MAS stage knowledge packet、closeout packet、memory router receipt |
+| provider-hosted paper apply | `live_apply_pending` | OPL provider transport + MAS sidecar / owner chain |
+|真实 paper closure | `evidence_gated_live_soak` | live MAS study truth surfaces |
 
-The important distinction is that `repo surface landed` means MAS has the callable contracts, owners, receipts, and tests needed for the loop. It does not mean every real paper line has already reached submission-facing closure.
+当前可以声明的是：MAS 有 provider-guarded apply receipt surface、DM002 route-memory consumed / writeback ref chain、三篇 paper line 的 guarded proof surface、OPL production proof ingestion 和 no-forbidden-write boundary。不能声明 OPL provider proof、queue completion、repo tests 或 provider attempt completion 等于 paper closure、submission readiness 或 publication-ready。
 
-2026-05-13 fresh live-soak calibration:
+## 验收合同
 
-- DM002 currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=ai_reviewer_re_eval`, MAS-owned publication gate / controller decision / repair evidence refs, and `next_owner=analysis-campaign`.
-- DM003 currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=artifact_delta` and `next_owner=write`.
-- Obesity currently produces an OPL-ingestable typed closeout with `domain_ready_verdict=artifact_delta` and `next_owner=write`.
-- DM002 also proves a publication-route memory read/writeback ref chain: consumed memory ref `publication_route_memory_seed__negative_result_stoploss` plus MAS-owned stage/router writeback receipt refs.
-- The initial calibration is read-only: `writes_performed=false`, `writes_real_workspace=false`, and OPL is forbidden from writing publication eval, controller decisions, current package, publication quality verdict, artifact authority, or memory body.
-- The repo-level provider-hosted proof surface is callable as `real-paper-autonomy-provider-hosted-paper-proof`. It packages the three typed closeout packets with OPL attempt-owner context, publication-route memory consumed/writeback receipt refs, and a fail-closed forbidden-write guard proof.
-- The MAS-owned guarded apply proof surface is now callable as `real-paper-autonomy-guarded-apply-proof`. It reads the same three-paper packets, then accepts real workspace mutation only when an existing MAS owner apply receipt proves artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or stable blocker under MAS authority. Without that owner receipt it emits `mas_guarded_apply_receipt` typed blockers such as `mas_owner_apply_receipt_missing:*` and keeps `writes_performed=false`.
-- MAS sidecar dispatch now accepts `paper_autonomy/guarded-apply` as a provider-hosted guarded apply closure request. The request writes only a MAS sidecar dispatch receipt with a nested `real_paper_autonomy_provider_hosted_guarded_apply_receipt`, provider attempt id, idempotency key, source fingerprint, no-forbidden-write proof, guarded apply receipt refs, and typed blockers when MAS owner progress is missing.
-- DM002 now has a final ref-level publication-route memory proof inside the guarded apply surface: consumed route-memory refs plus MAS router/workspace/OPL-Aion receipt refs are exposed with `body_included=false`; OPL still cannot read memory prose or accept/reject writeback.
-- OPL production residency proof has been ingested by MAS product-entry manifest and sidecar export. The provider read model can report `production_residency_proven` / provider available while preserving `can_write_domain_truth=false`, `provider_completion_is_paper_closure=false`, and `paper_closure_requires_mas_owner_receipt=true`.
-- 2026-05-14 follow-through: `publication-route-memory-inventory` now also exposes ref-only `operator_grouping` by workspace/stage/route family/status plus `review_summary` for stale/deprecated cards. This is a read-only maintenance and OPL/Aion display surface; it does not expose memory body, accept/reject writeback, choose a winning route, or authorize publication quality.
-- MAS runtime/progress surfaces now recognize paper-facing runtime turn closeout artifact deltas as progress freshness evidence, clear closed controller work-unit authorization before the next Codex turn, and route supervisor-only live artifact-delta states to `supervisor_only/live_quality_repair` only when no higher-priority action is present. These are owner/projection improvements, not production paper closure.
+一次真实 autonomous work unit 只有在 MAS owner surface 中留下以下任一结果时，才计入论文自治进展：
 
-This means the current three-paper evidence has crossed the read-only acceptance threshold, now has a MAS-owned guarded apply proof and dispatch receipt closure surface, and can be paired with OPL production residency evidence. It still has not proven production-hosted paper completion; production evidence requires MAS owner receipts with real artifact/gate/reviewer/route progress or explicit typed blockers from live workspace gates.
+- manuscript、table、figure、result、package、evidence ledger 或 review ledger 的 canonical delta；
+- publication gate replay 后 owner 前进；
+- AI reviewer judgment update；
+- route decision、claim downgrade、bounded repair、switch-line、stop-loss 或 human gate；
+- typed blocker，且 blocker 明确缺失的 owner、input、permission 或 scientific constraint。
 
-2026-05-13 production closure wording: the current acceptable claim is that MAS has provider-guarded apply receipt surfaces, a DM002 route-memory consumed/writeback receipt chain, three-paper guarded proof surfaces ready for OPL-hosted attempts, and OPL production proof ingestion into MAS provider availability projection. The remaining claim requires live provider-hosted guarded apply soak: each paper line must produce a MAS owner receipt with artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or a typed blocker from the live owner/gate. OPL production proof, queue completion, repo tests, and provider attempt completion remain supporting evidence, not paper closure.
+Worker liveness、queue item、status refresh、provider completion、只读 projection 和文档状态都只是支撑信号，不是 paper progress。
 
-## Planning Gate Classification
+## Gate 分类
 
-P0 now consumes the MAS line plan from [MAS Current Development Lines](./current_development_lines.md). P0 does not own OPL provider implementation, App UI, stage skill formatting, or legacy cleanup, but it defines which evidence can count as real paper-autonomy progress.
-
-| P0 gate | gate class | current planning status | acceptable evidence |
+| gate | class | 当前状态 | 可接受证据 |
 | --- | --- | --- | --- |
-| `live_paper_owner_chain` | `production_evidence_gate` | `planned; read_only_three_paper_proof_landed` | Real paper-line owner receipt with artifact delta, gate replay, reviewer update, route decision, human gate, stop-loss, or typed blocker in MAS truth surfaces. |
-| `provider_hosted_guarded_apply` | `production_evidence_gate` | `planned; guarded_apply_surface_landed` | Provider attempt id and typed closeout paired with MAS owner receipt and no-forbidden-write proof; provider completion alone does not count. |
-| `human_gate_resume` | `production_evidence_gate` | `planned; owner_boundary_landed` | MAS controller/runtime records the gate reason, resume token or refusal, next owner, and blocker; OPL signal is transport only. |
-| `publication_route_memory_writeback` | `functional_follow_through_gate` | `implemented; DM002 ref chain plus grouping/review inventory landed` | Stage closeout proposal, MAS router accepted/rejected receipt, body-free inventory/export refs, operator grouping, stale/deprecated review summary; memory body and accept/reject authority stay in MAS workspace/runtime owner. |
-| `stage_review_index_instance` | `functional_follow_through_gate` | `planned; locator proof landed` | Live attempt produces latest review page / index refs, freshness, claim impact, next owner or typed blocker; review/index does not authorize publication readiness. |
+| `live_paper_owner_chain` | `production_evidence_gate` | `planned; guarded surfaces landed` | MAS truth surface 中的 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 typed blocker。 |
+| `provider_hosted_guarded_apply` | `production_evidence_gate` | `surface_landed; live soak pending` | OPL attempt id + MAS sidecar dispatch receipt + MAS owner receipt + no-forbidden-write proof；provider completion alone 不计入。 |
+| `human_gate_resume` | `production_evidence_gate` | `owner_boundary_landed` | MAS controller/runtime 记录 gate reason、resume/refusal、next owner 和 blocker；OPL signal 只是 transport。 |
+| `publication_route_memory_writeback` | `functional_follow_through_gate` | `implemented; scaleout pending` | Stage closeout proposal、MAS router accepted/rejected/blocked receipt、body-free refs、operator grouping 与 stale/deprecated review summary。 |
+| `stage_review_index_instance` | `functional_follow_through_gate` | `locator proof landed; live instances pending` | live attempt 产出 review page/index refs、freshness、claim impact、next owner 或 blocker；review/index 不授权 publication readiness。 |
 
-P0 is complete only when these gates repeatedly produce MAS-owned progress or MAS-owned blockers on real paper lines. It is not completed by documentation alignment, repo tests, OPL production residency proof, queue completion, or App display.
+## 与其他 owner 文档的关系
 
-## Acceptance Contract
+- P1 / Workbench 产品化读 [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md)。
+- P2 / OPL framework、provider、sidecar、legacy retirement 读 [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md)。
+- P3 / MDS provenance、monolith closeout、archive/parity guard 读 [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md)。
+- P3a / runtime lifecycle、SQLite/file authority、restore proof 读 [Runtime Lifecycle SQLite 迁移 program](./runtime_lifecycle_sqlite_migration_program.md)。
 
-MAS paper autonomy is accepted only when a real eligible paper line can repeatedly show one of the following outcomes after an autonomous work unit:
-
-- manuscript, table, figure, result, package, evidence ledger, or review ledger delta;
-- publication gate replay with owner progress;
-- AI reviewer judgment update;
-- route decision, claim downgrade, bounded repair, switch-line, stop-loss, or human gate;
-- typed blocker that names the missing owner/input/permission/scientific constraint.
-
-Worker liveness, queue existence, status refresh, or provider attempt completion are supporting evidence. They do not count as paper progress by themselves.
-
-## Program Relationship
-
-| layer | current role | relationship to P0 |
-| --- | --- | --- |
-| P0 | paper autonomy target and acceptance | defines outcome, quality boundary, and live-soak proof |
-| P1 | OPL App MAS Runtime Workbench | turns P0 progress, blockers, route decisions, artifacts, terminal/logs, and safe actions into a user-facing product surface |
-| P2 | OPL stage-led/provider runtime alignment | gives P0 durable stage attempt, queue, wakeup, recovery, approval, receipt, lifecycle, and projection support through OPL |
-| P3 | MAS monolith / MDS absorb landed foundation | keeps MAS as the single default medical-research owner and keeps MDS as provenance/audit/reference |
-| P3a | runtime lifecycle / SQLite / Git-retirement landed foundation | keeps runtime lifecycle authority, archive/restore proof, and legacy workspace drift handling stable |
-
-Implementation details should live with the layer that owns them: P1 for App/workbench, P2 for OPL framework/provider, P3/P3a for landed foundation guards, and P0 for paper-loop acceptance.
-
-## Active Responsibilities
-
-P0 currently owns these responsibilities:
-
-- Keep the paper loop target clear: reviewer finding -> repair work unit -> canonical delta -> gate replay -> AI reviewer recheck -> route decision or closure.
-- Keep negative, weak, contradictory, or blocked analysis visible through claim downgrade, bounded repair, switch-line, stop-loss, failed-path evidence, or human gate.
-- Keep stage-led research autonomy natural-language-first: Codex CLI explores inside a bounded stage packet; route engines compare, route, audit, and materialize decisions, but do not replace research reasoning.
-- Keep publication-route memory as experience cards and writeback receipts, not a rigid recipe engine and not a quality authority.
-- Keep quality authority in MAS-owned study charter, evidence ledger, review ledger, AI reviewer, publication gate, controller decisions, and canonical paper sources.
-
-Related responsibilities live in these owner documents:
-
-- OPL App UI, terminal panels, action sheets, and runtime workbench layout belong to [P1](./opl_app_mas_runtime_workbench_program.md).
-- OPL provider, Temporal worker, family queue, stage attempt ledger, retry/dead-letter, shared lifecycle primitive, and domain-agent skeleton migration belong to [P2](./opl_temporal_mas_runtime_retirement_program.md) and OPL master docs.
-- MDS provenance, monolith closeout, workspace layout, root/quest Git retirement, restore proof, and old workspace drift belong to [P3/P3a](./mas_single_project_mds_absorb_program.md) and [Runtime Lifecycle SQLite Migration](./runtime_lifecycle_sqlite_migration_program.md).
-
-## Current Verification
-
-Use these evidence levels in order:
-
-1. Real study surfaces: `study_progress`, `study_runtime_status`, `runtime_supervision/latest.json`, `controller_decisions/latest.json`, `publication_eval/latest.json`, paper artifacts, gate/reviewer receipts.
-2. MAS owner receipts: repair execution, route decision, gate replay request, AI reviewer recheck request, stage memory closeout and write-router receipts.
-3. Repo contract tests: sidecar/repair/reviewer/route/stage-memory focused tests and `make test-meta`.
-4. OPL/provider evidence: stage attempt and queue receipts only after they reference MAS owner receipts and do not write forbidden MAS truth surfaces.
-5. Production hosted evidence: provider attempt query, Codex/domain activity receipt, typed closeout, MAS owner receipt, no-forbidden-write proof, and an artifact delta / gate replay / reviewer update / route decision / human gate / stop-loss / typed blocker in MAS truth surfaces.
-
-Docs, queue tasks, provider status, and worktree activity are never publication-quality proof.
-
-## Historical Content Disposition
-
-The previous long record mixed target definition, completed repo work, implementation lanes, external framework comparisons, and real-paper soak requirements. It has been archived as a full record because it is still useful provenance, but it is no longer the current reading surface.
-
-Use the archived record only for:
-
-- detailed 2026-05-10 closeout evidence;
-- original lane names and historical acceptance examples;
-- external engineering reference provenance;
-- future audits that need to reconstruct why P0 split into MAS target plus OPL framework/product dependencies.
-
-New implementation detail should enter the current owner document that actually owns it: P0 for paper loop acceptance, P1 for App/workbench productization, P2 for OPL framework/provider alignment, P3/P3a for monolith/runtime lifecycle guard evidence.
+新增实现细节先按 [Program Portfolio Consolidation](./program_portfolio_consolidation.md) 和 [MAS 当前开发线路](./current_development_lines.md) 归类，再落到实际 owner 文档；本文只保留论文自治目标、验收口径和 live evidence gate。

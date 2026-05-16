@@ -62,6 +62,18 @@ MAS 文档只维护医学研究 domain agent 的目标、差距、study/publicat
 | `docs/history/program/` / `docs/history/capabilities/` / `docs/history/positioning/` | `history_only` | 只作 dated snapshot、tombstone、旧定位和 provenance；Domain Harness OS、Open Harness OS、Hermes-first、MDS default dependency 不能从这里回写到 active/current。 |
 | `docs/product/` / `docs/public/` / `docs/source/` / `docs/specs/` | `thin_current_index` | 目录按 OPL-family taxonomy 保留；只承接本目录职责，不扩成第二计划、第二 runtime 或第二 truth source。 |
 
+## 2026-05-17 生命周期审计补充
+
+本轮继续按同一基准审计全量 `docs/**/*.md` 与 `docs/*.md`，审计记录见 [Docs lifecycle 审计记录 2026-05-17](./references/mainline/docs_lifecycle_audit_2026_05_17.md)。
+
+处置重点：
+
+- active owner 文档必须是中文 canonical 内容；历史 full record 只作为 provenance 链接，不承担当前执行队列。
+- P0 只持有 paper autonomy 目标和 live evidence gate；P2 只持有 OPL framework / MAS sidecar / legacy retirement 边界；P3/P3a 只持有 landed foundation guard。
+- 默认 scheduler owner 已迁到 OPL replacement；MAS local scheduler / LaunchAgent 只保留显式 status/remove cleanup diagnostic，不再写成 active runtime owner。
+- Reference 层可以保存 MDS/DeepScientist/Hermes 等支撑材料，但必须同时说明当前 owner 边界；旧 Research Foundry 梯子和 repo split 材料归 `docs/history/positioning/`。如果材料成为 active backlog，先迁到 `docs/active/` 或 OPL owner doc。
+- History 层只读；入口必须让读者知道旧 Domain Harness OS、outer-loop、Hermes-first、gateway/frontdoor/federation、program/capabilities 只能作为 provenance/tombstone 读取。
+
 ## 内容级整合规则
 
 1. 当前 factual truth 合入核心五件套、runtime/controller/schema/source 或当前 owner doc。

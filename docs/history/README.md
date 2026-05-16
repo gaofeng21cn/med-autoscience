@@ -1,7 +1,5 @@
 # 历史归档
 
-[English](./README.md) | **中文**
-
 本目录保存 repo-tracked 历史材料：dated snapshot、provenance、退役 board、归档 implementation plan 和过程稿。
 
 History 是只读语境，不拥有 active backlog、runtime truth、controller decision、publication readiness、artifact authority 或 policy truth。

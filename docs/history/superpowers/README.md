@@ -1,7 +1,5 @@
 # Superpowers 过程草稿归档
 
-[English](./README.md) | **中文**
-
 这里保存历史 repo-tracked Superpowers plan / spec 草稿。
 
 这些文件是历史过程材料，不是当前 MAS contract、runtime truth、policy truth 或 regression oracle。
