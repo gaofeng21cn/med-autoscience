@@ -155,16 +155,15 @@ Human / Agent
 - 持有 authority artifact、runtime artifact、verdict artifact 与 delivery artifact 的边界
 - 维持研究推进、审核、停止、promotion、publication hygiene 与 submission delivery
 
-outer loop 不应被误解成第二个常驻 runtime。当前推荐形态是：
+outer loop 不应被误解成第二个常驻 runtime。下列形态是本文写作时的历史迁移语境：
 
-- `Hermes` 作为 controller-facing outer runtime substrate
-- 这里的 `Hermes` 当前只表示面向上游 `Hermes-Agent` 目标的 repo-side seam，不等于宿主上已经有独立外部 runtime
-- `MedDeepScientist` 作为常驻 inner research backend
+- `Hermes` 当时被设想为 controller-facing outer runtime substrate；当前只按显式非默认 executor adapter、proof/provenance 或历史参考读取。
+- `MedDeepScientist` 当时被设想为常驻 inner research backend；当前只按 MAS 显式声明的 backend audit、source provenance、historical fixture、explicit archive import、upstream intake 或 parity oracle reference 读取。
 - `Med Auto Science` 作为唯一研究入口与 tick-driven outer controller
 
 相关机制见：
 
-- [Outer-Loop Wakeup And Decision Loop](../../runtime/control/outer_loop_wakeup_and_decision_loop.md)
+- [Outer-Loop Wakeup And Decision Loop](../runtime/outer_loop_wakeup_and_decision_loop.md)
 
 ## 为什么 publication / display 仍然是主价值
 

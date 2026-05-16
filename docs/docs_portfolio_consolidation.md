@@ -48,6 +48,20 @@ MAS 文档只维护医学研究 domain agent 的目标、差距、study/publicat
 
 如果历史文件仍含 current truth，先抽取内容进入当前 owner 文档，再保留原文件作为 provenance。
 
+## 2026-05-16 生命周期审阅结论
+
+本轮以 [MAS 理想目标态](./references/positioning/mas_ideal_state.md)、[MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md)、OPL family 主参考和核心五件套为依据，逐类审阅 `docs/**` 中除主参考和核心五件套外的长期文档。当前处置如下：
+
+| 文档族 | lifecycle | 处置 |
+| --- | --- | --- |
+| `docs/active/` | `current_plan/support` | 保留为 MAS 当前执行、差距和 closeout evidence 入口；旧 program 物理目录不复活，`program_id` 只作为语义 ID。 |
+| `docs/runtime/control/study_runtime_control_surface.md` / `study_runtime_orchestration.md` / `runtime_supervision_loop.md` | `current_runtime_support` | 保留当前控制面、orchestration 和 domain supervision 解释；通用 queue/attempt/provider/state-machine runner 继续归 OPL。 |
+| `docs/runtime/control/supervision_scheduler_contract.md` | `current_residue_migration_bridge` | 保留为 MAS 活代码中的 direct/local diagnostic scheduler 残留说明；不能写成 MAS 理想终态，后续有 replacement proof 后迁移或退役。 |
+| `docs/runtime/control/outer_loop_wakeup_and_decision_loop.md` | `history_provenance` | 已归档到 `docs/history/runtime/outer_loop_wakeup_and_decision_loop.md`；active control 入口改读 `study_runtime_control_surface` 与 `runtime_event_and_outer_loop_input_contract`。 |
+| `docs/delivery/medical-display/` | `current_delivery_support` | 保持为 medical-display 能力族活跃位置；旧 `docs/capabilities/medical-display/` 只保留历史/provenance，不作为 backlog。 |
+| `docs/history/program/` / `docs/history/capabilities/` / `docs/history/positioning/` | `history_only` | 只作 dated snapshot、tombstone、旧定位和 provenance；Domain Harness OS、Open Harness OS、Hermes-first、MDS default dependency 不能从这里回写到 active/current。 |
+| `docs/product/` / `docs/public/` / `docs/source/` / `docs/specs/` | `thin_current_index` | 目录按 OPL-family taxonomy 保留；只承接本目录职责，不扩成第二计划、第二 runtime 或第二 truth source。 |
+
 ## 内容级整合规则
 
 1. 当前 factual truth 合入核心五件套、runtime/controller/schema/source 或当前 owner doc。
@@ -61,3 +75,12 @@ MAS 文档只维护医学研究 domain agent 的目标、差距、study/publicat
 ## Direct Retirement
 
 当旧模块、旧接口、旧 CLI alias、旧 wrapper、旧 facade、旧测试入口或旧文档入口已被当前 owner surface 替代时，默认直接退役。迁移 active caller 后删除旧面；需要来龙去脉时只保留 history/tombstone/provenance，不新增 compatibility shim、别名或聚合测试。
+
+直接退役的判断顺序固定为：
+
+1. 证明没有 default CLI/MCP/product-entry/app-skill/OPL active caller。
+2. 证明没有 public surface、fixture 或 provenance 必须依赖该旧入口。
+3. 证明 replacement owner surface、history link 或 tombstone contract 已存在。
+4. 删除旧源码、命令 wrapper、alias、facade 和对应兼容测试；测试改断言当前 machine-readable contract、schema、CLI/API、manifest 或 generated artifact。
+
+满足上述条件后，不保留旧名兼容层，不新增聚合兼容测试，也不把旧文档路径当成稳定机器接口。

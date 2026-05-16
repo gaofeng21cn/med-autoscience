@@ -4,9 +4,9 @@
 
 它不替代：
 
-- `./study_runtime_control_surface.md`
-- `./study_runtime_orchestration.md`
-- `./outer_loop_wakeup_and_decision_loop.md`
+- `../control/study_runtime_control_surface.md`
+- `../control/study_runtime_orchestration.md`
+- `./runtime_event_and_outer_loop_input_contract.md`
 
 而是回答两个在 P2 必须冻结的问题：
 
@@ -150,12 +150,12 @@
 
 ## 5. 与现有文档的桥接
 
-- `./study_runtime_control_surface.md`
+- `../control/study_runtime_control_surface.md`
   - 裁定 `pause / stop / rerun / requires_human_confirmation` 语义
-- `./study_runtime_orchestration.md`
+- `../control/study_runtime_orchestration.md`
   - 裁定 runtime orchestration、transport、`launch_report_path`
-- `./outer_loop_wakeup_and_decision_loop.md`
-  - 裁定 `runtime_escalation_record -> publication_eval -> study_decision_record` durable outer loop
+- `./runtime_event_and_outer_loop_input_contract.md`
+  - 裁定 `runtime_escalation_record -> publication_eval -> study_decision_record` 的 runtime input / controller consumption 边界
 - `./delivery_plane_contract_map.md`（本文）
   - 裁定 delivery/publication plane 与上述 artifact 的 owner / surface / non-authority 边界
 
@@ -163,7 +163,7 @@
 
 1. `study_runtime_control_surface.md` 先裁定 formal control semantics
 2. `study_runtime_orchestration.md` 裁定 runtime/transport artifact persistence
-3. `outer_loop_wakeup_and_decision_loop.md` 裁定 outer-loop durable decision loop
+3. `runtime_event_and_outer_loop_input_contract.md` 裁定 runtime event / escalation 输入边界
 4. 本文裁定 delivery/publication plane 的 surface role 与 artifact map
 
 ## 6. 对应 planning truth

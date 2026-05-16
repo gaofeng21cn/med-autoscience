@@ -70,7 +70,7 @@ study_runtime_status / ensure_study_runtime
 
 - [`../../runtime/control/study_runtime_orchestration.md`](../../runtime/control/study_runtime_orchestration.md)
 - [`../../runtime/control/study_runtime_control_surface.md`](../../runtime/control/study_runtime_control_surface.md)
-- [`../../runtime/control/outer_loop_wakeup_and_decision_loop.md`](../../runtime/control/outer_loop_wakeup_and_decision_loop.md)
+- [`../runtime/outer_loop_wakeup_and_decision_loop.md`](../runtime/outer_loop_wakeup_and_decision_loop.md)
 - [`../../runtime/contracts/delivery_plane_contract_map.md`](../../runtime/contracts/delivery_plane_contract_map.md)
 
 本文件只负责补齐：

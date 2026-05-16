@@ -38,6 +38,8 @@ MAS 本仓只维护医学研究 domain agent 的目标、当前差距、study/pu
 `capabilities/` 目录已物理退役；program-baton 内容进入 `active/`，
 medical-display 能力族进入 `delivery/medical-display/`。
 
+当前生命周期校准：`outer_loop_wakeup_and_decision_loop.md` 已从 active runtime/control 归档到 [history/runtime](./history/runtime/README.md)，只作 provenance。当前 control 语义从 [Study runtime control surface](./runtime/control/study_runtime_control_surface.md)、[Study runtime orchestration](./runtime/control/study_runtime_orchestration.md) 和 [Runtime event and outer-loop input contract](./runtime/contracts/runtime_event_and_outer_loop_input_contract.md) 读取。MAS local scheduler / LaunchAgent / 300 秒 tick 只按 direct/local diagnostic 残留和迁移桥理解，不写成 MAS 理想 runtime 常态。
+
 ## 阅读规则
 
 先读核心文档，再进入对应子目录索引。详细文件清单由各子目录 README 承担，本页只保留短导航。

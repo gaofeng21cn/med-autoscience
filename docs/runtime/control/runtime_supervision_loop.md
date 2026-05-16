@@ -10,7 +10,7 @@ Machine boundary: 本文解释 MAS domain supervision / read-model / owner recei
 一句话结论：
 
 - `MedAutoScience` 默认不是 resident HTTP/WebSocket daemon
-- MAS direct/local diagnostics 下的默认 scheduler adapter 是 `local`，每 `300` 秒调用一次 MAS-owned supervision tick script；macOS backend 已落到 MAS-owned LaunchAgent；contract owner 是 `MAS supervision scheduler contract`
+- MAS direct/local diagnostics 下的 scheduler adapter 是 `local`，每 `300` 秒调用一次 MAS-owned supervision tick script；macOS backend 已落到 MAS-owned LaunchAgent；当前 contract owner 是 `MAS supervision scheduler contract`，后续应迁往 OPL provider/runtime manager 或退役
 - OPL-hosted production wakeup、queue、attempt、retry/dead-letter 和 operator projection 归 OPL provider；OPL 只能消费 MAS sidecar / owner receipt，不能写 MAS study truth、publication judgement、paper/package authority 或 artifact gate
 - 当前 MAS direct/local desired tick script 依序调用 `watch-runtime --max-ticks 1`、`supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch`
 - 该 outer loop 不拥有 runner completion 后的连续科研主循环，也不维护 generic runtime kernel；内层 `turn completion -> next turn` 由 MAS runtime-facing owner surface 低延迟处理
@@ -40,7 +40,7 @@ Machine boundary: 本文解释 MAS domain supervision / read-model / owner recei
   - 持有 production provider、queue、attempt ledger、retry/dead-letter、operator projection、generic state-machine runner、App/workbench shell 与跨 domain projection
   - 只消费 MAS 显式导出的 sidecar task、typed blocker、owner receipt 和 artifact locator，不解释医学研究状态
 - `Scheduler Contract / Adapter`
-  - contract owner 是 `MAS supervision scheduler contract`
+  - 当前 contract owner 是 `MAS supervision scheduler contract`，仅作为 direct/local diagnostics 迁移桥
   - 负责在 MAS direct/local diagnostics 场景按约定 cadence 调用 MAS supervision tick script
   - 当前 direct/local adapter 是 MAS-owned `local` scheduler；macOS backend 已落地为 LaunchAgent
   - 显式传入 `hermes` 只走 optional adapter；旧 `systemd|cron|launchd|docker` manager 已移除
@@ -596,7 +596,7 @@ MAS direct/local 外部 scheduler 应调用 MAS-owned supervision tick script；
 - 先把单次 `supervisor tick` 做严谨
 - 再由外部 scheduler 周期调用它
 
-MAS direct/local diagnostic 的 canonical scheduler owner 是 `MAS supervision scheduler contract`。默认 direct/local adapter 是 MAS-owned `local` scheduler；macOS backend 已落地为 LaunchAgent；Hermes gateway cron 只在显式 `--manager hermes` 时作为 optional adapter。OPL-hosted production wakeup / queue / attempt owner 是 OPL provider。旧 Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager service scaffold 只在历史/debug 文档或 retired diagnostic response 中出现；active scaffold 不再渲染这些旧模板。
+MAS direct/local diagnostic 当前由 `MAS supervision scheduler contract` 承载。direct/local adapter 是 MAS-owned `local` scheduler；macOS backend 已落地为 LaunchAgent；Hermes gateway cron 只在显式 `--manager hermes` 时作为 optional adapter。OPL-hosted production wakeup / queue / attempt owner 是 OPL provider。旧 Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager service scaffold 只在历史/debug 文档或 retired diagnostic response 中出现；active scaffold 不再渲染这些旧模板。该 scheduler surface 是迁移桥，不是 MAS 理想长期 generic runtime platform。
 
 MAS 负责“这一跳应该怎么判、怎么恢复、怎么写 durable truth”。scheduler 或 OPL provider 只负责按周期调用、承载 attempt 或投影 receipt，不持有医学研究 truth、publication judgement、paper/package authority 或 artifact gate。
 

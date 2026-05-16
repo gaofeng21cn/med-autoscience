@@ -1,22 +1,26 @@
 # Supervision Scheduler Contract
 
-Status: `active scheduler contract / local adapter landed`
+Status: `active_local_diagnostic_migration_bridge`
 Owner: `MedAutoScience Runtime OS`
-Date: `2026-05-09`
+Date: `2026-05-16`
 
 ## 入口结论
 
-`MedAutoScience` 的运行形态应固定为三层：
+本文描述 MAS 当前仍存在的 direct/local diagnostic scheduler surface。它是代码和合同中的真实残留，不是 MAS 理想长期 runtime/platform owner。长期目标是把 scheduler lifecycle、cadence SLO、job registry、provider wakeup、attempt ledger、retry/dead-letter 和 operator projection 上收到 OPL Framework / provider layer；MAS 保留医学 domain transition、owner receipt、paper-progress blocker、safe action refs 和 no-forbidden-write evidence。
+
+`MedAutoScience` 当前运行相关文档按三层读取：
 
 | layer | owner | responsibility |
 | --- | --- | --- |
 | Runtime Core | `MAS Runtime OS` / `mas_runtime_core` | 持有 worker、run、turn lifecycle、runner completion 后的下一 turn 调度、runtime health 与 recovery truth。 |
-| Supervisor Scheduler | `MAS supervision scheduler contract` | 按 cadence 唤醒 MAS-owned supervision tick，记录 job/run receipt，暴露 freshness / SLO / drift；不持有研究执行或质量判断。 |
+| Supervisor Scheduler | `MAS supervision scheduler contract` | 当前 direct/local diagnostics 的 cadence tick、job/run receipt、freshness / SLO / drift；不持有研究执行或质量判断，后续应迁往 OPL provider/runtime manager 或退役。 |
 | Product Projection | `Progress Portal` / `Live Console` / `study-progress` / cockpit | 只读展示前两层事实，不执行 runtime action，不写 study/publication/artifact truth。 |
 
-`MAS supervision scheduler contract` 现在是默认 owner。`local` 是默认 adapter selection：macOS 本机落到 MAS-owned LaunchAgent，Linux / container 仍 fail-closed 为 no persistent local scheduler 并给出 one-shot reconcile 语义。`Hermes gateway cron` 保留为显式 `--manager hermes` optional adapter，不是架构中心，也不是 MAS runtime / session / research owner。
+当前代码中 `MAS supervision scheduler contract` 仍是 MAS-owned local scheduler owner。`local` 是 direct/local diagnostic adapter selection：macOS 本机落到 MAS-owned LaunchAgent，Linux / container 仍 fail-closed 为 no persistent local scheduler 并给出 one-shot reconcile 语义。`Hermes gateway cron` 保留为显式 `--manager hermes` optional adapter，不是架构中心，也不是 MAS runtime / session / research owner。新增投入不得继续把这个 surface 扩展成 MAS generic scheduler platform。
 
 2026-05-09 落地更新：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 已接到 `supervision_scheduler` façade，默认 `--manager local`。macOS local adapter 会生成 MAS-owned tick script、LaunchAgent plist、install proof 和 scheduler receipt；显式 `--manager hermes` 继续调用 Hermes adapter 并投影到同一 `scheduler_owner=mas_supervision_scheduler` 合同下。
+
+2026-05-16 生命周期校准：上述实现仍是 MAS 当前活代码和 local diagnostics 迁移桥。它不能被当前 docs、Portal、product-entry 或 status 写成 MAS 理想终态；后续 replacement proof / no-active-caller proof 成立后，应直接迁移或退役 MAS-owned scheduler lifecycle、300 秒 tick、job registry 和 outer-supervision SLO 输入，不新增 compatibility shim、alias 或兼容测试。
 
 2026-05-12 退役更新：旧 `systemd|cron|launchd|docker` manager 不再是 CLI 或 controller 可调用 manager。`supervision_scheduler` 和 Hermes adapter 只接受 `local` 与显式 `hermes`；旧 workspace-local service 只作为 Hermes optional adapter status 里的 `retired_cleanup_evidence` 被观察和清理，不再有单独 runtime payload、安装建议或 direct-call 兼容层。
 
@@ -235,11 +239,11 @@ Status: `macOS apply landed; real workspace shadow/cutover evidence pending`
 - Hermes 仍为 primary；local 为 shadow。
 - `runtime-supervision-status` 能显示 primary/secondary adapter 与 drift。
 
-### Phase 4: Default cutover
+### Phase 4: Direct/local cutover
 
 Status: `CLI default switched to local; real workspace migration receipts pending`
 
-把默认 scheduler adapter 切到 `local`。
+把 direct/local diagnostic scheduler adapter 切到 `local`。
 
 关键要求：
 
@@ -301,7 +305,7 @@ Hermes 可以从 required dependency 降为 optional adapter 的条件：
 4. tick sequence、receipt、SLO、duplicate detection、drift detection 与 Hermes adapter 同构。
 5. Portal、Live Console、study-progress、workspace cockpit 和 OPL handoff 只读取 MAS scheduler projection。
 6. 旧 Hermes jobs 有 disable/remove migration receipt。
-7. OPL core/domain install 和 MAS default operation 在无 Hermes 环境下不降级。
+7. OPL core/domain install 和 MAS direct/local diagnostic operation 在无 Hermes 环境下不降级。
 
 ## 不做的事
 
