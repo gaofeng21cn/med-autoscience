@@ -462,5 +462,3 @@ def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path
         "quality_override",
         "submission_authorization",
     ]
-
-

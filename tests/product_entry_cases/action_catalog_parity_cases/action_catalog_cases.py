@@ -187,5 +187,3 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     }
     assert "product_entry_manifest.functional_consumer_boundary" in boundary["proof_surfaces"]
     assert "mas_owned_generic_queue" in boundary["forbidden_regressions"]
-
-

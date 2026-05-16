@@ -263,5 +263,3 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert set(stage["stage_skill_surface_projection"]) == set(stage_skill_projection)
         assert stage["stage_skill_surface_projection"]["authority_boundary"]["can_close_paper"] is False
         assert stage["authority_boundary"]["can_authorize_publication_quality"] is False
-
-

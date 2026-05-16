@@ -298,5 +298,3 @@ def test_product_entry_manifest_exposes_legacy_residue_audit_without_default_cal
     assert all(item["body_included"] is False for item in audit["findings"])
     assert audit["authority_boundary"]["audit_can_delete_code"] is False
     assert audit["authority_boundary"]["audit_can_change_runtime_defaults"] is False
-
-
