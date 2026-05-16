@@ -312,6 +312,7 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
         "\tscripts/run-pytest-clean.sh tests/test_family_shared_release.py "
         "tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py "
         "tests/test_dev_preflight.py -q\n"
+        "\tscripts/run-pytest-clean.sh tests/test_opl_agent_lab_longline_migration.py -q\n"
     ) in makefile
     assert (
         'if [[ "${lane}" == "family" ]]; then\n'

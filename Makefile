@@ -65,6 +65,7 @@ test-submission:
 
 test-family:
 	scripts/run-pytest-clean.sh tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q
+	scripts/run-pytest-clean.sh tests/test_opl_agent_lab_longline_migration.py -q
 
 test-control-plane:
 	scripts/run-pytest-clean.sh -q $(CONTROL_PLANE_TESTS)
