@@ -305,6 +305,31 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "artifact_gate_override",
         "current_package_write",
     ]
+    assert payload["authority_boundary"]["owns_generic_scheduler"] is False
+    assert payload["authority_boundary"]["owns_generic_daemon"] is False
+    assert payload["authority_boundary"]["owns_generic_queue"] is False
+    assert payload["authority_boundary"]["owns_generic_attempt_ledger"] is False
+    assert payload["authority_boundary"]["owns_generic_runner"] is False
+    assert payload["authority_boundary"]["owns_generic_workbench"] is False
+    boundary = payload["functional_consumer_boundary"]
+    assert boundary["surface_kind"] == "mas_functional_consumer_boundary"
+    assert boundary["generic_surface_owner"] == "one-person-lab"
+    assert set(boundary["mas_does_not_own"]) >= {
+        "generic_scheduler",
+        "generic_daemon",
+        "generic_queue",
+        "generic_attempt_ledger",
+        "generic_runner",
+        "generic_workbench",
+    }
+    assert set(boundary["mas_retains"]) >= {
+        "study_truth",
+        "publication_quality_verdict",
+        "artifact_authority",
+        "publication_route_memory_body",
+        "owner_receipt",
+        "safe_action_refs",
+    }
     assert payload["profile"]["profile_ref"] == str(profile_path)
     assert payload["workspace"]["workspace_root"] == str(workspace_root)
     provider = payload["provider_ready_adapter"]

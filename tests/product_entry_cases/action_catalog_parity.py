@@ -200,6 +200,47 @@ def test_product_entry_manifest_exposes_foundry_agent_product_positioning(tmp_pa
     }
 
 
+def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: Path) -> None:
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    boundary = manifest["functional_consumer_boundary"]
+
+    assert boundary["surface_kind"] == "mas_functional_consumer_boundary"
+    assert boundary["status"] == "opl_consumes_generic_surfaces_mas_retains_domain_authority_pack"
+    assert boundary["consumer_role"] == "domain_authority_pack_thin_program_surface"
+    assert boundary["generic_surface_owner"] == "one-person-lab"
+    assert boundary["no_active_caller_required"] is True
+    assert boundary["mas_does_not_own"] == [
+        "generic_scheduler",
+        "generic_daemon",
+        "generic_queue",
+        "generic_attempt_ledger",
+        "generic_runner",
+        "generic_transition_runner",
+        "generic_workbench",
+        "generic_memory_locator",
+        "generic_artifact_lifecycle",
+        "generic_observability",
+    ]
+    assert set(boundary["mas_retains"]) == {
+        "study_truth",
+        "publication_quality_verdict",
+        "artifact_authority",
+        "publication_route_memory_body",
+        "memory_writeback_decision",
+        "domain_transition_table",
+        "owner_receipt",
+        "typed_blocker",
+        "safe_action_refs",
+    }
+    assert "product_entry_manifest.functional_consumer_boundary" in boundary["proof_surfaces"]
+    assert "mas_owned_generic_queue" in boundary["forbidden_regressions"]
+
+
 def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descriptor(tmp_path: Path) -> None:
     stage_knowledge_plane = importlib.import_module("med_autoscience.controllers.stage_knowledge_plane")
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")

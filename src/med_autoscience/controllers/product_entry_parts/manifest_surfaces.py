@@ -30,6 +30,7 @@ from .manifest_projection_compaction import (
     _manifest_portable_supervisor_queue_dashboard,
 )
 from med_autoscience.controllers import opl_provider_ready_adapter
+from med_autoscience.controllers.supervision_scheduler_parts import consumer_migration
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.legacy_residue_audit import build_legacy_residue_audit
 from med_autoscience.stage_skill_surface_projection import build_stage_skill_surface_projection
@@ -671,6 +672,7 @@ def build_product_entry_manifest(
             "phase4_backend_deconstruction": phase4_backend_deconstruction,
             "phase5_platform_target": phase5_platform_target,
             "product_positioning": _build_product_positioning(),
+            "functional_consumer_boundary": consumer_migration.build_functional_consumer_boundary(),
             "opl_family_persistence_lifecycle_owner_route_adoption": (
                 opl_family_persistence_lifecycle_owner_route_adoption
             ),
@@ -907,6 +909,7 @@ def build_product_entry_status(
         "single_project_boundary": single_project_boundary,
         "capability_owner_boundary": capability_owner_boundary,
         "executor_defaults": dict(manifest.get("executor_defaults") or {}),
+        "functional_consumer_boundary": dict(manifest.get("functional_consumer_boundary") or {}),
         "runtime_inventory": dict(manifest.get("runtime_inventory") or {}),
         "task_lifecycle": dict(manifest.get("task_lifecycle") or {}),
         "skill_catalog": dict(manifest.get("skill_catalog") or {}),

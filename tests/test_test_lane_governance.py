@@ -149,3 +149,62 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
         "submission_ready",
         "artifact_gate_override",
     }
+
+
+def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
+    lane = _test_lane_manifest()["focused_lanes"]["mas-functional-consumer-followthrough"]
+
+    assert lane["kind"] == "focused_mas_functional_consumer_boundary_gate"
+    assert lane["authority_boundary"] == "opl_consumed_generic_surfaces_mas_domain_authority_pack_only"
+    assert lane["implementation_status"] == "landed_functional_consumer_guard"
+    assert lane["machine_truth_surface"] == "contracts/test-lane-manifest.json"
+    assert lane["generic_surface_owner"] == "one-person-lab"
+    assert lane["default_scheduler_owner"] == "opl_provider_runtime_manager"
+    assert lane["live_soak_required_for_this_lane"] is False
+
+    for path in lane["paths"] + lane["docs"]:
+        assert (REPO_ROOT / path).exists(), path
+
+    assert lane["mas_does_not_own"] == [
+        "generic_scheduler",
+        "generic_daemon",
+        "generic_queue",
+        "generic_attempt_ledger",
+        "generic_runner",
+        "generic_transition_runner",
+        "generic_workbench",
+        "generic_memory_locator",
+        "generic_artifact_lifecycle",
+        "generic_observability",
+    ]
+    assert set(lane["mas_retains"]) == {
+        "study_truth",
+        "publication_quality_verdict",
+        "artifact_authority",
+        "publication_route_memory_body",
+        "memory_writeback_decision",
+        "domain_transition_table",
+        "owner_receipt",
+        "typed_blocker",
+        "safe_action_refs",
+    }
+    assert lane["required_projection_surfaces"] == [
+        "product_entry_manifest.functional_consumer_boundary",
+        "sidecar_export.functional_consumer_boundary",
+        "supervision_scheduler.consumer_migration.functional_consumer_boundary",
+    ]
+    assert lane["no_active_caller_proof_required"] == [
+        "cli_default_manager_is_opl",
+        "local_scheduler_ensure_cleanup_only",
+        "sidecar_exports_no_generic_owner",
+        "product_entry_manifest_exports_no_generic_owner",
+        "focused_tests_green",
+    ]
+    assert set(lane["forbidden_runtime_regressions"]) == {
+        "mas_default_generic_scheduler",
+        "mas_resident_generic_daemon",
+        "mas_owned_generic_queue",
+        "mas_owned_attempt_ledger",
+        "mas_generic_transition_runner",
+        "mas_generic_workbench_shell",
+    }

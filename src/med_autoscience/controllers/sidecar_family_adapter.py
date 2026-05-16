@@ -122,6 +122,12 @@ def _authority_boundary_payload() -> dict[str, Any]:
         "opl_receipt_policy": "transport_receipt_only_no_domain_truth_authority",
         "writes_domain_truth": False,
         "writes_artifact_gate": False,
+        "owns_generic_scheduler": False,
+        "owns_generic_daemon": False,
+        "owns_generic_queue": False,
+        "owns_generic_attempt_ledger": False,
+        "owns_generic_runner": False,
+        "owns_generic_workbench": False,
         "forbidden_authorities": [
             "study_truth_write",
             "publication_quality_verdict",
@@ -264,6 +270,7 @@ def export_family_sidecar(
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
         },
         "authority_boundary": _authority_boundary_payload(),
+        "functional_consumer_boundary": consumer_migration.build_functional_consumer_boundary(),
         "family_transition_spec_descriptor": (
             study_domain_transition_table.build_family_transition_spec_descriptor()
         ),
