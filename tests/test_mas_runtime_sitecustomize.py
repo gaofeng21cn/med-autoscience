@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+import tempfile
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -50,9 +51,18 @@ def test_sitecustomize_routes_mas_workspace_cwd_pycache_to_workspace_ops(tmp_pat
     ]
 
 
-def test_sitecustomize_disables_bytecode_when_cwd_is_mas_repo_root(tmp_path: Path) -> None:
+def test_sitecustomize_routes_repo_root_caches_to_temp_root(tmp_path: Path) -> None:
     result = subprocess.run(
-        [sys.executable, "-c", "import sys; print(sys.dont_write_bytecode); print(sys.pycache_prefix or '')"],
+        [
+            sys.executable,
+            "-c",
+            (
+                "import os, pathlib, sys; "
+                "print(sys.pycache_prefix or ''); "
+                "print(os.environ.get('PYTHONPYCACHEPREFIX') or ''); "
+                "print(os.environ.get('PYTEST_ADDOPTS') or '')"
+            ),
+        ],
         cwd=REPO_ROOT,
         env=_sitecustomize_env(tmp_path),
         text=True,
@@ -60,7 +70,38 @@ def test_sitecustomize_disables_bytecode_when_cwd_is_mas_repo_root(tmp_path: Pat
         check=True,
     )
 
-    assert result.stdout.splitlines() == ["True", ""]
+    lines = result.stdout.splitlines()
+    assert lines[0] == lines[1]
+    assert lines[0].startswith(str(Path(tempfile.gettempdir()) / "mas-python-cache"))
+    assert str(REPO_ROOT) not in lines[0]
+    assert "-o cache_dir=" in lines[2]
+    assert str(REPO_ROOT) not in lines[2]
+
+
+def test_sitecustomize_prevents_repo_cache_when_direct_pytest_is_used(tmp_path: Path) -> None:
+    shutil.rmtree(REPO_ROOT / ".pytest_cache", ignore_errors=True)
+    shutil.rmtree(REPO_ROOT / "src" / "med_autoscience" / "__pycache__", ignore_errors=True)
+
+    probe_test = tmp_path / "probe_test.py"
+    probe_test.write_text(
+        "def test_import_mas_runtime_surface():\n"
+        "    import med_autoscience.controllers.runtime_watch\n"
+        "    assert True\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", str(probe_test)],
+        cwd=REPO_ROOT,
+        env=_sitecustomize_env(tmp_path, pythonpath=REPO_ROOT / "src"),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert not (REPO_ROOT / ".pytest_cache").exists()
+    assert not (REPO_ROOT / "src" / "med_autoscience" / "__pycache__").exists()
 
 
 def test_sitecustomize_prevents_repo_source_pycache_when_importing_from_quest_cwd(tmp_path: Path) -> None:
@@ -102,6 +143,7 @@ def test_sitecustomize_does_not_change_non_quest_cwd_pycache(tmp_path: Path) -> 
 
 def _sitecustomize_env(tmp_path: Path, *, pythonpath: Path | None = None) -> dict[str, str]:
     env = os.environ.copy()
+    env.pop("PYTEST_ADDOPTS", None)
     env.pop("PYTHONDONTWRITEBYTECODE", None)
     env.pop("PYTHONPYCACHEPREFIX", None)
     sitecustomize_root = tmp_path / "sitecustomize-src"

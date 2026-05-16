@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 import sys
+import tempfile
 
 
 def _is_mas_repo_root(path: Path) -> bool:
@@ -31,15 +33,30 @@ def _set_pycache_prefix(cache_root: Path) -> None:
     sys.pycache_prefix = value
 
 
+def _repo_cache_root(repo_root: Path) -> Path:
+    digest = hashlib.sha256(str(repo_root).encode("utf-8")).hexdigest()[:16]
+    return Path(tempfile.gettempdir()) / "mas-python-cache" / digest
+
+
+def _set_pytest_cache_dir(cache_dir: Path) -> None:
+    existing = os.environ.get("PYTEST_ADDOPTS", "")
+    if "cache_dir" in existing:
+        return
+    value = f"-o cache_dir={cache_dir}"
+    os.environ["PYTEST_ADDOPTS"] = f"{existing} {value}".strip()
+
+
 def _configure_mas_runtime_pycache() -> None:
-    if os.environ.get("PYTHONPYCACHEPREFIX") or os.environ.get("PYTHONDONTWRITEBYTECODE"):
+    if os.environ.get("PYTHONPYCACHEPREFIX"):
         return
     try:
         cwd = Path.cwd().resolve()
     except OSError:
         return
     if _is_mas_repo_root(cwd):
-        sys.dont_write_bytecode = True
+        cache_root = _repo_cache_root(cwd)
+        _set_pycache_prefix(cache_root / "pycache")
+        _set_pytest_cache_dir(cache_root / "pytest-cache")
         return
     workspace_root = _mas_workspace_root(cwd)
     if workspace_root is not None:
