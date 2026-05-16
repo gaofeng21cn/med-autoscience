@@ -55,113 +55,46 @@ def ensure(
     dry_run: bool = False,
 ) -> dict[str, Any]:
     backend = local_backend_id()
-    if backend != "local_launchd":
-        current = _non_persistent_status(profile=profile, interval_seconds=interval_seconds, adapter_id=backend)
-        proof = _install_proof(
-            profile=profile,
-            adapter_id=backend,
-            interval_seconds=interval_seconds,
-            status="blocked",
-            installed=False,
-            dry_run=True,
-            commands=[],
-            command_outputs=[],
-            reason="persistent_local_scheduler_not_supported_in_this_environment",
-        )
-        if write_install_proof:
-            _write_json(_install_proof_path(profile), proof)
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "surface_kind": "workspace_runtime_supervision_install_result",
-            "action": "blocked",
-            "manager": "local",
-            "scheduler_owner": SCHEDULER_OWNER,
-            "adapter_id": backend,
-            "active_path_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
-            "before": current,
-            "after": current,
-            "install_proof": proof,
-            "install_proof_path": str(_install_proof_path(profile)) if write_install_proof else None,
-            "dry_run": dry_run,
-        }
-
-    before = _launchd_status(profile=profile, interval_seconds=interval_seconds)
-    script = _tick_script_path(profile)
-    plist_path = _launch_agent_path(profile)
-    plist_payload = _launch_agent_plist(profile=profile, interval_seconds=interval_seconds)
+    before = status(profile=profile, interval_seconds=interval_seconds)
     command_outputs: list[dict[str, Any]] = []
-    commands = _launchd_install_commands(profile)
-    action = "dry_run" if dry_run else "installed"
-    if not dry_run and not _workspace_python_available(profile):
-        proof = _install_proof(
-            profile=profile,
-            adapter_id="local_launchd",
-            interval_seconds=interval_seconds,
-            status="blocked",
-            installed=False,
-            dry_run=False,
-            commands=commands,
-            command_outputs=command_outputs,
-            reason="workspace_python_missing_or_not_executable",
-        )
-        if write_install_proof:
-            _write_json(_install_proof_path(profile), proof)
-        after = _launchd_status(profile=profile, interval_seconds=interval_seconds)
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "surface_kind": "workspace_runtime_supervision_install_result",
-            "action": "blocked",
-            "manager": "local",
-            "scheduler_owner": SCHEDULER_OWNER,
-            "adapter_id": "local_launchd",
-            "active_path_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
-            "before": before,
-            "after": after,
-            "script_path": str(script),
-            "launch_agent_path": str(plist_path),
-            "install_proof": proof,
-            "install_proof_path": str(_install_proof_path(profile)) if write_install_proof else None,
-            "command_outputs": command_outputs,
-            "dry_run": dry_run,
-        }
-    if not dry_run:
-        script = _ensure_tick_script(profile=profile, interval_seconds=interval_seconds)
-        plist_path.parent.mkdir(parents=True, exist_ok=True)
-        plist_path.write_bytes(plistlib.dumps(plist_payload, sort_keys=True))
-        command_outputs.extend(_load_launch_agent(plist_path=plist_path, label=_launchd_label(profile)))
-        if trigger_now:
-            command_outputs.append(_run_tick_script(script_path=script))
-            action = "installed_and_triggered"
     proof = _install_proof(
         profile=profile,
-        adapter_id="local_launchd",
+        adapter_id=backend,
         interval_seconds=interval_seconds,
-        status="ready" if dry_run else "installed",
-        installed=not dry_run,
-        dry_run=dry_run,
-        commands=commands,
+        status="blocked",
+        installed=False,
+        dry_run=True,
+        commands=[],
         command_outputs=command_outputs,
-        reason=None,
+        reason="mas_local_scheduler_install_retired_use_opl_replacement",
     )
-    if write_install_proof and not dry_run:
-        _write_json(_install_proof_path(profile), proof)
-    after = _launchd_status(profile=profile, interval_seconds=interval_seconds)
+    after = status(profile=profile, interval_seconds=interval_seconds)
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": "workspace_runtime_supervision_install_result",
-        "action": action,
+        "action": "retired_cleanup_only",
+        "status": "blocked",
         "manager": "local",
         "scheduler_owner": SCHEDULER_OWNER,
-        "adapter_id": "local_launchd",
+        "adapter_id": backend,
         "active_path_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
         "before": before,
         "after": after,
-        "script_path": str(script),
-        "launch_agent_path": str(plist_path),
+        "script_path": str(_tick_script_path(profile)),
+        "launch_agent_path": str(_launch_agent_path(profile)),
         "install_proof": proof,
-        "install_proof_path": str(_install_proof_path(profile)) if write_install_proof and not dry_run else None,
+        "install_proof_path": None,
         "command_outputs": command_outputs,
-        "dry_run": dry_run,
+        "dry_run": True,
+        "trigger_now": trigger_now,
+        "requested_dry_run": dry_run,
+        "requested_write_install_proof": write_install_proof,
+        "cleanup_command": "runtime-remove-supervision --profile <profile> --manager local",
+        "replacement_command": "runtime-ensure-supervision --profile <profile> --manager opl",
+        "note": (
+            "MAS local scheduler installation is retired. Use OPL provider replacement for scheduler "
+            "lifecycle and --manager local only to inspect or remove legacy LaunchAgent artifacts."
+        ),
     }
 
 
@@ -223,9 +156,9 @@ def _launchd_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict
     loaded = installed and script_exists and bool(launchd_probe.get("loaded")) and not drift_reasons
     status_value = "loaded" if loaded else ("not_loaded" if installed else "not_installed")
     summary = (
-        "MAS local scheduler LaunchAgent 已安装并指向 MAS-owned supervision tick。"
+        "检测到 legacy MAS local scheduler LaunchAgent；请使用 --manager local 清理旧生成物。"
         if loaded
-        else "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。"
+        else "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。"
     )
     payload = _base_status(
         profile=profile,

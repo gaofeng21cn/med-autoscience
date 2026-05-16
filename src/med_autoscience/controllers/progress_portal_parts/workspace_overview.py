@@ -19,7 +19,8 @@ _WORKSPACE_SUPERVISION_ALERTS = frozenset(
     {
         "MAS scheduler local adapter runtime supervision 尚未注册。",
         "Supervisor scheduler 尚未注册。",
-        "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。",
+        "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。",
+        "检测到 legacy MAS local scheduler LaunchAgent；请使用 --manager local 清理旧生成物。",
     }
 )
 _PARKED_STUDY_WORKSPACE_ALERTS = frozenset(
@@ -483,7 +484,11 @@ def _alert_item(text: str) -> dict[str, str | None]:
     recommended_command: str | None = None
     if text in _WORKSPACE_SUPERVISION_ALERTS:
         source = "workspace_supervision.service.summary"
-        if text != "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。":
+        legacy_outputs = {
+            "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。",
+            "检测到 legacy MAS local scheduler LaunchAgent；请使用 --manager local 清理旧生成物。",
+        }
+        if text not in legacy_outputs:
             text = "MAS scheduler local adapter runtime supervision 尚未注册。"
         purpose = "说明 workspace 级 MAS scheduler job 尚未安装、未加载或存在漂移。"
         expected = "默认 scheduler 由 OPL provider/runtime manager 持有；MAS local adapter 只作为 legacy diagnostic cleanup 显式检查。"

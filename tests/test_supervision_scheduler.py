@@ -118,41 +118,13 @@ def test_local_scheduler_dry_run_projects_launchd_without_hermes(monkeypatch, tm
     assert not Path(result["script_path"]).exists()
 
 
-def test_local_scheduler_apply_writes_tick_script_plist_and_receipt(monkeypatch, tmp_path: Path) -> None:
+def test_local_scheduler_ensure_is_retired_cleanup_only(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
     local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
     profile = make_profile(tmp_path)
-    workspace_python = _write_workspace_python(profile)
     launch_agents = tmp_path / "LaunchAgents"
     monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
     monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
-    commands: list[list[str]] = []
-
-    def fake_run_command(command: list[str]) -> dict[str, object]:
-        commands.append(command)
-        if command and command[0].endswith("watch_runtime_tick.py"):
-            receipt = profile.workspace_root / "artifacts" / "supervision" / "scheduler" / "receipts" / "latest.json"
-            receipt.parent.mkdir(parents=True, exist_ok=True)
-            receipt.write_text(
-                json.dumps(
-                    {
-                        "schema_version": 1,
-                        "surface_kind": "mas_supervision_tick_receipt",
-                        "started_at": "2026-05-09T00:00:00+00:00",
-                        "finished_at": "2026-05-09T00:00:01+00:00",
-                        "outcome": "succeeded",
-                        "exit_code": 0,
-                        "summary": "MAS supervision tick succeeded",
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-        return {"command": command, "exit_code": 0, "output": "ok"}
-
-    monkeypatch.setattr(local, "_run_command", fake_run_command)
 
     result = module.ensure_supervision(
         profile=profile,
@@ -161,31 +133,19 @@ def test_local_scheduler_apply_writes_tick_script_plist_and_receipt(monkeypatch,
         write_install_proof=True,
     )
 
-    assert result["action"] == "installed_and_triggered"
-    assert result["after"]["loaded"] is True
-    assert result["after"]["launch_agent_probe"]["loaded"] is True
-    assert result["after"]["scheduler_owner"] == "mas_supervision_scheduler"
+    assert result["action"] == "retired_cleanup_only"
+    assert result["status"] == "blocked"
+    assert result["install_proof"]["installed"] is False
+    assert result["install_proof"]["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
+    assert result["cleanup_command"].endswith(" --manager local")
+    assert result["after"]["job_exists"] is False
     assert result["after"]["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
     assert result["after"]["consumer_migration"]["retirement_state"] == (
         "local_legacy_retirement_pending_no_active_caller_proof"
     )
-    assert result["after"]["latest_run_recorded_at"] == "2026-05-09T00:00:01+00:00"
-    assert Path(result["script_path"]).is_file()
-    assert Path(result["launch_agent_path"]).is_file()
-    assert Path(result["install_proof_path"]).is_file()
-    script = Path(result["script_path"]).read_text(encoding="utf-8")
-    assert script.startswith(f"#!{workspace_python}\n")
-    assert "#!/usr/bin/env python3" not in script
-    assert "watch-runtime" in script
-    assert "supervisor-scan" in script
-    assert "supervisor-consume" in script
-    assert "supervisor-execute-dispatch" in script
-    assert "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin" in script
-    plist = json.loads(json.dumps(local.plistlib.loads(Path(result["launch_agent_path"]).read_bytes())))
-    assert plist["EnvironmentVariables"]["PATH"] == "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-    assert any(command[:2] == ["launchctl", "bootstrap"] for command in commands)
-    assert any(command[:2] == ["launchctl", "print"] for command in commands)
-    assert any(command and command[0].endswith("watch_runtime_tick.py") for command in commands)
+    assert not Path(result["script_path"]).exists()
+    assert not Path(result["launch_agent_path"]).exists()
+    assert result["command_outputs"] == []
 
 
 def test_generated_tick_script_clears_stale_pid_lock_and_continues(tmp_path: Path) -> None:
@@ -232,9 +192,9 @@ def test_local_scheduler_apply_blocks_when_workspace_python_missing(monkeypatch,
         write_install_proof=True,
     )
 
-    assert result["action"] == "blocked"
+    assert result["action"] == "retired_cleanup_only"
     assert result["install_proof"]["status"] == "blocked"
-    assert result["install_proof"]["reason"] == "workspace_python_missing_or_not_executable"
+    assert result["install_proof"]["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
     assert not Path(result["script_path"]).exists()
     assert not Path(result["launch_agent_path"]).exists()
 

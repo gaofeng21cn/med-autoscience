@@ -9,7 +9,7 @@ Date: `2026-05-08`
 当前正式状态已经从“外部 MDS 是默认执行依赖”收敛为：
 
 - `MAS Runtime OS` 持有默认 controller-facing runtime owner / substrate。
-- 默认 outer supervision scheduler owner 已迁到 OPL `opl_provider_runtime_manager`；默认 adapter 是 `opl_family_runtime_provider`。MAS supervision contract 保留 paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker 和 safe action refs。MAS-owned `local` scheduler / LaunchAgent 只在显式 `--manager local` 下作为 legacy diagnostic / cleanup path；desired script 依序运行 `watch-runtime --max-ticks 1`、`supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch`。`Hermes gateway cron` 只在显式选择时作为 optional adapter。
+- 默认 outer supervision scheduler owner 已迁到 OPL `opl_provider_runtime_manager`；默认 adapter 是 `opl_family_runtime_provider`。MAS supervision contract 保留 paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker 和 safe action refs。MAS-owned `local` scheduler / LaunchAgent install path 已退役；显式 `--manager local` 只做 legacy status/remove cleanup，不再注册、刷新或执行 desired script。`Hermes gateway cron` 只在显式选择时作为 optional adapter。
 - MAS Runtime Turn Lifecycle Kernel 持有 runner completion 后的状态归一化和下一 turn 调度；正常 `auto_continue` 不再等待 300 秒 supervision tick。
 - `med-deepscientist` 不再是 MAS 默认 study/status/progress/cockpit/diagnostic operation 的必需 checkout、daemon、runtime root 或 WebUI。
 - `MedDeepScientist` 只保留为 frozen source archive、historical fixture、explicit archive import reference / backend audit / provenance reference。
@@ -38,7 +38,7 @@ Date: `2026-05-08`
 因此：
 
 - 日常研究推进、turn-to-turn continuation、状态读取、恢复投影、progress/cockpit/Portal 可独立完成。
-- 外层 drift detection / stale recovery 仍受 300 秒 tick cadence 约束；低延迟 resident callback、WebSocket terminal streaming、connector background delivery、in-memory session continuity 不作为默认 MAS active behavior 保留。
+- 外层 drift detection / stale recovery 现在受 OPL provider SLO / cadence evidence 约束；低延迟 resident callback、WebSocket terminal streaming、connector background delivery、in-memory session continuity 不作为默认 MAS active behavior 保留。
 - 需要长时唤醒时，当前正确入口是 OPL provider/runtime manager replacement；MAS `local` adapter 和 Hermes gateway cron 只在显式 diagnostic / optional 路径中使用，不是旧 workspace-local launchd/systemd/cron/docker service。
 
 ## 4. Gate 规则

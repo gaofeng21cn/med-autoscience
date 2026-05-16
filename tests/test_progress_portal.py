@@ -428,7 +428,7 @@ def test_progress_portal_projects_local_scheduler_drift_with_repair_command() ->
         workspace_root="/workspace",
         cockpit_payload={
             "workspace_alerts": [
-                "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。"
+                "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。"
             ],
             "studies": [],
         },
@@ -437,12 +437,12 @@ def test_progress_portal_projects_local_scheduler_drift_with_repair_command() ->
 
     item = payload["workspace"]["workspace_alert_items"][0]
     assert item["source"] == "workspace_supervision.service.summary"
-    assert item["current_output"] == "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。"
+    assert item["current_output"] == "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。"
     assert item["recommended_command"] == (
         "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile> --manager local"
     )
     html = module.render_progress_portal_html(payload)
-    assert "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。" in html
+    assert "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。" in html
     assert "workspace_supervision.service.summary" in html
     assert "--manager local" in html
 

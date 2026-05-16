@@ -207,7 +207,7 @@
 `MedAutoScience` 继续保持下面的运行形态：
 
 - `MAS Runtime OS` 持有默认 runtime state、event、recovery 与 quest lifecycle
-- 默认 outer supervision scheduler owner 是 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider`；MAS direct/local diagnostic scheduler surface 只在显式 `--manager local` 下每 `300` 秒调用一次 MAS one-shot supervision tick，Hermes gateway cron 只在显式选择时作为 optional adapter
+- 默认 outer supervision scheduler owner 是 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider`；MAS direct/local diagnostic scheduler surface 只在显式 `--manager local` 下读取或移除 legacy scheduler 生成物，不再每 `300` 秒调用 MAS one-shot supervision tick；Hermes gateway cron 只在显式选择时作为 optional adapter
 - `MedAutoScience` 作为 tick-driven controller / read-model owner
 - 新增 `study_progress` 作为只读 progress/watch/report projection
 
