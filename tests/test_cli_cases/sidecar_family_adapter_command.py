@@ -330,6 +330,18 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "owner_receipt",
         "safe_action_refs",
     }
+    coverage = boundary["opl_functional_harness_consumer_coverage"]
+    assert coverage["coverage_items"] == [
+        "refs_only_memory_writeback_chain",
+        "queue_stage_attempt_typed_closeout",
+        "generic_transition_runner",
+        "restart_dead_letter_repair_human_gate_state_chain",
+    ]
+    assert coverage["opl_harness_pass_is_paper_closure"] is False
+    assert coverage["opl_harness_pass_is_publication_ready"] is False
+    assert coverage["mas_owns_generic_runtime"] is False
+    assert coverage["refs_only_memory_writeback_chain"]["body_included"] is False
+    assert coverage["generic_transition_runner"]["runner_completion_can_authorize_publication"] is False
     assert payload["profile"]["profile_ref"] == str(profile_path)
     assert payload["workspace"]["workspace_root"] == str(workspace_root)
     provider = payload["provider_ready_adapter"]

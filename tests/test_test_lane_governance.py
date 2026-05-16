@@ -193,6 +193,18 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "sidecar_export.functional_consumer_boundary",
         "supervision_scheduler.consumer_migration.functional_consumer_boundary",
     ]
+    coverage = lane["opl_functional_harness_consumer_coverage"]
+    assert coverage["status"] == "landed_domain_authority_pack_consumer"
+    assert coverage["coverage_items"] == [
+        "refs_only_memory_writeback_chain",
+        "queue_stage_attempt_typed_closeout",
+        "generic_transition_runner",
+        "restart_dead_letter_repair_human_gate_state_chain",
+    ]
+    assert coverage["opl_harness_pass_is_paper_closure"] is False
+    assert coverage["opl_harness_pass_is_publication_ready"] is False
+    assert coverage["mas_owns_generic_runtime"] is False
+    assert set(coverage["mas_retains_domain_authority_pack"]) == set(lane["mas_retains"])
     assert lane["no_active_caller_proof_required"] == [
         "cli_default_manager_is_opl",
         "local_scheduler_ensure_cleanup_only",

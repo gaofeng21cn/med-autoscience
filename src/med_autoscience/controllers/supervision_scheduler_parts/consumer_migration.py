@@ -66,6 +66,12 @@ OPL_CONSUMED_GENERIC_SURFACES = (
     "generic_artifact_lifecycle",
     "generic_observability",
 )
+OPL_FUNCTIONAL_HARNESS_COVERAGE = (
+    "refs_only_memory_writeback_chain",
+    "queue_stage_attempt_typed_closeout",
+    "generic_transition_runner",
+    "restart_dead_letter_repair_human_gate_state_chain",
+)
 MAS_RETAINED_THIN_PROGRAM_SURFACES = (
     "study_truth",
     "publication_quality_verdict",
@@ -89,6 +95,75 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         "generic_surfaces_consumed_from_opl": list(OPL_CONSUMED_GENERIC_SURFACES),
         "mas_does_not_own": list(OPL_CONSUMED_GENERIC_SURFACES),
         "mas_retains": list(MAS_RETAINED_THIN_PROGRAM_SURFACES),
+        "opl_functional_harness_consumer_coverage": {
+            "surface_kind": "opl_functional_harness_consumer_coverage",
+            "status": "landed_domain_authority_pack_consumer",
+            "coverage_items": list(OPL_FUNCTIONAL_HARNESS_COVERAGE),
+            "opl_harness_pass_is_paper_closure": False,
+            "opl_harness_pass_is_publication_ready": False,
+            "mas_owns_generic_runtime": False,
+            "refs_only_memory_writeback_chain": {
+                "opl_consumes": [
+                    "consumed_publication_route_memory_refs",
+                    "typed_closeout_proposal_refs",
+                    "memory_write_router_receipt_refs",
+                    "workspace_writeback_receipt_refs",
+                    "opl_aion_display_receipt_refs",
+                ],
+                "mas_retains": [
+                    "publication_route_memory_body",
+                    "memory_writeback_decision",
+                    "accepted_rejected_blocked_writeback_verdict",
+                ],
+                "body_included": False,
+                "opl_can_accept_or_reject_writeback": False,
+            },
+            "queue_stage_attempt_typed_closeout": {
+                "opl_owns": [
+                    "family_queue",
+                    "stage_attempt_ledger",
+                    "attempt_start_query_signal",
+                    "framework_typed_closeout_transport",
+                ],
+                "mas_retains": [
+                    "stage_closeout_domain_semantics",
+                    "owner_receipt",
+                    "typed_blocker",
+                    "safe_action_refs",
+                ],
+                "queue_completion_is_paper_closure": False,
+            },
+            "generic_transition_runner": {
+                "opl_owns": [
+                    "generic_transition_runner",
+                    "transition_matrix_runner",
+                    "idempotent_tick",
+                    "retry_dead_letter_transport",
+                ],
+                "mas_retains": [
+                    "domain_transition_table",
+                    "publication_quality_verdict",
+                    "artifact_authority",
+                    "owner_receipt",
+                ],
+                "runner_completion_can_authorize_publication": False,
+            },
+            "restart_dead_letter_repair_human_gate_state_chain": {
+                "opl_owns": [
+                    "restart_requery",
+                    "dead_letter_state",
+                    "repair_transport",
+                    "human_gate_signal_transport",
+                ],
+                "mas_retains": [
+                    "human_gate_domain_receipt",
+                    "repair_owner_receipt",
+                    "stop_loss_receipt",
+                    "typed_blocker",
+                ],
+                "state_chain_completion_is_publication_ready": False,
+            },
+        },
         "no_active_caller_required": True,
         "no_active_caller_scope": [
             "cli_default",
@@ -176,6 +251,7 @@ __all__ = [
     "MAS_RETAINED_AFTER_MIGRATION",
     "MAS_RETAINED_THIN_PROGRAM_SURFACES",
     "OPL_CONSUMED_GENERIC_SURFACES",
+    "OPL_FUNCTIONAL_HARNESS_COVERAGE",
     "OPL_REPLACEMENT_EXPECTED_CAPABILITIES",
     "REPLACEMENT_OWNER",
     "REPLACEMENT_OWNER_SURFACE",

@@ -460,6 +460,29 @@
         "sidecar_export.functional_consumer_boundary",
         "supervision_scheduler.consumer_migration.functional_consumer_boundary"
       ],
+      "opl_functional_harness_consumer_coverage": {
+        "status": "landed_domain_authority_pack_consumer",
+        "coverage_items": [
+          "refs_only_memory_writeback_chain",
+          "queue_stage_attempt_typed_closeout",
+          "generic_transition_runner",
+          "restart_dead_letter_repair_human_gate_state_chain"
+        ],
+        "opl_harness_pass_is_paper_closure": false,
+        "opl_harness_pass_is_publication_ready": false,
+        "mas_owns_generic_runtime": false,
+        "mas_retains_domain_authority_pack": [
+          "study_truth",
+          "publication_quality_verdict",
+          "artifact_authority",
+          "publication_route_memory_body",
+          "memory_writeback_decision",
+          "domain_transition_table",
+          "owner_receipt",
+          "typed_blocker",
+          "safe_action_refs"
+        ]
+      },
       "no_active_caller_proof_required": [
         "cli_default_manager_is_opl",
         "local_scheduler_ensure_cleanup_only",
