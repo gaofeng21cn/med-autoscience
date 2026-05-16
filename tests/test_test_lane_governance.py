@@ -188,6 +188,40 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "typed_blocker",
         "safe_action_refs",
     }
+    classification = lane["functional_surface_classification"]
+    assert classification["A_opl_owned_mas_consumes"] == [
+        "runtime_lifecycle_sqlite_reference_adapter",
+        "runtime_storage_maintenance",
+        "artifact_lifecycle_storage_audit_shell",
+        "workbench_portal_generic_shell",
+        "terminal_attach_transport",
+        "generic_daemon_or_scheduler_lifecycle",
+        "generic_queue_attempt_retry_dead_letter",
+        "generic_transition_runner",
+    ]
+    assert set(classification["B_mas_domain_authority"]) == set(lane["mas_retains"]) | {
+        "study_runtime_status",
+        "runtime_watch_domain_health",
+        "ai_reviewer_workflow",
+        "publication_gate",
+    }
+    assert set(classification["C_retire_when_replaced_or_uncalled"]) == {
+        "local_launchd_scheduler_install_path",
+        "workspace_local_watch_service_wrappers",
+        "mas_generic_workbench_shell",
+        "legacy_scheduler_default_aliases",
+        "daemonish_terminal_attach_status_as_runtime_owner",
+        "scheduler_legacy_residue_without_active_caller",
+    }
+    lifecycle_role = lane["runtime_lifecycle_sqlite_role"]
+    assert lifecycle_role["classification"] == "A_opl_owned_mas_consumes"
+    assert lifecycle_role["current_mas_role"] == "domain_sidecar_index_reference_adapter"
+    assert lifecycle_role["authority"] == "refs_only_index_not_generic_persistence_engine"
+    assert lifecycle_role["owner"] == "one-person-lab"
+    assert lifecycle_role["mas_may_claim_generic_persistence_engine"] is False
+    assert lifecycle_role["replacement_expectation"]["audit_ref"] == (
+        "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough"
+    )
     assert lane["required_projection_surfaces"] == [
         "product_entry_manifest.functional_consumer_boundary",
         "sidecar_export.functional_consumer_boundary",

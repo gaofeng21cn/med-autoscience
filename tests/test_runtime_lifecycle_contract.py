@@ -56,6 +56,9 @@ def test_runtime_lifecycle_contract_declares_sidecar_index_not_macro_state_autho
         "canvas_projection",
     ]
     assert contract["sidecar_authority_policy"] == "index_only_authority_remains_file_surfaces"
+    assert contract["sidecar_role"] == "mas_domain_sidecar_index_reference_adapter"
+    assert contract["generic_persistence_owner"] == "one-person-lab"
+    assert contract["generic_persistence_engine_claim_allowed"] is False
     assert "study_macro_state/latest.json" in contract["file_authority_surfaces"]
     assert "runtime_supervisor_owner_route" in contract["file_authority_surfaces"]
     assert "runtime_supervisor_dispatch_receipt" in contract["file_authority_surfaces"]
@@ -277,4 +280,20 @@ def test_runtime_lifecycle_contract_declares_opl_family_adapter_surface() -> Non
             "manuscript/current_package",
             "current_package.zip",
         ],
+        "runtime_lifecycle_sqlite_role": {
+            "classification": "A_opl_owned_mas_consumes",
+            "current_mas_role": "mas_domain_sidecar_index_reference_adapter",
+            "owner": "one-person-lab",
+            "authority": "refs_payload_projection_only",
+            "generic_persistence_engine_claim_allowed": False,
+            "replacement_expectation_audit_ref": (
+                "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough"
+            ),
+            "replacement_expected_from_opl": [
+                "opl_runtime_lifecycle_index_contract",
+                "opl_artifact_lifecycle_storage_audit_shell",
+                "opl_restore_retention_receipt_shell",
+                "opl_provider_attempt_receipt_ledger",
+            ],
+        },
     }
