@@ -28,16 +28,22 @@ def build_supervisor_scan_payload(
         "workspace_root": str(workspace_root),
         "scheduler_contract": {
             "codex_app_heartbeat_required": False,
-            "scheduler_owner": "mas_supervision_scheduler",
-            "default_adapter": "local",
+            "scheduler_owner": "opl_provider_runtime_manager",
+            "default_adapter": "opl_family_runtime_provider",
+            "legacy_diagnostic_scheduler_owner": "mas_supervision_scheduler",
+            "legacy_diagnostic_adapter": "local_launchd",
             "optional_adapters": ["hermes_gateway_cron"],
             "tick_contract": {
-                "command": "ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1",
-                "cadence_seconds": 300,
+                "command": "opl family-runtime provider-slo tick --provider temporal",
+                "cadence_owner": "opl_provider_runtime_manager",
+                "legacy_local_command": (
+                    "ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1"
+                ),
+                "legacy_local_cadence_seconds": 300,
                 "resident_daemon": False,
             },
             "retired_workspace_local_schedulers": ["systemd_user", "cron", "launchd"],
-            "external_scheduler_role": "optional_adapter_caller_of_mas_cli_only",
+            "external_scheduler_role": "opl_provider_runtime_manager_calls_mas_sidecar_or_domain_tick",
             "developer_supervisor_mode": dict(developer_mode_payload),
         },
         "developer_supervisor_mode": dict(developer_mode_payload),

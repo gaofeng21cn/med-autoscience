@@ -19,13 +19,15 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 - `default_independence`: landed
 - `full_mds_daemon_behavior_equivalence`: false
-- `scheduler_contract_owner`: `mas_supervision_scheduler`
-- `current_active_scheduler_adapter`: `local`
+- `scheduler_contract_owner`: `opl_provider_runtime_manager`
+- `current_active_scheduler_adapter`: `opl_family_runtime_provider`
+- `legacy_diagnostic_scheduler_owner`: `mas_supervision_scheduler`
+- `legacy_diagnostic_scheduler_adapter`: `local_launchd`
 - `optional_scheduler_adapters`: `hermes_gateway_cron`
-- `target_default_scheduler_adapter`: `local`
-- `default_tick_interval_seconds`: `300`
-- `default_tick_shape`: MAS-owned supervision tick script
-- `default_tick_sequence`: `watch-runtime --max-ticks 1` -> `supervisor-scan` -> `supervisor-consume` -> `supervisor-execute-dispatch`
+- `target_default_scheduler_adapter`: `opl_family_runtime_provider`
+- `default_tick_shape`: OPL-owned provider SLO / scheduler replacement tick that calls MAS sidecar or domain tick through owner receipts
+- `legacy_local_tick_interval_seconds`: `300`
+- `legacy_local_tick_sequence`: `watch-runtime --max-ticks 1` -> `supervisor-scan` -> `supervisor-consume` -> `supervisor-execute-dispatch`
 
 2026-05-10 Stage-Led Autonomy update：`memory / lesson store` 已从 generic autonomous memory service 缺口收敛为 `purpose_equivalent_with_authority_split`。MAS 通过 `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt` 和 `stage_recall_index` 保留 DeepScientist/MDS 的 stage memory/literature 目的，但 authority 分在 workspace、study、quest、evidence/review ledger、controller decision 和 human gate。真实 paper line 仍需继续 soak，证明 consumed refs、accepted/rejected writes、route impact 和 next owner 可见。
 
@@ -72,8 +74,8 @@ MAS 已经做到默认 operation、默认诊断、进度可视化、artifact/qua
 
 | behavior surface | classification | MDS behavior | MAS behavior | user impact |
 | --- | --- | --- | --- | --- |
-| daemon residency | `purpose_equivalent_with_different_timing` | resident HTTP/WebSocket daemon | MAS supervision scheduler contract calls MAS-owned supervision tick script every 300s; default adapter is local, Hermes is optional | drift detection and recovery can be scheduler-bound; no MAS resident daemon is claimed |
-| supervision cadence | `purpose_equivalent_with_different_timing` | resident callbacks and worker/session loop | 300s scheduled tick script begins with `watch-runtime --max-ticks 1`, then runs supervisor scan / consume / execute-dispatch; turn-to-turn continuation is owned by the MAS kernel | acceptable for outer drift detection and stale recovery; normal continuation no longer waits for cron, but live interactive daemon response is still not claimed |
+| daemon residency | `purpose_equivalent_with_different_timing` | resident HTTP/WebSocket daemon | 默认外层 cadence 由 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider` 持有；MAS local 300s tick 只作为显式 legacy diagnostic / cleanup adapter；Hermes 是 optional adapter | drift detection and recovery can be scheduler-bound; no MAS resident daemon is claimed |
+| supervision cadence | `purpose_equivalent_with_different_timing` | resident callbacks and worker/session loop | OPL replacement 负责 provider SLO / scheduler lifecycle；显式 legacy local adapter 的 300s tick script begins with `watch-runtime --max-ticks 1`, then runs supervisor scan / consume / execute-dispatch; turn-to-turn continuation is owned by the MAS kernel | acceptable for outer drift detection and stale recovery; normal continuation no longer waits for cron, but live interactive daemon response is still not claimed |
 | turn completion continuation | `behavior_equivalent` | runner completion normalizes state, drains queued user messages, schedules auto continuation, stops at human/terminal gates | MAS Runtime Turn Lifecycle Kernel performs the same normalization and next-turn decision with runner monitor, delayed timer, worker lease, user queue and receipt |旧 MDS 的“一个 session 结束后怎么启动另一个 session”缺口已补齐为 MAS-owned runtime behavior |
 | quest create/resume/pause/stop | `behavior_equivalent` | daemon API / quest service | MAS Runtime OS / study runtime router | daily lifecycle controls do not require external MDS |
 | live worker/session tracking | `purpose_equivalent_with_different_timing` | in-memory session store and live session API | worker lease + runner monitor + durable runtime state/read model observed by ticks | fail-closed durable liveness is stronger than stale JSON; MDS in-memory session continuity remains retired |

@@ -9,7 +9,7 @@
 统一按三层理解：
 
 - `OPL Runtime Manager` / scheduler adapter
-  - 长期运行、托管与调度能力 owner；默认消费 domain-owned scheduler projection，Hermes-Agent 只是显式 optional hosted provider
+  - 长期运行、托管与调度能力 owner；默认由 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider` 持有 scheduler lifecycle、cadence、provider SLO 与 projection，Hermes-Agent 只是显式 optional hosted provider / executor adapter
 - domain supervision
   - 领域治理、质量门控、进度真相、恢复判断 owner
 - quest executor
@@ -18,7 +18,7 @@
 对应到当前医学线：
 
 - `MAS supervision scheduler contract`
-  - local default scheduler owner；Hermes-Agent 仅在显式 hosted/runtime target 时作为 optional adapter
+  - 默认消费 OPL scheduler replacement；MAS `local` LaunchAgent 只作为显式 legacy diagnostic / cleanup adapter，Hermes-Agent 仅在显式 hosted/runtime target 时作为 optional adapter
 - `MedAutoScience`
   - medical supervision / publication governance / progress truth owner
 - `MedDeepScientist`
@@ -87,7 +87,7 @@
 ### MedAutoScience
 
 - `MAS supervision scheduler contract`
-  - default local scheduler / optional Hermes hosted adapter
+  - OPL scheduler replacement default / explicit legacy local diagnostic adapter / optional Hermes hosted adapter
 - `MedAutoScience`
   - medical supervision / publication governance / workspace cockpit / progress truth
 - `MedDeepScientist`
