@@ -49,7 +49,7 @@ def _build_family_persistence_policy_surface(
         ),
         _persistence_surface(
             surface_id="runtime_watch_latest",
-            surface_role="runtime_supervision_authority",
+            surface_role="mas_domain_runtime_health_projection",
             storage_role="file_authority",
             owner=TARGET_DOMAIN_ID,
             ref=_ref("studies/<study_id>/artifacts/runtime_watch/latest.json", ref_kind="workspace_locator"),
@@ -82,10 +82,10 @@ def _build_family_persistence_policy_surface(
         sidecar_indexes.append(
             _persistence_surface(
                 surface_id="runtime_lifecycle_sqlite",
-                surface_role="runtime_lifecycle_sidecar_index",
-                storage_role="sqlite_sidecar_index",
-                owner=TARGET_DOMAIN_ID,
-                ref=_ref(sqlite_ref, ref_kind="workspace_locator", label="runtime lifecycle SQLite sidecar"),
+                surface_role="domain_sidecar_reference_adapter",
+                storage_role="refs_only_sidecar_index",
+                owner="one-person-lab",
+                ref=_ref(sqlite_ref, ref_kind="workspace_locator", label="runtime lifecycle SQLite refs-only sidecar"),
                 rebuild_from_refs=[
                     _ref("/opl_family_persistence_lifecycle_owner_route_adoption/payload", label="adoption payload"),
                 ],
@@ -97,8 +97,8 @@ def _build_family_persistence_policy_surface(
         "target_domain_id": TARGET_DOMAIN_ID,
         "policy_id": "mas_opl_family_persistence_policy",
         "summary": (
-            "MAS exposes runtime lifecycle sidecar indexing to OPL while MAS-owned files remain the authority "
-            "for study runtime, controller, publication, AI reviewer, and paper package truth."
+            "MAS exposes runtime lifecycle sidecar refs to OPL as a domain reference adapter; MAS-owned files "
+            "remain the authority for study runtime, controller, publication, AI reviewer, and paper package truth."
         ),
         "authority_surfaces": authority_surfaces,
         "sidecar_indexes": sidecar_indexes,
@@ -143,16 +143,16 @@ def _build_family_lifecycle_ledger_surface(
         "phase": "verify",
         "status": "projected",
         "summary": (
-            "MAS lifecycle ledger is projected from MAS runtime lifecycle receipts; cleanup and archive authority "
-            "remain MAS-owned and restore proof is referenced for OPL discovery."
+            "MAS lifecycle ledger is projected from MAS receipt refs; generic persistence, restore/retention, and "
+            "lifecycle indexing are OPL-owned replacement concerns."
         ),
         "actions": [
             {
                 "action_id": "verify_runtime_lifecycle_sidecar_projection",
                 "action_kind": "verify_projection",
                 "target_ref": _ref(sqlite_ref, ref_kind="workspace_locator"),
-                "authority_owner": TARGET_DOMAIN_ID,
-                "safety_gate": "mas_restore_proof_required",
+                "authority_owner": "one-person-lab",
+                "safety_gate": "refs_only_no_domain_truth_write",
                 "result": "projected",
                 "manifest_ref": _ref(
                     "/opl_family_persistence_lifecycle_owner_route_adoption/refs/sqlite_sidecar",

@@ -532,6 +532,13 @@
         "owner": "one-person-lab",
         "mas_may_index_domain_receipts": true,
         "mas_may_claim_generic_persistence_engine": false,
+        "mas_consumes_opl_lifecycle_index_refs": true,
+        "mas_may_write_domain_truth": false,
+        "forbidden_mas_roles": [
+          "generic_persistence_engine",
+          "generic_lifecycle_engine",
+          "generic_restore_retention_owner"
+        ],
         "replacement_expectation": {
           "owner": "one-person-lab",
           "required_before_mas_generic_owner_claim": true,
@@ -547,6 +554,48 @@
           ],
           "mas_allowed_role_until_replacement": "domain_sidecar_reference_adapter_refs_only"
         }
+      },
+      "no_active_caller_proof": {
+        "status": "default_surfaces_use_opl_cleanup_only_local_path",
+        "default_caller_count": 0,
+        "default_manager": "opl",
+        "replacement_owner_surface": "opl_provider_runtime_manager",
+        "legacy_local_install_path_role": "explicit_cleanup_diagnostic_only",
+        "cleanup_only_commands": [
+          "runtime-supervision-status --profile <profile> --manager local",
+          "runtime-remove-supervision --profile <profile> --manager local"
+        ],
+        "forbidden_default_callers": [
+          "cli_default_local_scheduler_install",
+          "workspace_bootstrap_local_scheduler_install",
+          "product_entry_local_scheduler_install",
+          "sidecar_local_scheduler_install",
+          "mcp_local_scheduler_install"
+        ],
+        "proof_items": [
+          "cli_default_manager_is_opl",
+          "workspace_bootstrap_manager_is_opl",
+          "product_entry_consumes_opl_replacement_projection",
+          "sidecar_exports_functional_boundary_no_generic_owner",
+          "local_scheduler_ensure_returns_retired_cleanup_only",
+          "local_scheduler_remove_is_explicit_cleanup_only",
+          "local_scheduler_install_proof_generation_forbidden"
+        ]
+      },
+      "legacy_local_scheduler_cleanup_only_proof": {
+        "surface_kind": "mas_local_scheduler_cleanup_only_proof",
+        "install_allowed": false,
+        "trigger_allowed": false,
+        "write_install_proof_allowed": false,
+        "loaded_state_allowed": false,
+        "default_cli_exposes_local_install": false,
+        "default_bootstrap_exposes_local_install": false,
+        "cleanup_status": "retired_legacy_cleanup_required",
+        "remaining_physical_delete_blockers": [
+          "legacy_launchagent_or_tick_script_may_exist_on_operator_machines",
+          "explicit_status_remove_cleanup_path_still_needed_until_artifacts_absent",
+          "provenance_and_regression_fixtures_still_assert_tombstone_behavior"
+        ]
       },
       "required_projection_surfaces": [
         "product_entry_manifest.functional_consumer_boundary",

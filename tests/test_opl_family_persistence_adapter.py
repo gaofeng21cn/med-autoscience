@@ -151,6 +151,11 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert adoption["payload"]["authority_boundary"]["ai_reviewer_owner"] == "MedAutoScience"
     assert adoption["payload"]["owner_route"]["source_table"] == "owner_route_receipts"
     assert payload["persistence_policy"]["surface_kind"] == "family_persistence_policy"
+    assert payload["persistence_policy"]["sidecar_indexes"][0]["owner"] == "one-person-lab"
+    assert payload["persistence_policy"]["sidecar_indexes"][0]["surface_role"] == (
+        "domain_sidecar_reference_adapter"
+    )
+    assert payload["persistence_policy"]["sidecar_indexes"][0]["storage_role"] == "refs_only_sidecar_index"
     assert payload["persistence_policy"]["sidecar_indexes"][0]["ref"]["ref"] == (
         "artifacts/runtime/runtime_lifecycle.sqlite"
     )

@@ -56,7 +56,18 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "src/med_autoscience/runtime_protocol/study_runtime.py",
         "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
     ]
+    assert set(inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["forbidden_mas_roles"]) == {
+        "generic_persistence_engine",
+        "generic_lifecycle_engine",
+        "generic_restore_retention_owner",
+    }
     assert inventory_by_id["paper_work_unit_outbox_index"]["classification"] == "domain_thin_adapter"
     assert inventory_by_id["artifact_authority"]["cannot_absorb_reason"] == (
         "Canonical manuscript/package mutation and submission authority are MAS artifact authority."
     )
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["default_caller_count"] == 0
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
+    assert boundary["no_active_caller_proof"]["default_caller_count"] == 0
+    assert boundary["no_active_caller_proof"]["default_manager"] == "opl"
+    assert "workspace_bootstrap_manager_is_opl" in boundary["no_active_caller_proof"]["proof_items"]
+    assert boundary["legacy_local_scheduler_cleanup_only_proof"]["default_bootstrap_exposes_local_install"] is False

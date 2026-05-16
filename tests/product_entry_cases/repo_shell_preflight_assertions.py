@@ -87,7 +87,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                     "title": "Workspace Supervision Contract Ready",
                     "status": "pass",
                     "blocking": True,
-                    "summary": "workspace supervision scheduler 已 ready。",
+                    "summary": "OPL scheduler replacement projection 已 ready。",
                 "command": (
                     "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile "
                     + str(profile_ref.resolve())
@@ -106,7 +106,7 @@ def assert_manifest_preflight_and_guardrail_surfaces(*, module, payload, profile
                 {
                     "guardrail_id": "workspace_supervision_gap",
                     "trigger": "workspace-cockpit attention queue / study-progress supervisor freshness",
-                        "symptom": "MAS scheduler supervision 未在线、supervisor tick stale/missing、托管恢复真相不再新鲜。",
+                        "symptom": "OPL scheduler replacement projection 未在线，或 MAS domain runtime freshness stale/missing。",
                     "recommended_command": (
                         "uv run python -m med_autoscience.cli watch --runtime-root "
                         + str(profile.runtime_root)

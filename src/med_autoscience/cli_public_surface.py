@@ -115,7 +115,7 @@ GROUPED_COMMAND_SUMMARIES: dict[str, str] = {
     "doctor": "doctor 审计、profile、mainline 与 stage-route contract 检查。",
     "workspace": "workspace 初始化与 readiness cockpit。",
     "data": "研究资产、public data、registry 与 literature/memory 准备。",
-    "runtime": "runtime watch、MAS scheduler supervision、overlay、analysis bundle、storage maintenance 与 live console。",
+    "runtime": "runtime watch、OPL scheduler replacement projection、overlay、analysis bundle、storage maintenance 与 live console。",
     "study": "study runtime、progress、launch 与 delivery sync。",
     "publication": "投稿包、display surface、journal/target 与 publication gate。",
     "sidecar": "OPL family-runtime typed queue 的 MAS 只读 export 与 guarded dispatch。",

@@ -460,7 +460,7 @@ def _workspace_ready_alerts(doctor_report) -> list[str]:
     if not workspace_supervision_ready:
         alerts.append(
             workspace_supervision_summary
-            or "workspace supervision scheduler 尚未 ready。"
+            or "OPL scheduler replacement projection 尚未 ready。"
         )
     return alerts
 
@@ -533,10 +533,10 @@ def _build_product_entry_preflight(
             status="pass" if bool(workspace_supervision_contract.get("loaded")) else "fail",
             blocking=True,
             summary=(
-                "workspace supervision scheduler 已 ready。"
+                "OPL scheduler replacement projection 已 ready。"
                 if bool(workspace_supervision_contract.get("loaded"))
                 else _non_empty_text(workspace_supervision_contract.get("summary"))
-                or "workspace supervision scheduler 尚未 ready。"
+                or "OPL scheduler replacement projection 尚未 ready。"
             ),
             command=f"{_command_prefix(profile_ref)} runtime-ensure-supervision --profile {_profile_arg(profile_ref)}",
         ),
@@ -588,7 +588,7 @@ def _build_product_entry_guardrails(
             _build_shared_guardrail_class(
                 guardrail_id="workspace_supervision_gap",
                 trigger="workspace-cockpit attention queue / study-progress supervisor freshness",
-                symptom="MAS scheduler supervision 未在线、supervisor tick stale/missing、托管恢复真相不再新鲜。",
+                symptom="OPL scheduler replacement projection 未在线，或 MAS domain runtime freshness stale/missing。",
                 recommended_command=refresh_command,
             ),
             _build_shared_guardrail_class(

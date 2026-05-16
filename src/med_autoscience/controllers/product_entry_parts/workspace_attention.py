@@ -346,9 +346,9 @@ def _attention_queue(
         queue.append(
             _attention_item(
                 code="workspace_supervisor_service_not_loaded",
-                title="先恢复 MAS scheduler 定时监管",
+                title="先检查 OPL scheduler replacement",
                 summary=_non_empty_text(service.get("summary"))
-                or "当前 workspace 还没有稳定的 MAS scheduler 定时监管入口。",
+                or "当前 workspace 还没有稳定的 OPL scheduler replacement projection。",
                 recommended_step_id=_attention_step_id("workspace_supervisor_service_not_loaded"),
                 recommended_command=commands.get("service_install") or commands.get("service_status"),
                 scope="workspace",
@@ -574,7 +574,7 @@ def _runtime_state_attention_item(
         context,
         code="study_supervision_gap",
         title_suffix="当前失去新鲜监管心跳",
-        summary=str(context.get("lane_summary") or "MAS scheduler 托管监管存在缺口。"),
+        summary=str(context.get("lane_summary") or "OPL scheduler replacement projection 或 MAS domain runtime freshness 存在缺口。"),
         command=str(context.get("preferred_command") or commands.get("supervisor_tick") or context.get("progress_command") or ""),
     )
 

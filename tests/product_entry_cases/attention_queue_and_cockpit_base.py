@@ -651,6 +651,7 @@ def test_workspace_cockpit_summarizes_alerts_and_user_commands(monkeypatch, tmp_
         ),
     }
     assert payload["attention_queue"][0]["code"] == "workspace_supervisor_service_not_loaded"
+    assert payload["attention_queue"][0]["title"] == "先检查 OPL scheduler replacement"
     assert payload["attention_queue"][0]["recommended_command"].endswith(
         "runtime-ensure-supervision --profile " + str(profile_ref.resolve())
     )

@@ -95,6 +95,11 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert lifecycle_item["migration_action"] == (
         "consume_opl_family_runtime_lifecycle_index_and_keep_mas_domain_receipt_refs_only"
     )
+    assert set(lifecycle_item["forbidden_mas_roles"]) == {
+        "generic_persistence_engine",
+        "generic_lifecycle_engine",
+        "generic_restore_retention_owner",
+    }
     assert by_id["runtime_supervisor_scan_consume_dispatch_shell"]["migration_action"] == (
         "move generic scan consume dispatch reconcile loop to OPL runtime manager"
     )
@@ -102,6 +107,10 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
     )
     assert by_id["local_launchd_scheduler_install_path"]["active_caller_allowed"] is False
+    assert by_id["local_launchd_scheduler_install_path"]["default_caller_count"] == 0
+    assert by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
+    assert by_id["local_launchd_scheduler_install_path"]["trigger_allowed"] is False
+    assert by_id["local_launchd_scheduler_install_path"]["write_install_proof_allowed"] is False
     assert by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
     lifecycle_role = boundary["runtime_lifecycle_sqlite_role"]
     assert lifecycle_role["classification"] == "A_opl_owned_mas_consumes"
@@ -110,6 +119,13 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert lifecycle_role["owner"] == "one-person-lab"
     assert lifecycle_role["mas_may_index_domain_receipts"] is True
     assert lifecycle_role["mas_may_claim_generic_persistence_engine"] is False
+    assert lifecycle_role["mas_consumes_opl_lifecycle_index_refs"] is True
+    assert lifecycle_role["mas_may_write_domain_truth"] is False
+    assert set(lifecycle_role["forbidden_mas_roles"]) == {
+        "generic_persistence_engine",
+        "generic_lifecycle_engine",
+        "generic_restore_retention_owner",
+    }
     assert lifecycle_role["replacement_expectation"]["expected_replacements"] == [
         "opl_runtime_lifecycle_index_contract",
         "opl_artifact_lifecycle_storage_audit_shell",
@@ -148,3 +164,36 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     )
     assert "product_entry_manifest.functional_consumer_boundary" in boundary["proof_surfaces"]
     assert "mas_owned_generic_queue" in boundary["forbidden_regressions"]
+    assert boundary["no_active_caller_proof"] == {
+        "status": "default_surfaces_use_opl_cleanup_only_local_path",
+        "default_caller_count": 0,
+        "default_manager": "opl",
+        "replacement_owner_surface": "opl_provider_runtime_manager",
+        "legacy_local_install_path_role": "explicit_cleanup_diagnostic_only",
+        "cleanup_only_commands": [
+            "runtime-supervision-status --profile <profile> --manager local",
+            "runtime-remove-supervision --profile <profile> --manager local",
+        ],
+        "forbidden_default_callers": [
+            "cli_default_local_scheduler_install",
+            "workspace_bootstrap_local_scheduler_install",
+            "product_entry_local_scheduler_install",
+            "sidecar_local_scheduler_install",
+            "mcp_local_scheduler_install",
+        ],
+        "proof_items": [
+            "cli_default_manager_is_opl",
+            "workspace_bootstrap_manager_is_opl",
+            "product_entry_consumes_opl_replacement_projection",
+            "sidecar_exports_functional_boundary_no_generic_owner",
+            "local_scheduler_ensure_returns_retired_cleanup_only",
+            "local_scheduler_remove_is_explicit_cleanup_only",
+            "local_scheduler_install_proof_generation_forbidden",
+        ],
+    }
+    cleanup_only = boundary["legacy_local_scheduler_cleanup_only_proof"]
+    assert cleanup_only["install_allowed"] is False
+    assert cleanup_only["trigger_allowed"] is False
+    assert cleanup_only["write_install_proof_allowed"] is False
+    assert cleanup_only["default_cli_exposes_local_install"] is False
+    assert cleanup_only["default_bootstrap_exposes_local_install"] is False

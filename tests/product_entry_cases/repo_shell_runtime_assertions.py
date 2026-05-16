@@ -183,7 +183,9 @@ def _assert_family_persistence_lifecycle_owner_route(*, module, payload, profile
     assert policy["target_domain_id"] == "med-autoscience"
     assert {entry["storage_role"] for entry in policy["authority_surfaces"]} == {"file_authority"}
     assert "publication_eval_latest" in {entry["surface_id"] for entry in policy["authority_surfaces"]}
-    assert policy["sidecar_indexes"][0]["storage_role"] == "sqlite_sidecar_index"
+    assert policy["sidecar_indexes"][0]["storage_role"] == "refs_only_sidecar_index"
+    assert policy["sidecar_indexes"][0]["owner"] == "one-person-lab"
+    assert policy["sidecar_indexes"][0]["surface_role"] == "domain_sidecar_reference_adapter"
     assert policy["sidecar_indexes"][0]["ref"]["ref"] == "artifacts/runtime/runtime_lifecycle.sqlite"
     assert policy["projection_caches"][0]["storage_role"] == "projection_cache"
     assert policy["explicit_archive_import_refs"][0]["storage_role"] == "explicit_archive_import_ref_only"
@@ -195,6 +197,8 @@ def _assert_family_persistence_lifecycle_owner_route(*, module, payload, profile
     assert ledger["actions"][0]["manifest_ref"]["ref"] == (
         "/opl_family_persistence_lifecycle_owner_route_adoption/refs/sqlite_sidecar"
     )
+    assert ledger["actions"][0]["authority_owner"] == "one-person-lab"
+    assert ledger["actions"][0]["safety_gate"] == "refs_only_no_domain_truth_write"
     assert ledger["actions"][0]["sha256"] == "0" * 64
     assert ledger["actions"][0]["restore_ref"]["ref"] == "/session_continuity/restore_surface"
 

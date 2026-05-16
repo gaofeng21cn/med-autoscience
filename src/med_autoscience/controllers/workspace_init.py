@@ -150,7 +150,7 @@ def _render_workspace_readme(*, workspace_name: str, profile_relpath: Path) -> s
         "6. 通过 `ops/medautoscience/bin/enter-study` 或 `ensure-study-runtime` 进入正式研究流程。\n\n"
         "7. 运行 `ops/medautoscience/bin/progress-portal` 刷新固定进度入口，然后打开 `ops/mas/progress/index.html` 查看当前进度。\n\n"
         "8. 如需只读查看 runtime session、terminal/log stream 与 artifact refs，打开 `ops/mas/live-console/index.html` 或运行 `ops/mas/bin/live-console`。\n\n"
-        "9. 如需让 workspace 托管监管持续在线，运行 `medautosci runtime ensure-supervision --profile <profile>`；后续用 `runtime supervision-status` / `runtime remove-supervision` 管理 MAS scheduler supervision job；Hermes 只在显式 `--manager hermes` 时作为 optional adapter。\n\n"
+        "9. 如需检查 workspace 托管监管，运行 `medautosci runtime ensure-supervision --profile <profile>` 委托 OPL scheduler replacement；后续用默认 `runtime supervision-status` 读 OPL projection，显式 `--manager local` 只用于 legacy cleanup。\n\n"
         "10. 阅读 `WORKSPACE_AUTOSCIENCE_RULES.md`，确认 controller-first 与 automation-ready 默认约束。\n\n"
         "11. 优先维护 `portfolio/research_memory/`，把疾病热点、课题地图与期刊邻域沉淀为可复用研究资产。\n\n"
         "12. 如需额外外部视角，使用 `ops/medautoscience/bin/prepare-external-research` 准备 prompt；它是 optional enrichment，不是启动门。\n\n"

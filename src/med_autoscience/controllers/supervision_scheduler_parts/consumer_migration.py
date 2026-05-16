@@ -72,6 +72,48 @@ OPL_FUNCTIONAL_HARNESS_COVERAGE = (
     "generic_transition_runner",
     "restart_dead_letter_repair_human_gate_state_chain",
 )
+NO_ACTIVE_CALLER_PROOF = {
+    "status": "default_surfaces_use_opl_cleanup_only_local_path",
+    "default_caller_count": 0,
+    "default_manager": "opl",
+    "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,
+    "legacy_local_install_path_role": "explicit_cleanup_diagnostic_only",
+    "cleanup_only_commands": [
+        "runtime-supervision-status --profile <profile> --manager local",
+        "runtime-remove-supervision --profile <profile> --manager local",
+    ],
+    "forbidden_default_callers": [
+        "cli_default_local_scheduler_install",
+        "workspace_bootstrap_local_scheduler_install",
+        "product_entry_local_scheduler_install",
+        "sidecar_local_scheduler_install",
+        "mcp_local_scheduler_install",
+    ],
+    "proof_items": [
+        "cli_default_manager_is_opl",
+        "workspace_bootstrap_manager_is_opl",
+        "product_entry_consumes_opl_replacement_projection",
+        "sidecar_exports_functional_boundary_no_generic_owner",
+        "local_scheduler_ensure_returns_retired_cleanup_only",
+        "local_scheduler_remove_is_explicit_cleanup_only",
+        "local_scheduler_install_proof_generation_forbidden",
+    ],
+}
+LOCAL_SCHEDULER_CLEANUP_ONLY_PROOF = {
+    "surface_kind": "mas_local_scheduler_cleanup_only_proof",
+    "install_allowed": False,
+    "trigger_allowed": False,
+    "write_install_proof_allowed": False,
+    "loaded_state_allowed": False,
+    "default_cli_exposes_local_install": False,
+    "default_bootstrap_exposes_local_install": False,
+    "cleanup_status": "retired_legacy_cleanup_required",
+    "remaining_physical_delete_blockers": [
+        "legacy_launchagent_or_tick_script_may_exist_on_operator_machines",
+        "explicit_status_remove_cleanup_path_still_needed_until_artifacts_absent",
+        "provenance_and_regression_fixtures_still_assert_tombstone_behavior",
+    ],
+}
 MAS_RETAINED_THIN_PROGRAM_SURFACES = (
     "study_truth",
     "publication_quality_verdict",
@@ -140,11 +182,19 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_caller_status": "refs_only_domain_sidecar_adapter_active",
         "migration_action": "consume_opl_family_runtime_lifecycle_index_and_keep_mas_domain_receipt_refs_only",
-        "retention_reason": "MAS can index paper-line owner receipts and locators, but the generic SQLite lifecycle index owner is OPL.",
+        "retention_reason": (
+            "MAS can index paper-line owner receipts and locators as a domain sidecar reference adapter; "
+            "generic persistence, lifecycle indexing, restore/retention, and receipt ledger ownership stay in OPL."
+        ),
         "opl_expected_primitives": [
             "opl_runtime_lifecycle_index_contract",
             "opl_provider_attempt_receipt_ledger",
             "opl_restore_retention_receipt_shell",
+        ],
+        "forbidden_mas_roles": [
+            "generic_persistence_engine",
+            "generic_lifecycle_engine",
+            "generic_restore_retention_owner",
         ],
         "retained_domain_authority": ["owner_receipt", "study_runtime_status"],
     },
@@ -392,6 +442,10 @@ FUNCTIONAL_MODULE_INVENTORY = (
         "migration_action": "delete_or_tombstone_after_no_active_caller_and_replacement_proof",
         "retention_reason": "Temporary diagnostic path removes old LaunchAgent and tick script artifacts.",
         "active_caller_allowed": False,
+        "default_caller_count": 0,
+        "install_allowed": False,
+        "trigger_allowed": False,
+        "write_install_proof_allowed": False,
         "tombstone_required": True,
     },
     {
@@ -454,6 +508,13 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "owner": REPLACEMENT_OWNER,
             "mas_may_index_domain_receipts": True,
             "mas_may_claim_generic_persistence_engine": False,
+            "mas_consumes_opl_lifecycle_index_refs": True,
+            "mas_may_write_domain_truth": False,
+            "forbidden_mas_roles": [
+                "generic_persistence_engine",
+                "generic_lifecycle_engine",
+                "generic_restore_retention_owner",
+            ],
             "replacement_expectation": dict(OPL_REPLACEMENT_EXPECTATION_AUDIT),
         },
         "opl_functional_harness_consumer_coverage": {
@@ -526,6 +587,8 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             },
         },
         "no_active_caller_required": True,
+        "no_active_caller_proof": dict(NO_ACTIVE_CALLER_PROOF),
+        "legacy_local_scheduler_cleanup_only_proof": dict(LOCAL_SCHEDULER_CLEANUP_ONLY_PROOF),
         "no_active_caller_scope": [
             "cli_default",
             "mcp_default",
@@ -613,6 +676,8 @@ __all__ = [
     "FUNCTIONAL_SURFACE_CLASSIFICATION",
     "MAS_RETAINED_AFTER_MIGRATION",
     "MAS_RETAINED_THIN_PROGRAM_SURFACES",
+    "NO_ACTIVE_CALLER_PROOF",
+    "LOCAL_SCHEDULER_CLEANUP_ONLY_PROOF",
     "OPL_CONSUMED_GENERIC_SURFACES",
     "OPL_FUNCTIONAL_HARNESS_COVERAGE",
     "OPL_REPLACEMENT_EXPECTATION_AUDIT",

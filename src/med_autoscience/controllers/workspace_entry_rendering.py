@@ -57,9 +57,9 @@ def render_medautoscience_readme(*, profile_relpath: Path) -> str:
         "- `bin/supervisor-reconcile`\n"
         "- `bin/supervisor-consume`\n"
         "- `bin/supervisor-execute-dispatch`\n\n"
-        "MAS scheduler supervision job 由 canonical CLI 管理：`medautosci runtime ensure-supervision --profile <profile>`、"
+        "默认 scheduler projection 委托 OPL provider/runtime manager：`medautosci runtime ensure-supervision --profile <profile>`、"
         "`medautosci runtime supervision-status --profile <profile>` 与 `medautosci runtime remove-supervision --profile <profile>`。"
-        "Hermes 只在显式 `--manager hermes` 时作为 optional adapter。\n"
+        "显式 `--manager local` 只用于 legacy cleanup，Hermes 只在显式 `--manager hermes` 时作为 optional adapter。\n"
     )
 
 

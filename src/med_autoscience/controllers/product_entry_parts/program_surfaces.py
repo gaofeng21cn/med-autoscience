@@ -154,7 +154,7 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_clearance_target(
                 target_id="supervisor_service",
-                title="Keep MAS workspace supervision online",
+                title="Inspect OPL-owned supervision projection",
                 commands=[
                     supervisor_service_command,
                     refresh_supervision_command,
@@ -184,13 +184,13 @@ def _build_phase3_clearance_lane(
             ),
             _build_shared_product_entry_program_step(
                 step_id="supervisor_service",
-                title="确认 workspace 定时监管在线",
+                title="确认 OPL replacement 与 MAS domain projection 在线",
                 surface_kind="workspace_supervisor_service",
                 command=supervisor_service_command,
             ),
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
-                title="刷新 MAS runtime supervision tick",
+                title="刷新 MAS domain runtime projection",
                 surface_kind="runtime_watch_refresh",
                 command=refresh_supervision_command,
             ),
@@ -590,7 +590,7 @@ def _build_artifact_inventory_surface(
             "file_id": "runtime_supervision_latest",
             "label": "Runtime supervision (latest)",
             "path": "studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json",
-            "summary": "runtime supervision truth owned by MAS runtime/progress durable surfaces.",
+            "summary": "MAS domain runtime projection refs; generic scheduler and lifecycle ownership stay in OPL.",
         },
         {
             "file_id": "publication_eval_latest",
@@ -804,9 +804,9 @@ def _build_opl_runtime_manager_registration(
             "recommended_progress_command": str(runtime_continuity.get("recommended_progress_command") or ""),
         },
         "wakeup_boundary": {
-            "owner": TARGET_DOMAIN_ID,
+            "owner": "one-person-lab",
             "surface_ref": "/automation/automations/0",
-            "policy": "domain_owned_runtime_supervision_loop",
+            "policy": "opl_owned_scheduler_transport_mas_domain_receipt_projection",
         },
         "non_goals": [
             "not_a_study_truth_owner",

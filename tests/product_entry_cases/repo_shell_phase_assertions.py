@@ -23,7 +23,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
             {
                 "target_id": "supervisor_service",
-                "title": "Keep MAS workspace supervision online",
+                "title": "Inspect OPL-owned supervision projection",
                 "commands": [
                     (
                         "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
@@ -76,7 +76,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
             {
                 "step_id": "supervisor_service",
-                "title": "确认 workspace 定时监管在线",
+                "title": "确认 OPL replacement 与 MAS domain projection 在线",
                 "surface_kind": "workspace_supervisor_service",
                 "command": (
                     "uv run python -m med_autoscience.cli runtime-supervision-status --profile "
@@ -85,7 +85,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             },
             {
                 "step_id": "refresh_supervision",
-                "title": "刷新 MAS runtime supervision tick",
+                "title": "刷新 MAS domain runtime projection",
                 "surface_kind": "runtime_watch_refresh",
                 "command": (
                     "uv run python -m med_autoscience.cli watch --runtime-root "

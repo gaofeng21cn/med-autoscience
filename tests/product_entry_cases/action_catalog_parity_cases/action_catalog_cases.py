@@ -162,6 +162,10 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert boundary["consumer_role"] == "domain_authority_pack_thin_program_surface"
     assert boundary["generic_surface_owner"] == "one-person-lab"
     assert boundary["no_active_caller_required"] is True
+    assert boundary["no_active_caller_proof"]["default_caller_count"] == 0
+    assert boundary["no_active_caller_proof"]["default_manager"] == "opl"
+    assert boundary["legacy_local_scheduler_cleanup_only_proof"]["install_allowed"] is False
+    assert boundary["runtime_lifecycle_sqlite_role"]["mas_may_claim_generic_persistence_engine"] is False
     assert boundary["mas_does_not_own"] == [
         "generic_scheduler",
         "generic_daemon",

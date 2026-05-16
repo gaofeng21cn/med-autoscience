@@ -25,11 +25,11 @@ def _build_automation_surface(
     )
     runtime_supervision = _build_shared_automation_descriptor(
         automation_id="mas_runtime_supervision_loop",
-        title="MAS runtime supervision loop",
-        owner=TARGET_DOMAIN_ID,
+        title="MAS domain runtime projection refresh",
+        owner="one-person-lab",
         trigger_kind="interval",
         target_surface_kind="runtime_watch_refresh",
-        summary="按监督节拍刷新 study runtime，保持恢复建议和 attention queue 为最新状态。",
+        summary="由 OPL-owned scheduler transport 触发 MAS domain projection refresh，保持恢复建议和 attention queue 为最新状态。",
         readiness_status="automation_ready",
         gate_policy="publication_gated",
         output_expectation=[

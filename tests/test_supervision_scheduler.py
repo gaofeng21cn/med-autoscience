@@ -90,10 +90,27 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
     assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["active_caller_status"] == (
         "refs_only_domain_sidecar_adapter_active"
     )
+    assert set(inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["forbidden_mas_roles"]) == {
+        "generic_persistence_engine",
+        "generic_lifecycle_engine",
+        "generic_restore_retention_owner",
+    }
     assert inventory_by_id["runtime_supervisor_scan_consume_dispatch_shell"]["migration_action"] == (
         "move generic scan consume dispatch reconcile loop to OPL runtime manager"
     )
     assert inventory_by_id["local_launchd_scheduler_install_path"]["active_caller_allowed"] is False
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["default_caller_count"] == 0
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
+    assert boundary["no_active_caller_proof"]["default_caller_count"] == 0
+    assert boundary["no_active_caller_proof"]["forbidden_default_callers"] == [
+        "cli_default_local_scheduler_install",
+        "workspace_bootstrap_local_scheduler_install",
+        "product_entry_local_scheduler_install",
+        "sidecar_local_scheduler_install",
+        "mcp_local_scheduler_install",
+    ]
+    assert boundary["legacy_local_scheduler_cleanup_only_proof"]["trigger_allowed"] is False
+    assert boundary["legacy_local_scheduler_cleanup_only_proof"]["write_install_proof_allowed"] is False
     assert not launch_agents.exists()
 
 

@@ -245,6 +245,11 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "src/med_autoscience/runtime_protocol/study_runtime.py",
         "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
     ]
+    assert set(inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["forbidden_mas_roles"]) == {
+        "generic_persistence_engine",
+        "generic_lifecycle_engine",
+        "generic_restore_retention_owner",
+    }
     assert inventory_by_id["paper_work_unit_outbox_index"]["classification"] == "domain_thin_adapter"
     assert inventory_by_id["paper_work_unit_outbox_index"]["migration_action"] == (
         "move generic queue_outbox_retry_attempt semantics to OPL and keep paper work-unit facts as MAS receipt refs"
@@ -257,6 +262,10 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     )
     assert inventory_by_id["artifact_authority"]["migration_action"] == "retain_in_mas"
     assert inventory_by_id["local_launchd_scheduler_install_path"]["active_caller_allowed"] is False
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["default_caller_count"] == 0
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["trigger_allowed"] is False
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["write_install_proof_allowed"] is False
     assert inventory_by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
     lifecycle_role = lane["runtime_lifecycle_sqlite_role"]
     assert lifecycle_role["classification"] == "A_opl_owned_mas_consumes"
@@ -264,9 +273,37 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert lifecycle_role["authority"] == "refs_only_index_not_generic_persistence_engine"
     assert lifecycle_role["owner"] == "one-person-lab"
     assert lifecycle_role["mas_may_claim_generic_persistence_engine"] is False
+    assert lifecycle_role["mas_consumes_opl_lifecycle_index_refs"] is True
+    assert lifecycle_role["mas_may_write_domain_truth"] is False
+    assert set(lifecycle_role["forbidden_mas_roles"]) == {
+        "generic_persistence_engine",
+        "generic_lifecycle_engine",
+        "generic_restore_retention_owner",
+    }
     assert lifecycle_role["replacement_expectation"]["audit_ref"] == (
         "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough"
     )
+    assert lane["no_active_caller_proof"]["default_caller_count"] == 0
+    assert lane["no_active_caller_proof"]["default_manager"] == "opl"
+    assert lane["no_active_caller_proof"]["forbidden_default_callers"] == [
+        "cli_default_local_scheduler_install",
+        "workspace_bootstrap_local_scheduler_install",
+        "product_entry_local_scheduler_install",
+        "sidecar_local_scheduler_install",
+        "mcp_local_scheduler_install",
+    ]
+    assert "workspace_bootstrap_manager_is_opl" in lane["no_active_caller_proof"]["proof_items"]
+    cleanup_only = lane["legacy_local_scheduler_cleanup_only_proof"]
+    assert cleanup_only["install_allowed"] is False
+    assert cleanup_only["trigger_allowed"] is False
+    assert cleanup_only["write_install_proof_allowed"] is False
+    assert cleanup_only["default_cli_exposes_local_install"] is False
+    assert cleanup_only["default_bootstrap_exposes_local_install"] is False
+    assert cleanup_only["remaining_physical_delete_blockers"] == [
+        "legacy_launchagent_or_tick_script_may_exist_on_operator_machines",
+        "explicit_status_remove_cleanup_path_still_needed_until_artifacts_absent",
+        "provenance_and_regression_fixtures_still_assert_tombstone_behavior",
+    ]
     assert lane["required_projection_surfaces"] == [
         "product_entry_manifest.functional_consumer_boundary",
         "sidecar_export.functional_consumer_boundary",

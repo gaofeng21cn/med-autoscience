@@ -582,7 +582,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
             ),
             _build_shared_clearance_target(
                 target_id="supervisor_service",
-                title="Keep MAS workspace supervision online",
+                title="Inspect OPL-owned supervision projection",
                 commands=[
                     supervisor_service_command,
                     refresh_supervision_command,
@@ -612,13 +612,13 @@ def _phase3_clearance_lane() -> dict[str, Any]:
             ),
             _build_shared_product_entry_program_step(
                 step_id="supervisor_service",
-                title="确认 workspace 定时监管在线",
+                title="确认 OPL replacement 与 MAS domain projection 在线",
                 surface_kind="workspace_supervisor_service",
                 command=supervisor_service_command,
             ),
             _build_shared_product_entry_program_step(
                 step_id="refresh_supervision",
-                title="刷新 MAS runtime supervision tick",
+                title="刷新 MAS domain runtime projection",
                 surface_kind="runtime_watch_refresh",
                 command=refresh_supervision_command,
             ),
