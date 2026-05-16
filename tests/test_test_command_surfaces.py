@@ -132,6 +132,7 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
         "scripts/run-pytest-clean.sh tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py "
         "tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q"
     ) in makefile
+    assert "scripts/run-pytest-clean.sh tests/test_opl_agent_lab_longline_migration.py -q" in makefile
     assert "test-structure:" in makefile
     assert "scripts/run-python-clean.sh scripts/line_budget.py" in makefile
     assert "scripts/run-structure-quality-gate.sh" in makefile
@@ -739,11 +740,13 @@ def test_family_lane_test_files_are_marker_scoped_to_avoid_full_lane_overlap() -
     editable_bootstrap = _read("tests/test_editable_shared_bootstrap.py")
     dev_preflight_contract = _read("tests/test_dev_preflight_contract.py")
     dev_preflight = _read("tests/test_dev_preflight.py")
+    agent_lab_longline = _read("tests/test_opl_agent_lab_longline_migration.py")
 
     assert "pytestmark = pytest.mark.family" in family_release
     assert "pytestmark = pytest.mark.family" in editable_bootstrap
     assert "pytestmark = pytest.mark.family" in dev_preflight_contract
     assert "pytestmark = pytest.mark.family" in dev_preflight
+    assert "pytestmark = pytest.mark.family" in agent_lab_longline
 
 
 def test_control_plane_operation_command_catalog_guards_cli_mcp_manifest_and_schema_surfaces() -> None:

@@ -593,6 +593,7 @@ def test_classify_changed_files_matches_family_shared_surface() -> None:
             "tests/test_dev_preflight.py",
             "tests/test_dev_preflight_contract.py",
             "tests/test_family_shared_release.py",
+            "tests/test_opl_agent_lab_longline_migration.py",
         ]
     )
 
