@@ -44,3 +44,37 @@ def test_runtime_workspace_monolith_migrate_command_dispatches_controller(
     assert exit_code == 0
     assert called == {"profile_path": profile_path, "apply": True}
     assert json.loads(captured.out)["mode"] == "apply"
+
+
+def test_workspace_legacy_physical_cleanup_audit_command_dispatches_controller(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    called: dict[str, object] = {}
+
+    def fake_build_workspace_legacy_physical_cleanup_audit(*, profile_path: Path) -> dict[str, object]:
+        called["profile_path"] = profile_path
+        return {"surface_kind": "workspace_legacy_physical_cleanup_audit", "mode": "audit_only"}
+
+    monkeypatch.setattr(
+        cli.workspace_legacy_physical_cleanup,
+        "build_workspace_legacy_physical_cleanup_audit",
+        fake_build_workspace_legacy_physical_cleanup_audit,
+    )
+
+    exit_code = cli.main(
+        [
+            "workspace-legacy-physical-cleanup-audit",
+            "--profile",
+            str(profile_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {"profile_path": profile_path}
+    assert json.loads(captured.out)["mode"] == "audit_only"

@@ -70,6 +70,7 @@ runtime_supervisor_dispatch_executor = _LazyModuleProxy(lambda: _load_controller
 runtime_supervisor_reconcile = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_reconcile"))
 runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_supervisor_scan"))
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
+workspace_legacy_physical_cleanup = _LazyModuleProxy(lambda: _load_controller("workspace_legacy_physical_cleanup"))
 paper_autonomy_stability_evidence = _LazyModuleProxy(lambda: _load_controller("paper_autonomy_stability_evidence"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
 runtime_lifecycle_read_model = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model"))
@@ -840,6 +841,13 @@ def main(argv: list[str] | None = None) -> int:
         result = workspace_monolith_migration.run_workspace_monolith_migration(
             profile_path=Path(args.profile),
             apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "workspace-legacy-physical-cleanup-audit":
+        result = workspace_legacy_physical_cleanup.build_workspace_legacy_physical_cleanup_audit(
+            profile_path=Path(args.profile),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

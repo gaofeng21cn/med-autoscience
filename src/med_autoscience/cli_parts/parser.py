@@ -221,6 +221,9 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     workspace_monolith_migrate_mode.add_argument("--dry-run", action="store_true")
     workspace_monolith_migrate_mode.add_argument("--apply", action="store_true")
 
+    workspace_legacy_cleanup_audit_parser = subparsers.add_parser("workspace-legacy-physical-cleanup-audit")
+    workspace_legacy_cleanup_audit_parser.add_argument("--profile", required=True)
+
     paper_autonomy_stability_evidence_parser = subparsers.add_parser("paper-autonomy-stability-evidence")
     paper_autonomy_stability_evidence_parser.add_argument("--yang-root", default="/Users/gaofeng/workspace/Yang")
     paper_autonomy_stability_evidence_parser.add_argument("--profiles", nargs="+")
