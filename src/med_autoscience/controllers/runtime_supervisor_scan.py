@@ -25,6 +25,7 @@ from med_autoscience.controllers.runtime_supervisor_scan_parts import parked_tru
 from med_autoscience.controllers.runtime_supervisor_scan_parts import paper_progress_stall_projection
 from med_autoscience.controllers.runtime_supervisor_scan_parts import projection_errors
 from med_autoscience.controllers.runtime_supervisor_scan_parts import queue_slo
+from med_autoscience.controllers.runtime_supervisor_scan_parts import repo_write_policy
 from med_autoscience.controllers.runtime_supervisor_scan_parts import request_packets
 from med_autoscience.controllers.runtime_supervisor_scan_parts import runtime_facts
 from med_autoscience.controllers.runtime_supervisor_scan_parts import scan_output
@@ -779,6 +780,7 @@ def _study_projection(
         for action in actions
         if owner_route_part.route_allows_action(action=action, owner_route=owner_route)
     ]
+    actions = repo_write_policy.attach_repo_write_policy(actions, developer_mode=developer_mode)
     paper_progress_stall_payload, actions = paper_progress_stall_projection.build_and_attach(
         status=status_payload,
         progress=progress_payload,

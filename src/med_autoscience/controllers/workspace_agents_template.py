@@ -49,6 +49,6 @@ def render_workspace_agents(*, workspace_name: str) -> str:
         "- 在论文、study 或 workspace 执行过程中，如果遇到的 bug 属于流程问题、运行时问题、controller / contract 问题、overlay 问题、prompt / skill 问题，或依赖环境本身的问题，必须回到对应依赖仓进行正式修复。\n"
         "- 优先在 `med-autoscience` 与 `med-deepscientist` repo 中完成基座层修复，再回到当前 workspace 验证修复后的行为。\n"
         "- 基座层修复需要在对应依赖仓开独立 worktree 实施和验证，完成后吸收回主线并清理 worktree、临时分支与临时状态。\n"
-        "- 回灌提交前必须检查当前 GitHub 登录账号；如果登录账号是 `gaofeng21cn`，可以直接提交并推送到对应 repo；否则只能向对应 GitHub repo 提交 PR。\n"
+        "- 回灌提交前必须读取 workspace profile 中的 `developer_supervisor_mode`、`github_username` 与 `mas_developer_github_usernames`：开发者模式开启且当前 GitHub 用户属于 MAS developer 名单时，验证后可直接提交；开发者模式开启但不属于名单时，只能通过对应 GitHub repo 的 PR route 回灌。\n"
         "- 当前工作目录中的修复只用于辅助定位问题或验证根因；基座缺陷需要通过依赖仓修复与回灌收口。\n"
     )

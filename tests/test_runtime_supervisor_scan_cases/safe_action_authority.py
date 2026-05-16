@@ -298,7 +298,7 @@ def test_supervisor_scan_apply_safe_actions_materializes_stopped_dm002_lifecycle
     ]
 
 
-def test_supervisor_scan_downgrades_developer_mode_when_github_user_is_not_owner(
+def test_supervisor_scan_uses_pull_request_route_when_github_user_is_not_owner(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -370,19 +370,21 @@ def test_supervisor_scan_downgrades_developer_mode_when_github_user_is_not_owner
     )
 
     study = result["studies"][0]
-    assert result["developer_supervisor_mode"]["mode"] == "external_observe"
-    assert result["developer_supervisor_mode"]["developer_mode_enabled"] is False
-    assert result["developer_supervisor_mode"]["safe_actions_enabled"] is False
+    assert result["developer_supervisor_mode"]["mode"] == "developer_apply_safe"
+    assert result["developer_supervisor_mode"]["developer_mode_enabled"] is True
+    assert result["developer_supervisor_mode"]["safe_actions_enabled"] is True
     assert result["developer_supervisor_mode"]["github_user_gate"] == {
         "expected_login": "gaofeng21cn",
         "login": "someone-else",
         "allowed": False,
         "source": "env",
-        "reason": "github_user_not_authorized_for_developer_supervisor_mode",
+        "reason": "github_user_requires_pull_request_route",
     }
-    assert study["action_queue"] == []
+    assert result["developer_supervisor_mode"]["repo_write_policy"]["route"] == "pull_request"
+    assert result["developer_supervisor_mode"]["repo_write_policy"]["pull_request_required"] is True
+    assert study["action_queue"][0]["repo_write_policy"]["route"] == "pull_request"
     assert study["why_not_applied"] == "runtime_recovery_retry_budget_exhausted"
-    assert not (study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json").exists()
+    assert (study_root / "artifacts" / "autonomy" / "repair_lifecycle" / "latest.json").is_file()
 
 
 def test_supervisor_scan_apply_safe_actions_sanitizes_unsafe_repair_authority(

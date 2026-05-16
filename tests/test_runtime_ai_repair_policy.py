@@ -20,9 +20,15 @@ def test_two_layer_ai_repair_policy_freezes_intervals_and_escalation_thresholds(
         "authority_surface": "opl_family_user_config",
         "config_path": "~/Library/Application Support/OPL/state/developer-supervisor.json",
         "state_dir_env_override": "OPL_STATE_DIR",
-        "auto_enabled_for_expected_github_login": "gaofeng21cn",
+        "workspace_profile_fields": [
+            "developer_supervisor_mode",
+            "github_username",
+            "mas_developer_github_usernames",
+        ],
+        "mas_developer_route": "direct_commit",
+        "other_developer_route": "pull_request",
         "manual_enablement_supported": True,
-        "unauthorized_users_fall_back_to": "external_observe",
+        "unknown_github_user_fall_back_to": "external_observe",
     }
     assert payload["developer_supervisor"]["scope_policy"] == {
         "scope": "workspace_dynamic_active_studies",

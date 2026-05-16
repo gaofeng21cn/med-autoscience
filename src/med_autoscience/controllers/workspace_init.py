@@ -6,6 +6,8 @@ from pathlib import Path
 import json
 import re
 import shlex
+import shutil
+import subprocess
 import tomllib
 
 from med_autoscience.controllers import portfolio_memory as portfolio_memory_controller
@@ -40,6 +42,7 @@ from med_autoscience.controllers.workspace_init_parts.retired_entries import (
     retired_file_cleanup_reason,
     retired_workspace_service_paths,
 )
+from med_autoscience.developer_supervisor_mode import EXPECTED_DEVELOPER_GITHUB_LOGIN
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
@@ -236,6 +239,28 @@ def _quote_toml_string(value: str | Path) -> str:
     return json.dumps(str(value), ensure_ascii=False)
 
 
+def _detect_github_username() -> str | None:
+    env_login = os.environ.get("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN")
+    if env_login and env_login.strip():
+        return env_login.strip()
+    if shutil.which("gh") is None:
+        return None
+    try:
+        completed = subprocess.run(
+            ["gh", "api", "user", "--jq", ".login"],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode != 0:
+        return None
+    login = completed.stdout.strip()
+    return login or None
+
+
 def _render_workspace_profile_entries(
     *,
     workspace_root: Path,
@@ -247,6 +272,7 @@ def _render_workspace_profile_entries(
     include_hermes_placeholders: bool,
 ) -> list[tuple[str, str]]:
     layout = build_workspace_runtime_layout(workspace_root=workspace_root)
+    github_username = _detect_github_username()
     entries: list[tuple[str, str]] = [
         ("name", f"name = {_quote_toml_string(workspace_name)}"),
         ("workspace_root", f"workspace_root = {_quote_toml_string(workspace_root)}"),
@@ -312,8 +338,15 @@ def _render_workspace_profile_entries(
                 "startup_boundary_requirements",
                 'startup_boundary_requirements = ["paper_framing", "journal_shortlist", "evidence_package"]',
             ),
+            ("developer_supervisor_mode", 'developer_supervisor_mode = "external_observe"'),
+            (
+                "mas_developer_github_usernames",
+                f"mas_developer_github_usernames = [{_quote_toml_string(EXPECTED_DEVELOPER_GITHUB_LOGIN)}]",
+            ),
         ]
     )
+    if github_username is not None:
+        entries.append(("github_username", f"github_username = {_quote_toml_string(github_username)}"))
     return entries
 
 

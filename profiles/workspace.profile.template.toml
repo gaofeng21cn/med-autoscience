@@ -25,6 +25,9 @@ medical_overlay_scope = "workspace"
 medical_overlay_skills = ["intake-audit", "scout", "baseline", "idea", "decision", "experiment", "analysis-campaign", "write", "review", "rebuttal", "finalize"]
 research_route_bias_policy = "high_plasticity_medical"
 preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]
+developer_supervisor_mode = "external_observe"
+github_username = ""
+mas_developer_github_usernames = ["gaofeng21cn"]
 
 [source_provenance]
 source_role = "frozen_source_archive_or_historical_fixture"

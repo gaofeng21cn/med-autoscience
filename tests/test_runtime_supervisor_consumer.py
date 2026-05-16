@@ -424,7 +424,7 @@ def test_supervisor_consume_only_writes_current_owner_dispatch_for_route_epoch(
     assert not (dispatch_dir / "return_to_ai_reviewer_workflow.json").exists()
 
 
-def test_supervisor_consume_blocks_apply_for_non_owner(
+def test_supervisor_consume_uses_pull_request_route_for_non_owner(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -450,12 +450,13 @@ def test_supervisor_consume_blocks_apply_for_non_owner(
         apply=True,
     )
 
-    assert result["effective_mode"] == "external_observe"
-    assert result["apply_allowed"] is False
-    assert result["repair_tasks"][0]["dispatch_status"] == "blocked"
-    assert result["repair_tasks"][0]["blocked_reason"] == "github_user_not_authorized_for_developer_supervisor_mode"
-    assert not (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").exists()
-    assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
+    assert result["effective_mode"] == "developer_apply_safe"
+    assert result["apply_allowed"] is True
+    assert result["repair_tasks"][0]["dispatch_status"] == "applied"
+    assert result["developer_supervisor_mode"]["repo_write_policy"]["route"] == "pull_request"
+    assert result["developer_supervisor_mode"]["repo_write_policy"]["pull_request_required"] is True
+    assert (profile.workspace_root / "artifacts" / "supervision" / "consumer" / "latest.json").is_file()
+    assert (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").is_file()
 
 
 def test_supervisor_consume_blocks_apply_for_non_developer_apply_safe_mode(
