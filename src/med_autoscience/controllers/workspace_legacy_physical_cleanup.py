@@ -37,15 +37,16 @@ SCAN_GLOB_PATTERNS = (
 )
 PROVENANCE_REWRITE_GLOB_PATTERNS = (
     "AGENTS.md",
+    ".gitignore",
     "README.md",
     "artifacts/runtime/lifecycle_migration/**/*.json",
     "storage_audit/**/*.json",
+    "ops/medautoscience/bin/*",
     "studies/*/PLAN.md",
     "studies/*/study.yaml",
     "studies/*/manuscript/**/evidence_ledger.json",
     "studies/*/paper/**/evidence_ledger.json",
-    "studies/*/artifacts/autonomy/ai_doctor_requests/*.json",
-    "studies/*/artifacts/eval_hygiene/**/*.json",
+    "studies/*/artifacts/**/*.json",
     "studies/*/artifacts/runtime/runtime_supervision/**/*.json",
     "docs/superpowers/*.md",
     "docs/superpowers/**/*.md",
@@ -548,8 +549,12 @@ def _classify_reference_path(path: Path, *, workspace_root: Path) -> str:
     name = path.name
     if relpath == Path("AGENTS.md"):
         return "workspace_guidance_provenance_ref"
+    if relpath == Path(".gitignore"):
+        return "workspace_layout_policy_provenance_ref"
     if relpath == Path("README.md"):
         return "workspace_readme_provenance_ref"
+    if len(parts) >= 3 and parts[:2] == ("ops", "medautoscience") and parts[2] == "bin":
+        return "workspace_wrapper_provenance_ref"
     if parts[:3] == ("artifacts", "runtime", "monolith_migration"):
         return "migration_ledger_provenance_ref"
     if parts[:3] == ("artifacts", "runtime", "lifecycle_migration"):
@@ -572,6 +577,8 @@ def _classify_reference_path(path: Path, *, workspace_root: Path) -> str:
         return "autonomy_request_provenance_ref"
     if len(parts) >= 4 and parts[0] == "studies" and parts[2:4] == ("artifacts", "eval_hygiene"):
         return "eval_hygiene_provenance_ref"
+    if len(parts) >= 3 and parts[0] == "studies" and parts[2] == "artifacts":
+        return "study_artifact_provenance_ref"
     if name in {"delivery_manifest.json", "latest.json"} and "controller_decisions" in parts:
         return "current_truth_or_controller_ref"
     if name == "delivery_manifest.json" or "current_package" in parts or "submission_minimal" in parts:
