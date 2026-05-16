@@ -271,6 +271,9 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     root_agents_text = root_agents.read_text(encoding="utf-8")
     assert "# glioma Workspace Rules" in root_agents_text
     assert "[`WORKSPACE_AUTOSCIENCE_RULES.md`](WORKSPACE_AUTOSCIENCE_RULES.md)" in root_agents_text
+    assert "`developer_supervisor_mode`、`github_username` 与 `mas_developer_github_usernames`" in root_agents_text
+    assert "PR route" in root_agents_text
+    assert "如果登录账号是 `gaofeng21cn`" not in root_agents_text
     assert "优先使用 `rtk` 前缀运行 shell 命令。" not in root_agents_text
     assert "优先读取 `MINERU_TOKEN`" not in root_agents_text
 
