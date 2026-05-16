@@ -90,7 +90,7 @@ OPL Framework
 
 ## MAS Domain Agent 的理想职责
 
-MAS 长期职责是把医学研究领域内的判断、证据、路线、质量和交付 authority 收口成可审计的 domain-owned surface。通用运行能力、通用 memory/index、通用 artifact lifecycle、通用 workbench shell 和 provider 运维能力应优先由 OPL 或 shared family primitives 实现；MAS 保留领域知识、领域 policy、owner receipt、quality gate、artifact authority 和 domain package 必需的薄程序面。薄程序面属于 MAS package 外壳，用于 OPL 发现、托管、审计和投影，不是通用平台。
+MAS 长期职责是把医学研究领域内的判断、证据、路线、质量和交付 authority 收口成可审计的 domain-owned surface。通用运行能力、通用 memory/index、通用 artifact lifecycle、通用 workbench shell 和 provider 运维能力应优先由 OPL 或 shared family primitives 实现；MAS 保留领域知识、领域 policy、owner receipt、quality gate、artifact authority、声明式 pack 和 minimal authority functions。当前仍存在的手写薄程序面只作为 MAS package 外壳和迁移桥，用于 OPL 发现、托管、审计和投影，不是通用平台，也不是长期默认实现形态。
 
 2026-05-17 顶层设计收紧后，MAS package 外壳也不再被默认视为长期手写代码。理想做法是把 `study-state-matrix`、stage pack、publication-route memory policy、artifact authority policy、AI reviewer/quality rubric、source readiness rule、receipt schema 和 oracle fixtures 做成 OPL pack compiler 可消费的声明式输入；由 OPL 生成或托管 CLI/MCP/product-entry/sidecar/status/workbench/harness。MAS 只保留无法可靠声明化的医学 authority function：publication quality verdict、AI reviewer-backed quality decision、artifact mutation authorization、publication-route memory accept/reject、source readiness verdict、owner receipt signer 和必要的医学 helper implementation。
 
@@ -234,7 +234,7 @@ MAS 达到理想生产级状态时，应满足以下门槛：
 - Direct MAS app skill path 与 OPL-hosted path 使用同一 MAS owner surfaces，并有语义等价与 forbidden-write 证据。
 - 每个真实 paper-line stage attempt 都留下 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。
 - OPL provider 能长期托管 MAS stage attempt，并证明 restart/re-query、signal、retry/dead-letter、human gate/resume 和 no-forbidden-write。
-- 通用 runtime、queue、memory locator、artifact lifecycle、restore/retention、projection 和 workbench shell 已尽量上收到 OPL / shared family layer；MAS 保留领域知识、authority、owner receipt 和 domain package 薄程序面。
+- 通用 runtime、queue、memory locator、artifact lifecycle、restore/retention、projection、workbench shell 和 generated entry/status wrapper 已尽量上收到 OPL / shared family layer；MAS 保留领域知识、authority、owner receipt、声明式 pack 和 minimal authority functions。
 - MAS 仍保留的非知识代码均能归类为 minimal authority function 或显式迁移桥；每项都有 active caller、receipt schema、cannot-absorb reason、OPL replacement expectation 和退役门槛。能由 OPL pack compiler 生成的 CLI/MCP/product-entry/sidecar/status/projection/harness 不再作为 MAS 长期私有实现扩展。
 - MAS domain transition table / transition matrix 成为 controller route 的单一语义来源；新增或修改 transition 必须同步更新 spec、oracle fixtures、matrix tests 和 owner receipt/fingerprint 字段，并证明旧 completion / execution / stop-loss / memory-writeback receipt 不会被 stale prompt 或低权威 closeout 覆盖或误用。
 - Study charter、evidence ledger、review ledger、publication eval、controller decisions、runtime status 和 artifact rebuild proof 构成同一条 current truth。
@@ -264,4 +264,4 @@ MAS 达到理想生产级状态时，应满足以下门槛：
 - AI-first 质量 owner 读 `docs/references/mainline/ai_first_research_os_architecture.md`。
 - Stage form 读 `docs/active/stage_surface_standardization_program.md` 与 generated stage surfaces。
 - OPL 托管、provider、sidecar 和 skeleton 边界读 runtime contracts 与 product-entry manifest。
-- 新增机器接口写入 `contracts/`、源码、CLI/MCP/API payload、manifest 或 MAS-owned generated surface，不写入本文。
+- 新增机器接口写入 `contracts/`、源码、CLI/MCP/API payload、manifest 或 OPL-generated surface 的输入 contract，不写入本文。
