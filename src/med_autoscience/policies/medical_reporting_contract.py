@@ -281,14 +281,10 @@ def resolve_medical_reporting_contract(
             ),
         )
 
-    structured_reporting_contract = (
-        build_default_structured_reporting_contract(
-            study_archetype=study_archetype,
-            manuscript_family=manuscript_family,
-            endpoint_type=endpoint_type,
-        )
-        if manuscript_family == "prediction_model"
-        else {}
+    structured_reporting_contract = build_default_structured_reporting_contract(
+        study_archetype=study_archetype,
+        manuscript_family=manuscript_family,
+        endpoint_type=endpoint_type,
     )
 
     return MedicalReportingContract(

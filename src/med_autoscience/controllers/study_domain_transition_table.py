@@ -192,6 +192,20 @@ def project_domain_transition(
             completion_receipt_consumption=stop_loss_receipt_consumption,
         )
 
+    if _ai_reviewer_re_eval(publication_eval):
+        return _transition(
+            study_id=study_id,
+            decision_type="ai_reviewer_re_eval",
+            route_target="review",
+            next_work_unit=_ai_reviewer_re_eval_work_unit(publication_eval),
+            controller_action="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            typed_blocker=None,
+            guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
+            source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
+        )
+
     if _publication_gate_blocked(publication_eval):
         return _transition(
             study_id=study_id,
@@ -210,20 +224,6 @@ def project_domain_transition(
                 summary="Publication gate has unresolved blockers; paper closure and workspace writes remain blocked.",
                 required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH),
             ),
-            guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
-            source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
-        )
-
-    if _ai_reviewer_re_eval(publication_eval):
-        return _transition(
-            study_id=study_id,
-            decision_type="ai_reviewer_re_eval",
-            route_target="review",
-            next_work_unit=_ai_reviewer_re_eval_work_unit(publication_eval),
-            controller_action="return_to_ai_reviewer_workflow",
-            owner="ai_reviewer",
-            typed_blocker=None,
             guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
             source_refs=source_refs,
             completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,

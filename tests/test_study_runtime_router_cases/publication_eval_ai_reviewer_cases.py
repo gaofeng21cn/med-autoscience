@@ -324,7 +324,7 @@ def test_study_runtime_status_refreshes_stale_blocked_ai_reviewer_eval_when_gate
     assert payload["recommended_actions"][0]["route_target"] == "review"
     assert payload["recommended_actions"][0]["reason"] == (
         "AI reviewer medical_journal_prose_quality is underdefined; "
-        "a clear publication gate cannot authorize finalize until that quality dimension is ready."
+        "a clear publication gate cannot authorize draft advancement until that quality dimension is ready."
     )
     assert payload["recommended_actions"][0]["next_work_unit"]["unit_id"] == "ai_reviewer_medical_prose_quality_review"
     assert payload["recommended_actions"][0]["next_work_unit"]["lane"] == "review"

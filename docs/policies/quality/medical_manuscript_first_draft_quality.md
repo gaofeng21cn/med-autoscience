@@ -34,6 +34,23 @@ The user-edited 003 manuscript reads as a medical article because it starts from
 
 The durable fix is therefore pre-draft routing plus manuscript-native prose generation, with the gate left as a final safety net.
 
+## 2026-05-16 DPCC 003 平台缺陷复盘
+
+DPCC 003 暴露的不是单篇返修 intake 缺失，而是初稿前质量授权链路缺了一段硬门槛。MAS 已经有 `medical_reporting_checklist`、AI reviewer 质量边界和 first-draft quality policy，但 phenotype / treatment-gap observational paper 的结构化报告合同没有稳定进入所有初稿前 owner surface：
+
+- `study_charter` 只把 prediction-model 默认报告项物化为 charter contract；`clinical_subtype_reconstruction` / `phenotype_real_world_treatment_gap` 没有自动生成 phenotype derivation、recorded treatment-gap、baseline characteristics 和 data-quality reporting obligations。
+- `medical_reporting_contract` 只给 prediction-model manuscript 返回 structured reporting contract；DPCC 这类 clinical-observation subtype paper 只有表图壳和 STROBE guideline，不包含方法透明度与数据质量必填项。
+- `pre_draft_quality_runtime` 在授权 first full draft 前检查 AI reviewer provenance、blueprint、readiness ledger 和 authoring workplan，但没有消费 charter-owned structured reporting checklist；因此后置 `medical_reporting_audit` 能发现部分问题，初稿生成却没有提前 fail-close。
+
+新的平台要求是：phenotype / treatment-gap paper 的以下项目必须在 first full draft 前成为 machine-readable blocker，而不是交付后的审稿式补救项：
+
+- phenotype derivation: assignment method, clinical domains/features, rules or algorithm, class-count rationale, reproducibility / new-patient assignment, analysis-plan or prespecification status;
+- treatment gap: numerator, denominator, eligibility, time window, medication data source, interpretation label / non-causal guardrail;
+- baseline table: total population, phenotype columns, denominators, missingness, core clinical variables, units, comparison or balance statistics;
+- data quality: source record checks, plausibility checks, variable missingness, semantic field checks, attrition denominators, claim impact or downgrade.
+
+`pre_draft_quality_runtime_state.readiness.full_drafting_authorized` must stay false until these checklist blockers are closed or explicitly routed back. AI reviewer remains the quality owner for publishability and medical-journal prose; the structured checklist is a deterministic pre-draft blocker, not a substitute subjective reviewer.
+
 ## 初稿生成门槛
 
 Before a first full draft is treated as generated:

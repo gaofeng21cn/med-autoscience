@@ -182,6 +182,31 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
             }
             for dimension in dimensions
         ],
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_ref": str(
+                    study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
+                ),
+                "request_digest": "sha256:test-medical-prose-review-request",
+                "manuscript_ref": str(study_root / "paper" / "manuscript.md"),
+                "manuscript_digest": "sha256:test-manuscript",
+            },
+            "current_package_freshness": {
+                "status": "fresh",
+                "source_eval_id": "publication-eval::001-risk::quest-001::2026-05-01T00:00:00+00:00",
+            },
+        },
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Medication coverage is based on recorded medication fields.",
+                "impact_on_claim": "Treatment-gap language must remain documentation-aware.",
+                "required_future_analysis_data_or_design": (
+                    "Link pharmacy or insurance dispensing data."
+                ),
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
             "policy_id": "medical_publication_critique_v1",
@@ -351,6 +376,80 @@ def test_pre_draft_runtime_allows_first_full_draft_only_after_closed_ai_reviewer
         "methods",
         "results",
         "discussion",
+    ]
+
+
+def test_pre_draft_runtime_blocks_phenotype_treatment_gap_reporting_gaps(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.pre_draft_quality_runtime")
+    study_root = tmp_path / "study"
+    _write_closed_authority_surfaces(study_root)
+    _write_json(
+        study_root / "artifacts" / "controller" / "study_charter.json",
+        {
+            "schema_version": 1,
+            "paper_quality_contract": {
+                "structured_reporting_contract": {
+                    "paper_archetype": "phenotype_real_world_treatment_gap",
+                    "clinical_actionability_required": True,
+                    "methods_completeness": {
+                        "study_design": "complete",
+                        "cohort": "complete",
+                        "variables": "complete",
+                        "model": "complete",
+                        "validation": "complete",
+                        "statistical_analysis": "complete",
+                    },
+                    "statistical_reporting": {
+                        "summary_format": "complete",
+                        "p_values": "complete",
+                        "subgroup_tests": "complete",
+                    },
+                    "table_figure_claim_map": [
+                        {"claim_id": "phenotype-gap", "table_figure_refs": ["Table2", "Figure4"]}
+                    ],
+                    "clinical_actionability": {
+                        "treatment_gap": "complete",
+                        "follow_up_or_outcome_relevance": "complete",
+                    },
+                }
+            },
+        },
+    )
+
+    result = module.build_pre_draft_quality_runtime_state(study_root=study_root)
+
+    assert result["status"] == "route_back_required"
+    assert result["readiness"]["draft_ready"] is False
+    assert result["readiness"]["full_drafting_authorized"] is False
+    assert "treatment_gap_reporting_incomplete" in result["blockers"]
+    assert "phenotype_derivation_reporting_incomplete" in result["blockers"]
+    assert "baseline_characteristics_reporting_incomplete" in result["blockers"]
+    assert "data_quality_reporting_incomplete" in result["blockers"]
+    assert result["route_back"]["target"] == "pre_draft_writing_readiness"
+    checklist = result["structured_reporting_checklist"]
+    assert checklist["status"] == "blocked"
+    assert checklist["treatment_gap_reporting"]["missing_items"] == [
+        "explicit_numerator_denominator_rules",
+        "overall_burden_and_group_rates",
+        "table_role_consistency",
+        "figure_legend_uniqueness",
+        "non_causal_claim_guardrail",
+        "numerator",
+        "denominator",
+        "eligibility",
+        "time_window",
+        "medication_data_source",
+        "interpretation_label_or_guardrail",
+    ]
+    assert checklist["phenotype_derivation_reporting"]["missing_items"] == [
+        "assignment_method",
+        "clinical_domains_or_features",
+        "assignment_rules_or_algorithm",
+        "class_count_rationale",
+        "reproducibility_or_new_patient_assignment",
+        "analysis_plan_or_prespecification_status",
     ]
 
 

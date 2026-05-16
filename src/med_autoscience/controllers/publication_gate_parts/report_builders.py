@@ -656,6 +656,15 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "prebundle_display_floor_gap": prebundle_display_floor_gap,
         "prebundle_display_advisories": prebundle_display_advisories,
         "medical_publication_surface_status": medical_publication_surface_status or None,
+        "medical_prose_review_path": _non_empty_text(
+            (state.latest_medical_publication_surface or {}).get("medical_prose_review_path")
+        ),
+        "medical_prose_review_status": _non_empty_text(
+            (state.latest_medical_publication_surface or {}).get("medical_prose_review_status")
+        ),
+        "medical_prose_review_summary": _non_empty_text(
+            (state.latest_medical_publication_surface or {}).get("medical_prose_review_summary")
+        ),
         "invalid_medical_publication_surface_blockers": invalid_medical_publication_surface_blockers,
         "charter_contract_linkage": dict(state.charter_contract_linkage or {}),
         "charter_contract_linkage_status": charter_contract_linkage_status or None,

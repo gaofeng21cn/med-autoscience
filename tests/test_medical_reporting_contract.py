@@ -235,6 +235,7 @@ def test_resolve_medical_reporting_contract_defaults_to_strobe_for_non_predictio
 
 def test_resolve_medical_reporting_contract_for_clinical_subtype_reconstruction() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
+    checklist_policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
 
     contract = module.resolve_medical_reporting_contract(
         study_archetype="clinical_subtype_reconstruction",
@@ -342,6 +343,30 @@ def test_resolve_medical_reporting_contract_for_clinical_subtype_reconstruction(
             tier="core",
         ),
     )
+    structured_contract = contract.structured_reporting_contract
+    assert structured_contract["clinical_actionability_required"] is True
+    assert structured_contract["study_archetype"] == "clinical_subtype_reconstruction"
+    assert structured_contract["manuscript_family"] == "clinical_observation"
+    assert structured_contract["endpoint_type"] == "descriptive"
+    assert structured_contract["clinical_actionability"]["treatment_gap"] == {
+        "status": "required_before_first_full_draft"
+    }
+    for item in checklist_policy.PHENOTYPE_DERIVATION_REPORTING_ITEMS:
+        assert structured_contract["phenotype_derivation_reporting"][item] == {
+            "status": "required_before_first_full_draft"
+        }
+    for item in checklist_policy.TREATMENT_GAP_REPORTING_ITEMS:
+        assert structured_contract["treatment_gap_reporting"][item] == {
+            "status": "required_before_first_full_draft"
+        }
+    for item in checklist_policy.BASELINE_CHARACTERISTICS_REPORTING_ITEMS:
+        assert structured_contract["baseline_characteristics_reporting"][item] == {
+            "status": "required_before_first_full_draft"
+        }
+    for item in checklist_policy.DATA_QUALITY_REPORTING_ITEMS:
+        assert structured_contract["data_quality_reporting"][item] == {
+            "status": "required_before_first_full_draft"
+        }
 
 
 def test_resolve_medical_reporting_contract_for_survival_prediction_model_shells() -> None:

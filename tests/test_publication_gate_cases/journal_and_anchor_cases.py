@@ -280,6 +280,11 @@ def test_run_controller_materializes_stable_publication_eval_when_apply_clear(
             "paper_line_open_supplementary_count": 0,
             "paper_line_recommended_action": "continue_per_gate",
             "paper_line_blocking_reasons": [],
+            "medical_prose_review_status": "ready",
+            "medical_prose_review_summary": "AI reviewer closed manuscript-native medical journal prose quality.",
+            "medical_prose_review_path": str(
+                gate_state.paper_root.parent / "artifacts" / "publication_eval" / "medical_prose_review.json"
+            ),
             "active_manuscript_figure_count": 5,
             "submission_grade_min_active_figures": 4,
             "prebundle_display_floor_pending": False,
@@ -337,6 +342,18 @@ def test_run_controller_prefers_finalize_route_when_bundle_stage_is_ready_alongs
         include_main_result=True,
         runtime_status="waiting_for_user",
         include_current_medical_publication_surface_report=True,
+        medical_publication_surface_report={
+            "medical_prose_review_status": "ready",
+            "medical_prose_review_summary": "AI reviewer closed manuscript-native medical journal prose quality.",
+            "medical_prose_review_path": str(
+                tmp_path
+                / "studies"
+                / "002-early-residual-risk"
+                / "artifacts"
+                / "publication_eval"
+                / "medical_prose_review.json"
+            ),
+        },
         figure_catalog={
             "schema_version": "2.1.0",
             "figures": [

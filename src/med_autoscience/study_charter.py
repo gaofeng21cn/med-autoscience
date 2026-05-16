@@ -419,36 +419,41 @@ def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) ->
         contract["clinical_actionability"] = _mapping(raw_contract.get("clinical_actionability")) or dict(
             DEFAULT_CLINICAL_ACTIONABILITY_CONTRACT
         )
-    prediction_defaults = build_default_structured_reporting_contract(
+    structured_defaults = build_default_structured_reporting_contract(
         study_archetype=_non_empty_string(study_payload.get("study_archetype")),
         paper_archetype=archetype,
         manuscript_family=manuscript_family,
         endpoint_type=endpoint_type,
     )
-    if prediction_defaults.get("prediction_model_reporting_required") is True:
-        for key in (
-            "study_archetype",
-            "paper_archetype",
-            "manuscript_family",
-            "endpoint_type",
-            "prediction_model_reporting_required",
-            "prediction_methods",
-            "time_to_event_prediction_reporting",
-            "decision_curve_clinical_utility",
-            "prediction_performance_reporting",
-            "baseline_balance_reporting",
-            "competing_risk_reporting_required",
-            "competing_risk_reporting",
-        ):
-            if key not in prediction_defaults:
-                continue
-            raw_value = raw_contract.get(key)
-            if isinstance(raw_value, dict):
-                contract[key] = raw_value
-            elif raw_value not in (None, "", []):
-                contract[key] = raw_value
-            elif key not in contract:
-                contract[key] = deepcopy(prediction_defaults[key])
+    for key in (
+        "study_archetype",
+        "paper_archetype",
+        "manuscript_family",
+        "endpoint_type",
+        "clinical_actionability_required",
+        "clinical_actionability",
+        "treatment_gap_reporting",
+        "phenotype_derivation_reporting",
+        "baseline_characteristics_reporting",
+        "data_quality_reporting",
+        "prediction_model_reporting_required",
+        "prediction_methods",
+        "time_to_event_prediction_reporting",
+        "decision_curve_clinical_utility",
+        "prediction_performance_reporting",
+        "baseline_balance_reporting",
+        "competing_risk_reporting_required",
+        "competing_risk_reporting",
+    ):
+        if key not in structured_defaults:
+            continue
+        raw_value = raw_contract.get(key)
+        if isinstance(raw_value, dict):
+            contract[key] = raw_value
+        elif raw_value not in (None, "", []):
+            contract[key] = raw_value
+        elif key not in contract:
+            contract[key] = deepcopy(structured_defaults[key])
     if reporting_guideline_family is not None:
         contract["reporting_guideline_family"] = reporting_guideline_family.strip().upper()
         contract["quality_gate_expectation"] = build_guideline_quality_gate_expectation(

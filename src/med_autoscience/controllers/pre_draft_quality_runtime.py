@@ -10,6 +10,9 @@ from med_autoscience.controllers.medical_quality_operating_system import (
 from med_autoscience.controllers.section_authoring_work_units import (
     build_section_authoring_work_units,
 )
+from med_autoscience.policies.medical_reporting_checklist import (
+    build_structured_reporting_checklist,
+)
 from med_autoscience.policies.publication_critique import (
     read_target_journal_writing_layer,
     stable_target_journal_writing_layer_path,
@@ -44,6 +47,7 @@ _AUTHORITY_SURFACES = {
     "publication_eval": Path("artifacts/publication_eval/latest.json"),
 }
 _AUTHORING_WORKPLAN_PATH = Path("paper/authoring_workplan.json")
+_STUDY_CHARTER_PATH = Path("artifacts/controller/study_charter.json")
 
 
 def _read_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
@@ -314,6 +318,28 @@ def _build_authoring_workplan_projection(study_root: Path) -> dict[str, Any]:
     }
 
 
+def _structured_reporting_contract_from_charter(study_root: Path) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    path = study_root / _STUDY_CHARTER_PATH
+    payload, read_error = _read_json(path)
+    ref: dict[str, Any] = {
+        "path": str(path),
+        "exists": path.exists(),
+    }
+    if read_error is not None:
+        ref["read_error"] = read_error
+        return None, ref
+    paper_quality_contract = payload.get("paper_quality_contract") if payload is not None else None
+    if not isinstance(paper_quality_contract, dict):
+        ref["read_error"] = "paper_quality_contract_missing"
+        return None, ref
+    contract = paper_quality_contract.get("structured_reporting_contract")
+    if not isinstance(contract, dict):
+        ref["read_error"] = "structured_reporting_contract_missing"
+        return None, ref
+    ref["status"] = "present"
+    return contract, ref
+
+
 def _route_back_for_status(status: str, blockers: list[str]) -> dict[str, Any]:
     if status == "first_full_draft_ready":
         return {
@@ -423,6 +449,24 @@ def build_pre_draft_quality_runtime_state(study_root: str | Path) -> dict[str, A
     blockers.extend(target_journal_blockers)
     route_back_blockers.extend(target_journal_blockers)
 
+    structured_reporting_contract, structured_reporting_ref = _structured_reporting_contract_from_charter(
+        resolved_study_root
+    )
+    refs["study_charter_structured_reporting_contract"] = structured_reporting_ref
+    structured_reporting_checklist = (
+        build_structured_reporting_checklist(structured_reporting_contract)
+        if structured_reporting_contract is not None
+        else {
+            "status": "not_available",
+            "blockers": [],
+        }
+    )
+    structured_reporting_blockers = [
+        str(item) for item in structured_reporting_checklist.get("blockers", []) if str(item)
+    ]
+    blockers.extend(structured_reporting_blockers)
+    route_back_blockers.extend(structured_reporting_blockers)
+
     if review_blockers:
         status = "review_required"
     elif route_back_blockers:
@@ -452,6 +496,7 @@ def build_pre_draft_quality_runtime_state(study_root: str | Path) -> dict[str, A
         "refs": refs,
         "authoring_workplan_projection": authoring_workplan_projection,
         "section_authoring_work_units": section_authoring_work_units,
+        "structured_reporting_checklist": structured_reporting_checklist,
         "authority": {
             "source_contract": build_quality_os_runtime_materialization_contract(),
             "assessment_provenance": _provenance_summary(publication_eval),

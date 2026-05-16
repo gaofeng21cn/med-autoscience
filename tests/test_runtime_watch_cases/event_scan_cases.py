@@ -280,6 +280,13 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
             "quest_id": "quest-001",
             "emitted_at": "2026-04-05T05:58:00+00:00",
             "evaluation_scope": "publication",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "policy_id": "medical_publication_critique_v1",
+                "ai_reviewer_required": False,
+                "source_refs": [str(publication_eval_path)],
+            },
             "charter_context_ref": {
                 "ref": str((study_root / "artifacts" / "controller" / "study_charter.json").resolve()),
                 "charter_id": "charter::001-risk::v1",
@@ -344,6 +351,14 @@ def test_watch_runtime_autoparks_ready_submission_milestone_without_runtime_esca
                     "reviewer_reason": "The review package is synchronized.",
                     "reviewer_revision_advice": "Only keep bundle surfaces aligned.",
                     "reviewer_next_round_focus": "Double-check package surface consistency before submission.",
+                },
+                "medical_journal_prose_quality": {
+                    "status": "ready",
+                    "summary": "AI reviewer closed manuscript-native medical journal prose quality.",
+                    "evidence_refs": [str(publication_eval_path)],
+                    "reviewer_reason": "Journal prose is ready for finalize-stage package cleanup.",
+                    "reviewer_revision_advice": "Only keep package surfaces synchronized.",
+                    "reviewer_next_round_focus": "Do not reopen style repair unless the manuscript source changes.",
                 },
             },
             "recommended_actions": [
@@ -816,6 +831,8 @@ def test_publication_eval_action_uses_bounded_analysis_for_clear_continue_write_
             "status": "clear",
             "current_required_action": "continue_write_stage",
             "controller_stage_note": "Current line is clear and a bounded robustness pass should complete first.",
+            "medical_prose_review_status": "ready",
+            "medical_prose_review_summary": "AI reviewer closed manuscript-native medical journal prose quality.",
         },
         generated_at="2026-04-05T06:05:00+00:00",
         evidence_refs=("/tmp/main_result.json",),

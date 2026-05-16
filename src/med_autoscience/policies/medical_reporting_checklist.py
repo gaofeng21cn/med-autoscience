@@ -175,6 +175,21 @@ def build_default_structured_reporting_contract(
             COMPETING_RISK_REPORTING_ITEMS,
             status="required_when_non_target_deaths_present",
         )
+    if _phenotype_actionability_required(contract):
+        contract.update(
+            {
+                "clinical_actionability_required": True,
+                "clinical_actionability": _required_status_map(CLINICAL_ACTIONABILITY_ITEMS),
+                "treatment_gap_reporting": _required_status_map(TREATMENT_GAP_REPORTING_ITEMS),
+                "phenotype_derivation_reporting": _required_status_map(
+                    PHENOTYPE_DERIVATION_REPORTING_ITEMS
+                ),
+                "baseline_characteristics_reporting": _required_status_map(
+                    BASELINE_CHARACTERISTICS_REPORTING_ITEMS
+                ),
+                "data_quality_reporting": _required_status_map(DATA_QUALITY_REPORTING_ITEMS),
+            }
+        )
     return contract
 
 

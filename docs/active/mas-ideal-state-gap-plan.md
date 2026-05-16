@@ -4,17 +4,27 @@ Owner: `MedAutoScience`
 Purpose: `ideal_state_gap_plan`
 State: `active_support`
 Machine boundary: 本文是人读 gap / completion plan。机器真相继续归 `contracts/`、源码、CLI/MCP/API 行为、product-entry manifest、sidecar receipt、runtime/controller durable surfaces、真实 workspace 与 generated artifact proof。
-Date: `2026-05-15`
+Date: `2026-05-16`
+
+## 文档读法
+
+- `定位`：本文是 MAS 的 active gap / implementation order，不是 north-star 目标态本身；目标态回到 `mas_ideal_state.md`。
+- `当前实态`：当前最明确的代码层差距是 MAS-owned local scheduler / LaunchAgent / 300 秒 supervision tick；其余 production evidence 缺口必须和这个功能残留分开读。
+- `最短路径`：P0 先做 `local_scheduler_absorption_or_retirement`，再做 authority pack hardening、OPL primitive handoff、Portal/workbench read-only boundary cleanup、transition table hardening 和 focused paper-line verification。
+- `验收顺序`：先 replacement proof、no-active-caller proof、CLI/status/manifest owner 迁移和 no-forbidden-write，再跑 paper-line provider apply、long provider SLO 和 live soak。
+- `禁写口径`：不能把当前 LaunchAgent scheduler 写成 MAS 理想常态；也不能把 OPL provider proof、DM002 stable blocker 或 `mas_owner_receipt_present` 写成 paper closure、artifact mutation 授权或 publication-ready。
 
 ## 结论
 
 本文对照 [MAS 理想目标态](../references/positioning/mas_ideal_state.md)，只维护 MAS 自己的当前差距、完善顺序、与 OPL 的 owner 边界和通用能力上收清单。OPL、MAG、RCA、One Person Lab App 与 MDS/DeepScientist 的具体完善计划不在本文维护；它们分别回到 OPL family 文档或各自仓库的理想态 / status / active surface。
 
-MAS 当前已经具备独立 medical research domain agent 的主要边界：direct MAS app skill path、CLI/MCP/product-entry/controller、stage-led autonomy、publication-route memory、sidecar export/dispatch、functional closure projection、OPL production proof ingestion、owner receipt contract、legacy residue tombstone proof 和 body-free OPL/Aion projection 都已进入 repo surface。当前差距集中在真实 paper-line production evidence，而不是 descriptor 或定位。
+MAS 当前已经具备独立 medical research domain agent 的主要边界：direct MAS app skill path、CLI/MCP/product-entry/controller、stage-led autonomy、publication-route memory、sidecar export/dispatch、functional closure projection、OPL production proof ingestion、owner receipt contract、legacy residue tombstone proof 和 body-free OPL/Aion projection 都已进入 repo surface。当前差距不能再只写成“真实 paper-line production evidence 不足”。已经明确的功能层残留必须先处理：MAS 仍持有本机 supervision scheduler、LaunchAgent / 300 秒 tick、scheduler lifecycle CLI 和 outer-supervision SLO contract，这些应先迁移、上收或退役；paper-line long soak 应作为功能边界收干净之后的验收。
 
 MAS 的单仓计划只维护医学领域真相和 domain package 薄程序面。薄程序面包括 descriptor、contract/schema、sidecar/thin adapter、projection builder、domain transition spec/table、quality gate、artifact locator、receipt schema、tests 和 domain entry；它们服务 OPL 发现、托管、审计和投影，不构成第二套 generic framework/runtime。
 
 2026-05-15 live evidence 更新：MAS 已补齐 OPL-hosted guarded-apply 的 task source fingerprint、MAS owner evidence source refs、source-keyed dispatch receipt 和 readiness owner blocker projector。刷新 OPL provider proof 后，DM002 export task 先以 `source_fingerprint=a22e142f0c6ceab0` 证明 OPL 能重新入队旧 dedupe key；随后 MAS 把 `002-early-residual-risk/artifacts/controller_decisions/latest.json` 作为 owner stable blocker 纳入 task source refs，再以 `source_fingerprint=a0cdbf341fae623d` 生成 OPL stage attempt `sat_df08b839ce33a33ee92974f2` 和 MAS receipt `artifacts/runtime/opl_family_sidecar/dispatch_receipts/e97b1c8cd25f3a019f90.json`。该 receipt 返回 `mas_owner_receipt_present` / `stable_blocker`，`summary.writes_performed=false`，`provider_attempt_wrote_workspace=false`，并证明 no forbidden writes。它关闭的是 OPL/MAS owner-receipt rehydrate / source-keyed dispatch gap，不关闭 paper-line publication / artifact authority。
+
+2026-05-16 live code audit 更新：MAS 当前仍持有功能层 scheduler/supervision surface。代码层证据包括 `src/med_autoscience/controllers/supervision_scheduler.py` 的 `SCHEDULER_OWNER=mas_supervision_scheduler`、`DEFAULT_MANAGER=local`，`src/med_autoscience/controllers/supervision_scheduler_parts/local_adapter.py` 的 `DEFAULT_INTERVAL_SECONDS = 5 * 60`、`local_launchd` backend、LaunchAgent `StartInterval` 和 watch-runtime / supervisor scan / consume / execute-dispatch tick sequence；CLI 层证据包括 `runtime-supervision-status`、`runtime-ensure-supervision`、`runtime-remove-supervision`；contract 层证据包括 `contracts/test-lane-manifest.json` 中 `default_scheduler_owner=mas_supervision_scheduler`、`default_adapter_id=local_launchd_on_macos`、`default_tick_interval_seconds=300`。这与本文目标边界中的“MAS 不维护通用 scheduler / attempt ledger / workbench runtime”存在真实差距，必须作为 P0 上收/退役项，而不能继续写成理想常态。
 
 2026-05-15 locator evidence 更新：`family_transition_spec_descriptor` 已明确 `study-state-matrix` 是完整 `family_transition_spec` / `family_transition_matrix_cases` 的唯一物化 surface，`product-entry manifest` 与 `sidecar export` 只暴露 descriptor locator。descriptor 的 JSON pointer 不再指向 sidecar 内不存在的完整 spec，OPL 消费方应先刷新 `study-state-matrix` 后再执行 generic transition runner。
 
@@ -27,6 +37,7 @@ OPL 系列项目的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/d
 | 目标面 | 当前实际 | 差距 | 完善方向 |
 | --- | --- | --- | --- |
 | MAS domain authority pack | 医学 stage pack、publication-route memory、AI reviewer / quality rubric、artifact authority、owner receipt schema 和 projection builder 已成主线 | 仍有部分 runtime / workbench / lifecycle 需求容易继续在 MAS 内复制 | MAS 只保留医学研究路线、质量 judgment、artifact authority 和 domain package 薄程序面；通用外围转成 OPL primitive 需求。 |
+| MAS local scheduler / supervision | `runtime-supervision-status`、`runtime-ensure-supervision`、`runtime-remove-supervision`、`supervision_scheduler.py`、`local_adapter.py` 和 `outer-supervision-slo` 仍由 MAS 管理本机 LaunchAgent/cron 风格 300 秒 tick | 这是最明确的功能层残留；它让 MAS 仍承担 scheduler lifecycle、job registry、cadence SLO 输入和本机唤醒，和理想 `Domain Knowledge / Authority Pack` 不一致 | 短期标记为 standalone/local diagnostic 迁移桥；下一步把 scheduler lifecycle、cadence、provider SLO、job registry/latest run projection 上收到 OPL provider/runtime manager，MAS 只返回 owner receipt、paper-progress blocker、safe action refs 和 no-forbidden-write evidence。 |
 | OPL-hosted paper-line apply | OPL provider proof 可被 MAS 读取；sidecar dispatch 能回到 MAS owner chain 并返回 source-keyed receipt；DM002 已证明 owner stable blocker 可进入 OPL rehydrate / dispatch loop，最新 attempt `sat_df08b839ce33a33ee92974f2` 与 receipt `e97b1c8cd25f3a019f90.json` 返回 `mas_owner_receipt_present` / `stable_blocker`，且不显示 provider workspace write | 已有的是单条 paper line 的 MAS owner stable blocker，不是 artifact delta、AI reviewer update、route decision、人类 gate/resume 或 publication closure；仍缺多 paper-line scaleout 与连续 long-soak | 用 DM002、DM003、Obesity 等真实 paper line 跑 guarded apply；每条线返回 owner receipt、artifact delta、gate replay、typed blocker、stop-loss 或 human gate，而不是把 provider completion 写成 paper closure。 |
 | Publication-route memory | Markdown body、seed index、workspace pack、inventory、typed closeout proposal、router receipt、body-free OPL/Aion projection 已落地；`study-state-matrix` 现在还能消费 publication-route `memory_write_router_receipt`，只投影 router/writeback refs、accepted/rejected/blocker counts 与 body-free/non-authoritative 边界 | accepted/rejected/blocked writeback receipt 还需要在更多真实 paper line 上泛化；memory body 仍不能复制到 OPL，writeback receipt 也不能授权 publication quality、submission 或 runner resume | 继续由 MAS workspace/runtime owner 接受或拒绝 writeback；OPL/App 只展示 locator、consumed refs、receipt refs、freshness 和 grouping；transition matrix 只把 memory writeback receipt 暴露成 inspect/handoff，不驱动通用 runner。 |
 | Artifact lifecycle | MAS 已暴露 artifact locator、lifecycle apply request、guarded apply proof 和 no-forbidden-write 边界 | 真实 workspace 的 cleanup / restore / retention receipt 还需要按 owner 授权闭合 | OPL 可提供 lifecycle ledger、restore/retention shell 和 operator projection；artifact mutation permission 与 canonical package authority 仍由 MAS receipt 给出。 |
@@ -37,22 +48,28 @@ OPL 系列项目的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/d
 | OPL generic runner / transport handoff | OPL fresh read model 已显示三仓 descriptor/stage/memory resolved，并能投影 attempt query / generic projection shell；OPL generic transition runner 基础已存在；MAS descriptor locator 已收敛为 `study-state-matrix` 持完整 spec/cases、manifest/sidecar 只持 descriptor；OPL runtime workbench 现在还能把 provider-hosted transition bridge 的 owner receipt / no-regression / typed blocker refs 投成 operator drilldown | OPL runner 到真实 paper-line transition owner receipt scaleout、周期性 provider SLO execution、App workbench 产品化和真实 lifecycle apply 仍未成为可依赖 runtime substrate | MAS 只提供医学 transition spec、owner receipt、typed blocker、route/quality/artifact refs；`study-state-matrix` 已把 spec 与 matrix 机器面落下，`product-entry manifest` / `sidecar export` 只提供 descriptor，等待 OPL runner hardening / SLO / workbench / lifecycle 壳成熟后接入，不在 MAS 内复制通用实现。 |
 | Legacy contraction | MDS default dependency、Hermes-first/local scheduler 默认语义和 legacy active-path 已有 tombstone / no-active-default-caller 证据 | 物理删除仍需 replacement proof、no-active-reference 和 provenance 安全 | MDS/DeepScientist 保持 archive/oracle/intake reference；替代面成立后逐项 tombstone 或删除，不把旧面补成 active runtime。 |
 
-## MAS 后续执行顺序
+## 最短实施顺序
 
-1. `paper_line_provider_apply`
-   继续用真实 paper line 证明 `OPL provider -> MAS sidecar -> MAS owner chain`。source-fingerprint rehydrate 和 source-keyed dispatch receipt 已完成；下一完成信号是 MAS owner receipt、artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 stable typed blocker 的多 paper-line scaleout。
+1. `local_scheduler_absorption_or_retirement`
+   先处理 MAS 当前最明确的功能层残留：`supervision_scheduler.py`、`local_adapter.py`、LaunchAgent / 300 秒 tick、`runtime-supervision-status`、`runtime-ensure-supervision`、`runtime-remove-supervision` 和 `outer-supervision-slo` contract owner。目标是把 scheduler lifecycle、cadence、provider SLO、job registry/latest-run projection 上收到 OPL provider / runtime manager；MAS 保留 paper progress SLO 语义、owner receipt、typed blocker、safe action refs 和 no-forbidden-write evidence。执行顺序是：先定义 OPL-owned replacement / migration contract，再迁 CLI/status/Portal wording 和 manifest owner，再跑 replacement proof / no-active-caller proof，最后退役 MAS-owned active scheduler path。不能把当前 LaunchAgent scheduler 继续扩展成 MAS 长期产品内核。
 2. `authority_pack_hardening`
    把 stage policy、prompt/skill、publication-route memory、AI reviewer、quality gate、route decision 和 artifact authority 收紧到 MAS owner surface；不在 MAS 内新增通用 queue、generic memory service、通用 workbench 或通用 lifecycle OS。
-3. `domain_transition_table_hardening`
+3. `opl_primitive_handoff`
+   将通用需求转成 OPL owner primitive：provider workflow、queue/human gate transport、generic transition runner hardening、transition bridge evidence refs-only drilldown、memory locator/index、artifact lifecycle、route graph shell、attention queue、observability/SLO、repair command projection 和 App grouping。MAS 不在本仓新增第二套 scheduler、attempt ledger、transition runner、App workbench 或 lifecycle OS；现有 MAS local scheduler / LaunchAgent / 300 秒 supervision tick 在 P0 中先迁移或退役。
+4. `portal_workbench_readonly_boundary_cleanup`
+   清理 MAS Portal / Live Console / product projection 中把 runtime supervision、provider SLO 或 operator action 写成 MAS-owned generic OS 的措辞和入口。UI/Portal 只展示 MAS domain receipt、paper-progress blocker、quality/source refs、safe action refs 和明确 owner 的 repair hint；通用 cadence、attempt ledger、queue、action routing 和 App drilldown 回到 OPL。
+5. `domain_transition_table_hardening`
    维护已落地的 MAS-owned domain transition table / read-model oracle，把更多真实 paper-line transition receipt 纳入 coverage。已纳入的真实回归包括：002 的 reviewer coverage closeout 完成态消费、DM002 package closure / turn closeout 的 `completion_receipt_consumed` matrix case、MAS owner apply receipt artifact-delta 与 controller stable blocker / route decision 的 `owner_apply_receipt_consumed` matrix case、AI reviewer-backed `publication_eval/latest.json` 的 `ai_reviewer_publication_eval` matrix case、accepted/rejected/blocked publication-route memory writeback receipt 的 body-free inspect handoff、current package 已交付后的 `delivered_package_handoff` active-run 优先级、003 的 AI reviewer provenance 优先级、DM003 default executor execution supersession context、Obesity 的 publication gate 真阻断与 stale owner_handoff 授权消费、live Codex CLI stale prompt fresh-turn postcondition、managed worker action 消费当前 authorization 而非旧 dispatch、runtime arbitration / action projection / safe apply path 对 delivered package、human gate、stop-loss、fail-closed、publication gate blocker 和 bundle-stage finalize oracle 的消费，以及单 study projection error fail-closed 隔离。OPL runner 可用后，只接入这份 MAS-owned spec，不让 OPL 重写医学判断。
    2026-05-15 新增硬约束：transition table hardening 必须持续覆盖 `completion_receipt_consumption`。后续新增 work unit 时，必须同时补 `not redriven after receipt` 和 `stale receipt superseded by newer owner execution` 的 matrix/focused tests；stop-loss owner receipt 与 memory writeback receipt 都必须留在同一 oracle，其中 memory writeback 只允许 refs/counts/blocker 投影，不允许 body、quality/submission authorization 或 generic runner resume。
    2026-05-15 consumer guard 硬约束：`study_domain_transition_guard` 是 MAS-owned domain transition 的消费边界，runtime supervisor action projection、interaction arbitration 与 safe apply path 必须复用同一 decision-type 集合。`memory_writeback_receipt_consumed` 当前已列入 terminal/handoff guard，publication-route memory writeback receipt 只能进入 body-free refs/counts/blocker inspect，不得触发旧 work unit redrive、quality/submission authorization 或 generic runner resume。新增 transition 时必须同时声明是否 terminal/handoff、是否允许 runtime redrive、投到哪个受支持 action type，以及旧 prompt、旧 closeout、旧 authorization 是否应被阻断或覆盖。
    2026-05-15 AI reviewer record 硬约束：`return_to_ai_reviewer_workflow` 只能消费 AI reviewer-owned output 或 request 内完整 reviewer record。mechanical `publication_eval/latest.json` / `publication_gate_projection_v1` 是 blocker/projection/read-model 输入，不能作为 AI reviewer record 进入 workflow；request packet 必须声明 `future_facing_limitations_plan` 与 reviewer OS trace 必需字段，dispatch 缺字段时返回 typed owner blocker，不通过 workflow failure 或人工 patch current package 兜底。
-4. `opl_primitive_handoff`
-   将通用需求转成 OPL owner primitive：provider workflow、queue/human gate transport、generic transition runner hardening、transition bridge evidence refs-only drilldown、memory locator/index、artifact lifecycle、route graph shell、attention queue、observability/SLO、repair command projection 和 App grouping。MAS 不在本仓新增第二套 scheduler、attempt ledger、transition runner、App workbench 或 lifecycle OS。
-5. `memory_and_lifecycle_live_receipts`
+6. `memory_and_lifecycle_live_receipts`
    在真实 workspace 中继续产生 accepted/rejected memory receipts、cleanup/restore/retention guarded apply receipts 和 artifact mutation permission receipts。
-6. `legacy_physical_cleanup`
+7. `paper_line_provider_apply_verification`
+   功能边界迁移和通用 primitive handoff 之后，再用真实 paper line 验证 `OPL provider -> MAS sidecar -> MAS owner chain`。source-fingerprint rehydrate 和 source-keyed dispatch receipt 已完成；下一完成信号是 MAS owner receipt、artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 stable typed blocker 的多 paper-line scaleout。这里是 focused verification，不再作为 P0 前置条件。
+8. `live_soak_and_production_closure`
+   最后再跑多 paper-line provider-hosted guarded apply、长时 provider SLO、human gate/resume、owner-chain receipt、no-forbidden-write 和 App drilldown soak。live soak 只负责验收迁移后的目标边界，不负责决定是否开始迁移已知功能残留。
+9. `legacy_physical_cleanup`
    有 replacement proof 和 no-active-reference 后，再清理旧 MDS/Hermes/local/default compatibility residue；没有证据时只保留 history/provenance/tombstone 语境。
 
 ## 当前不能写成
@@ -64,3 +81,4 @@ OPL 系列项目的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/d
 - 不能写成 OPL 持有医学研究路线、publication-route memory body、publication quality、artifact authority 或 current package。
 - 不能写成 MDS/DeepScientist 回到 MAS 默认 backend 或 OPL active Foundry Agent。
 - 不能写成 MAS 还需要维护一套通用 agent OS；通用 runtime / lifecycle / workbench 能力应进入 OPL / shared family layer。
+- 不能写成当前 MAS 已经没有功能层残留；本机 local scheduler / LaunchAgent / 300 秒 supervision tick 仍在 MAS 代码和 contract 中，是需要上收或退役的明确 gap。

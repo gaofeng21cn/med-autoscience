@@ -10,20 +10,22 @@ from med_autoscience.controllers.study_runtime_decision_parts import publication
 
 SpecificityTargetsFn = Callable[[dict[str, object]], tuple[dict[str, str], ...]]
 
-_BUNDLE_STAGE_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
+_PROSE_QUALITY_AUTHORITY_ACTIONS = frozenset(
+    {"continue_write_stage", "continue_bundle_stage", "complete_bundle_stage"}
+)
 _READY_QUALITY_STATUS = "ready"
 _PROSE_REVIEW_ROUTE = {
     "route_target": "review",
-    "route_key_question": "Which AI-reviewer manuscript-quality issue must close before finalize?",
+    "route_key_question": "Which AI-reviewer manuscript-quality issue must close before the manuscript can advance?",
     "route_rationale": (
         "AI reviewer medical_journal_prose_quality is not ready; route back to the same paper-line "
-        "quality review before any finalize-stage handoff."
+        "quality review before any write-stage or finalize-stage handoff."
     ),
 }
 _PROSE_REVIEW_WORK_UNIT = {
     "unit_id": "ai_reviewer_medical_prose_quality_review",
     "lane": "review",
-    "summary": "Re-run AI reviewer manuscript-quality review and close medical_journal_prose_quality before finalize.",
+    "summary": "Re-run AI reviewer manuscript-quality review and close medical_journal_prose_quality before draft advancement.",
 }
 
 
@@ -32,11 +34,11 @@ def _medical_prose_quality_status(report: dict[str, object]) -> str:
     return status or "underdefined"
 
 
-def _clear_bundle_stage_has_unready_prose_quality(report: dict[str, object]) -> bool:
+def _clear_stage_has_unready_prose_quality(report: dict[str, object]) -> bool:
     if str(report.get("status") or "").strip() != "clear":
         return False
     current_required_action = str(report.get("current_required_action") or "").strip()
-    if current_required_action not in _BUNDLE_STAGE_ACTIONS:
+    if current_required_action not in _PROSE_QUALITY_AUTHORITY_ACTIONS:
         return False
     status = _medical_prose_quality_status(report)
     return status != _READY_QUALITY_STATUS
@@ -50,7 +52,7 @@ def _prose_quality_route_reason(report: dict[str, object]) -> str:
     status = _medical_prose_quality_status(report)
     return (
         f"AI reviewer medical_journal_prose_quality is {status}; "
-        "a clear publication gate cannot authorize finalize until that quality dimension is ready."
+        "a clear publication gate cannot authorize draft advancement until that quality dimension is ready."
     )
 
 
@@ -147,7 +149,7 @@ def _blocked_route_action(report: dict[str, object]) -> tuple[str, dict[str, str
 
 
 def _clear_publication_action(report: dict[str, object]) -> tuple[str, dict[str, str]]:
-    if _clear_bundle_stage_has_unready_prose_quality(report):
+    if _clear_stage_has_unready_prose_quality(report):
         return _prose_quality_route_action()
     current_required_action = str(report.get("current_required_action") or "").strip()
     if current_required_action == "prepare_promotion_review":
@@ -184,7 +186,7 @@ def publication_eval_action(
         action_type, route_contract = _clear_publication_action(report)
         reason = (
             _prose_quality_route_reason(report)
-            if _clear_bundle_stage_has_unready_prose_quality(report)
+            if _clear_stage_has_unready_prose_quality(report)
             else str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is clear and the current line can continue."
         )
@@ -194,7 +196,7 @@ def publication_eval_action(
             str(report.get("controller_stage_note") or "").strip()
             or "Publication gate is blocked and requires controller review."
         )
-    if _clear_bundle_stage_has_unready_prose_quality(report):
+    if _clear_stage_has_unready_prose_quality(report):
         work_unit_payload = _prose_quality_work_unit_payload(report)
     else:
         work_unit_payload = publication_work_units.derive_publication_work_units(report)

@@ -479,6 +479,65 @@ def test_study_state_matrix_projects_ai_reviewer_required_before_finalize(
     assert transition["owner"] == "ai_reviewer"
 
 
+def test_study_state_matrix_projects_ai_reviewer_required_before_gate_replay(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    study_root = workspace_root / "studies" / "003-dpcc"
+    study_root.mkdir(parents=True)
+    (study_root / "study.yaml").write_text("study_id: 003-dpcc\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "status": "blocked",
+            "assessment_provenance": {
+                "owner": "mechanical_projection",
+                "source_kind": "publication_gate_report",
+                "ai_reviewer_required": True,
+            },
+            "verdict": {
+                "overall_verdict": "blocked",
+                "primary_claim_status": "partial",
+            },
+            "blockers": [
+                "treatment_gap_reporting_incomplete",
+                "phenotype_derivation_reporting_incomplete",
+            ],
+        },
+    )
+
+    monkeypatch.setattr(
+        cli.study_runtime_router,
+        "study_runtime_status",
+        lambda **_: {
+            "study_id": "003-dpcc",
+            "study_root": str(study_root),
+            "quest_status": "paused",
+            "active_run_id": None,
+            "publication_supervisor_state": {
+                "supervisor_phase": "publishability_gate_blocked",
+                "current_required_action": "return_to_publishability_gate",
+            },
+        },
+    )
+
+    exit_code = cli.main(["study-state-matrix", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+    transition = json.loads(captured.out)["studies"][0]["domain_transition"]
+
+    assert exit_code == 0
+    assert transition["decision_type"] == "ai_reviewer_re_eval"
+    assert transition["route_target"] == "review"
+    assert transition["next_work_unit"]["unit_id"] == "ai_reviewer_recheck"
+    assert transition["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert transition["owner"] == "ai_reviewer"
+
+
 def test_study_state_matrix_routes_ai_reviewer_backed_blocked_eval_to_publication_gate(
     monkeypatch,
     tmp_path: Path,
