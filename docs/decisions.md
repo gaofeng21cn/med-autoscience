@@ -79,6 +79,12 @@
 - 理由：OPL 已提供 runtime manager / provider SLO / family queue / intake / attempt ledger replacement surface；MAS 长期应收窄为 medical research authority pack + thin program surface。继续把本机 LaunchAgent 写成默认 scheduler owner 会让 MAS 持有通用 cadence、job registry 和 scheduler lifecycle，和 OPL-led family framework 分层冲突。
 - 影响：显式 `--manager local` 仍保留为 legacy diagnostic / cleanup path，可检查或移除旧 LaunchAgent；显式 `--manager hermes` 仍是 optional historical/executor-adapter style projection。workspace bootstrap 改为默认委托 OPL replacement，不再安装 MAS local scheduler。该迁移不等于真实 Temporal long soak、paper-line closure、artifact mutation 授权或 publication-ready。
 
+## 2026-05-16：现有论文 workspace active binding 必须清理旧 MDS 污染
+
+- 决策：`workspace-monolith-migrate --apply` 生成的 active profile、`runtime_binding.yaml` 和 migrated `quest.yaml` / `runtime_state.json` 必须使用 MAS active layout：`runtime/`、`runtime/quests/<quest_id>`、`mas_runtime_core` 与 `mas-runtime-core`。旧 `med_deepscientist_*` root、旧 `research_backend_id` / `research_engine_id`、legacy diagnostic、旧 quest root、旧 runtime root、旧 confirmed baseline absolute path 和旧 metric contract absolute path 只能进入 `historical_fixture_ref` / `explicit_archive_import_ref` 的 read-only provenance。
+- 理由：现有论文项目如果继续在 active binding 或 quest snapshot 中携带旧 MDS backend/root/state-machine 字段，OPL/MAS consumer 会把旧状态机、旧 baseline absolute ref 或旧 local runtime 误读成当前 owner，从而污染新 MAS domain authority pack 和 thin program surface。
+- 影响：迁移器和 focused tests 必须阻断旧 MDS active path 回流；真实 paper truth surface 仍由 MAS controller/runtime/canonical artifact flow 持有，不允许用 migration apply 手工 patch `current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json`、paper/submission package、runtime SQLite 或 restore archive。缺 OPL provider/runtime/workbench surface 时写 handoff / contract expectation，不在 MAS 内重建 generic scheduler、runner、queue 或 workbench。
+
 ## 2026-05-09：历史 MAS supervision scheduler contract，local 曾是默认 adapter
 
 - 决策：当时的 `MAS supervision scheduler contract` 只允许解释为 MAS standalone/local diagnostics 的 outer supervision owner；`local` 曾是 MAS 本地默认 scheduler adapter，macOS 落到 MAS-owned LaunchAgent。OPL Full online runtime 的 family-level wakeup 由 OPL family runtime provider 承担，再通过 MAS sidecar dispatch 进入 domain owner surface。
