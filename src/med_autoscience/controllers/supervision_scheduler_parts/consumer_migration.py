@@ -83,6 +83,56 @@ MAS_RETAINED_THIN_PROGRAM_SURFACES = (
     "typed_blocker",
     "safe_action_refs",
 )
+FUNCTIONAL_SURFACE_CLASSIFICATION = {
+    "A_opl_owned_mas_consumes": [
+        "runtime_lifecycle_sqlite_reference_adapter",
+        "runtime_storage_maintenance",
+        "artifact_lifecycle_storage_audit_shell",
+        "workbench_portal_generic_shell",
+        "terminal_attach_transport",
+        "generic_daemon_or_scheduler_lifecycle",
+        "generic_queue_attempt_retry_dead_letter",
+        "generic_transition_runner",
+    ],
+    "B_mas_domain_authority": [
+        "study_truth",
+        "study_runtime_status",
+        "runtime_watch_domain_health",
+        "publication_quality_verdict",
+        "ai_reviewer_workflow",
+        "publication_gate",
+        "artifact_authority",
+        "owner_receipt",
+        "domain_transition_table",
+        "publication_route_memory_body",
+        "memory_writeback_decision",
+        "typed_blocker",
+        "safe_action_refs",
+    ],
+    "C_retire_when_replaced_or_uncalled": [
+        "local_launchd_scheduler_install_path",
+        "workspace_local_watch_service_wrappers",
+        "mas_generic_workbench_shell",
+        "legacy_scheduler_default_aliases",
+        "daemonish_terminal_attach_status_as_runtime_owner",
+        "scheduler_legacy_residue_without_active_caller",
+    ],
+}
+OPL_REPLACEMENT_EXPECTATION_AUDIT = {
+    "owner": REPLACEMENT_OWNER,
+    "required_before_mas_generic_owner_claim": True,
+    "audit_ref": "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
+    "expected_replacements": [
+        "opl_runtime_lifecycle_index_contract",
+        "opl_artifact_lifecycle_storage_audit_shell",
+        "opl_app_workbench_shell",
+        "opl_terminal_attach_transport",
+        "opl_provider_scheduler_lifecycle",
+        "opl_queue_attempt_retry_dead_letter",
+        "opl_generic_transition_runner",
+    ],
+    "mas_allowed_role_until_replacement": "domain_sidecar_reference_adapter_refs_only",
+}
 
 
 def build_functional_consumer_boundary() -> dict[str, Any]:
@@ -95,6 +145,18 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         "generic_surfaces_consumed_from_opl": list(OPL_CONSUMED_GENERIC_SURFACES),
         "mas_does_not_own": list(OPL_CONSUMED_GENERIC_SURFACES),
         "mas_retains": list(MAS_RETAINED_THIN_PROGRAM_SURFACES),
+        "functional_surface_classification": {
+            key: list(value) for key, value in FUNCTIONAL_SURFACE_CLASSIFICATION.items()
+        },
+        "runtime_lifecycle_sqlite_role": {
+            "classification": "A_opl_owned_mas_consumes",
+            "current_mas_role": "domain_sidecar_index_reference_adapter",
+            "authority": "refs_only_index_not_generic_persistence_engine",
+            "owner": REPLACEMENT_OWNER,
+            "mas_may_index_domain_receipts": True,
+            "mas_may_claim_generic_persistence_engine": False,
+            "replacement_expectation": dict(OPL_REPLACEMENT_EXPECTATION_AUDIT),
+        },
         "opl_functional_harness_consumer_coverage": {
             "surface_kind": "opl_functional_harness_consumer_coverage",
             "status": "landed_domain_authority_pack_consumer",
@@ -248,10 +310,12 @@ __all__ = [
     "CURRENT_SCHEDULER_OWNER",
     "FORBIDDEN_AUTHORITY_CLAIMS",
     "FORBIDDEN_WRITES",
+    "FUNCTIONAL_SURFACE_CLASSIFICATION",
     "MAS_RETAINED_AFTER_MIGRATION",
     "MAS_RETAINED_THIN_PROGRAM_SURFACES",
     "OPL_CONSUMED_GENERIC_SURFACES",
     "OPL_FUNCTIONAL_HARNESS_COVERAGE",
+    "OPL_REPLACEMENT_EXPECTATION_AUDIT",
     "OPL_REPLACEMENT_EXPECTED_CAPABILITIES",
     "REPLACEMENT_OWNER",
     "REPLACEMENT_OWNER_SURFACE",

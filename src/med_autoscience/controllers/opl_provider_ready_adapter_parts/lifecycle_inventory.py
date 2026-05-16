@@ -21,7 +21,10 @@ def build_opl_lifecycle_inventory_surface() -> dict[str, Any]:
             ),
             _inventory_item(
                 "runtime_lifecycle_sidecar_index",
-                "SQLite-style lifecycle index, receipt lookup, restore proof, migration ledger, and retention receipt.",
+                (
+                    "MAS domain sidecar/reference adapter over lifecycle refs; OPL owns the generic "
+                    "persistence/lifecycle replacement contract."
+                ),
                 "lift_to_opl_framework",
                 owner=OPL_OWNER,
                 mas_exports_refs_only=True,

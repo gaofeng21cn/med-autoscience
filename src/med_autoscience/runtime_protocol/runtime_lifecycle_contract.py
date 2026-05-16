@@ -109,6 +109,9 @@ SIDECAR_INDEXED_SURFACES = (
 )
 
 SIDECAR_AUTHORITY_POLICY = "index_only_authority_remains_file_surfaces"
+SIDECAR_ROLE = "mas_domain_sidecar_index_reference_adapter"
+GENERIC_PERSISTENCE_OWNER = "one-person-lab"
+GENERIC_PERSISTENCE_ENGINE_CLAIM_ALLOWED = False
 
 SQLITE_AUTHORITY_SCOPE = (
     "runtime_lifecycle",
@@ -223,6 +226,22 @@ OPL_FAMILY_ADAPTER_SURFACE = {
         "manuscript/current_package",
         "current_package.zip",
     ],
+    "runtime_lifecycle_sqlite_role": {
+        "classification": "A_opl_owned_mas_consumes",
+        "current_mas_role": SIDECAR_ROLE,
+        "owner": GENERIC_PERSISTENCE_OWNER,
+        "authority": "refs_payload_projection_only",
+        "generic_persistence_engine_claim_allowed": GENERIC_PERSISTENCE_ENGINE_CLAIM_ALLOWED,
+        "replacement_expectation_audit_ref": (
+            "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough"
+        ),
+        "replacement_expected_from_opl": [
+            "opl_runtime_lifecycle_index_contract",
+            "opl_artifact_lifecycle_storage_audit_shell",
+            "opl_restore_retention_receipt_shell",
+            "opl_provider_attempt_receipt_ledger",
+        ],
+    },
 }
 
 MIGRATION_LEDGER_REQUIRED_FIELDS = (
@@ -276,6 +295,9 @@ def runtime_lifecycle_contract() -> dict[str, Any]:
         "sqlite_sidecar_tables": list(SQLITE_SIDECAR_TABLES),
         "sidecar_indexed_surfaces": list(SIDECAR_INDEXED_SURFACES),
         "sidecar_authority_policy": SIDECAR_AUTHORITY_POLICY,
+        "sidecar_role": SIDECAR_ROLE,
+        "generic_persistence_owner": GENERIC_PERSISTENCE_OWNER,
+        "generic_persistence_engine_claim_allowed": GENERIC_PERSISTENCE_ENGINE_CLAIM_ALLOWED,
         "sqlite_authority_scope": list(SQLITE_AUTHORITY_SCOPE),
         "sqlite_forbidden_authority_surfaces": list(SQLITE_FORBIDDEN_AUTHORITY_SURFACES),
         "quest_live_writer_root_policy": QUEST_LIVE_WRITER_ROOT_POLICY,

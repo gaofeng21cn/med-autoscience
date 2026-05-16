@@ -173,6 +173,11 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     )
     inventory = payload["opl_lifecycle_inventory"]
     assert inventory == provider["lifecycle_inventory"]
+    lifecycle_index = next(
+        item for item in inventory["framework_generic"] if item["item_id"] == "runtime_lifecycle_sidecar_index"
+    )
+    assert "reference adapter" in lifecycle_index["summary"]
+    assert "generic persistence/lifecycle replacement contract" in lifecycle_index["summary"]
     assert {item["item_id"] for item in inventory["framework_generic"]} == {
         "provider_stage_attempt",
         "runtime_lifecycle_sidecar_index",
