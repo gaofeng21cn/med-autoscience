@@ -45,8 +45,13 @@ rsync -a \
   --exclude 'tmp' \
   "${repo_root}/" "${source_root}/"
 
-MAS_CLEAN_RUNNER_TMP_ROOT="${tmp_root}/python" \
-  "${repo_root}/scripts/run-python-clean.sh" -m build "${source_root}" --sdist --wheel --outdir "${build_outdir}"
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPYCACHEPREFIX="${tmp_root}/pycache"
+export PYTHONPATH="${source_root}/src:${source_root}"
+export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider -o cache_dir=${tmp_root}/pytest-cache"
+
+uv run --no-project --isolated --with build \
+  python -m build "${source_root}" --sdist --wheel --outdir "${build_outdir}"
 
 if [[ -n "${outdir}" ]]; then
   mkdir -p "${outdir}"

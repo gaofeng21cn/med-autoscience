@@ -201,7 +201,7 @@ def _render_workspace_rules() -> str:
         "- 不要在已经满足自动推进条件的 study 上持续停留在碎片化人工交互。\n"
         "- 必须显式通知用户自动驾驶已启动或已被检测到，并提供监督入口。\n"
         "- 一旦检测到 live managed runtime，前台必须立即进入 supervisor-only 监管态。\n"
-        "- live managed runtime 需要持续在线的 MAS scheduler supervision tick；默认由 `local` scheduler adapter 托管 `ops/medautoscience/bin/watch-runtime` 的单次 tick，避免 supervisor tick 回落为 `stale`。Hermes gateway cron 只在显式选择时作为 optional adapter。\n"
+        "- live managed runtime 的默认 cadence / wakeup / provider SLO 由 OPL provider/runtime manager 承载；`ops/medautoscience/bin/watch-runtime` 只是 MAS one-shot domain tick 入口，显式 `--manager local` 只用于 legacy scheduler status/remove cleanup。Hermes gateway cron 只在显式选择时作为 optional adapter。\n"
         "- 不得直接写入 runtime-owned 的 study / quest / paper surface；如需人工接管，先显式暂停 runtime。\n"
         "- 只要 `publication_supervisor_state.bundle_tasks_downstream_only = true`，就把 bundle/build/proofing 视为硬阻断，不得抢跑。\n"
         f"- {automation_ready_summary}\n"

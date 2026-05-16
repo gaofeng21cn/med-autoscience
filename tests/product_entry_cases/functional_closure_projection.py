@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 
 from .shared import *  # noqa: F403,F401
-from .action_catalog_parity import _write_opl_production_proof
+from .action_catalog_parity_cases.shared import _write_opl_production_proof
 
 
 def test_product_entry_manifest_projects_current_development_lines_closure(

@@ -405,6 +405,19 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
         assert "install_project_entrypoints" not in lane_block
 
 
+def test_clean_build_runner_uses_temp_source_root_for_imports() -> None:
+    python_runner = _read("scripts/run-python-clean.sh")
+    build_runner = _read("scripts/run-build-clean.sh")
+
+    assert 'pythonpath_root="${MAS_CLEAN_RUNNER_SOURCE_ROOT:-${repo_root}}"' in python_runner
+    assert 'export PYTHONPATH="${pythonpath_root}/src:${pythonpath_root}${PYTHONPATH:+:${PYTHONPATH}}"' in python_runner
+    assert 'export PYTHONPYCACHEPREFIX="${tmp_root}/pycache"' in build_runner
+    assert 'export PYTHONPATH="${source_root}/src:${source_root}"' in build_runner
+    assert "uv run --no-project --isolated --with build \\" in build_runner
+    assert 'python -m build "${source_root}" --sdist --wheel --outdir "${build_outdir}"' in build_runner
+    assert '"${repo_root}/scripts/run-python-clean.sh" -m build "${source_root}"' not in build_runner
+
+
 def test_verify_script_runs_sanity_checks_before_default_dispatch() -> None:
     verify_script = _read("scripts/verify.sh")
 

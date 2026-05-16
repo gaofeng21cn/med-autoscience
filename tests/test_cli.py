@@ -22,6 +22,7 @@ from .test_cli_cases.mainline_projection_commands import *  # noqa: F403,F401
 from .test_cli_cases.ai_reviewer_publication_eval_command import *  # noqa: F403,F401
 from .test_cli_cases.sidecar_and_submission_commands import *  # noqa: F403,F401
 from .test_cli_cases.sidecar_family_adapter_command import *  # noqa: F403,F401
+from .test_cli_cases.functional_consumer_boundary import *  # noqa: F403,F401
 from .test_cli_cases.sidecar_transition_descriptor_command import *  # noqa: F403,F401
 from .test_cli_cases.sidecar_family_guarded_apply_cases import *  # noqa: F403,F401
 from .test_cli_cases.sidecar_functional_closure_command import *  # noqa: F403,F401

@@ -57,7 +57,15 @@ def _write_study(
                 f"runtime_home: {legacy_runtime_root}",
                 f"runtime_root: {legacy_runtime_root / 'quests'}",
                 f"runtime_quests_root: {legacy_runtime_root / 'quests'}",
-                "runtime_backend_id: med_autoscience_runtime_os",
+                "runtime_backend_id: med_deepscientist",
+                "runtime_backend: med_deepscientist",
+                "runtime_engine_id: med-deepscientist",
+                "research_backend_id: med_deepscientist",
+                "research_backend: med_deepscientist",
+                "research_engine_id: med-deepscientist",
+                f"med_deepscientist_runtime_root: {legacy_runtime_root}",
+                "legacy_diagnostic:",
+                f"  med_deepscientist_runtime_root: {legacy_runtime_root}",
                 "last_action: resume",
                 "",
             ]
@@ -76,9 +84,28 @@ def _write_quest(
     restore_proof: bool = False,
 ) -> Path:
     quest_root = runtime_quests_root / quest_id
-    lines = [f"quest_id: {quest_id}"]
+    lines = [
+        f"quest_id: {quest_id}",
+        f"quest_root: {quest_root}",
+        f"runtime_root: {runtime_quests_root}",
+    ]
     if study_id is not None:
         lines.append(f"study_id: {study_id}")
+    lines.extend(
+        [
+            "confirmed_baseline_ref:",
+            "  baseline_id: baseline-001",
+            "  variant_id: imported",
+            "  baseline_root_rel_path: baselines/imported/baseline-001",
+            "  metric_contract_json_rel_path: baselines/imported/baseline-001/json/metric_contract.json",
+            f"  baseline_path: {quest_root / 'baselines' / 'imported' / 'baseline-001'}",
+            f"  metric_contract_json_path: {quest_root / 'baselines' / 'imported' / 'baseline-001' / 'json' / 'metric_contract.json'}",
+            "  source_mode: historical_fixture_ref",
+            "legacy_runtime_metadata:",
+            f"  baseline_path: {quest_root / 'baselines' / 'imported' / 'baseline-001'}",
+            f"  metric_contract_json_path: {quest_root / 'baselines' / 'imported' / 'baseline-001' / 'json' / 'metric_contract.json'}",
+        ]
+    )
     _write_text(quest_root / "quest.yaml", "\n".join(lines) + "\n")
     _write_json(quest_root / ".ds" / "runtime_state.json", {"quest_id": quest_id, **runtime_state})
     if restore_proof:
@@ -151,6 +178,34 @@ def _build_fixture(tmp_path: Path) -> tuple[Path, Path]:
         study_id=None,
         runtime_state={"status": "completed", "active_run_id": None},
     )
+    ops_readme = workspace_root / "ops" / "medautoscience" / "README.md"
+    _write_text(
+        ops_readme,
+        "\n".join(
+            [
+                "# Legacy Entry",
+                "- `bin/install-watch-runtime-service`",
+                "- `bin/watch-runtime-service-status`",
+                "- `bin/uninstall-watch-runtime-service`",
+                "",
+            ]
+        ),
+    )
+    launchd_readme = workspace_root / "ops" / "medautoscience" / "supervisor" / "launchd" / "README.md"
+    _write_text(launchd_readme, "ops/medautoscience/bin/install-watch-runtime-service --manager launchd\n")
+    for name in (
+        "install-watch-runtime-service",
+        "watch-runtime-service-status",
+        "uninstall-watch-runtime-service",
+        "watch-runtime-service-runner",
+    ):
+        _write_text(
+            workspace_root / "ops" / "medautoscience" / "bin" / name,
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            'source "$(cd "$(dirname "$0")" && pwd)/_shared.sh"\n'
+            "runtime ensure-supervision\n",
+        )
     return profile_path, workspace_root
 
 
@@ -219,17 +274,47 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert alpha_binding["runtime_home"] == str(workspace_root / "runtime")
     assert alpha_binding["runtime_root"] == str(workspace_root / "runtime" / "quests")
     assert alpha_binding["runtime_quests_root"] == str(workspace_root / "runtime" / "quests")
+    assert alpha_binding["runtime_backend_id"] == "mas_runtime_core"
+    assert alpha_binding["runtime_backend"] == "mas_runtime_core"
+    assert alpha_binding["runtime_engine_id"] == "mas-runtime-core"
+    assert alpha_binding["research_backend_id"] == "mas_runtime_core"
+    assert alpha_binding["research_backend"] == "mas_runtime_core"
+    assert alpha_binding["research_engine_id"] == "mas-runtime-core"
+    assert "med_deepscientist_runtime_root" not in alpha_binding
+    assert "legacy_diagnostic" not in alpha_binding
     assert alpha_binding["historical_fixture_ref"]["read_only"] is True
     assert alpha_binding["historical_fixture_ref"]["old_quest_root"].endswith(
         "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
     )
+    assert alpha_binding["historical_fixture_ref"]["old_runtime_root"].endswith("ops/med-deepscientist/runtime")
     migrated_quest_root = workspace_root / "runtime" / "quests" / "quest-alpha-dynamic"
     migrated_quest = yaml.safe_load((migrated_quest_root / "quest.yaml").read_text(encoding="utf-8"))
     migrated_runtime_state = json.loads((migrated_quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
-    assert migrated_quest == {
-        "quest_id": "quest-alpha-dynamic",
-        "study_id": "010-alpha-dynamic",
+    assert migrated_quest["quest_id"] == "quest-alpha-dynamic"
+    assert migrated_quest["study_id"] == "010-alpha-dynamic"
+    assert migrated_quest["quest_root"] == str(migrated_quest_root)
+    assert migrated_quest["runtime_root"] == str(workspace_root / "runtime" / "quests")
+    assert migrated_quest["historical_fixture_ref"]["read_only"] is True
+    assert migrated_quest["historical_fixture_ref"]["old_quest_root"].endswith(
+        "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic"
+    )
+    assert migrated_quest["confirmed_baseline_ref"] == {
+        "baseline_id": "baseline-001",
+        "variant_id": "imported",
+        "baseline_root_rel_path": "baselines/imported/baseline-001",
+        "metric_contract_json_rel_path": "baselines/imported/baseline-001/json/metric_contract.json",
+        "source_mode": "historical_fixture_ref",
     }
+    assert "baseline_path" not in migrated_quest["confirmed_baseline_ref"]
+    assert "metric_contract_json_path" not in migrated_quest["confirmed_baseline_ref"]
+    assert migrated_quest["historical_fixture_ref"]["old_confirmed_baseline_ref"]["baseline_path"].endswith(
+        "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic/baselines/imported/baseline-001"
+    )
+    assert migrated_quest["historical_fixture_ref"]["old_confirmed_baseline_ref"][
+        "metric_contract_json_path"
+    ].endswith(
+        "ops/med-deepscientist/runtime/quests/quest-alpha-dynamic/baselines/imported/baseline-001/json/metric_contract.json"
+    )
     assert migrated_runtime_state["status"] == "completed"
     assert migrated_runtime_state["active_run_id"] is None
     assert migrated_runtime_state["worker_running"] is False
@@ -246,6 +331,23 @@ def test_workspace_monolith_migration_apply_writes_ledger_and_only_migrates_safe
     assert behavior_gate.read_text(encoding="utf-8") == (
         "schema_version: v1\nphase_25_ready: true\ncritical_overrides: []\n"
     )
+    med_readme_text = (workspace_root / "ops" / "medautoscience" / "README.md").read_text(encoding="utf-8")
+    assert "install-watch-runtime-service" not in med_readme_text
+    assert "watch-runtime-service-status" not in med_readme_text
+    assert "uninstall-watch-runtime-service" not in med_readme_text
+    assert "medautosci runtime ensure-supervision --profile <profile>" in med_readme_text
+    launchd_readme_text = (
+        workspace_root / "ops" / "medautoscience" / "supervisor" / "launchd" / "README.md"
+    ).read_text(encoding="utf-8")
+    assert "Retired Workspace-Local Scheduler" in launchd_readme_text
+    assert "install-watch-runtime-service --manager launchd" not in launchd_readme_text
+    for name in (
+        "install-watch-runtime-service",
+        "watch-runtime-service-status",
+        "uninstall-watch-runtime-service",
+        "watch-runtime-service-runner",
+    ):
+        assert not (workspace_root / "ops" / "medautoscience" / "bin" / name).exists()
     contracts = workspace_contracts.inspect_workspace_contracts(profiles.load_profile(profile_path))
     assert contracts["runtime_contract"]["ready"] is True
     assert contracts["launcher_contract"]["ready"] is True

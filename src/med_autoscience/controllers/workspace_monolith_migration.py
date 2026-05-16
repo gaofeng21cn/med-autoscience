@@ -17,8 +17,16 @@ from med_autoscience.controllers.workspace_init_parts.shell_rendering import (
     _render_mas_runtime_bridge_stop_script,
     _render_progress_portal_start_web_script,
 )
+from med_autoscience.controllers.workspace_init_parts.retired_entries import (
+    retired_file_cleanup_reason,
+    retired_workspace_service_paths,
+)
 from med_autoscience.profiles import WorkspaceProfile, load_profile
-from med_autoscience.runtime_backend import DEFAULT_MANAGED_RUNTIME_BACKEND_ID, engine_id_for_backend_id
+from med_autoscience.runtime_backend import (
+    DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
+    controlled_research_backend_metadata_for_backend_id,
+    engine_id_for_backend_id,
+)
 from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout
 
 
@@ -323,6 +331,19 @@ def _write_runtime_configs(*, profile: WorkspaceProfile, profile_path: Path) -> 
         ),
         encoding="utf-8",
     )
+    med_config_example_path = workspace_root / "ops" / "medautoscience" / "config.env.example"
+    med_config_example_path.write_text(
+        workspace_entry_rendering_controller.render_medautoscience_config(
+            workspace_root=workspace_root,
+            profile_relpath=profile_relpath,
+        ),
+        encoding="utf-8",
+    )
+    med_readme_path = workspace_root / "ops" / "medautoscience" / "README.md"
+    med_readme_path.write_text(
+        workspace_entry_rendering_controller.render_medautoscience_readme(profile_relpath=profile_relpath),
+        encoding="utf-8",
+    )
     mas_config_path = workspace_root / "ops" / "mas" / "config.env"
     mas_config_path.parent.mkdir(parents=True, exist_ok=True)
     mas_config_path.write_text(
@@ -365,6 +386,29 @@ def _write_runtime_configs(*, profile: WorkspaceProfile, profile_path: Path) -> 
         workspace_root / "ops" / "mas" / "bin" / "stop",
         _render_mas_runtime_bridge_stop_script(),
     )
+    _cleanup_retired_workspace_scheduler_entries(workspace_root)
+
+
+def _cleanup_retired_workspace_scheduler_entries(workspace_root: Path) -> None:
+    for path in retired_workspace_service_paths(workspace_root):
+        if retired_file_cleanup_reason(path) is not None:
+            path.unlink()
+    launchd_readme_path = workspace_root / "ops" / "medautoscience" / "supervisor" / "launchd" / "README.md"
+    if launchd_readme_path.exists():
+        launchd_readme_path.write_text(_render_retired_launchd_readme(), encoding="utf-8")
+
+
+def _render_retired_launchd_readme() -> str:
+    return (
+        "# Retired Workspace-Local Scheduler\n\n"
+        "This workspace-local LaunchAgent wrapper is retired.\n\n"
+        "Default scheduler lifecycle is delegated to the OPL provider/runtime manager via:\n\n"
+        "- `medautosci runtime ensure-supervision --profile <profile>`\n"
+        "- `medautosci runtime supervision-status --profile <profile>`\n"
+        "- `medautosci runtime remove-supervision --profile <profile>`\n\n"
+        "Use `--manager local` only for legacy status/remove cleanup diagnostics. Do not reinstall "
+        "workspace-local LaunchAgent wrappers from this directory.\n"
+    )
 
 
 def _relative_or_absolute(path: Path, workspace_root: Path) -> Path:
@@ -386,24 +430,35 @@ def _write_runtime_binding_for_item(
     quest_id = str(item["quest_id"])
     binding_path = study_root / "runtime_binding.yaml"
     previous = _read_yaml_mapping(binding_path)
+    sanitized_previous = _sanitize_runtime_binding_previous(previous)
+    research_backend_id, research_engine_id = controlled_research_backend_metadata_for_backend_id(
+        DEFAULT_MANAGED_RUNTIME_BACKEND_ID
+    )
     payload = {
-        **previous,
+        **sanitized_previous,
         "schema_version": 1,
         "engine": engine_id_for_backend_id(DEFAULT_MANAGED_RUNTIME_BACKEND_ID),
         "runtime_backend_id": DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
         "runtime_backend": DEFAULT_MANAGED_RUNTIME_BACKEND_ID,
         "runtime_engine_id": engine_id_for_backend_id(DEFAULT_MANAGED_RUNTIME_BACKEND_ID),
+        "research_backend_id": research_backend_id,
+        "research_backend": research_backend_id,
+        "research_engine_id": research_engine_id,
         "runtime_home": str(target_runtime_home),
         "study_id": str(item["study_id"]),
         "study_root": str(study_root),
         "quest_id": quest_id,
         "runtime_root": str(target_quests_root),
         "runtime_quests_root": str(target_quests_root),
-        "historical_fixture_ref": {
-            "old_quest_root": str(item["old_quest_root"]),
-            "restore_provenance_ref": "artifacts/runtime/monolith_migration/latest.json",
-            "read_only": True,
-        },
+        "historical_fixture_ref": _merge_mapping(
+            sanitized_previous.get("historical_fixture_ref"),
+            {
+                "old_quest_root": str(item["old_quest_root"]),
+                "old_runtime_root": str(source_runtime_root),
+                "restore_provenance_ref": "artifacts/runtime/monolith_migration/latest.json",
+                "read_only": True,
+            },
+        ),
         "last_action": "workspace_monolith_migrate",
         "last_action_at": recorded_at,
         "last_source": "medautosci runtime workspace-monolith-migrate",
@@ -419,13 +474,31 @@ def _write_migrated_quest_snapshot(*, item: Mapping[str, Any], recorded_at: str)
     quest_id = str(item["quest_id"])
     study_id = str(item["study_id"])
     status = _runtime_status(previous_runtime_state)
+    sanitized_quest = _sanitize_migrated_quest_payload(previous_quest)
+    sanitized_runtime_state = _sanitize_runtime_state_payload(previous_runtime_state)
+    historical_fixture_ref = _merge_mapping(
+        sanitized_quest.get("historical_fixture_ref"),
+        {
+            "old_quest_root": str(old_quest_root),
+            "restore_provenance_ref": "artifacts/runtime/monolith_migration/latest.json",
+            "read_only": True,
+        },
+    )
+    _capture_legacy_baseline_ref(
+        previous=previous_quest,
+        active=sanitized_quest,
+        historical_fixture_ref=historical_fixture_ref,
+    )
     quest_payload = {
-        **previous_quest,
+        **sanitized_quest,
         "quest_id": quest_id,
         "study_id": study_id,
+        "quest_root": str(new_quest_root),
+        "runtime_root": str(new_quest_root.parent),
+        "historical_fixture_ref": historical_fixture_ref,
     }
     runtime_state = {
-        **previous_runtime_state,
+        **sanitized_runtime_state,
         "quest_id": quest_id,
         "study_id": study_id,
         "status": status,
@@ -443,6 +516,67 @@ def _write_migrated_quest_snapshot(*, item: Mapping[str, Any], recorded_at: str)
     }
     _write_yaml(new_quest_root / "quest.yaml", quest_payload)
     _write_json(new_quest_root / ".ds" / "runtime_state.json", runtime_state)
+
+
+def _sanitize_runtime_binding_previous(previous: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(previous)
+    for key in (
+        "med_deepscientist_runtime_root",
+        "med_deepscientist_repo_root",
+        "legacy_diagnostic",
+        "research_backend_id",
+        "research_backend",
+        "research_engine_id",
+    ):
+        payload.pop(key, None)
+    return payload
+
+
+def _sanitize_migrated_quest_payload(previous: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(previous)
+    _sanitize_legacy_absolute_ref_container(payload, key="confirmed_baseline_ref")
+    return payload
+
+
+def _sanitize_runtime_state_payload(previous: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(previous)
+    for key in ("active_run_id", "worker_running"):
+        payload.pop(key, None)
+    return payload
+
+
+def _sanitize_legacy_absolute_ref_container(payload: dict[str, Any], *, key: str) -> None:
+    ref = payload.get(key)
+    if not isinstance(ref, Mapping):
+        return
+    sanitized = {
+        ref_key: ref_value
+        for ref_key, ref_value in ref.items()
+        if ref_key not in {"baseline_path", "metric_contract_json_path"}
+    }
+    if sanitized:
+        payload[key] = sanitized
+    else:
+        payload.pop(key, None)
+
+
+def _capture_legacy_baseline_ref(
+    *,
+    previous: Mapping[str, Any],
+    active: Mapping[str, Any],
+    historical_fixture_ref: dict[str, Any],
+) -> None:
+    ref = previous.get("confirmed_baseline_ref")
+    if not isinstance(ref, Mapping):
+        return
+    if any(key in ref for key in ("baseline_path", "metric_contract_json_path")):
+        historical_fixture_ref["old_confirmed_baseline_ref"] = dict(ref)
+
+
+def _merge_mapping(previous: object, updates: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(previous) if isinstance(previous, Mapping) else {}
+    payload.update(dict(updates))
+    return payload
 
 
 def _write_migration_report(*, report: dict[str, Any], workspace_root: Path) -> None:
