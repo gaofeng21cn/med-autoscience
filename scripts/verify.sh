@@ -3,12 +3,18 @@ set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "${repo_root}"
-export PYTHONDONTWRITEBYTECODE=1
-export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider"
+
+verify_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-verify.XXXXXX")"
+cleanup_verify_tmp_root() {
+  rm -rf "${verify_tmp_root}"
+}
+trap cleanup_verify_tmp_root EXIT
+export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"
+clean_python_runner="${MAS_CLEAN_PYTHON_RUNNER:-scripts/run-python-clean.sh}"
 
 run_sanity_checks() {
-  python scripts/repo_hygiene_audit.py
-  PYTHONPATH="${repo_root}/src${PYTHONPATH:+:${PYTHONPATH}}" python scripts/line_budget.py
+  "${clean_python_runner}" scripts/repo_hygiene_audit.py
+  "${clean_python_runner}" scripts/line_budget.py
 
   if git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\|\|\|\|\|\|\| )' -- .; then
     echo "verify.sh: unresolved merge conflict markers detected" >&2
@@ -24,7 +30,7 @@ run_sanity_checks() {
   done < <(git ls-files '*.py')
 
   if [[ "${#python_files[@]}" -gt 0 ]]; then
-    python - "${python_files[@]}" <<'PY'
+    "${clean_python_runner}" - "${python_files[@]}" <<'PY'
 from __future__ import annotations
 
 import pathlib
@@ -40,15 +46,6 @@ with tempfile.TemporaryDirectory(prefix="mas-py-compile-") as temp_dir:
         py_compile.compile(python_file, cfile=str(bytecode_path), doraise=True)
 PY
   fi
-}
-
-cleanup_project_entrypoint_artifacts() {
-  rm -rf "${repo_root}/src/med_autoscience.egg-info"
-}
-
-install_project_entrypoints() {
-  trap cleanup_project_entrypoint_artifacts EXIT
-  uv pip install --editable . --no-deps
 }
 
 lane="${1:-}"
@@ -125,7 +122,6 @@ if [[ "${lane}" == "smoke" ]]; then
 fi
 
 if [[ "${lane}" == "regression" ]]; then
-  install_project_entrypoints
   run_with_optional_summary "regression" "make test-regression" make test-regression
   exit 0
 fi
@@ -136,13 +132,11 @@ if [[ "${lane}" == "ci-preflight" ]]; then
     echo "Usage: scripts/verify.sh ci-preflight <base-ref>" >&2
     exit 2
   fi
-  install_project_entrypoints
   BASE_REF="${base_ref}" run_with_optional_summary "ci-preflight" "BASE_REF=${base_ref} make test-ci-preflight" make test-ci-preflight
   exit 0
 fi
 
 if [[ "${lane}" == "fast" ]]; then
-  install_project_entrypoints
   run_with_optional_summary "fast" "make test-regression" make test-regression
   exit 0
 fi
@@ -173,13 +167,11 @@ if [[ "${lane}" == "structure" ]]; then
 fi
 
 if [[ "${lane}" == "full" ]]; then
-  install_project_entrypoints
   run_with_optional_summary "full" "make test-full" make test-full
   exit 0
 fi
 
 if [[ "${lane}" == "control-plane" ]]; then
-  install_project_entrypoints
   run_with_optional_summary "control-plane" "make test-control-plane" make test-control-plane
   exit 0
 fi

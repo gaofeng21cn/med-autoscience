@@ -30,7 +30,7 @@ def test_smoke_lane_is_minimal_read_only_entry_contract() -> None:
     ]
     assert "test-smoke:" in makefile
     assert (
-        "\tuv run pytest tests/test_smoke_entrypoints.py tests/test_line_budget.py -q"
+        "\tscripts/run-pytest-clean.sh tests/test_smoke_entrypoints.py tests/test_line_budget.py -q"
         in makefile
     )
     smoke_block = makefile.split("test-smoke:", maxsplit=1)[1].split(

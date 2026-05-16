@@ -6,6 +6,11 @@ import shlex
 from typing import Iterable, Sequence
 
 
+PYTEST_CLEAN_RUNNER = "scripts/run-pytest-clean.sh"
+PYTHON_CLEAN_RUNNER = "scripts/run-python-clean.sh"
+BUILD_CLEAN_RUNNER = "scripts/run-build-clean.sh"
+
+
 @dataclass(frozen=True)
 class PreflightCategorySpec:
     category_id: str
@@ -71,10 +76,10 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
         prefix_paths=(),
         commands=(
-            "uv run pytest tests/test_release_workflow.py -q",
-            "uv run pytest tests/test_release_metadata.py -q",
-            "uv run pytest tests/test_release_installer.py -q",
-            "uv run python -m build --sdist --wheel",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_release_workflow.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_release_metadata.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_release_installer.py -q",
+            f"{BUILD_CLEAN_RUNNER}",
         ),
     ),
     PreflightCategorySpec(
@@ -88,9 +93,9 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
         prefix_paths=(),
         commands=(
-            "uv run pytest tests/test_codex_plugin.py -q",
-            "uv run pytest tests/test_codex_plugin_installer.py -q",
-            "uv run pytest tests/test_codex_plugin_installer_script.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_codex_plugin.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_codex_plugin_installer.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_codex_plugin_installer_script.py -q",
         ),
     ),
     PreflightCategorySpec(
@@ -112,11 +117,11 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/controllers/display_surface_materialization/",
         ),
         commands=(
-            "uv run pytest tests/test_display_schema_contract.py -q",
-            "uv run pytest tests/test_display_surface_materialization.py -q",
-            "uv run pytest tests/test_display_layout_qc.py -q",
-            "uv run pytest tests/test_publication_gate.py -q",
-            "uv run pytest tests/test_medical_publication_surface.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_display_schema_contract.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_display_surface_materialization.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_display_layout_qc.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_publication_gate.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_medical_publication_surface.py -q",
         ),
     ),
     PreflightCategorySpec(
@@ -150,15 +155,15 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/runtime_protocol/",
         ),
         commands=(
-            "uv run pytest tests/test_runtime_backend.py -q",
-            "uv run pytest tests/test_profiles.py -q",
-            "uv run pytest tests/test_runtime_protocol_layout.py -q",
-            "uv run pytest tests/test_runtime_watch.py -q",
-            "uv run pytest tests/test_study_runtime_router.py -q",
-            "uv run pytest tests/test_runtime_transport_hermes.py -q",
-            "uv run pytest tests/test_study_runtime_transport.py -q",
-            "uv run pytest tests/test_runtime_protocol_study_runtime.py -q",
-            "uv run pytest tests/test_runtime_protocol_runtime_watch.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_backend.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_profiles.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_protocol_layout.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_watch.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_study_runtime_router.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_transport_hermes.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_study_runtime_transport.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_protocol_study_runtime.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_runtime_protocol_runtime_watch.py -q",
             "make test-meta",
         ),
     ),
@@ -179,11 +184,11 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
         prefix_paths=(),
         commands=(
-            "uv run pytest tests/test_med_deepscientist_repo_manifest.py -q",
-            "uv run pytest tests/test_workspace_contracts.py -q",
-            "uv run pytest tests/test_backend_audit.py -q",
-            "uv run pytest tests/test_hermes_runtime_contract.py -q",
-            "uv run pytest tests/test_hermes_runtime_check.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_med_deepscientist_repo_manifest.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_workspace_contracts.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_backend_audit.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_hermes_runtime_contract.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_hermes_runtime_check.py -q",
         ),
     ),
     PreflightCategorySpec(
@@ -197,9 +202,9 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
         prefix_paths=(),
         commands=(
-            "uv run pytest tests/test_dev_preflight_contract.py -q",
-            "uv run pytest tests/test_dev_preflight.py -q",
-            "uv run pytest tests/test_workspace_init.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_dev_preflight_contract.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_dev_preflight.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_workspace_init.py -q",
             "make test-meta",
         ),
     ),
@@ -227,15 +232,15 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
         commands=(
             (
-                "uv run pytest "
+                f"{PYTEST_CLEAN_RUNNER} "
                 "tests/controller_charter/test_controller_charter_module_contract.py "
                 "tests/runtime/test_runtime_module_contract.py "
                 "tests/eval_hygiene/test_eval_hygiene_module_contract.py "
                 "tests/integration/test_monorepo_scaffold_boundaries.py -q"
             ),
-            "uv run pytest tests/test_opl_family_contract_adoption.py -q",
-            "uv run pytest tests/test_opl_family_persistence_adapter.py -q",
-            "uv run pytest tests/test_test_command_surfaces.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_opl_family_contract_adoption.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_opl_family_persistence_adapter.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_test_command_surfaces.py -q",
         ),
     ),
     PreflightCategorySpec(
@@ -328,8 +333,8 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "src/med_autoscience/controllers/stage_knowledge_plane_parts/",
         ),
         commands=(
-            "uv run pytest tests/test_stage_knowledge_plane.py -q",
-            "uv run pytest tests/test_opl_family_contract_adoption.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_stage_knowledge_plane.py -q",
+            f"{PYTEST_CLEAN_RUNNER} tests/test_opl_family_contract_adoption.py -q",
         ),
     ),
 )
@@ -606,6 +611,10 @@ def _repo_root() -> Path:
 
 def _planned_pytest_paths(command: str) -> tuple[str, ...]:
     parts = shlex.split(command)
+    if not parts:
+        return ()
+    if parts[:1] == [PYTEST_CLEAN_RUNNER]:
+        return tuple(part for part in parts[1:] if part.startswith("tests/"))
     if len(parts) < 3 or parts[:3] != ["uv", "run", "pytest"]:
         return ()
     return tuple(part for part in parts[3:] if part.startswith("tests/"))

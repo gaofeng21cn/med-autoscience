@@ -12,6 +12,8 @@ pytestmark = pytest.mark.family
 
 def _planned_pytest_paths(command: str) -> tuple[str, ...]:
     parts = shlex.split(command)
+    if parts[:1] == ["scripts/run-pytest-clean.sh"]:
+        return tuple(part for part in parts[1:] if part.startswith("tests/"))
     if len(parts) < 3 or parts[:3] != ["uv", "run", "pytest"]:
         return ()
     return tuple(part for part in parts[3:] if part.startswith("tests/"))
@@ -221,7 +223,7 @@ def test_preflight_contract_report_cli_is_read_only_json(capsys) -> None:
     assert workflow["pytest_path_existence"] == workflow["planned_pytest_path_existence"]
     assert isinstance(workflow["unknown_path_suggestion"], str)
     assert any(
-        "uv run pytest tests/test_dev_preflight.py -q" in category["planned_commands"]
+        "scripts/run-pytest-clean.sh tests/test_dev_preflight.py -q" in category["planned_commands"]
         for category in report["categories"]
     )
 
@@ -316,8 +318,8 @@ def test_classify_changed_files_routes_publication_route_memory_fixture_to_owner
     )
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "uv run pytest tests/test_stage_knowledge_plane.py -q",
-        "uv run pytest tests/test_opl_family_contract_adoption.py -q",
+        "scripts/run-pytest-clean.sh tests/test_stage_knowledge_plane.py -q",
+        "scripts/run-pytest-clean.sh tests/test_opl_family_contract_adoption.py -q",
     ]
 
 
@@ -656,8 +658,8 @@ def test_plan_commands_for_categories_deduplicates_results() -> None:
         ("workflow_surface", "workflow_surface", "codex_plugin_surface")
     )
 
-    assert commands.count("uv run pytest tests/test_release_workflow.py -q") == 1
-    assert "uv run pytest tests/test_codex_plugin.py -q" in commands
+    assert commands.count("scripts/run-pytest-clean.sh tests/test_release_workflow.py -q") == 1
+    assert "scripts/run-pytest-clean.sh tests/test_codex_plugin.py -q" in commands
 
 
 def test_plan_commands_for_documentation_review_only_do_not_run_pytest() -> None:
@@ -673,11 +675,11 @@ def test_plan_commands_for_optional_provider_archive_audit_surface_include_gate_
 
     commands = module.plan_commands_for_categories(("optional_provider_archive_audit_surface",))
 
-    assert "uv run pytest tests/test_med_deepscientist_repo_manifest.py -q" in commands
-    assert "uv run pytest tests/test_workspace_contracts.py -q" in commands
-    assert "uv run pytest tests/test_backend_audit.py -q" in commands
-    assert "uv run pytest tests/test_hermes_runtime_contract.py -q" in commands
-    assert "uv run pytest tests/test_hermes_runtime_check.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_med_deepscientist_repo_manifest.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_workspace_contracts.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_backend_audit.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_hermes_runtime_contract.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_hermes_runtime_check.py -q" in commands
 
 
 def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proofs() -> None:
@@ -685,12 +687,12 @@ def test_plan_commands_for_integration_harness_surface_include_runtime_eval_proo
 
     commands = module.plan_commands_for_categories(("integration_harness_surface",))
 
-    assert "uv run pytest tests/test_dev_preflight_contract.py -q" in commands
-    assert "uv run pytest tests/test_dev_preflight.py -q" in commands
-    assert "uv run pytest tests/test_workspace_init.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_dev_preflight_contract.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_dev_preflight.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_workspace_init.py -q" in commands
     assert "make test-meta" in commands
-    assert "uv run pytest tests/test_work_unit_runtime_contract.py -q" not in commands
-    assert "uv run pytest tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q" not in commands
+    assert "scripts/run-pytest-clean.sh tests/test_work_unit_runtime_contract.py -q" not in commands
+    assert "scripts/run-pytest-clean.sh tests/test_runtime_watch.py tests/test_study_delivery_sync.py tests/test_publication_gate.py -q" not in commands
 
 
 def test_plan_commands_for_runtime_contract_surface_include_hermes_and_doc_proofs() -> None:
@@ -698,11 +700,11 @@ def test_plan_commands_for_runtime_contract_surface_include_hermes_and_doc_proof
 
     commands = module.plan_commands_for_categories(("runtime_contract_surface",))
 
-    assert "uv run pytest tests/test_runtime_backend.py -q" in commands
-    assert "uv run pytest tests/test_profiles.py -q" in commands
-    assert "uv run pytest tests/test_runtime_protocol_layout.py -q" in commands
-    assert "uv run pytest tests/test_runtime_transport_hermes.py -q" in commands
-    assert "uv run pytest tests/test_work_unit_runtime_contract.py -q" not in commands
+    assert "scripts/run-pytest-clean.sh tests/test_runtime_backend.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_profiles.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_runtime_protocol_layout.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_runtime_transport_hermes.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_work_unit_runtime_contract.py -q" not in commands
     assert "make test-meta" in commands
 
 
@@ -729,15 +731,15 @@ def test_plan_commands_for_root_governance_contract_surface_use_focused_contract
 
     assert commands == [
         (
-            "uv run pytest "
+            "scripts/run-pytest-clean.sh "
             "tests/controller_charter/test_controller_charter_module_contract.py "
             "tests/runtime/test_runtime_module_contract.py "
             "tests/eval_hygiene/test_eval_hygiene_module_contract.py "
             "tests/integration/test_monorepo_scaffold_boundaries.py -q"
         ),
-        "uv run pytest tests/test_opl_family_contract_adoption.py -q",
-        "uv run pytest tests/test_opl_family_persistence_adapter.py -q",
-        "uv run pytest tests/test_test_command_surfaces.py -q",
+        "scripts/run-pytest-clean.sh tests/test_opl_family_contract_adoption.py -q",
+        "scripts/run-pytest-clean.sh tests/test_opl_family_persistence_adapter.py -q",
+        "scripts/run-pytest-clean.sh tests/test_test_command_surfaces.py -q",
     ]
 
 

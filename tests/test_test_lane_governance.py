@@ -25,7 +25,7 @@ def test_meta_lane_does_not_rerun_family_or_architecture_owner_tests() -> None:
     conftest = _read("tests/conftest.py")
 
     meta_block = makefile.split("test-meta:", maxsplit=1)[1].split("\ntest-display:", maxsplit=1)[0]
-    assert "uv run pytest -q -m meta" in meta_block
+    assert "scripts/run-pytest-clean.sh -q -m meta" in meta_block
     assert "ARCH_OWNER_BOUNDARY_TEST" not in meta_block
     meta_files_block = conftest.split("META_FILES = {", maxsplit=1)[1].split("\n}", maxsplit=1)[0]
     assert "tests/test_dev_preflight.py" not in meta_files_block

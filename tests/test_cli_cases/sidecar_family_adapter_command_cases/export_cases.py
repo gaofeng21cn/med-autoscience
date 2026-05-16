@@ -1,0 +1,466 @@
+from __future__ import annotations
+
+from .shared import *  # noqa: F403,F401
+
+def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "001-risk"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {"state": "running", "owner_route": {"owner": "mas_controller"}},
+    )
+    _write_json(
+        study_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
+        {"state": "breach", "breach_reason": "worker_recovery"},
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "recovery_intent" / "latest.json",
+        {"current_action": "safe_reconcile_ready", "retry_budget": {"remaining": 2}},
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {"decision_id": "decision-001", "owner_route": {"owner": "publication_controller"}},
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["surface_kind"] == "mas_family_sidecar_export"
+    assert payload["target_domain_id"] == "medautoscience"
+    framework = payload["online_runtime_framework"]
+    assert framework["owner"] == "one-person-lab"
+    assert framework["framework_role"] == "codex_first_stage_led_provider_backed_runtime_framework"
+    assert framework["stage_semantics"] == "human_expert_large_task_stage"
+    assert framework["minimal_executor"] == "Codex CLI"
+    assert framework["provider_abstraction"] == "opl_family_runtime_provider"
+    assert framework["target_production_provider"] == "Temporal"
+    assert framework["executor_adapter_requirement"] == {
+        "owner": "one-person-lab",
+        "generic_executor_adapter_owner": "one-person-lab",
+        "default_executor_kind": "codex_cli_default",
+        "required_capability": "opl_executor_adapter_receipt",
+        "mas_accepts": "typed_closeout_or_domain_task_receipt",
+        "mas_local_codex_cli_scope": "standalone_diagnostics_only",
+        "external_executor_opt_in_policy": "explicit_opl_opt_in_then_typed_receipt_only",
+        "mas_owned_hermes_or_claude_executor": False,
+        "mas_does_not_provide": ["hosted_executor", "hermes_executor_adapter", "claude_executor_adapter"],
+    }
+    assert "diagnostic_providers" not in framework
+    assert framework["optional_executor_adapters"] == [
+        {
+            "adapter_id": "hermes_agent",
+            "display_name": "Hermes-Agent",
+            "classification": "explicit_optional_executor_adapter",
+            "runtime_policy": "explicit_opl_opt_in_then_typed_receipt_only",
+            "executor_policy": "not_a_mas_executor_adapter",
+            "default_provider": False,
+        }
+    ]
+    assert payload["authority_boundary"]["domain_truth_owner"] == "med-autoscience"
+    assert payload["authority_boundary"]["online_runtime_provider_owner"] == "opl_family_runtime_provider"
+    assert payload["authority_boundary"]["mas_domain_authority"] == [
+        "study_truth",
+        "runtime_health_truth",
+        "publication_quality_verdict",
+        "artifact_authority",
+        "owner_route_decision",
+    ]
+    assert payload["authority_boundary"]["opl_receipt_policy"] == "transport_receipt_only_no_domain_truth_authority"
+    assert payload["authority_boundary"]["forbidden_authorities"] == [
+        "study_truth_write",
+        "publication_quality_verdict",
+        "artifact_gate_override",
+        "current_package_write",
+    ]
+    assert payload["authority_boundary"]["owns_generic_scheduler"] is False
+    assert payload["authority_boundary"]["owns_generic_daemon"] is False
+    assert payload["authority_boundary"]["owns_generic_queue"] is False
+    assert payload["authority_boundary"]["owns_generic_attempt_ledger"] is False
+    assert payload["authority_boundary"]["owns_generic_runner"] is False
+    assert payload["authority_boundary"]["owns_generic_workbench"] is False
+    boundary = payload["functional_consumer_boundary"]
+    assert boundary["surface_kind"] == "mas_functional_consumer_boundary"
+    assert boundary["generic_surface_owner"] == "one-person-lab"
+    assert set(boundary["mas_does_not_own"]) >= {
+        "generic_scheduler",
+        "generic_daemon",
+        "generic_queue",
+        "generic_attempt_ledger",
+        "generic_runner",
+        "generic_workbench",
+    }
+    assert set(boundary["mas_retains"]) >= {
+        "study_truth",
+        "publication_quality_verdict",
+        "artifact_authority",
+        "publication_route_memory_body",
+        "owner_receipt",
+        "safe_action_refs",
+    }
+    assert payload["profile"]["profile_ref"] == str(profile_path)
+    assert payload["workspace"]["workspace_root"] == str(workspace_root)
+    provider = payload["provider_ready_adapter"]
+    assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
+    assert provider["provider_topology"]["target_provider"] == "temporal"
+    assert provider["provider_topology"]["provider_attempt_is_truth"] is False
+    assert "legacy_provider" not in provider["provider_topology"]
+    assert "legacy_provider_classification" not in provider["provider_topology"]
+    assert provider["legacy_retirement_tombstone_proof"]["status"] == "no_active_default_caller_proven"
+    assert provider["executor_requirements"] == {
+        "adapter_owner": "one-person-lab",
+        "generic_executor_adapter_owner": "one-person-lab",
+        "default_executor_kind": "codex_cli_default",
+        "required_adapter": "opl_executor_adapter",
+        "accepted_receipts": ["opl_provider_attempt_receipt", "typed_closeout_receipt"],
+        "domain_action_authority": "med-autoscience",
+        "mas_builtin_executor_adapter": False,
+        "mas_local_codex_cli_scope": "standalone_diagnostics_only",
+        "non_default_executor_opt_in_owner": "one-person-lab",
+        "non_default_executor_opt_in_policy": "explicit_opt_in_only_receipt_to_mas",
+        "mas_owned_hermes_or_claude_executor": False,
+    }
+    assert provider["direct_mas_path"]["status"] == "authoritative"
+    assert provider["truth_source_precedence"]["direct_mas_skill_path"] == "authoritative"
+    assert provider["truth_source_precedence"]["provider_completion_can_advance_paper_progress"] is False
+    assert provider["workspace_runtime_artifact_root_locator"]["repo_root_tracks_real_artifacts"] is False
+    assert provider["sidecar_contract"]["queue_hydration_source"] == "/pending_family_tasks"
+    assert payload["dispatch"]["receipt_refs"]["dispatch_receipt_root"] == (
+        "artifacts/runtime/opl_family_sidecar/dispatch_receipts"
+    )
+    family_supervision = payload["family_runtime_supervision"]
+    assert family_supervision["repair_command"] == (
+        f"medautosci runtime supervisor-reconcile --profile {profile_path} "
+        "--mode developer_apply_safe --dry-run"
+    )
+    assert family_supervision["local_diagnostic_bridge_command"] == (
+        f"medautosci runtime ensure-supervision --profile {profile_path}"
+    )
+    assert family_supervision["consumer_migration"]["active_path_role"] == (
+        "opl_replacement_default"
+    )
+    assert family_supervision["consumer_migration"]["replacement_owner"] == "one-person-lab"
+    assert family_supervision["consumer_migration"]["replacement_owner_surface"] == (
+        "opl_provider_runtime_manager"
+    )
+    assert family_supervision["read_only_authority_boundary"]["runtime_owner"] == "one-person-lab"
+    assert family_supervision["read_only_authority_boundary"]["scheduler_owner"] == "one-person-lab"
+    assert family_supervision["read_only_authority_boundary"]["domain_owner"] == "med-autoscience"
+    assert family_supervision["read_only_authority_boundary"]["mas_local_scheduler_role"] == (
+        "standalone_local_diagnostic_migration_bridge"
+    )
+    assert payload["studies"][0]["study_id"] == "001-risk"
+    assert payload["studies"][0]["runtime_supervision"]["state"] == "running"
+    assert payload["studies"][0]["slo_status"]["state"] == "breach"
+    assert payload["studies"][0]["recovery_intent"]["current_action"] == "safe_reconcile_ready"
+    assert payload["pending_family_tasks"][0]["domain_id"] == "medautoscience"
+    assert payload["pending_family_tasks"][0]["task_kind"] == "runtime_supervisor/reconcile-apply"
+    assert payload["pending_family_tasks"][0]["payload"]["profile"] == str(profile_path)
+    assert payload["pending_family_tasks"][0]["payload"]["study_id"] == "001-risk"
+    assert payload["pending_family_tasks"][0]["requires_approval"] is False
+    assert payload["pending_family_tasks"][0]["dedupe_key"].startswith("mas:nfpitnet:001-risk:autonomy-continuation:")
+
+
+def test_sidecar_export_projects_memory_paper_soak_proof_refs_readonly(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "001-risk"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        study_root / "artifacts" / "stage_knowledge" / "paper_soak_memory_apply_proof" / "latest.json",
+        {
+            "surface": "paper_soak_memory_apply_proof",
+            "schema_version": 1,
+            "study_id": "001-risk",
+            "stage": "decision",
+            "status": "ready",
+            "stage_entry": {
+                "publication_route_memory_refs": [
+                    {
+                        "memory_id": "publication_route_memory_seed__negative_result_stoploss",
+                        "memory_pack_ref": "portfolio/research_memory/publication_route_memory/memory_pack.json",
+                    }
+                ]
+            },
+            "typed_closeout_writeback_proposals": [{"ref": "closeouts/decision.json", "body_included": False}],
+            "mas_router_receipt_refs": [{"ref": "router/r1.json", "status": "applied", "body_included": False}],
+            "opl_aion_readonly_receipt_refs": [
+                {
+                    "ref_kind": "memory_write_router_receipt",
+                    "ref": "router/r1.json",
+                    "status": "applied",
+                    "display_role": "receipt_ref_only",
+                    "consumer": "OPL/Aion",
+                    "body_included": False,
+                }
+            ],
+            "source_fingerprint": "proof-fp",
+            "authority_boundary": {"can_authorize_publication_quality": False},
+            "read_only_display_policy": {
+                "consumer_role": "OPL/Aion read-only display",
+                "repo_tracks_memory_body": False,
+                "repo_tracks_receipt_instances": False,
+                "can_write_study_truth": False,
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    projection = payload["studies"][0]["memory_paper_soak_proof"]
+    assert projection["surface_kind"] == "mas_memory_paper_soak_proof_projection"
+    assert projection["status"] == "ready"
+    assert projection["proof_ref"] == (
+        "studies/001-risk/artifacts/stage_knowledge/paper_soak_memory_apply_proof/latest.json"
+    )
+    assert projection["route_memory_ref_count"] == 1
+    assert projection["router_receipt_ref_count"] == 1
+    assert projection["writeback_proposal_ref_count"] == 1
+    assert projection["receipt_refs"] == [
+        {
+            "ref_kind": "memory_write_router_receipt",
+            "ref": "router/r1.json",
+            "status": "applied",
+            "display_role": "receipt_ref_only",
+            "consumer": "OPL/Aion",
+            "body_included": False,
+        }
+    ]
+    assert projection["read_only_display_policy"]["repo_tracks_memory_body"] is False
+    assert projection["read_only_display_policy"]["can_write_study_truth"] is False
+    assert "prose_summary" not in json.dumps(projection, ensure_ascii=False)
+
+
+def test_sidecar_export_consumes_opl_production_proof_without_domain_authority(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    proof_ref = tmp_path / "opl-production-proof.json"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        workspace_root / "studies" / "001-risk" / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
+        {"state": "running"},
+    )
+    _write_opl_production_proof(proof_ref)
+
+    exit_code = cli.main(
+        [
+            "sidecar",
+            "export",
+            "--profile",
+            str(profile_path),
+            "--opl-production-proof",
+            str(proof_ref),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    read_model = payload["provider_ready_adapter"]["provider_guarded_soak_read_model"]
+    availability = read_model["provider_availability"]
+
+    assert exit_code == 0
+    assert payload["provider_ready_adapter"]["provider_topology"]["provider_state"] == (
+        "production_residency_proven"
+    )
+    assert availability["status"] == "available"
+    assert availability["provider_attempt_available"] is True
+    assert availability["proof_ref"] == str(proof_ref)
+    assert availability["semantics"]["provider_completion_is_paper_closure"] is False
+    assert availability["semantics"]["mas_runtime_watch_role"] == "domain_truth_and_local_diagnostics"
+    managed_state = payload["managed_temporal_state_consistency"]
+    assert managed_state["surface_kind"] == "mas_opl_managed_temporal_state_consistency"
+    assert managed_state["status"] == "consistent"
+    assert managed_state["provider_state"] == "production_residency_proven"
+    assert managed_state["managed_state"] == {
+        "address_source": "managed_local_service_state",
+        "lifecycle_status": "ready",
+        "server_reachable": True,
+        "worker_ready": True,
+        "task_queue": "opl-stage-attempts",
+    }
+    assert managed_state["opl_status_projection"]["managed_service_state"] == "ready"
+    assert managed_state["opl_status_projection"]["worker_state"] == "ready"
+    assert managed_state["opl_status_projection"]["attempt_query_ready"] is True
+    assert managed_state["authority_boundary"]["can_write_domain_truth"] is False
+    tombstone = payload["legacy_retirement_tombstone_proof"]
+    assert tombstone["surface_kind"] == "mas_legacy_retirement_tombstone_proof"
+    assert tombstone["status"] == "no_active_default_caller_proven"
+    assert tombstone["active_default_callers"] == []
+    assert {item["surface_id"] for item in tombstone["retired_or_tombstoned_surfaces"]} == {
+        "hermes_agent_executor_adapter",
+        "hermes_scheduler_hosted_runtime",
+        "mds_deepscientist_backend",
+        "workspace_local_scheduler",
+    }
+    assert tombstone["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert read_model["provider_completion_semantics"] == {
+        "provider_completion_is_paper_closure": False,
+        "queue_completion_is_paper_closure": False,
+        "paper_closure_requires_mas_owner_receipt": True,
+        "mutation_proof_surface": "MAS owner receipt",
+    }
+    assert read_model["authority_boundary"]["can_write_domain_truth"] is False
+    assert read_model["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert all(
+        item["status"] == "provider_available_guarded_apply_pending"
+        for item in read_model["target_coverage"]
+    )
+    closure = payload["mas_functional_closure_status_projection"]
+    assert closure["surface_kind"] == "mas_functional_closure_status_projection"
+    assert closure["summary"]["production_evidence_pending_count"] == 2
+    assert closure["authority_boundary"]["provider_completion_is_paper_closure"] is False
+    by_line = {line["line_id"]: line for line in closure["lines"]}
+    assert by_line["p2_provider_residency_and_activity_soak"]["status"] == (
+        "provider_residency_projected_domain_activity_soak_pending"
+    )
+    assert by_line["p0_live_paper_autonomy_acceptance"]["typed_blockers"][0]["blocker_id"] == (
+        "provider_hosted_live_paper_apply_pending"
+    )
+    assert by_line["legacy_residue_retirement"]["status"] == (
+        "no_active_default_caller_proven_cleanup_policy_satisfied"
+    )
+    guarded_apply_tasks = [
+        task for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "paper_autonomy/guarded-apply"
+    ]
+    assert [task["payload"]["study_id"] for task in guarded_apply_tasks] == [
+        "DM002",
+        "DM003",
+        "Obesity",
+    ]
+    fingerprints = {
+        task["payload"]["study_id"]: task.pop("source_fingerprint")
+        for task in guarded_apply_tasks
+    }
+    assert all(isinstance(value, str) and len(value) == 16 for value in fingerprints.values())
+    expected_refs = {
+        "DM002": "studies/DM002/artifacts/controller_decisions/latest.json",
+        "DM003": "studies/DM003/artifacts/controller_decisions/latest.json",
+        "Obesity": "studies/Obesity/artifacts/controller_decisions/latest.json",
+    }
+    for task in guarded_apply_tasks:
+        study_id = task["payload"]["study_id"]
+        dedupe_key = f"mas:nfpitnet:{study_id}:provider-hosted-guarded-apply:opl-temporal"
+        assert task == {
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/guarded-apply",
+            "priority": 30,
+            "source": "mas-sidecar-export",
+            "requires_approval": False,
+            "dedupe_key": dedupe_key,
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": study_id,
+                "target_studies": [study_id],
+                "provider_attempt_id": f"opl-temporal:nfpitnet:{study_id}:provider-hosted-guarded-apply",
+                "idempotency_key": dedupe_key,
+                "paper_autonomy_reason": "provider_hosted_guarded_apply_soak",
+                "authority_boundary": "mas_owner_guarded_apply_only",
+            },
+            "dispatch_owner": "med-autoscience",
+            "profile_name": "nfpitnet",
+            "source_refs": [
+                {
+                    "role": "opl_production_proof",
+                    "ref": str(proof_ref),
+                    "exists": True,
+                },
+                {
+                    "role": "provider_guarded_soak_read_model",
+                    "ref": "/provider_ready_adapter/provider_guarded_soak_read_model",
+                    "exists": True,
+                },
+                {
+                    "role": "mas_guarded_apply_owner_receipt_contract",
+                    "ref": "mas-guarded-apply-owner-receipt.v2",
+                    "exists": True,
+                },
+                {
+                    "role": "mas_owner_controller_decision",
+                    "ref": expected_refs[study_id],
+                    "exists": False,
+                },
+            ],
+        }
+    repeat_exit_code = cli.main(
+        [
+            "sidecar",
+            "export",
+            "--profile",
+            str(profile_path),
+            "--opl-production-proof",
+            str(proof_ref),
+            "--format",
+            "json",
+        ]
+    )
+    repeat_payload = json.loads(capsys.readouterr().out)
+    assert repeat_exit_code == 0
+    repeat_tasks = [
+        task for task in repeat_payload["pending_family_tasks"]
+        if task["task_kind"] == "paper_autonomy/guarded-apply"
+    ]
+    assert {
+        task["payload"]["study_id"]: task["source_fingerprint"]
+        for task in repeat_tasks
+    } == fingerprints
+
+
+def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "001-risk"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        _ai_reviewer_blocking_eval(study_root),
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    study = payload["studies"][0]
+    assert study["paper_autonomy_loop"]["status"] == "repair_recheck_ready"
+    assert study["paper_autonomy_loop"]["eligible_for_auto_dispatch"] is True
+    repair_tasks = [
+        task for task in payload["pending_family_tasks"]
+        if task["task_kind"] == "paper_autonomy/repair-recheck"
+    ]
+    assert repair_tasks
+    first_task = repair_tasks[0]
+    assert first_task["payload"]["profile"] == str(profile_path)
+    assert first_task["payload"]["study_id"] == "001-risk"
+    assert first_task["payload"]["authority_boundary"] == "mas_owner_reconcile_only"
+    assert first_task["dispatch_owner"] == "med-autoscience"
+    unit = first_task["payload"]["repair_work_unit"]
+    assert unit["owner"] in {"quality_repair_batch", "ai_reviewer"}
+    assert unit["callable_surface"]
+    assert unit["gate_replay_target"] in {
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+    }
+    assert unit["direct_package_mutation_allowed"] is False
+    assert unit["current_package_mutation_allowed"] is False
+    assert unit["quality_authorization_allowed"] is False
+    assert unit["submission_authorization_allowed"] is False
+    assert unit["prohibited_outputs"] == [
+        "paper/current_package",
+        "manuscript/current_package",
+        "quality_override",
+        "submission_authorization",
+    ]
+
+

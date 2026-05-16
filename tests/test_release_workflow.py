@@ -153,7 +153,8 @@ def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
     assert "scripts/verify.sh family" not in ci_workflow
     assert "scripts/verify.sh display" not in ci_workflow
     assert "scripts/verify.sh submission" not in ci_workflow
-    assert "uv run python -m build --sdist --wheel" in ci_workflow
+    assert 'scripts/run-build-clean.sh --outdir "${RUNNER_TEMP}/mas-dist"' in ci_workflow
+    assert "path: ${{ runner.temp }}/mas-dist" in ci_workflow
     assert "python -m pytest" not in ci_workflow
     assert "python -m pytest" not in advisory_workflow
     assert "python -m pip install pytest build python-docx ." not in ci_workflow
@@ -228,7 +229,7 @@ def test_ci_boundary_guards_mas_repo_only_contract_regression() -> None:
 
     assert "scripts/verify.sh ci-preflight" in quick_checks
     assert "make test-medical-paper-ops" in quick_checks
-    assert "uv run python -m build --sdist --wheel" in quick_checks
+    assert 'scripts/run-build-clean.sh --outdir "${RUNNER_TEMP}/mas-dist"' in quick_checks
 
 
 def test_sdist_build_projects_stage_route_contract_resource(tmp_path: Path) -> None:

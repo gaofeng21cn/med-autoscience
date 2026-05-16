@@ -43,37 +43,37 @@ CONTROL_PLANE_TESTS := \
 test: test-smoke
 
 test-smoke:
-	uv run pytest tests/test_smoke_entrypoints.py tests/test_line_budget.py -q
+	scripts/run-pytest-clean.sh tests/test_smoke_entrypoints.py tests/test_line_budget.py -q
 
 test-regression:
-	uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family"
+	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family"
 
 test-ci-preflight:
 	@if [ -z "$${BASE_REF:-}" ]; then echo "BASE_REF is required, for example: BASE_REF=HEAD~1 make test-ci-preflight" >&2; exit 2; fi
-	uv run python -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"
+	scripts/run-python-clean.sh -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"
 
 test-fast: test-regression
 
 test-meta:
-	uv run pytest -q -m meta
+	scripts/run-pytest-clean.sh -q -m meta
 
 test-display:
-	uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy
+	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy
 
 test-submission:
-	uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy"
+	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy"
 
 test-family:
-	uv run pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q
+	scripts/run-pytest-clean.sh tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q
 
 test-control-plane:
-	PYTHONPATH=src uv run pytest -q $(CONTROL_PLANE_TESTS)
+	scripts/run-pytest-clean.sh -q $(CONTROL_PLANE_TESTS)
 
 test-medical-paper-ops:
-	PYTHONPATH=src uv run pytest -q tests/test_medical_paper_ops_health.py tests/study_progress_cases/medical_paper_ops_health_projection.py tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_ops_health.py
+	scripts/run-pytest-clean.sh -q tests/test_medical_paper_ops_health.py tests/study_progress_cases/medical_paper_ops_health_projection.py tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_ops_health.py
 
 test-structure:
-	uv run python scripts/line_budget.py
+	scripts/run-python-clean.sh scripts/line_budget.py
 	scripts/run-structure-quality-gate.sh
 
 test-full:

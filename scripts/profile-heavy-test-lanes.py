@@ -20,7 +20,7 @@ def profile_command(lane: str, *, durations: int) -> list[str]:
     except KeyError as exc:
         valid = ", ".join(sorted(LANE_MARKERS))
         raise SystemExit(f"unknown heavy test lane: {lane}; expected one of: {valid}") from exc
-    return ["uv", "run", "pytest", "-q", "-m", marker, f"--durations={durations}"]
+    return ["scripts/run-pytest-clean.sh", "-q", "-m", marker, f"--durations={durations}"]
 
 
 def profile_commands(lanes: list[str], *, durations: int) -> list[list[str]]:

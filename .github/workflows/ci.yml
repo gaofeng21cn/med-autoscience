@@ -46,11 +46,11 @@ jobs:
         run: make test-medical-paper-ops
 
       - name: Build sdist and wheel
-        run: uv run python -m build --sdist --wheel
+        run: scripts/run-build-clean.sh --outdir "${RUNNER_TEMP}/mas-dist"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: macos-dist
-          path: dist
+          path: ${{ runner.temp }}/mas-dist
           retention-days: 7

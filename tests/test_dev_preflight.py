@@ -300,7 +300,6 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     assert "test-control-plane:" in makefile
     assert (
         'if [[ "${lane}" == "control-plane" ]]; then\n'
-        "  install_project_entrypoints\n"
         '  run_with_optional_summary "control-plane" "make test-control-plane" make test-control-plane\n'
         "  exit 0\n"
         "fi\n"
@@ -310,7 +309,7 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     assert "test-ci-preflight:" in makefile
     assert (
         "test-family:\n"
-        "\tuv run pytest tests/test_family_shared_release.py "
+        "\tscripts/run-pytest-clean.sh tests/test_family_shared_release.py "
         "tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py "
         "tests/test_dev_preflight.py -q\n"
     ) in makefile
