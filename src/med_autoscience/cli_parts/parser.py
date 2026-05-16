@@ -224,6 +224,12 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     workspace_legacy_cleanup_audit_parser = subparsers.add_parser("workspace-legacy-physical-cleanup-audit")
     workspace_legacy_cleanup_audit_parser.add_argument("--profile", required=True)
 
+    workspace_legacy_cleanup_apply_parser = subparsers.add_parser("workspace-legacy-physical-cleanup-apply")
+    workspace_legacy_cleanup_apply_parser.add_argument("--profile", required=True)
+    workspace_legacy_cleanup_apply_mode = workspace_legacy_cleanup_apply_parser.add_mutually_exclusive_group(required=True)
+    workspace_legacy_cleanup_apply_mode.add_argument("--dry-run", action="store_true")
+    workspace_legacy_cleanup_apply_mode.add_argument("--apply", action="store_true")
+
     paper_autonomy_stability_evidence_parser = subparsers.add_parser("paper-autonomy-stability-evidence")
     paper_autonomy_stability_evidence_parser.add_argument("--yang-root", default="/Users/gaofeng/workspace/Yang")
     paper_autonomy_stability_evidence_parser.add_argument("--profiles", nargs="+")
