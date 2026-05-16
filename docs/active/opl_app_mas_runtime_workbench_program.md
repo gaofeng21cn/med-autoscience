@@ -5,7 +5,7 @@ Date: `2026-05-14`
 Owner: `MedAutoScience Product Projection + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P1 产品化线路：把 MAS 论文自治进度变成 OPL App Runtime Workbench 中的人用运行工作台。
 Machine boundary: 本文是人读 owner/program 文档。实现真相应进入稳定 JSON/API contract、MAS action receipt、OPL App/runtime manager contract、UI test、截图证据和真实 workspace evidence。
-Full historical record: [2026-05-11 OPL App MAS Runtime Workbench full record](../history/program/opl_app_mas_runtime_workbench_program_2026_05_11_full_record.md).
+完整历史记录：[2026-05-11 OPL App MAS Runtime Workbench full record](../history/program/opl_app_mas_runtime_workbench_program_2026_05_11_full_record.md)。
 
 ## 当前角色
 

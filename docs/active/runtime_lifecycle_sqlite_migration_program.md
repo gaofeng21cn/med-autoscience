@@ -1,28 +1,29 @@
 # Runtime Lifecycle SQLite Migration Program
 
-Status: `landed foundation owner doc; runtime lifecycle and restore-proof guard active`
-Date: `2026-05-11`
+Status: `landed_foundation_owner_doc`
+Date: `2026-05-16`
 Owner: `MedAutoScience runtime lifecycle read-model/index boundary`
-Purpose: preserve the current runtime lifecycle authority model, SQLite/file boundary, root/quest Git retirement status, restore-proof archive rules, and drift handling process.
-Machine boundary: this is a human-readable owner/provenance document. Machine truth remains in runtime lifecycle SQLite databases, migration ledgers, restore indexes, archive manifests, compatibility exports, runtime/controller surfaces, and live workspace evidence.
+Purpose: `runtime_lifecycle_restore_proof_guard`
+State: `active_support`
+Machine boundary: 本文是人读 owner / provenance guard。机器真相继续归 runtime lifecycle SQLite databases、migration ledgers、restore indexes、archive manifests、compatibility exports、runtime/controller surfaces 和 live workspace evidence。
 
-Full historical record: [2026-05-08 runtime lifecycle SQLite migration full record](../history/program/runtime_lifecycle_sqlite_migration_program_2026_05_08_full_record.md).
+完整历史记录：[2026-05-08 runtime lifecycle SQLite migration full record](../history/program/runtime_lifecycle_sqlite_migration_program_2026_05_08_full_record.md)。
 
-## Current Role
+## 当前定位
 
-This document is P3a in the MAS program portfolio. P3a is the landed runtime lifecycle foundation under P3. It is no longer a broad planning board for all runtime, MDS absorb, or paper autonomy work.
+本文是 P3a landed runtime lifecycle foundation，不再是 broad planning board。它只保存 runtime lifecycle authority、SQLite/file boundary、root/quest Git retirement、restore-proof archive 和 drift handling 的当前 guard。
 
-The current role is narrower and concrete:
+当前职责：
 
-- keep SQLite as runtime lifecycle/read-model/index authority;
-- keep paper/study/publication/artifact truth in MAS file and controller authority surfaces;
-- keep root Git and quest Git out of default MAS workspace/runtime lifecycle;
-- preserve restore-proof archive, migration ledger, compatibility export, and explicit archive import rules;
-- handle new drift with fresh inventory, archive, restore proof, and verification.
+- SQLite 只作为 runtime lifecycle / read-model / index authority；
+- paper / study / publication / artifact truth 留在 MAS file authority 与 controller authority surfaces；
+- root Git 和 quest Git 不回到默认 MAS workspace/runtime lifecycle；
+- restore-proof archive、migration ledger、compatibility export 和 explicit archive import 规则继续保留；
+- 新 drift 通过 fresh inventory、archive、restore proof 和 verification 处理。
 
-## Current State
+## 当前状态
 
-| area | current state | owner |
+| 面 | 当前状态 | owner |
 | --- | --- | --- |
 | Runtime lifecycle index | `landed` | `artifacts/runtime/runtime_lifecycle.sqlite` and related runtime stores |
 | Runtime/event/report history | `landed as index/read model` | MAS runtime lifecycle read-model/index boundary |

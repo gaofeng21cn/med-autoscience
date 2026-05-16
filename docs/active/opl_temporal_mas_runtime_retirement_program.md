@@ -5,7 +5,7 @@ Date: `2026-05-14`
 Owner: `MedAutoScience domain owner receipts + OPL Runtime Manager integration boundary`
 Purpose: 定义当前 P2 框架对齐线路：MAS 与 OPL stage-led、以 Agent executor 为最小执行单位 runtime framework 之间的边界、优先级和退役门槛。
 Machine boundary: 本文是人读 program owner。机器真相继续归 MAS controller/runtime surfaces、OPL provider contracts、sidecar receipts、attempt ledgers、durable schemas、CLI/API behavior 和 live workspace evidence。
-Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full record](../history/program/opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md).
+完整历史记录：[2026-05-11 OPL Temporal MAS Runtime Retirement full record](../history/program/opl_temporal_mas_runtime_retirement_program_2026_05_11_full_record.md)。
 
 ## 当前角色
 
@@ -14,7 +14,7 @@ Full historical record: [2026-05-11 OPL Temporal MAS Runtime Retirement full rec
 - MAS 暴露 domain-agent descriptor、stage/control-plane metadata、sidecar export/dispatch、owner receipt、projection、artifact locator 和 authority refs。
 - OPL 提供 stage-led、以 Agent executor 为最小执行单位的 framework 层：generic executor adapter、durable stage attempt、queue、wakeup、retry/dead-letter、approval/human gate transport、provider receipt、projection、shared lifecycle/index primitives。
 - MAS 保留 study truth、paper quality、publication verdict、owner route、runtime owner decision 和 artifact authority。
-- MAS 只声明 executor requirement、接收 OPL typed closeout / domain-task receipt；MAS 本地 `codex_cli_default` 只保留 standalone diagnostics，不扩展成 Hermes/Claude 执行器。
+- MAS 只声明 executor requirement、接收 OPL typed closeout / domain-task receipt；MAS 的默认 concrete executor requirement 仍是 `codex_cli_default`，本地 direct path 可独立诊断和执行，但不扩展成 Hermes/Claude 执行器，也不成为 generic executor platform。
 
 详细 module matrix 和旧 phase checklist 已归档在 full record。当前执行应选择下面的内容 lane，而不是把旧文档当成一个大计划整体执行。
 
@@ -43,9 +43,9 @@ MAS 侧已经落地：
 - MAS runtime core turn runner 现在会在进入下一轮 Codex turn 前清理已闭合 publication work-unit 的 stale controller authorization，并从 prompt 中去重旧授权消息；study progress / runtime supervisor scan 同步把 runtime turn closeout 中的 paper-facing artifact delta 纳入 freshness，并在 supervisor-only live delta 且无更高优先级 action 时投影 `supervisor_only/live_quality_repair`。这些是 MAS owner repair kernel 的功能性收口，不授权 provider 或 OPL 写 paper truth；
 - `publication-route-memory-inventory` 已补齐 OPL/Aion 可消费的 body-free `operator_grouping` 与 stale/deprecated `review_summary`，使 domain memory receipt refs 可以按 workspace、stage、route family 和 status 展示；memory body、writeback acceptance 和 publication route authority 仍留在 MAS owner surface；
 - `standard_domain_agent_skeleton` 现在包含 `physical_skeleton_layout_audit` 和 repo-source anchor status；`agent/standard-domain-agent-anchor.json`、`contracts/runtime/standard-domain-agent-anchor.json`、`runtime/artifact_locator/workspace-runtime-artifact-root.locator.json` 与 `docs/runtime/contracts/standard_domain_agent_skeleton.md` 已作为 physical anchors，同时把 workspace artifacts 固定为 locator-only；
-- MAS local scheduler、one-shot reconcile、Portal 和 Live Console 仍是有效 local diagnostics 与 evidence surface。
+- MAS direct/local diagnostic path 只保留显式诊断和 read/projection surface：默认 scheduler owner 已迁到 OPL `opl_provider_runtime_manager`，显式 `--manager local` 只允许 legacy status/remove cleanup；Portal、Live Console、`study-progress` 和 cockpit 只读展示 MAS domain receipt、paper-progress blocker、quality/source refs、safe action refs 和明确 owner 的 repair hint，不再表述为 MAS 自有 generic runtime / scheduler / workbench owner。
 - 默认 caller 已从 Hermes scheduler / hosted runtime 路径移走；Hermes 相关 surface 当前只作为 OPL explicit opt-in executor/proof reference 或 history/provenance 读取；Hosted/runtime default path 已固定为 `retired_no_default_caller`。本轮不要求真实 Hermes/Claude production soak，adapter smoke 与 receipt/fail-closed proof 足以关闭接入能力验收。
-- OPL 统一 Agent Executor Adapter 对 MAS 的边界已经落地：MAS 只声明 executor requirement、接收 OPL typed closeout / domain-task receipt，本地 `codex_cli_default` 仅作 standalone diagnostics；`Hermes-Agent` / `Claude Code` 不扩展成 MAS-owned executor kind，也不被写成 MAS runtime truth。
+- OPL 统一 Agent Executor Adapter 对 MAS 的边界已经落地：MAS 只声明 executor requirement、接收 OPL typed closeout / domain-task receipt；`codex_cli_default` 是 MAS 默认 concrete executor requirement 和 direct path 诊断入口，`Hermes-Agent` / `Claude Code` 不扩展成 MAS-owned executor kind，也不被写成 MAS runtime truth。
 - `legacy_retirement_tombstone_proof` 已把 Hermes executor adapter、Hermes hosted scheduler/runtime、MDS/DeepScientist backend 和 workspace-local scheduler 分类成 explicit optional adapter、retired no-default-caller history reference、fixture/provenance 或 standalone diagnostics；active default caller 为空，legacy active-path tombstone contract 已落到 `contracts/runtime/legacy-active-path-tombstones.json`，后续可删代码只按无 active reference、无 fixture/provenance dependency 与 replacement proof 执行。旧 workspace-local `install/watch/uninstall-watch-runtime-service` wrapper 已满足该删除口径：canonical scheduler 生命周期由 runtime CLI 管理，新 scaffold 不再生成 wrapper，legacy init 只负责删除旧生成物。
 
 cutover 或物理退役前仍未完成：
@@ -72,7 +72,7 @@ cutover 或物理退役前仍未完成：
 | `P2.1` | `opl_framework_foundation` | OPL 已具备 Temporal production residency proof，可证明 stage attempt、Temporal-backed runtime、queue/wakeup、retry/dead-letter、approval/human gate transport、receipt/projection 与 domain truth boundary；MAS 已提供 managed lifecycle state consistency projection，OPL family-runtime status / runtime snapshot 已消费该 projection，剩余是更长时 domain activity soak 和 App 级展示 polish。 | OPL framework/provider readiness evidence |
 | `P2.2` | `mas_framework_migration` | MAS 作为 OPL-admitted domain agent 暴露 domain skeleton、stage descriptor、sidecar export/dispatch、owner receipts、projection builder、artifact locator 和 authority refs。 | MAS direct path / OPL-hosted path receipt equivalence |
 | `P2.3` | `framework_generic_lifecycle_lift` | 把 MAS runtime lifecycle、artifact locator、retention、restore-proof、migration-ledger 经验分类为 OPL framework-generic primitive 与 MAS-domain truth。 | OPL primitive candidates plus MAS retained-domain list |
-| `P2.4` | `legacy_retirement_after_replacement` | MAS 已提供 no-active-default-caller tombstone proof、physical tombstone contract、workspace legacy physical cleanup audit/apply 和 5 个真实 profile 的 no-active-reference proof；旧 scheduler/Hermes/MDS/legacy manager/UI wording 与代码继续按 replacement proof 逐项退役，只有 archive/provenance/parity 必需 reader 保留。 | retired path evidence、targeted cleanup audit、tombstone contract、删除旧入口后的 scaffold/init tests 和更新后的 diagnostics/fallback docs |
+| `P2.4` | `legacy_retirement_after_replacement` | MAS 已提供 no-active-default-caller tombstone proof、physical tombstone contract、workspace legacy physical cleanup audit/apply 和 5 个真实 profile 的 no-active-reference proof；旧 scheduler/Hermes/MDS/legacy manager/UI wording 与代码继续按 replacement proof 逐项退役，只有 archive/provenance/parity 必需 reader 保留。 | retired path evidence、targeted cleanup audit、tombstone contract、删除旧入口后的 scaffold/init tests 和更新后的 explicit diagnostic docs |
 | `P2.5` | `final_paper_line_guarded_soak` | read-only proof 已覆盖 DM002/DM003/Obesity；MAS-owned guarded apply proof 与 sidecar dispatch receipt closure surface 已能承认 MAS owner receipt 或返回 typed blocker；sidecar pending task projection 已按 DM002/DM003/Obesity 拆成独立 source fingerprint 与 target-scoped owner refs。下一步是在 provider-hosted live apply 中证明真实 paper line 可经 OPL attempt + MAS owner chain 前进或明确阻塞。 | MAS truth surface 中的 attempt query、owner receipt、progress delta、gate replay、reviewer update、human gate、stop-loss 或 typed blocker |
 
 这些是内容线。后续变更可以只实现其中一条，不需要触碰整个 P2 surface。
@@ -128,7 +128,7 @@ MAS 必须持有：
 
 - study truth、runtime health truth、paper progress SLO、owner-route decision、AI reviewer verdict、publication gate、evidence/review ledgers、canonical manuscript/package authority、terminal attach owner gate 和 MAS action receipts。
 
-MAS sidecar/dispatcher/readiness 只能表达 OPL executor requirement 或接收 OPL receipt。`executor_kind` 的 MAS-owned 支持面保持 `codex_cli_default`，并且仅用于 standalone diagnostics；Hermes scheduler / hosted runtime 文字统一按 explicit OPL opt-in reference、history/provenance 或 `retired_no_default_caller` 处理。
+MAS sidecar/dispatcher/readiness 只能表达 OPL executor requirement 或接收 OPL receipt。`executor_kind` 的 MAS-owned 支持面保持 `codex_cli_default`，用于默认 concrete executor requirement、direct path 执行和 standalone diagnostics；Hermes scheduler / hosted runtime 文字统一按 explicit OPL opt-in reference、history/provenance 或 `retired_no_default_caller` 处理。
 
 Provider attempt completion、queue hydration 或 worker liveness 只是支撑证据。只有 MAS owner surfaces 显示 artifact delta、gate owner progress、AI reviewer judgment update、route decision、stop-loss、human gate 或 typed blocker 时，才算 paper progress。
 

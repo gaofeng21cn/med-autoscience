@@ -1,8 +1,13 @@
-# Medical Display Capability
+# Medical Display 能力族
+
+Owner: `MedAutoScience`
+Purpose: `medical_display_delivery_index`
+State: `active_delivery_support`
+Machine boundary: 人读能力族索引。机器真相继续归 renderer contracts、template/schema source、layout QC、generated display artifacts、delivery manifests、runtime/controller receipt 和真实 workspace artifact refs。
 
 这是医学展示能力族的活跃入口。
 
-| directory | role |
+| 目录 | 角色 |
 | --- | --- |
 | [portfolio](./portfolio/) | Portfolio map 和长期 roadmap。 |
 | [board](./board/) | 当前 active board 和下一轮可执行 display round。 |
