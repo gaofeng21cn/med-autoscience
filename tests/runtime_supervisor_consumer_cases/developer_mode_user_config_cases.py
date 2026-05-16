@@ -176,3 +176,57 @@ def test_supervisor_consume_honors_user_config_disabled_over_apply_safe_default(
     assert result["repair_tasks"][0]["dispatch_status"] == "blocked"
     assert result["repair_tasks"][0]["blocked_reason"] == "developer_supervisor_disabled_by_user_config"
     assert not (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").exists()
+
+
+def test_supervisor_consume_uses_profile_github_username_for_pull_request_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "someone-else")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+    profile = make_profile(tmp_path)
+    profile = profile.__class__(
+        **{
+            **profile.__dict__,
+            "developer_supervisor_mode": "developer_apply_safe",
+            "developer_supervisor_mode_explicit": True,
+            "github_username": "someone-else",
+            "mas_developer_github_usernames": ("gaofeng21cn",),
+        }
+    )
+    study_id = "003-endocrine-burden-followup"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-nf")
+    _write_consumer_scan(profile, study_id, "quest-nf")
+
+    result = module.supervisor_consume(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    developer_mode = result["developer_supervisor_mode"]
+    assert result["effective_mode"] == "developer_apply_safe"
+    assert result["apply_allowed"] is True
+    assert developer_mode["github_user_gate"] == {
+        "expected_login": "gaofeng21cn",
+        "login": "someone-else",
+        "allowed": False,
+        "source": "profile",
+        "reason": "github_user_requires_pull_request_route",
+    }
+    assert developer_mode["repo_write_policy"] == {
+        "route": "pull_request",
+        "direct_repo_write_allowed": False,
+        "pull_request_required": True,
+        "source": "profile",
+        "reason": "github_user_requires_pull_request_route",
+    }
+    assert developer_mode["authority_gate"] == {
+        "allowed": True,
+        "source": "profile_developer_mode_pull_request",
+        "reason": "github_user_requires_pull_request_route",
+    }
+    assert result["repair_tasks"][0]["dispatch_status"] == "applied"
+    assert (study_root / "artifacts" / "supervision" / "consumer" / "runtime_platform_repair.json").is_file()

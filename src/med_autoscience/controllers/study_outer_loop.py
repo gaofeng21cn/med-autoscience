@@ -330,18 +330,19 @@ def build_runtime_watch_outer_loop_tick_request(
             status_payload=status_payload,
             publication_eval_payload=publication_eval_payload,
         )
-        if (
+        domain_transition_decision_type = str(
+            (
+                (domain_transition_action or {}).get("domain_transition")
+                if isinstance((domain_transition_action or {}).get("domain_transition"), dict)
+                else {}
+            ).get("decision_type")
+            or ""
+        ).strip()
+        submission_milestone_preempts_bundle_finalize = (
             live_submission_milestone_autopark_action is not None
-            and str(
-                (
-                    (domain_transition_action or {}).get("domain_transition")
-                    if isinstance((domain_transition_action or {}).get("domain_transition"), dict)
-                    else {}
-                ).get("decision_type")
-                or ""
-            ).strip()
-            == "bundle_stage_finalize"
-        ):
+            and domain_transition_decision_type == "bundle_stage_finalize"
+        )
+        if submission_milestone_preempts_bundle_finalize:
             domain_transition_action = None
         bundle_stage_finalize_preempts_task_intake = bundle_stage_publication_eval_preempts_task_intake(
             status_payload=status_payload,
@@ -392,7 +393,11 @@ def build_runtime_watch_outer_loop_tick_request(
                 publication_eval_payload=publication_eval_payload,
                 gate_report=gate_report,
             )
-            if bundle_stage_finalize_preempts_task_intake and _status_payload_reports_bundle_stage(status_payload)
+            if (
+                bundle_stage_finalize_preempts_task_intake
+                and _status_payload_reports_bundle_stage(status_payload)
+                and not submission_milestone_preempts_bundle_finalize
+            )
             else None
         )
         if domain_transition_action is not None:
@@ -401,13 +406,13 @@ def build_runtime_watch_outer_loop_tick_request(
             recommended_action = batch_action
         elif _quality_repair_batch_preempts_task_intake(batch_action):
             recommended_action = batch_action
+        elif submission_milestone_preempts_bundle_finalize:
+            recommended_action = live_submission_milestone_autopark_action
         elif bundle_stage_finalize_action is not None:
             recommended_action = bundle_stage_finalize_action
         else:
             recommended_action = (
-                live_submission_milestone_autopark_action
-                if live_submission_milestone_autopark_action is not None
-                else submission_milestone_autopark_action
+                submission_milestone_autopark_action
                 if submission_milestone_autopark_action is not None
                 else task_intake_action
             )
@@ -417,12 +422,6 @@ def build_runtime_watch_outer_loop_tick_request(
                 status_payload=status_payload,
                 publication_eval_payload=publication_eval_payload,
             )
-        if (
-            recommended_action is not None
-            and str(recommended_action.get("controller_action_type") or "").strip()
-            == StudyDecisionActionType.STOP_RUNTIME.value
-        ):
-            domain_transition_action = None
         if recommended_action is None:
             recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
         if recommended_action is None:

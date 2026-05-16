@@ -258,6 +258,33 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
 
     ops_readme = workspace_root / "ops" / "medautoscience" / "README.md"
     assert ops_readme.is_file()
+
+
+def test_init_workspace_records_detected_github_username_in_profile(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.workspace_init")
+    workspace_root = tmp_path / "detected-user-workspace"
+
+    monkeypatch.setattr(module.shutil, "which", lambda command: "/usr/bin/gh" if command == "gh" else None)
+
+    class Completed:
+        returncode = 0
+        stdout = "someone-else\n"
+
+    monkeypatch.setattr(module.subprocess, "run", lambda *_, **__: Completed())
+
+    module.init_workspace(
+        workspace_root=workspace_root,
+        workspace_name="detected-user",
+        dry_run=False,
+        force=False,
+    )
+
+    profile_path = workspace_root / "ops" / "medautoscience" / "profiles" / "detected-user.local.toml"
+    profile_text = profile_path.read_text(encoding="utf-8")
+
+    assert 'developer_supervisor_mode = "external_observe"' in profile_text
+    assert 'github_username = "someone-else"' in profile_text
+    assert 'mas_developer_github_usernames = ["gaofeng21cn"]' in profile_text
     ops_readme_text = ops_readme.read_text(encoding="utf-8")
     assert "medautosci runtime ensure-supervision --profile <profile>" in ops_readme_text
     assert "medautosci runtime supervision-status --profile <profile>" in ops_readme_text
