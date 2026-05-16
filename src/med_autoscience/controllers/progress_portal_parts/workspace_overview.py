@@ -21,6 +21,7 @@ _WORKSPACE_SUPERVISION_ALERTS = frozenset(
         "Supervisor scheduler 尚未注册。",
         "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。",
         "检测到 legacy MAS local scheduler LaunchAgent；请使用 --manager local 清理旧生成物。",
+        "检测到已退役的 MAS local scheduler 旧生成物；请运行 --manager local remove 清理。",
     }
 )
 _PARKED_STUDY_WORKSPACE_ALERTS = frozenset(
@@ -487,6 +488,7 @@ def _alert_item(text: str) -> dict[str, str | None]:
         legacy_outputs = {
             "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。",
             "检测到 legacy MAS local scheduler LaunchAgent；请使用 --manager local 清理旧生成物。",
+            "检测到已退役的 MAS local scheduler 旧生成物；请运行 --manager local remove 清理。",
         }
         if text not in legacy_outputs:
             text = "MAS scheduler local adapter runtime supervision 尚未注册。"

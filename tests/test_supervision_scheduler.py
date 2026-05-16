@@ -2,29 +2,28 @@ from __future__ import annotations
 
 import importlib
 import json
-import os
 from pathlib import Path
-import subprocess
-import sys
 
 from tests.study_runtime_test_helpers import make_profile
 
 
-def _write_workspace_python(profile) -> Path:
-    python_path = profile.workspace_root / ".venv" / "bin" / "python3"
-    python_path.parent.mkdir(parents=True, exist_ok=True)
-    python_path.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
-    python_path.chmod(0o755)
-    return python_path
-
-
-def _write_successful_tick_commands(profile) -> None:
-    bin_dir = profile.workspace_root / "ops" / "medautoscience" / "bin"
-    bin_dir.mkdir(parents=True, exist_ok=True)
-    for name in ("watch-runtime", "supervisor-scan", "supervisor-consume", "supervisor-execute-dispatch"):
-        command = bin_dir / name
-        command.write_text("#!/bin/sh\necho '{\"ok\": true}'\nexit 0\n", encoding="utf-8")
-        command.chmod(0o755)
+def _write_legacy_local_scheduler_artifacts(local, profile) -> tuple[Path, Path]:
+    script_path = local._tick_script_path(profile)
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+    script_path.write_text("#!/bin/sh\necho legacy MAS scheduler\n", encoding="utf-8")
+    script_path.chmod(0o755)
+    plist_path = local._launch_agent_path(profile)
+    plist_path.parent.mkdir(parents=True, exist_ok=True)
+    plist_path.write_bytes(
+        local.plistlib.dumps(
+            {
+                "Label": local._launchd_label(profile),
+                "ProgramArguments": [str(script_path)],
+                "StartInterval": 300,
+            }
+        )
+    )
+    return script_path, plist_path
 
 
 def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monkeypatch, tmp_path: Path) -> None:
@@ -111,9 +110,9 @@ def test_local_scheduler_dry_run_projects_launchd_without_hermes(monkeypatch, tm
     assert result["consumer_migration"]["replacement_owner_surface"] == "opl_provider_runtime_manager"
     assert result["consumer_migration"]["replacement_required_before_retirement"] is True
     assert result["dry_run"] is True
-    assert result["install_proof"]["installed"] is False
-    assert result["install_proof"]["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
-    assert result["install_proof"]["tick_script_path"].endswith("watch_runtime_tick.py")
+    assert result["write_install_proof"] is False
+    assert result["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
+    assert "install_proof" not in result
     assert result["after"]["adapter_id"] == "local_launchd"
     assert not Path(result["script_path"]).exists()
 
@@ -135,8 +134,9 @@ def test_local_scheduler_ensure_is_retired_cleanup_only(monkeypatch, tmp_path: P
 
     assert result["action"] == "retired_cleanup_only"
     assert result["status"] == "blocked"
-    assert result["install_proof"]["installed"] is False
-    assert result["install_proof"]["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
+    assert result["write_install_proof"] is False
+    assert result["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
+    assert "install_proof" not in result
     assert result["cleanup_command"].endswith(" --manager local")
     assert result["after"]["job_exists"] is False
     assert result["after"]["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
@@ -146,35 +146,6 @@ def test_local_scheduler_ensure_is_retired_cleanup_only(monkeypatch, tmp_path: P
     assert not Path(result["script_path"]).exists()
     assert not Path(result["launch_agent_path"]).exists()
     assert result["command_outputs"] == []
-
-
-def test_generated_tick_script_clears_stale_pid_lock_and_continues(tmp_path: Path) -> None:
-    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
-    profile = make_profile(tmp_path)
-    _write_successful_tick_commands(profile)
-    script = local._ensure_tick_script(profile=profile, interval_seconds=300)
-    lock_path = local._lock_path(profile)
-    lock_path.parent.mkdir(parents=True, exist_ok=True)
-    stale_pid = 999999
-    try:
-        os.kill(stale_pid, 0)
-    except ProcessLookupError:
-        pass
-    except PermissionError:
-        stale_pid = 999998
-    lock_path.write_text(str(stale_pid), encoding="utf-8")
-
-    completed = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, check=False)
-
-    assert completed.returncode == 0
-    receipt = json.loads(local._latest_receipt_path(profile).read_text(encoding="utf-8"))
-    assert receipt["outcome"] == "succeeded"
-    assert receipt["lock_status"] == "cleared_stale_lock"
-    assert receipt["cleared_stale_lock"] is True
-    assert receipt["stale_lock_pid"] == stale_pid
-    assert receipt["stale_lock_reason"] == "lock_pid_not_running"
-    assert receipt["tick_sequence"]
-    assert not lock_path.exists()
 
 
 def test_local_scheduler_apply_blocks_when_workspace_python_missing(monkeypatch, tmp_path: Path) -> None:
@@ -193,36 +164,80 @@ def test_local_scheduler_apply_blocks_when_workspace_python_missing(monkeypatch,
     )
 
     assert result["action"] == "retired_cleanup_only"
-    assert result["install_proof"]["status"] == "blocked"
-    assert result["install_proof"]["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
+    assert result["status"] == "blocked"
+    assert result["write_install_proof"] is False
+    assert result["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
+    assert "install_proof" not in result
     assert not Path(result["script_path"]).exists()
     assert not Path(result["launch_agent_path"]).exists()
 
 
-def test_local_scheduler_status_requires_launchd_loaded_probe(monkeypatch, tmp_path: Path) -> None:
+def test_local_scheduler_status_treats_existing_launchagent_as_retired_cleanup_evidence(
+    monkeypatch, tmp_path: Path
+) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
     local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
     profile = make_profile(tmp_path)
-    _write_workspace_python(profile)
     launch_agents = tmp_path / "LaunchAgents"
     monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
     monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
 
-    local._ensure_tick_script(profile=profile, interval_seconds=300)
-    plist_path = local._launch_agent_path(profile)
-    plist_path.parent.mkdir(parents=True, exist_ok=True)
-    plist_path.write_bytes(local.plistlib.dumps(local._launch_agent_plist(profile=profile, interval_seconds=300)))
+    script_path, plist_path = _write_legacy_local_scheduler_artifacts(local, profile)
     monkeypatch.setattr(
         local,
         "_run_command",
-        lambda command: {"command": command, "exit_code": 113, "output": "Could not find service"},
+        lambda command: {"command": command, "exit_code": 0, "output": "service is loaded"},
     )
 
     result = module.read_supervision_status(profile=profile, manager="local")
 
-    assert result["status"] == "not_loaded"
+    assert result["status"] == "retired_legacy_cleanup_required"
     assert result["loaded"] is False
-    assert result["launch_agent_probe"]["loaded"] is False
+    assert result["adapter_loaded"] is False
+    assert result["adapter_enabled"] is False
+    assert result["job_enabled"] is False
+    assert result["job_state"] == "retired_cleanup_required"
+    assert result["legacy_service_role"] == "retired_cleanup_evidence"
+    assert result["retired_legacy_cleanup_required"] is True
+    assert result["retired_artifacts"] == {
+        "launch_agent": str(plist_path),
+        "tick_script": str(script_path),
+    }
+    assert "legacy_launch_agent_present" in result["drift_reasons"]
+    assert "legacy_tick_script_present" in result["drift_reasons"]
+    assert result["launch_agent_probe"]["loaded"] is True
+    assert result["outer_supervision_slo"]["state"] == "blocked"
+    assert "retired_legacy_cleanup_required" in result["outer_supervision_slo"]["blocked_reasons"]
+    assert result["tick_script_checksum"] is None
+    assert result["expected_tick_script_checksum"] is None
+    assert result["watch_command"] == []
+    assert result["tick_sequence"] == []
+
+
+def test_local_scheduler_remove_deletes_legacy_launchagent_and_tick_script(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
+    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
+    profile = make_profile(tmp_path)
+    launch_agents = tmp_path / "LaunchAgents"
+    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
+    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
+
+    script_path, plist_path = _write_legacy_local_scheduler_artifacts(local, profile)
+    monkeypatch.setattr(
+        local,
+        "_run_command",
+        lambda command: {"command": command, "exit_code": 0, "output": ""},
+    )
+
+    result = module.remove_supervision(profile=profile, manager="local")
+
+    assert result["before"]["status"] == "retired_legacy_cleanup_required"
+    assert result["after"]["status"] == "not_installed"
+    assert result["launch_agent_removed"] is True
+    assert result["script_removed"] is True
+    assert result["removed_job_ids"] == [result["before"]["job_id"]]
+    assert not plist_path.exists()
+    assert not script_path.exists()
 
 
 def test_explicit_hermes_adapter_is_projected_under_mas_scheduler_owner(monkeypatch, tmp_path: Path) -> None:

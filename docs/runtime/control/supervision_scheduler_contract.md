@@ -18,13 +18,13 @@ Date: `2026-05-16`
 
 默认 scheduler owner 现在是 `opl_provider_runtime_manager`，默认 adapter 是 `opl_family_runtime_provider`。`runtime-supervision-status`、`runtime-ensure-supervision` 与 `runtime-remove-supervision` 默认 `--manager opl`，只投影或委托 OPL `family_scheduler_replacement`，不安装、不刷新、不触发 MAS-owned LaunchAgent。MAS 保留 `outer_supervision_slo` 的 paper-progress 解释、owner receipt、typed blocker、safe action refs 和 no-forbidden-write evidence。
 
-2026-05-16 migration 更新：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 已接到 OPL replacement 默认 façade。macOS local adapter 不再安装或刷新 MAS-owned tick script / LaunchAgent；显式 `--manager local` 只保留 legacy status / remove cleanup path，用来检查或移除旧生成物。显式 `--manager hermes` 继续调用 Hermes adapter 并投影为 optional historical adapter，不是默认 scheduler owner。
+2026-05-16 migration 更新：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 已接到 OPL replacement 默认 façade。macOS local adapter 不再安装或刷新 MAS-owned tick script / LaunchAgent，也不再生成 install proof；显式 `--manager local` 只保留 legacy status / remove cleanup path，用来检查或移除旧生成物。检测到旧生成物时 local status 为 `retired_legacy_cleanup_required`，`loaded=false`，`job_state=retired_cleanup_required`，outer supervision SLO fail-closed 为 cleanup blocker。显式 `--manager hermes` 继续调用 Hermes adapter 并投影为 optional historical adapter，不是默认 scheduler owner。
 
 2026-05-16 生命周期校准：上述实现仍是 MAS 当前活代码和 local diagnostics 迁移桥。它不能被当前 docs、Portal、product-entry 或 status 写成 MAS 理想终态；后续 replacement proof / no-active-caller proof 成立后，应直接迁移或退役 MAS-owned scheduler lifecycle、legacy tick、job registry 和 outer-supervision SLO 输入，不新增 compatibility shim、alias 或兼容测试。
 
 2026-05-12 退役更新：旧 `systemd|cron|launchd|docker` manager 不再是 CLI 或 controller 可调用 manager。`supervision_scheduler` 和 Hermes adapter 只接受 `local` 与显式 `hermes`；旧 workspace-local service 只作为 Hermes optional adapter status 里的 `retired_cleanup_evidence` 被观察和清理，不再有单独 runtime payload、安装建议或 direct-call 兼容层。
 
-2026-05-16 bootstrap 更新：`workspace bootstrap --profile <profile>` 现在调用默认 OPL replacement，不再刷新 LaunchAgent、tick script 或 install proof。`runtime-supervision-status`、`product-entry-status`、Progress Portal 与 Live Console 仍是 read/projection surface，不自动写入 OS scheduler；发现 legacy local drift 时必须显示 source 与显式 `--manager local` diagnostic / cleanup command。
+2026-05-16 bootstrap 更新：`workspace bootstrap --profile <profile>` 现在调用默认 OPL replacement，不再刷新 LaunchAgent、tick script 或 install proof。`runtime-supervision-status`、`product-entry-status`、Progress Portal 与 Live Console 仍是 read/projection surface，不自动写入 OS scheduler；发现 legacy local artifact 时必须显示 source 与显式 `--manager local` diagnostic / cleanup command。
 
 ## 当前 Hermes 实际职责
 
@@ -78,8 +78,8 @@ MAS scheduler projection 必须提供下列 machine boundary。默认 OPL adapte
 | `workspace_key` | 由 profile/workspace root 派生的稳定 key。 |
 | `job_id` | 稳定 job identity；重复 ensure 必须 upsert 同一 job。 |
 | `profile_ref` | profile path / profile fingerprint。 |
-| `tick_script_ref` | MAS-owned script path、checksum、generated_at。 |
-| `schedule_spec` | interval/cadence、timezone、jitter/catchup policy。默认 `interval_seconds=300`。 |
+| `tick_script_ref` | 默认 OPL / Hermes adapter 可有脚本引用；local legacy diagnostic path 只投影旧 tick script path 是否存在，不生成脚本或 checksum。 |
+| `schedule_spec` | 默认 OPL / Hermes adapter 投影 interval/cadence；local legacy diagnostic path 固定为 `retired_local_diagnostic_cleanup_only`。 |
 | `overlap_policy` | 默认 `skip_if_running`；禁止同一 workspace 同时跑两个 outer tick。 |
 | `misfire_policy` | 默认 `record_missed_and_wait_next`；允许 operator 触发 one-shot reconcile。 |
 | `enabled` | scheduler 是否启用。 |
@@ -109,7 +109,7 @@ MAS scheduler projection 必须提供下列 machine boundary。默认 OPL adapte
 | `last_receipt_ref` | 最新 receipt path。 |
 | `drift_reasons` | schedule/script/profile/checksum/job-state drift。 |
 | `duplicate_job_ids` | 同一 workspace-key 下的重复 job。 |
-| `migration_state` | `none` / `shadow` / `cutover_ready` / `cutover_complete` / `rollback_ready`。 |
+| `migration_state` | 默认 OPL replacement 为 active；local legacy diagnostic path 使用 `legacy_cleanup_required` / `legacy_absent`。 |
 
 ## Adapter 策略
 
@@ -203,7 +203,7 @@ Status: `landed`
 
 - 默认 `runtime-supervision-status` 输出 `scheduler_owner=opl_provider_runtime_manager` 和 `adapter_id=opl_family_runtime_provider`；显式 `--manager local` 输出 legacy `scheduler_owner=mas_supervision_scheduler` 和当前 local backend。
 - Hermes adapter 先通过新 façade 暴露同一 schema，不改变真实 workspace 行为。
-- tick sequence、SLO、duplicate detection、drift detection 和 latest receipt 进入 backend-neutral shape；local ensure 不再生成 tick script。
+- tick sequence、SLO、duplicate detection、drift detection 和 latest receipt 进入 backend-neutral shape；local ensure 不再生成 tick script、LaunchAgent plist 或 install proof。
 - 现有 Hermes 状态读取继续可用，但被标记为 adapter projection。
 
 验收：
@@ -228,7 +228,7 @@ Status: `landed as explicit legacy diagnostic for macOS LaunchAgent; blocked/fai
 验收：
 
 - `runtime-ensure-supervision --manager local` 不写 OS scheduler，返回 cleanup-only blocker 和 remove/status command。
-- `runtime-supervision-status` 能解释 local adapter missing / ready / blocked。
+- `runtime-supervision-status` 能解释 local adapter absent / cleanup-required / blocked；不得把 legacy LaunchAgent 投影为 ready/loaded。
 - 不触碰 legacy workspace-local scaffold。
 
 ### Phase 3: Local adapter physical retirement

@@ -18,7 +18,7 @@ from med_autoscience.profiles import WorkspaceProfile
 SCHEMA_VERSION = 1
 SCHEDULER_OWNER = "mas_supervision_scheduler"
 DEFAULT_INTERVAL_SECONDS = 5 * 60
-LAUNCHD_TOOL_PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+RETIRED_INSTALL_REASON = "mas_local_scheduler_install_retired_use_opl_replacement"
 
 
 def utc_now() -> str:
@@ -57,17 +57,6 @@ def ensure(
     backend = local_backend_id()
     before = status(profile=profile, interval_seconds=interval_seconds)
     command_outputs: list[dict[str, Any]] = []
-    proof = _install_proof(
-        profile=profile,
-        adapter_id=backend,
-        interval_seconds=interval_seconds,
-        status="blocked",
-        installed=False,
-        dry_run=True,
-        commands=[],
-        command_outputs=command_outputs,
-        reason="mas_local_scheduler_install_retired_use_opl_replacement",
-    )
     after = status(profile=profile, interval_seconds=interval_seconds)
     return {
         "schema_version": SCHEMA_VERSION,
@@ -82,13 +71,14 @@ def ensure(
         "after": after,
         "script_path": str(_tick_script_path(profile)),
         "launch_agent_path": str(_launch_agent_path(profile)),
-        "install_proof": proof,
         "install_proof_path": None,
         "command_outputs": command_outputs,
         "dry_run": True,
+        "write_install_proof": False,
         "trigger_now": trigger_now,
         "requested_dry_run": dry_run,
         "requested_write_install_proof": write_install_proof,
+        "reason": RETIRED_INSTALL_REASON,
         "cleanup_command": "runtime-remove-supervision --profile <profile> --manager local",
         "replacement_command": "runtime-ensure-supervision --profile <profile> --manager opl",
         "note": (
@@ -136,59 +126,65 @@ def _launchd_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict
     plist_path = _launch_agent_path(profile)
     latest_receipt = _read_json(_latest_receipt_path(profile))
     drift_reasons: list[str] = []
-    if plist_path.exists():
-        actual = _read_plist(plist_path)
-        expected = _launch_agent_plist(profile=profile, interval_seconds=interval_seconds)
-        if actual and actual != expected:
-            drift_reasons.append("launch_agent_plist_drift")
-    if script.exists() and _script_checksum(script) != _expected_script_checksum(
-        profile=profile,
-        interval_seconds=interval_seconds,
-    ):
-        drift_reasons.append("tick_script_checksum_drift")
     installed = plist_path.exists()
     script_exists = script.exists()
+    if installed:
+        drift_reasons.append("legacy_launch_agent_present")
+    if script_exists:
+        drift_reasons.append("legacy_tick_script_present")
     launchd_probe = (
         _launch_agent_probe(label=_launchd_label(profile))
         if installed
         else {"loaded": False, "exit_code": None, "output": ""}
     )
-    loaded = installed and script_exists and bool(launchd_probe.get("loaded")) and not drift_reasons
-    status_value = "loaded" if loaded else ("not_loaded" if installed else "not_installed")
+    legacy_artifact_present = installed or script_exists
+    status_value = "retired_legacy_cleanup_required" if legacy_artifact_present else "not_installed"
     summary = (
-        "检测到 legacy MAS local scheduler LaunchAgent；请使用 --manager local 清理旧生成物。"
-        if loaded
-        else "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。"
+        "检测到已退役的 MAS local scheduler 旧生成物；请运行 --manager local remove 清理。"
+        if legacy_artifact_present
+        else "MAS local scheduler 旧生成物不存在；local 仅保留 status/remove cleanup diagnostic。"
     )
     payload = _base_status(
         profile=profile,
         adapter_id="local_launchd",
         interval_seconds=interval_seconds,
         status=status_value,
-        loaded=loaded,
+        loaded=False,
         summary=summary,
         script_path=script,
         latest_receipt=latest_receipt,
         drift_reasons=drift_reasons,
     )
+    legacy_service = {
+        "launch_agent_label": _launchd_label(profile),
+        "launch_agent_path": str(plist_path),
+        "launch_agent_exists": installed,
+        "tick_script_path": str(script),
+        "tick_script_exists": script_exists,
+        "launch_agent_probe": launchd_probe,
+        "launch_agent_plist": _legacy_launch_agent_projection(_read_plist(plist_path)) if installed else {},
+    }
     payload.update(
         {
             "launch_agent_label": _launchd_label(profile),
             "launch_agent_path": str(plist_path),
             "launch_agent_probe": launchd_probe,
             "adapter_status": {
-                "adapter_installed": installed,
-                "adapter_loaded": loaded,
-                "adapter_enabled": installed,
-                "migration_state": "none",
+                "adapter_installed": legacy_artifact_present,
+                "adapter_loaded": False,
+                "adapter_enabled": False,
+                "migration_state": "legacy_cleanup_required" if legacy_artifact_present else "legacy_absent",
             },
-            "adapter_installed": installed,
-            "adapter_loaded": loaded,
-            "adapter_enabled": installed,
+            "adapter_installed": legacy_artifact_present,
+            "adapter_loaded": False,
+            "adapter_enabled": False,
             "job_exists": installed,
-            "job_enabled": installed,
-            "job_state": "scheduled" if installed else None,
-            "job_schedule_display": f"every {interval_seconds}s",
+            "job_enabled": False,
+            "job_state": "retired_cleanup_required" if legacy_artifact_present else None,
+            "job_schedule_display": "retired_local_cleanup_only",
+            "legacy_service": legacy_service,
+            "retired_artifacts": _retired_artifacts(plist_path=plist_path, script_path=script),
+            "retired_legacy_cleanup_required": legacy_artifact_present,
         }
     )
     return payload
@@ -206,7 +202,7 @@ def _non_persistent_status(
         interval_seconds=interval_seconds,
         status="blocked",
         loaded=False,
-        summary="当前环境没有可由 MAS 安装的 persistent local scheduler；可运行 one-shot reconcile。",
+        summary="当前环境没有可由 MAS 安装的 persistent local scheduler；local 只保留 legacy cleanup diagnostic。",
         script_path=_tick_script_path(profile),
         latest_receipt=_read_json(_latest_receipt_path(profile)),
         drift_reasons=["persistent_local_scheduler_not_available"],
@@ -253,19 +249,19 @@ def _base_status(
         "loaded": loaded,
         "summary": summary,
         "interval_seconds": interval_seconds,
-        "desired_schedule": f"every {interval_seconds}s",
-        "schedule_spec": {"kind": "interval", "interval_seconds": interval_seconds, "timezone": "local"},
-        "overlap_policy": "skip_if_running",
-        "misfire_policy": "record_missed_and_wait_next",
+        "desired_schedule": "retired_local_cleanup_only",
+        "schedule_spec": {
+            "kind": "retired_local_diagnostic_cleanup_only",
+            "interval_seconds": interval_seconds,
+        },
+        "overlap_policy": "not_applicable_retired_local_adapter",
+        "misfire_policy": "not_applicable_retired_local_adapter",
         "script_path": str(script_path),
         "script_exists": script_path.is_file(),
-        "tick_script_checksum": _script_checksum(script_path) if script_path.is_file() else None,
-        "expected_tick_script_checksum": _expected_script_checksum(
-            profile=profile,
-            interval_seconds=interval_seconds,
-        ),
-        "watch_command": _watch_runtime_command(profile, interval_seconds=interval_seconds),
-        "tick_sequence": _tick_sequence(profile, interval_seconds=interval_seconds),
+        "tick_script_checksum": None,
+        "expected_tick_script_checksum": None,
+        "watch_command": [],
+        "tick_sequence": [],
         "latest_run_status": _text(latest_receipt.get("outcome")),
         "latest_run_recorded_at": latest_recorded_at,
         "latest_run_summary": _text(latest_receipt.get("summary")),
@@ -279,6 +275,8 @@ def _base_status(
         "legacy_service": {},
         "legacy_service_role": "retired_cleanup_evidence",
         "retired_legacy_cleanup_required": False,
+        "cleanup_command": "runtime-remove-supervision --profile <profile> --manager local",
+        "replacement_command": "runtime-ensure-supervision --profile <profile> --manager opl",
     }
     from med_autoscience.controllers import outer_supervision_slo
 
@@ -291,184 +289,29 @@ def _base_status(
     return payload
 
 
-def _ensure_tick_script(*, profile: WorkspaceProfile, interval_seconds: int) -> Path:
-    path = _tick_script_path(profile)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(_render_tick_script(profile=profile, interval_seconds=interval_seconds), encoding="utf-8")
-    path.chmod(0o755)
-    return path
+def _retired_artifacts(*, plist_path: Path, script_path: Path) -> dict[str, str]:
+    artifacts: dict[str, str] = {}
+    if plist_path.exists():
+        artifacts["launch_agent"] = str(plist_path)
+    if script_path.exists():
+        artifacts["tick_script"] = str(script_path)
+    return artifacts
 
 
-def _render_tick_script(*, profile: WorkspaceProfile, interval_seconds: int) -> str:
-    commands_json = json.dumps(_tick_sequence(profile, interval_seconds=interval_seconds))
-    latest_receipt_json = json.dumps(str(_latest_receipt_path(profile)))
-    history_receipt_json = json.dumps(str(_history_receipt_path(profile)))
-    lock_path_json = json.dumps(str(_lock_path(profile)))
-    return (
-        f"#!{_workspace_python_path(profile)}\n"
-        "from __future__ import annotations\n\n"
-        "from datetime import datetime, timezone\n"
-        "import json\n"
-        "import os\n"
-        "from pathlib import Path\n"
-        "import subprocess\n\n"
-        f"COMMANDS = json.loads({json.dumps(commands_json)})\n"
-        f"LATEST_RECEIPT = Path(json.loads({json.dumps(latest_receipt_json)}))\n"
-        f"HISTORY_RECEIPT = Path(json.loads({json.dumps(history_receipt_json)}))\n"
-        f"LOCK_PATH = Path(json.loads({json.dumps(lock_path_json)}))\n\n"
-        f"TOOL_PATH = {LAUNCHD_TOOL_PATH!r}\n"
-        "existing_path = os.environ.get('PATH')\n"
-        "if existing_path:\n"
-        "    os.environ['PATH'] = TOOL_PATH + os.pathsep + existing_path\n"
-        "else:\n"
-        "    os.environ['PATH'] = TOOL_PATH\n\n"
-        "def now():\n"
-        "    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()\n\n"
-        "def write_receipt(payload):\n"
-        "    LATEST_RECEIPT.parent.mkdir(parents=True, exist_ok=True)\n"
-        "    LATEST_RECEIPT.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + '\\n', encoding='utf-8')\n"
-        "    HISTORY_RECEIPT.parent.mkdir(parents=True, exist_ok=True)\n"
-        "    with HISTORY_RECEIPT.open('a', encoding='utf-8') as handle:\n"
-        "        handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + '\\n')\n\n"
-        "def inspect_existing_lock():\n"
-        "    if not LOCK_PATH.exists():\n"
-        "        return {'active': False, 'clear': False, 'pid': None, 'reason': 'lock_missing'}\n"
-        "    raw = LOCK_PATH.read_text(encoding='utf-8').strip()\n"
-        "    try:\n"
-        "        pid = int(raw)\n"
-        "    except ValueError:\n"
-        "        return {'active': False, 'clear': True, 'pid': None, 'reason': 'invalid_lock_pid', 'raw': raw[:200]}\n"
-        "    if pid <= 0:\n"
-        "        return {'active': False, 'clear': True, 'pid': pid, 'reason': 'invalid_lock_pid'}\n"
-        "    try:\n"
-        "        os.kill(pid, 0)\n"
-        "    except ProcessLookupError:\n"
-        "        return {'active': False, 'clear': True, 'pid': pid, 'reason': 'lock_pid_not_running'}\n"
-        "    except PermissionError:\n"
-        "        return {'active': True, 'clear': False, 'pid': pid, 'reason': 'lock_pid_exists_permission_denied'}\n"
-        "    return {'active': True, 'clear': False, 'pid': pid, 'reason': 'lock_pid_running'}\n\n"
-        "def release_owned_lock():\n"
-        "    try:\n"
-        "        if LOCK_PATH.read_text(encoding='utf-8').strip() == str(os.getpid()):\n"
-        "            LOCK_PATH.unlink()\n"
-        "    except FileNotFoundError:\n"
-        "        pass\n\n"
-        "started_at = now()\n"
-        "lock_metadata = {}\n"
-        "if LOCK_PATH.exists():\n"
-        "    lock_state = inspect_existing_lock()\n"
-        "    if lock_state['active']:\n"
-        "        payload = {'schema_version': 1, 'surface_kind': 'mas_supervision_tick_receipt', 'started_at': started_at, 'finished_at': now(), 'outcome': 'skipped_overlap', 'exit_code': 0, 'tick_sequence': [], 'summary': 'previous MAS supervision tick still holds the lock', 'lock_status': 'active_lock_present', 'active_lock_pid': lock_state.get('pid'), 'active_lock_reason': lock_state.get('reason')}\n"
-        "        write_receipt(payload)\n"
-        "        raise SystemExit(0)\n"
-        "    if lock_state['clear']:\n"
-        "        LOCK_PATH.unlink()\n"
-        "        lock_metadata = {'lock_status': 'cleared_stale_lock', 'cleared_stale_lock': True, 'stale_lock_pid': lock_state.get('pid'), 'stale_lock_reason': lock_state.get('reason')}\n"
-        "        if lock_state.get('raw'):\n"
-        "            lock_metadata['stale_lock_raw'] = lock_state.get('raw')\n"
-        "LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)\n"
-        "LOCK_PATH.write_text(str(os.getpid()), encoding='utf-8')\n"
-        "results = []\n"
-        "exit_code = 0\n"
-        "outcome = 'succeeded'\n"
-        "try:\n"
-        "    for command in COMMANDS:\n"
-        "        completed = subprocess.run(command, capture_output=True, text=True, check=False)\n"
-        "        item = {'command': command, 'returncode': completed.returncode}\n"
-        "        stdout = (completed.stdout or '').strip()\n"
-        "        stderr = (completed.stderr or '').strip()\n"
-        "        if stdout:\n"
-        "            try:\n"
-        "                item['result'] = json.loads(stdout)\n"
-        "            except json.JSONDecodeError:\n"
-        "                item['stdout'] = stdout[-4000:]\n"
-        "        if stderr:\n"
-        "            item['stderr'] = stderr[-4000:]\n"
-        "        results.append(item)\n"
-        "        if completed.returncode != 0:\n"
-        "            exit_code = completed.returncode\n"
-        "            outcome = 'failed'\n"
-        "            break\n"
-        "finally:\n"
-        "    release_owned_lock()\n"
-        "payload = {'schema_version': 1, 'surface_kind': 'mas_supervision_tick_receipt', 'started_at': started_at, 'finished_at': now(), 'outcome': outcome, 'exit_code': exit_code, 'tick_sequence': results, 'summary': f'MAS supervision tick {outcome}'}\n"
-        "payload.update(lock_metadata)\n"
-        "write_receipt(payload)\n"
-        "print(json.dumps(payload, ensure_ascii=False))\n"
-        "raise SystemExit(exit_code)\n"
-    )
-
-
-def _launch_agent_plist(*, profile: WorkspaceProfile, interval_seconds: int) -> dict[str, Any]:
-    state_root = _state_root(profile)
+def _legacy_launch_agent_projection(payload: dict[str, Any]) -> dict[str, Any]:
     return {
-        "Label": _launchd_label(profile),
-        "ProgramArguments": [str(_tick_script_path(profile))],
-        "RunAtLoad": False,
-        "StartInterval": interval_seconds,
-        "StandardErrorPath": str(state_root / "logs" / "launchd.stderr.log"),
-        "StandardOutPath": str(state_root / "logs" / "launchd.stdout.log"),
-        "WorkingDirectory": str(profile.workspace_root),
-        "EnvironmentVariables": {"PATH": LAUNCHD_TOOL_PATH},
+        key: payload[key]
+        for key in (
+            "Label",
+            "ProgramArguments",
+            "RunAtLoad",
+            "StartInterval",
+            "StandardErrorPath",
+            "StandardOutPath",
+            "WorkingDirectory",
+        )
+        if key in payload
     }
-
-
-def _install_proof(
-    *,
-    profile: WorkspaceProfile,
-    adapter_id: str,
-    interval_seconds: int,
-    status: str,
-    installed: bool,
-    dry_run: bool,
-    commands: list[list[str]],
-    command_outputs: list[dict[str, Any]],
-    reason: str | None,
-) -> dict[str, Any]:
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "surface_kind": "mas_supervision_scheduler_install_proof",
-        "generated_at": utc_now(),
-        "scheduler_owner": SCHEDULER_OWNER,
-        "active_path_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
-        "consumer_migration": consumer_migration.build_consumer_migration_contract(
-            adapter_id=adapter_id,
-            manager="local",
-        ),
-        "adapter_id": adapter_id,
-        "manager": "local",
-        "workspace_key": workspace_key(profile),
-        "job_id": _job_id(profile),
-        "interval_seconds": interval_seconds,
-        "status": status,
-        "installed": installed,
-        "dry_run": dry_run,
-        "reason": reason,
-        "install_commands": commands,
-        "command_outputs": command_outputs,
-        "artifact_path": str(_install_proof_path(profile)),
-        "tick_script_path": str(_tick_script_path(profile)),
-        "latest_receipt_ref": str(_latest_receipt_path(profile)),
-    }
-
-
-def _launchd_install_commands(profile: WorkspaceProfile) -> list[list[str]]:
-    label = _launchd_label(profile)
-    plist_path = _launch_agent_path(profile)
-    domain = f"gui/{os.getuid()}"
-    return [
-        ["launchctl", "bootstrap", domain, str(plist_path)],
-        ["launchctl", "enable", f"{domain}/{label}"],
-    ]
-
-
-def _load_launch_agent(*, plist_path: Path, label: str) -> list[dict[str, Any]]:
-    domain = f"gui/{os.getuid()}"
-    return [
-        _run_command(["launchctl", "bootout", domain, str(plist_path)]),
-        _run_command(["launchctl", "bootstrap", domain, str(plist_path)]),
-        _run_command(["launchctl", "enable", f"{domain}/{label}"]),
-    ]
 
 
 def _launch_agent_probe(*, label: str) -> dict[str, Any]:
@@ -490,10 +333,6 @@ def _unload_launch_agent(*, plist_path: Path, label: str) -> list[dict[str, Any]
     ]
 
 
-def _run_tick_script(*, script_path: Path) -> dict[str, Any]:
-    return _run_command([str(script_path)])
-
-
 def _run_command(command: list[str]) -> dict[str, Any]:
     completed = subprocess.run(command, capture_output=True, text=True, check=False)
     return {
@@ -501,41 +340,6 @@ def _run_command(command: list[str]) -> dict[str, Any]:
         "exit_code": completed.returncode,
         "output": (completed.stdout or completed.stderr or "").strip(),
     }
-
-
-def _tick_sequence(profile: WorkspaceProfile, *, interval_seconds: int) -> list[list[str]]:
-    return [
-        _watch_runtime_command(profile, interval_seconds=interval_seconds),
-        [
-            str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-scan"),
-            "--apply-safe-actions",
-            "--apply-runtime-platform-repair",
-            "--developer-supervisor-mode",
-            "developer_apply_safe",
-        ],
-        [
-            str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-consume"),
-            "--mode",
-            "developer_apply_safe",
-            "--apply",
-        ],
-        [
-            str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "supervisor-execute-dispatch"),
-            "--mode",
-            "developer_apply_safe",
-            "--apply",
-        ],
-    ]
-
-
-def _watch_runtime_command(profile: WorkspaceProfile, *, interval_seconds: int) -> list[str]:
-    return [
-        str(profile.workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"),
-        "--interval-seconds",
-        str(interval_seconds),
-        "--max-ticks",
-        "1",
-    ]
 
 
 def _state_root(profile: WorkspaceProfile) -> Path:
@@ -546,29 +350,8 @@ def _tick_script_path(profile: WorkspaceProfile) -> Path:
     return _state_root(profile) / "bin" / "watch_runtime_tick.py"
 
 
-def _workspace_python_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / ".venv" / "bin" / "python3"
-
-
-def _workspace_python_available(profile: WorkspaceProfile) -> bool:
-    path = _workspace_python_path(profile)
-    return path.is_file() and os.access(path, os.X_OK)
-
-
 def _latest_receipt_path(profile: WorkspaceProfile) -> Path:
     return _state_root(profile) / "receipts" / "latest.json"
-
-
-def _history_receipt_path(profile: WorkspaceProfile) -> Path:
-    return _state_root(profile) / "receipts" / "history.jsonl"
-
-
-def _lock_path(profile: WorkspaceProfile) -> Path:
-    return _state_root(profile) / "watch_runtime_tick.lock"
-
-
-def _install_proof_path(profile: WorkspaceProfile) -> Path:
-    return profile.workspace_root / "artifacts" / "supervision" / "install_proof" / "latest.json"
 
 
 def _launch_agents_dir() -> Path:
@@ -590,28 +373,12 @@ def _job_id(profile: WorkspaceProfile) -> str:
     return f"mas-supervision-{workspace_key(profile)}"
 
 
-def _expected_script_checksum(*, profile: WorkspaceProfile, interval_seconds: int) -> str:
-    return hashlib.sha256(_render_tick_script(profile=profile, interval_seconds=interval_seconds).encode("utf-8")).hexdigest()
-
-
-def _script_checksum(path: Path) -> str | None:
-    try:
-        return hashlib.sha256(path.read_bytes()).hexdigest()
-    except OSError:
-        return None
-
-
 def _read_json(path: Path) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
     return dict(payload) if isinstance(payload, dict) else {}
-
-
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _read_plist(path: Path) -> dict[str, Any]:

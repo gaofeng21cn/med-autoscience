@@ -696,6 +696,7 @@ from .runtime_storage_commands import (
 
 from .runtime_supervision_scheduler_commands import (
     test_runtime_ensure_supervision_command_allows_explicit_hermes_adapter,
+    test_runtime_ensure_supervision_command_allows_local_cleanup_diagnostic,
     test_runtime_ensure_supervision_command_defaults_to_opl_replacement_manager,
     test_runtime_remove_supervision_command_defaults_to_opl_replacement_manager,
     test_runtime_supervision_status_command_dispatches_scheduler_facade,

@@ -551,6 +551,12 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
     assert focused_lanes["outer-supervision-slo"]["legacy_local_install_allowed"] is False
     assert focused_lanes["outer-supervision-slo"]["legacy_local_trigger_allowed"] is False
     assert focused_lanes["outer-supervision-slo"]["legacy_local_write_install_proof_allowed"] is False
+    assert focused_lanes["outer-supervision-slo"]["legacy_local_install_proof_generated"] is False
+    assert focused_lanes["outer-supervision-slo"]["legacy_local_tick_script_generated"] is False
+    assert focused_lanes["outer-supervision-slo"]["legacy_local_loaded_state_allowed"] is False
+    assert focused_lanes["outer-supervision-slo"]["legacy_local_cleanup_status"] == (
+        "retired_legacy_cleanup_required"
+    )
     assert focused_lanes["outer-supervision-slo"]["retirement_proof_required"] == [
         "opl_replacement_contract_available",
         "replacement_proof",
