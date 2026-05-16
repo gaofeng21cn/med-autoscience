@@ -15,7 +15,7 @@ from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATIO
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_LANE_MANIFEST_PATH = "contracts/test-lane-manifest.json"
-REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "2b08c7efd8acd80355e870087d4ce5be7b45d4d1"
+REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "e3fd0b6be41e858958d42ea400a3e63c4205ff8a"
 REQUIRED_CONTROL_PLANE_TESTS = (
     "tests/test_control_plane_regression.py",
     "tests/test_control_plane_structure.py",
@@ -108,32 +108,32 @@ def test_makefile_exposes_layered_test_entrypoints() -> None:
     assert "CONTROL_PLANE_TESTS :=" in makefile
     for test_path in REQUIRED_CONTROL_PLANE_TESTS:
         assert test_path in makefile
-    assert "PYTHONPATH=src uv run pytest -q $(CONTROL_PLANE_TESTS)" in makefile
+    assert "scripts/run-pytest-clean.sh -q $(CONTROL_PLANE_TESTS)" in makefile
     assert "test: test-smoke" in makefile
     assert "test-smoke:" in makefile
-    assert f"uv run pytest {smoke_paths} -q" in makefile
+    assert f"scripts/run-pytest-clean.sh {smoke_paths} -q" in makefile
     assert "test-regression:" in makefile
     assert (
-        'uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) '
+        'scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) '
         '-m "not meta and not display_heavy and not submission_heavy '
         'and not materialization_heavy and not family"'
     ) in makefile
     assert "test-ci-preflight:" in makefile
-    assert 'uv run python -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"' in makefile
+    assert 'scripts/run-python-clean.sh -m med_autoscience.cli doctor preflight --base-ref "$${BASE_REF}"' in makefile
     assert "test-fast: test-regression" in makefile
     assert "test-meta:" in makefile
-    assert "uv run pytest -q -m meta" in makefile
+    assert "scripts/run-pytest-clean.sh -q -m meta" in makefile
     assert "test-display:" in makefile
-    assert "uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy" in makefile
+    assert "scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy" in makefile
     assert "test-submission:" in makefile
-    assert 'uv run pytest -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy"' in makefile
+    assert 'scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy"' in makefile
     assert "test-family:" in makefile
     assert (
-        "uv run pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py "
+        "scripts/run-pytest-clean.sh tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py "
         "tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q"
     ) in makefile
     assert "test-structure:" in makefile
-    assert "uv run python scripts/line_budget.py" in makefile
+    assert "scripts/run-python-clean.sh scripts/line_budget.py" in makefile
     assert "scripts/run-structure-quality-gate.sh" in makefile
     assert "test-full:" in makefile
     assert "./scripts/run-parallel-test-lanes.sh full" in makefile
@@ -145,7 +145,7 @@ def test_structure_lane_keeps_line_budget_and_quality_gate_wrapper() -> None:
         "\ntest-full:", maxsplit=1
     )[0]
 
-    assert "\tuv run python scripts/line_budget.py" in structure_block
+    assert "\tscripts/run-python-clean.sh scripts/line_budget.py" in structure_block
     assert "\tscripts/run-structure-quality-gate.sh" in structure_block
 
 
@@ -354,23 +354,21 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
 
     assert 'repo_root="$(git rev-parse --show-toplevel)"' in verify_script
     assert 'cd "${repo_root}"' in verify_script
-    assert "export PYTHONDONTWRITEBYTECODE=1" in verify_script
-    assert 'export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider"' in verify_script
+    assert 'verify_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-verify.XXXXXX")"' in verify_script
+    assert 'export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"' in verify_script
     assert "run_sanity_checks() {" in verify_script
-    assert "python scripts/repo_hygiene_audit.py" in verify_script
-    assert 'PYTHONPATH="${repo_root}/src${PYTHONPATH:+:${PYTHONPATH}}" python scripts/line_budget.py' in verify_script
+    assert 'clean_python_runner="${MAS_CLEAN_PYTHON_RUNNER:-scripts/run-python-clean.sh}"' in verify_script
+    assert '"${clean_python_runner}" scripts/repo_hygiene_audit.py' in verify_script
+    assert '"${clean_python_runner}" scripts/line_budget.py' in verify_script
     assert "git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\\|\\|\\|\\|\\|\\|\\| )' -- ." in verify_script
     assert "while IFS= read -r python_file; do" in verify_script
     assert "python_files+=(\"${python_file}\")" in verify_script
     assert "done < <(git ls-files '*.py')" in verify_script
     assert "mapfile" not in verify_script
-    assert 'python - "${python_files[@]}" <<\'PY\'' in verify_script
+    assert '"${clean_python_runner}" - "${python_files[@]}" <<\'PY\'' in verify_script
     assert "py_compile.compile(python_file, cfile=str(bytecode_path), doraise=True)" in verify_script
-    assert "cleanup_project_entrypoint_artifacts() {" in verify_script
-    assert 'rm -rf "${repo_root}/src/med_autoscience.egg-info"' in verify_script
-    assert "install_project_entrypoints() {" in verify_script
-    assert "trap cleanup_project_entrypoint_artifacts EXIT" in verify_script
-    assert "uv pip install --editable . --no-deps" in verify_script
+    assert "install_project_entrypoints" not in verify_script
+    assert "uv pip install --editable . --no-deps" not in verify_script
     assert "run_sanity_checks" in verify_script
     assert 'if [[ -z "${lane}" ]]; then' in verify_script
     assert 'if [[ "${lane}" == "smoke" ]]; then' in verify_script
@@ -404,7 +402,7 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
             "\nfi",
             maxsplit=1,
         )[0]
-        assert "install_project_entrypoints" in lane_block
+        assert "install_project_entrypoints" not in lane_block
 
 
 def test_verify_script_runs_sanity_checks_before_default_dispatch() -> None:
@@ -418,11 +416,11 @@ def test_verify_script_runs_sanity_checks_before_default_dispatch() -> None:
         'run_with_optional_summary "smoke" "make test-smoke" make test-smoke'
     )
     for command in (
-        'install_project_entrypoints\n  run_with_optional_summary "regression"',
-        'install_project_entrypoints\n  BASE_REF="${base_ref}" run_with_optional_summary "ci-preflight"',
-        'install_project_entrypoints\n  run_with_optional_summary "fast"',
-        'install_project_entrypoints\n  run_with_optional_summary "full"',
-        'install_project_entrypoints\n  run_with_optional_summary "control-plane"',
+        'run_with_optional_summary "regression"',
+        'BASE_REF="${base_ref}" run_with_optional_summary "ci-preflight"',
+        'run_with_optional_summary "fast"',
+        'run_with_optional_summary "full"',
+        'run_with_optional_summary "control-plane"',
     ):
         assert verify_script.index("run_sanity_checks\n\njson_escape() {") < verify_script.index(command)
 
@@ -438,8 +436,8 @@ def test_verify_script_writes_single_lane_summary(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     fake_make.chmod(0o755)
-    fake_python = fake_bin / "python"
-    fake_python.write_text(
+    fake_runner = fake_bin / "run-python-clean.sh"
+    fake_runner.write_text(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         "if [[ \"$1\" == \"scripts/repo_hygiene_audit.py\" ]]; then\n"
@@ -451,15 +449,16 @@ def test_verify_script_writes_single_lane_summary(tmp_path: Path) -> None:
         "if [[ \"$1\" == \"-\" ]]; then\n"
         "  exit 0\n"
         "fi\n"
-        "echo \"unexpected fake python $*\" >&2\n"
+        "echo \"unexpected fake runner $*\" >&2\n"
         "exit 2\n",
         encoding="utf-8",
     )
-    fake_python.chmod(0o755)
+    fake_runner.chmod(0o755)
     summary_path = tmp_path / "summary" / "smoke.json"
     env = os.environ.copy()
     env["PATH"] = f"{fake_bin}{os.pathsep}{env['PATH']}"
     env["MAS_TEST_LANE_SUMMARY_PATH"] = str(summary_path)
+    env["MAS_CLEAN_PYTHON_RUNNER"] = str(fake_runner)
 
     result = subprocess.run(
         ["bash", "scripts/verify.sh", "smoke"],

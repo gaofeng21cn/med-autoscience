@@ -48,8 +48,8 @@ OWNED_FILES = [
     "tests/test_runtime_supervisor_consumer.py",
 ]
 VERIFICATION_COMMANDS = [
-    "uv run pytest tests/test_runtime_supervisor_consumer.py tests/test_cli_cases/runtime_supervisor_consume_command.py -q",
-    "uv run pytest tests/test_cli.py::test_runtime_supervisor_consume_command_dispatches_controller tests/test_runtime_supervisor_consumer.py -q",
+    "scripts/run-pytest-clean.sh tests/test_runtime_supervisor_consumer.py tests/test_cli_cases/runtime_supervisor_consume_command.py -q",
+    "scripts/run-pytest-clean.sh tests/test_cli.py::test_runtime_supervisor_consume_command_dispatches_controller tests/test_runtime_supervisor_consumer.py -q",
     "git diff --check",
 ]
 FORBIDDEN_SURFACES = [

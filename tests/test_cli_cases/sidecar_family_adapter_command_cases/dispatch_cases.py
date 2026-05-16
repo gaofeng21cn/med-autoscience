@@ -1,0 +1,335 @@
+from __future__ import annotations
+
+from .shared import *  # noqa: F403,F401
+
+def test_sidecar_dispatch_accepts_runtime_recovery_without_writing_truth(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "frt_001",
+            "domain_id": "medautoscience",
+            "task_kind": "runtime_supervision/recover",
+            "payload": {"profile": str(profile_path), "study_id": "001-risk"},
+            "attempts": 1,
+            "source": "opl_family_runtime",
+            "authority_boundary": {
+                "provider": "online_runtime_transport_only",
+                "opl": "typed_queue_and_dispatch_only",
+                "domain": "truth_quality_artifact_gate_owner",
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["surface_kind"] == "mas_family_sidecar_dispatch_receipt"
+    assert payload["accepted"] is True
+    assert payload["will_start_llm_worker"] is False
+    assert payload["dispatch"]["action_type"] == "runtime_supervisor_recover"
+    assert payload["dispatch"]["recommended_domain_command"].startswith("uv run python -m med_autoscience.cli runtime-supervisor-scan")
+    assert payload["authority_boundary"]["writes_domain_truth"] is False
+    assert payload["authority_boundary"]["writes_artifact_gate"] is False
+    assert payload["forbidden_write_guard_proof"]["result"] == "accepted_no_forbidden_writes"
+    assert payload["forbidden_write_guard_proof"]["can_write_domain_truth"] is False
+
+
+def test_sidecar_dispatch_executes_reconcile_apply_inside_mas_owner(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    calls: list[dict[str, object]] = []
+
+    def fake_supervisor_reconcile(*, profile, study_ids, mode: str, apply: bool) -> dict[str, object]:
+        calls.append({"profile": profile.name, "study_ids": tuple(study_ids), "mode": mode, "apply": apply})
+        return {
+            "surface": "runtime_supervisor_reconcile_receipt",
+            "resolved_studies": list(study_ids),
+            "will_start_llm": True,
+            "codex_dispatch_count": 1,
+            "blocked_count": 0,
+        }
+
+    monkeypatch.setattr(adapter.runtime_supervisor_reconcile, "supervisor_reconcile", fake_supervisor_reconcile)
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "frt_reconcile",
+            "domain_id": "medautoscience",
+            "task_kind": "runtime_supervisor/reconcile-apply",
+            "payload": {"profile": str(profile_path), "study_id": "001-risk"},
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert calls == [{"profile": "nfpitnet", "study_ids": ("001-risk",), "mode": "developer_apply_safe", "apply": True}]
+    assert payload["accepted"] is True
+    assert payload["will_start_llm_worker"] is True
+    assert payload["dispatch"]["execution_policy"] == "mas_owner_reconcile_apply"
+    assert payload["dispatch"]["result"]["surface"] == "runtime_supervisor_reconcile_receipt"
+    assert payload["authority_boundary"]["writes_domain_truth"] is False
+
+
+def test_sidecar_dispatch_executes_paper_repair_work_unit_inside_mas_owner(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    study_root = workspace_root / "studies" / "001-risk"
+    write_profile(profile_path, workspace_root=workspace_root)
+    manuscript = study_root / "paper" / "manuscript.md"
+    manuscript.parent.mkdir(parents=True, exist_ok=True)
+    manuscript.write_text("The original claim is supported.\n", encoding="utf-8")
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "paper-task-001",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/repair-recheck",
+            "payload": {
+                "profile": str(profile_path),
+                "study_id": "001-risk",
+                "quest_id": "quest-001",
+                "repair_work_unit": {
+                    "unit_id": "unit-1",
+                    "work_unit_type": "text_repair",
+                    "owner": "quality_repair_batch",
+                    "callable_surface": "paper_repair_executor.dispatch_repair_work_unit",
+                    "source_fingerprint": "sha256:unit-1",
+                    "source_refs": ["artifacts/publication_eval/latest.json"],
+                    "gate_replay_target": "publication_eval/latest.json",
+                    "canonical_patch": {
+                        "target_text": "The original claim is supported.",
+                        "replacement_text": "The association is directionally consistent but requires restrained interpretation.",
+                    },
+                },
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["accepted"] is True
+    assert payload["dispatch"]["action_type"] == "paper_repair_executor_dispatch"
+    assert payload["will_start_llm_worker"] is False
+    paper_receipt = payload["dispatch"]["result"]
+    assert paper_receipt["execution_status"] == "executed"
+    assert paper_receipt["repair_execution_evidence"]["progress_delta_candidate"] is True
+    assert paper_receipt["owner_receipt"]["direct_current_package_write"] is False
+    assert (study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json").is_file()
+    assert (study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json").is_file()
+    assert not (study_root / "manuscript" / "current_package").exists()
+
+
+def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executor(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    calls: list[dict[str, object]] = []
+
+    def fake_execute_default_executor_dispatches(
+        *,
+        profile,
+        study_ids,
+        action_types,
+        mode: str,
+        apply: bool,
+        managed_runtime_worker: bool = False,
+    ) -> dict[str, object]:
+        calls.append(
+            {
+                "profile": profile.name,
+                "study_ids": tuple(study_ids),
+                "action_types": tuple(action_types),
+                "mode": mode,
+                "apply": apply,
+            }
+        )
+        return {
+            "surface": "runtime_supervisor_default_executor_execution",
+            "executed_count": 1,
+            "blocked_count": 0,
+        }
+
+    monkeypatch.setattr(
+        adapter.runtime_supervisor_dispatch_executor,
+        "execute_default_executor_dispatches",
+        fake_execute_default_executor_dispatches,
+    )
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "paper-ai-reviewer-001",
+            "domain_id": "medautoscience",
+            "task_kind": "paper_autonomy/ai-reviewer-recheck",
+            "payload": {"profile": str(profile_path), "study_id": "001-risk"},
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["dispatch"]["action_type"] == "ai_reviewer_recheck_execute_dispatch"
+    assert payload["dispatch"]["result"]["executed_count"] == 1
+    assert calls == [
+        {
+            "profile": "nfpitnet",
+            "study_ids": ("001-risk",),
+            "action_types": ("return_to_ai_reviewer_workflow",),
+            "mode": "developer_apply_safe",
+            "apply": True,
+        }
+    ]
+
+
+def test_sidecar_export_does_not_auto_ticket_stop_loss_or_human_gate(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    stop_loss_root = workspace_root / "studies" / "stop-loss-study"
+    human_gate_root = workspace_root / "studies" / "human-gate-study"
+    write_profile(profile_path, workspace_root=workspace_root)
+    _write_json(
+        stop_loss_root / "artifacts" / "controller_decisions" / "latest.json",
+        {"decision_type": "stop_loss", "route_target": "stop"},
+    )
+    _write_json(
+        stop_loss_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
+        {"state": "breach", "breach_reason": "same_fingerprint_loop"},
+    )
+    _write_json(
+        human_gate_root / "artifacts" / "controller_decisions" / "latest.json",
+        {"requires_human_confirmation": True, "family_human_gates": [{"gate_id": "confirm-target"}]},
+    )
+    _write_json(
+        human_gate_root / "artifacts" / "autonomy" / "slo_status" / "latest.json",
+        {"state": "breach", "breach_reason": "same_fingerprint_loop"},
+    )
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["pending_family_tasks"] == []
+    assert payload["studies"][0]["autonomy_continuation"]["eligible_for_auto_dispatch"] is False
+    assert payload["studies"][1]["autonomy_continuation"]["eligible_for_auto_dispatch"] is False
+
+
+def test_sidecar_dispatch_rejects_domain_truth_writes(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "frt_forbidden",
+            "domain_id": "medautoscience",
+            "task_kind": "artifact/override",
+            "payload": {"domain_truth_write": True, "profile": "/tmp/profile.toml"},
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    payload = json.loads(captured.out)
+    assert payload["surface_kind"] == "mas_family_sidecar_dispatch_receipt"
+    assert payload["accepted"] is False
+    assert payload["forbidden_domain_truth_write"] is True
+    assert payload["reason"] == "domain_truth_or_artifact_gate_write_forbidden"
+    assert payload["forbidden_requested_writes"] == ["domain_truth_write"]
+    guard = payload["forbidden_write_guard_proof"]
+    assert guard["surface_kind"] == "mas_opl_forbidden_write_guard_proof"
+    assert guard["result"] == "blocked"
+    assert guard["guard_mode"] == "fail_closed"
+    assert guard["can_write_domain_truth"] is False
+
+
+def test_sidecar_dispatch_rejects_opl_attempt_truth_substitution(tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "attempt-substitution",
+            "domain_id": "medautoscience",
+            "task_kind": "runtime_supervision/recover",
+            "payload": {
+                "profile": "/tmp/profile.toml",
+                "study_id": "001-risk",
+                "requested_writes": ["controller_decisions", "publication_eval"],
+                "opl_attempt_status": "completed",
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["accepted"] is False
+    assert payload["reason"] == "domain_truth_or_artifact_gate_write_forbidden"
+    assert payload["forbidden_requested_writes"] == ["controller_decisions", "publication_eval"]
+    guard = payload["forbidden_write_guard_proof"]
+    assert guard["forbidden_requested_writes"] == ["controller_decisions", "publication_eval"]
+    assert guard["can_authorize_publication_quality"] is False
+
+
+def test_sidecar_dispatch_rejects_opl_memory_body_or_router_acceptance_write(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "memory-body-write",
+            "domain_id": "medautoscience",
+            "task_kind": "study_progress/read",
+            "payload": {
+                "profile": "/tmp/profile.toml",
+                "study_id": "001-risk",
+                "requested_writes": [
+                    "publication_route_memory_body",
+                    "memory_write_router_accept",
+                ],
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["accepted"] is False
+    assert payload["reason"] == "domain_truth_or_artifact_gate_write_forbidden"
+    assert payload["forbidden_requested_writes"] == [
+        "publication_route_memory_body",
+        "memory_write_router_accept",
+    ]
+    guard = payload["forbidden_write_guard_proof"]
+    assert guard["guard_owner"] == "med-autoscience"
+    assert guard["can_write_domain_truth"] is False

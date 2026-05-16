@@ -21,8 +21,8 @@ def test_heavy_lane_profile_print_only_exposes_reproducible_duration_commands() 
 
     assert result.returncode == 0
     assert result.stdout.splitlines() == [
-        "uv run pytest -q -m display_heavy --durations=20",
-        "uv run pytest -q -m submission_heavy --durations=20",
+        "scripts/run-pytest-clean.sh -q -m display_heavy --durations=20",
+        "scripts/run-pytest-clean.sh -q -m submission_heavy --durations=20",
     ]
 
 
@@ -37,10 +37,10 @@ def test_heavy_lane_profile_defaults_cover_all_costly_lanes() -> None:
 
     assert result.returncode == 0
     lines = result.stdout.splitlines()
-    assert "uv run pytest -q -m display_heavy --durations=50" in lines
-    assert "uv run pytest -q -m submission_heavy --durations=50" in lines
+    assert "scripts/run-pytest-clean.sh -q -m display_heavy --durations=50" in lines
+    assert "scripts/run-pytest-clean.sh -q -m submission_heavy --durations=50" in lines
     assert (
-        "uv run pytest -q -m 'not meta and not display_heavy and not submission_heavy and not family' "
+        "scripts/run-pytest-clean.sh -q -m 'not meta and not display_heavy and not submission_heavy and not family' "
         "--durations=50"
     ) in lines
 
