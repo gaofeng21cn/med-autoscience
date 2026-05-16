@@ -35,6 +35,8 @@ DEFAULT_BASELINE = {
     "tests/test_runtime_watch_cases/supervisor_and_progress_cases.py": 1066,
     "src/med_autoscience/controllers/product_entry_parts/shared_base.py": 1020,
     "tests/test_hermes_supervision.py": 1020,
+    "tests/test_cli_cases/sidecar_family_adapter_command.py": 1025,
+    "tests/product_entry_cases/action_catalog_parity.py": 1004,
     "src/med_autoscience/controllers/hermes_supervision.py": 1018,
     "tests/display_surface_materialization_cases/basic_displays_and_renderers.py": 1083,
     "tests/test_overlay_installer.py": 1018,

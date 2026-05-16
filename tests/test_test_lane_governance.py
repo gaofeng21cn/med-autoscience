@@ -192,6 +192,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "product_entry_manifest.functional_consumer_boundary",
         "sidecar_export.functional_consumer_boundary",
         "supervision_scheduler.consumer_migration.functional_consumer_boundary",
+        "family_contract_adoption.runtime_observability_export",
     ]
     coverage = lane["opl_functional_harness_consumer_coverage"]
     assert coverage["status"] == "landed_domain_authority_pack_consumer"
@@ -205,11 +206,33 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert coverage["opl_harness_pass_is_publication_ready"] is False
     assert coverage["mas_owns_generic_runtime"] is False
     assert set(coverage["mas_retains_domain_authority_pack"]) == set(lane["mas_retains"])
+    observability = lane["opl_consumed_observability_surface"]
+    assert observability["owner"] == "one-person-lab"
+    assert observability["surface"] == "opl runtime observability-export"
+    assert observability["authority"] == "read_only_non_authoritative"
+    assert set(observability["mas_consumes"]) == {
+        "source_refs",
+        "freshness",
+        "owner_split",
+        "domain_owned_projection_refs",
+        "owner_receipt_refs",
+        "typed_blocker_refs",
+    }
+    assert set(observability["forbidden_mas_interpretations"]) == {
+        "domain_action_authorization",
+        "executor_switch_authorization",
+        "auto_degrade_authorization",
+        "domain_truth_write",
+        "memory_body_write",
+        "publication_quality_verdict",
+        "paper_or_artifact_closure",
+    }
     assert lane["no_active_caller_proof_required"] == [
         "cli_default_manager_is_opl",
         "local_scheduler_ensure_cleanup_only",
         "sidecar_exports_no_generic_owner",
         "product_entry_manifest_exports_no_generic_owner",
+        "observability_export_consumed_as_refs_only",
         "focused_tests_green",
     ]
     assert set(lane["forbidden_runtime_regressions"]) == {

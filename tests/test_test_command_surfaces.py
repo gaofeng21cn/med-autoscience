@@ -15,7 +15,7 @@ from med_autoscience.control_plane_command_catalog import CONTROL_PLANE_OPERATIO
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_LANE_MANIFEST_PATH = "contracts/test-lane-manifest.json"
-REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "2b08c7efd8acd80355e870087d4ce5be7b45d4d1"
+REQUIRED_OPL_SHARED_RUNTIME_CONTINUITY_COMMIT = "e3fd0b6be41e858958d42ea400a3e63c4205ff8a"
 REQUIRED_CONTROL_PLANE_TESTS = (
     "tests/test_control_plane_regression.py",
     "tests/test_control_plane_structure.py",

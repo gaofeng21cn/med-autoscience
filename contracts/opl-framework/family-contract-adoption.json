@@ -44,7 +44,24 @@
       "controller_decisions/latest.json"
     ],
     "maps_to_opl_contract": "opl_family_runtime_attempt_contract.v1",
-    "owner_boundary": "MAS owns study runtime truth and controller decisions"
+    "owner_boundary": "MAS owns study runtime truth and controller decisions",
+    "stability_projection_fields": [
+      "control_loop_summary",
+      "usage_projection",
+      "resource_pressure",
+      "observability_export"
+    ],
+    "stability_projection_authority_boundary": {
+      "projection_role": "read_only_operator_stability_projection",
+      "can_execute_domain_action": false,
+      "can_change_executor": false,
+      "can_auto_degrade": false,
+      "can_write_domain_truth": false,
+      "can_write_domain_memory_body": false,
+      "can_authorize_domain_ready": false,
+      "can_authorize_quality_verdict": false,
+      "provider_completion_is_domain_ready": false
+    }
   },
   "quality_projection": {
     "source_surfaces": [
@@ -87,8 +104,37 @@
       "human_gate_reason",
       "autonomy_slo",
       "ai_doctor_state",
-      "repair_recommendation"
-    ]
+      "repair_recommendation",
+      "control_loop_summary",
+      "usage_projection",
+      "resource_pressure",
+      "observability_export"
+    ],
+    "runtime_observability_export": {
+      "opl_command": "opl runtime observability-export",
+      "accepted_formats": [
+        "json",
+        "openmetrics"
+      ],
+      "authority": "read_only_non_authoritative",
+      "mas_consumes": [
+        "source_refs",
+        "freshness",
+        "owner_split",
+        "domain_owned_projection_refs",
+        "owner_receipt_refs",
+        "typed_blocker_refs"
+      ],
+      "forbidden_mas_interpretations": [
+        "domain_action_authorization",
+        "executor_switch_authorization",
+        "auto_degrade_authorization",
+        "domain_truth_write",
+        "memory_body_write",
+        "publication_quality_verdict",
+        "paper_or_artifact_closure"
+      ]
+    }
   },
   "domain_memory_projection": {
     "descriptor_surface": "product-entry-manifest.domain_memory_descriptor",

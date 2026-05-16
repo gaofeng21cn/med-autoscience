@@ -12,7 +12,7 @@
 - `runtime_watch`
 - `controller_decisions/latest.json`
 
-这些 surface 可以向 `OPL` 投影 attempt state、attempt count、retry/backoff、workspace boundary、failure reason、reconciliation status 和 last observed projection。`OPL Runtime Manager` 只能读取和索引；study runtime truth、controller decision、workspace write authority 继续由 `MAS` 持有。
+这些 surface 可以向 `OPL` 投影 attempt state、attempt count、retry/backoff、workspace boundary、failure reason、reconciliation status 和 last observed projection。2026-05-16 起，MAS adoption contract 还接受 `opl_family_runtime_attempt_contract.v1` 的 stability projection 字段：`control_loop_summary`、`usage_projection`、`resource_pressure` 和 `observability_export`。这些字段只能作为 read-only operator stability projection；它们不能执行 domain action、切换 executor、自动降级、写 study truth / memory body、授权 domain ready 或关闭 quality verdict。`OPL Runtime Manager` 只能读取和索引；study runtime truth、controller decision、workspace write authority 继续由 `MAS` 持有。
 
 ## Quality Projection
 
@@ -31,7 +31,9 @@
 
 ## Product Operator Projection
 
-`MAS` 通过 `product-entry-status`、`workspace-cockpit`、`study-progress` 与 `build-product-entry.return_surface_contract` 映射 `opl_family_product_operator_projection.v1`。这些投影必须保留 source refs、freshness、owner split、next surface ref、human gate reason、autonomy_slo、ai_doctor_state 和 repair_recommendation。
+`MAS` 通过 `product-entry-status`、`workspace-cockpit`、`study-progress` 与 `build-product-entry.return_surface_contract` 映射 `opl_family_product_operator_projection.v1`。这些投影必须保留 source refs、freshness、owner split、next surface ref、human gate reason、autonomy_slo、ai_doctor_state、repair_recommendation，以及 OPL 新增的 `control_loop_summary`、`usage_projection`、`resource_pressure` 和 `observability_export` 字段。
+
+`opl runtime observability-export` 是 OPL-owned read-only export surface，MAS 只消费 source refs、freshness、owner split、domain-owned projection refs、owner receipt refs 和 typed blocker refs。它不能被 MAS 解释成 domain action authorization、executor switch authorization、auto-degrade authorization、domain truth write、memory body write、publication quality verdict 或 paper/artifact closure。
 
 ## Domain Memory Descriptor
 

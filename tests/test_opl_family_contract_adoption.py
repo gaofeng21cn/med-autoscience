@@ -72,6 +72,23 @@ def test_mas_runtime_projection_maps_to_existing_runtime_truth_surfaces() -> Non
         assert surface in attempt["source_surfaces"]
     assert attempt["maps_to_opl_contract"] == "opl_family_runtime_attempt_contract.v1"
     assert "study runtime truth" in attempt["owner_boundary"]
+    assert attempt["stability_projection_fields"] == [
+        "control_loop_summary",
+        "usage_projection",
+        "resource_pressure",
+        "observability_export",
+    ]
+    assert attempt["stability_projection_authority_boundary"] == {
+        "projection_role": "read_only_operator_stability_projection",
+        "can_execute_domain_action": False,
+        "can_change_executor": False,
+        "can_auto_degrade": False,
+        "can_write_domain_truth": False,
+        "can_write_domain_memory_body": False,
+        "can_authorize_domain_ready": False,
+        "can_authorize_quality_verdict": False,
+        "provider_completion_is_domain_ready": False,
+    }
 
 
 def test_mas_quality_projection_keeps_medical_quality_owner_and_blocks_claim_only_ready() -> None:
@@ -113,8 +130,33 @@ def test_mas_operator_and_incident_projection_require_source_refs_and_mas_closur
         "autonomy_slo",
         "ai_doctor_state",
         "repair_recommendation",
+        "control_loop_summary",
+        "usage_projection",
+        "resource_pressure",
+        "observability_export",
     ):
         assert field in operator["required_fields"]
+    observability_export = operator["runtime_observability_export"]
+    assert observability_export["opl_command"] == "opl runtime observability-export"
+    assert observability_export["accepted_formats"] == ["json", "openmetrics"]
+    assert observability_export["authority"] == "read_only_non_authoritative"
+    assert set(observability_export["mas_consumes"]) == {
+        "source_refs",
+        "freshness",
+        "owner_split",
+        "domain_owned_projection_refs",
+        "owner_receipt_refs",
+        "typed_blocker_refs",
+    }
+    assert set(observability_export["forbidden_mas_interpretations"]) == {
+        "domain_action_authorization",
+        "executor_switch_authorization",
+        "auto_degrade_authorization",
+        "domain_truth_write",
+        "memory_body_write",
+        "publication_quality_verdict",
+        "paper_or_artifact_closure",
+    }
     for non_goal in contract["non_goals"]:
         assert non_goal not in ("", None)
 
