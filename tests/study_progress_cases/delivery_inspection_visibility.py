@@ -115,6 +115,7 @@ def test_study_progress_projects_delivery_inspector_summary_without_authority_ch
     assert delivery["source_labels"] == {
         "submission_minimal": "controller-authorized source",
         "current_package": "human-facing mirror",
+        "inspection_package": "human-inspection-only snapshot",
     }
     assert delivery["layout_migration_upgrade_note"] == "layout migration 会在下一次 authorized sync 升级"
     assert delivery["status"] == "layout_migration_pending_sync"
