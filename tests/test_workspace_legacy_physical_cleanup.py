@@ -229,12 +229,18 @@ def test_workspace_legacy_physical_cleanup_apply_replays_provenance_rewrite_afte
     )
     archive_root.mkdir(parents=True)
     guidance_path = workspace_root / "AGENTS.md"
+    gitignore_path = workspace_root / ".gitignore"
+    wrapper_path = workspace_root / "ops" / "medautoscience" / "bin" / "watch-runtime"
     storage_path = workspace_root / "storage_audit" / "latest.json"
     lifecycle_path = workspace_root / "artifacts" / "runtime" / "lifecycle_migration" / "latest.json"
     readme_path = workspace_root / "README.md"
     study_path = workspace_root / "studies" / "010-alpha" / "study.yaml"
     evidence_path = workspace_root / "studies" / "010-alpha" / "paper" / "evidence_ledger.json"
     autonomy_path = workspace_root / "studies" / "010-alpha" / "artifacts" / "autonomy" / "ai_doctor_requests" / "req.json"
+    attempt_path = workspace_root / "studies" / "010-alpha" / "artifacts" / "autonomy" / "ai_doctor_attempts" / "attempt.json"
+    controller_history_path = (
+        workspace_root / "studies" / "010-alpha" / "artifacts" / "controller_decisions" / "20260516T000000Z.json"
+    )
     eval_path = workspace_root / "studies" / "010-alpha" / "artifacts" / "eval_hygiene" / "latest.json"
     supervision_path = (
         workspace_root
@@ -248,10 +254,14 @@ def test_workspace_legacy_physical_cleanup_apply_replays_provenance_rewrite_afte
     scratch_path = workspace_root / "runtime" / "quests" / "quest-alpha" / ".ds" / "codex_homes" / "log.json"
     receipt_path = workspace_root / "artifacts" / "runtime" / "legacy_physical_cleanup" / "latest.json"
     _write_text(guidance_path, "Legacy ops path: ops/med-deepscientist/\n")
+    _write_text(gitignore_path, "ops/med-deepscientist/\n")
+    _write_text(wrapper_path, f"legacy_root={legacy_root}\n")
     _write_text(readme_path, f"Legacy absolute root: {legacy_root}\n")
     _write_text(study_path, f"legacy_root: {legacy_root}\n")
     _write_json(evidence_path, {"legacy_root": str(legacy_root)})
     _write_json(autonomy_path, {"legacy_root": str(legacy_root)})
+    _write_json(attempt_path, {"legacy_root": str(legacy_root)})
+    _write_json(controller_history_path, {"legacy_root": str(legacy_root)})
     _write_json(eval_path, {"legacy_root": str(legacy_root)})
     _write_json(storage_path, {"legacy_root": str(legacy_root)})
     _write_json(lifecycle_path, {"legacy_runtime": str(legacy_root / "runtime")})
@@ -265,11 +275,15 @@ def test_workspace_legacy_physical_cleanup_apply_replays_provenance_rewrite_afte
     assert dry_run["archive_plan"]["move_required"] is False
     assert {item["relpath"] for item in dry_run["rewrite_plan"]} == {
         "ops/medautoscience/profiles/profile.local.toml",
+        ".gitignore",
         "AGENTS.md",
         "README.md",
         "artifacts/runtime/lifecycle_migration/latest.json",
+        "ops/medautoscience/bin/watch-runtime",
         "storage_audit/latest.json",
+        "studies/010-alpha/artifacts/autonomy/ai_doctor_attempts/attempt.json",
         "studies/010-alpha/artifacts/autonomy/ai_doctor_requests/req.json",
+        "studies/010-alpha/artifacts/controller_decisions/20260516T000000Z.json",
         "studies/010-alpha/artifacts/eval_hygiene/latest.json",
         "studies/010-alpha/artifacts/runtime/runtime_supervision/latest.json",
         "studies/010-alpha/paper/evidence_ledger.json",
@@ -280,12 +294,16 @@ def test_workspace_legacy_physical_cleanup_apply_replays_provenance_rewrite_afte
 
     assert applied["archive_result"]["status"] == "existing_archive_reused"
     assert "runtime/archives/legacy_mds/stamp/med-deepscientist/" in guidance_path.read_text(encoding="utf-8")
+    assert "runtime/archives/legacy_mds/stamp/med-deepscientist/" in gitignore_path.read_text(encoding="utf-8")
+    assert str(archive_root) in wrapper_path.read_text(encoding="utf-8")
     assert str(archive_root) in storage_path.read_text(encoding="utf-8")
     assert str(archive_root) in lifecycle_path.read_text(encoding="utf-8")
     assert str(archive_root) in readme_path.read_text(encoding="utf-8")
     assert str(archive_root) in study_path.read_text(encoding="utf-8")
     assert str(archive_root) in evidence_path.read_text(encoding="utf-8")
     assert str(archive_root) in autonomy_path.read_text(encoding="utf-8")
+    assert str(archive_root) in attempt_path.read_text(encoding="utf-8")
+    assert str(archive_root) in controller_history_path.read_text(encoding="utf-8")
     assert str(archive_root) in eval_path.read_text(encoding="utf-8")
     assert str(archive_root) in supervision_path.read_text(encoding="utf-8")
     assert str(archive_root) in profile_path.read_text(encoding="utf-8")
