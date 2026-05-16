@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import importlib
 import json
 from pathlib import Path
 
@@ -191,10 +192,15 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     classification = lane["functional_surface_classification"]
     assert classification["A_opl_owned_mas_consumes"] == [
         "runtime_lifecycle_sqlite_reference_adapter",
+        "paper_work_unit_outbox_index",
         "runtime_storage_maintenance",
+        "workspace_source_intake_shell",
+        "publication_route_memory_locator_transport_shell",
         "artifact_lifecycle_storage_audit_shell",
         "workbench_portal_generic_shell",
         "terminal_attach_transport",
+        "runtime_supervisor_scan_consume_dispatch_shell",
+        "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
         "generic_transition_runner",
@@ -213,6 +219,45 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "daemonish_terminal_attach_status_as_runtime_owner",
         "scheduler_legacy_residue_without_active_caller",
     }
+    assert lane["functional_module_inventory_ref"] == (
+        "product_entry_manifest.functional_consumer_boundary.functional_module_inventory"
+    )
+    assert lane["functional_module_inventory_expected_count"] == 18
+    assert lane["functional_module_inventory_required_fields"] == [
+        "module_id",
+        "classification",
+        "code_paths",
+        "active_callers",
+        "active_caller_status",
+        "migration_action",
+    ]
+    consumer_migration = importlib.import_module(
+        "med_autoscience.controllers.supervision_scheduler_parts.consumer_migration"
+    )
+    inventory = consumer_migration.build_functional_consumer_boundary()["functional_module_inventory"]
+    assert len(inventory) == 18
+    assert sorted(item["module_id"] for item in inventory) == sorted(
+        lane["functional_module_inventory_expected_modules"]
+    )
+    inventory_by_id = {item["module_id"]: item for item in inventory}
+    assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["code_paths"] == [
+        "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+        "src/med_autoscience/runtime_protocol/study_runtime.py",
+        "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
+    ]
+    assert inventory_by_id["paper_work_unit_outbox_index"]["classification"] == "domain_thin_adapter"
+    assert inventory_by_id["paper_work_unit_outbox_index"]["migration_action"] == (
+        "move generic queue_outbox_retry_attempt semantics to OPL and keep paper work-unit facts as MAS receipt refs"
+    )
+    assert inventory_by_id["runtime_supervisor_scan_consume_dispatch_shell"]["active_caller_status"] == (
+        "domain_guard_active_generic_scan_dispatch_shell_should_move_to_opl"
+    )
+    assert inventory_by_id["publication_quality_verdict"]["cannot_absorb_reason"] == (
+        "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
+    )
+    assert inventory_by_id["artifact_authority"]["migration_action"] == "retain_in_mas"
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["active_caller_allowed"] is False
+    assert inventory_by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
     lifecycle_role = lane["runtime_lifecycle_sqlite_role"]
     assert lifecycle_role["classification"] == "A_opl_owned_mas_consumes"
     assert lifecycle_role["current_mas_role"] == "domain_sidecar_index_reference_adapter"

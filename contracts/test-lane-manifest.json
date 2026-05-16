@@ -458,10 +458,15 @@
       "functional_surface_classification": {
         "A_opl_owned_mas_consumes": [
           "runtime_lifecycle_sqlite_reference_adapter",
+          "paper_work_unit_outbox_index",
           "runtime_storage_maintenance",
+          "workspace_source_intake_shell",
+          "publication_route_memory_locator_transport_shell",
           "artifact_lifecycle_storage_audit_shell",
           "workbench_portal_generic_shell",
           "terminal_attach_transport",
+          "runtime_supervisor_scan_consume_dispatch_shell",
+          "generic_cli_mcp_product_wrappers",
           "generic_daemon_or_scheduler_lifecycle",
           "generic_queue_attempt_retry_dead_letter",
           "generic_transition_runner"
@@ -490,6 +495,36 @@
           "scheduler_legacy_residue_without_active_caller"
         ]
       },
+      "functional_module_inventory_ref": "product_entry_manifest.functional_consumer_boundary.functional_module_inventory",
+      "functional_module_inventory_required_fields": [
+        "module_id",
+        "classification",
+        "code_paths",
+        "active_callers",
+        "active_caller_status",
+        "migration_action"
+      ],
+      "functional_module_inventory_expected_count": 18,
+      "functional_module_inventory_expected_modules": [
+        "runtime_lifecycle_sqlite_reference_adapter",
+        "paper_work_unit_outbox_index",
+        "runtime_storage_maintenance",
+        "workspace_source_intake_shell",
+        "publication_route_memory_locator_transport_shell",
+        "artifact_lifecycle_storage_audit_shell",
+        "workbench_portal_generic_shell",
+        "terminal_attach_transport",
+        "runtime_supervisor_scan_consume_dispatch_shell",
+        "generic_cli_mcp_product_wrappers",
+        "generic_daemon_or_scheduler_lifecycle",
+        "generic_queue_attempt_retry_dead_letter",
+        "generic_transition_runner",
+        "study_truth",
+        "publication_quality_verdict",
+        "artifact_authority",
+        "local_launchd_scheduler_install_path",
+        "workspace_local_watch_service_wrappers"
+      ],
       "runtime_lifecycle_sqlite_role": {
         "classification": "A_opl_owned_mas_consumes",
         "current_mas_role": "domain_sidecar_index_reference_adapter",

@@ -116,6 +116,14 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "owner_receipt",
         "safe_action_refs",
     }
+    inventory_by_id = {
+        item["module_id"]: item for item in boundary["functional_module_inventory"]
+    }
+    assert len(inventory_by_id) == 18
+    assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["migration_action"] == (
+        "consume_opl_family_runtime_lifecycle_index_and_keep_mas_domain_receipt_refs_only"
+    )
+    assert inventory_by_id["publication_quality_verdict"]["migration_action"] == "retain_in_mas"
     assert payload["profile"]["profile_ref"] == str(profile_path)
     assert payload["workspace"]["workspace_root"] == str(workspace_root)
     substrate = payload["opl_substrate_adapter"]

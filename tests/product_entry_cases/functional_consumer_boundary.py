@@ -46,10 +46,15 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     classification = boundary["functional_surface_classification"]
     assert classification["A_opl_owned_mas_consumes"] == [
         "runtime_lifecycle_sqlite_reference_adapter",
+        "paper_work_unit_outbox_index",
         "runtime_storage_maintenance",
+        "workspace_source_intake_shell",
+        "publication_route_memory_locator_transport_shell",
         "artifact_lifecycle_storage_audit_shell",
         "workbench_portal_generic_shell",
         "terminal_attach_transport",
+        "runtime_supervisor_scan_consume_dispatch_shell",
+        "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
         "generic_transition_runner",
@@ -77,6 +82,27 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "daemonish_terminal_attach_status_as_runtime_owner",
         "scheduler_legacy_residue_without_active_caller",
     }
+    inventory = boundary["functional_module_inventory"]
+    assert len(inventory) == 18
+    by_id = {item["module_id"]: item for item in inventory}
+    lifecycle_item = by_id["runtime_lifecycle_sqlite_reference_adapter"]
+    assert lifecycle_item["code_paths"] == [
+        "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+        "src/med_autoscience/runtime_protocol/study_runtime.py",
+        "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
+    ]
+    assert lifecycle_item["active_caller_status"] == "refs_only_domain_sidecar_adapter_active"
+    assert lifecycle_item["migration_action"] == (
+        "consume_opl_family_runtime_lifecycle_index_and_keep_mas_domain_receipt_refs_only"
+    )
+    assert by_id["runtime_supervisor_scan_consume_dispatch_shell"]["migration_action"] == (
+        "move generic scan consume dispatch reconcile loop to OPL runtime manager"
+    )
+    assert by_id["publication_quality_verdict"]["cannot_absorb_reason"] == (
+        "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
+    )
+    assert by_id["local_launchd_scheduler_install_path"]["active_caller_allowed"] is False
+    assert by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
     lifecycle_role = boundary["runtime_lifecycle_sqlite_role"]
     assert lifecycle_role["classification"] == "A_opl_owned_mas_consumes"
     assert lifecycle_role["current_mas_role"] == "domain_sidecar_index_reference_adapter"

@@ -84,6 +84,16 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
     assert coverage["opl_harness_pass_is_paper_closure"] is False
     assert coverage["opl_harness_pass_is_publication_ready"] is False
     assert coverage["mas_owns_generic_runtime"] is False
+    inventory = boundary["functional_module_inventory"]
+    assert len(inventory) == 18
+    inventory_by_id = {item["module_id"]: item for item in inventory}
+    assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["active_caller_status"] == (
+        "refs_only_domain_sidecar_adapter_active"
+    )
+    assert inventory_by_id["runtime_supervisor_scan_consume_dispatch_shell"]["migration_action"] == (
+        "move generic scan consume dispatch reconcile loop to OPL runtime manager"
+    )
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["active_caller_allowed"] is False
     assert not launch_agents.exists()
 
 

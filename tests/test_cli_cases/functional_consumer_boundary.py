@@ -48,3 +48,15 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert coverage["mas_owns_generic_runtime"] is False
     assert coverage["refs_only_memory_writeback_chain"]["body_included"] is False
     assert coverage["generic_transition_runner"]["runner_completion_can_authorize_publication"] is False
+    inventory = boundary["functional_module_inventory"]
+    assert len(inventory) == 18
+    inventory_by_id = {item["module_id"]: item for item in inventory}
+    assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["code_paths"] == [
+        "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
+        "src/med_autoscience/runtime_protocol/study_runtime.py",
+        "src/med_autoscience/cli_parts/runtime_lifecycle_commands.py",
+    ]
+    assert inventory_by_id["paper_work_unit_outbox_index"]["classification"] == "domain_thin_adapter"
+    assert inventory_by_id["artifact_authority"]["cannot_absorb_reason"] == (
+        "Canonical manuscript/package mutation and submission authority are MAS artifact authority."
+    )
