@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_transition_receipt_consumption
+from med_autoscience.publication_eval_reviewer_os import validate_ai_reviewer_operating_system_trace
 
 
 SURFACE = "study_domain_transition_table"
@@ -857,7 +858,7 @@ def _ai_reviewer_re_eval(publication_eval: Mapping[str, Any]) -> bool:
     return _text(publication_eval.get("domain_ready_verdict")) == "ai_reviewer_re_eval" or (
         provenance.get("ai_reviewer_required") is True
         and _text(provenance.get("owner")) != "ai_reviewer"
-    ) or _ai_reviewer_medical_prose_quality_unready(publication_eval)
+    ) or _ai_reviewer_medical_prose_quality_unready(publication_eval) or _ai_reviewer_trace_invalid(publication_eval)
 
 
 def _ai_reviewer_medical_prose_quality_unready(publication_eval: Mapping[str, Any]) -> bool:
@@ -871,12 +872,23 @@ def _ai_reviewer_medical_prose_quality_unready(publication_eval: Mapping[str, An
     return _text(prose_quality.get("status")) != "ready"
 
 
+def _ai_reviewer_trace_invalid(publication_eval: Mapping[str, Any]) -> bool:
+    provenance = _mapping(publication_eval.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
+        return False
+    quality_assessment = _mapping(publication_eval.get("quality_assessment"))
+    prose_quality = _mapping(quality_assessment.get("medical_journal_prose_quality"))
+    if _text(prose_quality.get("status")) != "ready":
+        return False
+    return bool(validate_ai_reviewer_operating_system_trace(publication_eval.get("reviewer_operating_system")))
+
+
 def _ai_reviewer_re_eval_work_unit(publication_eval: Mapping[str, Any]) -> dict[str, str]:
-    if _ai_reviewer_medical_prose_quality_unready(publication_eval):
+    if _ai_reviewer_medical_prose_quality_unready(publication_eval) or _ai_reviewer_trace_invalid(publication_eval):
         return _work_unit(
             "ai_reviewer_medical_prose_quality_review",
             "review",
-            "Re-run AI reviewer manuscript-quality review and close medical_journal_prose_quality before finalize.",
+            "Re-run AI reviewer manuscript-quality review and close medical_journal_prose_quality currentness before finalize.",
         )
     return _work_unit(
         "ai_reviewer_recheck",

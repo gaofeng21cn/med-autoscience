@@ -13,6 +13,82 @@ _module_reexport(_shared)
 _module_reexport(_runtime_projection_basics)
 _module_reexport(_autonomy_quality_and_route_projection)
 
+
+_AI_REVIEWER_DIMENSIONS = (
+    "clinical_significance",
+    "evidence_strength",
+    "novelty_positioning",
+    "medical_journal_prose_quality",
+    "human_review_readiness",
+)
+
+
+def _valid_reviewer_operating_system(study_root: Path, quest_root: Path, *, eval_id: str) -> dict[str, object]:
+    manuscript_ref = str(study_root / "paper" / "draft.md")
+    evidence_ref = str(study_root / "paper" / "evidence_ledger.json")
+    review_ref = str(study_root / "paper" / "review" / "review_ledger.json")
+    medical_prose_ref = str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json")
+    return {
+        "contract_id": "medical_publication_ai_reviewer_os_v1",
+        "input_bundle": {
+            "manuscript": manuscript_ref,
+            "study_charter": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            "evidence_ledger": evidence_ref,
+            "review_ledger": review_ref,
+            "medical_manuscript_blueprint": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+            "claim_evidence_map": str(study_root / "paper" / "claim_evidence_map.json"),
+            "medical_prose_review": medical_prose_ref,
+            "publication_gate_projection": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        },
+        "rubric_scores": {
+            dimension: {
+                "status": "ready",
+                "rationale": f"{dimension} is current.",
+                "evidence_refs": [manuscript_ref, evidence_ref],
+            }
+            for dimension in _AI_REVIEWER_DIMENSIONS
+        },
+        "decision_matrix": [
+            {
+                "dimension": dimension,
+                "status": "ready",
+                "rationale": f"{dimension} is current.",
+            }
+            for dimension in _AI_REVIEWER_DIMENSIONS
+        ],
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_digest": "sha256:" + "a" * 64,
+                "manuscript_ref": manuscript_ref,
+                "manuscript_digest": "sha256:" + "c" * 64,
+            },
+            "current_package_freshness": {
+                "status": "fresh",
+                "source_eval_id": eval_id,
+            },
+        },
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Review authorization is scoped to the current manuscript snapshot.",
+                "impact_on_claim": "No claim may exceed the reviewed manuscript evidence.",
+                "required_future_analysis_data_or_design": "Repeat AI reviewer evaluation after substantive manuscript changes.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+        "provenance_checks": {
+            "assessment_owner": "ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+        "route_back_decision": {
+            "recommended_action": "continue_same_line",
+            "rationale": "AI reviewer-backed publication quality is current.",
+        },
+    }
+
+
 def test_study_progress_drops_stale_submission_authority_blocker_after_controller_closure(
     monkeypatch,
     tmp_path: Path,
@@ -588,9 +664,10 @@ def test_study_progress_does_not_overwrite_ai_reviewer_publication_eval_with_gat
         },
     )
     ai_reviewer_eval = json.loads(publication_eval_path.read_text(encoding="utf-8"))
+    eval_id = "publication-eval::001-risk::quest-001::2026-04-12T09:45:00+00:00"
     ai_reviewer_eval.update(
         {
-            "eval_id": "publication-eval::001-risk::quest-001::2026-04-12T09:45:00+00:00",
+            "eval_id": eval_id,
             "emitted_at": "2026-04-12T09:45:00+00:00",
             "verdict": {
                 "overall_verdict": "promising",
@@ -607,31 +684,7 @@ def test_study_progress_does_not_overwrite_ai_reviewer_publication_eval_with_gat
                     "evidence_refs": [str(study_root / "paper")],
                 }
             ],
-            "reviewer_operating_system": {
-                "contract_id": "medical_publication_ai_reviewer_os_v1",
-                "input_bundle": {
-                    "manuscript": str(study_root / "paper" / "draft.md"),
-                    "study_charter": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-                    "evidence_ledger": str(study_root / "paper" / "evidence_ledger.json"),
-                    "review_ledger": str(study_root / "paper" / "review" / "review_ledger.json"),
-                    "medical_manuscript_blueprint": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
-                    "claim_evidence_map": str(study_root / "paper" / "claim_evidence_map.json"),
-                    "medical_prose_review": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
-                    "publication_gate_projection": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
-                },
-                "rubric_scores": {},
-                "decision_matrix": [],
-                "provenance_checks": {
-                    "assessment_owner": "ai_reviewer",
-                    "policy_id": "medical_publication_critique_v1",
-                    "ai_reviewer_required": False,
-                    "mechanical_projection_used_as_quality_authority": False,
-                },
-                "route_back_decision": {
-                    "recommended_action": "continue_same_line",
-                    "rationale": "AI reviewer-backed bundle-stage closure is current.",
-                },
-            },
+            "reviewer_operating_system": _valid_reviewer_operating_system(study_root, quest_root, eval_id=eval_id),
         }
     )
     _write_json(publication_eval_path, ai_reviewer_eval)
@@ -745,22 +798,20 @@ def test_publication_runtime_refresh_does_not_demote_ai_reviewer_eval_to_mechani
             "quality_assessment": {},
             "gaps": [],
             "recommended_actions": [],
-            "reviewer_operating_system": {
-                "contract_id": "medical_publication_ai_reviewer_os_v1",
-                "input_bundle": {},
-                "rubric_scores": {},
-                "decision_matrix": [],
-                "provenance_checks": {
-                    "assessment_owner": "ai_reviewer",
-                    "policy_id": "medical_publication_critique_v1",
-                    "ai_reviewer_required": False,
-                    "mechanical_projection_used_as_quality_authority": False,
-                },
-                "route_back_decision": {
-                    "recommended_action": "continue_same_line",
-                    "rationale": "AI reviewer-backed publication quality is current.",
-                },
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "ready",
+                    "summary": "Medical prose is reviewer-current.",
+                    "evidence_refs": [
+                        str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json")
+                    ],
+                }
             },
+            "reviewer_operating_system": _valid_reviewer_operating_system(
+                study_root,
+                quest_root,
+                eval_id="publication-eval::001-risk::quest-001::2026-04-12T09:45:00+00:00",
+            ),
         },
     )
     _write_json(

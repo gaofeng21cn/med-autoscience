@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
+from med_autoscience.publication_eval_reviewer_os import validate_ai_reviewer_operating_system_trace
 
 from . import shared as _shared
 
@@ -287,6 +288,8 @@ def _publication_eval_has_closed_ai_reviewer_authority(payload: dict[str, Any] |
         return False
     reviewer_os = payload.get("reviewer_operating_system")
     if not isinstance(reviewer_os, dict):
+        return False
+    if validate_ai_reviewer_operating_system_trace(reviewer_os):
         return False
     provenance_checks = reviewer_os.get("provenance_checks")
     if not isinstance(provenance_checks, dict):
