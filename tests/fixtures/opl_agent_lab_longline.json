@@ -1,0 +1,36 @@
+{
+  "agent_lab_longline": {
+    "suite_result": {
+      "status": "passed",
+      "domain_summary": [
+        {
+          "domain_id": "med-autoscience"
+        }
+      ],
+      "longline_summary": {
+        "ready_to_reduce_domain_longline_tests": true,
+        "recommended_repo_test_disposition": [
+          {
+            "domain_id": "med-autoscience",
+            "move_to_opl_agent_lab": [
+              "provider-hosted guarded apply soak orchestration",
+              "resume/retry/dead-letter recovery probe",
+              "no-forbidden-write cross-domain regression"
+            ],
+            "keep_in_domain_repo": [
+              "publication-quality scorer",
+              "owner receipt fixture",
+              "paper artifact authority checks"
+            ]
+          }
+        ],
+        "authority_boundary": {
+          "can_write_domain_truth": false,
+          "can_write_memory_body": false,
+          "can_accept_or_reject_memory_writeback": false,
+          "can_authorize_quality_verdict": false
+        }
+      }
+    }
+  }
+}

@@ -11,11 +11,16 @@ import pytest
 pytestmark = pytest.mark.family
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
+FIXTURE_PATH = REPO_ROOT / "tests" / "fixtures" / "opl_agent_lab_longline.json"
 
 
 def _run_opl_agent_lab_longline() -> dict[str, object]:
-    opl_bin = Path(os.environ.get("OPL_BIN", str(DEFAULT_OPL_BIN)))
+    if os.environ.get("MAS_TEST_LIVE_OPL_AGENT_LAB") != "1":
+        return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    opl_bin_value = os.environ.get("OPL_BIN")
+    if not opl_bin_value:
+        pytest.skip("set OPL_BIN with MAS_TEST_LIVE_OPL_AGENT_LAB=1 for live OPL Agent Lab probe")
+    opl_bin = Path(opl_bin_value)
     result = subprocess.run(
         [str(opl_bin), "agent-lab", "longline", "--json"],
         check=True,
