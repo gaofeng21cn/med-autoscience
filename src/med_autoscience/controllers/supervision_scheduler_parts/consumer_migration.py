@@ -54,6 +54,65 @@ FORBIDDEN_WRITES = (
     "manuscript/submission_minimal",
     "runtime_lifecycle.sqlite",
 )
+OPL_CONSUMED_GENERIC_SURFACES = (
+    "generic_scheduler",
+    "generic_daemon",
+    "generic_queue",
+    "generic_attempt_ledger",
+    "generic_runner",
+    "generic_transition_runner",
+    "generic_workbench",
+    "generic_memory_locator",
+    "generic_artifact_lifecycle",
+    "generic_observability",
+)
+MAS_RETAINED_THIN_PROGRAM_SURFACES = (
+    "study_truth",
+    "publication_quality_verdict",
+    "artifact_authority",
+    "publication_route_memory_body",
+    "memory_writeback_decision",
+    "domain_transition_table",
+    "owner_receipt",
+    "typed_blocker",
+    "safe_action_refs",
+)
+
+
+def build_functional_consumer_boundary() -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": "mas_functional_consumer_boundary",
+        "status": "opl_consumes_generic_surfaces_mas_retains_domain_authority_pack",
+        "consumer_role": "domain_authority_pack_thin_program_surface",
+        "generic_surface_owner": REPLACEMENT_OWNER,
+        "generic_surfaces_consumed_from_opl": list(OPL_CONSUMED_GENERIC_SURFACES),
+        "mas_does_not_own": list(OPL_CONSUMED_GENERIC_SURFACES),
+        "mas_retains": list(MAS_RETAINED_THIN_PROGRAM_SURFACES),
+        "no_active_caller_required": True,
+        "no_active_caller_scope": [
+            "cli_default",
+            "mcp_default",
+            "product_entry_default",
+            "sidecar_default",
+            "test_lane_default",
+        ],
+        "proof_surfaces": [
+            "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
+            "runtime-supervision-status default manager=opl",
+            "product_entry_manifest.functional_consumer_boundary",
+            "sidecar_export.functional_consumer_boundary",
+            "legacy_residue_audit.summary.default_caller_count",
+        ],
+        "forbidden_regressions": [
+            "mas_default_generic_scheduler",
+            "mas_resident_generic_daemon",
+            "mas_owned_generic_queue",
+            "mas_owned_attempt_ledger",
+            "mas_generic_transition_runner",
+            "mas_generic_workbench_shell",
+        ],
+    }
 
 
 def build_consumer_migration_contract(
@@ -84,6 +143,7 @@ def build_consumer_migration_contract(
             "must_not_write_mas_domain_truth": True,
             "status": "active" if replacement_active else "required_before_retirement",
         },
+        "functional_consumer_boundary": build_functional_consumer_boundary(),
         "mas_retained_after_migration": list(MAS_RETAINED_AFTER_MIGRATION),
         "retirement_proof_required": list(RETIREMENT_PROOF_REQUIRED),
         "forbidden_authority_claims": list(FORBIDDEN_AUTHORITY_CLAIMS),
@@ -114,6 +174,8 @@ __all__ = [
     "FORBIDDEN_AUTHORITY_CLAIMS",
     "FORBIDDEN_WRITES",
     "MAS_RETAINED_AFTER_MIGRATION",
+    "MAS_RETAINED_THIN_PROGRAM_SURFACES",
+    "OPL_CONSUMED_GENERIC_SURFACES",
     "OPL_REPLACEMENT_EXPECTED_CAPABILITIES",
     "REPLACEMENT_OWNER",
     "REPLACEMENT_OWNER_SURFACE",
@@ -125,5 +187,6 @@ __all__ = [
     "LEGACY_SCHEDULER_OWNER",
     "LOCAL_DIAGNOSTIC_PATH_ROLE",
     "attach_consumer_migration_contract",
+    "build_functional_consumer_boundary",
     "build_consumer_migration_contract",
 ]

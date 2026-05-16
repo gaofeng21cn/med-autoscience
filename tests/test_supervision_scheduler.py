@@ -48,7 +48,32 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
     assert result["legacy_adapter"]["manager"] == "local"
     assert result["legacy_adapter"]["scheduler_owner"] == "mas_supervision_scheduler"
     assert result["authority_boundary"]["can_install_domain_daemon"] is False
+    assert result["authority_boundary"]["can_own_generic_scheduler"] is False
+    assert result["authority_boundary"]["can_own_generic_daemon"] is False
+    assert result["authority_boundary"]["can_own_generic_queue"] is False
+    assert result["authority_boundary"]["can_own_generic_attempt_ledger"] is False
+    assert result["authority_boundary"]["can_own_generic_runner"] is False
+    assert result["authority_boundary"]["can_own_generic_workbench"] is False
     assert result["outer_supervision_slo"]["supervision_owner"] == "opl_provider_runtime_manager"
+    boundary = result["consumer_migration"]["functional_consumer_boundary"]
+    assert boundary["surface_kind"] == "mas_functional_consumer_boundary"
+    assert boundary["generic_surface_owner"] == "one-person-lab"
+    assert set(boundary["mas_does_not_own"]) >= {
+        "generic_scheduler",
+        "generic_daemon",
+        "generic_queue",
+        "generic_attempt_ledger",
+        "generic_runner",
+        "generic_workbench",
+    }
+    assert set(boundary["mas_retains"]) >= {
+        "study_truth",
+        "publication_quality_verdict",
+        "artifact_authority",
+        "publication_route_memory_body",
+        "owner_receipt",
+        "typed_blocker",
+    }
     assert not launch_agents.exists()
 
 
