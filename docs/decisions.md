@@ -98,11 +98,11 @@
 - 理由：现有论文项目如果继续在 active binding 或 quest snapshot 中携带旧 MDS backend/root/state-machine 字段，OPL/MAS consumer 会把旧状态机、旧 baseline absolute ref 或旧 local runtime 误读成当前 owner，从而污染新 MAS domain authority pack 和 thin program surface。
 - 影响：迁移器和 focused tests 必须阻断旧 MDS active path 回流；真实 paper truth surface 仍由 MAS controller/runtime/canonical artifact flow 持有，不允许用 migration apply 手工 patch `current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json`、paper/submission package、runtime SQLite 或 restore archive。缺 OPL provider/runtime/workbench surface 时写 handoff / contract expectation，不在 MAS 内重建 generic scheduler、runner、queue 或 workbench。
 
-## 2026-05-16：legacy physical cleanup 必须先有 targeted no-active-reference proof
+## 2026-05-16：legacy physical cleanup 只能通过 gated archive/tombstone apply
 
-- 决策：旧 `ops/med-deepscientist` 物理根不能按目录存在与否直接删除；必须先跑 `workspace-legacy-physical-cleanup-audit`，证明 active runtime replacement 成立、旧 workspace-local service wrapper 已清空、且 profile、runtime binding / quest snapshot、monolith migration ledger、delivery manifest、controller decision / publication eval 等 targeted surface 不再需要旧物理根。audit 是 read-only gate，不写 workspace、不删除文件、不改 paper/package/controller/runtime truth。
+- 决策：旧 `ops/med-deepscientist` 物理根不能按目录存在与否直接删除；必须先跑 `workspace-legacy-physical-cleanup-audit`，证明 active runtime replacement 成立、旧 workspace-local service wrapper 已清空、且 profile、runtime binding / quest snapshot、monolith migration ledger、delivery manifest、controller decision / publication eval 等 targeted surface 不再需要旧物理根。通过 gate 后，`workspace-legacy-physical-cleanup-apply --dry-run|--apply` 只能把旧 physical root 移到 `runtime/archives/legacy_mds/<timestamp>/`，并把 targeted provenance refs 改写到 archive/tombstone/ref-only surface；它不改 paper/package/controller/runtime truth。
 - 理由：5 个真实 profile 的 fresh audit 显示 AS biologics、DM-CVD workspace/local 和 NF-PitNET 的 active runtime 已迁到 MAS root，但旧 `ops/med-deepscientist` 仍被 current delivery/controller refs 和 retained provenance refs 引用；Obesity 旧物理根已不存在但 profile / migration provenance 仍保留旧 refs。直接删除存在的旧 MDS 根会制造断链，并让“清理旧污染”反过来污染 current package / controller provenance。
-- 影响：当前可确认的是 MAS local scheduler / workspace-local service wrapper 物理 cleanup 已闭合；仍存在的 MDS physical roots 只能先进入 archive/tombstone/reference rewrite plan。后续删除必须先处理 current truth/delivery refs，再跑 no-active-reference proof、focused cleanup tests 和 `git diff --check`。
+- 影响：当前可确认的是 MAS local scheduler / workspace-local service wrapper 物理 cleanup 已闭合；仍存在的 MDS physical roots 只能先进入 archive/tombstone/reference rewrite plan。apply surface 明确不写 `current_package`、`publication_eval/latest.json`、`controller_decisions/latest.json`、paper/submission package、runtime SQLite、restore archive 或 generic runtime state。后续删除必须先处理 current truth/delivery refs，再跑 no-active-reference proof、focused cleanup tests 和 `git diff --check`。
 
 ## 2026-05-09：历史 MAS supervision scheduler contract，local 曾是默认 adapter
 

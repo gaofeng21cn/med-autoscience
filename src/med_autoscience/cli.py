@@ -852,6 +852,14 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.command == "workspace-legacy-physical-cleanup-apply":
+        result = workspace_legacy_physical_cleanup.apply_workspace_legacy_physical_cleanup(
+            profile_path=Path(args.profile),
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
     if args.command == "paper-autonomy-stability-evidence":
         result = paper_autonomy_stability_evidence.build_paper_autonomy_stability_evidence(
             yang_root=Path(args.yang_root),

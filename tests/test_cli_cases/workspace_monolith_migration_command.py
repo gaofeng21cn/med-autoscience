@@ -78,3 +78,39 @@ def test_workspace_legacy_physical_cleanup_audit_command_dispatches_controller(
     assert exit_code == 0
     assert called == {"profile_path": profile_path}
     assert json.loads(captured.out)["mode"] == "audit_only"
+
+
+def test_workspace_legacy_physical_cleanup_apply_command_dispatches_controller(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    called: dict[str, object] = {}
+
+    def fake_apply_workspace_legacy_physical_cleanup(*, profile_path: Path, apply: bool) -> dict[str, object]:
+        called["profile_path"] = profile_path
+        called["apply"] = apply
+        return {"surface_kind": "workspace_legacy_physical_cleanup_apply", "mode": "apply"}
+
+    monkeypatch.setattr(
+        cli.workspace_legacy_physical_cleanup,
+        "apply_workspace_legacy_physical_cleanup",
+        fake_apply_workspace_legacy_physical_cleanup,
+    )
+
+    exit_code = cli.main(
+        [
+            "workspace-legacy-physical-cleanup-apply",
+            "--profile",
+            str(profile_path),
+            "--apply",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {"profile_path": profile_path, "apply": True}
+    assert json.loads(captured.out)["mode"] == "apply"
