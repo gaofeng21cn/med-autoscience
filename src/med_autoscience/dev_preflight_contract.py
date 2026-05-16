@@ -214,6 +214,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
             "AGENTS.md",
             "agent/standard-domain-agent-anchor.json",
             "contracts/README.md",
+            "contracts/test-lane-manifest.json",
             "contracts/runtime/legacy-active-path-tombstones.json",
             "contracts/runtime/standard-domain-agent-anchor.json",
             "runtime/artifact_locator/workspace-runtime-artifact-root.locator.json",

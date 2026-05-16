@@ -609,6 +609,7 @@ def test_classify_changed_files_matches_root_governance_contract_surface() -> No
             "AGENTS.md",
             "agent/standard-domain-agent-anchor.json",
             "contracts/README.md",
+            "contracts/test-lane-manifest.json",
             "contracts/runtime/legacy-active-path-tombstones.json",
             "contracts/runtime/standard-domain-agent-anchor.json",
             "contracts/modules/runtime/module_contract.yaml",
