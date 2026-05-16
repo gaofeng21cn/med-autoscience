@@ -112,7 +112,7 @@ def _single_project_boundary() -> dict[str, Any]:
         ],
         "land_now": [
             "MAS functional monolith completion landed",
-            "MAS Runtime OS is the default runtime owner",
+            "MAS domain owner receipts and progress truth surfaces are the default research authority",
             "MAS Progress Portal is the default visual status surface",
             "OPL handoff consumes MAS payload refs/freshness/source refs/artifact locators only",
             "external MDS repo, daemon, runtime root, and WebUI are no longer required for default or diagnostic operation",
@@ -172,8 +172,11 @@ def _capability_owner_boundary() -> dict[str, Any]:
             {
                 "capability_id": "runtime_recovery",
                 "owner": "MedAutoScience",
-                "truth_surface": "MAS Runtime OS study_runtime_status / runtime_watch",
-                "summary": "运行恢复、supervision freshness、worker/session replay 与下一次确认信号由 MAS Runtime OS 解释。",
+                "truth_surface": "MAS domain runtime receipts / study_runtime_status / runtime_watch",
+                "summary": (
+                    "运行恢复、supervision freshness、worker/session replay 与下一次确认信号由 MAS "
+                    "domain owner surface 解释；generic cadence/provider SLO 迁往 OPL runtime manager。"
+                ),
             },
             {
                 "capability_id": "program_mainline_truth",
@@ -315,14 +318,17 @@ def _platform_target() -> dict[str, Any]:
         sequence_scope="monorepo_landing_readiness",
         current_step_id="functional_monolith_completion",
         current_readiness_summary=(
-            "MAS 默认运行、进度、诊断、artifact/quality parity、workspace helpers 与 OPL handoff 都已切到 MAS-owned surfaces；"
+            "MAS 默认研究入口、进度、诊断、artifact/quality parity、workspace helpers 与 OPL handoff 都已切到 MAS-owned domain surfaces；"
             "external MDS 只保留 frozen archive / historical fixture / explicit archive import reference。"
         ),
         north_star_topology={
             "domain_agent": "Med Auto Science",
             "runtime_owner": MAS_RUNTIME_OWNER,
             "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
-            "controlled_research_backend": "MAS-owned Runtime OS / Artifact OS / Quality OS",
+            "controlled_research_backend": (
+                "MAS domain owner receipts / Artifact authority refs / Quality verdict refs; "
+                "generic runtime lifecycle handoff to OPL"
+            ),
             "monorepo_status": "functional_monolith_completion_landed",
         },
         target_internal_modules=[
@@ -374,7 +380,10 @@ def _platform_target() -> dict[str, Any]:
                 title="Runtime core ingest",
                 status="completed",
                 phase_id="phase_5_stage_runtime_platform_maturation",
-                summary="默认 runtime core 已由 MAS Runtime OS 承接；external MDS daemon/runtime root 不再是默认运行或诊断依赖。",
+                summary=(
+                    "默认 domain runtime receipts 已由 MAS 承接；external MDS daemon/runtime root "
+                    "不再是默认运行或诊断依赖。"
+                ),
             ),
             _build_shared_program_sequence_step(
                 step_id="functional_monolith_completion",
@@ -556,7 +565,10 @@ def _phase3_clearance_lane() -> dict[str, Any]:
     )
     return _build_shared_clearance_lane(
         surface_kind="phase3_host_clearance_lane",
-        summary="Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认运行和诊断已经由 MAS Runtime OS 承接。",
+        summary=(
+            "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认研究入口、owner receipt "
+            "与 local diagnostic bridge 由 MAS surface 承接，generic cadence/provider SLO 迁往 OPL runtime manager。"
+        ),
         recommended_step_id="mas_runtime_contract",
         recommended_command=doctor_command,
         clearance_targets=[
@@ -657,8 +669,11 @@ def _phase4_backend_deconstruction() -> dict[str, Any]:
         substrate_targets=[
             _build_shared_program_capability(
                 capability_id="session_run_watch_recovery",
-                owner="MAS Runtime OS",
-                summary="session / run / watch / recovery / scheduling / interruption 默认由 MAS Runtime OS 承接。",
+                owner="MAS domain runtime receipts",
+                summary=(
+                    "session / run / watch / recovery 的 domain owner receipt、paper-progress blocker "
+                    "与 safe action refs 由 MAS surface 承接；generic scheduling / attempt lifecycle 迁往 OPL。"
+                ),
             ),
             _build_shared_program_capability(
                 capability_id="backend_generic_runtime_contract",
@@ -672,7 +687,8 @@ def _phase4_backend_deconstruction() -> dict[str, Any]:
             "explicit archive import / backend-audit reference",
         ],
         current_backend_chain=[
-            "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
+            "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
+            "generic runtime/provider context -> OPL runtime manager handoff refs",
             "historical med_deepscientist fixture/provenance refs only",
         ],
         optional_executor_proofs=[
@@ -703,7 +719,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "status": "in_progress",
             "usable_now": True,
             "summary": (
-                "MAS Runtime OS / Artifact OS / Quality OS 已承接默认研究运行与进度真相，"
+                "MAS domain owner receipts / artifact authority refs / quality verdict refs 已承接默认研究进度真相，"
                 "并把当前 owner truth 显式收成 autonomy、quality、single-project owner 三线。"
             ),
             "focus": [
@@ -829,7 +845,10 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "title": "Phase 4 backend deconstruction",
             "status": "pending",
             "usable_now": True,
-            "summary": "在 MAS Runtime OS 与产品回路稳定后，继续把 MDS 保持为 archive/fixture/explicit archive import reference，并只对新的可迁能力走 no-history provenance 与 parity gate。",
+            "summary": (
+                "在 MAS domain owner receipts、产品回路和 local diagnostic bridge 稳定后，继续把 MDS "
+                "保持为 archive/fixture/explicit archive import reference，并只对新的可迁能力走 no-history provenance 与 parity gate。"
+            ),
             "focus": [
                 "move any newly reusable runtime capability into MAS-owned surfaces only with provenance and proof",
                 "keep executor replacement explicit and contract-driven instead of forced rewrites",
@@ -913,7 +932,10 @@ def read_mainline_status() -> dict[str, Any]:
                 "domain_agent": "Med Auto Science",
                 "runtime_owner": MAS_RUNTIME_OWNER,
                 "runtime_substrate": MAS_RUNTIME_SUBSTRATE,
-                "research_backend": "MAS-owned Runtime OS / Artifact OS / Quality OS",
+                "research_backend": (
+                    "MAS domain owner receipts / artifact authority refs / quality verdict refs; "
+                    "generic runtime lifecycle handoff to OPL"
+                ),
                 "entry_shape": (
                     "Med Auto Science direct skill path plus OPL stage handoff over the same MAS-owned "
                     "stage/controller/durable truth surfaces, without replacing domain authority"

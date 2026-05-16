@@ -29,7 +29,8 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     assert payload["ideal_state"]["runtime_topology"]["runtime_owner"] == "mas_runtime_os"
     assert payload["ideal_state"]["runtime_topology"]["runtime_substrate"] == "mas_runtime_core"
     assert payload["ideal_state"]["runtime_topology"]["research_backend"] == (
-        "MAS-owned Runtime OS / Artifact OS / Quality OS"
+        "MAS domain owner receipts / artifact authority refs / quality verdict refs; "
+        "generic runtime lifecycle handoff to OPL"
     )
     assert payload["single_project_boundary"]["surface_kind"] == "single_project_boundary"
     assert payload["single_project_boundary"]["mas_owner_modules"] == [
@@ -75,7 +76,7 @@ def test_mainline_status_projects_ideal_state_current_stage_and_gaps() -> None:
     )
     assert payload["current_program_phase"]["single_project_boundary"]["land_now"] == [
         "MAS functional monolith completion landed",
-        "MAS Runtime OS is the default runtime owner",
+        "MAS domain owner receipts and progress truth surfaces are the default research authority",
         "MAS Progress Portal is the default visual status surface",
         "OPL handoff consumes MAS payload refs/freshness/source refs/artifact locators only",
         "external MDS repo, daemon, runtime root, and WebUI are no longer required for default or diagnostic operation",
@@ -380,7 +381,7 @@ def test_mainline_phase_status_resolves_current_and_next_phase() -> None:
     ]
     assert current_payload["phase"]["single_project_boundary"]["land_now"] == [
         "MAS functional monolith completion landed",
-        "MAS Runtime OS is the default runtime owner",
+        "MAS domain owner receipts and progress truth surfaces are the default research authority",
         "MAS Progress Portal is the default visual status surface",
         "OPL handoff consumes MAS payload refs/freshness/source refs/artifact locators only",
         "external MDS repo, daemon, runtime root, and WebUI are no longer required for default or diagnostic operation",

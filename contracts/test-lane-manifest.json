@@ -140,12 +140,41 @@
       ],
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "scheduler_bound_read_model_safe_reconcile_projection",
-      "implementation_status": "landed",
+      "implementation_status": "landed_opl_replacement_default_legacy_diagnostic_retirement_pending",
+      "active_path_role": "opl_replacement_default",
+      "legacy_active_path_role": "standalone_local_diagnostic_migration_bridge",
       "default_scheduler_owner": "opl_provider_runtime_manager",
       "default_adapter_id": "opl_family_runtime_provider",
       "legacy_diagnostic_adapter_id": "local_launchd_on_macos",
       "explicit_optional_adapter_id": "hermes_gateway_cron",
       "default_tick_interval_seconds": 300,
+      "replacement_owner": "one-person-lab",
+      "replacement_owner_surface": "opl_provider_runtime_manager",
+      "replacement_contract_expected_capabilities": [
+        "scheduler_lifecycle",
+        "cadence_slo",
+        "job_registry_latest_run_projection",
+        "provider_slo",
+        "wakeup_transport",
+        "attempt_queue_retry_dead_letter",
+        "operator_projection"
+      ],
+      "mas_retained_after_migration": [
+        "paper_progress_slo_semantics",
+        "mas_owner_receipt",
+        "typed_blocker",
+        "safe_action_refs",
+        "quality_source_refs",
+        "no_forbidden_write_evidence"
+      ],
+      "retirement_proof_required": [
+        "opl_replacement_contract_available",
+        "replacement_proof",
+        "no_active_caller_proof",
+        "no_forbidden_write",
+        "focused_cli_status_tests",
+        "git_diff_check"
+      ],
       "resident_daemon_allowed": false,
       "retired_workspace_local_service_allowed": false
     },
@@ -185,6 +214,10 @@
       "default_scheduler_owner": "opl_provider_runtime_manager",
       "default_adapter_id": "opl_family_runtime_provider",
       "legacy_diagnostic_adapter_id": "local_launchd_on_macos",
+      "active_path_role": "opl_replacement_default",
+      "legacy_active_path_role": "standalone_local_diagnostic_migration_bridge",
+      "replacement_owner": "one-person-lab",
+      "replacement_owner_surface": "opl_provider_runtime_manager",
       "explicit_optional_adapter_id": "hermes_gateway_cron",
       "resident_daemon_allowed": false,
       "forbidden_authority_writes": [

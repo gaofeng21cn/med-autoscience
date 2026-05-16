@@ -106,8 +106,13 @@ def test_local_scheduler_dry_run_projects_launchd_without_hermes(monkeypatch, tm
 
     assert result["scheduler_owner"] == "mas_supervision_scheduler"
     assert result["adapter_id"] == "local_launchd"
+    assert result["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
+    assert result["consumer_migration"]["replacement_owner"] == "one-person-lab"
+    assert result["consumer_migration"]["replacement_owner_surface"] == "opl_provider_runtime_manager"
+    assert result["consumer_migration"]["replacement_required_before_retirement"] is True
     assert result["dry_run"] is True
     assert result["install_proof"]["installed"] is False
+    assert result["install_proof"]["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
     assert result["install_proof"]["tick_script_path"].endswith("watch_runtime_tick.py")
     assert result["after"]["adapter_id"] == "local_launchd"
     assert not Path(result["script_path"]).exists()
@@ -160,6 +165,10 @@ def test_local_scheduler_apply_writes_tick_script_plist_and_receipt(monkeypatch,
     assert result["after"]["loaded"] is True
     assert result["after"]["launch_agent_probe"]["loaded"] is True
     assert result["after"]["scheduler_owner"] == "mas_supervision_scheduler"
+    assert result["after"]["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
+    assert result["after"]["consumer_migration"]["retirement_state"] == (
+        "local_legacy_retirement_pending_no_active_caller_proof"
+    )
     assert result["after"]["latest_run_recorded_at"] == "2026-05-09T00:00:01+00:00"
     assert Path(result["script_path"]).is_file()
     assert Path(result["launch_agent_path"]).is_file()
@@ -278,7 +287,18 @@ def test_explicit_hermes_adapter_is_projected_under_mas_scheduler_owner(monkeypa
 
     assert result["scheduler_owner"] == "mas_supervision_scheduler"
     assert result["adapter_id"] == "hermes_gateway_cron"
+    assert result["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
+    assert result["consumer_migration"]["replacement_owner"] == "one-person-lab"
     assert result["owner"] == "hermes_gateway_cron"
     assert result["workspace_key"] == "diabetes-abc12345"
     assert result["outer_supervision_slo"]["supervision_owner"] == "mas_supervision_scheduler"
     assert result["outer_supervision_slo"]["adapter_id"] == "hermes_gateway_cron"
+    assert result["outer_supervision_slo"]["handoff"]["replacement_owner"] == "one-person-lab"
+    assert result["outer_supervision_slo"]["consumer_migration"]["retirement_proof_required"] == [
+        "opl_replacement_contract_available",
+        "replacement_proof",
+        "no_active_caller_proof",
+        "no_forbidden_write",
+        "focused_cli_status_tests",
+        "git_diff_check",
+    ]

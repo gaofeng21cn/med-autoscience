@@ -286,6 +286,75 @@ def test_bootstrap_considers_main_checkout_venv_from_nested_worktree_layout(
     ) in roots
 
 
+def test_worktree_venv_site_packages_stays_ahead_of_main_checkout_venv(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    fake_repo_root = tmp_path / "med-autoscience" / ".worktrees" / "mas-consumer-migration"
+    fake_repo_root.mkdir(parents=True)
+    worktree_site_packages = (
+        fake_repo_root
+        / ".venv"
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )
+    main_site_packages = (
+        tmp_path
+        / "med-autoscience"
+        / ".venv"
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )
+    worktree_site_packages.mkdir(parents=True)
+    main_site_packages.mkdir(parents=True)
+    original_sys_path = list(sys.path)
+    worktree_site_packages_str = str(worktree_site_packages)
+    main_site_packages_str = str(main_site_packages)
+    sys.path[:] = [
+        item
+        for item in sys.path
+        if item not in {worktree_site_packages_str, main_site_packages_str}
+    ]
+    helper_module = types.SimpleNamespace(
+        ensure_repo_editable_dependency_paths=lambda **_: (),
+    )
+    monkeypatch.setattr(module, "_repo_root", lambda: fake_repo_root)
+    monkeypatch.setattr(module, "_candidate_shared_helper_module_paths", lambda: ())
+    monkeypatch.setattr(
+        module,
+        "_candidate_repo_site_packages_roots",
+        lambda: (worktree_site_packages, main_site_packages),
+    )
+    module_specs_seen: list[str] = []
+    sys_path_during_import: list[str] = []
+
+    def fake_module_spec(module_name: str):
+        module_specs_seen.append(module_name)
+        if module_name != "opl_harness_shared.editable_consumer_launcher":
+            return None
+        return object() if worktree_site_packages_str in sys.path else None
+
+    monkeypatch.setattr(module, "_module_spec", fake_module_spec)
+
+    def fake_import_module(_: str):
+        sys_path_during_import[:] = list(sys.path)
+        return helper_module
+
+    monkeypatch.setattr(module.importlib, "import_module", fake_import_module)
+
+    try:
+        added = module.ensure_editable_dependency_paths()
+    finally:
+        sys.path[:] = original_sys_path
+
+    assert added == (worktree_site_packages,)
+    assert worktree_site_packages_str in sys_path_during_import
+    assert main_site_packages_str not in sys_path_during_import
+    assert module_specs_seen == ["opl_harness_shared.editable_consumer_launcher"]
+
+
 def test_bootstrap_makes_required_shared_entrypoints_importable_from_sibling_owner(
     monkeypatch,
     tmp_path: Path,

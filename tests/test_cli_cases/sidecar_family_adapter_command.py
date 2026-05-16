@@ -174,6 +174,26 @@ def _ai_reviewer_blocking_eval(study_root: Path) -> dict[str, object]:
                 }
                 for dimension, score in rubric_scores.items()
             ],
+            "currentness_checks": {
+                "medical_prose_review": {
+                    "status": "current",
+                    "request_digest": "sha256:sidecar-ai-reviewer-request",
+                    "manuscript_ref": manuscript_ref,
+                    "manuscript_digest": "sha256:sidecar-manuscript",
+                },
+                "current_package_freshness": {
+                    "status": "fresh",
+                    "source_eval_id": "publication-eval::001-risk::quest-001::2026-05-10T00:00:00+00:00",
+                },
+            },
+            "future_facing_limitations_plan": [
+                {
+                    "limitation": "Evidence strength remains bounded by the current observational result.",
+                    "impact_on_claim": "Claims must stay association-oriented until sensitivity analysis closes.",
+                    "required_future_analysis_data_or_design": "Run bounded sensitivity analysis before acceptance.",
+                    "current_manuscript_wording_must_be_restrained": True,
+                }
+            ],
             "provenance_checks": {
                 "assessment_owner": "ai_reviewer",
                 "policy_id": "medical_publication_critique_v1",
@@ -314,6 +334,27 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert provider["sidecar_contract"]["queue_hydration_source"] == "/pending_family_tasks"
     assert payload["dispatch"]["receipt_refs"]["dispatch_receipt_root"] == (
         "artifacts/runtime/opl_family_sidecar/dispatch_receipts"
+    )
+    family_supervision = payload["family_runtime_supervision"]
+    assert family_supervision["repair_command"] == (
+        f"medautosci runtime supervisor-reconcile --profile {profile_path} "
+        "--mode developer_apply_safe --dry-run"
+    )
+    assert family_supervision["local_diagnostic_bridge_command"] == (
+        f"medautosci runtime ensure-supervision --profile {profile_path}"
+    )
+    assert family_supervision["consumer_migration"]["active_path_role"] == (
+        "opl_replacement_default"
+    )
+    assert family_supervision["consumer_migration"]["replacement_owner"] == "one-person-lab"
+    assert family_supervision["consumer_migration"]["replacement_owner_surface"] == (
+        "opl_provider_runtime_manager"
+    )
+    assert family_supervision["read_only_authority_boundary"]["runtime_owner"] == "one-person-lab"
+    assert family_supervision["read_only_authority_boundary"]["scheduler_owner"] == "one-person-lab"
+    assert family_supervision["read_only_authority_boundary"]["domain_owner"] == "med-autoscience"
+    assert family_supervision["read_only_authority_boundary"]["mas_local_scheduler_role"] == (
+        "standalone_local_diagnostic_migration_bridge"
     )
     assert payload["studies"][0]["study_id"] == "001-risk"
     assert payload["studies"][0]["runtime_supervision"]["state"] == "running"

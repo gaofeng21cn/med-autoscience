@@ -56,7 +56,7 @@ def _build_product_positioning() -> dict[str, Any]:
         "authority_boundary": {
             "medical_research_truth_owner": "MedAutoScience",
             "quality_verdict_owner": "MedAutoScience",
-            "runtime_owner": "MedAutoScience",
+            "runtime_owner": "OPL provider/runtime manager for generic cadence; MedAutoScience for domain owner receipts",
             "artifact_publication_authority_owner": "MedAutoScience",
             "opl_role": "framework_package_host_and_projection_consumer",
             "opl_is_runtime_kernel": False,
@@ -651,7 +651,8 @@ def build_product_entry_manifest(
                 "chat_completion_only_executor_forbidden": True,
                 "hermes_agent_requires_full_agent_loop": True,
                 "current_backend_chain": [
-                    "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
+                    "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
+                    "generic runtime/provider context -> OPL runtime manager handoff refs",
                     "historical med_deepscientist fixture/provenance refs only",
                 ],
                 "optional_executor_proofs": [

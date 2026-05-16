@@ -25,6 +25,7 @@ from .sidecar_family_adapter_parts.guarded_apply_tasks import (
     provider_hosted_guarded_apply_tasks,
 )
 from .sidecar_family_adapter_parts.owner_source_refs import owner_controller_decision_refs
+from .supervision_scheduler_parts import consumer_migration
 
 
 _FORBIDDEN_PAYLOAD_FLAGS = (
@@ -301,13 +302,23 @@ def export_family_sidecar(
                 "state": _aggregate_slo_state(studies),
                 "summary": "MAS exposes SLO state as read-only projection for OPL family-runtime indexing.",
             },
-            "repair_command": f"medautosci runtime ensure-supervision --profile {profile_ref}",
-            "safe_reconcile_hint": "Use medautosci sidecar dispatch; OPL providers must not write study or publication truth.",
+            "repair_command": f"medautosci runtime supervisor-reconcile --profile {profile_ref} --mode developer_apply_safe --dry-run",
+            "local_diagnostic_bridge_command": f"medautosci runtime ensure-supervision --profile {profile_ref}",
+            "safe_reconcile_hint": (
+                "Use OPL provider/runtime manager wakeup plus medautosci sidecar dispatch; "
+                "MAS local scheduler remains a standalone diagnostic migration bridge."
+            ),
+            "consumer_migration": consumer_migration.build_consumer_migration_contract(
+                adapter_id="opl_family_runtime_provider_wakeup_to_mas_sidecar",
+                manager="opl_provider_runtime_manager",
+            ),
             "domain_owned_source_refs": _aggregate_domain_refs(studies),
             "read_only_authority_boundary": {
                 "projection_owner": "one-person-lab",
-                "runtime_owner": "med-autoscience",
-                "scheduler_owner": "med-autoscience",
+                "domain_owner": "med-autoscience",
+                "runtime_owner": "one-person-lab",
+                "scheduler_owner": "one-person-lab",
+                "mas_local_scheduler_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
                 "authority": "read_only_projection",
                 "forbidden_authorities": _authority_boundary_payload()["forbidden_authorities"],
             },

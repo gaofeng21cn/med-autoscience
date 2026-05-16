@@ -200,8 +200,16 @@ def ensure_editable_dependency_paths() -> tuple[Path, ...]:
     helper_module = _load_sibling_shared_helper(added_paths)
     if helper_module is None:
         for candidate_root in _candidate_repo_site_packages_roots():
+            candidate_root_str = str(candidate_root)
+            already_on_path = candidate_root_str in sys.path
             if _prepend_path(candidate_root):
                 added_paths.append(candidate_root)
+                already_on_path = True
+            if already_on_path:
+                helper_module = _import_installed_shared_helper()
+                if helper_module is not None:
+                    break
+    if helper_module is None:
         helper_module = _import_installed_shared_helper()
     if helper_module is None:
         return tuple(added_paths)

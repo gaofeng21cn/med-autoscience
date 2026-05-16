@@ -183,7 +183,7 @@ def test_product_entry_manifest_exposes_foundry_agent_product_positioning(tmp_pa
     assert positioning["authority_boundary"] == {
         "medical_research_truth_owner": "MedAutoScience",
         "quality_verdict_owner": "MedAutoScience",
-        "runtime_owner": "MedAutoScience",
+        "runtime_owner": "OPL provider/runtime manager for generic cadence; MedAutoScience for domain owner receipts",
         "artifact_publication_authority_owner": "MedAutoScience",
         "opl_role": "framework_package_host_and_projection_consumer",
         "opl_is_runtime_kernel": False,

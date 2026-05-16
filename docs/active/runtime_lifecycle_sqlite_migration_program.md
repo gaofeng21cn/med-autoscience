@@ -2,7 +2,7 @@
 
 Status: `landed foundation owner doc; runtime lifecycle and restore-proof guard active`
 Date: `2026-05-11`
-Owner: `MedAutoScience Runtime OS`
+Owner: `MedAutoScience runtime lifecycle read-model/index boundary`
 Purpose: preserve the current runtime lifecycle authority model, SQLite/file boundary, root/quest Git retirement status, restore-proof archive rules, and drift handling process.
 Machine boundary: this is a human-readable owner/provenance document. Machine truth remains in runtime lifecycle SQLite databases, migration ledgers, restore indexes, archive manifests, compatibility exports, runtime/controller surfaces, and live workspace evidence.
 
@@ -25,7 +25,7 @@ The current role is narrower and concrete:
 | area | current state | owner |
 | --- | --- | --- |
 | Runtime lifecycle index | `landed` | `artifacts/runtime/runtime_lifecycle.sqlite` and related runtime stores |
-| Runtime/event/report history | `landed as index/read model` | MAS Runtime OS |
+| Runtime/event/report history | `landed as index/read model` | MAS runtime lifecycle read-model/index boundary |
 | Quest Git retirement | `current projects verified` | migration/cutover ledgers and restore manifests |
 | Workspace root Git retirement | `current projects verified` | workspace root Git retirement ledgers |
 | MAS-first new workspace layout | `landed` | workspace/bootstrap/profile contracts |

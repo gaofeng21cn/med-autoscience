@@ -11,6 +11,7 @@ import re
 import subprocess
 from typing import Any
 
+from med_autoscience.controllers.supervision_scheduler_parts import consumer_migration
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -76,6 +77,7 @@ def ensure(
             "manager": "local",
             "scheduler_owner": SCHEDULER_OWNER,
             "adapter_id": backend,
+            "active_path_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
             "before": current,
             "after": current,
             "install_proof": proof,
@@ -112,6 +114,7 @@ def ensure(
             "manager": "local",
             "scheduler_owner": SCHEDULER_OWNER,
             "adapter_id": "local_launchd",
+            "active_path_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
             "before": before,
             "after": after,
             "script_path": str(script),
@@ -150,6 +153,7 @@ def ensure(
         "manager": "local",
         "scheduler_owner": SCHEDULER_OWNER,
         "adapter_id": "local_launchd",
+        "active_path_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
         "before": before,
         "after": after,
         "script_path": str(script),
@@ -184,6 +188,7 @@ def remove(*, profile: WorkspaceProfile, interval_seconds: int = DEFAULT_INTERVA
         "manager": "local",
         "scheduler_owner": SCHEDULER_OWNER,
         "adapter_id": before.get("adapter_id") or local_backend_id(),
+        "active_path_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
         "before": before,
         "after": after,
         "launch_agent_removed": not plist_path.exists(),
@@ -300,6 +305,11 @@ def _base_status(
         "surface_kind": "workspace_runtime_supervision",
         "scheduler_owner": SCHEDULER_OWNER,
         "owner": SCHEDULER_OWNER,
+        "active_path_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
+        "consumer_migration": consumer_migration.build_consumer_migration_contract(
+            adapter_id=adapter_id,
+            manager="local",
+        ),
         "adapter_id": adapter_id,
         "manager": "local",
         "generated_at": utc_now(),
@@ -487,6 +497,11 @@ def _install_proof(
         "surface_kind": "mas_supervision_scheduler_install_proof",
         "generated_at": utc_now(),
         "scheduler_owner": SCHEDULER_OWNER,
+        "active_path_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
+        "consumer_migration": consumer_migration.build_consumer_migration_contract(
+            adapter_id=adapter_id,
+            manager="local",
+        ),
         "adapter_id": adapter_id,
         "manager": "local",
         "workspace_key": workspace_key(profile),

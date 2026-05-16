@@ -137,7 +137,10 @@ def _build_phase3_clearance_lane(
     build_clearance_lane = _controller_override("_build_shared_clearance_lane", _build_shared_clearance_lane)
     return build_clearance_lane(
         surface_kind="phase3_host_clearance_lane",
-        summary="Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认运行和诊断已经由 MAS Runtime OS 承接。",
+        summary=(
+            "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认研究入口、owner receipt "
+            "与 local diagnostic bridge 由 MAS surface 承接，generic cadence/provider SLO 迁往 OPL runtime manager。"
+        ),
         recommended_step_id="mas_runtime_contract",
         recommended_command=doctor_command,
         clearance_targets=[
@@ -242,8 +245,11 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
         substrate_targets=[
             _build_shared_program_capability(
                 capability_id="session_run_watch_recovery",
-                owner="MAS Runtime OS",
-                summary="session / run / watch / recovery / scheduling / interruption 默认由 MAS Runtime OS 承接。",
+                owner="MAS domain runtime receipts",
+                summary=(
+                    "session / run / watch / recovery 的 domain owner receipt、paper-progress blocker "
+                    "与 safe action refs 由 MAS surface 承接；generic scheduling / attempt lifecycle 迁往 OPL。"
+                ),
             ),
             _build_shared_program_capability(
                 capability_id="backend_generic_runtime_contract",
@@ -257,7 +263,8 @@ def _build_phase4_backend_deconstruction() -> dict[str, Any]:
             "explicit archive import / backend-audit reference",
         ],
         current_backend_chain=[
-            "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
+            "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
+            "generic runtime/provider context -> OPL runtime manager handoff refs",
             "historical med_deepscientist fixture/provenance refs only",
         ],
         optional_executor_proofs=[

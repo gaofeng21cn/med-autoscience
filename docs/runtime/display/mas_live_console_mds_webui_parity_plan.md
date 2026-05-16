@@ -1,7 +1,7 @@
 # MAS Live Console 与 MDS WebUI Parity 落地计划
 
 Status: `landed read-only parity contract`
-Owner: `MedAutoScience Runtime OS + Product Projection`
+Owner: `MedAutoScience runtime observation refs + Product Projection`
 Date: `2026-05-08`
 Contract ID: `live-console-parity`
 
@@ -43,7 +43,7 @@ Contract ID: `live-console-parity`
 
 MAS-owned Live Console session read model：
 
-- 输入：`study_runtime_status/latest.json`、`artifacts/runtime/health/latest.json`、`runtime_supervision/latest.json`、`runtime_status_summary.json`、runtime quest terminal/log summaries、MAS Runtime OS run refs。
+- 输入：`study_runtime_status/latest.json`、`artifacts/runtime/health/latest.json`、`runtime_supervision/latest.json`、`runtime_status_summary.json`、runtime quest terminal/log summaries、MAS runtime observation refs、owner receipt refs 和 run evidence refs。
 - 输出：`artifacts/runtime/live_console/session_read_model/latest.json`。
 - 字段：workspace、studies、selected_study_id、runs、active_run_id、worker_running、runtime_health_status、supervisor_tick_status、events、log_sources、terminal_sources、artifact_delta、controller action intents。
 - 只读聚合，不重新解释 truth。

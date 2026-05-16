@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from med_autoscience.controllers import hermes_supervision, outer_supervision_slo
-from med_autoscience.controllers.supervision_scheduler_parts import local_adapter
+from med_autoscience.controllers.supervision_scheduler_parts import consumer_migration, local_adapter
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -63,13 +63,14 @@ def ensure_supervision(
             after=after,
         )
     if manager_key == "local":
-        return local_adapter.ensure(
+        payload = local_adapter.ensure(
             profile=profile,
             interval_seconds=interval_seconds,
             trigger_now=trigger_now,
             write_install_proof=write_install_proof,
             dry_run=dry_run,
         )
+        return _attach_consumer_migration(payload, adapter_id=str(payload.get("adapter_id") or "local"), manager="local")
     if manager_key == "hermes":
         payload = hermes_supervision.ensure_supervision(
             profile=profile,
@@ -78,7 +79,11 @@ def ensure_supervision(
             manager="hermes",
             write_install_proof=write_install_proof,
         )
-        return _project_hermes_result(payload)
+        return _attach_consumer_migration(
+            _project_hermes_result(payload),
+            adapter_id=HERMES_ADAPTER_ID,
+            manager="hermes",
+        )
     raise ValueError(f"unsupported supervision scheduler manager: {manager}")
 
 
@@ -102,10 +107,19 @@ def remove_supervision(
             removing=True,
         )
     if manager_key == "local":
-        return local_adapter.remove(profile=profile, interval_seconds=interval_seconds)
+        payload = local_adapter.remove(profile=profile, interval_seconds=interval_seconds)
+        return _attach_consumer_migration(
+            payload,
+            adapter_id=str(payload.get("adapter_id") or "local"),
+            manager="local",
+        )
     if manager_key == "hermes":
         payload = hermes_supervision.remove_supervision(profile=profile, interval_seconds=interval_seconds)
-        return _project_hermes_result(payload)
+        return _attach_consumer_migration(
+            _project_hermes_result(payload),
+            adapter_id=HERMES_ADAPTER_ID,
+            manager="hermes",
+        )
     raise ValueError(f"unsupported supervision scheduler manager: {manager}")
 
 
@@ -146,7 +160,15 @@ def _with_scheduler_contract(
         generated_at=result["generated_at"],
         interval_seconds=interval_seconds,
     )
-    return result
+    return _attach_consumer_migration(result, adapter_id=adapter_id, manager=manager)
+
+
+def _attach_consumer_migration(payload: dict[str, Any], *, adapter_id: str, manager: str) -> dict[str, Any]:
+    return consumer_migration.attach_consumer_migration_contract(
+        payload,
+        adapter_id=adapter_id,
+        manager=manager,
+    )
 
 
 def _opl_replacement_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict[str, Any]:

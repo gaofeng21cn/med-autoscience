@@ -1,7 +1,7 @@
 # MAS Live Console UI Contract
 
 Status: `landed MAS-native display + terminal attach MVP contract`
-Owner: `MedAutoScience Runtime OS + Product Projection`
+Owner: `MedAutoScience runtime observation read-model + terminal attach owner gate`
 Related contract: `live-console-parity`
 Related focused lane: `terminal-attach-gate`
 

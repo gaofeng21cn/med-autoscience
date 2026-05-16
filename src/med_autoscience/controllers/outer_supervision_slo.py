@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import runtime_dispatch_cost
+from med_autoscience.controllers.supervision_scheduler_parts import consumer_migration
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -76,6 +77,10 @@ def build_outer_supervision_slo_projection(
             missing_reasons=missing_reasons,
         ),
     )
+    active_path_role = _text(supervision.get("active_path_role")) or consumer_migration.build_consumer_migration_contract(
+        adapter_id=adapter_id,
+        manager=_text(supervision.get("manager")),
+    )["active_path_role"]
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
@@ -84,6 +89,12 @@ def build_outer_supervision_slo_projection(
         "summary": _summary(state=state, age_seconds=age_seconds, blocked_reasons=blocked_reasons, missing_reasons=missing_reasons),
         "owner": "med_autoscience_outer_supervision_read_model",
         "supervision_owner": _text(supervision.get("scheduler_owner")) or "mas_supervision_scheduler",
+        "active_path_role": active_path_role,
+        "consumer_migration": consumer_migration.build_consumer_migration_contract(
+            adapter_id=adapter_id,
+            manager=_text(supervision.get("manager")),
+        ),
+        "replacement_owner": consumer_migration.REPLACEMENT_OWNER,
         "adapter_id": adapter_id,
         "latest_outer_supervision_at": latest_event_at,
         "latest_scheduler_run_at": latest_run_at,
@@ -102,6 +113,12 @@ def build_outer_supervision_slo_projection(
         "refs": {
             "supervision_status": "runtime-supervision-status",
             "reconcile_latest": str(profile.workspace_root / RECONCILE_LATEST_RELATIVE_PATH),
+        },
+        "handoff": {
+            "replacement_owner": consumer_migration.REPLACEMENT_OWNER,
+            "replacement_owner_surface": consumer_migration.REPLACEMENT_OWNER_SURFACE,
+            "current_mas_surface_role": active_path_role,
+            "retirement_state": consumer_migration.RETIREMENT_STATE,
         },
         "authority": {
             "kind": "read_model_projection",

@@ -538,6 +538,23 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
     assert "tests/test_runtime_live_console_ui.py" in focused_lanes["portal-console-soak"]["paths"]
     assert "tests/test_paper_autonomy_stability_evidence.py" in focused_lanes["paper-autonomy-stability-evidence"]["paths"]
     assert focused_lanes["outer-supervision-slo"]["resident_daemon_allowed"] is False
+    assert focused_lanes["outer-supervision-slo"]["active_path_role"] == (
+        "opl_replacement_default"
+    )
+    assert focused_lanes["outer-supervision-slo"]["legacy_active_path_role"] == (
+        "standalone_local_diagnostic_migration_bridge"
+    )
+    assert focused_lanes["outer-supervision-slo"]["replacement_owner_surface"] == (
+        "opl_provider_runtime_manager"
+    )
+    assert focused_lanes["outer-supervision-slo"]["retirement_proof_required"] == [
+        "opl_replacement_contract_available",
+        "replacement_proof",
+        "no_active_caller_proof",
+        "no_forbidden_write",
+        "focused_cli_status_tests",
+        "git_diff_check",
+    ]
     assert focused_lanes["portal-console-soak"]["implementation_status"] == "landed"
     assert focused_lanes["paper-autonomy-stability-evidence"]["completion_claim_rule"] == (
         "landed_only_when_real_evidence_has_no_blockers"

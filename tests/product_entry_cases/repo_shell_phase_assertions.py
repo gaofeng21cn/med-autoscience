@@ -3,7 +3,10 @@ from __future__ import annotations
 def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> None:
     assert payload["phase3_clearance_lane"] == {
         "surface_kind": "phase3_host_clearance_lane",
-        "summary": "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认运行和诊断已经由 MAS Runtime OS 承接。",
+        "summary": (
+            "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认研究入口、owner receipt "
+            "与 local diagnostic bridge 由 MAS surface 承接，generic cadence/provider SLO 迁往 OPL runtime manager。"
+        ),
         "recommended_step_id": "mas_runtime_contract",
         "recommended_command": (
             "uv run python -m med_autoscience.cli doctor --profile "
@@ -149,8 +152,11 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "substrate_targets": [
             {
                 "capability_id": "session_run_watch_recovery",
-                "owner": "MAS Runtime OS",
-                "summary": "session / run / watch / recovery / scheduling / interruption 默认由 MAS Runtime OS 承接。",
+                "owner": "MAS domain runtime receipts",
+                "summary": (
+                    "session / run / watch / recovery 的 domain owner receipt、paper-progress blocker "
+                    "与 safe action refs 由 MAS surface 承接；generic scheduling / attempt lifecycle 迁往 OPL。"
+                ),
             },
             {
                 "capability_id": "backend_generic_runtime_contract",
@@ -164,7 +170,8 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
             "explicit archive import / backend-audit reference",
         ],
         "current_backend_chain": [
-            "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
+            "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
+            "generic runtime/provider context -> OPL runtime manager handoff refs",
             "historical med_deepscientist fixture/provenance refs only",
         ],
         "optional_executor_proofs": [
@@ -193,14 +200,17 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
     )
     assert phase5["sequence_scope"] == "monorepo_landing_readiness"
     assert phase5["current_readiness_summary"] == (
-        "MAS 默认运行、进度、诊断、artifact/quality parity、workspace helpers 与 OPL handoff 都已切到 MAS-owned surfaces；"
+        "MAS 默认研究入口、进度、诊断、artifact/quality parity、workspace helpers 与 OPL handoff 都已切到 MAS-owned domain surfaces；"
         "external MDS 只保留 frozen archive / historical fixture / explicit archive import reference。"
     )
     assert phase5["north_star_topology"] == {
         "domain_agent": "Med Auto Science",
         "runtime_owner": "mas_runtime_os",
         "runtime_substrate": "mas_runtime_core",
-        "controlled_research_backend": "MAS-owned Runtime OS / Artifact OS / Quality OS",
+        "controlled_research_backend": (
+            "MAS domain owner receipts / Artifact authority refs / Quality verdict refs; "
+            "generic runtime lifecycle handoff to OPL"
+        ),
         "monorepo_status": "functional_monolith_completion_landed",
     }
     assert phase5["target_internal_modules"] == [

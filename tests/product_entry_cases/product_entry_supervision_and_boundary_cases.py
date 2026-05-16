@@ -162,7 +162,8 @@ def test_build_product_entry_status_projects_product_entry_over_current_workspac
     assert payload["phase3_clearance_lane"]["clearance_loop"][2]["step_id"] == "supervisor_service"
     assert payload["phase4_backend_deconstruction"]["surface_kind"] == "phase4_backend_deconstruction_lane"
     assert payload["phase4_backend_deconstruction"]["current_backend_chain"] == [
-        "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
+        "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
+        "generic runtime/provider context -> OPL runtime manager handoff refs",
         "historical med_deepscientist fixture/provenance refs only",
     ]
     assert payload["phase5_platform_target"]["surface_kind"] == "phase5_platform_target"

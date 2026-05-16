@@ -63,7 +63,8 @@ def _assert_executor_default_surface(*, module, payload, profile, profile_ref) -
     assert "default_executor" not in payload["executor_defaults"]
     assert "hermes_native_requires_full_agent_loop" not in payload["executor_defaults"]
     assert payload["executor_defaults"]["current_backend_chain"] == [
-        "med_autoscience runtime surfaces -> MAS-owned Runtime OS / Artifact OS / Quality OS",
+        "med_autoscience domain surfaces -> MAS owner receipts / artifact authority refs / quality verdict refs",
+        "generic runtime/provider context -> OPL runtime manager handoff refs",
         "historical med_deepscientist fixture/provenance refs only",
     ]
     assert payload["executor_defaults"]["optional_executor_proofs"] == [

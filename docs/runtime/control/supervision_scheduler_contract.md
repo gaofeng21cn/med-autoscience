@@ -247,38 +247,38 @@ Status: `macOS apply landed; real workspace shadow/cutover evidence pending`
 
 验收：
 
-- 真实 workspace 上 local adapter 可以 trigger one-shot 并生成同构 receipt。
-- Hermes 仍为 primary；local 为 shadow。
-- `runtime-supervision-status` 能显示 primary/secondary adapter 与 drift。
+- 真实 workspace 上 legacy local adapter 可以 trigger one-shot 并生成同构 receipt。
+- Hermes 只保留为显式 optional adapter；local 只保留为显式 legacy diagnostic / cleanup adapter。
+- `runtime-supervision-status --manager local|hermes` 能显示对应 adapter 与 drift，默认 `runtime-supervision-status` 回到 OPL replacement。
 
 ### Phase 4: Direct/local cutover
 
-Status: `CLI default switched to local; real workspace migration receipts pending`
+Status: `superseded by OPL replacement default; local retained as explicit legacy diagnostic`
 
-把 direct/local diagnostic scheduler adapter 切到 `local`。
+历史目标曾是把 direct/local diagnostic scheduler adapter 切到 `local`。当前已被 OPL replacement 默认路径覆盖；本阶段只保留为 provenance 与 legacy cleanup 规则。
 
 关键要求：
 
-- `runtime-ensure-supervision` 默认 manager 从 `hermes` 切到 `local`，或 profile 明确写 `scheduler_adapter=local`。
-- Hermes job 被 disable/remove 前，必须记录 migration receipt。
-- 已注册 Hermes job 的 workspace 进入 `cutover_ready -> cutover_complete`，不能产生双调度。
-- OPL handoff / Portal / Live Console 只消费 MAS scheduler status，不再读 Hermes-specific source 作为默认事实。
+- `runtime-ensure-supervision` 默认 manager 是 `opl`；只有显式 `--manager local` 才触发 MAS-owned LaunchAgent legacy diagnostic / cleanup path。
+- Hermes job 被 disable/remove 前，仍必须记录 migration receipt。
+- 已注册 Hermes 或 local job 的 workspace 进入 cleanup / no-active-caller proof，不得产生双调度。
+- OPL handoff / Portal / Live Console 默认消费 OPL replacement projection；local/Hermes status 只作为显式 diagnostic source。
 
 验收：
 
-- 新 workspace 默认不需要 Hermes 即可获得 outer supervision。
-- 旧 workspace 迁移后仍有 scheduled tick、latest receipt、SLO state 和 repair command。
-- `runtime-supervision-status` 在无 Hermes 环境中不报 architecture blocker，只报告 local adapter state。
+- 新 workspace 默认不需要 Hermes 或 MAS local scheduler 即可获得 OPL replacement projection。
+- 旧 workspace 清理后仍能通过显式 legacy local/Hermes status 读取 latest receipt、SLO state 和 cleanup command。
+- `runtime-supervision-status` 在无 Hermes 环境中不报 architecture blocker，默认报告 OPL replacement state。
 
 ### Phase 5: OPL simplification and optional Hermes
 
-Status: `in progress across OPL ecosystem`
+Status: `OPL replacement default landed; production long-soak evidence pending`
 
 把 OPL 的依赖口径同步为 optional Hermes provider。
 
 关键要求：
 
-- OPL README / docs / decisions：Codex-default + MAS local scheduler 是默认；Hermes 是 optional online-management / hosted provider。
+- OPL README / docs / decisions：OPL provider/runtime manager 是默认 scheduler owner；MAS local scheduler 是 explicit legacy diagnostic / cleanup path；Hermes 是 optional online-management / hosted provider。
 - Full first-install manifest 不再把 Hermes 作为 mandatory baseline；可以作为 optional advanced bundle。
 - runtime tray / observer 改为读取 MAS scheduler projection；Hermes cron projection 只在 adapter_id 为 Hermes 时展示。
 - `--executor hermes` / non-GPT provider routing 继续保留为显式路径。
