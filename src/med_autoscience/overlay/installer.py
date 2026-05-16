@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
 import json
-from importlib import resources
 from pathlib import Path
 import shutil
 from typing import Any
@@ -162,7 +161,7 @@ def render_medical_runtime_contract_block() -> str:
 
 
 def _load_template_text(template_name: str) -> str:
-    template_path = resources.files("med_autoscience.overlay.templates").joinpath(template_name)
+    template_path = Path(__file__).resolve().parent / "templates" / template_name
     return template_path.read_text(encoding="utf-8")
 
 
