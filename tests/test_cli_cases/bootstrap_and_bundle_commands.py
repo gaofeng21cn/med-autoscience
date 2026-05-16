@@ -101,11 +101,12 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
         cli.supervision_scheduler,
         "ensure_supervision",
         lambda **kwargs: {
-            "surface_kind": "workspace_runtime_supervision_install_result",
-            "action": "installed",
+            "surface_kind": "workspace_runtime_supervision_replacement_result",
+            "action": "delegated_to_opl_provider_scheduler",
             "manager": kwargs["manager"],
             "trigger_now": kwargs["trigger_now"],
-            "write_install_proof": kwargs["write_install_proof"],
+            "write_install_proof": False,
+            "requested_write_install_proof": kwargs["write_install_proof"],
         },
     )
 
@@ -115,6 +116,7 @@ def test_bootstrap_command_removes_retired_workspace_runtime_service_wrapper(
     assert exit_code == 0
     assert '"selected_action": "noop"' in captured.out
     assert '"supervision_bootstrap"' in captured.out
+    assert '"manager": "opl"' in captured.out
     assert '"trigger_now": false' in captured.out
     assert not install_service.exists()
 def test_ensure_study_runtime_analysis_bundle_command_prints_controller_payload(monkeypatch, capsys) -> None:

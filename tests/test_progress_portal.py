@@ -330,7 +330,7 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
     ]
     assert workspace["diagnostics"]["suppressed_alert_items"][0]["source"] == "workspace_supervision.service.summary"
     assert workspace["diagnostics"]["suppressed_alert_items"][0]["recommended_command"] == (
-        "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile <profile>"
+        "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile> --manager local"
     )
     studies = workspace["studies"]
     assert [item["study_id"] for item in studies] == [
@@ -411,7 +411,8 @@ def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_work
     assert "诊断与修复建议" in html
     assert "MAS scheduler local adapter runtime supervision 尚未注册。" in html
     assert "Hermes-hosted runtime supervision 尚未注册。" not in html
-    assert "runtime-ensure-supervision" in html
+    assert "runtime-supervision-status" in html
+    assert "--manager local" in html
     assert ">none<" not in html
     assert "not_required" not in html
     assert "来源" in html
@@ -438,12 +439,12 @@ def test_progress_portal_projects_local_scheduler_drift_with_repair_command() ->
     assert item["source"] == "workspace_supervision.service.summary"
     assert item["current_output"] == "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。"
     assert item["recommended_command"] == (
-        "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile <profile>"
+        "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile> --manager local"
     )
     html = module.render_progress_portal_html(payload)
     assert "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。" in html
     assert "workspace_supervision.service.summary" in html
-    assert "runtime-ensure-supervision" in html
+    assert "--manager local" in html
 
 
 def test_progress_portal_hides_low_information_generic_status_diagnostic_when_study_rows_exist() -> None:

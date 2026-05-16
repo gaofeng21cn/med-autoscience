@@ -32,7 +32,7 @@ PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
         "affects_automatic_paper_production": True,
         "production_path": "outer_supervision_recovery_latency",
         "rationale": "The five-minute tick is acceptable only while per-turn continuation and stale recovery receipts remain healthy.",
-        "required_guard_surface": "mas_supervision_scheduler tick receipt",
+        "required_guard_surface": "OPL scheduler replacement tick receipt plus MAS owner receipt",
     },
     "turn_completion_continuation": {
         "classification": "acceptable_design_difference",
@@ -137,7 +137,7 @@ PAPER_PROGRESS_DEGRADATION_BY_SURFACE: dict[str, dict[str, Any]] = {
         "affects_automatic_paper_production": False,
         "production_path": "retired_workspace_local_service",
         "rationale": "Old workspace-local host services are cleanup evidence, not an active production owner.",
-        "required_guard_surface": "mas_supervision_scheduler registration",
+        "required_guard_surface": "opl_provider_runtime_manager registration and explicit local legacy cleanup proof",
     },
 }
 

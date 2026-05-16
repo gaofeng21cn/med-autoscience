@@ -1190,7 +1190,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         supervision_bootstrap = supervision_scheduler.ensure_supervision(
             profile=profile,
-            manager="local",
+            manager="opl",
             trigger_now=False,
             write_install_proof=True,
         )

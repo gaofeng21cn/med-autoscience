@@ -141,8 +141,9 @@
       "overlap_policy": "allowed_with_regression",
       "authority_boundary": "scheduler_bound_read_model_safe_reconcile_projection",
       "implementation_status": "landed",
-      "default_scheduler_owner": "mas_supervision_scheduler",
-      "default_adapter_id": "local_launchd_on_macos",
+      "default_scheduler_owner": "opl_provider_runtime_manager",
+      "default_adapter_id": "opl_family_runtime_provider",
+      "legacy_diagnostic_adapter_id": "local_launchd_on_macos",
       "explicit_optional_adapter_id": "hermes_gateway_cron",
       "default_tick_interval_seconds": 300,
       "resident_daemon_allowed": false,
@@ -181,8 +182,9 @@
         "idempotent_dispatch",
         "controller_apply_receipt"
       ],
-      "default_scheduler_owner": "mas_supervision_scheduler",
-      "default_adapter_id": "local_launchd_on_macos",
+      "default_scheduler_owner": "opl_provider_runtime_manager",
+      "default_adapter_id": "opl_family_runtime_provider",
+      "legacy_diagnostic_adapter_id": "local_launchd_on_macos",
       "explicit_optional_adapter_id": "hermes_gateway_cron",
       "resident_daemon_allowed": false,
       "forbidden_authority_writes": [

@@ -43,15 +43,16 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         },
         "mas_behavior": {
             "resident_process": False,
-            "default_owner": "mas_supervision_scheduler",
-            "default_adapter": "local",
+            "default_owner": "opl_provider_runtime_manager",
+            "default_adapter": "opl",
+            "legacy_diagnostic_adapters": ["local_launchd"],
             "optional_adapters": ["hermes_gateway_cron"],
             "tick_interval_seconds": 300,
-            "tick_command": "ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1",
+            "tick_command": "opl family-runtime tick --source provider-scheduler --hydrate",
         },
         "behavior_difference": "MAS default supervision is scheduled ticks, not a resident HTTP/WebSocket daemon.",
         "default_user_impact": "Runtime drift detection can be delayed up to the scheduler interval; HTTP/WebSocket session continuity is not provided by MAS Runtime OS.",
-        "mas_contract": "MAS supervision scheduler contract runs one MAS runtime watch tick per interval and refreshes durable runtime/progress surfaces; local is the default adapter and Hermes gateway cron is explicit optional.",
+        "mas_contract": "OPL provider/runtime manager owns the default outer scheduler cadence and MAS returns paper-progress SLO, owner receipts, typed blockers, and safe action refs; local LaunchAgent is legacy diagnostic cleanup only.",
         "recommended_operator_action": "use_mas_with_latency_awareness",
     },
     {
@@ -63,8 +64,9 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
             "can_react_between_ticks": True,
         },
         "mas_behavior": {
-            "cadence": "MAS supervision scheduler one-shot tick",
-            "default_adapter": "local",
+            "cadence": "OPL provider scheduler replacement tick",
+            "default_adapter": "opl",
+            "legacy_diagnostic_adapters": ["local_launchd"],
             "optional_adapters": ["hermes_gateway_cron"],
             "interval_seconds": 300,
             "max_ticks": 1,
@@ -72,7 +74,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         },
         "behavior_difference": "MDS can supervise while the daemon is alive; MAS default outer supervision reacts on the next scheduled tick, while per-turn continuation is handled by the MAS turn kernel.",
         "default_user_impact": "Five-minute latency remains for outer drift detection and stale recovery, but normal turn-to-turn continuation no longer waits for the cron tick.",
-        "mas_contract": "runtime watch tick writes runtime_watch/runtime_supervision/progress freshness and can trigger MAS-owned recovery.",
+        "mas_contract": "OPL scheduler replacement triggers provider SLO, MAS domain intake, and family-runtime tick; MAS keeps runtime_watch/progress freshness interpretation and MAS-owned recovery receipts.",
         "recommended_operator_action": "use_mas_with_latency_awareness",
     },
     {
@@ -303,10 +305,10 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "title": "System update and daemon lifecycle controls",
         "equivalence_class": "not_equivalent_retired",
         "mds_behavior": {"admin_shutdown": True, "system_update_action": True, "daemon_lifecycle_control": True},
-        "mas_behavior": {"external_mds_daemon_control": False, "mas_supervision_scheduler_control": True},
-        "behavior_difference": "MAS does not control an MDS daemon lifecycle; it controls/removes MAS supervision scheduler jobs.",
+        "mas_behavior": {"external_mds_daemon_control": False, "mas_supervision_scheduler_control": False},
+        "behavior_difference": "MAS does not control an MDS daemon lifecycle and no longer owns the default outer scheduler lifecycle.",
         "default_user_impact": "There is no MAS-native MDS daemon control path because the daemon is not a default dependency.",
-        "mas_contract": "runtime-ensure-supervision/runtime-remove-supervision manage MAS scheduler adapters and retired legacy-service cleanup.",
+        "mas_contract": "Default runtime-supervision commands delegate to the OPL provider scheduler replacement; explicit --manager local remains a legacy diagnostic cleanup path.",
         "recommended_operator_action": "retired_no_active_replacement",
     },
     {
@@ -320,13 +322,14 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "mas_behavior": {
             "workspace_local_host_service": False,
             "retired_cleanup": True,
-            "canonical_owner": "mas_supervision_scheduler",
-            "default_adapter": "local",
+            "canonical_owner": "opl_provider_runtime_manager",
+            "default_adapter": "opl",
+            "legacy_diagnostic_adapter": "local",
             "optional_adapters": ["hermes_gateway_cron"],
         },
         "behavior_difference": "Workspace-local launchd/systemd/cron service templates are retired; their presence is cleanup evidence, not an active owner.",
         "default_user_impact": "Old host services must be removed instead of kept as an alternate supervision mode.",
-        "mas_contract": "runtime-ensure-supervision removes retired workspace-local services before registering or reporting MAS scheduler supervision.",
+        "mas_contract": "runtime-remove-supervision --manager local removes retired workspace-local services; default scheduler status delegates to OPL provider replacement.",
         "recommended_operator_action": "retired_no_active_replacement",
     },
 )
@@ -337,8 +340,10 @@ RUNTIME_CONTINUITY_COMPLETION = {
     "owner": "MedAutoScience Runtime OS",
     "external_mds_repo_required": False,
     "mds_daemon_required": False,
-    "active_scheduler": "mas_supervision_scheduler",
-    "active_scheduler_adapter": "local",
+    "active_scheduler": "opl_provider_runtime_manager",
+    "active_scheduler_adapter": "opl",
+    "legacy_diagnostic_scheduler": "mas_supervision_scheduler",
+    "legacy_diagnostic_scheduler_adapter": "local",
     "optional_scheduler_adapters": ["hermes_gateway_cron"],
     "default_tick_interval_seconds": 300,
     "runtime_session_read_model": {
@@ -442,12 +447,12 @@ def build_mds_behavior_equivalence_matrix() -> dict[str, Any]:
         "mds_final_role": MDS_FINAL_ROLE,
         "default_operation_requires_external_mds": False,
         "default_diagnostic_requires_external_mds": False,
-        "default_supervision_owner": "mas_supervision_scheduler",
-        "default_scheduler_adapter": "local",
+        "default_supervision_owner": "opl_provider_runtime_manager",
+        "default_scheduler_adapter": "opl",
         "optional_scheduler_adapters": ["hermes_gateway_cron"],
         "default_tick_interval_seconds": 300,
         "default_tick_max_ticks": 1,
-        "default_tick_command": "ops/medautoscience/bin/watch-runtime --interval-seconds 300 --max-ticks 1",
+        "default_tick_command": "opl family-runtime tick --source provider-scheduler --hydrate",
         "mas_default_runtime_is_resident_daemon": False,
         "mds_daemon_was_resident_http_websocket_server": True,
         "completion_claim": "default_independence_not_full_behavior_equivalence",
@@ -498,9 +503,9 @@ def _validate_behavior_matrix_dependency_contract(matrix: Mapping[str, Any], iss
 
 
 def _validate_behavior_matrix_scheduler_contract(matrix: Mapping[str, Any], issues: list[dict[str, Any]]) -> None:
-    if _text(matrix.get("default_supervision_owner")) != "mas_supervision_scheduler":
+    if _text(matrix.get("default_supervision_owner")) != "opl_provider_runtime_manager":
         issues.append({"code": "behavior_matrix_default_supervision_owner_drift"})
-    if _text(matrix.get("default_scheduler_adapter")) != "local":
+    if _text(matrix.get("default_scheduler_adapter")) != "opl":
         issues.append({"code": "behavior_matrix_default_scheduler_adapter_drift"})
     if int(matrix.get("default_tick_interval_seconds") or 0) != 300:
         issues.append({"code": "behavior_matrix_default_tick_interval_drift"})
@@ -621,9 +626,9 @@ def _validate_runtime_continuity_header(value: Mapping[str, Any], issues: list[d
         issues.append({"code": "runtime_continuity_external_mds_dependency"})
     if value.get("mds_daemon_required") is not False:
         issues.append({"code": "runtime_continuity_mds_daemon_dependency"})
-    if _text(value.get("active_scheduler")) != "mas_supervision_scheduler":
+    if _text(value.get("active_scheduler")) != "opl_provider_runtime_manager":
         issues.append({"code": "runtime_continuity_active_scheduler_drift"})
-    if _text(value.get("active_scheduler_adapter")) != "local":
+    if _text(value.get("active_scheduler_adapter")) != "opl":
         issues.append({"code": "runtime_continuity_active_scheduler_adapter_drift"})
     if int(value.get("default_tick_interval_seconds") or 0) != 300:
         issues.append({"code": "runtime_continuity_tick_interval_drift"})

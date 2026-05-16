@@ -486,8 +486,11 @@ def _alert_item(text: str) -> dict[str, str | None]:
         if text != "MAS local scheduler 尚未安装或存在漂移；运行 runtime-ensure-supervision 可刷新。":
             text = "MAS scheduler local adapter runtime supervision 尚未注册。"
         purpose = "说明 workspace 级 MAS scheduler job 尚未安装、未加载或存在漂移。"
-        expected = "MAS scheduler local adapter 应注册并按计划触发 runtime supervision tick。"
-        recommended_command = "uv run python -m med_autoscience.cli runtime-ensure-supervision --profile <profile>"
+        expected = "默认 scheduler 由 OPL provider/runtime manager 持有；MAS local adapter 只作为 legacy diagnostic cleanup 显式检查。"
+        recommended_command = (
+            "uv run python -m med_autoscience.cli runtime-supervision-status "
+            "--profile <profile> --manager local"
+        )
     elif text == "状态需要检查。":
         source = "workspace_cockpit.generic_status"
         purpose = "旧版泛化告警；当前已有具体 study 行时不再作为主诊断展示。"

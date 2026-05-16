@@ -10,7 +10,8 @@
 
 - 当前 repo-tracked 主线拓扑固定为：
   - `MedAutoScience` = 唯一研究入口、research gateway、study / workspace authority owner
-  - MAS direct/local diagnostic scheduler surface = 当前由 `MAS supervision scheduler contract` + MAS-owned `local` adapter 承载，Hermes gateway cron 是 explicit optional adapter；OPL-hosted production wakeup / queue / attempt 归 OPL provider
+  - `OPL scheduler replacement` = 默认 outer supervision scheduler owner；默认 adapter 是 `opl_family_runtime_provider`
+  - `MAS supervision scheduler contract` = paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker、safe action refs 和 legacy diagnostic projection owner；MAS-owned `local` scheduler / LaunchAgent 只在显式 `--manager local` 下作为 cleanup/diagnostic path；Hermes gateway cron 是 explicit optional adapter
   - `MAS Runtime OS` = 默认 runtime/backend owner
   - `MedDeepScientist` = frozen source archive、historical fixture、explicit archive import reference / backend audit reference
 - 旧 `Codex-default host-agent runtime` 只保留为迁移期对照面与 regression oracle，不再是长期产品方向。
@@ -20,7 +21,7 @@
   - `internal_controller_surface = controller`
 - 当前仓库产品主线继续按 `Auto-only` 理解。
 - future `Human-in-the-loop`：作为 compatible sibling 或 upper-layer product，复用同一 substrate，而不是把本仓改成同仓双模。
-- optional external `Hermes` runtime repo / workspace / daemon truth 必须显式接入；当前 repo-side runtime truth 以 MAS Runtime OS 为准，本机 periodic diagnostics 由 MAS-owned local one-shot tick 承载。
+- optional external `Hermes` runtime repo / workspace / daemon truth 必须显式接入；当前默认 repo-side contract 以 MAS Runtime OS + OPL scheduler replacement 为准，MAS-owned local one-shot tick 只保留显式 legacy diagnostic / cleanup 语义。
 
 ## 2. Execution Handle Contract
 
@@ -139,7 +140,7 @@
   - execution handle contract
   - durable surface contract
   - gate semantics
-  - `MAS Runtime OS` 当前 repo-side runtime truth；MAS-owned local scheduler 是 direct/local diagnostic 迁移桥，Hermes gateway cron 是 explicit optional adapter
+  - `MAS Runtime OS + OPL scheduler replacement + MAS supervision SLO/read-model contract` 当前主线拓扑；`opl_family_runtime_provider` 是默认 adapter，local 是显式 legacy diagnostic / cleanup adapter，Hermes gateway cron 是 explicit optional adapter
 - 本地未跟踪 handoff scratch 只负责：
   - 机器私有 continuation note
   - 临时观察记录

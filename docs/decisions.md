@@ -40,7 +40,7 @@
 
 - 历史决策：当时的迁移假设是让外部 `Hermes-Agent` 由 OPL 管理，承担常驻 gateway、cron/webhook wakeup、session store、delivery/notification、approval transport 与 family queue tick；OPL 持有 typed family queue / dispatch contract；MAS 持有 study truth、publication judgment、quality gate、artifact/package authority 和 domain recovery decision。
 - 当前生命周期处置：这不是当前目标 topology。当前 OPL-hosted production path 以 Temporal-backed OPL family runtime 为生产必需 substrate；`Hermes-Agent` 只保留为 explicit optional Agent executor adapter、provider/proof lane 或历史迁移背景。任何当前文档或代码入口都不得把本段写成 Full online target。
-- 保留价值：本段只解释 `sidecar export|dispatch` 为什么成为 OPL provider 到 MAS owner surface 的受控桥。sidecar 仍禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package 或 artifact gate；这些 truth 只能由对应 MAS owner surface 产生。MAS standalone/local diagnostics 仍可使用 MAS-owned local scheduler；Full online readiness 由 OPL 侧 Temporal provider readiness 判定。
+- 保留价值：本段只解释 `sidecar export|dispatch` 为什么成为 OPL provider 到 MAS owner surface 的受控桥。sidecar 仍禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package 或 artifact gate；这些 truth 只能由对应 MAS owner surface 产生。MAS standalone/local diagnostics 仍可显式读取或清理旧 MAS-owned local scheduler；默认 scheduler owner 已迁到 OPL provider/runtime manager，Full online readiness 仍由 OPL 侧 Temporal provider readiness 判定。
 
 ## 2026-05-10：MAS 作为 OPL stage-led framework 上的独立 domain agent
 
@@ -73,11 +73,17 @@
 - 影响：DM002 的 retry-budget / controller route 卡点应被投影为 controller redrive 或唯一 repo-level blocker；DM003 的 `blocked_turn_closeout_waiting_for_owner` / `owner_callable_surface_missing` 在 `requires_user_input=false` 时由 registry repair 或 MAS/controller 消费；Obesity 的 AI reviewer queue 由 callable `ai_reviewer` 消费，publishability 未放行前 delivery 缺失只能作为 downstream blocker 展示。repo capability landed 不等于 live controlled apply completed；真实三篇论文仍要在 repo gates 全绿后用 artifact delta、gate replay、owner 前进和 freshness proof 单独验收。
 - 参考：[Kubernetes controller](https://kubernetes.io/docs/concepts/architecture/controller/)；[AWS idempotent APIs](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)；[AWS timeouts, retries, and backoff with jitter](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter)；[Temporal Activity definition](https://docs.temporal.io/activity-definition)；[Google SRE SLO adoption](https://sre.google/static/pdf/SloAdoptionAndUsageInSre.pdf)。
 
-## 2026-05-09：MAS 持有 supervision scheduler contract，local 成为默认 adapter
+## 2026-05-16：默认 supervision scheduler owner 迁到 OPL replacement
 
-- 决策：`MAS supervision scheduler contract` 当前只允许解释为 MAS standalone/local diagnostics 的 outer supervision owner；`local` 是 MAS 本地默认 scheduler adapter，macOS 落到 MAS-owned LaunchAgent。OPL Full online runtime 的 family-level wakeup 由 OPL family runtime provider 承担，再通过 MAS sidecar dispatch 进入 domain owner surface。MAS 的运行架构按 Runtime Core、Supervisor Scheduler、Product Projection 三层表达：Runtime Core 由 `MAS Runtime OS` / `mas_runtime_core` 持有；Supervisor Scheduler 只负责按 cadence 唤醒 MAS-owned tick、记录 job/run receipt、暴露 SLO / drift；Product Projection 只读展示进度、日志、阻塞和下一步。
+- 决策：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 的默认 `--manager` 是 `opl`，输出 `scheduler_owner=opl_provider_runtime_manager` 与 `adapter_id=opl_family_runtime_provider`。默认入口只投影或委托 OPL `family_scheduler_replacement`，不安装、不刷新、不触发 MAS-owned LaunchAgent。MAS 保留 `outer_supervision_slo` 的 paper-progress 解释、owner receipt、typed blocker、safe action refs 和 no-forbidden-write evidence。
+- 理由：OPL 已提供 runtime manager / provider SLO / family queue / intake / attempt ledger replacement surface；MAS 长期应收窄为 medical research authority pack + thin program surface。继续把本机 LaunchAgent 写成默认 scheduler owner 会让 MAS 持有通用 cadence、job registry 和 scheduler lifecycle，和 OPL-led family framework 分层冲突。
+- 影响：显式 `--manager local` 仍保留为 legacy diagnostic / cleanup path，可检查或移除旧 LaunchAgent；显式 `--manager hermes` 仍是 optional historical/executor-adapter style projection。workspace bootstrap 改为默认委托 OPL replacement，不再安装 MAS local scheduler。该迁移不等于真实 Temporal long soak、paper-line closure、artifact mutation 授权或 publication-ready。
+
+## 2026-05-09：历史 MAS supervision scheduler contract，local 曾是默认 adapter
+
+- 决策：当时的 `MAS supervision scheduler contract` 只允许解释为 MAS standalone/local diagnostics 的 outer supervision owner；`local` 曾是 MAS 本地默认 scheduler adapter，macOS 落到 MAS-owned LaunchAgent。OPL Full online runtime 的 family-level wakeup 由 OPL family runtime provider 承担，再通过 MAS sidecar dispatch 进入 domain owner surface。
 - 理由：fresh repo 状态显示 scheduler 应承担单一、可替换的 adapter 工作：生成 tick script、注册/更新/触发/删除 job、提供 job registry/latest run/session projection 和 liveness。它不持有研究执行、turn continuation、publication judgment、quality authority 或 study truth。成熟工程实践也要求 scheduler 只生产可审计触发，幂等、并发、missed-run、receipt 和 migration 由系统 contract 明确表达。
-- 影响：`runtime-supervision-status`、`runtime-ensure-supervision` 与 `runtime-remove-supervision` 在 MAS standalone/local diagnostics 中默认走 MAS-owned `local` adapter；这是当前活代码残留和迁移桥，不是 MAS 理想长期 runtime/platform owner。OPL Full package、runtime tray 和 installer 将 family runtime provider readiness 作为 Full online readiness 前置条件。两层 readiness 必须分开显示，避免把 provider 或 Hermes 写成 MAS study truth 或质量 owner；后续 replacement proof / no-active-caller 成立后，应把 scheduler lifecycle、job registry、cadence SLO 和 tick transport 迁往 OPL provider/runtime manager 或物理退役 MAS 本地 scheduler 面。
+- 影响：这条历史决策已被 2026-05-16 replacement 决策覆盖为默认 OPL owner；本段只保留 provenance。两层 readiness 必须继续分开显示，避免把 provider、Hermes 或旧 local LaunchAgent 写成 MAS study truth 或质量 owner。
 
 ## 2026-05-08：MAS monolith closeout 取代外部 MDS 默认运行依赖
 

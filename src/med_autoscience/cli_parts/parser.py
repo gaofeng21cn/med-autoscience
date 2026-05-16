@@ -10,7 +10,7 @@ from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_
 from med_autoscience.figure_routes import supported_required_route_help
 
 
-ACTIVE_SUPERVISION_MANAGERS = ("local", "hermes")
+ACTIVE_SUPERVISION_MANAGERS = ("opl", "local", "hermes")
 
 
 def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
@@ -120,7 +120,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_supervision_status_parser.add_argument(
         "--manager",
         choices=ACTIVE_SUPERVISION_MANAGERS,
-        default="local",
+        default="opl",
     )
 
     runtime_ensure_supervision_parser = subparsers.add_parser("runtime-ensure-supervision")
@@ -130,7 +130,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_ensure_supervision_parser.add_argument(
         "--manager",
         choices=ACTIVE_SUPERVISION_MANAGERS,
-        default="local",
+        default="opl",
     )
     runtime_ensure_supervision_parser.add_argument("--dry-run", action="store_true")
     runtime_ensure_supervision_parser.add_argument("--write-install-proof", action="store_true")
@@ -141,7 +141,7 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     runtime_remove_supervision_parser.add_argument(
         "--manager",
         choices=ACTIVE_SUPERVISION_MANAGERS,
-        default="local",
+        default="opl",
     )
 
     runtime_supervisor_scan_parser = subparsers.add_parser("runtime-supervisor-scan")

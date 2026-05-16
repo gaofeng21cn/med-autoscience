@@ -8,9 +8,12 @@ from med_autoscience.profiles import WorkspaceProfile
 
 
 SCHEMA_VERSION = 1
-SCHEDULER_OWNER = "mas_supervision_scheduler"
+SCHEDULER_OWNER = "opl_provider_runtime_manager"
+OPL_SCHEDULER_OWNER = SCHEDULER_OWNER
+LEGACY_MAS_SCHEDULER_OWNER = "mas_supervision_scheduler"
+OPL_ADAPTER_ID = "opl_family_runtime_provider"
 HERMES_ADAPTER_ID = "hermes_gateway_cron"
-DEFAULT_MANAGER = "local"
+DEFAULT_MANAGER = "opl"
 DEFAULT_INTERVAL_SECONDS = local_adapter.DEFAULT_INTERVAL_SECONDS
 
 
@@ -21,7 +24,9 @@ def read_supervision_status(
     manager: str = DEFAULT_MANAGER,
 ) -> dict[str, Any]:
     manager_key = _normalize_manager(manager)
-    if manager_key == "local":
+    if manager_key == "opl":
+        payload = _opl_replacement_status(profile=profile, interval_seconds=interval_seconds)
+    elif manager_key == "local":
         payload = local_adapter.status(profile=profile, interval_seconds=interval_seconds)
     elif manager_key == "hermes":
         payload = _hermes_status(profile=profile, interval_seconds=interval_seconds)
@@ -46,6 +51,17 @@ def ensure_supervision(
     write_install_proof: bool = False,
 ) -> dict[str, Any]:
     manager_key = _normalize_manager(manager)
+    if manager_key == "opl":
+        after = _opl_replacement_status(profile=profile, interval_seconds=interval_seconds)
+        return _opl_replacement_action_result(
+            profile=profile,
+            interval_seconds=interval_seconds,
+            action="delegated_to_opl_provider_scheduler",
+            trigger_now=trigger_now,
+            dry_run=dry_run,
+            write_install_proof=write_install_proof,
+            after=after,
+        )
     if manager_key == "local":
         return local_adapter.ensure(
             profile=profile,
@@ -73,6 +89,18 @@ def remove_supervision(
     manager: str = DEFAULT_MANAGER,
 ) -> dict[str, Any]:
     manager_key = _normalize_manager(manager)
+    if manager_key == "opl":
+        after = _opl_replacement_status(profile=profile, interval_seconds=interval_seconds)
+        return _opl_replacement_action_result(
+            profile=profile,
+            interval_seconds=interval_seconds,
+            action="delegated_to_opl_provider_scheduler",
+            trigger_now=False,
+            dry_run=False,
+            write_install_proof=False,
+            after=after,
+            removing=True,
+        )
     if manager_key == "local":
         return local_adapter.remove(profile=profile, interval_seconds=interval_seconds)
     if manager_key == "hermes":
@@ -92,7 +120,7 @@ def _with_scheduler_contract(
     result = dict(payload)
     result.setdefault("schema_version", SCHEMA_VERSION)
     result.setdefault("surface_kind", "workspace_runtime_supervision")
-    result["scheduler_owner"] = SCHEDULER_OWNER
+    result["scheduler_owner"] = SCHEDULER_OWNER if manager == "opl" else LEGACY_MAS_SCHEDULER_OWNER
     result["adapter_id"] = adapter_id
     result["manager"] = manager
     result.setdefault("workspace_key", local_adapter.workspace_key(profile))
@@ -121,6 +149,169 @@ def _with_scheduler_contract(
     return result
 
 
+def _opl_replacement_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict[str, Any]:
+    generated_at = local_adapter.utc_now()
+    workspace_key = local_adapter.workspace_key(profile)
+    legacy_status = local_adapter.status(profile=profile, interval_seconds=interval_seconds)
+    legacy_adapter_status = dict(legacy_status.get("adapter_status") or {})
+    legacy_adapter_status["migration_state"] = "legacy_diagnostic_only"
+    payload: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": "workspace_runtime_supervision",
+        "generated_at": generated_at,
+        "status": "replacement_owner_active",
+        "loaded": True,
+        "scheduler_owner": OPL_SCHEDULER_OWNER,
+        "owner": OPL_SCHEDULER_OWNER,
+        "adapter_id": OPL_ADAPTER_ID,
+        "manager": "opl",
+        "workspace_key": workspace_key,
+        "interval_seconds": interval_seconds,
+        "schedule_spec": {"kind": "provider_cadence", "interval_seconds": interval_seconds},
+        "desired_schedule": f"OPL provider cadence observes MAS paper-progress SLO at {interval_seconds}s",
+        "overlap_policy": "provider_stage_attempt_lease",
+        "misfire_policy": "provider_records_due_or_skipped_attempt",
+        "summary": (
+            "OPL provider/runtime manager 持有 scheduler lifecycle、cadence、provider SLO、queue intake "
+            "和 attempt ledger；MAS 只投影 paper-progress SLO、owner receipt、typed blocker 与 safe action refs。"
+        ),
+        "migration_state": "replacement_owner_active",
+        "adapter_status": {
+            "adapter_installed": True,
+            "adapter_loaded": True,
+            "adapter_enabled": True,
+            "migration_state": "replacement_owner_active",
+        },
+        "adapter_installed": True,
+        "adapter_loaded": True,
+        "adapter_enabled": True,
+        "job_exists": True,
+        "job_enabled": True,
+        "job_state": "delegated_to_opl_provider",
+        "job_id": f"opl-family-runtime-provider::{workspace_key}",
+        "job_name": f"opl-family-runtime-provider::{workspace_key}",
+        "watch_command": ["opl", "family-runtime", "tick", "--source", "provider-scheduler", "--hydrate"],
+        "tick_sequence": [
+            "opl family-runtime provider-slo tick --provider temporal",
+            "opl family-runtime intake --domain medautoscience",
+            "opl family-runtime tick --source provider-scheduler --hydrate",
+        ],
+        "latest_run_status": None,
+        "latest_run_recorded_at": None,
+        "latest_run_summary": None,
+        "latest_run_session_path": None,
+        "last_receipt_ref": "${OPL_STATE_DIR}/family-runtime/events.jsonl",
+        "drift_reasons": [],
+        "duplicate_job_ids": [],
+        "runtime_contract_ready": True,
+        "runtime_contract_issues": [],
+        "opl_replacement": _opl_replacement_contract(interval_seconds=interval_seconds),
+        "legacy_adapter": {
+            "manager": "local",
+            "scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
+            "adapter_id": legacy_status.get("adapter_id"),
+            "status": legacy_status.get("status"),
+            "summary": legacy_status.get("summary"),
+            "adapter_status": legacy_adapter_status,
+            "diagnostic_status_command": (
+                "uv run python -m med_autoscience.cli runtime-supervision-status "
+                "--profile <profile> --manager local"
+            ),
+            "cleanup_command": (
+                "uv run python -m med_autoscience.cli runtime-remove-supervision "
+                "--profile <profile> --manager local"
+            ),
+        },
+        "authority_boundary": _authority_boundary(),
+    }
+    payload["outer_supervision_slo"] = outer_supervision_slo.build_outer_supervision_slo_projection(
+        profile=profile,
+        supervision_status=payload,
+        generated_at=generated_at,
+        interval_seconds=interval_seconds,
+    )
+    return payload
+
+
+def _opl_replacement_action_result(
+    *,
+    profile: WorkspaceProfile,
+    interval_seconds: int,
+    action: str,
+    trigger_now: bool,
+    dry_run: bool,
+    write_install_proof: bool,
+    after: dict[str, Any],
+    removing: bool = False,
+) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": "workspace_runtime_supervision_replacement_result",
+        "action": action,
+        "manager": "opl",
+        "scheduler_owner": OPL_SCHEDULER_OWNER,
+        "adapter_id": OPL_ADAPTER_ID,
+        "status": "delegated",
+        "dry_run": dry_run,
+        "trigger_now": trigger_now,
+        "write_install_proof": False,
+        "requested_write_install_proof": write_install_proof,
+        "removed_job_ids": [],
+        "after": after,
+        "opl_replacement": after["opl_replacement"],
+        "legacy_local_adapter": after["legacy_adapter"],
+        "legacy_local_cleanup_command": (
+            "uv run python -m med_autoscience.cli runtime-remove-supervision "
+            "--profile <profile> --manager local"
+        ),
+        "note": (
+            "MAS no longer installs or removes the default scheduler. OPL provider/runtime manager owns the "
+            "scheduler replacement; explicit --manager local remains available only for legacy diagnostic cleanup."
+        ),
+        "remove_requested": removing,
+        "authority_boundary": _authority_boundary(),
+    }
+
+
+def _opl_replacement_contract(*, interval_seconds: int) -> dict[str, Any]:
+    return {
+        "surface_kind": "mas_opl_scheduler_replacement_projection",
+        "contract_ref": "contracts/opl-framework/runtime-manager-contract.json#/family_scheduler_replacement",
+        "replacement_owner": OPL_SCHEDULER_OWNER,
+        "cadence_owner": "provider_backed_family_runtime",
+        "adapter_id": OPL_ADAPTER_ID,
+        "provider_slo_tick_command": "opl family-runtime provider-slo tick --provider temporal",
+        "domain_intake_command": "opl family-runtime intake --domain medautoscience",
+        "family_runtime_tick_command": "opl family-runtime tick --source provider-scheduler --hydrate",
+        "runtime_manager_status_command": "opl runtime manager",
+        "paper_progress_slo_interval_seconds": interval_seconds,
+        "mas_retained_role": [
+            "paper_progress_slo_semantics",
+            "owner_receipt",
+            "typed_blocker",
+            "safe_action_refs",
+            "no_forbidden_write_evidence",
+        ],
+        "legacy_scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
+        "legacy_scheduler_role": "explicit_local_diagnostic_cleanup_only",
+    }
+
+
+def _authority_boundary() -> dict[str, bool]:
+    return {
+        "can_install_domain_daemon": False,
+        "can_write_domain_truth": False,
+        "can_write_domain_memory_body": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_artifact_export": False,
+        "can_execute_reconcile": False,
+        "can_project_paper_progress_slo": True,
+        "can_return_owner_receipt": True,
+        "can_return_typed_blocker": True,
+        "can_return_safe_action_refs": True,
+    }
+
+
 def _hermes_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict[str, Any]:
     payload = dict(hermes_supervision.read_supervision_status(profile=profile, interval_seconds=interval_seconds))
     payload.update(
@@ -142,7 +333,7 @@ def _hermes_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict[
 def _project_hermes_result(payload: dict[str, Any]) -> dict[str, Any]:
     projected = dict(payload)
     projected.setdefault("schema_version", SCHEMA_VERSION)
-    projected["scheduler_owner"] = SCHEDULER_OWNER
+    projected["scheduler_owner"] = LEGACY_MAS_SCHEDULER_OWNER
     projected["adapter_id"] = HERMES_ADAPTER_ID
     projected["manager"] = "hermes"
     for key in ("before", "after"):
@@ -154,13 +345,15 @@ def _project_hermes_result(payload: dict[str, Any]) -> dict[str, Any]:
 def _project_hermes_status_dict(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         **payload,
-        "scheduler_owner": SCHEDULER_OWNER,
+        "scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
         "adapter_id": HERMES_ADAPTER_ID,
         "manager": "hermes",
     }
 
 
 def _adapter_id_for_manager(manager: str) -> str:
+    if manager == "opl":
+        return OPL_ADAPTER_ID
     if manager == "hermes":
         return HERMES_ADAPTER_ID
     if manager == "local":
@@ -182,6 +375,9 @@ def _normalize_manager(manager: str | None) -> str:
 
 __all__ = [
     "DEFAULT_INTERVAL_SECONDS",
+    "LEGACY_MAS_SCHEDULER_OWNER",
+    "OPL_ADAPTER_ID",
+    "OPL_SCHEDULER_OWNER",
     "SCHEMA_VERSION",
     "SCHEDULER_OWNER",
     "ensure_supervision",

@@ -752,11 +752,12 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
         cli.supervision_scheduler,
         "ensure_supervision",
         lambda **kwargs: {
-            "surface_kind": "workspace_runtime_supervision_install_result",
-            "action": "installed",
+            "surface_kind": "workspace_runtime_supervision_replacement_result",
+            "action": "delegated_to_opl_provider_scheduler",
             "manager": kwargs["manager"],
             "trigger_now": kwargs["trigger_now"],
-            "write_install_proof": kwargs["write_install_proof"],
+            "write_install_proof": False,
+            "requested_write_install_proof": kwargs["write_install_proof"],
         },
     )
 
@@ -790,9 +791,10 @@ def test_bootstrap_command_ensures_profile_overlay(monkeypatch, tmp_path: Path, 
     assert calls["refresh_data_assets_workspace_root"] == workspace_root
     assert '"selected_action": "noop"' in captured.out
     assert '"supervision_bootstrap"' in captured.out
-    assert '"manager": "local"' in captured.out
+    assert '"manager": "opl"' in captured.out
     assert '"trigger_now": false' in captured.out
-    assert '"write_install_proof": true' in captured.out
+    assert '"write_install_proof": true' not in captured.out
+    assert '"requested_write_install_proof": true' in captured.out
     assert '"impact_report"' in captured.out
     assert '"startup_data_readiness"' in captured.out
     assert '"studies"' not in captured.out

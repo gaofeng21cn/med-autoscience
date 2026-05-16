@@ -27,6 +27,68 @@ def _write_successful_tick_commands(profile) -> None:
         command.chmod(0o755)
 
 
+def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
+    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
+    profile = make_profile(tmp_path)
+    launch_agents = tmp_path / "LaunchAgents"
+    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
+    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
+
+    result = module.read_supervision_status(profile=profile)
+
+    assert result["scheduler_owner"] == "opl_provider_runtime_manager"
+    assert result["adapter_id"] == "opl_family_runtime_provider"
+    assert result["manager"] == "opl"
+    assert result["status"] == "replacement_owner_active"
+    assert result["loaded"] is True
+    assert result["adapter_status"]["migration_state"] == "replacement_owner_active"
+    assert result["opl_replacement"]["provider_slo_tick_command"] == (
+        "opl family-runtime provider-slo tick --provider temporal"
+    )
+    assert result["legacy_adapter"]["manager"] == "local"
+    assert result["legacy_adapter"]["scheduler_owner"] == "mas_supervision_scheduler"
+    assert result["authority_boundary"]["can_install_domain_daemon"] is False
+    assert result["outer_supervision_slo"]["supervision_owner"] == "opl_provider_runtime_manager"
+    assert not launch_agents.exists()
+
+
+def test_default_scheduler_ensure_delegates_to_opl_replacement_without_launchagent(
+    monkeypatch, tmp_path: Path
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
+    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
+    profile = make_profile(tmp_path)
+    launch_agents = tmp_path / "LaunchAgents"
+    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
+    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
+
+    result = module.ensure_supervision(profile=profile, trigger_now=True, write_install_proof=True)
+
+    assert result["action"] == "delegated_to_opl_provider_scheduler"
+    assert result["scheduler_owner"] == "opl_provider_runtime_manager"
+    assert result["manager"] == "opl"
+    assert result["dry_run"] is False
+    assert result["write_install_proof"] is False
+    assert result["after"]["status"] == "replacement_owner_active"
+    assert result["legacy_local_adapter"]["manager"] == "local"
+    assert result["authority_boundary"]["can_install_domain_daemon"] is False
+    assert not launch_agents.exists()
+
+
+def test_default_scheduler_remove_delegates_to_opl_and_keeps_local_cleanup_explicit(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
+    profile = make_profile(tmp_path)
+
+    result = module.remove_supervision(profile=profile)
+
+    assert result["action"] == "delegated_to_opl_provider_scheduler"
+    assert result["scheduler_owner"] == "opl_provider_runtime_manager"
+    assert result["manager"] == "opl"
+    assert result["removed_job_ids"] == []
+    assert result["legacy_local_cleanup_command"].endswith(" --manager local")
+
+
 def test_local_scheduler_dry_run_projects_launchd_without_hermes(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
     local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")

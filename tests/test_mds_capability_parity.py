@@ -249,8 +249,8 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert matrix["surface"] == "mds_behavior_equivalence_matrix"
     assert matrix["owner"] == "MedAutoScience"
     assert matrix["default_operation_requires_external_mds"] is False
-    assert matrix["default_supervision_owner"] == "mas_supervision_scheduler"
-    assert matrix["default_scheduler_adapter"] == "local"
+    assert matrix["default_supervision_owner"] == "opl_provider_runtime_manager"
+    assert matrix["default_scheduler_adapter"] == "opl"
     assert matrix["optional_scheduler_adapters"] == ["hermes_gateway_cron"]
     assert matrix["default_tick_interval_seconds"] == 300
     assert matrix["default_tick_max_ticks"] == 1
@@ -389,8 +389,10 @@ def test_mds_behavior_equivalence_matrix_separates_default_independence_from_dae
     assert continuity["status"] == "landed"
     assert continuity["external_mds_repo_required"] is False
     assert continuity["mds_daemon_required"] is False
-    assert continuity["active_scheduler"] == "mas_supervision_scheduler"
-    assert continuity["active_scheduler_adapter"] == "local"
+    assert continuity["active_scheduler"] == "opl_provider_runtime_manager"
+    assert continuity["active_scheduler_adapter"] == "opl"
+    assert continuity["legacy_diagnostic_scheduler"] == "mas_supervision_scheduler"
+    assert continuity["legacy_diagnostic_scheduler_adapter"] == "local"
     assert continuity["optional_scheduler_adapters"] == ["hermes_gateway_cron"]
     assert continuity["runtime_session_read_model"]["role"] == "read_model"
     assert continuity["runtime_session_read_model"]["read_only"] is True
