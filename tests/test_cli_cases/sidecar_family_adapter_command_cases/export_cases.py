@@ -65,22 +65,36 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert payload["authority_boundary"]["online_runtime_provider_owner"] == "opl_family_runtime_provider"
     assert payload["authority_boundary"]["mas_domain_authority"] == [
         "study_truth",
+        "memory_body",
+        "evidence_ledger",
+        "review_ledger",
         "runtime_health_truth",
         "publication_quality_verdict",
         "artifact_authority",
+        "publication_authority",
         "owner_route_decision",
     ]
     assert payload["authority_boundary"]["opl_receipt_policy"] == "transport_receipt_only_no_domain_truth_authority"
     assert payload["authority_boundary"]["forbidden_authorities"] == [
         "study_truth_write",
+        "memory_body_write",
+        "evidence_ledger_write",
+        "review_ledger_write",
         "publication_quality_verdict",
         "artifact_gate_override",
+        "publication_authority_write",
         "current_package_write",
     ]
+    assert payload["authority_boundary"]["opl_substrate_authority"] == (
+        "locator_index_lifecycle_projection_only"
+    )
     assert payload["authority_boundary"]["owns_generic_scheduler"] is False
     assert payload["authority_boundary"]["owns_generic_daemon"] is False
     assert payload["authority_boundary"]["owns_generic_queue"] is False
     assert payload["authority_boundary"]["owns_generic_attempt_ledger"] is False
+    assert payload["authority_boundary"]["owns_generic_locator"] is False
+    assert payload["authority_boundary"]["owns_generic_lifecycle"] is False
+    assert payload["authority_boundary"]["owns_generic_projection"] is False
     assert payload["authority_boundary"]["owns_generic_runner"] is False
     assert payload["authority_boundary"]["owns_generic_workbench"] is False
     boundary = payload["functional_consumer_boundary"]
@@ -104,6 +118,56 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     }
     assert payload["profile"]["profile_ref"] == str(profile_path)
     assert payload["workspace"]["workspace_root"] == str(workspace_root)
+    substrate = payload["opl_substrate_adapter"]
+    assert substrate["surface_kind"] == "mas_opl_generic_substrate_adapter"
+    assert substrate["mode"] == "opaque_index_only_refs"
+    assert substrate["projection_policy"] == {
+        "body_included": False,
+        "opl_may_index": True,
+        "opl_may_resolve_locator": True,
+        "opl_may_manage_lifecycle": True,
+        "opl_may_project_status": True,
+        "opl_may_write_mas_truth": False,
+        "opl_may_write_memory_body": False,
+        "opl_may_write_evidence_ledger": False,
+        "opl_may_write_review_ledger": False,
+        "opl_may_write_publication_or_artifact_authority": False,
+    }
+    assert substrate["authority_boundary"]["mas_owns"] == [
+        "study_truth",
+        "memory_body",
+        "evidence_ledger",
+        "review_ledger",
+        "publication_authority",
+        "artifact_authority",
+    ]
+    assert substrate["authority_boundary"]["opl_owns"] == [
+        "locator",
+        "index",
+        "lifecycle",
+        "projection",
+    ]
+    assert substrate["authority_boundary"]["can_write_publication_eval"] is False
+    assert substrate["authority_boundary"]["can_write_controller_decisions"] is False
+    assert substrate["authority_boundary"]["can_write_current_package"] is False
+    for ref_family in ("workspace_refs", "source_refs", "artifact_refs", "memory_refs"):
+        assert substrate[ref_family]
+        assert all(ref["body_included"] is False for ref in substrate[ref_family])
+        assert all(ref["write_permitted"] is False for ref in substrate[ref_family])
+        assert all(ref["opaque_to_opl"] is True for ref in substrate[ref_family])
+        assert all(ref["index_only"] is True for ref in substrate[ref_family])
+    artifact_roles = {ref["role"] for ref in substrate["artifact_refs"]}
+    assert {
+        "publication_eval",
+        "controller_decisions",
+        "evidence_ledger",
+        "review_ledger",
+        "current_package_root",
+        "current_package_zip",
+    } <= artifact_roles
+    memory_roles = {ref["role"] for ref in substrate["memory_refs"]}
+    assert "publication_route_memory_pack" in memory_roles
+    assert "domain_memory_descriptor" in memory_roles
     provider = payload["provider_ready_adapter"]
     assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
     assert provider["provider_topology"]["target_provider"] == "temporal"

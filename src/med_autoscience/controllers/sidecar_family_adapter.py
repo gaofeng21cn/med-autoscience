@@ -16,6 +16,7 @@ from . import runtime_supervisor_reconcile
 from . import stage_knowledge_plane
 from . import study_domain_transition_table
 from .real_paper_autonomy_soak_inventory_parts import provider_guarded_apply
+from .sidecar_family_adapter_parts.authority_boundary import authority_boundary_payload
 from .sidecar_family_adapter_parts.functional_closure import (
     build_sidecar_functional_closure_projection,
 )
@@ -25,6 +26,7 @@ from .sidecar_family_adapter_parts.guarded_apply_tasks import (
     provider_hosted_guarded_apply_tasks,
 )
 from .sidecar_family_adapter_parts.owner_source_refs import owner_controller_decision_refs
+from .sidecar_family_adapter_parts.substrate_adapter import build_opl_substrate_adapter_projection
 from .supervision_scheduler_parts import consumer_migration
 
 
@@ -105,36 +107,7 @@ def _workspace_relative(path: Path, *, workspace_root: Path) -> str:
 
 
 def _authority_boundary_payload() -> dict[str, Any]:
-    return {
-        "family_runtime_framework_owner": "one-person-lab",
-        "online_runtime_provider_owner": "opl_family_runtime_provider",
-        "typed_dispatch_owner": "one-person-lab",
-        "domain_truth_owner": "med-autoscience",
-        "quality_gate_owner": "med-autoscience",
-        "artifact_authority_owner": "med-autoscience",
-        "mas_domain_authority": [
-            "study_truth",
-            "runtime_health_truth",
-            "publication_quality_verdict",
-            "artifact_authority",
-            "owner_route_decision",
-        ],
-        "opl_receipt_policy": "transport_receipt_only_no_domain_truth_authority",
-        "writes_domain_truth": False,
-        "writes_artifact_gate": False,
-        "owns_generic_scheduler": False,
-        "owns_generic_daemon": False,
-        "owns_generic_queue": False,
-        "owns_generic_attempt_ledger": False,
-        "owns_generic_runner": False,
-        "owns_generic_workbench": False,
-        "forbidden_authorities": [
-            "study_truth_write",
-            "publication_quality_verdict",
-            "artifact_gate_override",
-            "current_package_write",
-        ],
-    }
+    return authority_boundary_payload()
 
 
 def _source_ref(*, study_root: Path, role: str, relative_path: Path, workspace_root: Path) -> dict[str, Any]:
@@ -270,6 +243,14 @@ def export_family_sidecar(
             "receipt_refs": opl_provider_ready_adapter.receipt_refs_for_profile(profile),
         },
         "authority_boundary": _authority_boundary_payload(),
+        "opl_substrate_adapter": build_opl_substrate_adapter_projection(
+            profile=profile,
+            studies=studies,
+            authority_boundary_payload=_authority_boundary_payload,
+            workspace_relative=lambda path: _workspace_relative(path, workspace_root=profile.workspace_root),
+            text=_text,
+            mapping=_mapping,
+        ),
         "functional_consumer_boundary": consumer_migration.build_functional_consumer_boundary(),
         "family_transition_spec_descriptor": (
             study_domain_transition_table.build_family_transition_spec_descriptor()

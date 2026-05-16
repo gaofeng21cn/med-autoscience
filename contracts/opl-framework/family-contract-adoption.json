@@ -180,6 +180,64 @@
       "publication_readiness_owner"
     ]
   },
+  "generic_substrate_adapter_projection": {
+    "descriptor_surface": "medautosci sidecar export.opl_substrate_adapter",
+    "surface_kind": "mas_opl_generic_substrate_adapter",
+    "mode": "opaque_index_only_refs",
+    "source_ref_families": [
+      "workspace_refs",
+      "source_refs",
+      "artifact_refs",
+      "memory_refs"
+    ],
+    "maps_to_opl_contracts": {
+      "workspace_locator": "opl_family_workspace_locator_contract.v1",
+      "source_index": "opl_family_source_index_contract.v1",
+      "artifact_locator": "opl_family_artifact_locator_contract.v1",
+      "memory_locator": "opl_family_memory_locator_contract.v1",
+      "lifecycle_projection": "opl_family_lifecycle_contract.v1"
+    },
+    "projection_policy": {
+      "body_included": false,
+      "refs_are_opaque_to_opl": true,
+      "opl_may_index": true,
+      "opl_may_resolve_locator": true,
+      "opl_may_manage_lifecycle": true,
+      "opl_may_project_status": true,
+      "opl_may_write_mas_truth": false,
+      "opl_may_write_memory_body": false,
+      "opl_may_write_evidence_ledger": false,
+      "opl_may_write_review_ledger": false,
+      "opl_may_write_publication_or_artifact_authority": false
+    },
+    "authority_boundary": {
+      "mas_owns": [
+        "study_truth",
+        "memory_body",
+        "evidence_ledger",
+        "review_ledger",
+        "publication_authority",
+        "artifact_authority"
+      ],
+      "opl_owns": [
+        "locator",
+        "index",
+        "lifecycle",
+        "projection"
+      ],
+      "forbidden_opl_authority_surfaces": [
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "paper/evidence/evidence_ledger.json",
+        "paper/review/review_ledger.json",
+        "paper/manuscript/current_package",
+        "manuscript/current_package",
+        "current_package.zip",
+        "publication_route_memory_body",
+        "memory_write_router_receipt_acceptance"
+      ]
+    }
+  },
   "persistence_lifecycle_owner_route_projection": {
     "adoption_surface_kind": "mas_opl_family_persistence_lifecycle_owner_route_adoption",
     "required_shape": [

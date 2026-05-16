@@ -333,3 +333,54 @@ def test_sidecar_dispatch_rejects_opl_memory_body_or_router_acceptance_write(
     guard = payload["forbidden_write_guard_proof"]
     assert guard["guard_owner"] == "med-autoscience"
     assert guard["can_write_domain_truth"] is False
+
+
+def test_sidecar_dispatch_rejects_opl_substrate_authority_surface_writes(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    task_path = tmp_path / "task.json"
+    _write_json(
+        task_path,
+        {
+            "task_id": "substrate-authority-write",
+            "domain_id": "medautoscience",
+            "task_kind": "study_progress/read",
+            "payload": {
+                "profile": "/tmp/profile.toml",
+                "study_id": "001-risk",
+                "requested_writes": [
+                    "publication_eval",
+                    "controller_decisions",
+                    "manuscript/current_package",
+                    "current_package.zip",
+                    "evidence_ledger",
+                    "review_ledger",
+                    "publication_authority",
+                    "artifact_authority",
+                ],
+            },
+        },
+    )
+
+    exit_code = cli.main(["sidecar", "dispatch", "--task", str(task_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["accepted"] is False
+    assert payload["reason"] == "domain_truth_or_artifact_gate_write_forbidden"
+    assert payload["forbidden_requested_writes"] == [
+        "publication_eval",
+        "controller_decisions",
+        "manuscript/current_package",
+        "current_package.zip",
+        "evidence_ledger",
+        "review_ledger",
+        "publication_authority",
+        "artifact_authority",
+    ]
+    guard = payload["forbidden_write_guard_proof"]
+    assert guard["can_write_domain_truth"] is False
+    assert guard["can_write_current_package"] is False
+    assert guard["can_override_artifact_gate"] is False

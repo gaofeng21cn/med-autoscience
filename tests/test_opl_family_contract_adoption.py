@@ -220,3 +220,61 @@ def test_mas_domain_memory_projection_declares_domain_owned_migration_surface() 
     }
     assert "memory_store_owner" in memory["forbidden_opl_authority"]
     assert "publication_route_decision_owner" in memory["forbidden_opl_authority"]
+
+
+def test_mas_generic_substrate_adapter_projection_is_opaque_index_only() -> None:
+    contract = _contract()
+    substrate = contract["generic_substrate_adapter_projection"]
+
+    assert substrate["descriptor_surface"] == "medautosci sidecar export.opl_substrate_adapter"
+    assert substrate["surface_kind"] == "mas_opl_generic_substrate_adapter"
+    assert substrate["mode"] == "opaque_index_only_refs"
+    assert substrate["source_ref_families"] == [
+        "workspace_refs",
+        "source_refs",
+        "artifact_refs",
+        "memory_refs",
+    ]
+    assert substrate["maps_to_opl_contracts"] == {
+        "workspace_locator": "opl_family_workspace_locator_contract.v1",
+        "source_index": "opl_family_source_index_contract.v1",
+        "artifact_locator": "opl_family_artifact_locator_contract.v1",
+        "memory_locator": "opl_family_memory_locator_contract.v1",
+        "lifecycle_projection": "opl_family_lifecycle_contract.v1",
+    }
+    assert substrate["projection_policy"] == {
+        "body_included": False,
+        "refs_are_opaque_to_opl": True,
+        "opl_may_index": True,
+        "opl_may_resolve_locator": True,
+        "opl_may_manage_lifecycle": True,
+        "opl_may_project_status": True,
+        "opl_may_write_mas_truth": False,
+        "opl_may_write_memory_body": False,
+        "opl_may_write_evidence_ledger": False,
+        "opl_may_write_review_ledger": False,
+        "opl_may_write_publication_or_artifact_authority": False,
+    }
+    assert substrate["authority_boundary"]["mas_owns"] == [
+        "study_truth",
+        "memory_body",
+        "evidence_ledger",
+        "review_ledger",
+        "publication_authority",
+        "artifact_authority",
+    ]
+    assert substrate["authority_boundary"]["opl_owns"] == [
+        "locator",
+        "index",
+        "lifecycle",
+        "projection",
+    ]
+    assert set(substrate["authority_boundary"]["forbidden_opl_authority_surfaces"]) >= {
+        "publication_eval/latest.json",
+        "controller_decisions/latest.json",
+        "paper/evidence/evidence_ledger.json",
+        "paper/review/review_ledger.json",
+        "manuscript/current_package",
+        "current_package.zip",
+        "publication_route_memory_body",
+    }
