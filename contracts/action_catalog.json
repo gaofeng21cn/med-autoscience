@@ -659,6 +659,8 @@
     }
   ],
   "authority_boundary": {
+    "descriptor_projection_owner": "one-person-lab",
+    "domain_handler_target_owner": "MedAutoScience",
     "domain_truth_owner": "MedAutoScience",
     "opl_role": "projection_consumer_only",
     "write_policy": "no_domain_truth_writes"

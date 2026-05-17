@@ -263,6 +263,11 @@ def build_mas_action_catalog(*, profile_ref: str | Path | None = None) -> dict[s
     catalog["descriptor_projection_owner"] = "one-person-lab"
     catalog["domain_handler_target_owner"] = MAS_TRUTH_OWNER
     catalog["domain_repo_can_own_generated_surface"] = False
+    catalog["authority_boundary"] = {
+        **dict(catalog.get("authority_boundary") or {}),
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": MAS_TRUTH_OWNER,
+    }
     return catalog
 
 
