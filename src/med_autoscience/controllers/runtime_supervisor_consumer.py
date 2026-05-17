@@ -612,7 +612,7 @@ def _selected_actions(
     request_selected: list[dict[str, Any]] = []
     ignored: list[dict[str, Any]] = []
     allowed_studies = set(study_ids)
-    actions = scan_payload.get("action_queue")
+    actions = _current_actions_for_studies(scan_payload=scan_payload, study_ids=study_ids)
     if not isinstance(actions, list):
         return selected, request_selected, ignored
     for action in actions:
@@ -633,6 +633,32 @@ def _selected_actions(
             ignored.append(_ignored_action(action, "unsupported_action_type"))
             continue
     return selected, request_selected, ignored
+
+
+def _current_actions_for_studies(*, scan_payload: Mapping[str, Any], study_ids: tuple[str, ...]) -> list[dict[str, Any]] | None:
+    if not study_ids:
+        actions = scan_payload.get("action_queue")
+        return list(actions) if isinstance(actions, list) else None
+    per_study_actions: list[dict[str, Any]] = []
+    requested = set(study_ids)
+    for study in scan_payload.get("studies") or []:
+        study_payload = _mapping(study)
+        study_id = _text(study_payload.get("study_id"))
+        if study_id not in requested:
+            continue
+        quest_id = _text(study_payload.get("quest_id"))
+        for action in study_payload.get("action_queue") or []:
+            if not isinstance(action, Mapping):
+                continue
+            payload = dict(action)
+            payload["study_id"] = _text(payload.get("study_id")) or study_id
+            if quest_id is not None:
+                payload["quest_id"] = _text(payload.get("quest_id")) or quest_id
+            per_study_actions.append(payload)
+    if per_study_actions:
+        return per_study_actions
+    actions = scan_payload.get("action_queue")
+    return list(actions) if isinstance(actions, list) else None
 
 
 def _resolve_study_ids_from_scan(scan_payload: Mapping[str, Any], study_ids: Iterable[str]) -> tuple[str, ...]:

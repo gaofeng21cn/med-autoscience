@@ -124,3 +124,95 @@ def test_supervisor_consume_routes_clean_canonical_rehydrate_to_write_owner(
     assert dispatch_path.is_file()
     assert not (study_root / "paper" / "medical_manuscript_blueprint.json").exists()
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_supervisor_consume_prefers_current_study_queue_over_stale_top_level_queue(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+    profile = make_profile(tmp_path)
+    study_id = "004-dpcc-longitudinal-care-inertia-intensification-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    stale_route = _owner_route(
+        study_id=study_id,
+        quest_id=study_id,
+        next_owner="ai_reviewer",
+        owner_reason="paper_authority_clean_migration_required",
+        allowed_actions=["return_to_ai_reviewer_workflow"],
+    )
+    current_route = _owner_route(
+        study_id=study_id,
+        quest_id=study_id,
+        next_owner="write",
+        owner_reason="canonical_paper_inputs_rehydrate_required",
+        allowed_actions=["canonical_paper_inputs_rehydrate_required"],
+    )
+    current_route["source_fingerprint"] = "truth-source::current-write-rehydrate"
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "authority": "observability_only",
+                    "owner": "ai_reviewer",
+                    "recommended_owner": "ai_reviewer",
+                    "reason": "paper_authority_clean_migration_required",
+                    "required_output_surface": "artifacts/publication_eval/latest.json",
+                    "owner_route": stale_route,
+                }
+            ],
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "owner_route": current_route,
+                    "action_queue": [
+                        {
+                            "action_type": "canonical_paper_inputs_rehydrate_required",
+                            "authority": "observability_only",
+                            "owner": "write",
+                            "recommended_owner": "write",
+                            "reason": "canonical_paper_inputs_rehydrate_required",
+                            "required_output_surface": str(
+                                study_root / "paper" / "medical_manuscript_blueprint_source.json"
+                            ),
+                            "owner_route": current_route,
+                            "legacy_artifact_reader_allowed": False,
+                            "mechanical_blueprint_as_canonical_allowed": False,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    result = module.supervisor_consume(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    dispatch = result["default_executor_dispatches"][0]
+    assert result["default_executor_dispatch_count"] == 1
+    assert dispatch["action_type"] == "canonical_paper_inputs_rehydrate_required"
+    assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["owner_route"]["next_owner"] == "write"
+    assert dispatch["owner_route"]["work_unit_fingerprint"] == current_route["source_fingerprint"]
+    assert dispatch["required_output_surface"].endswith("paper/medical_manuscript_blueprint_source.json")
+    assert not (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    ).exists()
