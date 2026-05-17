@@ -254,12 +254,16 @@ def record_explicit_user_wakeup(
         return None
     human_takeover_contract = runtime_state.get("human_takeover_contract")
     if isinstance(human_takeover_contract, dict) and human_takeover_contract.get("resume_requires_explicit_wakeup") is True:
-        return record_explicit_human_takeover_wakeup(
+        human_takeover_wakeup = record_explicit_human_takeover_wakeup(
             quest_root=quest_root,
             source=source,
             runtime_state=runtime_state,
             runtime_state_path=runtime_state_path,
         )
+        if human_takeover_wakeup is not None:
+            return human_takeover_wakeup
+        if not _stopped_pending_user_message_redrive_requires_explicit_wakeup(runtime_state):
+            return None
     if _bare_paused_runtime_state_requires_explicit_wakeup(runtime_state):
         return record_explicit_bare_paused_wakeup(
             quest_root=quest_root,
@@ -359,6 +363,7 @@ def record_explicit_pending_user_message_redrive_wakeup(
     if not _stopped_pending_user_message_redrive_requires_explicit_wakeup(runtime_state):
         return None
     previous_continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
+    cleared_stale_human_takeover = runtime_state.pop("human_takeover_contract", None) is not None
     runtime_state["continuation_policy"] = "auto"
     runtime_state["continuation_anchor"] = "decision"
     runtime_state["continuation_reason"] = "runtime_platform_repair_redrive"
@@ -368,6 +373,7 @@ def record_explicit_pending_user_message_redrive_wakeup(
         "recorded_at": recorded_at,
         "cleared_keys": [],
         "cleared_pending_user_message_redrive": True,
+        "cleared_stale_human_takeover_contract": cleared_stale_human_takeover,
         "previous_continuation_reason": previous_continuation_reason,
     }
     runtime_state_path.write_text(
@@ -381,6 +387,7 @@ def record_explicit_pending_user_message_redrive_wakeup(
         "recorded_at": recorded_at,
         "cleared_keys": [],
         "cleared_pending_user_message_redrive": True,
+        "cleared_stale_human_takeover_contract": cleared_stale_human_takeover,
         "previous_continuation_reason": previous_continuation_reason,
     }
 
