@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
+from med_autoscience.ars_learning_projection import build_ars_learning_projection
 
 from . import opl_provider_ready_adapter
 from . import paper_repair_executor
@@ -252,6 +253,7 @@ def export_family_sidecar(
             mapping=_mapping,
         ),
         "functional_consumer_boundary": consumer_migration.build_functional_consumer_boundary(),
+        "ars_learning_projection": build_ars_learning_projection(),
         "family_transition_spec_descriptor": (
             study_domain_transition_table.build_family_transition_spec_descriptor()
         ),

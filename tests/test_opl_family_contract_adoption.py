@@ -344,3 +344,55 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
         "mas_keeps_medical_authority_functions": True,
         "mas_keeps_generic_shell_owner": False,
     }
+
+
+def test_mas_ars_learning_projection_declares_external_patterns_without_boundary_drift() -> None:
+    contract = _contract()
+    projection = contract["academic_research_skills_learning_projection"]
+
+    assert projection["surface_kind"] == "mas_ars_learning_projection"
+    assert projection["descriptor_surfaces"] == [
+        "product_entry_manifest.ars_learning_projection",
+        "product_entry_manifest.family_stage_control_plane_descriptor.ars_learning_projection",
+        "sidecar_export.ars_learning_projection",
+    ]
+    assert projection["source_repository"] == "https://github.com/Imbad0202/academic-research-skills"
+    assert projection["observed_head"] == "d564d26da39de039ba71d9b51f43e6a25fe9b149"
+    assert projection["intake_doc_ref"] == "docs/references/mainline/ars_learning_intake.md"
+    assert projection["dependency_introduced"] is False
+    assert projection["absorbed_pattern_ids"] == [
+        "claim_citation_support_audit",
+        "data_access_and_oversight_metadata",
+        "evidence_handoff_passport",
+    ]
+    assert projection["maps_to_opl_shared_primitive"] == "family-stage-integrity-metadata.v1"
+    assert projection["mas_role"] == "domain_projection_and_thin_adapter_only"
+    assert projection["allowed_export"] == [
+        "refs",
+        "metadata",
+        "freshness",
+        "typed_blockers",
+        "owner_boundary",
+    ]
+    assert set(projection["forbidden_export"]) >= {
+        "memory_body",
+        "evidence_ledger_body",
+        "review_ledger_body",
+        "publication_verdict_body",
+        "paper_or_package_blob",
+    }
+    assert projection["authority_boundary"] == {
+        "ars_role": "external_pattern_source_only",
+        "opl_owner": "one-person-lab",
+        "mas_domain_truth_owner": "MedAutoScience",
+        "mas_publication_verdict_owner": "MedAutoScience",
+        "mas_artifact_authority_owner": "MedAutoScience",
+        "can_write_domain_truth": False,
+        "can_write_evidence_ledger": False,
+        "can_write_review_ledger": False,
+        "can_write_publication_eval": False,
+        "can_write_controller_decisions": False,
+        "can_authorize_publication_quality": False,
+        "can_authorize_submission_readiness": False,
+        "can_authorize_artifact_authority": False,
+    }

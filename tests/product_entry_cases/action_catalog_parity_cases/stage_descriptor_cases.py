@@ -121,6 +121,37 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
     stage_skill_projection = stage_skill_surface_projection.build_stage_skill_surface_projection()
     assert descriptor["stage_skill_surface_projection"] == stage_skill_projection
     assert manifest["stage_skill_surface_projection"] == stage_skill_projection
+    ars_projection = descriptor["ars_learning_projection"]
+    assert manifest["ars_learning_projection"] == ars_projection
+    assert ars_projection["surface_kind"] == "mas_ars_learning_projection"
+    assert ars_projection["source_snapshot"] == {
+        "source_project": "academic-research-skills",
+        "repository": "https://github.com/Imbad0202/academic-research-skills",
+        "observed_head": "d564d26da39de039ba71d9b51f43e6a25fe9b149",
+        "intake_doc_ref": "docs/references/mainline/ars_learning_intake.md",
+        "dependency_introduced": False,
+    }
+    assert [pattern["pattern_id"] for pattern in ars_projection["absorbed_patterns"]] == [
+        "claim_citation_support_audit",
+        "data_access_and_oversight_metadata",
+        "evidence_handoff_passport",
+    ]
+    assert ars_projection["metadata_policy"]["ars_passport_is_truth"] is False
+    assert ars_projection["metadata_policy"]["ars_passport_body_exported"] is False
+    assert ars_projection["truth_surface_mapping"]["verdict_refs"] == [
+        "artifacts/publication_eval/latest.json",
+        "artifacts/controller_decisions/latest.json",
+    ]
+    assert ars_projection["opl_shared_primitive_handoff"]["expected_owner"] == "one-person-lab"
+    assert ars_projection["opl_shared_primitive_handoff"]["mas_role"] == (
+        "domain_projection_and_thin_adapter_only"
+    )
+    assert "publication_verdict_body" in ars_projection["opl_shared_primitive_handoff"]["forbidden_export"]
+    assert ars_projection["authority_boundary"]["ars_role"] == "external_pattern_source_only"
+    assert ars_projection["authority_boundary"]["can_write_publication_eval"] is False
+    assert ars_projection["authority_boundary"]["can_write_controller_decisions"] is False
+    assert ars_projection["authority_boundary"]["can_authorize_publication_quality"] is False
+    assert ars_projection["authority_boundary"]["can_authorize_submission_readiness"] is False
     assert set(stage_skill_projection) == {
         "surface_kind",
         "version",
