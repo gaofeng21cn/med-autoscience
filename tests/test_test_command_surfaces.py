@@ -357,6 +357,10 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'cd "${repo_root}"' in verify_script
     assert 'verify_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-verify.XXXXXX")"' in verify_script
     assert 'export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"' in verify_script
+    runner_script = _read("scripts/run-python-clean.sh")
+    assert 'export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"' in runner_script
+    assert 'venv_python="${UV_PROJECT_ENVIRONMENT}/bin/python"' in runner_script
+    assert 'venv_python="${repo_root}/.venv/bin/python"' not in runner_script
     assert "run_sanity_checks() {" in verify_script
     assert 'clean_python_runner="${MAS_CLEAN_PYTHON_RUNNER:-scripts/run-python-clean.sh}"' in verify_script
     assert '"${clean_python_runner}" scripts/repo_hygiene_audit.py' in verify_script

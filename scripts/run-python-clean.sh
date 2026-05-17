@@ -23,6 +23,7 @@ mkdir -p "${tmp_root}"
 
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-${tmp_root}/pycache}"
+export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"
 pythonpath_root="${MAS_CLEAN_RUNNER_SOURCE_ROOT:-${repo_root}}"
 export PYTHONPATH="${pythonpath_root}/src:${pythonpath_root}${PYTHONPATH:+:${PYTHONPATH}}"
 export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider -o cache_dir=${tmp_root}/pytest-cache"
@@ -54,7 +55,7 @@ if [[ "${MAS_CLEAN_RUNNER_SKIP_SYNC:-0}" != "1" && "${UV_NO_SYNC:-0}" != "1" && 
 fi
 export MAS_CLEAN_RUNNER_SKIP_SYNC=1
 
-venv_python="${repo_root}/.venv/bin/python"
+venv_python="${UV_PROJECT_ENVIRONMENT}/bin/python"
 if [[ ! -x "${venv_python}" ]]; then
   echo "run-python-clean.sh: missing venv Python after dependency sync: ${venv_python}" >&2
   exit 1

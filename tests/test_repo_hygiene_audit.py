@@ -29,7 +29,6 @@ def _run_audit(root: Path) -> subprocess.CompletedProcess[str]:
 
 def test_repo_hygiene_audit_allows_explicit_root_exceptions(tmp_path: Path) -> None:
     _git_init(tmp_path)
-    (tmp_path / ".venv" / "__pycache__").mkdir(parents=True)
     (tmp_path / ".worktrees" / "lane" / "build").mkdir(parents=True)
     (tmp_path / "RTK.md").write_text("runtime toolkit notes\n", encoding="utf-8")
 
@@ -46,6 +45,7 @@ def test_repo_hygiene_audit_rejects_banned_root_artifacts(tmp_path: Path) -> Non
         "build",
         "dist",
         "tmp",
+        ".venv",
         "__pycache__",
         ".pytest_cache",
         ".ruff_cache",
@@ -64,6 +64,7 @@ def test_repo_hygiene_audit_rejects_banned_root_artifacts(tmp_path: Path) -> Non
         "build",
         "dist",
         "tmp",
+        ".venv",
         "__pycache__",
         ".pytest_cache",
         ".ruff_cache",

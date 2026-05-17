@@ -53,3 +53,4 @@
 - `regression`、`display`、`submission`、`family` 与 `meta` lane 由 advisory/nightly 承接，不回灌到 push quick-checks。
 - `smoke`、`ci-preflight` 与 `full` 的耗时预算只用于观察和提醒；duration drift 与相对基线百分比变化通过 advisory run log、summary artifact、只读 history summary 或 release/full 记录暴露，不得成为 push quick-checks 的新增阻塞项。
 - 修改 machine-readable contract surface、测试入口或运行语义时，至少补跑 `make test-meta`；纯叙述性 docs-only 变更按 `documentation_review_only` 处理。
+- Python / pytest 验证必须通过 clean runner 路由缓存、bytecode 与 `uv sync` project venv；开发 checkout 不应产生 `.venv`、`__pycache__`、`.pytest_cache` 或 `*.egg-info` 副产物。

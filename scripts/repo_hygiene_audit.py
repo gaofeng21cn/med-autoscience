@@ -13,6 +13,7 @@ BANNED_DIRECTORY_NAMES = frozenset(
         "build",
         "dist",
         "tmp",
+        ".venv",
         "__pycache__",
         ".pytest_cache",
         ".ruff_cache",
@@ -21,7 +22,7 @@ BANNED_DIRECTORY_NAMES = frozenset(
 )
 BANNED_FILE_NAMES = frozenset({".DS_Store"})
 BANNED_SUFFIXES = (".egg-info",)
-ALLOWED_ROOT_DIRECTORIES = frozenset({".git", ".venv", ".worktrees"})
+ALLOWED_ROOT_DIRECTORIES = frozenset({".git", ".worktrees"})
 ALLOWED_ROOT_FILES = frozenset({"RTK.md"})
 
 
