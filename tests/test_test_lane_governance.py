@@ -403,9 +403,11 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert zero_summary["active_private_generic_residue_count"] == 0
     assert zero_summary["remaining_gap_classification"] == "test_evidence_gates_only"
     assert zero_summary["remaining_items_are_evidence_gates"] is True
+    assert zero_summary["legacy_cleanup_items_are_remaining_active_gaps"] is False
+    assert zero_summary["legacy_cleanup_items_have_default_entry"] is False
+    assert zero_summary["legacy_cleanup_items_have_standard_template_refs"] is False
     assert zero_summary["remaining_evidence_gate_ids"] == [
         "generated_surface_active_caller_cutover",
-        "legacy_cleanup_physical_retirement",
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
         "artifact_lifecycle_receipt_scaleout",

@@ -1017,7 +1017,12 @@
         "legacy_cleanup_items_require_no_active_caller_gate": [
           "local_launchd_scheduler_install_path",
           "workspace_local_watch_service_wrappers"
-        ]
+        ],
+        "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
+        "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
+        "legacy_cleanup_items_are_remaining_active_gaps": false,
+        "legacy_cleanup_items_have_default_entry": false,
+        "legacy_cleanup_items_have_standard_template_refs": false
       },
       "functional_module_inventory_classification_allowed_values": [
         "declarative_pack_generated_surface",
@@ -1042,9 +1047,13 @@
           "local_launchd_scheduler_install_path",
           "workspace_local_watch_service_wrappers"
         ],
+        "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
+        "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
+        "legacy_cleanup_items_are_remaining_active_gaps": false,
+        "legacy_cleanup_items_have_default_entry": false,
+        "legacy_cleanup_items_have_standard_template_refs": false,
         "remaining_evidence_gate_ids": [
           "generated_surface_active_caller_cutover",
-          "legacy_cleanup_physical_retirement",
           "live_provider_paper_apply_scaleout",
           "publication_route_memory_receipt_scaleout",
           "artifact_lifecycle_receipt_scaleout",
@@ -1057,13 +1066,6 @@
             "owner": "one-person-lab",
             "mas_role": "provide_pack_input_handoff_refs_and_no_forbidden_write_guard",
             "evidence_required": "OPL generated surfaces available, active callers migrated, focused no-regression lane green",
-            "functional_structure_gap": false
-          },
-          {
-            "gate_id": "legacy_cleanup_physical_retirement",
-            "owner": "med-autoscience",
-            "mas_role": "delete_or_tombstone_cleanup_only_residue_after_no_active_caller_gate",
-            "evidence_required": "operator local artifacts absent or removed, fixture/provenance dependency refs-only, cleanup tests green",
             "functional_structure_gap": false
           },
           {

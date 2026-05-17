@@ -782,6 +782,11 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "active_private_generic_residue_count": 0,
             "remaining_gap_classification": REMAINING_GAP_CLASSIFICATION,
             "legacy_cleanup_items_require_no_active_caller_gate": legacy_cleanup_items,
+            "legacy_cleanup_items_are_diagnostic_provenance_guards": True,
+            "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
+            "legacy_cleanup_items_are_remaining_active_gaps": False,
+            "legacy_cleanup_items_have_default_entry": False,
+            "legacy_cleanup_items_have_standard_template_refs": False,
         },
         "functional_gap_zero_summary": functional_gap_zero_summary,
         "runtime_lifecycle_sqlite_role": {

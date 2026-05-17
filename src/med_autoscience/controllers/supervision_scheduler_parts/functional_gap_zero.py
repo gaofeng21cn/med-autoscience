@@ -15,13 +15,6 @@ REMAINING_EVIDENCE_GATES = (
         "functional_structure_gap": False,
     },
     {
-        "gate_id": "legacy_cleanup_physical_retirement",
-        "owner": "med-autoscience",
-        "mas_role": "delete_or_tombstone_cleanup_only_residue_after_no_active_caller_gate",
-        "evidence_required": "operator local artifacts absent or removed, fixture/provenance dependency refs-only, cleanup tests green",
-        "functional_structure_gap": False,
-    },
-    {
         "gate_id": "live_provider_paper_apply_scaleout",
         "owner": "med-autoscience",
         "mas_role": "return_owner_receipt_artifact_delta_gate_replay_human_gate_stop_loss_or_typed_blocker",
@@ -90,6 +83,11 @@ def build_functional_gap_zero_summary(
         "remaining_items_are_evidence_gates": True,
         "classification_counts": dict(classification_counts),
         "legacy_cleanup_items_require_no_active_caller_gate": list(legacy_cleanup_items),
+        "legacy_cleanup_items_are_diagnostic_provenance_guards": True,
+        "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
+        "legacy_cleanup_items_are_remaining_active_gaps": False,
+        "legacy_cleanup_items_have_default_entry": False,
+        "legacy_cleanup_items_have_standard_template_refs": False,
         "remaining_evidence_gate_ids": remaining_gate_ids,
         "remaining_evidence_gates": [dict(item) for item in REMAINING_EVIDENCE_GATES],
         "cleared_by_surfaces": [

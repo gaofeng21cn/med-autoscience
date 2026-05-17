@@ -99,9 +99,11 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
     assert zero_summary["status"] == "zero_functional_structure_gaps_remaining_evidence_gated"
     assert zero_summary["functional_structure_gap_count"] == 0
     assert zero_summary["remaining_items_are_evidence_gates"] is True
+    assert zero_summary["legacy_cleanup_items_are_remaining_active_gaps"] is False
+    assert zero_summary["legacy_cleanup_items_have_default_entry"] is False
+    assert zero_summary["legacy_cleanup_items_have_standard_template_refs"] is False
     assert set(zero_summary["remaining_evidence_gate_ids"]) == {
         "generated_surface_active_caller_cutover",
-        "legacy_cleanup_physical_retirement",
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
         "artifact_lifecycle_receipt_scaleout",

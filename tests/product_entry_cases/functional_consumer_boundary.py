@@ -217,9 +217,11 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert zero_summary["classification_counts"] == boundary["functional_module_inventory_summary"][
         "classification_counts"
     ]
+    assert zero_summary["legacy_cleanup_items_are_remaining_active_gaps"] is False
+    assert zero_summary["legacy_cleanup_items_have_default_entry"] is False
+    assert zero_summary["legacy_cleanup_items_have_standard_template_refs"] is False
     assert zero_summary["remaining_evidence_gate_ids"] == [
         "generated_surface_active_caller_cutover",
-        "legacy_cleanup_physical_retirement",
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
         "artifact_lifecycle_receipt_scaleout",

@@ -12,7 +12,7 @@ Date: `2026-05-16`
 - `当前实态校准`：带日期的校准段只记录当前代码或 live evidence，不把目标态写成已完成事实。
 - `Owner 边界`：MAS 持有医学研究 truth、publication quality、artifact authority、memory body/writeback decision、domain transition table 和 owner receipt；OPL 持有 scheduler、queue、attempt ledger、memory/artifact locator、generic runner、provider SLO 和 App/workbench shell。
 - `目标态优先`：MAS 当前已经存在的 controller、scheduler、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/product-entry/sidecar/status wrapper 只能作为迁移输入，不是理想态约束。理想 MAS 是标准 OPL Agent：声明式 medical research pack + OPL generated/hosted surfaces + 最小医学 authority functions。
-- `最短路径`：默认 scheduler owner 已迁到 OPL replacement；Portal/workbench 中的 generic runtime owner wording 已改成 OPL-owned consumer projection；显式 local scheduler / LaunchAgent legacy diagnostic path 已有 `default_caller_count=0` proof，剩余是旧生成物物理清理与 provenance/fixture 保留。
+- `最短路径`：默认 scheduler owner 已迁到 OPL replacement；Portal/workbench 中的 generic runtime owner wording 已改成 OPL-owned consumer projection；显式 local scheduler / LaunchAgent legacy diagnostic path 已有 `default_caller_count=0` proof，只作为旧生成物 status/remove、provenance/fixture 和 drift guard 保留。
 - `禁写口径`：MAS direct/local diagnostic path 可以存在，但不能写成 MAS 长期 generic runtime platform；OPL provider completion 也不能写成 MAS paper closure 或 publication-ready。
 - `功能消费方边界`：MAS 目标态以 `Declarative Medical Research Pack + minimal authority functions` 消费 OPL generic scaffold、pack compiler、generic transition runner、memory/artifact locator、workbench shell 和 observability。MAS 默认提交医学 stage / policy / knowledge / schema / receipt contract；CLI/MCP/product-entry/sidecar/status/workbench 等通用外壳由 OPL 生成或托管，不复制通用 scheduler、daemon、queue、attempt ledger、runner 或工作台。
 
@@ -58,7 +58,7 @@ OPL 系列项目的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/d
 
 这意味着当前 MAS 并非“已经没有任何私有功能实现”。准确判断是：MAS 仍保有多处活跃 functional shell，但长期处置已被机器面限定为 declarative pack / OPL generated surface、refs-only adapter、minimal authority function 或 no-active-caller cleanup gate。SQLite/lifecycle store、paper outbox、storage maintenance、workspace/source intake、memory transport、artifact lifecycle、Portal/workbench、terminal/log projection、runtime supervisor scan-dispatch 和 CLI/MCP/product shell，只有在承载 MAS owner receipt、domain blocker、artifact authority、locator refs 或 cleanup diagnostic 时才允许留在 MAS；凡是 scheduler、queue、attempt ledger、state-machine runner、locator/index、lifecycle、workbench、observability 或 product shell 的通用部分，都应上收到 OPL pack compiler、App/runtime generated surface 或 refs-only adapter。
 
-2026-05-17 consumer thinning closeout 校准：上述功能残留已经在 MAS 单仓机器面完成分类与清零。`functional_consumer_boundary.functional_gap_zero_summary` 固定 `functional_structure_gap_count=0`、`active_private_generic_residue_count=0`、`remaining_gap_classification=test_evidence_gates_only`。剩余 generated surface active caller cutover、legacy cleanup physical retirement、真实 paper-line provider apply、publication-route memory receipt scaleout、artifact lifecycle receipt scaleout、OPL App drilldown 和 provider SLO long soak，均是测试/证据差距或 OPL/Operator evidence gate，不能重新写成 MAS 长期 generic owner 缺口。
+2026-05-17 consumer thinning closeout 校准：上述功能残留已经在 MAS 单仓机器面完成分类与清零。`functional_consumer_boundary.functional_gap_zero_summary` 固定 `functional_structure_gap_count=0`、`active_private_generic_residue_count=0`、`remaining_gap_classification=test_evidence_gates_only`。剩余 generated surface active caller cutover、真实 paper-line provider apply、publication-route memory receipt scaleout、artifact lifecycle receipt scaleout、OPL App drilldown 和 provider SLO long soak，均是测试/证据差距或 OPL/Operator evidence gate，不能重新写成 MAS 长期 generic owner 缺口。`local_launchd_scheduler_install_path` 与 `workspace_local_watch_service_wrappers` 不是 active private-function cleanup gap；它们只作为无默认入口、无标准模板引用的 cleanup diagnostic / provenance / drift guard。
 
 完善顺序必须服从这一边界：功能分类与 handoff 机器面先清零，再用真实 paper-line、provider SLO、human gate/resume 和 App drilldown 做验收。live soak 证明迁移后的目标形态成立，不应成为 MAS scheduler 上收、Portal/workbench 边界清理或 OPL primitive handoff 的前置条件。
 
@@ -255,7 +255,7 @@ MAS 达到理想生产级状态时，应满足以下门槛：
 - Stage Deliverable Review Page / Index 在真实 workspace 中持续更新，并被 Portal / Workbench 只读展示。
 - Artifact lifecycle、retention、cleanup、restore proof 和 SQLite/file authority 边界在真实 workspace 中可运行。
 - AI reviewer workflow 前置进入 pre-draft 和 revision route，不再依赖机械 gate 后置补救论文质量。
-- Legacy MDS/Hermes/local/default-compat residue 完成 no-active-caller scan、replacement proof、history/provenance 分类；无 active caller、无 public surface 引用、无 fixture/provenance 必需的 residue 完成物理删除。旧 workspace-local service wrapper 属于应删除 residue，scheduler 管理只保留 canonical runtime CLI。
+- Legacy MDS/Hermes/local/default-compat residue 完成 no-active-caller scan、replacement proof、history/provenance 分类；`local_launchd_scheduler_install_path` 与旧 workspace-local service wrapper 不再是标准 OPL Agent 的 active gap，只能作为 cleanup diagnostic、provenance 或 drift guard 被显式读取，scheduler 管理只保留 canonical runtime CLI。
 - 文档只解释、导航和治理；机器接口与当前 truth 继续归 durable surface、schema、CLI/API payload、manifest、receipt 和真实 workspace artifact。
 
 ## 当前使用方式
