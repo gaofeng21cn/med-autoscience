@@ -152,7 +152,7 @@ MAS 作为 OPL 消费方时，剩余功能面按以下口径完成：
 
 这个边界的目的，是让 MAS 成为高质量医学研究 domain brain，而不是又维护一套通用平台。
 
-现有代码若落在这些功能族中，默认就是功能/结构差距，而不是“MAS 已经实现所以保留”。完善计划应写清上收、generated surface 替换、收薄为 refs-only adapter、或 direct retirement 的路径。
+现有代码若落在这些功能族中，默认必须进入 `functional_consumer_boundary` / `functional_module_inventory` 分类，而不是因为“MAS 已经实现”就长期保留。2026-05-17 当前机器面已把已知项归类为 declarative pack / generated surface、refs-only adapter、minimal authority function 或 legacy cleanup gate，并将 MAS 功能/结构差距清零；只有新增未分类通用 owner、generic owner 回流、active cleanup gate 重新获得默认 caller，才重新构成功能/结构差距。后续完善计划只按上收、generated surface 替换、refs-only 收薄、direct retirement 或测试/证据门推进。
 
 ## Stage 是医学专家工作的组织单元
 
