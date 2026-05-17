@@ -1,0 +1,23 @@
+{
+  "authority_boundary": {
+    "domain_owns_truth_quality_artifact_memory_and_receipts": true,
+    "domain_truth_owner": "MedAutoScience",
+    "opl_can_authorize_quality_or_export": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_memory_body": false
+  },
+  "domain_id": "med-autoscience",
+  "domain_label": "Med Auto Science",
+  "domain_repo_can_own_generated_surface": false,
+  "generated_surface_owner": "one-person-lab",
+  "package_role": "opl_standard_domain_agent",
+  "schema_version": 1,
+  "standard_contract_refs": {
+    "action_catalog": "contracts/action_catalog.json",
+    "functional_privatization_audit": "contracts/functional_privatization_audit.json",
+    "generated_surface_handoff": "contracts/generated_surface_handoff.json",
+    "pack_compiler_input": "contracts/pack_compiler_input.json",
+    "stage_control_plane": "contracts/stage_control_plane.json"
+  },
+  "surface_kind": "domain_agent_descriptor"
+}

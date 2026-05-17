@@ -1,0 +1,40 @@
+{
+  "allowed_private_surface_classes": [
+    "minimal_authority_function",
+    "domain_native_helper_implementation",
+    "domain_truth_verdict_authorizer"
+  ],
+  "default_posture": "forbidden_until_classified_and_receipted",
+  "domain_id": "med-autoscience",
+  "forbidden_generic_owner_roles": [
+    "generic_scheduler_owner",
+    "generic_daemon_owner",
+    "generic_lifecycle_owner",
+    "generic_queue_owner",
+    "generic_attempt_ledger_owner",
+    "generic_state_machine_runner_owner",
+    "generic_cli_mcp_product_wrapper_owner",
+    "generic_sidecar_owner",
+    "generic_session_store_owner",
+    "generic_status_workbench_owner",
+    "generic_workspace_source_intake_owner",
+    "generic_memory_transport_owner",
+    "generic_artifact_gallery_owner",
+    "generic_operator_workbench_owner",
+    "generic_observability_slo_owner",
+    "generic_persistence_engine_owner",
+    "generic_sqlite_lifecycle_owner",
+    "generic_native_helper_envelope_owner",
+    "generic_review_repair_transport_owner",
+    "generated_surface_owner_in_domain_repo"
+  ],
+  "forbidden_private_surface_classes": [
+    "generic_scheduler",
+    "generic_queue_or_attempt_ledger",
+    "generic_cli_mcp_product_wrapper",
+    "generic_workbench_shell",
+    "generic_observability_runtime"
+  ],
+  "schema_version": 1,
+  "surface_kind": "opl_domain_private_functional_surface_admission_policy"
+}

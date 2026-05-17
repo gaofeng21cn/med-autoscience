@@ -1,0 +1,125 @@
+{
+  "authority_boundary": {
+    "domain_memory_accept_reject_owner": "MedAutoScience",
+    "opl_can_accept_or_reject_writeback": false,
+    "opl_can_write_memory_body": false
+  },
+  "canonical_body_ref": {
+    "opl_body_owner": false,
+    "ref": "docs/policies/study-workflow/publication_route_memory_library.md",
+    "ref_kind": "human_doc",
+    "role": "markdown_first_memory_body"
+  },
+  "freshness": {
+    "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+    "stage_knowledge_contract_schema_version": 1,
+    "stage_knowledge_exploratory_stages": [
+      "scout",
+      "idea",
+      "analysis-campaign",
+      "review"
+    ],
+    "stale_if_policy_or_stage_contract_missing": true,
+    "status": "policy_seed"
+  },
+  "memory_body_owner": "MedAutoScience",
+  "memory_family": "publication_route_memory",
+  "memory_pack_ref": {
+    "ref": "docs/policies/study-workflow/publication_route_memory_policy.md",
+    "ref_kind": "repo_policy_and_workspace_locator",
+    "role": "publication_route_memory_policy_seed",
+    "workspace_locator": "portfolio/research_memory/publication_route_memory"
+  },
+  "memory_ref_id": "mas_publication_route_memory",
+  "migration_plan_ref": {
+    "ref": "docs/policies/study-workflow/publication_route_memory_policy.md#migration-plan",
+    "ref_kind": "human_doc",
+    "role": "domain_owned_migration_plan"
+  },
+  "migration_readiness": {
+    "canonical_body_status": "markdown_source_available",
+    "memory_body_migration": "domain_owned_workspace_apply_available",
+    "opl_apply_allowed": false,
+    "seed_index_status": "repo_source_index_available",
+    "status": "workspace_apply_closure_ready",
+    "writeback_receipt_locator_status": "workspace_locator_declared"
+  },
+  "opl_projection_policy": "locator_and_receipt_refs_only",
+  "owner": "MedAutoScience",
+  "provenance_refs": [
+    {
+      "ref": "docs/policies/study-workflow/publication_route_memory_policy.md",
+      "ref_kind": "human_doc",
+      "role": "policy"
+    },
+    {
+      "ref": "docs/policies/study-workflow/publication_route_memory_library.md",
+      "ref_kind": "human_doc",
+      "role": "canonical_markdown_body"
+    },
+    {
+      "ref": "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
+      "ref_kind": "repo_path",
+      "role": "seed_index"
+    },
+    {
+      "ref": "docs/policies/study-workflow/study_archetypes.md",
+      "ref_kind": "human_doc",
+      "role": "first_generation_memory_seed"
+    },
+    {
+      "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
+      "ref_kind": "python_symbol",
+      "role": "retrieval_writeback_contract"
+    }
+  ],
+  "recall_projection_ref": {
+    "ref": "stage_recall_index",
+    "ref_kind": "surface_kind",
+    "role": "stage_recall_projection"
+  },
+  "receipt_contract_ref": {
+    "ref": "memory_write_router_receipt",
+    "ref_kind": "surface_kind",
+    "role": "domain_router_receipt"
+  },
+  "retrieval_contract_ref": {
+    "ref": "stage_knowledge_packet",
+    "ref_kind": "surface_kind",
+    "role": "stage_entry_retrieval_packet"
+  },
+  "root_contract_role": "opl_standard_domain_agent_memory_descriptor",
+  "seed_corpus_ref": {
+    "ref": "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
+    "ref_kind": "repo_path",
+    "role": "repo_source_seed_index"
+  },
+  "stage_applicability": [
+    "scout",
+    "idea",
+    "decision",
+    "analysis-campaign",
+    "review"
+  ],
+  "status": "active",
+  "surface_kind": "family_domain_memory_ref",
+  "target_domain_id": "med-autoscience",
+  "version": "family-domain-memory-ref.v1",
+  "workspace_apply_surface": {
+    "memory_pack_locator": "portfolio/research_memory/publication_route_memory/memory_pack.json",
+    "memory_pack_surface": "publication_route_memory_pack",
+    "migration_receipt_locator": "portfolio/research_memory/publication_route_memory/migration_receipts",
+    "repo_tracks_real_pack_or_receipts": false,
+    "seed_apply_receipt_surface": "publication_route_memory_apply_receipt"
+  },
+  "writeback_contract_ref": {
+    "ref": "stage_memory_closeout_packet",
+    "ref_kind": "surface_kind",
+    "role": "typed_stage_closeout_proposal"
+  },
+  "writeback_receipt_locator_ref": {
+    "ref": "portfolio/research_memory/publication_route_memory/writeback_receipts",
+    "ref_kind": "workspace_locator",
+    "role": "domain_owned_router_receipts"
+  }
+}

@@ -1,0 +1,679 @@
+{
+  "actions": [
+    {
+      "action_id": "product_entry_status",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+        "surface_kind": "product_entry_status"
+      },
+      "summary": "当前 research product entry status，先暴露当前 product entry、workspace inbox 与 shared handoff 入口。",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "product_entry_status"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+          "surface_kind": "product_entry_status"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "product_entry_status",
+          "tool_name": "product_entry_status"
+        },
+        "openai": {
+          "tool_name": "product_entry_status"
+        },
+        "product_entry": {
+          "action_key": "product_entry_status",
+          "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+          "surface_kind": "product_entry_status"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli product-entry-status --profile <profile>",
+          "command_contract_id": "product_entry_status",
+          "surface_kind": "product_entry_status"
+        }
+      },
+      "title": "Open MAS product entry status",
+      "workspace_locator_fields": [
+        "profile_ref"
+      ]
+    },
+    {
+      "action_id": "workspace_cockpit",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile> --format json",
+        "surface_kind": "workspace_cockpit"
+      },
+      "summary": "当前 workspace 级用户 inbox，聚合 attention queue、监督在线态与研究入口回路。",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "workspace_cockpit"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile> --format json",
+          "surface_kind": "workspace_cockpit"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile> --format json",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "workspace_cockpit",
+          "tool_name": "workspace_cockpit"
+        },
+        "openai": {
+          "tool_name": "workspace_cockpit"
+        },
+        "product_entry": {
+          "action_key": "workspace_cockpit",
+          "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile> --format json",
+          "surface_kind": "workspace_cockpit"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli workspace-cockpit --profile <profile> --format json",
+          "command_contract_id": "workspace_cockpit",
+          "surface_kind": "workspace_cockpit"
+        }
+      },
+      "title": "Open MAS workspace cockpit",
+      "workspace_locator_fields": [
+        "profile_ref"
+      ]
+    },
+    {
+      "action_id": "submit_study_task",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "mutating",
+      "human_gate_ids": [
+        "study_user_decision_gate"
+      ],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+        "surface_kind": "study_task_intake"
+      },
+      "summary": "先把用户任务写成 durable study task intake，再启动研究执行。",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "submit_study_task"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "surface_kind": "study_task_intake"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "study_task_intake",
+          "tool_name": "submit_study_task"
+        },
+        "openai": {
+          "tool_name": "submit_study_task"
+        },
+        "product_entry": {
+          "action_key": "submit_study_task",
+          "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "surface_kind": "study_task_intake"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli submit-study-task --profile <profile> --study-id <study_id> --task-intent '<task_intent>'",
+          "command_contract_id": "submit_study_task",
+          "surface_kind": "study_task_intake"
+        }
+      },
+      "title": "Submit durable MAS study task",
+      "workspace_locator_fields": [
+        "profile_ref",
+        "study_id",
+        "task_intent"
+      ]
+    },
+    {
+      "action_id": "launch_study",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "mutating",
+      "human_gate_ids": [
+        "study_user_decision_gate"
+      ],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+        "surface_kind": "launch_study"
+      },
+      "summary": "创建或恢复 study runtime，并进入当前研究主线。",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "launch_study"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+          "surface_kind": "launch_study"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+          "descriptor_only": false,
+          "public_runtime": true,
+          "surface_kind": "launch_study",
+          "tool_name": "study_runtime"
+        },
+        "openai": {
+          "tool_name": "launch_study"
+        },
+        "product_entry": {
+          "action_key": "launch_study",
+          "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+          "surface_kind": "launch_study"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli launch-study --profile <profile> --study-id <study_id>",
+          "command_contract_id": "launch_study",
+          "surface_kind": "launch_study"
+        }
+      },
+      "title": "Launch or continue MAS study runtime",
+      "workspace_locator_fields": [
+        "profile_ref",
+        "study_id"
+      ]
+    },
+    {
+      "action_id": "study_progress",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id> --format json",
+        "surface_kind": "study_progress"
+      },
+      "summary": "持续读取当前 study 的阶段摘要、阻塞、监督 freshness 与下一步。",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "study_progress"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id> --format json",
+          "surface_kind": "study_progress"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id> --format json",
+          "descriptor_only": false,
+          "public_runtime": true,
+          "surface_kind": "study_progress",
+          "tool_name": "study_progress"
+        },
+        "openai": {
+          "tool_name": "study_progress"
+        },
+        "product_entry": {
+          "action_key": "study_progress",
+          "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id> --format json",
+          "surface_kind": "study_progress"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli study-progress --profile <profile> --study-id <study_id> --format json",
+          "command_contract_id": "study_progress",
+          "surface_kind": "study_progress"
+        }
+      },
+      "title": "Inspect MAS study progress",
+      "workspace_locator_fields": [
+        "profile_ref",
+        "study_id"
+      ]
+    },
+    {
+      "action_id": "export_inspection_package",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_write_current_package": false,
+        "can_write_submission_minimal": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes",
+        "surface_authority": "human_inspection_only"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
+        "surface_kind": "publication_inspection_package_export"
+      },
+      "summary": "Export a human inspection only paper snapshot for writing-style review. It is not current_package, not submission_minimal authority, and cannot authorize publication quality or submission readiness.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "export_inspection_package"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
+          "surface_kind": "publication_inspection_package_export"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "publication_inspection_package_export",
+          "tool_name": "export_inspection_package"
+        },
+        "openai": {
+          "tool_name": "export_inspection_package"
+        },
+        "product_entry": {
+          "action_key": "export_inspection_package",
+          "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
+          "surface_kind": "publication_inspection_package_export"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli publication export-inspection-package --profile <profile> --study-id <study_id>",
+          "command_contract_id": "export_inspection_package",
+          "surface_kind": "publication_inspection_package_export"
+        }
+      },
+      "title": "Export human inspection package",
+      "workspace_locator_fields": [
+        "profile_ref",
+        "study_id"
+      ]
+    },
+    {
+      "action_id": "mainline_status",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli mainline-status",
+        "surface_kind": "mainline_status"
+      },
+      "summary": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "mainline_status"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli mainline-status",
+          "surface_kind": "mainline_status"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli mainline-status",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "mainline_status",
+          "tool_name": "mainline_status"
+        },
+        "openai": {
+          "tool_name": "mainline_status"
+        },
+        "product_entry": {
+          "action_key": "mainline_status",
+          "command": "uv run python -m med_autoscience.cli mainline-status",
+          "surface_kind": "mainline_status"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli mainline-status",
+          "command_contract_id": "mainline_status",
+          "surface_kind": "mainline_status"
+        }
+      },
+      "title": "Inspect MAS mainline status",
+      "workspace_locator_fields": []
+    },
+    {
+      "action_id": "mainline_phase",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>",
+        "surface_kind": "mainline_phase"
+      },
+      "summary": "查看某一阶段当前可用入口、退出条件与关键文档。",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "mainline_phase"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>",
+          "surface_kind": "mainline_phase"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "mainline_phase",
+          "tool_name": "mainline_phase"
+        },
+        "openai": {
+          "tool_name": "mainline_phase"
+        },
+        "product_entry": {
+          "action_key": "mainline_phase",
+          "command": "uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>",
+          "surface_kind": "mainline_phase"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli mainline-phase --phase <current|next|phase_id>",
+          "command_contract_id": "mainline_phase",
+          "surface_kind": "mainline_phase"
+        }
+      },
+      "title": "Inspect MAS mainline phase",
+      "workspace_locator_fields": []
+    },
+    {
+      "action_id": "product_entry",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+        "surface_kind": "product_entry_manifest"
+      },
+      "summary": "Read MedAutoScience product-entry surfaces through one tool: product_entry_status, product_preflight, product_start, product_entry_manifest, build_product_entry, migration_audit, governance_report, backfill_apply, cleanup_apply, safe_cache_cleanup_apply, lifecycle_report, continuous_soak_summary. migration_audit is dry-run-only; governance_report is read-only; backfill_apply and cleanup_apply are contract-gated; safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. lifecycle_report and continuous_soak_summary are read-only unless a separate controller apply contract authorizes cleanup. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "product_entry"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "surface_kind": "product_entry_manifest"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "descriptor_only": false,
+          "public_runtime": true,
+          "surface_kind": "product_entry_manifest",
+          "tool_name": "product_entry"
+        },
+        "openai": {
+          "tool_name": "product_entry"
+        },
+        "product_entry": {
+          "action_key": "product_entry",
+          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "surface_kind": "product_entry_manifest"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
+          "command_contract_id": "product_entry",
+          "surface_kind": "product_entry_manifest"
+        }
+      },
+      "title": "Read MAS product-entry MCP surfaces",
+      "workspace_locator_fields": [
+        "profile_ref"
+      ]
+    },
+    {
+      "action_id": "sidecar_export",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "medautosci sidecar export --profile <profile> --format json",
+        "surface_kind": "mas_family_sidecar_export"
+      },
+      "summary": "Read-only MAS sidecar export for OPL provider queue discovery; Hermes references are optional diagnostics/provenance only.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "sidecar_export"
+        },
+        "cli": {
+          "command": "medautosci sidecar export --profile <profile> --format json",
+          "surface_kind": "mas_family_sidecar_export"
+        },
+        "mcp": {
+          "command": "medautosci sidecar export --profile <profile> --format json",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "mas_family_sidecar_export",
+          "tool_name": "sidecar_export"
+        },
+        "openai": {
+          "tool_name": "sidecar_export"
+        },
+        "product_entry": {
+          "action_key": "sidecar_export",
+          "command": "medautosci sidecar export --profile <profile> --format json",
+          "surface_kind": "mas_family_sidecar_export"
+        },
+        "skill": {
+          "command": "medautosci sidecar export --profile <profile> --format json",
+          "command_contract_id": "sidecar_export",
+          "surface_kind": "mas_family_sidecar_export"
+        }
+      },
+      "title": "Export MAS sidecar bridge projection",
+      "workspace_locator_fields": [
+        "profile_ref"
+      ]
+    },
+    {
+      "action_id": "sidecar_dispatch",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "one-person-lab",
+        "helper_write_policy": "no_domain_truth_writes"
+      },
+      "effect": "mutating",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "medautosci sidecar dispatch --task <task.json> --format json",
+        "surface_kind": "mas_family_sidecar_dispatch_receipt"
+      },
+      "summary": "MAS guarded dispatch receipt for OPL provider queue control. It records a domain control receipt only and does not authorize domain truth, publication quality, artifact gate, or current package writes; Hermes paths are explicit OPL opt-in executor/proof refs only, never MAS default runtime paths.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "sidecar_dispatch"
+        },
+        "cli": {
+          "command": "medautosci sidecar dispatch --task <task.json> --format json",
+          "surface_kind": "mas_family_sidecar_dispatch_receipt"
+        },
+        "mcp": {
+          "command": "medautosci sidecar dispatch --task <task.json> --format json",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "mas_family_sidecar_dispatch_receipt",
+          "tool_name": "sidecar_dispatch"
+        },
+        "openai": {
+          "tool_name": "sidecar_dispatch"
+        },
+        "product_entry": {
+          "action_key": "sidecar_dispatch",
+          "command": "medautosci sidecar dispatch --task <task.json> --format json",
+          "surface_kind": "mas_family_sidecar_dispatch_receipt"
+        },
+        "skill": {
+          "command": "medautosci sidecar dispatch --task <task.json> --format json",
+          "command_contract_id": "sidecar_dispatch",
+          "surface_kind": "mas_family_sidecar_dispatch_receipt"
+        }
+      },
+      "title": "Receive MAS sidecar guarded dispatch receipt",
+      "workspace_locator_fields": [
+        "task_path"
+      ]
+    }
+  ],
+  "authority_boundary": {
+    "domain_truth_owner": "MedAutoScience",
+    "opl_role": "projection_consumer_only",
+    "write_policy": "no_domain_truth_writes"
+  },
+  "catalog_id": "med_autoscience_action_catalog",
+  "domain_repo_can_own_generated_surface": false,
+  "forbidden_generic_owner_roles": [
+    "generic_scheduler_owner",
+    "generic_daemon_owner",
+    "generic_lifecycle_owner",
+    "generic_queue_owner",
+    "generic_attempt_ledger_owner",
+    "generic_state_machine_runner_owner",
+    "generic_cli_mcp_product_wrapper_owner",
+    "generic_sidecar_owner",
+    "generic_session_store_owner",
+    "generic_status_workbench_owner",
+    "generic_workspace_source_intake_owner",
+    "generic_memory_transport_owner",
+    "generic_artifact_gallery_owner",
+    "generic_operator_workbench_owner",
+    "generic_observability_slo_owner",
+    "generic_persistence_engine_owner",
+    "generic_sqlite_lifecycle_owner",
+    "generic_native_helper_envelope_owner",
+    "generic_review_repair_transport_owner",
+    "generated_surface_owner_in_domain_repo"
+  ],
+  "generated_surface_owner": "one-person-lab",
+  "notes": [
+    "MAS owns the action metadata and runtime/controller/publication/quality truth.",
+    "OPL consumes projections only and does not write MAS durable study truth."
+  ],
+  "owner": "MedAutoScience",
+  "surface_kind": "family_action_catalog",
+  "target_domain_id": "med-autoscience",
+  "version": "family-action-catalog.v1"
+}

@@ -1,0 +1,58 @@
+{
+  "domain_id": "med-autoscience",
+  "domain_repo_can_own_generated_surface": false,
+  "generated_surface_owner": "one-person-lab",
+  "generated_surfaces": [
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "cli"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "mcp"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "product_entry_manifest"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "sidecar_export_dispatch"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "status_read_model"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "workbench_drilldown"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "functional_harness_cases"
+    }
+  ],
+  "required_domain_handoff": [
+    "owner_receipt_schema",
+    "typed_blocker_schema",
+    "minimal_authority_function_refs",
+    "no_forbidden_write_evidence"
+  ],
+  "schema_version": 1,
+  "source_contract_ref": "contracts/pack_compiler_input.json",
+  "surface_kind": "opl_generated_surface_handoff"
+}

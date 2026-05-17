@@ -15,6 +15,7 @@ authority, or publication authority.
 
 Current contract families:
 
+- `contracts/domain_descriptor.json`, `contracts/pack_compiler_input.json`, `contracts/generated_surface_handoff.json`, `contracts/action_catalog.json`, `contracts/stage_control_plane.json`, `contracts/memory_descriptor.json`, `contracts/artifact_locator_contract.json`, `contracts/owner_receipt_contract.json`, `contracts/functional_privatization_audit.json`, and `contracts/private_functional_surface_policy.json`: OPL standard domain-agent pack inputs. OPL compiles these into generated interface descriptors; MAS local CLI, MCP, product-entry, sidecar, controller, and durable workspace commands stay as domain action targets and authority functions.
 - `contracts/modules/`: module boundary contracts for controller, runtime, and eval hygiene ownership.
 - `contracts/opl-framework/`: OPL Framework projection, compatible-package, and helper-consumption contracts.
 - `contracts/schemas/`: JSON schemas for stable product-entry surfaces.
@@ -37,6 +38,7 @@ publication authority。
 
 当前 contract 家族：
 
+- `contracts/domain_descriptor.json`、`contracts/pack_compiler_input.json`、`contracts/generated_surface_handoff.json`、`contracts/action_catalog.json`、`contracts/stage_control_plane.json`、`contracts/memory_descriptor.json`、`contracts/artifact_locator_contract.json`、`contracts/owner_receipt_contract.json`、`contracts/functional_privatization_audit.json`、`contracts/private_functional_surface_policy.json`：OPL standard domain-agent pack 输入。OPL 用它们生成统一接口 descriptor；MAS 本地 CLI、MCP、product-entry、sidecar、controller 和 durable workspace commands 继续作为 domain action target 与 authority function。
 - `contracts/modules/`：controller、runtime、eval hygiene ownership 的模块边界 contract。
 - `contracts/opl-framework/`：OPL Framework projection、compatible-package 与 helper-consumption contract。
 - `contracts/schemas/`：稳定 product-entry surface 的 JSON schema。

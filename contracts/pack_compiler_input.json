@@ -1,0 +1,48 @@
+{
+  "authority_boundary": {
+    "domain_can_claim_generated_surface_owner": false,
+    "opl_can_authorize_quality_or_export": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_memory_body": false
+  },
+  "declarative_domain_pack": [
+    "stage_descriptors",
+    "action_catalog",
+    "domain_transition_table",
+    "publication_route_memory_policy",
+    "artifact_authority_policy",
+    "source_readiness_policy",
+    "owner_receipt_schema",
+    "quality_gate_refs"
+  ],
+  "domain_id": "med-autoscience",
+  "domain_pack_owner": "med-autoscience",
+  "domain_repo_can_own_generated_surface": false,
+  "generated_surface_owner": "one-person-lab",
+  "generated_surfaces_requested": [
+    "cli",
+    "mcp",
+    "product_entry_manifest",
+    "sidecar_export_dispatch",
+    "status_read_model",
+    "workbench_drilldown",
+    "functional_harness_cases"
+  ],
+  "minimal_authority_functions": [
+    "publication_quality_verdict_authorizer",
+    "ai_reviewer_quality_decision_authorizer",
+    "artifact_mutation_authorizer",
+    "publication_route_memory_accept_reject_decider",
+    "source_readiness_verdict_authorizer",
+    "owner_receipt_signer",
+    "medical_native_helper_implementation"
+  ],
+  "schema_version": 1,
+  "source_refs": {
+    "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
+    "functional_audit": "src/med_autoscience/controllers/supervision_scheduler_parts/consumer_migration.py::build_functional_consumer_boundary",
+    "memory_descriptor": "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/family_adoption.py::build_domain_memory_descriptor",
+    "stage_control_plane": "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/family_adoption.py::build_family_stage_control_plane"
+  },
+  "surface_kind": "opl_domain_pack_compiler_input"
+}

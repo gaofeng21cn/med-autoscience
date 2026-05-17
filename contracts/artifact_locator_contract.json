@@ -1,0 +1,12 @@
+{
+  "authority_boundary": {
+    "domain_artifact_authority_owner": "MedAutoScience",
+    "opl_can_authorize_publication_quality": false,
+    "opl_can_mutate_artifacts": false
+  },
+  "canonical_artifact_authority": "MedAutoScience",
+  "domain_id": "med-autoscience",
+  "opl_projection_policy": "locator_lifecycle_and_receipt_refs_only",
+  "schema_version": 1,
+  "surface_kind": "artifact_locator_contract"
+}

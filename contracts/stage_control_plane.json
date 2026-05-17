@@ -1,0 +1,1637 @@
+{
+  "authority_boundary": {
+    "can_authorize_publication_quality": false,
+    "can_authorize_submission_readiness": false,
+    "can_write_domain_truth": false,
+    "domain_truth_owner": "MedAutoScience",
+    "opl_role": "projection_consumer_only",
+    "publication_gate_owner": "MedAutoScience",
+    "route_contract_owner": "MedAutoScience",
+    "stage_knowledge_plane_owner": "MedAutoScience",
+    "write_policy": "no_study_truth_writes"
+  },
+  "freshness": {
+    "freshness_kind": "product_entry_manifest_projection",
+    "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+    "source_observed_at_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+    "stale_if_source_refs_missing": true
+  },
+  "notes": [
+    "Descriptor-only projection over existing MAS Stage-Led Autonomy routes.",
+    "OPL may index, inspect, display and dispatch MAS-exported guarded tasks only.",
+    "MAS keeps route contracts, controller runtime, evidence/review ledgers, publication gate and execution kernel."
+  ],
+  "owner": "MedAutoScience",
+  "plane_id": "med_autoscience_stage_control_plane",
+  "source_refs": [
+    {
+      "ref": "/product_entry_manifest/family_action_catalog",
+      "ref_kind": "json_pointer",
+      "role": "action_catalog"
+    },
+    {
+      "ref": "/product_entry_manifest/family_stage_control_plane_descriptor",
+      "ref_kind": "json_pointer",
+      "role": "deep_descriptor"
+    },
+    {
+      "ref": "agent/stages/stage_route_contract.yaml",
+      "ref_kind": "repo_path",
+      "role": "route_contract_source"
+    },
+    {
+      "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
+      "ref_kind": "python_symbol",
+      "role": "stage_knowledge_plane_contract"
+    },
+    {
+      "ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+      "ref_kind": "python_symbol",
+      "role": "quality_pack_contract"
+    },
+    {
+      "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+      "ref_kind": "json_pointer",
+      "role": "stage_deliverable_index"
+    },
+    {
+      "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
+      "ref_kind": "repo_path",
+      "role": "inventory_reference"
+    }
+  ],
+  "stage_action_parity": {
+    "family_action_catalog_ref": "/product_entry_manifest/family_action_catalog",
+    "missing_action_refs": [],
+    "status": "aligned",
+    "surface_kind": "family_stage_action_parity"
+  },
+  "stages": [
+    {
+      "allowed_action_refs": [
+        "product_entry_status",
+        "workspace_cockpit",
+        "study_progress"
+      ],
+      "authority_boundary": {
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_replace_route_contract": false,
+        "can_write_domain_truth": false,
+        "domain_truth_owner": "MedAutoScience",
+        "maps_existing_routes_only": true,
+        "opl_role": "projection_consumer_only",
+        "publication_gate_owner": "MedAutoScience",
+        "route_contract_owner": "MedAutoScience",
+        "stage_knowledge_plane_owner": "MedAutoScience"
+      },
+      "deliverable_index_ref": {
+        "blocking_only_when": "mas_human_gate_boundary_triggered",
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_write_domain_truth": false,
+        "human_review_blocks_auto_advance_by_default": false,
+        "opl_projection_boundary": "read_only_locator_no_truth_write",
+        "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+        "ref_kind": "json_pointer",
+        "role": "stage_deliverable_index"
+      },
+      "domain_stage_refs": [
+        "scout",
+        "idea",
+        "decision"
+      ],
+      "evaluation": [
+        {
+          "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+          "ref_kind": "json_pointer",
+          "role": "authority_boundary"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_projection"
+        }
+      ],
+      "freshness": {
+        "freshness_kind": "product_entry_manifest_projection",
+        "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+        "source_observed_at_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+        "stale_if_source_refs_missing": true
+      },
+      "goal": "Freeze a question-worthy study direction, evidence target, and immediate route recommendation. / Choose the strongest study line and freeze why it deserves managed execution.",
+      "handoff": {
+        "next_owner": "MedAutoScience",
+        "resume_surface_ref": "/product_entry_shell/study_progress",
+        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
+        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+      },
+      "inputs": [
+        {
+          "ref": "/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "allowed_action_catalog"
+        },
+        {
+          "ref": "/family_stage_control_plane_descriptor/stage_knowledge_plane",
+          "ref_kind": "json_pointer",
+          "role": "stage_knowledge_plane"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_read_model"
+        }
+      ],
+      "knowledge_refs": [
+        {
+          "ref": "mas_publication_route_memory",
+          "ref_kind": "domain_memory_ref",
+          "role": "publication_route_memory_locator"
+        }
+      ],
+      "outputs": [
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "stage_status"
+        },
+        {
+          "blocking_only_when": "mas_human_gate_boundary_triggered",
+          "can_authorize_publication_quality": false,
+          "can_authorize_submission_readiness": false,
+          "can_write_domain_truth": false,
+          "human_review_blocks_auto_advance_by_default": false,
+          "opl_projection_boundary": "read_only_locator_no_truth_write",
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "/opl_family_persistence_lifecycle_owner_route_adoption",
+          "ref_kind": "json_pointer",
+          "role": "owner_route_projection"
+        }
+      ],
+      "owner": "MedAutoScience",
+      "prompt_refs": [
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract"
+        },
+        {
+          "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_led_policy"
+        }
+      ],
+      "quality_pack_projection": {
+        "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+        "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
+        "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
+        "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
+        "pack_refs": [
+          "medical_claim_evidence_pack",
+          "paper_reader_grounding_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "human_gate_pack"
+        ],
+        "publication_readiness_authority": false,
+        "quality_verdict_authority": false,
+        "role": "quality_input_and_reviewer_rubric"
+      },
+      "quality_pack_refs": [
+        "medical_claim_evidence_pack",
+        "paper_reader_grounding_pack",
+        "route_memory_pack",
+        "stop_loss_pack",
+        "human_gate_pack"
+      ],
+      "skills": [
+        {
+          "ref": "med-autoscience",
+          "ref_kind": "skill_id",
+          "role": "domain_skill"
+        },
+        {
+          "ref": "mas",
+          "ref_kind": "skill_id",
+          "role": "codex_app_skill"
+        }
+      ],
+      "source_refs": [
+        {
+          "ref": "/product_entry_manifest/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "action_catalog"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor",
+          "ref_kind": "json_pointer",
+          "role": "deep_descriptor"
+        },
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract_source"
+        },
+        {
+          "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
+          "ref_kind": "python_symbol",
+          "role": "stage_knowledge_plane_contract"
+        },
+        {
+          "ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+          "ref_kind": "python_symbol",
+          "role": "quality_pack_contract"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
+          "ref_kind": "repo_path",
+          "role": "inventory_reference"
+        },
+        {
+          "ref": [
+            "scout",
+            "idea",
+            "decision"
+          ],
+          "ref_kind": "route_stage_refs",
+          "role": "mas_route_projection"
+        }
+      ],
+      "stage_id": "direction_and_route_selection",
+      "stage_kind": "planning",
+      "stage_skill_surface_projection": {
+        "authority_boundary": {
+          "allowed_fields": [
+            "skill_locator",
+            "freshness",
+            "quality_pack_refs",
+            "stage_card_ref",
+            "authority_boundary"
+          ],
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_paper": false,
+          "can_write_mas_truth": false,
+          "opl_role": "descriptor_ref_freshness_locator_consumer",
+          "publication_readiness_owner": "MedAutoScience",
+          "quality_owner": "MedAutoScience",
+          "truth_owner": "MedAutoScience"
+        },
+        "freshness": {
+          "freshness_kind": "product_entry_manifest_projection",
+          "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+          "source_ref": "src/med_autoscience/stage_skill_surface_projection.py",
+          "stale_if_projection_source_missing": true
+        },
+        "quality_pack_refs": [
+          "medical_claim_evidence_pack",
+          "statistical_analysis_pack",
+          "reporting_guideline_pack",
+          "display_to_claim_pack",
+          "journal_response_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "paper_reader_grounding_pack",
+          "paper_presentation_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "artifact_freshness_pack",
+          "human_gate_pack"
+        ],
+        "skill_locator": {
+          "ref": "/skill_catalog/skills/0",
+          "ref_kind": "json_pointer",
+          "role": "mas_domain_skill_descriptor"
+        },
+        "stage_card_ref": {
+          "ref": "/product_entry_manifest/family_stage_control_plane/stages/direction_and_route_selection",
+          "ref_kind": "json_pointer",
+          "role": "family_stage_card_descriptor"
+        },
+        "surface_kind": "stage_skill_surface_projection",
+        "version": "stage-skill-surface-projection.v1"
+      },
+      "summary": "Direction and route selection projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
+      "title": "Direction and route selection"
+    },
+    {
+      "allowed_action_refs": [
+        "submit_study_task",
+        "launch_study",
+        "study_progress"
+      ],
+      "authority_boundary": {
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_replace_route_contract": false,
+        "can_write_domain_truth": false,
+        "domain_truth_owner": "MedAutoScience",
+        "maps_existing_routes_only": true,
+        "opl_role": "projection_consumer_only",
+        "publication_gate_owner": "MedAutoScience",
+        "route_contract_owner": "MedAutoScience",
+        "stage_knowledge_plane_owner": "MedAutoScience"
+      },
+      "deliverable_index_ref": {
+        "blocking_only_when": "mas_human_gate_boundary_triggered",
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_write_domain_truth": false,
+        "human_review_blocks_auto_advance_by_default": false,
+        "opl_projection_boundary": "read_only_locator_no_truth_write",
+        "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+        "ref_kind": "json_pointer",
+        "role": "stage_deliverable_index"
+      },
+      "domain_stage_refs": [
+        "baseline",
+        "experiment"
+      ],
+      "evaluation": [
+        {
+          "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+          "ref_kind": "json_pointer",
+          "role": "authority_boundary"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_projection"
+        }
+      ],
+      "freshness": {
+        "freshness_kind": "product_entry_manifest_projection",
+        "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+        "source_observed_at_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+        "stale_if_source_refs_missing": true
+      },
+      "goal": "Establish the baseline, comparator, and readiness proof for the active study line. / Run a primary managed experiment when the study line needs fresh main-result execution.",
+      "handoff": {
+        "next_owner": "MedAutoScience",
+        "resume_surface_ref": "/product_entry_shell/study_progress",
+        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
+        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+      },
+      "inputs": [
+        {
+          "ref": "/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "allowed_action_catalog"
+        },
+        {
+          "ref": "/family_stage_control_plane_descriptor/stage_knowledge_plane",
+          "ref_kind": "json_pointer",
+          "role": "stage_knowledge_plane"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_read_model"
+        }
+      ],
+      "knowledge_refs": [],
+      "outputs": [
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "stage_status"
+        },
+        {
+          "blocking_only_when": "mas_human_gate_boundary_triggered",
+          "can_authorize_publication_quality": false,
+          "can_authorize_submission_readiness": false,
+          "can_write_domain_truth": false,
+          "human_review_blocks_auto_advance_by_default": false,
+          "opl_projection_boundary": "read_only_locator_no_truth_write",
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "/opl_family_persistence_lifecycle_owner_route_adoption",
+          "ref_kind": "json_pointer",
+          "role": "owner_route_projection"
+        }
+      ],
+      "owner": "MedAutoScience",
+      "prompt_refs": [
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract"
+        },
+        {
+          "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_led_policy"
+        }
+      ],
+      "quality_pack_projection": {
+        "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+        "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
+        "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
+        "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
+        "pack_refs": [
+          "statistical_analysis_pack",
+          "stop_loss_pack",
+          "human_gate_pack"
+        ],
+        "publication_readiness_authority": false,
+        "quality_verdict_authority": false,
+        "role": "quality_input_and_reviewer_rubric"
+      },
+      "quality_pack_refs": [
+        "statistical_analysis_pack",
+        "stop_loss_pack",
+        "human_gate_pack"
+      ],
+      "skills": [
+        {
+          "ref": "med-autoscience",
+          "ref_kind": "skill_id",
+          "role": "domain_skill"
+        },
+        {
+          "ref": "mas",
+          "ref_kind": "skill_id",
+          "role": "codex_app_skill"
+        }
+      ],
+      "source_refs": [
+        {
+          "ref": "/product_entry_manifest/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "action_catalog"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor",
+          "ref_kind": "json_pointer",
+          "role": "deep_descriptor"
+        },
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract_source"
+        },
+        {
+          "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
+          "ref_kind": "python_symbol",
+          "role": "stage_knowledge_plane_contract"
+        },
+        {
+          "ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+          "ref_kind": "python_symbol",
+          "role": "quality_pack_contract"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
+          "ref_kind": "repo_path",
+          "role": "inventory_reference"
+        },
+        {
+          "ref": [
+            "baseline",
+            "experiment"
+          ],
+          "ref_kind": "route_stage_refs",
+          "role": "mas_route_projection"
+        }
+      ],
+      "stage_id": "baseline_and_evidence_setup",
+      "stage_kind": "source_preparation",
+      "stage_skill_surface_projection": {
+        "authority_boundary": {
+          "allowed_fields": [
+            "skill_locator",
+            "freshness",
+            "quality_pack_refs",
+            "stage_card_ref",
+            "authority_boundary"
+          ],
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_paper": false,
+          "can_write_mas_truth": false,
+          "opl_role": "descriptor_ref_freshness_locator_consumer",
+          "publication_readiness_owner": "MedAutoScience",
+          "quality_owner": "MedAutoScience",
+          "truth_owner": "MedAutoScience"
+        },
+        "freshness": {
+          "freshness_kind": "product_entry_manifest_projection",
+          "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+          "source_ref": "src/med_autoscience/stage_skill_surface_projection.py",
+          "stale_if_projection_source_missing": true
+        },
+        "quality_pack_refs": [
+          "medical_claim_evidence_pack",
+          "statistical_analysis_pack",
+          "reporting_guideline_pack",
+          "display_to_claim_pack",
+          "journal_response_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "paper_reader_grounding_pack",
+          "paper_presentation_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "artifact_freshness_pack",
+          "human_gate_pack"
+        ],
+        "skill_locator": {
+          "ref": "/skill_catalog/skills/0",
+          "ref_kind": "json_pointer",
+          "role": "mas_domain_skill_descriptor"
+        },
+        "stage_card_ref": {
+          "ref": "/product_entry_manifest/family_stage_control_plane/stages/baseline_and_evidence_setup",
+          "ref_kind": "json_pointer",
+          "role": "family_stage_card_descriptor"
+        },
+        "surface_kind": "stage_skill_surface_projection",
+        "version": "stage-skill-surface-projection.v1"
+      },
+      "summary": "Baseline and evidence setup projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
+      "title": "Baseline and evidence setup"
+    },
+    {
+      "allowed_action_refs": [
+        "launch_study",
+        "study_progress",
+        "sidecar_export",
+        "sidecar_dispatch"
+      ],
+      "authority_boundary": {
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_replace_route_contract": false,
+        "can_write_domain_truth": false,
+        "domain_truth_owner": "MedAutoScience",
+        "maps_existing_routes_only": true,
+        "opl_role": "projection_consumer_only",
+        "publication_gate_owner": "MedAutoScience",
+        "route_contract_owner": "MedAutoScience",
+        "stage_knowledge_plane_owner": "MedAutoScience"
+      },
+      "deliverable_index_ref": {
+        "blocking_only_when": "mas_human_gate_boundary_triggered",
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_write_domain_truth": false,
+        "human_review_blocks_auto_advance_by_default": false,
+        "opl_projection_boundary": "read_only_locator_no_truth_write",
+        "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+        "ref_kind": "json_pointer",
+        "role": "stage_deliverable_index"
+      },
+      "domain_stage_refs": [
+        "analysis-campaign"
+      ],
+      "evaluation": [
+        {
+          "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+          "ref_kind": "json_pointer",
+          "role": "authority_boundary"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_projection"
+        }
+      ],
+      "freshness": {
+        "freshness_kind": "product_entry_manifest_projection",
+        "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+        "source_observed_at_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+        "stale_if_source_refs_missing": true
+      },
+      "goal": "Close the bounded evidence gaps that still block claim acceptance or reviewer pressure.",
+      "handoff": {
+        "next_owner": "MedAutoScience",
+        "resume_surface_ref": "/product_entry_shell/study_progress",
+        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
+        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+      },
+      "inputs": [
+        {
+          "ref": "/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "allowed_action_catalog"
+        },
+        {
+          "ref": "/family_stage_control_plane_descriptor/stage_knowledge_plane",
+          "ref_kind": "json_pointer",
+          "role": "stage_knowledge_plane"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_read_model"
+        }
+      ],
+      "knowledge_refs": [
+        {
+          "ref": "mas_publication_route_memory",
+          "ref_kind": "domain_memory_ref",
+          "role": "publication_route_memory_locator"
+        }
+      ],
+      "outputs": [
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "stage_status"
+        },
+        {
+          "blocking_only_when": "mas_human_gate_boundary_triggered",
+          "can_authorize_publication_quality": false,
+          "can_authorize_submission_readiness": false,
+          "can_write_domain_truth": false,
+          "human_review_blocks_auto_advance_by_default": false,
+          "opl_projection_boundary": "read_only_locator_no_truth_write",
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "/opl_family_persistence_lifecycle_owner_route_adoption",
+          "ref_kind": "json_pointer",
+          "role": "owner_route_projection"
+        }
+      ],
+      "owner": "MedAutoScience",
+      "prompt_refs": [
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract"
+        },
+        {
+          "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_led_policy"
+        }
+      ],
+      "quality_pack_projection": {
+        "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+        "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
+        "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
+        "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
+        "pack_refs": [
+          "statistical_analysis_pack",
+          "display_to_claim_pack",
+          "figure_evidence_contract_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "human_gate_pack"
+        ],
+        "publication_readiness_authority": false,
+        "quality_verdict_authority": false,
+        "role": "quality_input_and_reviewer_rubric"
+      },
+      "quality_pack_refs": [
+        "statistical_analysis_pack",
+        "display_to_claim_pack",
+        "figure_evidence_contract_pack",
+        "route_memory_pack",
+        "stop_loss_pack",
+        "human_gate_pack"
+      ],
+      "skills": [
+        {
+          "ref": "med-autoscience",
+          "ref_kind": "skill_id",
+          "role": "domain_skill"
+        },
+        {
+          "ref": "mas",
+          "ref_kind": "skill_id",
+          "role": "codex_app_skill"
+        }
+      ],
+      "source_refs": [
+        {
+          "ref": "/product_entry_manifest/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "action_catalog"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor",
+          "ref_kind": "json_pointer",
+          "role": "deep_descriptor"
+        },
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract_source"
+        },
+        {
+          "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
+          "ref_kind": "python_symbol",
+          "role": "stage_knowledge_plane_contract"
+        },
+        {
+          "ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+          "ref_kind": "python_symbol",
+          "role": "quality_pack_contract"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
+          "ref_kind": "repo_path",
+          "role": "inventory_reference"
+        },
+        {
+          "ref": [
+            "analysis-campaign"
+          ],
+          "ref_kind": "route_stage_refs",
+          "role": "mas_route_projection"
+        }
+      ],
+      "stage_id": "bounded_analysis_campaign",
+      "stage_kind": "creation",
+      "stage_skill_surface_projection": {
+        "authority_boundary": {
+          "allowed_fields": [
+            "skill_locator",
+            "freshness",
+            "quality_pack_refs",
+            "stage_card_ref",
+            "authority_boundary"
+          ],
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_paper": false,
+          "can_write_mas_truth": false,
+          "opl_role": "descriptor_ref_freshness_locator_consumer",
+          "publication_readiness_owner": "MedAutoScience",
+          "quality_owner": "MedAutoScience",
+          "truth_owner": "MedAutoScience"
+        },
+        "freshness": {
+          "freshness_kind": "product_entry_manifest_projection",
+          "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+          "source_ref": "src/med_autoscience/stage_skill_surface_projection.py",
+          "stale_if_projection_source_missing": true
+        },
+        "quality_pack_refs": [
+          "medical_claim_evidence_pack",
+          "statistical_analysis_pack",
+          "reporting_guideline_pack",
+          "display_to_claim_pack",
+          "journal_response_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "paper_reader_grounding_pack",
+          "paper_presentation_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "artifact_freshness_pack",
+          "human_gate_pack"
+        ],
+        "skill_locator": {
+          "ref": "/skill_catalog/skills/0",
+          "ref_kind": "json_pointer",
+          "role": "mas_domain_skill_descriptor"
+        },
+        "stage_card_ref": {
+          "ref": "/product_entry_manifest/family_stage_control_plane/stages/bounded_analysis_campaign",
+          "ref_kind": "json_pointer",
+          "role": "family_stage_card_descriptor"
+        },
+        "surface_kind": "stage_skill_surface_projection",
+        "version": "stage-skill-surface-projection.v1"
+      },
+      "summary": "Bounded analysis campaign projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
+      "title": "Bounded analysis campaign"
+    },
+    {
+      "allowed_action_refs": [
+        "launch_study",
+        "study_progress",
+        "sidecar_export",
+        "sidecar_dispatch"
+      ],
+      "authority_boundary": {
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_replace_route_contract": false,
+        "can_write_domain_truth": false,
+        "domain_truth_owner": "MedAutoScience",
+        "maps_existing_routes_only": true,
+        "opl_role": "projection_consumer_only",
+        "publication_gate_owner": "MedAutoScience",
+        "route_contract_owner": "MedAutoScience",
+        "stage_knowledge_plane_owner": "MedAutoScience"
+      },
+      "deliverable_index_ref": {
+        "blocking_only_when": "mas_human_gate_boundary_triggered",
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_write_domain_truth": false,
+        "human_review_blocks_auto_advance_by_default": false,
+        "opl_projection_boundary": "read_only_locator_no_truth_write",
+        "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+        "ref_kind": "json_pointer",
+        "role": "stage_deliverable_index"
+      },
+      "domain_stage_refs": [
+        "write"
+      ],
+      "evaluation": [
+        {
+          "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+          "ref_kind": "json_pointer",
+          "role": "authority_boundary"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_projection"
+        }
+      ],
+      "freshness": {
+        "freshness_kind": "product_entry_manifest_projection",
+        "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+        "source_observed_at_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+        "stale_if_source_refs_missing": true
+      },
+      "goal": "Convert the current evidence line into a manuscript-facing narrative that can withstand review.",
+      "handoff": {
+        "next_owner": "MedAutoScience",
+        "resume_surface_ref": "/product_entry_shell/study_progress",
+        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
+        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+      },
+      "inputs": [
+        {
+          "ref": "/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "allowed_action_catalog"
+        },
+        {
+          "ref": "/family_stage_control_plane_descriptor/stage_knowledge_plane",
+          "ref_kind": "json_pointer",
+          "role": "stage_knowledge_plane"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_read_model"
+        }
+      ],
+      "knowledge_refs": [],
+      "outputs": [
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "stage_status"
+        },
+        {
+          "blocking_only_when": "mas_human_gate_boundary_triggered",
+          "can_authorize_publication_quality": false,
+          "can_authorize_submission_readiness": false,
+          "can_write_domain_truth": false,
+          "human_review_blocks_auto_advance_by_default": false,
+          "opl_projection_boundary": "read_only_locator_no_truth_write",
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "/opl_family_persistence_lifecycle_owner_route_adoption",
+          "ref_kind": "json_pointer",
+          "role": "owner_route_projection"
+        }
+      ],
+      "owner": "MedAutoScience",
+      "prompt_refs": [
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract"
+        },
+        {
+          "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_led_policy"
+        }
+      ],
+      "quality_pack_projection": {
+        "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+        "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
+        "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
+        "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
+        "pack_refs": [
+          "medical_claim_evidence_pack",
+          "reporting_guideline_pack",
+          "display_to_claim_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "artifact_freshness_pack",
+          "human_gate_pack"
+        ],
+        "publication_readiness_authority": false,
+        "quality_verdict_authority": false,
+        "role": "quality_input_and_reviewer_rubric"
+      },
+      "quality_pack_refs": [
+        "medical_claim_evidence_pack",
+        "reporting_guideline_pack",
+        "display_to_claim_pack",
+        "data_availability_fair_pack",
+        "citation_integrity_pack",
+        "figure_evidence_contract_pack",
+        "artifact_freshness_pack",
+        "human_gate_pack"
+      ],
+      "skills": [
+        {
+          "ref": "med-autoscience",
+          "ref_kind": "skill_id",
+          "role": "domain_skill"
+        },
+        {
+          "ref": "mas",
+          "ref_kind": "skill_id",
+          "role": "codex_app_skill"
+        }
+      ],
+      "source_refs": [
+        {
+          "ref": "/product_entry_manifest/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "action_catalog"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor",
+          "ref_kind": "json_pointer",
+          "role": "deep_descriptor"
+        },
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract_source"
+        },
+        {
+          "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
+          "ref_kind": "python_symbol",
+          "role": "stage_knowledge_plane_contract"
+        },
+        {
+          "ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+          "ref_kind": "python_symbol",
+          "role": "quality_pack_contract"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
+          "ref_kind": "repo_path",
+          "role": "inventory_reference"
+        },
+        {
+          "ref": [
+            "write"
+          ],
+          "ref_kind": "route_stage_refs",
+          "role": "mas_route_projection"
+        }
+      ],
+      "stage_id": "manuscript_authoring",
+      "stage_kind": "creation",
+      "stage_skill_surface_projection": {
+        "authority_boundary": {
+          "allowed_fields": [
+            "skill_locator",
+            "freshness",
+            "quality_pack_refs",
+            "stage_card_ref",
+            "authority_boundary"
+          ],
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_paper": false,
+          "can_write_mas_truth": false,
+          "opl_role": "descriptor_ref_freshness_locator_consumer",
+          "publication_readiness_owner": "MedAutoScience",
+          "quality_owner": "MedAutoScience",
+          "truth_owner": "MedAutoScience"
+        },
+        "freshness": {
+          "freshness_kind": "product_entry_manifest_projection",
+          "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+          "source_ref": "src/med_autoscience/stage_skill_surface_projection.py",
+          "stale_if_projection_source_missing": true
+        },
+        "quality_pack_refs": [
+          "medical_claim_evidence_pack",
+          "statistical_analysis_pack",
+          "reporting_guideline_pack",
+          "display_to_claim_pack",
+          "journal_response_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "paper_reader_grounding_pack",
+          "paper_presentation_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "artifact_freshness_pack",
+          "human_gate_pack"
+        ],
+        "skill_locator": {
+          "ref": "/skill_catalog/skills/0",
+          "ref_kind": "json_pointer",
+          "role": "mas_domain_skill_descriptor"
+        },
+        "stage_card_ref": {
+          "ref": "/product_entry_manifest/family_stage_control_plane/stages/manuscript_authoring",
+          "ref_kind": "json_pointer",
+          "role": "family_stage_card_descriptor"
+        },
+        "surface_kind": "stage_skill_surface_projection",
+        "version": "stage-skill-surface-projection.v1"
+      },
+      "summary": "Manuscript authoring projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
+      "title": "Manuscript authoring"
+    },
+    {
+      "allowed_action_refs": [
+        "study_progress",
+        "product_entry",
+        "sidecar_export",
+        "sidecar_dispatch"
+      ],
+      "authority_boundary": {
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_replace_route_contract": false,
+        "can_write_domain_truth": false,
+        "domain_truth_owner": "MedAutoScience",
+        "maps_existing_routes_only": true,
+        "opl_role": "projection_consumer_only",
+        "publication_gate_owner": "MedAutoScience",
+        "route_contract_owner": "MedAutoScience",
+        "stage_knowledge_plane_owner": "MedAutoScience"
+      },
+      "deliverable_index_ref": {
+        "blocking_only_when": "mas_human_gate_boundary_triggered",
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_write_domain_truth": false,
+        "human_review_blocks_auto_advance_by_default": false,
+        "opl_projection_boundary": "read_only_locator_no_truth_write",
+        "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+        "ref_kind": "json_pointer",
+        "role": "stage_deliverable_index"
+      },
+      "domain_stage_refs": [
+        "review",
+        "decision"
+      ],
+      "evaluation": [
+        {
+          "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+          "ref_kind": "json_pointer",
+          "role": "authority_boundary"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_projection"
+        }
+      ],
+      "freshness": {
+        "freshness_kind": "product_entry_manifest_projection",
+        "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+        "source_observed_at_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+        "stale_if_source_refs_missing": true
+      },
+      "goal": "Convert reviewer pressure, citation gaps, and evidence concerns into route-safe repair or decision work. / Record the official go, stop, reroute, or human-gate judgment for the active study line.",
+      "handoff": {
+        "next_owner": "MedAutoScience",
+        "resume_surface_ref": "/product_entry_shell/study_progress",
+        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
+        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+      },
+      "inputs": [
+        {
+          "ref": "/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "allowed_action_catalog"
+        },
+        {
+          "ref": "/family_stage_control_plane_descriptor/stage_knowledge_plane",
+          "ref_kind": "json_pointer",
+          "role": "stage_knowledge_plane"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_read_model"
+        }
+      ],
+      "knowledge_refs": [
+        {
+          "ref": "mas_publication_route_memory",
+          "ref_kind": "domain_memory_ref",
+          "role": "publication_route_memory_locator"
+        }
+      ],
+      "outputs": [
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "stage_status"
+        },
+        {
+          "blocking_only_when": "mas_human_gate_boundary_triggered",
+          "can_authorize_publication_quality": false,
+          "can_authorize_submission_readiness": false,
+          "can_write_domain_truth": false,
+          "human_review_blocks_auto_advance_by_default": false,
+          "opl_projection_boundary": "read_only_locator_no_truth_write",
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "/opl_family_persistence_lifecycle_owner_route_adoption",
+          "ref_kind": "json_pointer",
+          "role": "owner_route_projection"
+        }
+      ],
+      "owner": "MedAutoScience",
+      "prompt_refs": [
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract"
+        },
+        {
+          "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_led_policy"
+        }
+      ],
+      "quality_pack_projection": {
+        "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+        "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
+        "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
+        "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
+        "pack_refs": [
+          "medical_claim_evidence_pack",
+          "reporting_guideline_pack",
+          "display_to_claim_pack",
+          "journal_response_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "paper_reader_grounding_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "human_gate_pack"
+        ],
+        "publication_readiness_authority": false,
+        "quality_verdict_authority": false,
+        "role": "quality_input_and_reviewer_rubric"
+      },
+      "quality_pack_refs": [
+        "medical_claim_evidence_pack",
+        "reporting_guideline_pack",
+        "display_to_claim_pack",
+        "journal_response_pack",
+        "data_availability_fair_pack",
+        "citation_integrity_pack",
+        "figure_evidence_contract_pack",
+        "paper_reader_grounding_pack",
+        "route_memory_pack",
+        "stop_loss_pack",
+        "human_gate_pack"
+      ],
+      "skills": [
+        {
+          "ref": "med-autoscience",
+          "ref_kind": "skill_id",
+          "role": "domain_skill"
+        },
+        {
+          "ref": "mas",
+          "ref_kind": "skill_id",
+          "role": "codex_app_skill"
+        }
+      ],
+      "source_refs": [
+        {
+          "ref": "/product_entry_manifest/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "action_catalog"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor",
+          "ref_kind": "json_pointer",
+          "role": "deep_descriptor"
+        },
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract_source"
+        },
+        {
+          "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
+          "ref_kind": "python_symbol",
+          "role": "stage_knowledge_plane_contract"
+        },
+        {
+          "ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+          "ref_kind": "python_symbol",
+          "role": "quality_pack_contract"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
+          "ref_kind": "repo_path",
+          "role": "inventory_reference"
+        },
+        {
+          "ref": [
+            "review",
+            "decision"
+          ],
+          "ref_kind": "route_stage_refs",
+          "role": "mas_route_projection"
+        }
+      ],
+      "stage_id": "review_and_quality_gate",
+      "stage_kind": "review",
+      "stage_skill_surface_projection": {
+        "authority_boundary": {
+          "allowed_fields": [
+            "skill_locator",
+            "freshness",
+            "quality_pack_refs",
+            "stage_card_ref",
+            "authority_boundary"
+          ],
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_paper": false,
+          "can_write_mas_truth": false,
+          "opl_role": "descriptor_ref_freshness_locator_consumer",
+          "publication_readiness_owner": "MedAutoScience",
+          "quality_owner": "MedAutoScience",
+          "truth_owner": "MedAutoScience"
+        },
+        "freshness": {
+          "freshness_kind": "product_entry_manifest_projection",
+          "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+          "source_ref": "src/med_autoscience/stage_skill_surface_projection.py",
+          "stale_if_projection_source_missing": true
+        },
+        "quality_pack_refs": [
+          "medical_claim_evidence_pack",
+          "statistical_analysis_pack",
+          "reporting_guideline_pack",
+          "display_to_claim_pack",
+          "journal_response_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "paper_reader_grounding_pack",
+          "paper_presentation_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "artifact_freshness_pack",
+          "human_gate_pack"
+        ],
+        "skill_locator": {
+          "ref": "/skill_catalog/skills/0",
+          "ref_kind": "json_pointer",
+          "role": "mas_domain_skill_descriptor"
+        },
+        "stage_card_ref": {
+          "ref": "/product_entry_manifest/family_stage_control_plane/stages/review_and_quality_gate",
+          "ref_kind": "json_pointer",
+          "role": "family_stage_card_descriptor"
+        },
+        "surface_kind": "stage_skill_surface_projection",
+        "version": "stage-skill-surface-projection.v1"
+      },
+      "summary": "Review and quality gate projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
+      "title": "Review and quality gate"
+    },
+    {
+      "allowed_action_refs": [
+        "study_progress",
+        "product_entry",
+        "sidecar_export"
+      ],
+      "authority_boundary": {
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_replace_route_contract": false,
+        "can_write_domain_truth": false,
+        "domain_truth_owner": "MedAutoScience",
+        "maps_existing_routes_only": true,
+        "opl_role": "projection_consumer_only",
+        "publication_gate_owner": "MedAutoScience",
+        "route_contract_owner": "MedAutoScience",
+        "stage_knowledge_plane_owner": "MedAutoScience"
+      },
+      "deliverable_index_ref": {
+        "blocking_only_when": "mas_human_gate_boundary_triggered",
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_write_domain_truth": false,
+        "human_review_blocks_auto_advance_by_default": false,
+        "opl_projection_boundary": "read_only_locator_no_truth_write",
+        "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+        "ref_kind": "json_pointer",
+        "role": "stage_deliverable_index"
+      },
+      "domain_stage_refs": [
+        "finalize",
+        "journal-resolution",
+        "decision"
+      ],
+      "evaluation": [
+        {
+          "ref": "/family_stage_control_plane_descriptor/authority_boundary",
+          "ref_kind": "json_pointer",
+          "role": "authority_boundary"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_projection"
+        }
+      ],
+      "freshness": {
+        "freshness_kind": "product_entry_manifest_projection",
+        "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+        "source_observed_at_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+        "stale_if_source_refs_missing": true
+      },
+      "goal": "Assemble the submission-facing package and verify that the line is ready for final judgment. / Resolve journal-facing packaging choices before final delivery or submission prep.",
+      "handoff": {
+        "next_owner": "MedAutoScience",
+        "resume_surface_ref": "/product_entry_shell/study_progress",
+        "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
+        "sidecar_export_ref": "/product_entry_shell/sidecar_export"
+      },
+      "inputs": [
+        {
+          "ref": "/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "allowed_action_catalog"
+        },
+        {
+          "ref": "/family_stage_control_plane_descriptor/stage_knowledge_plane",
+          "ref_kind": "json_pointer",
+          "role": "stage_knowledge_plane"
+        },
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "progress_read_model"
+        }
+      ],
+      "knowledge_refs": [
+        {
+          "ref": "mas_publication_route_memory",
+          "ref_kind": "domain_memory_ref",
+          "role": "publication_route_memory_locator"
+        }
+      ],
+      "outputs": [
+        {
+          "ref": "/progress_projection",
+          "ref_kind": "json_pointer",
+          "role": "stage_status"
+        },
+        {
+          "blocking_only_when": "mas_human_gate_boundary_triggered",
+          "can_authorize_publication_quality": false,
+          "can_authorize_submission_readiness": false,
+          "can_write_domain_truth": false,
+          "human_review_blocks_auto_advance_by_default": false,
+          "opl_projection_boundary": "read_only_locator_no_truth_write",
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "/opl_family_persistence_lifecycle_owner_route_adoption",
+          "ref_kind": "json_pointer",
+          "role": "owner_route_projection"
+        }
+      ],
+      "owner": "MedAutoScience",
+      "prompt_refs": [
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract"
+        },
+        {
+          "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_led_policy"
+        }
+      ],
+      "quality_pack_projection": {
+        "authority_boundary_ref": "/product_entry_manifest/stage_quality_pack_contract/authority_boundary",
+        "contract_ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+        "freshness_ref": "/product_entry_manifest/stage_quality_pack_contract/freshness",
+        "locator_ref": "/product_entry_manifest/stage_quality_pack_contract/pack_locators",
+        "opl_projection_boundary": "descriptor_ref_freshness_locator_only",
+        "pack_refs": [
+          "medical_claim_evidence_pack",
+          "reporting_guideline_pack",
+          "journal_response_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "paper_reader_grounding_pack",
+          "paper_presentation_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "artifact_freshness_pack",
+          "human_gate_pack"
+        ],
+        "publication_readiness_authority": false,
+        "quality_verdict_authority": false,
+        "role": "quality_input_and_reviewer_rubric"
+      },
+      "quality_pack_refs": [
+        "medical_claim_evidence_pack",
+        "reporting_guideline_pack",
+        "journal_response_pack",
+        "data_availability_fair_pack",
+        "citation_integrity_pack",
+        "figure_evidence_contract_pack",
+        "paper_reader_grounding_pack",
+        "paper_presentation_pack",
+        "route_memory_pack",
+        "stop_loss_pack",
+        "artifact_freshness_pack",
+        "human_gate_pack"
+      ],
+      "skills": [
+        {
+          "ref": "med-autoscience",
+          "ref_kind": "skill_id",
+          "role": "domain_skill"
+        },
+        {
+          "ref": "mas",
+          "ref_kind": "skill_id",
+          "role": "codex_app_skill"
+        }
+      ],
+      "source_refs": [
+        {
+          "ref": "/product_entry_manifest/family_action_catalog",
+          "ref_kind": "json_pointer",
+          "role": "action_catalog"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor",
+          "ref_kind": "json_pointer",
+          "role": "deep_descriptor"
+        },
+        {
+          "ref": "agent/stages/stage_route_contract.yaml",
+          "ref_kind": "repo_path",
+          "role": "route_contract_source"
+        },
+        {
+          "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
+          "ref_kind": "python_symbol",
+          "role": "stage_knowledge_plane_contract"
+        },
+        {
+          "ref": "med_autoscience.stage_quality_contract.build_stage_quality_pack_contract",
+          "ref_kind": "python_symbol",
+          "role": "quality_pack_contract"
+        },
+        {
+          "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+          "ref_kind": "json_pointer",
+          "role": "stage_deliverable_index"
+        },
+        {
+          "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
+          "ref_kind": "repo_path",
+          "role": "inventory_reference"
+        },
+        {
+          "ref": [
+            "finalize",
+            "journal-resolution",
+            "decision"
+          ],
+          "ref_kind": "route_stage_refs",
+          "role": "mas_route_projection"
+        }
+      ],
+      "stage_id": "finalize_and_publication_handoff",
+      "stage_kind": "packaging",
+      "stage_skill_surface_projection": {
+        "authority_boundary": {
+          "allowed_fields": [
+            "skill_locator",
+            "freshness",
+            "quality_pack_refs",
+            "stage_card_ref",
+            "authority_boundary"
+          ],
+          "can_authorize_publication_readiness": false,
+          "can_authorize_quality_verdict": false,
+          "can_close_paper": false,
+          "can_write_mas_truth": false,
+          "opl_role": "descriptor_ref_freshness_locator_consumer",
+          "publication_readiness_owner": "MedAutoScience",
+          "quality_owner": "MedAutoScience",
+          "truth_owner": "MedAutoScience"
+        },
+        "freshness": {
+          "freshness_kind": "product_entry_manifest_projection",
+          "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
+          "source_ref": "src/med_autoscience/stage_skill_surface_projection.py",
+          "stale_if_projection_source_missing": true
+        },
+        "quality_pack_refs": [
+          "medical_claim_evidence_pack",
+          "statistical_analysis_pack",
+          "reporting_guideline_pack",
+          "display_to_claim_pack",
+          "journal_response_pack",
+          "data_availability_fair_pack",
+          "citation_integrity_pack",
+          "figure_evidence_contract_pack",
+          "paper_reader_grounding_pack",
+          "paper_presentation_pack",
+          "route_memory_pack",
+          "stop_loss_pack",
+          "artifact_freshness_pack",
+          "human_gate_pack"
+        ],
+        "skill_locator": {
+          "ref": "/skill_catalog/skills/0",
+          "ref_kind": "json_pointer",
+          "role": "mas_domain_skill_descriptor"
+        },
+        "stage_card_ref": {
+          "ref": "/product_entry_manifest/family_stage_control_plane/stages/finalize_and_publication_handoff",
+          "ref_kind": "json_pointer",
+          "role": "family_stage_card_descriptor"
+        },
+        "surface_kind": "stage_skill_surface_projection",
+        "version": "stage-skill-surface-projection.v1"
+      },
+      "summary": "Finalize and publication handoff projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
+      "title": "Finalize and publication handoff"
+    }
+  ],
+  "surface_kind": "family_stage_control_plane",
+  "target_domain_id": "med-autoscience",
+  "version": "family-stage-control-plane.v1"
+}
