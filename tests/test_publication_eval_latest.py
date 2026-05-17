@@ -281,7 +281,7 @@ def test_read_publication_eval_latest_marks_legacy_payload_as_projection_only(tm
     }
 
 
-def test_read_publication_eval_latest_normalizes_legacy_ai_reviewer_recheck_route_verdict(
+def test_read_publication_eval_latest_rejects_legacy_ai_reviewer_recheck_route_verdict(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(MODULE_NAME)
@@ -320,17 +320,8 @@ def test_read_publication_eval_latest_normalizes_legacy_ai_reviewer_recheck_rout
     ]
     _write_json(latest_path, payload)
 
-    resolved = module.read_publication_eval_latest(study_root=study_root)
-
-    assert resolved["verdict"]["overall_verdict"] == "promising"
-    assert resolved["verdict"]["primary_claim_status"] == "partial"
-    assert resolved["recommended_actions"][0]["action_type"] == "continue_same_line"
-    assert resolved["recommended_actions"][0]["requires_controller_decision"] is True
-    assert (
-        resolved["recommended_actions"][0]["route_rationale"]
-        == "The AI reviewer recheck closed the review-workflow blocker."
-    )
-    assert resolved["assessment_provenance"]["source_kind"] == "publication_eval_ai_reviewer_recheck"
+    with pytest.raises(ValueError, match="overall_verdict must be one of"):
+        module.read_publication_eval_latest(study_root=study_root)
 
 
 def test_ai_reviewer_publication_eval_materializer_rejects_gate_projection_payload(tmp_path: Path) -> None:

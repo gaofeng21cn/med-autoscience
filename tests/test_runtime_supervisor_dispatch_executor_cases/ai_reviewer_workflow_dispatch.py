@@ -291,6 +291,122 @@ def test_execute_dispatch_runs_ai_reviewer_owner_workflow(monkeypatch, tmp_path:
     assert (study_root / "artifacts" / "publication_eval" / "latest.json").is_file()
 
 
+def test_execute_dispatch_after_paper_authority_cutover_ignores_archived_latest_and_builds_new_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    _write_json(
+        receipt_path,
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "awaiting_new_mas_authority",
+            "study_id": study_id,
+        },
+    )
+    input_refs = {
+        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
+        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
+        "review_ledger": {
+            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+            "present": True,
+            "valid": True,
+        },
+        "study_charter": {
+            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            "present": True,
+            "valid": True,
+        },
+        "medical_manuscript_blueprint": {
+            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+            "present": True,
+            "valid": True,
+        },
+        "claim_evidence_map": {
+            "path": str(study_root / "paper" / "claim_evidence_map.json"),
+            "present": True,
+            "valid": True,
+        },
+        "medical_prose_review": {
+            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+            "present": True,
+            "valid": True,
+        },
+        "publication_gate_projection": {"path": str(receipt_path), "present": True, "valid": True},
+    }
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "supervisor_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {
+                "required_refs": input_refs,
+                "all_required_refs_present": True,
+                "missing_or_invalid_refs": [],
+            },
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+    called: dict[str, object] = {}
+
+    def fake_run_ai_reviewer_publication_eval_workflow(**kwargs) -> dict[str, object]:
+        called.update(kwargs)
+        _write_json(
+            study_root / "artifacts" / "publication_eval" / "latest.json",
+            {"assessment_provenance": {"owner": "ai_reviewer", "source_kind": "publication_eval_ai_reviewer"}},
+        )
+        return {
+            "surface": "ai_reviewer_publication_eval_workflow",
+            "status": "materialized",
+            "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "eval_id": "publication-eval::002::quest::clean-migration",
+        }
+
+    monkeypatch.setattr(
+        module.ai_reviewer_publication_eval_workflow,
+        "run_ai_reviewer_publication_eval_workflow",
+        fake_run_ai_reviewer_publication_eval_workflow,
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    assert called["additional_refs"]["publication_gate_projection"] == str(receipt_path)
+    assert called["record"]["assessment_provenance"]["source_kind"] == "publication_eval_ai_reviewer"
+    assert called["record"]["quality_assessment"]["medical_journal_prose_quality"]["status"] == "underdefined"
+    assert called["record"]["recommended_actions"][0]["route_target"] == "controller"
+
+
 def test_execute_dispatch_passes_reporting_guideline_and_calibration_refs_to_ai_reviewer(
     monkeypatch,
     tmp_path: Path,

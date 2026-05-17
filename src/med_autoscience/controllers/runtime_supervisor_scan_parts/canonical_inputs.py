@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_macro_state, study_progress, study_runtime_router
+from med_autoscience.controllers import paper_authority_migration
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -45,6 +46,9 @@ def attach_study_macro_state(
 
 
 def publication_eval_payload(status: Mapping[str, Any], progress: Mapping[str, Any]) -> dict[str, Any]:
+    study_root = _study_root_from(status, progress)
+    if study_root is not None and paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root):
+        return paper_authority_migration.cutover_publication_eval_payload(study_root=study_root) or {}
     refs = _mapping(progress.get("refs"))
     publication_eval_path = _text(refs.get("publication_eval_path"))
     if publication_eval_path is not None:
@@ -74,6 +78,11 @@ def _mapping(value: object) -> dict[str, Any]:
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _study_root_from(status: Mapping[str, Any], progress: Mapping[str, Any]) -> Path | None:
+    text = _text(status.get("study_root")) or _text(progress.get("study_root"))
+    return Path(text).expanduser().resolve() if text else None
 
 
 __all__ = [

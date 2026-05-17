@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from med_autoscience.controllers import (
     ai_first_observability,
+    paper_authority_migration,
     supervisor_action_request_lifecycle,
     artifact_runtime_proof,
     control_plane_facts,
@@ -140,6 +141,11 @@ def build_study_progress_projection(
     runtime_escalation_payload = surface_payloads.runtime_escalation_payload
     runtime_watch_payload = surface_payloads.runtime_watch_payload
     publication_eval_payload = surface_payloads.publication_eval_payload
+    cutover_publication_eval = paper_authority_migration.cutover_publication_eval_payload(
+        study_root=resolved_study_root,
+    )
+    if cutover_publication_eval is not None:
+        publication_eval_payload = cutover_publication_eval
     status = _status_absorbing_live_runtime_surfaces(
         status=status,
         study_id=resolved_study_id,

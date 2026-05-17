@@ -48,6 +48,7 @@ class PublicationEvalRecord:
     authority_boundary: dict[str, bool] | None = None
     quality_assessment: PublicationEvalQualityAssessment | None = None
     reviewer_operating_system: dict[str, Any] | None = None
+    future_facing_limitations_plan: tuple[dict[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.schema_version, int) or isinstance(self.schema_version, bool):
@@ -148,6 +149,15 @@ class PublicationEvalRecord:
             object.__setattr__(self, "reviewer_operating_system", dict(self.reviewer_operating_system))
         object.__setattr__(
             self,
+            "future_facing_limitations_plan",
+            _optional_object_tuple(
+                "publication eval record",
+                "future_facing_limitations_plan",
+                self.future_facing_limitations_plan,
+            ),
+        )
+        object.__setattr__(
+            self,
             "gaps",
             tuple(
                 gap if isinstance(gap, PublicationEvalGap) else PublicationEvalGap.from_payload(gap)
@@ -191,6 +201,10 @@ class PublicationEvalRecord:
             payload["quality_assessment"] = self.quality_assessment.to_dict()
         if isinstance(self.reviewer_operating_system, dict):
             payload["reviewer_operating_system"] = self.reviewer_operating_system
+        if self.future_facing_limitations_plan:
+            payload["future_facing_limitations_plan"] = [
+                dict(item) for item in self.future_facing_limitations_plan
+            ]
         return payload
 
     @classmethod
@@ -233,6 +247,15 @@ class PublicationEvalRecord:
             reviewer_operating_system=_payload_object(payload, "reviewer_operating_system", "publication eval record")
             if "reviewer_operating_system" in payload
             else None,
+            future_facing_limitations_plan=tuple(
+                _payload_object_sequence(
+                    payload,
+                    "future_facing_limitations_plan",
+                    "publication eval record",
+                )
+            )
+            if "future_facing_limitations_plan" in payload
+            else (),
             gaps=tuple(
                 PublicationEvalGap.from_payload(item)
                 for item in _payload_object_sequence(payload, "gaps", "publication eval record")
@@ -242,3 +265,16 @@ class PublicationEvalRecord:
                 for item in _payload_object_sequence(payload, "recommended_actions", "publication eval record")
             ),
         )
+
+
+def _optional_object_tuple(label: str, field_name: str, value: object) -> tuple[dict[str, Any], ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, (list, tuple)):
+        raise TypeError(f"{label} {field_name} must be a list")
+    normalized: list[dict[str, Any]] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise TypeError(f"{label} {field_name}[{index}] must be a mapping")
+        normalized.append(dict(item))
+    return tuple(normalized)
