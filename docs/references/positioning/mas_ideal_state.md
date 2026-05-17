@@ -147,7 +147,7 @@ MAS 作为 OPL 消费方时，剩余功能面按以下口径完成：
 - generic memory locator、memory index、body-free inventory projection、freshness、writeback transport 和 App grouping；
 - generic artifact locator、retention、cleanup、restore proof、migration ledger 和 file lifecycle index；
 - generic state-machine runner、transition matrix runner、attempt ledger 和 workflow transport；
-- generic workbench navigation、attention queue、running/recent items、transition bridge evidence drilldown、notification、cross-domain dashboard、CLI/MCP/product-entry/sidecar/status generated wrapper；
+- generic workbench navigation、attention queue、running/recent items、transition bridge evidence drilldown、notification、cross-domain dashboard、CLI/MCP/Skill/product-entry/sidecar/status generated wrapper；
 - generic observability transport、trace/log/event collection、stale scan 和 repair command projection。
 
 这个边界的目的，是让 MAS 成为高质量医学研究 domain brain，而不是又维护一套通用平台。
