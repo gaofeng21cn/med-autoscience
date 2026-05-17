@@ -116,6 +116,30 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         "owner_receipt",
         "safe_action_refs",
     }
+    assert boundary["declarative_pack_compiler_input"]["compiler_owner"] == "one-person-lab"
+    assert boundary["declarative_pack_compiler_input"]["compiler_outputs_expected"] == [
+        "cli",
+        "mcp",
+        "product_entry",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
+    assert boundary["generated_surface_handoff"]["current_mas_role"] == (
+        "handwritten_migration_bridge"
+    )
+    assert boundary["generated_surface_handoff"]["long_term_mas_owner"] is False
+    assert boundary["minimal_authority_function_manifest"]["function_ids"] == [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "artifact_mutation_authorization",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict",
+        "owner_receipt_signer",
+        "medical_helper_implementation",
+    ]
     inventory_by_id = {
         item["module_id"]: item for item in boundary["functional_module_inventory"]
     }

@@ -189,6 +189,76 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "typed_blocker",
         "safe_action_refs",
     }
+    pack_input = lane["declarative_pack_compiler_input"]
+    assert pack_input["surface_kind"] == "mas_declarative_pack_compiler_input"
+    assert pack_input["compiler_owner"] == "one-person-lab"
+    assert pack_input["pack_id"] == "mas-medical-research-pack"
+    assert [item["input_id"] for item in pack_input["input_refs"]] == [
+        "domain_descriptor",
+        "stage_graph",
+        "action_intents",
+        "domain_transition_table",
+        "publication_route_memory_policy",
+        "artifact_authority_policy",
+        "source_readiness_policy",
+        "receipt_schema",
+        "no_forbidden_write_contract",
+    ]
+    assert pack_input["compiler_outputs_expected"] == [
+        "cli",
+        "mcp",
+        "product_entry",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
+    assert pack_input["mas_long_term_code_owner"] == "minimal_authority_functions_only"
+    assert pack_input["must_not_generate_or_claim_domain_authority"] is True
+    generated = lane["generated_surface_handoff"]
+    assert generated["surface_kind"] == "mas_generated_surface_handoff"
+    assert generated["generated_surface_owner"] == "one-person-lab"
+    assert generated["current_mas_role"] == "handwritten_migration_bridge"
+    assert generated["long_term_mas_owner"] is False
+    assert generated["mas_handwritten_shell_expansion_allowed"] is False
+    generated_by_id = {item["surface_id"]: item for item in generated["handoff_surfaces"]}
+    assert set(generated_by_id) == set(pack_input["compiler_outputs_expected"])
+    assert generated_by_id["cli"]["target_role"] == "opl_generated_command_surface"
+    assert generated_by_id["mcp"]["target_role"] == "opl_generated_mcp_descriptor_surface"
+    assert generated_by_id["product_entry"]["target_role"] == "opl_generated_product_entry_surface"
+    assert generated_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
+    assert generated_by_id["status"]["target_role"] == "opl_generated_status_wrapper_over_mas_truth_refs"
+    assert generated_by_id["workbench"]["target_role"] == (
+        "opl_hosted_workbench_shell_consuming_mas_refs"
+    )
+    assert generated_by_id["projection_shell"]["target_role"] == "opl_generated_projection_shell"
+    assert generated_by_id["test_lane_harness"]["target_role"] == (
+        "opl_generated_harness_consumer_over_mas_pack"
+    )
+    minimal_authority = lane["minimal_authority_function_manifest"]
+    assert minimal_authority["surface_kind"] == "mas_minimal_authority_function_manifest"
+    assert minimal_authority["function_ids"] == [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "artifact_mutation_authorization",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict",
+        "owner_receipt_signer",
+        "medical_helper_implementation",
+    ]
+    assert minimal_authority["function_count"] == 7
+    assert minimal_authority["all_other_program_surfaces"] == "opl_generated_or_migration_bridge"
+    assert minimal_authority["forbidden_long_term_mas_shell_owners"] == [
+        "cli",
+        "mcp",
+        "product_entry",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
     classification = lane["functional_surface_classification"]
     assert classification["A_opl_owned_mas_consumes"] == [
         "runtime_lifecycle_sqlite_reference_adapter",
@@ -234,7 +304,11 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     consumer_migration = importlib.import_module(
         "med_autoscience.controllers.supervision_scheduler_parts.consumer_migration"
     )
-    inventory = consumer_migration.build_functional_consumer_boundary()["functional_module_inventory"]
+    runtime_boundary = consumer_migration.build_functional_consumer_boundary()
+    assert runtime_boundary["declarative_pack_compiler_input"] == pack_input
+    assert runtime_boundary["generated_surface_handoff"] == generated
+    assert runtime_boundary["minimal_authority_function_manifest"] == minimal_authority
+    inventory = runtime_boundary["functional_module_inventory"]
     assert len(inventory) == 18
     assert sorted(item["module_id"] for item in inventory) == sorted(
         lane["functional_module_inventory_expected_modules"]
@@ -306,7 +380,13 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     ]
     assert lane["required_projection_surfaces"] == [
         "product_entry_manifest.functional_consumer_boundary",
+        "product_entry_manifest.functional_consumer_boundary.declarative_pack_compiler_input",
+        "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff",
+        "product_entry_manifest.functional_consumer_boundary.minimal_authority_function_manifest",
         "sidecar_export.functional_consumer_boundary",
+        "sidecar_export.functional_consumer_boundary.declarative_pack_compiler_input",
+        "sidecar_export.functional_consumer_boundary.generated_surface_handoff",
+        "sidecar_export.functional_consumer_boundary.minimal_authority_function_manifest",
         "supervision_scheduler.consumer_migration.functional_consumer_boundary",
         "family_contract_adoption.runtime_observability_export",
     ]

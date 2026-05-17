@@ -1,5 +1,13 @@
 # 关键决策记录
 
+## 2026-05-17：MAS package 外壳收敛为 OPL pack compiler 输入与 generated surface consumer
+
+- 决策：MAS 不再把 CLI、MCP、product-entry、sidecar、status、workbench、projection shell 或 test-lane harness 视为长期手写 owner surface。它们在 `functional_consumer_boundary.generated_surface_handoff` 中统一声明为 OPL generated/hosted target 或 MAS handwritten migration bridge。
+- 决策：MAS 的长期 repo-owned code surface 限定为 `minimal_authority_function_manifest` 中的 7 类 authority function：publication quality verdict、AI reviewer quality decision、artifact mutation authorization、publication-route memory accept/reject、source readiness verdict、owner receipt signer 和 medical helper implementation。其他程序外壳必须能说明 active caller、迁移桥理由、diagnostic cleanup 或 fixture/provenance 需求。
+- 决策：`declarative_pack_compiler_input` 是新的机器输入面，汇总 domain descriptor、stage graph、action intents、domain transition table、publication-route memory policy、artifact authority policy、source readiness policy、owner receipt schema 和 no-forbidden-write contract，供 OPL pack compiler 派生通用外壳。OPL pack compiler 可以生成/托管 wrapper、sidecar、status、workbench 和 harness，但不能声明或生成 MAS domain authority。
+- 理由：此前 MAS 已证明 functional consumer boundary，但仍容易把现有 hand-written thin shell 误读成 MAS 长期 owner。把 pack input、generated handoff 和 minimal authority functions 变成 machine-readable surface，可以让后续迁移按 active caller cutover 与 no-forbidden-write 证明推进，而不是继续扩写 MAS generic shell。
+- 影响：后续新增或修改 CLI/MCP/product-entry/sidecar/status/workbench/projection/harness 时，必须先判断能否进入 OPL pack compiler/generated surface；留在 MAS 的代码只能服务 authority function、迁移桥、diagnostic cleanup 或 provenance/fixture。完成 cutover 前不得写成 generated surface 已替代现有 active caller；完成 cutover 后，无 authority function 的旧 shell 应删除或 tombstone。
+
 ## 2026-05-16：MAS 数据管理以 domain-owned substrate adapter/export surface 暴露给 OPL
 
 - 决策：MAS 不把 workspace/source/artifact/memory 数据管理权上收到 OPL，也不让 OPL 读取或写入 body。`medautosci sidecar export` 新增 `opl_substrate_adapter`，只导出 opaque/index-only 的 `workspace_refs`、`source_refs`、`artifact_refs`、`memory_refs` 与 authority boundary，供 OPL generic substrate 做 locator、index、lifecycle 和 projection。

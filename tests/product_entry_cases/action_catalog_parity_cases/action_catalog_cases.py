@@ -189,5 +189,21 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "typed_blocker",
         "safe_action_refs",
     }
+    assert boundary["declarative_pack_compiler_input"]["compiler_owner"] == "one-person-lab"
+    assert boundary["declarative_pack_compiler_input"]["mas_long_term_code_owner"] == (
+        "minimal_authority_functions_only"
+    )
+    assert boundary["generated_surface_handoff"]["generated_surface_owner"] == "one-person-lab"
+    assert boundary["generated_surface_handoff"]["long_term_mas_owner"] is False
+    assert boundary["generated_surface_handoff"]["mas_handwritten_shell_expansion_allowed"] is False
+    assert boundary["minimal_authority_function_manifest"]["function_ids"] == [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "artifact_mutation_authorization",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict",
+        "owner_receipt_signer",
+        "medical_helper_implementation",
+    ]
     assert "product_entry_manifest.functional_consumer_boundary" in boundary["proof_surfaces"]
     assert "mas_owned_generic_queue" in boundary["forbidden_regressions"]

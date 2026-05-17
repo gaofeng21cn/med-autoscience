@@ -43,6 +43,80 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "typed_blocker",
         "safe_action_refs",
     }
+    pack_input = boundary["declarative_pack_compiler_input"]
+    assert pack_input["surface_kind"] == "mas_declarative_pack_compiler_input"
+    assert pack_input["compiler_owner"] == "one-person-lab"
+    assert pack_input["pack_id"] == "mas-medical-research-pack"
+    assert pack_input["pack_role"] == "domain_authority_pack_input_not_generated_shell_owner"
+    assert [item["input_id"] for item in pack_input["input_refs"]] == [
+        "domain_descriptor",
+        "stage_graph",
+        "action_intents",
+        "domain_transition_table",
+        "publication_route_memory_policy",
+        "artifact_authority_policy",
+        "source_readiness_policy",
+        "receipt_schema",
+        "no_forbidden_write_contract",
+    ]
+    assert pack_input["compiler_outputs_expected"] == [
+        "cli",
+        "mcp",
+        "product_entry",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
+    assert pack_input["mas_long_term_code_owner"] == "minimal_authority_functions_only"
+    assert pack_input["must_not_generate_or_claim_domain_authority"] is True
+    handoff = boundary["generated_surface_handoff"]
+    assert handoff["surface_kind"] == "mas_generated_surface_handoff"
+    assert handoff["generated_surface_owner"] == "one-person-lab"
+    assert handoff["current_mas_role"] == "handwritten_migration_bridge"
+    assert handoff["long_term_mas_owner"] is False
+    assert handoff["mas_handwritten_shell_expansion_allowed"] is False
+    handoff_by_id = {item["surface_id"]: item for item in handoff["handoff_surfaces"]}
+    assert set(handoff_by_id) == set(pack_input["compiler_outputs_expected"])
+    assert handoff_by_id["cli"]["target_role"] == "opl_generated_command_surface"
+    assert handoff_by_id["mcp"]["target_role"] == "opl_generated_mcp_descriptor_surface"
+    assert handoff_by_id["product_entry"]["target_role"] == "opl_generated_product_entry_surface"
+    assert handoff_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
+    assert handoff_by_id["status"]["target_role"] == "opl_generated_status_wrapper_over_mas_truth_refs"
+    assert handoff_by_id["workbench"]["target_role"] == (
+        "opl_hosted_workbench_shell_consuming_mas_refs"
+    )
+    assert handoff_by_id["projection_shell"]["target_role"] == "opl_generated_projection_shell"
+    assert handoff_by_id["test_lane_harness"]["target_role"] == (
+        "opl_generated_harness_consumer_over_mas_pack"
+    )
+    authority = boundary["minimal_authority_function_manifest"]
+    assert authority["surface_kind"] == "mas_minimal_authority_function_manifest"
+    assert authority["status"] == "minimal_authority_functions_only"
+    assert authority["function_ids"] == [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "artifact_mutation_authorization",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict",
+        "owner_receipt_signer",
+        "medical_helper_implementation",
+    ]
+    assert authority["function_count"] == 7
+    assert {item["function_id"] for item in authority["functions"]} == set(authority["function_ids"])
+    assert {item["owner"] for item in authority["functions"]} == {"med-autoscience"}
+    assert authority["all_other_program_surfaces"] == "opl_generated_or_migration_bridge"
+    assert authority["forbidden_long_term_mas_shell_owners"] == [
+        "cli",
+        "mcp",
+        "product_entry",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
     classification = boundary["functional_surface_classification"]
     assert classification["A_opl_owned_mas_consumes"] == [
         "runtime_lifecycle_sqlite_reference_adapter",
