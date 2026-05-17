@@ -7,6 +7,8 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 
+from med_autoscience import medical_manuscript_blueprint
+
 from .. import (
     ai_reviewer_publication_eval_workflow,
     gate_clearing_batch,
@@ -412,6 +414,58 @@ def execute_ai_reviewer_workflow(
     }
 
 
+def execute_canonical_paper_inputs_rehydrate(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+) -> dict[str, Any]:
+    study_root = _study_root(profile, study_id)
+    if not paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root):
+        return {
+            "execution_status": "blocked" if apply else "dry_run",
+            "blocked_reason": "paper_authority_clean_migration_not_pending",
+            "owner_callable_surface": "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint",
+            "next_owner": "ai_reviewer",
+            "required_input_surface": str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"),
+        }
+    if not apply:
+        return {
+            "execution_status": "dry_run",
+            "blocked_reason": None,
+            "owner_callable_surface": "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint",
+            "required_output_surface": str(study_root / "paper" / "medical_manuscript_blueprint_source.json"),
+            "next_owner": "write",
+        }
+    try:
+        owner_result = medical_manuscript_blueprint.materialize_medical_manuscript_blueprint(study_root=study_root)
+    except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        return {
+            "execution_status": "blocked",
+            "blocked_reason": "canonical_paper_inputs_rehydrate_failed",
+            "owner_callable_surface": "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint",
+            "next_owner": "write",
+            "error": str(exc),
+            "required_output_surface": str(study_root / "paper" / "medical_manuscript_blueprint_source.json"),
+        }
+    return {
+        "execution_status": "executed",
+        "blocked_reason": None,
+        "owner_callable_surface": "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint",
+        "next_owner": "write",
+        "owner_result": {
+            **dict(owner_result),
+            "canonical_ready": False,
+            "canonical_surface_written": False,
+            "next_required_actions": [
+                "AI author/reviewer must authorize paper/medical_manuscript_blueprint.json",
+                "materialize medical prose review request",
+                "return to AI reviewer workflow",
+            ],
+        },
+    }
+
+
 def _blocked_ai_reviewer_execution(
     *,
     apply: bool,
@@ -681,6 +735,7 @@ def _ref_path(packet: Mapping[str, Any], surface: str) -> str | None:
 __all__ = [
     "execute_ai_reviewer_workflow",
     "execute_artifact_display_materialization",
+    "execute_canonical_paper_inputs_rehydrate",
     "execute_current_package_freshness",
     "execute_publication_gate_specificity",
     "execute_runtime_platform_repair",

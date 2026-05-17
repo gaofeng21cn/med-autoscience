@@ -14,6 +14,13 @@
 - 理由：旧项目的旧 prose review 只能证明历史上评过某版稿件；把它映射成新 currentness 会把 legacy artifact 重新变成 executable truth。干净迁移的第一跳应建立新 MAS authority 和下一步 owner，而不是制造当前 ready 判断。
 - 影响：`reviewer_operating_system.currentness_checks.medical_prose_review.status=requested` 只允许在 `authority_source_signature=paper_authority_clean_migration`、有 request digest / manuscript digest 且 `route_back_required=true` 时出现。普通 AI reviewer closure 仍必须消费完整 current `medical_prose_review.json`，否则 fail closed；该路径不写 `current_package`、不放宽 publication gate、不授权 submission readiness。
 
+## 2026-05-17：clean cutover 缺 canonical paper 输入时必须交给 write owner 重建
+
+- 决策：`return_to_ai_reviewer_workflow` 若在 clean paper-authority cutover 后发现缺少合规 `paper/medical_manuscript_blueprint.json`，不得读取旧 blueprint、旧 prose review 或旧 package artifact，也不得把机械生成物复制成 canonical。executor 必须写出 typed blocker `canonical_paper_inputs_rehydrate_required`，`next_owner=write`，并声明 `legacy_artifact_reader_allowed=false`、`mechanical_blueprint_as_canonical_allowed=false`。
+- 决策：supervisor scan / consumer / dispatch executor 必须把 `canonical_paper_inputs_rehydrate_required` 作为正式 owner-route action 交给 `write` owner。该 owner 只能先物化 `paper/medical_manuscript_blueprint_source.json`，作为重新写作和 AI author/reviewer 授权的输入；`paper/medical_manuscript_blueprint.json` 只有带合规 AI authorization / clearance 时才可成为 canonical。
+- 理由：旧论文项目缺 canonical blueprint 时，局部 token normalizer 或空壳 blueprint 会把历史投影重新抬成当前论文真相，正是 DM002 初稿质量漂移的根因之一。干净迁移应重建当前 paper owner 输入，而不是兼容旧 artifact。
+- 影响：DM-CVD、Obesity、NF-PitNET 等旧论文项目迁入新 MAS 时，缺 canonical paper 输入会统一 route 到 write rehydrate，再回 AI reviewer / publication gate / delivery owner；quality repair batch 不能初始化空 `medical_manuscript_blueprint.json` / `medical_prose_review.json` / derived canonical shell 来清 gate，必须 fail closed 到该 owner-route。
+
 ## 2026-05-17：clean paper-authority migration 必须对已建立的新 MAS authority 幂等
 
 - 决策：`paper-authority-clean-migration --apply` 只能在 study 仍有旧 active authority surface、缺 cutover receipt，或 `new_mas_authority_established` 的 active AI reviewer eval 已失效时执行归档/重写。若 receipt 已是 `new_mas_authority_established` 且 active `artifacts/publication_eval/latest.json` 仍匹配 receipt 指向的 AI reviewer eval，再次 `--apply` 必须是 no-op，不得把 receipt 打回 `awaiting_new_mas_authority`。

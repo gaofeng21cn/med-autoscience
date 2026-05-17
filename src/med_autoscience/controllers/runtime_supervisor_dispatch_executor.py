@@ -27,10 +27,6 @@ from .runtime_supervisor_consumer import (
 )
 
 
-ai_reviewer_publication_eval_workflow = action_execution.ai_reviewer_publication_eval_workflow
-gate_clearing_batch = action_execution.gate_clearing_batch
-publication_gate = action_execution.publication_gate
-quest_hydration = action_execution.quest_hydration
 SCHEMA_VERSION = 1
 EXECUTION_RELATIVE_ROOT = Path("artifacts/supervision/consumer/default_executor_execution")
 EXECUTION_LATEST_RELATIVE_PATH = EXECUTION_RELATIVE_ROOT / "latest.json"
@@ -42,6 +38,7 @@ SUPPORTED_ACTION_TYPES = frozenset(
         "current_package_freshness_required",
         "artifact_display_surface_materialization_required",
         "return_to_ai_reviewer_workflow",
+        "canonical_paper_inputs_rehydrate_required",
     }
 )
 
@@ -802,6 +799,7 @@ def _execute_owner_dispatch_action(
         "current_package_freshness_required": _execute_current_package_freshness,
         "artifact_display_surface_materialization_required": _execute_artifact_display_materialization,
         "return_to_ai_reviewer_workflow": _execute_ai_reviewer_workflow,
+        "canonical_paper_inputs_rehydrate_required": action_execution.execute_canonical_paper_inputs_rehydrate,
     }
     if (executor := executors.get(action_type)) is None:
         return {

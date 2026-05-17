@@ -35,6 +35,7 @@ def owner_route(*, study_id: str, action_type: str, owner: str) -> dict[str, obj
                 "current_package_freshness_required",
                 "artifact_display_surface_materialization_required",
                 "return_to_ai_reviewer_workflow",
+                "canonical_paper_inputs_rehydrate_required",
             )
             if item != action_type
         ],

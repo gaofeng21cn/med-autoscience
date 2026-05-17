@@ -1,0 +1,126 @@
+from __future__ import annotations
+
+import importlib
+import json
+from pathlib import Path
+
+from tests.study_runtime_test_helpers import make_profile, write_study
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _owner_route(
+    *,
+    study_id: str,
+    quest_id: str,
+    next_owner: str,
+    owner_reason: str,
+    allowed_actions: list[str],
+) -> dict[str, object]:
+    return {
+        "surface": "runtime_supervisor_owner_route",
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "route_epoch": f"truth-epoch::{study_id}",
+        "source_fingerprint": f"truth-source::{study_id}::{owner_reason}",
+        "current_owner": "mas_controller",
+        "next_owner": next_owner,
+        "owner_reason": owner_reason,
+        "active_run_id": None,
+        "allowed_actions": allowed_actions,
+        "blocked_actions": [],
+        "idempotency_key": f"owner-route::{study_id}::{owner_reason}",
+    }
+
+
+def test_supervisor_consume_routes_clean_canonical_rehydrate_to_write_owner(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    route = _owner_route(
+        study_id=study_id,
+        quest_id="quest-dm002",
+        next_owner="write",
+        owner_reason="canonical_paper_inputs_rehydrate_required",
+        allowed_actions=["canonical_paper_inputs_rehydrate_required"],
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "owner_route": route}],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": "quest-dm002",
+                    "action_type": "canonical_paper_inputs_rehydrate_required",
+                    "authority": "observability_only",
+                    "owner": "write",
+                    "recommended_owner": "write",
+                    "reason": "canonical_paper_inputs_rehydrate_required",
+                    "required_output_surface": "paper/medical_manuscript_blueprint_source.json",
+                    "owner_route": route,
+                    "handoff_packet": {
+                        "request_kind": "canonical_paper_inputs_rehydrate_required",
+                        "authority": "observability_only",
+                        "request_owner": "write",
+                        "owner_route": route,
+                        "paper_package_mutation_allowed": False,
+                        "quality_gate_relaxation_allowed": False,
+                    },
+                    "legacy_artifact_reader_allowed": False,
+                    "mechanical_blueprint_as_canonical_allowed": False,
+                }
+            ],
+        },
+    )
+
+    result = module.supervisor_consume(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    task = result["request_tasks"][0]
+    dispatch = result["default_executor_dispatches"][0]
+    packet_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "canonical_paper_inputs_rehydrate_required.json"
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "canonical_paper_inputs_rehydrate_required.json"
+    )
+    assert task["action_type"] == "canonical_paper_inputs_rehydrate_required"
+    assert task["request_owner"] == "write"
+    assert task["required_output_surface"] == "paper/medical_manuscript_blueprint_source.json"
+    assert task["request_packet_ref"] == "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["next_executable_owner"] == "write"
+    assert dispatch["required_output_surface"] == "paper/medical_manuscript_blueprint_source.json"
+    assert dispatch["prompt_contract"]["request_packet_ref"] == (
+        "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
+    )
+    assert packet_path.is_file()
+    assert dispatch_path.is_file()
+    assert not (study_root / "paper" / "medical_manuscript_blueprint.json").exists()
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()

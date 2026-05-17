@@ -248,6 +248,8 @@ def _managed_home_status(*, env: Mapping[str, str], quest_root: Path, run_id: st
 def _runtime_authorized_owner_for_action(action_type: str) -> str:
     if action_type == "return_to_ai_reviewer_workflow":
         return "ai_reviewer"
+    if action_type == "canonical_paper_inputs_rehydrate_required":
+        return "write"
     if action_type in {"current_package_freshness_required", "artifact_display_surface_materialization_required"}:
         return "artifact_os"
     if action_type == "publication_gate_specificity_required":

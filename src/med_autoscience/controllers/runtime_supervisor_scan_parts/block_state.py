@@ -54,6 +54,12 @@ def projection_block_state(
     actions: list[dict[str, Any]],
     why_not_applied: str | None,
 ) -> dict[str, Any]:
+    if _has_clean_paper_authority_rehydrate_action(actions):
+        return {
+            "blocked_reason": "canonical_paper_inputs_rehydrate_required",
+            "next_owner": "write",
+            "external_supervisor_required": False,
+        }
     if _has_clean_paper_authority_ai_reviewer_action(actions):
         return {
             "blocked_reason": "paper_authority_clean_migration_required",
@@ -119,6 +125,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "artifact_os"
     if blocked_reason == "ai_reviewer_assessment_required":
         return "ai_reviewer"
+    if blocked_reason == "canonical_paper_inputs_rehydrate_required":
+        return "write"
     return "external_supervisor"
 
 
@@ -131,6 +139,15 @@ def _has_clean_paper_authority_ai_reviewer_action(actions: list[dict[str, Any]])
         _text(action.get("action_type")) == "return_to_ai_reviewer_workflow"
         and _text(action.get("reason")) == "paper_authority_clean_migration_required"
         and _text(action.get("owner")) == "ai_reviewer"
+        for action in actions
+    )
+
+
+def _has_clean_paper_authority_rehydrate_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "canonical_paper_inputs_rehydrate_required"
+        and _text(action.get("reason")) == "canonical_paper_inputs_rehydrate_required"
+        and _text(action.get("owner")) == "write"
         for action in actions
     )
 

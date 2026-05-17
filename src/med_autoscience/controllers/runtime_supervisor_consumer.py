@@ -34,6 +34,7 @@ SUPPORTED_REQUEST_ACTION_TYPES = frozenset(
         "current_package_freshness_required",
         "artifact_display_surface_materialization_required",
         "return_to_ai_reviewer_workflow",
+        "canonical_paper_inputs_rehydrate_required",
     }
 )
 SUPPORTED_MODE = "developer_apply_safe"
@@ -68,6 +69,7 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/consumer/current_package_freshness_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/artifact_display_surface_materialization_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/return_to_ai_reviewer_workflow.json",
+    "studies/<study_id>/artifacts/supervision/consumer/canonical_paper_inputs_rehydrate_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
 ]
 MERGE_CLEANUP_CHECKLIST = [
@@ -243,6 +245,8 @@ def _request_owner_for_action_type(action_type: str) -> str:
         return "artifact_os"
     if action_type == "return_to_ai_reviewer_workflow":
         return "ai_reviewer"
+    if action_type == "canonical_paper_inputs_rehydrate_required":
+        return "write"
     return "controller"
 
 
@@ -268,6 +272,8 @@ def _request_output_surface_for_action_type(action_type: str) -> str:
         return "artifacts/controller/gate_clearing_batch/latest.json"
     if action_type == "return_to_ai_reviewer_workflow":
         return "artifacts/publication_eval/latest.json"
+    if action_type == "canonical_paper_inputs_rehydrate_required":
+        return "paper/medical_manuscript_blueprint_source.json"
     return "artifacts/supervision/requests"
 
 
@@ -280,6 +286,8 @@ def _request_packet_ref_for_action_type(action_type: str) -> str:
         return "artifacts/supervision/requests/artifact_display_materialization/latest.json"
     if action_type == "return_to_ai_reviewer_workflow":
         return "artifacts/supervision/requests/ai_reviewer/latest.json"
+    if action_type == "canonical_paper_inputs_rehydrate_required":
+        return "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
     return "artifacts/supervision/requests"
 
 

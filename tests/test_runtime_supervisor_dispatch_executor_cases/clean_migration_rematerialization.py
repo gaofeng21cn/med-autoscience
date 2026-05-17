@@ -384,3 +384,116 @@ def test_clean_cutover_missing_canonical_blueprint_routes_to_rehydrate_owner(
     assert execution["owner_result"]["legacy_artifact_reader_allowed"] is False
     assert execution["owner_result"]["quality_verdict_written"] is False
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
+def test_execute_clean_canonical_rehydrate_writes_source_only_without_canonical_blueprint(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "legacy-study-without-blueprint"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_json(
+        study_root / "paper" / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "statement": "Shared baseline variables retain partial risk ordering.",
+                    "status": "partially_supported",
+                    "limitations": ["Absolute risk calibration remains cohort-specific."],
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "results_narrative_map.json",
+        {
+            "schema_version": 1,
+            "sections": [
+                {
+                    "section_id": "primary-results",
+                    "direct_answer": "Cross-cohort discrimination was partially retained.",
+                    "key_quantitative_findings": ["C statistic and calibration metrics must be reported."],
+                    "clinical_meaning": "Model transportability is incomplete without recalibration.",
+                    "boundary": "Do not interpret the country gap causally.",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "figure-2",
+                    "story_role": "calibration",
+                    "direct_message": "Calibration shift limits direct absolute-risk transport.",
+                    "interpretation_boundary": "Figure supports validation, not clinical adoption.",
+                }
+            ],
+        },
+    )
+    (study_root / "paper" / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "paper" / "draft.md").write_text(
+        "## Results\n\nThe model retained partial risk ordering but calibration differed across cohorts.\n",
+        encoding="utf-8",
+    )
+    _write_json(
+        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "awaiting_new_mas_authority",
+            "study_id": study_id,
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "canonical_paper_inputs_rehydrate_required.json"
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="canonical_paper_inputs_rehydrate_required",
+            owner="write",
+            required_output_surface="paper/medical_manuscript_blueprint_source.json",
+        ),
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("canonical_paper_inputs_rehydrate_required",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    source_path = study_root / "paper" / "medical_manuscript_blueprint_source.json"
+    canonical_path = study_root / "paper" / "medical_manuscript_blueprint.json"
+    execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert source_path.is_file()
+    assert not canonical_path.exists()
+    source = json.loads(source_path.read_text(encoding="utf-8"))
+    assert source["surface"] == "medical_manuscript_blueprint"
+    assert source["source_kind"] == "mechanical_draft"
+    assert source["canonical_ready"] is False
+    assert execution["execution_status"] == "executed"
+    assert execution["next_owner"] == "write"
+    assert execution["owner_result"]["artifact_path"] == str(source_path.resolve())
+    assert execution["owner_result"]["canonical_surface_written"] is False
+    assert "AI author/reviewer must authorize paper/medical_manuscript_blueprint.json" in (
+        execution["owner_result"]["next_required_actions"]
+    )

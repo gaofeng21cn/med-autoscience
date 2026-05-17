@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,21 @@ def action_queue(
     control_allowed_write_surfaces: list[str],
     forbidden_actions: list[str],
 ) -> list[dict[str, Any]]:
+    rehydrate_action = _clean_paper_authority_rehydrate_action(
+        study_root=study_root,
+        publication_eval_payload=publication_eval_payload,
+    )
+    if rehydrate_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=rehydrate_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     if _clean_paper_authority_cutover_ai_reviewer_required(
         publication_eval_payload=publication_eval_payload,
         ai_reviewer_assessment=ai_reviewer_assessment,
@@ -299,6 +315,77 @@ def _clean_paper_authority_cutover_ai_reviewer_required(
     )
 
 
+def _clean_paper_authority_rehydrate_action(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if not _clean_migration_receipt_publication_eval(publication_eval_payload):
+        return None
+    execution = _latest_clean_migration_rehydrate_execution(study_root)
+    if execution is None:
+        return None
+    required_input_surface = _text(execution.get("required_input_surface")) or str(
+        study_root / "paper" / "medical_manuscript_blueprint.json"
+    )
+    owner_callable_surface = _text(execution.get("owner_callable_surface")) or (
+        "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint"
+    )
+    return {
+        "action_type": "canonical_paper_inputs_rehydrate_required",
+        "authority": "observability_only",
+        "owner": "write",
+        "request_owner": "write",
+        "recommended_owner": "write",
+        "reason": "canonical_paper_inputs_rehydrate_required",
+        "summary": (
+            "Clean paper-authority migration requires the write owner to rehydrate canonical paper "
+            "inputs before the AI reviewer can evaluate the manuscript."
+        ),
+        "required_input_surface": required_input_surface,
+        "required_output_surface": required_input_surface,
+        "owner_callable_surface": owner_callable_surface,
+        "paper_package_mutation_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "legacy_artifact_reader_allowed": False,
+        "mechanical_blueprint_as_canonical_allowed": False,
+    }
+
+
+def _clean_migration_receipt_publication_eval(publication_eval_payload: Mapping[str, Any]) -> bool:
+    provenance = _mapping(publication_eval_payload.get("assessment_provenance"))
+    return (
+        _text(provenance.get("owner")) == "paper_authority_cutover"
+        and _text(provenance.get("source_kind")) == "clean_migration_receipt"
+    )
+
+
+def _latest_clean_migration_rehydrate_execution(study_root: Path) -> dict[str, Any] | None:
+    payload = _read_json_object(study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json")
+    executions = payload.get("executions") if isinstance(payload, Mapping) else None
+    if not isinstance(executions, list):
+        return None
+    for item in reversed(executions):
+        execution = _mapping(item)
+        if _text(execution.get("action_type")) != "return_to_ai_reviewer_workflow":
+            continue
+        if _text(execution.get("execution_status")) != "blocked":
+            continue
+        if _text(execution.get("blocked_reason")) != "canonical_paper_inputs_rehydrate_required":
+            continue
+        if _text(execution.get("next_owner")) != "write":
+            continue
+        owner_result = _mapping(execution.get("owner_result"))
+        if _text(owner_result.get("authority_source_signature")) != "paper_authority_clean_migration":
+            continue
+        if owner_result.get("legacy_artifact_reader_allowed") is not False:
+            continue
+        if owner_result.get("mechanical_blueprint_as_canonical_allowed") is not False:
+            continue
+        return execution
+    return None
+
+
 def _ai_reviewer_required_action(*, reason: str) -> dict[str, Any]:
     return {
         "action_type": "return_to_ai_reviewer_workflow",
@@ -399,6 +486,7 @@ def blocked_reason_from_scan(
             "publication_gate_specificity_required",
             "current_package_freshness_required",
             "return_to_ai_reviewer_workflow",
+            "canonical_paper_inputs_rehydrate_required",
         }:
             return _text(action.get("reason")) or _text(action.get("action_type"))
     if gate_specificity.get("required") is True:
@@ -410,6 +498,14 @@ def blocked_reason_from_scan(
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
 
 
 def _external_supervisor_runtime_repair_required(status: Mapping[str, Any], progress: Mapping[str, Any]) -> bool:

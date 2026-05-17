@@ -163,6 +163,91 @@ def _paper_write_supervisor_route_context() -> dict[str, Any]:
     }
 
 
+def _write_authorized_blueprint_projection(study_root: Path, projected_paper_root: Path) -> None:
+    _write_json(
+        projected_paper_root / "medical_manuscript_blueprint.json",
+        {
+            "schema_version": 1,
+            "surface": "medical_manuscript_blueprint",
+            "study_id": study_root.name,
+            "argument_sequence": [
+                "clinical_problem",
+                "evidence_gap",
+                "study_objective",
+                "target_population",
+                "study_design",
+                "main_findings_by_clinical_importance",
+                "clinical_interpretation",
+                "discussion_claim_boundary",
+                "limitations",
+            ],
+            "clinical_problem": "Diabetes mortality prediction requires transportability evidence.",
+            "evidence_gap": "Cross-cohort calibration and case-mix support remain underreported.",
+            "study_objective": "Evaluate transportability of a diabetes mortality prediction model.",
+            "target_population": "Adults with diabetes in external validation cohorts.",
+            "study_design": "External validation and calibration analysis.",
+            "main_findings_by_clinical_importance": [
+                {
+                    "rank": 1,
+                    "section_id": "primary-validation",
+                    "clinical_finding": "Risk ordering was partially retained across cohorts.",
+                    "quantitative_support": ["C statistic and calibration estimates are required in the Results."],
+                    "clinical_meaning": "Absolute-risk use requires population-specific calibration.",
+                    "interpretation_boundary": "Do not interpret transportability as a treatment or causal effect.",
+                    "supporting_display_items": ["table-2"],
+                }
+            ],
+            "clinical_interpretation": "Transportability should be interpreted through discrimination, calibration, and support overlap.",
+            "claim_evidence_map": [
+                {
+                    "claim_id": "transportability-claim",
+                    "statement": "Shared predictors retain limited cross-cohort risk-ordering information.",
+                    "status": "partially_supported",
+                    "paper_role": "main_text",
+                    "evidence_item_count": 1,
+                    "display_bindings": ["table-2"],
+                    "limitations": ["External calibration remains necessary."],
+                }
+            ],
+            "figure_table_rhetorical_roles": [
+                {
+                    "display_id": "table-2",
+                    "display_type": "table",
+                    "story_role": "model performance",
+                    "rhetorical_role": "Report discrimination, calibration, and uncertainty.",
+                    "interpretation_boundary": "Performance metrics support validation claims only.",
+                }
+            ],
+            "discussion_claim_boundary": "Claims must remain within external-validation evidence.",
+            "limitations": ["Transportability does not establish causal attribution."],
+            "journal_voice_target": {"voice": "neutral_clinical_original_research"},
+            "source_refs": [str((projected_paper_root / "draft.md").resolve())],
+            "authoring_provenance": {
+                "owner": "ai_author",
+                "source_kind": "clean_migration_rehydrate_fixture",
+                "ai_reviewer_required": False,
+            },
+        },
+    )
+
+
+def _write_authorized_prose_review_projection(study_root: Path, projected_paper_root: Path) -> None:
+    prose_review = importlib.import_module("med_autoscience.medical_prose_review")
+    _write_json(
+        projected_paper_root / "medical_prose_review.json",
+        prose_review.build_medical_prose_review(
+            study_root=study_root,
+            manuscript_text=(projected_paper_root / "draft.md").read_text(encoding="utf-8"),
+            verdict="block",
+            style_diagnosis="Clean migration must route the manuscript back to write before quality closure.",
+            representative_bad_sentences=[],
+            representative_rewrites=[],
+            route_back_target="write",
+            source_refs=[str((projected_paper_root / "draft.md").resolve())],
+        ),
+    )
+
+
 def test_run_quality_repair_batch_prefers_same_line_paper_repair_over_stale_bundle_gate(
     monkeypatch,
     tmp_path: Path,
@@ -452,8 +537,8 @@ def test_run_quality_repair_batch_materializes_canonical_paper_owner_surface_for
     (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n", encoding="utf-8")
     (quest_root / "paper" / "draft.md").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "paper" / "draft.md").write_text("# Draft\n\nRuntime projected draft shell.\n", encoding="utf-8")
-    _write_json(quest_root / "paper" / "medical_manuscript_blueprint.json", {"schema_version": 1, "sections": []})
-    _write_json(quest_root / "paper" / "medical_prose_review.json", {"schema_version": 1, "findings": []})
+    _write_authorized_blueprint_projection(study_root, quest_root / "paper")
+    _write_authorized_prose_review_projection(study_root, quest_root / "paper")
     _write_json(quest_root / "paper" / "claim_evidence_map.json", {"schema_version": 1, "claims": []})
     _write_json(quest_root / "paper" / "results_narrative_map.json", {"schema_version": 1, "sections": []})
     _write_json(quest_root / "paper" / "figure_semantics_manifest.json", {"schema_version": 1, "figures": []})
@@ -486,6 +571,58 @@ def test_run_quality_repair_batch_materializes_canonical_paper_owner_surface_for
     assert (canonical_paper_root / "claim_evidence_map.json").is_file()
     assert (canonical_paper_root / "figures" / "figure_catalog.json").is_file()
     assert not (canonical_paper_root / "submission_minimal" / "submission_manifest.json").exists()
+
+
+def test_run_quality_repair_batch_rejects_invalid_projected_blueprint_as_canonical(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_id = "quest-001"
+    quest_root = profile.managed_runtime_quests_root / quest_id
+    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n", encoding="utf-8")
+    (quest_root / "paper" / "draft.md").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "paper" / "draft.md").write_text("# Draft\n\nRuntime projected draft shell.\n", encoding="utf-8")
+    _write_json(quest_root / "paper" / "medical_manuscript_blueprint.json", {"schema_version": 1, "sections": []})
+    _write_json(quest_root / "paper" / "medical_prose_review.json", {"schema_version": 1, "findings": []})
+    _write_json(quest_root / "paper" / "claim_evidence_map.json", {"schema_version": 1, "claims": []})
+    _write_json(quest_root / "paper" / "results_narrative_map.json", {"schema_version": 1, "sections": []})
+    _write_json(quest_root / "paper" / "figure_semantics_manifest.json", {"schema_version": 1, "figures": []})
+    _write_json(quest_root / "paper" / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
+    _write_json(quest_root / "paper" / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
+    publication_eval_payload = _mark_publication_eval_as_specific_upstream_repair(
+        study_root,
+        _write_blocked_publication_eval(study_root, quest_id=quest_id),
+    )
+    _write_quality_summary(study_root)
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        control_plane_route_context=_paper_write_supervisor_route_context(),
+    )
+
+    canonical_paper_root = study_root / "paper"
+    assert result["source_eval_id"] == publication_eval_payload["eval_id"]
+    assert result["status"] == "blocked_no_paper_root"
+    prepare = result["paper_owner_surface_prepare"]
+    assert prepare["status"] == "blocked_missing_authorized_canonical_inputs"
+    assert "paper/medical_manuscript_blueprint.json" in prepare["blocked_canonical_source_surfaces"]
+    assert "paper/medical_prose_review.json" in prepare["blocked_canonical_source_surfaces"]
+    assert not (canonical_paper_root / "medical_manuscript_blueprint.json").exists()
+    assert not (canonical_paper_root / "medical_prose_review.json").exists()
 
 
 def test_run_quality_repair_batch_does_not_materialize_paper_owner_surface_without_projection(
@@ -579,18 +716,29 @@ def test_run_quality_repair_batch_materializes_owner_surface_from_hydration_proj
 
     canonical_paper_root = study_root / "paper"
     assert result["source_eval_id"] == publication_eval_payload["eval_id"]
-    assert result["status"] != "blocked_no_paper_root"
-    assert result["paper_owner_surface_prepare"]["status"] == "materialized"
+    assert result["status"] == "blocked_no_paper_root"
+    assert result["paper_owner_surface_prepare"]["status"] == "blocked_missing_authorized_canonical_inputs"
     assert result["paper_owner_surface_prepare"]["projection_input_status"] == "hydration_projection_present"
-    assert paper_artifacts.resolve_latest_paper_root(quest_root) == canonical_paper_root.resolve()
+    assert "paper/medical_manuscript_blueprint.json" in result["paper_owner_surface_prepare"]["missing_canonical_surfaces"]
+    assert "paper/medical_prose_review.json" in result["paper_owner_surface_prepare"]["missing_canonical_surfaces"]
+    try:
+        paper_artifacts.resolve_latest_paper_root(quest_root)
+    except FileNotFoundError:
+        pass
+    else:
+        raise AssertionError("hydration-only projection must not become authoritative canonical paper root")
     gate_state = publication_gate.build_gate_state(quest_root)
-    assert gate_state.paper_root == canonical_paper_root.resolve()
+    assert gate_state.paper_root is None
     assert (canonical_paper_root / "paper_bundle_manifest.json").is_file()
     assert (canonical_paper_root / "paper_line_state.json").is_file()
     assert (canonical_paper_root / "display_registry.json").is_file()
     assert (canonical_paper_root / "claim_evidence_map.json").is_file()
     assert (canonical_paper_root / "figures" / "figure_catalog.json").is_file()
     assert not (canonical_paper_root / "submission_minimal" / "submission_manifest.json").exists()
+    assert not (canonical_paper_root / "medical_manuscript_blueprint.json").exists()
+    assert not (canonical_paper_root / "medical_prose_review.json").exists()
+    assert not (canonical_paper_root / "results_narrative_map.json").exists()
+    assert not (canonical_paper_root / "figure_semantics_manifest.json").exists()
 
 
 def test_quality_repair_batch_upstream_work_unit_writes_canonical_delta_and_ai_reviewer_request(

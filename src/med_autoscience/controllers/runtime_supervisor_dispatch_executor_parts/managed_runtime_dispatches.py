@@ -116,6 +116,7 @@ def _required_output_surface_for_action(action_type: str) -> str | None:
         "current_package_freshness_required": "artifacts/controller/current_package_freshness/latest.json",
         "artifact_display_surface_materialization_required": "paper/display_registry.json",
         "return_to_ai_reviewer_workflow": "artifacts/publication_eval/latest.json",
+        "canonical_paper_inputs_rehydrate_required": "paper/medical_manuscript_blueprint_source.json",
     }.get(action_type)
 
 
