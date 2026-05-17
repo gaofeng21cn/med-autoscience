@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import os
 import subprocess
@@ -25,6 +26,20 @@ from med_autoscience.python_environment_contract import (
 def test_required_modules_match_default_rule_set() -> None:
     assert REQUIRED_RUNTIME_MODULES == ("matplotlib", "pandas")
     assert REQUIRED_RUNTIME_REQUIREMENTS == ("matplotlib>=3.9", "pandas>=2.2")
+
+
+def test_runtime_contract_module_does_not_import_packaging() -> None:
+    module_path = Path(contract.__file__).resolve()
+    module_ast = ast.parse(module_path.read_text(encoding="utf-8"))
+
+    imported_modules = set()
+    for node in ast.walk(module_ast):
+        if isinstance(node, ast.Import):
+            imported_modules.update(alias.name.split(".", maxsplit=1)[0] for alias in node.names)
+        if isinstance(node, ast.ImportFrom) and node.module:
+            imported_modules.add(node.module.split(".", maxsplit=1)[0])
+
+    assert "packaging" not in imported_modules
 
 
 def test_curated_analysis_bundle_is_declared_as_project_extra() -> None:

@@ -3,11 +3,9 @@ from __future__ import annotations
 import importlib
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-from packaging.requirements import Requirement
-from packaging.version import InvalidVersion, Version
 
 
 def _is_uv_tool_runtime_root(path: Path) -> bool:
@@ -103,13 +101,57 @@ CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS = (
     "pillow>=10.0",
     "pypdf>=5.0",
 )
-_DEFAULT_REQUIREMENTS = tuple(Requirement(requirement) for requirement in REQUIRED_RUNTIME_REQUIREMENTS)
-REQUIRED_RUNTIME_MODULES = tuple(requirement.name for requirement in _DEFAULT_REQUIREMENTS)
 REQUIREMENT_IMPORT_NAME_MAP = {
     "scikit-learn": "sklearn",
     "python-docx": "docx",
     "pillow": "PIL",
 }
+
+
+@dataclass(frozen=True)
+class RuntimeRequirement:
+    name: str
+    minimum_version: tuple[int, ...] | None
+    raw: str
+
+
+def _parse_version_parts(value: str) -> tuple[int, ...] | None:
+    parts: list[int] = []
+    for raw_part in value.split("."):
+        numeric = ""
+        for char in raw_part:
+            if not char.isdigit():
+                break
+            numeric += char
+        if numeric == "":
+            return None
+        parts.append(int(numeric))
+    return tuple(parts)
+
+
+def _parse_requirement(requirement: str) -> RuntimeRequirement:
+    if ">=" not in requirement:
+        return RuntimeRequirement(name=requirement.strip(), minimum_version=None, raw=requirement.strip())
+    name, raw_minimum = requirement.split(">=", 1)
+    return RuntimeRequirement(
+        name=name.strip(),
+        minimum_version=_parse_version_parts(raw_minimum.strip()),
+        raw=f"{name.strip()}>={raw_minimum.strip()}",
+    )
+
+
+def _version_satisfies_minimum(version: str, minimum: tuple[int, ...] | None) -> bool:
+    if minimum is None:
+        return True
+    parsed = _parse_version_parts(version)
+    if parsed is None:
+        return False
+    width = max(len(parsed), len(minimum))
+    return parsed + (0,) * (width - len(parsed)) >= minimum + (0,) * (width - len(minimum))
+
+
+_DEFAULT_REQUIREMENTS = tuple(_parse_requirement(requirement) for requirement in REQUIRED_RUNTIME_REQUIREMENTS)
+REQUIRED_RUNTIME_MODULES = tuple(requirement.name for requirement in _DEFAULT_REQUIREMENTS)
 
 
 def _collect_check_issues(checks: dict[str, bool], *, prefix: str) -> list[str]:
@@ -118,12 +160,12 @@ def _collect_check_issues(checks: dict[str, bool], *, prefix: str) -> list[str]:
 
 def _normalize_requirements(
     requirements: tuple[str, ...] | list[str] | None,
-) -> tuple[Requirement, ...]:
+) -> tuple[RuntimeRequirement, ...]:
     raw_requirements = REQUIRED_RUNTIME_REQUIREMENTS if requirements is None else tuple(requirements)
-    return tuple(Requirement(requirement) for requirement in raw_requirements)
+    return tuple(_parse_requirement(requirement) for requirement in raw_requirements)
 
 
-def _resolve_import_name(requirement: Requirement) -> str:
+def _resolve_import_name(requirement: RuntimeRequirement) -> str:
     return REQUIREMENT_IMPORT_NAME_MAP.get(requirement.name, requirement.name)
 
 
@@ -149,18 +191,14 @@ def inspect_python_environment_contract(
             raw_version = getattr(module, "__version__", None)
             if raw_version is not None:
                 version = str(raw_version)
-                try:
-                    version_obj = Version(version)
-                    version_satisfied = requirement.specifier.contains(version_obj, prereleases=True)
-                except InvalidVersion:
-                    version_satisfied = False
+                version_satisfied = _version_satisfies_minimum(version, requirement.minimum_version)
         except ImportError:
             pass
         checks[check_import] = importable
         checks[check_version] = version_satisfied
         modules[requirement_name] = {"version": version, "import_name": import_name}
         if not (importable and version_satisfied):
-            missing_requirements.append(str(requirement))
+            missing_requirements.append(requirement.raw)
 
     issues = _collect_check_issues(checks, prefix="python_environment")
     ready = all(checks.values())
@@ -170,7 +208,7 @@ def inspect_python_environment_contract(
         "issues": issues,
         "modules": modules,
         "interpreter": sys.executable,
-        "requirements": [str(requirement) for requirement in normalized_requirements],
+        "requirements": [requirement.raw for requirement in normalized_requirements],
         "missing_requirements": missing_requirements,
     }
 
