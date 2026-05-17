@@ -11,6 +11,7 @@ _ASSESSMENT_PROVENANCE_ALLOWED_FIELDS = frozenset(
         "policy_id",
         "source_refs",
         "ai_reviewer_required",
+        "mechanical_projection_used_as_quality_authority",
     }
 )
 _ALLOWED_ASSESSMENT_PROVENANCE_OWNERS = frozenset({"mechanical_projection", "ai_reviewer"})
@@ -76,6 +77,7 @@ class PublicationEvalAssessmentProvenance:
     policy_id: str
     source_refs: tuple[str, ...]
     ai_reviewer_required: bool
+    mechanical_projection_used_as_quality_authority: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -110,6 +112,14 @@ class PublicationEvalAssessmentProvenance:
             raise ValueError("publication eval assessment provenance source_refs must not be empty")
         if not isinstance(self.ai_reviewer_required, bool):
             raise TypeError("publication eval assessment provenance ai_reviewer_required must be bool")
+        if not isinstance(self.mechanical_projection_used_as_quality_authority, bool):
+            raise TypeError(
+                "publication eval assessment provenance mechanical_projection_used_as_quality_authority must be bool"
+            )
+        if self.owner == "ai_reviewer" and self.mechanical_projection_used_as_quality_authority:
+            raise ValueError(
+                "ai_reviewer publication eval provenance cannot use mechanical projection as quality authority"
+            )
         if self.owner == "ai_reviewer" and self.ai_reviewer_required:
             raise ValueError("ai_reviewer publication eval provenance cannot require another AI reviewer")
         if self.owner == "mechanical_projection" and not self.ai_reviewer_required:
@@ -122,6 +132,7 @@ class PublicationEvalAssessmentProvenance:
             "policy_id": self.policy_id,
             "source_refs": list(self.source_refs),
             "ai_reviewer_required": self.ai_reviewer_required,
+            "mechanical_projection_used_as_quality_authority": self.mechanical_projection_used_as_quality_authority,
         }
 
     @classmethod
@@ -149,6 +160,15 @@ class PublicationEvalAssessmentProvenance:
                 payload,
                 "ai_reviewer_required",
                 "publication eval assessment provenance",
+            ),
+            mechanical_projection_used_as_quality_authority=(
+                _payload_bool(
+                    payload,
+                    "mechanical_projection_used_as_quality_authority",
+                    "publication eval assessment provenance",
+                )
+                if "mechanical_projection_used_as_quality_authority" in payload
+                else False
             ),
         )
 

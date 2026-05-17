@@ -135,6 +135,7 @@ def test_publication_eval_record_from_payload_round_trips_minimal_shape() -> Non
                 payload["delivery_context_refs"]["submission_minimal_ref"],
             ],
             "ai_reviewer_required": True,
+            "mechanical_projection_used_as_quality_authority": False,
         },
     }
     assert record.to_dict() == expected_payload
@@ -156,6 +157,24 @@ def test_publication_eval_record_round_trips_quality_authority_boundary() -> Non
 
     assert record.authority_boundary == payload["authority_boundary"]
     assert record.to_dict()["authority_boundary"] == payload["authority_boundary"]
+
+
+def test_publication_eval_record_round_trips_provenance_mechanical_authority_flag() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["assessment_provenance"] = {
+        "owner": "ai_reviewer",
+        "source_kind": "publication_eval_ai_reviewer_recheck",
+        "policy_id": "medical_publication_critique_v1",
+        "source_refs": ["/tmp/workspace/studies/001-risk/artifacts/publication_eval/medical_prose_review.json"],
+        "ai_reviewer_required": False,
+        "mechanical_projection_used_as_quality_authority": False,
+    }
+
+    record = module.PublicationEvalRecord.from_payload(payload)
+
+    assert record.assessment_provenance.mechanical_projection_used_as_quality_authority is False
+    assert record.to_dict()["assessment_provenance"]["mechanical_projection_used_as_quality_authority"] is False
 
 
 def test_publication_eval_record_quality_dimension_guidance_round_trips() -> None:
