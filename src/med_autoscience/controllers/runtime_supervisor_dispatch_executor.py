@@ -338,7 +338,7 @@ def _paper_progress_stall_block_reason(
     ):
         return None, True
     if (
-        action_type == "current_package_freshness_required"
+        action_type in {"current_package_freshness_required", "canonical_paper_inputs_rehydrate_required"}
         and required_output_pending
         and owner_route_part.route_allows_action(action=dispatch, owner_route=current_route)
     ):

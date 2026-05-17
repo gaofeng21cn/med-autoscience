@@ -627,3 +627,121 @@ def test_clean_canonical_rehydrate_is_not_suppressed_by_prior_ai_reviewer_blocke
     assert execution["repeat_suppression"]["repeat_suppressed"] is False
     assert (study_root / "paper" / "medical_manuscript_blueprint_source.json").is_file()
     assert not (study_root / "paper" / "medical_manuscript_blueprint.json").exists()
+
+
+def test_clean_canonical_rehydrate_runs_when_terminal_stall_marks_missing_source_output(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "legacy-study-rehydrate-terminal-stall"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_json(
+        study_root / "paper" / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "statement": "Shared baseline variables retain partial risk ordering.",
+                    "status": "partially_supported",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "results_narrative_map.json",
+        {
+            "schema_version": 1,
+            "sections": [
+                {
+                    "section_id": "primary-results",
+                    "direct_answer": "Risk ordering was partially transported but calibration was not.",
+                    "key_quantitative_findings": ["Calibration metrics must be reported before absolute-risk claims."],
+                    "clinical_meaning": "External use requires recalibration and transparent uncertainty.",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "figure-1",
+                    "story_role": "calibration",
+                    "direct_message": "Calibration limits absolute-risk transport.",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "awaiting_new_mas_authority",
+            "study_id": study_id,
+        },
+    )
+    route = _dispatch(
+        study_id=study_id,
+        action_type="canonical_paper_inputs_rehydrate_required",
+        owner="write",
+        required_output_surface="paper/medical_manuscript_blueprint_source.json",
+    )["owner_route"]
+    stall = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "terminal": True,
+        "action_fingerprint": "paper-progress-stall::rehydrate",
+    }
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="canonical_paper_inputs_rehydrate_required",
+        owner="write",
+        required_output_surface="paper/medical_manuscript_blueprint_source.json",
+        owner_route=dict(route),
+    )
+    dispatch["paper_progress_stall"] = stall
+    dispatch["prompt_contract"]["paper_progress_stall"] = stall
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "canonical_paper_inputs_rehydrate_required.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "paper_progress_stall": stall,
+                }
+            ],
+        },
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("canonical_paper_inputs_rehydrate_required",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert execution["execution_status"] == "executed"
+    assert execution["paper_progress_stall_handoff_allowed"] is True
+    assert (study_root / "paper" / "medical_manuscript_blueprint_source.json").is_file()
