@@ -702,6 +702,13 @@ def _controller_action_execution_contract_prompt_section(
     action_names = _controller_action_names(authorization)
     if not action_names:
         return ""
+    ai_reviewer_redrive_contract = _ai_reviewer_redrive_execution_contract_prompt_section(
+        authorization=authorization,
+        action_names=action_names,
+        quest_id=quest_id,
+    )
+    if ai_reviewer_redrive_contract:
+        return ai_reviewer_redrive_contract
     command_lines = [
         command
         for action_name in action_names
@@ -732,6 +739,53 @@ def _controller_action_execution_contract_prompt_section(
         "a concrete owner block.\n"
         "- If the command cannot be resolved or invoked safely, write the blocked closeout with "
         "blocked_reason=owner_callable_surface_missing and next_owner=MAS/controller.\n\n"
+    )
+
+
+def _ai_reviewer_redrive_execution_contract_prompt_section(
+    *,
+    authorization: Mapping[str, Any],
+    action_names: list[str],
+    quest_id: str,
+) -> str:
+    if "return_to_ai_reviewer_workflow" not in action_names:
+        return ""
+    work_unit_ids = set(_controller_work_unit_ids(authorization))
+    if not work_unit_ids.intersection({"ai_reviewer_recheck", "ai_reviewer_medical_prose_quality_review"}):
+        return ""
+    prose_command = _ai_medical_prose_review_command(quest_id=quest_id)
+    dispatch_command = _controller_action_command(
+        action_name="return_to_ai_reviewer_workflow",
+        quest_id=quest_id,
+    )
+    return (
+        "AI reviewer redrive execution contract:\n"
+        f"- Controller action names: {', '.join(action_names)}.\n"
+        "- This is an AI-reviewer-owner turn. Do not treat the supervisor dispatch command as sufficient by itself: "
+        "that command can only consume an already-written AI reviewer record.\n"
+        "- First run `medical-publication-surface --apply` if `artifacts/publication_eval/medical_prose_review_request.json` "
+        "is missing or stale; then read the request, manuscript, study charter, evidence ledger, review ledger, "
+        "medical manuscript blueprint, claim-evidence map, and publication gate projection.\n"
+        "- The AI reviewer must judge the manuscript as a medical original research article, including manuscript "
+        "completeness, Methods reproducibility, Results numeric specificity, table/figure adequacy, clinical context, "
+        "defensive-language overuse, and reference-style maturity. A mechanical checklist or script output is not "
+        "quality authority.\n"
+        "- Write the AI reviewer response as a JSON object with the exact fields required by the request's "
+        "`structured_response_contract`. Non-clear verdicts must route back to blueprint, analysis, write, or review; "
+        "clear verdicts must include representative rewrite evidence.\n"
+        "- Materialize that response through the MAS validator before any publication-eval dispatch:\n"
+        "```bash\n"
+        f"  {prose_command}\n"
+        "```\n"
+        "- After `medical_prose_review.json` is current and AI-reviewer-owned, run the supervisor dispatch so the "
+        "AI-reviewer publication-eval workflow can validate currentness, reviewer OS trace, and any remaining owner "
+        "blockers:\n"
+        "```bash\n"
+        f"  {dispatch_command}\n"
+        "```\n"
+        "- If the prose review routes back to writing/analysis or the publication-eval workflow blocks on package "
+        "freshness or missing reviewer record fields, write a blocked closeout naming that owner surface. Do not "
+        "fabricate a clear review, fake package freshness, or relax the AI reviewer operating-system contract.\n\n"
     )
 
 
@@ -868,6 +922,15 @@ def _controller_action_command(*, action_name: str, quest_id: str) -> str | None
         f"python -m med_autoscience.cli {command_name} "
         '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --study-id <study_id> '
         f"--quest-id {quest_id}"
+    )
+
+
+def _ai_medical_prose_review_command(*, quest_id: str) -> str:
+    return (
+        '"${MED_AUTOSCIENCE_UV_BIN:-uv}" run --directory "${MED_AUTOSCIENCE_REPO}" '
+        "python -m med_autoscience.cli materialize-ai-medical-prose-review "
+        '--profile "${MED_AUTOSCIENCE_PROFILE:-<workspace MAS profile>}" --study-id <study_id> '
+        "--payload-file <ai_reviewer_response.json>"
     )
 
 
