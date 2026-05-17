@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-17：AI reviewer response record 必须随 request materialize 交给 owner executor
+
+- 决策：`artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 中已有最新合规 AI reviewer-owned record 时，`materialize_ai_reviewer_request` 必须把该 record 附到 `artifacts/supervision/requests/ai_reviewer/latest.json`，并记录 `publication_eval_record_ref`。owner executor 不应从 prose review 文本临场拼 record，也不应在缺 record 时放宽执行。
+- 理由：DM002 暴露出 reviewer 已产生 current `medical_prose_review.json` 与 publication eval record，但 supervisor request 只带 input refs，导致 `return_to_ai_reviewer_workflow` 被 `ai_reviewer_record_missing` 阻断，无法把 write route-back 物化为 controller truth。
+- 影响：AI reviewer response 仍是质量判断 owner；request lifecycle 只负责 owner record discovery/attachment 与 provenance preservation，不新增机械写作 gate，不授权直接修改 `paper/`、`manuscript/current_package` 或 publication truth。
+
 ## 2026-05-17：AI reviewer 的当前返写判断必须物化为 route-back truth
 
 - 决策：`medical_prose_review` 已通过 request/manuscript digest currentness 校验时，`medical_journal_prose_quality.status != ready`、`overall_style_verdict != clear` 或 `route_back_recommendation.required=true` 不是 workflow failure，而是 AI reviewer-owned publication evaluation 的有效质量结论。`publication_eval/latest.json` 必须保留该 `route_back_same_line -> write` 判断，并在 `reviewer_operating_system.currentness_checks.medical_prose_review` 中记录 prose status、style verdict、route-back required 与 route target。
