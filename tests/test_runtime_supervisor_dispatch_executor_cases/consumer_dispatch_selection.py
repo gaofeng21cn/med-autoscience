@@ -214,7 +214,7 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
         }
 
     monkeypatch.setattr(
-        module.ai_reviewer_publication_eval_workflow,
+        module.action_execution.ai_reviewer_publication_eval_workflow,
         "run_ai_reviewer_publication_eval_workflow",
         fake_run_ai_reviewer_publication_eval_workflow,
     )

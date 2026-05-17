@@ -58,7 +58,7 @@ def test_execute_dispatch_runs_current_package_freshness_owner_workflow(monkeypa
             "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
         }
 
-    monkeypatch.setattr(module.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
+    monkeypatch.setattr(module.action_execution.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
 
     result = module.execute_default_executor_dispatches(
         profile=profile,
@@ -195,7 +195,7 @@ def test_execute_dispatch_runs_current_package_freshness_when_stalled_and_previo
             "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
         }
 
-    monkeypatch.setattr(module.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
+    monkeypatch.setattr(module.action_execution.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
 
     result = module.execute_default_executor_dispatches(
         profile=profile,
@@ -311,7 +311,7 @@ def test_execute_dispatch_reruns_when_freshness_proof_exists_but_batch_still_blo
             "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
         }
 
-    monkeypatch.setattr(module.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
+    monkeypatch.setattr(module.action_execution.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
 
     result = module.execute_default_executor_dispatches(
         profile=profile,
@@ -416,7 +416,7 @@ def test_execute_dispatch_reruns_when_freshness_proof_source_eval_is_stale(
             "current_package_freshness_proof": {"status": "fresh", "source_eval_id": current_eval_id},
         }
 
-    monkeypatch.setattr(module.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
+    monkeypatch.setattr(module.action_execution.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
 
     result = module.execute_default_executor_dispatches(
         profile=profile,

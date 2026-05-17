@@ -367,6 +367,10 @@ def _terminal_stall_owner_handoff_allowed(
     dispatch: Mapping[str, Any],
     current_study: Mapping[str, Any] | None,
 ) -> bool:
+    if action_type == "publication_gate_specificity_required":
+        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
+        return repeat_suppression.publication_gate_specificity_route(owner_route) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
     if action_type == "runtime_platform_repair":
         current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)

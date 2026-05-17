@@ -6,6 +6,7 @@ from typing import Any
 
 REPEAT_SUPPRESSED_REASON = "repeat_suppressed"
 OWNER_HANDOFF_REASON = "controller_work_unit_owner_handoff_required"
+PUBLICATION_GATE_SPECIFICITY_REASON = "publication_gate_specificity_required"
 
 
 def repeat_key(payload: Mapping[str, Any] | None) -> str | None:
@@ -49,7 +50,11 @@ def scan_repeat_suppression(
 ) -> dict[str, Any]:
     key = repeat_key(owner_route)
     route_signature = _route_signature(owner_route)
-    if _owner_handoff_route(owner_route) or _external_supervisor_repair_route(owner_route):
+    if (
+        _owner_handoff_route(owner_route)
+        or publication_gate_specificity_route(owner_route)
+        or _external_supervisor_repair_route(owner_route)
+    ):
         return _not_suppressed(key)
     if key is None or current_meaningful_artifact_delta or required_output_pending:
         return _not_suppressed(key)
@@ -94,7 +99,11 @@ def dispatch_repeat_suppression(
     if key is None:
         return _not_suppressed(None)
     owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
-    if _owner_handoff_route(owner_route) or _external_supervisor_repair_route(owner_route):
+    if (
+        _owner_handoff_route(owner_route)
+        or publication_gate_specificity_route(owner_route)
+        or _external_supervisor_repair_route(owner_route)
+    ):
         return _not_suppressed(key)
     if meaningful_artifact_delta_observed(current_study) or required_output_pending:
         return _not_suppressed(key)
@@ -120,7 +129,11 @@ def execution_repeat_suppression(
     if key is None:
         return _not_suppressed(None)
     owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
-    if _owner_handoff_route(owner_route) or _external_supervisor_repair_route(owner_route):
+    if (
+        _owner_handoff_route(owner_route)
+        or publication_gate_specificity_route(owner_route)
+        or _external_supervisor_repair_route(owner_route)
+    ):
         return _not_suppressed(key)
     if meaningful_artifact_delta_observed(current_study) or required_output_pending:
         return _not_suppressed(key)
@@ -165,6 +178,18 @@ def _external_supervisor_repair_route(owner_route: Mapping[str, Any]) -> bool:
     )
 
 
+def publication_gate_specificity_route(owner_route: Mapping[str, Any]) -> bool:
+    route = _mapping(owner_route)
+    if _text(route.get("next_owner")) != "publication_gate":
+        return False
+    route_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
+    if route_reason != PUBLICATION_GATE_SPECIFICITY_REASON:
+        return False
+    return PUBLICATION_GATE_SPECIFICITY_REASON in {
+        item for value in route.get("allowed_actions") or [] if (item := _text(value)) is not None
+    }
+
+
 def _route_signature(owner_route: Mapping[str, Any] | None) -> tuple[str | None, str | None, tuple[str, ...]]:
     route = _mapping(owner_route)
     return (
@@ -206,10 +231,12 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "OWNER_HANDOFF_REASON",
+    "PUBLICATION_GATE_SPECIFICITY_REASON",
     "REPEAT_SUPPRESSED_REASON",
     "dispatch_repeat_suppression",
     "execution_repeat_suppression",
     "meaningful_artifact_delta_observed",
+    "publication_gate_specificity_route",
     "repeat_key",
     "scan_repeat_suppression",
 ]

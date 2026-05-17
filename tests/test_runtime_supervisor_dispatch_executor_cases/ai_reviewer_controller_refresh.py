@@ -712,6 +712,15 @@ def test_execute_dispatch_refreshes_controller_decision_after_ai_reviewer_materi
                 "eval_id": "publication-eval::stale",
                 "study_id": study_id,
                 "quest_id": f"quest-{study_id}",
+                "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
+                "future_facing_limitations_plan": [
+                    {
+                        "limitation": "The manuscript requires current AI reviewer materialization before route-back.",
+                        "impact_on_claim": "Claims must remain tied to reviewer-authorized evidence.",
+                        "required_future_analysis_data_or_design": "Use the refreshed publication evaluation.",
+                        "current_manuscript_wording_must_be_restrained": True,
+                    }
+                ],
             },
         },
     )
@@ -785,7 +794,7 @@ def test_execute_dispatch_refreshes_controller_decision_after_ai_reviewer_materi
     refresh_called: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.ai_reviewer_publication_eval_workflow,
+        module.action_execution.ai_reviewer_publication_eval_workflow,
         "run_ai_reviewer_publication_eval_workflow",
         fake_run_ai_reviewer_publication_eval_workflow,
     )

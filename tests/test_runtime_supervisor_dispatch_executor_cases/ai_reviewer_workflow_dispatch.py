@@ -258,7 +258,7 @@ def test_execute_dispatch_runs_ai_reviewer_owner_workflow(monkeypatch, tmp_path:
         }
 
     monkeypatch.setattr(
-        module.ai_reviewer_publication_eval_workflow,
+        module.action_execution.ai_reviewer_publication_eval_workflow,
         "run_ai_reviewer_publication_eval_workflow",
         fake_run_ai_reviewer_publication_eval_workflow,
     )
@@ -387,7 +387,7 @@ def test_execute_dispatch_after_paper_authority_cutover_ignores_archived_latest_
         }
 
     monkeypatch.setattr(
-        module.ai_reviewer_publication_eval_workflow,
+        module.action_execution.ai_reviewer_publication_eval_workflow,
         "run_ai_reviewer_publication_eval_workflow",
         fake_run_ai_reviewer_publication_eval_workflow,
     )
@@ -506,7 +506,7 @@ def test_execute_dispatch_passes_reporting_guideline_and_calibration_refs_to_ai_
         }
 
     monkeypatch.setattr(
-        module.ai_reviewer_publication_eval_workflow,
+        module.action_execution.ai_reviewer_publication_eval_workflow,
         "run_ai_reviewer_publication_eval_workflow",
         fake_run_ai_reviewer_publication_eval_workflow,
     )
@@ -670,7 +670,7 @@ def test_execute_dispatch_runs_ai_reviewer_when_current_owner_route_carries_term
         }
 
     monkeypatch.setattr(
-        module.ai_reviewer_publication_eval_workflow,
+        module.action_execution.ai_reviewer_publication_eval_workflow,
         "run_ai_reviewer_publication_eval_workflow",
         fake_run_ai_reviewer_publication_eval_workflow,
     )
