@@ -89,6 +89,25 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
         "owner_receipt_signer",
         "medical_helper_implementation",
     ]
+    assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
+    assert boundary["functional_module_inventory_summary"]["active_private_generic_residue_count"] == 0
+    assert (
+        boundary["functional_module_inventory_summary"]["remaining_gap_classification"]
+        == "test_evidence_gates_only"
+    )
+    zero_summary = boundary["functional_gap_zero_summary"]
+    assert zero_summary["status"] == "zero_functional_structure_gaps_remaining_evidence_gated"
+    assert zero_summary["functional_structure_gap_count"] == 0
+    assert zero_summary["remaining_items_are_evidence_gates"] is True
+    assert set(zero_summary["remaining_evidence_gate_ids"]) == {
+        "generated_surface_active_caller_cutover",
+        "legacy_cleanup_physical_retirement",
+        "live_provider_paper_apply_scaleout",
+        "publication_route_memory_receipt_scaleout",
+        "artifact_lifecycle_receipt_scaleout",
+        "opl_app_workbench_drilldown",
+        "provider_slo_long_soak",
+    }
     coverage = boundary["opl_functional_harness_consumer_coverage"]
     assert coverage["coverage_items"] == [
         "refs_only_memory_writeback_chain",

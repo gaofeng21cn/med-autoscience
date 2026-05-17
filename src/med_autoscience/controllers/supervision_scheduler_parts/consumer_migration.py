@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from .functional_gap_zero import (
+    FUNCTIONAL_GAP_ZERO_STATUS,
+    OPL_REPLACEMENT_EXPECTATION_AUDIT,
+    REMAINING_GAP_CLASSIFICATION,
+    build_functional_gap_zero_summary,
+)
+
 SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_supervision_scheduler_consumer_migration"
 ACTIVE_PATH_ROLE = "opl_replacement_default"
@@ -727,28 +734,21 @@ FUNCTIONAL_MODULE_INVENTORY = (
         },
     },
 )
-OPL_REPLACEMENT_EXPECTATION_AUDIT = {
-    "owner": REPLACEMENT_OWNER,
-    "required_before_mas_generic_owner_claim": True,
-    "audit_ref": "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
-    "expected_replacements": [
-        "opl_runtime_lifecycle_index_contract",
-        "opl_artifact_lifecycle_storage_audit_shell",
-        "opl_app_workbench_shell",
-        "opl_terminal_attach_transport",
-        "opl_provider_scheduler_lifecycle",
-        "opl_queue_attempt_retry_dead_letter",
-        "opl_generic_transition_runner",
-    ],
-    "mas_allowed_role_until_replacement": "domain_sidecar_reference_adapter_refs_only",
-}
-
 
 def build_functional_consumer_boundary() -> dict[str, Any]:
     classification_counts: dict[str, int] = {}
     for item in FUNCTIONAL_MODULE_INVENTORY:
         classification = str(item["classification"])
         classification_counts[classification] = classification_counts.get(classification, 0) + 1
+    legacy_cleanup_items = [
+        item["module_id"]
+        for item in FUNCTIONAL_MODULE_INVENTORY
+        if item["classification"] == "legacy_cleanup_no_active_caller_gate"
+    ]
+    functional_gap_zero_summary = build_functional_gap_zero_summary(
+        classification_counts=classification_counts,
+        legacy_cleanup_items=legacy_cleanup_items,
+    )
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -761,19 +761,13 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         "mas_retains": list(MAS_RETAINED_THIN_PROGRAM_SURFACES),
         "declarative_pack_compiler_input": dict(DECLARATIVE_PACK_COMPILER_INPUT),
         "generated_surface_handoff": {
-            key: [
-                dict(item) if isinstance(item, dict) else item
-                for item in value
-            ]
+            key: [dict(item) if isinstance(item, dict) else item for item in value]
             if isinstance(value, list)
             else value
             for key, value in GENERATED_SURFACE_HANDOFF.items()
         },
         "minimal_authority_function_manifest": {
-            key: [
-                dict(item) if isinstance(item, dict) else item
-                for item in value
-            ]
+            key: [dict(item) if isinstance(item, dict) else item for item in value]
             if isinstance(value, list)
             else value
             for key, value in MINIMAL_AUTHORITY_FUNCTION_MANIFEST.items()
@@ -793,12 +787,12 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "classification_counts": classification_counts,
             "long_term_opl_owned_replacement_count": 0,
             "retire_tombstone_classification_count": 0,
-            "legacy_cleanup_items_require_no_active_caller_gate": [
-                item["module_id"]
-                for item in FUNCTIONAL_MODULE_INVENTORY
-                if item["classification"] == "legacy_cleanup_no_active_caller_gate"
-            ],
+            "functional_structure_gap_count": 0,
+            "active_private_generic_residue_count": 0,
+            "remaining_gap_classification": REMAINING_GAP_CLASSIFICATION,
+            "legacy_cleanup_items_require_no_active_caller_gate": legacy_cleanup_items,
         },
+        "functional_gap_zero_summary": functional_gap_zero_summary,
         "runtime_lifecycle_sqlite_role": {
             "classification": "refs_only_adapter",
             "current_mas_role": "domain_sidecar_index_reference_adapter",
@@ -974,6 +968,7 @@ __all__ = [
     "FORBIDDEN_WRITES",
     "FUNCTIONAL_MODULE_INVENTORY",
     "FUNCTIONAL_SURFACE_CLASSIFICATION",
+    "FUNCTIONAL_GAP_ZERO_STATUS",
     "GENERATED_SURFACE_HANDOFF",
     "MAS_RETAINED_AFTER_MIGRATION",
     "MAS_RETAINED_THIN_PROGRAM_SURFACES",
@@ -988,6 +983,7 @@ __all__ = [
     "REPLACEMENT_OWNER",
     "REPLACEMENT_OWNER_SURFACE",
     "REPLACEMENT_STATE",
+    "REMAINING_GAP_CLASSIFICATION",
     "RETIREMENT_PROOF_REQUIRED",
     "RETIREMENT_STATE",
     "SCHEMA_VERSION",

@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-17：MAS consumer thinning 后功能/结构差距清零，剩余只按证据门推进
+
+- 决策：`functional_consumer_boundary.functional_gap_zero_summary` 是 MAS consumer thinning lane 的机器结论面。当前 `functional_structure_gap_count=0`、`active_private_generic_residue_count=0`、`remaining_gap_classification=test_evidence_gates_only`；MAS gap plan 中原先列为功能/结构差距的 runtime/scheduler/queue/attempt ledger/generic lifecycle/workspace-source shell/memory-artifact transport/workbench/observability/CLI-MCP-product-entry-sidecar-status wrapper，已分别归入 declarative pack / OPL generated surface、refs-only adapter、minimal authority function 或 legacy cleanup gate。
+- 决策：剩余项只能作为测试/证据差距推进：generated surface active caller cutover、legacy cleanup physical retirement、live provider paper apply scaleout、publication-route memory receipt scaleout、artifact lifecycle receipt scaleout、OPL App workbench drilldown 和 provider SLO long soak。它们不得重新表述成 MAS 继续实现 generic runtime、generic scheduler、generic queue、generic attempt ledger、generic transition runner、generic workbench、generic memory locator、generic artifact lifecycle 或 generic observability 的功能缺口。
+- 理由：MAS 仍有多处 repo-local shell 代码，但长期 owner 已被机器面限定；继续把 evidence gate 写成功能/结构缺口会诱导在 MAS 内重建 OPL 应持有的通用底座。
+- 影响：后续修改 gap plan、status、current development lines、product-entry、sidecar、supervision projection 或 focused tests 时，必须保留 `functional_gap_zero_summary` 与 `test_evidence_gates_only` 口径。若发现新 surface 重新持有 generic owner，应作为 regression 修复，不能新增 compat alias、facade、shim、wrapper 或兼容聚合测试。
+
 ## 2026-05-17：MAS package 外壳收敛为 OPL pack compiler 输入与 generated surface consumer
 
 - 决策：MAS 不再把 CLI、MCP、product-entry、sidecar、status、workbench、projection shell 或 test-lane harness 视为长期手写 owner surface。它们在 `functional_consumer_boundary.generated_surface_handoff` 中统一声明为 OPL generated/hosted target 或 MAS handwritten migration bridge。

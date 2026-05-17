@@ -56,7 +56,9 @@ OPL 系列项目的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/d
 
 这意味着当前 MAS 并非“已经没有任何私有功能实现”。准确判断是：MAS 仍保有多处活跃 functional shell，但长期处置已被机器面限定为 declarative pack / OPL generated surface、refs-only adapter、minimal authority function 或 no-active-caller cleanup gate。SQLite/lifecycle store、paper outbox、storage maintenance、workspace/source intake、memory transport、artifact lifecycle、Portal/workbench、terminal/log projection、runtime supervisor scan-dispatch 和 CLI/MCP/product shell，只有在承载 MAS owner receipt、domain blocker、artifact authority、locator refs 或 cleanup diagnostic 时才允许留在 MAS；凡是 scheduler、queue、attempt ledger、state-machine runner、locator/index、lifecycle、workbench、observability 或 product shell 的通用部分，都应上收到 OPL pack compiler、App/runtime generated surface 或 refs-only adapter。
 
-完善顺序必须服从这一边界：先把已知功能残留迁移、上收、清理或退役，再用真实 paper-line、provider SLO、human gate/resume 和 App drilldown 做验收。live soak 证明迁移后的目标形态成立，不应成为 MAS scheduler 上收、Portal/workbench 边界清理或 OPL primitive handoff 的前置条件。
+2026-05-17 consumer thinning closeout 校准：上述功能残留已经在 MAS 单仓机器面完成分类与清零。`functional_consumer_boundary.functional_gap_zero_summary` 固定 `functional_structure_gap_count=0`、`active_private_generic_residue_count=0`、`remaining_gap_classification=test_evidence_gates_only`。剩余 generated surface active caller cutover、legacy cleanup physical retirement、真实 paper-line provider apply、publication-route memory receipt scaleout、artifact lifecycle receipt scaleout、OPL App drilldown 和 provider SLO long soak，均是测试/证据差距或 OPL/Operator evidence gate，不能重新写成 MAS 长期 generic owner 缺口。
+
+完善顺序必须服从这一边界：功能分类与 handoff 机器面先清零，再用真实 paper-line、provider SLO、human gate/resume 和 App drilldown 做验收。live soak 证明迁移后的目标形态成立，不应成为 MAS scheduler 上收、Portal/workbench 边界清理或 OPL primitive handoff 的前置条件。
 
 ## 产品分层
 

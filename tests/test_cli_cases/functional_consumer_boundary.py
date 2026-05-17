@@ -104,6 +104,17 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     )
     assert inventory_by_id["local_launchd_scheduler_install_path"]["default_caller_count"] == 0
     assert inventory_by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
+    assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
+    assert boundary["functional_gap_zero_summary"]["status"] == (
+        "zero_functional_structure_gaps_remaining_evidence_gated"
+    )
+    assert boundary["functional_gap_zero_summary"]["remaining_gap_classification"] == (
+        "test_evidence_gates_only"
+    )
+    assert boundary["functional_gap_zero_summary"]["remaining_items_are_evidence_gates"] is True
+    assert "live_provider_paper_apply_scaleout" in boundary["functional_gap_zero_summary"][
+        "remaining_evidence_gate_ids"
+    ]
     assert boundary["no_active_caller_proof"]["default_caller_count"] == 0
     assert boundary["no_active_caller_proof"]["default_manager"] == "opl"
     assert "workspace_bootstrap_manager_is_opl" in boundary["no_active_caller_proof"]["proof_items"]

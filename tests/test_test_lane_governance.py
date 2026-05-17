@@ -358,12 +358,45 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "minimal_authority_function": 3,
         "legacy_cleanup_no_active_caller_gate": 2,
     }
+    assert runtime_boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
+    assert runtime_boundary["functional_module_inventory_summary"]["active_private_generic_residue_count"] == 0
+    assert (
+        runtime_boundary["functional_module_inventory_summary"]["remaining_gap_classification"]
+        == "test_evidence_gates_only"
+    )
     assert runtime_boundary["functional_module_inventory_summary"][
         "long_term_opl_owned_replacement_count"
     ] == 0
     assert runtime_boundary["functional_module_inventory_summary"][
         "retire_tombstone_classification_count"
     ] == 0
+    assert lane["functional_gap_zero_summary"] == runtime_boundary["functional_gap_zero_summary"]
+    zero_summary = lane["functional_gap_zero_summary"]
+    assert zero_summary["status"] == "zero_functional_structure_gaps_remaining_evidence_gated"
+    assert zero_summary["functional_structure_gap_count"] == 0
+    assert zero_summary["active_private_generic_residue_count"] == 0
+    assert zero_summary["remaining_gap_classification"] == "test_evidence_gates_only"
+    assert zero_summary["remaining_items_are_evidence_gates"] is True
+    assert zero_summary["remaining_evidence_gate_ids"] == [
+        "generated_surface_active_caller_cutover",
+        "legacy_cleanup_physical_retirement",
+        "live_provider_paper_apply_scaleout",
+        "publication_route_memory_receipt_scaleout",
+        "artifact_lifecycle_receipt_scaleout",
+        "opl_app_workbench_drilldown",
+        "provider_slo_long_soak",
+    ]
+    assert {item["functional_structure_gap"] for item in zero_summary["remaining_evidence_gates"]} == {
+        False
+    }
+    assert set(zero_summary["cleared_by_surfaces"]) == {
+        "functional_module_inventory",
+        "declarative_pack_compiler_input",
+        "generated_surface_handoff",
+        "minimal_authority_function_manifest",
+        "no_active_caller_proof",
+        "opl_functional_harness_consumer_coverage",
+    }
     lifecycle_role = lane["runtime_lifecycle_sqlite_role"]
     assert lifecycle_role["classification"] == "refs_only_adapter"
     assert lifecycle_role["current_mas_role"] == "domain_sidecar_index_reference_adapter"

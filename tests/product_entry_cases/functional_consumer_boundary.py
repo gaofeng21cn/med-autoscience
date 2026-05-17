@@ -199,8 +199,41 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "minimal_authority_function": 3,
         "legacy_cleanup_no_active_caller_gate": 2,
     }
+    assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
+    assert boundary["functional_module_inventory_summary"]["active_private_generic_residue_count"] == 0
+    assert (
+        boundary["functional_module_inventory_summary"]["remaining_gap_classification"]
+        == "test_evidence_gates_only"
+    )
     assert boundary["functional_module_inventory_summary"]["long_term_opl_owned_replacement_count"] == 0
     assert boundary["functional_module_inventory_summary"]["retire_tombstone_classification_count"] == 0
+    zero_summary = boundary["functional_gap_zero_summary"]
+    assert zero_summary["surface_kind"] == "mas_functional_gap_zero_summary"
+    assert zero_summary["status"] == "zero_functional_structure_gaps_remaining_evidence_gated"
+    assert zero_summary["functional_structure_gap_count"] == 0
+    assert zero_summary["active_private_generic_residue_count"] == 0
+    assert zero_summary["remaining_gap_classification"] == "test_evidence_gates_only"
+    assert zero_summary["remaining_items_are_evidence_gates"] is True
+    assert zero_summary["classification_counts"] == boundary["functional_module_inventory_summary"][
+        "classification_counts"
+    ]
+    assert zero_summary["remaining_evidence_gate_ids"] == [
+        "generated_surface_active_caller_cutover",
+        "legacy_cleanup_physical_retirement",
+        "live_provider_paper_apply_scaleout",
+        "publication_route_memory_receipt_scaleout",
+        "artifact_lifecycle_receipt_scaleout",
+        "opl_app_workbench_drilldown",
+        "provider_slo_long_soak",
+    ]
+    assert {item["owner"] for item in zero_summary["remaining_evidence_gates"]} == {
+        "med-autoscience",
+        "one-person-lab",
+    }
+    assert {item["functional_structure_gap"] for item in zero_summary["remaining_evidence_gates"]} == {
+        False
+    }
+    assert "mas_owned_generic_queue" in zero_summary["forbidden_remaining_functional_gap_claims"]
     assert by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
     lifecycle_role = boundary["runtime_lifecycle_sqlite_role"]
     assert lifecycle_role["classification"] == "refs_only_adapter"
