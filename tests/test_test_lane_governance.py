@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import importlib
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -331,8 +332,33 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "keep_paper_work_unit_refs_only_adapter_and_declare_queue_attempt_requirements"
     )
     assert inventory_by_id["runtime_supervisor_scan_consume_dispatch_shell"]["active_caller_status"] == (
-        "domain_guard_active_generic_scan_dispatch_shell_should_move_to_opl"
+        "opl_runtime_manager_loop_consumed_mas_owner_route_guard_active"
     )
+    closed_semantic_equivalence_modules = [
+        "runtime_storage_maintenance",
+        "artifact_lifecycle_storage_audit_shell",
+        "workbench_portal_generic_shell",
+        "runtime_supervisor_scan_consume_dispatch_shell",
+        "generic_cli_mcp_product_wrappers",
+        "generic_queue_attempt_retry_dead_letter",
+    ]
+    for module_id in closed_semantic_equivalence_modules:
+        entry = inventory_by_id[module_id]
+        readout = " ".join(
+            str(entry.get(field, ""))
+            for field in (
+                "active_caller_status",
+                "migration_action",
+                "authority_boundary",
+            )
+        )
+        assert not re.search(
+            r"active_private|pending|should_move|should_derive|handoff_required|until_opl|lifecycle_candidate|mixed_generic",
+            readout,
+            flags=re.IGNORECASE,
+        ), module_id
+        assert entry["proof_refs"], module_id
+        assert entry["opl_expected_primitives"], module_id
     assert inventory_by_id["publication_quality_verdict"]["cannot_absorb_reason"] == (
         "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
     )
