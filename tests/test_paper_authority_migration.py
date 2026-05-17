@@ -139,10 +139,72 @@ def test_mark_cutover_new_mas_authority_established_closes_pending_cutover(tmp_p
     assert receipt["new_mas_authority"]["eval_id"] == "publication-eval::new"
     assert receipt["authority_boundary"]["quality_verdict_written"] is True
     assert receipt["authority_boundary"]["submission_package_regenerated"] is False
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "publication-eval::new",
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+        },
+    )
+    refreshed_report = module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=False,
+    )
+    assert module.new_mas_authority_eval_current(study_root=study_root) is True
     assert module.cutover_requires_ai_reviewer(study_root=study_root) is False
-    assert report["studies"][0]["cutover_required"] is False
+    assert refreshed_report["studies"][0]["cutover_required"] is False
+    assert refreshed_report["studies"][0]["active_surfaces"] == []
+    assert refreshed_report["studies"][0]["next_required_actions"] == []
+
+
+def test_new_mas_authority_established_fails_closed_when_active_eval_is_overwritten(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"legacy": True})
+
+    module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+    module.mark_cutover_new_mas_authority_established(
+        study_root=study_root,
+        publication_eval_ref=str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        eval_id="publication-eval::new",
+        recorded_at="2026-05-17T12:00:00+00:00",
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "publication-eval::mechanical",
+            "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+        },
+    )
+    report = module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=False,
+    )
+
+    assert module.new_mas_authority_eval_current(study_root=study_root) is False
+    assert module.cutover_requires_ai_reviewer(study_root=study_root) is True
+    assert module.cutover_publication_eval_payload(study_root=study_root)["assessment_provenance"]["owner"] == (
+        "paper_authority_cutover"
+    )
+    assert report["studies"][0]["cutover_required"] is True
     assert report["studies"][0]["active_surfaces"] == []
-    assert report["studies"][0]["next_required_actions"] == []
+    assert report["studies"][0]["next_required_actions"] == [
+        "return_to_ai_reviewer_workflow",
+        "publication_gate",
+        "sync_study_delivery",
+    ]
 
 
 def _write_profile(path: Path, profile) -> None:

@@ -124,10 +124,16 @@ def read_paper_authority_cutover(*, study_root: Path) -> dict[str, Any] | None:
 
 
 def cutover_requires_ai_reviewer(*, study_root: Path) -> bool:
-    payload = read_paper_authority_cutover(study_root=study_root)
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    payload = read_paper_authority_cutover(study_root=resolved_study_root)
     if not payload:
         return False
-    return _text(payload.get("status")) == "awaiting_new_mas_authority"
+    status = _text(payload.get("status"))
+    if status == "awaiting_new_mas_authority":
+        return True
+    if status == "new_mas_authority_established":
+        return not _new_mas_authority_eval_current(study_root=resolved_study_root, receipt=payload)
+    return False
 
 
 def mark_cutover_new_mas_authority_established(
@@ -162,10 +168,17 @@ def mark_cutover_new_mas_authority_established(
 
 
 def cutover_publication_eval_payload(*, study_root: Path) -> dict[str, Any] | None:
-    payload = read_paper_authority_cutover(study_root=study_root)
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    payload = read_paper_authority_cutover(study_root=resolved_study_root)
     if not payload:
         return None
-    if _text(payload.get("status")) != "awaiting_new_mas_authority":
+    status = _text(payload.get("status"))
+    if status == "new_mas_authority_established" and _new_mas_authority_eval_current(
+        study_root=resolved_study_root,
+        receipt=payload,
+    ):
+        return None
+    if status not in {"awaiting_new_mas_authority", "new_mas_authority_established"}:
         return None
     return {
         "schema_version": 1,
@@ -178,8 +191,43 @@ def cutover_publication_eval_payload(*, study_root: Path) -> dict[str, Any] | No
         },
         "gaps": [],
         "recommended_actions": [],
-        "cutover_receipt_ref": str(paper_authority_cutover_latest_path(study_root=study_root)),
+        "cutover_receipt_ref": str(paper_authority_cutover_latest_path(study_root=resolved_study_root)),
     }
+
+
+def new_mas_authority_eval_current(*, study_root: Path) -> bool:
+    payload = read_paper_authority_cutover(study_root=study_root)
+    if not payload or _text(payload.get("status")) != "new_mas_authority_established":
+        return False
+    return _new_mas_authority_eval_current(study_root=Path(study_root).expanduser().resolve(), receipt=payload)
+
+
+def _new_mas_authority_eval_current(*, study_root: Path, receipt: Mapping[str, Any]) -> bool:
+    authority = receipt.get("new_mas_authority")
+    if not isinstance(authority, Mapping):
+        return False
+    eval_id = _text(authority.get("eval_id"))
+    publication_eval_ref = _text(authority.get("publication_eval_ref"))
+    if eval_id is None or publication_eval_ref is None:
+        return False
+    expected_path = Path(publication_eval_ref).expanduser()
+    if not expected_path.is_absolute():
+        expected_path = study_root / expected_path
+    expected_path = expected_path.resolve()
+    active_path = (study_root / "artifacts" / "publication_eval" / "latest.json").resolve()
+    if expected_path != active_path or not active_path.exists():
+        return False
+    active_eval = _read_json_object(active_path)
+    if not active_eval:
+        return False
+    provenance = active_eval.get("assessment_provenance")
+    if not isinstance(provenance, Mapping):
+        return False
+    return (
+        _text(active_eval.get("eval_id")) == eval_id
+        and _text(provenance.get("owner")) == "ai_reviewer"
+        and provenance.get("ai_reviewer_required") is False
+    )
 
 
 def _resolve_study_ids(*, profile: WorkspaceProfile, study_ids: Iterable[str] | None) -> tuple[str, ...]:
@@ -223,12 +271,18 @@ def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -
     archive_root = _archive_root(study_root=study_root, recorded_at=recorded_at)
     receipt = _read_json_object(paper_authority_cutover_latest_path(study_root=study_root))
     receipt_status = _text((receipt or {}).get("status"))
+    authority_current = (
+        receipt_status == "new_mas_authority_established"
+        and receipt is not None
+        and _new_mas_authority_eval_current(study_root=study_root, receipt=receipt)
+    )
+    authority_stale = receipt_status == "new_mas_authority_established" and not authority_current
     active_surfaces = [] if receipt_status == "new_mas_authority_established" else _active_surface_items(study_root=study_root)
     request_path = supervisor_action_request_lifecycle.stable_ai_reviewer_request_path(study_root=study_root)
     return {
         "study_id": study_id,
         "study_root": str(study_root),
-        "cutover_required": bool(active_surfaces) or not bool(receipt),
+        "cutover_required": bool(active_surfaces) or not bool(receipt) or authority_stale,
         "active_surfaces": active_surfaces,
         "archive_root": str(archive_root),
         "cutover_receipt": {
@@ -240,7 +294,11 @@ def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -
             "path": str(request_path),
             "exists": request_path.exists(),
         },
-        "next_required_actions": _study_next_actions(active_surfaces=active_surfaces, receipt=receipt),
+        "next_required_actions": (
+            ["return_to_ai_reviewer_workflow", "publication_gate", "sync_study_delivery"]
+            if authority_stale
+            else _study_next_actions(active_surfaces=active_surfaces, receipt=receipt)
+        ),
     }
 
 
@@ -454,6 +512,7 @@ __all__ = [
     "cutover_publication_eval_payload",
     "cutover_requires_ai_reviewer",
     "mark_cutover_new_mas_authority_established",
+    "new_mas_authority_eval_current",
     "paper_authority_cutover_latest_path",
     "read_paper_authority_cutover",
     "run_paper_authority_clean_migration",
