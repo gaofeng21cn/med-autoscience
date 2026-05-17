@@ -9,6 +9,7 @@ import yaml
 
 from med_autoscience.runtime_transport import mas_runtime_core_turns as turn_lifecycle
 from med_autoscience.runtime_transport import mas_runtime_core_delayed_turns as delayed_turns
+from med_autoscience.runtime_transport import mas_runtime_core_stopped_relaunch as stopped_relaunch
 from med_autoscience.runtime_transport.mas_runtime_core_worker_leases import (
     terminate_orphan_worker_leases,
     terminate_worker_leases,
@@ -195,6 +196,19 @@ def resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str,
         reason="explicit_resume",
         source=source,
         allow_paused_explicit_resume=True,
+    )
+
+
+def relaunch_stopped_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]:
+    quest_root = _quest_root(runtime_root=runtime_root, quest_id=quest_id)
+    if not (quest_root / "quest.yaml").is_file():
+        raise RuntimeError(f"MAS runtime quest is missing: {quest_root}")
+    return stopped_relaunch.relaunch_stopped_turn(
+        runtime_root=_resolved_runtime_root(runtime_root),
+        quest_root=quest_root,
+        quest_id=quest_root.name,
+        reason="explicit_relaunch_stopped",
+        source=source,
     )
 
 

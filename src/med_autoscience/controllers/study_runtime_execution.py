@@ -57,6 +57,7 @@ __all__ = [
     "_execute_completion_runtime_decision",
     "_execute_create_runtime_decision",
     "_execute_pause_runtime_decision",
+    "_execute_relaunch_stopped_runtime_decision",
     "_execute_resume_runtime_decision",
     "_execute_runtime_decision",
     "_persist_runtime_artifacts",
@@ -71,6 +72,18 @@ def _router_module():
 
 def _should_run_startup_hydration_for_resume(*, status: StudyRuntimeStatus) -> bool:
     return _action_family_dispatch._should_run_startup_hydration_for_resume(status=status)
+
+
+def _execute_relaunch_stopped_runtime_decision(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+) -> StudyRuntimeExecutionOutcome:
+    return _action_family_dispatch._execute_relaunch_stopped_runtime_decision(
+        status=status,
+        context=context,
+        router_module=_router_module,
+    )
 
 
 def _build_execution_context(

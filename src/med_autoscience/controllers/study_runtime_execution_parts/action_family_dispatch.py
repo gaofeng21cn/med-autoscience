@@ -356,6 +356,75 @@ def _execute_resume_runtime_decision(
     return outcome
 
 
+def _execute_relaunch_stopped_runtime_decision(
+    *,
+    status: StudyRuntimeStatus,
+    context: StudyRuntimeExecutionContext,
+    router_module: Callable[[], Any],
+) -> StudyRuntimeExecutionOutcome:
+    router = router_module()
+    outcome = StudyRuntimeExecutionOutcome()
+    pre_relaunch_wakeup = status.extras.get("explicit_user_wakeup")
+    create_payload = router._build_context_create_payload(context)
+    startup_context_sync = router._sync_existing_quest_startup_context(
+        runtime_root=context.runtime_root,
+        quest_id=status.quest_id,
+        create_payload=create_payload,
+        execution=context.execution,
+    )
+    status.record_startup_context_sync(startup_context_sync)
+    if _should_run_startup_hydration_for_resume(status=status):
+        hydration_result, validation_result = router._run_startup_hydration(
+            quest_root=context.quest_root,
+            create_payload=create_payload,
+            study_root=context.study_root,
+            workspace_root=context.profile.workspace_root,
+        )
+        status.record_startup_hydration(hydration_result, validation_result)
+        if validation_result.status is not study_runtime_protocol.StartupHydrationValidationStatus.CLEAR:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.HYDRATION_VALIDATION_FAILED,
+            )
+            outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
+            _restore_explicit_user_wakeup_surface(status, pre_relaunch_wakeup)
+            return outcome
+    _relay_controller_decision_authorization_if_required(status=status, context=context)
+    try:
+        relaunch_result = router._relaunch_stopped_quest(
+            runtime_root=context.runtime_root,
+            quest_id=status.quest_id,
+            source=context.source,
+            runtime_backend=context.runtime_backend,
+        )
+    except RuntimeError as exc:
+        outcome.record_daemon_step(
+            StudyRuntimeDaemonStep.RESUME,
+            {
+                "ok": False,
+                "status": "unavailable",
+                "error": str(exc),
+            },
+        )
+        status.set_decision(
+            StudyRuntimeDecision.BLOCKED,
+            StudyRuntimeReason.RESUME_REQUEST_FAILED,
+        )
+        outcome.binding_last_action = StudyRuntimeBindingAction.BLOCKED
+        _restore_explicit_user_wakeup_surface(status, pre_relaunch_wakeup)
+        return outcome
+    outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, relaunch_result)
+    status.update_quest_runtime(
+        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
+    )
+    if not _apply_resume_postcondition(status=status, outcome=outcome):
+        _restore_explicit_user_wakeup_surface(status, pre_relaunch_wakeup)
+        return outcome
+    outcome.binding_last_action = StudyRuntimeBindingAction.RELAUNCH_STOPPED
+    _restore_explicit_user_wakeup_surface(status, pre_relaunch_wakeup)
+    return outcome
+
+
 def _execute_blocked_refresh_runtime_decision(
     *,
     status: StudyRuntimeStatus,
@@ -514,10 +583,7 @@ def _execute_runtime_decision(
     if status.decision == StudyRuntimeDecision.RESUME:
         return router._execute_resume_runtime_decision(status=status, context=context)
     if status.decision == StudyRuntimeDecision.RELAUNCH_STOPPED:
-        outcome = router._execute_resume_runtime_decision(status=status, context=context)
-        if outcome.binding_last_action is StudyRuntimeBindingAction.RESUME:
-            outcome.binding_last_action = StudyRuntimeBindingAction.RELAUNCH_STOPPED
-        return outcome
+        return router._execute_relaunch_stopped_runtime_decision(status=status, context=context)
     if status.should_refresh_startup_hydration_while_blocked():
         return router._execute_blocked_refresh_runtime_decision(status=status, context=context)
     if status.decision == StudyRuntimeDecision.PAUSE:

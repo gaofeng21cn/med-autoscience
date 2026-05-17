@@ -26,6 +26,8 @@ class ManagedRuntimeBackend(Protocol):
 
     def resume_quest(self, *, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]: ...
 
+    def relaunch_stopped_quest(self, *, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]: ...
+
     def pause_quest(self, *, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]: ...
 
     def stop_quest(
@@ -201,6 +203,7 @@ _BACKEND_CALLABLE_CONTRACT: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] =
     "resolve_daemon_url": (("runtime_root",), ()),
     "create_quest": (("runtime_root", "payload"), ()),
     "resume_quest": (("runtime_root", "quest_id", "source"), ()),
+    "relaunch_stopped_quest": (("runtime_root", "quest_id", "source"), ()),
     "pause_quest": (("runtime_root", "quest_id", "source"), ()),
     "stop_quest": (("quest_id", "source"), ("daemon_url", "runtime_root")),
     "get_quest_session": (("quest_id",), ("daemon_url", "runtime_root", "timeout")),

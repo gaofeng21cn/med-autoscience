@@ -37,6 +37,7 @@ from med_autoscience.controllers.study_runtime_execution import (
     _execute_completion_runtime_decision,
     _execute_create_runtime_decision,
     _execute_pause_runtime_decision,
+    _execute_relaunch_stopped_runtime_decision,
     _execute_resume_runtime_decision,
     _execute_runtime_decision,
     _persist_runtime_artifacts,
@@ -61,6 +62,7 @@ from med_autoscience.controllers.study_runtime_transport import (
     _create_quest,
     _inspect_quest_live_execution,
     _pause_quest,
+    _relaunch_stopped_quest,
     _resume_quest,
     _update_quest_startup_context,
 )

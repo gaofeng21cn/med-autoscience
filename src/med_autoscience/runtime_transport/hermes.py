@@ -217,6 +217,12 @@ def resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str,
     raise _hosted_operation_unavailable("resume_quest")
 
 
+def relaunch_stopped_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]:
+    resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="relaunch_stopped_quest")
+    _require_ready_external_runtime(runtime_root=resolved_runtime_root)
+    raise _hosted_operation_unavailable("relaunch_stopped_quest")
+
+
 def pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, Any]:
     resolved_runtime_root = _required_runtime_root(runtime_root=runtime_root, operation_name="pause_quest")
     _require_ready_external_runtime(runtime_root=resolved_runtime_root)

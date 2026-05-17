@@ -13,6 +13,7 @@ __all__ = [
     "_get_quest_session",
     "_inspect_quest_live_execution",
     "_pause_quest",
+    "_relaunch_stopped_quest",
     "_resume_quest",
     "_schedule_turn",
     "_complete_turn_and_normalize",
@@ -86,6 +87,21 @@ def _resume_quest(
 ) -> dict[str, Any]:
     backend = runtime_backend or _default_runtime_backend()
     return backend.resume_quest(
+        runtime_root=runtime_root,
+        quest_id=quest_id,
+        source=source,
+    )
+
+
+def _relaunch_stopped_quest(
+    *,
+    runtime_root: Path,
+    quest_id: str,
+    source: str,
+    runtime_backend: ManagedRuntimeBackend | None = None,
+) -> dict[str, Any]:
+    backend = runtime_backend or _default_runtime_backend()
+    return backend.relaunch_stopped_quest(
         runtime_root=runtime_root,
         quest_id=quest_id,
         source=source,

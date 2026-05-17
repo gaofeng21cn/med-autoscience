@@ -20,6 +20,9 @@ class _BackendStub:
     def resume_quest(self, *, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
         return {"runtime_root": str(runtime_root), "quest_id": quest_id, "source": source}
 
+    def relaunch_stopped_quest(self, *, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+        return {"runtime_root": str(runtime_root), "quest_id": quest_id, "source": source, "action": "relaunch_stopped"}
+
     def pause_quest(self, *, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
         return {"runtime_root": str(runtime_root), "quest_id": quest_id, "source": source}
 

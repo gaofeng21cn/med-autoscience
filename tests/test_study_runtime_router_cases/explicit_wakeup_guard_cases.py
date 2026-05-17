@@ -215,7 +215,12 @@ def test_explicit_user_wakeup_relaunches_stopped_pending_user_message_redrive(
     monkeypatch.setattr(
         module,
         "_resume_quest",
-        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("stopped relaunch must not call resume_quest")),
+    )
+    monkeypatch.setattr(
+        module,
+        "_relaunch_stopped_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("relaunch_stopped")
         or {
             "ok": True,
             "status": "running",
@@ -237,7 +242,7 @@ def test_explicit_user_wakeup_relaunches_stopped_pending_user_message_redrive(
     assert result["quest_status"] == "running"
     assert result["explicit_user_wakeup"]["status"] == "recorded"
     assert result["explicit_user_wakeup"]["cleared_pending_user_message_redrive"] is True
-    assert calls == ["sync_context", "resume"]
+    assert calls == ["sync_context", "relaunch_stopped"]
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
     assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
     assert runtime_state["last_explicit_user_wakeup"]["cleared_pending_user_message_redrive"] is True
@@ -288,7 +293,12 @@ def test_explicit_user_wakeup_relaunches_stopped_redrive_with_stale_human_takeov
     monkeypatch.setattr(
         module,
         "_resume_quest",
-        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("stopped relaunch must not call resume_quest")),
+    )
+    monkeypatch.setattr(
+        module,
+        "_relaunch_stopped_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("relaunch_stopped")
         or {
             "ok": True,
             "status": "running",
@@ -309,7 +319,7 @@ def test_explicit_user_wakeup_relaunches_stopped_redrive_with_stale_human_takeov
     assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
     assert result["quest_status"] == "running"
     assert result["explicit_user_wakeup"]["cleared_pending_user_message_redrive"] is True
-    assert calls == ["sync_context", "resume"]
+    assert calls == ["sync_context", "relaunch_stopped"]
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
     assert "human_takeover_contract" not in runtime_state
     assert runtime_state["last_explicit_user_wakeup"]["cleared_stale_human_takeover_contract"] is True
