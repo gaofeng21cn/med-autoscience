@@ -368,23 +368,44 @@ def _latest_clean_migration_rehydrate_execution(study_root: Path) -> dict[str, A
         return None
     for item in reversed(executions):
         execution = _mapping(item)
-        if _text(execution.get("action_type")) != "return_to_ai_reviewer_workflow":
-            continue
         if _text(execution.get("execution_status")) != "blocked":
             continue
-        if _text(execution.get("blocked_reason")) != "canonical_paper_inputs_rehydrate_required":
-            continue
-        if _text(execution.get("next_owner")) != "write":
-            continue
-        owner_result = _mapping(execution.get("owner_result"))
-        if _text(owner_result.get("authority_source_signature")) != "paper_authority_clean_migration":
-            continue
-        if owner_result.get("legacy_artifact_reader_allowed") is not False:
-            continue
-        if owner_result.get("mechanical_blueprint_as_canonical_allowed") is not False:
-            continue
-        return execution
+        if _clean_migration_ai_reviewer_rehydrate_blocker(execution):
+            return execution
+        if _clean_migration_rehydrate_execution_blocker(execution):
+            return execution
     return None
+
+
+def _clean_migration_ai_reviewer_rehydrate_blocker(execution: Mapping[str, Any]) -> bool:
+    if _text(execution.get("action_type")) != "return_to_ai_reviewer_workflow":
+        return False
+    if _text(execution.get("blocked_reason")) != "canonical_paper_inputs_rehydrate_required":
+        return False
+    if _text(execution.get("next_owner")) != "write":
+        return False
+    owner_result = _mapping(execution.get("owner_result"))
+    if _text(owner_result.get("authority_source_signature")) != "paper_authority_clean_migration":
+        return False
+    if owner_result.get("legacy_artifact_reader_allowed") is not False:
+        return False
+    return owner_result.get("mechanical_blueprint_as_canonical_allowed") is False
+
+
+def _clean_migration_rehydrate_execution_blocker(execution: Mapping[str, Any]) -> bool:
+    if _text(execution.get("action_type")) != "canonical_paper_inputs_rehydrate_required":
+        return False
+    if _text(execution.get("blocked_reason")) != "canonical_paper_inputs_rehydrate_failed":
+        return False
+    if _text(execution.get("next_owner")) != "write":
+        return False
+    owner_callable_surface = _text(execution.get("owner_callable_surface"))
+    if owner_callable_surface != "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint":
+        return False
+    required_output_surface = _text(execution.get("required_output_surface"))
+    return required_output_surface is not None and required_output_surface.endswith(
+        "paper/medical_manuscript_blueprint_source.json"
+    )
 
 
 def _ai_reviewer_required_action(*, reason: str) -> dict[str, Any]:
