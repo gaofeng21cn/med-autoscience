@@ -15,6 +15,7 @@ _RECORD_ALLOWED_FIELDS = frozenset(
         "runtime_context_refs",
         "delivery_context_refs",
         "assessment_provenance",
+        "authority_boundary",
         "verdict",
         "quality_assessment",
         "reviewer_operating_system",
@@ -99,6 +100,16 @@ _ALLOWED_ROUTE_TARGETS = frozenset(
 )
 _REQUIRED_RUNTIME_CONTEXT_REF_KEYS = frozenset({"runtime_escalation_ref", "main_result_ref"})
 _REQUIRED_DELIVERY_CONTEXT_REF_KEYS = frozenset({"paper_root_ref", "submission_minimal_ref"})
+_AUTHORITY_BOUNDARY_ALLOWED_FIELDS = frozenset(
+    {
+        "mutated_current_package",
+        "mutated_submission_minimal",
+        "mutated_publication_gate_conclusion",
+        "mutated_medical_result_values",
+        "quality_gate_relaxation",
+        "publication_gate_allow_write_respected",
+    }
+)
 
 
 def _reject_unknown_fields(label: str, payload: dict[str, Any], allowed_fields: frozenset[str]) -> None:
@@ -245,6 +256,20 @@ def _payload_object_sequence(payload: dict[str, Any], field_name: str, label: st
         if not isinstance(item, dict):
             raise ValueError(f"{label} {field_name} entries must be mappings")
     return raw_value
+
+
+def _optional_authority_boundary(value: Any) -> dict[str, bool] | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError("publication eval record authority_boundary must be a mapping")
+    _reject_unknown_fields("publication eval record authority_boundary", value, _AUTHORITY_BOUNDARY_ALLOWED_FIELDS)
+    normalized: dict[str, bool] = {}
+    for field_name, item in value.items():
+        if not isinstance(item, bool):
+            raise TypeError(f"publication eval record authority_boundary {field_name} must be bool")
+        normalized[field_name] = item
+    return normalized
 
 
 def _payload_true(payload: dict[str, Any], field_name: str, label: str) -> bool:

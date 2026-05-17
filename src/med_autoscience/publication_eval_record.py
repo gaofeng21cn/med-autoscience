@@ -21,6 +21,7 @@ from med_autoscience.publication_eval_record_parts.validation import (
     _payload_object_sequence,
     _payload_ref_mapping,
     _payload_text,
+    _optional_authority_boundary,
     _reject_unknown_fields,
     _require_choice,
     _require_ref_mapping,
@@ -44,6 +45,7 @@ class PublicationEvalRecord:
     gaps: tuple[PublicationEvalGap, ...]
     recommended_actions: tuple[PublicationEvalRecommendedAction, ...]
     assessment_provenance: PublicationEvalAssessmentProvenance | None = None
+    authority_boundary: dict[str, bool] | None = None
     quality_assessment: PublicationEvalQualityAssessment | None = None
     reviewer_operating_system: dict[str, Any] | None = None
 
@@ -117,6 +119,12 @@ class PublicationEvalRecord:
                     else PublicationEvalAssessmentProvenance.from_payload(self.assessment_provenance)
                 ),
             )
+        if self.authority_boundary is not None:
+            object.__setattr__(
+                self,
+                "authority_boundary",
+                _optional_authority_boundary(self.authority_boundary),
+            )
         object.__setattr__(
             self,
             "verdict",
@@ -177,6 +185,8 @@ class PublicationEvalRecord:
             "gaps": [gap.to_dict() for gap in self.gaps],
             "recommended_actions": [action.to_dict() for action in self.recommended_actions],
         }
+        if isinstance(self.authority_boundary, dict):
+            payload["authority_boundary"] = dict(self.authority_boundary)
         if isinstance(self.quality_assessment, PublicationEvalQualityAssessment):
             payload["quality_assessment"] = self.quality_assessment.to_dict()
         if isinstance(self.reviewer_operating_system, dict):
@@ -205,6 +215,11 @@ class PublicationEvalRecord:
                     _payload_object(payload, "assessment_provenance", "publication eval record")
                 )
                 if "assessment_provenance" in payload
+                else None
+            ),
+            authority_boundary=(
+                _optional_authority_boundary(_payload_object(payload, "authority_boundary", "publication eval record"))
+                if "authority_boundary" in payload
                 else None
             ),
             verdict=PublicationEvalVerdict.from_payload(_payload_object(payload, "verdict", "publication eval record")),

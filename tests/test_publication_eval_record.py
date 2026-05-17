@@ -140,6 +140,24 @@ def test_publication_eval_record_from_payload_round_trips_minimal_shape() -> Non
     assert record.to_dict() == expected_payload
 
 
+def test_publication_eval_record_round_trips_quality_authority_boundary() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["authority_boundary"] = {
+        "mutated_current_package": False,
+        "mutated_submission_minimal": False,
+        "mutated_publication_gate_conclusion": False,
+        "mutated_medical_result_values": False,
+        "quality_gate_relaxation": False,
+        "publication_gate_allow_write_respected": True,
+    }
+
+    record = module.PublicationEvalRecord.from_payload(payload)
+
+    assert record.authority_boundary == payload["authority_boundary"]
+    assert record.to_dict()["authority_boundary"] == payload["authority_boundary"]
+
+
 def test_publication_eval_record_quality_dimension_guidance_round_trips() -> None:
     module = _load_module()
     payload = _minimal_payload()
