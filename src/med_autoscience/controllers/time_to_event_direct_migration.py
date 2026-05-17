@@ -7,9 +7,11 @@ from med_autoscience import display_registry
 from med_autoscience.policies import medical_reporting_contract as medical_reporting_contract_policy
 
 from .time_to_event_direct_migration_parts.file_sync import (
+    MULTICENTER_GENERALIZABILITY_REQUIREMENT_KEY,
     _REQUIRED_DISPLAY_KEYS,
     _normalize_required_display_registry,
     _require_binding,
+    _require_f5_binding_variant,
     _sync_authority_paper_truth,
 )
 from .time_to_event_direct_migration_parts.shared import (
@@ -772,6 +774,7 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
         key: _require_binding(registry_payload=registry_payload, requirement_key=key)
         for key in _REQUIRED_DISPLAY_KEYS
     }
+    f5_requirement_key, f5_binding = _require_f5_binding_variant(registry_payload=registry_payload)
 
     primary_derived_root = (
         resolved_study_root / "analysis" / "clean_room_execution" / "10_china_primary_endpoint" / "derived"
@@ -785,10 +788,13 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
     calibration_rows = _load_csv_rows(primary_derived_root / "coxph_calibration_5y.csv")
     risk_group_rows = _load_csv_rows(primary_derived_root / "coxph_km_risk_groups_5y.csv")
     dca_rows = _load_csv_rows(primary_derived_root / "coxph_dca_5y.csv")
-    center_rows = _load_csv_rows(entry_validation_root / "center_event_distribution.csv")
-    geodemography_rows = _load_csv_rows(entry_validation_root / "formal_modeling_geodemography_support.csv")
-    if not center_rows:
-        raise ValueError("center_event_distribution.csv must not be empty")
+    center_rows: list[dict[str, str]] = []
+    geodemography_rows: list[dict[str, str]] = []
+    if f5_requirement_key == MULTICENTER_GENERALIZABILITY_REQUIREMENT_KEY:
+        center_rows = _load_csv_rows(entry_validation_root / "center_event_distribution.csv")
+        geodemography_rows = _load_csv_rows(entry_validation_root / "formal_modeling_geodemography_support.csv")
+        if not center_rows:
+            raise ValueError("center_event_distribution.csv must not be empty")
 
     blockers: list[str] = []
 
@@ -817,15 +823,19 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
     _write_json(decision_curve_path, decision_curve_payload)
     written_files.append(str(decision_curve_path))
 
-    multicenter_generalizability_payload = _build_multicenter_generalizability_payload(
-        center_rows=center_rows,
-        geodemography_rows=geodemography_rows,
-        display_id=bindings["multicenter_generalizability_overview"]["display_id"],
-        catalog_id=bindings["multicenter_generalizability_overview"]["catalog_id"],
-    )
-    multicenter_generalizability_path = resolved_paper_root / "multicenter_generalizability_inputs.json"
-    _write_json(multicenter_generalizability_path, multicenter_generalizability_payload)
-    written_files.append(str(multicenter_generalizability_path))
+    report_notes: dict[str, Any] = {}
+    if f5_requirement_key == MULTICENTER_GENERALIZABILITY_REQUIREMENT_KEY:
+        multicenter_generalizability_payload = _build_multicenter_generalizability_payload(
+            center_rows=center_rows,
+            geodemography_rows=geodemography_rows,
+            display_id=f5_binding["display_id"],
+            catalog_id=f5_binding["catalog_id"],
+        )
+        multicenter_generalizability_path = resolved_paper_root / "multicenter_generalizability_inputs.json"
+        _write_json(multicenter_generalizability_path, multicenter_generalizability_payload)
+        written_files.append(str(multicenter_generalizability_path))
+    else:
+        report_notes["transportability_governance_binding"] = "current_contract_preserved"
 
     table2_payload = _build_table2_payload(
         table_markdown_path=resolved_paper_root / "tables" / "table2_performance_summary.md",
@@ -860,14 +870,20 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
             "coxph_calibration_5y": str(primary_derived_root / "coxph_calibration_5y.csv"),
             "coxph_km_risk_groups_5y": str(primary_derived_root / "coxph_km_risk_groups_5y.csv"),
             "decision_curve_csv": str(primary_derived_root / "coxph_dca_5y.csv"),
-            "center_event_distribution": str(entry_validation_root / "center_event_distribution.csv"),
-            "formal_modeling_geodemography_support": str(
-                entry_validation_root / "formal_modeling_geodemography_support.csv"
+            "center_event_distribution": (
+                str(entry_validation_root / "center_event_distribution.csv")
+                if f5_requirement_key == MULTICENTER_GENERALIZABILITY_REQUIREMENT_KEY
+                else None
+            ),
+            "formal_modeling_geodemography_support": (
+                str(entry_validation_root / "formal_modeling_geodemography_support.csv")
+                if f5_requirement_key == MULTICENTER_GENERALIZABILITY_REQUIREMENT_KEY
+                else None
             ),
             "cohort_flow": str(resolved_paper_root / "cohort_flow.json"),
             "table2_markdown": str(resolved_paper_root / "tables" / "table2_performance_summary.md"),
         },
-        "notes": {},
+        "notes": report_notes,
     }
     _write_json(report_path, report)
     written_files.append(str(report_path))

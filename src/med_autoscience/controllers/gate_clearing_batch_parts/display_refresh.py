@@ -186,15 +186,39 @@ def time_to_event_direct_migration_display_inputs_need_refresh(
     paper_root: Path,
     display_surface_materialization_controller: Any,
 ) -> bool:
+    if stale_time_to_event_grouped_payloads_need_rematerialization(
+        paper_root=paper_root,
+        display_surface_materialization_controller=display_surface_materialization_controller,
+    ):
+        return True
     item = display_registry_item_for_requirement(
         paper_root=paper_root,
         requirement_key="multicenter_generalizability_overview",
     )
     if item is None:
+        item = display_registry_item_for_requirement(
+            paper_root=paper_root,
+            requirement_key="center_transportability_governance_summary_panel",
+        )
+    if item is None:
         return False
     display_id = non_empty_text(item.get("display_id"))
     if display_id is None:
         return True
+    requirement_key = str(item.get("requirement_key") or "").strip()
+    if requirement_key == "center_transportability_governance_summary_panel":
+        spec = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
+            "center_transportability_governance_summary_panel"
+        )
+        try:
+            display_surface_materialization_controller._load_evidence_display_payload(
+                paper_root=paper_root,
+                spec=spec,
+                display_id=display_id,
+            )
+        except (FileNotFoundError, ValueError, json.JSONDecodeError):
+            return True
+        return False
     spec = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
         "multicenter_generalizability_overview"
     )

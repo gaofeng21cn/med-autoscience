@@ -9,9 +9,16 @@ _REQUIRED_DISPLAY_KEYS = {
     "time_to_event_discrimination_calibration_panel": ("time_to_event_discrimination_calibration_inputs.json", "time_to_event_discrimination_calibration_inputs_v1"),
     "time_to_event_risk_group_summary": ("time_to_event_grouped_inputs.json", "time_to_event_grouped_inputs_v1"),
     "time_to_event_decision_curve": ("time_to_event_decision_curve_inputs.json", "time_to_event_decision_curve_inputs_v1"),
-    "multicenter_generalizability_overview": ("multicenter_generalizability_inputs.json", "multicenter_generalizability_inputs_v1"),
     "table2_time_to_event_performance_summary": ("time_to_event_performance_summary.json", "time_to_event_performance_summary_v1"),
 }
+
+
+MULTICENTER_GENERALIZABILITY_REQUIREMENT_KEY = "multicenter_generalizability_overview"
+TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY = "center_transportability_governance_summary_panel"
+F5_REQUIREMENT_KEYS = (
+    MULTICENTER_GENERALIZABILITY_REQUIREMENT_KEY,
+    TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY,
+)
 
 
 _LEGACY_REQUIREMENT_KEY_ALIASES = {
@@ -137,3 +144,28 @@ def _require_binding(
             "display_kind": display_kind,
         }
     raise ValueError(f"missing required display binding: {requirement_key}")
+
+
+def _optional_binding(
+    *,
+    registry_payload: dict[str, Any],
+    requirement_key: str,
+) -> dict[str, str] | None:
+    try:
+        return _require_binding(registry_payload=registry_payload, requirement_key=requirement_key)
+    except ValueError as exc:
+        if str(exc) == f"missing required display binding: {requirement_key}":
+            return None
+        raise
+
+
+def _require_f5_binding_variant(
+    *,
+    registry_payload: dict[str, Any],
+) -> tuple[str, dict[str, str]]:
+    for requirement_key in F5_REQUIREMENT_KEYS:
+        binding = _optional_binding(registry_payload=registry_payload, requirement_key=requirement_key)
+        if binding is not None:
+            return requirement_key, binding
+    keys = " or ".join(F5_REQUIREMENT_KEYS)
+    raise ValueError(f"missing required display binding: {keys}")

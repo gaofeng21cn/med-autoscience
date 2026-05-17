@@ -19,5 +19,6 @@ from .test_gate_clearing_batch_cases.authority_settle_redrive import *  # noqa: 
 from .test_gate_clearing_batch_cases.submission_authority_sync import *  # noqa: F403,F401
 from .test_gate_clearing_batch_cases.module_boundaries import *  # noqa: F403,F401
 from .test_gate_clearing_batch_cases.direct_migration_display_refresh import *  # noqa: F403,F401
+from .test_gate_clearing_batch_cases.direct_migration_transportability_registry_sync import *  # noqa: F403,F401
 from .test_gate_clearing_batch_cases.transport_sync_normalization import *  # noqa: F403,F401
 from .test_gate_clearing_batch_cases.display_materialization_failures import *  # noqa: F403,F401

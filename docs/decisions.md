@@ -69,6 +69,13 @@
 - 理由：旧 display payload 和旧 paper authority surface 一样只能作为 provenance。把 `template_id` 从 risk-group summary 改到 cumulative-incidence grouped 属于兼容读取，会让历史 artifact 继续成为 executable display truth。
 - 影响：DM-CVD、Obesity、NF-PitNET 等旧论文项目迁入新 MAS 时，F3/Figure display surface 必须由 canonical analysis / direct-migration owner 重建；未知旧 display shape 继续 fail closed，不新增 normalizer、alias 或兼容测试。
 
+## 2026-05-17：time-to-event direct migration 必须跟随当前 reporting contract，不回填旧 F5
+
+- 决策：`time_to_event_direct_migration` 的核心必需显示项固定为 T2E discrimination/calibration、risk-group summary、decision curve 和 Table 2；F5 由当前 `display_registry.json` / reporting contract 决定。若当前 contract 仍要求 `multicenter_generalizability_overview`，direct migration 继续生成 `multicenter_generalizability_inputs.json`；若当前 contract 已切到 `center_transportability_governance_summary_panel`，direct migration 保留该 binding，不写旧 multicenter payload，并在 owner report 记录 `transportability_governance_binding=current_contract_preserved`。
+- 决策：gate-clearing batch 发现 transportability reporting surface 需要 sync 且 time-to-event direct migration 也需要刷新时，必须先运行 `sync_transportability_reporting_surface`，再运行 `time_to_event_direct_migration`，最后 materialize display surface。同一轮已经排入 direct migration owner 时，不再追加 `stale_time_to_event_grouped_payload_blocker`；只有 direct migration owner 未排入而 stale grouped payload 仍存在时，才 fail closed 到该 blocker。
+- 理由：DM-CVD 002 的 clean migration 卡点不是旧 token 需要 normalizer，而是当前 transportability reporting contract 已把 F5 升级为 `center_transportability_governance_summary_panel`，direct migration 仍硬要求旧 `multicenter_generalizability_overview`，导致新 MAS owner-chain 无法重新物化 F3/T2E 当前显示真相。旧 F5 不应被回填成当前 contract。
+- 影响：DM-CVD 002 这类跨队列 transportability 论文由新 MAS 的 reporting contract 决定 F5 owner surface；旧 multicenter F5 只在旧 contract 仍显式要求时生成。两种 F5 都缺失时继续 fail closed 为 missing display binding；未知旧 display shape 继续交给 owner 重建，不新增兼容读取层。
+
 ## 2026-05-17：MAS consumer thinning 后功能/结构差距清零，剩余只按证据门推进
 
 - 决策：`functional_consumer_boundary.functional_gap_zero_summary` 是 MAS consumer thinning lane 的机器结论面。当前 `functional_structure_gap_count=0`、`active_private_generic_residue_count=0`、`remaining_gap_classification=test_evidence_gates_only`；MAS gap plan 中原先列为功能/结构差距的 runtime/scheduler/queue/attempt ledger/generic lifecycle/workspace-source shell/memory-artifact transport/workbench/observability/CLI-MCP-product-entry-sidecar-status wrapper，已分别归入 declarative pack / OPL generated surface、refs-only adapter、minimal authority function 或 legacy cleanup gate。

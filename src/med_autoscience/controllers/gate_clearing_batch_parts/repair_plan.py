@@ -119,7 +119,11 @@ def _append_display_materialization_units(
                 unit_id="time_to_event_direct_migration",
                 label="Refresh canonical time-to-event direct-migration display inputs before surface materialization",
                 parallel_safe=True,
-                depends_on=existing_dependency_ids(repair_units, "repair_paper_live_paths"),
+                depends_on=existing_dependency_ids(
+                    repair_units,
+                    "repair_paper_live_paths",
+                    "sync_transportability_reporting_surface",
+                ),
                 run=lambda: time_to_event_direct_migration.run_time_to_event_direct_migration(
                     study_root=study_root,
                     paper_root=paper_root,
@@ -184,6 +188,8 @@ def _stale_time_to_event_grouped_payloads_need_rematerialization(
     stale_time_to_event_grouped_payloads_need_rematerialization: Callable[..., bool],
     time_to_event_risk_group_surface_present: Callable[..., bool],
 ) -> bool:
+    if any(unit.unit_id == "time_to_event_direct_migration" for unit in repair_units):
+        return False
     return stale_time_to_event_grouped_payloads_need_rematerialization(paper_root=paper_root) or (
         time_to_event_risk_group_surface_present(paper_root=paper_root)
         and any(unit.unit_id == "sync_transportability_reporting_surface" for unit in repair_units)

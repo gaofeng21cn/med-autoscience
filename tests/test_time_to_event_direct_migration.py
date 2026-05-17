@@ -601,3 +601,104 @@ def test_run_time_to_event_direct_migration_rejects_missing_required_display_bin
 
     with pytest.raises(ValueError, match="missing required display binding"):
         module.run_time_to_event_direct_migration(study_root=study_root, paper_root=paper_root)
+
+
+def test_run_time_to_event_direct_migration_accepts_current_transportability_governance_binding(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.time_to_event_direct_migration")
+    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
+    paper_root = tmp_path / "paper"
+    registry = _display_registry_payload()
+    registry["displays"] = [
+        item
+        for item in registry["displays"]
+        if item["requirement_key"] != "multicenter_generalizability_overview"
+    ]
+    registry["displays"].append(
+        {
+            "display_id": "transportability_governance",
+            "display_kind": "figure",
+            "requirement_key": "center_transportability_governance_summary_panel",
+            "catalog_id": "F5",
+            "shell_path": "paper/figures/transportability_governance.shell.json",
+        }
+    )
+    write_json(paper_root / "display_registry.json", registry)
+    write_json(paper_root / "cohort_flow.json", {"schema_version": 1, "steps": []})
+
+    monkeypatch.setattr(
+        module,
+        "_load_validation_discrimination_points",
+        lambda _path: [{"label": "CoxPH", "c_index": 0.8, "annotation": "0.800"}],
+    )
+
+    def fake_load_csv_rows(path: Path) -> list[dict[str, str]]:
+        if path.name == "coxph_calibration_5y.csv":
+            return [
+                {
+                    "decile": "1",
+                    "n": "10",
+                    "events_5y": "1",
+                    "mean_predicted_risk_5y": "0.02",
+                    "observed_km_risk_5y": "0.03",
+                }
+            ]
+        if path.name == "coxph_km_risk_groups_5y.csv":
+            return [
+                {
+                    "risk_group": "low",
+                    "n": "10",
+                    "events_5y": "1",
+                    "mean_predicted_risk_5y": "0.02",
+                    "observed_km_risk_5y": "0.03",
+                },
+                {
+                    "risk_group": "mid",
+                    "n": "10",
+                    "events_5y": "2",
+                    "mean_predicted_risk_5y": "0.04",
+                    "observed_km_risk_5y": "0.05",
+                },
+                {
+                    "risk_group": "high",
+                    "n": "10",
+                    "events_5y": "3",
+                    "mean_predicted_risk_5y": "0.08",
+                    "observed_km_risk_5y": "0.10",
+                }
+            ]
+        if path.name == "coxph_dca_5y.csv":
+            return [
+                {
+                    "threshold": "0.01",
+                    "net_benefit_model": "0.02",
+                    "net_benefit_treat_all": "0.01",
+                    "net_benefit_treat_none": "0.0",
+                    "treated_fraction_model": "0.3",
+                }
+            ]
+        raise AssertionError(f"current transportability-governance binding must not require {path.name}")
+
+    monkeypatch.setattr(module, "_load_csv_rows", fake_load_csv_rows)
+    monkeypatch.setattr(
+        module,
+        "_load_markdown_table",
+        lambda _path: (
+            ["Endpoint", "C-index", "Utility"],
+            [["All-cause mortality", "0.800", "Positive DCA"]],
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_build_submission_graphical_abstract_payload",
+        lambda **_: {"schema_version": 1, "shell_id": "submission_graphical_abstract"},
+    )
+
+    report = module.run_time_to_event_direct_migration(study_root=study_root, paper_root=paper_root)
+
+    assert report["status"] == "synced"
+    assert not (paper_root / "multicenter_generalizability_inputs.json").exists()
+    assert (paper_root / "time_to_event_grouped_inputs.json").exists()
+    assert report["notes"]["transportability_governance_binding"] == "current_contract_preserved"
