@@ -264,10 +264,6 @@ def _medical_prose_review_currentness(
 
     quality = _mapping(prose_payload.get("medical_journal_prose_quality"))
     route_back = _mapping(quality.get("route_back_recommendation"))
-    if route_back.get("required") is True:
-        raise ValueError("medical_prose_review_route_back_required")
-    if _text(quality.get("status")) != "ready" or _text(quality.get("overall_style_verdict")) != "clear":
-        raise ValueError("medical_prose_review_not_clear")
 
     return {
         "status": "current",
@@ -276,6 +272,10 @@ def _medical_prose_review_currentness(
         "request_digest": request_digest,
         "manuscript_ref": manuscript_ref,
         "manuscript_digest": manuscript_digest,
+        "prose_status": _text(quality.get("status")),
+        "overall_style_verdict": _text(quality.get("overall_style_verdict")),
+        "route_back_required": route_back.get("required") is True,
+        "route_target": _text(route_back.get("route_target")),
     }
 
 

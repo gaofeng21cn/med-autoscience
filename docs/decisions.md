@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-17：AI reviewer 的当前返写判断必须物化为 route-back truth
+
+- 决策：`medical_prose_review` 已通过 request/manuscript digest currentness 校验时，`medical_journal_prose_quality.status != ready`、`overall_style_verdict != clear` 或 `route_back_recommendation.required=true` 不是 workflow failure，而是 AI reviewer-owned publication evaluation 的有效质量结论。`publication_eval/latest.json` 必须保留该 `route_back_same_line -> write` 判断，并在 `reviewer_operating_system.currentness_checks.medical_prose_review` 中记录 prose status、style verdict、route-back required 与 route target。
+- 决策：clear publication gate / bundle-stage projection 不能覆盖一个 current、AI-owned、带 reviewer OS currentness 的 medical-prose write route-back eval。机械 projection 仍可刷新 stale、缺 owner provenance、缺 currentness proof 或与当前 gate 阻塞 fingerprint 不匹配的旧 eval。
+- 理由：DM002 暴露出 AI reviewer 已判断稿件医学论文写作质量为 `partial/revise`，但 workflow 把 `medical_prose_review_route_back_required` 当作异常处理，随后旧 `publication_eval/latest.json` 继续显示 ready / continue bundle stage，导致用户看到的 manuscript 仍停在旧版本。
+- 影响：AI reviewer 继续是主观医学写作质量 owner；程序逻辑只负责 currentness、owner、route 和 overwrite guard。该规则不新增机械写作检查，不授权前台手改 `paper/`、`manuscript/current_package` 或 publication truth，也不把 publication gate 的 clear 状态等同于投稿级写作质量 clear。
+
 ## 2026-05-17：managed runtime fresh prompt 必须同步当前 controller authorization
 
 - 决策：当当前 `controller_decisions/latest.json` 明确为 `return_to_ai_reviewer_workflow`，且 `next_work_unit` 为 `ai_reviewer_recheck` 或 `ai_reviewer_medical_prose_quality_review` 时，MAS turn runner 在生成 fresh Codex prompt 前必须把该 controller decision 绑定到本次 `active_run_id`，并写入 `.ds/runtime_state.json:current_controller_authorization`。旧 `last_controller_decision_authorization` 只作为历史授权保留，不能覆盖当前 AI reviewer redrive。
