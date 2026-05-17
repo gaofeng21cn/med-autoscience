@@ -528,7 +528,7 @@
         "schema_version": 1,
         "generated_surface_owner": "one-person-lab",
         "current_mas_role": "handwritten_migration_bridge",
-        "status": "handoff_declared_active_callers_pending_generated_surface_cutover",
+        "status": "handoff_declared_mas_shells_are_migration_bridges",
         "long_term_mas_owner": false,
         "mas_handwritten_shell_expansion_allowed": false,
         "handoff_surfaces": [
