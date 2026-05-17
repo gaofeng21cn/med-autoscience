@@ -48,6 +48,7 @@ def unit_status_is_success(status: str | None) -> bool:
         "control_plane_route_blocked",
         "failed",
         "missing",
+        "skipped",
         "skipped_failed_dependency",
         "skipped_matching_unit_fingerprint",
         "skipped_authority_not_settled",
