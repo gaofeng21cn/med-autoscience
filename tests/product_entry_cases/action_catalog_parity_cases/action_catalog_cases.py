@@ -20,8 +20,6 @@ def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_
     assert skill_catalog["action_catalog"] == catalog
     assert catalog["authority_boundary"] == {
         "domain_truth_owner": "MedAutoScience",
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
         "opl_role": "projection_consumer_only",
         "write_policy": "no_domain_truth_writes",
     }
