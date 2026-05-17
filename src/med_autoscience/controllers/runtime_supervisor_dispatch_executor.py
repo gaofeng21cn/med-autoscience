@@ -16,6 +16,7 @@ from . import runtime_dispatch_cost, study_runtime_router
 from .runtime_supervisor_dispatch_executor_parts import action_execution
 from .runtime_supervisor_dispatch_executor_parts import controller_refresh
 from .runtime_supervisor_dispatch_executor_parts import managed_runtime_authorization
+from .runtime_supervisor_dispatch_executor_parts import managed_runtime_dispatches
 from .runtime_supervisor_dispatch_executor_parts import output_readiness
 from .runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
 from .runtime_supervisor_consumer import (
@@ -151,12 +152,34 @@ def _dispatches(
     action_types: tuple[str, ...],
     *,
     consumer_payload: Mapping[str, Any] | None = None,
+    managed_runtime_worker: bool = False,
 ) -> list[dict[str, Any]]:
     current_dispatches = _current_consumer_dispatches(profile, study_id, consumer_payload=consumer_payload)
+    if not current_dispatches and managed_runtime_worker and action_types:
+        return _managed_runtime_authorization_dispatches(
+            profile=profile,
+            study_id=study_id,
+            action_types=action_types,
+        )
     if action_types:
         requested = set(action_types)
         return [payload for payload in current_dispatches if _text(payload.get("action_type")) in requested]
     return current_dispatches
+
+
+def _managed_runtime_authorization_dispatches(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    action_types: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    return managed_runtime_dispatches.authorization_dispatches(
+        study_id=study_id,
+        action_types=action_types,
+        supported_action_types=SUPPORTED_ACTION_TYPES,
+        forbidden_surfaces=FORBIDDEN_SURFACES,
+        schema_version=SCHEMA_VERSION,
+    )
 
 
 def _dispatch_path(dispatch: Mapping[str, Any]) -> Path:
@@ -878,7 +901,13 @@ def execute_default_executor_dispatches(
     executions: list[dict[str, Any]] = []
     written_files: list[str] = []
     for study_id in resolved_study_ids:
-        for dispatch in _dispatches(profile, study_id, resolved_action_types, consumer_payload=consumer_payload):
+        for dispatch in _dispatches(
+            profile,
+            study_id,
+            resolved_action_types,
+            consumer_payload=consumer_payload,
+            managed_runtime_worker=managed_runtime_worker,
+        ):
             execution = _execute_dispatch(
                 profile=profile,
                 study_id=study_id,

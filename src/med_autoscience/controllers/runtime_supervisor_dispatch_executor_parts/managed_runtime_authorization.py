@@ -67,8 +67,8 @@ def resolve_managed_runtime_authorization(
             "active_run_id": _text(runtime_state.get("active_run_id")),
             "run_id": run_id,
         }
-    authorization = _mapping(runtime_state.get("last_controller_decision_authorization")) or _mapping(
-        runtime_state.get("current_controller_authorization")
+    authorization = _mapping(runtime_state.get("current_controller_authorization")) or _mapping(
+        runtime_state.get("last_controller_decision_authorization")
     )
     if not authorization:
         return {
