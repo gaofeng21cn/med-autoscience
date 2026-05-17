@@ -1,5 +1,11 @@
 # 关键决策记录
 
+## 2026-05-17：managed runtime fresh prompt 必须同步当前 controller authorization
+
+- 决策：当当前 `controller_decisions/latest.json` 明确为 `return_to_ai_reviewer_workflow`，且 `next_work_unit` 为 `ai_reviewer_recheck` 或 `ai_reviewer_medical_prose_quality_review` 时，MAS turn runner 在生成 fresh Codex prompt 前必须把该 controller decision 绑定到本次 `active_run_id`，并写入 `.ds/runtime_state.json:current_controller_authorization`。旧 `last_controller_decision_authorization` 只作为历史授权保留，不能覆盖当前 AI reviewer redrive。
+- 理由：DM002 暴露出 prompt 已能看到 5/15 的 AI reviewer redrive，但 runtime state 仍停在更旧的 `analysis_claim_evidence_repair` 授权。managed worker 随后调用 `runtime-supervisor-execute-dispatch --managed-runtime-worker` 时会从 runtime state 校验同 run 授权；如果该层未同步，AI reviewer workflow 会被阻断或空跑，旧 `publication_eval ready` 也容易被误读为新质量闭环。
+- 影响：fresh prompt、runtime state 与 dispatch executor 现在消费同一条 controller truth：`quest_id`、`study_id`、`active_run_id`、`controller_actions`、`work_unit_id` 与 `work_unit_fingerprint` 必须一致。该修复不授权前台直接写 paper/current_package，不放宽 publication gate，也不把机械 projection 转换为 AI reviewer 质量判断；它只确保 AI reviewer owner 能真正收到当前 work unit。
+
 ## 2026-05-17：MAS consumer thinning 后功能/结构差距清零，剩余只按证据门推进
 
 - 决策：`functional_consumer_boundary.functional_gap_zero_summary` 是 MAS consumer thinning lane 的机器结论面。当前 `functional_structure_gap_count=0`、`active_private_generic_residue_count=0`、`remaining_gap_classification=test_evidence_gates_only`；MAS gap plan 中原先列为功能/结构差距的 runtime/scheduler/queue/attempt ledger/generic lifecycle/workspace-source shell/memory-artifact transport/workbench/observability/CLI-MCP-product-entry-sidecar-status wrapper，已分别归入 declarative pack / OPL generated surface、refs-only adapter、minimal authority function 或 legacy cleanup gate。

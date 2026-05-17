@@ -894,6 +894,7 @@ def test_codex_exec_runner_prompt_prefers_current_ai_reviewer_decision_over_stal
     )
 
     prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
 
     assert "Active MAS controller work unit" in prompt
     assert '"decision_id": "current-ai-reviewer-redrive"' in prompt
@@ -903,3 +904,15 @@ def test_codex_exec_runner_prompt_prefers_current_ai_reviewer_decision_over_stal
     assert "--action-types return_to_ai_reviewer_workflow" in prompt
     assert "analysis_claim_evidence_repair" not in prompt
     assert "run_quality_repair_batch" not in prompt
+    assert runtime_state["last_controller_decision_authorization"]["work_unit_id"] == "analysis_claim_evidence_repair"
+    current_authorization = runtime_state["current_controller_authorization"]
+    assert current_authorization["decision_id"] == "current-ai-reviewer-redrive"
+    assert current_authorization["authorization_basis"] == "current_controller_decision"
+    assert current_authorization["quest_id"] == quest_id
+    assert current_authorization["study_id"] == quest_id
+    assert current_authorization["active_run_id"] == "run-current-ai-reviewer"
+    assert current_authorization["work_unit_id"] == "ai_reviewer_recheck"
+    assert (
+        current_authorization["work_unit_fingerprint"]
+        == "domain-transition::ai_reviewer_re_eval::ai_reviewer_recheck"
+    )
