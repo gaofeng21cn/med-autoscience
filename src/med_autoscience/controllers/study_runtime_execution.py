@@ -222,6 +222,35 @@ def _enable_explicit_user_wakeup_if_requested(
         _record_explicit_user_wakeup_projection(status=status, context=context)
         return
     if (
+        status.decision is StudyRuntimeDecision.BLOCKED
+        and status.reason is StudyRuntimeReason.QUEST_STOPPED_REQUIRES_EXPLICIT_RERUN
+        and status.quest_status is StudyRuntimeQuestStatus.STOPPED
+    ):
+        if not status.startup_boundary_allows_compute_stage:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.STARTUP_BOUNDARY_NOT_READY_FOR_RESUME,
+            )
+            return
+        if not status.runtime_reentry_allows_runtime_entry:
+            status.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
+            )
+            return
+        wakeup_record = _runtime_events.record_explicit_user_wakeup(
+            quest_root=context.quest_root,
+            source=context.source,
+        )
+        if wakeup_record is None:
+            return
+        status._record_dict_extra("explicit_user_wakeup", wakeup_record)
+        status.set_decision(
+            StudyRuntimeDecision.RELAUNCH_STOPPED,
+            StudyRuntimeReason.QUEST_STOPPED_EXPLICIT_RELAUNCH_REQUESTED,
+        )
+        return
+    if (
         status.decision is not StudyRuntimeDecision.BLOCKED
         or status.reason is not StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP
         or status.quest_status

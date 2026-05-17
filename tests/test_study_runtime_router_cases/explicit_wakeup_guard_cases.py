@@ -177,3 +177,117 @@ def test_explicit_user_wakeup_resumes_human_takeover_pause_contract(
     assert "human_takeover_contract" not in runtime_state
     assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
     assert runtime_state["last_explicit_user_wakeup"]["cleared_human_takeover"] is True
+
+
+def test_explicit_user_wakeup_relaunches_stopped_pending_user_message_redrive(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    _, quest_root = _write_managed_study(profile, study_id)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "stopped",
+                "active_run_id": None,
+                "worker_running": False,
+                "pending_user_message_count": 2,
+                "continuation_policy": "auto",
+                "continuation_anchor": "user_message_queue",
+                "continuation_reason": "runtime_platform_repair_resume_existing_pending_user_message",
+            }
+        )
+        + "\n",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    calls: list[str] = []
+    monkeypatch.setattr(
+        module.managed_runtime_transport,
+        "update_quest_startup_context",
+        lambda *, runtime_root, quest_id, startup_contract, requested_baseline_ref=None: calls.append("sync_context")
+        or {"ok": True, "snapshot": {"quest_id": quest_id, "startup_contract": startup_contract}},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append("resume")
+        or {
+            "ok": True,
+            "status": "running",
+            "started": True,
+            "scheduled": True,
+            "snapshot": {"status": "running", "active_run_id": "run-pending-redrive"},
+        },
+    )
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id=study_id,
+        explicit_user_wakeup=True,
+        source="user_explicit_wakeup",
+    )
+
+    assert result["decision"] == "relaunch_stopped"
+    assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
+    assert result["quest_status"] == "running"
+    assert result["explicit_user_wakeup"]["status"] == "recorded"
+    assert result["explicit_user_wakeup"]["cleared_pending_user_message_redrive"] is True
+    assert calls == ["sync_context", "resume"]
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert runtime_state["last_explicit_user_wakeup"]["source"] == "user_explicit_wakeup"
+    assert runtime_state["last_explicit_user_wakeup"]["cleared_pending_user_message_redrive"] is True
+    assert runtime_state["pending_user_message_count"] == 2
+    assert runtime_state["continuation_policy"] == "auto"
+    assert runtime_state["continuation_anchor"] == "decision"
+    assert runtime_state["continuation_reason"] == "runtime_platform_repair_redrive"
+
+
+def test_explicit_user_wakeup_does_not_release_unknown_stopped_runtime(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    profile = make_profile(tmp_path)
+    study_id = "001-risk"
+    _, quest_root = _write_managed_study(profile, study_id)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    write_text(
+        runtime_state_path,
+        json.dumps(
+            {
+                "status": "stopped",
+                "active_run_id": None,
+                "worker_running": False,
+                "pending_user_message_count": 2,
+                "continuation_policy": "auto",
+                "continuation_anchor": "user_message_queue",
+                "continuation_reason": "unknown_legacy_reason",
+            }
+        )
+        + "\n",
+    )
+    _patch_ready_workspace(monkeypatch, module, study_id=study_id)
+    monkeypatch.setattr(
+        module,
+        "_resume_quest",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("unknown stopped runtime must stay blocked")),
+    )
+
+    result = module.ensure_study_runtime(
+        profile=profile,
+        study_id=study_id,
+        explicit_user_wakeup=True,
+        source="user_explicit_wakeup",
+    )
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "quest_stopped_requires_explicit_rerun"
+    assert "explicit_user_wakeup" not in result
+    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
+    assert "last_explicit_user_wakeup" not in runtime_state
+    assert runtime_state["continuation_reason"] == "unknown_legacy_reason"

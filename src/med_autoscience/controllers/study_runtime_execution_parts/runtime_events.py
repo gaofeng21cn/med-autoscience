@@ -267,6 +267,13 @@ def record_explicit_user_wakeup(
             runtime_state=runtime_state,
             runtime_state_path=runtime_state_path,
         )
+    if _stopped_pending_user_message_redrive_requires_explicit_wakeup(runtime_state):
+        return record_explicit_pending_user_message_redrive_wakeup(
+            quest_root=quest_root,
+            source=source,
+            runtime_state=runtime_state,
+            runtime_state_path=runtime_state_path,
+        )
     if str(runtime_state.get("stop_reason") or "").strip() != "user_pause":
         return None
     cleared_keys = [
@@ -320,6 +327,62 @@ def _bare_paused_runtime_state_requires_explicit_wakeup(runtime_state: dict[str,
     if continuation_policy is not None or continuation_anchor is not None:
         return False
     return continuation_reason in {None, "quest_paused"}
+
+
+def _stopped_pending_user_message_redrive_requires_explicit_wakeup(runtime_state: dict[str, Any]) -> bool:
+    if str(runtime_state.get("status") or "").strip().lower() != StudyRuntimeQuestStatus.STOPPED.value:
+        return False
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return False
+    if bool(runtime_state.get("worker_running")) or bool(runtime_state.get("worker_pending")):
+        return False
+    try:
+        pending_count = int(runtime_state.get("pending_user_message_count") or 0)
+    except (TypeError, ValueError):
+        pending_count = 0
+    return (
+        pending_count > 0
+        and str(runtime_state.get("continuation_policy") or "").strip() == "auto"
+        and str(runtime_state.get("continuation_anchor") or "").strip() == "user_message_queue"
+        and str(runtime_state.get("continuation_reason") or "").strip()
+        == "runtime_platform_repair_resume_existing_pending_user_message"
+    )
+
+
+def record_explicit_pending_user_message_redrive_wakeup(
+    *,
+    quest_root: Path,
+    source: str,
+    runtime_state: dict[str, Any],
+    runtime_state_path: Path,
+) -> dict[str, Any] | None:
+    if not _stopped_pending_user_message_redrive_requires_explicit_wakeup(runtime_state):
+        return None
+    previous_continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
+    runtime_state["continuation_policy"] = "auto"
+    runtime_state["continuation_anchor"] = "decision"
+    runtime_state["continuation_reason"] = "runtime_platform_repair_redrive"
+    recorded_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    runtime_state["last_explicit_user_wakeup"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": [],
+        "cleared_pending_user_message_redrive": True,
+        "previous_continuation_reason": previous_continuation_reason,
+    }
+    runtime_state_path.write_text(
+        json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "recorded",
+        "runtime_state_path": str(runtime_state_path),
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": [],
+        "cleared_pending_user_message_redrive": True,
+        "previous_continuation_reason": previous_continuation_reason,
+    }
 
 
 def record_explicit_bare_paused_wakeup(
