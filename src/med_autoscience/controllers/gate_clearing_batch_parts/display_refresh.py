@@ -85,8 +85,6 @@ def _is_stale_time_to_event_grouped_payload_candidate(
     display_id = str(display.get("display_id") or "").strip()
     if display_id not in risk_summary_display_ids:
         return None
-    if str(display.get("template_id") or "").strip() != expected_template_id:
-        return None
     if isinstance(display.get("risk_group_summaries"), list) and display.get("risk_group_summaries"):
         return None
     groups = display.get("groups")

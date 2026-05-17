@@ -380,14 +380,6 @@ def sync_transportability_reporting_surface(
         return {"status": "skipped", "reason": "study reporting contract does not require transportability F5"}
     legacy = legacy_feature_shift_f5_payload(paper_root=paper_root)
     reporting_contract_path = Path(paper_root) / "medical_reporting_contract.json"
-    current_contract = _read_json(reporting_contract_path)
-    legacy_contract_required = "multicenter_generalizability_overview" in {
-        _non_empty_text(item.get("requirement_key"))
-        for item in (current_contract.get("display_shell_plan") or [])
-        if isinstance(item, dict)
-    }
-    if legacy is None and not legacy_contract_required:
-        return {"status": "skipped", "reason": "transportability reporting surface already current"}
     legacy_input_path: Path | None = None
     legacy_display: dict[str, Any] = {}
     if legacy is not None:
