@@ -206,6 +206,18 @@ def _controller_owned_interaction_reply_message(
     status: StudyRuntimeStatus,
     route_context: dict[str, str] | None = None,
 ) -> str | None:
+    if status.reason is StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
+        domain_transition = status.extras.get("domain_transition")
+        next_work_unit = domain_transition.get("next_work_unit") if isinstance(domain_transition, dict) else None
+        next_summary = str(next_work_unit.get("summary") or "").strip() if isinstance(next_work_unit, dict) else ""
+        summary_clause = f"具体 work unit 是：{next_summary}。" if next_summary else ""
+        return _append_route_context_to_message(
+            message=(
+                "MAS 当前 route 归 AI reviewer 质量 owner。请保持当前 live runtime，"
+                f"回到 AI reviewer manuscript-quality review，关闭 reviewer-owned publication evaluation 缺口。{summary_clause}"
+            ),
+            route_context=route_context,
+        )
     if status.reason is StudyRuntimeReason.QUEST_DRIFTING_INTO_WRITE_WITHOUT_GATE_APPROVAL:
         return _append_route_context_to_message(
             message=(
@@ -283,9 +295,7 @@ def _relay_controller_owned_runtime_reply_if_required(
     return record
 
 
-def _should_skip_redundant_resume_for_live_controller_reroute(*, status: StudyRuntimeStatus) -> bool:
-    if status.reason not in _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON:
-        return False
+def _has_live_running_worker(*, status: StudyRuntimeStatus) -> bool:
     payload = status.extras.get("runtime_liveness_audit")
     if not isinstance(payload, dict):
         return False
@@ -297,7 +307,21 @@ def _should_skip_redundant_resume_for_live_controller_reroute(*, status: StudyRu
         return False
     if str(payload.get("status") or "").strip().lower() != StudyRuntimeAuditStatus.LIVE.value:
         return False
-    return isinstance(runtime_audit, dict) and runtime_audit.get("worker_running") is True
+    if isinstance(runtime_audit, dict) and runtime_audit.get("worker_running") is True:
+        return True
+    return payload.get("worker_running") is True
+
+
+def _should_skip_redundant_resume_for_live_controller_reroute(*, status: StudyRuntimeStatus) -> bool:
+    if status.reason not in _LIVE_CONTROLLER_REROUTE_REQUIRED_ACTION_BY_REASON:
+        return False
+    return _has_live_running_worker(status=status)
+
+
+def _should_skip_redundant_resume_for_live_domain_redrive(*, status: StudyRuntimeStatus) -> bool:
+    if status.reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
+        return False
+    return _has_live_running_worker(status=status)
 
 
 def _should_force_restart_for_live_controller_reroute(

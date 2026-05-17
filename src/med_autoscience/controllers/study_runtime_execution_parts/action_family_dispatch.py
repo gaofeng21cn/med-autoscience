@@ -27,6 +27,7 @@ from .decision_relay import (
     _live_controller_reroute_fingerprint,
     _mark_live_controller_reroute_restart,
     _relay_controller_owned_runtime_reply_if_required,
+    _should_skip_redundant_resume_for_live_domain_redrive,
     _should_force_restart_for_live_controller_reroute,
     _should_skip_redundant_resume_for_live_controller_reroute,
 )
@@ -313,6 +314,10 @@ def _execute_resume_runtime_decision(
             same_fingerprint_auto_turn_count=same_fingerprint_auto_turn_count,
         )
     _relay_controller_owned_runtime_reply_if_required(status=status, context=context)
+    if _should_skip_redundant_resume_for_live_domain_redrive(status=status):
+        outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
+        _restore_explicit_user_wakeup_surface(status, pre_resume_wakeup)
+        return outcome
     if _should_skip_redundant_resume_for_live_controller_reroute(status=status) and not force_live_controller_reroute_restart:
         outcome.binding_last_action = StudyRuntimeBindingAction.NOOP
         return outcome
