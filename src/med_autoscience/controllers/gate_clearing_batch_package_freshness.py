@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable
 
+from med_autoscience.controllers import paper_authority_delivery_guard
 from med_autoscience.stable_json import write_stable_json
 
 
@@ -162,6 +163,10 @@ def write_current_package_freshness_proof(
     clock: Callable[[], tuple[int, str]],
     schema_version: int,
 ) -> dict[str, Any] | None:
+    proof_path = stable_current_package_freshness_path(study_root=study_root)
+    if paper_authority_delivery_guard.delivery_write_blocked(study_root=study_root):
+        proof_path.unlink(missing_ok=True)
+        return None
     proof = build_current_package_freshness_proof(
         study_root=study_root,
         source_eval_id=source_eval_id,
@@ -180,8 +185,7 @@ def write_current_package_freshness_proof(
         )
     if proof is None:
         if _delivery_sync_unit_present(unit_results):
-            stable_current_package_freshness_path(study_root=study_root).unlink(missing_ok=True)
+            proof_path.unlink(missing_ok=True)
         return None
-    proof_path = stable_current_package_freshness_path(study_root=study_root)
     write_stable_json(proof_path, proof)
     return proof

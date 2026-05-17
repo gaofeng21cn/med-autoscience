@@ -10,6 +10,7 @@ from .profile_builders import *
 from .source_contract import build_submission_minimal_source_contract
 from collections.abc import Mapping
 import inspect
+from med_autoscience.controllers import paper_authority_delivery_guard
 from med_autoscience.controllers.submission_package_layout import (
     build_analysis_manifest_document,
     build_package_layout_block,
@@ -149,6 +150,16 @@ def create_submission_minimal_package(
             paper_root=str(paper_root),
         )
     workspace_root = workspace_root_from_paper_root(paper_root)
+    study_root = paper_authority_delivery_guard.study_root_for_paper_delivery(paper_root=paper_root)
+    clean_migration_blocker = paper_authority_delivery_guard.pending_clean_migration_blocker(
+        study_root=study_root,
+    )
+    if clean_migration_blocker is not None:
+        return {
+            **clean_migration_blocker,
+            "paper_root": str(paper_root),
+            "control_plane_route_gate": control_plane_route_gate,
+        }
     requested_publication_profile = str(publication_profile or "").strip()
     profile_config = resolve_publication_profile_config(
         publication_profile=requested_publication_profile,

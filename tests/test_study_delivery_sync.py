@@ -19,4 +19,5 @@ def test_study_delivery_sync_facade_exposes_publication_profile_helpers() -> Non
 
 
 from .test_study_delivery_sync_cases.delivery_sync_cases import *  # noqa: F403,F401
+from .test_study_delivery_sync_cases.clean_migration_guard_cases import *  # noqa: F403,F401
 from .test_study_delivery_sync_cases.v2_layout_and_legacy_cases import *  # noqa: F403,F401

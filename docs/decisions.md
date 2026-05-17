@@ -21,6 +21,12 @@
 - 理由：DM002 暴露出 clean migration 重跑时会把已由新 MAS 建立的 AI reviewer-backed blocked/underdefined eval 当作待迁移面再次处理，导致质量闭环反复回到入口状态。彻底迁移不等于反复清空新权威；迁移入口必须只切旧权威，不吞掉新权威。
 - 影响：重复迁移可以安全用于 DM-CVD、Obesity、NF-PitNET 等 workspace 的批量 closeout；它保留 fail-closed 语义，但不把当前新 MAS authority 归档为 legacy provenance。若 active eval 被机械 projection 或其他非 AI reviewer 面覆盖，仍按 stale authority 重新要求 AI reviewer，不做 legacy token normalizer。
 
+## 2026-05-17：pending clean paper-authority cutover 必须阻止 delivery/package authority 重新物化
+
+- 决策：`paper_authority_cutover/latest.json.status=awaiting_new_mas_authority` 或 `new_mas_authority_established` 但 active AI reviewer eval 已失效时，`paper/submission_minimal`、`manuscript/delivery_manifest.json`、`manuscript/current_package/`、`manuscript/current_package.zip` 与 `artifacts/controller/current_package_freshness/latest.json` 不得重新生成。即使 control-plane snapshot 或 controller route 允许 bundle/delivery 写入，也必须返回 `paper_authority_clean_migration_required`，交回 AI reviewer 先建立新 MAS quality authority。
+- 理由：DM-CVD 003 暴露出 clean migration 后仍可由 delivery/package sync 重新生成 active authority surface，导致 dry-run 再次发现 5 个活跃交付面。这不是旧 token 兼容问题，而是 cutover 等待阶段缺少写入护栏。
+- 影响：delivery owner 只能在 AI reviewer-backed publication eval 当前有效后重建 current package 和 freshness proof；pending cutover 阶段的 publication gate 投影、非权威 freshness 信息和旧 delivery surface 均不得成为当前交付真相。该规则不新增脚本式论文完整度检查，也不改变 AI reviewer 作为医学写作质量 owner 的边界。
+
 ## 2026-05-17：AI reviewer response record 必须随 request materialize 交给 owner executor
 
 - 决策：`artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 中已有最新合规 AI reviewer-owned record 时，`materialize_ai_reviewer_request` 必须把该 record 附到 `artifacts/supervision/requests/ai_reviewer/latest.json`，并记录 `publication_eval_record_ref`。owner executor 不应从 prose review 文本临场拼 record，也不应在缺 record 时放宽执行。

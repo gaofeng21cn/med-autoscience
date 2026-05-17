@@ -9,6 +9,7 @@ from med_autoscience.controllers.control_plane_write_route import (
     blocked_control_plane_write_payload,
     resolve_control_plane_write_route_context,
 )
+from med_autoscience.controllers import paper_authority_delivery_guard
 from med_autoscience.publication_profiles import (
     GENERAL_MEDICAL_JOURNAL_PROFILE,
     is_supported_publication_profile,
@@ -52,6 +53,17 @@ def sync_study_delivery(
             paper_root=str(paper_root),
             study_root=str(study_root),
         )
+    clean_migration_blocker = paper_authority_delivery_guard.pending_clean_migration_blocker(
+        study_root=study_root,
+    )
+    if clean_migration_blocker is not None:
+        return {
+            **clean_migration_blocker,
+            "stage": normalized_stage,
+            "paper_root": str(paper_root),
+            "study_root": str(study_root),
+            "control_plane_route_gate": control_plane_route_gate,
+        }
 
     if normalized_stage == "draft_handoff":
         if normalized_publication_profile != GENERAL_MEDICAL_JOURNAL_PROFILE:

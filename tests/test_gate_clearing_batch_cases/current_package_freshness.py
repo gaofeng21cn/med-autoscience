@@ -313,6 +313,41 @@ def test_blocked_delivery_sync_clears_stale_current_package_freshness_proof(tmp_
     assert not proof_path.exists()
 
 
+def test_pending_clean_paper_authority_cutover_blocks_gate_report_freshness_proof(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_package_freshness")
+    study_root = tmp_path / "study"
+    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    _write_json(
+        receipt_path,
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "awaiting_new_mas_authority",
+            "study_id": study_root.name,
+        },
+    )
+
+    proof = module.write_current_package_freshness_proof(
+        study_root=study_root,
+        source_eval_id="publication-eval::pending-cutover",
+        gate_report={
+            "study_delivery_status": "current",
+            "submission_minimal_manifest_path": "/tmp/study/paper/submission_minimal/audit/submission_manifest.json",
+            "study_delivery_current_package_root": "/tmp/study/manuscript/current_package",
+            "study_delivery_current_package_zip": "/tmp/study/manuscript/current_package.zip",
+            "study_delivery_evaluated_source_signature": "source::abc",
+            "study_delivery_authority_source_signature": "source::abc",
+            "gate_fingerprint": "publication-gate::pending-cutover",
+        },
+        unit_results=[],
+        clock=lambda: (0, "2026-05-17T10:00:00+00:00"),
+        schema_version=1,
+    )
+
+    assert proof is None
+    assert not module.stable_current_package_freshness_path(study_root=study_root).exists()
+
+
 def test_skipped_matching_delivery_unit_without_result_does_not_write_freshness_proof(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch_package_freshness")
     study_root = tmp_path / "study"
