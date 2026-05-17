@@ -58,6 +58,37 @@ def _publication_eval_action_types(payload: dict[str, object]) -> set[str]:
     return action_types
 
 
+def _current_medical_prose_route_back(payload: dict[str, object]) -> bool:
+    reviewer_os = payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, dict):
+        return False
+    currentness = reviewer_os.get("currentness_checks")
+    if not isinstance(currentness, dict):
+        return False
+    prose = currentness.get("medical_prose_review")
+    if not isinstance(prose, dict):
+        return False
+    if str(prose.get("status") or "").strip() != "current":
+        return False
+    if prose.get("route_back_required") is not True:
+        return False
+    for field in ("request_digest", "manuscript_ref", "manuscript_digest"):
+        if not str(prose.get(field) or "").strip():
+            return False
+    route_target = str(prose.get("route_target") or "").strip()
+    if route_target and route_target != "write":
+        return False
+    actions = payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return False
+    return any(
+        isinstance(action, dict)
+        and str(action.get("action_type") or "").strip() == "route_back_same_line"
+        and str(action.get("route_target") or "").strip() == "write"
+        for action in actions
+    )
+
+
 def _publication_eval_verdict(payload: dict[str, object]) -> str | None:
     verdict = payload.get("verdict")
     if not isinstance(verdict, dict):
@@ -137,6 +168,18 @@ def _current_ai_reviewer_publication_eval_ref(
         dict,
     ):
         return None
+    if (
+        gate_status == "clear"
+        and gate_required_action in {
+            "continue_write_stage",
+            "continue_bundle_stage",
+            "complete_bundle_stage",
+            "prepare_promotion_review",
+        }
+        and _current_medical_prose_route_back(payload)
+    ):
+        eval_id = str(payload.get("eval_id") or "").strip()
+        return {"eval_id": eval_id, "artifact_path": str(latest_path)} if eval_id else None
     delivery_context_refs = payload.get("delivery_context_refs")
     if isinstance(delivery_context_refs, dict):
         eval_paper_root = _normalized_path_text(delivery_context_refs.get("paper_root_ref"))

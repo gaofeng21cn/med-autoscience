@@ -198,7 +198,14 @@ def _publication_eval_record(study_root: Path) -> dict[str, Any]:
     }
 
 
-def _write_ai_reviewer_currentness_inputs(study_root: Path, *, source_eval_id: str | None = None) -> None:
+def _write_ai_reviewer_currentness_inputs(
+    study_root: Path,
+    *,
+    source_eval_id: str | None = None,
+    prose_status: str = "ready",
+    style_verdict: str = "clear",
+    route_back_required: bool = False,
+) -> None:
     refs = _refs(study_root)
     request_digest = "sha256:" + "a" * 64
     manuscript_digest = "sha256:" + "c" * 64
@@ -224,9 +231,13 @@ def _write_ai_reviewer_currentness_inputs(study_root: Path, *, source_eval_id: s
                 "manuscript_digest": manuscript_digest,
             },
             "medical_journal_prose_quality": {
-                "status": "ready",
-                "overall_style_verdict": "clear",
-                "route_back_recommendation": {"required": False, "route_target": "none"},
+                "status": prose_status,
+                "overall_style_verdict": style_verdict,
+                "route_back_recommendation": {
+                    "required": route_back_required,
+                    "route_target": "write" if route_back_required else "none",
+                    "reason": "Rewrite manuscript prose against the current evidence." if route_back_required else "",
+                },
             },
         },
     )
@@ -378,6 +389,90 @@ def test_ai_reviewer_publication_eval_workflow_accepts_study_relative_currentnes
     assert latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"][
         "manuscript_ref"
     ] == refs["manuscript"]
+
+
+def test_ai_reviewer_publication_eval_workflow_materializes_current_route_back_prose_review(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.ai_reviewer_publication_eval_workflow")
+    study_root = tmp_path / "study"
+    refs = _refs(study_root)
+    record = _publication_eval_record(study_root)
+    record["verdict"] = {
+        "overall_verdict": "mixed",
+        "primary_claim_status": "partial",
+        "summary": "AI reviewer requires manuscript write repair before publication readiness.",
+        "stop_loss_pressure": "watch",
+    }
+    record["quality_assessment"]["medical_journal_prose_quality"] = {
+        "status": "partial",
+        "summary": "Medical prose is current but not clear for submission.",
+        "evidence_refs": [refs["medical_prose_review"], refs["manuscript"]],
+        "reviewer_reason": "Methods and Results need write-owner repair against existing evidence.",
+    }
+    record["gaps"] = [
+        {
+            "gap_id": "medical-prose-write-repair",
+            "gap_type": "reporting",
+            "severity": "must_fix",
+            "summary": "The manuscript body is not yet reproducible or result-driven enough for a medical journal.",
+            "evidence_refs": [refs["medical_prose_review"], refs["manuscript"]],
+        }
+    ]
+    record["recommended_actions"] = [
+        {
+            "action_id": "publication-eval-action::route-back-write::medical-prose",
+            "action_type": "route_back_same_line",
+            "priority": "now",
+            "reason": "Route the same paper line back to write for medical-journal prose repair.",
+            "route_target": "write",
+            "route_key_question": "What is the narrowest manuscript repair needed to make the current evidence read as a medical original research article?",
+            "route_rationale": "The reviewer judgment is current and evidence-bound; the next owner is write, not a new analysis lane.",
+            "evidence_refs": [refs["medical_prose_review"], refs["manuscript"]],
+            "requires_controller_decision": True,
+            "work_unit_fingerprint": "medical-prose-route-back::write",
+            "next_work_unit": {
+                "unit_id": "medical_prose_write_repair",
+                "lane": "write",
+                "summary": "Repair the manuscript body against current AI reviewer prose findings.",
+            },
+        }
+    ]
+    _write_ai_reviewer_currentness_inputs(
+        study_root,
+        prose_status="partial",
+        style_verdict="revise",
+        route_back_required=True,
+    )
+
+    result = module.run_ai_reviewer_publication_eval_workflow(
+        study_root=study_root,
+        manuscript_ref=refs["manuscript"],
+        evidence_ref=refs["evidence_ledger"],
+        review_ref=refs["review_ledger"],
+        charter_ref=refs["study_charter"],
+        additional_refs={
+            "medical_manuscript_blueprint": refs["medical_manuscript_blueprint"],
+            "claim_evidence_map": refs["claim_evidence_map"],
+            "medical_prose_review": refs["medical_prose_review"],
+            "publication_gate_projection": refs["publication_gate_projection"],
+        },
+        record=record,
+    )
+
+    latest = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
+    prose_currentness = latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"]
+
+    assert result["status"] == "materialized"
+    assert latest["quality_assessment"]["medical_journal_prose_quality"]["status"] == "partial"
+    assert latest["recommended_actions"][0]["action_type"] == "route_back_same_line"
+    assert latest["recommended_actions"][0]["route_target"] == "write"
+    assert prose_currentness["status"] == "current"
+    assert prose_currentness["prose_status"] == "partial"
+    assert prose_currentness["overall_style_verdict"] == "revise"
+    assert prose_currentness["route_back_required"] is True
+    assert prose_currentness["route_target"] == "write"
+    assert latest["reviewer_operating_system"]["route_back_decision"]["recommended_action"] == "route_back_same_line"
 
 
 def test_ai_reviewer_publication_eval_workflow_fails_closed_when_required_ref_missing(
