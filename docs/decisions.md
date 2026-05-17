@@ -14,6 +14,12 @@
 - 理由：旧项目的旧 prose review 只能证明历史上评过某版稿件；把它映射成新 currentness 会把 legacy artifact 重新变成 executable truth。干净迁移的第一跳应建立新 MAS authority 和下一步 owner，而不是制造当前 ready 判断。
 - 影响：`reviewer_operating_system.currentness_checks.medical_prose_review.status=requested` 只允许在 `authority_source_signature=paper_authority_clean_migration`、有 request digest / manuscript digest 且 `route_back_required=true` 时出现。普通 AI reviewer closure 仍必须消费完整 current `medical_prose_review.json`，否则 fail closed；该路径不写 `current_package`、不放宽 publication gate、不授权 submission readiness。
 
+## 2026-05-17：clean paper-authority migration 必须对已建立的新 MAS authority 幂等
+
+- 决策：`paper-authority-clean-migration --apply` 只能在 study 仍有旧 active authority surface、缺 cutover receipt，或 `new_mas_authority_established` 的 active AI reviewer eval 已失效时执行归档/重写。若 receipt 已是 `new_mas_authority_established` 且 active `artifacts/publication_eval/latest.json` 仍匹配 receipt 指向的 AI reviewer eval，再次 `--apply` 必须是 no-op，不得把 receipt 打回 `awaiting_new_mas_authority`。
+- 理由：DM002 暴露出 clean migration 重跑时会把已由新 MAS 建立的 AI reviewer-backed blocked/underdefined eval 当作待迁移面再次处理，导致质量闭环反复回到入口状态。彻底迁移不等于反复清空新权威；迁移入口必须只切旧权威，不吞掉新权威。
+- 影响：重复迁移可以安全用于 DM-CVD、Obesity、NF-PitNET 等 workspace 的批量 closeout；它保留 fail-closed 语义，但不把当前新 MAS authority 归档为 legacy provenance。若 active eval 被机械 projection 或其他非 AI reviewer 面覆盖，仍按 stale authority 重新要求 AI reviewer，不做 legacy token normalizer。
+
 ## 2026-05-17：AI reviewer response record 必须随 request materialize 交给 owner executor
 
 - 决策：`artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 中已有最新合规 AI reviewer-owned record 时，`materialize_ai_reviewer_request` 必须把该 record 附到 `artifacts/supervision/requests/ai_reviewer/latest.json`，并记录 `publication_eval_record_ref`。owner executor 不应从 prose review 文本临场拼 record，也不应在缺 record 时放宽执行。
