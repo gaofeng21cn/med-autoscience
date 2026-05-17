@@ -174,3 +174,213 @@ def test_execute_dispatch_after_clean_cutover_rematerializes_request_without_leg
     assert prose_currentness["request_ref"] == str(request_path.resolve())
     assert prose_currentness["request_digest"].startswith("sha256:")
     assert cutover_module.cutover_requires_ai_reviewer(study_root=study_root) is False
+
+
+def test_clean_cutover_rematerializes_stale_review_request_with_missing_manuscript_digest(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_clean_migration_ai_reviewer_inputs(study_root, study_id)
+    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    _write_json(
+        receipt_path,
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "awaiting_new_mas_authority",
+            "study_id": study_id,
+        },
+    )
+    request_path = study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"
+    _write_json(
+        request_path,
+        {
+            "schema_version": 1,
+            "surface": "medical_prose_review_request",
+            "request_digest": "sha256:" + "0" * 64,
+            "manuscript": {
+                "path": str(study_root / "paper" / "draft.md"),
+                "digest": "",
+                "text": "stale request payload",
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "supervisor_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
+                    "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
+                    "review_ledger": {
+                        "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "study_charter": {
+                        "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "medical_manuscript_blueprint": {
+                        "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "claim_evidence_map": {
+                        "path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "medical_prose_review": {
+                        "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+                        "present": False,
+                        "valid": False,
+                    },
+                    "publication_gate_projection": {"path": str(receipt_path), "present": True, "valid": True},
+                },
+                "all_required_refs_present": False,
+                "missing_or_invalid_refs": ["medical_prose_review"],
+            },
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    assert result["executed_count"] == 1
+    latest_request = json.loads(request_path.read_text(encoding="utf-8"))
+    assert latest_request["manuscript"]["digest"].startswith("sha256:")
+    assert latest_request["manuscript"]["text"].startswith("## Results")
+
+
+def test_clean_cutover_missing_canonical_blueprint_routes_to_rehydrate_owner(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "legacy-study-without-blueprint"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claims": [{"claim_id": "C1"}]})
+    _write_json(study_root / "paper" / "evidence_ledger.json", {"items": [{"claim_id": "C1"}]})
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"items": []})
+    (study_root / "paper" / "draft.md").write_text("## Results\n\nThe manuscript exists.\n", encoding="utf-8")
+    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    _write_json(
+        receipt_path,
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "awaiting_new_mas_authority",
+            "study_id": study_id,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
+        {
+            "surface": "supervisor_action_request",
+            "request_kind": "return_to_ai_reviewer_workflow",
+            "request_owner": "ai_reviewer",
+            "input_contract": {
+                "required_refs": {
+                    "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
+                    "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
+                    "review_ledger": {
+                        "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "study_charter": {
+                        "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "medical_manuscript_blueprint": {
+                        "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+                        "present": False,
+                        "valid": False,
+                    },
+                    "claim_evidence_map": {
+                        "path": str(study_root / "paper" / "claim_evidence_map.json"),
+                        "present": True,
+                        "valid": True,
+                    },
+                    "medical_prose_review": {
+                        "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+                        "present": False,
+                        "valid": False,
+                    },
+                    "publication_gate_projection": {"path": str(receipt_path), "present": True, "valid": True},
+                },
+                "all_required_refs_present": False,
+                "missing_or_invalid_refs": ["medical_manuscript_blueprint", "medical_prose_review"],
+            },
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["blocked_count"] == 1
+    assert execution["blocked_reason"] == "canonical_paper_inputs_rehydrate_required"
+    assert execution["next_owner"] == "write"
+    assert execution["owner_result"]["legacy_artifact_reader_allowed"] is False
+    assert execution["owner_result"]["quality_verdict_written"] is False
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()

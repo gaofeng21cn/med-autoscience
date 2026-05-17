@@ -295,8 +295,7 @@ def _clean_migration_medical_prose_review_request_currentness(
     ref_bundle: Mapping[str, str],
 ) -> dict[str, Any]:
     request_path = stable_medical_prose_review_request_path(study_root=study_root)
-    if not request_path.exists():
-        materialize_medical_prose_review_request(study_root=study_root)
+    materialize_medical_prose_review_request(study_root=study_root)
     request_payload = _read_json(request_path)
     request_digest = _text(request_payload.get("request_digest"))
     if not request_digest:

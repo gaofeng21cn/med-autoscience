@@ -228,6 +228,47 @@ def _blocked_current_package_freshness(*, exc: Exception, quest_root: Path) -> d
     }
 
 
+def _paper_authority_clean_migration_blocker(*, study_root: Path, exc: Exception, request_path: Path) -> dict[str, Any] | None:
+    if not paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root):
+        return None
+    error = str(exc)
+    if "medical_manuscript_blueprint" in error:
+        return _blocked_ai_reviewer_execution(
+            apply=True,
+            reason="canonical_paper_inputs_rehydrate_required",
+            request_path=request_path,
+            next_owner="write",
+            owner_callable_surface="medical_manuscript_blueprint.materialize_medical_manuscript_blueprint",
+            required_input_surface=str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+            error=error,
+            owner_result={
+                "surface_kind": "canonical_paper_inputs_rehydrate_blocker",
+                "authority_source_signature": "paper_authority_clean_migration",
+                "canonical_surface": "paper/medical_manuscript_blueprint.json",
+                "mechanical_blueprint_as_canonical_allowed": False,
+                "legacy_artifact_reader_allowed": False,
+                "quality_verdict_written": False,
+                "submission_package_regenerated": False,
+                "next_owner": "write",
+                "next_required_actions": [
+                    "materialize_or_authorize_medical_manuscript_blueprint",
+                    "materialize_medical_prose_review_request",
+                    "return_to_ai_reviewer_workflow",
+                ],
+            },
+        )
+    if "medical_prose_review_request" in error:
+        return _blocked_ai_reviewer_execution(
+            apply=True,
+            reason="medical_prose_review_request_rehydrate_required",
+            request_path=request_path,
+            next_owner="ai_reviewer",
+            required_input_surface=str(study_root / "artifacts" / "publication_eval" / "medical_prose_review_request.json"),
+            error=error,
+        )
+    return None
+
+
 def execute_artifact_display_materialization(
     *,
     profile: WorkspaceProfile,
@@ -349,6 +390,13 @@ def execute_ai_reviewer_workflow(
             },
         )
     except (OSError, TypeError, ValueError, RuntimeError) as exc:
+        clean_migration_blocker = _paper_authority_clean_migration_blocker(
+            study_root=study_root,
+            exc=exc,
+            request_path=request_path,
+        )
+        if clean_migration_blocker is not None:
+            return clean_migration_blocker
         payload = _blocked_ai_reviewer_execution(apply=True, reason="ai_reviewer_workflow_failed", request_path=request_path)
         payload["error"] = str(exc)
         return payload
@@ -364,14 +412,29 @@ def execute_ai_reviewer_workflow(
     }
 
 
-def _blocked_ai_reviewer_execution(*, apply: bool, reason: str, request_path: Path) -> dict[str, Any]:
-    return {
+def _blocked_ai_reviewer_execution(
+    *,
+    apply: bool,
+    reason: str,
+    request_path: Path,
+    next_owner: str = "ai_reviewer",
+    owner_callable_surface: str = "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
+    required_input_surface: str | None = None,
+    error: str | None = None,
+    owner_result: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "execution_status": "blocked" if apply else "dry_run",
         "blocked_reason": reason,
-        "owner_callable_surface": "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow",
-        "next_owner": "ai_reviewer",
-        "required_input_surface": str(request_path),
+        "owner_callable_surface": owner_callable_surface,
+        "next_owner": next_owner,
+        "required_input_surface": required_input_surface or str(request_path),
     }
+    if error is not None:
+        payload["error"] = error
+    if owner_result is not None:
+        payload["owner_result"] = dict(owner_result)
+    return payload
 
 
 def _ai_reviewer_record_for_execution(
