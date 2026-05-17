@@ -1,5 +1,13 @@
 # 关键决策记录
 
+## 2026-05-17：旧论文项目迁移必须 clean paper-authority cutover，不做 legacy token 兼容读取
+
+- 决策：旧 MDS / 旧 MAS 论文项目迁移到新 MAS 时，`publication_eval/latest.json`、AI reviewer response record、`controller_decisions/latest.json`、`current_package_freshness/latest.json`、`manuscript/current_package/`、`current_package.zip` 与 delivery manifest 这类会冒充当前质量/交付结论的 surface，必须通过 `paper-authority-clean-migration` 从 active truth 位置归档到 `artifacts/migration/paper_authority_cutover/history/...`，旧产物只保留 provenance 角色。
+- 决策：迁移入口不得把旧 token 映射成新 schema，不得把未知旧 `gap_type`、旧 verdict 或旧 route token normalizer 写进 reader。旧 artifact 不合新 contract 时，正确路径是 fail closed，触发 AI reviewer / publication gate / artifact owner 重新物化；不是兼容读取。
+- 决策：迁移后 `paper_authority_cutover/latest.json` 是 MAS-owned receipt，状态为 `awaiting_new_mas_authority`；supervisor scan 必须把它路由到 `return_to_ai_reviewer_workflow`。AI reviewer 重新写出新 schema publication eval 后，publication gate 与 delivery owner 再重建 submission/current package。
+- 理由：DM002 暴露出 runtime binding 和 legacy physical cleanup 已完成，但论文级 active truth surface 仍停留在旧 eval/current package，导致新 MAS executor 仍读取旧质量/交付结论，用户看到的论文仍是 3 天前的旧版。局部 normalizer 只能绕过一个旧 token 阻塞，会继续保留兼容层和旧 truth 入口。
+- 影响：`medical_prose_review` 可作为 AI reviewer 输入证据保留，但不能作为 current publication verdict。后续跨 workspace 迁移先跑 `medautosci publication clean-authority-migration --profile <profile> --dry-run`，确认后 `--apply`，再由 supervisor scan / dispatch 重走 owner 链路；不得直接手改 `manuscript/current_package` 当完成态。
+
 ## 2026-05-17：AI reviewer response record 必须随 request materialize 交给 owner executor
 
 - 决策：`artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 中已有最新合规 AI reviewer-owned record 时，`materialize_ai_reviewer_request` 必须把该 record 附到 `artifacts/supervision/requests/ai_reviewer/latest.json`，并记录 `publication_eval_record_ref`。owner executor 不应从 prose review 文本临场拼 record，也不应在缺 record 时放宽执行。

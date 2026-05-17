@@ -19,14 +19,6 @@ __all__ = [
 
 
 STABLE_PUBLICATION_EVAL_LATEST_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
-_LEGACY_AI_REVIEWER_RECHECK_BUNDLE_STAGE_VERDICTS = frozenset(
-    {
-        "review_owner_clear_for_bundle_stage",
-    }
-)
-_LEGACY_AI_REVIEWER_RECHECK_PRIMARY_CLAIM_STATUSES = {
-    "supported_with_limitations": "partial",
-}
 
 
 def stable_publication_eval_latest_path(*, study_root: Path) -> Path:
@@ -60,7 +52,6 @@ def read_publication_eval_latest(
     payload = json.loads(latest_path.read_text(encoding="utf-8")) or {}
     if not isinstance(payload, dict):
         raise ValueError(f"publication eval latest payload must be a JSON object: {latest_path}")
-    payload = _normalize_legacy_ai_reviewer_recheck_payload(payload)
     return PublicationEvalRecord.from_payload(payload).to_dict()
 
 
@@ -84,49 +75,6 @@ def materialize_publication_eval_latest(
         "eval_id": normalized_record.eval_id,
         "artifact_path": str(latest_path),
     }
-
-
-def _normalize_legacy_ai_reviewer_recheck_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    provenance = payload.get("assessment_provenance")
-    verdict = payload.get("verdict")
-    if not isinstance(provenance, dict) or not isinstance(verdict, dict):
-        return payload
-    if provenance.get("owner") != "ai_reviewer":
-        return payload
-    if provenance.get("source_kind") != "publication_eval_ai_reviewer_recheck":
-        return payload
-    if provenance.get("ai_reviewer_required") is not False:
-        return payload
-    overall_verdict = str(verdict.get("overall_verdict") or "").strip()
-    if overall_verdict not in _LEGACY_AI_REVIEWER_RECHECK_BUNDLE_STAGE_VERDICTS:
-        return payload
-
-    normalized_payload = dict(payload)
-    normalized_verdict = dict(verdict)
-    normalized_verdict["overall_verdict"] = "promising"
-    primary_claim_status = str(normalized_verdict.get("primary_claim_status") or "").strip()
-    normalized_verdict["primary_claim_status"] = _LEGACY_AI_REVIEWER_RECHECK_PRIMARY_CLAIM_STATUSES.get(
-        primary_claim_status,
-        primary_claim_status,
-    )
-    normalized_payload["verdict"] = normalized_verdict
-    if "mechanical_projection_used_as_quality_authority" not in provenance:
-        normalized_provenance = dict(provenance)
-        normalized_provenance["mechanical_projection_used_as_quality_authority"] = False
-        normalized_payload["assessment_provenance"] = normalized_provenance
-    normalized_payload["recommended_actions"] = [
-        _normalize_legacy_ai_reviewer_recheck_action(action)
-        for action in (payload.get("recommended_actions") or [])
-        if isinstance(action, dict)
-    ]
-    return normalized_payload
-
-
-def _normalize_legacy_ai_reviewer_recheck_action(action: dict[str, Any]) -> dict[str, Any]:
-    normalized = dict(action)
-    if normalized.get("requires_controller_decision") is not True:
-        normalized["requires_controller_decision"] = True
-    return normalized
 
 
 def materialize_ai_reviewer_publication_eval_latest(

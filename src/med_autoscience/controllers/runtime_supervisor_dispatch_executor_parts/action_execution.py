@@ -7,7 +7,14 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 
-from .. import ai_reviewer_publication_eval_workflow, gate_clearing_batch, publication_gate, quest_hydration, study_runtime_router
+from .. import (
+    ai_reviewer_publication_eval_workflow,
+    gate_clearing_batch,
+    paper_authority_migration,
+    publication_gate,
+    quest_hydration,
+    study_runtime_router,
+)
 from ..supervisor_action_request_lifecycle import stable_ai_reviewer_request_path
 
 
@@ -375,7 +382,14 @@ def _ai_reviewer_record_for_execution(
     current_record = _mapping(_read_json_object(_publication_eval_latest_path(study_root)))
     request_record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
 
-    if current_record and _ai_reviewer_owned_record(current_record):
+    if paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root) and not request_record:
+        request_record = _clean_migration_request_record(study_root=study_root, request=request)
+
+    if (
+        current_record
+        and _ai_reviewer_owned_record(current_record)
+        and not paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root)
+    ):
         missing_fields = _missing_ai_reviewer_record_fields(current_record)
         if missing_fields:
             return {}, {
@@ -410,6 +424,131 @@ def _ai_reviewer_record_for_execution(
         "reason": "ai_reviewer_record_missing",
         "payload": {
             "owner_record_requirements": _ai_reviewer_record_requirements(),
+        },
+    }
+
+
+def _clean_migration_request_record(*, study_root: Path, request: Mapping[str, Any]) -> dict[str, Any]:
+    study_id = _text(request.get("study_id")) or study_root.name
+    quest_id = _text(request.get("quest_id")) or study_id
+    emitted_at = _text(request.get("generated_at")) or "2026-05-17T00:00:00+00:00"
+    refs = _ai_reviewer_required_refs(request)
+    manuscript_ref = refs.get("manuscript") or str(study_root / "paper" / "manuscript.md")
+    evidence_ref = refs.get("evidence_ledger") or str(study_root / "paper" / "evidence_ledger.json")
+    review_ref = refs.get("review_ledger") or str(study_root / "paper" / "review" / "review_ledger.json")
+    charter_ref = refs.get("study_charter") or str(study_root / "artifacts" / "controller" / "study_charter.json")
+    return {
+        "schema_version": 1,
+        "eval_id": f"publication-eval::{study_id}::{quest_id}::{emitted_at}",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "emitted_at": emitted_at,
+        "evaluation_scope": "publication",
+        "charter_context_ref": {
+            "ref": charter_ref,
+            "charter_id": f"charter::{study_id}::paper-authority-clean-migration",
+            "publication_objective": "Re-establish publication authority after clean paper-authority migration.",
+        },
+        "runtime_context_refs": {
+            "runtime_escalation_ref": str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"),
+            "main_result_ref": evidence_ref,
+        },
+        "delivery_context_refs": {
+            "paper_root_ref": str(study_root / "paper"),
+            "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+        },
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "source_refs": [manuscript_ref, evidence_ref, review_ref, charter_ref],
+            "ai_reviewer_required": False,
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+        "verdict": {
+            "overall_verdict": "blocked",
+            "primary_claim_status": "partial",
+            "summary": "Clean migration requires a fresh AI reviewer pass before quality closure or delivery.",
+            "stop_loss_pressure": "watch",
+        },
+        "quality_assessment": _clean_migration_quality_assessment(
+            manuscript_ref=manuscript_ref,
+            evidence_ref=evidence_ref,
+            review_ref=review_ref,
+            charter_ref=charter_ref,
+        ),
+        "gaps": [
+            {
+                "gap_id": "paper-authority-clean-migration",
+                "gap_type": "delivery",
+                "severity": "must_fix",
+                "summary": "Legacy publication and delivery authority surfaces were archived; new MAS owners must rebuild them.",
+                "evidence_refs": [
+                    str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json")
+                ],
+            }
+        ],
+        "recommended_actions": [
+            {
+                "action_id": "paper-authority-clean-migration-rebuild",
+                "action_type": "return_to_controller",
+                "priority": "now",
+                "reason": "After AI reviewer writeback, rerun publication gate and delivery sync.",
+                "route_target": "controller",
+                "route_key_question": "Rebuild publication and current-package authority under new MAS.",
+                "route_rationale": "Legacy active paper surfaces are provenance only after clean migration.",
+                "evidence_refs": [
+                    str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json")
+                ],
+                "requires_controller_decision": True,
+            }
+        ],
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "This clean-migration assessment only re-establishes authority; it does not repair manuscript scientific gaps by itself.",
+                "impact_on_claim": "Publication claims remain provisional until publication gate and delivery owners rerun on the new eval.",
+                "required_future_analysis_data_or_design": "Rerun publication gate, delivery sync, and any study-specific analysis owner routes required by the new AI reviewer result.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+    }
+
+
+def _clean_migration_quality_assessment(
+    *,
+    manuscript_ref: str,
+    evidence_ref: str,
+    review_ref: str,
+    charter_ref: str,
+) -> dict[str, Any]:
+    return {
+        "clinical_significance": {
+            "status": "underdefined",
+            "summary": "Clinical significance requires fresh review under the new paper-authority surface.",
+            "evidence_refs": [charter_ref, manuscript_ref],
+        },
+        "evidence_strength": {
+            "status": "underdefined",
+            "summary": "Evidence strength requires fresh review under the new paper-authority surface.",
+            "evidence_refs": [evidence_ref],
+        },
+        "novelty_positioning": {
+            "status": "underdefined",
+            "summary": "Novelty positioning requires fresh review under the new paper-authority surface.",
+            "evidence_refs": [charter_ref],
+        },
+        "medical_journal_prose_quality": {
+            "status": "underdefined",
+            "summary": "Medical journal prose must be reviewed by the AI reviewer before quality closure.",
+            "evidence_refs": [manuscript_ref, review_ref],
+            "reviewer_reason": "Legacy prose and package authority were archived by clean migration.",
+            "reviewer_revision_advice": "Use the current manuscript, evidence ledger, review ledger, and prose review inputs to produce a new AI-reviewer-backed quality judgment.",
+            "reviewer_next_round_focus": "Methods completeness, results numeric sufficiency, tables/figures, clinical context, and restrained journal prose.",
+        },
+        "human_review_readiness": {
+            "status": "blocked",
+            "summary": "Human review readiness cannot be claimed until new MAS delivery is rebuilt.",
+            "evidence_refs": [review_ref],
         },
     }
 

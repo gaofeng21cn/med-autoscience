@@ -12,6 +12,7 @@ from med_autoscience.policies import (
 from med_autoscience.publication_eval_latest import (
     materialize_ai_reviewer_publication_eval_latest,
 )
+from med_autoscience.controllers import paper_authority_migration
 from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,
 )
@@ -285,6 +286,16 @@ def _current_package_freshness(
     eval_id: str,
 ) -> dict[str, Any]:
     path = study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json"
+    if paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root):
+        return {
+            "status": "fresh",
+            "ref": str(paper_authority_migration.paper_authority_cutover_latest_path(study_root=study_root)),
+            "source_eval_id": eval_id,
+            "current_package_root": None,
+            "current_package_zip": None,
+            "source_signature": None,
+            "authority_source_signature": "paper_authority_clean_migration",
+        }
     if not path.exists():
         raise ValueError("current_package_freshness_missing")
     payload = _read_json(path)
