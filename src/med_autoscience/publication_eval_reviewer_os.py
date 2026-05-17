@@ -83,8 +83,25 @@ def validate_ai_reviewer_operating_system_trace(payload: object) -> list[str]:
     for field in ("request_digest", "manuscript_ref", "manuscript_digest"):
         if not _text(medical_prose_review.get(field)):
             errors.append(f"reviewer_operating_system.currentness_checks.medical_prose_review.{field} must be non-empty")
-    if _text(medical_prose_review.get("status")) not in {"current", "ready"}:
-        errors.append("reviewer_operating_system.currentness_checks.medical_prose_review.status must be current")
+    medical_prose_review_status = _text(medical_prose_review.get("status"))
+    if medical_prose_review_status not in {"current", "ready", "requested"}:
+        errors.append("reviewer_operating_system.currentness_checks.medical_prose_review.status must be current or requested")
+    if medical_prose_review_status == "requested":
+        if _text(medical_prose_review.get("authority_source_signature")) != "paper_authority_clean_migration":
+            errors.append(
+                "reviewer_operating_system.currentness_checks.medical_prose_review.requested status "
+                "requires paper_authority_clean_migration authority_source_signature"
+            )
+        if not _text(medical_prose_review.get("request_ref")):
+            errors.append(
+                "reviewer_operating_system.currentness_checks.medical_prose_review.request_ref must be non-empty "
+                "when status is requested"
+            )
+        if medical_prose_review.get("route_back_required") is not True:
+            errors.append(
+                "reviewer_operating_system.currentness_checks.medical_prose_review.route_back_required must be true "
+                "when status is requested"
+            )
     package_freshness = _mapping(currentness_checks.get("current_package_freshness"))
     if not package_freshness:
         errors.append("reviewer_operating_system.currentness_checks.current_package_freshness must be non-empty")

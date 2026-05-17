@@ -8,6 +8,12 @@
 - 理由：DM002 暴露出 runtime binding 和 legacy physical cleanup 已完成，但论文级 active truth surface 仍停留在旧 eval/current package，导致新 MAS executor 仍读取旧质量/交付结论，用户看到的论文仍是 3 天前的旧版。局部 normalizer 只能绕过一个旧 token 阻塞，会继续保留兼容层和旧 truth 入口。
 - 影响：`medical_prose_review` 可作为 AI reviewer 输入证据保留，但不能作为 current publication verdict。后续跨 workspace 迁移先跑 `medautosci publication clean-authority-migration --profile <profile> --dry-run`，确认后 `--apply`，再由 supervisor scan / dispatch 重走 owner 链路；不得直接手改 `manuscript/current_package` 当完成态。
 
+## 2026-05-17：clean cutover 后缺 prose review 时只重建 request，不兼容读取旧评审
+
+- 决策：`paper_authority_clean_migration` pending 时，`return_to_ai_reviewer_workflow` 必须由新 MAS 从 canonical `paper/`、study charter、evidence/review ledger 和 blueprint 物化新的 `medical_prose_review_request.json`。如果尚无新 `medical_prose_review.json`，只能写出 AI reviewer-backed、`medical_journal_prose_quality=underdefined`、human readiness blocked 的 `publication_eval/latest.json`，并把 reviewer OS 的 prose currentness 标成 clean migration 专用的 `requested`。
+- 理由：旧项目的旧 prose review 只能证明历史上评过某版稿件；把它映射成新 currentness 会把 legacy artifact 重新变成 executable truth。干净迁移的第一跳应建立新 MAS authority 和下一步 owner，而不是制造当前 ready 判断。
+- 影响：`reviewer_operating_system.currentness_checks.medical_prose_review.status=requested` 只允许在 `authority_source_signature=paper_authority_clean_migration`、有 request digest / manuscript digest 且 `route_back_required=true` 时出现。普通 AI reviewer closure 仍必须消费完整 current `medical_prose_review.json`，否则 fail closed；该路径不写 `current_package`、不放宽 publication gate、不授权 submission readiness。
+
 ## 2026-05-17：AI reviewer response record 必须随 request materialize 交给 owner executor
 
 - 决策：`artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json` 中已有最新合规 AI reviewer-owned record 时，`materialize_ai_reviewer_request` 必须把该 record 附到 `artifacts/supervision/requests/ai_reviewer/latest.json`，并记录 `publication_eval_record_ref`。owner executor 不应从 prose review 文本临场拼 record，也不应在缺 record 时放宽执行。

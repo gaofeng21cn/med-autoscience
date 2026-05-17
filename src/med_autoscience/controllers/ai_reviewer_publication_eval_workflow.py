@@ -13,6 +13,10 @@ from med_autoscience.publication_eval_latest import (
     materialize_ai_reviewer_publication_eval_latest,
 )
 from med_autoscience.controllers import paper_authority_migration
+from med_autoscience.medical_prose_review_request import (
+    materialize_medical_prose_review_request,
+    stable_medical_prose_review_request_path,
+)
 from med_autoscience.publication_eval_reviewer_os import (
     validate_ai_reviewer_operating_system_trace,
 )
@@ -221,6 +225,11 @@ def _medical_prose_review_currentness(
     study_root: Path,
     ref_bundle: Mapping[str, str],
 ) -> dict[str, Any]:
+    if paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root):
+        return _clean_migration_medical_prose_review_request_currentness(
+            study_root=study_root,
+            ref_bundle=ref_bundle,
+        )
     prose_ref = _text(ref_bundle.get("medical_prose_review"))
     if not prose_ref:
         raise ValueError("AI reviewer publication eval workflow missing medical_prose_review")
@@ -277,6 +286,47 @@ def _medical_prose_review_currentness(
         "overall_style_verdict": _text(quality.get("overall_style_verdict")),
         "route_back_required": route_back.get("required") is True,
         "route_target": _text(route_back.get("route_target")),
+    }
+
+
+def _clean_migration_medical_prose_review_request_currentness(
+    *,
+    study_root: Path,
+    ref_bundle: Mapping[str, str],
+) -> dict[str, Any]:
+    request_path = stable_medical_prose_review_request_path(study_root=study_root)
+    if not request_path.exists():
+        materialize_medical_prose_review_request(study_root=study_root)
+    request_payload = _read_json(request_path)
+    request_digest = _text(request_payload.get("request_digest"))
+    if not request_digest:
+        raise ValueError("medical_prose_review_request_digest_missing")
+    request_manuscript = _mapping(request_payload.get("manuscript"))
+    manuscript_ref = _text(request_manuscript.get("path"))
+    manuscript_digest = _text(request_manuscript.get("digest"))
+    if not manuscript_ref:
+        raise ValueError("medical_prose_review_request_manuscript_ref_missing")
+    if not manuscript_digest:
+        raise ValueError("medical_prose_review_request_manuscript_digest_missing")
+    manuscript_input_ref = _text(ref_bundle.get("manuscript"))
+    if manuscript_input_ref and not _refs_match(
+        study_root=study_root,
+        left=manuscript_input_ref,
+        right=manuscript_ref,
+    ):
+        raise ValueError("medical_prose_review_request_manuscript_ref_mismatch")
+    return {
+        "status": "requested",
+        "ref": _text(ref_bundle.get("medical_prose_review")),
+        "request_ref": str(request_path.resolve()),
+        "request_digest": request_digest,
+        "manuscript_ref": manuscript_ref,
+        "manuscript_digest": manuscript_digest,
+        "prose_status": "underdefined",
+        "overall_style_verdict": "review_required",
+        "route_back_required": True,
+        "route_target": "review",
+        "authority_source_signature": "paper_authority_clean_migration",
     }
 
 
