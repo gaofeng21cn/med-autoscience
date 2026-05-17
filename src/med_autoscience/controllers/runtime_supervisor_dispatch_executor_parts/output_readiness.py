@@ -10,6 +10,7 @@ from med_autoscience.profiles import WorkspaceProfile
 
 CURRENT_PACKAGE_FRESHNESS_PROOF_RELATIVE_PATH = Path("artifacts/controller/current_package_freshness/latest.json")
 GATE_CLEARING_BATCH_RELATIVE_PATH = Path("artifacts/controller/gate_clearing_batch/latest.json")
+PUBLICATION_EVAL_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 
 
 def required_output_pending(
@@ -33,13 +34,25 @@ def ai_reviewer_output_pending(current_study: Mapping[str, Any] | None) -> bool:
 
 def current_package_freshness_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
     study_root = profile.studies_root / study_id
+    current_eval_id = _text(_mapping(_read_json_object(study_root / PUBLICATION_EVAL_RELATIVE_PATH)).get("eval_id"))
     batch = _read_json_object(study_root / GATE_CLEARING_BATCH_RELATIVE_PATH)
+    if _source_eval_id_stale(batch, current_eval_id=current_eval_id):
+        return True
     if _gate_clearing_batch_still_pending(batch):
         return True
     proof = _read_json_object(study_root / CURRENT_PACKAGE_FRESHNESS_PROOF_RELATIVE_PATH)
     if proof is None:
         return True
+    if _source_eval_id_stale(proof, current_eval_id=current_eval_id):
+        return True
     return _text(proof.get("status")) not in {"fresh", "current"}
+
+
+def _source_eval_id_stale(payload: Mapping[str, Any] | None, *, current_eval_id: str | None) -> bool:
+    if current_eval_id is None:
+        return False
+    source_eval_id = _text(_mapping(payload).get("source_eval_id"))
+    return source_eval_id is not None and source_eval_id != current_eval_id
 
 
 def _gate_clearing_batch_still_pending(batch: Mapping[str, Any] | None) -> bool:
@@ -78,6 +91,7 @@ def _list(value: object) -> list[Any]:
 
 
 __all__ = [
+    "PUBLICATION_EVAL_RELATIVE_PATH",
     "ai_reviewer_output_pending",
     "current_package_freshness_output_pending",
     "required_output_pending",
