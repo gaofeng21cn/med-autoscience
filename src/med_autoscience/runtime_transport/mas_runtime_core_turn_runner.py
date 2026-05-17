@@ -92,6 +92,12 @@ class CodexExecTurnRunner:
             quest_root=quest_root,
             quest_id=quest_id,
         )
+        runtime_state = _sync_current_ai_reviewer_authorization_for_turn(
+            runtime_state=runtime_state,
+            quest_root=quest_root,
+            quest_id=quest_id,
+            run_id=run_id,
+        )
         prompt_path.write_text(
             _codex_turn_prompt(
                 quest_id=quest_id,
@@ -409,6 +415,35 @@ def _controller_authorization(
     return {}
 
 
+def _sync_current_ai_reviewer_authorization_for_turn(
+    *,
+    runtime_state: Mapping[str, Any],
+    quest_root: Path,
+    quest_id: str,
+    run_id: str,
+) -> dict[str, Any]:
+    current_authorization = _current_ai_reviewer_redrive_authorization(
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
+    if not current_authorization:
+        return dict(runtime_state)
+    updated = dict(runtime_state)
+    authorization = _bind_authorization_to_turn(
+        authorization=current_authorization,
+        quest_root=quest_root,
+        quest_id=quest_id,
+        run_id=run_id,
+    )
+    if _mapping(updated.get("current_controller_authorization")) == authorization:
+        return updated
+    updated["quest_id"] = _text(updated.get("quest_id")) or quest_id
+    updated["current_controller_authorization"] = authorization
+    updated["current_controller_authorization_synced_at"] = _utc_now()
+    _write_runtime_state(quest_root=quest_root, runtime_state=updated)
+    return updated
+
+
 def _current_ai_reviewer_redrive_authorization(
     *,
     quest_root: Path | None,
@@ -432,9 +467,39 @@ def _current_ai_reviewer_redrive_authorization(
     authorization = dict(decision)
     authorization["authorization_basis"] = "current_controller_decision"
     authorization.setdefault("work_unit_id", next_work_unit_id)
-    if next_work_unit_id is not None:
-        authorization.setdefault("work_unit_fingerprint", _text(next_work_unit.get("fingerprint")))
+    authorization.setdefault(
+        "work_unit_fingerprint",
+        _text(decision.get("work_unit_fingerprint")) or _text(next_work_unit.get("fingerprint")),
+    )
     return authorization
+
+
+def _bind_authorization_to_turn(
+    *,
+    authorization: Mapping[str, Any],
+    quest_root: Path,
+    quest_id: str,
+    run_id: str,
+) -> dict[str, Any]:
+    bound = dict(authorization)
+    bound["active_run_id"] = run_id
+    bound.setdefault("run_id", run_id)
+    bound["quest_id"] = _text(bound.get("quest_id")) or quest_id
+    bound["study_id"] = _text(bound.get("study_id")) or _study_id_for_quest_root(quest_root=quest_root, quest_id=quest_id)
+    next_work_unit = _mapping(bound.get("next_work_unit"))
+    next_work_unit_id = _text(next_work_unit.get("unit_id"))
+    if _text(bound.get("work_unit_id")) is None and next_work_unit_id is not None:
+        bound["work_unit_id"] = next_work_unit_id
+    if _text(bound.get("work_unit_fingerprint")) is None:
+        bound["work_unit_fingerprint"] = _text(next_work_unit.get("fingerprint"))
+    return bound
+
+
+def _study_id_for_quest_root(*, quest_root: Path, quest_id: str) -> str:
+    study_root = _resolve_study_root_from_quest_root_light(quest_root=quest_root, quest_id=quest_id)
+    if study_root is None:
+        return quest_id
+    return _yaml_string_field(study_root / "study.yaml", "study_id") or study_root.name
 
 
 def _closed_publication_work_unit_for_authorization(
