@@ -35,6 +35,7 @@ from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.legacy_residue_audit import build_legacy_residue_audit
 from med_autoscience.stage_skill_surface_projection import build_stage_skill_surface_projection
 from med_autoscience.stage_quality_contract import build_stage_quality_pack_contract
+from med_autoscience.ars_learning_projection import build_ars_learning_projection
 
 
 def _inspection_package_operator_authority() -> dict[str, Any]:
@@ -497,6 +498,7 @@ def build_product_entry_manifest(
     family_stage_control_plane_descriptor = dict(
         opl_family_persistence_lifecycle_owner_route_adoption["payload"]["family_stage_control_plane_descriptor"]
     )
+    ars_learning_projection = build_ars_learning_projection()
     stage_quality_pack_contract = build_stage_quality_pack_contract()
     domain_memory_descriptor = build_domain_memory_descriptor()
     legacy_residue_audit = build_legacy_residue_audit()
@@ -699,6 +701,7 @@ def build_product_entry_manifest(
             "mas_functional_closure_status_projection": functional_closure_status_projection,
             "stage_quality_pack_contract": stage_quality_pack_contract,
             "stage_skill_surface_projection": build_stage_skill_surface_projection(),
+            "ars_learning_projection": ars_learning_projection,
             "provider_guarded_soak_read_model": provider_guarded_soak_read_model,
             "provider_residency_read_model": provider_residency_read_model,
             "domain_memory_descriptor": domain_memory_descriptor,

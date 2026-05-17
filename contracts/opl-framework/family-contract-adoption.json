@@ -294,6 +294,54 @@
       "mas_keeps_generic_shell_owner": false
     }
   },
+  "academic_research_skills_learning_projection": {
+    "surface_kind": "mas_ars_learning_projection",
+    "descriptor_surfaces": [
+      "product_entry_manifest.ars_learning_projection",
+      "product_entry_manifest.family_stage_control_plane_descriptor.ars_learning_projection",
+      "sidecar_export.ars_learning_projection"
+    ],
+    "source_repository": "https://github.com/Imbad0202/academic-research-skills",
+    "observed_head": "d564d26da39de039ba71d9b51f43e6a25fe9b149",
+    "intake_doc_ref": "docs/references/mainline/ars_learning_intake.md",
+    "dependency_introduced": false,
+    "absorbed_pattern_ids": [
+      "claim_citation_support_audit",
+      "data_access_and_oversight_metadata",
+      "evidence_handoff_passport"
+    ],
+    "maps_to_opl_shared_primitive": "family-stage-integrity-metadata.v1",
+    "mas_role": "domain_projection_and_thin_adapter_only",
+    "allowed_export": [
+      "refs",
+      "metadata",
+      "freshness",
+      "typed_blockers",
+      "owner_boundary"
+    ],
+    "forbidden_export": [
+      "memory_body",
+      "evidence_ledger_body",
+      "review_ledger_body",
+      "publication_verdict_body",
+      "paper_or_package_blob"
+    ],
+    "authority_boundary": {
+      "ars_role": "external_pattern_source_only",
+      "opl_owner": "one-person-lab",
+      "mas_domain_truth_owner": "MedAutoScience",
+      "mas_publication_verdict_owner": "MedAutoScience",
+      "mas_artifact_authority_owner": "MedAutoScience",
+      "can_write_domain_truth": false,
+      "can_write_evidence_ledger": false,
+      "can_write_review_ledger": false,
+      "can_write_publication_eval": false,
+      "can_write_controller_decisions": false,
+      "can_authorize_publication_quality": false,
+      "can_authorize_submission_readiness": false,
+      "can_authorize_artifact_authority": false
+    }
+  },
   "persistence_lifecycle_owner_route_projection": {
     "adoption_surface_kind": "mas_opl_family_persistence_lifecycle_owner_route_adoption",
     "required_shape": [
