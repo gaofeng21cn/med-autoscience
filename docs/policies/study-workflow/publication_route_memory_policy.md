@@ -284,12 +284,12 @@ Do not implement a separate publication recipe engine until a route has matured 
 
 Current OPL discovery sees MAS, MAG, and RCA as resolved family memory descriptors:
 
-- OPL `agents list --json` currently reports `aligned_count=3`, `missing_count=0`, `drift_detected_count=0`, `blocked_count=0`, and `production_closure_gap_count=15`.
+- OPL `agents list --json` currently reports `aligned_count=3`, `missing_count=0`, `drift_detected_count=0`, `blocked_count=0`, `production_closure_gap_count=12`, and `provider_temporal_residency_gap_status=closed_by_fresh_proven_proof`.
 - OPL `stages list --json` currently reports `resolved_planes_count=3` and `stages_count=18`.
 - OPL `domain-memory list --json` currently reports `resolved_memory_descriptor_count=3` and `missing_memory_descriptor_count=0`.
 - OPL `domain-memory inspect --domain mas --json` resolves `mas_publication_route_memory` from the MAS standard `domain_memory_descriptor`, with `opl_role=locator_projection_owner` and forbidden OPL authority over memory store, domain truth, quality verdict, artifact authority, route decision, and publication readiness.
-- OPL `family-runtime status --json` on the current machine reports selected provider `local_sqlite`, `provider_ready=true`, `full_online_ready=false`, and `durable_online_ready=false`. This means local typed queue / stage attempt ledger is usable, while production online Temporal residency is still pending.
-- OPL roadmap now records Temporal provider core as landed: `StageAttemptWorkflow`, Codex/domain sidecar activities, human/user/resume signals, attempt query, `attempt start|query|signal`, worker helper, lifecycle contract, and Temporal residency proof. The remaining OPL-side gap is external production Temporal service / managed worker residency plus long-running domain activity soak.
+- OPL `family-runtime status --json` defaults to selected provider `local_sqlite`, `provider_ready=true`, `full_online_ready=false`, and `durable_online_ready=false`; this remains the dev/offline baseline. With `OPL_FAMILY_RUNTIME_PROVIDER=temporal`, the current machine reports `full_online_ready=true`, `durable_online_ready=true`, managed service reachable, and worker ready at `127.0.0.1:7233`.
+- OPL roadmap now records Temporal provider core as landed: `StageAttemptWorkflow`, Codex/domain sidecar activities, human/user/resume signals, attempt query, `attempt start|query|signal`, worker helper, lifecycle contract, and Temporal residency proof. The current OPL-side provider residency gate is closed by fresh `production_residency_proven` proof; the remaining OPL-side evidence gap is long-running provider SLO plus real domain activity / owner-chain soak.
 - MAG/RCA also expose standard `family_domain_memory_ref.v1` descriptors for their grant-strategy and visual-pattern memory locators.
 - This makes MAS publication route memory the MAS-side reference implementation for natural-language, stage-consumed publication-route memory, not a reason to move publication-route content into OPL or to build an OPL-owned recipe runtime.
 
