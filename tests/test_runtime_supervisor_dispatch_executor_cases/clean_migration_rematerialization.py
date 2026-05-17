@@ -497,3 +497,133 @@ def test_execute_clean_canonical_rehydrate_writes_source_only_without_canonical_
     assert "AI author/reviewer must authorize paper/medical_manuscript_blueprint.json" in (
         execution["owner_result"]["next_required_actions"]
     )
+
+
+def test_clean_canonical_rehydrate_is_not_suppressed_by_prior_ai_reviewer_blocker(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "legacy-study-rehydrate-repeat"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_json(
+        study_root / "paper" / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "statement": "Shared variables carry partial risk-ordering information.",
+                    "status": "partially_supported",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "results_narrative_map.json",
+        {
+            "schema_version": 1,
+            "sections": [
+                {
+                    "section_id": "primary-results",
+                    "direct_answer": "Transportability remained incomplete.",
+                    "key_quantitative_findings": ["Calibration and discrimination estimates remain required."],
+                    "clinical_meaning": "Absolute-risk use requires cohort-specific calibration.",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "figure_semantics_manifest.json",
+        {
+            "schema_version": 1,
+            "figures": [
+                {
+                    "figure_id": "figure-1",
+                    "story_role": "calibration",
+                    "direct_message": "Calibration evidence constrains cross-cohort transportability.",
+                }
+            ],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "awaiting_new_mas_authority",
+            "study_id": study_id,
+        },
+    )
+    route = _dispatch(
+        study_id=study_id,
+        action_type="canonical_paper_inputs_rehydrate_required",
+        owner="write",
+        required_output_surface="paper/medical_manuscript_blueprint_source.json",
+    )["owner_route"]
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_id,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_id,
+                    "action_type": "return_to_ai_reviewer_workflow",
+                    "execution_status": "blocked",
+                    "blocked_reason": "canonical_paper_inputs_rehydrate_required",
+                    "repeat_suppression_key": route["work_unit_fingerprint"],
+                    "prompt_contract": {
+                        "do_not_repeat": True,
+                        "repeat_suppression_key": route["work_unit_fingerprint"],
+                    },
+                    "owner_route": route,
+                    "owner_result": {
+                        "surface_kind": "canonical_paper_inputs_rehydrate_blocker",
+                        "authority_source_signature": "paper_authority_clean_migration",
+                        "legacy_artifact_reader_allowed": False,
+                        "mechanical_blueprint_as_canonical_allowed": False,
+                    },
+                }
+            ],
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "canonical_paper_inputs_rehydrate_required.json"
+    )
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="canonical_paper_inputs_rehydrate_required",
+            owner="write",
+            required_output_surface="paper/medical_manuscript_blueprint_source.json",
+            owner_route=dict(route),
+        ),
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("canonical_paper_inputs_rehydrate_required",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert execution["execution_status"] == "executed"
+    assert execution["repeat_suppression"]["repeat_suppressed"] is False
+    assert (study_root / "paper" / "medical_manuscript_blueprint_source.json").is_file()
+    assert not (study_root / "paper" / "medical_manuscript_blueprint.json").exists()

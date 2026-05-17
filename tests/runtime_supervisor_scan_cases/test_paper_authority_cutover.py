@@ -227,5 +227,6 @@ def test_supervisor_scan_routes_clean_cutover_rehydrate_blocker_to_write(
     assert action["recommended_owner"] == "write"
     assert action["reason"] == "canonical_paper_inputs_rehydrate_required"
     assert action["required_input_surface"].endswith("paper/medical_manuscript_blueprint.json")
+    assert action["required_output_surface"].endswith("paper/medical_manuscript_blueprint_source.json")
     assert study["blocked_reason"] == "canonical_paper_inputs_rehydrate_required"
     assert study["next_owner"] == "write"

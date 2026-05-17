@@ -11,6 +11,7 @@ from med_autoscience.profiles import WorkspaceProfile
 CURRENT_PACKAGE_FRESHNESS_PROOF_RELATIVE_PATH = Path("artifacts/controller/current_package_freshness/latest.json")
 GATE_CLEARING_BATCH_RELATIVE_PATH = Path("artifacts/controller/gate_clearing_batch/latest.json")
 PUBLICATION_EVAL_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
+MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH = Path("paper/medical_manuscript_blueprint_source.json")
 
 
 def required_output_pending(
@@ -22,6 +23,8 @@ def required_output_pending(
 ) -> bool:
     if action_type == "current_package_freshness_required":
         return current_package_freshness_output_pending(profile=profile, study_id=study_id)
+    if action_type == "canonical_paper_inputs_rehydrate_required":
+        return canonical_paper_inputs_rehydrate_output_pending(profile=profile, study_id=study_id)
     if action_type != "return_to_ai_reviewer_workflow":
         return False
     return ai_reviewer_output_pending(current_study)
@@ -46,6 +49,10 @@ def current_package_freshness_output_pending(*, profile: WorkspaceProfile, study
     if _source_eval_id_stale(proof, current_eval_id=current_eval_id):
         return True
     return _text(proof.get("status")) not in {"fresh", "current"}
+
+
+def canonical_paper_inputs_rehydrate_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
+    return not (profile.studies_root / study_id / MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH).is_file()
 
 
 def _source_eval_id_stale(payload: Mapping[str, Any] | None, *, current_eval_id: str | None) -> bool:
@@ -91,8 +98,10 @@ def _list(value: object) -> list[Any]:
 
 
 __all__ = [
+    "MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH",
     "PUBLICATION_EVAL_RELATIVE_PATH",
     "ai_reviewer_output_pending",
+    "canonical_paper_inputs_rehydrate_output_pending",
     "current_package_freshness_output_pending",
     "required_output_pending",
 ]

@@ -328,6 +328,7 @@ def _clean_paper_authority_rehydrate_action(
     required_input_surface = _text(execution.get("required_input_surface")) or str(
         study_root / "paper" / "medical_manuscript_blueprint.json"
     )
+    required_output_surface = str(study_root / "paper" / "medical_manuscript_blueprint_source.json")
     owner_callable_surface = _text(execution.get("owner_callable_surface")) or (
         "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint"
     )
@@ -343,7 +344,7 @@ def _clean_paper_authority_rehydrate_action(
             "inputs before the AI reviewer can evaluate the manuscript."
         ),
         "required_input_surface": required_input_surface,
-        "required_output_surface": required_input_surface,
+        "required_output_surface": required_output_surface,
         "owner_callable_surface": owner_callable_surface,
         "paper_package_mutation_allowed": False,
         "medical_claim_authoring_allowed": False,
