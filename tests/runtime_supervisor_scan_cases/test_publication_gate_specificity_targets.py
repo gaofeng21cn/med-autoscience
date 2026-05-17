@@ -854,3 +854,122 @@ def test_publication_gate_materialization_force_refreshes_specificity_targets_ov
         "metric",
         "source_path",
     ]
+
+
+def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_eval(
+    tmp_path: Path,
+) -> None:
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    study_root = tmp_path / "workspace" / "studies" / "001-dm-cvd-mortality-risk"
+    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-dm"
+    charter_path = study_root / "artifacts" / "controller" / "study_charter.json"
+    eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    receipt_path = study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"
+    (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
+    charter_path.parent.mkdir(parents=True)
+    charter_path.write_text(
+        (
+            "{"
+            '"charter_id":"charter-dm",'
+            '"publication_objective":"Test publication objective."'
+            "}"
+        ),
+        encoding="utf-8",
+    )
+    eval_path.parent.mkdir(parents=True)
+    eval_path.write_text(
+        __import__("json").dumps(
+            {
+                "eval_id": "publication-eval::current-clean-cutover-ai-reviewer",
+                "study_id": "001-dm-cvd-mortality-risk",
+                "quest_id": "quest-dm",
+                "emitted_at": "2026-05-17T08:00:00+00:00",
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": {
+                    "medical_journal_prose_quality": {
+                        "status": "underdefined",
+                        "summary": "Clean migration requires reviewer-owned write/gate rebuild.",
+                    }
+                },
+                "delivery_context_refs": {
+                    "paper_root_ref": str(study_root / "paper"),
+                },
+                "recommended_actions": [
+                    {
+                        "action_id": "publication-eval-action::return_to_controller::clean-cutover",
+                        "action_type": "return_to_controller",
+                        "priority": "now",
+                        "reason": "Rerun publication gate and delivery sync after clean migration.",
+                        "evidence_refs": [str(receipt_path)],
+                        "requires_controller_decision": True,
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    receipt_path.parent.mkdir(parents=True)
+    receipt_path.write_text(
+        __import__("json").dumps(
+            {
+                "schema_version": 1,
+                "surface_kind": "paper_authority_clean_migration",
+                "status": "new_mas_authority_established",
+                "study_id": "001-dm-cvd-mortality-risk",
+                "new_mas_authority": {
+                    "owner": "ai_reviewer",
+                    "publication_eval_ref": str(eval_path),
+                    "eval_id": "publication-eval::current-clean-cutover-ai-reviewer",
+                    "established_at": "2026-05-17T08:00:00+00:00",
+                },
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    report = {
+        "gate_kind": "publishability_control",
+        "generated_at": "2026-05-17T08:01:00+00:00",
+        "status": "blocked",
+        "blockers": [
+            "stale_submission_minimal_authority",
+            "medical_publication_surface_blocked",
+            "submission_hardening_incomplete",
+        ],
+        "quest_id": "quest-dm",
+        "paper_root": str(study_root / "paper"),
+        "latest_gate_path": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        "main_result_path": None,
+        "submission_minimal_manifest_path": str(
+            study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+        ),
+        "current_required_action": "complete_bundle_stage",
+        "supervisor_phase": "bundle_stage_blocked",
+        "controller_stage_note": "Bundle stage is currently blocked by concrete publication gate blockers.",
+        "force_publication_gate_specificity_refresh": True,
+    }
+
+    result = decision_module._materialize_publication_eval_from_gate_report(
+        study_root=study_root,
+        study_id="001-dm-cvd-mortality-risk",
+        quest_root=quest_root,
+        quest_id="quest-dm",
+        publication_gate_report=report,
+    )
+
+    assert result == {
+        "eval_id": "publication-eval::current-clean-cutover-ai-reviewer",
+        "artifact_path": str(eval_path),
+    }
+    record = __import__("json").loads(eval_path.read_text(encoding="utf-8"))
+    assert record["assessment_provenance"]["owner"] == "ai_reviewer"
+    assert record["eval_id"] == "publication-eval::current-clean-cutover-ai-reviewer"

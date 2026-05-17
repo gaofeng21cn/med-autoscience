@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from med_autoscience.controllers import paper_authority_migration
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.publication_eval_latest import stable_publication_eval_latest_path
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
@@ -167,6 +168,9 @@ def _current_ai_reviewer_publication_eval_ref(
         dict,
     ):
         return None
+    if paper_authority_migration.new_mas_authority_eval_current(study_root=study_root):
+        eval_id = str(payload.get("eval_id") or "").strip()
+        return {"eval_id": eval_id, "artifact_path": str(latest_path)} if eval_id else None
     if force_specificity_refresh and _publication_eval_verdict(payload) == "blocked":
         action_types = _publication_eval_action_types(payload)
         if action_types <= {"return_to_controller"}:
