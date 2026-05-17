@@ -91,7 +91,7 @@ def _display_registry_payload() -> dict:
             {
                 "display_id": "km_risk_stratification",
                 "display_kind": "figure",
-                "requirement_key": "kaplan_meier_grouped",
+                "requirement_key": "time_to_event_risk_group_summary",
                 "catalog_id": "F3",
                 "shell_path": "paper/figures/km_risk_stratification.shell.json",
             },
@@ -266,9 +266,9 @@ def test_run_time_to_event_direct_migration_writes_complete_inputs(tmp_path: Pat
 
     assert report["status"] == "synced"
     assert report["blockers"] == []
-    assert len(report["written_files"]) == 8
+    assert len(report["written_files"]) == 7
     assert report["authority_sync"]["status"] == "not_available"
-    assert str(paper_root / "display_registry.json") in report["written_files"]
+    assert str(paper_root / "display_registry.json") not in report["written_files"]
 
     assert f2["input_schema_id"] == "time_to_event_discrimination_calibration_inputs_v1"
     assert f2["displays"][0]["display_id"] == "discrimination_calibration"
@@ -440,13 +440,13 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
             "figure_shell_requirements": [
                 "cohort_flow_figure",
                 "time_to_event_discrimination_calibration_panel",
-                "kaplan_meier_grouped",
+                "time_to_event_risk_group_summary",
                 "time_to_event_decision_curve",
                 "multicenter_generalizability_overview",
             ],
             "required_evidence_templates": [
                 "time_to_event_discrimination_calibration_panel",
-                "kaplan_meier_grouped",
+                "time_to_event_risk_group_summary",
                 "time_to_event_decision_curve",
                 "multicenter_generalizability_overview",
             ],
@@ -466,7 +466,7 @@ def test_run_time_to_event_direct_migration_syncs_authority_paper_truth_into_run
                 {
                     "display_id": "km_risk_stratification",
                     "display_kind": "figure",
-                    "requirement_key": "kaplan_meier_grouped",
+                    "requirement_key": "time_to_event_risk_group_summary",
                     "catalog_id": "F3",
                 },
                 {
@@ -603,6 +603,24 @@ def test_run_time_to_event_direct_migration_rejects_missing_required_display_bin
         module.run_time_to_event_direct_migration(study_root=study_root, paper_root=paper_root)
 
 
+def test_run_time_to_event_direct_migration_rejects_legacy_risk_group_binding_without_normalizing(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.time_to_event_direct_migration")
+    study_root = tmp_path / "studies" / "001-dm"
+    paper_root = tmp_path / "paper"
+    registry = _display_registry_payload()
+    registry["displays"][1]["requirement_key"] = "kaplan_meier_grouped"
+    write_json(paper_root / "display_registry.json", registry)
+
+    with pytest.raises(ValueError, match="missing required display binding: time_to_event_risk_group_summary"):
+        module.run_time_to_event_direct_migration(study_root=study_root, paper_root=paper_root)
+
+    registry_after = json.loads((paper_root / "display_registry.json").read_text(encoding="utf-8"))
+    assert registry_after["displays"][1]["requirement_key"] == "kaplan_meier_grouped"
+    assert not (paper_root / "time_to_event_grouped_inputs.json").exists()
+
+
 def test_run_time_to_event_direct_migration_accepts_current_transportability_governance_binding(
     monkeypatch,
     tmp_path: Path,
@@ -702,3 +720,139 @@ def test_run_time_to_event_direct_migration_accepts_current_transportability_gov
     assert not (paper_root / "multicenter_generalizability_inputs.json").exists()
     assert (paper_root / "time_to_event_grouped_inputs.json").exists()
     assert report["notes"]["transportability_governance_binding"] == "current_contract_preserved"
+
+
+def test_run_time_to_event_direct_migration_materializes_current_transportability_layout_without_old_endpoint_root(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.time_to_event_direct_migration")
+    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
+    paper_root = tmp_path / "paper"
+    registry = _display_registry_payload()
+    registry["displays"] = [
+        item
+        for item in registry["displays"]
+        if item["requirement_key"] != "multicenter_generalizability_overview"
+    ]
+    registry["displays"].append(
+        {
+            "display_id": "transportability_governance",
+            "display_kind": "figure",
+            "requirement_key": "center_transportability_governance_summary_panel",
+            "catalog_id": "F5",
+            "shell_path": "paper/figures/transportability_governance.shell.json",
+        }
+    )
+    write_json(paper_root / "display_registry.json", registry)
+    preserved_f4 = {
+        "schema_version": 1,
+        "input_schema_id": "time_to_event_decision_curve_inputs_v1",
+        "displays": [{"display_id": "decision_curve", "preserved": True}],
+    }
+    preserved_t2 = {
+        "schema_version": 1,
+        "table_shell_id": "table2_time_to_event_performance_summary",
+        "display_id": "time_to_event_performance_summary",
+        "preserved": True,
+    }
+    write_json(paper_root / "time_to_event_decision_curve_inputs.json", preserved_f4)
+    write_json(paper_root / "time_to_event_performance_summary.json", preserved_t2)
+    transportability_root = study_root / "analysis" / "clean_room_execution" / "20_transportability"
+    write_json(
+        transportability_root / "metrics_summary.json",
+        {
+            "discrimination": {
+                "china_c_index": 0.7599854745055089,
+                "nhanes_c_index": 0.5647085232871016,
+                "nhanes_minus_china": -0.19527695121840727,
+                "china_n": 15789,
+                "nhanes_n": 5659,
+            },
+            "risk_group_separation": {
+                "china_top_minus_bottom_observed_5y_rate": 0.04636535411322618,
+                "nhanes_top_minus_bottom_observed_5y_rate": 0.0,
+                "nhanes_minus_china": -0.04636535411322618,
+                "china_occupied_group_count": 4,
+                "nhanes_occupied_group_count": 1,
+            },
+            "calibration_drift": {
+                "china_predicted_mean_5y_risk": 0.019599702325312857,
+                "china_observed_5y_rate": 0.02033060991829755,
+                "china_gap": -0.000730907592984692,
+                "nhanes_predicted_mean_5y_risk": 0.0011370663428312497,
+                "nhanes_observed_5y_rate": 0.12440360487718678,
+                "nhanes_gap": -0.12326653853435553,
+                "nhanes_minus_china_gap": -0.12253563094137084,
+            },
+            "absolute_risk_shift": {
+                "china_observed_5y_rate": 0.02033060991829755,
+                "nhanes_observed_5y_rate": 0.12440360487718678,
+                "observed_rate_shift_nhanes_minus_china": 0.10407299495888923,
+                "predicted_mean_shift_nhanes_minus_china": -0.018462635982481608,
+            },
+        },
+    )
+    write_text(
+        transportability_root / "discrimination_report.md",
+        "\n".join(
+            [
+                "# Discrimination Report",
+                "",
+                "- China c-index: `0.7600`",
+                "- NHANES c-index: `0.5647`",
+                "",
+            ]
+        )
+        + "\n",
+    )
+    write_text(
+        transportability_root / "risk_group_composition_report.md",
+        "\n".join(
+            [
+                "# Risk Group Composition Report",
+                "",
+                "| cohort | risk_group | n | observed_5y_event_rate | predicted_mean_5y_risk |",
+                "| --- | --- | --- | --- | --- |",
+                "| China | Q1_low | 3948 | 0.0041 | 0.0157 |",
+                "| China | Q2 | 3947 | 0.0099 | 0.0184 |",
+                "| China | Q3 | 3947 | 0.0170 | 0.0204 |",
+                "| China | Q4_high | 3947 | 0.0504 | 0.0239 |",
+                "| NHANES | Q1_low | 5659 | 0.1244 | 0.0011 |",
+                "| NHANES | Q2 | 0 | nan | nan |",
+                "",
+            ]
+        )
+        + "\n",
+    )
+
+    report = module.run_time_to_event_direct_migration(study_root=study_root, paper_root=paper_root)
+
+    f2 = json.loads((paper_root / "time_to_event_discrimination_calibration_inputs.json").read_text(encoding="utf-8"))
+    f3 = json.loads((paper_root / "time_to_event_grouped_inputs.json").read_text(encoding="utf-8"))
+    f5 = json.loads(
+        (paper_root / "center_transportability_governance_summary_panel_inputs.json").read_text(encoding="utf-8")
+    )
+
+    assert report["status"] == "synced"
+    assert report["blockers"] == []
+    assert report["notes"]["analysis_layout"] == "transportability_current_layout"
+    assert "10_china_primary_endpoint" not in "\n".join(report["source_paths"].values())
+    assert report["source_paths"]["metrics_summary"] == str(transportability_root / "metrics_summary.json")
+    assert not (paper_root / "multicenter_generalizability_inputs.json").exists()
+    assert json.loads((paper_root / "time_to_event_decision_curve_inputs.json").read_text(encoding="utf-8")) == preserved_f4
+    assert json.loads((paper_root / "time_to_event_performance_summary.json").read_text(encoding="utf-8")) == preserved_t2
+
+    assert [item["label"] for item in f2["displays"][0]["discrimination_points"]] == ["China", "NHANES"]
+    assert f2["displays"][0]["calibration_callout"]["group_label"] == "NHANES external cohort"
+    assert "groups" not in f3["displays"][0]
+    assert [item["label"] for item in f3["displays"][0]["risk_group_summaries"]] == [
+        "China Q1 low",
+        "China Q2",
+        "China Q3",
+        "China Q4 high",
+        "NHANES Q1 low",
+    ]
+    assert f5["input_schema_id"] == "center_transportability_governance_summary_panel_inputs_v1"
+    assert f5["displays"][0]["display_id"] == "transportability_governance"
+    assert f5["displays"][0]["centers"][1]["center_label"] == "NHANES"
+    assert f5["displays"][0]["centers"][1]["verdict"] == "recalibration_required"

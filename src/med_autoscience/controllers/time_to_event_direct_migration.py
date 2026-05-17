@@ -4,12 +4,11 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import display_registry
-from med_autoscience.policies import medical_reporting_contract as medical_reporting_contract_policy
 
 from .time_to_event_direct_migration_parts.file_sync import (
     MULTICENTER_GENERALIZABILITY_REQUIREMENT_KEY,
+    TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY,
     _REQUIRED_DISPLAY_KEYS,
-    _normalize_required_display_registry,
     _require_binding,
     _require_f5_binding_variant,
     _sync_authority_paper_truth,
@@ -25,6 +24,10 @@ from .time_to_event_direct_migration_parts.shared import (
     _slugify,
     _utc_now,
     _write_json,
+)
+from .time_to_event_direct_migration_parts.transportability_current import (
+    current_transportability_layout_available,
+    run_current_transportability_layout_migration,
 )
 
 _CENTER_SPLIT_BUCKET_ORDER = {"train": 0, "validation": 1}
@@ -755,26 +758,42 @@ def run_time_to_event_direct_migration(*, study_root: Path, paper_root: Path) ->
         paper_root=resolved_paper_root,
     )
     written_files: list[str] = list(authority_sync.get("synced_files") or [])
-    medical_reporting_contract_path = resolved_paper_root / "medical_reporting_contract.json"
-    if medical_reporting_contract_path.exists():
-        medical_reporting_contract_payload = _load_json(medical_reporting_contract_path)
-        medical_reporting_contract_updated = medical_reporting_contract_policy.normalize_legacy_requirement_keys(
-            medical_reporting_contract_payload
-        )
-        if medical_reporting_contract_updated:
-            _write_json(medical_reporting_contract_path, medical_reporting_contract_payload)
-            written_files.append(str(medical_reporting_contract_path))
     registry_payload = _load_json(resolved_paper_root / "display_registry.json")
-    registry_updated = _normalize_required_display_registry(registry_payload=registry_payload)
-    if registry_updated:
-        _write_json(resolved_paper_root / "display_registry.json", registry_payload)
-        written_files.append(str(resolved_paper_root / "display_registry.json"))
 
     bindings = {
         key: _require_binding(registry_payload=registry_payload, requirement_key=key)
         for key in _REQUIRED_DISPLAY_KEYS
     }
     f5_requirement_key, f5_binding = _require_f5_binding_variant(registry_payload=registry_payload)
+    if (
+        f5_requirement_key == TRANSPORTABILITY_GOVERNANCE_REQUIREMENT_KEY
+        and current_transportability_layout_available(study_root=resolved_study_root)
+    ):
+        blockers: list[str] = []
+        current_layout_result = run_current_transportability_layout_migration(
+            study_root=resolved_study_root,
+            paper_root=resolved_paper_root,
+            bindings=bindings,
+            f5_binding=f5_binding,
+        )
+        written_files.extend(current_layout_result["written_files"])
+        report_path = resolved_paper_root / "direct_migration" / "time_to_event_direct_migration_report.json"
+        report = {
+            "status": "blocked" if blockers else "synced",
+            "recorded_at": _utc_now(),
+            "study_root": str(resolved_study_root),
+            "paper_root": str(resolved_paper_root),
+            "written_files": written_files,
+            "blockers": blockers,
+            "authority_sync": authority_sync,
+            "source_paths": current_layout_result["source_paths"],
+            "notes": current_layout_result["notes"],
+        }
+        _write_json(report_path, report)
+        written_files.append(str(report_path))
+        report["written_files"] = written_files
+        report["report_path"] = str(report_path)
+        return report
 
     primary_derived_root = (
         resolved_study_root / "analysis" / "clean_room_execution" / "10_china_primary_endpoint" / "derived"

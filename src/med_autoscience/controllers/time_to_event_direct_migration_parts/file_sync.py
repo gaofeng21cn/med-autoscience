@@ -21,11 +21,6 @@ F5_REQUIREMENT_KEYS = (
 )
 
 
-_LEGACY_REQUIREMENT_KEY_ALIASES = {
-    "time_to_event_risk_group_summary": ("kaplan_meier_grouped",),
-}
-
-
 _AUTHORITY_PAPER_SYNC_RELATIVE_PATHS = (
     "publication_style_profile.json",
     "display_overrides.json",
@@ -98,26 +93,6 @@ def _sync_authority_paper_truth(
     summary["already_aligned"] = already_aligned
     summary["missing_authority_files"] = missing_authority_files
     return summary
-
-
-def _normalize_required_display_registry(*, registry_payload: dict[str, Any]) -> bool:
-    displays = registry_payload.get("displays")
-    if not isinstance(displays, list):
-        raise ValueError("display_registry.json missing displays list")
-    updated = False
-    for item in displays:
-        if not isinstance(item, dict):
-            continue
-        raw_requirement_key = str(item.get("requirement_key") or "").strip()
-        if not raw_requirement_key:
-            continue
-        for canonical_key, aliases in _LEGACY_REQUIREMENT_KEY_ALIASES.items():
-            if raw_requirement_key not in aliases:
-                continue
-            item["requirement_key"] = canonical_key
-            updated = True
-            break
-    return updated
 
 
 def _require_binding(

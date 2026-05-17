@@ -622,19 +622,6 @@ def _time_to_event_direct_migration_display_inputs_need_refresh(*, paper_root: P
     )
 
 
-def _legacy_direct_migration_feature_shift_payload_present(
-    *,
-    paper_root: Path,
-    input_schema_id: str,
-    display_id: str,
-) -> bool:
-    return display_refresh.legacy_direct_migration_feature_shift_payload_present(
-        paper_root=paper_root,
-        input_schema_id=input_schema_id,
-        display_id=display_id,
-    )
-
-
 def _run_workspace_display_repair_script(*, paper_root: Path) -> dict[str, Any]:
     return execution_helpers.run_workspace_display_repair_script(paper_root=paper_root)
 

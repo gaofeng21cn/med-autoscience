@@ -205,16 +205,9 @@ def time_to_event_direct_migration_display_inputs_need_refresh(
         return True
     requirement_key = str(item.get("requirement_key") or "").strip()
     if requirement_key == "center_transportability_governance_summary_panel":
-        spec = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
-            "center_transportability_governance_summary_panel"
-        )
-        try:
-            display_surface_materialization_controller._load_evidence_display_payload(
-                paper_root=paper_root,
-                spec=spec,
-                display_id=display_id,
-            )
-        except (FileNotFoundError, ValueError, json.JSONDecodeError):
+        if gate_clearing_batch_transportability.transportability_governance_display_inputs_need_refresh(
+            paper_root=paper_root
+        ):
             return True
         return False
     spec = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
@@ -227,26 +220,6 @@ def time_to_event_direct_migration_display_inputs_need_refresh(
             display_id=display_id,
         )
     except (FileNotFoundError, ValueError, json.JSONDecodeError):
-        if legacy_direct_migration_feature_shift_payload_present(
-            paper_root=paper_root,
-            input_schema_id=spec.input_schema_id,
-            display_id=display_id,
-        ):
-            return False
         return True
     source_paths = string_list(payload.get("source_paths"))
     return any("ops/med-the research workflow" in item for item in source_paths)
-
-
-def legacy_direct_migration_feature_shift_payload_present(
-    *,
-    paper_root: Path,
-    input_schema_id: str,
-    display_id: str,
-) -> bool:
-    return gate_clearing_batch_transportability.legacy_direct_migration_feature_shift_payload_present(
-        paper_root=paper_root,
-        input_schema_id=input_schema_id,
-        display_id=display_id,
-        input_filename_by_schema_id=INPUT_FILENAME_BY_SCHEMA_ID,
-    )
