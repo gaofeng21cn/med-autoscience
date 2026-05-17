@@ -11,7 +11,6 @@ from med_autoscience.controllers.gate_clearing_batch_parts.io_utils import (
     non_empty_text,
     read_json,
     string_list,
-    write_json,
 )
 from med_autoscience.display_source_contract import INPUT_FILENAME_BY_SCHEMA_ID
 
@@ -66,20 +65,16 @@ def _registry_display_ids_for_requirement(
     return display_ids
 
 
-def _time_to_event_grouped_template_ids(
+def _time_to_event_risk_group_summary_template_id(
     *,
     display_surface_materialization_controller: Any,
-) -> tuple[str, str]:
-    expected_template_id = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
+) -> str:
+    return display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
         "time_to_event_risk_group_summary"
     ).template_id
-    legacy_template_id = display_surface_materialization_controller.display_registry.get_evidence_figure_spec(
-        "cumulative_incidence_grouped"
-    ).template_id
-    return expected_template_id, legacy_template_id
 
 
-def _is_legacy_time_to_event_grouped_normalization_candidate(
+def _is_stale_time_to_event_grouped_payload_candidate(
     *,
     display: object,
     risk_summary_display_ids: set[str],
@@ -100,7 +95,7 @@ def _is_legacy_time_to_event_grouped_normalization_candidate(
     return display_id
 
 
-def _legacy_time_to_event_grouped_normalization_candidate_ids(
+def _stale_time_to_event_grouped_payload_candidate_ids(
     *,
     displays: list[object],
     risk_summary_display_ids: set[str],
@@ -108,7 +103,7 @@ def _legacy_time_to_event_grouped_normalization_candidate_ids(
 ) -> list[str]:
     candidate_display_ids: list[str] = []
     for display in displays:
-        display_id = _is_legacy_time_to_event_grouped_normalization_candidate(
+        display_id = _is_stale_time_to_event_grouped_payload_candidate(
             display=display,
             risk_summary_display_ids=risk_summary_display_ids,
             expected_template_id=expected_template_id,
@@ -118,100 +113,44 @@ def _legacy_time_to_event_grouped_normalization_candidate_ids(
     return candidate_display_ids
 
 
-def legacy_time_to_event_grouped_payload_normalization_candidates(
+def stale_time_to_event_grouped_payload_candidates(
     *,
     paper_root: Path,
     display_surface_materialization_controller: Any,
-) -> tuple[Path, list[str], str | None, str | None]:
+) -> tuple[Path, list[str], str | None]:
     payload_path = Path(paper_root) / INPUT_FILENAME_BY_SCHEMA_ID["time_to_event_grouped_inputs_v1"]
     registry_payload = read_json(Path(paper_root) / "display_registry.json")
     payload = read_json(payload_path)
     displays = payload.get("displays")
     registry_items = registry_payload.get("displays")
     if not isinstance(displays, list) or not isinstance(registry_items, list):
-        return payload_path, [], None, None
+        return payload_path, [], None
 
     risk_summary_display_ids = _registry_display_ids_for_requirement(
         registry_items=registry_items,
         requirement_key="time_to_event_risk_group_summary",
     )
     if not risk_summary_display_ids:
-        return payload_path, [], None, None
+        return payload_path, [], None
 
-    expected_template_id, legacy_template_id = _time_to_event_grouped_template_ids(
+    expected_template_id = _time_to_event_risk_group_summary_template_id(
         display_surface_materialization_controller=display_surface_materialization_controller,
     )
-    candidate_display_ids = _legacy_time_to_event_grouped_normalization_candidate_ids(
+    candidate_display_ids = _stale_time_to_event_grouped_payload_candidate_ids(
         displays=displays,
         risk_summary_display_ids=risk_summary_display_ids,
         expected_template_id=expected_template_id,
     )
 
-    return payload_path, candidate_display_ids, expected_template_id, legacy_template_id
+    return payload_path, candidate_display_ids, expected_template_id
 
 
-def normalize_legacy_time_to_event_grouped_payloads(
-    *,
-    paper_root: Path,
-    display_surface_materialization_controller: Any,
-) -> dict[str, Any]:
-    payload_path, candidate_display_ids, expected_template_id, legacy_template_id = (
-        legacy_time_to_event_grouped_payload_normalization_candidates(
-            paper_root=paper_root,
-            display_surface_materialization_controller=display_surface_materialization_controller,
-        )
-    )
-    if expected_template_id is None or legacy_template_id is None:
-        return {
-            "status": "current",
-            "reason": "time-to-event grouped payload or display registry has no normalization candidates",
-            "payload_path": str(payload_path),
-        }
-
-    if not candidate_display_ids:
-        return {
-            "status": "current",
-            "payload_path": str(payload_path),
-            "checked_display_ids": [],
-        }
-
-    payload = read_json(payload_path)
-    displays = payload.get("displays")
-    if not isinstance(displays, list):
-        return {
-            "status": "current",
-            "reason": "time-to-event grouped payload is not readable",
-            "payload_path": str(payload_path),
-        }
-    updated_display_ids: list[str] = []
-    candidate_display_id_set = set(candidate_display_ids)
-    for display in displays:
-        if not isinstance(display, dict):
-            continue
-        display_id = str(display.get("display_id") or "").strip()
-        if display_id not in candidate_display_id_set:
-            continue
-        display["legacy_requested_template_id"] = expected_template_id
-        display["template_id"] = legacy_template_id
-        updated_display_ids.append(display_id)
-
-    write_json(payload_path, payload)
-    return {
-        "status": "updated",
-        "payload_path": str(payload_path),
-        "updated_payload_paths": [str(payload_path)],
-        "updated_display_ids": updated_display_ids,
-        "legacy_requested_template_id": expected_template_id,
-        "normalized_template_id": legacy_template_id,
-    }
-
-
-def legacy_time_to_event_grouped_payloads_need_normalization(
+def stale_time_to_event_grouped_payloads_need_rematerialization(
     *,
     paper_root: Path,
     display_surface_materialization_controller: Any,
 ) -> bool:
-    _, candidate_display_ids, _, _ = legacy_time_to_event_grouped_payload_normalization_candidates(
+    _, candidate_display_ids, _ = stale_time_to_event_grouped_payload_candidates(
         paper_root=paper_root,
         display_surface_materialization_controller=display_surface_materialization_controller,
     )

@@ -53,6 +53,12 @@
 - 理由：DM-CVD 001 的 progress projection 被旧字段阻断。把 reader 放宽会把退役 schema 重新变成可执行 truth，与 clean migration 目标冲突。正确做法是让 active config 自身升级到新 schema，旧字段只在 migration receipt/history 中留下 provenance。
 - 影响：该迁移不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package、runtime truth 或质量 verdict。未知旧字段、字段冲突或无法唯一定位的文本更新继续 fail closed，交给 config migration owner 修正，不能用兼容层掩盖。
 
+## 2026-05-17：display payload 迁移不做旧模板字段重写
+
+- 决策：gate-clearing batch 不再把旧 `time_to_event_grouped_inputs.json` 中的 cumulative-incidence `groups` payload 改写为另一个 template 后继续 materialize。若 `time_to_event_risk_group_summary` 绑定下出现这种旧 display payload，当前轮必须写出 `stale_legacy_time_to_event_grouped_payload` typed blocker，并交回 `time_to_event_direct_migration` 重新物化 canonical display input。
+- 理由：旧 display payload 和旧 paper authority surface 一样只能作为 provenance。把 `template_id` 从 risk-group summary 改到 cumulative-incidence grouped 属于兼容读取，会让历史 artifact 继续成为 executable display truth。
+- 影响：DM-CVD、Obesity、NF-PitNET 等旧论文项目迁入新 MAS 时，F3/Figure display surface 必须由 canonical analysis / direct-migration owner 重建；未知旧 display shape 继续 fail closed，不新增 normalizer、alias 或兼容测试。
+
 ## 2026-05-17：MAS consumer thinning 后功能/结构差距清零，剩余只按证据门推进
 
 - 决策：`functional_consumer_boundary.functional_gap_zero_summary` 是 MAS consumer thinning lane 的机器结论面。当前 `functional_structure_gap_count=0`、`active_private_generic_residue_count=0`、`remaining_gap_classification=test_evidence_gates_only`；MAS gap plan 中原先列为功能/结构差距的 runtime/scheduler/queue/attempt ledger/generic lifecycle/workspace-source shell/memory-artifact transport/workbench/observability/CLI-MCP-product-entry-sidecar-status wrapper，已分别归入 declarative pack / OPL generated surface、refs-only adapter、minimal authority function 或 legacy cleanup gate。

@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-def test_run_gate_clearing_batch_normalizes_f3_payload_rewritten_by_transport_sync(
+def test_run_gate_clearing_batch_blocks_f3_payload_rewritten_by_transport_sync(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -127,13 +127,7 @@ def test_run_gate_clearing_batch_normalizes_f3_payload_rewritten_by_transport_sy
     )
 
     def fake_materialize(*, paper_root: Path) -> dict[str, object]:
-        payload = json.loads((paper_root / "time_to_event_grouped_inputs.json").read_text(encoding="utf-8"))
-        display = payload["displays"][0]
-        assert display["template_id"] == "fenggaolab.org.medical-display-core::cumulative_incidence_grouped"
-        assert display["legacy_requested_template_id"] == (
-            "fenggaolab.org.medical-display-core::time_to_event_risk_group_summary"
-        )
-        return {"status": "materialized", "figures_materialized": ["F3"]}
+        raise AssertionError("stale legacy grouped payloads must block before display materialization")
 
     monkeypatch.setattr(module, "_materialize_display_surface", fake_materialize)
     monkeypatch.setattr(
@@ -158,11 +152,15 @@ def test_run_gate_clearing_batch_normalizes_f3_payload_rewritten_by_transport_sy
     assert [item["unit_id"] for item in result["unit_results"]] == [
         "repair_paper_live_paths",
         "sync_transportability_reporting_surface",
-        "normalize_legacy_time_to_event_grouped_payloads",
+        "stale_time_to_event_grouped_payload_blocker",
         "materialize_display_surface",
     ]
-    assert result["unit_results"][2]["status"] == "updated"
-    assert result["repair_blocking_artifact_refs"] == []
+    blocker_result = result["unit_results"][2]
+    assert blocker_result["status"] == "failed"
+    assert blocker_result["blocker"] == "stale_legacy_time_to_event_grouped_payload"
+    assert blocker_result["blocking_artifact_refs"][0]["required_owner"] == "time_to_event_direct_migration"
+    assert result["unit_results"][3]["status"] == "skipped_failed_dependency"
+    assert result["repair_blocking_artifact_refs"] == blocker_result["blocking_artifact_refs"]
 
 
 def test_repair_paper_live_paths_canonicalizes_absolute_paths_from_old_worktree(

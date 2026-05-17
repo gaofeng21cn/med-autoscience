@@ -21,7 +21,11 @@ _OPEN_LIFECYCLE_UNIT_STATUSES = _BLOCKING_STATUSES | frozenset(
 )
 STEP_SURFACE_METADATA_KEYS = (
     "authority_fingerprints",
+    "blocker",
+    "blocking_artifact_refs",
+    "next_owner",
     "settle_window_ns",
+    "terminal_state",
     "retry_reason",
     "retry_after",
     "retry_after_seconds",

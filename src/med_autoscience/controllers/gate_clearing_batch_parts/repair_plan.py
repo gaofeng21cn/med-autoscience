@@ -6,6 +6,33 @@ from typing import Any, Callable
 from med_autoscience.profiles import WorkspaceProfile
 
 
+def _stale_time_to_event_grouped_payload_blocker(
+    *,
+    paper_root: Path,
+) -> dict[str, Any]:
+    payload_path = Path(paper_root) / "time_to_event_grouped_inputs.json"
+    return {
+        "status": "failed",
+        "blocker": "stale_legacy_time_to_event_grouped_payload",
+        "payload_path": str(payload_path),
+        "blocking_artifact_refs": [
+            {
+                "blocker": "stale_legacy_time_to_event_grouped_payload",
+                "artifact_path": str(payload_path),
+                "artifact_role": "display_input_payload",
+                "failure_reason": (
+                    "time_to_event_risk_group_summary payload contains cumulative-incidence groups; "
+                    "current display truth must be rematerialized by the time-to-event direct-migration owner"
+                ),
+                "required_owner": "time_to_event_direct_migration",
+                "terminal_state": "gate_needs_specificity",
+            }
+        ],
+        "terminal_state": "gate_needs_specificity",
+        "next_owner": "time_to_event_direct_migration",
+    }
+
+
 def _append_repair_paper_live_paths_unit(
     *,
     repair_units: list[Any],
@@ -62,9 +89,8 @@ def _append_display_materialization_units(
     materialize_display_surface: Callable[..., dict[str, Any]],
     publication_shell_surface_needs_sync: Callable[..., bool],
     time_to_event_direct_migration_display_inputs_need_refresh: Callable[..., bool],
-    legacy_time_to_event_grouped_payloads_need_normalization: Callable[..., bool],
+    stale_time_to_event_grouped_payloads_need_rematerialization: Callable[..., bool],
     time_to_event_risk_group_surface_present: Callable[..., bool],
-    normalize_legacy_time_to_event_grouped_payloads: Callable[..., dict[str, Any]],
     gate_clearing_batch_transportability: Any,
     publication_shell_sync: Any,
     time_to_event_direct_migration: Any,
@@ -100,24 +126,24 @@ def _append_display_materialization_units(
                 ),
             )
         )
-    if _time_to_event_grouped_payloads_need_normalization(
+    if _stale_time_to_event_grouped_payloads_need_rematerialization(
         paper_root=paper_root,
         repair_units=repair_units,
-        legacy_time_to_event_grouped_payloads_need_normalization=legacy_time_to_event_grouped_payloads_need_normalization,
+        stale_time_to_event_grouped_payloads_need_rematerialization=stale_time_to_event_grouped_payloads_need_rematerialization,
         time_to_event_risk_group_surface_present=time_to_event_risk_group_surface_present,
     ):
         repair_units.append(
             repair_unit_cls(
-                unit_id="normalize_legacy_time_to_event_grouped_payloads",
-                label="Normalize legacy time-to-event grouped display payload templates before surface materialization",
-                parallel_safe=True,
+                unit_id="stale_time_to_event_grouped_payload_blocker",
+                label="Block stale time-to-event grouped display payload until canonical rematerialization",
+                parallel_safe=False,
                 depends_on=existing_dependency_ids(
                     repair_units,
                     "repair_paper_live_paths",
                     "sync_transportability_reporting_surface",
                     "time_to_event_direct_migration",
                 ),
-                run=lambda: normalize_legacy_time_to_event_grouped_payloads(paper_root=paper_root),
+                run=lambda: _stale_time_to_event_grouped_payload_blocker(paper_root=paper_root),
             )
         )
     if publication_shell_surface_needs_sync(study_root=study_root, paper_root=paper_root):
@@ -143,7 +169,7 @@ def _append_display_materialization_units(
                 "repair_paper_live_paths",
                 "sync_transportability_reporting_surface",
                 "time_to_event_direct_migration",
-                "normalize_legacy_time_to_event_grouped_payloads",
+                "stale_time_to_event_grouped_payload_blocker",
                 "sync_publication_shell_surface",
             ),
             run=lambda: materialize_display_surface(paper_root=paper_root),
@@ -151,14 +177,14 @@ def _append_display_materialization_units(
     )
 
 
-def _time_to_event_grouped_payloads_need_normalization(
+def _stale_time_to_event_grouped_payloads_need_rematerialization(
     *,
     paper_root: Path,
     repair_units: list[Any],
-    legacy_time_to_event_grouped_payloads_need_normalization: Callable[..., bool],
+    stale_time_to_event_grouped_payloads_need_rematerialization: Callable[..., bool],
     time_to_event_risk_group_surface_present: Callable[..., bool],
 ) -> bool:
-    return legacy_time_to_event_grouped_payloads_need_normalization(paper_root=paper_root) or (
+    return stale_time_to_event_grouped_payloads_need_rematerialization(paper_root=paper_root) or (
         time_to_event_risk_group_surface_present(paper_root=paper_root)
         and any(unit.unit_id == "sync_transportability_reporting_surface" for unit in repair_units)
     )
@@ -190,9 +216,8 @@ def build_gate_clearing_repair_units(
     materialize_display_surface: Callable[..., dict[str, Any]],
     publication_shell_surface_needs_sync: Callable[..., bool],
     time_to_event_direct_migration_display_inputs_need_refresh: Callable[..., bool],
-    legacy_time_to_event_grouped_payloads_need_normalization: Callable[..., bool],
+    stale_time_to_event_grouped_payloads_need_rematerialization: Callable[..., bool],
     time_to_event_risk_group_surface_present: Callable[..., bool],
-    normalize_legacy_time_to_event_grouped_payloads: Callable[..., dict[str, Any]],
     sync_submission_minimal_delivery: Callable[..., dict[str, Any]],
     create_submission_minimal_package: Callable[..., dict[str, Any]],
     route_bound: Callable[..., Callable[..., dict[str, Any]]],
@@ -259,11 +284,10 @@ def build_gate_clearing_repair_units(
                 time_to_event_direct_migration_display_inputs_need_refresh=(
                     time_to_event_direct_migration_display_inputs_need_refresh
                 ),
-                legacy_time_to_event_grouped_payloads_need_normalization=(
-                    legacy_time_to_event_grouped_payloads_need_normalization
+                stale_time_to_event_grouped_payloads_need_rematerialization=(
+                    stale_time_to_event_grouped_payloads_need_rematerialization
                 ),
                 time_to_event_risk_group_surface_present=time_to_event_risk_group_surface_present,
-                normalize_legacy_time_to_event_grouped_payloads=normalize_legacy_time_to_event_grouped_payloads,
                 gate_clearing_batch_transportability=gate_clearing_batch_transportability,
                 publication_shell_sync=publication_shell_sync,
                 time_to_event_direct_migration=time_to_event_direct_migration,

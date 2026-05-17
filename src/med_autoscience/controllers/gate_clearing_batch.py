@@ -594,25 +594,18 @@ def _publication_shell_surface_needs_sync(*, study_root: Path, paper_root: Path)
     return display_refresh.publication_shell_surface_needs_sync(study_root=study_root, paper_root=paper_root)
 
 
-def _legacy_time_to_event_grouped_payload_normalization_candidates(
+def _stale_time_to_event_grouped_payload_candidates(
     *,
     paper_root: Path,
-) -> tuple[Path, list[str], str | None, str | None]:
-    return display_refresh.legacy_time_to_event_grouped_payload_normalization_candidates(
+) -> tuple[Path, list[str], str | None]:
+    return display_refresh.stale_time_to_event_grouped_payload_candidates(
         paper_root=paper_root,
         display_surface_materialization_controller=display_surface_materialization,
     )
 
 
-def _normalize_legacy_time_to_event_grouped_payloads(*, paper_root: Path) -> dict[str, Any]:
-    return display_refresh.normalize_legacy_time_to_event_grouped_payloads(
-        paper_root=paper_root,
-        display_surface_materialization_controller=display_surface_materialization,
-    )
-
-
-def _legacy_time_to_event_grouped_payloads_need_normalization(*, paper_root: Path) -> bool:
-    return display_refresh.legacy_time_to_event_grouped_payloads_need_normalization(
+def _stale_time_to_event_grouped_payloads_need_rematerialization(*, paper_root: Path) -> bool:
+    return display_refresh.stale_time_to_event_grouped_payloads_need_rematerialization(
         paper_root=paper_root,
         display_surface_materialization_controller=display_surface_materialization,
     )
@@ -869,9 +862,10 @@ def run_gate_clearing_batch(
         materialize_display_surface=_materialize_display_surface,
         publication_shell_surface_needs_sync=_publication_shell_surface_needs_sync,
         time_to_event_direct_migration_display_inputs_need_refresh=_time_to_event_direct_migration_display_inputs_need_refresh,
-        legacy_time_to_event_grouped_payloads_need_normalization=_legacy_time_to_event_grouped_payloads_need_normalization,
+        stale_time_to_event_grouped_payloads_need_rematerialization=(
+            _stale_time_to_event_grouped_payloads_need_rematerialization
+        ),
         time_to_event_risk_group_surface_present=_time_to_event_risk_group_surface_present,
-        normalize_legacy_time_to_event_grouped_payloads=_normalize_legacy_time_to_event_grouped_payloads,
         sync_submission_minimal_delivery=_sync_submission_minimal_delivery,
         create_submission_minimal_package=_create_submission_minimal_package,
         route_bound=_route_bound,
