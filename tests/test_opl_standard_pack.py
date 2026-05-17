@@ -37,6 +37,12 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["stage_control_plane"]["stages"] == stage_plane["stages"]
     assert generated["pack_compiler_input"]["generated_surface_owner"] == "one-person-lab"
     assert generated["generated_surface_handoff"]["domain_repo_can_own_generated_surface"] is False
+    assert "skill" in generated["pack_compiler_input"]["generated_surfaces_requested"]
+    assert generated["action_catalog"]["catalog_role"] == (
+        "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors"
+    )
+    assert generated["action_catalog"]["descriptor_projection_owner"] == "one-person-lab"
+    assert generated["action_catalog"]["domain_handler_target_owner"] == "MedAutoScience"
     assert generated["functional_privatization_audit"]["functional_gap_zero_summary"][
         "functional_structure_gap_count"
     ] == 0

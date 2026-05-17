@@ -120,6 +120,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert boundary["declarative_pack_compiler_input"]["compiler_outputs_expected"] == [
         "cli",
         "mcp",
+        "skill",
         "product_entry",
         "sidecar",
         "status",

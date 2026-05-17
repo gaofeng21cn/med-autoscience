@@ -46,6 +46,7 @@ FORBIDDEN_GENERIC_OWNER_ROLES = [
 GENERATED_SURFACES = [
     "cli",
     "mcp",
+    "skill",
     "product_entry_manifest",
     "sidecar_export_dispatch",
     "status_read_model",
@@ -129,6 +130,8 @@ def _domain_descriptor() -> dict[str, Any]:
         "package_role": "opl_standard_domain_agent",
         "generated_surface_owner": GENERATED_SURFACE_OWNER,
         "domain_repo_can_own_generated_surface": False,
+        "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
+        "generated_descriptor_surfaces": list(GENERATED_SURFACES),
         "standard_contract_refs": {
             "action_catalog": "contracts/action_catalog.json",
             "stage_control_plane": "contracts/stage_control_plane.json",
@@ -157,6 +160,7 @@ def _pack_compiler_input() -> dict[str, Any]:
         "minimal_authority_functions": MINIMAL_AUTHORITY_FUNCTIONS,
         "generated_surfaces_requested": GENERATED_SURFACES,
         "domain_repo_can_own_generated_surface": False,
+        "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
         "source_refs": {
             "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
             "stage_control_plane": (
@@ -212,6 +216,12 @@ def _with_forbidden_roles(action_catalog: Mapping[str, Any]) -> dict[str, Any]:
     payload["forbidden_generic_owner_roles"] = FORBIDDEN_GENERIC_OWNER_ROLES
     payload["generated_surface_owner"] = GENERATED_SURFACE_OWNER
     payload["domain_repo_can_own_generated_surface"] = False
+    payload["descriptor_projection_owner"] = GENERATED_SURFACE_OWNER
+    payload["domain_repo_runtime_role"] = "domain_handler_target_and_authority_functions"
+    payload["domain_handler_target_owner"] = DOMAIN_OWNER
+    payload["catalog_role"] = (
+        "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors"
+    )
     return payload
 
 

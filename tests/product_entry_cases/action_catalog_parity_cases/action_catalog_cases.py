@@ -20,9 +20,17 @@ def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_
     assert skill_catalog["action_catalog"] == catalog
     assert catalog["authority_boundary"] == {
         "domain_truth_owner": "MedAutoScience",
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "opl_role": "projection_consumer_only",
         "write_policy": "no_domain_truth_writes",
     }
+    assert catalog["catalog_role"] == (
+        "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors"
+    )
+    assert catalog["descriptor_projection_owner"] == "one-person-lab"
+    assert catalog["domain_handler_target_owner"] == "MedAutoScience"
+    assert catalog["domain_repo_can_own_generated_surface"] is False
 
     cli_projection = {item["action_id"]: item for item in action_catalog.project_mas_action_catalog("cli", catalog)}
     product_entry_projection = {
@@ -196,6 +204,11 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert boundary["generated_surface_handoff"]["generated_surface_owner"] == "one-person-lab"
     assert boundary["generated_surface_handoff"]["long_term_mas_owner"] is False
     assert boundary["generated_surface_handoff"]["mas_handwritten_shell_expansion_allowed"] is False
+    handoff_ids = {
+        item["surface_id"]
+        for item in boundary["generated_surface_handoff"]["handoff_surfaces"]
+    }
+    assert "skill" in handoff_ids
     assert boundary["minimal_authority_function_manifest"]["function_ids"] == [
         "publication_quality_verdict",
         "ai_reviewer_quality_decision",

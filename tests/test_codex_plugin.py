@@ -88,5 +88,8 @@ def test_product_entry_tool_blocks_ad_hoc_execution_without_contract() -> None:
 
     assert "PRODUCT_ENTRY_CONTRACT_GAP_TEXT" in mcp_server_text
     assert "If the needed MAS contract is missing" in action_catalog_text
-    assert "close the contract gap through a controller-authorized/CLI/MCP/product-entry surface" in action_catalog_text
+    assert (
+        "close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry"
+        in action_catalog_text
+    )
     assert "do not perform ad-hoc execution" in action_catalog_text

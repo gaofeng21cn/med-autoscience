@@ -62,6 +62,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert pack_input["compiler_outputs_expected"] == [
         "cli",
         "mcp",
+        "skill",
         "product_entry",
         "sidecar",
         "status",
@@ -81,6 +82,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert set(handoff_by_id) == set(pack_input["compiler_outputs_expected"])
     assert handoff_by_id["cli"]["target_role"] == "opl_generated_command_surface"
     assert handoff_by_id["mcp"]["target_role"] == "opl_generated_mcp_descriptor_surface"
+    assert handoff_by_id["skill"]["target_role"] == "opl_generated_skill_descriptor_surface"
     assert handoff_by_id["product_entry"]["target_role"] == "opl_generated_product_entry_surface"
     assert handoff_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
     assert handoff_by_id["status"]["target_role"] == "opl_generated_status_wrapper_over_mas_truth_refs"
@@ -110,6 +112,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert authority["forbidden_long_term_mas_shell_owners"] == [
         "cli",
         "mcp",
+        "skill",
         "product_entry",
         "sidecar",
         "status",
@@ -179,6 +182,17 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert by_id["runtime_supervisor_scan_consume_dispatch_shell"]["migration_action"] == (
         "declare_runtime_supervisor_policy_and_consume_opl_runtime_manager_loop"
     )
+    wrapper_item = by_id["generic_cli_mcp_product_wrappers"]
+    assert wrapper_item["active_callers"] == [
+        "MAS CLI",
+        "MCP tool handlers",
+        "skill direct domain entry",
+        "product-entry manifest",
+    ]
+    assert wrapper_item["authority_boundary"] == (
+        "opl_generates_wrapper_and_skill_metadata_mas_executes_domain_authority_handlers"
+    )
+    assert "generated_surface_handoff.skill" in wrapper_item["proof_refs"]
     assert by_id["publication_quality_verdict"]["cannot_absorb_reason"] == (
         "OPL cannot authorize manuscript quality, publication readiness, or medical reviewer verdicts."
     )
