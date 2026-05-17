@@ -146,6 +146,9 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
         owner_route=current_route,
     )
     current_dispatch["refs"] = {"dispatch_path": str(dispatch_path)}
+    current_dispatch["prompt_contract"]["owner_route"] = current_route
+    current_dispatch["prompt_contract"]["idempotency_key"] = current_route["idempotency_key"]
+    current_dispatch["prompt_contract"]["repeat_suppression_key"] = current_route["work_unit_fingerprint"]
     _write_scan_latest(profile, study_id, current_route)
     input_refs = {
         "manuscript": {"path": str(study_root / "paper" / "draft.md")},
@@ -167,6 +170,24 @@ def test_execute_dispatch_uses_current_consumer_payload_when_dispatch_file_is_st
                 "required_refs": input_refs,
                 "all_required_refs_present": True,
                 "missing_or_invalid_refs": [],
+            },
+            "ai_reviewer_record": {
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": {
+                    "medical_journal_prose_quality": {"status": "underdefined"},
+                },
+                "future_facing_limitations_plan": [
+                    {
+                        "limitation": "Pending reviewer confirmation.",
+                        "impact_on_claim": "Claims remain provisional.",
+                        "required_future_analysis_data_or_design": "Rerun reviewer workflow.",
+                        "current_manuscript_wording_must_be_restrained": True,
+                    }
+                ],
             },
         },
     )

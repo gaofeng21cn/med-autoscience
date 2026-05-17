@@ -245,15 +245,6 @@ def _action_queue(
     gate_specificity: Mapping[str, Any],
     ai_reviewer_assessment: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    if completion_evidence.completed_current_truth(status, progress):
-        return []
-    if parked_truth.current_truth(
-        status,
-        progress,
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
-    ):
-        return []
     return action_projection.action_queue(
         status,
         progress,

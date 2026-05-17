@@ -28,6 +28,20 @@ def action_queue(
     control_allowed_write_surfaces: list[str],
     forbidden_actions: list[str],
 ) -> list[dict[str, Any]]:
+    if _clean_paper_authority_cutover_ai_reviewer_required(
+        publication_eval_payload=publication_eval_payload,
+        ai_reviewer_assessment=ai_reviewer_assessment,
+    ):
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=_ai_reviewer_required_action(reason="paper_authority_clean_migration_required"),
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     if completion_evidence.completed_current_truth(status, progress):
         return []
     if parked_truth.current_truth(
@@ -118,19 +132,7 @@ def action_queue(
         ]
         actions.insert(0, artifact_action)
     if ai_reviewer_assessment.get("missing") is True:
-        actions.append(
-            {
-                "action_type": "return_to_ai_reviewer_workflow",
-                "authority": "observability_only",
-                "owner": "ai_reviewer",
-                "request_owner": "ai_reviewer",
-                "recommended_owner": "ai_reviewer",
-                "reason": "ai_reviewer_assessment_required",
-                "summary": "Request an AI reviewer-owned publication_eval assessment.",
-                "required_output_surface": "artifacts/publication_eval/latest.json",
-                "paper_package_mutation_allowed": False,
-            }
-        )
+        actions.append(_ai_reviewer_required_action(reason="ai_reviewer_assessment_required"))
     return [
         decorate_action(
             study_id=study_id,
@@ -281,6 +283,34 @@ def decorate_action(
         control_allowed_write_surfaces=control_allowed_write_surfaces,
         forbidden_actions=forbidden_actions,
     )
+
+
+def _clean_paper_authority_cutover_ai_reviewer_required(
+    *,
+    publication_eval_payload: Mapping[str, Any],
+    ai_reviewer_assessment: Mapping[str, Any],
+) -> bool:
+    if ai_reviewer_assessment.get("missing") is not True:
+        return False
+    provenance = _mapping(publication_eval_payload.get("assessment_provenance"))
+    return (
+        _text(provenance.get("owner")) == "paper_authority_cutover"
+        and _text(provenance.get("source_kind")) == "clean_migration_receipt"
+    )
+
+
+def _ai_reviewer_required_action(*, reason: str) -> dict[str, Any]:
+    return {
+        "action_type": "return_to_ai_reviewer_workflow",
+        "authority": "observability_only",
+        "owner": "ai_reviewer",
+        "request_owner": "ai_reviewer",
+        "recommended_owner": "ai_reviewer",
+        "reason": reason,
+        "summary": "Request an AI reviewer-owned publication_eval assessment.",
+        "required_output_surface": "artifacts/publication_eval/latest.json",
+        "paper_package_mutation_allowed": False,
+    }
 
 
 def why_not_applied(

@@ -69,6 +69,10 @@ def test_supervisor_scan_routes_clean_paper_authority_cutover_to_ai_reviewer(
             "truth_epoch": "truth-epoch-cutover",
             "source_signature": "truth-source-cutover",
         },
+        "study_macro_state": {
+            "writer_state": "parked",
+            "reason": "external_info",
+        },
     }
     progress_payload = {
         "study_id": study_id,
@@ -111,5 +115,5 @@ def test_supervisor_scan_routes_clean_paper_authority_cutover_to_ai_reviewer(
     assert study["ai_reviewer_assessment"]["missing"] is True
     assert study["ai_reviewer_assessment"]["owner"] == "ai_reviewer"
     assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
-    assert study["blocked_reason"] == "ai_reviewer_assessment_required"
+    assert study["blocked_reason"] == "paper_authority_clean_migration_required"
     assert study["next_owner"] == "ai_reviewer"

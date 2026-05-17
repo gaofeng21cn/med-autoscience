@@ -54,6 +54,12 @@ def projection_block_state(
     actions: list[dict[str, Any]],
     why_not_applied: str | None,
 ) -> dict[str, Any]:
+    if _has_clean_paper_authority_ai_reviewer_action(actions):
+        return {
+            "blocked_reason": "paper_authority_clean_migration_required",
+            "next_owner": "ai_reviewer",
+            "external_supervisor_required": False,
+        }
     if completion_evidence.completed_current_truth(status, progress):
         return _clear_block_state()
     parked_state = parked_truth.block_state(
@@ -118,6 +124,15 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
 
 def remove_action_type(actions: list[dict[str, Any]], action_type: str) -> list[dict[str, Any]]:
     return [action for action in actions if _text(action.get("action_type")) != action_type]
+
+
+def _has_clean_paper_authority_ai_reviewer_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "return_to_ai_reviewer_workflow"
+        and _text(action.get("reason")) == "paper_authority_clean_migration_required"
+        and _text(action.get("owner")) == "ai_reviewer"
+        for action in actions
+    )
 
 
 def _clear_block_state() -> dict[str, Any]:
