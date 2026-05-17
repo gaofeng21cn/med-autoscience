@@ -44,6 +44,7 @@
 ## 2026-05-16：AI reviewer ready 必须绑定当前输入与交付刷新证明
 
 - 决策：`medical_journal_prose_quality=ready` 不能只表示某个 AI reviewer artifact 曾经给过 clear。`medical_prose_review` 必须携带 `request_ref`、`request_digest`、`manuscript_ref` 与 `manuscript_digest`；`publication_eval/latest.json` 的 `reviewer_operating_system` 必须携带 `currentness_checks.medical_prose_review` 和 `currentness_checks.current_package_freshness`。若 prose review 对应旧 request、旧 manuscript，或 current package freshness 的 `source_eval_id` 不匹配当前 eval，MAS 必须 fail-closed 到 AI reviewer / write / delivery owner，不能把旧评审证据重新包装成 bundle-stage ready。
+- 决策：当 AI reviewer workflow 自身因 `current_package_freshness_source_eval_id_mismatch` 阻断时，下一轮 supervisor scan 先交给 `artifact_os` 执行 `current_package_freshness_required`，刷新 current package projection 与 freshness proof，再回到 AI reviewer / bundle-stage。这个顺序修复只处理 owner currentness，不把脚本或 freshness proof 变成医学写作质量判断。
 - 决策：AI reviewer clear verdict 必须包含 IMRAD 关键段落的 section-level diagnosis 和 representative rewrite evidence。概括性“稿件足够正式”不能关闭医学期刊写作质量。
 - 理由：DM002 暴露出 `publication_eval/latest.json` 于 2026-05-16 更新为 ready，但 human-facing `manuscript/current_package` 仍停在 2026-05-13，且被引用的 `medical_prose_review.json` 早于最新 request。这个状态不是论文质量闭环，而是旧 reviewer surface、bundle-stage metadata 和交付投影之间的 authority drift。
 - 影响：AI reviewer 仍是主观医学质量 owner；程序化逻辑只校验证据身份、新鲜度和 owner route，不替代医学审稿判断。任何后续质量闭合都必须证明“AI reviewer 审的是这版稿件，交付包也是这次 eval 后的刷新结果”。
