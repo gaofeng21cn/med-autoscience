@@ -392,11 +392,11 @@ def _status_state(
         )
         return _finalize_result()
 
-    if quest_status in _RESUMABLE_QUEST_STATUSES and not (
-        _user_pause_contract_without_live_worker(result)
-        or _human_takeover_contract_requires_explicit_wakeup_without_live_worker(result)
-    ):
-        domain_redrive_reason = _domain_transition_runtime_redrive_reason(result)
+    if quest_status in _RESUMABLE_QUEST_STATUSES:
+        domain_redrive_reason = _current_ai_reviewer_domain_redrive_reason(
+            result,
+            study_root=study_root,
+        )
         if _apply_ai_reviewer_domain_redrive_decision(
             result,
             reason=domain_redrive_reason,

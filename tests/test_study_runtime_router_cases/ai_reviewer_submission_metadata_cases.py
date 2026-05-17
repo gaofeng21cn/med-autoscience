@@ -211,6 +211,105 @@ def test_paused_submission_metadata_package_routes_to_ai_reviewer_quality_owner(
     assert result["domain_transition"]["next_work_unit"]["unit_id"] == "ai_reviewer_medical_prose_quality_review"
 
 
+def test_user_paused_submission_metadata_package_routes_current_ai_reviewer_transition(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "001-risk",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+        paper_framing_summary="Clinical survival framing is fixed around mortality transportability.",
+        paper_urls=["https://example.org/paper-1"],
+        journal_shortlist=["BMC Medicine", "Cardiovascular Diabetology"],
+        minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
+    )
+    quest_root = profile.runtime_root / "001-risk"
+    write_text(
+        quest_root / ".ds" / "runtime_state.json",
+        json.dumps(
+            {
+                "status": "paused",
+                "active_run_id": None,
+                "worker_running": False,
+                "pending_user_message_count": 0,
+                "continuation_policy": "wait_for_user_or_resume",
+                "continuation_anchor": "finalize",
+                "continuation_reason": "decision:stale-submission-metadata",
+                "stop_reason": "user_pause",
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
+    write_submission_metadata_only_bundle(
+        quest_root,
+        blocking_item_ids=["author_metadata", "ethics_statement", "ai_declaration"],
+    )
+    write_synced_submission_delivery(study_root, quest_root)
+    _write_ai_reviewer_prose_quality_route(study_root=study_root, quest_root=quest_root)
+    gate_report = {
+        "schema_version": 1,
+        "gate_kind": "publishability_control",
+        "generated_at": "2026-05-15T16:15:21+00:00",
+        "quest_id": "001-risk",
+        "paper_root": str(study_root / "paper"),
+        "status": "clear",
+        "allow_write": True,
+        "blockers": [],
+        "supervisor_phase": "bundle_stage_ready",
+        "phase_owner": "publication_gate",
+        "upstream_scientific_anchor_ready": True,
+        "bundle_tasks_downstream_only": False,
+        "current_required_action": "continue_bundle_stage",
+        "deferred_downstream_actions": [],
+        "controller_stage_note": "bundle-stage work is unlocked but AI prose review remains owner-routed",
+    }
+    monkeypatch.setattr(
+        module,
+        "inspect_workspace_contracts",
+        lambda profile: {
+            "overall_ready": True,
+            "runtime_contract": {"ready": True},
+            "launcher_contract": {"ready": True},
+            "behavior_gate": {"ready": True, "phase_25_ready": True},
+        },
+    )
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_state",
+        lambda quest_root: object(),
+    )
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: gate_report,
+    )
+    monkeypatch.setattr(
+        module.startup_data_readiness_controller,
+        "startup_data_readiness",
+        lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
+    )
+
+    result = module.study_runtime_status(
+        profile=profile,
+        study_id="001-risk",
+        include_progress_projection=False,
+    )
+
+    assert result["decision"] == "resume"
+    assert result["reason"] == "domain_transition_ai_reviewer_re_eval"
+    assert result["interaction_arbitration"]["classification"] == "domain_transition_runtime_redrive"
+    assert result["domain_transition"]["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert result["domain_transition"]["next_work_unit"]["unit_id"] == "ai_reviewer_medical_prose_quality_review"
+
+
 def test_live_submission_metadata_package_keeps_ai_reviewer_quality_owner(
     monkeypatch,
     tmp_path: Path,

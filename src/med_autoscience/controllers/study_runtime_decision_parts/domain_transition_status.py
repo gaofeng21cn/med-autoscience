@@ -15,6 +15,7 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeReason,
     StudyRuntimeStatus,
 )
+from med_autoscience.controllers.study_runtime_decision_parts.publication_and_submission import _load_json_dict
 
 
 def _record_interaction_arbitration_if_required(
@@ -76,6 +77,32 @@ def _domain_transition_runtime_redrive_reason(status: StudyRuntimeStatus) -> Stu
         return StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
 
 
+def _current_ai_reviewer_domain_redrive_reason(
+    status: StudyRuntimeStatus,
+    *,
+    study_root: Path,
+) -> StudyRuntimeReason | None:
+    reason = _domain_transition_runtime_redrive_reason(status)
+    if reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL:
+        return None
+    decision = _load_json_dict(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    action_types = {
+        str(action.get("action_type") or "").strip()
+        for action in (decision.get("controller_actions") or [])
+        if isinstance(action, dict)
+    }
+    work_unit = decision.get("next_work_unit")
+    work_unit_id = str(work_unit.get("unit_id") or "").strip() if isinstance(work_unit, dict) else ""
+    fingerprint = str(decision.get("work_unit_fingerprint") or "").strip()
+    if "return_to_ai_reviewer_workflow" not in action_types:
+        return None
+    if not fingerprint.startswith("domain-transition::ai_reviewer_re_eval::"):
+        return None
+    if work_unit_id and not fingerprint.startswith(f"domain-transition::ai_reviewer_re_eval::{work_unit_id}"):
+        return None
+    return reason
+
+
 def _apply_ai_reviewer_domain_redrive_decision(
     status: StudyRuntimeStatus,
     *,
@@ -122,6 +149,7 @@ def _apply_ai_reviewer_domain_redrive_decision(
 
 __all__ = [
     "_apply_ai_reviewer_domain_redrive_decision",
+    "_current_ai_reviewer_domain_redrive_reason",
     "_record_interaction_arbitration_if_required",
     "_domain_transition_runtime_redrive_reason",
 ]
