@@ -488,7 +488,8 @@ workspace teardown 必须满足：
   - hydration clear 后才允许 `resume_quest(...)`
 - stopped relaunch 路径
   - controller 先把 blocked stopped 状态改写为 `RELAUNCH_STOPPED`
-  - transport 仍复用 daemon `resume_quest(...)`
+  - transport 必须调用 `relaunch_stopped_quest(...)`，由 backend 显式释放 stopped/failed terminal state 后再启动新 turn
+  - 普通 `resume_quest(...)` 对 `stopped` / `failed` 仍必须 fail-closed，不能被 stopped relaunch 需求放宽
   - 但 runtime binding / launch report 的 `last_action` 必须写成 `relaunch_stopped`
 - blocked refresh 路径
   - 只在特定 blocked 场景下刷新 startup context / hydration
@@ -525,7 +526,7 @@ workspace teardown 必须满足：
 - `_status_state(...)`、`_run_runtime_preflight(...)`、`_execute_*` 等私有 helper 名称
 - `_load_yaml_dict(...)`、`_resolve_study(...)`、`_execution_payload(...)` 等 resolution 细节
 - `_build_execution_context(...)`、`_build_context_create_payload(...)`、`_persist_runtime_artifacts(...)` 等 execution/orchestration 细节
-- `_create_quest(...)`、`_resume_quest(...)`、`_pause_quest(...)`、`_inspect_quest_live_execution(...)` 等 transport seam 细节
+- `_create_quest(...)`、`_resume_quest(...)`、`_relaunch_stopped_quest(...)`、`_pause_quest(...)`、`_inspect_quest_live_execution(...)` 等 transport seam 细节
 - `study_runtime_resolution.py` / `study_runtime_decision.py` / `study_runtime_startup.py` / `study_runtime_completion.py` / `study_runtime_execution.py` / `study_runtime_transport.py` 内部尚未升级成 spec 的组装细节
 - overlay materialization payload 的完整内部结构
 - analysis bundle payload 的完整内部结构

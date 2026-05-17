@@ -52,6 +52,7 @@ managed runtime backend 必须显式暴露：
 - `resolve_daemon_url(...)`
 - `create_quest(...)`
 - `resume_quest(...)`
+- `relaunch_stopped_quest(...)`
 - `pause_quest(...)`
 - `stop_quest(...)`
 - `get_quest_session(...)`
@@ -74,7 +75,8 @@ managed runtime backend 必须显式暴露：
 
 - `resolve_daemon_url` 返回本地 runtime root URI，只作为 backend identity / locator。
 - `create_quest` 在 `runtime/quests/<quest_id>` 下创建普通 quest directory、`quest.yaml` 和 create payload。
-- `resume_quest` / `pause_quest` / `stop_quest` 写入 `.ds/runtime_state.json` 和 `artifacts/runtime/mas_runtime_events.jsonl`，形成可回放状态与事件。
+- `resume_quest` / `relaunch_stopped_quest` / `pause_quest` / `stop_quest` 写入 `.ds/runtime_state.json` 和 `artifacts/runtime/mas_runtime_events.jsonl`，形成可回放状态与事件。
+- `resume_quest` 不得释放 stopped/failed terminal state；只有 controller 已决策为 stopped relaunch 时，才能走 `relaunch_stopped_quest`。
 - `get_quest_session`、`inspect_quest_live_runtime`、`inspect_quest_live_execution` 读取 MAS local state、runtime files 和 event refs，返回与 controller contract 对齐的 session/liveness projection。
 - `chat_quest`、`artifact_complete_quest`、`artifact_interact` 只记录 MAS runtime event / queue / artifact handoff，不调用 MDS HTTP API。
 
