@@ -97,7 +97,8 @@ def run_paper_authority_clean_migration(
     }
     if apply:
         for study in studies:
-            _apply_study_cutover(profile=profile, study_plan=study, recorded_at=recorded_at)
+            if study["cutover_required"]:
+                _apply_study_cutover(profile=profile, study_plan=study, recorded_at=recorded_at)
         report["studies"] = [
             _study_plan(profile=profile, study_id=study_id, recorded_at=recorded_at)
             for study_id in selected_study_ids
