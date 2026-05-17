@@ -756,7 +756,7 @@ def test_codex_exec_runner_prompt_maps_complete_specificity_request_to_quality_r
     assert "Requested controller actions: request_gate_specificity" not in prompt
 
 
-def test_codex_exec_runner_prompt_maps_ai_reviewer_workflow_to_dispatch_command(
+def test_codex_exec_runner_prompt_maps_ai_reviewer_workflow_to_reviewer_owner_contract(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -802,12 +802,20 @@ def test_codex_exec_runner_prompt_maps_ai_reviewer_workflow_to_dispatch_command(
 
     prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
 
-    assert "Controller action execution contract" in prompt
+    assert "AI reviewer redrive execution contract" in prompt
     assert "return_to_ai_reviewer_workflow" in prompt
+    assert "This is an AI-reviewer-owner turn" in prompt
+    assert "Do not treat the supervisor dispatch command as sufficient by itself" in prompt
+    assert "medical-publication-surface --apply" in prompt
+    assert "manuscript completeness, Methods reproducibility, Results numeric specificity" in prompt
+    assert "A mechanical checklist or script output is not quality authority" in prompt
+    assert "python -m med_autoscience.cli materialize-ai-medical-prose-review" in prompt
+    assert "--payload-file <ai_reviewer_response.json>" in prompt
     assert "python -m med_autoscience.cli runtime-supervisor-execute-dispatch" in prompt
     assert "--action-types return_to_ai_reviewer_workflow" in prompt
     assert "--mode developer_apply_safe --apply" in prompt
     assert "--managed-runtime-worker" in prompt
+    assert "fake package freshness" in prompt
     assert "No callable MAS CLI command is registered" not in prompt
 
 
@@ -900,6 +908,8 @@ def test_codex_exec_runner_prompt_prefers_current_ai_reviewer_decision_over_stal
     assert '"decision_id": "current-ai-reviewer-redrive"' in prompt
     assert '"work_unit_id": "ai_reviewer_recheck"' in prompt
     assert "return_to_ai_reviewer_workflow" in prompt
+    assert "AI reviewer redrive execution contract" in prompt
+    assert "materialize-ai-medical-prose-review" in prompt
     assert "python -m med_autoscience.cli runtime-supervisor-execute-dispatch" in prompt
     assert "--action-types return_to_ai_reviewer_workflow" in prompt
     assert "analysis_claim_evidence_repair" not in prompt

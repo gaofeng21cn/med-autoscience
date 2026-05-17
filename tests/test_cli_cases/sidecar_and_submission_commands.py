@@ -462,6 +462,90 @@ def test_medical_publication_surface_command_dispatches_controller(monkeypatch, 
     assert called["apply"] is True
     assert called["daemon_url"] == "http://127.0.0.1:20999"
     assert '"status": "clear"' in captured.out
+
+
+def test_materialize_ai_medical_prose_review_command_uses_validator_surface(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path)
+    payload_file = tmp_path / "ai_reviewer_response.json"
+    payload_file.write_text(
+        json.dumps(
+            {
+                "overall_style_verdict": "revise",
+                "summary": "The manuscript still reads like a method memo rather than a medical original article.",
+                "section_level_diagnosis": {
+                    "introduction": "The clinical problem and objective are identifiable.",
+                    "methods": "Methods reproducibility needs fuller cohort and model detail.",
+                    "results": "Results need numeric estimates and uncertainty before interpretive claims.",
+                    "discussion": "Discussion should reduce defensive repetition and state principal findings.",
+                },
+                "representative_bad_sentences": ["The second research question is answered directly."],
+                "representative_rewrites": [
+                    {
+                        "before": "The second research question is answered directly.",
+                        "after": "External validation showed weaker discrimination in the US cohort than in the development cohort.",
+                    }
+                ],
+                "route_back_recommendation": {
+                    "route_target": "write",
+                    "reason": "Rewrite the manuscript into a results-driven IMRAD article.",
+                },
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    called: dict[str, object] = {}
+
+    def fake_status(**kwargs) -> dict:
+        called["status_kwargs"] = kwargs
+        return {
+            "study_id": "002-dm",
+            "quest_id": "quest-002",
+            "study_root": str(tmp_path / "studies" / "002-dm"),
+        }
+
+    def fake_materialize(**kwargs) -> dict:
+        called.update(kwargs)
+        return {
+            "surface": "medical_prose_review",
+            "artifact_path": str(tmp_path / "studies" / "002-dm" / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+        }
+
+    monkeypatch.setattr(cli.study_runtime_router, "study_runtime_status", fake_status)
+    monkeypatch.setattr(cli, "materialize_ai_medical_prose_review_from_response", fake_materialize)
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "materialize-ai-medical-prose-review",
+            "--profile",
+            str(profile_path),
+            "--study-id",
+            "002-dm",
+            "--payload-file",
+            str(payload_file),
+            "--request-ref",
+            "artifacts/publication_eval/medical_prose_review_request.json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["study_root"] == tmp_path / "studies" / "002-dm"
+    assert called["request_ref"] == "artifacts/publication_eval/medical_prose_review_request.json"
+    assert called["response_payload"]["overall_style_verdict"] == "revise"
+    assert called["response_payload"]["route_back_recommendation"]["route_target"] == "write"
+    assert '"status": "materialized"' in captured.out
+    assert '"assessment_owner": "ai_reviewer"' in captured.out
+
+
 def test_figure_loop_guard_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

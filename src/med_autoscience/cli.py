@@ -16,6 +16,7 @@ from med_autoscience.cli_public_surface import (
     normalize_public_command_argv,
 )
 from med_autoscience.figure_routes import supported_required_route_help
+from med_autoscience.medical_prose_review_request import materialize_ai_medical_prose_review_from_response
 from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.profiles import load_profile, profile_to_dict
 from med_autoscience.cli_parts.control_plane_operations import handle_control_plane_operation_command
@@ -664,6 +665,38 @@ def main(argv: list[str] | None = None) -> int:
             source="cli",
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "materialize-ai-medical-prose-review":
+        if bool(args.study_id) == bool(args.study_root):
+            parser.error("Specify exactly one of --study-id or --study-root")
+        profile = load_profile(args.profile)
+        status_payload = _serialize_study_runtime_result(
+            study_runtime_router.study_runtime_status(
+                profile=profile,
+                study_id=args.study_id,
+                study_root=Path(args.study_root) if args.study_root else None,
+                entry_mode=args.entry_mode,
+            )
+        )
+        resolved_study_root = str(status_payload.get("study_root") or "").strip()
+        if not resolved_study_root:
+            parser.error("Unable to resolve study_root for materialize-ai-medical-prose-review")
+        result = materialize_ai_medical_prose_review_from_response(
+            study_root=Path(resolved_study_root),
+            response_payload=_load_json_payload_from_args(args),
+            request_ref=args.request_ref,
+        )
+        output = {
+            "status": "materialized",
+            "source": "cli",
+            "study_id": status_payload.get("study_id") or args.study_id or Path(resolved_study_root).name,
+            "quest_id": status_payload.get("quest_id"),
+            "artifact_path": result["artifact_path"],
+            "surface": result["surface"],
+            "assessment_owner": "ai_reviewer",
+        }
+        print(json.dumps(output, ensure_ascii=False, indent=2))
         return 0
 
     if args.command == "sidecar-export":
