@@ -30,6 +30,8 @@ def action_queue(
     forbidden_actions: list[str],
 ) -> list[dict[str, Any]]:
     rehydrate_action = _clean_paper_authority_rehydrate_action(
+        status=status,
+        progress=progress,
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
     )
@@ -317,6 +319,8 @@ def _clean_paper_authority_cutover_ai_reviewer_required(
 
 def _clean_paper_authority_rehydrate_action(
     *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
     study_root: Path,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
@@ -325,6 +329,36 @@ def _clean_paper_authority_rehydrate_action(
     execution = _latest_clean_migration_rehydrate_execution(study_root)
     if execution is None:
         return None
+    if _scientific_anchor_missing(status=status, progress=progress, study_root=study_root):
+        from med_autoscience.controllers.runtime_supervisor_scan_parts import publication_gate_actions
+
+        action = publication_gate_actions.action_payload(
+            gate_specificity={
+                "missing_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+                "gate_owner": "publication_gate",
+                "next_controller_write": {
+                    "surface": "publication_eval/latest.json",
+                    "writer": "publication_gate_controller",
+                    "materialization_mode": "controller_request_only",
+                    "required_target_kinds": ["claim", "figure", "table", "metric", "source_path"],
+                },
+            }
+        )
+        action.update(
+            {
+                "summary": (
+                    "Clean paper-authority migration cannot rehydrate manuscript inputs while the "
+                    "publication gate still reports a missing scientific anchor."
+                ),
+                "scientific_anchor_required": True,
+                "write_rehydrate_deferred": True,
+                "deferred_action_type": "canonical_paper_inputs_rehydrate_required",
+                "required_anchor_surface": "runtime/quest/artifacts/reports/publishability_gate/latest.json",
+                "paper_package_mutation_allowed": False,
+                "medical_claim_authoring_allowed": False,
+            }
+        )
+        return action
     required_input_surface = _text(execution.get("required_input_surface")) or str(
         study_root / "paper" / "medical_manuscript_blueprint.json"
     )
@@ -375,6 +409,84 @@ def _latest_clean_migration_rehydrate_execution(study_root: Path) -> dict[str, A
         if _clean_migration_rehydrate_execution_blocker(execution):
             return execution
     return None
+
+
+def _scientific_anchor_missing(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    study_root: Path,
+) -> bool:
+    supervisor = _mapping(status.get("publication_supervisor_state")) or _mapping(
+        progress.get("publication_supervisor_state")
+    )
+    if _supervisor_scientific_anchor_missing(supervisor):
+        return True
+    if _text(progress.get("paper_stage")) == "scientific_anchor_missing":
+        return True
+    gate_report = _current_publishability_gate_report(status=status, progress=progress, study_root=study_root)
+    if _gate_report_scientific_anchor_missing(gate_report):
+        return True
+    return False
+
+
+def _supervisor_scientific_anchor_missing(supervisor: Mapping[str, Any]) -> bool:
+    if not supervisor:
+        return False
+    blockers = set(_string_items(supervisor.get("blockers")))
+    return bool(
+        "missing_publication_anchor" in blockers
+        or _text(supervisor.get("supervisor_phase")) == "scientific_anchor_missing"
+        or supervisor.get("upstream_scientific_anchor_ready") is False
+        or _text(supervisor.get("anchor_kind")) == "missing"
+    )
+
+
+def _gate_report_scientific_anchor_missing(gate_report: Mapping[str, Any]) -> bool:
+    if not gate_report:
+        return False
+    blockers = set(_string_items(gate_report.get("blockers")))
+    return bool(
+        "missing_publication_anchor" in blockers
+        or _text(gate_report.get("anchor_kind")) == "missing"
+        or _text(gate_report.get("supervisor_phase")) == "scientific_anchor_missing"
+    )
+
+
+def _current_publishability_gate_report(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    study_root: Path,
+) -> dict[str, Any]:
+    for path in _publishability_gate_candidate_paths(status=status, progress=progress, study_root=study_root):
+        payload = _read_json_object(path)
+        if payload:
+            return payload
+    return {}
+
+
+def _publishability_gate_candidate_paths(
+    *,
+    status: Mapping[str, Any],
+    progress: Mapping[str, Any],
+    study_root: Path,
+) -> list[Path]:
+    paths: list[Path] = []
+    for source in (status, progress):
+        if quest_root := _path(_text(source.get("quest_root"))):
+            paths.append(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
+    runtime_context_refs = _mapping(status.get("runtime_context_refs")) or _mapping(progress.get("runtime_context_refs"))
+    for key in ("publishability_gate_report_ref", "publication_gate_report_ref", "latest_gate_path"):
+        if path := _path(_text(runtime_context_refs.get(key))):
+            paths.append(path)
+    return list(dict.fromkeys(_resolve_gate_candidate_path(study_root=study_root, path=path) for path in paths))
+
+
+def _resolve_gate_candidate_path(*, study_root: Path, path: Path) -> Path:
+    if path.is_absolute():
+        return path.expanduser().resolve()
+    return (study_root / path).resolve()
 
 
 def _clean_migration_ai_reviewer_rehydrate_blocker(execution: Mapping[str, Any]) -> bool:

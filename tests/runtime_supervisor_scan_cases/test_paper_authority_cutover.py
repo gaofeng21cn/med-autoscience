@@ -333,3 +333,132 @@ def test_supervisor_scan_keeps_clean_cutover_rehydrate_failure_on_write_owner(
     assert action["required_output_surface"].endswith("paper/medical_manuscript_blueprint_source.json")
     assert study["blocked_reason"] == "canonical_paper_inputs_rehydrate_required"
     assert study["next_owner"] == "write"
+
+
+def test_supervisor_scan_defers_clean_cutover_rehydrate_when_scientific_anchor_missing(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    migration = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "004-dpcc-longitudinal-care-inertia-intensification-gap"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    quest_root = profile.runtime_root / study_id
+    _write_json(
+        study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json",
+        {
+            "schema_version": 1,
+            "surface_kind": "paper_authority_clean_migration",
+            "status": "awaiting_new_mas_authority",
+            "study_id": study_id,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "supervision" / "consumer" / "default_executor_execution" / "latest.json",
+        {
+            "surface": "default_executor_dispatch_execution_study_latest",
+            "schema_version": 1,
+            "study_id": study_id,
+            "executions": [
+                {
+                    "surface": "default_executor_dispatch_execution",
+                    "schema_version": 1,
+                    "study_id": study_id,
+                    "quest_id": study_id,
+                    "action_type": "canonical_paper_inputs_rehydrate_required",
+                    "execution_status": "blocked",
+                    "blocked_reason": "canonical_paper_inputs_rehydrate_failed",
+                    "next_owner": "write",
+                    "owner_callable_surface": "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint",
+                    "required_output_surface": str(study_root / "paper" / "medical_manuscript_blueprint_source.json"),
+                    "error": "medical manuscript blueprint is invalid: main_findings_by_clinical_importance must be a non-empty list",
+                }
+            ],
+        },
+    )
+    _write_json(
+        quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json",
+        {
+            "gate_kind": "publishability_control",
+            "status": "blocked",
+            "blockers": ["missing_publication_anchor"],
+            "anchor_kind": "missing",
+            "main_result_path": None,
+            "paper_root": None,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+            "supervisor_phase": "scientific_anchor_missing",
+        },
+    )
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "active_run_id": None,
+        "reason": "quest_waiting_platform_repair_redrive",
+        "runtime_health_snapshot": {
+            "canonical_runtime_action": "external_supervisor_required",
+            "attempt_state": "escalated",
+            "retry_budget_remaining": 0,
+            "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+        },
+        "publication_supervisor_state": {
+            "supervisor_phase": "scientific_anchor_missing",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": False,
+            "bundle_tasks_downstream_only": True,
+            "current_required_action": "return_to_publishability_gate",
+        },
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-cutover",
+            "source_signature": "truth-source-cutover",
+        },
+        "study_macro_state": {
+            "writer_state": "blocked",
+            "reason": "scientific_anchor_missing",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": study_id,
+        "quest_root": str(quest_root),
+        "current_stage": "managed_runtime_recovering",
+        "paper_stage": "scientific_anchor_missing",
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "supervision": {"active_run_id": None, "health_status": "recovering"},
+        "quality_review_loop": {"closure_state": "review_required"},
+    }
+
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (
+            status_payload,
+            progress_payload,
+            study_id,
+            migration.cutover_publication_eval_payload(study_root=study_root),
+        ),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=(study_id,),
+        apply_safe_actions=True,
+        developer_supervisor_mode="developer_apply_safe",
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == ["publication_gate_specificity_required"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "publication_gate"
+    assert action["reason"] == "publication_gate_specificity_required"
+    assert action["scientific_anchor_required"] is True
+    assert action["write_rehydrate_deferred"] is True
+    assert study["blocked_reason"] == "publication_gate_specificity_required"
+    assert study["next_owner"] == "publication_gate"

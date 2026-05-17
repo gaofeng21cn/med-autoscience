@@ -18,8 +18,10 @@
 
 - 决策：`return_to_ai_reviewer_workflow` 若在 clean paper-authority cutover 后发现缺少合规 `paper/medical_manuscript_blueprint.json`，不得读取旧 blueprint、旧 prose review 或旧 package artifact，也不得把机械生成物复制成 canonical。executor 必须写出 typed blocker `canonical_paper_inputs_rehydrate_required`，`next_owner=write`，并声明 `legacy_artifact_reader_allowed=false`、`mechanical_blueprint_as_canonical_allowed=false`。
 - 决策：supervisor scan / consumer / dispatch executor 必须把 `canonical_paper_inputs_rehydrate_required` 作为正式 owner-route action 交给 `write` owner。该 owner 只能先物化 `paper/medical_manuscript_blueprint_source.json`，作为重新写作和 AI author/reviewer 授权的输入；`paper/medical_manuscript_blueprint.json` 只有带合规 AI authorization / clearance 时才可成为 canonical。
+- 决策：如果同一 clean cutover study 的 current publication supervisor 或 publishability gate 已明确 `scientific_anchor_missing` / `missing_publication_anchor` / `anchor_kind=missing`，上述 write rehydrate 必须让位给 `publication_gate_specificity_required`，并标记 `write_rehydrate_deferred=true`。write owner 只能重建已有科学结果的 manuscript inputs，不能从缺 main result / publication anchor 的空锚点生成蓝图。
 - 理由：旧论文项目缺 canonical blueprint 时，局部 token normalizer 或空壳 blueprint 会把历史投影重新抬成当前论文真相，正是 DM002 初稿质量漂移的根因之一。干净迁移应重建当前 paper owner 输入，而不是兼容旧 artifact。
 - 影响：DM-CVD、Obesity、NF-PitNET 等旧论文项目迁入新 MAS 时，缺 canonical paper 输入会统一 route 到 write rehydrate，再回 AI reviewer / publication gate / delivery owner；quality repair batch 不能初始化空 `medical_manuscript_blueprint.json` / `medical_prose_review.json` / derived canonical shell 来清 gate，必须 fail closed 到该 owner-route。
+- 影响：缺科学锚点的 study 先由 publication gate/controller owner 指明或恢复主结果锚点；只有锚点存在后，write rehydrate 才能继续。这不是 legacy 兼容层，也不是脚本评判稿件完整度，而是 owner 顺序约束。
 
 ## 2026-05-17：clean paper-authority migration 必须对已建立的新 MAS authority 幂等
 
