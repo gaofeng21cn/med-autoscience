@@ -129,8 +129,7 @@ def _current_ai_reviewer_publication_eval_ref(
     resolved_quest_id: str,
     publication_gate_report: dict[str, object],
 ) -> dict[str, str] | None:
-    if publication_gate_report.get("force_publication_gate_specificity_refresh") is True:
-        return None
+    force_specificity_refresh = publication_gate_report.get("force_publication_gate_specificity_refresh") is True
     gate_required_action = str(publication_gate_report.get("current_required_action") or "").strip()
     gate_supervisor_phase = str(publication_gate_report.get("supervisor_phase") or "").strip()
     gate_status = str(publication_gate_report.get("status") or "").strip()
@@ -167,6 +166,12 @@ def _current_ai_reviewer_publication_eval_ref(
         quality_assessment.get("medical_journal_prose_quality"),
         dict,
     ):
+        return None
+    if force_specificity_refresh and _publication_eval_verdict(payload) == "blocked":
+        action_types = _publication_eval_action_types(payload)
+        if action_types <= {"return_to_controller"}:
+            eval_id = str(payload.get("eval_id") or "").strip()
+            return {"eval_id": eval_id, "artifact_path": str(latest_path)} if eval_id else None
         return None
     if (
         gate_status == "clear"

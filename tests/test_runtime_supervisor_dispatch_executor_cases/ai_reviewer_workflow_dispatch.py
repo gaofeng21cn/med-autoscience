@@ -405,7 +405,12 @@ def test_execute_dispatch_after_paper_authority_cutover_ignores_archived_latest_
     assert called["record"]["assessment_provenance"]["source_kind"] == "publication_eval_ai_reviewer"
     assert called["record"]["quality_assessment"]["medical_journal_prose_quality"]["status"] == "underdefined"
     assert "route_target" not in called["record"]["recommended_actions"][0]
+    assert "route_key_question" not in called["record"]["recommended_actions"][0]
+    assert "route_rationale" not in called["record"]["recommended_actions"][0]
     assert called["record"]["recommended_actions"][0]["action_type"] == "return_to_controller"
+    from med_autoscience.publication_eval_record import PublicationEvalRecord
+
+    PublicationEvalRecord.from_payload(called["record"])
 
 
 def test_execute_dispatch_passes_reporting_guideline_and_calibration_refs_to_ai_reviewer(

@@ -448,6 +448,11 @@ def run_ai_reviewer_publication_eval_workflow(
         study_root=resolved_study_root,
         record=_record_with_trace(record=record, trace=trace, emitted_at=_utc_now()),
     )
+    paper_authority_migration.mark_cutover_new_mas_authority_established(
+        study_root=resolved_study_root,
+        publication_eval_ref=materialized["artifact_path"],
+        eval_id=materialized["eval_id"],
+    )
     return {
         "surface": _SURFACE,
         "schema_version": _SCHEMA_VERSION,

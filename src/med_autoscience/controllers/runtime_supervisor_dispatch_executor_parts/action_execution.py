@@ -494,8 +494,6 @@ def _clean_migration_request_record(*, study_root: Path, request: Mapping[str, A
                 "action_type": "return_to_controller",
                 "priority": "now",
                 "reason": "After AI reviewer writeback, rerun publication gate and delivery sync.",
-                "route_key_question": "Rebuild publication and current-package authority under new MAS.",
-                "route_rationale": "Legacy active paper surfaces are provenance only after clean migration.",
                 "evidence_refs": [
                     str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json")
                 ],

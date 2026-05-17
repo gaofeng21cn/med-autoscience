@@ -435,6 +435,131 @@ def test_publication_gate_materialization_refreshes_blocked_bundle_targets_over_
     ]
 
 
+def test_publication_gate_materialization_preserves_clean_cutover_ai_reviewer_blocked_eval(
+    tmp_path: Path,
+) -> None:
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "002-dm-china-us-mortality-attribution"
+    eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    (study_root / "artifacts" / "controller").mkdir(parents=True)
+    eval_path.parent.mkdir(parents=True)
+    (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True)
+    (study_root / "artifacts" / "controller" / "study_charter.json").write_text(
+        (
+            "{"
+            '"charter_id":"charter-dm002",'
+            '"publication_objective":"Rebuild clean migrated paper authority."'
+            "}"
+        ),
+        encoding="utf-8",
+    )
+    eval_path.write_text(
+        __import__("json").dumps(
+            {
+                "schema_version": 1,
+                "eval_id": "publication-eval::clean-cutover-ai-reviewer",
+                "study_id": "002-dm-china-us-mortality-attribution",
+                "quest_id": "002-dm-china-us-mortality-attribution",
+                "emitted_at": "2026-05-17T12:00:00+00:00",
+                "evaluation_scope": "publication",
+                "charter_context_ref": {
+                    "ref": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+                    "charter_id": "charter-dm002",
+                    "publication_objective": "Rebuild clean migrated paper authority.",
+                },
+                "runtime_context_refs": {
+                    "runtime_escalation_ref": str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json"),
+                    "main_result_ref": str(study_root / "paper" / "evidence_ledger.json"),
+                },
+                "delivery_context_refs": {
+                    "paper_root_ref": str(study_root / "paper"),
+                    "submission_minimal_ref": str(study_root / "paper" / "submission_minimal" / "submission_manifest.json"),
+                },
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "policy_id": "medical_publication_critique_v1",
+                    "source_refs": [str(study_root / "paper" / "draft.md")],
+                    "ai_reviewer_required": False,
+                },
+                "verdict": {
+                    "overall_verdict": "blocked",
+                    "primary_claim_status": "partial",
+                    "summary": "Clean migration requires new MAS owner rebuild before delivery.",
+                    "stop_loss_pressure": "watch",
+                },
+                "quality_assessment": {
+                    "medical_journal_prose_quality": {
+                        "status": "underdefined",
+                        "summary": "Fresh AI reviewer prose review is required.",
+                        "evidence_refs": [str(study_root / "paper" / "draft.md")],
+                    }
+                },
+                "gaps": [
+                    {
+                        "gap_id": "paper-authority-clean-migration",
+                        "gap_type": "delivery",
+                        "severity": "must_fix",
+                        "summary": "New MAS owner must rebuild delivery authority.",
+                        "evidence_refs": [
+                            str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json")
+                        ],
+                    }
+                ],
+                "recommended_actions": [
+                    {
+                        "action_id": "paper-authority-clean-migration-rebuild",
+                        "action_type": "return_to_controller",
+                        "priority": "now",
+                        "reason": "After AI reviewer writeback, rerun publication gate and delivery sync.",
+                        "evidence_refs": [
+                            str(study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json")
+                        ],
+                        "requires_controller_decision": True,
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    report = {
+        "gate_kind": "publishability_control",
+        "generated_at": "2026-05-17T12:01:00+00:00",
+        "status": "clear",
+        "blockers": [],
+        "quest_id": "002-dm-china-us-mortality-attribution",
+        "paper_root": str(study_root / "paper"),
+        "latest_gate_path": str(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"),
+        "main_result_path": str(quest_root / "artifacts" / "results" / "main_result.json"),
+        "submission_minimal_manifest_path": str(
+            study_root / "paper" / "submission_minimal" / "submission_manifest.json"
+        ),
+        "current_required_action": "continue_bundle_stage",
+        "supervisor_phase": "bundle_stage_ready",
+        "force_publication_gate_specificity_refresh": True,
+    }
+
+    result = decision_module._materialize_publication_eval_from_gate_report(
+        study_root=study_root,
+        study_id="002-dm-china-us-mortality-attribution",
+        quest_root=quest_root,
+        quest_id="002-dm-china-us-mortality-attribution",
+        publication_gate_report=report,
+    )
+
+    assert result == {
+        "eval_id": "publication-eval::clean-cutover-ai-reviewer",
+        "artifact_path": str(eval_path),
+    }
+    record = __import__("json").loads(eval_path.read_text(encoding="utf-8"))
+    assert record["assessment_provenance"]["owner"] == "ai_reviewer"
+    assert record["verdict"]["overall_verdict"] == "blocked"
+
+
 def test_publication_gate_materialization_preserves_current_ai_reviewer_eval_over_semantically_same_blocked_bundle_gate(
     tmp_path: Path,
 ) -> None:

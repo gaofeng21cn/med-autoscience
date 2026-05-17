@@ -101,6 +101,50 @@ def test_paper_authority_clean_migration_apply_archives_active_surfaces_and_requ
     assert all(Path(item["archive_path"]).exists() for item in receipt["archived_surfaces"])
 
 
+def test_mark_cutover_new_mas_authority_established_closes_pending_cutover(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"legacy": True})
+
+    module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+
+    updated = module.mark_cutover_new_mas_authority_established(
+        study_root=study_root,
+        publication_eval_ref=str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        eval_id="publication-eval::new",
+        recorded_at="2026-05-17T12:00:00+00:00",
+    )
+    report = module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=False,
+    )
+
+    receipt = json.loads(
+        (study_root / "artifacts" / "migration" / "paper_authority_cutover" / "latest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert updated is not None
+    assert receipt["status"] == "new_mas_authority_established"
+    assert receipt["new_mas_authority"]["owner"] == "ai_reviewer"
+    assert receipt["new_mas_authority"]["eval_id"] == "publication-eval::new"
+    assert receipt["authority_boundary"]["quality_verdict_written"] is True
+    assert receipt["authority_boundary"]["submission_package_regenerated"] is False
+    assert module.cutover_requires_ai_reviewer(study_root=study_root) is False
+    assert report["studies"][0]["cutover_required"] is False
+    assert report["studies"][0]["active_surfaces"] == []
+    assert report["studies"][0]["next_required_actions"] == []
+
+
 def _write_profile(path: Path, profile) -> None:
     path.write_text(
         "\n".join(

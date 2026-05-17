@@ -130,6 +130,37 @@ def cutover_requires_ai_reviewer(*, study_root: Path) -> bool:
     return _text(payload.get("status")) == "awaiting_new_mas_authority"
 
 
+def mark_cutover_new_mas_authority_established(
+    *,
+    study_root: Path,
+    publication_eval_ref: str,
+    eval_id: str,
+    recorded_at: str | None = None,
+) -> dict[str, Any] | None:
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    receipt = read_paper_authority_cutover(study_root=resolved_study_root)
+    if not receipt or _text(receipt.get("status")) != "awaiting_new_mas_authority":
+        return None
+    timestamp = _text(recorded_at) or _utc_now()
+    authority_boundary = dict(receipt.get("authority_boundary") or {})
+    authority_boundary["quality_verdict_written"] = True
+    authority_boundary["submission_package_regenerated"] = False
+    updated = {
+        **receipt,
+        "status": "new_mas_authority_established",
+        "new_mas_authority": {
+            "owner": "ai_reviewer",
+            "publication_eval_ref": publication_eval_ref,
+            "eval_id": eval_id,
+            "established_at": timestamp,
+        },
+        "authority_boundary": authority_boundary,
+        "required_next_actions": ["publication_gate", "sync_study_delivery"],
+    }
+    _write_cutover_receipt(study_root=resolved_study_root, receipt=updated, recorded_at=timestamp)
+    return updated
+
+
 def cutover_publication_eval_payload(*, study_root: Path) -> dict[str, Any] | None:
     payload = read_paper_authority_cutover(study_root=study_root)
     if not payload:
@@ -189,9 +220,10 @@ def _study_root_has_paper_authority_surface(study_root: Path) -> bool:
 
 def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -> dict[str, Any]:
     study_root = (profile.studies_root / study_id).expanduser().resolve()
-    active_surfaces = _active_surface_items(study_root=study_root)
     archive_root = _archive_root(study_root=study_root, recorded_at=recorded_at)
     receipt = _read_json_object(paper_authority_cutover_latest_path(study_root=study_root))
+    receipt_status = _text((receipt or {}).get("status"))
+    active_surfaces = [] if receipt_status == "new_mas_authority_established" else _active_surface_items(study_root=study_root)
     request_path = supervisor_action_request_lifecycle.stable_ai_reviewer_request_path(study_root=study_root)
     return {
         "study_id": study_id,
@@ -421,6 +453,7 @@ def _text(value: object) -> str | None:
 __all__ = [
     "cutover_publication_eval_payload",
     "cutover_requires_ai_reviewer",
+    "mark_cutover_new_mas_authority_established",
     "paper_authority_cutover_latest_path",
     "read_paper_authority_cutover",
     "run_paper_authority_clean_migration",
