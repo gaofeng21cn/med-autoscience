@@ -82,6 +82,11 @@ def test_paper_authority_clean_migration_apply_archives_active_surfaces_and_requ
     request = json.loads(request_path.read_text(encoding="utf-8"))
 
     assert report["mode"] == "apply"
+    assert report["next_required_actions"] == [
+        "return_to_ai_reviewer_workflow",
+        "publication_gate",
+        "sync_study_delivery",
+    ]
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
     assert not (study_root / "artifacts" / "controller" / "current_package_freshness" / "latest.json").exists()

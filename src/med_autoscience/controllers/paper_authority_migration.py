@@ -102,6 +102,7 @@ def run_paper_authority_clean_migration(
             _study_plan(profile=profile, study_id=study_id, recorded_at=recorded_at)
             for study_id in selected_study_ids
         ]
+        report["next_required_actions"] = _workspace_next_actions(report["studies"])
         report["post_apply"] = {
             "active_surface_count": sum(len(study["active_surfaces"]) for study in report["studies"]),
             "cutover_receipt_count": sum(1 for study in report["studies"] if study["cutover_receipt"]["exists"]),
