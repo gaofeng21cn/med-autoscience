@@ -155,6 +155,18 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, object]:
             }
             for dimension, score in rubric_scores.items()
         ],
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_digest": "sha256:" + "a" * 64,
+                "manuscript_ref": str(study_root / "paper" / "manuscript.md"),
+                "manuscript_digest": "sha256:" + "c" * 64,
+            },
+            "current_package_freshness": {
+                "status": "fresh",
+                "source_eval_id": "publication-eval::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+            },
+        },
         "future_facing_limitations_plan": [
             {
                 "limitation": "Current AI reviewer closure depends on the manuscript and ledger snapshot.",
@@ -194,7 +206,13 @@ def test_read_publication_eval_latest_reads_typed_latest_artifact(tmp_path: Path
 
     resolved = module.read_publication_eval_latest(study_root=study_root)
 
-    assert resolved == payload
+    assert resolved == {
+        **payload,
+        "assessment_provenance": {
+            **payload["assessment_provenance"],
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+    }
 
 
 def test_read_publication_eval_latest_accepts_quality_assessment(tmp_path: Path) -> None:
@@ -228,7 +246,13 @@ def test_read_publication_eval_latest_accepts_quality_assessment(tmp_path: Path)
 
     resolved = module.read_publication_eval_latest(study_root=study_root)
 
-    assert resolved == payload
+    assert resolved == {
+        **payload,
+        "assessment_provenance": {
+            **payload["assessment_provenance"],
+            "mechanical_projection_used_as_quality_authority": False,
+        },
+    }
 
 
 def test_read_publication_eval_latest_marks_legacy_payload_as_projection_only(tmp_path: Path) -> None:
@@ -253,7 +277,60 @@ def test_read_publication_eval_latest_marks_legacy_payload_as_projection_only(tm
             payload["delivery_context_refs"]["submission_minimal_ref"],
         ],
         "ai_reviewer_required": True,
+        "mechanical_projection_used_as_quality_authority": False,
     }
+
+
+def test_read_publication_eval_latest_normalizes_legacy_ai_reviewer_recheck_route_verdict(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    latest_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    payload = _minimal_payload(study_root)
+    payload["assessment_provenance"] = {
+        "owner": "ai_reviewer",
+        "source_kind": "publication_eval_ai_reviewer_recheck",
+        "policy_id": "medical_publication_critique_v1",
+        "source_refs": [
+            str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+            str(study_root / "paper" / "draft.md"),
+        ],
+        "ai_reviewer_required": False,
+        "mechanical_projection_used_as_quality_authority": False,
+    }
+    payload["verdict"] = {
+        "overall_verdict": "review_owner_clear_for_bundle_stage",
+        "primary_claim_status": "supported_with_limitations",
+        "summary": "AI-reviewer recheck completed and selected downstream bundle-stage continuation.",
+        "stop_loss_pressure": "watch",
+    }
+    payload["recommended_actions"] = [
+        {
+            "action_id": "continue-bundle-stage",
+            "action_type": "continue_same_line",
+            "priority": "next",
+            "reason": "Continue downstream bundle-stage handling after AI-reviewer recheck.",
+            "route_target": "controller",
+            "route_key_question": "Continue downstream bundle-stage handling.",
+            "route_rationale": "The AI reviewer recheck closed the review-workflow blocker.",
+            "evidence_refs": [str(study_root / "paper" / "review" / "review_ledger.json")],
+            "requires_controller_decision": False,
+        }
+    ]
+    _write_json(latest_path, payload)
+
+    resolved = module.read_publication_eval_latest(study_root=study_root)
+
+    assert resolved["verdict"]["overall_verdict"] == "promising"
+    assert resolved["verdict"]["primary_claim_status"] == "partial"
+    assert resolved["recommended_actions"][0]["action_type"] == "continue_same_line"
+    assert resolved["recommended_actions"][0]["requires_controller_decision"] is True
+    assert (
+        resolved["recommended_actions"][0]["route_rationale"]
+        == "The AI reviewer recheck closed the review-workflow blocker."
+    )
+    assert resolved["assessment_provenance"]["source_kind"] == "publication_eval_ai_reviewer_recheck"
 
 
 def test_ai_reviewer_publication_eval_materializer_rejects_gate_projection_payload(tmp_path: Path) -> None:
