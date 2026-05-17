@@ -504,7 +504,7 @@
         "command": "uv run python -m med_autoscience.cli product-entry-manifest --profile <profile> --format json",
         "surface_kind": "product_entry_manifest"
       },
-      "summary": "Read MedAutoScience product-entry surfaces through one tool: product_entry_status, product_preflight, product_start, product_entry_manifest, build_product_entry, migration_audit, governance_report, backfill_apply, cleanup_apply, safe_cache_cleanup_apply, lifecycle_report, continuous_soak_summary. migration_audit is dry-run-only; governance_report is read-only; backfill_apply and cleanup_apply are contract-gated; safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. lifecycle_report and continuous_soak_summary are read-only unless a separate controller apply contract authorizes cleanup. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution.",
+      "summary": "Read MedAutoScience product-entry surfaces through one tool: product_entry_status, product_preflight, product_start, product_entry_manifest, build_product_entry, migration_audit, governance_report, backfill_apply, cleanup_apply, safe_cache_cleanup_apply, lifecycle_report, continuous_soak_summary. migration_audit is dry-run-only; governance_report is read-only; backfill_apply and cleanup_apply are contract-gated; safe_cache_cleanup_apply is limited to allowlisted delete-safe-cache actions. lifecycle_report and continuous_soak_summary are read-only unless a separate controller apply contract authorizes cleanup. If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry before continuing; do not perform ad-hoc execution.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "product_entry"
@@ -659,6 +659,8 @@
     }
   ],
   "authority_boundary": {
+    "descriptor_projection_owner": "one-person-lab",
+    "domain_handler_target_owner": "MedAutoScience",
     "domain_truth_owner": "MedAutoScience",
     "opl_role": "projection_consumer_only",
     "write_policy": "no_domain_truth_writes"

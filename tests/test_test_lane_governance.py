@@ -255,6 +255,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert minimal_authority["forbidden_long_term_mas_shell_owners"] == [
         "cli",
         "mcp",
+        "skill",
         "product_entry",
         "sidecar",
         "status",
