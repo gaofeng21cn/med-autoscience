@@ -36,6 +36,43 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "owner_receipt",
         "safe_action_refs",
     }
+    pack_input = boundary["declarative_pack_compiler_input"]
+    assert pack_input["surface_kind"] == "mas_declarative_pack_compiler_input"
+    assert pack_input["compiler_owner"] == "one-person-lab"
+    assert pack_input["compiler_outputs_expected"] == [
+        "cli",
+        "mcp",
+        "product_entry",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
+    assert pack_input["mas_long_term_code_owner"] == "minimal_authority_functions_only"
+    handoff = boundary["generated_surface_handoff"]
+    assert handoff["surface_kind"] == "mas_generated_surface_handoff"
+    assert handoff["generated_surface_owner"] == "one-person-lab"
+    assert handoff["current_mas_role"] == "handwritten_migration_bridge"
+    assert handoff["long_term_mas_owner"] is False
+    assert handoff["mas_handwritten_shell_expansion_allowed"] is False
+    handoff_by_id = {item["surface_id"]: item for item in handoff["handoff_surfaces"]}
+    assert set(handoff_by_id) == set(pack_input["compiler_outputs_expected"])
+    assert handoff_by_id["sidecar"]["current_role"] == "migration_bridge_export_dispatch_adapter"
+    assert handoff_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
+    authority = boundary["minimal_authority_function_manifest"]
+    assert authority["surface_kind"] == "mas_minimal_authority_function_manifest"
+    assert authority["function_ids"] == [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "artifact_mutation_authorization",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict",
+        "owner_receipt_signer",
+        "medical_helper_implementation",
+    ]
+    assert authority["function_count"] == 7
+    assert authority["all_other_program_surfaces"] == "opl_generated_or_migration_bridge"
     coverage = boundary["opl_functional_harness_consumer_coverage"]
     assert coverage["coverage_items"] == [
         "refs_only_memory_writeback_chain",

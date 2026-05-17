@@ -278,3 +278,69 @@ def test_mas_generic_substrate_adapter_projection_is_opaque_index_only() -> None
         "current_package.zip",
         "publication_route_memory_body",
     }
+
+
+def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None:
+    contract = _contract()
+    adoption = contract["pack_compiler_adoption"]
+
+    assert adoption["surface_kind"] == "mas_opl_pack_compiler_adoption"
+    assert adoption["owner"] == "med-autoscience"
+    assert adoption["compiler_owner"] == "one-person-lab"
+    assert adoption["status"] == "declarative_pack_input_and_generated_surface_handoff_declared"
+    assert adoption["declarative_pack_input_ref"] == (
+        "product_entry_manifest.functional_consumer_boundary.declarative_pack_compiler_input"
+    )
+    assert adoption["generated_surface_handoff_ref"] == (
+        "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff"
+    )
+    assert adoption["minimal_authority_function_manifest_ref"] == (
+        "product_entry_manifest.functional_consumer_boundary.minimal_authority_function_manifest"
+    )
+    assert adoption["source_surfaces"] == [
+        "product_entry_manifest.standard_domain_agent_skeleton",
+        "product_entry_manifest.family_stage_control_plane_descriptor",
+        "product_entry_manifest.family_action_catalog",
+        "product_entry_manifest.family_transition_spec_descriptor",
+        "product_entry_manifest.domain_memory_descriptor",
+        "product_entry_manifest.lifecycle_guarded_apply_proof",
+        "product_entry_manifest.domain_owner_receipt_contract",
+        "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
+    ]
+    assert adoption["generated_or_hosted_surfaces"] == [
+        "CLI",
+        "MCP",
+        "product-entry",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection shell",
+        "test-lane harness",
+    ]
+    assert adoption["current_mas_shell_role"] == "handwritten_migration_bridge"
+    assert adoption["mas_handwritten_shell_expansion_allowed"] is False
+    assert adoption["minimal_authority_functions"] == [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "artifact_mutation_authorization",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict",
+        "owner_receipt_signer",
+        "medical_helper_implementation",
+    ]
+    assert adoption["forbidden_long_term_mas_shell_owners"] == [
+        "cli",
+        "mcp",
+        "product_entry",
+        "sidecar",
+        "status",
+        "workbench",
+        "projection_shell",
+        "test_lane_harness",
+    ]
+    assert adoption["authority_boundary"] == {
+        "opl_pack_compiler_may_generate_shells": True,
+        "opl_pack_compiler_may_claim_domain_authority": False,
+        "mas_keeps_medical_authority_functions": True,
+        "mas_keeps_generic_shell_owner": False,
+    }

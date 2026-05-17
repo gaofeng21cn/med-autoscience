@@ -74,6 +74,21 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
         "owner_receipt",
         "typed_blocker",
     }
+    assert boundary["declarative_pack_compiler_input"]["compiler_owner"] == "one-person-lab"
+    assert boundary["declarative_pack_compiler_input"]["pack_id"] == "mas-medical-research-pack"
+    assert boundary["generated_surface_handoff"]["current_mas_role"] == (
+        "handwritten_migration_bridge"
+    )
+    assert boundary["generated_surface_handoff"]["mas_handwritten_shell_expansion_allowed"] is False
+    assert boundary["minimal_authority_function_manifest"]["function_ids"] == [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "artifact_mutation_authorization",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict",
+        "owner_receipt_signer",
+        "medical_helper_implementation",
+    ]
     coverage = boundary["opl_functional_harness_consumer_coverage"]
     assert coverage["coverage_items"] == [
         "refs_only_memory_writeback_chain",
