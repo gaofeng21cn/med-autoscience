@@ -389,6 +389,12 @@ def _controller_authorization(
 ) -> dict[str, Any]:
     if not isinstance(runtime_state, Mapping):
         return {}
+    current_ai_reviewer_authorization = _current_ai_reviewer_redrive_authorization(
+        quest_root=quest_root,
+        quest_id=quest_id,
+    )
+    if current_ai_reviewer_authorization:
+        return current_ai_reviewer_authorization
     for key in ("last_controller_decision_authorization", "current_controller_authorization"):
         value = runtime_state.get(key)
         if isinstance(value, Mapping):
@@ -401,6 +407,34 @@ def _controller_authorization(
                 return {}
             return authorization
     return {}
+
+
+def _current_ai_reviewer_redrive_authorization(
+    *,
+    quest_root: Path | None,
+    quest_id: str | None,
+) -> dict[str, Any]:
+    if quest_root is None:
+        return {}
+    study_root = _resolve_study_root_from_quest_root_light(quest_root=Path(quest_root), quest_id=quest_id)
+    if study_root is None:
+        return {}
+    decision = _read_json_mapping(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    if not decision:
+        return {}
+    action_names = _controller_action_names(decision)
+    next_work_unit = _mapping(decision.get("next_work_unit"))
+    next_work_unit_id = _text(next_work_unit.get("unit_id"))
+    if "return_to_ai_reviewer_workflow" not in action_names:
+        return {}
+    if next_work_unit_id not in {"ai_reviewer_recheck", "ai_reviewer_medical_prose_quality_review"}:
+        return {}
+    authorization = dict(decision)
+    authorization["authorization_basis"] = "current_controller_decision"
+    authorization.setdefault("work_unit_id", next_work_unit_id)
+    if next_work_unit_id is not None:
+        authorization.setdefault("work_unit_fingerprint", _text(next_work_unit.get("fingerprint")))
+    return authorization
 
 
 def _closed_publication_work_unit_for_authorization(
