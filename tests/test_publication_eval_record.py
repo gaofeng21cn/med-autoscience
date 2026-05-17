@@ -427,6 +427,23 @@ def test_publication_eval_record_rejects_promotion_in_overall_verdict() -> None:
         module.PublicationEvalRecord.from_payload(payload)
 
 
+def test_publication_eval_record_rejects_route_token_in_overall_verdict() -> None:
+    module = _load_module()
+    payload = _minimal_payload()
+    payload["assessment_provenance"] = {
+        "owner": "ai_reviewer",
+        "source_kind": "publication_eval_ai_reviewer_recheck",
+        "policy_id": "medical_publication_critique_v1",
+        "source_refs": ["/tmp/workspace/studies/001-risk/artifacts/publication_eval/medical_prose_review.json"],
+        "ai_reviewer_required": False,
+    }
+    payload["verdict"]["overall_verdict"] = "review_owner_clear_for_bundle_stage"
+    payload["verdict"]["primary_claim_status"] = "supported_with_limitations"
+
+    with pytest.raises(ValueError, match="publication eval verdict overall_verdict must be one of"):
+        module.PublicationEvalRecord.from_payload(payload)
+
+
 @pytest.mark.parametrize("extra_field", ["mutation", "runtime_side_effect_result"])
 def test_publication_eval_record_rejects_mutation_shaped_recommended_action_fields(extra_field: str) -> None:
     module = _load_module()
