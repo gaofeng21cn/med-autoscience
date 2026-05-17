@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,9 @@ DISPLAY_MATERIALIZATION_ACTION_TYPE = "artifact_display_surface_materialization_
 OWNER = "artifact_os"
 REQUIRED_OUTPUT_SURFACE = "artifacts/controller/gate_clearing_batch/latest.json"
 DISPLAY_REGISTRY_SURFACE = "paper/display_registry.json"
+CURRENT_PACKAGE_FRESHNESS_SURFACE = "artifacts/controller/current_package_freshness/latest.json"
+DEFAULT_EXECUTOR_EXECUTION_SURFACE = "artifacts/supervision/consumer/default_executor_execution/latest.json"
+AI_REVIEWER_FRESHNESS_MISMATCH_ERROR = "current_package_freshness_source_eval_id_mismatch"
 
 
 def action_payload(
@@ -69,6 +73,42 @@ def blocked_action_from_gate_clearing(*, study_root: Path, publication_eval_payl
     }
 
 
+def blocked_action_from_ai_reviewer_freshness_mismatch(
+    *,
+    study_root: Path,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    eval_id = _text(publication_eval_payload.get("eval_id"))
+    if eval_id is None:
+        return None
+    execution = _latest_ai_reviewer_freshness_mismatch_execution(study_root=study_root)
+    if execution is None:
+        return None
+    freshness = _read_json_object(Path(study_root).expanduser().resolve() / CURRENT_PACKAGE_FRESHNESS_SURFACE)
+    freshness_source_eval_id = _text(_mapping(freshness).get("source_eval_id"))
+    if freshness_source_eval_id == eval_id:
+        return None
+    action = action_payload(
+        reason=ACTION_TYPE,
+        source_blocked_reason=_text(execution.get("blocked_reason")) or "ai_reviewer_workflow_failed",
+    )
+    action["summary"] = (
+        "AI reviewer workflow is blocked because the human-facing current package freshness proof "
+        "belongs to an older publication eval; refresh the package projection before retrying AI reviewer."
+    )
+    action["source_error"] = AI_REVIEWER_FRESHNESS_MISMATCH_ERROR
+    action["source_execution_path"] = str(
+        Path(study_root).expanduser().resolve() / DEFAULT_EXECUTOR_EXECUTION_SURFACE
+    )
+    action["current_package_freshness"] = {
+        "status": _text(_mapping(freshness).get("status")),
+        "source_eval_id": freshness_source_eval_id,
+        "expected_source_eval_id": eval_id,
+        "proof_path": str(Path(study_root).expanduser().resolve() / CURRENT_PACKAGE_FRESHNESS_SURFACE),
+    }
+    return action
+
+
 def route_required(runtime_platform_repair_apply: Mapping[str, Any] | None) -> bool:
     if runtime_platform_repair_apply is None:
         return False
@@ -114,13 +154,32 @@ def _gate_clearing_path(*, study_root: Path) -> Path:
 
 
 def _read_gate_clearing_record(*, study_root: Path) -> dict[str, Any] | None:
-    try:
-        import json
+    return _read_json_object(_gate_clearing_path(study_root=study_root))
 
-        payload = json.loads(_gate_clearing_path(study_root=study_root).read_text(encoding="utf-8"))
+
+def _latest_ai_reviewer_freshness_mismatch_execution(*, study_root: Path) -> dict[str, Any] | None:
+    record = _read_json_object(Path(study_root).expanduser().resolve() / DEFAULT_EXECUTOR_EXECUTION_SURFACE)
+    for execution in reversed(record.get("executions") or []):
+        if not isinstance(execution, Mapping):
+            continue
+        if _text(execution.get("action_type")) != "return_to_ai_reviewer_workflow":
+            continue
+        if _text(execution.get("execution_status")) != "blocked":
+            continue
+        if _text(execution.get("blocked_reason")) != "ai_reviewer_workflow_failed":
+            continue
+        if _text(execution.get("error")) != AI_REVIEWER_FRESHNESS_MISMATCH_ERROR:
+            continue
+        return dict(execution)
+    return None
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return None
-    return dict(payload) if isinstance(payload, Mapping) else None
+        return {}
+    return dict(payload) if isinstance(payload, Mapping) else {}
 
 
 def _same_publication_work_unit(*, record: Mapping[str, Any], publication_eval_payload: Mapping[str, Any]) -> bool:
@@ -215,11 +274,15 @@ def _mapping(value: object) -> dict[str, Any]:
 
 __all__ = [
     "ACTION_TYPE",
+    "AI_REVIEWER_FRESHNESS_MISMATCH_ERROR",
+    "CURRENT_PACKAGE_FRESHNESS_SURFACE",
+    "DEFAULT_EXECUTOR_EXECUTION_SURFACE",
     "DISPLAY_MATERIALIZATION_ACTION_TYPE",
     "OWNER",
     "REQUIRED_OUTPUT_SURFACE",
     "action_payload",
     "artifact_delta",
+    "blocked_action_from_ai_reviewer_freshness_mismatch",
     "blocked_action_from_gate_clearing",
     "meaningful_artifact_delta_observed",
     "remove_runtime_platform_repair",

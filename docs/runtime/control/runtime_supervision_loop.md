@@ -297,6 +297,8 @@ MAS managed Codex CLI worker 在 prompt 内执行 controller action 时会额外
 - `runtime_platform_repair`：调用已有 runtime supervisor scan 的 safe platform repair path。
 - `return_to_ai_reviewer_workflow`：如果没有结构化 AI reviewer record，不生成评审结论，写 `blocked_reason=owner_callable_surface_missing` 与 `required_repo_surface=structured_ai_reviewer_default_executor_workflow`。
 
+如果 `return_to_ai_reviewer_workflow` 的默认执行记录显示 `blocked_reason=ai_reviewer_workflow_failed` 且错误为 `current_package_freshness_source_eval_id_mismatch`，下一轮 supervisor scan 必须先路由到 `current_package_freshness_required` / `artifact_os`。这不是论文完整度或写作质量的脚本门禁；它只修正 owner 顺序：AI reviewer 仍持有医学质量判断，artifact owner 只负责把 human-facing current package 的 freshness proof 刷到当前 AI reviewer publication eval，之后再重试 AI reviewer / bundle-stage 路径。
+
 执行器的默认读取权威是 workspace-level `artifacts/supervision/consumer/latest.json`。无论调用方是否显式传 action type，`runtime supervisor-execute-dispatch` 都只能从 consumer latest 当前列出的 ready dispatch 中筛选执行；study-level `default_executor_dispatches/*.json` 目录里的旧文件不能单独作为执行票据。`runtime supervisor-reconcile` 作为同 tick one-shot 编排时，还有一条更强的 currentness 规则：execute 必须消费本轮 `supervisor-consume` 返回的内存 payload，而不是回读上一轮落盘的 `consumer/latest.json`。这样 dry-run 不需要为了正确性写 workspace，apply 也不会被上一轮 `runtime_platform_repair` 或 `return_to_ai_reviewer_workflow` dispatch 污染。
 
 publication gate 与 AI reviewer 的 currentness 使用 work-unit fingerprint，而不是最近生成时间：
