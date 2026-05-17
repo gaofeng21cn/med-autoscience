@@ -45,6 +45,13 @@ def test_build_skill_catalog_projects_recommended_shell_and_direct_activation_hi
     )
     assert payload["skills"][0]["domain_projection"]["skill_entry"] == "mas"
     assert payload["skills"][0]["domain_projection"]["recommended_shell"] == "workspace_cockpit"
+    assert payload["skills"][0]["descriptor_owner"] == "one-person-lab"
+    assert payload["skills"][0]["domain_repo_can_own_generated_surface"] is False
+    assert payload["skills"][0]["domain_handler_target"] == "MedAutoScienceDomainEntry"
+    assert payload["skills"][0]["domain_handler_target_owner"] == "MedAutoScience"
+    assert payload["skills"][0]["descriptor_role"] == (
+        "opl_generated_skill_descriptor_targeting_mas_domain_entry"
+    )
     runtime_manager_registration = payload["skills"][0]["domain_projection"]["opl_runtime_manager_registration"]
     assert payload["skills"][0]["domain_projection"]["opl_stage_runtime_registration"] == runtime_manager_registration
     assert runtime_manager_registration["surface_kind"] == "opl_runtime_manager_domain_registration"

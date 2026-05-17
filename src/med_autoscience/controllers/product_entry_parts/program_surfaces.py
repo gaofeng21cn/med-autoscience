@@ -879,7 +879,14 @@ def _build_skill_catalog_surface(
                 "opl_stage_runtime_registration": opl_runtime_manager_registration,
                 "opl_runtime_manager_registration": opl_runtime_manager_registration,
             },
-        ),
+        )
+        | {
+            "descriptor_owner": "one-person-lab",
+            "domain_repo_can_own_generated_surface": False,
+            "domain_handler_target": "MedAutoScienceDomainEntry",
+            "domain_handler_target_owner": "MedAutoScience",
+            "descriptor_role": "opl_generated_skill_descriptor_targeting_mas_domain_entry",
+        },
     ]
     return _build_shared_skill_catalog(
         summary=summary,

@@ -18,10 +18,12 @@
   "domain_id": "med-autoscience",
   "domain_pack_owner": "med-autoscience",
   "domain_repo_can_own_generated_surface": false,
+  "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
   "generated_surface_owner": "one-person-lab",
   "generated_surfaces_requested": [
     "cli",
     "mcp",
+    "skill",
     "product_entry_manifest",
     "sidecar_export_dispatch",
     "status_read_model",

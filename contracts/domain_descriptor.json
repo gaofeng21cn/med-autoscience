@@ -9,6 +9,17 @@
   "domain_id": "med-autoscience",
   "domain_label": "Med Auto Science",
   "domain_repo_can_own_generated_surface": false,
+  "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
+  "generated_descriptor_surfaces": [
+    "cli",
+    "mcp",
+    "skill",
+    "product_entry_manifest",
+    "sidecar_export_dispatch",
+    "status_read_model",
+    "workbench_drilldown",
+    "functional_harness_cases"
+  ],
   "generated_surface_owner": "one-person-lab",
   "package_role": "opl_standard_domain_agent",
   "schema_version": 1,

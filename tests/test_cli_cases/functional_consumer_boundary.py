@@ -42,6 +42,7 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert pack_input["compiler_outputs_expected"] == [
         "cli",
         "mcp",
+        "skill",
         "product_entry",
         "sidecar",
         "status",
@@ -59,6 +60,10 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     handoff_by_id = {item["surface_id"]: item for item in handoff["handoff_surfaces"]}
     assert set(handoff_by_id) == set(pack_input["compiler_outputs_expected"])
     assert handoff_by_id["sidecar"]["current_role"] == "migration_bridge_export_dispatch_adapter"
+    assert handoff_by_id["skill"]["current_role"] == (
+        "migration_bridge_domain_skill_target_and_pack_guidance"
+    )
+    assert handoff_by_id["skill"]["target_role"] == "opl_generated_skill_descriptor_surface"
     assert handoff_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
     authority = boundary["minimal_authority_function_manifest"]
     assert authority["surface_kind"] == "mas_minimal_authority_function_manifest"

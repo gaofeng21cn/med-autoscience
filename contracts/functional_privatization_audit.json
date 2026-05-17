@@ -13,6 +13,7 @@
       "compiler_outputs_expected": [
         "cli",
         "mcp",
+        "skill",
         "product_entry",
         "sidecar",
         "status",
@@ -447,15 +448,17 @@
         "active_caller_status": "domain_handlers_active_opl_generated_wrapper_metadata_consumed",
         "active_callers": [
           "MAS CLI",
-          "MCP tool descriptors",
+          "MCP tool handlers",
+          "skill direct domain entry",
           "product-entry manifest"
         ],
-        "authority_boundary": "opl_generates_wrapper_metadata_mas_executes_domain_authority_handlers",
+        "authority_boundary": "opl_generates_wrapper_and_skill_metadata_mas_executes_domain_authority_handlers",
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
           "src/med_autoscience/cli.py",
           "src/med_autoscience/mcp_server.py",
-          "src/med_autoscience/controllers/product_entry.py"
+          "src/med_autoscience/controllers/product_entry.py",
+          "plugins/mas/skills/mas/SKILL.md"
         ],
         "migration_action": "derive_wrapper_metadata_from_declarative_pack_and_opl_generated_surfaces",
         "module_id": "generic_cli_mcp_product_wrappers",
@@ -463,6 +466,7 @@
           "opl_action_catalog_projection",
           "opl_product_entry_shell",
           "opl_mcp_descriptor_projection",
+          "opl_skill_descriptor_projection",
           "opl_generated_command_surface"
         ],
         "owner": "med-autoscience",
@@ -470,13 +474,14 @@
           "declarative_pack_compiler_input.family_action_catalog",
           "generated_surface_handoff.cli",
           "generated_surface_handoff.mcp",
+          "generated_surface_handoff.skill",
           "generated_surface_handoff.product_entry"
         ],
         "retained_domain_authority": [
           "domain_action_handler",
           "owner_receipt"
         ],
-        "retention_reason": "MAS keeps domain command handlers and owner receipts; OPL can own descriptor projection and routing shell."
+        "retention_reason": "MAS keeps domain command handlers, direct domain entry, and owner receipts; OPL owns CLI/MCP/Skill/product/status descriptor projection and routing shell."
       },
       {
         "active_caller_status": "opl_replacement_default_legacy_cleanup_only",
@@ -768,9 +773,18 @@
           "current_paths": [
             "src/med_autoscience/mcp_server.py"
           ],
-          "current_role": "migration_bridge_tool_projection",
+          "current_role": "migration_bridge_tool_handler_target",
           "surface_id": "mcp",
           "target_role": "opl_generated_mcp_descriptor_surface"
+        },
+        {
+          "current_paths": [
+            "plugins/mas/skills/mas/SKILL.md",
+            "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py"
+          ],
+          "current_role": "migration_bridge_domain_skill_target_and_pack_guidance",
+          "surface_id": "skill",
+          "target_role": "opl_generated_skill_descriptor_surface"
         },
         {
           "current_paths": [
@@ -894,6 +908,7 @@
       "forbidden_long_term_mas_shell_owners": [
         "cli",
         "mcp",
+        "skill",
         "product_entry",
         "sidecar",
         "status",

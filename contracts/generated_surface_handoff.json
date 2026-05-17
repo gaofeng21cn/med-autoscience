@@ -19,6 +19,12 @@
       "domain_repo_can_own_generated_surface": false,
       "owner": "one-person-lab",
       "status": "descriptor_source_available",
+      "surface_id": "skill"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
       "surface_id": "product_entry_manifest"
     },
     {

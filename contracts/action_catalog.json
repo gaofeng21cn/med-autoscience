@@ -9,6 +9,8 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes"
@@ -66,6 +68,8 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes"
@@ -123,6 +127,8 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes"
@@ -184,6 +190,8 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes"
@@ -244,6 +252,8 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes"
@@ -365,6 +375,8 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes"
@@ -420,6 +432,8 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes"
@@ -475,6 +489,8 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes"
@@ -532,6 +548,8 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes"
@@ -589,6 +607,8 @@
           "/publication_eval/latest.json",
           "/controller_decisions/latest.json"
         ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "one-person-lab",
         "helper_write_policy": "no_domain_truth_writes"
@@ -644,7 +664,11 @@
     "write_policy": "no_domain_truth_writes"
   },
   "catalog_id": "med_autoscience_action_catalog",
+  "catalog_role": "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors",
+  "descriptor_projection_owner": "one-person-lab",
+  "domain_handler_target_owner": "MedAutoScience",
   "domain_repo_can_own_generated_surface": false,
+  "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
   "forbidden_generic_owner_roles": [
     "generic_scheduler_owner",
     "generic_daemon_owner",
@@ -669,8 +693,8 @@
   ],
   "generated_surface_owner": "one-person-lab",
   "notes": [
-    "MAS owns the action metadata and runtime/controller/publication/quality truth.",
-    "OPL consumes projections only and does not write MAS durable study truth."
+    "MAS owns domain action intents, handler targets, runtime/controller/publication/quality truth, and owner receipts.",
+    "OPL owns generated CLI/MCP/Skill/product/status/workbench descriptor projections and does not write MAS durable study truth."
   ],
   "owner": "MedAutoScience",
   "surface_kind": "family_action_catalog",

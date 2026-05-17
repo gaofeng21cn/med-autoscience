@@ -291,6 +291,16 @@ def test_domain_entry_contract_exports_domain_agent_entry_spec_v1() -> None:
     assert spec["progress_conventions"] == "study_runtime_narration"
     assert spec["entry_command"] == "product-entry-status"
     assert spec["manifest_command"] == "product-entry-manifest"
+    assert contract["surface_role"] == "domain_handler_target_for_opl_generated_interfaces"
+    assert contract["generated_descriptor_owner"] == "one-person-lab"
+    assert contract["domain_handler_target_owner"] == "MedAutoScience"
+    assert contract["domain_repo_can_own_generated_surface"] is False
+    assert contract["authority_boundary"] == {
+        "opl_owns_generated_cli_mcp_skill_product_status_workbench_descriptors": True,
+        "mas_executes_domain_handlers_and_signs_owner_receipts": True,
+        "opl_can_write_domain_truth": False,
+        "opl_can_authorize_quality_or_export": False,
+    }
 
 
 def _build_request_from_contract(

@@ -513,6 +513,7 @@
         "compiler_outputs_expected": [
           "cli",
           "mcp",
+          "skill",
           "product_entry",
           "sidecar",
           "status",
@@ -546,8 +547,17 @@
             "current_paths": [
               "src/med_autoscience/mcp_server.py"
             ],
-            "current_role": "migration_bridge_tool_projection",
+            "current_role": "migration_bridge_tool_handler_target",
             "target_role": "opl_generated_mcp_descriptor_surface"
+          },
+          {
+            "surface_id": "skill",
+            "current_paths": [
+              "plugins/mas/skills/mas/SKILL.md",
+              "src/med_autoscience/controllers/product_entry_parts/program_surfaces.py"
+            ],
+            "current_role": "migration_bridge_domain_skill_target_and_pack_guidance",
+            "target_role": "opl_generated_skill_descriptor_surface"
           },
           {
             "surface_id": "product_entry",
@@ -702,6 +712,7 @@
         "forbidden_long_term_mas_shell_owners": [
           "cli",
           "mcp",
+          "skill",
           "product_entry",
           "sidecar",
           "status",
@@ -1296,8 +1307,8 @@
       "projection_only_surfaces": [
         "MCP tool descriptors",
         "action_catalog projections",
-        "single MAS app skill command projection",
-        "product-entry manifest action metadata"
+        "OPL generated Skill descriptor targeting MAS domain entry",
+        "product-entry manifest domain action intent metadata"
       ],
       "truth_owner": "MedAutoScience",
       "forbidden_authority_writes": [

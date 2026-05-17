@@ -96,7 +96,7 @@ def build_domain_entry_command_catalog() -> dict[str, Any]:
 
 
 def build_domain_entry_contract() -> dict[str, Any]:
-    return _build_shared_family_domain_entry_contract(
+    contract = _build_shared_family_domain_entry_contract(
         entry_adapter=SERVICE_SAFE_ENTRY_ADAPTER,
         service_safe_surface_kind=SERVICE_SAFE_ENTRY_SURFACE_KIND,
         product_entry_builder_command=PRODUCT_ENTRY_BUILDER_COMMAND,
@@ -122,6 +122,17 @@ def build_domain_entry_contract() -> dict[str, Any]:
         ),
         **build_domain_entry_command_catalog(),
     )
+    contract["surface_role"] = "domain_handler_target_for_opl_generated_interfaces"
+    contract["generated_descriptor_owner"] = "one-person-lab"
+    contract["domain_handler_target_owner"] = "MedAutoScience"
+    contract["domain_repo_can_own_generated_surface"] = False
+    contract["authority_boundary"] = {
+        "opl_owns_generated_cli_mcp_skill_product_status_workbench_descriptors": True,
+        "mas_executes_domain_handlers_and_signs_owner_receipts": True,
+        "opl_can_write_domain_truth": False,
+        "opl_can_authorize_quality_or_export": False,
+    }
+    return contract
 
 
 def build_user_interaction_contract() -> dict[str, Any]:

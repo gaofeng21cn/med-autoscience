@@ -26,7 +26,7 @@ ACTION_CATALOG_SCHEMA_REF = "contracts/family-orchestration/family-action-catalo
 INPUT_SCHEMA_REF = "contracts/schemas/v1/mas-action.input.schema.json"
 OUTPUT_SCHEMA_REF = "contracts/schemas/v1/mas-action.output.schema.json"
 PRODUCT_ENTRY_CONTRACT_GAP_TEXT = (
-    "If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized/CLI/MCP/product-entry surface before continuing; do not perform ad-hoc execution."
+    "If the needed MAS contract is missing, stop and close the contract gap through a controller-authorized domain handler surface exposed by CLI/MCP/Skill/product-entry before continuing; do not perform ad-hoc execution."
 )
 MCP_INPUT_SCHEMA_BY_ACTION_ID = {
     "launch_study": {"type": "string", "enum": ["runtime_watch", "study_runtime_status", "ensure_study_runtime"]},
@@ -54,6 +54,8 @@ def _authority_boundary(*, helper_owner: str = "one-person-lab") -> dict[str, An
     return {
         "domain_truth_owner": MAS_TRUTH_OWNER,
         "helper_owner": helper_owner,
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": MAS_TRUTH_OWNER,
         "helper_write_policy": "no_domain_truth_writes",
         "authoritative_truth_refs": [
             "/study_runtime_status",
@@ -247,16 +249,21 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
 
 
 def build_mas_action_catalog(*, profile_ref: str | Path | None = None) -> dict[str, Any]:
-    return build_family_action_catalog(
+    catalog = build_family_action_catalog(
         catalog_id=ACTION_CATALOG_ID,
         target_domain_id=TARGET_DOMAIN_ID,
         owner=MAS_TRUTH_OWNER,
         actions=_action_specs(profile_ref),
         notes=[
-            "MAS owns the action metadata and runtime/controller/publication/quality truth.",
-            "OPL consumes projections only and does not write MAS durable study truth.",
+            "MAS owns domain action intents, handler targets, runtime/controller/publication/quality truth, and owner receipts.",
+            "OPL owns generated CLI/MCP/Skill/product/status/workbench descriptor projections and does not write MAS durable study truth.",
         ],
     )
+    catalog["catalog_role"] = "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors"
+    catalog["descriptor_projection_owner"] = "one-person-lab"
+    catalog["domain_handler_target_owner"] = MAS_TRUTH_OWNER
+    catalog["domain_repo_can_own_generated_surface"] = False
+    return catalog
 
 
 def project_mas_action_catalog(

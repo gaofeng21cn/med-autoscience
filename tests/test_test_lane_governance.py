@@ -134,8 +134,8 @@ def test_mas_entry_boundary_lane_freezes_sidecar_skill_mcp_and_docs_contract() -
     assert lane["projection_only_surfaces"] == [
         "MCP tool descriptors",
         "action_catalog projections",
-        "single MAS app skill command projection",
-        "product-entry manifest action metadata",
+        "OPL generated Skill descriptor targeting MAS domain entry",
+        "product-entry manifest domain action intent metadata",
     ]
     assert lane["truth_owner"] == "MedAutoScience"
     assert set(lane["forbidden_authority_writes"]) >= {
@@ -208,6 +208,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert pack_input["compiler_outputs_expected"] == [
         "cli",
         "mcp",
+        "skill",
         "product_entry",
         "sidecar",
         "status",
@@ -227,6 +228,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert set(generated_by_id) == set(pack_input["compiler_outputs_expected"])
     assert generated_by_id["cli"]["target_role"] == "opl_generated_command_surface"
     assert generated_by_id["mcp"]["target_role"] == "opl_generated_mcp_descriptor_surface"
+    assert generated_by_id["skill"]["target_role"] == "opl_generated_skill_descriptor_surface"
     assert generated_by_id["product_entry"]["target_role"] == "opl_generated_product_entry_surface"
     assert generated_by_id["sidecar"]["target_role"] == "opl_generated_sidecar_handoff_surface"
     assert generated_by_id["status"]["target_role"] == "opl_generated_status_wrapper_over_mas_truth_refs"
