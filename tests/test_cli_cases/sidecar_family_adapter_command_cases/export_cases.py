@@ -145,7 +145,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     }
     assert len(inventory_by_id) == 18
     assert inventory_by_id["runtime_lifecycle_sqlite_reference_adapter"]["migration_action"] == (
-        "consume_opl_family_runtime_lifecycle_index_and_keep_mas_domain_receipt_refs_only"
+        "keep_runtime_lifecycle_refs_only_adapter_and_consume_opl_lifecycle_index"
     )
     assert inventory_by_id["publication_quality_verdict"]["migration_action"] == "retain_in_mas"
     assert payload["profile"]["profile_ref"] == str(profile_path)

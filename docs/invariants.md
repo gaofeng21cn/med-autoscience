@@ -22,6 +22,10 @@
 - `OPL Runtime Manager` 只能作为 OPL 侧薄 adapter/projection layer 管理外部 runtime substrate 与高频索引；不得成为 MAS 的 scheduler kernel、session store、memory store、study truth、publication gate、artifact authority 或 concrete executor owner。
 - OPL native helper 与高频状态索引只能缓存、探测和投影 MAS 已暴露的 durable truth surface，不得替代 `study_runtime_status`、`runtime_watch`、`publication_eval/latest.json`、`controller_decisions/latest.json`、`study_charter`、evidence ledger 或 review ledger。
 - `MedAutoScience` 的对外稳定 capability surface 固定为本地 CLI、workspace commands / scripts、durable surface 与 repo-tracked contract，并由单一 MAS app skill 承接。
+- MAS 的目标态高于当前实现分布。当前仓内已经存在的 scheduler、runner、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/product-entry/sidecar/status wrapper 只能作为迁移输入；不得因为已有 active caller 或当前能跑就写成长期合理。
+- MAS 作为标准 OPL Agent 的长期形态是 `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。通用 transport、ledger、index、lifecycle、runner、workbench、observability 和 wrapper 必须上收到 OPL primitive / pack compiler / App shell，或收薄成 refs-only adapter / diagnostic cleanup path。
+- 保留在 MAS 的私有程序面必须是无法声明化的医学 authority function：publication quality verdict、AI reviewer-backed quality decision、artifact mutation authorization、publication-route memory accept/reject、source readiness verdict、owner receipt signer 或必要医学 helper implementation。缺少接口、active caller、不能上收原因、receipt/blocker/ref 输出边界和 no-forbidden-write 证据时，必须作为功能/结构差距处理。
+- 文档和计划必须先设理想态，再找差距；差距不是妥协清单。为了理想态，可以革命式重构并完全抛弃旧模块、旧接口、旧测试、旧目录和旧文案；处理清楚 active caller、替代 surface、provenance 和必要证据后，不保留历史兼容面。
 - AI-first 质量判断必须由 AI reviewer / author artifact 持有；schema、gate、scorecard、audit 只能持有结构、证据引用、机械完整性与阻塞投影。缺少 `assessment_provenance.owner=ai_reviewer` 的 `publication_eval/latest.json` 不得驱动 reviewer-first ready、bundle-only remaining、finalize-ready 或 submission-facing 质量闭环。
 - `allow_write` 必须按写面拆语义：publication gate 的 `allow_write=false` 只阻止下游投稿包、bundle、submission proofing、`current_package` 和 delivery mirror 写入；MAS managed runtime worker 在 controller-authorized analysis-campaign/write work unit 下仍可修改 canonical `paper/` 修订面。前台 Codex App 或 manual agent 的 supervisor-only 限制不得被解释成 MAS 自己派发的 worker 也不能写 canonical paper。
 - 已达投稿包、submission-ready 或 finalize 里程碑后收到用户、导师或审稿稿件反馈时，反馈本身就是同一 study 的重新激活信号；旧 stopped/submission-ready/finalize 状态不得被解释为前台直接修改 `manuscript/current_package/` 的许可，必须先写入 durable revision intake，再通过 MAS-controlled relaunch/resume 接管 canonical paper surface 并重新生成投影包。
@@ -40,6 +44,8 @@
 
 - `docs/project.md`、`docs/architecture.md`、`docs/invariants.md`、`docs/decisions.md`、`docs/status.md` 是核心骨架。
 - 文档按 `active/`、`public/`、`product/`、`runtime/`、`delivery/`、`source/`、`policies/`、`specs/`、`references/`、`history/` 分类收口，不得平铺堆放；旧 `program/` 与 `capabilities/` 只作为 `docs/history/**` 中的迁移来源或 provenance 目录名出现。
+- 理想态差距和开发计划必须按目标态拆分 `功能/结构差距` 与 `测试/证据差距`；现有通用功能面应由 OPL 承担时，即使可运行，也写成功能/结构差距。
+- `当前实际` 只能作为迁移起点、风险和证据来源；不得反向约束理想态，不得把现有私有实现包装成长期设计。
 - `contracts/` 是机器可读 contract root；模块边界 contract 归入 `contracts/modules/`，叙述性说明留在 `docs/`。
 - `docs/**` 是中文内部开发与维护参考；稳定路径优先使用无语言后缀 `.md` 承载中文 canonical 内容。
 - 根层 `README*` 是否保留公开双语入口，由产品分发和 public 需求单独决定。

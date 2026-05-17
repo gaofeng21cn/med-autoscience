@@ -281,7 +281,7 @@ def test_runtime_lifecycle_contract_declares_opl_family_adapter_surface() -> Non
             "current_package.zip",
         ],
         "runtime_lifecycle_sqlite_role": {
-            "classification": "A_opl_owned_mas_consumes",
+            "classification": "refs_only_adapter",
             "current_mas_role": "mas_domain_sidecar_index_reference_adapter",
             "owner": "one-person-lab",
             "authority": "refs_payload_projection_only",

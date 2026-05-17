@@ -111,7 +111,7 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
         "generic_restore_retention_owner",
     }
     assert inventory_by_id["runtime_supervisor_scan_consume_dispatch_shell"]["migration_action"] == (
-        "move generic scan consume dispatch reconcile loop to OPL runtime manager"
+        "declare_runtime_supervisor_policy_and_consume_opl_runtime_manager_loop"
     )
     assert inventory_by_id["local_launchd_scheduler_install_path"]["active_caller_allowed"] is False
     assert inventory_by_id["local_launchd_scheduler_install_path"]["default_caller_count"] == 0

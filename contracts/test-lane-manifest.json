@@ -711,22 +711,24 @@
         ]
       },
       "functional_surface_classification": {
-        "A_opl_owned_mas_consumes": [
-          "runtime_lifecycle_sqlite_reference_adapter",
-          "paper_work_unit_outbox_index",
-          "runtime_storage_maintenance",
+        "declarative_pack_generated_surface": [
           "workspace_source_intake_shell",
-          "publication_route_memory_locator_transport_shell",
-          "artifact_lifecycle_storage_audit_shell",
           "workbench_portal_generic_shell",
-          "terminal_attach_transport",
           "runtime_supervisor_scan_consume_dispatch_shell",
           "generic_cli_mcp_product_wrappers",
           "generic_daemon_or_scheduler_lifecycle",
           "generic_queue_attempt_retry_dead_letter",
           "generic_transition_runner"
         ],
-        "B_mas_domain_authority": [
+        "refs_only_adapter": [
+          "runtime_lifecycle_sqlite_reference_adapter",
+          "paper_work_unit_outbox_index",
+          "runtime_storage_maintenance",
+          "publication_route_memory_locator_transport_shell",
+          "artifact_lifecycle_storage_audit_shell",
+          "terminal_attach_transport"
+        ],
+        "minimal_authority_function": [
           "study_truth",
           "study_runtime_status",
           "runtime_watch_domain_health",
@@ -741,7 +743,7 @@
           "typed_blocker",
           "safe_action_refs"
         ],
-        "C_retire_when_replaced_or_uncalled": [
+        "legacy_cleanup_no_active_caller_gate": [
           "local_launchd_scheduler_install_path",
           "workspace_local_watch_service_wrappers",
           "mas_generic_workbench_shell",
@@ -781,7 +783,7 @@
         "workspace_local_watch_service_wrappers"
       ],
       "runtime_lifecycle_sqlite_role": {
-        "classification": "A_opl_owned_mas_consumes",
+        "classification": "refs_only_adapter",
         "current_mas_role": "domain_sidecar_index_reference_adapter",
         "authority": "refs_only_index_not_generic_persistence_engine",
         "owner": "one-person-lab",
@@ -865,6 +867,7 @@
         "family_contract_adoption.runtime_observability_export"
       ],
       "opl_functional_harness_consumer_coverage": {
+        "surface_kind": "opl_functional_harness_consumer_coverage",
         "status": "landed_domain_authority_pack_consumer",
         "coverage_items": [
           "refs_only_memory_writeback_chain",
@@ -885,7 +888,68 @@
           "owner_receipt",
           "typed_blocker",
           "safe_action_refs"
-        ]
+        ],
+        "refs_only_memory_writeback_chain": {
+          "opl_consumes": [
+            "consumed_publication_route_memory_refs",
+            "typed_closeout_proposal_refs",
+            "memory_write_router_receipt_refs",
+            "workspace_writeback_receipt_refs",
+            "opl_aion_display_receipt_refs"
+          ],
+          "mas_retains": [
+            "publication_route_memory_body",
+            "memory_writeback_decision",
+            "accepted_rejected_blocked_writeback_verdict"
+          ],
+          "body_included": false,
+          "opl_can_accept_or_reject_writeback": false
+        },
+        "queue_stage_attempt_typed_closeout": {
+          "opl_owns": [
+            "family_queue",
+            "stage_attempt_ledger",
+            "attempt_start_query_signal",
+            "framework_typed_closeout_transport"
+          ],
+          "mas_retains": [
+            "stage_closeout_domain_semantics",
+            "owner_receipt",
+            "typed_blocker",
+            "safe_action_refs"
+          ],
+          "queue_completion_is_paper_closure": false
+        },
+        "generic_transition_runner": {
+          "opl_owns": [
+            "generic_transition_runner",
+            "transition_matrix_runner",
+            "idempotent_tick",
+            "retry_dead_letter_transport"
+          ],
+          "mas_retains": [
+            "domain_transition_table",
+            "publication_quality_verdict",
+            "artifact_authority",
+            "owner_receipt"
+          ],
+          "runner_completion_can_authorize_publication": false
+        },
+        "restart_dead_letter_repair_human_gate_state_chain": {
+          "opl_owns": [
+            "restart_requery",
+            "dead_letter_state",
+            "repair_transport",
+            "human_gate_signal_transport"
+          ],
+          "mas_retains": [
+            "human_gate_domain_receipt",
+            "repair_owner_receipt",
+            "stop_loss_receipt",
+            "typed_blocker"
+          ],
+          "state_chain_completion_is_publication_ready": false
+        }
       },
       "opl_consumed_observability_surface": {
         "owner": "one-person-lab",
@@ -936,6 +1000,27 @@
         "paper/submission_minimal",
         "manuscript/submission_minimal",
         "publication_route_memory_body"
+      ],
+      "functional_module_inventory_summary": {
+        "total_count": 18,
+        "classification_counts": {
+          "refs_only_adapter": 6,
+          "declarative_pack_generated_surface": 7,
+          "minimal_authority_function": 3,
+          "legacy_cleanup_no_active_caller_gate": 2
+        },
+        "long_term_opl_owned_replacement_count": 0,
+        "retire_tombstone_classification_count": 0,
+        "legacy_cleanup_items_require_no_active_caller_gate": [
+          "local_launchd_scheduler_install_path",
+          "workspace_local_watch_service_wrappers"
+        ]
+      },
+      "functional_module_inventory_classification_allowed_values": [
+        "declarative_pack_generated_surface",
+        "refs_only_adapter",
+        "minimal_authority_function",
+        "legacy_cleanup_no_active_caller_gate"
       ]
     },
     "paper-progress-degradation-closeout": {

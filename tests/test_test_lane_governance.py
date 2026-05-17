@@ -260,28 +260,30 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "test_lane_harness",
     ]
     classification = lane["functional_surface_classification"]
-    assert classification["A_opl_owned_mas_consumes"] == [
-        "runtime_lifecycle_sqlite_reference_adapter",
-        "paper_work_unit_outbox_index",
-        "runtime_storage_maintenance",
+    assert classification["declarative_pack_generated_surface"] == [
         "workspace_source_intake_shell",
-        "publication_route_memory_locator_transport_shell",
-        "artifact_lifecycle_storage_audit_shell",
         "workbench_portal_generic_shell",
-        "terminal_attach_transport",
         "runtime_supervisor_scan_consume_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
         "generic_transition_runner",
     ]
-    assert set(classification["B_mas_domain_authority"]) == set(lane["mas_retains"]) | {
+    assert classification["refs_only_adapter"] == [
+        "runtime_lifecycle_sqlite_reference_adapter",
+        "paper_work_unit_outbox_index",
+        "runtime_storage_maintenance",
+        "publication_route_memory_locator_transport_shell",
+        "artifact_lifecycle_storage_audit_shell",
+        "terminal_attach_transport",
+    ]
+    assert set(classification["minimal_authority_function"]) == set(lane["mas_retains"]) | {
         "study_runtime_status",
         "runtime_watch_domain_health",
         "ai_reviewer_workflow",
         "publication_gate",
     }
-    assert set(classification["C_retire_when_replaced_or_uncalled"]) == {
+    assert set(classification["legacy_cleanup_no_active_caller_gate"]) == {
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
         "mas_generic_workbench_shell",
@@ -324,9 +326,9 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "generic_lifecycle_engine",
         "generic_restore_retention_owner",
     }
-    assert inventory_by_id["paper_work_unit_outbox_index"]["classification"] == "domain_thin_adapter"
+    assert inventory_by_id["paper_work_unit_outbox_index"]["classification"] == "refs_only_adapter"
     assert inventory_by_id["paper_work_unit_outbox_index"]["migration_action"] == (
-        "move generic queue_outbox_retry_attempt semantics to OPL and keep paper work-unit facts as MAS receipt refs"
+        "keep_paper_work_unit_refs_only_adapter_and_declare_queue_attempt_requirements"
     )
     assert inventory_by_id["runtime_supervisor_scan_consume_dispatch_shell"]["active_caller_status"] == (
         "domain_guard_active_generic_scan_dispatch_shell_should_move_to_opl"
@@ -340,9 +342,30 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert inventory_by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
     assert inventory_by_id["local_launchd_scheduler_install_path"]["trigger_allowed"] is False
     assert inventory_by_id["local_launchd_scheduler_install_path"]["write_install_proof_allowed"] is False
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["classification"] == (
+        "legacy_cleanup_no_active_caller_gate"
+    )
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["no_active_caller_gate"][
+        "default_caller_count"
+    ] == 0
     assert inventory_by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
+    assert runtime_boundary["functional_module_inventory_summary"] == lane[
+        "functional_module_inventory_summary"
+    ]
+    assert runtime_boundary["functional_module_inventory_summary"]["classification_counts"] == {
+        "declarative_pack_generated_surface": 7,
+        "refs_only_adapter": 6,
+        "minimal_authority_function": 3,
+        "legacy_cleanup_no_active_caller_gate": 2,
+    }
+    assert runtime_boundary["functional_module_inventory_summary"][
+        "long_term_opl_owned_replacement_count"
+    ] == 0
+    assert runtime_boundary["functional_module_inventory_summary"][
+        "retire_tombstone_classification_count"
+    ] == 0
     lifecycle_role = lane["runtime_lifecycle_sqlite_role"]
-    assert lifecycle_role["classification"] == "A_opl_owned_mas_consumes"
+    assert lifecycle_role["classification"] == "refs_only_adapter"
     assert lifecycle_role["current_mas_role"] == "domain_sidecar_index_reference_adapter"
     assert lifecycle_role["authority"] == "refs_only_index_not_generic_persistence_engine"
     assert lifecycle_role["owner"] == "one-person-lab"

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_supervision_scheduler_consumer_migration"
 ACTIVE_PATH_ROLE = "opl_replacement_default"
@@ -370,22 +369,24 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
     ],
 }
 FUNCTIONAL_SURFACE_CLASSIFICATION = {
-    "A_opl_owned_mas_consumes": [
-        "runtime_lifecycle_sqlite_reference_adapter",
-        "paper_work_unit_outbox_index",
-        "runtime_storage_maintenance",
+    "declarative_pack_generated_surface": [
         "workspace_source_intake_shell",
-        "publication_route_memory_locator_transport_shell",
-        "artifact_lifecycle_storage_audit_shell",
         "workbench_portal_generic_shell",
-        "terminal_attach_transport",
         "runtime_supervisor_scan_consume_dispatch_shell",
         "generic_cli_mcp_product_wrappers",
         "generic_daemon_or_scheduler_lifecycle",
         "generic_queue_attempt_retry_dead_letter",
         "generic_transition_runner",
     ],
-    "B_mas_domain_authority": [
+    "refs_only_adapter": [
+        "runtime_lifecycle_sqlite_reference_adapter",
+        "paper_work_unit_outbox_index",
+        "runtime_storage_maintenance",
+        "publication_route_memory_locator_transport_shell",
+        "artifact_lifecycle_storage_audit_shell",
+        "terminal_attach_transport",
+    ],
+    "minimal_authority_function": [
         "study_truth",
         "study_runtime_status",
         "runtime_watch_domain_health",
@@ -400,7 +401,7 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
         "typed_blocker",
         "safe_action_refs",
     ],
-    "C_retire_when_replaced_or_uncalled": [
+    "legacy_cleanup_no_active_caller_gate": [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers",
         "mas_generic_workbench_shell",
@@ -412,8 +413,8 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
 FUNCTIONAL_MODULE_INVENTORY = (
     {
         "module_id": "runtime_lifecycle_sqlite_reference_adapter",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "refs_only_adapter",
         "code_paths": [
             "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py",
             "src/med_autoscience/runtime_protocol/study_runtime.py",
@@ -425,7 +426,7 @@ FUNCTIONAL_MODULE_INVENTORY = (
             "sidecar/product-entry lifecycle projections",
         ],
         "active_caller_status": "refs_only_domain_sidecar_adapter_active",
-        "migration_action": "consume_opl_family_runtime_lifecycle_index_and_keep_mas_domain_receipt_refs_only",
+        "migration_action": "keep_runtime_lifecycle_refs_only_adapter_and_consume_opl_lifecycle_index",
         "retention_reason": (
             "MAS can index paper-line owner receipts and locators as a domain sidecar reference adapter; "
             "generic persistence, lifecycle indexing, restore/retention, and receipt ledger ownership stay in OPL."
@@ -445,19 +446,19 @@ FUNCTIONAL_MODULE_INVENTORY = (
     {
         "module_id": "paper_work_unit_outbox_index",
         "owner": "med-autoscience",
-        "classification": "domain_thin_adapter",
+        "classification": "refs_only_adapter",
         "code_paths": ["src/med_autoscience/controllers/paper_work_unit_outbox.py"],
         "active_callers": ["paper work-unit controller and sidecar dispatch source refs"],
         "active_caller_status": "domain_outbox_adapter_active",
-        "migration_action": "move generic queue_outbox_retry_attempt semantics to OPL and keep paper work-unit facts as MAS receipt refs",
+        "migration_action": "keep_paper_work_unit_refs_only_adapter_and_declare_queue_attempt_requirements",
         "retention_reason": "Paper work-unit identity, publication gate context, and artifact delta obligations are MAS domain facts.",
         "opl_expected_primitives": ["generic_queue", "generic_attempt_ledger", "attempt_retry_dead_letter"],
         "retained_domain_authority": ["paper_work_unit_semantics", "publication_gate", "owner_receipt"],
     },
     {
         "module_id": "runtime_storage_maintenance",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "refs_only_adapter",
         "code_paths": [
             "src/med_autoscience/controllers/runtime_storage_maintenance.py",
             "src/med_autoscience/controllers/runtime_storage_maintenance_parts/",
@@ -465,15 +466,15 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_callers": ["runtime storage maintenance CLI", "workspace storage reports"],
         "active_caller_status": "generic_cleanup_shell_active_until_opl_lifecycle_replacement_proof",
-        "migration_action": "move storage audit cleanup retention restore-proof shell to OPL lifecycle primitive",
+        "migration_action": "keep_storage_audit_refs_only_adapter_and_consume_opl_lifecycle_cleanup_policy",
         "retention_reason": "MAS may expose study/workspace refs and artifact authority receipts; generic cleanup policy belongs to OPL.",
         "opl_expected_primitives": ["artifact_lifecycle_storage_audit_shell", "restore_retention_receipt_shell"],
         "retained_domain_authority": ["artifact_authority", "workspace_artifact_refs"],
     },
     {
         "module_id": "workspace_source_intake_shell",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "declarative_pack_generated_surface",
         "code_paths": [
             "src/med_autoscience/controllers/workspace_init.py",
             "src/med_autoscience/workspace_contracts.py",
@@ -482,15 +483,15 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_callers": ["workspace init/readiness CLI", "MCP workspace readiness tools", "product-entry workspace surfaces"],
         "active_caller_status": "domain_source_adapter_active",
-        "migration_action": "move generic workspace/source intake shell to OPL and keep MAS medical source readiness verdicts",
+        "migration_action": "declare_source_intake_policy_in_pack_and_keep_mas_source_readiness_verdict",
         "retention_reason": "Source quality, medical evidence readiness, and literature relevance remain MAS domain authority.",
         "opl_expected_primitives": ["workspace_source_intake_shell", "source_locator_index"],
         "retained_domain_authority": ["source_readiness_verdict", "evidence_ledger_refs"],
     },
     {
         "module_id": "publication_route_memory_locator_transport_shell",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "refs_only_adapter",
         "code_paths": [
             "src/med_autoscience/controllers/stage_knowledge_plane.py",
             "src/med_autoscience/controllers/stage_knowledge_plane_parts/publication_route_memory_inventory.py",
@@ -498,15 +499,15 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_callers": ["publication-route memory CLI", "stage knowledge packet", "typed closeout memory writeback"],
         "active_caller_status": "body_free_locator_transport_active",
-        "migration_action": "move generic locator freshness grouping and writeback transport to OPL memory primitive",
+        "migration_action": "keep_publication_route_memory_refs_only_adapter_no_memory_body_transport",
         "retention_reason": "MAS keeps publication-route memory body, recall policy, and accept/reject/blocker writeback verdict.",
         "opl_expected_primitives": ["generic_memory_locator", "memory_writeback_transport", "body_free_memory_projection"],
         "retained_domain_authority": ["publication_route_memory_body", "memory_writeback_decision"],
     },
     {
         "module_id": "artifact_lifecycle_storage_audit_shell",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "refs_only_adapter",
         "code_paths": [
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
             "src/med_autoscience/controllers/artifact_lifecycle_operations_report.py",
@@ -515,15 +516,15 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_callers": ["artifact lifecycle CLI/MCP", "product-entry artifact projection"],
         "active_caller_status": "mixed_generic_shell_and_mas_authority_kernel_active",
-        "migration_action": "move generic lifecycle inventory retention restore shell to OPL while leaving artifact mutation permission in MAS",
+        "migration_action": "keep_artifact_refs_only_audit_adapter_and_leave_mutation_authority_in_mas",
         "retention_reason": "Canonical manuscript/package mutation and rebuild proof are MAS artifact authority.",
         "opl_expected_primitives": ["generic_artifact_lifecycle", "artifact_locator", "restore_retention_receipt_shell"],
         "retained_domain_authority": ["artifact_authority", "current_package_authority"],
     },
     {
         "module_id": "workbench_portal_generic_shell",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "declarative_pack_generated_surface",
         "code_paths": [
             "src/med_autoscience/controllers/progress_portal.py",
             "src/med_autoscience/controllers/progress_portal_parts/",
@@ -531,30 +532,30 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_callers": ["progress portal CLI", "workspace cockpit", "product-entry manifest"],
         "active_caller_status": "domain_projection_active_generic_workbench_shell_pending_opl_app_absorption",
-        "migration_action": "move generic workbench navigation attention queue and drilldown shell to OPL App",
+        "migration_action": "declare_workbench_projection_inputs_for_opl_app_generated_shell",
         "retention_reason": "MAS retains per-study route map, quality/source refs, blockers, and safe action receipt projection.",
         "opl_expected_primitives": ["generic_workbench", "operator_attention_queue", "route_decision_drilldown_shell"],
         "retained_domain_authority": ["study_progress_projection", "safe_action_refs"],
     },
     {
         "module_id": "terminal_attach_transport",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "refs_only_adapter",
         "code_paths": [
             "src/med_autoscience/controllers/runtime_live_console.py",
             "src/med_autoscience/controllers/runtime_live_console_ui.py",
         ],
         "active_callers": ["runtime live-console CLI", "Progress Portal links"],
         "active_caller_status": "read_only_terminal_projection_active",
-        "migration_action": "move terminal attach/log tail transport to OPL operator workbench",
+        "migration_action": "keep_read_only_terminal_refs_adapter_for_opl_operator_workbench",
         "retention_reason": "MAS keeps read-only paper progress facts and domain blocker explanations.",
         "opl_expected_primitives": ["terminal_attach_transport", "operator_log_projection"],
         "retained_domain_authority": ["runtime_watch_domain_health", "typed_blocker"],
     },
     {
         "module_id": "runtime_supervisor_scan_consume_dispatch_shell",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "declarative_pack_generated_surface",
         "code_paths": [
             "src/med_autoscience/controllers/runtime_supervisor_scan.py",
             "src/med_autoscience/controllers/runtime_supervisor_consumer.py",
@@ -563,15 +564,15 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_callers": ["watch-runtime one-shot tick", "runtime reconcile", "sidecar dispatch"],
         "active_caller_status": "domain_guard_active_generic_scan_dispatch_shell_should_move_to_opl",
-        "migration_action": "move generic scan consume dispatch reconcile loop to OPL runtime manager",
+        "migration_action": "declare_runtime_supervisor_policy_and_consume_opl_runtime_manager_loop",
         "retention_reason": "MAS must keep owner-route facts, publication gate blockers, safe action refs, and no-forbidden-write evidence.",
         "opl_expected_primitives": ["generic_runner", "attempt_retry_dead_letter", "repair_projection"],
         "retained_domain_authority": ["owner_route", "publication_gate", "safe_action_refs"],
     },
     {
         "module_id": "generic_cli_mcp_product_wrappers",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "declarative_pack_generated_surface",
         "code_paths": [
             "src/med_autoscience/cli.py",
             "src/med_autoscience/mcp_server.py",
@@ -579,30 +580,30 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_callers": ["MAS CLI", "MCP tool descriptors", "product-entry manifest"],
         "active_caller_status": "domain_handlers_active_metadata_should_derive_from_opl_catalog",
-        "migration_action": "derive generic command metadata and product shell from OPL action/stage catalog",
+        "migration_action": "derive_wrapper_metadata_from_declarative_pack_and_opl_generated_surfaces",
         "retention_reason": "MAS keeps domain command handlers and owner receipts; OPL can own descriptor projection and routing shell.",
         "opl_expected_primitives": ["action_catalog_projection", "product_entry_shell", "mcp_descriptor_projection"],
         "retained_domain_authority": ["domain_action_handler", "owner_receipt"],
     },
     {
         "module_id": "generic_daemon_or_scheduler_lifecycle",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "declarative_pack_generated_surface",
         "code_paths": [
             "src/med_autoscience/controllers/supervision_scheduler.py",
             "src/med_autoscience/controllers/supervision_scheduler_parts/",
         ],
         "active_callers": ["runtime-supervision-status default manager=opl", "legacy --manager local status/remove cleanup"],
         "active_caller_status": "opl_replacement_default_legacy_cleanup_only",
-        "migration_action": "keep OPL as default scheduler owner and physically retire local LaunchAgent path after no-active-caller proof",
+        "migration_action": "declare_scheduler_requirement_in_pack_and_keep_local_cleanup_diagnostic_gate",
         "retention_reason": "MAS retains paper-progress SLO semantics and cleanup diagnostics for old local artifacts only.",
         "opl_expected_primitives": ["scheduler_lifecycle", "cadence_slo", "provider_slo"],
         "retained_domain_authority": ["paper_progress_slo_semantics", "typed_blocker"],
     },
     {
         "module_id": "generic_queue_attempt_retry_dead_letter",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "declarative_pack_generated_surface",
         "code_paths": [
             "src/med_autoscience/runtime_transport/",
             "src/med_autoscience/controllers/runtime_watch_outer_loop_dispatch.py",
@@ -610,15 +611,15 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_callers": ["MAS direct/local runtime", "runtime worker activity", "controller recovery intents"],
         "active_caller_status": "direct_runtime_adapter_active_opl_provider_handoff_required",
-        "migration_action": "move generic queue attempt retry dead-letter and worker lease transport to OPL provider runtime",
+        "migration_action": "declare_queue_attempt_requirements_and_keep_mas_stage_closeout_receipts",
         "retention_reason": "MAS keeps stage closeout semantics, owner receipts, and recovery owner decisions.",
         "opl_expected_primitives": ["generic_queue", "attempt_ledger", "retry_dead_letter", "worker_lifecycle_transport"],
         "retained_domain_authority": ["stage_closeout_domain_semantics", "owner_receipt"],
     },
     {
         "module_id": "generic_transition_runner",
-        "owner": REPLACEMENT_OWNER,
-        "classification": "A_opl_owned_mas_consumes",
+        "owner": "med-autoscience",
+        "classification": "declarative_pack_generated_surface",
         "code_paths": [
             "src/med_autoscience/controllers/study_domain_transition_table.py",
             "src/med_autoscience/controllers/study_state_matrix.py",
@@ -626,7 +627,7 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_callers": ["study-state-matrix CLI", "runtime consumer guard", "OPL transition descriptor"],
         "active_caller_status": "domain_transition_spec_active_generic_runner_owned_by_opl",
-        "migration_action": "run MAS-declared transition spec through OPL generic transition runner",
+        "migration_action": "declare_domain_transition_spec_for_opl_generic_runner",
         "retention_reason": "MAS owns medical transition semantics and oracle fixtures; OPL executes the generic state-machine transport.",
         "opl_expected_primitives": ["generic_transition_runner", "transition_matrix_runner", "idempotent_tick"],
         "retained_domain_authority": ["domain_transition_table", "publication_quality_verdict", "artifact_authority"],
@@ -634,7 +635,7 @@ FUNCTIONAL_MODULE_INVENTORY = (
     {
         "module_id": "study_truth",
         "owner": "med-autoscience",
-        "classification": "domain_authority",
+        "classification": "minimal_authority_function",
         "code_paths": [
             "src/med_autoscience/controllers/study_truth_kernel.py",
             "src/med_autoscience/controllers/study_runtime_status.py",
@@ -648,7 +649,7 @@ FUNCTIONAL_MODULE_INVENTORY = (
     {
         "module_id": "publication_quality_verdict",
         "owner": "med-autoscience",
-        "classification": "domain_authority",
+        "classification": "minimal_authority_function",
         "code_paths": [
             "src/med_autoscience/controllers/publication_gate.py",
             "src/med_autoscience/controllers/study_progress_parts/publication_runtime.py",
@@ -664,7 +665,7 @@ FUNCTIONAL_MODULE_INVENTORY = (
     {
         "module_id": "artifact_authority",
         "owner": "med-autoscience",
-        "classification": "domain_authority",
+        "classification": "minimal_authority_function",
         "code_paths": [
             "src/med_autoscience/controllers/canonical_artifact_contract.py",
             "src/med_autoscience/controllers/study_delivery_sync.py",
@@ -679,7 +680,7 @@ FUNCTIONAL_MODULE_INVENTORY = (
     {
         "module_id": "local_launchd_scheduler_install_path",
         "owner": "none_active",
-        "classification": "retire_tombstone",
+        "classification": "legacy_cleanup_no_active_caller_gate",
         "code_paths": ["src/med_autoscience/controllers/supervision_scheduler_parts/local_adapter.py"],
         "active_callers": ["explicit --manager local status/remove cleanup only"],
         "active_caller_status": "cleanup_diagnostic_only_no_default_caller",
@@ -691,11 +692,20 @@ FUNCTIONAL_MODULE_INVENTORY = (
         "trigger_allowed": False,
         "write_install_proof_allowed": False,
         "tombstone_required": True,
+        "no_active_caller_gate": {
+            "default_caller_count": 0,
+            "active_caller_allowed": False,
+            "delete_or_tombstone_only_after": [
+                "opl_replacement_proof",
+                "focused_cleanup_test_green",
+                "fixture_or_provenance_dependency_absent_or_refs_only",
+            ],
+        },
     },
     {
         "module_id": "workspace_local_watch_service_wrappers",
         "owner": "none_active",
-        "classification": "retire_tombstone",
+        "classification": "legacy_cleanup_no_active_caller_gate",
         "code_paths": [
             "src/med_autoscience/controllers/workspace_init_parts/retired_entries.py",
             "src/med_autoscience/controllers/workspace_legacy_physical_cleanup.py",
@@ -706,6 +716,15 @@ FUNCTIONAL_MODULE_INVENTORY = (
         "retention_reason": "Needed only to detect and clean stale workspace-local service wrappers.",
         "active_caller_allowed": False,
         "tombstone_required": True,
+        "no_active_caller_gate": {
+            "default_caller_count": 0,
+            "active_caller_allowed": False,
+            "delete_or_tombstone_only_after": [
+                "opl_replacement_proof",
+                "focused_cleanup_test_green",
+                "fixture_or_provenance_dependency_absent_or_refs_only",
+            ],
+        },
     },
 )
 OPL_REPLACEMENT_EXPECTATION_AUDIT = {
@@ -726,6 +745,11 @@ OPL_REPLACEMENT_EXPECTATION_AUDIT = {
 
 
 def build_functional_consumer_boundary() -> dict[str, Any]:
+    classification_counts: dict[str, int] = {}
+    for item in FUNCTIONAL_MODULE_INVENTORY:
+        classification = str(item["classification"])
+        classification_counts[classification] = classification_counts.get(classification, 0) + 1
+
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": "mas_functional_consumer_boundary",
@@ -764,8 +788,19 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             }
             for item in FUNCTIONAL_MODULE_INVENTORY
         ],
+        "functional_module_inventory_summary": {
+            "total_count": len(FUNCTIONAL_MODULE_INVENTORY),
+            "classification_counts": classification_counts,
+            "long_term_opl_owned_replacement_count": 0,
+            "retire_tombstone_classification_count": 0,
+            "legacy_cleanup_items_require_no_active_caller_gate": [
+                item["module_id"]
+                for item in FUNCTIONAL_MODULE_INVENTORY
+                if item["classification"] == "legacy_cleanup_no_active_caller_gate"
+            ],
+        },
         "runtime_lifecycle_sqlite_role": {
-            "classification": "A_opl_owned_mas_consumes",
+            "classification": "refs_only_adapter",
             "current_mas_role": "domain_sidecar_index_reference_adapter",
             "authority": "refs_only_index_not_generic_persistence_engine",
             "owner": REPLACEMENT_OWNER,
@@ -787,6 +822,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "opl_harness_pass_is_paper_closure": False,
             "opl_harness_pass_is_publication_ready": False,
             "mas_owns_generic_runtime": False,
+            "mas_retains_domain_authority_pack": list(MAS_RETAINED_THIN_PROGRAM_SURFACES),
             "refs_only_memory_writeback_chain": {
                 "opl_consumes": [
                     "consumed_publication_route_memory_refs",

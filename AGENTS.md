@@ -7,6 +7,8 @@
 ## 工作方式
 
 - `Med Auto Science` 是独立医学研究 domain agent，也可以作为 `OPL` stage-led 智能体运行框架中的 admitted domain agent 被托管。`Stage` 表示大型研究步骤，Agent executor 是 stage 内最小执行单位；`Codex CLI` 是当前第一公民 executor，其他 executor adapter 只能显式接入且不承诺行为效果等价。MAS 持有医学研究 truth、quality verdict、publication/study/artifact authority、runtime-facing owner surface 和 owner receipt；通用 runtime、queue、attempt ledger、state-machine runner、workspace/source/artifact/memory locator、lifecycle shell 与 App/workbench shell 归 OPL Framework / shared family layer。
+- MAS 的理想形态是标准 OPL Agent：`Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`。当前仓内已存在的 scheduler、runner、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/product-entry/sidecar/status wrapper 只能作为迁移输入；不能因为已有 active caller 就写成长期合理私有平台。
+- 文档和开发计划先设理想态，再找差距；差距不是妥协清单。为了标准 OPL Agent 目标态，可以革命式重构 MAS 并完全抛弃旧模块、旧接口、旧测试、旧目录和旧文案，不以兼容为理由保留历史污染面。
 - `MDS / DeepScientist` 的当前角色是 MAS 显式声明的 source provenance、historical fixture、explicit archive import、backend audit、upstream learning 和 parity oracle reference。
 - 保持变更可审查、可回退，避免不必要的大范围改动。
 - 能删就别加；能复用现有模式就别新起抽象；没有明确必要不要新增依赖。
@@ -15,6 +17,7 @@
 - 新增能力或继续重构时，优先采用稳定薄入口加 `parts/`、`cases/`、`modules/` 等子模块拆分；不要把新逻辑继续堆回单个超长文件。
 - 若文档提到 `Hermes-Agent`，只能指上游外部 runtime 项目 / 服务；仓内的 seam、shim、adapter 或过渡 scaffold，不得写成“已接入 Hermes-Agent”。
 - 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、兼容层或回归基线存在。
+- 私有功能面是例外而不是默认。保留在 MAS 的程序面必须是医学 truth、publication quality、artifact mutation、memory accept/reject、source readiness、owner receipt signing 或 domain-native helper 这类无法声明化的最小 authority function，并写清接口、active caller、不能上收原因、receipt/blocker/ref 输出边界和退役门。
 - `family shared modules / shared boundary refactor` 是当前允许推进的 lane；它服务四仓复用、shared helper 收口与 future monorepo readiness。
 - external runtime gate、workspace / human gate 与对象边界仍然约束 `physical migration / monorepo absorb / runtime core ingest / controlled cutover`；`monorepo / runtime core ingest / controlled cutover` 继续作为后置长线推进。
 - 已被当前 owner surface 替代的模块、接口、CLI alias、wrapper、facade、聚合测试和文档入口，默认迁移 active caller 后直接退役；需要来龙去脉时只保留 history/tombstone/provenance，不新增 compatibility shim、别名或兼容测试。

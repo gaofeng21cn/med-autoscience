@@ -227,7 +227,7 @@ OPL_FAMILY_ADAPTER_SURFACE = {
         "current_package.zip",
     ],
     "runtime_lifecycle_sqlite_role": {
-        "classification": "A_opl_owned_mas_consumes",
+        "classification": "refs_only_adapter",
         "current_mas_role": SIDECAR_ROLE,
         "owner": GENERIC_PERSISTENCE_OWNER,
         "authority": "refs_payload_projection_only",

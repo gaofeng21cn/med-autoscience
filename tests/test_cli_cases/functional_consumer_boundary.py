@@ -98,7 +98,7 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "generic_lifecycle_engine",
         "generic_restore_retention_owner",
     }
-    assert inventory_by_id["paper_work_unit_outbox_index"]["classification"] == "domain_thin_adapter"
+    assert inventory_by_id["paper_work_unit_outbox_index"]["classification"] == "refs_only_adapter"
     assert inventory_by_id["artifact_authority"]["cannot_absorb_reason"] == (
         "Canonical manuscript/package mutation and submission authority are MAS artifact authority."
     )
