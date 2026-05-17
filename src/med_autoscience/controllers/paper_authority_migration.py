@@ -278,7 +278,11 @@ def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -
         and _new_mas_authority_eval_current(study_root=study_root, receipt=receipt)
     )
     authority_stale = receipt_status == "new_mas_authority_established" and not authority_current
-    active_surfaces = [] if receipt_status == "new_mas_authority_established" else _active_surface_items(study_root=study_root)
+    active_surfaces = (
+        []
+        if receipt_status == "new_mas_authority_established"
+        else _active_surface_items(study_root=study_root, receipt_status=receipt_status)
+    )
     request_path = supervisor_action_request_lifecycle.stable_ai_reviewer_request_path(study_root=study_root)
     return {
         "study_id": study_id,
@@ -303,11 +307,17 @@ def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -
     }
 
 
-def _active_surface_items(*, study_root: Path) -> list[dict[str, Any]]:
+def _active_surface_items(*, study_root: Path, receipt_status: str | None = None) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for surface_id, relpath, authority_role in ACTIVE_SURFACES:
         path = study_root / relpath
         if not path.exists():
+            continue
+        if (
+            surface_id == "publication_eval_latest"
+            and receipt_status == "awaiting_new_mas_authority"
+            and _publication_eval_is_clean_migration_pending_surface(path)
+        ):
             continue
         items.append(
             {
@@ -322,6 +332,78 @@ def _active_surface_items(*, study_root: Path) -> list[dict[str, Any]]:
             }
         )
     return items
+
+
+def _publication_eval_is_clean_migration_pending_surface(path: Path) -> bool:
+    payload = _read_json_object(path)
+    if not payload:
+        return False
+    provenance = payload.get("assessment_provenance")
+    if not isinstance(provenance, Mapping):
+        return False
+    owner = _text(provenance.get("owner"))
+    if owner == "ai_reviewer":
+        return _ai_reviewer_eval_is_clean_migration_interim(payload)
+    if owner == "mechanical_projection":
+        return _mechanical_eval_is_non_authoritative_projection(payload)
+    return False
+
+
+def _ai_reviewer_eval_is_clean_migration_interim(payload: Mapping[str, Any]) -> bool:
+    if _text(payload.get("eval_id")) is None:
+        return False
+    provenance = payload.get("assessment_provenance")
+    if not isinstance(provenance, Mapping):
+        return False
+    if _text(provenance.get("source_kind")) != "publication_eval_ai_reviewer":
+        return False
+    if provenance.get("ai_reviewer_required") is not False:
+        return False
+    if provenance.get("mechanical_projection_used_as_quality_authority") is not False:
+        return False
+    if not _has_clean_migration_rebuild_action(payload):
+        return False
+    reviewer_os = payload.get("reviewer_operating_system")
+    if not isinstance(reviewer_os, Mapping):
+        return False
+    currentness = reviewer_os.get("currentness_checks")
+    if not isinstance(currentness, Mapping):
+        return False
+    return _clean_migration_currentness_present(currentness)
+
+
+def _mechanical_eval_is_non_authoritative_projection(payload: Mapping[str, Any]) -> bool:
+    provenance = payload.get("assessment_provenance")
+    if not isinstance(provenance, Mapping):
+        return False
+    return (
+        _text(provenance.get("source_kind")) == "publication_gate_report"
+        and _text(provenance.get("policy_id")) == "publication_gate_projection_v1"
+        and provenance.get("ai_reviewer_required") is True
+        and provenance.get("mechanical_projection_used_as_quality_authority") is False
+    )
+
+
+def _clean_migration_currentness_present(currentness: Mapping[str, Any]) -> bool:
+    for key in ("medical_prose_review", "current_package_freshness"):
+        value = currentness.get(key)
+        if isinstance(value, Mapping) and _text(value.get("authority_source_signature")) == SURFACE_KIND:
+            return True
+    return False
+
+
+def _has_clean_migration_rebuild_action(payload: Mapping[str, Any]) -> bool:
+    for action in payload.get("recommended_actions") or ():
+        if not isinstance(action, Mapping):
+            continue
+        if _text(action.get("action_id")) == "paper-authority-clean-migration-rebuild":
+            return True
+    for gap in payload.get("gaps") or ():
+        if not isinstance(gap, Mapping):
+            continue
+        if _text(gap.get("gap_id")) == "paper-authority-clean-migration":
+            return True
+    return False
 
 
 def _apply_study_cutover(*, profile: WorkspaceProfile, study_plan: Mapping[str, Any], recorded_at: str) -> None:

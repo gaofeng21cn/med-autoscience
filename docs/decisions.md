@@ -17,6 +17,7 @@
 ## 2026-05-17：clean paper-authority migration 必须对已建立的新 MAS authority 幂等
 
 - 决策：`paper-authority-clean-migration --apply` 只能在 study 仍有旧 active authority surface、缺 cutover receipt，或 `new_mas_authority_established` 的 active AI reviewer eval 已失效时执行归档/重写。若 receipt 已是 `new_mas_authority_established` 且 active `artifacts/publication_eval/latest.json` 仍匹配 receipt 指向的 AI reviewer eval，再次 `--apply` 必须是 no-op，不得把 receipt 打回 `awaiting_new_mas_authority`。
+- 决策：若 receipt 仍是 `awaiting_new_mas_authority`，但新 MAS 已物化 clean-migration 专用的 AI reviewer interim eval，或 publication gate 写出 `mechanical_projection_used_as_quality_authority=false` 且 `ai_reviewer_required=true` 的非权威投影，迁移器不得把这些新 surface 再归档成 legacy。它们只能保留为 route-back / blocked evidence，继续等待 AI reviewer、publication gate 和 delivery owner 关闭；未知 provenance、缺 clean-migration currentness 或无 receipt 关联的 `publication_eval/latest.json` 仍按旧 active authority fail closed。
 - 理由：DM002 暴露出 clean migration 重跑时会把已由新 MAS 建立的 AI reviewer-backed blocked/underdefined eval 当作待迁移面再次处理，导致质量闭环反复回到入口状态。彻底迁移不等于反复清空新权威；迁移入口必须只切旧权威，不吞掉新权威。
 - 影响：重复迁移可以安全用于 DM-CVD、Obesity、NF-PitNET 等 workspace 的批量 closeout；它保留 fail-closed 语义，但不把当前新 MAS authority 归档为 legacy provenance。若 active eval 被机械 projection 或其他非 AI reviewer 面覆盖，仍按 stale authority 重新要求 AI reviewer，不做 legacy token normalizer。
 
