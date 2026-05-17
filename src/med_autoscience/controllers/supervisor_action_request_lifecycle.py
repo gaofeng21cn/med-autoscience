@@ -26,6 +26,16 @@ AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES = (
     Path("paper/medical_prose_review.json"),
     Path("paper/review/medical_prose_review.json"),
 )
+AI_REVIEWER_PUBLICATION_EVAL_RECORD_GLOB = (
+    "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
+)
+AI_REVIEWER_REQUIRED_QUALITY_DIMENSIONS = (
+    "clinical_significance",
+    "evidence_strength",
+    "novelty_positioning",
+    "medical_journal_prose_quality",
+    "human_review_readiness",
+)
 
 
 def _text(value: object) -> str | None:
@@ -184,13 +194,74 @@ def read_ai_reviewer_request(*, study_root: str | Path) -> dict[str, Any] | None
     return payload if isinstance(payload, dict) else None
 
 
+def _read_json_object(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _ai_reviewer_publication_eval_record_valid(payload: Mapping[str, Any]) -> bool:
+    provenance = _mapping(payload.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer":
+        return False
+    if _text(provenance.get("source_kind")) != "publication_eval_ai_reviewer":
+        return False
+    if provenance.get("ai_reviewer_required") is not False:
+        return False
+    if not _text(payload.get("eval_id")):
+        return False
+    quality_assessment = payload.get("quality_assessment")
+    if not isinstance(quality_assessment, Mapping):
+        return False
+    for dimension in AI_REVIEWER_REQUIRED_QUALITY_DIMENSIONS:
+        if not isinstance(quality_assessment.get(dimension), Mapping):
+            return False
+    future_plan = payload.get("future_facing_limitations_plan")
+    return isinstance(future_plan, list) and bool(future_plan)
+
+
+def _latest_ai_reviewer_publication_eval_record(
+    *,
+    study_root: Path,
+) -> tuple[dict[str, Any], Path] | None:
+    candidates = sorted(
+        (path for path in study_root.glob(AI_REVIEWER_PUBLICATION_EVAL_RECORD_GLOB) if path.is_file()),
+        key=lambda path: path.name,
+        reverse=True,
+    )
+    for path in candidates:
+        payload = _read_json_object(path)
+        if payload is not None and _ai_reviewer_publication_eval_record_valid(payload):
+            return payload, path.resolve()
+    return None
+
+
+def _packet_with_latest_ai_reviewer_record(*, study_root: Path, packet: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(packet)
+    if payload.get("ai_reviewer_record") or payload.get("publication_eval_record") or payload.get("record"):
+        return payload
+    latest = _latest_ai_reviewer_publication_eval_record(study_root=study_root)
+    if latest is None:
+        return payload
+    record, record_path = latest
+    payload["ai_reviewer_record"] = record
+    payload["publication_eval_record_ref"] = str(record_path)
+    lifecycle = dict(_mapping(payload.get("request_lifecycle")))
+    lifecycle["assessment_ref"] = str(record_path)
+    payload["request_lifecycle"] = lifecycle
+    return payload
+
+
 def materialize_ai_reviewer_request(
     *,
     study_root: str | Path,
     packet: Mapping[str, Any],
 ) -> dict[str, Any]:
-    path = stable_ai_reviewer_request_path(study_root=study_root)
-    payload = dict(packet)
+    resolved_study_root = Path(study_root).expanduser().resolve()
+    path = stable_ai_reviewer_request_path(study_root=resolved_study_root)
+    payload = _packet_with_latest_ai_reviewer_record(study_root=resolved_study_root, packet=packet)
     payload["path"] = str(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
