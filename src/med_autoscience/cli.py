@@ -73,6 +73,7 @@ runtime_supervisor_scan = _LazyModuleProxy(lambda: _load_controller("runtime_sup
 workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("workspace_monolith_migration"))
 workspace_legacy_physical_cleanup = _LazyModuleProxy(lambda: _load_controller("workspace_legacy_physical_cleanup"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
+study_config_migration = _LazyModuleProxy(lambda: _load_controller("study_config_migration"))
 paper_autonomy_stability_evidence = _LazyModuleProxy(lambda: _load_controller("paper_autonomy_stability_evidence"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
 runtime_lifecycle_read_model = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model"))
@@ -896,6 +897,15 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "paper-authority-clean-migration":
         result = paper_authority_migration.run_paper_authority_clean_migration(
+            profile_path=Path(args.profile),
+            study_ids=tuple(args.studies or ()),
+            apply=bool(args.apply),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "study-config-clean-migration":
+        result = study_config_migration.run_study_config_clean_migration(
             profile_path=Path(args.profile),
             study_ids=tuple(args.studies or ()),
             apply=bool(args.apply),

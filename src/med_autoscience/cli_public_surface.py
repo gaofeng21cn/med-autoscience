@@ -55,6 +55,7 @@ GROUPED_COMMAND_ALIASES: dict[tuple[str, str], str] = {
     ("runtime", "quest-materialize"): "runtime-quest-materialize",
     ("runtime", "workspace-monolith-migrate"): "workspace-monolith-migrate",
     ("runtime", "paper-authority-clean-migration"): "paper-authority-clean-migration",
+    ("runtime", "study-config-clean-migration"): "study-config-clean-migration",
     ("runtime", "maintain-storage"): "runtime-maintain-storage",
     ("runtime", "storage-audit"): "workspace-storage-audit",
     ("runtime", "live-console"): "runtime-live-console",

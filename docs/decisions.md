@@ -38,6 +38,13 @@
 - 决策：当当前 `controller_decisions/latest.json` 明确为 `return_to_ai_reviewer_workflow`，且 `next_work_unit` 为 `ai_reviewer_recheck` 或 `ai_reviewer_medical_prose_quality_review` 时，MAS turn runner 在生成 fresh Codex prompt 前必须把该 controller decision 绑定到本次 `active_run_id`，并写入 `.ds/runtime_state.json:current_controller_authorization`。旧 `last_controller_decision_authorization` 只作为历史授权保留，不能覆盖当前 AI reviewer redrive。
 - 理由：DM002 暴露出 prompt 已能看到 5/15 的 AI reviewer redrive，但 runtime state 仍停在更旧的 `analysis_claim_evidence_repair` 授权。managed worker 随后调用 `runtime-supervisor-execute-dispatch --managed-runtime-worker` 时会从 runtime state 校验同 run 授权；如果该层未同步，AI reviewer workflow 会被阻断或空跑，旧 `publication_eval ready` 也容易被误读为新质量闭环。
 - 影响：fresh prompt、runtime state 与 dispatch executor 现在消费同一条 controller truth：`quest_id`、`study_id`、`active_run_id`、`controller_actions`、`work_unit_id` 与 `work_unit_fingerprint` 必须一致。该修复不授权前台直接写 paper/current_package，不放宽 publication gate，也不把机械 projection 转换为 AI reviewer 质量判断；它只确保 AI reviewer owner 能真正收到当前 work unit。
+- 2026-05-17 追加：同步范围从 AI reviewer 专用扩展为所有当前 controller decision runtime action，包括 `run_quality_repair_batch` 与 `run_gate_clearing_batch`。fresh turn 必须优先消费 `controller_decisions/latest.json`，再把它绑定到本次 run；旧 `current_controller_authorization` / `last_controller_decision_authorization` 只能在没有当前 controller decision 时作为历史恢复输入。DM002 的 `manuscript_story_repair` 暴露出此前 prompt 和 runtime_state 会分裂：prompt 指向 quality repair，runtime_state 仍挂旧 AI reviewer 授权。现在这种状态必须在 turn 启动前收敛到同一个 current controller authorization。
+
+## 2026-05-17：active study config 迁移必须改配置，不兼容读取退役字段
+
+- 决策：旧 study active config 中的 `manual_finish.compatibility_guard_only` 不再通过 reader normalizer 或 alias 读取。迁移入口是 `study-config-clean-migration`：它只把 active `study.yaml` 中这一个退役字段改名为 `manual_finish.manual_finish_guard_only`，并写 `artifacts/migration/study_config_clean_migration/latest.json` receipt；reader 继续在看到旧字段时 fail closed。
+- 理由：DM-CVD 001 的 progress projection 被旧字段阻断。把 reader 放宽会把退役 schema 重新变成可执行 truth，与 clean migration 目标冲突。正确做法是让 active config 自身升级到新 schema，旧字段只在 migration receipt/history 中留下 provenance。
+- 影响：该迁移不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package、runtime truth 或质量 verdict。未知旧字段、字段冲突或无法唯一定位的文本更新继续 fail closed，交给 config migration owner 修正，不能用兼容层掩盖。
 
 ## 2026-05-17：MAS consumer thinning 后功能/结构差距清零，剩余只按证据门推进
 

@@ -163,3 +163,52 @@ def test_publication_clean_authority_migration_command_dispatches_controller(
         "apply": True,
     }
     assert json.loads(captured.out)["surface_kind"] == "paper_authority_clean_migration"
+
+
+def test_runtime_study_config_clean_migration_command_dispatches_controller(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    profile_path = tmp_path / "profile.local.toml"
+    write_profile(profile_path, workspace_root=tmp_path / "workspace")
+    called: dict[str, object] = {}
+
+    def fake_run_study_config_clean_migration(
+        *,
+        profile_path: Path,
+        study_ids: tuple[str, ...],
+        apply: bool,
+    ) -> dict[str, object]:
+        called["profile_path"] = profile_path
+        called["study_ids"] = study_ids
+        called["apply"] = apply
+        return {"surface_kind": "study_config_clean_migration", "mode": "apply"}
+
+    monkeypatch.setattr(
+        cli.study_config_migration,
+        "run_study_config_clean_migration",
+        fake_run_study_config_clean_migration,
+    )
+
+    exit_code = cli.main(
+        [
+            "runtime",
+            "study-config-clean-migration",
+            "--profile",
+            str(profile_path),
+            "--studies",
+            "001-dm-cvd-mortality-risk",
+            "--apply",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {
+        "profile_path": profile_path,
+        "study_ids": ("001-dm-cvd-mortality-risk",),
+        "apply": True,
+    }
+    assert json.loads(captured.out)["surface_kind"] == "study_config_clean_migration"
