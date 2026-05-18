@@ -539,3 +539,86 @@ def test_run_quality_repair_batch_records_hard_unit_harmonization_handoff_withou
     assert record["blocked_reason"] == "unit_harmonized_rerun_required"
     assert record["quality_gate_relaxation_allowed"] is False
     assert record["current_package_write_allowed"] is False
+
+
+def test_run_quality_repair_batch_hard_handoff_reads_incomplete_upstream_specificity_targets(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_id = "quest-002"
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    action = publication_eval_payload["recommended_actions"][0]
+    action["action_type"] = "bounded_analysis"
+    action["route_target"] = "analysis-campaign"
+    action["route_key_question"] = "unit-harmonized rerun or typed blocker"
+    action["route_rationale"] = "HDL harmonization is a hard methodology prerequisite."
+    action["next_work_unit"] = {
+        "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+        "lane": "analysis-campaign",
+        "summary": "Close or type-block evidence gaps before prose clearance.",
+    }
+    action["blocking_work_units"] = [
+        {
+            "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+            "lane": "analysis-campaign",
+            "summary": "Materialize or type-block HDL harmonization evidence.",
+        }
+    ]
+    action["specificity_targets"] = [
+        {
+            "target_kind": "metric",
+            "target_id": "c_index_confidence_intervals",
+            "source_path": str(study_root / "artifacts" / "results" / "main_result.json"),
+            "blocking_reason": "Prediction-model validation reporting is incomplete without uncertainty.",
+        },
+        {
+            "target_kind": "source_path",
+            "target_id": "hdL_unit_standardized_sensitivity",
+            "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+            "blocking_reason": "The HDL shift cannot be interpreted without unit/assay/transformation checks.",
+        },
+    ]
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_quality_summary(study_root)
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "return_to_publishability_gate",
+        "blockers": ["medical_publication_surface_blocked"],
+        "medical_publication_surface_status": "blocked",
+        "bundle_tasks_downstream_only": True,
+        "gate_fingerprint": "publication-gate::002",
+    }
+
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_state", lambda _quest_root: object())
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_report", lambda _state: gate_report)
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            AssertionError("incomplete hard target must not run generic gate-clearing batch")
+        ),
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+    )
+
+    assert result["status"] == "blocked"
+    assert result["blocked_reason"] == "unit_harmonized_rerun_required"
+    assert result["next_owner"] == "analysis_harmonization_owner"
+    assert result["next_work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert result["hard_methodology_target"]["target_id"] == "hdL_unit_standardized_sensitivity"
+    assert result["gate_clearing_batch"]["status"] == "not_run"

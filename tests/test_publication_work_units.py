@@ -251,6 +251,38 @@ def test_unit_harmonization_specificity_target_routes_to_hard_methodology_owner(
     assert result["hard_methodology_target"]["typed_blocker"] == "unit_harmonized_rerun_required"
 
 
+def test_unit_harmonization_target_does_not_require_complete_specificity_kinds() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "blockers": ["medical_publication_surface_blocked"],
+            "medical_publication_surface_status": "blocked",
+            "bundle_tasks_downstream_only": True,
+        },
+        specificity_targets=[
+            {
+                "target_kind": "metric",
+                "target_id": "c_index_confidence_intervals",
+                "source_path": "/tmp/study/artifacts/results/main_result.json",
+                "blocking_reason": "Prediction-model validation reporting is incomplete without uncertainty.",
+            },
+            {
+                "target_kind": "source_path",
+                "target_id": "hdL_unit_standardized_sensitivity",
+                "source_path": "/tmp/study/paper/claim_evidence_map.json",
+                "blocking_reason": "The HDL shift cannot be interpreted without unit checks.",
+            },
+        ],
+    )
+
+    assert result["actionability_status"] == "hard_methodology_route_required"
+    assert result["hard_methodology_target"]["target_id"] == "hdL_unit_standardized_sensitivity"
+    assert result["hard_methodology_target"]["required_owner"] == "analysis_harmonization_owner"
+
+
 def test_generic_surface_blocker_specificity_targets_preempt_downstream_delivery_churn() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

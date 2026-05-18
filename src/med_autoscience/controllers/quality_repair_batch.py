@@ -349,9 +349,7 @@ def _controller_route_context_for_publication_work_unit(
 ) -> dict[str, Any] | None:
     publication_work_unit_payload = publication_work_units.derive_publication_work_units(
         dict(gate_report),
-        specificity_targets=publication_work_units.specificity_targets_from_publication_eval(
-            publication_eval_payload
-        ),
+        specificity_targets=_upstream_repair_specificity_targets(publication_eval_payload),
     )
     next_work_unit = publication_work_unit_payload.get("next_work_unit")
     if not isinstance(next_work_unit, Mapping):
@@ -383,6 +381,14 @@ def _route_action_for_controller_context(route_context: Mapping[str, Any] | None
     if _non_empty_text(controller_route_context.get("work_unit_id")) in UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS:
         return "paper_write"
     return "bundle_build"
+
+
+def _upstream_repair_specificity_targets(publication_eval_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return publication_work_units.specificity_targets_from_publication_eval(
+        publication_eval_payload,
+        require_complete=False,
+        include_upstream_repair_work_units=True,
+    )
 
 
 def _merge_route_contexts(*contexts: Mapping[str, Any] | None) -> dict[str, Any] | None:
@@ -646,7 +652,7 @@ def build_quality_repair_batch_recommended_action(
     ):
         return None
 
-    specificity_targets = publication_work_units.specificity_targets_from_publication_eval(publication_eval_payload)
+    specificity_targets = _upstream_repair_specificity_targets(publication_eval_payload)
     publication_work_unit_payload = publication_work_units.derive_publication_work_units(
         gate_report,
         specificity_targets=specificity_targets,
@@ -751,7 +757,7 @@ def run_quality_repair_batch(
     quest_root = profile.managed_runtime_quests_root / quest_id
     gate_state = gate_clearing_batch.publication_gate.build_gate_state(quest_root)
     gate_report = gate_clearing_batch.publication_gate.build_gate_report(gate_state)
-    specificity_targets = publication_work_units.specificity_targets_from_publication_eval(publication_eval_payload)
+    specificity_targets = _upstream_repair_specificity_targets(publication_eval_payload)
     publication_work_unit_payload = publication_work_units.derive_publication_work_units(
         gate_report,
         specificity_targets=specificity_targets,

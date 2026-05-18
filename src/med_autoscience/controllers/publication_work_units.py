@@ -171,6 +171,12 @@ _GENERIC_SPECIFICITY_BLOCKERS = frozenset(
     }
 )
 _SPECIFICITY_WORK_UNIT_IDS = frozenset({"gate_needs_specificity", "needs_specificity"})
+_UPSTREAM_REPAIR_SPECIFICITY_WORK_UNIT_IDS = frozenset(
+    {
+        "analysis_claim_evidence_repair",
+        "medical_prose_quality_analysis_source_documentation_repair",
+    }
+)
 _HARD_METHODOLOGY_UNIT_WORK_UNIT = {
     "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
     "lane": "analysis-campaign",
@@ -289,7 +295,12 @@ def _normalized_blockers(report: Mapping[str, Any]) -> tuple[str, ...]:
     return tuple(sorted(blockers))
 
 
-def specificity_targets_from_publication_eval(publication_eval_payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+def specificity_targets_from_publication_eval(
+    publication_eval_payload: Mapping[str, Any],
+    *,
+    require_complete: bool = True,
+    include_upstream_repair_work_units: bool = False,
+) -> list[dict[str, Any]]:
     actions = publication_eval_payload.get("recommended_actions")
     if not isinstance(actions, list):
         return []
@@ -307,12 +318,15 @@ def specificity_targets_from_publication_eval(publication_eval_payload: Mapping[
             for item in action.get("blocking_work_units") or []
             if isinstance(item, Mapping)
         }
-        if next_work_unit_id not in {*_SPECIFICITY_WORK_UNIT_IDS, "publication_gate_replay"} and not (
-            blocking_work_unit_ids & _SPECIFICITY_WORK_UNIT_IDS
+        accepted_work_unit_ids = {*_SPECIFICITY_WORK_UNIT_IDS, "publication_gate_replay"}
+        if include_upstream_repair_work_units:
+            accepted_work_unit_ids.update(_UPSTREAM_REPAIR_SPECIFICITY_WORK_UNIT_IDS)
+        if next_work_unit_id not in accepted_work_unit_ids and not (
+            blocking_work_unit_ids & accepted_work_unit_ids
         ):
             continue
         status = specificity_target_status(action.get("specificity_targets"))
-        if status.get("complete") is True:
+        if status.get("valid") is True and (status.get("complete") is True or not require_complete):
             return [dict(item) for item in status.get("targets") or [] if isinstance(item, Mapping)]
     return []
 
@@ -581,7 +595,7 @@ def _append_specificity_target_repair_units(
 
 
 def _hard_methodology_target(target_status: Mapping[str, Any]) -> dict[str, Any] | None:
-    if target_status.get("complete") is not True:
+    if target_status.get("valid") is not True:
         return None
     for target in target_status.get("targets") or []:
         if not isinstance(target, Mapping):
