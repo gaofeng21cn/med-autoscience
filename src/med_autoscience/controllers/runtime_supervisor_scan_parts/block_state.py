@@ -150,6 +150,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "write"
     if blocked_reason == "unit_harmonized_rerun_required":
         return "analysis_harmonization_owner"
+    if blocked_reason == "methodology_reframe_required":
+        return "decision"
     if blocked_reason == "transport_model_provenance_recovery_required":
         return "source_provenance_owner"
     return "external_supervisor"

@@ -12,6 +12,8 @@ OWNER = source_provenance_owner.OWNER
 WORK_UNIT = source_provenance_owner.WORK_UNIT
 BLOCKED_REASON = source_provenance_owner.BLOCKED_REASON
 RESULT_RELATIVE_PATH = source_provenance_owner.RESULT_RELATIVE_PATH
+TERMINAL_ROUTE_BLOCKED_REASON = "methodology_reframe_required"
+TERMINAL_ROUTE_NEXT_OWNER = "decision"
 
 
 def result_path(*, study_root: Path) -> Path:
@@ -69,8 +71,10 @@ def typed_blocker_state(*, study_root: Path) -> dict[str, Any] | None:
     if not result_is_accepted_typed_blocker(payload):
         return None
     return {
-        "blocked_reason": BLOCKED_REASON,
-        "next_owner": OWNER,
+        "blocked_reason": TERMINAL_ROUTE_BLOCKED_REASON,
+        "source_blocked_reason": BLOCKED_REASON,
+        "next_owner": TERMINAL_ROUTE_NEXT_OWNER,
+        "terminal_source_provenance_blocker": True,
         "external_supervisor_required": False,
     }
 
@@ -108,6 +112,8 @@ __all__ = [
     "BLOCKED_REASON",
     "OWNER",
     "RESULT_RELATIVE_PATH",
+    "TERMINAL_ROUTE_BLOCKED_REASON",
+    "TERMINAL_ROUTE_NEXT_OWNER",
     "WORK_UNIT",
     "output_pending_for_result",
     "read_result",

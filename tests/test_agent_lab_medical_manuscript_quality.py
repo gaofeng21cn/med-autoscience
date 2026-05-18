@@ -87,10 +87,15 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert task["improvement_candidate"]["developer_patch_work_order"]["can_write_study_truth"] is False
     assert "analysis_harmonization_owner_callable" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert "source_provenance_owner_recovery" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
+    assert "source_provenance_terminal_blocker_route_back" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert task["improvement_candidate"]["target_agent_capability_gap"]["status"] == "candidate_only"
     assert "quality_contract_ref:prediction_model_first_draft_quality" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/analysis-harmonization-owner-routing" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/source-provenance-owner-recovery" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    assert (
+        "mechanism-edit-ref:mas/source-provenance-terminal-blocker-route-back"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
     assert (
         "mechanism-edit-ref:mas/runtime-supervisor-analysis-harmonization-owner-result-consumption"
         in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]

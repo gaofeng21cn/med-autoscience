@@ -25,6 +25,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/analysis-campaign-queue-routing",
     "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
     "mechanism-edit-ref:mas/source-provenance-owner-recovery",
+    "mechanism-edit-ref:mas/source-provenance-terminal-blocker-route-back",
     "mechanism-edit-ref:mas/runtime-supervisor-analysis-harmonization-owner-result-consumption",
     "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection",
     "mechanism-edit-ref:mas/provider-switch-hygiene-body-free-projection",
@@ -363,6 +364,7 @@ def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> d
         "required_patch_scopes": [
             "analysis_harmonization_owner_callable",
             "source_provenance_owner_recovery",
+            "source_provenance_terminal_blocker_route_back",
             "hard_methodology_unit_harmonization_route",
             "runtime_supervisor_analysis_harmonization_owner_result_consumption",
             "prediction_model_first_draft_quality_contract",

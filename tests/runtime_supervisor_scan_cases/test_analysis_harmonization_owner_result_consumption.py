@@ -598,10 +598,10 @@ def test_scan_consumes_current_source_provenance_typed_blocker_without_requeue(
     study = result["studies"][0]
     assert study["action_queue"] == []
     assert result["action_queue"] == []
-    assert study["why_not_applied"] == "transport_model_provenance_recovery_required"
-    assert study["blocked_reason"] == "transport_model_provenance_recovery_required"
-    assert study["next_owner"] == "source_provenance_owner"
+    assert study["why_not_applied"] == "methodology_reframe_required"
+    assert study["blocked_reason"] == "methodology_reframe_required"
+    assert study["next_owner"] == "decision"
     assert study["external_supervisor_required"] is False
-    assert study["owner_route"]["next_owner"] == "source_provenance_owner"
-    assert study["owner_route"]["owner_reason"] == "transport_model_provenance_recovery_required"
+    assert study["owner_route"]["next_owner"] == "decision"
+    assert study["owner_route"]["owner_reason"] == "methodology_reframe_required"
     assert study["owner_route"]["allowed_actions"] == []
