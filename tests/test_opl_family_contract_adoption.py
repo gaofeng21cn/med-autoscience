@@ -300,9 +300,12 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     assert adoption["functional_gap_zero_summary_ref"] == (
         "product_entry_manifest.functional_consumer_boundary.functional_gap_zero_summary"
     )
-    assert adoption["functional_structure_gap_count"] == 0
+    assert adoption["classification_gap_count"] == 0
+    assert adoption["functional_structure_gap_count"] == 5
     assert adoption["active_private_generic_residue_count"] == 0
-    assert adoption["remaining_gap_classification"] == "test_evidence_gates_only"
+    assert adoption["remaining_gap_classification"] == (
+        "functional_followthrough_and_test_evidence_gates"
+    )
     assert adoption["source_surfaces"] == [
         "product_entry_manifest.standard_domain_agent_skeleton",
         "product_entry_manifest.family_stage_control_plane_descriptor",

@@ -36,6 +36,43 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["action_catalog"]["actions"] == action_catalog["actions"]
     assert generated["stage_control_plane"]["stages"] == stage_plane["stages"]
     assert generated["pack_compiler_input"]["generated_surface_owner"] == "one-person-lab"
+    assert generated["pack_compiler_input"]["minimal_authority_semantic_model"] == (
+        "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
+    )
+    assert generated["pack_compiler_input"]["minimal_authority_functions"][:5] == [
+        "publication_quality_stage_gate_boundary",
+        "ai_reviewer_quality_stage_gate_boundary",
+        "artifact_mutation_stage_gate_boundary",
+        "publication_route_memory_accept_reject_stage_gate_boundary",
+        "source_readiness_stage_gate_boundary",
+    ]
+    assert generated["pack_compiler_input"]["backward_readable_minimal_authority_ids"] == [
+        "publication_quality_verdict_authorizer",
+        "ai_reviewer_quality_decision_authorizer",
+        "artifact_mutation_authorizer",
+        "publication_route_memory_accept_reject_decider",
+        "source_readiness_verdict_authorizer",
+    ]
+    assert generated["pack_compiler_input"]["requires_ai_first_record"] is True
+    assert {
+        item["program_role"]
+        for item in generated["pack_compiler_input"]["stage_quality_gate_boundaries"]
+    } == {"validator", "materializer", "guard"}
+    policy = generated["private_functional_surface_policy"]
+    assert policy["allowed_private_surface_classes"] == [
+        "ai_first_stage_quality_gate_boundary",
+        "domain_native_helper_implementation",
+        "owner_receipt_signer",
+    ]
+    assert "domain_truth_verdict_authorizer" not in policy["allowed_private_surface_classes"]
+    assert not any(
+        item.endswith("_authorizer") for item in policy["allowed_private_surface_classes"]
+    )
+    assert policy["forbidden_primary_allowed_private_surface_models"] == [
+        "domain_truth_verdict_authorizer",
+        "*_authorizer",
+    ]
+    assert policy["requires_ai_first_record"] is True
     assert generated["generated_surface_handoff"]["domain_repo_can_own_generated_surface"] is False
     assert "skill" in generated["pack_compiler_input"]["generated_surfaces_requested"]
     assert generated["action_catalog"]["catalog_role"] == (
@@ -44,8 +81,11 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["action_catalog"]["descriptor_projection_owner"] == "one-person-lab"
     assert generated["action_catalog"]["domain_handler_target_owner"] == "MedAutoScience"
     assert generated["functional_privatization_audit"]["functional_gap_zero_summary"][
-        "functional_structure_gap_count"
+        "classification_gap_count"
     ] == 0
+    assert generated["functional_privatization_audit"]["functional_gap_zero_summary"][
+        "functional_structure_gap_count"
+    ] == 5
 
 
 def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:

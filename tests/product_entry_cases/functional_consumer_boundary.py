@@ -96,6 +96,24 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     authority = boundary["minimal_authority_function_manifest"]
     assert authority["surface_kind"] == "mas_minimal_authority_function_manifest"
     assert authority["status"] == "minimal_authority_functions_only"
+    assert authority["semantic_model"] == (
+        "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
+    )
+    assert authority["requires_ai_first_record"] is True
+    assert authority["boundary_ids"] == [
+        "publication_quality_stage_gate_boundary",
+        "ai_reviewer_quality_stage_gate_boundary",
+        "artifact_mutation_stage_gate_boundary",
+        "publication_route_memory_accept_reject_stage_gate_boundary",
+        "source_readiness_stage_gate_boundary",
+    ]
+    assert authority["forbidden_mechanical_decision_surfaces"] == [
+        "script_exit_code_as_publication_quality_verdict",
+        "function_return_value_as_ai_reviewer_quality_decision",
+        "test_pass_as_artifact_mutation_authorization",
+        "queue_completion_as_publication_route_memory_accept_reject",
+        "file_presence_as_source_readiness_verdict",
+    ]
     assert authority["function_ids"] == [
         "publication_quality_verdict",
         "ai_reviewer_quality_decision",
@@ -108,6 +126,38 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert authority["function_count"] == 7
     assert {item["function_id"] for item in authority["functions"]} == set(authority["function_ids"])
     assert {item["owner"] for item in authority["functions"]} == {"med-autoscience"}
+    boundary_by_id = {item["boundary_id"]: item for item in authority["stage_quality_gate_boundaries"]}
+    assert set(boundary_by_id) == set(authority["boundary_ids"])
+    assert {item["program_role"] for item in boundary_by_id.values()} == {
+        "validator",
+        "materializer",
+        "guard",
+    }
+    for item in boundary_by_id.values():
+        assert item["requires_ai_first_record"] is True
+        assert item["route_back_semantics"].startswith("route_back_to_")
+        assert item["typed_blocker_semantics"].endswith("_blocker")
+        assert item["required_record_refs"]
+        assert any(
+            "stage_quality_pack:" in ref
+            or ref in {"AI reviewer workflow", "AI reviewer-backed publication eval"}
+            for ref in item["trace_refs"]
+        )
+    function_by_id = {item["function_id"]: item for item in authority["functions"]}
+    for function_id in [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "artifact_mutation_authorization",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict",
+    ]:
+        item = function_by_id[function_id]
+        assert item["boundary_id"] in boundary_by_id
+        assert item["requires_ai_first_record"] is True
+        assert item["program_role"] in {"validator", "materializer", "guard"}
+        assert item["route_back_semantics"].startswith("route_back_to_")
+        assert item["typed_blocker_semantics"].endswith("_blocker")
+        assert set(item["trace_refs"]) <= set(boundary_by_id[item["boundary_id"]]["trace_refs"])
     assert authority["all_other_program_surfaces"] == "opl_generated_or_migration_bridge"
     assert authority["forbidden_long_term_mas_shell_owners"] == [
         "cli",

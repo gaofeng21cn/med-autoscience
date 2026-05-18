@@ -109,17 +109,31 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     )
     assert inventory_by_id["local_launchd_scheduler_install_path"]["default_caller_count"] == 0
     assert inventory_by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
-    assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
+    assert boundary["functional_module_inventory_summary"]["classification_gap_count"] == 0
+    assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 5
     assert boundary["functional_gap_zero_summary"]["status"] == (
-        "zero_functional_structure_gaps_remaining_evidence_gated"
+        "classification_closed_followthrough_gaps_open"
     )
     assert boundary["functional_gap_zero_summary"]["remaining_gap_classification"] == (
-        "test_evidence_gates_only"
+        "functional_followthrough_and_test_evidence_gates"
     )
-    assert boundary["functional_gap_zero_summary"]["remaining_items_are_evidence_gates"] is True
-    assert "live_provider_paper_apply_scaleout" in boundary["functional_gap_zero_summary"][
-        "remaining_evidence_gate_ids"
-    ]
+    zero_summary = boundary["functional_gap_zero_summary"]
+    assert zero_summary["classification_gap_count"] == 0
+    assert zero_summary["functional_structure_gap_count"] == 5
+    assert zero_summary["remaining_items_are_evidence_gates"] is False
+    assert set(zero_summary["remaining_functional_followthrough_gate_ids"]) == {
+        "generated_surface_active_caller_cutover",
+        "refs_only_adapter_thinning",
+        "legacy_cleanup_physical_retirement",
+        "opl_app_workbench_drilldown",
+        "lifecycle_locator_retention_restore_ledger_reconciliation",
+    }
+    assert set(zero_summary["remaining_evidence_gate_ids"]) == {
+        "live_provider_paper_apply_scaleout",
+        "publication_route_memory_receipt_scaleout",
+        "artifact_lifecycle_receipt_scaleout",
+        "provider_slo_long_soak",
+    }
     assert boundary["no_active_caller_proof"]["default_caller_count"] == 0
     assert boundary["no_active_caller_proof"]["default_manager"] == "opl"
     assert "workspace_bootstrap_manager_is_opl" in boundary["no_active_caller_proof"]["proof_items"]

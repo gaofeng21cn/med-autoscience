@@ -94,6 +94,7 @@
         "minimal_authority_function": 3,
         "refs_only_adapter": 6
       },
+      "classification_gap_count": 0,
       "cleared_by_surfaces": [
         "functional_module_inventory",
         "declarative_pack_compiler_input",
@@ -101,6 +102,15 @@
         "minimal_authority_function_manifest",
         "no_active_caller_proof",
         "opl_functional_harness_consumer_coverage"
+      ],
+      "clears_only": "classification_and_long_term_generic_owner_claims",
+      "does_not_clear": [
+        "generated_surface_production_consumption",
+        "active_caller_cutover",
+        "refs_only_adapter_thinning",
+        "legacy_physical_retirement",
+        "opl_app_drilldown",
+        "lifecycle_ledger_reconciliation"
       ],
       "forbidden_remaining_functional_gap_claims": [
         "mas_owned_generic_scheduler",
@@ -112,10 +122,10 @@
         "mas_owned_generic_artifact_lifecycle",
         "mas_owned_generic_observability"
       ],
-      "functional_structure_gap_count": 0,
+      "functional_structure_gap_count": 5,
       "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
       "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
-      "legacy_cleanup_items_are_remaining_active_gaps": false,
+      "legacy_cleanup_items_are_remaining_active_gaps": true,
       "legacy_cleanup_items_have_default_entry": false,
       "legacy_cleanup_items_have_standard_template_refs": false,
       "legacy_cleanup_items_require_no_active_caller_gate": [
@@ -123,21 +133,12 @@
         "workspace_local_watch_service_wrappers"
       ],
       "remaining_evidence_gate_ids": [
-        "generated_surface_active_caller_cutover",
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
         "artifact_lifecycle_receipt_scaleout",
-        "opl_app_workbench_drilldown",
         "provider_slo_long_soak"
       ],
       "remaining_evidence_gates": [
-        {
-          "evidence_required": "OPL generated surfaces available, active callers migrated, focused no-regression lane green",
-          "functional_structure_gap": false,
-          "gate_id": "generated_surface_active_caller_cutover",
-          "mas_role": "provide_pack_input_handoff_refs_and_no_forbidden_write_guard",
-          "owner": "one-person-lab"
-        },
         {
           "evidence_required": "multi paper-line OPL provider attempts leave MAS owner receipts and no-forbidden-write proof",
           "functional_structure_gap": false,
@@ -160,13 +161,6 @@
           "owner": "med-autoscience"
         },
         {
-          "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and action receipt routing",
-          "functional_structure_gap": false,
-          "gate_id": "opl_app_workbench_drilldown",
-          "mas_role": "provide_domain_route_quality_artifact_memory_and_safe_action_refs",
-          "owner": "one-person-lab"
-        },
-        {
           "evidence_required": "long provider SLO, restart/re-query, retry/dead-letter, and domain activity soak evidence",
           "functional_structure_gap": false,
           "gate_id": "provider_slo_long_soak",
@@ -174,9 +168,53 @@
           "owner": "one-person-lab"
         }
       ],
-      "remaining_gap_classification": "test_evidence_gates_only",
-      "remaining_items_are_evidence_gates": true,
-      "status": "zero_functional_structure_gaps_remaining_evidence_gated",
+      "remaining_functional_followthrough_gate_ids": [
+        "generated_surface_active_caller_cutover",
+        "refs_only_adapter_thinning",
+        "legacy_cleanup_physical_retirement",
+        "opl_app_workbench_drilldown",
+        "lifecycle_locator_retention_restore_ledger_reconciliation"
+      ],
+      "remaining_functional_followthrough_gates": [
+        {
+          "evidence_required": "OPL generated surfaces available, active callers migrated, focused no-regression lane green",
+          "functional_structure_gap": true,
+          "gate_id": "generated_surface_active_caller_cutover",
+          "mas_role": "provide_pack_input_handoff_refs_and_no_forbidden_write_guard",
+          "owner": "one-person-lab"
+        },
+        {
+          "evidence_required": "SQLite/lifecycle, outbox, storage, source, memory, artifact, portal, and supervisor shells only expose refs/blockers/receipts",
+          "functional_structure_gap": true,
+          "gate_id": "refs_only_adapter_thinning",
+          "mas_role": "export_body_free_locator_receipt_blocker_refs_only",
+          "owner": "med-autoscience"
+        },
+        {
+          "evidence_required": "no-active-caller scan, old generated artifact absent/remove proof, provenance retained, focused cleanup tests green",
+          "functional_structure_gap": true,
+          "gate_id": "legacy_cleanup_physical_retirement",
+          "mas_role": "remove_or_tombstone_legacy_launchagent_and_workspace_local_wrapper_surfaces",
+          "owner": "med-autoscience"
+        },
+        {
+          "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and action receipt routing",
+          "functional_structure_gap": true,
+          "gate_id": "opl_app_workbench_drilldown",
+          "mas_role": "provide_domain_route_quality_artifact_memory_and_safe_action_refs",
+          "owner": "one-person-lab"
+        },
+        {
+          "evidence_required": "OPL lifecycle/index ledger consumes MAS lifecycle refs without writing MAS truth, memory body, or artifacts",
+          "functional_structure_gap": true,
+          "gate_id": "lifecycle_locator_retention_restore_ledger_reconciliation",
+          "mas_role": "return_domain_artifact_authority_receipt_refs_only",
+          "owner": "one-person-lab"
+        }
+      ],
+      "remaining_gap_classification": "functional_followthrough_and_test_evidence_gates",
+      "remaining_items_are_evidence_gates": false,
+      "status": "classification_closed_followthrough_gaps_open",
       "surface_kind": "mas_functional_gap_zero_summary"
     },
     "functional_module_inventory": [
@@ -699,10 +737,11 @@
         "minimal_authority_function": 3,
         "refs_only_adapter": 6
       },
-      "functional_structure_gap_count": 0,
+      "classification_gap_count": 0,
+      "functional_structure_gap_count": 5,
       "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
       "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
-      "legacy_cleanup_items_are_remaining_active_gaps": false,
+      "legacy_cleanup_items_are_remaining_active_gaps": true,
       "legacy_cleanup_items_have_default_entry": false,
       "legacy_cleanup_items_have_standard_template_refs": false,
       "legacy_cleanup_items_require_no_active_caller_gate": [
@@ -710,7 +749,14 @@
         "workspace_local_watch_service_wrappers"
       ],
       "long_term_opl_owned_replacement_count": 0,
-      "remaining_gap_classification": "test_evidence_gates_only",
+      "remaining_functional_followthrough_gate_ids": [
+        "generated_surface_active_caller_cutover",
+        "refs_only_adapter_thinning",
+        "legacy_cleanup_physical_retirement",
+        "opl_app_workbench_drilldown",
+        "lifecycle_locator_retention_restore_ledger_reconciliation"
+      ],
+      "remaining_gap_classification": "functional_followthrough_and_test_evidence_gates",
       "retire_tombstone_classification_count": 0,
       "total_count": 18
     },
@@ -905,6 +951,13 @@
     ],
     "minimal_authority_function_manifest": {
       "all_other_program_surfaces": "opl_generated_or_migration_bridge",
+      "boundary_ids": [
+        "publication_quality_stage_gate_boundary",
+        "ai_reviewer_quality_stage_gate_boundary",
+        "artifact_mutation_stage_gate_boundary",
+        "publication_route_memory_accept_reject_stage_gate_boundary",
+        "source_readiness_stage_gate_boundary"
+      ],
       "forbidden_long_term_mas_shell_owners": [
         "cli",
         "mcp",
@@ -915,6 +968,13 @@
         "workbench",
         "projection_shell",
         "test_lane_harness"
+      ],
+      "forbidden_mechanical_decision_surfaces": [
+        "script_exit_code_as_publication_quality_verdict",
+        "function_return_value_as_ai_reviewer_quality_decision",
+        "test_pass_as_artifact_mutation_authorization",
+        "queue_completion_as_publication_route_memory_accept_reject",
+        "file_presence_as_source_readiness_verdict"
       ],
       "function_count": 7,
       "function_ids": [
@@ -928,60 +988,116 @@
       ],
       "functions": [
         {
+          "boundary_id": "publication_quality_stage_gate_boundary",
           "cannot_absorb_reason": "Medical publication quality and readiness require MAS domain judgment.",
           "function_id": "publication_quality_verdict",
           "owner": "med-autoscience",
+          "program_role": "validator",
+          "requires_ai_first_record": true,
+          "route_back_semantics": "route_back_to_review_or_revision_stage",
           "source_refs": [
             "publication_eval/latest.json",
             "publication gate",
             "review ledger"
-          ]
+          ],
+          "trace_refs": [
+            "stage_quality_pack:publication_quality",
+            "publication_eval/latest.json",
+            "review_ledger",
+            "evidence_ledger"
+          ],
+          "typed_blocker_semantics": "publication_quality_blocker"
         },
         {
+          "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
           "cannot_absorb_reason": "OPL can transport reviewer work but cannot issue medical reviewer verdicts.",
           "function_id": "ai_reviewer_quality_decision",
           "owner": "med-autoscience",
+          "program_role": "validator",
+          "requires_ai_first_record": true,
+          "route_back_semantics": "route_back_to_ai_reviewer_repair_stage",
           "source_refs": [
             "AI reviewer workflow",
             "reviewer operating system trace",
             "AI reviewer-backed publication eval"
-          ]
+          ],
+          "trace_refs": [
+            "AI reviewer workflow",
+            "AI reviewer-backed publication eval",
+            "stage_quality_pack:ai_reviewer_quality"
+          ],
+          "typed_blocker_semantics": "ai_reviewer_quality_blocker"
         },
         {
+          "boundary_id": "artifact_mutation_stage_gate_boundary",
           "cannot_absorb_reason": "Artifact mutation changes submission-facing medical deliverables.",
           "function_id": "artifact_mutation_authorization",
           "owner": "med-autoscience",
+          "program_role": "materializer",
+          "requires_ai_first_record": true,
+          "route_back_semantics": "route_back_to_artifact_rebuild_or_source_revision_stage",
           "source_refs": [
             "canonical manuscript",
             "current_package",
             "submission package",
             "artifact rebuild proof"
-          ]
+          ],
+          "trace_refs": [
+            "stage_quality_pack:artifact_materialization",
+            "canonical manuscript",
+            "current_package",
+            "artifact rebuild proof"
+          ],
+          "typed_blocker_semantics": "artifact_mutation_blocker"
         },
         {
+          "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
           "cannot_absorb_reason": "Memory body and accept/reject decisions remain domain-owned.",
           "function_id": "publication_route_memory_accept_reject",
           "owner": "med-autoscience",
+          "program_role": "guard",
+          "requires_ai_first_record": true,
+          "route_back_semantics": "route_back_to_memory_writeback_repair_stage",
           "source_refs": [
             "publication-route memory body",
             "memory writeback proposal",
             "memory writeback router receipt"
-          ]
+          ],
+          "trace_refs": [
+            "publication-route memory body",
+            "memory writeback proposal",
+            "memory writeback router receipt",
+            "stage_quality_pack:publication_route_memory"
+          ],
+          "typed_blocker_semantics": "publication_route_memory_writeback_blocker"
         },
         {
+          "boundary_id": "source_readiness_stage_gate_boundary",
           "cannot_absorb_reason": "Medical source sufficiency and study readiness are MAS domain verdicts.",
           "function_id": "source_readiness_verdict",
           "owner": "med-autoscience",
+          "program_role": "validator",
+          "requires_ai_first_record": true,
+          "route_back_semantics": "route_back_to_source_intake_or_study_design_stage",
           "source_refs": [
             "study charter",
             "source readiness checks",
             "evidence ledger"
-          ]
+          ],
+          "trace_refs": [
+            "study charter",
+            "source readiness checks",
+            "evidence ledger",
+            "stage_quality_pack:source_readiness"
+          ],
+          "typed_blocker_semantics": "source_readiness_blocker"
         },
         {
           "cannot_absorb_reason": "Only MAS can sign domain receipt, blocker, and safe action authority.",
           "function_id": "owner_receipt_signer",
           "owner": "med-autoscience",
+          "program_role": "receipt_signer",
+          "requires_ai_first_record": false,
           "source_refs": [
             "MAS owner receipt",
             "typed blocker",
@@ -992,6 +1108,8 @@
           "cannot_absorb_reason": "Domain helper code encodes medical research semantics rather than generic runtime shell.",
           "function_id": "medical_helper_implementation",
           "owner": "med-autoscience",
+          "program_role": "guard",
+          "requires_ai_first_record": false,
           "source_refs": [
             "medical analysis helpers",
             "reporting guideline helpers",
@@ -1000,7 +1118,105 @@
         }
       ],
       "owner": "med-autoscience",
+      "requires_ai_first_record": true,
       "schema_version": 1,
+      "semantic_model": "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts",
+      "stage_quality_gate_boundaries": [
+        {
+          "boundary_id": "publication_quality_stage_gate_boundary",
+          "function_id": "publication_quality_verdict",
+          "legacy_readable_id": "publication_quality_verdict",
+          "program_role": "validator",
+          "required_record_refs": [
+            "ai_reviewer_record",
+            "quality_pack_evidence_refs"
+          ],
+          "requires_ai_first_record": true,
+          "route_back_semantics": "route_back_to_review_or_revision_stage",
+          "trace_refs": [
+            "stage_quality_pack:publication_quality",
+            "publication_eval/latest.json",
+            "review_ledger",
+            "evidence_ledger"
+          ],
+          "typed_blocker_semantics": "publication_quality_blocker"
+        },
+        {
+          "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
+          "function_id": "ai_reviewer_quality_decision",
+          "legacy_readable_id": "ai_reviewer_quality_decision",
+          "program_role": "validator",
+          "required_record_refs": [
+            "ai_reviewer_record",
+            "reviewer_operating_system_trace"
+          ],
+          "requires_ai_first_record": true,
+          "route_back_semantics": "route_back_to_ai_reviewer_repair_stage",
+          "trace_refs": [
+            "AI reviewer workflow",
+            "AI reviewer-backed publication eval",
+            "stage_quality_pack:ai_reviewer_quality"
+          ],
+          "typed_blocker_semantics": "ai_reviewer_quality_blocker"
+        },
+        {
+          "boundary_id": "artifact_mutation_stage_gate_boundary",
+          "function_id": "artifact_mutation_authorization",
+          "legacy_readable_id": "artifact_mutation_authorization",
+          "program_role": "materializer",
+          "required_record_refs": [
+            "quality_pack_evidence_refs",
+            "artifact_rebuild_proof"
+          ],
+          "requires_ai_first_record": true,
+          "route_back_semantics": "route_back_to_artifact_rebuild_or_source_revision_stage",
+          "trace_refs": [
+            "stage_quality_pack:artifact_materialization",
+            "canonical manuscript",
+            "current_package",
+            "artifact rebuild proof"
+          ],
+          "typed_blocker_semantics": "artifact_mutation_blocker"
+        },
+        {
+          "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
+          "function_id": "publication_route_memory_accept_reject",
+          "legacy_readable_id": "publication_route_memory_accept_reject",
+          "program_role": "guard",
+          "required_record_refs": [
+            "publication_route_memory_body",
+            "memory_writeback_receipt_refs"
+          ],
+          "requires_ai_first_record": true,
+          "route_back_semantics": "route_back_to_memory_writeback_repair_stage",
+          "trace_refs": [
+            "publication-route memory body",
+            "memory writeback proposal",
+            "memory writeback router receipt",
+            "stage_quality_pack:publication_route_memory"
+          ],
+          "typed_blocker_semantics": "publication_route_memory_writeback_blocker"
+        },
+        {
+          "boundary_id": "source_readiness_stage_gate_boundary",
+          "function_id": "source_readiness_verdict",
+          "legacy_readable_id": "source_readiness_verdict",
+          "program_role": "validator",
+          "required_record_refs": [
+            "study_charter",
+            "quality_pack_evidence_refs"
+          ],
+          "requires_ai_first_record": true,
+          "route_back_semantics": "route_back_to_source_intake_or_study_design_stage",
+          "trace_refs": [
+            "study charter",
+            "source readiness checks",
+            "evidence ledger",
+            "stage_quality_pack:source_readiness"
+          ],
+          "typed_blocker_semantics": "source_readiness_blocker"
+        }
+      ],
       "status": "minimal_authority_functions_only",
       "surface_kind": "mas_minimal_authority_function_manifest"
     },
@@ -1173,6 +1389,7 @@
       "minimal_authority_function": 3,
       "refs_only_adapter": 6
     },
+    "classification_gap_count": 0,
     "cleared_by_surfaces": [
       "functional_module_inventory",
       "declarative_pack_compiler_input",
@@ -1180,6 +1397,15 @@
       "minimal_authority_function_manifest",
       "no_active_caller_proof",
       "opl_functional_harness_consumer_coverage"
+    ],
+    "clears_only": "classification_and_long_term_generic_owner_claims",
+    "does_not_clear": [
+      "generated_surface_production_consumption",
+      "active_caller_cutover",
+      "refs_only_adapter_thinning",
+      "legacy_physical_retirement",
+      "opl_app_drilldown",
+      "lifecycle_ledger_reconciliation"
     ],
     "forbidden_remaining_functional_gap_claims": [
       "mas_owned_generic_scheduler",
@@ -1191,10 +1417,10 @@
       "mas_owned_generic_artifact_lifecycle",
       "mas_owned_generic_observability"
     ],
-    "functional_structure_gap_count": 0,
+    "functional_structure_gap_count": 5,
     "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
     "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
-    "legacy_cleanup_items_are_remaining_active_gaps": false,
+    "legacy_cleanup_items_are_remaining_active_gaps": true,
     "legacy_cleanup_items_have_default_entry": false,
     "legacy_cleanup_items_have_standard_template_refs": false,
     "legacy_cleanup_items_require_no_active_caller_gate": [
@@ -1202,21 +1428,12 @@
       "workspace_local_watch_service_wrappers"
     ],
     "remaining_evidence_gate_ids": [
-      "generated_surface_active_caller_cutover",
       "live_provider_paper_apply_scaleout",
       "publication_route_memory_receipt_scaleout",
       "artifact_lifecycle_receipt_scaleout",
-      "opl_app_workbench_drilldown",
       "provider_slo_long_soak"
     ],
     "remaining_evidence_gates": [
-      {
-        "evidence_required": "OPL generated surfaces available, active callers migrated, focused no-regression lane green",
-        "functional_structure_gap": false,
-        "gate_id": "generated_surface_active_caller_cutover",
-        "mas_role": "provide_pack_input_handoff_refs_and_no_forbidden_write_guard",
-        "owner": "one-person-lab"
-      },
       {
         "evidence_required": "multi paper-line OPL provider attempts leave MAS owner receipts and no-forbidden-write proof",
         "functional_structure_gap": false,
@@ -1239,13 +1456,6 @@
         "owner": "med-autoscience"
       },
       {
-        "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and action receipt routing",
-        "functional_structure_gap": false,
-        "gate_id": "opl_app_workbench_drilldown",
-        "mas_role": "provide_domain_route_quality_artifact_memory_and_safe_action_refs",
-        "owner": "one-person-lab"
-      },
-      {
         "evidence_required": "long provider SLO, restart/re-query, retry/dead-letter, and domain activity soak evidence",
         "functional_structure_gap": false,
         "gate_id": "provider_slo_long_soak",
@@ -1253,9 +1463,53 @@
         "owner": "one-person-lab"
       }
     ],
-    "remaining_gap_classification": "test_evidence_gates_only",
-    "remaining_items_are_evidence_gates": true,
-    "status": "zero_functional_structure_gaps_remaining_evidence_gated",
+    "remaining_functional_followthrough_gate_ids": [
+      "generated_surface_active_caller_cutover",
+      "refs_only_adapter_thinning",
+      "legacy_cleanup_physical_retirement",
+      "opl_app_workbench_drilldown",
+      "lifecycle_locator_retention_restore_ledger_reconciliation"
+    ],
+    "remaining_functional_followthrough_gates": [
+      {
+        "evidence_required": "OPL generated surfaces available, active callers migrated, focused no-regression lane green",
+        "functional_structure_gap": true,
+        "gate_id": "generated_surface_active_caller_cutover",
+        "mas_role": "provide_pack_input_handoff_refs_and_no_forbidden_write_guard",
+        "owner": "one-person-lab"
+      },
+      {
+        "evidence_required": "SQLite/lifecycle, outbox, storage, source, memory, artifact, portal, and supervisor shells only expose refs/blockers/receipts",
+        "functional_structure_gap": true,
+        "gate_id": "refs_only_adapter_thinning",
+        "mas_role": "export_body_free_locator_receipt_blocker_refs_only",
+        "owner": "med-autoscience"
+      },
+      {
+        "evidence_required": "no-active-caller scan, old generated artifact absent/remove proof, provenance retained, focused cleanup tests green",
+        "functional_structure_gap": true,
+        "gate_id": "legacy_cleanup_physical_retirement",
+        "mas_role": "remove_or_tombstone_legacy_launchagent_and_workspace_local_wrapper_surfaces",
+        "owner": "med-autoscience"
+      },
+      {
+        "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and action receipt routing",
+        "functional_structure_gap": true,
+        "gate_id": "opl_app_workbench_drilldown",
+        "mas_role": "provide_domain_route_quality_artifact_memory_and_safe_action_refs",
+        "owner": "one-person-lab"
+      },
+      {
+        "evidence_required": "OPL lifecycle/index ledger consumes MAS lifecycle refs without writing MAS truth, memory body, or artifacts",
+        "functional_structure_gap": true,
+        "gate_id": "lifecycle_locator_retention_restore_ledger_reconciliation",
+        "mas_role": "return_domain_artifact_authority_receipt_refs_only",
+        "owner": "one-person-lab"
+      }
+    ],
+    "remaining_gap_classification": "functional_followthrough_and_test_evidence_gates",
+    "remaining_items_are_evidence_gates": false,
+    "status": "classification_closed_followthrough_gaps_open",
     "surface_kind": "mas_functional_gap_zero_summary"
   },
   "schema_version": 1,

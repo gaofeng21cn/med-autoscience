@@ -155,6 +155,19 @@ FORBIDDEN_MECHANICAL_DECISION_SURFACES = (
     "queue_completion_as_publication_route_memory_accept_reject",
     "file_presence_as_source_readiness_verdict",
 )
+INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY = {
+    "surface_kind": "independent_executor_reviewer_agent_policy",
+    "required": True,
+    "executor_agent_role": "stage_work_executor",
+    "reviewer_auditor_agent_role": "quality_gate_reviewer_or_auditor",
+    "separate_invocation_required": True,
+    "separate_context_record_required": True,
+    "separate_task_record_required": True,
+    "separate_receipt_required": True,
+    "self_review_closes_quality_gate": False,
+    "codex_cli_may_serve_both_roles_only_as_separate_invocations": True,
+    "missing_independent_reviewer_record_policy": "fail_closed_or_route_back",
+}
 AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
     {
         "boundary_id": "publication_quality_stage_gate_boundary",
@@ -320,6 +333,9 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
         dict(item) for item in AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES
     ],
     "forbidden_mechanical_decision_surfaces": list(FORBIDDEN_MECHANICAL_DECISION_SURFACES),
+    "independent_executor_reviewer_agent_policy": dict(
+        INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY
+    ),
     "requires_ai_first_record": True,
     "function_ids": list(MINIMAL_AUTHORITY_FUNCTION_IDS),
     "function_count": len(MINIMAL_AUTHORITY_FUNCTION_IDS),

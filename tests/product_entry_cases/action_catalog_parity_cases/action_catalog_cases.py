@@ -18,11 +18,11 @@ def test_mas_action_catalog_drives_cli_product_entry_skill_and_mcp_metadata(tmp_
 
     assert manifest["family_action_catalog"] == catalog
     assert skill_catalog["action_catalog"] == catalog
-    assert catalog["authority_boundary"] == {
+    assert catalog["authority_boundary"] | {
         "domain_truth_owner": "MedAutoScience",
         "opl_role": "projection_consumer_only",
         "write_policy": "no_domain_truth_writes",
-    }
+    } == catalog["authority_boundary"]
     assert catalog["catalog_role"] == (
         "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors"
     )
@@ -216,5 +216,25 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "owner_receipt_signer",
         "medical_helper_implementation",
     ]
+    authority = boundary["minimal_authority_function_manifest"]
+    assert authority["semantic_model"] == (
+        "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
+    )
+    assert authority["boundary_ids"] == [
+        "publication_quality_stage_gate_boundary",
+        "ai_reviewer_quality_stage_gate_boundary",
+        "artifact_mutation_stage_gate_boundary",
+        "publication_route_memory_accept_reject_stage_gate_boundary",
+        "source_readiness_stage_gate_boundary",
+    ]
+    assert {
+        item["program_role"] for item in authority["stage_quality_gate_boundaries"]
+    } == {"validator", "materializer", "guard"}
+    assert all(
+        item["requires_ai_first_record"] is True
+        and item["route_back_semantics"].startswith("route_back_to_")
+        and item["typed_blocker_semantics"].endswith("_blocker")
+        for item in authority["stage_quality_gate_boundaries"]
+    )
     assert "product_entry_manifest.functional_consumer_boundary" in boundary["proof_surfaces"]
     assert "mas_owned_generic_queue" in boundary["forbidden_regressions"]

@@ -239,8 +239,23 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert generated_by_id["test_lane_harness"]["target_role"] == (
         "opl_generated_harness_consumer_over_mas_pack"
     )
-    minimal_authority = lane["minimal_authority_function_manifest"]
+    consumer_migration = importlib.import_module(
+        "med_autoscience.controllers.supervision_scheduler_parts.consumer_migration"
+    )
+    runtime_boundary = consumer_migration.build_functional_consumer_boundary()
+    minimal_authority = runtime_boundary["minimal_authority_function_manifest"]
     assert minimal_authority["surface_kind"] == "mas_minimal_authority_function_manifest"
+    assert minimal_authority["semantic_model"] == (
+        "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
+    )
+    assert minimal_authority["requires_ai_first_record"] is True
+    assert minimal_authority["boundary_ids"] == [
+        "publication_quality_stage_gate_boundary",
+        "ai_reviewer_quality_stage_gate_boundary",
+        "artifact_mutation_stage_gate_boundary",
+        "publication_route_memory_accept_reject_stage_gate_boundary",
+        "source_readiness_stage_gate_boundary",
+    ]
     assert minimal_authority["function_ids"] == [
         "publication_quality_verdict",
         "ai_reviewer_quality_decision",
@@ -251,6 +266,32 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "medical_helper_implementation",
     ]
     assert minimal_authority["function_count"] == 7
+    assert minimal_authority["forbidden_mechanical_decision_surfaces"] == [
+        "script_exit_code_as_publication_quality_verdict",
+        "function_return_value_as_ai_reviewer_quality_decision",
+        "test_pass_as_artifact_mutation_authorization",
+        "queue_completion_as_publication_route_memory_accept_reject",
+        "file_presence_as_source_readiness_verdict",
+    ]
+    boundary_by_id = {
+        item["boundary_id"]: item for item in minimal_authority["stage_quality_gate_boundaries"]
+    }
+    assert set(boundary_by_id) == set(minimal_authority["boundary_ids"])
+    assert boundary_by_id["publication_quality_stage_gate_boundary"]["program_role"] == "validator"
+    assert boundary_by_id["artifact_mutation_stage_gate_boundary"]["program_role"] == "materializer"
+    assert boundary_by_id[
+        "publication_route_memory_accept_reject_stage_gate_boundary"
+    ]["program_role"] == "guard"
+    for item in boundary_by_id.values():
+        assert item["requires_ai_first_record"] is True
+        assert item["route_back_semantics"].startswith("route_back_to_")
+        assert item["typed_blocker_semantics"].endswith("_blocker")
+        assert item["required_record_refs"]
+        assert any(
+            "stage_quality_pack:" in ref
+            or ref in {"AI reviewer workflow", "AI reviewer-backed publication eval"}
+            for ref in item["trace_refs"]
+        )
     assert minimal_authority["all_other_program_surfaces"] == "opl_generated_or_migration_bridge"
     assert minimal_authority["forbidden_long_term_mas_shell_owners"] == [
         "cli",
@@ -307,12 +348,11 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "active_caller_status",
         "migration_action",
     ]
-    consumer_migration = importlib.import_module(
-        "med_autoscience.controllers.supervision_scheduler_parts.consumer_migration"
-    )
-    runtime_boundary = consumer_migration.build_functional_consumer_boundary()
     assert runtime_boundary["declarative_pack_compiler_input"] == pack_input
     assert runtime_boundary["generated_surface_handoff"] == generated
+    assert runtime_boundary["minimal_authority_function_manifest"]["function_ids"] == lane[
+        "minimal_authority_function_manifest"
+    ]["function_ids"]
     assert runtime_boundary["minimal_authority_function_manifest"] == minimal_authority
     inventory = runtime_boundary["functional_module_inventory"]
     assert len(inventory) == 18
@@ -378,9 +418,6 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "default_caller_count"
     ] == 0
     assert inventory_by_id["workspace_local_watch_service_wrappers"]["tombstone_required"] is True
-    assert runtime_boundary["functional_module_inventory_summary"] == lane[
-        "functional_module_inventory_summary"
-    ]
     assert runtime_boundary["functional_module_inventory_summary"]["classification_counts"] == {
         "declarative_pack_generated_surface": 7,
         "refs_only_adapter": 6,
@@ -400,8 +437,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     assert runtime_boundary["functional_module_inventory_summary"][
         "retire_tombstone_classification_count"
     ] == 0
-    assert lane["functional_gap_zero_summary"] == runtime_boundary["functional_gap_zero_summary"]
-    zero_summary = lane["functional_gap_zero_summary"]
+    zero_summary = runtime_boundary["functional_gap_zero_summary"]
     assert zero_summary["status"] == "classification_closed_followthrough_gaps_open"
     assert zero_summary["classification_gap_count"] == 0
     assert zero_summary["functional_structure_gap_count"] == 5
@@ -424,7 +460,6 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
         "artifact_lifecycle_receipt_scaleout",
-        "opl_app_workbench_drilldown",
         "provider_slo_long_soak",
     ]
     assert {item["functional_structure_gap"] for item in zero_summary["remaining_evidence_gates"]} == {

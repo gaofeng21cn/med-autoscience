@@ -247,9 +247,9 @@
     "generated_surface_handoff_ref": "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff",
     "minimal_authority_function_manifest_ref": "product_entry_manifest.functional_consumer_boundary.minimal_authority_function_manifest",
     "functional_gap_zero_summary_ref": "product_entry_manifest.functional_consumer_boundary.functional_gap_zero_summary",
-    "functional_structure_gap_count": 0,
+    "functional_structure_gap_count": 5,
     "active_private_generic_residue_count": 0,
-    "remaining_gap_classification": "test_evidence_gates_only",
+    "remaining_gap_classification": "functional_followthrough_and_test_evidence_gates",
     "source_surfaces": [
       "product_entry_manifest.standard_domain_agent_skeleton",
       "product_entry_manifest.family_stage_control_plane_descriptor",
@@ -297,7 +297,21 @@
       "opl_pack_compiler_may_claim_domain_authority": false,
       "mas_keeps_medical_authority_functions": true,
       "mas_keeps_generic_shell_owner": false
-    }
+    },
+    "classification_gap_count": 0,
+    "remaining_functional_followthrough_gate_ids": [
+      "generated_surface_active_caller_cutover",
+      "refs_only_adapter_thinning",
+      "legacy_cleanup_physical_retirement",
+      "opl_app_workbench_drilldown",
+      "lifecycle_locator_retention_restore_ledger_reconciliation"
+    ],
+    "remaining_evidence_gate_ids": [
+      "live_provider_paper_apply_scaleout",
+      "publication_route_memory_receipt_scaleout",
+      "artifact_lifecycle_receipt_scaleout",
+      "provider_slo_long_soak"
+    ]
   },
   "academic_research_skills_learning_projection": {
     "surface_kind": "mas_ars_learning_projection",

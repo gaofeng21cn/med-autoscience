@@ -5,6 +5,20 @@
     "opl_can_write_domain_truth": false,
     "opl_can_write_memory_body": false
   },
+  "backward_readable_minimal_authority_ids": [
+    "publication_quality_verdict_authorizer",
+    "ai_reviewer_quality_decision_authorizer",
+    "artifact_mutation_authorizer",
+    "publication_route_memory_accept_reject_decider",
+    "source_readiness_verdict_authorizer"
+  ],
+  "boundary_ids": [
+    "publication_quality_stage_gate_boundary",
+    "ai_reviewer_quality_stage_gate_boundary",
+    "artifact_mutation_stage_gate_boundary",
+    "publication_route_memory_accept_reject_stage_gate_boundary",
+    "source_readiness_stage_gate_boundary"
+  ],
   "declarative_domain_pack": [
     "stage_descriptors",
     "action_catalog",
@@ -19,6 +33,13 @@
   "domain_pack_owner": "med-autoscience",
   "domain_repo_can_own_generated_surface": false,
   "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
+  "forbidden_mechanical_decision_surfaces": [
+    "script_exit_code_as_publication_quality_verdict",
+    "function_return_value_as_ai_reviewer_quality_decision",
+    "test_pass_as_artifact_mutation_authorization",
+    "queue_completion_as_publication_route_memory_accept_reject",
+    "file_presence_as_source_readiness_verdict"
+  ],
   "generated_surface_owner": "one-person-lab",
   "generated_surfaces_requested": [
     "cli",
@@ -31,14 +52,16 @@
     "functional_harness_cases"
   ],
   "minimal_authority_functions": [
-    "publication_quality_verdict_authorizer",
-    "ai_reviewer_quality_decision_authorizer",
-    "artifact_mutation_authorizer",
-    "publication_route_memory_accept_reject_decider",
-    "source_readiness_verdict_authorizer",
+    "publication_quality_stage_gate_boundary",
+    "ai_reviewer_quality_stage_gate_boundary",
+    "artifact_mutation_stage_gate_boundary",
+    "publication_route_memory_accept_reject_stage_gate_boundary",
+    "source_readiness_stage_gate_boundary",
     "owner_receipt_signer",
     "medical_native_helper_implementation"
   ],
+  "minimal_authority_semantic_model": "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts",
+  "requires_ai_first_record": true,
   "schema_version": 1,
   "source_refs": {
     "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
@@ -46,5 +69,96 @@
     "memory_descriptor": "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/family_adoption.py::build_domain_memory_descriptor",
     "stage_control_plane": "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/family_adoption.py::build_family_stage_control_plane"
   },
+  "stage_quality_gate_boundaries": [
+    {
+      "boundary_id": "publication_quality_stage_gate_boundary",
+      "legacy_readable_id": "publication_quality_verdict_authorizer",
+      "program_role": "validator",
+      "required_record_refs": [
+        "ai_reviewer_record",
+        "quality_pack_evidence_refs"
+      ],
+      "requires_ai_first_record": true,
+      "route_back_semantics": "route_back_to_review_or_revision_stage",
+      "trace_refs": [
+        "stage_quality_pack:publication_quality",
+        "publication_eval/latest.json",
+        "review_ledger",
+        "evidence_ledger"
+      ],
+      "typed_blocker_semantics": "publication_quality_blocker"
+    },
+    {
+      "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
+      "legacy_readable_id": "ai_reviewer_quality_decision_authorizer",
+      "program_role": "validator",
+      "required_record_refs": [
+        "ai_reviewer_record",
+        "reviewer_operating_system_trace"
+      ],
+      "requires_ai_first_record": true,
+      "route_back_semantics": "route_back_to_ai_reviewer_repair_stage",
+      "trace_refs": [
+        "AI reviewer workflow",
+        "AI reviewer-backed publication eval",
+        "stage_quality_pack:ai_reviewer_quality"
+      ],
+      "typed_blocker_semantics": "ai_reviewer_quality_blocker"
+    },
+    {
+      "boundary_id": "artifact_mutation_stage_gate_boundary",
+      "legacy_readable_id": "artifact_mutation_authorizer",
+      "program_role": "materializer",
+      "required_record_refs": [
+        "quality_pack_evidence_refs",
+        "artifact_rebuild_proof"
+      ],
+      "requires_ai_first_record": true,
+      "route_back_semantics": "route_back_to_artifact_rebuild_or_source_revision_stage",
+      "trace_refs": [
+        "stage_quality_pack:artifact_materialization",
+        "canonical manuscript",
+        "current_package",
+        "artifact rebuild proof"
+      ],
+      "typed_blocker_semantics": "artifact_mutation_blocker"
+    },
+    {
+      "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
+      "legacy_readable_id": "publication_route_memory_accept_reject_decider",
+      "program_role": "guard",
+      "required_record_refs": [
+        "publication_route_memory_body",
+        "memory_writeback_receipt_refs"
+      ],
+      "requires_ai_first_record": true,
+      "route_back_semantics": "route_back_to_memory_writeback_repair_stage",
+      "trace_refs": [
+        "publication-route memory body",
+        "memory writeback proposal",
+        "memory writeback router receipt",
+        "stage_quality_pack:publication_route_memory"
+      ],
+      "typed_blocker_semantics": "publication_route_memory_writeback_blocker"
+    },
+    {
+      "boundary_id": "source_readiness_stage_gate_boundary",
+      "legacy_readable_id": "source_readiness_verdict_authorizer",
+      "program_role": "validator",
+      "required_record_refs": [
+        "study_charter",
+        "quality_pack_evidence_refs"
+      ],
+      "requires_ai_first_record": true,
+      "route_back_semantics": "route_back_to_source_intake_or_study_design_stage",
+      "trace_refs": [
+        "study charter",
+        "source readiness checks",
+        "evidence ledger",
+        "stage_quality_pack:source_readiness"
+      ],
+      "typed_blocker_semantics": "source_readiness_blocker"
+    }
+  ],
   "surface_kind": "opl_domain_pack_compiler_input"
 }

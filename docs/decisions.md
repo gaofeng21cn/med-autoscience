@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-18：AI-first quality gate 必须分离执行 agent 与 reviewer/auditor agent
+
+- 决策：MAS / OPL stage quality gate 中，执行与审阅/审计必须是两个独立智能体任务。executor agent 负责 stage work、artifact/source/evidence refs 和 execution receipt；reviewer/auditor agent 必须通过独立 invocation、独立 context/task record 读取这些 refs，并产出 AI reviewer record、audit receipt、route-back reason 或 typed blocker。
+- 决策：`Codex CLI` 可以作为 executor，也可以在另一次独立调用中承担 reviewer/auditor 角色；但同一 agent、同一上下文、同一 task record 内的“先执行再自审”不能关闭 `publication_quality_verdict`、`ai_reviewer_quality_decision`、`source_readiness_verdict`、artifact mutation authorization 或 publication gate。
+- 理由：AI-first 质量门需要真正的 second-pass reasoning 和可审计 provenance。把 executor summary 改名为 reviewer output，会让质量门退化成自证，削弱 MAS reviewer-first、publication gate 和 OPL stage-led 分工。
+- 影响：后续 stage skill、OPL generated surface、product-entry/sidecar projection、review ledger 和 focused tests 必须保留独立 reviewer/auditor invocation、task/context record 与 receipt chain；缺少独立记录时 fail closed 或 route back，不用 fallback、regex、普通脚本或自审补齐。
+
 ## 2026-05-17：旧论文项目迁移必须 clean paper-authority cutover，不做 legacy token 兼容读取
 
 - 决策：旧 MDS / 旧 MAS 论文项目迁移到新 MAS 时，`publication_eval/latest.json`、AI reviewer response record、`controller_decisions/latest.json`、`current_package_freshness/latest.json`、`manuscript/current_package/`、`current_package.zip` 与 delivery manifest 这类会冒充当前质量/交付结论的 surface，必须通过 `paper-authority-clean-migration` 从 active truth 位置归档到 `artifacts/migration/paper_authority_cutover/history/...`，旧产物只保留 provenance 角色。
@@ -80,12 +87,13 @@
 - 影响：DM-CVD 002 这类跨队列 transportability 论文由新 MAS 的 reporting contract 决定 F5 owner surface；旧 multicenter F5 不再通过 sync owner 转译成当前 transportability governance F5。两种 F5 都缺失时继续 fail closed 为 missing display binding；未知旧 display shape 继续交给 owner 重建，不新增兼容读取层，不把 legacy artifact 读取、token 映射、路径 relocation 或 template-name normalizer 作为迁移路径。
 - 影响：clean migration batch 会重新执行仍被计划的 owner，而不是复用历史 no-op；这不是 legacy compatibility shim，也不读取旧 payload 作为当前 truth。正常成功执行后的 fingerprint 幂等仍然有效，避免重复 materialize 已当前的 surface。
 
-## 2026-05-17：MAS consumer thinning 后功能/结构差距清零，剩余只按证据门推进
+## 2026-05-17 / 2026-05-18：MAS consumer thinning 后保留功能/结构 follow-through
 
-- 决策：`functional_consumer_boundary.functional_gap_zero_summary` 是 MAS consumer thinning lane 的机器结论面。当前 `functional_structure_gap_count=0`、`active_private_generic_residue_count=0`、`remaining_gap_classification=test_evidence_gates_only`；MAS gap plan 中原先列为功能/结构差距的 runtime/scheduler/queue/attempt ledger/generic lifecycle/workspace-source shell/memory-artifact transport/workbench/observability/CLI-MCP-product-entry-sidecar-status wrapper，已分别归入 declarative pack / OPL generated surface、refs-only adapter、minimal authority function 或 legacy cleanup gate。
-- 决策：剩余项只能作为测试/证据差距推进：generated surface active caller cutover、live provider paper apply scaleout、publication-route memory receipt scaleout、artifact lifecycle receipt scaleout、OPL App workbench drilldown 和 provider SLO long soak。它们不得重新表述成 MAS 继续实现 generic runtime、generic scheduler、generic queue、generic attempt ledger、generic transition runner、generic workbench、generic memory locator、generic artifact lifecycle 或 generic observability 的功能缺口。`local_launchd_scheduler_install_path` 与 `workspace_local_watch_service_wrappers` 已降为 no-active-default-caller 的 legacy diagnostic / provenance / drift guard，无默认入口、无标准模板引用，不作为 active private-function cleanup item。
-- 理由：MAS 仍有多处 repo-local shell 代码，但长期 owner 已被机器面限定；继续把 evidence gate 写成功能/结构缺口会诱导在 MAS 内重建 OPL 应持有的通用底座。
-- 影响：后续修改 gap plan、status、current development lines、product-entry、sidecar、supervision projection 或 focused tests 时，必须保留 `functional_gap_zero_summary` 与 `test_evidence_gates_only` 口径。若发现新 surface 重新持有 generic owner，应作为 regression 修复，不能新增 compat alias、facade、shim、wrapper 或兼容聚合测试。
+- 决策：`functional_consumer_boundary` 是 MAS consumer thinning lane 的分类与禁回流机器面。`active_private_generic_residue_count=0` 只能说明当前没有未分类的长期 MAS generic owner claim；不能把它读成 MAS 功能/结构差距为 0，也不能把 active caller cutover、generated surface 生产消费、refs-only adapter 收薄、legacy physical retirement、OPL App drilldown 或 lifecycle 对账降成单纯测试/证据问题。
+- 决策：MAS 不再在仓内扩展 generic runtime、generic scheduler、generic queue、generic attempt ledger、generic transition runner、generic workbench、generic memory locator、generic artifact lifecycle 或 generic observability。现有 hand-written CLI/MCP/Skill/product-entry/sidecar/status/workbench/projection shell 只作为迁移桥或 domain handler target 读取；OPL generated/hosted surface 接住 active caller 后，非 authority 代码、旧 alias、facade、wrapper 和兼容测试直接删除或 tombstone。
+- 决策：测试/证据差距单独记录真实 paper-line provider apply scaleout、publication-route memory receipt scaleout、artifact lifecycle receipt scaleout、human gate/resume、domain owner-chain receipt 和 provider SLO long soak。它们用于证明目标结构真实可用，但不能替代目标结构本身的迁移和清理。
+- 理由：MAS 仍有多处 repo-local shell、SQLite/lifecycle、workspace/source、memory/artifact、Portal/workbench 和 runtime supervisor 代码路径。长期 owner 已被机器面限定，但分类不是迁移完成；把这些路径写成已完成会继续保护历史私有平台并污染后续 OPL standard agent。
+- 影响：后续修改 gap plan、status、current development lines、product-entry、sidecar、supervision projection 或 focused tests 时，必须拆开写 `功能/结构差距` 与 `测试/证据差距`。若发现新 surface 重新持有 generic owner，应作为 regression 修复；若 replacement proof 与 no-active-caller proof 已成立，旧面直接退役，不新增 compat alias、facade、shim、wrapper 或兼容聚合测试。
 
 ## 2026-05-17：MAS package 外壳收敛为 OPL pack compiler 输入与 generated surface consumer
 
