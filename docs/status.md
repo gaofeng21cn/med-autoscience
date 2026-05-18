@@ -1,6 +1,6 @@
 # 当前状态
 
-**更新时间：2026-05-18**
+**更新时间：2026-05-19**
 
 ## 当前角色
 
@@ -18,6 +18,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - `product-entry-manifest`、sidecar export、contracts、runtime/controller surfaces 和 workspace artifact receipts 是当前机器真相；`docs/**` 只做解释、导航、治理和 provenance。
 - MAS 标准 pack / generated-interface source 已在 repo contracts 中声明 domain descriptor、pack compiler input、generated surface handoff、action catalog、stage control plane、memory descriptor、artifact locator contract、owner receipt contract、functional privatization audit 和 private functional surface policy。
 - `functional_consumer_boundary` 已完成通用功能面分类、禁回流 guard 和 5 个结构 follow-through gate：`classification_gap_count=0`、`active_private_generic_residue_count=0`、`functional_structure_gap_count=0`。该口径依赖 OPL proof bundle / admission 对 MAS runtime-guard stage 的机器验证；若任一 `runtime_guard_required=true` stage 缺少 `runtime_event_refs`，必须重新打开结构 gap。
+- `runtime_transport_handoff_projection` 已进入 `product-entry-manifest` 与 sidecar export：`mas_runtime_core`、turn runner、worker lease、runtime supervisor scan/consume/dispatch/reconcile 和 `runtime_lifecycle_store.py` 只允许作为 domain bridge、receipt signer、typed blocker、refs-only sidecar 或 standalone diagnostic；generic runtime / queue / attempt ledger / retry-dead-letter / worker residency / transition runner / persistence-lifecycle / workbench owner 全部归 OPL。
 - 2026-05-18 的 MAS `family_stage_control_plane` 修复已为 6 个 runtime-guard stage 同步声明 `trust_boundary.runtime_event_refs` 和 `stage_contract.runtime_event_refs`；OPL proof bundle / admission 读取当前 MAS contract 后返回 MAS 6 个 stage 全部 `admitted`、`blockers_count=0`、`warnings_count=0`。
 - 已关闭的结构 gate 是：`generated_surface_active_caller_cutover`、`refs_only_adapter_thinning`、`legacy_cleanup_physical_retirement`、`opl_app_workbench_drilldown` 和 `lifecycle_locator_retention_restore_ledger_reconciliation`。剩余只作为真实 provider、paper-line、memory/artifact receipt、human gate/resume 和 long-soak evidence gate 管理。
 - OPL `substrate projection --domain med-autoscience` 当前返回 `projection_status=substrate_refs_resolved`；MAS product-entry manifest 顶层暴露 body-free `source_provenance` refs，OPL lifecycle projection 只索引 source/artifact/memory refs，不读取 source body、memory body、artifact body 或医学 verdict。
@@ -35,7 +36,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
    已关闭为 OPL generated / hosted surface 与 MAS domain handler target 边界。MAS hand-written shell 只允许继续承担 direct domain entry、domain handler、AI-first validator、owner receipt signer、diagnostic cleanup 或 provenance fixture；旧 wrapper/alias/facade 不再作为长期 caller 语义保留。
 
 2. `refs_only_adapter_thinning`
-   runtime lifecycle SQLite、paper outbox、storage maintenance、publication-route memory transport、artifact lifecycle audit、terminal attach 和 runtime supervisor shell 已收薄为 refs-only domain sidecar / locator / receipt / blocker / authority-ref surface；MAS 不声明 generic lifecycle、source、session、workbench 或 scheduler owner。后续只做回流防护和 evidence scaleout。
+   runtime lifecycle SQLite、paper outbox、storage maintenance、publication-route memory transport、artifact lifecycle audit、terminal attach、runtime transport 和 runtime supervisor shell 已收薄为 refs-only domain sidecar / locator / receipt / blocker / authority-ref / diagnostic surface；MAS 不声明 generic lifecycle、source、session、workbench、queue、attempt ledger、worker residency、transition runner 或 scheduler owner。后续只做回流防护、物理删除 gate 和 evidence scaleout。
 
 3. `legacy_cleanup_physical_retirement`
    local LaunchAgent install path、workspace-local wrapper、旧 status/remove cleanup diagnostic、旧 alias/facade/test entry 已完成 physical retirement；当前允许角色只剩 tombstone/provenance refs 和 forbidden-caller proof。`manager=local` direct call 必须 fail closed，不再返回可用 adapter payload。
@@ -72,6 +73,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - 不能把 provider/live paper-line evidence gate 写成已完成的真实 provider / paper-line 证据。
 - 不能把 dated specs、dated closeout、修复流水或历史 full record 当成 current truth。
 - 不能把 MDS/DeepScientist、Hermes、local scheduler 或旧 workspace wrapper 写成 MAS 默认 active runtime owner。
+- 不能把 MAS tracked runtime transport / supervisor / SQLite sidecar 文件的存在写成 MAS 仍拥有 generic runtime；也不能反过来写成这些文件已物理删除。当前事实是 OPL handoff 投影已落地，物理删除仍受 no-active-caller、OPL parity 和 domain receipt parity gate 约束。
 
 ## 下一跳
 

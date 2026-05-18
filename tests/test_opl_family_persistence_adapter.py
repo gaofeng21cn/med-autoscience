@@ -169,6 +169,36 @@ def test_product_entry_manifest_exposes_opl_family_adapter_discovery_surface(tmp
     assert provider["provider_topology"]["provider_attempt_owner"] == "one-person-lab"
     assert provider["provider_topology"]["domain_action_owner"] == "med-autoscience"
     assert provider["provider_topology"]["provider_attempt_is_truth"] is False
+    runtime_handoff = payload["runtime_transport_handoff_projection"]
+    assert runtime_handoff == provider["runtime_transport_handoff_projection"]
+    assert runtime_handoff["surface_kind"] == "mas_runtime_transport_handoff_projection"
+    assert runtime_handoff["generic_runtime_owner"] == "one-person-lab"
+    assert runtime_handoff["domain_owner"] == "med-autoscience"
+    assert runtime_handoff["mas_runtime_core_role"] == (
+        "domain_owner_receipt_adapter_or_standalone_diagnostic"
+    )
+    assert runtime_handoff["default_caller_policy"] == {
+        "default_online_runtime_owner": "one-person-lab",
+        "default_provider": "Temporal",
+        "mas_default_scheduler_allowed": False,
+        "mas_default_queue_allowed": False,
+        "mas_default_attempt_ledger_allowed": False,
+        "mas_default_worker_residency_allowed": False,
+        "mas_default_transition_runner_allowed": False,
+        "mas_default_persistence_engine_allowed": False,
+        "mas_runtime_transport_active_as_generic_provider": False,
+    }
+    assert "generic_queue_owner" in runtime_handoff["forbidden_mas_roles"]
+    assert "generic_persistence_engine_owner" in runtime_handoff["forbidden_mas_roles"]
+    assert "provider_backed_family_runtime" in runtime_handoff["opl_replacement_surfaces"]
+    assert "runtime_lifecycle_index" in runtime_handoff["opl_replacement_surfaces"]
+    code_path_roles = {item["path"]: item for item in runtime_handoff["code_path_roles"]}
+    assert code_path_roles[
+        "src/med_autoscience/runtime_transport/mas_runtime_core.py"
+    ]["allowed_mas_role"] == "domain_owner_receipt_adapter"
+    assert code_path_roles[
+        "src/med_autoscience/runtime_protocol/runtime_lifecycle_store.py"
+    ]["current_role"] == "refs_only_sqlite_sidecar_index"
     assert provider["truth_source_precedence"]["direct_mas_skill_path"] == "authoritative"
     assert provider["truth_source_precedence"]["opl_provider_attempt_history"] == "transport_receipt_only"
     assert provider["truth_source_precedence"]["paper_progress_requires_mas_artifact_delta_or_gate_owner"] is True

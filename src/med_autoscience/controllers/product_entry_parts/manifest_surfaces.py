@@ -715,6 +715,9 @@ def build_product_entry_manifest(
             ),
             "opl_provider_ready_contract": opl_provider_ready_contract,
             "opl_lifecycle_inventory": opl_provider_ready_contract["lifecycle_inventory"],
+            "runtime_transport_handoff_projection": (
+                opl_provider_ready_contract["runtime_transport_handoff_projection"]
+            ),
             "owner_receipt_contract": opl_provider_ready_contract["owner_receipt_contract"],
             "domain_owner_receipt_contract": opl_provider_ready_contract["owner_receipt_contract"],
             "lifecycle_apply_requests": opl_provider_ready_contract["lifecycle_apply_requests"],

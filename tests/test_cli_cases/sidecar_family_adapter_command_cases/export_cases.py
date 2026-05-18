@@ -205,6 +205,15 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert provider["surface_kind"] == "mas_opl_provider_ready_contract"
     assert provider["provider_topology"]["target_provider"] == "temporal"
     assert provider["provider_topology"]["provider_attempt_is_truth"] is False
+    runtime_handoff = payload["runtime_transport_handoff_projection"]
+    assert runtime_handoff == provider["runtime_transport_handoff_projection"]
+    assert runtime_handoff["status"] == "opl_generic_runtime_owner_mas_domain_bridge_only"
+    assert runtime_handoff["generic_runtime_owner"] == "one-person-lab"
+    assert runtime_handoff["mas_runtime_core_role"] == (
+        "domain_owner_receipt_adapter_or_standalone_diagnostic"
+    )
+    assert runtime_handoff["default_caller_policy"]["mas_runtime_transport_active_as_generic_provider"] is False
+    assert "generic_worker_residency_owner" in runtime_handoff["forbidden_mas_roles"]
     assert "legacy_provider" not in provider["provider_topology"]
     assert "legacy_provider_classification" not in provider["provider_topology"]
     assert provider["legacy_retirement_tombstone_proof"]["status"] == "no_active_default_caller_proven"
