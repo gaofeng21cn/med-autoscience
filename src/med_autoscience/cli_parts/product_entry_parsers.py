@@ -38,6 +38,7 @@ def register_product_entry_parsers(subparsers: argparse._SubParsersAction) -> No
     launch_study_parser.add_argument("--study-root", type=str)
     launch_study_parser.add_argument("--entry-mode", type=str)
     launch_study_parser.add_argument("--allow-stopped-relaunch", action="store_true")
+    launch_study_parser.add_argument("--explicit-user-wakeup", action="store_true")
     launch_study_parser.add_argument("--force", action="store_true")
     launch_study_parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
 

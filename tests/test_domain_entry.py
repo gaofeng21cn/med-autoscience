@@ -66,6 +66,56 @@ def test_domain_entry_dispatches_skill_catalog(monkeypatch, tmp_path: Path) -> N
     }
 
 
+def test_domain_entry_launch_study_forwards_explicit_user_wakeup(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.domain_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    called: dict[str, object] = {}
+
+    def fake_launch_study(
+        *,
+        profile,
+        profile_ref,
+        study_id: str,
+        entry_mode: str | None,
+        allow_stopped_relaunch: bool,
+        explicit_user_wakeup: bool,
+        force: bool,
+    ) -> dict[str, object]:
+        called["profile"] = profile
+        called["profile_ref"] = profile_ref
+        called["study_id"] = study_id
+        called["entry_mode"] = entry_mode
+        called["allow_stopped_relaunch"] = allow_stopped_relaunch
+        called["explicit_user_wakeup"] = explicit_user_wakeup
+        called["force"] = force
+        return {"surface_kind": "launch_study", "runtime_status": {"decision": "resume"}}
+
+    monkeypatch.setattr(module, "load_profile", lambda ref: profile)
+    monkeypatch.setattr(module.product_entry, "launch_study", fake_launch_study)
+
+    payload = module.MedAutoScienceDomainEntry().dispatch(
+        {
+            "command": "launch-study",
+            "profile_ref": str(profile_ref),
+            "study_id": "001-risk",
+            "entry_mode": "full_research",
+            "allow_stopped_relaunch": True,
+            "explicit_user_wakeup": True,
+            "force": True,
+        }
+    )
+
+    assert payload["command"] == "launch-study"
+    assert called["profile"] is profile
+    assert called["profile_ref"] == profile_ref
+    assert called["study_id"] == "001-risk"
+    assert called["entry_mode"] == "full_research"
+    assert called["allow_stopped_relaunch"] is True
+    assert called["explicit_user_wakeup"] is True
+    assert called["force"] is True
+
+
 def test_external_caller_can_consume_domain_entry_contract_without_repo_local_helper(
     monkeypatch,
     tmp_path: Path,

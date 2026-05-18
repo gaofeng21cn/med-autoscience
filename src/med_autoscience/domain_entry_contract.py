@@ -53,7 +53,7 @@ SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
     "study-runtime-status": DomainEntryCommandSpec(("profile_ref", "study_id"), ("entry_mode",)),
     "launch-study": DomainEntryCommandSpec(
         ("profile_ref", "study_id"),
-        ("entry_mode", "allow_stopped_relaunch", "force"),
+        ("entry_mode", "allow_stopped_relaunch", "explicit_user_wakeup", "force"),
     ),
     "submit-study-task": DomainEntryCommandSpec(
         ("profile_ref", "study_id", "task_intent"),

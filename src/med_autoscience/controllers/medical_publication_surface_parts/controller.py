@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +43,39 @@ def write_surface_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path,
     )
 
 
+def _same_resolved_path(left: str | None, right: Path) -> bool:
+    if left is None or not str(left).strip():
+        return False
+    try:
+        return Path(left).expanduser().resolve() == right.resolve()
+    except OSError:
+        return False
+
+
+def _running_inside_current_managed_turn(state: SurfaceState) -> bool:
+    if os.environ.get("MED_AUTOSCIENCE_MANAGED_RUNTIME_WORKER") != "1":
+        return False
+    if not _same_resolved_path(os.environ.get("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ROOT"), state.quest_root):
+        return False
+    env_quest_id = str(os.environ.get("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ID") or "").strip()
+    if env_quest_id and env_quest_id != state.quest_root.name:
+        return False
+    active_run_id = str(state.runtime_state.get("active_run_id") or "").strip()
+    env_run_id = str(os.environ.get("MED_AUTOSCIENCE_MANAGED_RUNTIME_RUN_ID") or "").strip()
+    return bool(active_run_id and env_run_id and active_run_id == env_run_id)
+
+
+def _managed_turn_stop_skip(state: SurfaceState, *, source: str) -> dict[str, Any]:
+    return {
+        "ok": True,
+        "status": "skipped",
+        "reason": "current_managed_runtime_turn",
+        "source": source,
+        "quest_id": state.quest_root.name,
+        "active_run_id": state.runtime_state.get("active_run_id"),
+    }
+
+
 def run_controller(
     *,
     quest_root: Path,
@@ -78,12 +112,15 @@ def run_controller(
     if apply and report["blockers"]:
         current_status = str(state.runtime_state.get("status") or "").strip().lower()
         if current_status in {"running", "active"} and daemon_url:
-            stop_result = _controller_override("managed_runtime_transport", managed_runtime_transport).stop_quest(
-                daemon_url=daemon_url,
-                runtime_root=resolve_runtime_root_from_quest_root(state.quest_root),
-                quest_id=report["quest_id"],
-                source=source,
-            )
+            if _running_inside_current_managed_turn(state):
+                stop_result = _managed_turn_stop_skip(state, source=source)
+            else:
+                stop_result = _controller_override("managed_runtime_transport", managed_runtime_transport).stop_quest(
+                    daemon_url=daemon_url,
+                    runtime_root=resolve_runtime_root_from_quest_root(state.quest_root),
+                    quest_id=report["quest_id"],
+                    source=source,
+                )
         intervention = user_message.enqueue_user_message(
             quest_root=state.quest_root,
             runtime_state=state.runtime_state,

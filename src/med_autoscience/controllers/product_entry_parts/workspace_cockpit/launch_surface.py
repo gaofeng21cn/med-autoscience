@@ -29,6 +29,7 @@ def launch_study(
     study_root: Path | None = None,
     entry_mode: str | None = None,
     allow_stopped_relaunch: bool = False,
+    explicit_user_wakeup: bool = False,
     force: bool = False,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, _study_payload = _resolve_study(
@@ -43,6 +44,7 @@ def launch_study(
             study_root=resolved_study_root,
             entry_mode=entry_mode,
             allow_stopped_relaunch=allow_stopped_relaunch,
+            explicit_user_wakeup=explicit_user_wakeup,
             force=force,
             source="product_entry",
         )

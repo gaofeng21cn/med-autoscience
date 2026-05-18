@@ -237,6 +237,14 @@ def record_explicit_user_wakeup(
         return None
     runtime_status = str(runtime_state.get("status") or "").strip().lower()
     if runtime_status == StudyRuntimeQuestStatus.WAITING_FOR_USER.value:
+        platform_redrive_wakeup = record_explicit_waiting_platform_repair_redrive_wakeup(
+            quest_root=quest_root,
+            source=source,
+            runtime_state=runtime_state,
+            runtime_state_path=runtime_state_path,
+        )
+        if platform_redrive_wakeup is not None:
+            return platform_redrive_wakeup
         return record_explicit_waiting_owner_wakeup(
             quest_root=quest_root,
             source=source,
@@ -351,6 +359,71 @@ def _stopped_pending_user_message_redrive_requires_explicit_wakeup(runtime_state
         and str(runtime_state.get("continuation_reason") or "").strip()
         == "runtime_platform_repair_resume_existing_pending_user_message"
     )
+
+
+def _waiting_platform_repair_redrive_requires_explicit_wakeup(runtime_state: dict[str, Any]) -> bool:
+    if str(runtime_state.get("status") or "").strip().lower() != StudyRuntimeQuestStatus.WAITING_FOR_USER.value:
+        return False
+    if str(runtime_state.get("active_run_id") or "").strip():
+        return False
+    if bool(runtime_state.get("worker_running")) or bool(runtime_state.get("worker_pending")):
+        return False
+    return (
+        str(runtime_state.get("continuation_policy") or "").strip() == "auto"
+        and str(runtime_state.get("continuation_anchor") or "").strip() == "decision"
+        and str(runtime_state.get("continuation_reason") or "").strip() == "runtime_platform_repair_redrive"
+    )
+
+
+def record_explicit_waiting_platform_repair_redrive_wakeup(
+    *,
+    quest_root: Path,
+    source: str,
+    runtime_state: dict[str, Any],
+    runtime_state_path: Path,
+) -> dict[str, Any] | None:
+    if not _waiting_platform_repair_redrive_requires_explicit_wakeup(runtime_state):
+        return None
+    previous_continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
+    cleared_keys = [
+        key
+        for key in (
+            "pending_turn_reason",
+            "pending_turn_source",
+            "last_runner_start_error",
+        )
+        if key in runtime_state
+    ]
+    for key in cleared_keys:
+        runtime_state.pop(key, None)
+    recorded_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    runtime_state["active_run_id"] = None
+    runtime_state["worker_running"] = False
+    runtime_state["worker_pending"] = False
+    runtime_state["continuation_policy"] = "auto"
+    runtime_state["continuation_anchor"] = "decision"
+    runtime_state["continuation_reason"] = "runtime_platform_repair_redrive"
+    runtime_state["continuation_updated_at"] = recorded_at
+    runtime_state["last_explicit_user_wakeup"] = {
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": cleared_keys,
+        "cleared_platform_repair_redrive": True,
+        "previous_continuation_reason": previous_continuation_reason,
+    }
+    runtime_state_path.write_text(
+        json.dumps(runtime_state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "status": "recorded",
+        "runtime_state_path": str(runtime_state_path),
+        "source": source,
+        "recorded_at": recorded_at,
+        "cleared_keys": cleared_keys,
+        "cleared_platform_repair_redrive": True,
+        "previous_continuation_reason": previous_continuation_reason,
+    }
 
 
 def record_explicit_pending_user_message_redrive_wakeup(

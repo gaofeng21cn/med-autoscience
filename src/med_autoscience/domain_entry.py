@@ -107,6 +107,7 @@ def _dispatch_profile_command(
             study_id=str(request["study_id"]),
             entry_mode=_optional_text(request.get("entry_mode")),
             allow_stopped_relaunch=bool(request.get("allow_stopped_relaunch")),
+            explicit_user_wakeup=bool(request.get("explicit_user_wakeup")),
             force=bool(request.get("force")),
         ),
         "submit-study-task": lambda: product_entry.submit_study_task(

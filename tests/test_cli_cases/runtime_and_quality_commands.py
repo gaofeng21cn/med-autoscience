@@ -702,6 +702,7 @@ def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, t
         study_root: Path | None,
         entry_mode: str | None,
         allow_stopped_relaunch: bool,
+        explicit_user_wakeup: bool,
         force: bool,
     ) -> dict:
         called["profile"] = profile
@@ -710,6 +711,7 @@ def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, t
         called["study_root"] = study_root
         called["entry_mode"] = entry_mode
         called["allow_stopped_relaunch"] = allow_stopped_relaunch
+        called["explicit_user_wakeup"] = explicit_user_wakeup
         called["force"] = force
         return {
             "study_id": study_id,
@@ -731,6 +733,7 @@ def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, t
             "--entry-mode",
             "full_research",
             "--allow-stopped-relaunch",
+            "--explicit-user-wakeup",
             "--force",
             "--format",
             "json",
@@ -745,6 +748,7 @@ def test_launch_study_command_dispatches_product_entry_controller(monkeypatch, t
     assert called["study_root"] is None
     assert called["entry_mode"] == "full_research"
     assert called["allow_stopped_relaunch"] is True
+    assert called["explicit_user_wakeup"] is True
     assert called["force"] is True
     assert json.loads(captured.out)["runtime_status"]["decision"] == "resume"
 def test_submit_study_task_command_dispatches_product_entry_controller(monkeypatch, tmp_path: Path, capsys) -> None:

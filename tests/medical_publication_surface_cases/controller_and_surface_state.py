@@ -55,6 +55,58 @@ def test_run_controller_stops_then_enqueues_medical_surface_message(tmp_path: Pa
     assert result["top_hits"]
 
 
+def test_run_controller_inside_current_managed_turn_enqueues_without_self_stop(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    try:
+        module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
+    except ModuleNotFoundError:
+        module = None
+
+    assert module is not None
+    quest_root = make_quest(tmp_path, medicalized=False, ama_defaults=False)
+    stopped: list[tuple[str | None, str | None, str, str]] = []
+
+    def fake_stop_quest(
+        *,
+        daemon_url: str | None = None,
+        runtime_root: Path | None = None,
+        quest_id: str,
+        source: str,
+    ) -> dict:
+        stopped.append((daemon_url, str(runtime_root) if runtime_root is not None else None, quest_id, source))
+        return {"ok": True, "status": "stopped", "source": source}
+
+    monkeypatch.setattr(module.managed_runtime_transport, "stop_quest", fake_stop_quest)
+    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_WORKER", "1")
+    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ROOT", str(quest_root))
+    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_QUEST_ID", "002-early-residual-risk")
+    monkeypatch.setenv("MED_AUTOSCIENCE_MANAGED_RUNTIME_RUN_ID", "run-1")
+
+    result = module.run_controller(
+        quest_root=quest_root,
+        apply=True,
+        daemon_url="http://127.0.0.1:20999",
+    )
+
+    queue = json.loads((quest_root / ".ds" / "user_message_queue.json").read_text(encoding="utf-8"))
+    state = json.loads((quest_root / ".ds" / "runtime_state.json").read_text(encoding="utf-8"))
+    assert stopped == []
+    assert result["stop_result"] == {
+        "ok": True,
+        "status": "skipped",
+        "reason": "current_managed_runtime_turn",
+        "source": "codex-medical-publication-surface",
+        "quest_id": "002-early-residual-risk",
+        "active_run_id": "run-1",
+    }
+    assert result["intervention_enqueued"] is True
+    assert len(queue["pending"]) == 1
+    assert state["status"] == "running"
+    assert state["active_run_id"] == "run-1"
+
+
 def test_run_controller_without_daemon_url_enqueues_but_does_not_stop(tmp_path: Path, monkeypatch) -> None:
     try:
         module = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
