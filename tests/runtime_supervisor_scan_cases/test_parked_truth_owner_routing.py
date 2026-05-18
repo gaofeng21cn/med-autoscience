@@ -589,6 +589,143 @@ def test_explicit_resume_pending_with_current_controller_route_queues_ai_reviewe
     assert study["owner_route"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
 
 
+def test_hard_methodology_quality_repair_handoff_routes_past_parked_ai_reviewer_transition(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::old-ai-reviewer-transition",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {
+            "owner": "mechanical_projection",
+            "ai_reviewer_required": True,
+        },
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::ai-reviewer-re-eval",
+                "action_type": "return_to_controller",
+                "work_unit_fingerprint": "domain-transition::ai_reviewer_re_eval::ai_reviewer_medical_prose_quality_review",
+                "next_work_unit": {
+                    "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "lane": "review",
+                    "summary": "Re-run AI reviewer manuscript-quality review.",
+                },
+            }
+        ],
+    }
+    _write_json(
+        study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json",
+        {
+            "schema_version": 1,
+            "status": "blocked",
+            "ok": False,
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "blocked_reason": "unit_harmonized_rerun_required",
+            "next_owner": "analysis_harmonization_owner",
+            "next_work_unit": "unit_harmonized_external_validation_rerun",
+            "hard_methodology_target": {
+                "target_id": "hdL_unit_standardized_sensitivity",
+                "required_owner": "analysis_harmonization_owner",
+                "required_next_work_unit": "unit_harmonized_external_validation_rerun",
+                "typed_blocker": "unit_harmonized_rerun_required",
+            },
+            "quality_gate_relaxation_allowed": False,
+            "current_package_write_allowed": False,
+        },
+    )
+    status_payload = _parked_status(
+        study_root=study_root,
+        quest_id=quest_id,
+        parked_state="explicit_resume_pending",
+        reason="quest_waiting_for_user",
+    )
+    status_payload.update(
+        {
+            "quest_status": "paused",
+            "quest_root": str(quest_root),
+            "publication_eval": publication_eval,
+            "domain_transition": {
+                "decision_type": "ai_reviewer_re_eval",
+                "owner": "ai_reviewer",
+                "next_work_unit": {
+                    "unit_id": "ai_reviewer_medical_prose_quality_review",
+                    "lane": "review",
+                },
+            },
+            "runtime_health_snapshot": {
+                "runtime_health_epoch": "runtime-health-epoch-dm002-hard",
+                "canonical_runtime_action": "external_supervisor_required",
+                "attempt_state": "escalated",
+                "retry_budget_remaining": 0,
+                "blocking_reasons": ["runtime_recovery_retry_budget_exhausted"],
+            },
+            "study_truth_snapshot": {
+                "truth_epoch": "truth-epoch-dm002-hard-methodology",
+                "source_signature": "truth-source-dm002-hard-methodology",
+            },
+        }
+    )
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "analysis-campaign",
+        "auto_runtime_parked": status_payload["auto_runtime_parked"],
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "quality_review_loop": {"closure_state": "review_required"},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        "ai_repair_lifecycle": {
+            "state": "blocked",
+            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+        },
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [item["action_type"] for item in study["action_queue"]] == [
+        "unit_harmonized_external_validation_rerun"
+    ]
+    assert [item["action_type"] for item in result["action_queue"]] == [
+        "unit_harmonized_external_validation_rerun"
+    ]
+    assert study["why_not_applied"] == "unit_harmonized_rerun_required"
+    assert study["blocked_reason"] == "unit_harmonized_rerun_required"
+    assert study["next_owner"] == "analysis_harmonization_owner"
+    assert study["external_supervisor_required"] is False
+    assert study["owner_route"]["current_owner"] == "controller_stop"
+    assert study["owner_route"]["next_owner"] == "analysis_harmonization_owner"
+    assert study["owner_route"]["owner_reason"] == "unit_harmonized_rerun_required"
+    assert study["owner_route"]["allowed_actions"] == ["unit_harmonized_external_validation_rerun"]
+    assert study["action_queue"][0]["quality_gate_relaxation_allowed"] is False
+    assert study["action_queue"][0]["current_package_write_allowed"] is False
+
+
 def _parked_status(*, study_root: Path, quest_id: str, parked_state: str, reason: str) -> dict:
     return {
         "study_id": study_root.name,

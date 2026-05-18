@@ -54,6 +54,12 @@ def projection_block_state(
     actions: list[dict[str, Any]],
     why_not_applied: str | None,
 ) -> dict[str, Any]:
+    if _has_hard_methodology_handoff_action(actions):
+        return {
+            "blocked_reason": "unit_harmonized_rerun_required",
+            "next_owner": "analysis_harmonization_owner",
+            "external_supervisor_required": False,
+        }
     if _has_clean_paper_authority_rehydrate_action(actions):
         return {
             "blocked_reason": "canonical_paper_inputs_rehydrate_required",
@@ -127,6 +133,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "ai_reviewer"
     if blocked_reason == "canonical_paper_inputs_rehydrate_required":
         return "write"
+    if blocked_reason == "unit_harmonized_rerun_required":
+        return "analysis_harmonization_owner"
     return "external_supervisor"
 
 
@@ -148,6 +156,15 @@ def _has_clean_paper_authority_rehydrate_action(actions: list[dict[str, Any]]) -
         _text(action.get("action_type")) == "canonical_paper_inputs_rehydrate_required"
         and _text(action.get("reason")) == "canonical_paper_inputs_rehydrate_required"
         and _text(action.get("owner")) == "write"
+        for action in actions
+    )
+
+
+def _has_hard_methodology_handoff_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "unit_harmonized_external_validation_rerun"
+        and _text(action.get("reason")) == "unit_harmonized_rerun_required"
+        and _text(action.get("owner")) == "analysis_harmonization_owner"
         for action in actions
     )
 

@@ -14,6 +14,10 @@ ROUTED_ACTION_TYPES = (
     "return_to_ai_reviewer_workflow",
     "canonical_paper_inputs_rehydrate_required",
 )
+ALLOWED_ACTION_TYPES = (
+    *ROUTED_ACTION_TYPES,
+    "unit_harmonized_external_validation_rerun",
+)
 
 
 def build_owner_route(
@@ -31,7 +35,7 @@ def build_owner_route(
     owner = next_owner or _owner_from_actions(normalized_actions)
     allowed_actions = [
         action_type
-        for action_type in ROUTED_ACTION_TYPES
+        for action_type in ALLOWED_ACTION_TYPES
         if any(
             _text(action.get("action_type")) == action_type
             and _action_matches_route_owner(action=action, route_owner=owner)

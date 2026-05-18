@@ -29,6 +29,18 @@ def action_queue(
     control_allowed_write_surfaces: list[str],
     forbidden_actions: list[str],
 ) -> list[dict[str, Any]]:
+    hard_methodology_action = _hard_methodology_quality_repair_handoff_action(study_root)
+    if hard_methodology_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=hard_methodology_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     rehydrate_action = _clean_paper_authority_rehydrate_action(
         status=status,
         progress=progress,
@@ -440,6 +452,52 @@ def _latest_clean_migration_quality_repair_blocker(study_root: Path) -> dict[str
     }
 
 
+def _hard_methodology_quality_repair_handoff_action(study_root: Path) -> dict[str, Any] | None:
+    source_ref = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
+    payload = _read_json_object(source_ref)
+    if not payload:
+        return None
+    if _text(payload.get("status")) != "blocked":
+        return None
+    if _text(payload.get("blocked_reason")) != "unit_harmonized_rerun_required":
+        return None
+    if _text(payload.get("next_owner")) != "analysis_harmonization_owner":
+        return None
+    if _text(payload.get("next_work_unit")) != "unit_harmonized_external_validation_rerun":
+        return None
+    if payload.get("quality_gate_relaxation_allowed") is not False:
+        return None
+    if payload.get("current_package_write_allowed") is not False:
+        return None
+    target = _mapping(payload.get("hard_methodology_target"))
+    target_id = _text(target.get("target_id")) or "unit_harmonized_external_validation_rerun"
+    return {
+        "action_type": "unit_harmonized_external_validation_rerun",
+        "authority": "observability_only",
+        "owner": "analysis_harmonization_owner",
+        "request_owner": "analysis_harmonization_owner",
+        "recommended_owner": "analysis_harmonization_owner",
+        "reason": "unit_harmonized_rerun_required",
+        "summary": (
+            "HDL/unit harmonization is a hard methodology blocker; route to the analysis "
+            "harmonization owner for a unit-harmonized external-validation rerun or a typed blocker."
+        ),
+        "next_work_unit": "unit_harmonized_external_validation_rerun",
+        "work_unit_fingerprint": f"hard-methodology::unit_harmonized_external_validation_rerun::{target_id}",
+        "required_output_surface": (
+            "unit-harmonized external-validation rerun evidence or "
+            "typed blocker:unit_harmonized_rerun_required"
+        ),
+        "source_ref": str(source_ref),
+        "hard_methodology_target": dict(target),
+        "quality_gate_relaxation_allowed": False,
+        "current_package_write_allowed": False,
+        "paper_package_mutation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+    }
+
+
 def _scientific_anchor_missing(
     *,
     status: Mapping[str, Any],
@@ -573,6 +631,8 @@ def why_not_applied(
 ) -> str | None:
     if completion_evidence.completed_current_truth(status, progress):
         return None
+    if _has_hard_methodology_handoff_action(actions):
+        return "unit_harmonized_rerun_required"
     study_root = _path(_text(status.get("study_root")) or _text(progress.get("study_root")))
     publication_eval_payload = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
     if parked_truth.current_truth(
@@ -629,6 +689,15 @@ def why_not_applied(
     return None
 
 
+def _has_hard_methodology_handoff_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "unit_harmonized_external_validation_rerun"
+        and _text(action.get("reason")) == "unit_harmonized_rerun_required"
+        and _text(action.get("owner")) == "analysis_harmonization_owner"
+        for action in actions
+    )
+
+
 def _has_controller_redrive_action(actions: list[dict[str, Any]]) -> bool:
     return any(
         _text(action.get("action_type")) == "runtime_platform_repair"
@@ -650,6 +719,7 @@ def blocked_reason_from_scan(
             "current_package_freshness_required",
             "return_to_ai_reviewer_workflow",
             "canonical_paper_inputs_rehydrate_required",
+            "unit_harmonized_external_validation_rerun",
         }:
             return _text(action.get("reason")) or _text(action.get("action_type"))
     if gate_specificity.get("required") is True:
