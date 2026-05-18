@@ -5,7 +5,7 @@ def _assert_phase3_clearance_lane(*, module, payload, profile, profile_ref) -> N
         "surface_kind": "phase3_host_clearance_lane",
         "summary": (
             "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认研究入口、owner receipt "
-            "与 local diagnostic bridge 由 MAS surface 承接，generic cadence/provider SLO 迁往 OPL runtime manager。"
+            "与 paper-progress SLO 由 MAS surface 承接，generic cadence/provider SLO 归 OPL runtime manager。"
         ),
         "recommended_step_id": "mas_runtime_contract",
         "recommended_command": (

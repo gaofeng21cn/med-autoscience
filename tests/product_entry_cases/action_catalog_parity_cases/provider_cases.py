@@ -280,13 +280,17 @@ def test_product_entry_manifest_exposes_legacy_residue_audit_without_default_cal
     }
     assert audit["summary"]["default_caller_count"] == 0
     assert audit["summary"]["cleanup_pending_count"] == 0
-    assert audit["summary"]["tombstoned_count"] == 1
+    assert audit["summary"]["tombstoned_count"] == 2
     assert audit["summary"]["retired_no_default_caller_count"] == 1
     assert "provider_runtime_residency_read_model" in audit["replacement_surfaces"]
     by_id = {item["residue_id"]: item for item in audit["findings"]}
     assert by_id["hermes_agent_executor_adapter"]["default_caller"] is False
     assert by_id["hermes_agent_executor_adapter"]["disposition"] == "retain_reference"
     assert by_id["hermes_gateway_cron_scheduler"]["disposition"] == "retired_no_default_caller"
+    assert by_id["workspace_local_scheduler_wording"]["disposition"] == "tombstoned"
+    assert by_id["workspace_local_scheduler_wording"]["current_role"] == (
+        "retired_physical_tombstone_provenance_only"
+    )
     assert by_id["med_deepscientist_backend_reference"]["current_role"] == (
         "historical_fixture_provenance_parity_oracle"
     )

@@ -567,7 +567,7 @@ def _phase3_clearance_lane() -> dict[str, Any]:
         surface_kind="phase3_host_clearance_lane",
         summary=(
             "Phase 3 只做可选 hosted runtime / 多宿主 proof；MAS 默认研究入口、owner receipt "
-            "与 local diagnostic bridge 由 MAS surface 承接，generic cadence/provider SLO 迁往 OPL runtime manager。"
+            "与 paper-progress SLO 由 MAS surface 承接，generic cadence/provider SLO 归 OPL runtime manager。"
         ),
         recommended_step_id="mas_runtime_contract",
         recommended_command=doctor_command,
@@ -846,7 +846,7 @@ def _phase_ladder() -> list[dict[str, Any]]:
             "status": "pending",
             "usable_now": True,
             "summary": (
-                "在 MAS domain owner receipts、产品回路和 local diagnostic bridge 稳定后，继续把 MDS "
+                "在 MAS domain owner receipts、产品回路和 OPL scheduler replacement 证据稳定后，继续把 MDS "
                 "保持为 archive/fixture/explicit archive import reference，并只对新的可迁能力走 no-history provenance 与 parity gate。"
             ),
             "focus": [

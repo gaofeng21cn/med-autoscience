@@ -362,7 +362,7 @@ Developer Supervisor Mode 有三个正式模式：
 
 `developer_apply_safe` 还受 workspace profile 与本机用户级配置保护：profile 是默认 authority gate，OPL family config 可以显式关闭或覆盖。这样防止普通用户或生产研究环境意外获得 direct repo write authority，同时允许已识别的非 MAS developer 通过 PR route 回灌基座修复。
 
-`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 可以作为本机开发环境的一个外部 caller 调用该入口；默认 heartbeat / scheduler cadence 由 OPL provider/runtime manager replacement 承载。MAS direct/local scheduler contract 只在显式 legacy diagnostic / cleanup 场景定期调用同一个 MAS tick script；local adapter 使用 macOS LaunchAgent。OPL-hosted production heartbeat、queue、attempt 和 operator projection 由 OPL provider 持有；Linux `systemd --user`、宿主 `cron` 和 Docker/container manager 尚未作为 MAS persistent local backend 落地；旧 workspace-local service manager 不再作为 active 选项。
+`Codex App heartbeat` 不是这条 contract 的依赖。Codex App 可以作为本机开发环境的一个外部 caller 调用该入口；默认 heartbeat / scheduler cadence 由 OPL provider/runtime manager replacement 承载。MAS local scheduler contract 已退为 tombstone/provenance refs，不再定期调用 MAS tick script，也不暴露 macOS LaunchAgent active adapter。OPL-hosted production heartbeat、queue、attempt 和 operator projection 由 OPL provider 持有；Linux `systemd --user`、宿主 `cron` 和 Docker/container manager 不作为 MAS persistent local backend 落地；旧 workspace-local service manager 不再作为 active 选项。
 
 workspace bootstrap 只渲染 MAS CLI entry，不再渲染 workspace-local host-service 模板：
 

@@ -6,6 +6,8 @@ from typing import Any, Mapping, Sequence
 FUNCTIONAL_FOLLOWTHROUGH_GATES_OPEN_STATUS = "functional_structure_closed_evidence_gates_remaining"
 FUNCTIONAL_FOLLOWTHROUGH_GAPS_OPEN_STATUS = FUNCTIONAL_FOLLOWTHROUGH_GATES_OPEN_STATUS
 REMAINING_GAP_CLASSIFICATION = "live_provider_paper_line_evidence_gates"
+FUNCTIONAL_STRUCTURE_GAPS_REMAINING_STATUS = "functional_structure_gaps_remaining"
+FUNCTIONAL_STRUCTURE_GAP_CLASSIFICATION = "functional_structure_followthrough_gates"
 
 FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
     {
@@ -125,27 +127,56 @@ OPL_REPLACEMENT_EXPECTATION_AUDIT = {
 }
 
 
+def _closure_gate_is_closed(gate: Mapping[str, Any]) -> bool:
+    proof_refs = gate.get("closure_proof_refs")
+    return (
+        gate.get("closure_status") == "closed"
+        and gate.get("functional_structure_gap") is False
+        and isinstance(proof_refs, Sequence)
+        and not isinstance(proof_refs, (str, bytes))
+        and len(proof_refs) > 0
+    )
+
+
 def build_functional_followthrough_gap_summary(
     *,
     classification_counts: Mapping[str, int],
     legacy_cleanup_items: Sequence[str],
 ) -> dict[str, Any]:
-    closure_gate_ids = [str(item["gate_id"]) for item in FUNCTIONAL_STRUCTURE_CLOSURE_GATES]
+    closure_gates = [dict(item) for item in FUNCTIONAL_STRUCTURE_CLOSURE_GATES]
+    closed_functional_structure_gates = [
+        item for item in closure_gates if _closure_gate_is_closed(item)
+    ]
+    remaining_functional_followthrough_gates = [
+        item for item in closure_gates if not _closure_gate_is_closed(item)
+    ]
+    closure_gate_ids = [str(item["gate_id"]) for item in closed_functional_structure_gates]
+    remaining_functional_followthrough_gate_ids = [
+        str(item["gate_id"]) for item in remaining_functional_followthrough_gates
+    ]
     evidence_gate_ids = [str(item["gate_id"]) for item in REMAINING_EVIDENCE_GATES]
+    functional_structure_gap_count = len(remaining_functional_followthrough_gates)
+    remaining_items_are_evidence_gates = functional_structure_gap_count == 0
     return {
         "surface_kind": "mas_functional_followthrough_gap_summary",
-        "status": FUNCTIONAL_FOLLOWTHROUGH_GATES_OPEN_STATUS,
+        "status": (
+            FUNCTIONAL_FOLLOWTHROUGH_GATES_OPEN_STATUS
+            if remaining_items_are_evidence_gates
+            else FUNCTIONAL_STRUCTURE_GAPS_REMAINING_STATUS
+        ),
         "classification_gap_count": 0,
-        "functional_structure_gap_count": 0,
+        "functional_structure_gap_count": functional_structure_gap_count,
         "active_private_generic_residue_count": 0,
-        "remaining_gap_classification": REMAINING_GAP_CLASSIFICATION,
-        "remaining_items_are_evidence_gates": True,
-        "remaining_functional_followthrough_gate_ids": [],
-        "remaining_functional_followthrough_gates": [],
+        "remaining_gap_classification": (
+            REMAINING_GAP_CLASSIFICATION
+            if remaining_items_are_evidence_gates
+            else FUNCTIONAL_STRUCTURE_GAP_CLASSIFICATION
+        ),
+        "remaining_items_are_evidence_gates": remaining_items_are_evidence_gates,
+        "remaining_functional_followthrough_gate_ids": remaining_functional_followthrough_gate_ids,
+        "remaining_functional_followthrough_gates": remaining_functional_followthrough_gates,
         "closed_functional_structure_gate_ids": closure_gate_ids,
-        "closed_functional_structure_gates": [
-            dict(item) for item in FUNCTIONAL_STRUCTURE_CLOSURE_GATES
-        ],
+        "closed_functional_structure_gates": closed_functional_structure_gates,
         "classification_counts": dict(classification_counts),
         "legacy_cleanup_items_require_no_active_caller_gate": list(legacy_cleanup_items),
         "legacy_cleanup_items_are_diagnostic_provenance_guards": True,

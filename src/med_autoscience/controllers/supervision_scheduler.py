@@ -31,10 +31,9 @@ def read_supervision_status(
     if manager_key == "opl":
         payload = _opl_replacement_status(profile=profile, interval_seconds=interval_seconds)
     elif manager_key == "local":
-        payload = _retired_local_scheduler_tombstone(
-            profile=profile,
-            interval_seconds=interval_seconds,
-            requested_action="status",
+        raise ValueError(
+            "MAS local supervision scheduler is physically retired; use manager='opl' for the "
+            "OPL provider/runtime manager projection or read legacy tombstone refs."
         )
     elif manager_key == "hermes":
         payload = _hermes_status(profile=profile, interval_seconds=interval_seconds)
@@ -71,15 +70,10 @@ def ensure_supervision(
             after=after,
         )
     if manager_key == "local":
-        payload = _retired_local_scheduler_tombstone(
-            profile=profile,
-            interval_seconds=interval_seconds,
-            requested_action="ensure",
-            trigger_now=trigger_now,
-            write_install_proof=write_install_proof,
-            dry_run=dry_run,
+        raise ValueError(
+            "MAS local supervision scheduler is physically retired; use manager='opl' for the "
+            "OPL provider/runtime manager projection or read legacy tombstone refs."
         )
-        return _attach_consumer_migration(payload, adapter_id=RETIRED_LOCAL_ADAPTER_ID, manager="local")
     if manager_key == "hermes":
         payload = hermes_supervision.ensure_supervision(
             profile=profile,
@@ -116,15 +110,9 @@ def remove_supervision(
             removing=True,
         )
     if manager_key == "local":
-        payload = _retired_local_scheduler_tombstone(
-            profile=profile,
-            interval_seconds=interval_seconds,
-            requested_action="remove",
-        )
-        return _attach_consumer_migration(
-            payload,
-            adapter_id=RETIRED_LOCAL_ADAPTER_ID,
-            manager="local",
+        raise ValueError(
+            "MAS local supervision scheduler is physically retired; cleanup is represented by "
+            "history/tombstone refs and OPL lifecycle receipt records, not an active manager path."
         )
     if manager_key == "hermes":
         payload = hermes_supervision.remove_supervision(profile=profile, interval_seconds=interval_seconds)

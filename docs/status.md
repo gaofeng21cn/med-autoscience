@@ -17,8 +17,8 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - Direct MAS app skill path 与 OPL-hosted path 共享同一 MAS-owned stage、controller、durable truth、quality verdict 和 artifact surface。
 - `product-entry-manifest`、sidecar export、contracts、runtime/controller surfaces 和 workspace artifact receipts 是当前机器真相；`docs/**` 只做解释、导航、治理和 provenance。
 - MAS 标准 pack / generated-interface source 已在 repo contracts 中声明 domain descriptor、pack compiler input、generated surface handoff、action catalog、stage control plane、memory descriptor、artifact locator contract、owner receipt contract、functional privatization audit 和 private functional surface policy。
-- `functional_consumer_boundary` 已完成通用功能面分类、禁回流 guard 和结构收口：`classification_gap_count=0`、`active_private_generic_residue_count=0`、`functional_structure_gap_count=0`，归类为 `live_provider_paper_line_evidence_gates`。
-- 5 个功能/结构 gate 已关闭并进入 proof refs：`generated_surface_active_caller_cutover`、`refs_only_adapter_thinning`、`legacy_cleanup_physical_retirement`、`opl_app_workbench_drilldown` 和 `lifecycle_locator_retention_restore_ledger_reconciliation`。剩余不是功能/结构 gap，而是真实 provider、paper-line、memory/artifact receipt 和 long-soak 证据门。
+- `functional_consumer_boundary` 已完成通用功能面分类、禁回流 guard 和 5 个结构 follow-through gate：`classification_gap_count=0`、`active_private_generic_residue_count=0`、`functional_structure_gap_count=0`。`functional_structure_gap_count` 由 closure evidence 计算，只有 `closure_status=closed`、`functional_structure_gap=false` 且存在 `closure_proof_refs` 的 gate 才计入 closed。
+- 已关闭的结构 gate 是：`generated_surface_active_caller_cutover`、`refs_only_adapter_thinning`、`legacy_cleanup_physical_retirement`、`opl_app_workbench_drilldown` 和 `lifecycle_locator_retention_restore_ledger_reconciliation`。剩余只作为真实 provider、paper-line、memory/artifact receipt、human gate/resume 和 long-soak evidence gate 管理。
 - 旧 MDS physical root / monolith binding / legacy provenance 只作为 archive、tombstone 或 refs-only historical fixture 读取；不得回写成 current runtime owner。
 - dated closeout、follow-through 和修复流水已经移到 [MAS standard agent 文档过程归档 2026-05](./history/program/mas-standard-agent-doc-process-history-2026-05.md)，不再作为 `docs/status.md` 当前结论展开。
 
@@ -28,19 +28,19 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
    DM002 的 2026-05-18 高质量医学论文反馈已经通过 OPL Agent Lab blocked suite 和 `opl-meta-agent` developer patch work order 进入 MAS 能力层。当前 self-evolution 口径是：`opl-meta-agent` 可以修改 MAS stage/skill/prompt/rubric/quality-contract/tests/docs；MAS study truth、AI reviewer verdict、publication gate 和 current package authority 仍归 MAS owner chain。新的 work order 必须提供 gap-to-patch traceability、测试 receipt、developer patch receipt、版本记录和 no-forbidden-write 证据。
 
 1. `generated_surface_active_caller_cutover`
-   OPL generated / hosted surface 已作为 active caller 接收面登记并关闭结构 gate；MAS hand-written shell 只承担 direct domain entry、domain handler、AI-first validator、owner receipt signer、diagnostic cleanup 或 provenance fixture。
+   已关闭为 OPL generated / hosted surface 与 MAS domain handler target 边界。MAS hand-written shell 只允许继续承担 direct domain entry、domain handler、AI-first validator、owner receipt signer、diagnostic cleanup 或 provenance fixture；旧 wrapper/alias/facade 不再作为长期 caller 语义保留。
 
 2. `refs_only_adapter_thinning`
-   runtime lifecycle SQLite、paper outbox、storage maintenance、publication-route memory transport、artifact lifecycle audit、terminal attach 和 runtime supervisor shell 已收薄为 refs-only domain sidecar / locator / receipt / blocker / authority-ref surface；MAS 不声明 generic lifecycle、source、session、workbench 或 scheduler owner。
+   runtime lifecycle SQLite、paper outbox、storage maintenance、publication-route memory transport、artifact lifecycle audit、terminal attach 和 runtime supervisor shell 已收薄为 refs-only domain sidecar / locator / receipt / blocker / authority-ref surface；MAS 不声明 generic lifecycle、source、session、workbench 或 scheduler owner。后续只做回流防护和 evidence scaleout。
 
 3. `legacy_cleanup_physical_retirement`
-   local LaunchAgent install path、workspace-local wrapper、旧 status/remove cleanup diagnostic、旧 alias/facade/test entry 已纳入 no-active-caller cleanup proof；当前允许角色只剩 tombstone 或 provenance。
+   local LaunchAgent install path、workspace-local wrapper、旧 status/remove cleanup diagnostic、旧 alias/facade/test entry 已纳入 no-active-caller cleanup proof；当前允许角色只剩 tombstone 或 provenance。`manager=local` direct call 必须 fail closed，不再返回可用 adapter payload。
 
 4. `opl_app_workbench_drilldown`
-   MAS route/source/quality/artifact/memory/blocker/action refs 已作为 OPL App/workbench drilldown 输入；MAS 不复制通用工作台 owner。
+   MAS route/source/quality/artifact/memory/blocker/action refs 作为 OPL App/workbench drilldown 输入；MAS 不复制通用工作台 owner。剩余是真实用户路径、截图/发布包和长时 operator evidence。
 
 5. `lifecycle_locator_retention_restore_ledger_reconciliation`
-   lifecycle locator、retention、restore、cleanup ledger 与 workspace runtime artifact root locator 已按 OPL generic lifecycle shell / MAS artifact authority receipt 边界对账；MAS 不持有 generic restore-retention engine。
+   lifecycle locator、retention、restore、cleanup ledger 与 workspace runtime artifact root locator 已按 OPL generic lifecycle shell / MAS artifact authority receipt 边界对账；MAS 不持有 generic restore-retention engine。真实 workspace receipt scaleout 仍待完成。
 
 ## 当前测试/证据差距
 
@@ -64,7 +64,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 - 不能声明 OPL provider proof 等于 MAS paper closure、publication-ready 或 artifact mutation authorization。
 - 不能把结构 gate 关闭、classification closure、descriptor ready、local LaunchAgent no-active-caller proof 或 selected proof 写成真实 paper closure、publication-ready、artifact mutation authorization 或 provider long-soak 已完成。
-- 不能把 `functional_structure_gap_count=0` 写成真实 paper closure、publication-ready、artifact mutation authorization、provider long-soak 或 live paper-line evidence 已完成。
+- 不能把 `classification_gap_count=0`、`active_private_generic_residue_count=0` 或 descriptor ready 单独写成结构闭合；结构闭合必须来自 5 个 closure gate 的 replacement/cutover/thinning/retirement/reconciliation proof。
 - 不能把 provider/live paper-line evidence gate 写成已完成的真实 provider / paper-line 证据。
 - 不能把 dated specs、dated closeout、修复流水或历史 full record 当成 current truth。
 - 不能把 MDS/DeepScientist、Hermes、local scheduler 或旧 workspace wrapper 写成 MAS 默认 active runtime owner。

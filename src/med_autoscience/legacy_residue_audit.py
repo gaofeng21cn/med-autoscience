@@ -24,8 +24,8 @@ def build_legacy_residue_audit() -> dict[str, Any]:
             current_role="retired_no_default_caller_history_reference",
             default_caller=False,
             replacement_proof_refs=[
-                "runtime-supervision-status manager=local",
-                "MAS supervision scheduler contract local adapter",
+                "local_launchd_retired_tombstone",
+                "contracts/runtime/legacy-active-path-tombstones.json",
             ],
             retention_reason="tombstoned; any remaining references are history or explicit diagnostics",
             disposition="retired_no_default_caller",
@@ -43,14 +43,15 @@ def build_legacy_residue_audit() -> dict[str, Any]:
         ),
         _finding(
             residue_id="workspace_local_scheduler_wording",
-            current_role="mas_local_diagnostics",
+            current_role="retired_physical_tombstone_provenance_only",
             default_caller=False,
             replacement_proof_refs=[
-                "OPL Temporal production provider residency blocker/readiness surface",
-                "MAS sidecar export/dispatch bridge",
+                "OPL Temporal production provider residency surface",
+                "contracts/runtime/legacy-active-path-tombstones.json",
+                "docs/history/runtime/legacy_active_path_tombstones.md",
             ],
-            retention_reason="kept as local diagnostics while OPL production residency remains pending",
-            disposition="retain_diagnostics",
+            retention_reason="local scheduler manager path is physically retired; only tombstone/provenance refs remain",
+            disposition="tombstoned",
         ),
         _finding(
             residue_id="hosted_runtime_binding_wording",
@@ -79,7 +80,7 @@ def build_legacy_residue_audit() -> dict[str, Any]:
             "provider_runtime_residency_read_model",
             "provider_guarded_soak_read_model",
             "standard_domain_agent_skeleton",
-            "runtime-supervision-status manager=local",
+            "local_launchd_retired_tombstone",
         ],
         "findings": findings,
         "summary": {

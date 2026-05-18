@@ -3,6 +3,9 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+import pytest
+
+import med_autoscience.controllers.supervision_scheduler_parts.functional_followthrough_gaps as followthrough_gaps
 from tests.study_runtime_test_helpers import make_profile
 
 
@@ -158,6 +161,35 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(tmp_p
     assert not launch_agents.exists()
 
 
+def test_functional_structure_gap_count_reopens_when_closure_proof_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gates = tuple(dict(item) for item in followthrough_gaps.FUNCTIONAL_STRUCTURE_CLOSURE_GATES)
+    reopened_gate = dict(gates[0])
+    reopened_gate["closure_proof_refs"] = []
+    monkeypatch.setattr(
+        followthrough_gaps,
+        "FUNCTIONAL_STRUCTURE_CLOSURE_GATES",
+        (reopened_gate, *gates[1:]),
+    )
+
+    summary = followthrough_gaps.build_functional_followthrough_gap_summary(
+        classification_counts={},
+        legacy_cleanup_items=[],
+    )
+
+    assert summary["status"] == "functional_structure_gaps_remaining"
+    assert summary["functional_structure_gap_count"] == 1
+    assert summary["remaining_items_are_evidence_gates"] is False
+    assert summary["remaining_gap_classification"] == "functional_structure_followthrough_gates"
+    assert summary["remaining_functional_followthrough_gate_ids"] == [
+        "generated_surface_active_caller_cutover",
+    ]
+    assert "generated_surface_active_caller_cutover" not in (
+        summary["closed_functional_structure_gate_ids"]
+    )
+
+
 def test_default_scheduler_ensure_delegates_to_opl_replacement_without_launchagent(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
     profile = make_profile(tmp_path)
@@ -192,50 +224,27 @@ def test_default_scheduler_remove_delegates_to_opl_and_keeps_local_tombstone(tmp
     assert result["legacy_local_tombstone"]["status"] == "retired_physical_tombstone"
 
 
-def test_local_scheduler_direct_call_returns_physical_tombstone(tmp_path: Path) -> None:
+def test_local_scheduler_direct_call_is_rejected_after_physical_retirement(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
     profile = make_profile(tmp_path)
 
-    result = module.ensure_supervision(
-        profile=profile,
-        manager="local",
-        trigger_now=False,
-        dry_run=True,
-    )
-
-    assert result["scheduler_owner"] == "mas_supervision_scheduler"
-    assert result["adapter_id"] == "local_launchd_retired_tombstone"
-    assert result["active_path_role"] == "physical_retired_tombstone_provenance_only"
-    assert result["consumer_migration"]["replacement_owner"] == "one-person-lab"
-    assert result["consumer_migration"]["replacement_owner_surface"] == "opl_provider_runtime_manager"
-    assert result["consumer_migration"]["replacement_required_before_retirement"] is False
-    assert result["consumer_migration"]["retirement_state"] == "local_legacy_physical_retired_tombstone"
-    assert result["dry_run"] is True
-    assert result["write_install_proof"] is False
-    assert result["install_allowed"] is False
-    assert result["status_allowed"] is False
-    assert result["remove_allowed"] is False
-    assert result["cleanup_command"] is None
-    assert result["diagnostic_status_command"] is None
-    assert result["tombstone_ref"].startswith("contracts/runtime/legacy-active-path-tombstones.json")
-    assert result["command_outputs"] == []
+    with pytest.raises(ValueError, match="local supervision scheduler is physically retired"):
+        module.ensure_supervision(
+            profile=profile,
+            manager="local",
+            trigger_now=False,
+            dry_run=True,
+        )
 
 
-def test_local_scheduler_status_and_remove_are_tombstone_only(tmp_path: Path) -> None:
+def test_local_scheduler_status_and_remove_direct_calls_are_rejected(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
     profile = make_profile(tmp_path)
 
-    status = module.read_supervision_status(profile=profile, manager="local")
-    removed = module.remove_supervision(profile=profile, manager="local")
-
-    assert status["status"] == "retired_physical_tombstone"
-    assert status["requested_action"] == "status"
-    assert status["job_exists"] is False
-    assert status["retired_artifacts"] == {}
-    assert removed["status"] == "retired_physical_tombstone"
-    assert removed["requested_action"] == "remove"
-    assert removed["removed_job_ids"] == []
-    assert removed["remove_allowed"] is False
+    with pytest.raises(ValueError, match="local supervision scheduler is physically retired"):
+        module.read_supervision_status(profile=profile, manager="local")
+    with pytest.raises(ValueError, match="local supervision scheduler is physically retired"):
+        module.remove_supervision(profile=profile, manager="local")
 
 
 def test_explicit_hermes_adapter_is_projected_under_mas_scheduler_owner(monkeypatch, tmp_path: Path) -> None:
