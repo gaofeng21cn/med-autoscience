@@ -37,6 +37,8 @@ jobs:
             pyproject.toml
 
       - name: Install dependencies
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv sync --frozen --group dev --no-install-project
 
       - name: Run change-aware CI preflight

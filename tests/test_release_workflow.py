@@ -132,6 +132,7 @@ def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
     assert "uv sync --frozen --group dev" in advisory_workflow
     for workflow_job in uv_no_project_jobs:
         assert "uv sync --frozen --group dev --no-install-project" in workflow_job
+        assert "UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv" in workflow_job
         assert "PYTHONPATH: src" in workflow_job
         assert 'UV_NO_SYNC: "1"' in workflow_job
     assert "enable-cache: true" in ci_workflow

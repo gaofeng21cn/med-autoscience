@@ -36,6 +36,8 @@ jobs:
             pyproject.toml
 
       - name: Install dependencies
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv sync --frozen --group dev --no-install-project
 
       - name: Run regression tests
@@ -44,6 +46,8 @@ jobs:
       - name: Summarize regression lane duration
         if: always()
         continue-on-error: true
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload regression lane summary
@@ -82,6 +86,8 @@ jobs:
             pyproject.toml
 
       - name: Install dependencies
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv sync --frozen --group dev --no-install-project
 
       - name: Run meta tests
@@ -90,6 +96,8 @@ jobs:
       - name: Summarize meta lane duration
         if: always()
         continue-on-error: true
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload meta lane summary
@@ -128,6 +136,8 @@ jobs:
             pyproject.toml
 
       - name: Install dependencies
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv sync --frozen --group dev --no-install-project
 
       - name: Run family shared tests
@@ -136,6 +146,8 @@ jobs:
       - name: Summarize family lane duration
         if: always()
         continue-on-error: true
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload family lane summary
@@ -184,6 +196,8 @@ jobs:
           /Library/TeX/texbin/xelatex --version | head -n 1
 
       - name: Install dependencies
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv sync --frozen --group dev --no-install-project
 
       - name: Run submission tests
@@ -192,6 +206,8 @@ jobs:
       - name: Summarize submission lane duration
         if: always()
         continue-on-error: true
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload submission lane summary
@@ -243,6 +259,8 @@ jobs:
           /Library/TeX/texbin/xelatex --version | head -n 1
 
       - name: Install dependencies
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv sync --frozen --group dev --no-install-project
 
       - name: Ensure study runtime analysis bundle
@@ -266,6 +284,8 @@ jobs:
       - name: Summarize display lane duration
         if: always()
         continue-on-error: true
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
         run: uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"
 
       - name: Upload display lane summary
