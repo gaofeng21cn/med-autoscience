@@ -57,6 +57,7 @@ def run_paper_authority_clean_migration(
     resolved_profile_path = Path(profile_path).expanduser().resolve()
     profile = load_profile(resolved_profile_path)
     selected_study_ids = _resolve_study_ids(profile=profile, study_ids=study_ids)
+    noncanonical_residue_dirs = _discover_noncanonical_paper_authority_residue_dirs(profile)
     recorded_at = _utc_now()
     studies = [
         _study_plan(
@@ -93,6 +94,7 @@ def run_paper_authority_clean_migration(
         },
         "study_count": len(studies),
         "studies": studies,
+        "noncanonical_paper_authority_residue_dirs": noncanonical_residue_dirs,
         "next_required_actions": _workspace_next_actions(studies),
     }
     if apply:
@@ -238,33 +240,40 @@ def _resolve_study_ids(*, profile: WorkspaceProfile, study_ids: Iterable[str] | 
         for study_id in selected:
             if study_id not in available_study_ids:
                 known = ", ".join(sorted(available_study_ids)) or "<none>"
-                raise ValueError(f"Unknown paper authority study_id: {study_id}; known study_ids: {known}")
+                raise ValueError(f"Unknown canonical paper authority study_id: {study_id}; known study_ids: {known}")
         return selected
     return _discover_paper_study_ids(profile)
 
 
 def _discover_paper_study_ids(profile: WorkspaceProfile) -> tuple[str, ...]:
     supervised = list(study_identity.resolve_supervisor_scan_study_ids(profile))
-    if not profile.studies_root.is_dir():
-        return tuple(supervised)
-    seen = set(supervised)
-    for study_root in sorted(path for path in profile.studies_root.iterdir() if path.is_dir()):
-        if study_root.name in seen:
-            continue
-        if _study_root_has_paper_authority_surface(study_root):
-            seen.add(study_root.name)
-            supervised.append(study_root.name)
     return tuple(supervised)
 
 
-def _study_root_has_paper_authority_surface(study_root: Path) -> bool:
-    if any((study_root / relpath).exists() for _, relpath, _ in ACTIVE_SURFACES):
-        return True
-    if (study_root / "study.yaml").exists() or (study_root / "study.yml").exists() or (study_root / "study.toml").exists():
-        return True
-    if (study_root / "runtime_binding.yaml").exists():
-        return True
-    return False
+def _discover_noncanonical_paper_authority_residue_dirs(profile: WorkspaceProfile) -> list[dict[str, Any]]:
+    if not profile.studies_root.is_dir():
+        return []
+    canonical_study_ids = set(study_identity.resolve_supervisor_scan_study_ids(profile))
+    residue_dirs: list[dict[str, Any]] = []
+    for study_root in sorted(path for path in profile.studies_root.iterdir() if path.is_dir()):
+        if study_root.name in canonical_study_ids:
+            continue
+        surface_ids = [
+            surface_id
+            for surface_id, relpath, _ in ACTIVE_SURFACES
+            if (study_root / relpath).exists()
+        ]
+        if not surface_ids:
+            continue
+        residue_dirs.append(
+            {
+                "study_id": study_root.name,
+                "path": str(study_root.expanduser().resolve()),
+                "reason": "paper_authority_surface_without_study_marker",
+                "surface_ids": surface_ids,
+            }
+        )
+    return residue_dirs
 
 
 def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -> dict[str, Any]:

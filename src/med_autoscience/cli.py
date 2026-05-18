@@ -74,6 +74,9 @@ workspace_monolith_migration = _LazyModuleProxy(lambda: _load_controller("worksp
 workspace_legacy_physical_cleanup = _LazyModuleProxy(lambda: _load_controller("workspace_legacy_physical_cleanup"))
 paper_authority_migration = _LazyModuleProxy(lambda: _load_controller("paper_authority_migration"))
 study_config_migration = _LazyModuleProxy(lambda: _load_controller("study_config_migration"))
+agent_lab_medical_manuscript_quality = _LazyModuleProxy(
+    lambda: _load_controller("agent_lab_medical_manuscript_quality")
+)
 paper_autonomy_stability_evidence = _LazyModuleProxy(lambda: _load_controller("paper_autonomy_stability_evidence"))
 backend_audit = _LazyModuleProxy(lambda: _load_controller("backend_audit"))
 runtime_lifecycle_read_model = _LazyModuleProxy(lambda: _load_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model"))
@@ -910,6 +913,26 @@ def main(argv: list[str] | None = None) -> int:
             study_ids=tuple(args.studies or ()),
             apply=bool(args.apply),
         )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "agent-lab-medical-manuscript-quality-suite":
+        if args.apply:
+            result = agent_lab_medical_manuscript_quality.materialize_medical_manuscript_quality_agent_lab_suite(
+                study_root=Path(args.study_root),
+                reviewer_feedback_ref=args.reviewer_feedback_ref,
+            )
+        else:
+            result = {
+                "surface_kind": agent_lab_medical_manuscript_quality.SURFACE_KIND,
+                "status": "dry_run",
+                "study_id": Path(args.study_root).expanduser().resolve().name,
+                "suite": agent_lab_medical_manuscript_quality.build_medical_manuscript_quality_agent_lab_suite(
+                    study_root=Path(args.study_root),
+                    reviewer_feedback_ref=args.reviewer_feedback_ref,
+                ),
+                "authority_boundary": dict(agent_lab_medical_manuscript_quality.AUTHORITY_BOUNDARY),
+            }
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 

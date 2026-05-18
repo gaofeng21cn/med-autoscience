@@ -244,6 +244,13 @@ def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:
     study_config_clean_migration_mode.add_argument("--dry-run", action="store_true")
     study_config_clean_migration_mode.add_argument("--apply", action="store_true")
 
+    agent_lab_medical_quality_parser = subparsers.add_parser("agent-lab-medical-manuscript-quality-suite")
+    agent_lab_medical_quality_parser.add_argument("--study-root", required=True)
+    agent_lab_medical_quality_parser.add_argument("--reviewer-feedback-ref")
+    agent_lab_medical_quality_mode = agent_lab_medical_quality_parser.add_mutually_exclusive_group(required=True)
+    agent_lab_medical_quality_mode.add_argument("--dry-run", action="store_true")
+    agent_lab_medical_quality_mode.add_argument("--apply", action="store_true")
+
     paper_autonomy_stability_evidence_parser = subparsers.add_parser("paper-autonomy-stability-evidence")
     paper_autonomy_stability_evidence_parser.add_argument("--yang-root", default="/Users/gaofeng/workspace/Yang")
     paper_autonomy_stability_evidence_parser.add_argument("--profiles", nargs="+")

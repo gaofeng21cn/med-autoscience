@@ -25,6 +25,7 @@
 11. generic sidecar provider recommendation/provision/import
 12. delivery inspection / inspection package contract
 13. clean paper-authority migration and re-materialization owner routing
+14. Agent Lab medical manuscript quality refs-only suite projection
 
 对应的 Python 实现在包内：
 
@@ -46,6 +47,7 @@
 - `src/med_autoscience/controllers/paper_authority_migration.py`
 - `src/med_autoscience/controllers/paper_authority_delivery_guard.py`
 - `src/med_autoscience/controllers/runtime_supervisor_scan_parts/action_projection.py`
+- `src/med_autoscience/controllers/agent_lab_medical_manuscript_quality.py`
 
 对应测试：
 
@@ -69,6 +71,8 @@
 - `tests/test_ai_reviewer_publication_eval_workflow.py`
 - `tests/runtime_supervisor_scan_cases/test_paper_authority_cutover.py`
 - `tests/test_runtime_supervisor_dispatch_executor_cases/clean_migration_rematerialization.py`
+- `tests/test_paper_authority_migration.py`
+- `tests/test_agent_lab_medical_manuscript_quality.py`
 
 当前迁移策略是：
 
@@ -126,7 +130,11 @@ AI reviewer-backed `return_to_ai_reviewer_workflow` 属于医学质量 owner red
 
 Clean paper-authority migration 是旧论文项目进入新 MAS 的正式切换路径。旧 active paper authority surfaces 先由 `paper_authority_migration` 归档为 provenance，并写 cutover receipt；此后新 MAS 只能从当前 canonical study / paper / evidence / review / blueprint surface 重新物化 quality authority。读旧 token、旧 `gap_type`、旧 prose review 或旧 package metadata 的 normalizer 不属于 controller 能力。旧 artifact 不合新 contract 时，controller 必须 fail closed，并把 owner route 交给 AI reviewer、publication gate、write 或 delivery owner 重新生成当前 surface。
 
+Clean paper-authority migration 的 discovery 只认 canonical study root。`studies/*` 下只有旧 `manuscript/current_package`、旧 paper authority archive 或 worktree residue 的目录，会进入 `noncanonical_paper_authority_residue_dirs` 诊断报告，不进入 study migration、quality、publication gate 或 delivery owner 队列。
+
 当 clean cutover 后缺 `paper/medical_manuscript_blueprint.json` 等 canonical manuscript inputs，`return_to_ai_reviewer_workflow` 或 `run_quality_repair_batch` 的执行结果必须落到 `canonical_paper_inputs_rehydrate_required`，`next_owner=write`。Supervisor scan、consumer 和 dispatch executor 负责把这个 typed blocker 交给 `write` owner，且投影中必须保持 `legacy_artifact_reader_allowed=false`、`mechanical_blueprint_as_canonical_allowed=false`、`paper_package_mutation_allowed=false`。`runtime_watch` 只能记录 `controller_work_unit_blocked` audit/ledger，不能把 blocked work unit 误报为 executed，也不能因此重建 submission/current package。
+
+Agent Lab medical manuscript quality suite 是 MAS 到 OPL Agent Lab 的 refs-only 投影。它把 AI reviewer-backed `medical_journal_prose_quality`、current reviewer feedback refs 和稿件质量 gap refs 暴露为 self-evolution task / scorecard / improvement candidate / promotion gate refs。OPL 可以用这些 refs 改进 stage attempt 和 agent 行为，但不能写 MAS study truth、publication quality verdict、artifact authority 或 submission readiness；最终质量关闭仍必须回到 MAS AI reviewer 与 publication owner。
 
 ## Inspection package 契约
 

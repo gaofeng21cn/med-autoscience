@@ -1,5 +1,20 @@
 # 关键决策记录
 
+## 2026-05-18：paper-authority migration 只处理 canonical study root
+
+- 决策：`paper_authority_clean_migration` 的 study discovery 只能来自 canonical study marker / supervisor scan 认可的 study root。`studies/*` 下仅因为存在旧 `manuscript/current_package`、旧 paper authority surface 或迁移 archive 的目录，不得被升级为 study。
+- 决策：非 canonical 旧 paper authority residue 必须作为 `noncanonical_paper_authority_residue_dirs` 报告，包含 path、reason 与命中的 surface refs；它只用于清理诊断和 provenance，不进入 study quality、publication gate、delivery 或 clean migration apply 队列。
+- 理由：DM-CVD workspace 中的 `idea-idea-3839d99b` 与 `paper-run-dfcc79d2` 是旧 MDS / worktree residue。旧 discovery 逻辑把“有旧 paper authority surface”误当作“这是一个 study”，导致无 `study.yaml` / `runtime_binding.yaml` 的历史目录被迁移流程当成论文单元。
+- 影响：旧项目迁移继续 fail closed，但 fail closed 的对象必须是 canonical study。未知或残留目录不再触发论文质量闭环、交付重建或 AI reviewer route；清理这些目录应走 workspace maintenance / provenance cleanup，而不是 paper-line owner workflow。
+
+## 2026-05-18：高质量医学论文自进化目标投影给 Agent Lab，但质量 verdict 仍归 MAS AI reviewer
+
+- 决策：`是否像高质量医学论文` 是 MAS domain-owned、AI reviewer-backed 的质量 scorecard。MAS 可以把该目标作为 refs-only external suite 投影给 OPL Agent Lab，用于自进化、回归学习、stage attempt 改进和 candidate promotion control plane。
+- 决策：Agent Lab suite 只能引用 `publication_eval/latest.json`、canonical paper、evidence/review ledger、task intake 或人工 reviewer feedback refs；不得写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical manuscript、`paper/submission_minimal`、`manuscript/current_package` 或 submission readiness verdict。
+- 决策：针对 DM002 这类外部验证论文，Agent Lab quality target 应把 AI reviewer / reviewer feedback 中的主观医学论文质量目标沉淀为 route-back evidence refs，例如 HDL harmonization and sensitivity、model reproducibility、visible Table 1 / Table 2 performance reporting、uncertainty intervals and validation metrics、NHANES weighting / unweighted framing、calibration / risk-collapse figure quality、internal quality-language purge。是否 closed 仍由 MAS AI reviewer 重新审稿并写回 current quality authority。
+- 理由：用户明确反对用 mechanical manuscript completeness/write-gate 脚本检查论文。正确做法是让 Agent Lab 学习和优化 MAS agent 的写作/审稿行为，同时保持医学质量判断由独立 AI reviewer artifact 和 publication owner 持有。
+- 影响：新增 `agent-lab-medical-manuscript-quality-suite` 只 materialize refs-only Agent Lab suite。它可以帮助 OPL 发现和推进 MAS agent 改进候选，但不能替代 reviewer、不能授权投稿、不能 bypass live runtime owner guard。
+
 ## 2026-05-18：AI-first quality gate 必须分离执行 agent 与 reviewer/auditor agent
 
 - 决策：MAS / OPL stage quality gate 中，执行与审阅/审计必须是两个独立智能体任务。executor agent 负责 stage work、artifact/source/evidence refs 和 execution receipt；reviewer/auditor agent 必须通过独立 invocation、独立 context/task record 读取这些 refs，并产出 AI reviewer record、audit receipt、route-back reason 或 typed blocker。

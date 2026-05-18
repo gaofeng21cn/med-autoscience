@@ -212,3 +212,50 @@ def test_runtime_study_config_clean_migration_command_dispatches_controller(
         "apply": True,
     }
     assert json.loads(captured.out)["surface_kind"] == "study_config_clean_migration"
+
+
+def test_agent_lab_medical_manuscript_quality_suite_command_dispatches_controller(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
+    called: dict[str, object] = {}
+
+    def fake_materialize_medical_manuscript_quality_agent_lab_suite(
+        *,
+        study_root: Path,
+        reviewer_feedback_ref: str | None = None,
+    ) -> dict[str, object]:
+        called["study_root"] = study_root
+        called["reviewer_feedback_ref"] = reviewer_feedback_ref
+        return {
+            "surface_kind": "mas_agent_lab_medical_manuscript_quality_suite",
+            "status": "materialized",
+        }
+
+    monkeypatch.setattr(
+        cli.agent_lab_medical_manuscript_quality,
+        "materialize_medical_manuscript_quality_agent_lab_suite",
+        fake_materialize_medical_manuscript_quality_agent_lab_suite,
+    )
+
+    exit_code = cli.main(
+        [
+            "agent-lab-medical-manuscript-quality-suite",
+            "--study-root",
+            str(study_root),
+            "--reviewer-feedback-ref",
+            "task-intake:gpt-5.5-review",
+            "--apply",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called == {
+        "study_root": study_root,
+        "reviewer_feedback_ref": "task-intake:gpt-5.5-review",
+    }
+    assert json.loads(captured.out)["surface_kind"] == "mas_agent_lab_medical_manuscript_quality_suite"

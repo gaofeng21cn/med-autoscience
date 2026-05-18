@@ -101,6 +101,62 @@ def test_paper_authority_clean_migration_apply_archives_active_surfaces_and_requ
     assert all(Path(item["archive_path"]).exists() for item in receipt["archived_surfaces"])
 
 
+def test_paper_authority_clean_migration_ignores_noncanonical_study_residue(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    write_text(study_root / "manuscript" / "current_package" / "manuscript_submission.md", "# Old\n")
+
+    residue_root = profile.studies_root / "paper-run-dfcc79d2"
+    write_text(residue_root / "manuscript" / "current_package" / "manuscript_submission.md", "# Residue\n")
+
+    report = module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(),
+        apply=False,
+    )
+
+    assert [study["study_id"] for study in report["studies"]] == [study_id]
+    assert report["noncanonical_paper_authority_residue_dirs"] == [
+        {
+            "study_id": "paper-run-dfcc79d2",
+            "path": str(residue_root.resolve()),
+            "reason": "paper_authority_surface_without_study_marker",
+            "surface_ids": ["manuscript_current_package"],
+        }
+    ]
+
+
+def test_paper_authority_clean_migration_rejects_selected_noncanonical_residue(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    write_text(
+        profile.studies_root / "idea-idea-3839d99b" / "manuscript" / "current_package" / "manuscript_submission.md",
+        "# Residue\n",
+    )
+
+    try:
+        module.run_paper_authority_clean_migration(
+            profile_path=profile_path,
+            study_ids=("idea-idea-3839d99b",),
+            apply=False,
+        )
+    except ValueError as exc:
+        assert "Unknown canonical paper authority study_id" in str(exc)
+        assert "idea-idea-3839d99b" in str(exc)
+    else:
+        raise AssertionError("selected noncanonical residue was accepted as a study")
+
+
 def test_mark_cutover_new_mas_authority_established_closes_pending_cutover(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
     profile = make_profile(tmp_path)
