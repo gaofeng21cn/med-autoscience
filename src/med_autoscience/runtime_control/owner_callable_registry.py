@@ -72,6 +72,25 @@ _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
         source_fingerprint_scope="controller_decision.work_unit_fingerprint",
     ),
     OwnerCallable(
+        owner="analysis_harmonization_owner",
+        action_type="unit_harmonized_external_validation_rerun",
+        callable_surface="analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker",
+        required_inputs=(
+            "controller_decisions/latest.json",
+            "publication_eval/latest.json",
+            "harmonization_route_back/latest.md",
+            "analysis inputs",
+        ),
+        required_outputs=(
+            "unit-harmonized external-validation rerun evidence",
+            "typed blocker:unit_harmonized_rerun_required",
+        ),
+        artifact_delta_predicate="unit_harmonized_rerun_evidence_or_analysis_owner_typed_blocker",
+        gate_replay_target="publication_eval/latest.json",
+        idempotency_scope="analysis_harmonization_work_unit",
+        source_fingerprint_scope="controller_decision.work_unit_fingerprint",
+    ),
+    OwnerCallable(
         owner="gate_clearing_batch",
         action_type="run_gate_clearing_batch",
         callable_surface="gate_clearing_batch.run_gate_clearing_batch",

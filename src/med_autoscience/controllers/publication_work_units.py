@@ -171,6 +171,32 @@ _GENERIC_SPECIFICITY_BLOCKERS = frozenset(
     }
 )
 _SPECIFICITY_WORK_UNIT_IDS = frozenset({"gate_needs_specificity", "needs_specificity"})
+_HARD_METHODOLOGY_UNIT_WORK_UNIT = {
+    "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+    "lane": "analysis-campaign",
+    "summary": (
+        "Materialize a unit-harmonized external-validation rerun or a typed methodology blocker "
+        "before prose, gate, or package clearance."
+    ),
+    "hard_methodology": True,
+    "required_owner": "analysis_harmonization_owner",
+    "required_next_work_unit": "unit_harmonized_external_validation_rerun",
+    "typed_blocker": "unit_harmonized_rerun_required",
+}
+_HARD_METHODOLOGY_TARGET_TOKENS = frozenset(
+    {
+        "hdl_unit_standardized_sensitivity",
+        "unit_standardized_model_application_or_sensitivity",
+        "unit_harmonized_external_validation_rerun",
+        "unit_harmonized_rerun_required",
+        "unit_harmonization",
+        "unit_harmonized",
+        "unit_standardized",
+        "unit-standardized",
+        "unit-harmonized",
+        "harmonization_route_back",
+    }
+)
 _SPECIFICITY_QUESTIONS = (
     "Which exact claim, figure, table, metric, citation, evidence row, or package artifact is blocking the gate?",
     "Which durable source path proves the blocker and which controller surface should own the repair?",
@@ -554,6 +580,30 @@ def _append_specificity_target_repair_units(
         )
 
 
+def _hard_methodology_target(target_status: Mapping[str, Any]) -> dict[str, Any] | None:
+    if target_status.get("complete") is not True:
+        return None
+    for target in target_status.get("targets") or []:
+        if not isinstance(target, Mapping):
+            continue
+        values = (
+            str(target.get("target_id") or "").strip().lower(),
+            str(target.get("blocking_reason") or "").strip().lower(),
+            str(target.get("source_path") or "").strip().lower(),
+        )
+        if any(any(token in value for token in _HARD_METHODOLOGY_TARGET_TOKENS) for value in values):
+            return {
+                "target_kind": str(target.get("target_kind") or "").strip(),
+                "target_id": str(target.get("target_id") or "").strip(),
+                "source_path": str(target.get("source_path") or "").strip(),
+                "blocking_reason": str(target.get("blocking_reason") or "").strip(),
+                "required_owner": "analysis_harmonization_owner",
+                "required_next_work_unit": "unit_harmonized_external_validation_rerun",
+                "typed_blocker": "unit_harmonized_rerun_required",
+            }
+    return None
+
+
 def _label_only_blocker_needs_specificity(report: Mapping[str, Any], *, blocker_set: set[str]) -> bool:
     if not blocker_set:
         return False
@@ -677,6 +727,14 @@ def _derive_blocking_work_units(
         "not_applicable",
     }
     authority_currentness = resolve_gate_authority_currentness(report)
+    hard_methodology_target = (
+        _hard_methodology_target(specificity_target_status_payload)
+        if specificity_target_status_payload
+        else None
+    )
+    if hard_methodology_target is not None:
+        units.append(dict(_HARD_METHODOLOGY_UNIT_WORK_UNIT))
+        return units, "hard_methodology_route_required", ()
     if authority_currentness.delivery_missing_sources_need_specificity:
         _append_gate_specificity_unit(units)
         return units, "blocked_by_non_actionable_gate", _SPECIFICITY_QUESTIONS
@@ -785,6 +843,7 @@ def derive_publication_work_units(
         specificity_target_status_payload=target_status,
     )
     fingerprint_blockers = fingerprint_blockers_for_work_unit(blockers=blockers, next_work_unit=units[0])
+    hard_methodology_target = _hard_methodology_target(target_status)
     return {
         "fingerprint": _fingerprint(fingerprint_blockers),
         "gate_fingerprint": str(report.get("gate_fingerprint") or "").strip() or None,
@@ -795,4 +854,5 @@ def derive_publication_work_units(
         "specificity_questions": list(specificity_questions),
         "blocking_work_units": units,
         "next_work_unit": units[0],
+        **({"hard_methodology_target": hard_methodology_target} if hard_methodology_target else {}),
     }

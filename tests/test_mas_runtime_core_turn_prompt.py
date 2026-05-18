@@ -117,6 +117,70 @@ def test_codex_exec_runner_prompt_includes_active_controller_work_unit(monkeypat
     assert "runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta" in prompt
 
 
+def test_codex_exec_runner_prompt_names_unit_harmonized_rerun_for_hard_methodology_work_unit(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    runner_module = importlib.import_module("med_autoscience.runtime_transport.mas_runtime_core_turn_runner")
+    quest_root = tmp_path / "workspace" / "runtime" / "quests" / "quest-002"
+    runtime_root = tmp_path / "workspace" / "runtime"
+    _write_workspace_python(quest_root)
+    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
+    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
+    runtime_state_path.write_text(
+        """
+{
+  "active_run_id": null,
+  "last_controller_decision_authorization": {
+    "decision_id": "decision-hdl-unit",
+    "controller_actions": ["run_quality_repair_batch"],
+    "route_target": "analysis-campaign",
+    "route_key_question": "unit-harmonized external validation rerun or typed blocker",
+    "work_unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+    "work_unit_fingerprint": "publication-blockers::hdl-unit",
+    "next_work_unit": {
+      "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+      "lane": "analysis-campaign",
+      "summary": "Close or type-block HDL harmonization and model reproducibility gaps."
+    },
+    "specificity_targets": [
+      {
+        "target_kind": "metric",
+        "target_id": "hdl_unit_standardized_sensitivity",
+        "source_path": "artifacts/analysis/harmonization_route_back/latest.md",
+        "blocking_reason": "unit_standardized_model_application_or_sensitivity"
+      }
+    ]
+  }
+}
+""",
+        encoding="utf-8",
+    )
+
+    class StartedProcess:
+        pid = 12345
+
+    monkeypatch.setattr(runner_module, "command_available", lambda binary: binary == "codex")
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: StartedProcess())
+
+    result = runner_module.CodexExecTurnRunner().start_turn(
+        runtime_root=runtime_root,
+        quest_root=quest_root,
+        quest_id="quest-002",
+        run_id="run-hdl-unit",
+        reason="runtime_platform_repair_redrive",
+        claimed_user_messages=(),
+    )
+
+    prompt = Path(result["prompt_path"]).read_text(encoding="utf-8")
+
+    assert "Hard methodology/unit-harmonization contract" in prompt
+    assert "unit_harmonized_external_validation_rerun" in prompt
+    assert "blocked_reason=unit_harmonized_rerun_required" in prompt
+    assert "next_owner=analysis_harmonization_owner" in prompt
+    assert "A prose/source-documentation note or generic completed closeout is not sufficient" in prompt
+
+
 def test_codex_exec_runner_prompt_omits_queued_controller_authorization_when_active_authorization_exists(
     monkeypatch, tmp_path: Path
 ) -> None:

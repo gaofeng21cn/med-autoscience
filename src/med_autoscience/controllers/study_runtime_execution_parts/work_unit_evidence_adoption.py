@@ -8,6 +8,7 @@ from med_autoscience.controllers import control_intent
 from med_autoscience.controllers.work_unit_evidence_adoption_parts import (
     analysis_stage_memory_handoff,
     generic_completed_work_unit,
+    hard_methodology_unit_harmonization,
 )
 
 
@@ -226,6 +227,21 @@ def _specificity_target_count(authorization_context: dict[str, Any]) -> int:
     return sum(1 for item in targets if isinstance(item, dict))
 
 
+def _authorization_has_hard_methodology_target(authorization_context: dict[str, Any]) -> bool:
+    return hard_methodology_unit_harmonization.authorization_has_target(
+        authorization_context,
+        text=_text,
+    )
+
+
+def _hard_methodology_report_satisfies_authorization(payload: dict[str, Any]) -> bool:
+    return hard_methodology_unit_harmonization.report_satisfies_authorization(
+        payload,
+        report_next_work_unit=_report_next_work_unit,
+        text=_text,
+    )
+
+
 def _mas_quality_repair_metrics_are_complete(
     *,
     payload: dict[str, Any],
@@ -404,6 +420,7 @@ def _report_matches_analysis_repair(
     payload: dict[str, Any],
     authorization_context: dict[str, Any],
 ) -> bool:
+    hard_methodology_target = _authorization_has_hard_methodology_target(authorization_context)
     result = payload.get("result")
     explicit_work_unit_id = _text(payload.get("work_unit_id"))
     explicit_route_target = _text(payload.get("route_target"))
@@ -416,11 +433,14 @@ def _report_matches_analysis_repair(
             and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
             and _text(payload.get("next_owner")) is not None
             and _text(payload.get("next_work_unit")) is not None
+            and (not hard_methodology_target or _hard_methodology_report_satisfies_authorization(payload))
             and _handoff_report_is_current(
                 payload=payload,
                 authorization_context=authorization_context,
             )
         )
+    if hard_methodology_target:
+        return False
     if _is_analysis_repair_current_run_control_packet(payload):
         return (
             _is_analysis_repair_work_unit_id(explicit_work_unit_id)
@@ -507,6 +527,7 @@ def _normalized_repair_result(
             "publication_gate_cleared": False,
             "writing_ready_after_repair": False,
             "finalize_ready_after_repair": False,
+            **hard_methodology_unit_harmonization.normalized_requirement_flag(report_payload, text=_text),
         }
     if _is_analysis_repair_current_run_control_packet(report_payload):
         specificity_targets = [
@@ -887,6 +908,8 @@ def adopt_controller_work_unit_evidence_if_present(
                 payload["artifact_kind"] = artifact_kind
             if report_status := _text(report_payload.get("status")):
                 payload["status"] = report_status
+            if blocked_reason := _text(report_payload.get("blocked_reason")):
+                payload["blocked_reason"] = blocked_reason
             next_owner = _report_next_owner(report_payload)
             next_work_unit = (
                 _report_next_work_unit(report_payload)

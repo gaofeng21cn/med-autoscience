@@ -23,10 +23,12 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/research-wiki-failed-route-memory",
     "mechanism-edit-ref:mas/ai-reviewer-direct-evidence-gate",
     "mechanism-edit-ref:mas/analysis-campaign-queue-routing",
+    "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
     "skill_ref:medical-research-write",
     "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
     "prompt_ref:ai_reviewer_medical_prose_quality_review",
     "quality_contract_ref:prediction_model_first_draft_quality",
+    "regression-suite:mas/hard-methodology-unit-harmonization-route",
     "regression_suite_ref:mas/agent_lab_medical_manuscript_self_evolution",
 ]
 
@@ -171,6 +173,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
                         "regression-suite:mas/ai-first-quality-boundary",
                         "regression-suite:mas/paper-authority-clean-migration",
                         "regression-suite:mas/prediction-model-first-draft-quality",
+                        "regression-suite:mas/hard-methodology-unit-harmonization-route",
                         "regression-suite:mas/agent-lab-medical-manuscript-self-evolution",
                         "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue",
                     ],

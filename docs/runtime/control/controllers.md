@@ -126,6 +126,8 @@ Generic sidecar provider 是 bounded extension 的统一 controller surface。Pr
 
 AI reviewer 把医学写作质量问题回退到方法学或 source-documentation owner 时，`medical_prose_quality_analysis_source_documentation_repair` 属于 upstream analysis/paper repair work unit。`run_quality_repair_batch` 必须在 control-plane 中使用 `paper_write` 授权执行该 work unit，并产出 canonical repair evidence、AI reviewer recheck request 或 typed blocker；它不能因为 publication gate 仍处于 downstream bundle block 而退回 `bundle_build` 或抢跑 submission/current package。
 
+当该 work unit 的 specificity target 明确命中 HDL/unit harmonization、unit-standardized model application、`harmonization_route_back` 或 `unit_harmonized_external_validation_rerun` 时，它升级为 hard methodology route。`quality_repair_batch` 必须在普通 gate-clearing、display materialization、paper owner surface 初始化、package freshness 和 AI reviewer recheck 前写入 `blocked_reason=unit_harmonized_rerun_required`，并交给 `analysis_harmonization_owner` 的 `unit_harmonized_external_validation_rerun`。普通 prose/source-documentation closeout、generic completed receipt 或 package refresh 不能关闭该阻塞；只有 unit-harmonized rerun evidence 或同一 owner 的 typed blocker 可以被 runtime evidence adoption 消费。
+
 Display materialization 是 quality-repair-batch 的 gate replay 依赖面。它重建 `paper/tables/table_catalog.json` 时必须保留或从 `paper/claim_evidence_map.json` 派生表格 `claim_ids`，例如 T1 基线表绑定 case-mix claim，T2 performance 表绑定 validation/calibration/transportability claims。Materializer 不能把表格 claim binding 重写为空；否则 display-to-claim closure 会被 replay 自身重新打开。
 
 `stale_study_delivery_mirror` 归属下游 package/delivery lane。若 canonical paper 与 submission authority 已 current，但缺少 current package freshness proof，controller 必须产出 `submission_delivery_terminal_blocker` 这类 controller-owned blocker，说明 delivery lane 自身不闭合的原因；它不得长期把 analysis-campaign/write stage 路由回 `gate_needs_specificity`，也不得让 Codex CLI 重放同一个不可执行的 package replay loop。
@@ -138,7 +140,7 @@ Clean paper-authority migration 的 discovery 只认 canonical study root。`stu
 
 当 clean cutover 后缺 `paper/medical_manuscript_blueprint.json` 等 canonical manuscript inputs，`return_to_ai_reviewer_workflow` 或 `run_quality_repair_batch` 的执行结果必须落到 `canonical_paper_inputs_rehydrate_required`，`next_owner=write`。Supervisor scan、consumer 和 dispatch executor 负责把这个 typed blocker 交给 `write` owner，且投影中必须保持 `legacy_artifact_reader_allowed=false`、`mechanical_blueprint_as_canonical_allowed=false`、`paper_package_mutation_allowed=false`。`runtime_watch` 只能记录 `controller_work_unit_blocked` audit/ledger，不能把 blocked work unit 误报为 executed，也不能因此重建 submission/current package。
 
-Agent Lab medical manuscript quality suite 是 MAS 到 OPL Agent Lab 的 refs-only 投影。它把 AI reviewer-backed `medical_journal_prose_quality`、current reviewer feedback refs 和稿件质量 gap refs 暴露为 self-evolution task / scorecard / improvement candidate / promotion gate refs。OPL 可以用这些 refs 改进 stage attempt 和 agent 行为，但不能写 MAS study truth、publication quality verdict、artifact authority 或 submission readiness；最终质量关闭仍必须回到 MAS AI reviewer 与 publication owner。
+Agent Lab medical manuscript quality suite 是 MAS 到 OPL Agent Lab 的 refs-only 投影。它把 AI reviewer-backed `medical_journal_prose_quality`、current reviewer feedback refs 和稿件质量 gap refs 暴露为 self-evolution task / scorecard / improvement candidate / promotion gate refs，并把 hard methodology/unit-harmonization route 作为可回归的 mechanism edit refs 暴露给 `opl-meta-agent`。OPL 可以用这些 refs 改进 stage attempt 和 agent 行为，但不能写 MAS study truth、publication quality verdict、artifact authority 或 submission readiness；最终质量关闭仍必须回到 MAS AI reviewer 与 publication owner。
 
 ## Inspection package 契约
 

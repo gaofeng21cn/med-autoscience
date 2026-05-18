@@ -43,6 +43,20 @@ _RUNTIME_REDRIVE_ACTION_NAMES = frozenset(
 )
 _SUPERVISOR_DISPATCH_ACTION_NAMES = frozenset({"return_to_ai_reviewer_workflow"})
 _SPECIFICITY_WORK_UNIT_IDS = frozenset({"gate_needs_specificity", "needs_specificity"})
+_HARD_METHODOLOGY_TOKENS = frozenset(
+    {
+        "hdl_unit_standardized_sensitivity",
+        "unit_standardized_model_application_or_sensitivity",
+        "unit_harmonized_external_validation_rerun",
+        "unit_harmonized_rerun_required",
+        "unit_harmonization",
+        "unit_harmonized",
+        "unit_standardized",
+        "unit-standardized",
+        "unit-harmonized",
+        "harmonization_route_back",
+    }
+)
 
 
 def _codex_turn_prompt(
@@ -441,6 +455,7 @@ def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any]
         authorization=authorization,
         quest_id=quest_id,
     )
+    hard_methodology_contract = _hard_methodology_contract_prompt_section(authorization)
     return (
         "Active MAS controller work unit:\n"
         "```json\n"
@@ -464,7 +479,26 @@ def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any]
         "- Produce a MAS-authorized durable artifact that addresses `work_unit_id`, `next_work_unit`, and any listed "
         "`specificity_targets`, or write a blocked closeout naming the missing controller/owner surface.\n"
         "- A runtime/watch/health/control-plane receipt alone is not a meaningful artifact delta for this work unit.\n\n"
+        f"{hard_methodology_contract}"
         f"{controller_action_contract}"
+    )
+
+
+def _hard_methodology_contract_prompt_section(authorization: Mapping[str, Any]) -> str:
+    if not _authorization_has_hard_methodology_target(authorization):
+        return ""
+    return (
+        "Hard methodology/unit-harmonization contract:\n"
+        "- This work unit contains a hard HDL/unit-standardization or variable-harmonization target. "
+        "The next valid domain step is `unit_harmonized_external_validation_rerun` under "
+        "`analysis_harmonization_owner`, or an explicit typed blocker for that owner.\n"
+        "- A prose/source-documentation note or generic completed closeout is not sufficient for this target.\n"
+        "- If the unit-harmonized rerun cannot be executed in this turn, write a blocked closeout with "
+        "blocked_reason=unit_harmonized_rerun_required and next_owner=analysis_harmonization_owner. "
+        "Include next_work_unit=unit_harmonized_external_validation_rerun in the durable handoff payload when the "
+        "surface supports it.\n"
+        "- Do not route back to publication_gate, AI reviewer, package build, or manuscript polish until this hard "
+        "methodology target has rerun evidence or the typed owner handoff is recorded.\n\n"
     )
 
 
@@ -697,6 +731,24 @@ def _compact_controller_authorization(authorization: Mapping[str, Any]) -> dict[
         "source_path",
     )
     return {key: authorization[key] for key in keys if key in authorization and authorization[key] not in (None, "", [], {})}
+
+
+def _authorization_has_hard_methodology_target(authorization: Mapping[str, Any]) -> bool:
+    values: list[str] = []
+    for key in ("work_unit_id", "route_key_question", "route_rationale", "source_route_key_question"):
+        if text := _text(authorization.get(key)):
+            values.append(text.lower())
+    next_work_unit = _mapping(authorization.get("next_work_unit"))
+    for key in ("unit_id", "summary", "required_owner", "required_next_work_unit", "typed_blocker"):
+        if text := _text(next_work_unit.get(key)):
+            values.append(text.lower())
+    for target in authorization.get("specificity_targets") or []:
+        if not isinstance(target, Mapping):
+            continue
+        for key in ("target_id", "blocking_reason", "source_path"):
+            if text := _text(target.get(key)):
+                values.append(text.lower())
+    return any(any(token in value for token in _HARD_METHODOLOGY_TOKENS) for value in values)
 
 
 def _claimed_messages_for_prompt(

@@ -444,3 +444,98 @@ def test_run_quality_repair_batch_uses_paper_write_for_medical_prose_methodology
     assert result["control_plane_route_gate"]["action"] == "paper_write"
     assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == work_unit_id
     assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == work_unit_id
+
+
+def test_run_quality_repair_batch_records_hard_unit_harmonization_handoff_without_generic_completion(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_id = "quest-002"
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    publication_eval_payload["recommended_actions"][0]["specificity_targets"] = [
+        {
+            "target_kind": "claim",
+            "target_id": "transported_score_claim",
+            "source_path": str(study_root / "paper" / "claim_evidence_map.json"),
+            "blocking_reason": "medical_publication_surface_blocked",
+        },
+        {
+            "target_kind": "figure",
+            "target_id": "risk_distribution_collapse_figure",
+            "source_path": str(study_root / "paper" / "figures" / "figure_catalog.json"),
+            "blocking_reason": "medical_publication_surface_blocked",
+        },
+        {
+            "target_kind": "table",
+            "target_id": "table_2_validation_performance",
+            "source_path": str(study_root / "paper" / "tables" / "table_catalog.json"),
+            "blocking_reason": "medical_publication_surface_blocked",
+        },
+        {
+            "target_kind": "metric",
+            "target_id": "hdl_unit_standardized_sensitivity",
+            "source_path": str(study_root / "artifacts" / "reports" / "harmonization_route_back" / "latest.md"),
+            "blocking_reason": "unit_standardized_model_application_or_sensitivity",
+        },
+        {
+            "target_kind": "source_path",
+            "target_id": "publication_gate_source_path",
+            "source_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "blocking_reason": "medical_publication_surface_blocked",
+        },
+    ]
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval_payload)
+    _write_quality_summary(study_root)
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "return_to_publishability_gate",
+        "blockers": ["medical_publication_surface_blocked"],
+        "medical_publication_surface_status": "blocked",
+        "bundle_tasks_downstream_only": True,
+        "gate_fingerprint": "publication-gate::002",
+    }
+
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_state", lambda _quest_root: object())
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_report", lambda _state: gate_report)
+    def fail_if_gate_clearing_batch_runs(**_kwargs: Any) -> dict[str, Any]:
+        raise AssertionError("hard unit-harmonization target must not run generic gate-clearing batch")
+
+    def fail_if_paper_owner_surface_prepares(**_kwargs: Any) -> dict[str, Any]:
+        raise AssertionError("hard unit-harmonization target must not mutate paper owner surface")
+
+    monkeypatch.setattr(module.gate_clearing_batch, "run_gate_clearing_batch", fail_if_gate_clearing_batch_runs)
+    monkeypatch.setattr(
+        module.quality_repair_paper_owner_surface,
+        "prepare_canonical_paper_owner_surface_for_upstream_repair",
+        fail_if_paper_owner_surface_prepares,
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+    )
+
+    assert result["status"] == "blocked"
+    assert result["ok"] is False
+    assert result["blocked_reason"] == "unit_harmonized_rerun_required"
+    assert result["next_owner"] == "analysis_harmonization_owner"
+    assert result["next_work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert result["hard_methodology_target"]["target_id"] == "hdl_unit_standardized_sensitivity"
+    assert result["gate_clearing_batch"]["status"] == "not_run"
+    assert result["paper_owner_surface_prepare"]["status"] == "not_applicable"
+    record = json.loads(Path(result["record_path"]).read_text(encoding="utf-8"))
+    assert record["blocked_reason"] == "unit_harmonized_rerun_required"
+    assert record["quality_gate_relaxation_allowed"] is False
+    assert record["current_package_write_allowed"] is False

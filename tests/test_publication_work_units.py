@@ -188,6 +188,69 @@ def test_generic_surface_blocker_with_complete_specificity_targets_routes_to_cla
     }
 
 
+def test_unit_harmonization_specificity_target_routes_to_hard_methodology_owner() -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_work_units")
+
+    result = module.derive_publication_work_units(
+        {
+            "status": "blocked",
+            "current_required_action": "return_to_publishability_gate",
+            "blockers": ["medical_publication_surface_blocked"],
+            "medical_publication_surface_status": "blocked",
+            "bundle_tasks_downstream_only": True,
+        },
+        specificity_targets=[
+            {
+                "target_kind": "claim",
+                "target_id": "transported_score_claim",
+                "source_path": "/tmp/study/paper/claim_evidence_map.json",
+                "blocking_reason": "medical_publication_surface_blocked",
+            },
+            {
+                "target_kind": "figure",
+                "target_id": "risk_distribution_collapse_figure",
+                "source_path": "/tmp/study/paper/figures/figure_catalog.json",
+                "blocking_reason": "medical_publication_surface_blocked",
+            },
+            {
+                "target_kind": "table",
+                "target_id": "table_2_validation_performance",
+                "source_path": "/tmp/study/paper/tables/table_catalog.json",
+                "blocking_reason": "medical_publication_surface_blocked",
+            },
+            {
+                "target_kind": "metric",
+                "target_id": "hdl_unit_standardized_sensitivity",
+                "source_path": "/tmp/quest/artifacts/analysis/harmonization_route_back/latest.md",
+                "blocking_reason": "unit_standardized_model_application_or_sensitivity",
+            },
+            {
+                "target_kind": "source_path",
+                "target_id": "publication_gate_source_path",
+                "source_path": "/tmp/quest/artifacts/publication_eval/latest.json",
+                "blocking_reason": "medical_publication_surface_blocked",
+            },
+        ],
+    )
+
+    assert result["actionability_status"] == "hard_methodology_route_required"
+    assert result["next_work_unit"] == {
+        "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+        "lane": "analysis-campaign",
+        "summary": (
+            "Materialize a unit-harmonized external-validation rerun or a typed methodology blocker "
+            "before prose, gate, or package clearance."
+        ),
+        "hard_methodology": True,
+        "required_owner": "analysis_harmonization_owner",
+        "required_next_work_unit": "unit_harmonized_external_validation_rerun",
+        "typed_blocker": "unit_harmonized_rerun_required",
+    }
+    assert result["hard_methodology_target"]["required_owner"] == "analysis_harmonization_owner"
+    assert result["hard_methodology_target"]["required_next_work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert result["hard_methodology_target"]["typed_blocker"] == "unit_harmonized_rerun_required"
+
+
 def test_generic_surface_blocker_specificity_targets_preempt_downstream_delivery_churn() -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_work_units")
 

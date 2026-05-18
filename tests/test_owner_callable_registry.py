@@ -10,6 +10,7 @@ def test_owner_callable_registry_exposes_paper_progress_slo_owners() -> None:
 
     assert set(registry) == {
         "MAS/controller",
+        "analysis_harmonization_owner",
         "ai_reviewer",
         "publication_gate",
         "quality_repair_batch",
@@ -31,11 +32,16 @@ def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
 
     gate = module.owner_callable_for_action("run_gate_clearing_batch")
     ai_reviewer = module.owner_callable_for_action("return_to_ai_reviewer_workflow")
+    harmonization = module.owner_callable_for_action("unit_harmonized_external_validation_rerun")
     delivery = module.owner_callable_for_action("sync_submission_minimal_delivery")
 
     assert gate["owner"] == "gate_clearing_batch"
     assert gate["gate_replay_target"] == "publication_gate.run_controller"
     assert ai_reviewer["owner"] == "ai_reviewer"
     assert ai_reviewer["required_outputs"] == ("artifacts/publication_eval/latest.json",)
+    assert harmonization["owner"] == "analysis_harmonization_owner"
+    assert harmonization["artifact_delta_predicate"] == (
+        "unit_harmonized_rerun_evidence_or_analysis_owner_typed_blocker"
+    )
     assert delivery["owner"] == "delivery_sync"
     assert delivery["artifact_delta_predicate"] == "submission_source_or_current_package_freshness_proof"
