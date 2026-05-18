@@ -99,6 +99,27 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert authority["semantic_model"] == (
         "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
     )
+    assert authority["allowed_judgment_modes"] == [
+        "ai_first_stage_gate",
+        "ai_first_record_validator",
+        "mechanical_guard",
+        "refs_only_adapter",
+    ]
+    assert authority["verdict_function_model_retired"] is True
+    assert authority["gate_validator_ref"] == (
+        "src/med_autoscience/controllers/ai_first_private_authority.py::"
+        "validate_ai_first_private_authority_gate"
+    )
+    assert authority["runtime_enforcement_status"] == "contract_validator_landed"
+    assert authority["program_output_policy"] == (
+        "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only"
+    )
+    assert authority["standard_stage_gate_output_model"] == {
+        "executor_output": "stage_work_artifact_source_evidence_refs_and_execution_receipt",
+        "reviewer_output": "independent_ai_reviewer_or_auditor_gate_record",
+        "program_output": "provenance_currentness_schema_receipt_or_typed_blocker",
+        "self_review_closes_gate": False,
+    }
     assert authority["requires_ai_first_record"] is True
     assert authority["boundary_ids"] == [
         "publication_quality_stage_gate_boundary",
@@ -157,17 +178,29 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     for function_id in [
         "publication_quality_verdict",
         "ai_reviewer_quality_decision",
-        "artifact_mutation_authorization",
         "publication_route_memory_accept_reject",
         "source_readiness_verdict",
     ]:
         item = function_by_id[function_id]
         assert item["boundary_id"] in boundary_by_id
+        assert item["judgment_mode"] == "ai_first_stage_gate"
+        assert item["decision_output_owner"] == "independent_reviewer_auditor_agent"
+        assert item["program_may_emit_pass_ready_verdict"] is False
+        assert item["missing_ai_first_record_policy"] == "typed_blocker_or_route_back"
+        assert item["standard_stage_output"] is True
         assert item["requires_ai_first_record"] is True
-        assert item["program_role"] in {"validator", "materializer", "guard"}
+        assert item["program_role"] in {"validator", "guard"}
         assert item["route_back_semantics"].startswith("route_back_to_")
         assert item["typed_blocker_semantics"].endswith("_blocker")
         assert set(item["trace_refs"]) <= set(boundary_by_id[item["boundary_id"]]["trace_refs"])
+    artifact_auth = function_by_id["artifact_mutation_authorization"]
+    assert artifact_auth["judgment_mode"] == "ai_first_record_validator"
+    assert artifact_auth["decision_output_owner"] == "independent_reviewer_auditor_agent"
+    assert artifact_auth["program_may_emit_pass_ready_verdict"] is False
+    assert artifact_auth["requires_ai_first_record"] is True
+    assert artifact_auth["program_role"] == "materializer"
+    assert function_by_id["owner_receipt_signer"]["judgment_mode"] == "mechanical_guard"
+    assert function_by_id["medical_helper_implementation"]["judgment_mode"] == "mechanical_guard"
     assert authority["all_other_program_surfaces"] == "opl_generated_or_migration_bridge"
     assert authority["forbidden_long_term_mas_shell_owners"] == [
         "cli",

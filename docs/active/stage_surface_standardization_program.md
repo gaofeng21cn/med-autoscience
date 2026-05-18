@@ -77,6 +77,8 @@ Stage card
 
 AI-first stage output 必须来自与执行 agent 分离的 reviewer/auditor agent。标准链路是：executor agent 在一个 stage attempt 中产出工作、artifact/source/evidence refs 和 execution receipt；reviewer/auditor agent 通过新的 invocation 读取这些 refs，使用独立 context/task record 产出 AI reviewer record、audit receipt、route-back reason 或 typed blocker。`Codex CLI` 可以作为 executor；reviewer/auditor 也可以由 Codex CLI 以新的独立任务承担，但不能复用同一上下文让执行者审阅自己。缺少独立 reviewer/auditor record 时，quality gate 必须 fail closed 或 route back。
 
+当前机器面已把这条边界落成 `judgment_mode`：AI-first verdict / memory decision surface 是 `ai_first_stage_gate`，artifact mutation 是 `ai_first_record_validator`，owner receipt signer 和不输出医学 verdict 的 helper 是 `mechanical_guard`。MAS 程序的统一输出策略是校验 AI-first stage gate record 后签 receipt 或 typed blocker；它不直接输出 ready/pass。缺少独立 reviewer/auditor receipt、复用 executor task/context/receipt、候选 record 来自 mechanical projection、或缺必需 AI-first refs 时，`ai_first_private_authority` validator 必须 route back 或 fail closed。
+
 ## 当前状态
 
 当前已具备的基础：

@@ -1,4 +1,19 @@
 {
+  "ai_first_record_validator_function_ids": [
+    "artifact_mutation_authorization"
+  ],
+  "ai_first_stage_gate_function_ids": [
+    "publication_quality_verdict",
+    "ai_reviewer_quality_decision",
+    "publication_route_memory_accept_reject",
+    "source_readiness_verdict"
+  ],
+  "allowed_judgment_modes": [
+    "ai_first_stage_gate",
+    "ai_first_record_validator",
+    "mechanical_guard",
+    "refs_only_adapter"
+  ],
   "authority_boundary": {
     "domain_can_claim_generated_surface_owner": false,
     "opl_can_authorize_quality_or_export": false,
@@ -40,6 +55,7 @@
     "queue_completion_as_publication_route_memory_accept_reject",
     "file_presence_as_source_readiness_verdict"
   ],
+  "gate_validator_ref": "src/med_autoscience/controllers/ai_first_private_authority.py::validate_ai_first_private_authority_gate",
   "generated_surface_owner": "one-person-lab",
   "generated_surfaces_requested": [
     "cli",
@@ -64,6 +80,10 @@
     "separate_task_record_required": true,
     "surface_kind": "independent_executor_reviewer_agent_policy"
   },
+  "mechanical_guard_function_ids": [
+    "owner_receipt_signer",
+    "medical_helper_implementation"
+  ],
   "minimal_authority_functions": [
     "publication_quality_stage_gate_boundary",
     "ai_reviewer_quality_stage_gate_boundary",
@@ -74,7 +94,9 @@
     "medical_native_helper_implementation"
   ],
   "minimal_authority_semantic_model": "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts",
+  "program_output_policy": "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only",
   "requires_ai_first_record": true,
+  "runtime_enforcement_status": "contract_validator_landed",
   "schema_version": 1,
   "source_refs": {
     "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
@@ -85,7 +107,10 @@
   "stage_quality_gate_boundaries": [
     {
       "boundary_id": "publication_quality_stage_gate_boundary",
+      "decision_output_owner": "independent_reviewer_auditor_agent",
+      "judgment_mode": "ai_first_stage_gate",
       "legacy_readable_id": "publication_quality_verdict_authorizer",
+      "program_may_emit_pass_ready_verdict": false,
       "program_role": "validator",
       "required_record_refs": [
         "ai_reviewer_record",
@@ -103,7 +128,10 @@
     },
     {
       "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
+      "decision_output_owner": "independent_reviewer_auditor_agent",
+      "judgment_mode": "ai_first_stage_gate",
       "legacy_readable_id": "ai_reviewer_quality_decision_authorizer",
+      "program_may_emit_pass_ready_verdict": false,
       "program_role": "validator",
       "required_record_refs": [
         "ai_reviewer_record",
@@ -120,7 +148,10 @@
     },
     {
       "boundary_id": "artifact_mutation_stage_gate_boundary",
+      "decision_output_owner": "independent_reviewer_auditor_agent",
+      "judgment_mode": "ai_first_record_validator",
       "legacy_readable_id": "artifact_mutation_authorizer",
+      "program_may_emit_pass_ready_verdict": false,
       "program_role": "materializer",
       "required_record_refs": [
         "quality_pack_evidence_refs",
@@ -138,7 +169,10 @@
     },
     {
       "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
+      "decision_output_owner": "independent_reviewer_auditor_agent",
+      "judgment_mode": "ai_first_stage_gate",
       "legacy_readable_id": "publication_route_memory_accept_reject_decider",
+      "program_may_emit_pass_ready_verdict": false,
       "program_role": "guard",
       "required_record_refs": [
         "publication_route_memory_body",
@@ -156,7 +190,10 @@
     },
     {
       "boundary_id": "source_readiness_stage_gate_boundary",
+      "decision_output_owner": "independent_reviewer_auditor_agent",
+      "judgment_mode": "ai_first_stage_gate",
       "legacy_readable_id": "source_readiness_verdict_authorizer",
+      "program_may_emit_pass_ready_verdict": false,
       "program_role": "validator",
       "required_record_refs": [
         "study_charter",
@@ -173,5 +210,12 @@
       "typed_blocker_semantics": "source_readiness_blocker"
     }
   ],
-  "surface_kind": "opl_domain_pack_compiler_input"
+  "standard_stage_gate_output_model": {
+    "executor_output": "stage_work_artifact_source_evidence_refs_and_execution_receipt",
+    "program_output": "provenance_currentness_schema_receipt_or_typed_blocker",
+    "reviewer_output": "independent_ai_reviewer_or_auditor_gate_record",
+    "self_review_closes_gate": false
+  },
+  "surface_kind": "opl_domain_pack_compiler_input",
+  "verdict_function_model_retired": true
 }

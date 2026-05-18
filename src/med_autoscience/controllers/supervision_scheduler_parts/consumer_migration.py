@@ -145,6 +145,20 @@ MINIMAL_AUTHORITY_FUNCTION_IDS = (
     "owner_receipt_signer",
     "medical_helper_implementation",
 )
+ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES = (
+    "ai_first_stage_gate",
+    "ai_first_record_validator",
+    "mechanical_guard",
+    "refs_only_adapter",
+)
+AI_FIRST_STAGE_GATE_FUNCTION_IDS = (
+    "publication_quality_verdict",
+    "ai_reviewer_quality_decision",
+    "publication_route_memory_accept_reject",
+    "source_readiness_verdict",
+)
+AI_FIRST_RECORD_VALIDATOR_FUNCTION_IDS = ("artifact_mutation_authorization",)
+MECHANICAL_GUARD_FUNCTION_IDS = ("owner_receipt_signer", "medical_helper_implementation")
 AI_FIRST_STAGE_QUALITY_GATE_BOUNDARY_IDS = (
     "publication_quality_stage_gate_boundary",
     "ai_reviewer_quality_stage_gate_boundary",
@@ -178,6 +192,9 @@ AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
         "legacy_readable_id": "publication_quality_verdict",
         "program_role": "validator",
         "function_id": "publication_quality_verdict",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
         "trace_refs": [
             "stage_quality_pack:publication_quality",
             "publication_eval/latest.json",
@@ -194,6 +211,9 @@ AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
         "legacy_readable_id": "ai_reviewer_quality_decision",
         "program_role": "validator",
         "function_id": "ai_reviewer_quality_decision",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
         "trace_refs": [
             "AI reviewer workflow",
             "AI reviewer-backed publication eval",
@@ -209,6 +229,9 @@ AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
         "legacy_readable_id": "artifact_mutation_authorization",
         "program_role": "materializer",
         "function_id": "artifact_mutation_authorization",
+        "judgment_mode": "ai_first_record_validator",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
         "trace_refs": [
             "stage_quality_pack:artifact_materialization",
             "canonical manuscript",
@@ -225,6 +248,9 @@ AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
         "legacy_readable_id": "publication_route_memory_accept_reject",
         "program_role": "guard",
         "function_id": "publication_route_memory_accept_reject",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
         "trace_refs": [
             "publication-route memory body",
             "memory writeback proposal",
@@ -241,6 +267,9 @@ AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES = [
         "legacy_readable_id": "source_readiness_verdict",
         "program_role": "validator",
         "function_id": "source_readiness_verdict",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
         "trace_refs": [
             "study charter",
             "source readiness checks",
@@ -332,6 +361,25 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
     "owner": "med-autoscience",
     "status": "minimal_authority_functions_only",
     "semantic_model": "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts",
+    "gate_validator_ref": (
+        "src/med_autoscience/controllers/ai_first_private_authority.py::"
+        "validate_ai_first_private_authority_gate"
+    ),
+    "runtime_enforcement_status": "contract_validator_landed",
+    "allowed_judgment_modes": list(ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES),
+    "verdict_function_model_retired": True,
+    "program_output_policy": (
+        "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only"
+    ),
+    "ai_first_stage_gate_function_ids": list(AI_FIRST_STAGE_GATE_FUNCTION_IDS),
+    "ai_first_record_validator_function_ids": list(AI_FIRST_RECORD_VALIDATOR_FUNCTION_IDS),
+    "mechanical_guard_function_ids": list(MECHANICAL_GUARD_FUNCTION_IDS),
+    "standard_stage_gate_output_model": {
+        "executor_output": "stage_work_artifact_source_evidence_refs_and_execution_receipt",
+        "reviewer_output": "independent_ai_reviewer_or_auditor_gate_record",
+        "program_output": "provenance_currentness_schema_receipt_or_typed_blocker",
+        "self_review_closes_gate": False,
+    },
     "boundary_ids": list(AI_FIRST_STAGE_QUALITY_GATE_BOUNDARY_IDS),
     "stage_quality_gate_boundaries": [
         dict(item) for item in AI_FIRST_STAGE_QUALITY_GATE_BOUNDARIES
@@ -349,6 +397,12 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
             "owner": "med-autoscience",
             "boundary_id": "publication_quality_stage_gate_boundary",
             "program_role": "validator",
+            "judgment_mode": "ai_first_stage_gate",
+            "decision_output_owner": "independent_reviewer_auditor_agent",
+            "program_may_emit_pass_ready_verdict": False,
+            "missing_ai_first_record_policy": "typed_blocker_or_route_back",
+            "standard_stage_output": True,
+            "required_record_refs": ["ai_reviewer_record", "quality_pack_evidence_refs"],
             "requires_ai_first_record": True,
             "trace_refs": [
                 "stage_quality_pack:publication_quality",
@@ -370,6 +424,12 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
             "owner": "med-autoscience",
             "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
             "program_role": "validator",
+            "judgment_mode": "ai_first_stage_gate",
+            "decision_output_owner": "independent_reviewer_auditor_agent",
+            "program_may_emit_pass_ready_verdict": False,
+            "missing_ai_first_record_policy": "typed_blocker_or_route_back",
+            "standard_stage_output": True,
+            "required_record_refs": ["ai_reviewer_record", "reviewer_operating_system_trace"],
             "requires_ai_first_record": True,
             "trace_refs": [
                 "AI reviewer workflow",
@@ -390,6 +450,12 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
             "owner": "med-autoscience",
             "boundary_id": "artifact_mutation_stage_gate_boundary",
             "program_role": "materializer",
+            "judgment_mode": "ai_first_record_validator",
+            "decision_output_owner": "independent_reviewer_auditor_agent",
+            "program_may_emit_pass_ready_verdict": False,
+            "missing_ai_first_record_policy": "typed_blocker_or_route_back",
+            "standard_stage_output": True,
+            "required_record_refs": ["quality_pack_evidence_refs", "artifact_rebuild_proof"],
             "requires_ai_first_record": True,
             "trace_refs": [
                 "stage_quality_pack:artifact_materialization",
@@ -412,6 +478,12 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
             "owner": "med-autoscience",
             "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
             "program_role": "guard",
+            "judgment_mode": "ai_first_stage_gate",
+            "decision_output_owner": "independent_reviewer_auditor_agent",
+            "program_may_emit_pass_ready_verdict": False,
+            "missing_ai_first_record_policy": "typed_blocker_or_route_back",
+            "standard_stage_output": True,
+            "required_record_refs": ["publication_route_memory_body", "memory_writeback_receipt_refs"],
             "requires_ai_first_record": True,
             "trace_refs": [
                 "publication-route memory body",
@@ -433,6 +505,12 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
             "owner": "med-autoscience",
             "boundary_id": "source_readiness_stage_gate_boundary",
             "program_role": "validator",
+            "judgment_mode": "ai_first_stage_gate",
+            "decision_output_owner": "independent_reviewer_auditor_agent",
+            "program_may_emit_pass_ready_verdict": False,
+            "missing_ai_first_record_policy": "typed_blocker_or_route_back",
+            "standard_stage_output": True,
+            "required_record_refs": ["study_charter", "quality_pack_evidence_refs"],
             "requires_ai_first_record": True,
             "trace_refs": [
                 "study charter",
@@ -453,6 +531,10 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
             "function_id": "owner_receipt_signer",
             "owner": "med-autoscience",
             "program_role": "receipt_signer",
+            "judgment_mode": "mechanical_guard",
+            "decision_output_owner": "med-autoscience_owner_receipt_signer",
+            "program_may_emit_pass_ready_verdict": False,
+            "medical_verdict_output_allowed": False,
             "requires_ai_first_record": False,
             "source_refs": [
                 "MAS owner receipt",
@@ -465,6 +547,13 @@ MINIMAL_AUTHORITY_FUNCTION_MANIFEST = {
             "function_id": "medical_helper_implementation",
             "owner": "med-autoscience",
             "program_role": "guard",
+            "judgment_mode": "mechanical_guard",
+            "decision_output_owner": "none",
+            "program_may_emit_pass_ready_verdict": False,
+            "medical_verdict_output_allowed": False,
+            "ai_first_escalation_policy": (
+                "helpers_that_would_emit_medical_ready_quality_route_or_source_verdicts_must_route_to_stage_gate"
+            ),
             "requires_ai_first_record": False,
             "source_refs": [
                 "medical analysis helpers",

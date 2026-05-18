@@ -950,7 +950,22 @@
       "safe_action_refs"
     ],
     "minimal_authority_function_manifest": {
+      "ai_first_record_validator_function_ids": [
+        "artifact_mutation_authorization"
+      ],
+      "ai_first_stage_gate_function_ids": [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict"
+      ],
       "all_other_program_surfaces": "opl_generated_or_migration_bridge",
+      "allowed_judgment_modes": [
+        "ai_first_stage_gate",
+        "ai_first_record_validator",
+        "mechanical_guard",
+        "refs_only_adapter"
+      ],
       "boundary_ids": [
         "publication_quality_stage_gate_boundary",
         "ai_reviewer_quality_stage_gate_boundary",
@@ -990,9 +1005,17 @@
         {
           "boundary_id": "publication_quality_stage_gate_boundary",
           "cannot_absorb_reason": "Medical publication quality and readiness require MAS domain judgment.",
+          "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "publication_quality_verdict",
+          "judgment_mode": "ai_first_stage_gate",
+          "missing_ai_first_record_policy": "typed_blocker_or_route_back",
           "owner": "med-autoscience",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "validator",
+          "required_record_refs": [
+            "ai_reviewer_record",
+            "quality_pack_evidence_refs"
+          ],
           "requires_ai_first_record": true,
           "route_back_semantics": "route_back_to_review_or_revision_stage",
           "source_refs": [
@@ -1000,6 +1023,7 @@
             "publication gate",
             "review ledger"
           ],
+          "standard_stage_output": true,
           "trace_refs": [
             "stage_quality_pack:publication_quality",
             "publication_eval/latest.json",
@@ -1011,9 +1035,17 @@
         {
           "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
           "cannot_absorb_reason": "OPL can transport reviewer work but cannot issue medical reviewer verdicts.",
+          "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "ai_reviewer_quality_decision",
+          "judgment_mode": "ai_first_stage_gate",
+          "missing_ai_first_record_policy": "typed_blocker_or_route_back",
           "owner": "med-autoscience",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "validator",
+          "required_record_refs": [
+            "ai_reviewer_record",
+            "reviewer_operating_system_trace"
+          ],
           "requires_ai_first_record": true,
           "route_back_semantics": "route_back_to_ai_reviewer_repair_stage",
           "source_refs": [
@@ -1021,6 +1053,7 @@
             "reviewer operating system trace",
             "AI reviewer-backed publication eval"
           ],
+          "standard_stage_output": true,
           "trace_refs": [
             "AI reviewer workflow",
             "AI reviewer-backed publication eval",
@@ -1031,9 +1064,17 @@
         {
           "boundary_id": "artifact_mutation_stage_gate_boundary",
           "cannot_absorb_reason": "Artifact mutation changes submission-facing medical deliverables.",
+          "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "artifact_mutation_authorization",
+          "judgment_mode": "ai_first_record_validator",
+          "missing_ai_first_record_policy": "typed_blocker_or_route_back",
           "owner": "med-autoscience",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "materializer",
+          "required_record_refs": [
+            "quality_pack_evidence_refs",
+            "artifact_rebuild_proof"
+          ],
           "requires_ai_first_record": true,
           "route_back_semantics": "route_back_to_artifact_rebuild_or_source_revision_stage",
           "source_refs": [
@@ -1042,6 +1083,7 @@
             "submission package",
             "artifact rebuild proof"
           ],
+          "standard_stage_output": true,
           "trace_refs": [
             "stage_quality_pack:artifact_materialization",
             "canonical manuscript",
@@ -1053,9 +1095,17 @@
         {
           "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
           "cannot_absorb_reason": "Memory body and accept/reject decisions remain domain-owned.",
+          "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "publication_route_memory_accept_reject",
+          "judgment_mode": "ai_first_stage_gate",
+          "missing_ai_first_record_policy": "typed_blocker_or_route_back",
           "owner": "med-autoscience",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "guard",
+          "required_record_refs": [
+            "publication_route_memory_body",
+            "memory_writeback_receipt_refs"
+          ],
           "requires_ai_first_record": true,
           "route_back_semantics": "route_back_to_memory_writeback_repair_stage",
           "source_refs": [
@@ -1063,6 +1113,7 @@
             "memory writeback proposal",
             "memory writeback router receipt"
           ],
+          "standard_stage_output": true,
           "trace_refs": [
             "publication-route memory body",
             "memory writeback proposal",
@@ -1074,9 +1125,17 @@
         {
           "boundary_id": "source_readiness_stage_gate_boundary",
           "cannot_absorb_reason": "Medical source sufficiency and study readiness are MAS domain verdicts.",
+          "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "source_readiness_verdict",
+          "judgment_mode": "ai_first_stage_gate",
+          "missing_ai_first_record_policy": "typed_blocker_or_route_back",
           "owner": "med-autoscience",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "validator",
+          "required_record_refs": [
+            "study_charter",
+            "quality_pack_evidence_refs"
+          ],
           "requires_ai_first_record": true,
           "route_back_semantics": "route_back_to_source_intake_or_study_design_stage",
           "source_refs": [
@@ -1084,6 +1143,7 @@
             "source readiness checks",
             "evidence ledger"
           ],
+          "standard_stage_output": true,
           "trace_refs": [
             "study charter",
             "source readiness checks",
@@ -1094,8 +1154,12 @@
         },
         {
           "cannot_absorb_reason": "Only MAS can sign domain receipt, blocker, and safe action authority.",
+          "decision_output_owner": "med-autoscience_owner_receipt_signer",
           "function_id": "owner_receipt_signer",
+          "judgment_mode": "mechanical_guard",
+          "medical_verdict_output_allowed": false,
           "owner": "med-autoscience",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "receipt_signer",
           "requires_ai_first_record": false,
           "source_refs": [
@@ -1105,9 +1169,14 @@
           ]
         },
         {
+          "ai_first_escalation_policy": "helpers_that_would_emit_medical_ready_quality_route_or_source_verdicts_must_route_to_stage_gate",
           "cannot_absorb_reason": "Domain helper code encodes medical research semantics rather than generic runtime shell.",
+          "decision_output_owner": "none",
           "function_id": "medical_helper_implementation",
+          "judgment_mode": "mechanical_guard",
+          "medical_verdict_output_allowed": false,
           "owner": "med-autoscience",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "guard",
           "requires_ai_first_record": false,
           "source_refs": [
@@ -1117,6 +1186,7 @@
           ]
         }
       ],
+      "gate_validator_ref": "src/med_autoscience/controllers/ai_first_private_authority.py::validate_ai_first_private_authority_gate",
       "independent_executor_reviewer_agent_policy": {
         "codex_cli_may_serve_both_roles_only_as_separate_invocations": true,
         "executor_agent_role": "stage_work_executor",
@@ -1130,15 +1200,24 @@
         "separate_task_record_required": true,
         "surface_kind": "independent_executor_reviewer_agent_policy"
       },
+      "mechanical_guard_function_ids": [
+        "owner_receipt_signer",
+        "medical_helper_implementation"
+      ],
       "owner": "med-autoscience",
+      "program_output_policy": "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only",
       "requires_ai_first_record": true,
+      "runtime_enforcement_status": "contract_validator_landed",
       "schema_version": 1,
       "semantic_model": "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts",
       "stage_quality_gate_boundaries": [
         {
           "boundary_id": "publication_quality_stage_gate_boundary",
+          "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "publication_quality_verdict",
+          "judgment_mode": "ai_first_stage_gate",
           "legacy_readable_id": "publication_quality_verdict",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "validator",
           "required_record_refs": [
             "ai_reviewer_record",
@@ -1156,8 +1235,11 @@
         },
         {
           "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
+          "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "ai_reviewer_quality_decision",
+          "judgment_mode": "ai_first_stage_gate",
           "legacy_readable_id": "ai_reviewer_quality_decision",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "validator",
           "required_record_refs": [
             "ai_reviewer_record",
@@ -1174,8 +1256,11 @@
         },
         {
           "boundary_id": "artifact_mutation_stage_gate_boundary",
+          "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "artifact_mutation_authorization",
+          "judgment_mode": "ai_first_record_validator",
           "legacy_readable_id": "artifact_mutation_authorization",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "materializer",
           "required_record_refs": [
             "quality_pack_evidence_refs",
@@ -1193,8 +1278,11 @@
         },
         {
           "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
+          "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "publication_route_memory_accept_reject",
+          "judgment_mode": "ai_first_stage_gate",
           "legacy_readable_id": "publication_route_memory_accept_reject",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "guard",
           "required_record_refs": [
             "publication_route_memory_body",
@@ -1212,8 +1300,11 @@
         },
         {
           "boundary_id": "source_readiness_stage_gate_boundary",
+          "decision_output_owner": "independent_reviewer_auditor_agent",
           "function_id": "source_readiness_verdict",
+          "judgment_mode": "ai_first_stage_gate",
           "legacy_readable_id": "source_readiness_verdict",
+          "program_may_emit_pass_ready_verdict": false,
           "program_role": "validator",
           "required_record_refs": [
             "study_charter",
@@ -1230,8 +1321,15 @@
           "typed_blocker_semantics": "source_readiness_blocker"
         }
       ],
+      "standard_stage_gate_output_model": {
+        "executor_output": "stage_work_artifact_source_evidence_refs_and_execution_receipt",
+        "program_output": "provenance_currentness_schema_receipt_or_typed_blocker",
+        "reviewer_output": "independent_ai_reviewer_or_auditor_gate_record",
+        "self_review_closes_gate": false
+      },
       "status": "minimal_authority_functions_only",
-      "surface_kind": "mas_minimal_authority_function_manifest"
+      "surface_kind": "mas_minimal_authority_function_manifest",
+      "verdict_function_model_retired": true
     },
     "no_active_caller_proof": {
       "cleanup_only_commands": [

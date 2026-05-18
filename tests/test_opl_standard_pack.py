@@ -39,6 +39,36 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["pack_compiler_input"]["minimal_authority_semantic_model"] == (
         "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
     )
+    assert generated["pack_compiler_input"]["allowed_judgment_modes"] == [
+        "ai_first_stage_gate",
+        "ai_first_record_validator",
+        "mechanical_guard",
+        "refs_only_adapter",
+    ]
+    assert generated["pack_compiler_input"]["verdict_function_model_retired"] is True
+    assert generated["pack_compiler_input"]["gate_validator_ref"] == (
+        "src/med_autoscience/controllers/ai_first_private_authority.py::"
+        "validate_ai_first_private_authority_gate"
+    )
+    assert generated["pack_compiler_input"]["runtime_enforcement_status"] == (
+        "contract_validator_landed"
+    )
+    assert generated["pack_compiler_input"]["program_output_policy"] == (
+        "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only"
+    )
+    assert generated["pack_compiler_input"]["ai_first_stage_gate_function_ids"] == [
+        "publication_quality_verdict",
+        "ai_reviewer_quality_decision",
+        "publication_route_memory_accept_reject",
+        "source_readiness_verdict",
+    ]
+    assert generated["pack_compiler_input"]["ai_first_record_validator_function_ids"] == [
+        "artifact_mutation_authorization"
+    ]
+    assert generated["pack_compiler_input"]["mechanical_guard_function_ids"] == [
+        "owner_receipt_signer",
+        "medical_helper_implementation",
+    ]
     assert generated["pack_compiler_input"]["minimal_authority_functions"][:5] == [
         "publication_quality_stage_gate_boundary",
         "ai_reviewer_quality_stage_gate_boundary",
@@ -67,6 +97,14 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         item["program_role"]
         for item in generated["pack_compiler_input"]["stage_quality_gate_boundaries"]
     } == {"validator", "materializer", "guard"}
+    assert {
+        item["judgment_mode"]
+        for item in generated["pack_compiler_input"]["stage_quality_gate_boundaries"]
+    } == {"ai_first_stage_gate", "ai_first_record_validator"}
+    assert all(
+        item["program_may_emit_pass_ready_verdict"] is False
+        for item in generated["pack_compiler_input"]["stage_quality_gate_boundaries"]
+    )
     policy = generated["private_functional_surface_policy"]
     assert policy["allowed_private_surface_classes"] == [
         "ai_first_stage_quality_gate_boundary",
@@ -80,6 +118,17 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert policy["forbidden_primary_allowed_private_surface_models"] == [
         "domain_truth_verdict_authorizer",
         "*_authorizer",
+    ]
+    assert policy["allowed_judgment_modes"] == generated["pack_compiler_input"][
+        "allowed_judgment_modes"
+    ]
+    assert policy["verdict_function_model_retired"] is True
+    assert policy["gate_validator_ref"] == generated["pack_compiler_input"]["gate_validator_ref"]
+    assert policy["runtime_enforcement_status"] == generated["pack_compiler_input"][
+        "runtime_enforcement_status"
+    ]
+    assert policy["program_output_policy"] == generated["pack_compiler_input"][
+        "program_output_policy"
     ]
     assert policy["requires_ai_first_record"] is True
     assert policy["independent_executor_reviewer_agent_policy"] == independent_policy

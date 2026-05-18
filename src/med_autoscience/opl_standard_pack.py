@@ -88,6 +88,20 @@ FORBIDDEN_MECHANICAL_DECISION_SURFACES = [
     "queue_completion_as_publication_route_memory_accept_reject",
     "file_presence_as_source_readiness_verdict",
 ]
+ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES = [
+    "ai_first_stage_gate",
+    "ai_first_record_validator",
+    "mechanical_guard",
+    "refs_only_adapter",
+]
+AI_FIRST_STAGE_GATE_FUNCTION_IDS = [
+    "publication_quality_verdict",
+    "ai_reviewer_quality_decision",
+    "publication_route_memory_accept_reject",
+    "source_readiness_verdict",
+]
+AI_FIRST_RECORD_VALIDATOR_FUNCTION_IDS = ["artifact_mutation_authorization"]
+MECHANICAL_GUARD_FUNCTION_IDS = ["owner_receipt_signer", "medical_helper_implementation"]
 INDEPENDENT_EXECUTOR_REVIEWER_AGENT_POLICY = {
     "surface_kind": "independent_executor_reviewer_agent_policy",
     "required": True,
@@ -106,6 +120,9 @@ STAGE_QUALITY_GATE_BOUNDARIES = [
         "boundary_id": "publication_quality_stage_gate_boundary",
         "legacy_readable_id": "publication_quality_verdict_authorizer",
         "program_role": "validator",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
         "requires_ai_first_record": True,
         "trace_refs": [
             "stage_quality_pack:publication_quality",
@@ -121,6 +138,9 @@ STAGE_QUALITY_GATE_BOUNDARIES = [
         "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
         "legacy_readable_id": "ai_reviewer_quality_decision_authorizer",
         "program_role": "validator",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
         "requires_ai_first_record": True,
         "trace_refs": [
             "AI reviewer workflow",
@@ -135,6 +155,9 @@ STAGE_QUALITY_GATE_BOUNDARIES = [
         "boundary_id": "artifact_mutation_stage_gate_boundary",
         "legacy_readable_id": "artifact_mutation_authorizer",
         "program_role": "materializer",
+        "judgment_mode": "ai_first_record_validator",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
         "requires_ai_first_record": True,
         "trace_refs": [
             "stage_quality_pack:artifact_materialization",
@@ -150,6 +173,9 @@ STAGE_QUALITY_GATE_BOUNDARIES = [
         "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
         "legacy_readable_id": "publication_route_memory_accept_reject_decider",
         "program_role": "guard",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
         "requires_ai_first_record": True,
         "trace_refs": [
             "publication-route memory body",
@@ -165,6 +191,9 @@ STAGE_QUALITY_GATE_BOUNDARIES = [
         "boundary_id": "source_readiness_stage_gate_boundary",
         "legacy_readable_id": "source_readiness_verdict_authorizer",
         "program_role": "validator",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "program_may_emit_pass_ready_verdict": False,
         "requires_ai_first_record": True,
         "trace_refs": [
             "study charter",
@@ -264,6 +293,25 @@ def _pack_compiler_input() -> dict[str, Any]:
         "minimal_authority_semantic_model": (
             "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
         ),
+        "gate_validator_ref": (
+            "src/med_autoscience/controllers/ai_first_private_authority.py::"
+            "validate_ai_first_private_authority_gate"
+        ),
+        "runtime_enforcement_status": "contract_validator_landed",
+        "allowed_judgment_modes": list(ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES),
+        "verdict_function_model_retired": True,
+        "program_output_policy": (
+            "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only"
+        ),
+        "ai_first_stage_gate_function_ids": list(AI_FIRST_STAGE_GATE_FUNCTION_IDS),
+        "ai_first_record_validator_function_ids": list(AI_FIRST_RECORD_VALIDATOR_FUNCTION_IDS),
+        "mechanical_guard_function_ids": list(MECHANICAL_GUARD_FUNCTION_IDS),
+        "standard_stage_gate_output_model": {
+            "executor_output": "stage_work_artifact_source_evidence_refs_and_execution_receipt",
+            "reviewer_output": "independent_ai_reviewer_or_auditor_gate_record",
+            "program_output": "provenance_currentness_schema_receipt_or_typed_blocker",
+            "self_review_closes_gate": False,
+        },
         "boundary_ids": MINIMAL_AUTHORITY_FUNCTIONS[:5],
         "stage_quality_gate_boundaries": STAGE_QUALITY_GATE_BOUNDARIES,
         "backward_readable_minimal_authority_ids": BACKWARD_READABLE_MINIMAL_AUTHORITY_IDS,
@@ -422,6 +470,19 @@ def _private_functional_surface_policy() -> dict[str, Any]:
             "domain_native_helper_implementation",
             "owner_receipt_signer",
         ],
+        "gate_validator_ref": (
+            "src/med_autoscience/controllers/ai_first_private_authority.py::"
+            "validate_ai_first_private_authority_gate"
+        ),
+        "runtime_enforcement_status": "contract_validator_landed",
+        "allowed_judgment_modes": list(ALLOWED_PRIVATE_AUTHORITY_JUDGMENT_MODES),
+        "verdict_function_model_retired": True,
+        "program_output_policy": (
+            "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only"
+        ),
+        "ai_first_stage_gate_function_ids": list(AI_FIRST_STAGE_GATE_FUNCTION_IDS),
+        "ai_first_record_validator_function_ids": list(AI_FIRST_RECORD_VALIDATOR_FUNCTION_IDS),
+        "mechanical_guard_function_ids": list(MECHANICAL_GUARD_FUNCTION_IDS),
         "backward_readable_legacy_ids": BACKWARD_READABLE_MINIMAL_AUTHORITY_IDS,
         "forbidden_primary_allowed_private_surface_models": [
             "domain_truth_verdict_authorizer",

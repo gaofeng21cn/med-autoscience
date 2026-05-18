@@ -57,7 +57,7 @@ AI-first 质量门要求 executor agent 与 reviewer/auditor agent 独立 invoca
 3. `legacy_physical_retirement`
    local LaunchAgent/status/remove cleanup、workspace-local watch service wrappers、旧 alias/facade 和 legacy no-active-caller gate 仍需物理删除或 tombstone。满足 replacement proof、no-active-caller scan、fixture/provenance refs-only 条件后，不保留兼容别名。
 
-4. `opl_app_drilldown`
+4. `opl_app_workbench_drilldown`
    OPL App / workbench 仍需把 MAS route/source/quality/artifact/memory/blocker/action refs 做成可审阅的 ref-only drilldown 和 operator grouping。MAS 只输出 domain projection refs，不在本仓复制通用工作台。
 
 5. `lifecycle_locator_retention_restore_ledger_reconciliation`
@@ -84,7 +84,7 @@ AI-first 质量门要求 executor agent 与 reviewer/auditor agent 独立 invoca
 3. `legacy_physical_retirement`
    对 local LaunchAgent install path、status/remove cleanup residue 和 workspace-local wrapper residue 做 physical retirement。只保留 history/tombstone/provenance，不新增 compatibility shim、别名或兼容测试。
 
-4. `opl_app_drilldown`
+4. `opl_app_workbench_drilldown`
    将 MAS route map、route decision trail、quality/source/artifact refs、memory receipt refs、safe action refs 和 blocker refs 投到 OPL App / workbench 的 ref-only drilldown，不把 UI 状态、provider completion 或 observability finding 写成 publication-ready。
 
 5. `lifecycle_ledger_reconciliation`
@@ -98,7 +98,10 @@ AI-first 质量门要求 executor agent 与 reviewer/auditor agent 独立 invoca
 - 不能写成 OPL provider proof 等于 MAS paper closure、publication-ready 或 artifact mutation authorization。
 - 不能写成 `mas_owner_receipt_present` / stable blocker 等于 workspace mutation、artifact authority 放行或 paper closure。
 - 不能写成 MAS 已经没有私有功能实现；准确口径是已完成第一轮分类与禁回流 guard，仍有 5 项功能/结构差距。
-- 不能把 generated surface cutover、refs-only adapter 收薄、legacy physical retirement、OPL App drilldown 或 lifecycle ledger 对账写成纯测试/证据差距。
+- 不能把 generated surface cutover、refs-only adapter 收薄、legacy physical retirement、OPL App/workbench drilldown 或 lifecycle ledger 对账写成纯测试/证据差距。
 - 不能把真实 paper apply、memory receipt、artifact receipt、human gate/resume 或 provider SLO 写成当前功能/结构已经完成的替代证据。
+- 不能把 `publication_quality_verdict`、`ai_reviewer_quality_decision`、`source_readiness_verdict` 或类似 verdict 写成脚本/函数直接决定；它们必须是 AI-first stage quality gate 的可审计输出，程序只做校验、持久化、签收和防越权。
+- 不能把 `judgment_mode=mechanical_guard` 的 helper、owner receipt signer、schema validator、currentness checker 或 refs-only adapter 写成医学 verdict owner；这些面只能签收、校验、投影或阻断，不能生成 quality/source/memory/artifact ready/pass。
+- 不能把 executor agent 的自审、同一上下文内的“执行后复核”、或 executor summary 改名成 reviewer/auditor output；AI-first quality gate 必须消费独立 reviewer/auditor agent invocation 的记录。
 - 不能把 MDS/DeepScientist、Hermes、local scheduler 或旧 workspace wrapper 写成 MAS 默认 active runtime owner。
 - 不能把 dated specs、dated closeout、follow-through 记录或历史 full record 当成 current truth；需要过程脉络时读取 history/provenance。

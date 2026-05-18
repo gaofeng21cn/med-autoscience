@@ -35,6 +35,8 @@
 - 如果消费 AI reviewer judgment，入口必须 fail-closed 检查 `assessment_provenance.owner=ai_reviewer` 和 `ai_reviewer_required=false`。
 - 如果入口会投影 `finalize`、`bundle-only remaining`、`human-review ready` 或 `submission-facing closure`，还必须确认 `quality_assessment.medical_journal_prose_quality.status=ready`。缺失、`underdefined`、`partial` 或 `blocked` 都表示 AI reviewer 主观稿件质量尚未闭合，只能 route back 到同一论文线的 `review` / AI reviewer workflow。
 - 如果消费 mechanical projection，输出文案必须明确它只是 projection，不得写成科学审稿结论。
+- MAS private authority surface 必须声明 `judgment_mode`。`ai_first_stage_gate` 和 `ai_first_record_validator` 必须消费独立 reviewer/auditor record；`mechanical_guard` 和 `refs_only_adapter` 不得输出医学 ready/pass、publication readiness、source readiness、route acceptance 或 artifact quality verdict。
+- 对 `*_verdict`、`*_decision`、`*_authorization` 这类 surface，缺少独立 reviewer/auditor invocation、task/context record、receipt、AI reviewer record 或 quality-pack refs 时，只能 typed blocker / route-back。
 - 医学论文文体、reader flow、段落论证节奏、是否像工作汇报、claim restraint、讨论克制性等主观质量，只能由 AI reviewer-backed `medical_prose_review` 或 AI reviewer-backed `publication_eval/latest.json` 判定。
 - Regex / pattern / deterministic scanner 可以保留为 `mechanical_safety_flags`、evidence snippets 或内部术语泄漏安全护栏；它们不得单独触发或清除 `medical_journal_prose_style_not_met` 这类主观文体 blocker。
 - deterministic gate 可以继续阻断可验证事实缺口，例如缺文件、schema 不完整、claim-evidence 缺失、submission 包 stale、内部控制术语泄漏或 provenance 损坏。
