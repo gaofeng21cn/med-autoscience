@@ -110,18 +110,20 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert inventory_by_id["local_launchd_scheduler_install_path"]["default_caller_count"] == 0
     assert inventory_by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
     assert boundary["functional_module_inventory_summary"]["classification_gap_count"] == 0
-    assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 5
+    assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
     assert boundary["functional_followthrough_gap_summary"]["status"] == (
-        "classification_closed_followthrough_gaps_open"
+        "functional_structure_closed_evidence_gates_remaining"
     )
     assert boundary["functional_followthrough_gap_summary"]["remaining_gap_classification"] == (
-        "functional_followthrough_and_test_evidence_gates"
+        "live_provider_paper_line_evidence_gates"
     )
     followthrough_summary = boundary["functional_followthrough_gap_summary"]
     assert followthrough_summary["classification_gap_count"] == 0
-    assert followthrough_summary["functional_structure_gap_count"] == 5
-    assert followthrough_summary["remaining_items_are_evidence_gates"] is False
-    assert set(followthrough_summary["remaining_functional_followthrough_gate_ids"]) == {
+    assert followthrough_summary["functional_structure_gap_count"] == 0
+    assert followthrough_summary["remaining_items_are_evidence_gates"] is True
+    assert followthrough_summary["remaining_functional_followthrough_gate_ids"] == []
+    assert followthrough_summary["remaining_functional_followthrough_gates"] == []
+    assert set(followthrough_summary["closed_functional_structure_gate_ids"]) == {
         "generated_surface_active_caller_cutover",
         "refs_only_adapter_thinning",
         "legacy_cleanup_physical_retirement",
@@ -129,7 +131,7 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
         "lifecycle_locator_retention_restore_ledger_reconciliation",
     }
     assert followthrough_summary["does_not_clear"] == (
-        followthrough_summary["remaining_functional_followthrough_gate_ids"]
+        followthrough_summary["remaining_evidence_gate_ids"]
     )
     assert set(followthrough_summary["remaining_evidence_gate_ids"]) == {
         "live_provider_paper_apply_scaleout",

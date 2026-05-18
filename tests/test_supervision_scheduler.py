@@ -90,21 +90,23 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
         "medical_helper_implementation",
     ]
     assert boundary["functional_module_inventory_summary"]["classification_gap_count"] == 0
-    assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 5
+    assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
     assert boundary["functional_module_inventory_summary"]["active_private_generic_residue_count"] == 0
     assert (
         boundary["functional_module_inventory_summary"]["remaining_gap_classification"]
-        == "functional_followthrough_and_test_evidence_gates"
+        == "live_provider_paper_line_evidence_gates"
     )
     followthrough_summary = boundary["functional_followthrough_gap_summary"]
-    assert followthrough_summary["status"] == "classification_closed_followthrough_gaps_open"
+    assert followthrough_summary["status"] == "functional_structure_closed_evidence_gates_remaining"
     assert followthrough_summary["classification_gap_count"] == 0
-    assert followthrough_summary["functional_structure_gap_count"] == 5
-    assert followthrough_summary["remaining_items_are_evidence_gates"] is False
-    assert followthrough_summary["legacy_cleanup_items_are_remaining_active_gaps"] is True
+    assert followthrough_summary["functional_structure_gap_count"] == 0
+    assert followthrough_summary["remaining_items_are_evidence_gates"] is True
+    assert followthrough_summary["legacy_cleanup_items_are_remaining_active_gaps"] is False
     assert followthrough_summary["legacy_cleanup_items_have_default_entry"] is False
-    assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is False
-    assert set(followthrough_summary["remaining_functional_followthrough_gate_ids"]) == {
+    assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is True
+    assert followthrough_summary["remaining_functional_followthrough_gate_ids"] == []
+    assert followthrough_summary["remaining_functional_followthrough_gates"] == []
+    assert set(followthrough_summary["closed_functional_structure_gate_ids"]) == {
         "generated_surface_active_caller_cutover",
         "refs_only_adapter_thinning",
         "legacy_cleanup_physical_retirement",
@@ -112,7 +114,7 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
         "lifecycle_locator_retention_restore_ledger_reconciliation",
     }
     assert followthrough_summary["does_not_clear"] == (
-        followthrough_summary["remaining_functional_followthrough_gate_ids"]
+        followthrough_summary["remaining_evidence_gate_ids"]
     )
     assert set(followthrough_summary["remaining_evidence_gate_ids"]) == {
         "live_provider_paper_apply_scaleout",

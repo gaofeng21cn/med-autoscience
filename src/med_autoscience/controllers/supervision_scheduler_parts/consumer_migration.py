@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .functional_gap_zero import (
-    FUNCTIONAL_GAP_ZERO_STATUS,
+from .functional_followthrough_gaps import (
+    FUNCTIONAL_FOLLOWTHROUGH_GAPS_OPEN_STATUS,
     OPL_REPLACEMENT_EXPECTATION_AUDIT,
     REMAINING_GAP_CLASSIFICATION,
     build_functional_followthrough_gap_summary,
@@ -642,9 +642,14 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "legacy_cleanup_items_require_no_active_caller_gate": legacy_cleanup_items,
             "legacy_cleanup_items_are_diagnostic_provenance_guards": True,
             "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
-            "legacy_cleanup_items_are_remaining_active_gaps": True,
+            "legacy_cleanup_items_are_remaining_active_gaps": False,
             "legacy_cleanup_items_have_default_entry": False,
-            "legacy_cleanup_items_have_standard_template_refs": False,
+            "legacy_cleanup_items_have_standard_template_refs": True,
+            "closed_functional_structure_gate_ids": list(
+                functional_followthrough_gap_summary[
+                    "closed_functional_structure_gate_ids"
+                ]
+            ),
         },
         "functional_followthrough_gap_summary": functional_followthrough_gap_summary,
         "runtime_lifecycle_sqlite_role": {
@@ -822,7 +827,7 @@ __all__ = [
     "FORBIDDEN_WRITES",
     "FUNCTIONAL_MODULE_INVENTORY",
     "FUNCTIONAL_SURFACE_CLASSIFICATION",
-    "FUNCTIONAL_GAP_ZERO_STATUS",
+    "FUNCTIONAL_FOLLOWTHROUGH_GAPS_OPEN_STATUS",
     "GENERATED_SURFACE_HANDOFF",
     "MAS_RETAINED_AFTER_MIGRATION",
     "MAS_RETAINED_THIN_PROGRAM_SURFACES",

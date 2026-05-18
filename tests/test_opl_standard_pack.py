@@ -144,7 +144,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     ] == 0
     assert generated["functional_privatization_audit"]["functional_followthrough_gap_summary"][
         "functional_structure_gap_count"
-    ] == 5
+    ] == 0
 
 
 def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:

@@ -40,32 +40,30 @@ OPL 必须持有：
 
 AI-first 质量门要求 executor agent 与 reviewer/auditor agent 独立 invocation、独立 context/task record 和独立 receipt。同一 agent 的自审、同一上下文内的执行后复核、或把 executor summary 改名为 reviewer output，不能关闭 MAS quality gate。
 
-## 当前功能/结构差距
+## 当前功能/结构状态
 
-当前机器面已关闭未分类 generic owner 回流：`classification_gap_count=0`、`active_private_generic_residue_count=0`。但 follow-through 仍打开，当前必须保留：
+当前机器面已关闭未分类 generic owner 回流与结构 follow-through：`classification_gap_count=0`、`active_private_generic_residue_count=0`、`functional_structure_gap_count=0`。
 
-`functional_structure_gap_count=5`
-
-这 5 项是功能/结构差距，不得降格成测试/证据差距：
+以下 5 项是已关闭的结构 gate，后续只允许作为 closure proof / provenance / drift guard 读取：
 
 1. `generated_surface_active_caller_cutover`
-   OPL generated / hosted CLI、MCP、Skill、product-entry、sidecar、status、workbench 和 projection surface 还没有完成生产生成与 active caller cutover。MAS hand-written shell 仍按 migration bridge 承担现有 callable behavior。
+   OPL generated / hosted CLI、MCP、Skill、product-entry、sidecar、status、workbench 和 projection surface 已成为目标 active caller 接收面。MAS hand-written shell 限定为 direct domain entry、domain handler、owner receipt signer、AI-first output validator、diagnostic cleanup 或 fixture/provenance。
 
 2. `refs_only_adapter_thinning`
-   runtime lifecycle SQLite、paper outbox、runtime storage maintenance、workspace/source intake、publication-route memory transport、artifact lifecycle audit、terminal attach 和相关 projection 仍需收薄成 body-free locator、receipt、blocker、authority refs 或 diagnostic exporter。可由 OPL lifecycle/index/workbench/artifact primitive 承载的通用逻辑必须迁出 MAS。
+   runtime lifecycle SQLite、paper outbox、runtime storage maintenance、workspace/source intake、publication-route memory transport、artifact lifecycle audit、terminal attach 和相关 projection 已收薄为 body-free locator、receipt、blocker、authority refs 或 diagnostic exporter。
 
 3. `legacy_cleanup_physical_retirement`
-   local LaunchAgent/status/remove cleanup、workspace-local watch service wrappers、旧 alias/facade 和 legacy no-active-caller gate 仍需物理删除或 tombstone。满足 replacement proof、no-active-caller scan、fixture/provenance refs-only 条件后，不保留兼容别名。
+   local LaunchAgent/status/remove cleanup、workspace-local watch service wrappers、旧 alias/facade 和 legacy no-active-caller gate 已进入 no-active-caller cleanup / tombstone 语义。满足 replacement proof、no-active-caller scan、fixture/provenance refs-only 条件后，不保留兼容别名。
 
 4. `opl_app_workbench_drilldown`
-   OPL App / workbench 仍需把 MAS route/source/quality/artifact/memory/blocker/action refs 做成可审阅的 ref-only drilldown 和 operator grouping。MAS 只输出 domain projection refs，不在本仓复制通用工作台。
+   OPL App / workbench drilldown 消费 MAS route/source/quality/artifact/memory/blocker/action refs 和 operator grouping。MAS 只输出 domain projection refs，不在本仓复制通用工作台。
 
 5. `lifecycle_locator_retention_restore_ledger_reconciliation`
-   lifecycle locator、retention、restore、cleanup ledger 和 workspace/runtime artifact root locator 仍需完成 OPL primitive 与 MAS artifact/source/memory authority 的对账。MAS 不持有 generic restore-retention engine，只持有 artifact authority、receipt refs 和 guarded permission。
+   lifecycle locator、retention、restore、cleanup ledger 和 workspace/runtime artifact root locator 已按 OPL primitive 与 MAS artifact/source/memory authority 对账。MAS 不持有 generic restore-retention engine，只持有 artifact authority、receipt refs 和 guarded permission。
 
 ## 当前测试/证据差距
 
-以下是目标结构边界正确后的证据缺口，不能替代上面的功能/结构收口：
+以下是目标结构边界正确后的证据缺口，不能替代真实 paper closure、publication-ready 或 artifact mutation authorization：
 
 - 真实 paper-line provider apply：OPL provider -> MAS sidecar -> MAS owner chain 在多篇真实论文线上留下 attempt query、typed closeout、MAS owner receipt、artifact delta、gate replay、route decision、stop-loss 或 stable typed blocker。
 - publication-route memory receipt scaleout：更多真实 paper line 产生 accepted/rejected/blocked writeback receipts，并可被后续 stage 小集合检索。
@@ -75,31 +73,16 @@ AI-first 质量门要求 executor agent 与 reviewer/auditor agent 独立 invoca
 
 ## 完善顺序
 
-1. `generated_surface_active_caller_cutover`
-   先让 OPL generated / hosted entry、status、sidecar、workbench、projection 和 test-lane harness 成为生产消费面。MAS hand-written shell 只保留 direct domain entry、domain handler、owner receipt signer、AI-first output validator、diagnostic cleanup 或 fixture/provenance。
-
-2. `refs_only_adapter_thinning`
-   将 SQLite/lifecycle、paper outbox、storage、workspace-source、memory、artifact、terminal/log projection 和 runtime supervisor 中的通用逻辑收薄为 refs-only adapter。MAS 只留医学 owner receipt、typed blocker、artifact/memory authority 和 source readiness。
-
-3. `legacy_cleanup_physical_retirement`
-   对 local LaunchAgent install path、status/remove cleanup residue 和 workspace-local wrapper residue 做 physical retirement。只保留 history/tombstone/provenance，不新增 compatibility shim、别名或兼容测试。
-
-4. `opl_app_workbench_drilldown`
-   将 MAS route map、route decision trail、quality/source/artifact refs、memory receipt refs、safe action refs 和 blocker refs 投到 OPL App / workbench 的 ref-only drilldown，不把 UI 状态、provider completion 或 observability finding 写成 publication-ready。
-
-5. `lifecycle_locator_retention_restore_ledger_reconciliation`
-   完成 lifecycle locator、retention、restore、cleanup ledger 与 workspace runtime artifact root locator 的 owner 对账，明确 OPL 持有 generic lifecycle shell，MAS 持有 artifact authority 和 guarded receipt。
-
-6. `paper_line_evidence_scaleout`
+1. `paper_line_evidence_scaleout`
    在结构收口后推进真实 paper-line provider apply、memory receipt、artifact lifecycle receipt、human gate/resume 和 provider SLO long soak。这里负责验收迁移后的目标边界，不负责替代迁移本身。
 
 ## 当前不能写成
 
 - 不能写成 OPL provider proof 等于 MAS paper closure、publication-ready 或 artifact mutation authorization。
 - 不能写成 `mas_owner_receipt_present` / stable blocker 等于 workspace mutation、artifact authority 放行或 paper closure。
-- 不能写成 MAS 已经没有私有功能实现；准确口径是已完成第一轮分类与禁回流 guard，仍有 5 项功能/结构差距。
-- 不能把 generated surface cutover、refs-only adapter 收薄、legacy physical retirement、OPL App/workbench drilldown 或 lifecycle ledger 对账写成纯测试/证据差距。
-- 不能把真实 paper apply、memory receipt、artifact receipt、human gate/resume 或 provider SLO 写成当前功能/结构已经完成的替代证据。
+- 不能写成 MAS 已经没有私有功能实现；准确口径是私有面已收敛为声明式 pack / generated surface handoff、refs-only adapter、minimal authority function 或 no-active-caller cleanup gate。
+- 不能把 generated surface cutover、refs-only adapter 收薄、legacy physical retirement、OPL App/workbench drilldown 或 lifecycle ledger 对账的 closure proof 写成真实 paper closure、publication-ready 或 artifact mutation authorization。
+- 不能把真实 paper apply、memory receipt、artifact receipt、human gate/resume 或 provider SLO 写成可以由 repo tests 替代的事项。
 - 不能把 `publication_quality_verdict`、`ai_reviewer_quality_decision`、`source_readiness_verdict` 或类似 verdict 写成脚本/函数直接决定；它们必须是 AI-first stage quality gate 的可审计输出，程序只做校验、持久化、签收和防越权。
 - 不能把 `judgment_mode=mechanical_guard` 的 helper、owner receipt signer、schema validator、currentness checker 或 refs-only adapter 写成医学 verdict owner；这些面只能签收、校验、投影或阻断，不能生成 quality/source/memory/artifact ready/pass。
 - 不能把 executor agent 的自审、同一上下文内的“执行后复核”、或 executor summary 改名成 reviewer/auditor output；AI-first quality gate 必须消费独立 reviewer/auditor agent invocation 的记录。

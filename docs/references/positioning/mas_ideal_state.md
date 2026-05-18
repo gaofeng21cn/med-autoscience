@@ -98,7 +98,7 @@ MAS 达到生产级目标态时，应满足：
 - 通用 runtime、queue、memory locator、artifact lifecycle、restore/retention、projection、workbench shell 和 generated entry/status wrapper 已上收到 OPL / shared family layer；MAS 保留领域知识、authority、owner receipt、声明式 pack 和 minimal authority functions。
 - OPL generated / hosted surfaces 完成 active caller cutover；MAS 旧手写 shell 只保留 direct domain entry、domain handler、authority function、diagnostic cleanup 或 provenance fixture。
 - MAS 非知识代码均能归类为 declarative pack / generated surface handoff、refs-only adapter、minimal authority function 或 no-active-caller cleanup gate，并完成对应 cutover、收薄或退役。
-- `functional_structure_gap_count=5` 所列的 generated surface active caller cutover、refs-only adapter 收薄、legacy physical retirement、OPL App drilldown、lifecycle locator/retention/restore ledger 对账全部关闭。
+- `functional_structure_gap_count=0` 已固定 generated surface active caller cutover、refs-only adapter 收薄、legacy physical retirement、OPL App drilldown、lifecycle locator/retention/restore ledger 对账的结构 closure；剩余门槛是 live paper-line evidence scaleout。
 - 每个真实 paper-line stage attempt 都留下 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。
 - Publication-route memory 在多个真实 paper line 上产生 accepted/rejected/blocked writeback receipts，并可被后续 stage 小集合检索。
 - Artifact lifecycle、retention、cleanup、restore proof 和 SQLite/file authority 边界在真实 workspace 中可运行。

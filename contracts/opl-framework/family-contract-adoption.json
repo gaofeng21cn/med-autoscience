@@ -242,14 +242,14 @@
     "surface_kind": "mas_opl_pack_compiler_adoption",
     "owner": "med-autoscience",
     "compiler_owner": "one-person-lab",
-    "status": "declarative_pack_input_and_generated_surface_handoff_declared",
+    "status": "functional_structure_closed_evidence_gates_remaining",
     "declarative_pack_input_ref": "product_entry_manifest.functional_consumer_boundary.declarative_pack_compiler_input",
     "generated_surface_handoff_ref": "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff",
     "minimal_authority_function_manifest_ref": "product_entry_manifest.functional_consumer_boundary.minimal_authority_function_manifest",
     "functional_followthrough_gap_summary_ref": "product_entry_manifest.functional_consumer_boundary.functional_followthrough_gap_summary",
-    "functional_structure_gap_count": 5,
+    "functional_structure_gap_count": 0,
     "active_private_generic_residue_count": 0,
-    "remaining_gap_classification": "functional_followthrough_and_test_evidence_gates",
+    "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
     "source_surfaces": [
       "product_entry_manifest.standard_domain_agent_skeleton",
       "product_entry_manifest.family_stage_control_plane_descriptor",
@@ -299,18 +299,31 @@
       "mas_keeps_generic_shell_owner": false
     },
     "classification_gap_count": 0,
-    "remaining_functional_followthrough_gate_ids": [
+    "remaining_functional_followthrough_gate_ids": [],
+    "remaining_evidence_gate_ids": [
+      "live_provider_paper_apply_scaleout",
+      "publication_route_memory_receipt_scaleout",
+      "artifact_lifecycle_receipt_scaleout",
+      "provider_slo_long_soak"
+    ],
+    "remaining_items_are_evidence_gates": true,
+    "closed_functional_structure_gate_ids": [
       "generated_surface_active_caller_cutover",
       "refs_only_adapter_thinning",
       "legacy_cleanup_physical_retirement",
       "opl_app_workbench_drilldown",
       "lifecycle_locator_retention_restore_ledger_reconciliation"
     ],
-    "remaining_evidence_gate_ids": [
-      "live_provider_paper_apply_scaleout",
-      "publication_route_memory_receipt_scaleout",
-      "artifact_lifecycle_receipt_scaleout",
-      "provider_slo_long_soak"
+    "functional_structure_closure_proof_refs": [
+      "functional_module_inventory",
+      "declarative_pack_compiler_input",
+      "generated_surface_handoff",
+      "minimal_authority_function_manifest",
+      "no_active_caller_proof",
+      "opl_functional_harness_consumer_coverage",
+      "opl_generated_interface_active_caller_target_proof",
+      "opl_app_operator_workbench_drilldown",
+      "opl_lifecycle_index_cleanup_restore_ledger"
     ]
   },
   "academic_research_skills_learning_projection": {
