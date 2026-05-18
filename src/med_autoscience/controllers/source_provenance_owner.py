@@ -62,6 +62,7 @@ def recover_transport_model_provenance_or_typed_blocker(
     study_root = profile.studies_root / study_id
     result_path = stable_source_provenance_owner_result_path(study_root=study_root)
     payload = _build_owner_result(
+        profile=profile,
         study_root=study_root,
         study_id=study_id,
         dispatch=_mapping(dispatch),
@@ -84,6 +85,7 @@ def recover_transport_model_provenance_or_typed_blocker(
 
 def _build_owner_result(
     *,
+    profile: WorkspaceProfile,
     study_root: Path,
     study_id: str,
     dispatch: Mapping[str, Any],
@@ -91,7 +93,14 @@ def _build_owner_result(
     result_path: Path,
 ) -> dict[str, Any]:
     evidence_refs = _evidence_refs(study_root)
-    assessment = _provenance_assessment(study_root=study_root, evidence_refs=evidence_refs)
+    provenance_search = _provenance_search(profile=profile, study_root=study_root, study_id=study_id)
+    assessment = _provenance_assessment(
+        study_root=study_root,
+        evidence_refs=evidence_refs,
+        provenance_search=provenance_search,
+    )
+    accepted_bundle_ref = provenance_search["accepted_bundle_ref"]
+    recovered = accepted_bundle_ref is not None
     return {
         "surface": "source_provenance_owner_result",
         "schema_version": 1,
@@ -99,22 +108,12 @@ def _build_owner_result(
         "study_id": study_id,
         "owner": OWNER,
         "work_unit": WORK_UNIT,
-        "status": "blocked",
-        "blocked_reason": BLOCKED_REASON,
-        "typed_blocker_owner": OWNER,
-        "typed_blocker": {
-            "blocker_id": BLOCKED_REASON,
-            "owner": OWNER,
-            "work_unit": WORK_UNIT,
-            "reason": (
-                "The transported Cox model cannot be re-applied as the original development model until "
-                "its coefficients, feature coding, baseline survival, penalty provenance, standardization "
-                "state, and original result artifact are recovered."
-            ),
-            "blocking_reasons": assessment["blocking_reasons"],
-        },
-        "transport_model_provenance_recovered": False,
-        "canonical_transport_model_provenance_bundle_ref": None,
+        "status": "completed" if recovered else "blocked",
+        "blocked_reason": None if recovered else BLOCKED_REASON,
+        "typed_blocker_owner": None if recovered else OWNER,
+        "typed_blocker": None if recovered else _typed_blocker(assessment=assessment),
+        "transport_model_provenance_recovered": recovered,
+        "canonical_transport_model_provenance_bundle_ref": accepted_bundle_ref,
         "required_output": {
             "accepted_evidence": "canonical transport model provenance bundle",
             "accepted_typed_blocker": BLOCKED_REASON,
@@ -129,6 +128,7 @@ def _build_owner_result(
         ],
         "provenance_requirements": list(_PROVENANCE_REQUIREMENTS),
         "provenance_assessment": assessment,
+        "provenance_search": provenance_search,
         "evidence_refs": evidence_refs,
         "source_action_ref": _source_action_ref(dispatch=dispatch, request=request),
         "request_ref": {
@@ -136,8 +136,8 @@ def _build_owner_result(
             "request_kind": _text(request.get("request_kind")) or WORK_UNIT,
         },
         "result_ref": str(result_path),
-        "next_owner": OWNER,
-        "next_work_unit": WORK_UNIT,
+        "next_owner": "analysis_harmonization_owner" if recovered else OWNER,
+        "next_work_unit": "unit_harmonized_external_validation_rerun" if recovered else WORK_UNIT,
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
@@ -151,7 +151,41 @@ def _build_owner_result(
     }
 
 
-def _provenance_assessment(*, study_root: Path, evidence_refs: Mapping[str, Any]) -> dict[str, Any]:
+def _typed_blocker(*, assessment: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "blocker_id": BLOCKED_REASON,
+        "owner": OWNER,
+        "work_unit": WORK_UNIT,
+        "reason": (
+            "The transported Cox model cannot be re-applied as the original development model until "
+            "its coefficients, feature coding, baseline survival, penalty provenance, standardization "
+            "state, and original result artifact are recovered."
+        ),
+        "blocking_reasons": list(assessment["blocking_reasons"]),
+    }
+
+
+def _provenance_assessment(
+    *,
+    study_root: Path,
+    evidence_refs: Mapping[str, Any],
+    provenance_search: Mapping[str, Any],
+) -> dict[str, Any]:
+    if provenance_search.get("accepted_bundle_ref"):
+        return {
+            "status": "completed",
+            "blocking_reasons": [],
+            "required_requirements": list(_PROVENANCE_REQUIREMENTS),
+            "available_refs": {
+                "canonical_transport_model_provenance_bundle": {
+                    "path": provenance_search["accepted_bundle_ref"],
+                    "available": True,
+                }
+            },
+            "recovery_without_original_model_artifact_allowed": False,
+            "refit_substitute_model_allowed": False,
+            "medical_claim_authoring_allowed": False,
+        }
     model_spec_text = _read_text(study_root / _MODEL_SPEC).lower()
     input_cache = _read_json_object(study_root / _INPUT_CACHE)
     main_result = _read_json_object(study_root / _MAIN_RESULT)
@@ -179,9 +213,11 @@ def _provenance_assessment(*, study_root: Path, evidence_refs: Mapping[str, Any]
         missing.append("standardization_or_scaler_state_unknown")
     if not _original_result_artifact_available(study_root=study_root, evidence_refs=evidence_refs, payloads=(main_result, input_cache)):
         missing.append("legacy_result_artifact_unavailable")
+    if provenance_search.get("searched") is True and not provenance_search.get("accepted_bundle_ref"):
+        missing.append("canonical_transport_model_provenance_bundle_missing")
     return {
         "status": "blocked",
-        "blocking_reasons": missing or ["canonical_transport_model_provenance_bundle_not_materialized"],
+        "blocking_reasons": _unique_texts(missing or ["canonical_transport_model_provenance_bundle_not_materialized"]),
         "required_requirements": list(_PROVENANCE_REQUIREMENTS),
         "available_refs": {
             key: value
@@ -192,6 +228,150 @@ def _provenance_assessment(*, study_root: Path, evidence_refs: Mapping[str, Any]
         "refit_substitute_model_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+
+
+def _provenance_search(*, profile: WorkspaceProfile, study_root: Path, study_id: str) -> dict[str, Any]:
+    roots = _search_roots(profile=profile, study_root=study_root, study_id=study_id)
+    candidates = _candidate_files(roots)
+    accepted_bundle_ref: str | None = None
+    candidate_payloads: list[dict[str, Any]] = []
+    for path in candidates:
+        validation = _validate_candidate_bundle(path)
+        if validation["accepted"] and accepted_bundle_ref is None:
+            accepted_bundle_ref = str(path)
+        candidate_payloads.append(
+            {
+                "path": str(path),
+                "root_kind": _root_kind(path=path, roots=roots),
+                "candidate_kind": validation["candidate_kind"],
+                "accepted": validation["accepted"],
+                "missing_requirements": validation["missing_requirements"],
+            }
+        )
+    return {
+        "searched": True,
+        "search_roots": [{"root_kind": root_kind, "path": str(path), "available": path.exists()} for root_kind, path in roots],
+        "candidate_count": len(candidate_payloads),
+        "accepted_bundle_ref": accepted_bundle_ref,
+        "candidates": candidate_payloads,
+        "accepted_bundle_required_surface": "canonical_transport_model_provenance_bundle",
+        "result_summary_acceptance_allowed": False,
+        "substitute_refit_allowed": False,
+    }
+
+
+def _search_roots(*, profile: WorkspaceProfile, study_root: Path, study_id: str) -> list[tuple[str, Path]]:
+    workspace_root = Path(profile.workspace_root).expanduser().resolve()
+    return [
+        ("study_artifacts", study_root / "artifacts"),
+        ("study_analysis", study_root / "analysis"),
+        ("study_experiments", study_root / "experiments"),
+        ("study_paper_analysis", study_root / "paper"),
+        ("runtime_quest", Path(profile.runtime_root).expanduser().resolve() / study_id),
+        ("legacy_archive", workspace_root / "runtime" / "archives" / "legacy_mds"),
+    ]
+
+
+def _candidate_files(roots: list[tuple[str, Path]]) -> list[Path]:
+    tokens = ("model", "cox", "coef", "coeff", "survival", "hazard", "provenance", "result")
+    suffixes = {".json", ".yaml", ".yml", ".csv", ".txt", ".md", ".pkl", ".pickle", ".joblib", ".rds", ".rda"}
+    excluded_parts = {"supervision", "requests", "consumer", "controller", "source_provenance"}
+    candidates: list[Path] = []
+    seen: set[Path] = set()
+    for _, root in roots:
+        if not root.is_dir():
+            continue
+        for path in sorted(root.rglob("*")):
+            if not path.is_file():
+                continue
+            lowered_parts = {part.lower() for part in path.parts}
+            if lowered_parts.intersection(excluded_parts):
+                continue
+            if path.suffix.lower() not in suffixes:
+                continue
+            name = path.name.lower()
+            parts = " ".join(part.lower() for part in path.parts[-4:])
+            if not any(token in name or token in parts for token in tokens):
+                continue
+            resolved = path.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            candidates.append(resolved)
+    return candidates
+
+
+def _validate_candidate_bundle(path: Path) -> dict[str, Any]:
+    payload = _read_json_object(path)
+    if payload is None:
+        return {
+            "accepted": False,
+            "candidate_kind": "non_json_or_non_object_candidate",
+            "missing_requirements": list(_PROVENANCE_REQUIREMENTS),
+        }
+    surface = _text(payload.get("surface")) or _text(payload.get("surface_kind"))
+    candidate_kind = surface or "json_candidate"
+    if surface != "canonical_transport_model_provenance_bundle":
+        return {
+            "accepted": False,
+            "candidate_kind": candidate_kind,
+            "missing_requirements": ["canonical_transport_model_provenance_bundle_surface_missing"],
+        }
+    missing = _bundle_missing_requirements(payload)
+    return {
+        "accepted": not missing,
+        "candidate_kind": candidate_kind,
+        "missing_requirements": missing,
+    }
+
+
+def _bundle_missing_requirements(payload: Mapping[str, Any]) -> list[str]:
+    missing: list[str] = []
+    coefficients = payload.get("coefficients") or payload.get("model_coefficients")
+    if not _contains_coefficients({"coefficients": coefficients}):
+        missing.append("cox_model_coefficients")
+    if not _non_empty(payload.get("feature_order")) or not _non_empty(
+        payload.get("feature_coding") or payload.get("coding")
+    ):
+        missing.append("feature_order_and_coding")
+    if not _has_bundle_baseline(payload):
+        missing.append("baseline_survival_or_cumulative_hazard_at_5_years")
+    if not _non_empty(payload.get("penalty") or payload.get("tuning") or payload.get("penalty_or_tuning")):
+        missing.append("penalty_or_tuning_provenance")
+    if not _non_empty(
+        payload.get("standardization")
+        or payload.get("standardisation")
+        or payload.get("scaler")
+        or payload.get("unit_conversions")
+    ):
+        missing.append("standardization_or_scaler_state")
+    if not _non_empty(payload.get("original_result_artifact") or payload.get("original_result_ref")):
+        missing.append("original_result_artifact")
+    return missing
+
+
+def _has_bundle_baseline(payload: Mapping[str, Any]) -> bool:
+    baseline_keys = (
+        "baseline_survival_at_5_years",
+        "baseline_survival",
+        "baseline_hazard_at_5_years",
+        "baseline_hazard",
+        "cumulative_baseline_hazard_at_5_years",
+        "cumulative_baseline_hazard",
+    )
+    return any(_non_empty(payload.get(key)) for key in baseline_keys)
+
+
+def _root_kind(*, path: Path, roots: list[tuple[str, Path]]) -> str:
+    for root_kind, root in roots:
+        if not root.exists():
+            continue
+        try:
+            path.relative_to(root.resolve())
+        except ValueError:
+            continue
+        return root_kind
+    return "unknown"
 
 
 def _has_coefficients(*payloads: Mapping[str, Any] | None) -> bool:
@@ -300,6 +480,17 @@ def _read_text(path: Path) -> str:
 
 def _has_any(text: str, terms: tuple[str, ...]) -> bool:
     return any(term in text for term in terms)
+
+
+def _unique_texts(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
 
 
 def _utc_now() -> str:

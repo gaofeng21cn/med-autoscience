@@ -66,3 +66,20 @@ Follow-up patch:
 Additional verification:
 
 - `scripts/run-pytest-clean.sh tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/runtime_supervisor_consumer_cases/test_clean_rehydrate_owner_route.py tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py tests/test_owner_callable_registry.py -q`: 11 passed.
+
+## Source Provenance Search Follow-Up
+
+The first source-provenance owner patch correctly routed DM002 away from prose repair, but it only inspected fixed known refs before returning a typed blocker. That preserved authority boundaries, but did not yet give `opl-meta-agent` / Agent Lab a real recovery attempt to evaluate.
+
+Follow-up patch:
+
+- Extend the Agent Lab work order with `source_provenance_owner_recovery` and `mechanism-edit-ref:mas/source-provenance-owner-recovery`.
+- Make `source_provenance_owner` search bounded study and runtime roots for candidate model/result/provenance artifacts while excluding supervisor/controller control packets.
+- Accept only a `canonical_transport_model_provenance_bundle` with coefficients, feature order/coding, 5-year baseline survival or hazard, penalty/tuning provenance, standardization/scaler state, and original-result artifact ref.
+- Keep result summaries, prose descriptions, and substitute refits as non-closing candidates; the owner records them in `provenance_search` but keeps `transport_model_provenance_recovery_required` open.
+- If a complete canonical bundle is found, return `status=completed` and route back to `analysis_harmonization_owner` for the unit-harmonized rerun; still do not write paper, manuscript package, publication eval, controller decision, or submission-readiness verdict.
+
+Additional verification:
+
+- `scripts/run-pytest-clean.sh tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py -q`: 4 passed.
+- `scripts/run-pytest-clean.sh tests/test_agent_lab_medical_manuscript_quality.py -q`: 4 passed.
