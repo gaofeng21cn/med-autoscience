@@ -16,6 +16,7 @@ PUBLICATION_EVAL_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH = Path("paper/medical_manuscript_blueprint_source.json")
 ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH = Path("artifacts/controller/analysis_harmonization/latest.json")
 SOURCE_PROVENANCE_RESULT_RELATIVE_PATH = Path("artifacts/controller/source_provenance/latest.json")
+CONTROLLER_DECISION_RELATIVE_PATH = Path("artifacts/controller_decisions/latest.json")
 
 
 def required_output_pending(
@@ -33,6 +34,8 @@ def required_output_pending(
         return unit_harmonized_external_validation_output_pending(profile=profile, study_id=study_id)
     if action_type == "recover_transport_model_provenance":
         return transport_model_provenance_output_pending(profile=profile, study_id=study_id)
+    if action_type == "methodology_reframe_route_decision":
+        return methodology_reframe_route_decision_output_pending(profile=profile, study_id=study_id)
     if action_type != "return_to_ai_reviewer_workflow":
         return False
     return ai_reviewer_output_pending(current_study)
@@ -71,6 +74,17 @@ def unit_harmonized_external_validation_output_pending(*, profile: WorkspaceProf
 def transport_model_provenance_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
     payload = _read_json_object(profile.studies_root / study_id / SOURCE_PROVENANCE_RESULT_RELATIVE_PATH)
     return source_provenance_owner_result.output_pending_for_result(payload)
+
+
+def methodology_reframe_route_decision_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
+    payload = _read_json_object(profile.studies_root / study_id / CONTROLLER_DECISION_RELATIVE_PATH)
+    if not payload:
+        return True
+    return not (
+        _text(payload.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
+        and _text(payload.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
+        and _text(_mapping(payload.get("next_work_unit")).get("unit_id")) == "methodology_reframe_route_decision"
+    )
 
 
 def _source_eval_id_stale(payload: Mapping[str, Any] | None, *, current_eval_id: str | None) -> bool:
@@ -119,10 +133,12 @@ __all__ = [
     "MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH",
     "PUBLICATION_EVAL_RELATIVE_PATH",
     "ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH",
+    "CONTROLLER_DECISION_RELATIVE_PATH",
     "SOURCE_PROVENANCE_RESULT_RELATIVE_PATH",
     "ai_reviewer_output_pending",
     "canonical_paper_inputs_rehydrate_output_pending",
     "current_package_freshness_output_pending",
+    "methodology_reframe_route_decision_output_pending",
     "required_output_pending",
     "transport_model_provenance_output_pending",
     "unit_harmonized_external_validation_output_pending",

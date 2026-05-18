@@ -69,6 +69,12 @@ def projection_block_state(
             "next_owner": "source_provenance_owner",
             "external_supervisor_required": False,
         }
+    if _has_methodology_reframe_route_decision_action(actions):
+        return {
+            "blocked_reason": "methodology_reframe_required",
+            "next_owner": "decision",
+            "external_supervisor_required": False,
+        }
     if _has_hard_methodology_handoff_action(actions):
         return {
             "blocked_reason": "unit_harmonized_rerun_required",
@@ -193,6 +199,15 @@ def _has_source_provenance_handoff_action(actions: list[dict[str, Any]]) -> bool
         _text(action.get("action_type")) == "recover_transport_model_provenance"
         and _text(action.get("reason")) == "transport_model_provenance_recovery_required"
         and _text(action.get("owner")) == "source_provenance_owner"
+        for action in actions
+    )
+
+
+def _has_methodology_reframe_route_decision_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "methodology_reframe_route_decision"
+        and _text(action.get("reason")) == "methodology_reframe_required"
+        and _text(action.get("owner")) == "decision"
         for action in actions
     )
 

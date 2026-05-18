@@ -596,12 +596,19 @@ def test_scan_consumes_current_source_provenance_typed_blocker_without_requeue(
     )
 
     study = result["studies"][0]
-    assert study["action_queue"] == []
-    assert result["action_queue"] == []
+    assert [action["action_type"] for action in study["action_queue"]] == ["methodology_reframe_route_decision"]
+    assert [action["action_type"] for action in result["action_queue"]] == ["methodology_reframe_route_decision"]
+    action = study["action_queue"][0]
+    assert action["owner"] == "decision"
+    assert action["reason"] == "methodology_reframe_required"
+    assert action["required_output_surface"] == (
+        "controller route decision for a provenance-limited reframe, reproducible-model restart, "
+        "stop-loss, or human gate"
+    )
     assert study["why_not_applied"] == "methodology_reframe_required"
     assert study["blocked_reason"] == "methodology_reframe_required"
     assert study["next_owner"] == "decision"
     assert study["external_supervisor_required"] is False
     assert study["owner_route"]["next_owner"] == "decision"
     assert study["owner_route"]["owner_reason"] == "methodology_reframe_required"
-    assert study["owner_route"]["allowed_actions"] == []
+    assert study["owner_route"]["allowed_actions"] == ["methodology_reframe_route_decision"]

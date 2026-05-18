@@ -249,6 +249,137 @@ def test_execute_dispatch_hands_model_provenance_route_to_source_owner(
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
+def test_execute_dispatch_routes_terminal_source_provenance_blocker_to_decision_owner(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    route = _owner_route(
+        study_id=study_id,
+        action_type="methodology_reframe_route_decision",
+        owner="decision",
+    )
+    route.update(
+        {
+            "failure_signature": "methodology_reframe_required",
+            "owner_reason": "methodology_reframe_required",
+            "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
+            "source_fingerprint": "truth-snapshot::terminal-source-provenance-blocker",
+            "idempotency_key": "owner-route::dm002::decision::methodology-reframe",
+        }
+    )
+    stall = {
+        "surface_kind": "paper_progress_stall",
+        "stalled": True,
+        "terminal": True,
+        "action_fingerprint": "paper_progress_stall::terminal-source-provenance-blocker",
+        "stall_reasons": ["runtime_recovery_retry_budget_exhausted"],
+    }
+    dispatch = _dispatch(
+        study_id=study_id,
+        action_type="methodology_reframe_route_decision",
+        owner="decision",
+        required_output_surface=(
+            "controller route decision for a provenance-limited reframe, "
+            "reproducible-model restart, stop-loss, or human gate"
+        ),
+        owner_route=route,
+    )
+    dispatch["source_action"] = {
+        "action_type": "methodology_reframe_route_decision",
+        "source_ref": "artifacts/controller/source_provenance/latest.json",
+        "terminal_source_provenance_blocker": True,
+        "blocked_reason": "methodology_reframe_required",
+    }
+    dispatch["paper_progress_stall"] = stall
+    dispatch["prompt_contract"]["paper_progress_stall"] = stall
+    dispatch["prompt_contract"]["request_packet_ref"] = "artifacts/supervision/requests/decision/latest.json"
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "methodology_reframe_route_decision.json"
+    )
+    _write_current_dispatch(dispatch_path, profile, dispatch)
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [
+                {
+                    "study_id": study_id,
+                    "owner_route": route,
+                    "meaningful_artifact_delta": False,
+                    "paper_progress_stall": stall,
+                }
+            ],
+        },
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("methodology_reframe_route_decision",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    request_path = study_root / "artifacts" / "supervision" / "requests" / "decision" / "latest.json"
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    execution = result["executions"][0]
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert execution["execution_status"] == "executed"
+    assert execution["dispatch_contract_valid"] is True
+    assert execution["paper_progress_stall_handoff_allowed"] is True
+    assert execution["owner_callable_surface"] == "decision_owner.methodology_reframe_route_decision"
+    assert execution["owner_result"]["request_path"] == str(request_path)
+    assert execution["owner_result"]["controller_decision_ref"] == str(decision_path)
+    assert execution["owner_result"]["surface"] == "methodology_reframe_decision_owner_result"
+    assert execution["owner_result"]["status"] == "routed"
+    assert execution["owner_result"]["blocked_reason"] == "methodology_reframe_required"
+    assert execution["owner_result"]["next_owner"] == "decision"
+    assert execution["owner_result"]["work_unit"] == "methodology_reframe_route_decision"
+    assert execution["owner_result"]["paper_package_mutation_allowed"] is False
+    assert execution["owner_result"]["quality_gate_relaxation_allowed"] is False
+    assert execution["owner_result"]["medical_claim_authoring_allowed"] is False
+    assert execution["owner_result"]["publication_eval_written"] is False
+    assert execution["owner_result"]["controller_decision_written"] is True
+    assert request_path.is_file()
+    assert decision_path.is_file()
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    decision = json.loads(decision_path.read_text(encoding="utf-8"))
+    assert request["request_kind"] == "methodology_reframe_route_decision"
+    assert request["request_owner"] == "decision"
+    assert request["blocked_reason"] == "methodology_reframe_required"
+    assert request["next_work_unit"] == "methodology_reframe_route_decision"
+    assert request["paper_package_mutation_allowed"] is False
+    assert request["quality_gate_relaxation_allowed"] is False
+    assert request["medical_claim_authoring_allowed"] is False
+    assert request["decision_options"] == [
+        "stop_loss_current_transport_claim",
+        "provenance_limited_harmonization_audit",
+        "rebuild_reproducible_model_route",
+        "human_gate",
+    ]
+    assert decision["decision_type"] == "route_back_same_line"
+    assert decision["route_target"] == "analysis-campaign"
+    assert decision["requires_human_confirmation"] is False
+    assert decision["work_unit_fingerprint"] == "decision::methodology_reframe_route_decision"
+    assert decision["next_work_unit"]["unit_id"] == "methodology_reframe_route_decision"
+    assert decision["controller_actions"][0]["action_type"] == "ensure_study_runtime"
+    assert not (study_root / "manuscript").exists()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
 def test_source_provenance_owner_records_candidate_search_without_accepting_result_summary(
     monkeypatch,
     tmp_path: Path,

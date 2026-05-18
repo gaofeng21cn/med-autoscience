@@ -43,6 +43,18 @@ def action_queue(
                 forbidden_actions=forbidden_actions,
             )
         ]
+    methodology_reframe_action = _methodology_reframe_route_decision_action(study_root)
+    if methodology_reframe_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=methodology_reframe_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     hard_methodology_action = _hard_methodology_quality_repair_handoff_action(study_root)
     if hard_methodology_action is not None:
         return [
@@ -551,6 +563,48 @@ def _source_provenance_recovery_action(study_root: Path) -> dict[str, Any] | Non
     }
 
 
+def _methodology_reframe_route_decision_action(study_root: Path) -> dict[str, Any] | None:
+    source_result_state = source_provenance_owner_result.typed_blocker_state(study_root=study_root)
+    if not source_result_state:
+        return None
+    if _text(source_result_state.get("blocked_reason")) != "methodology_reframe_required":
+        return None
+    if _text(source_result_state.get("next_owner")) != "decision":
+        return None
+    source_result_ref = source_provenance_owner_result.result_path(study_root=study_root)
+    return {
+        "action_type": "methodology_reframe_route_decision",
+        "authority": "observability_only",
+        "owner": "decision",
+        "request_owner": "decision",
+        "recommended_owner": "decision",
+        "reason": "methodology_reframe_required",
+        "summary": (
+            "The original transported model provenance could not be recovered after bounded search; "
+            "route the study through decision owner before any renewed manuscript or medical claim work."
+        ),
+        "next_work_unit": "methodology_reframe_route_decision",
+        "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
+        "required_output_surface": (
+            "controller route decision for a provenance-limited reframe, reproducible-model restart, "
+            "stop-loss, or human gate"
+        ),
+        "source_ref": str(source_result_ref),
+        "terminal_source_blocker": dict(source_result_state),
+        "allowed_route_options": [
+            "stop_loss_current_transport_claim",
+            "provenance_limited_harmonization_audit",
+            "rebuild_reproducible_model_route",
+            "human_gate",
+        ],
+        "quality_gate_relaxation_allowed": False,
+        "current_package_write_allowed": False,
+        "paper_package_mutation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+    }
+
+
 def _scientific_anchor_missing(
     *,
     status: Mapping[str, Any],
@@ -792,6 +846,7 @@ def blocked_reason_from_scan(
             "canonical_paper_inputs_rehydrate_required",
             "unit_harmonized_external_validation_rerun",
             "recover_transport_model_provenance",
+            "methodology_reframe_route_decision",
         }:
             return _text(action.get("reason")) or _text(action.get("action_type"))
     if gate_specificity.get("required") is True:

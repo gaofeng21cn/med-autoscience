@@ -37,6 +37,7 @@ SUPPORTED_REQUEST_ACTION_TYPES = frozenset(
         "canonical_paper_inputs_rehydrate_required",
         "unit_harmonized_external_validation_rerun",
         "recover_transport_model_provenance",
+        "methodology_reframe_route_decision",
     }
 )
 SUPPORTED_MODE = "developer_apply_safe"
@@ -74,6 +75,7 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/consumer/canonical_paper_inputs_rehydrate_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/unit_harmonized_external_validation_rerun.json",
     "studies/<study_id>/artifacts/supervision/consumer/recover_transport_model_provenance.json",
+    "studies/<study_id>/artifacts/supervision/consumer/methodology_reframe_route_decision.json",
     "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
 ]
 MERGE_CLEANUP_CHECKLIST = [
@@ -255,6 +257,8 @@ def _request_owner_for_action_type(action_type: str) -> str:
         return "analysis_harmonization_owner"
     if action_type == "recover_transport_model_provenance":
         return "source_provenance_owner"
+    if action_type == "methodology_reframe_route_decision":
+        return "decision"
     return "controller"
 
 
@@ -292,6 +296,11 @@ def _request_output_surface_for_action_type(action_type: str) -> str:
             "canonical transport model provenance bundle or "
             "typed blocker:transport_model_provenance_recovery_required"
         )
+    if action_type == "methodology_reframe_route_decision":
+        return (
+            "controller route decision for a provenance-limited reframe, reproducible-model restart, "
+            "stop-loss, or human gate"
+        )
     return "artifacts/supervision/requests"
 
 
@@ -310,6 +319,8 @@ def _request_packet_ref_for_action_type(action_type: str) -> str:
         return "artifacts/supervision/requests/analysis_harmonization/latest.json"
     if action_type == "recover_transport_model_provenance":
         return "artifacts/supervision/requests/source_provenance/latest.json"
+    if action_type == "methodology_reframe_route_decision":
+        return "artifacts/supervision/requests/decision/latest.json"
     return "artifacts/supervision/requests"
 
 

@@ -35,6 +35,14 @@ def owner_handoff_allowed(
             action=dispatch,
             owner_route=owner_route,
         )
+    if action_type == "methodology_reframe_route_decision":
+        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
+        return (
+            _text(owner_route.get("next_owner")) == "decision"
+            and _text(owner_route.get("owner_reason")) == "methodology_reframe_required"
+            and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
+        )
     if action_type == "runtime_platform_repair":
         current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)

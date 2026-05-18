@@ -99,3 +99,19 @@ Follow-up patch:
 Additional verification:
 
 - `scripts/run-pytest-clean.sh tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py -q`: 8 passed.
+
+## Methodology Reframe Decision Follow-Up
+
+The source-provenance currentness patch correctly stopped the stale owner loop, but DM002 could still park at `blocked_reason=methodology_reframe_required` because the read model had no executable decision-owner action.
+
+Follow-up patch:
+
+- Add `methodology_reframe_route_decision` to owner-route, scan, consumer, dispatch executor, output-readiness, and terminal-stall handoff surfaces.
+- Dispatch writes `artifacts/supervision/requests/decision/latest.json` and a controller decision in `artifacts/controller_decisions/latest.json`.
+- The controller decision routes the same study back to `analysis-campaign` for methodology reframe and lists allowed decision options: stop-loss current transported-model claim, provenance-limited harmonization audit, reproducible-model rebuild, or human gate.
+- Preserve the no-forbidden-write boundary: no paper, manuscript package, publication eval, or submission-readiness verdict is written by this owner.
+- Extend the Agent Lab work order with `methodology_reframe_decision_owner_route` and `mechanism-edit-ref:mas/methodology-reframe-decision-owner-route`.
+
+Additional verification:
+
+- `scripts/run-pytest-clean.sh tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/runtime_supervisor_consumer_cases/test_clean_rehydrate_owner_route.py::test_supervisor_consume_routes_methodology_reframe_to_decision_owner tests/test_runtime_supervisor_dispatch_executor.py::test_execute_dispatch_routes_terminal_source_provenance_blocker_to_decision_owner tests/test_runtime_supervisor_dispatch_executor.py::test_execute_dispatch_hands_terminal_hard_methodology_route_to_analysis_owner tests/test_runtime_supervisor_dispatch_executor.py::test_execute_dispatch_hands_model_provenance_route_to_source_owner -q`: 8 passed.

@@ -19,12 +19,14 @@ from .. import (
     source_provenance_owner,
     study_runtime_router,
 )
+from .action_execution_parts import methodology_reframe_decision
 from ..supervisor_action_request_lifecycle import stable_ai_reviewer_request_path
 
 
 PUBLICATION_EVAL_LATEST_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 ANALYSIS_HARMONIZATION_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/analysis_harmonization/latest.json")
 SOURCE_PROVENANCE_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/source_provenance/latest.json")
+DECISION_REQUEST_RELATIVE_PATH = methodology_reframe_decision.DECISION_REQUEST_RELATIVE_PATH
 _AI_REVIEWER_REQUIRED_RECORD_FIELDS = (
     "quality_assessment",
     "future_facing_limitations_plan",
@@ -538,6 +540,21 @@ def execute_recover_transport_model_provenance(
     return {**owner_execution, "owner_result": owner_result, "request_path": str(request_path)}
 
 
+def execute_methodology_reframe_route_decision(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    return methodology_reframe_decision.execute(
+        profile=profile,
+        study_id=study_id,
+        apply=apply,
+        dispatch=dispatch,
+    )
+
+
 def _analysis_harmonization_request(*, study_id: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     source_action = _mapping(dispatch.get("source_action"))
@@ -958,11 +975,13 @@ def _ref_path(packet: Mapping[str, Any], surface: str) -> str | None:
 
 __all__ = [
     "ANALYSIS_HARMONIZATION_REQUEST_RELATIVE_PATH",
+    "DECISION_REQUEST_RELATIVE_PATH",
     "SOURCE_PROVENANCE_REQUEST_RELATIVE_PATH",
     "execute_ai_reviewer_workflow",
     "execute_artifact_display_materialization",
     "execute_canonical_paper_inputs_rehydrate",
     "execute_current_package_freshness",
+    "execute_methodology_reframe_route_decision",
     "execute_publication_gate_specificity",
     "execute_recover_transport_model_provenance",
     "execute_runtime_platform_repair",

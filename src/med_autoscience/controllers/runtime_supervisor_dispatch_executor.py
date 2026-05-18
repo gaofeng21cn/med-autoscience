@@ -42,6 +42,7 @@ SUPPORTED_ACTION_TYPES = frozenset(
         "canonical_paper_inputs_rehydrate_required",
         "unit_harmonized_external_validation_rerun",
         "recover_transport_model_provenance",
+        "methodology_reframe_route_decision",
     }
 )
 
@@ -775,6 +776,13 @@ def _execute_owner_dispatch_action(
         )
     if action_type == "recover_transport_model_provenance":
         return action_execution.execute_recover_transport_model_provenance(
+            profile=profile,
+            study_id=study_id,
+            apply=apply,
+            dispatch=dispatch,
+        )
+    if action_type == "methodology_reframe_route_decision":
+        return action_execution.execute_methodology_reframe_route_decision(
             profile=profile,
             study_id=study_id,
             apply=apply,
