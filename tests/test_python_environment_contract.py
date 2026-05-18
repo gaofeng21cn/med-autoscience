@@ -174,8 +174,8 @@ print(json.dumps(ensure_python_environment_contract()))
     result = json.loads(completed.stdout.strip())
     assert result["action"] == "managed_runtime_required"
     assert result["after"] == result["before"]
-    assert ".venv" in result["stderr"]
-    assert "rtk uv run" in result["stderr"]
+    assert "approved MAS managed runtime" in result["stderr"]
+    assert "study workspace `.venv`" in result["stderr"]
 
 
 def test_ensure_runs_uv_pip_install_when_missing(monkeypatch) -> None:
@@ -298,3 +298,40 @@ def test_worktree_runtime_is_treated_as_managed(monkeypatch, tmp_path: Path) -> 
     monkeypatch.setattr(contract.sys, "prefix", str(worktree_runtime))
 
     assert contract._is_managed_runtime() is True
+
+
+def test_clean_runner_runtime_is_treated_as_managed(monkeypatch, tmp_path: Path) -> None:
+    clean_runtime = tmp_path / "clean-runner" / "venv"
+
+    monkeypatch.setenv("UV_PROJECT_ENVIRONMENT", str(clean_runtime))
+    monkeypatch.setattr(contract.sys, "prefix", str(clean_runtime))
+
+    assert contract._is_managed_runtime() is True
+
+
+def test_workspace_runtime_is_treated_as_managed(monkeypatch, tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    runtime = workspace_root / ".venv"
+    medautoscience_ops = workspace_root / "ops" / "medautoscience"
+    medautoscience_ops.mkdir(parents=True)
+    (medautoscience_ops / "config.env").write_text(
+        'MED_AUTOSCIENCE_REPO="/tmp/med-autoscience"\n',
+        encoding="utf-8",
+    )
+    (workspace_root / "pyproject.toml").write_text(
+        '[project]\nname = "dm-workspace"\ndependencies = ["med-autoscience"]\n',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(contract.sys, "prefix", str(runtime))
+
+    assert contract._is_managed_runtime() is True
+
+
+def test_unrelated_dotvenv_is_not_treated_as_managed(monkeypatch, tmp_path: Path) -> None:
+    unrelated_runtime = tmp_path / "workspace" / ".venv"
+
+    monkeypatch.delenv("UV_PROJECT_ENVIRONMENT", raising=False)
+    monkeypatch.setattr(contract.sys, "prefix", str(unrelated_runtime))
+
+    assert contract._is_managed_runtime() is False

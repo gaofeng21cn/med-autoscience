@@ -143,15 +143,22 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "classification_gap_count"
     ] == 0
     followthrough = generated["functional_privatization_audit"]["functional_followthrough_gap_summary"]
-    assert followthrough["functional_structure_gap_count"] == 5
-    assert followthrough["remaining_functional_followthrough_gate_ids"] == [
+    assert followthrough["functional_structure_gap_count"] == 0
+    assert followthrough["remaining_functional_followthrough_gate_ids"] == []
+    assert followthrough["closed_functional_structure_gate_ids"] == [
         "generated_surface_active_caller_cutover",
         "refs_only_adapter_thinning",
         "legacy_cleanup_physical_retirement",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation",
     ]
-    assert followthrough["closed_functional_structure_gate_ids"] == []
+    assert followthrough["remaining_evidence_gate_ids"] == [
+        "live_provider_paper_apply_scaleout",
+        "publication_route_memory_receipt_scaleout",
+        "artifact_lifecycle_receipt_scaleout",
+        "provider_slo_long_soak",
+    ]
+    assert followthrough["remaining_items_are_evidence_gates"] is True
 
 
 def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:

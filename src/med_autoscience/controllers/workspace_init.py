@@ -222,7 +222,7 @@ def _render_workspace_pyproject(*, workspace_root: Path, workspace_name: str) ->
         f'description = "Managed Python environment for the {workspace_name} workspace."\n'
         'requires-python = ">=3.12,<3.13"\n'
         "dependencies = [\n"
-        '  "med-autoscience",\n'
+        '  "med-autoscience[analysis]",\n'
         "]\n\n"
         "[dependency-groups]\n"
         "dev = [\n"

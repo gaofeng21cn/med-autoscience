@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import importlib
-import json
 import subprocess
 from types import SimpleNamespace
-
-import pytest
 
 
 def test_default_r_analysis_bundle_includes_publication_ready_packages() -> None:
@@ -116,154 +113,48 @@ def test_inspect_r_packages_honors_explicit_rscript_env_when_path_is_missing(
     assert result["package_status"] == {"pROC": True}
 
 
-def test_managed_runtime_python_executable_prefers_checkout_runtime(monkeypatch, tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
-    repo_runtime = tmp_path / "repo" / ".venv"
-    checkout_runtime = tmp_path / "repo" / ".worktrees" / "feature" / ".venv"
-    checkout_python = checkout_runtime / "bin" / "python"
-    checkout_python.parent.mkdir(parents=True)
-    checkout_python.write_text("#!/bin/sh\n", encoding="utf-8")
-    checkout_python.chmod(0o755)
-
-    monkeypatch.setattr(module.python_environment_contract, "MANAGED_RUNTIME_PREFIX", repo_runtime)
-    monkeypatch.setattr(module.python_environment_contract, "CHECKOUT_MANAGED_RUNTIME_PREFIX", checkout_runtime)
-
-    assert module._managed_runtime_python_executable() == str(checkout_python)
-
-
-def test_managed_runtime_repo_root_prefers_checkout_root(monkeypatch, tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
-    repo_root = tmp_path / "repo"
-    checkout_root = repo_root / ".worktrees" / "feature"
-
-    monkeypatch.setattr(module.python_environment_contract, "REPO_ROOT", repo_root)
-    monkeypatch.setattr(module.python_environment_contract, "CHECKOUT_ROOT", checkout_root)
-
-    assert module._managed_runtime_repo_root() == checkout_root
-
-
-def test_external_tool_install_runtime_uses_current_interpreter(monkeypatch, tmp_path) -> None:
-    module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
-    tool_root = tmp_path / "uv" / "tools" / "med-autoscience"
-    module_root = tool_root / "lib" / "python3.12"
-    module_file = module_root / "site-packages" / "med_autoscience" / "python_environment_contract.py"
-    tool_python = tool_root / "bin" / "python3"
-    module_file.parent.mkdir(parents=True)
-    module_file.write_text("# installed package marker\n", encoding="utf-8")
-    tool_python.parent.mkdir(parents=True)
-    tool_python.write_text("#!/bin/sh\n", encoding="utf-8")
-    tool_python.chmod(0o755)
-    (tool_root / "uv-receipt.toml").write_text(
-        '[tool]\nrequirements = [{ name = "med-autoscience" }]\n',
-        encoding="utf-8",
-    )
-    (tool_root / "pyvenv.cfg").write_text("home = /usr/bin\n", encoding="utf-8")
-
-    monkeypatch.setattr(module.python_environment_contract, "REPO_ROOT", module_root)
-    monkeypatch.setattr(module.python_environment_contract, "CHECKOUT_ROOT", module_root)
-    monkeypatch.setattr(module.python_environment_contract, "MANAGED_RUNTIME_PREFIX", module_root / ".venv")
-    monkeypatch.setattr(module.python_environment_contract, "CHECKOUT_MANAGED_RUNTIME_PREFIX", module_root / ".venv")
-    monkeypatch.setattr(module.python_environment_contract, "__file__", str(module_file))
-    monkeypatch.setattr(module.python_environment_contract.sys, "prefix", str(tool_root))
-    monkeypatch.setattr(module.python_environment_contract.sys, "executable", str(tool_python))
-
-    assert module._managed_runtime_repo_root() == tool_root
-    assert module._managed_runtime_python_executable() == str(tool_python)
-    assert module._running_under_managed_runtime() is True
-
-
-def test_ensure_study_runtime_analysis_bundle_delegates_to_repo_managed_runtime(monkeypatch) -> None:
+def test_ensure_study_runtime_analysis_bundle_repairs_current_runtime(monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
     before_state = {
         "ready": False,
-        "python": {"ready": False, "interpreter": "/tmp/external/bin/python"},
+        "python": {"ready": False, "interpreter": "/tmp/workspace/.venv/bin/python3"},
         "r": {"ready": True, "rscript": "/usr/bin/Rscript"},
     }
-    delegated_payload = {
-        "action": "ensure_bundle",
-        "before": {"ready": False},
-        "after": {"ready": True},
-        "python": {"action": "uv_pip_install"},
-        "r": {"action": "already_ready"},
+    after_state = {
         "ready": True,
-    }
-    recorded: dict[str, object] = {}
-
-    monkeypatch.setattr(module, "inspect_study_runtime_analysis_bundle", lambda: before_state)
-    monkeypatch.setattr(module, "_running_under_managed_runtime", lambda: False, raising=False)
-    monkeypatch.setattr(
-        module,
-        "_managed_runtime_python_executable",
-        lambda: "/tmp/repo/.venv/bin/python",
-        raising=False,
-    )
-    monkeypatch.setattr(module, "_managed_runtime_repo_root", lambda: module.Path("/tmp/repo"), raising=False)
-
-    def fail_local_install(**kwargs):
-        raise AssertionError("should delegate to repo-managed runtime instead of using local interpreter")
-
-    monkeypatch.setattr(module, "ensure_python_environment_contract", fail_local_install)
-
-    def fake_run(args, **kwargs):
-        recorded["args"] = args
-        recorded["kwargs"] = kwargs
-        return SimpleNamespace(returncode=0, stdout=json.dumps(delegated_payload), stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-
-    result = module.ensure_study_runtime_analysis_bundle()
-
-    assert result["action"] == "delegate_to_managed_runtime"
-    assert result["before"] == before_state
-    assert result["after"] == delegated_payload["after"]
-    assert result["ready"] is True
-    assert result["delegated_result"] == delegated_payload
-    assert result["managed_runtime"]["python"] == "/tmp/repo/.venv/bin/python"
-    assert recorded["args"] == [
-        "/tmp/repo/.venv/bin/python",
-        "-m",
-        "med_autoscience.cli",
-        "runtime",
-        "ensure-analysis-bundle",
-    ]
-    assert recorded["kwargs"]["cwd"] == module.Path("/tmp/repo")
-    assert str(module.Path("/tmp/repo") / "src") in recorded["kwargs"]["env"]["PYTHONPATH"]
-
-
-def test_ensure_study_runtime_analysis_bundle_surfaces_delegate_failure(monkeypatch) -> None:
-    module = importlib.import_module("med_autoscience.study_runtime_analysis_bundle")
-    before_state = {
-        "ready": False,
-        "python": {"ready": False, "interpreter": "/tmp/external/bin/python"},
+        "python": {"ready": True, "interpreter": "/tmp/workspace/.venv/bin/python3"},
         "r": {"ready": True, "rscript": "/usr/bin/Rscript"},
     }
 
-    monkeypatch.setattr(module, "inspect_study_runtime_analysis_bundle", lambda: before_state)
-    monkeypatch.setattr(module, "_running_under_managed_runtime", lambda: False, raising=False)
-    monkeypatch.setattr(
-        module,
-        "_managed_runtime_python_executable",
-        lambda: "/tmp/repo/.venv/bin/python",
-        raising=False,
-    )
-    monkeypatch.setattr(module, "_managed_runtime_repo_root", lambda: module.Path("/tmp/repo"), raising=False)
-    monkeypatch.setattr(
-        module,
-        "ensure_python_environment_contract",
-        lambda **kwargs: pytest.fail("should delegate to repo-managed runtime"),
-    )
+    class Inspector:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def __call__(self):
+            self.calls += 1
+            return before_state if self.calls == 1 else after_state
+
+    inspector = Inspector()
+    monkeypatch.setattr(module, "inspect_study_runtime_analysis_bundle", inspector)
+
+    python_result = {"action": "uv_pip_install", "after": after_state["python"]}
+    r_result = {"action": "already_ready", "after": after_state["r"]}
+    monkeypatch.setattr(module, "ensure_python_environment_contract", lambda **kwargs: python_result)
+    monkeypatch.setattr(module, "ensure_r_analysis_bundle", lambda: r_result)
+
     monkeypatch.setattr(
         subprocess,
         "run",
-        lambda *args, **kwargs: SimpleNamespace(returncode=17, stdout="", stderr="managed runtime failed"),
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("current runtime repair should not spawn a repo Python delegate")
+        ),
     )
 
     result = module.ensure_study_runtime_analysis_bundle()
 
-    assert result["action"] == "delegate_to_managed_runtime"
-    assert result["ready"] is False
+    assert result["action"] == "ensure_bundle"
     assert result["before"] == before_state
-    assert result["after"] == before_state
-    assert result["delegated_result"] is None
-    assert result["managed_runtime"]["exit_code"] == 17
-    assert result["managed_runtime"]["stderr"] == "managed runtime failed"
+    assert result["after"] == after_state
+    assert result["python"] == python_result
+    assert result["r"] == r_result
+    assert result["ready"] is True
