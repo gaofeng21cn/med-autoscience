@@ -1232,8 +1232,8 @@
         "minimal_authority_function",
         "legacy_cleanup_no_active_caller_gate"
       ],
-      "functional_gap_zero_summary": {
-        "surface_kind": "mas_functional_gap_zero_summary",
+      "functional_followthrough_gap_summary": {
+        "surface_kind": "mas_functional_followthrough_gap_summary",
         "status": "classification_closed_followthrough_gaps_open",
         "classification_gap_count": 0,
         "functional_structure_gap_count": 5,

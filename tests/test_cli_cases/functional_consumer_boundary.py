@@ -111,24 +111,24 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert inventory_by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
     assert boundary["functional_module_inventory_summary"]["classification_gap_count"] == 0
     assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 5
-    assert boundary["functional_gap_zero_summary"]["status"] == (
+    assert boundary["functional_followthrough_gap_summary"]["status"] == (
         "classification_closed_followthrough_gaps_open"
     )
-    assert boundary["functional_gap_zero_summary"]["remaining_gap_classification"] == (
+    assert boundary["functional_followthrough_gap_summary"]["remaining_gap_classification"] == (
         "functional_followthrough_and_test_evidence_gates"
     )
-    zero_summary = boundary["functional_gap_zero_summary"]
-    assert zero_summary["classification_gap_count"] == 0
-    assert zero_summary["functional_structure_gap_count"] == 5
-    assert zero_summary["remaining_items_are_evidence_gates"] is False
-    assert set(zero_summary["remaining_functional_followthrough_gate_ids"]) == {
+    followthrough_summary = boundary["functional_followthrough_gap_summary"]
+    assert followthrough_summary["classification_gap_count"] == 0
+    assert followthrough_summary["functional_structure_gap_count"] == 5
+    assert followthrough_summary["remaining_items_are_evidence_gates"] is False
+    assert set(followthrough_summary["remaining_functional_followthrough_gate_ids"]) == {
         "generated_surface_active_caller_cutover",
         "refs_only_adapter_thinning",
         "legacy_cleanup_physical_retirement",
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation",
     }
-    assert set(zero_summary["remaining_evidence_gate_ids"]) == {
+    assert set(followthrough_summary["remaining_evidence_gate_ids"]) == {
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
         "artifact_lifecycle_receipt_scaleout",

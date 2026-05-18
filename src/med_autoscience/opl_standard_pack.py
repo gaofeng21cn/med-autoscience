@@ -393,7 +393,7 @@ def _functional_privatization_audit(functional_boundary: Mapping[str, Any]) -> d
         "domain_id": TARGET_DOMAIN_ID,
         "target_domain_id": TARGET_DOMAIN_ID,
         "functional_consumer_boundary": dict(functional_boundary),
-        "functional_gap_zero_summary": dict(functional_boundary["functional_gap_zero_summary"]),
+        "functional_followthrough_gap_summary": dict(functional_boundary["functional_followthrough_gap_summary"]),
         "authority_boundary": {
             "opl_can_write_domain_truth": False,
             "opl_can_write_memory_body": False,

@@ -92,7 +92,7 @@ OPL_REPLACEMENT_EXPECTATION_AUDIT = {
 }
 
 
-def build_functional_gap_zero_summary(
+def build_functional_followthrough_gap_summary(
     *,
     classification_counts: Mapping[str, int],
     legacy_cleanup_items: Sequence[str],
@@ -100,7 +100,7 @@ def build_functional_gap_zero_summary(
     followthrough_gate_ids = [str(item["gate_id"]) for item in FUNCTIONAL_FOLLOWTHROUGH_GATES]
     evidence_gate_ids = [str(item["gate_id"]) for item in REMAINING_EVIDENCE_GATES]
     return {
-        "surface_kind": "mas_functional_gap_zero_summary",
+        "surface_kind": "mas_functional_followthrough_gap_summary",
         "status": FUNCTIONAL_GAP_ZERO_STATUS,
         "classification_gap_count": 0,
         "functional_structure_gap_count": len(FUNCTIONAL_FOLLOWTHROUGH_GATES),

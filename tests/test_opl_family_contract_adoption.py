@@ -297,8 +297,8 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     assert adoption["minimal_authority_function_manifest_ref"] == (
         "product_entry_manifest.functional_consumer_boundary.minimal_authority_function_manifest"
     )
-    assert adoption["functional_gap_zero_summary_ref"] == (
-        "product_entry_manifest.functional_consumer_boundary.functional_gap_zero_summary"
+    assert adoption["functional_followthrough_gap_summary_ref"] == (
+        "product_entry_manifest.functional_consumer_boundary.functional_followthrough_gap_summary"
     )
     assert adoption["classification_gap_count"] == 0
     assert adoption["functional_structure_gap_count"] == 5
@@ -314,7 +314,7 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
         "product_entry_manifest.domain_memory_descriptor",
         "product_entry_manifest.lifecycle_guarded_apply_proof",
         "product_entry_manifest.domain_owner_receipt_contract",
-        "product_entry_manifest.functional_consumer_boundary.functional_gap_zero_summary",
+        "product_entry_manifest.functional_consumer_boundary.functional_followthrough_gap_summary",
         "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
     ]
     assert adoption["generated_or_hosted_surfaces"] == [

@@ -86,7 +86,7 @@
       "mas_generic_transition_runner",
       "mas_generic_workbench_shell"
     ],
-    "functional_gap_zero_summary": {
+    "functional_followthrough_gap_summary": {
       "active_private_generic_residue_count": 0,
       "classification_counts": {
         "declarative_pack_generated_surface": 7,
@@ -215,7 +215,7 @@
       "remaining_gap_classification": "functional_followthrough_and_test_evidence_gates",
       "remaining_items_are_evidence_gates": false,
       "status": "classification_closed_followthrough_gaps_open",
-      "surface_kind": "mas_functional_gap_zero_summary"
+      "surface_kind": "mas_functional_followthrough_gap_summary"
     },
     "functional_module_inventory": [
       {
@@ -1394,7 +1394,7 @@
     "status": "opl_consumes_generic_surfaces_mas_retains_domain_authority_pack",
     "surface_kind": "mas_functional_consumer_boundary"
   },
-  "functional_gap_zero_summary": {
+  "functional_followthrough_gap_summary": {
     "active_private_generic_residue_count": 0,
     "classification_counts": {
       "declarative_pack_generated_surface": 7,
@@ -1523,7 +1523,7 @@
     "remaining_gap_classification": "functional_followthrough_and_test_evidence_gates",
     "remaining_items_are_evidence_gates": false,
     "status": "classification_closed_followthrough_gaps_open",
-    "surface_kind": "mas_functional_gap_zero_summary"
+    "surface_kind": "mas_functional_followthrough_gap_summary"
   },
   "schema_version": 1,
   "surface_kind": "functional_privatization_audit",

@@ -90,10 +90,10 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     )
     assert generated["action_catalog"]["descriptor_projection_owner"] == "one-person-lab"
     assert generated["action_catalog"]["domain_handler_target_owner"] == "MedAutoScience"
-    assert generated["functional_privatization_audit"]["functional_gap_zero_summary"][
+    assert generated["functional_privatization_audit"]["functional_followthrough_gap_summary"][
         "classification_gap_count"
     ] == 0
-    assert generated["functional_privatization_audit"]["functional_gap_zero_summary"][
+    assert generated["functional_privatization_audit"]["functional_followthrough_gap_summary"][
         "functional_structure_gap_count"
     ] == 5
 

@@ -246,7 +246,7 @@
     "declarative_pack_input_ref": "product_entry_manifest.functional_consumer_boundary.declarative_pack_compiler_input",
     "generated_surface_handoff_ref": "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff",
     "minimal_authority_function_manifest_ref": "product_entry_manifest.functional_consumer_boundary.minimal_authority_function_manifest",
-    "functional_gap_zero_summary_ref": "product_entry_manifest.functional_consumer_boundary.functional_gap_zero_summary",
+    "functional_followthrough_gap_summary_ref": "product_entry_manifest.functional_consumer_boundary.functional_followthrough_gap_summary",
     "functional_structure_gap_count": 5,
     "active_private_generic_residue_count": 0,
     "remaining_gap_classification": "functional_followthrough_and_test_evidence_gates",
@@ -258,7 +258,7 @@
       "product_entry_manifest.domain_memory_descriptor",
       "product_entry_manifest.lifecycle_guarded_apply_proof",
       "product_entry_manifest.domain_owner_receipt_contract",
-      "product_entry_manifest.functional_consumer_boundary.functional_gap_zero_summary",
+      "product_entry_manifest.functional_consumer_boundary.functional_followthrough_gap_summary",
       "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough"
     ],
     "generated_or_hosted_surfaces": [

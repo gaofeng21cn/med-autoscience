@@ -6,7 +6,7 @@ from .functional_gap_zero import (
     FUNCTIONAL_GAP_ZERO_STATUS,
     OPL_REPLACEMENT_EXPECTATION_AUDIT,
     REMAINING_GAP_CLASSIFICATION,
-    build_functional_gap_zero_summary,
+    build_functional_followthrough_gap_summary,
 )
 from .generated_surface_handoff import build_generated_surface_handoff
 from .consumer_migration_inventory import (
@@ -497,7 +497,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         for item in FUNCTIONAL_MODULE_INVENTORY
         if item["classification"] == "legacy_cleanup_no_active_caller_gate"
     ]
-    functional_gap_zero_summary = build_functional_gap_zero_summary(
+    functional_followthrough_gap_summary = build_functional_followthrough_gap_summary(
         classification_counts=classification_counts,
         legacy_cleanup_items=legacy_cleanup_items,
     )
@@ -540,13 +540,13 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "long_term_opl_owned_replacement_count": 0,
             "retire_tombstone_classification_count": 0,
             "classification_gap_count": 0,
-            "functional_structure_gap_count": functional_gap_zero_summary[
+            "functional_structure_gap_count": functional_followthrough_gap_summary[
                 "functional_structure_gap_count"
             ],
             "active_private_generic_residue_count": 0,
             "remaining_gap_classification": REMAINING_GAP_CLASSIFICATION,
             "remaining_functional_followthrough_gate_ids": list(
-                functional_gap_zero_summary[
+                functional_followthrough_gap_summary[
                     "remaining_functional_followthrough_gate_ids"
                 ]
             ),
@@ -557,7 +557,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
             "legacy_cleanup_items_have_default_entry": False,
             "legacy_cleanup_items_have_standard_template_refs": False,
         },
-        "functional_gap_zero_summary": functional_gap_zero_summary,
+        "functional_followthrough_gap_summary": functional_followthrough_gap_summary,
         "runtime_lifecycle_sqlite_role": {
             "classification": "refs_only_adapter",
             "current_mas_role": "domain_sidecar_index_reference_adapter",
