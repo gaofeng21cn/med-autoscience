@@ -25,6 +25,9 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/analysis-campaign-queue-routing",
     "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
     "mechanism-edit-ref:mas/runtime-supervisor-analysis-harmonization-owner-result-consumption",
+    "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection",
+    "mechanism-edit-ref:mas/provider-switch-hygiene-body-free-projection",
+    "mechanism-edit-ref:mas/claim-assurance-map-body-free-projection",
     "skill_ref:medical-research-write",
     "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
     "prompt_ref:ai_reviewer_medical_prose_quality_review",
@@ -286,6 +289,9 @@ def _mechanism_evolution_inputs(
         study_id=study_id,
         manifest_refs=analysis_queue_manifest_refs,
     )
+    runtime_event_ledger = _runtime_event_ledger(root=root, study_id=study_id)
+    provider_switch_hygiene = _provider_switch_hygiene(root=root, study_id=study_id)
+    claim_assurance_map = _claim_assurance_map(root=root, study_id=study_id)
     return {
         "surface_kind": "mas_agent_lab_mechanism_evolution_inputs",
         "target_opl_surface": "opl_agent_lab_evolution_result",
@@ -297,6 +303,9 @@ def _mechanism_evolution_inputs(
         "reviewer_direct_evidence_refs": reviewer_direct_evidence_refs,
         "analysis_queue_manifest_refs": analysis_queue_manifest_refs,
         "analysis_queue_manifest": analysis_queue_manifest,
+        "runtime_event_ledger": runtime_event_ledger,
+        "provider_switch_hygiene": provider_switch_hygiene,
+        "claim_assurance_map": claim_assurance_map,
         "controller_read_model_feedback_refs": controller_read_model_feedback_refs,
         "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
         "developer_patch_work_order": _developer_patch_work_order(
@@ -314,6 +323,17 @@ def _mechanism_evolution_inputs(
                 *reviewer_direct_evidence_refs,
                 *analysis_queue_manifest_refs,
                 *controller_read_model_feedback_refs,
+                *runtime_event_ledger["event_source_refs"],
+                *runtime_event_ledger["supervision_event_refs"],
+                *runtime_event_ledger["controller_event_refs"],
+                *provider_switch_hygiene["provider_state_refs"],
+                *provider_switch_hygiene["executor_context_refs"],
+                *provider_switch_hygiene["fallback_refs"],
+                *claim_assurance_map["claim_map_refs"],
+                *claim_assurance_map["claim_refs"],
+                *claim_assurance_map["evidence_refs"],
+                *claim_assurance_map["reviewer_refs"],
+                *claim_assurance_map["display_refs"],
             ]
         ),
         "independent_ai_review_receipt_ref": f"ai-reviewer-receipt:mas/{study_id}/mechanism-direct-evidence-review",
@@ -488,6 +508,125 @@ def _analysis_queue_manifest(
     }
 
 
+def _runtime_event_ledger(*, root: Path, study_id: str) -> dict[str, Any]:
+    event_paths = (
+        root / ".ds" / "events.jsonl",
+        root / "artifacts" / "runtime" / "events.jsonl",
+    )
+    supervision_paths = (
+        root / "artifacts" / "supervision" / "events.jsonl",
+        root / "artifacts" / "supervision" / "controller" / "events.jsonl",
+        root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        root / "artifacts" / "controller" / "events.jsonl",
+        root / "artifacts" / "controller" / "controller_events.jsonl",
+        root / "artifacts" / "controller" / "runtime_events.jsonl",
+    )
+    event_source_refs = _existing_refs(*event_paths)
+    supervision_event_refs = _existing_refs(*supervision_paths)
+    controller_event_refs = _runtime_controller_event_refs(root=root)
+    event_types = _jsonl_event_types((*event_paths, *supervision_paths))
+    event_count = sum(_jsonl_count(path) for path in (*event_paths, *supervision_paths))
+    if not event_source_refs and not supervision_event_refs and not controller_event_refs:
+        controller_event_refs = [f"runtime-event-ledger-missing:mas/{study_id}/body-free"]
+    return {
+        "surface_kind": "mas_runtime_event_ledger",
+        "ledger_kind": "body_free_runtime_event_metadata",
+        "body_included": False,
+        "event_source_refs": event_source_refs,
+        "supervision_event_refs": supervision_event_refs,
+        "controller_event_refs": controller_event_refs,
+        "event_count": event_count,
+        "event_type_refs": [f"runtime-event-type:mas/{study_id}/{event_type}" for event_type in event_types],
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def _provider_switch_hygiene(*, root: Path, study_id: str) -> dict[str, Any]:
+    provider_state_paths = (
+        root / ".ds" / "runtime_state.json",
+        root / "artifacts" / "runtime" / "provider_state.json",
+        root / "artifacts" / "runtime" / "provider_switch.json",
+        root / "artifacts" / "runtime" / "provider_switch_hygiene.json",
+        root / "artifacts" / "controller" / "provider_state.json",
+    )
+    executor_context_paths = (
+        root / "artifacts" / "runtime" / "executor_context.json",
+        root / "artifacts" / "controller" / "executor_context.json",
+        root / "artifacts" / "supervision" / "executor_context.json",
+    )
+    payloads = [_read_json_object(path) for path in (*provider_state_paths, *executor_context_paths)]
+    payloads = [payload for payload in payloads if payload]
+    provider_state_refs = _existing_refs(*provider_state_paths)
+    executor_context_refs = _existing_refs(*executor_context_paths)
+    fallback_refs = _refs_for_keys(
+        payloads=payloads,
+        keys=("fallback_refs", "provider_fallback_refs", "diagnostic_provider_refs", "state_fallback_refs"),
+    )
+    return {
+        "surface_kind": "mas_provider_switch_hygiene",
+        "hygiene_kind": "body_free_provider_executor_context_projection",
+        "body_included": False,
+        "read_only": True,
+        "provider_state_refs": provider_state_refs or [f"provider-state-ref:mas/{study_id}/missing"],
+        "executor_context_refs": executor_context_refs or [f"executor-context-ref:mas/{study_id}/missing"],
+        "executor_refs": _refs_for_keys(payloads=payloads, keys=("executor_refs", "executor_ref"))
+        or [f"executor-ref:mas/{study_id}/codex_cli"],
+        "provider_refs": _refs_for_keys(payloads=payloads, keys=("provider_refs", "provider_ref"))
+        or [f"provider-ref:mas/{study_id}/temporal-or-local-diagnostic"],
+        "context_isolation_refs": _refs_for_keys(
+            payloads=payloads,
+            keys=("context_isolation_refs", "reviewer_context_isolation_refs", "no_shared_context_refs"),
+        )
+        or [f"context-isolation-ref:mas/{study_id}/reviewer-no-shared-context"],
+        "fallback_refs": fallback_refs,
+        "can_switch_provider": False,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def _claim_assurance_map(*, root: Path, study_id: str) -> dict[str, Any]:
+    claim_map_paths = (
+        root / "paper" / "claim_evidence_map.json",
+        root / "artifacts" / "publication_eval" / "latest.json",
+        root / "paper" / "review" / "review_ledger.json",
+        root / "artifacts" / "research_wiki" / "latest.json",
+        root / "paper" / "research_wiki.json",
+    )
+    payloads = [_read_json_object(path) for path in claim_map_paths]
+    payloads = [payload for payload in payloads if payload]
+    claim_refs = _refs_for_keys(payloads=payloads, keys=("claim_refs", "claims", "claim_ref"))
+    evidence_refs = _refs_for_keys(
+        payloads=payloads,
+        keys=("evidence_refs", "evidence", "supporting_evidence_refs", "source_refs"),
+    )
+    reviewer_refs = _refs_for_keys(
+        payloads=payloads,
+        keys=("reviewer_refs", "review_refs", "review_items", "reviewer_feedback_refs"),
+    )
+    display_refs = _refs_for_keys(
+        payloads=payloads,
+        keys=("display_refs", "display_material_refs", "table_refs", "figure_refs"),
+    )
+    return {
+        "surface_kind": "mas_claim_assurance_map",
+        "map_kind": "body_free_claim_evidence_reviewer_display_refs",
+        "body_included": False,
+        "claim_body_included": False,
+        "can_authorize_claim": False,
+        "can_authorize_quality_verdict": False,
+        "claim_map_refs": _existing_refs(*claim_map_paths),
+        "claim_refs": claim_refs or [f"claim-ref:mas/{study_id}/body-free-default"],
+        "evidence_refs": evidence_refs,
+        "reviewer_refs": reviewer_refs,
+        "display_refs": display_refs,
+        "claim_count": len(claim_refs),
+        "evidence_count": len(evidence_refs),
+        "reviewer_ref_count": len(reviewer_refs),
+        "display_ref_count": len(display_refs),
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
 def _failed_route_refs(*, root: Path, study_id: str) -> list[str]:
     paths = (
         root / "artifacts" / "research_wiki" / "latest.json",
@@ -525,6 +664,31 @@ def _json_refs_for_keys(*, paths: tuple[Path, ...], keys: tuple[str, ...]) -> li
 def _json_refs(path: Path, key: str) -> list[str]:
     payload = _read_json_object(path)
     return _refs_from_value(payload.get(key))
+
+
+def _runtime_controller_event_refs(*, root: Path) -> list[str]:
+    refs: list[str] = []
+    paths = (
+        root / "artifacts" / "controller" / "latest.json",
+        root / "artifacts" / "controller_decisions" / "latest.json",
+        root / "artifacts" / "publication_eval" / "latest.json",
+        root / "artifacts" / "supervision" / "hourly" / "latest.json",
+    )
+    for path in paths:
+        payload = _read_json_object(path)
+        refs.extend(
+            _refs_for_keys(
+                payloads=[payload],
+                keys=(
+                    "runtime_event_refs",
+                    "event_refs",
+                    "controller_event_refs",
+                    "supervision_event_refs",
+                    "receipt_refs",
+                ),
+            )
+        )
+    return _unique_refs(refs)
 
 
 def _analysis_queue_items(
@@ -582,14 +746,23 @@ def _analysis_queue_item(item: object, *, default_state: str) -> dict[str, Any] 
 
 
 def _refs_from_value(values: object) -> list[str]:
+    if isinstance(values, Mapping):
+        ref = _item_ref(values)
+        refs = [ref] if ref else []
+        for key in ("refs", "items", "events", "claims", "evidence"):
+            refs.extend(_refs_from_value(values.get(key)))
+        return _unique_refs(refs)
     if not isinstance(values, list):
-        return []
+        ref = _text(values)
+        return [ref] if ref and ":" in ref else []
     refs: list[str] = []
     for item in values:
         if isinstance(item, Mapping):
             ref = _item_ref(item)
             if ref:
                 refs.append(ref)
+            for key in ("refs", "source_refs", "evidence_refs", "review_refs", "display_refs"):
+                refs.extend(_refs_from_value(item.get(key)))
         else:
             ref = _text(item)
             if ref:
@@ -610,11 +783,28 @@ def _item_ref(item: Mapping[str, Any]) -> str:
         "negative_result_ref",
         "rationale_ref",
         "queue_ref",
+        "event_ref",
+        "provider_ref",
+        "executor_ref",
+        "context_ref",
+        "evidence_ref",
+        "review_ref",
+        "display_ref",
+        "table_ref",
+        "figure_ref",
     ):
         ref = _text(item.get(key))
         if ref:
             return ref
     return ""
+
+
+def _refs_for_keys(*, payloads: list[dict[str, Any]], keys: tuple[str, ...]) -> list[str]:
+    refs: list[str] = []
+    for payload in payloads:
+        for key in keys:
+            refs.extend(_refs_from_value(payload.get(key)))
+    return _unique_refs(refs)
 
 
 def _first_text(payloads: list[dict[str, Any]], *keys: str) -> str:
@@ -688,6 +878,41 @@ def _read_json_object(path: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return dict(payload) if isinstance(payload, Mapping) else {}
+
+
+def _jsonl_count(path: Path) -> int:
+    try:
+        with path.open(encoding="utf-8") as handle:
+            return sum(1 for line in handle if line.strip())
+    except OSError:
+        return 0
+
+
+def _jsonl_event_types(paths: tuple[Path, ...]) -> list[str]:
+    event_types: list[str] = []
+    for path in paths:
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            if not line.strip():
+                continue
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(payload, Mapping):
+                continue
+            event_type = _text(
+                payload.get("event_type")
+                or payload.get("type")
+                or payload.get("kind")
+                or payload.get("event_kind")
+            )
+            if event_type:
+                event_types.append(event_type)
+    return _unique_refs(event_types)
 
 
 def _text(value: object) -> str:

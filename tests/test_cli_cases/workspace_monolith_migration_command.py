@@ -297,6 +297,18 @@ def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_in
         },
     )
     _write_json(
+        study_root / "paper" / "review" / "review_ledger.json",
+        {"review_refs": ["review-ref:hdl-harmonization"]},
+    )
+    _write_json(
+        study_root / "paper" / "claim_evidence_map.json",
+        {
+            "claims": [{"claim_ref": "claim-ref:external-validation-performance"}],
+            "evidence_refs": ["evidence-ref:cox-transport-validation"],
+            "display_refs": ["display-ref:table-2-performance"],
+        },
+    )
+    _write_json(
         study_root / "artifacts" / "analysis_queue" / "latest.json",
         {
             "queue_ref": "analysis-queue:dm002/reviewer-repair",
@@ -312,6 +324,30 @@ def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_in
                     "source_refs": ["paper-ref:dm002-current-draft"],
                 }
             ],
+        },
+    )
+    events_path = study_root / ".ds" / "events.jsonl"
+    events_path.parent.mkdir(parents=True, exist_ok=True)
+    events_path.write_text(
+        '{"event_ref":"runtime-event:dm002/controller-route","event_type":"controller_route_selected"}\n',
+        encoding="utf-8",
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {"runtime_event_refs": ["runtime-event:dm002/controller-decision-recorded"]},
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "provider_state.json",
+        {
+            "provider_refs": ["provider-ref:temporal-production"],
+            "fallback_refs": ["provider-fallback-ref:local-diagnostic-only"],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "runtime" / "executor_context.json",
+        {
+            "executor_refs": ["executor-ref:codex_cli"],
+            "context_isolation_refs": ["context-isolation-ref:reviewer-no-shared-context"],
         },
     )
 
@@ -356,4 +392,28 @@ def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_in
         }
     ]
     assert queue["body_included"] is False
+    runtime_events = mechanism_inputs["runtime_event_ledger"]
+    assert runtime_events["body_included"] is False
+    assert runtime_events["event_count"] == 1
+    assert runtime_events["controller_event_refs"] == ["runtime-event:dm002/controller-decision-recorded"]
+    provider = mechanism_inputs["provider_switch_hygiene"]
+    assert provider["body_included"] is False
+    assert provider["executor_refs"] == ["executor-ref:codex_cli"]
+    assert provider["provider_refs"] == ["provider-ref:temporal-production"]
+    assert provider["context_isolation_refs"] == ["context-isolation-ref:reviewer-no-shared-context"]
+    assert provider["fallback_refs"] == ["provider-fallback-ref:local-diagnostic-only"]
+    claim_map = mechanism_inputs["claim_assurance_map"]
+    assert claim_map["body_included"] is False
+    assert claim_map["claim_body_included"] is False
+    assert claim_map["can_authorize_claim"] is False
+    assert claim_map["claim_refs"] == [
+        "claim-ref:external-validation-performance",
+        "claim-ref:hdl-unit-contamination",
+    ]
+    assert claim_map["evidence_refs"] == ["evidence-ref:cox-transport-validation"]
+    assert claim_map["reviewer_refs"] == ["review-ref:hdl-harmonization"]
+    assert claim_map["display_refs"] == ["display-ref:table-2-performance"]
+    assert "runtime-event:dm002/controller-decision-recorded" in mechanism_inputs["evidence_delta_refs"]
+    assert "provider-fallback-ref:local-diagnostic-only" in mechanism_inputs["evidence_delta_refs"]
+    assert "claim-ref:external-validation-performance" in mechanism_inputs["evidence_delta_refs"]
     assert mechanism_inputs["authority_boundary"]["can_write_domain_truth"] is False
