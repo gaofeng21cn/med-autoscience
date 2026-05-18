@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import analysis_harmonization_owner_result
+from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.runtime_supervisor_scan_parts import action_decorators
 from med_autoscience.controllers.runtime_supervisor_scan_parts import artifact_freshness
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
@@ -30,6 +31,18 @@ def action_queue(
     control_allowed_write_surfaces: list[str],
     forbidden_actions: list[str],
 ) -> list[dict[str, Any]]:
+    source_provenance_action = _source_provenance_recovery_action(study_root)
+    if source_provenance_action is not None:
+        return [
+            decorate_action(
+                study_id=study_id,
+                quest_id=quest_id,
+                action=source_provenance_action,
+                request_allowed_write_surfaces=request_allowed_write_surfaces,
+                control_allowed_write_surfaces=control_allowed_write_surfaces,
+                forbidden_actions=forbidden_actions,
+            )
+        ]
     hard_methodology_action = _hard_methodology_quality_repair_handoff_action(study_root)
     if hard_methodology_action is not None:
         return [
@@ -501,6 +514,43 @@ def _hard_methodology_quality_repair_handoff_action(study_root: Path) -> dict[st
     }
 
 
+def _source_provenance_recovery_action(study_root: Path) -> dict[str, Any] | None:
+    if source_provenance_owner_result.required_output_satisfied(study_root=study_root):
+        return None
+    owner_result_state = analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root)
+    if not owner_result_state:
+        return None
+    if _text(owner_result_state.get("blocked_reason")) != "transport_model_provenance_recovery_required":
+        return None
+    if _text(owner_result_state.get("next_owner")) != "source_provenance_owner":
+        return None
+    source_ref = analysis_harmonization_owner_result.result_path(study_root=study_root)
+    return {
+        "action_type": "recover_transport_model_provenance",
+        "authority": "observability_only",
+        "owner": "source_provenance_owner",
+        "request_owner": "source_provenance_owner",
+        "recommended_owner": "source_provenance_owner",
+        "reason": "transport_model_provenance_recovery_required",
+        "summary": (
+            "The unit-harmonized external-validation rerun requires the original transported Cox "
+            "model provenance before any renewed medical transportability claim can be authored."
+        ),
+        "next_work_unit": "recover_transport_model_provenance",
+        "work_unit_fingerprint": "source-provenance::recover_transport_model_provenance",
+        "required_output_surface": (
+            "canonical transport model provenance bundle or "
+            "typed blocker:transport_model_provenance_recovery_required"
+        ),
+        "source_ref": str(source_ref),
+        "quality_gate_relaxation_allowed": False,
+        "current_package_write_allowed": False,
+        "paper_package_mutation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+    }
+
+
 def _scientific_anchor_missing(
     *,
     status: Mapping[str, Any],
@@ -635,8 +685,15 @@ def why_not_applied(
     if completion_evidence.completed_current_truth(status, progress):
         return None
     study_root = _path(_text(status.get("study_root")) or _text(progress.get("study_root")))
-    if study_root is not None and analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root):
-        return analysis_harmonization_owner_result.BLOCKED_REASON
+    if study_root is not None:
+        source_result_state = source_provenance_owner_result.typed_blocker_state(study_root=study_root)
+        if source_result_state:
+            return _text(source_result_state.get("blocked_reason"))
+        owner_result_state = analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root)
+        if owner_result_state:
+            return _text(owner_result_state.get("blocked_reason"))
+    if _has_source_provenance_handoff_action(actions):
+        return "transport_model_provenance_recovery_required"
     if _has_hard_methodology_handoff_action(actions):
         return "unit_harmonized_rerun_required"
     publication_eval_payload = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
@@ -703,6 +760,15 @@ def _has_hard_methodology_handoff_action(actions: list[dict[str, Any]]) -> bool:
     )
 
 
+def _has_source_provenance_handoff_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "recover_transport_model_provenance"
+        and _text(action.get("reason")) == "transport_model_provenance_recovery_required"
+        and _text(action.get("owner")) == "source_provenance_owner"
+        for action in actions
+    )
+
+
 def _has_controller_redrive_action(actions: list[dict[str, Any]]) -> bool:
     return any(
         _text(action.get("action_type")) == "runtime_platform_repair"
@@ -725,6 +791,7 @@ def blocked_reason_from_scan(
             "return_to_ai_reviewer_workflow",
             "canonical_paper_inputs_rehydrate_required",
             "unit_harmonized_external_validation_rerun",
+            "recover_transport_model_provenance",
         }:
             return _text(action.get("reason")) or _text(action.get("action_type"))
     if gate_specificity.get("required") is True:

@@ -41,6 +41,7 @@ SUPPORTED_ACTION_TYPES = frozenset(
         "return_to_ai_reviewer_workflow",
         "canonical_paper_inputs_rehydrate_required",
         "unit_harmonized_external_validation_rerun",
+        "recover_transport_model_provenance",
     }
 )
 
@@ -767,6 +768,13 @@ def _execute_owner_dispatch_action(
     }
     if action_type == "unit_harmonized_external_validation_rerun":
         return action_execution.execute_unit_harmonized_external_validation_rerun(
+            profile=profile,
+            study_id=study_id,
+            apply=apply,
+            dispatch=dispatch,
+        )
+    if action_type == "recover_transport_model_provenance":
+        return action_execution.execute_recover_transport_model_provenance(
             profile=profile,
             study_id=study_id,
             apply=apply,

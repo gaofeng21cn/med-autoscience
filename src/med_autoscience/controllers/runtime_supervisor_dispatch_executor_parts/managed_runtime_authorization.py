@@ -252,6 +252,8 @@ def _runtime_authorized_owner_for_action(action_type: str) -> str:
         return "write"
     if action_type == "unit_harmonized_external_validation_rerun":
         return "analysis_harmonization_owner"
+    if action_type == "recover_transport_model_provenance":
+        return "source_provenance_owner"
     if action_type in {"current_package_freshness_required", "artifact_display_surface_materialization_required"}:
         return "artifact_os"
     if action_type == "publication_gate_specificity_required":

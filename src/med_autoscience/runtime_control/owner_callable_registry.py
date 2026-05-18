@@ -91,6 +91,25 @@ _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
         source_fingerprint_scope="controller_decision.work_unit_fingerprint",
     ),
     OwnerCallable(
+        owner="source_provenance_owner",
+        action_type="recover_transport_model_provenance",
+        callable_surface="source_provenance_owner.recover_transport_model_provenance_or_typed_blocker",
+        required_inputs=(
+            "artifacts/controller/analysis_harmonization/latest.json",
+            "artifacts/results/main_result.json",
+            "analysis/clean_room_execution/20_transportability/model_spec_and_feature_list.md",
+            "legacy runtime result refs",
+        ),
+        required_outputs=(
+            "canonical transport model provenance bundle",
+            "typed blocker:transport_model_provenance_recovery_required",
+        ),
+        artifact_delta_predicate="transport_model_provenance_bundle_or_source_owner_typed_blocker",
+        gate_replay_target="analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker",
+        idempotency_scope="source_provenance_recovery_work_unit",
+        source_fingerprint_scope="analysis_harmonization_owner_result.blocking_owner_route",
+    ),
+    OwnerCallable(
         owner="gate_clearing_batch",
         action_type="run_gate_clearing_batch",
         callable_surface="gate_clearing_batch.run_gate_clearing_batch",

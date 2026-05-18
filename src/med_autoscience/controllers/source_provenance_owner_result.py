@@ -5,16 +5,13 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import analysis_harmonization_owner
+from med_autoscience.controllers import source_provenance_owner
 
 
-OWNER = analysis_harmonization_owner.OWNER
-WORK_UNIT = analysis_harmonization_owner.WORK_UNIT
-BLOCKED_REASON = analysis_harmonization_owner.BLOCKED_REASON
-MODEL_PROVENANCE_BLOCKED_REASON = analysis_harmonization_owner.MODEL_PROVENANCE_BLOCKED_REASON
-MODEL_PROVENANCE_OWNER = analysis_harmonization_owner.MODEL_PROVENANCE_OWNER
-MODEL_PROVENANCE_WORK_UNIT = analysis_harmonization_owner.MODEL_PROVENANCE_WORK_UNIT
-RESULT_RELATIVE_PATH = analysis_harmonization_owner.RESULT_RELATIVE_PATH
+OWNER = source_provenance_owner.OWNER
+WORK_UNIT = source_provenance_owner.WORK_UNIT
+BLOCKED_REASON = source_provenance_owner.BLOCKED_REASON
+RESULT_RELATIVE_PATH = source_provenance_owner.RESULT_RELATIVE_PATH
 
 
 def result_path(*, study_root: Path) -> Path:
@@ -31,16 +28,16 @@ def required_output_satisfied(*, study_root: Path) -> bool:
 
 def result_satisfies_required_output(payload: Mapping[str, Any] | None) -> bool:
     result = _mapping(payload)
-    if not _matches_analysis_harmonization_result(result):
+    if not _matches_source_provenance_owner_result(result):
         return False
-    if result.get("unit_harmonized_rerun_completed") is True:
+    if result.get("transport_model_provenance_recovered") is True:
         return True
     return result_is_accepted_typed_blocker(result)
 
 
 def result_is_accepted_typed_blocker(payload: Mapping[str, Any] | None) -> bool:
     result = _mapping(payload)
-    if not _matches_analysis_harmonization_result(result):
+    if not _matches_source_provenance_owner_result(result):
         return False
     if _text(result.get("status")) != "blocked":
         return False
@@ -51,45 +48,17 @@ def result_is_accepted_typed_blocker(payload: Mapping[str, Any] | None) -> bool:
     typed_blocker = _mapping(result.get("typed_blocker"))
     if typed_blocker and _text(typed_blocker.get("blocker_id")) != BLOCKED_REASON:
         return False
-    return result.get("unit_harmonized_rerun_completed") is not True
+    return result.get("transport_model_provenance_recovered") is not True
 
 
 def typed_blocker_state(*, study_root: Path) -> dict[str, Any] | None:
     payload = read_result(study_root=study_root)
     if not result_is_accepted_typed_blocker(payload):
         return None
-    owner_route = blocking_owner_route(payload)
-    return {
-        "blocked_reason": owner_route["blocked_reason"],
-        "next_owner": owner_route["next_owner"],
-        "external_supervisor_required": False,
-    }
-
-
-def blocking_owner_route(payload: Mapping[str, Any] | None) -> dict[str, Any]:
-    result = _mapping(payload)
-    route = _mapping(result.get("blocking_owner_route"))
-    blocked_reason = _text(route.get("blocked_reason"))
-    next_owner = _text(route.get("next_owner"))
-    next_work_unit = _text(route.get("next_work_unit"))
-    if blocked_reason and next_owner and next_work_unit:
-        return {
-            "blocked_reason": blocked_reason,
-            "next_owner": next_owner,
-            "next_work_unit": next_work_unit,
-        }
-    typed_blocker = _mapping(result.get("typed_blocker"))
-    blocking_reasons = _string_items(typed_blocker.get("blocking_reasons"))
-    if "cox_model_application_provenance_insufficient_for_rerun" in blocking_reasons:
-        return {
-            "blocked_reason": MODEL_PROVENANCE_BLOCKED_REASON,
-            "next_owner": MODEL_PROVENANCE_OWNER,
-            "next_work_unit": MODEL_PROVENANCE_WORK_UNIT,
-        }
     return {
         "blocked_reason": BLOCKED_REASON,
         "next_owner": OWNER,
-        "next_work_unit": WORK_UNIT,
+        "external_supervisor_required": False,
     }
 
 
@@ -97,8 +66,8 @@ def output_pending_for_result(payload: Mapping[str, Any] | None) -> bool:
     return not result_satisfies_required_output(payload)
 
 
-def _matches_analysis_harmonization_result(payload: Mapping[str, Any]) -> bool:
-    if _text(payload.get("surface")) != "analysis_harmonization_owner_result":
+def _matches_source_provenance_owner_result(payload: Mapping[str, Any]) -> bool:
+    if _text(payload.get("surface")) != "source_provenance_owner_result":
         return False
     if _text(payload.get("owner")) != OWNER:
         return False
@@ -117,12 +86,6 @@ def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
 
-def _string_items(value: object) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    return [text for item in value if (text := _text(item))]
-
-
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -130,13 +93,9 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "BLOCKED_REASON",
-    "MODEL_PROVENANCE_BLOCKED_REASON",
-    "MODEL_PROVENANCE_OWNER",
-    "MODEL_PROVENANCE_WORK_UNIT",
     "OWNER",
     "RESULT_RELATIVE_PATH",
     "WORK_UNIT",
-    "blocking_owner_route",
     "output_pending_for_result",
     "read_result",
     "required_output_satisfied",

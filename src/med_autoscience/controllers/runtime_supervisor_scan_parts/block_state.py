@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers import analysis_harmonization_owner_result
+from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
@@ -55,16 +56,25 @@ def projection_block_state(
     actions: list[dict[str, Any]],
     why_not_applied: str | None,
 ) -> dict[str, Any]:
+    if study_root is not None:
+        source_result_state = source_provenance_owner_result.typed_blocker_state(study_root=study_root)
+        if source_result_state is not None:
+            return source_result_state
+        owner_result_state = analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root)
+        if owner_result_state is not None:
+            return owner_result_state
+    if _has_source_provenance_handoff_action(actions):
+        return {
+            "blocked_reason": "transport_model_provenance_recovery_required",
+            "next_owner": "source_provenance_owner",
+            "external_supervisor_required": False,
+        }
     if _has_hard_methodology_handoff_action(actions):
         return {
             "blocked_reason": "unit_harmonized_rerun_required",
             "next_owner": "analysis_harmonization_owner",
             "external_supervisor_required": False,
         }
-    if study_root is not None:
-        owner_result_state = analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root)
-        if owner_result_state is not None:
-            return owner_result_state
     if _has_clean_paper_authority_rehydrate_action(actions):
         return {
             "blocked_reason": "canonical_paper_inputs_rehydrate_required",
@@ -140,6 +150,8 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "write"
     if blocked_reason == "unit_harmonized_rerun_required":
         return "analysis_harmonization_owner"
+    if blocked_reason == "transport_model_provenance_recovery_required":
+        return "source_provenance_owner"
     return "external_supervisor"
 
 
@@ -170,6 +182,15 @@ def _has_hard_methodology_handoff_action(actions: list[dict[str, Any]]) -> bool:
         _text(action.get("action_type")) == "unit_harmonized_external_validation_rerun"
         and _text(action.get("reason")) == "unit_harmonized_rerun_required"
         and _text(action.get("owner")) == "analysis_harmonization_owner"
+        for action in actions
+    )
+
+
+def _has_source_provenance_handoff_action(actions: list[dict[str, Any]]) -> bool:
+    return any(
+        _text(action.get("action_type")) == "recover_transport_model_provenance"
+        and _text(action.get("reason")) == "transport_model_provenance_recovery_required"
+        and _text(action.get("owner")) == "source_provenance_owner"
         for action in actions
     )
 

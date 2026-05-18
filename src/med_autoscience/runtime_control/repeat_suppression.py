@@ -12,6 +12,9 @@ PUBLICATION_GATE_SPECIFICITY_REASON = "publication_gate_specificity_required"
 HARD_METHODOLOGY_REASON = "unit_harmonized_rerun_required"
 HARD_METHODOLOGY_ACTION = "unit_harmonized_external_validation_rerun"
 ANALYSIS_HARMONIZATION_OWNER = "analysis_harmonization_owner"
+MODEL_PROVENANCE_REASON = "transport_model_provenance_recovery_required"
+MODEL_PROVENANCE_ACTION = "recover_transport_model_provenance"
+SOURCE_PROVENANCE_OWNER = "source_provenance_owner"
 
 
 def repeat_key(payload: Mapping[str, Any] | None) -> str | None:
@@ -59,6 +62,7 @@ def scan_repeat_suppression(
         _owner_handoff_route(owner_route)
         or publication_gate_specificity_route(owner_route)
         or hard_methodology_harmonization_route(owner_route)
+        or source_provenance_recovery_route(owner_route)
         or _external_supervisor_repair_route(owner_route)
     ):
         return _not_suppressed(key)
@@ -109,6 +113,7 @@ def dispatch_repeat_suppression(
         _owner_handoff_route(owner_route)
         or publication_gate_specificity_route(owner_route)
         or hard_methodology_harmonization_route(owner_route)
+        or source_provenance_recovery_route(owner_route)
         or _external_supervisor_repair_route(owner_route)
     ):
         return _not_suppressed(key)
@@ -140,6 +145,7 @@ def execution_repeat_suppression(
         _owner_handoff_route(owner_route)
         or publication_gate_specificity_route(owner_route)
         or hard_methodology_harmonization_route(owner_route)
+        or source_provenance_recovery_route(owner_route)
         or _external_supervisor_repair_route(owner_route)
     ):
         return _not_suppressed(key)
@@ -212,6 +218,18 @@ def hard_methodology_harmonization_route(owner_route: Mapping[str, Any]) -> bool
     }
 
 
+def source_provenance_recovery_route(owner_route: Mapping[str, Any]) -> bool:
+    route = _mapping(owner_route)
+    if _text(route.get("next_owner")) != SOURCE_PROVENANCE_OWNER:
+        return False
+    route_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
+    if route_reason != MODEL_PROVENANCE_REASON:
+        return False
+    return MODEL_PROVENANCE_ACTION in {
+        item for value in route.get("allowed_actions") or [] if (item := _text(value)) is not None
+    }
+
+
 def _route_signature(owner_route: Mapping[str, Any] | None) -> tuple[str | None, str | None, tuple[str, ...]]:
     route = _mapping(owner_route)
     return (
@@ -256,6 +274,8 @@ __all__ = [
     "OWNER_HANDOFF_REASONS",
     "HARD_METHODOLOGY_ACTION",
     "HARD_METHODOLOGY_REASON",
+    "MODEL_PROVENANCE_ACTION",
+    "MODEL_PROVENANCE_REASON",
     "CLEAN_MIGRATION_OWNER_HANDOFF_REASON",
     "PUBLICATION_GATE_SPECIFICITY_REASON",
     "REPEAT_SUPPRESSED_REASON",
@@ -266,4 +286,5 @@ __all__ = [
     "publication_gate_specificity_route",
     "repeat_key",
     "scan_repeat_suppression",
+    "source_provenance_recovery_route",
 ]

@@ -16,6 +16,7 @@ from .. import (
     paper_authority_migration,
     publication_gate,
     quest_hydration,
+    source_provenance_owner,
     study_runtime_router,
 )
 from ..supervisor_action_request_lifecycle import stable_ai_reviewer_request_path
@@ -23,6 +24,7 @@ from ..supervisor_action_request_lifecycle import stable_ai_reviewer_request_pat
 
 PUBLICATION_EVAL_LATEST_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 ANALYSIS_HARMONIZATION_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/analysis_harmonization/latest.json")
+SOURCE_PROVENANCE_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/source_provenance/latest.json")
 _AI_REVIEWER_REQUIRED_RECORD_FIELDS = (
     "quality_assessment",
     "future_facing_limitations_plan",
@@ -502,6 +504,40 @@ def execute_unit_harmonized_external_validation_rerun(
     return {**owner_execution, "owner_result": owner_result, "request_path": str(request_path)}
 
 
+def execute_recover_transport_model_provenance(
+    *,
+    profile: WorkspaceProfile,
+    study_id: str,
+    apply: bool,
+    dispatch: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    study_root = _study_root(profile, study_id)
+    request_path = study_root / SOURCE_PROVENANCE_REQUEST_RELATIVE_PATH
+    request = _source_provenance_request(study_id=study_id, dispatch=dispatch or {})
+    if not apply:
+        return {
+            "execution_status": "dry_run",
+            "blocked_reason": None,
+            "owner_callable_surface": "source_provenance_owner.recover_transport_model_provenance_or_typed_blocker",
+            "request_path": str(request_path),
+            "next_owner": "source_provenance_owner",
+        }
+    request_path.parent.mkdir(parents=True, exist_ok=True)
+    request["path"] = str(request_path)
+    request_path.write_text(json.dumps(request, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    owner_execution = source_provenance_owner.recover_transport_model_provenance_or_typed_blocker(
+        profile=profile,
+        study_id=study_id,
+        dispatch=dispatch,
+        request=request,
+        apply=True,
+    )
+    owner_result = _mapping(owner_execution.get("owner_result"))
+    owner_result["request_path"] = str(request_path)
+    owner_result["request_kind"] = "recover_transport_model_provenance"
+    return {**owner_execution, "owner_result": owner_result, "request_path": str(request_path)}
+
+
 def _analysis_harmonization_request(*, study_id: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:
     prompt_contract = _mapping(dispatch.get("prompt_contract"))
     source_action = _mapping(dispatch.get("source_action"))
@@ -556,6 +592,83 @@ def _analysis_harmonization_request(*, study_id: str, dispatch: Mapping[str, Any
         "required_output": {
             "accepted_evidence": "unit-harmonized external-validation rerun evidence",
             "accepted_typed_blocker": "unit_harmonized_rerun_required",
+        },
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+    }
+
+
+def _source_provenance_request(*, study_id: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    source_action = _mapping(dispatch.get("source_action"))
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    required_output_surface = _text(dispatch.get("required_output_surface")) or _text(
+        prompt_contract.get("required_output_surface")
+    )
+    if required_output_surface is None:
+        required_output_surface = (
+            "canonical transport model provenance bundle or "
+            "typed blocker:transport_model_provenance_recovery_required"
+        )
+    return {
+        "surface": "supervisor_action_request",
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": _text(dispatch.get("quest_id")) or _text(prompt_contract.get("quest_id")) or study_id,
+        "request_kind": "recover_transport_model_provenance",
+        "request_owner": "source_provenance_owner",
+        "assigned_to": "source_provenance_owner",
+        "status": "requested",
+        "blocked_reason": "transport_model_provenance_recovery_required",
+        "next_owner": "source_provenance_owner",
+        "next_work_unit": "recover_transport_model_provenance",
+        "required_output_surface": required_output_surface,
+        "owner_route": owner_route,
+        "idempotency_key": _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key")),
+        "work_unit_fingerprint": _text(owner_route.get("work_unit_fingerprint"))
+        or _text(dispatch.get("repeat_suppression_key"))
+        or _text(prompt_contract.get("repeat_suppression_key")),
+        "source_action_ref": {
+            "action_type": _text(dispatch.get("action_type")),
+            "action_id": _text(dispatch.get("action_id")),
+            "dispatch_authority": _text(dispatch.get("dispatch_authority")),
+            "dispatch_path": _text(_mapping(dispatch.get("refs")).get("dispatch_path")),
+            "source_ref": _text(source_action.get("source_ref")),
+        },
+        "input_contract": {
+            "required_refs": {
+                "analysis_harmonization_owner_result": {
+                    "relative_path": "artifacts/controller/analysis_harmonization/latest.json"
+                },
+                "main_result": {"relative_path": "artifacts/results/main_result.json"},
+                "model_spec": {
+                    "relative_path": "analysis/clean_room_execution/20_transportability/model_spec_and_feature_list.md"
+                },
+                "input_cache_manifest": {
+                    "relative_path": "analysis/clean_room_execution/20_transportability/analysis_input_cache_manifest.json"
+                },
+                "legacy_methods_manifest": {
+                    "relative_path": (
+                        "runtime/archives/legacy_mds/20260516T123324511821Z/"
+                        "med-deepscientist/paper/methods_implementation_manifest.json"
+                    )
+                },
+            },
+            "provenance_requirements": [
+                "original Cox coefficients and coefficient order",
+                "feature coding and reference levels",
+                "5-year baseline survival or cumulative baseline hazard",
+                "penalty form and tuning path",
+                "standardization or scaler state",
+                "original model/result artifact",
+            ],
+            "substitute_refit_forbidden": True,
+        },
+        "required_output": {
+            "accepted_evidence": "canonical transport model provenance bundle",
+            "accepted_typed_blocker": "transport_model_provenance_recovery_required",
         },
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
@@ -832,11 +945,13 @@ def _ref_path(packet: Mapping[str, Any], surface: str) -> str | None:
 
 __all__ = [
     "ANALYSIS_HARMONIZATION_REQUEST_RELATIVE_PATH",
+    "SOURCE_PROVENANCE_REQUEST_RELATIVE_PATH",
     "execute_ai_reviewer_workflow",
     "execute_artifact_display_materialization",
     "execute_canonical_paper_inputs_rehydrate",
     "execute_current_package_freshness",
     "execute_publication_gate_specificity",
+    "execute_recover_transport_model_provenance",
     "execute_runtime_platform_repair",
     "execute_unit_harmonized_external_validation_rerun",
     "quest_root_from_status",

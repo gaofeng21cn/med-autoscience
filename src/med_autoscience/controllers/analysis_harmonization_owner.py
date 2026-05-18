@@ -13,6 +13,9 @@ from med_autoscience.profiles import WorkspaceProfile
 OWNER = "analysis_harmonization_owner"
 WORK_UNIT = "unit_harmonized_external_validation_rerun"
 BLOCKED_REASON = "unit_harmonized_rerun_required"
+MODEL_PROVENANCE_BLOCKED_REASON = "transport_model_provenance_recovery_required"
+MODEL_PROVENANCE_OWNER = "source_provenance_owner"
+MODEL_PROVENANCE_WORK_UNIT = "recover_transport_model_provenance"
 CALLABLE_SURFACE = f"{OWNER}.{WORK_UNIT}_or_typed_blocker"
 RESULT_RELATIVE_PATH = Path("artifacts/controller/analysis_harmonization/latest.json")
 REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/analysis_harmonization/latest.json")
@@ -86,6 +89,7 @@ def _build_owner_result(
         study_root=study_root,
         input_summary=input_summary,
     )
+    blocking_owner_route = _blocking_owner_route(prerequisite_assessment)
     status = "blocked" if prerequisite_assessment["blocking_reasons"] else "blocked"
     return {
         "surface": "analysis_harmonization_owner_result",
@@ -111,8 +115,9 @@ def _build_owner_result(
         "rerun_evidence_ref": None,
         "analysis_lane_status": "exhausted_for_current_fingerprint",
         "recommended_next_route": "handoff_to_next_owner",
-        "next_owner": OWNER,
-        "next_work_unit": WORK_UNIT,
+        "next_owner": blocking_owner_route["next_owner"],
+        "next_work_unit": blocking_owner_route["next_work_unit"],
+        "blocking_owner_route": blocking_owner_route,
         "required_output": {
             "accepted_evidence": "unit-harmonized external-validation rerun evidence",
             "accepted_typed_blocker": BLOCKED_REASON,
@@ -168,6 +173,41 @@ def _prerequisite_assessment(*, study_root: Path, input_summary: Mapping[str, An
         "blocking_reasons": blocking_reasons or ["unit_harmonized_rerun_evidence_not_materialized"],
         "raw_scale_existing_metrics_may_authorize_medical_claims": False,
         "rerun_without_prerequisites_allowed": False,
+    }
+
+
+def _blocking_owner_route(prerequisite_assessment: Mapping[str, Any]) -> dict[str, Any]:
+    blocking_reasons = list(_string_items(prerequisite_assessment.get("blocking_reasons")))
+    if "cox_model_application_provenance_insufficient_for_rerun" in blocking_reasons:
+        return {
+            "blocked_reason": MODEL_PROVENANCE_BLOCKED_REASON,
+            "next_owner": MODEL_PROVENANCE_OWNER,
+            "next_work_unit": MODEL_PROVENANCE_WORK_UNIT,
+            "required_output": (
+                "canonical transport model provenance bundle or "
+                f"typed blocker:{MODEL_PROVENANCE_BLOCKED_REASON}"
+            ),
+            "reason": (
+                "Unit-harmonized external validation cannot be rerun as the same transported "
+                "model until the Cox coefficients, feature order, coding, penalty provenance, "
+                "standardization state, and 5-year baseline survival are recovered."
+            ),
+            "source_blocked_reason": BLOCKED_REASON,
+            "source_owner": OWNER,
+            "source_work_unit": WORK_UNIT,
+        }
+    return {
+        "blocked_reason": BLOCKED_REASON,
+        "next_owner": OWNER,
+        "next_work_unit": WORK_UNIT,
+        "required_output": (
+            "unit-harmonized external-validation rerun evidence or "
+            f"typed blocker:{BLOCKED_REASON}"
+        ),
+        "reason": "Analysis harmonization owner must close or type-block the unit-harmonized rerun.",
+        "source_blocked_reason": BLOCKED_REASON,
+        "source_owner": OWNER,
+        "source_work_unit": WORK_UNIT,
     }
 
 
@@ -274,6 +314,12 @@ def _read_text(path: Path) -> str:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _string_items(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [text for item in value if (text := _text(item))]
 
 
 def _text(value: object) -> str | None:

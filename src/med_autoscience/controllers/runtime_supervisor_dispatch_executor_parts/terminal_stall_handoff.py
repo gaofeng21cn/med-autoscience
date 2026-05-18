@@ -28,6 +28,13 @@ def owner_handoff_allowed(
         return repeat_suppression.hard_methodology_harmonization_route(
             owner_route
         ) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
+    if action_type == "recover_transport_model_provenance":
+        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
+        return repeat_suppression.source_provenance_recovery_route(owner_route) and owner_route_part.route_allows_action(
+            action=dispatch,
+            owner_route=owner_route,
+        )
     if action_type == "runtime_platform_repair":
         current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)

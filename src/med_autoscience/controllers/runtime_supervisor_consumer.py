@@ -36,6 +36,7 @@ SUPPORTED_REQUEST_ACTION_TYPES = frozenset(
         "return_to_ai_reviewer_workflow",
         "canonical_paper_inputs_rehydrate_required",
         "unit_harmonized_external_validation_rerun",
+        "recover_transport_model_provenance",
     }
 )
 SUPPORTED_MODE = "developer_apply_safe"
@@ -72,6 +73,7 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/consumer/return_to_ai_reviewer_workflow.json",
     "studies/<study_id>/artifacts/supervision/consumer/canonical_paper_inputs_rehydrate_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/unit_harmonized_external_validation_rerun.json",
+    "studies/<study_id>/artifacts/supervision/consumer/recover_transport_model_provenance.json",
     "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
 ]
 MERGE_CLEANUP_CHECKLIST = [
@@ -251,6 +253,8 @@ def _request_owner_for_action_type(action_type: str) -> str:
         return "write"
     if action_type == "unit_harmonized_external_validation_rerun":
         return "analysis_harmonization_owner"
+    if action_type == "recover_transport_model_provenance":
+        return "source_provenance_owner"
     return "controller"
 
 
@@ -283,6 +287,11 @@ def _request_output_surface_for_action_type(action_type: str) -> str:
             "unit-harmonized external-validation rerun evidence or "
             "typed blocker:unit_harmonized_rerun_required"
         )
+    if action_type == "recover_transport_model_provenance":
+        return (
+            "canonical transport model provenance bundle or "
+            "typed blocker:transport_model_provenance_recovery_required"
+        )
     return "artifacts/supervision/requests"
 
 
@@ -299,6 +308,8 @@ def _request_packet_ref_for_action_type(action_type: str) -> str:
         return "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
     if action_type == "unit_harmonized_external_validation_rerun":
         return "artifacts/supervision/requests/analysis_harmonization/latest.json"
+    if action_type == "recover_transport_model_provenance":
+        return "artifacts/supervision/requests/source_provenance/latest.json"
     return "artifacts/supervision/requests"
 
 

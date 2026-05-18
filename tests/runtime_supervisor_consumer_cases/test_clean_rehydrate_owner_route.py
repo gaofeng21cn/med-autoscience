@@ -219,6 +219,99 @@ def test_supervisor_consume_routes_hard_methodology_handoff_to_analysis_harmoniz
     assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
 
 
+def test_supervisor_consume_routes_model_provenance_handoff_to_source_owner(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_consumer")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    monkeypatch.setenv("OPL_STATE_DIR", str(tmp_path / "opl-state"))
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    route = _owner_route(
+        study_id=study_id,
+        quest_id="quest-dm002",
+        next_owner="source_provenance_owner",
+        owner_reason="transport_model_provenance_recovery_required",
+        allowed_actions=["recover_transport_model_provenance"],
+    )
+    _write_json(
+        profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "schema_version": 1,
+            "studies": [{"study_id": study_id, "owner_route": route}],
+            "action_queue": [
+                {
+                    "study_id": study_id,
+                    "quest_id": "quest-dm002",
+                    "action_type": "recover_transport_model_provenance",
+                    "authority": "observability_only",
+                    "owner": "source_provenance_owner",
+                    "recommended_owner": "source_provenance_owner",
+                    "reason": "transport_model_provenance_recovery_required",
+                    "required_output_surface": (
+                        "canonical transport model provenance bundle or "
+                        "typed blocker:transport_model_provenance_recovery_required"
+                    ),
+                    "owner_route": route,
+                    "quality_gate_relaxation_allowed": False,
+                    "current_package_write_allowed": False,
+                    "handoff_packet": {
+                        "request_kind": "recover_transport_model_provenance",
+                        "authority": "observability_only",
+                        "request_owner": "source_provenance_owner",
+                        "owner_route": route,
+                        "paper_package_mutation_allowed": False,
+                        "quality_gate_relaxation_allowed": False,
+                        "medical_claim_authoring_allowed": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    result = module.supervisor_consume(
+        profile=profile,
+        study_ids=(study_id,),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    task = result["request_tasks"][0]
+    dispatch = result["default_executor_dispatches"][0]
+    packet_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "recover_transport_model_provenance.json"
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "recover_transport_model_provenance.json"
+    )
+    assert task["dispatch_status"] == "applied"
+    assert task["request_owner"] == "source_provenance_owner"
+    assert task["request_packet_ref"] == "artifacts/supervision/requests/source_provenance/latest.json"
+    assert dispatch["dispatch_status"] == "ready"
+    assert dispatch["next_executable_owner"] == "source_provenance_owner"
+    assert dispatch["prompt_contract"]["request_packet_ref"] == (
+        "artifacts/supervision/requests/source_provenance/latest.json"
+    )
+    assert dispatch["prompt_contract"]["quality_gate_relaxation_allowed"] is False
+    assert packet_path.is_file()
+    assert dispatch_path.is_file()
+    assert not (study_root / "paper").exists()
+    assert not (study_root / "manuscript").exists()
+    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
+
+
 def test_supervisor_consume_prefers_current_study_queue_over_stale_top_level_queue(
     monkeypatch,
     tmp_path: Path,

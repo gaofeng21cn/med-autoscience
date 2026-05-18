@@ -120,6 +120,10 @@ def _required_output_surface_for_action(action_type: str) -> str | None:
         "unit_harmonized_external_validation_rerun": (
             "unit-harmonized external-validation rerun evidence or typed blocker:unit_harmonized_rerun_required"
         ),
+        "recover_transport_model_provenance": (
+            "canonical transport model provenance bundle or "
+            "typed blocker:transport_model_provenance_recovery_required"
+        ),
     }.get(action_type)
 
 

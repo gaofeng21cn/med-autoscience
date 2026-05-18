@@ -51,3 +51,18 @@ Additional verification:
 
 - `uv run pytest tests/test_ai_reviewer_publication_eval_workflow.py tests/test_paper_authority_migration.py tests/test_cli_cases/study_state_matrix_ai_reviewer_currentness_cases.py tests/test_runtime_supervisor_dispatch_executor_cases/clean_migration_rematerialization.py tests/test_runtime_supervisor_dispatch_executor_cases/ai_reviewer_workflow_dispatch.py tests/test_cli_cases/study_state_matrix_command.py::test_study_state_matrix_projects_delivered_package_and_unclassified_fail_closed tests/test_study_runtime_interaction_arbitration.py::test_arbitrate_waiting_for_user_respects_delivered_package_oracle_over_blocked_closeout_redrive -q`: 39 passed.
 - `scripts/verify.sh`: repo hygiene audit passed; 4 passed.
+
+## Source Provenance Follow-Up
+
+The hard-methodology loop surfaced a second blocker: after HDL/unit contamination is detected, a unit-harmonized external validation cannot be rerun as the same transported model unless the original Cox model provenance is recovered. Inputs, metric summaries, and prose-level method descriptions are insufficient.
+
+Follow-up patch:
+
+- Route `analysis_harmonization_owner` model-provenance blockers to `source_provenance_owner`.
+- Add `source_provenance_owner.recover_transport_model_provenance_or_typed_blocker`, which writes only `artifacts/controller/source_provenance/latest.json`.
+- Add supervisor scan, consumer, dispatch executor, output-readiness, repeat-suppression, and managed-runtime routing for `recover_transport_model_provenance`.
+- Preserve the no-forbidden-write boundary: no paper, manuscript package, publication eval, controller decision, or submission-readiness verdict is written by this owner.
+
+Additional verification:
+
+- `scripts/run-pytest-clean.sh tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/runtime_supervisor_consumer_cases/test_clean_rehydrate_owner_route.py tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py tests/test_owner_callable_registry.py -q`: 11 passed.
