@@ -265,6 +265,17 @@ def _mechanism_evolution_inputs(
         root / "artifacts" / "analysis_campaign" / "latest_manifest.json",
         root / "paper" / "analysis_queue.json",
     )
+    research_memory_graph = _research_memory_graph(
+        root=root,
+        study_id=study_id,
+        research_wiki_refs=research_wiki_refs,
+        failed_route_refs=failed_route_refs,
+    )
+    analysis_queue_manifest = _analysis_queue_manifest(
+        root=root,
+        study_id=study_id,
+        manifest_refs=analysis_queue_manifest_refs,
+    )
     return {
         "surface_kind": "mas_agent_lab_mechanism_evolution_inputs",
         "target_opl_surface": "opl_agent_lab_evolution_result",
@@ -272,8 +283,10 @@ def _mechanism_evolution_inputs(
         "automatic_mechanism_promotion_route": "risk_tiered_auto_promotion_with_independent_ai_review",
         "research_wiki_refs": research_wiki_refs,
         "failed_route_refs": failed_route_refs,
+        "research_memory_graph": research_memory_graph,
         "reviewer_direct_evidence_refs": reviewer_direct_evidence_refs,
         "analysis_queue_manifest_refs": analysis_queue_manifest_refs,
+        "analysis_queue_manifest": analysis_queue_manifest,
         "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
         "evidence_delta_refs": _unique_refs(
             [
@@ -299,23 +312,205 @@ def _mechanism_evolution_inputs(
     }
 
 
+def _research_memory_graph(
+    *,
+    root: Path,
+    study_id: str,
+    research_wiki_refs: list[str],
+    failed_route_refs: list[str],
+) -> dict[str, Any]:
+    paths = (
+        root / "artifacts" / "research_wiki" / "latest.json",
+        root / "paper" / "research_wiki.json",
+        root / "paper" / "route_memory.json",
+    )
+    graph = {
+        "surface_kind": "mas_research_memory_graph",
+        "graph_kind": "body_free_research_memory_graph",
+        "body_included": False,
+        "memory_body_authority": "mas_publication_route_memory_owner",
+        "manifest_refs": research_wiki_refs,
+        "paper_refs": _memory_refs(
+            paths=paths,
+            key="paper_refs",
+            study_id=study_id,
+        ),
+        "claim_refs": _memory_refs(
+            paths=paths,
+            key="claim_refs",
+            study_id=study_id,
+        ),
+        "experiment_refs": _memory_refs(
+            paths=paths,
+            key="experiment_refs",
+            study_id=study_id,
+        ),
+        "failed_idea_refs": _memory_refs(
+            paths=paths,
+            key="failed_idea_refs",
+            aliases=("failed_ideas",),
+            study_id=study_id,
+        ),
+        "negative_result_refs": _memory_refs(
+            paths=paths,
+            key="negative_result_refs",
+            aliases=("negative_results",),
+            study_id=study_id,
+        ),
+        "reusable_rationale_refs": _memory_refs(
+            paths=paths,
+            key="reusable_rationale_refs",
+            aliases=("reusable_rationales", "rationale_refs"),
+            study_id=study_id,
+        ),
+        "failed_route_refs": failed_route_refs,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+    return graph
+
+
+def _analysis_queue_manifest(
+    *,
+    root: Path,
+    study_id: str,
+    manifest_refs: list[str],
+) -> dict[str, Any]:
+    paths = (
+        root / "artifacts" / "analysis_queue" / "latest.json",
+        root / "artifacts" / "analysis_campaign" / "queue_manifest.json",
+        root / "artifacts" / "analysis_campaign" / "latest_manifest.json",
+        root / "paper" / "analysis_queue.json",
+    )
+    payloads = [_read_json_object(path) for path in paths]
+    payloads = [payload for payload in payloads if payload]
+    queue_ref = _first_text(payloads, "queue_ref", "ref", "id", "manifest_ref")
+    state = _first_text(payloads, "state", "status", "queue_state")
+    retry_policy = _first_mapping(payloads, "retry_policy") or {
+        "policy_ref": "retry-policy:mas/analysis-campaign/idempotent-owner-replay",
+        "max_retry_count": 0,
+        "requires_owner_receipt": True,
+        "can_authorize_quality_verdict": False,
+    }
+    budget = _first_mapping(payloads, "budget") or {
+        "budget_ref": f"analysis-budget:mas/{study_id}/medical-manuscript-quality",
+        "state": "blocked",
+        "body_included": False,
+    }
+    items = _analysis_queue_items(payloads=payloads, study_id=study_id, manifest_refs=manifest_refs)
+    return {
+        "surface_kind": "mas_analysis_queue_manifest",
+        "manifest_kind": "body_free_analysis_queue_manifest",
+        "body_included": False,
+        "queue_ref": queue_ref or f"analysis-queue:mas/{study_id}/medical-manuscript-quality",
+        "state": state or ("active" if manifest_refs and items else "blocked"),
+        "retry_policy": retry_policy,
+        "budget": budget,
+        "items": items,
+        "manifest_refs": manifest_refs,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
 def _failed_route_refs(*, root: Path, study_id: str) -> list[str]:
-    refs = _json_refs(root / "artifacts" / "research_wiki" / "latest.json", "failed_routes")
-    refs.extend(_json_refs(root / "paper" / "research_wiki.json", "failed_routes"))
+    paths = (
+        root / "artifacts" / "research_wiki" / "latest.json",
+        root / "paper" / "research_wiki.json",
+        root / "paper" / "route_memory.json",
+    )
+    refs = _json_refs_for_keys(paths=paths, keys=("failed_route_refs", "failed_routes"))
     if refs:
         return _unique_refs(refs)
     return [f"failed-route:mas/{study_id}/medical-manuscript-quality-gap"]
 
 
+def _memory_refs(
+    *,
+    paths: tuple[Path, ...],
+    key: str,
+    study_id: str,
+    aliases: tuple[str, ...] = (),
+) -> list[str]:
+    refs = _json_refs_for_keys(paths=paths, keys=(key, *aliases))
+    if refs:
+        return _unique_refs(refs)
+    return [f"research-memory-ref:mas/{study_id}/{key}/body-free-fallback"]
+
+
+def _json_refs_for_keys(*, paths: tuple[Path, ...], keys: tuple[str, ...]) -> list[str]:
+    refs: list[str] = []
+    for path in paths:
+        payload = _read_json_object(path)
+        for key in keys:
+            refs.extend(_refs_from_value(payload.get(key)))
+    return refs
+
+
 def _json_refs(path: Path, key: str) -> list[str]:
     payload = _read_json_object(path)
-    values = payload.get(key)
+    return _refs_from_value(payload.get(key))
+
+
+def _analysis_queue_items(
+    *,
+    payloads: list[dict[str, Any]],
+    study_id: str,
+    manifest_refs: list[str],
+) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for payload in payloads:
+        for key in ("items", "queue_items", "analysis_items"):
+            values = payload.get(key)
+            if not isinstance(values, list):
+                continue
+            for item in values:
+                normalized = _analysis_queue_item(item, default_state=_text(payload.get("state")))
+                if normalized:
+                    items.append(normalized)
+    if items:
+        return _unique_items(items)
+    return [
+        {
+            "ref": f"analysis-queue-item:mas/{study_id}/medical-manuscript-quality-blocked",
+            "state": "blocked",
+            "retry_count": 0,
+            "budget_cost": 0,
+            "source_refs": manifest_refs
+            or [f"analysis-queue-missing:mas/{study_id}/medical-manuscript-quality"],
+        }
+    ]
+
+
+def _analysis_queue_item(item: object, *, default_state: str) -> dict[str, Any] | None:
+    if isinstance(item, Mapping):
+        ref = _item_ref(item)
+        if not ref:
+            return None
+        return {
+            "ref": ref,
+            "state": _text(item.get("state") or item.get("status")) or default_state or "blocked",
+            "retry_count": _int(item.get("retry_count"), default=0),
+            "budget_cost": item.get("budget_cost", item.get("cost", 0)),
+            "source_refs": _refs_from_value(item.get("source_refs")),
+        }
+    ref = _text(item)
+    if not ref:
+        return None
+    return {
+        "ref": ref,
+        "state": default_state or "blocked",
+        "retry_count": 0,
+        "budget_cost": 0,
+        "source_refs": [],
+    }
+
+
+def _refs_from_value(values: object) -> list[str]:
     if not isinstance(values, list):
         return []
     refs: list[str] = []
     for item in values:
         if isinstance(item, Mapping):
-            ref = _text(item.get("ref") or item.get("route_ref") or item.get("id"))
+            ref = _item_ref(item)
             if ref:
                 refs.append(ref)
         else:
@@ -323,6 +518,58 @@ def _json_refs(path: Path, key: str) -> list[str]:
             if ref:
                 refs.append(ref)
     return refs
+
+
+def _item_ref(item: Mapping[str, Any]) -> str:
+    for key in (
+        "ref",
+        "id",
+        "route_ref",
+        "paper_ref",
+        "claim_ref",
+        "experiment_ref",
+        "idea_ref",
+        "failed_idea_ref",
+        "negative_result_ref",
+        "rationale_ref",
+        "queue_ref",
+    ):
+        ref = _text(item.get(key))
+        if ref:
+            return ref
+    return ""
+
+
+def _first_text(payloads: list[dict[str, Any]], *keys: str) -> str:
+    for payload in payloads:
+        for key in keys:
+            value = _text(payload.get(key))
+            if value:
+                return value
+    return ""
+
+
+def _first_mapping(payloads: list[dict[str, Any]], key: str) -> dict[str, Any]:
+    for payload in payloads:
+        value = payload.get(key)
+        if isinstance(value, Mapping):
+            return dict(value)
+        text = _text(value)
+        if text:
+            return {"policy_ref": text} if key == "retry_policy" else {"ref": text}
+    return {}
+
+
+def _unique_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    unique: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in items:
+        ref = _text(item.get("ref"))
+        if not ref or ref in seen:
+            continue
+        seen.add(ref)
+        unique.append(item)
+    return unique
 
 
 def _unique_refs(refs: list[str]) -> list[str]:
@@ -368,6 +615,17 @@ def _read_json_object(path: Path) -> dict[str, Any]:
 
 def _text(value: object) -> str:
     return str(value or "").strip()
+
+
+def _int(value: object, *, default: int) -> int:
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, int):
+        return value
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return default
 
 
 __all__ = [

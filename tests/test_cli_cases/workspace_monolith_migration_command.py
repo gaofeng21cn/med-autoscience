@@ -286,11 +286,33 @@ def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_in
     )
     _write_json(
         study_root / "artifacts" / "research_wiki" / "latest.json",
-        {"failed_routes": [{"ref": "failed-route:internal-quality-language"}]},
+        {
+            "paper_refs": [{"ref": "paper-ref:dm002-current-draft"}],
+            "claim_refs": [{"claim_ref": "claim-ref:hdl-unit-contamination"}],
+            "experiment_refs": [{"experiment_ref": "experiment-ref:external-validation-replay"}],
+            "failed_ideas": [{"id": "failed-idea:mechanical-completeness-gate"}],
+            "negative_results": [{"ref": "negative-result:uncalibrated-risk-collapse"}],
+            "rationale_refs": ["rationale-ref:ai-reviewer-quality-route-back"],
+            "failed_routes": [{"ref": "failed-route:internal-quality-language"}],
+        },
     )
     _write_json(
         study_root / "artifacts" / "analysis_queue" / "latest.json",
-        {"items": [{"ref": "analysis-queue:hdl-harmonization"}]},
+        {
+            "queue_ref": "analysis-queue:dm002/reviewer-repair",
+            "state": "active",
+            "retry_policy": "retry-policy:mas/analysis-campaign/manual-owner-retry",
+            "budget": {"budget_ref": "analysis-budget:dm002/reviewer-repair"},
+            "items": [
+                {
+                    "ref": "analysis-queue:hdl-harmonization",
+                    "state": "blocked",
+                    "retry_count": "2",
+                    "budget_cost": 5,
+                    "source_refs": ["paper-ref:dm002-current-draft"],
+                }
+            ],
+        },
     )
 
     exit_code = cli.main(
@@ -310,4 +332,28 @@ def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_in
     assert mechanism_inputs["target_opl_surface"] == "opl_agent_lab_evolution_result"
     assert any("research_wiki/latest.json" in ref for ref in mechanism_inputs["research_wiki_refs"])
     assert any("analysis_queue/latest.json" in ref for ref in mechanism_inputs["analysis_queue_manifest_refs"])
+    graph = mechanism_inputs["research_memory_graph"]
+    assert graph["paper_refs"] == ["paper-ref:dm002-current-draft"]
+    assert graph["claim_refs"] == ["claim-ref:hdl-unit-contamination"]
+    assert graph["experiment_refs"] == ["experiment-ref:external-validation-replay"]
+    assert graph["failed_idea_refs"] == ["failed-idea:mechanical-completeness-gate"]
+    assert graph["negative_result_refs"] == ["negative-result:uncalibrated-risk-collapse"]
+    assert graph["reusable_rationale_refs"] == ["rationale-ref:ai-reviewer-quality-route-back"]
+    assert graph["failed_route_refs"] == ["failed-route:internal-quality-language"]
+    assert graph["body_included"] is False
+    queue = mechanism_inputs["analysis_queue_manifest"]
+    assert queue["queue_ref"] == "analysis-queue:dm002/reviewer-repair"
+    assert queue["state"] == "active"
+    assert queue["retry_policy"] == {"policy_ref": "retry-policy:mas/analysis-campaign/manual-owner-retry"}
+    assert queue["budget"] == {"budget_ref": "analysis-budget:dm002/reviewer-repair"}
+    assert queue["items"] == [
+        {
+            "ref": "analysis-queue:hdl-harmonization",
+            "state": "blocked",
+            "retry_count": 2,
+            "budget_cost": 5,
+            "source_refs": ["paper-ref:dm002-current-draft"],
+        }
+    ]
+    assert queue["body_included"] is False
     assert mechanism_inputs["authority_boundary"]["can_write_domain_truth"] is False

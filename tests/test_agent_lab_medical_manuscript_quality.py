@@ -51,6 +51,32 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert task["scorecard"]["opl_scorecard_role"] == "scorecard_ref_projection_only"
     assert task["scorecard"]["passed"] is False
     assert task["promotion_gate"]["gate_status"] == "blocked"
+    mechanism_inputs = task["mechanism_evolution_inputs"]
+    graph = mechanism_inputs["research_memory_graph"]
+    queue = mechanism_inputs["analysis_queue_manifest"]
+    assert graph["body_included"] is False
+    assert graph["paper_refs"] == [
+        "research-memory-ref:mas/002-dm-china-us-mortality-attribution/paper_refs/body-free-fallback"
+    ]
+    assert graph["failed_route_refs"] == [
+        "failed-route:mas/002-dm-china-us-mortality-attribution/medical-manuscript-quality-gap"
+    ]
+    assert queue["state"] == "blocked"
+    assert queue["items"] == [
+        {
+            "ref": (
+                "analysis-queue-item:mas/002-dm-china-us-mortality-attribution/"
+                "medical-manuscript-quality-blocked"
+            ),
+            "state": "blocked",
+            "retry_count": 0,
+            "budget_cost": 0,
+            "source_refs": [
+                "analysis-queue-missing:mas/002-dm-china-us-mortality-attribution/"
+                "medical-manuscript-quality"
+            ],
+        }
+    ]
     assert task["improvement_candidate"]["candidate_kind"] == "rubric_gap"
     assert task["improvement_candidate"]["target_agent_capability_gap"]["status"] == "candidate_only"
     assert "quality_contract_ref:prediction_model_first_draft_quality" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
@@ -88,11 +114,36 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
     )
     _write_json(
         study_root / "artifacts" / "analysis_queue" / "latest.json",
-        {"items": [{"ref": "analysis-queue:hdl-harmonization"}]},
+        {
+            "queue_ref": "analysis-queue:dm002/reviewer-repair",
+            "state": "active",
+            "retry_policy": {
+                "policy_ref": "retry-policy:mas/analysis-campaign/manual-owner-retry",
+                "max_retry_count": 2,
+            },
+            "budget": {"budget_ref": "analysis-budget:dm002/reviewer-repair", "max_cost": 8},
+            "items": [
+                {
+                    "id": "analysis-queue:hdl-harmonization",
+                    "state": "ready",
+                    "retry_count": 1,
+                    "budget_cost": 3,
+                    "source_refs": ["review-ref:hdl-harmonization"],
+                }
+            ],
+        },
     )
     _write_json(
         study_root / "artifacts" / "research_wiki" / "latest.json",
-        {"failed_routes": [{"ref": "failed-route:internal-quality-language"}]},
+        {
+            "paper_refs": [{"ref": "paper-ref:dm002-current-draft"}],
+            "claim_refs": [{"claim_ref": "claim-ref:hdl-unit-contamination"}],
+            "experiment_refs": ["experiment-ref:external-validation-replay"],
+            "failed_idea_refs": [{"id": "failed-idea:mechanical-completeness-gate"}],
+            "negative_result_refs": [{"ref": "negative-result:uncalibrated-risk-collapse"}],
+            "reusable_rationale_refs": ["rationale-ref:ai-reviewer-quality-route-back"],
+            "failed_routes": [{"ref": "failed-route:internal-quality-language"}],
+        },
     )
 
     suite = module.build_medical_manuscript_quality_agent_lab_suite(study_root=study_root)
@@ -106,9 +157,37 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
     assert inputs["authority_boundary"]["can_authorize_quality_verdict"] is False
     assert any("research_wiki/latest.json" in ref for ref in inputs["research_wiki_refs"])
     assert any("failed-route" in ref for ref in inputs["failed_route_refs"])
+    graph = inputs["research_memory_graph"]
+    assert graph["surface_kind"] == "mas_research_memory_graph"
+    assert graph["body_included"] is False
+    assert graph["paper_refs"] == ["paper-ref:dm002-current-draft"]
+    assert graph["claim_refs"] == ["claim-ref:hdl-unit-contamination"]
+    assert graph["experiment_refs"] == ["experiment-ref:external-validation-replay"]
+    assert graph["failed_idea_refs"] == ["failed-idea:mechanical-completeness-gate"]
+    assert graph["negative_result_refs"] == ["negative-result:uncalibrated-risk-collapse"]
+    assert graph["reusable_rationale_refs"] == ["rationale-ref:ai-reviewer-quality-route-back"]
+    assert graph["failed_route_refs"] == ["failed-route:internal-quality-language"]
+    assert graph["authority_boundary"]["can_write_memory_body"] is False
     assert any("review_ledger.json" in ref for ref in inputs["reviewer_direct_evidence_refs"])
     assert any("task_intake/latest.json" in ref for ref in inputs["reviewer_direct_evidence_refs"])
     assert any("analysis_queue/latest.json" in ref for ref in inputs["analysis_queue_manifest_refs"])
+    queue = inputs["analysis_queue_manifest"]
+    assert queue["surface_kind"] == "mas_analysis_queue_manifest"
+    assert queue["body_included"] is False
+    assert queue["queue_ref"] == "analysis-queue:dm002/reviewer-repair"
+    assert queue["state"] == "active"
+    assert queue["retry_policy"]["policy_ref"] == "retry-policy:mas/analysis-campaign/manual-owner-retry"
+    assert queue["budget"] == {"budget_ref": "analysis-budget:dm002/reviewer-repair", "max_cost": 8}
+    assert queue["items"] == [
+        {
+            "ref": "analysis-queue:hdl-harmonization",
+            "state": "ready",
+            "retry_count": 1,
+            "budget_cost": 3,
+            "source_refs": ["review-ref:hdl-harmonization"],
+        }
+    ]
+    assert queue["authority_boundary"]["can_authorize_quality_verdict"] is False
     assert "mechanism-edit-ref:mas/analysis-campaign-queue-routing" in inputs["target_editable_surface_refs"]
     assert "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue" in task["promotion_gate"]["regression_suite_refs"]
 
