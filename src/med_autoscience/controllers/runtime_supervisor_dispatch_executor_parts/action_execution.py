@@ -499,6 +499,12 @@ def _ai_reviewer_record_for_execution(
     current_record = _mapping(_read_json_object(_publication_eval_latest_path(study_root)))
     request_record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
 
+    if request_record:
+        record_blocker = _request_record_blocker(request_record)
+        if record_blocker:
+            return {}, record_blocker
+        return request_record, None
+
     if paper_authority_migration.cutover_requires_ai_reviewer(study_root=study_root) and not request_record:
         request_record = _clean_migration_request_record(study_root=study_root, request=request)
 
@@ -519,22 +525,9 @@ def _ai_reviewer_record_for_execution(
         return current_record, None
 
     if request_record:
-        if not _request_record_owner_acceptable(request_record):
-            return {}, {
-                "reason": "ai_reviewer_record_missing",
-                "payload": {
-                    "owner_record_requirements": _ai_reviewer_record_requirements(),
-                },
-            }
-        missing_fields = _missing_ai_reviewer_record_fields(request_record)
-        if missing_fields:
-            return {}, {
-                "reason": "ai_reviewer_record_incomplete",
-                "payload": {
-                    "missing_record_fields": missing_fields,
-                    "owner_record_requirements": _ai_reviewer_record_requirements(),
-                },
-            }
+        record_blocker = _request_record_blocker(request_record)
+        if record_blocker:
+            return {}, record_blocker
         return request_record, None
 
     return {}, {
@@ -543,6 +536,26 @@ def _ai_reviewer_record_for_execution(
             "owner_record_requirements": _ai_reviewer_record_requirements(),
         },
     }
+
+
+def _request_record_blocker(record: Mapping[str, Any]) -> dict[str, Any] | None:
+    if not _request_record_owner_acceptable(record):
+        return {
+            "reason": "ai_reviewer_record_missing",
+            "payload": {
+                "owner_record_requirements": _ai_reviewer_record_requirements(),
+            },
+        }
+    missing_fields = _missing_ai_reviewer_record_fields(record)
+    if missing_fields:
+        return {
+            "reason": "ai_reviewer_record_incomplete",
+            "payload": {
+                "missing_record_fields": missing_fields,
+                "owner_record_requirements": _ai_reviewer_record_requirements(),
+            },
+        }
+    return None
 
 
 def _clean_migration_request_record(*, study_root: Path, request: Mapping[str, Any]) -> dict[str, Any]:

@@ -1,5 +1,12 @@
 # 关键决策记录
 
+## 2026-05-18：AI reviewer dispatch 优先消费 current request record
+
+- 决策：`return_to_ai_reviewer_workflow` 执行时，若 `artifacts/supervision/requests/ai_reviewer/latest.json` 已携带 AI reviewer-owned publication eval record，dispatch executor 必须先校验并消费该 request-attached record；只有 request 未携带 record 时，才允许回退读取 active `publication_eval/latest.json` 或 clean-migration interim record。
+- 决策：旧 `publication_eval/latest.json` 即使是 `assessment_provenance.owner=ai_reviewer`，只要它缺 `future_facing_limitations_plan`、仍是 clean-migration underdefined projection，或早于当前 AI reviewer response record，就不得阻断 request record 物化。request record 仍需满足相同 fail-closed 要求：AI reviewer provenance 可接受、`quality_assessment` 存在、`future_facing_limitations_plan` 非空。
+- 理由：DM002 暴露出 AI reviewer response 目录和 supervision request 已经携带当前 `partial/revise -> analysis` 质量结论，但旧 active latest 缺顶层 future plan，导致 executor 先报 `ai_reviewer_record_incomplete`，没有把当前 AI reviewer record 写回 publication eval truth。
+- 影响：AI reviewer 仍是质量判断 owner；dispatch 只修正当前 owner record 的消费优先级，不从 prose review 文本临场拼 verdict，不放宽 record schema，不写 `paper/`、`controller_decisions/latest.json`、`manuscript/current_package` 或 submission readiness。
+
 ## 2026-05-18：paper-authority migration 只处理 canonical study root
 
 - 决策：`paper_authority_clean_migration` 的 study discovery 只能来自 canonical study marker / supervisor scan 认可的 study root。`studies/*` 下仅因为存在旧 `manuscript/current_package`、旧 paper authority surface 或迁移 archive 的目录，不得被升级为 study。
