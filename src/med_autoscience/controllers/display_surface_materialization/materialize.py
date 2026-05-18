@@ -26,6 +26,36 @@ def _as_string_list(value: object) -> list[str]:
     return [str(item).strip() for item in value if str(item).strip()]
 
 
+def _claim_ids_for_table(
+    *,
+    table_catalog: dict[str, Any],
+    claim_evidence_map: dict[str, Any],
+    table_id: str,
+) -> list[str]:
+    for entry in table_catalog.get("tables", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        if str(entry.get("table_id") or "").strip() != table_id:
+            continue
+        existing_claim_ids = _as_string_list(entry.get("claim_ids"))
+        if existing_claim_ids:
+            return existing_claim_ids
+
+    claim_ids: list[str] = []
+    for claim in claim_evidence_map.get("claims", []) or []:
+        if not isinstance(claim, dict):
+            continue
+        display_bindings = _as_string_list(
+            claim.get("display_bindings") or claim.get("display_refs") or claim.get("table_bindings")
+        )
+        if table_id not in display_bindings:
+            continue
+        claim_id = str(claim.get("claim_id") or "").strip()
+        if claim_id and claim_id not in claim_ids:
+            claim_ids.append(claim_id)
+    return claim_ids
+
+
 def _is_known_requirement_key(requirement_key: str) -> bool:
     return (
         display_registry.is_illustration_shell(requirement_key)
@@ -345,6 +375,8 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
     display_registry_payload = load_json(resolved_paper_root / "display_registry.json")
     figure_catalog = load_json(resolved_paper_root / "figures" / "figure_catalog.json")
     table_catalog = load_json(resolved_paper_root / "tables" / "table_catalog.json")
+    claim_evidence_map_path = resolved_paper_root / "claim_evidence_map.json"
+    claim_evidence_map = load_json(claim_evidence_map_path) if claim_evidence_map_path.exists() else {}
     style_profile: publication_display_contract.PublicationStyleProfile | None = None
     display_overrides: dict[tuple[str, str], publication_display_contract.DisplayOverride] | None = None
 
@@ -559,6 +591,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 or {}
             )
             written_files.extend([str(output_csv_path), str(output_md_path)])
+            claim_ids = _claim_ids_for_table(
+                table_catalog=table_catalog,
+                claim_evidence_map=claim_evidence_map,
+                table_id=table_id,
+            )
             entry = {
                 "table_id": table_id,
                 "table_shell_id": spec.shell_id,
@@ -582,7 +619,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "source_paths": [
                     _paper_relative_path(payload_path, paper_root=resolved_paper_root),
                 ],
-                "claim_ids": [],
+                "claim_ids": claim_ids,
             }
             table_catalog["tables"] = _replace_catalog_entry(
                 list(table_catalog.get("tables") or []),
@@ -655,6 +692,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
             written_files.append(str(output_md_path))
             if output_csv_path is not None:
                 written_files.append(str(output_csv_path))
+            claim_ids = _claim_ids_for_table(
+                table_catalog=table_catalog,
+                claim_evidence_map=claim_evidence_map,
+                table_id=table_id,
+            )
             entry = {
                 "table_id": table_id,
                 "table_shell_id": spec.shell_id,
@@ -680,7 +722,7 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 "source_paths": [
                     _paper_relative_path(payload_path, paper_root=resolved_paper_root),
                 ],
-                "claim_ids": [],
+                "claim_ids": claim_ids,
             }
             table_catalog["tables"] = _replace_catalog_entry(
                 list(table_catalog.get("tables") or []),

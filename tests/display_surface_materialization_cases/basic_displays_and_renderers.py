@@ -34,6 +34,40 @@ def test_materialize_display_surface_generates_official_shell_outputs(tmp_path: 
     assert table_catalog["tables"][0]["pack_id"] == "fenggaolab.org.medical-display-core"
     assert table_catalog["tables"][0]["qc_result"]["status"] == "pass"
 
+def test_materialize_display_surface_preserves_table_claim_bindings_from_claim_evidence_map(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
+    paper_root = build_display_surface_workspace(tmp_path, include_extended_evidence=True)
+    restrict_display_registry_to_display_ids(paper_root, "Table1", "Table2")
+    dump_json(
+        paper_root / "claim_evidence_map.json",
+        {
+            "schema_version": 1,
+            "claims": [
+                {
+                    "claim_id": "C1",
+                    "display_bindings": ["T1"],
+                },
+                {
+                    "claim_id": "C2",
+                    "display_refs": ["T2"],
+                },
+                {
+                    "claim_id": "C3",
+                    "table_bindings": ["T2"],
+                },
+            ],
+        },
+    )
+
+    module.materialize_display_surface(paper_root=paper_root)
+
+    table_catalog = json.loads((paper_root / "tables" / "table_catalog.json").read_text(encoding="utf-8"))
+    tables_by_id = {entry["table_id"]: entry for entry in table_catalog["tables"]}
+    assert tables_by_id["T1"]["claim_ids"] == ["C1"]
+    assert tables_by_id["T2"]["claim_ids"] == ["C2", "C3"]
+
 def test_materialize_display_surface_preserves_optional_table1_p_values(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     paper_root = build_display_surface_workspace(tmp_path)

@@ -315,6 +315,12 @@
 - 2026-05-15 追加：fresh prompt 只是第一层 postcondition；第二层 postcondition 是 prompt 内的 callable action 也必须消费当前 authorization。MAS managed Codex CLI worker 调用 `runtime-supervisor-execute-dispatch` 时使用受限 `--managed-runtime-worker` 通道：只有环境标记、quest root、quest id、run id、`worker_running=true`、`active_run_id` 和 `current_controller_authorization` / `last_controller_decision_authorization.controller_actions` 全部匹配，executor 才能用当前 controller authorization 重建 action owner route。若 consumer latest 已被后续监管 tick 清空，而 fresh managed prompt 仍显式请求同一 controller action，executor 可以从当前 authorization 合成受限 dispatch 壳再校验执行；外层 developer heartbeat / 人工 CLI 仍必须走 `developer_apply_safe` GitHub/user-config gate，旧 default executor dispatch 不能在 managed worker 内覆盖当前 controller transition authority。
 - 参考：[Kubernetes Controllers current/desired state reconcile loop](https://kubernetes.io/docs/concepts/architecture/controller/)；[AWS Builders Library “Making retries safe with idempotent APIs”](https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/)；Temporal Activity idempotency and retry guidance。
 
+## 2026-05-18：display materialization 必须保留表格 claim binding
+
+- 决策：`materialize_display_surface` 重建 paper table catalog 时，必须保留已有 `claim_ids`，或从 `claim_evidence_map.json` 的 `display_bindings` / `display_refs` / `table_bindings` 派生表格 claim binding；不得把 T1/T2 这类主文表的 claim binding 重写为空。
+- 理由：DM002 的质量修复线暴露出 MAS controller 已经写入 T1/T2 claim binding 后，display materializer 会在 gate replay 中清空表格 claim binding，导致 `T1_T2_claim_bindings` 反复保持 open。这个问题属于 MAS 基座 materialization contract 缺陷，不应由单篇论文手工 patch table catalog 解决。
+- 影响：quality-repair-batch / gate-clearing replay 产出的 display-to-claim closure 必须以 controller materialization 后的 catalog 为准；表格 claim binding 是 paper-facing evidence surface 的一部分，后续显示物化、publishability gate 和 AI reviewer recheck 都不能把它降级为 optional metadata。
+
 ## 2026-05-01：医学稿件初稿质量前移为 manuscript-native prose 合同
 
 - 决策：first draft 质量不再只依赖 `medical_publication_surface` 后置拦截；`study_charter.paper_quality_contract.structured_reporting_contract.first_draft_quality_contract` 与 quality OS 必须在写作前提供 IMRAD section purpose、reporting-guideline obligations、clinical question / population / timepoint / outcome / display-to-claim map，以及 manuscript-native medical journal prose 要求。
