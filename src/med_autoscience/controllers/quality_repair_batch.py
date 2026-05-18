@@ -469,6 +469,74 @@ def _apply_owner_handoff_to_publication_work_units(
     return payload
 
 
+def _compact_publication_work_unit(value: object) -> dict[str, str] | None:
+    if not isinstance(value, Mapping):
+        return None
+    unit_id = _non_empty_text(value.get("unit_id"))
+    if unit_id is None:
+        return None
+    payload = {"unit_id": unit_id}
+    lane = _non_empty_text(value.get("lane"))
+    summary = _non_empty_text(value.get("summary"))
+    if lane is not None:
+        payload["lane"] = lane
+    if summary is not None:
+        payload["summary"] = summary
+    return payload
+
+
+def _explicit_analysis_publication_work_unit(
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    actions = publication_eval_payload.get("recommended_actions")
+    if not isinstance(actions, list):
+        return None
+    for action in actions:
+        if not isinstance(action, Mapping):
+            continue
+        if action.get("requires_controller_decision") is not True:
+            continue
+        next_work_unit = _compact_publication_work_unit(action.get("next_work_unit"))
+        if next_work_unit is None:
+            continue
+        action_type = _non_empty_text(action.get("action_type"))
+        route_target = _non_empty_text(action.get("route_target"))
+        lane = _non_empty_text(next_work_unit.get("lane"))
+        if (
+            action_type != StudyDecisionType.BOUNDED_ANALYSIS.value
+            and route_target != "analysis-campaign"
+            and lane != "analysis-campaign"
+        ):
+            continue
+        blocking_work_units = [
+            compact
+            for item in (action.get("blocking_work_units") or [])
+            if (compact := _compact_publication_work_unit(item)) is not None
+        ] or [next_work_unit]
+        return {
+            "work_unit_fingerprint": _non_empty_text(action.get("work_unit_fingerprint")),
+            "next_work_unit": next_work_unit,
+            "blocking_work_units": blocking_work_units,
+        }
+    return None
+
+
+def _apply_explicit_analysis_publication_work_unit(
+    publication_work_unit_payload: Mapping[str, Any],
+    *,
+    publication_eval_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    explicit = _explicit_analysis_publication_work_unit(publication_eval_payload)
+    if explicit is None:
+        return dict(publication_work_unit_payload)
+    payload = dict(publication_work_unit_payload)
+    if explicit.get("work_unit_fingerprint"):
+        payload["fingerprint"] = explicit["work_unit_fingerprint"]
+    payload["next_work_unit"] = explicit["next_work_unit"]
+    payload["blocking_work_units"] = explicit["blocking_work_units"]
+    return payload
+
+
 def _selected_work_unit_id_from_gate_result(gate_clearing_result: Mapping[str, Any]) -> str | None:
     for key in ("selected_publication_work_unit", "current_publication_work_unit", "explicit_publication_work_unit"):
         payload = gate_clearing_result.get(key)
@@ -537,6 +605,10 @@ def build_quality_repair_batch_recommended_action(
     publication_work_unit_payload = publication_work_units.derive_publication_work_units(
         gate_report,
         specificity_targets=specificity_targets,
+    )
+    publication_work_unit_payload = _apply_explicit_analysis_publication_work_unit(
+        publication_work_unit_payload,
+        publication_eval_payload=publication_eval_payload,
     )
     candidates = _repair_candidates(
         profile=profile,

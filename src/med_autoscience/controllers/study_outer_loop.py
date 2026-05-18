@@ -34,6 +34,10 @@ from med_autoscience.controllers.study_outer_loop_parts.human_confirmation impor
     _latest_controller_decision_matches_spec,
     _latest_controller_decision_requires_human_confirmation,
 )
+from med_autoscience.controllers.study_outer_loop_parts.methodology_analysis_routes import (
+    merge_publication_eval_methodology_work_unit as _merge_publication_eval_methodology_work_unit,
+    methodology_analysis_route_preempts_ai_reviewer_recheck as _methodology_analysis_route_preempts_ai_reviewer_recheck,
+)
 from med_autoscience.controllers.study_outer_loop_parts.recommendation_actions import (
     _GATE_NEEDS_SPECIFICITY_QUESTION,
     _GATE_NEEDS_SPECIFICITY_RATIONALE,
@@ -338,6 +342,13 @@ def build_runtime_watch_outer_loop_tick_request(
             ).get("decision_type")
             or ""
         ).strip()
+        if _methodology_analysis_route_preempts_ai_reviewer_recheck(
+            domain_transition_decision_type=domain_transition_decision_type,
+            task_intake_action=task_intake_action,
+            publication_eval_payload=publication_eval_payload,
+        ):
+            domain_transition_action = None
+            domain_transition_decision_type = ""
         if (
             domain_transition_decision_type == "bundle_stage_finalize"
             and task_intake_action is not None
@@ -455,6 +466,10 @@ def build_runtime_watch_outer_loop_tick_request(
                 recommended_action = batch_action
     if recommended_action is None:
         return None
+    recommended_action = _merge_publication_eval_methodology_work_unit(
+        recommended_action,
+        publication_eval_payload=publication_eval_payload,
+    )
     work_unit_target_context = {
         key: recommended_action[key]
         for key in _WORK_UNIT_TARGET_CONTEXT_KEYS

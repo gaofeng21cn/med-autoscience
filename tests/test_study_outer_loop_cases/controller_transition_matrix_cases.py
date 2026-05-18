@@ -503,6 +503,106 @@ def _stale_write_task_intake_action() -> dict[str, object]:
             expected_unit_id="ai_reviewer_medical_prose_quality_review",
         ),
         lambda study_root: OuterLoopTransitionCase(
+            case_id="methodology_harmonization_route_back_preempts_ai_reviewer_prose_recheck",
+            gate_report={
+                "status": "blocked",
+                "allow_write": False,
+                "blockers": ["medical_publication_surface_blocked", "claim_evidence_consistency_failed"],
+                "current_required_action": "return_to_publishability_gate",
+                "supervisor_phase": "publishability_gate_blocked",
+                "bundle_tasks_downstream_only": True,
+                "medical_publication_surface_status": "blocked",
+                "medical_publication_surface_named_blockers": ["claim_evidence_consistency_failed"],
+                "blocking_artifact_refs": [{"source_path": "analysis/clean_room_execution/20_transportability"}],
+            },
+            publication_eval_action={
+                **_bounded_analysis_action(study_root),
+                "reason": (
+                    "HDL/unit harmonization and unit-standardized transport rerun must be resolved "
+                    "before prose quality can close."
+                ),
+                "route_key_question": (
+                    "Can the HDL/unit harmonization issue be rerun as a unit-standardized external validation, "
+                    "or must the transported-score claim be typed-blocked?"
+                ),
+                "next_work_unit": {
+                    "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+                    "lane": "analysis-campaign",
+                    "summary": (
+                        "Materialize or type-block model reproducibility, uncertainty, calibration, "
+                        "and HDL harmonization evidence before prose/finalize review."
+                    ),
+                },
+                "blocking_work_units": [
+                    {
+                        "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+                        "lane": "analysis-campaign",
+                        "summary": (
+                            "Materialize or type-block model reproducibility, uncertainty, calibration, "
+                            "and HDL harmonization evidence before prose/finalize review."
+                        ),
+                    }
+                ],
+                "work_unit_fingerprint": (
+                    "domain-transition::ai_reviewer_re_eval::medical_prose_quality_route_back_analysis"
+                ),
+            },
+            publication_eval_verdict="blocked",
+            publication_supervisor_state={
+                "supervisor_phase": "publishability_gate_blocked",
+                "current_required_action": "return_to_publishability_gate",
+                "bundle_tasks_downstream_only": True,
+                "publication_gate_allows_direct_write": False,
+            },
+            task_intake_action={
+                "action_id": "task-intake::001-risk::analysis-campaign",
+                "action_type": "bounded_analysis",
+                "priority": "now",
+                "reason": "Methodology correction requires analysis/harmonization owner before prose repair.",
+                "route_target": "analysis-campaign",
+                "route_key_question": (
+                    "unit-harmonized external validation rerun or typed blocker"
+                ),
+                "route_rationale": "Latest reviewer_revision intake is a methodology correction, not prose polish.",
+                "requires_controller_decision": True,
+                "controller_action_type": "ensure_study_runtime",
+                "work_unit_fingerprint": (
+                    "domain-transition::ai_reviewer_re_eval::medical_prose_quality_route_back_analysis"
+                ),
+            },
+            quality_assessment={
+                "clinical_significance": {
+                    "status": "ready",
+                    "summary": "Clinical significance is ready.",
+                    "evidence_refs": [str(study_root / "artifacts" / "publication_eval" / "latest.json")],
+                },
+                "evidence_strength": {
+                    "status": "partial",
+                    "summary": "HDL/unit harmonization remains unresolved.",
+                    "evidence_refs": [str(study_root / "analysis")],
+                },
+                "novelty_positioning": {
+                    "status": "partial",
+                    "summary": "Novelty depends on a valid unit-harmonized external validation.",
+                    "evidence_refs": [str(study_root / "analysis")],
+                },
+                "human_review_readiness": {
+                    "status": "partial",
+                    "summary": "Human review must wait for analysis repair.",
+                    "evidence_refs": [str(study_root / "paper")],
+                },
+                "medical_journal_prose_quality": {
+                    "status": "partial",
+                    "summary": "Prose cannot close until the methodologic blocker is repaired.",
+                    "evidence_refs": [str(study_root / "paper")],
+                },
+            },
+            expected_decision_type="bounded_analysis",
+            expected_route_target="analysis-campaign",
+            expected_controller_action_type="ensure_study_runtime",
+            expected_unit_id="medical_prose_quality_analysis_source_documentation_repair",
+        ),
+        lambda study_root: OuterLoopTransitionCase(
             case_id="domain_transition_gate_blocker_replays_gate_after_terminal_analysis_handoff",
             gate_report={
                 "status": "blocked",

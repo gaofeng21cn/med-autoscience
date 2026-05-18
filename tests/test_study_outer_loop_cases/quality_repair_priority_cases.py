@@ -165,6 +165,102 @@ def test_build_runtime_watch_outer_loop_tick_request_routes_quality_repair_batch
     ]
 
 
+def test_quality_repair_batch_preserves_ai_reviewer_methodology_analysis_work_unit(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(profile.workspace_root, "001-risk")
+    quest_id = "quest-001"
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    work_unit = {
+        "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+        "lane": "analysis-campaign",
+        "summary": (
+            "Materialize or type-block model reproducibility, uncertainty, calibration, "
+            "and HDL harmonization evidence before prose/finalize review."
+        ),
+    }
+    publication_eval_payload = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::001-risk::quest-001::2026-05-18T09:12:34+00:00",
+        "study_id": "001-risk",
+        "quest_id": quest_id,
+        "emitted_at": "2026-05-18T09:12:34+00:00",
+        "verdict": {
+            "overall_verdict": "blocked",
+            "primary_claim_status": "partial",
+            "summary": "HDL/unit harmonization blocks medical-journal readiness.",
+        },
+        "recommended_actions": [
+            {
+                "action_id": "publication-eval-action::bounded_analysis::medical-prose-quality",
+                "action_type": "bounded_analysis",
+                "priority": "now",
+                "reason": (
+                    "The reviewer-owned prose verdict is blocked by analysis/source-documentation gaps, "
+                    "including HDL/unit harmonization."
+                ),
+                "route_target": "analysis-campaign",
+                "route_key_question": "unit-harmonized external validation rerun or typed blocker",
+                "route_rationale": "Analysis owner must close the methodologic blocker before prose review.",
+                "requires_controller_decision": True,
+                "work_unit_fingerprint": (
+                    "domain-transition::ai_reviewer_re_eval::medical_prose_quality_route_back_analysis"
+                ),
+                "next_work_unit": dict(work_unit),
+                "blocking_work_units": [dict(work_unit)],
+            }
+        ],
+    }
+    _write_json(publication_eval_path, publication_eval_payload)
+    _write_json(
+        study_root / "artifacts" / "evaluation_summary" / "latest.json",
+        {
+            "schema_version": 1,
+            "summary_id": "evaluation-summary::001-risk::2026-05-18T09:12:35+00:00",
+            "study_id": "001-risk",
+            "quest_id": quest_id,
+            "emitted_at": "2026-05-18T09:12:35+00:00",
+            "quality_closure_truth": {
+                "state": "quality_repair_required",
+                "summary": "A methodologic analysis blocker remains open.",
+                "current_required_action": "return_to_analysis_campaign",
+                "route_target": "analysis-campaign",
+            },
+            "quality_execution_lane": {
+                "lane_id": "quality_floor_blocker",
+                "route_target": "analysis-campaign",
+                "route_key_question": "unit-harmonized external validation rerun or typed blocker",
+                "summary": "Return to the analysis/harmonization owner before prose or finalize.",
+            },
+        },
+    )
+
+    action = module.build_quality_repair_batch_recommended_action(
+        profile=profile,
+        study_root=study_root,
+        quest_id=quest_id,
+        publication_eval_payload=publication_eval_payload,
+        gate_report={
+            "status": "blocked",
+            "allow_write": False,
+            "blockers": ["medical_publication_surface_blocked", "claim_evidence_consistency_failed"],
+            "current_required_action": "return_to_publishability_gate",
+            "medical_publication_surface_status": "blocked",
+            "medical_publication_surface_named_blockers": ["missing_medical_story_contract"],
+            "blocking_artifact_refs": [{"source_path": "analysis/clean_room_execution/20_transportability"}],
+            "bundle_tasks_downstream_only": True,
+        },
+    )
+
+    assert action is not None
+    assert action["route_target"] == "analysis-campaign"
+    assert action["work_unit_fingerprint"] == (
+        "domain-transition::ai_reviewer_re_eval::medical_prose_quality_route_back_analysis"
+    )
+    assert action["next_work_unit"] == work_unit
+    assert action["blocking_work_units"] == [work_unit]
+
+
 def test_study_outer_loop_tick_records_control_plane_route_blocked_quality_repair(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
