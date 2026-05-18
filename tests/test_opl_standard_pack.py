@@ -155,6 +155,12 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "opl_app_workbench_drilldown",
         "lifecycle_locator_retention_restore_ledger_reconciliation",
     ]
+    assert followthrough["remaining_evidence_gate_ids"] == [
+        "live_provider_paper_apply_scaleout",
+        "publication_route_memory_receipt_scaleout",
+        "artifact_lifecycle_receipt_scaleout",
+        "provider_slo_long_soak",
+    ]
 
 
 def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:
