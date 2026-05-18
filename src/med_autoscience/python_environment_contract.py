@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -220,10 +221,42 @@ def _is_managed_runtime() -> bool:
         return False
     if _is_uv_tool_runtime_root(runtime_prefix):
         return True
+    if _is_clean_runner_runtime(runtime_prefix):
+        return True
+    if _is_mas_workspace_runtime(runtime_prefix):
+        return True
     return runtime_prefix in {
         MANAGED_RUNTIME_PREFIX,
         CHECKOUT_MANAGED_RUNTIME_PREFIX,
     }
+
+
+def _is_clean_runner_runtime(runtime_prefix: Path) -> bool:
+    configured_environment = str(os.environ.get("UV_PROJECT_ENVIRONMENT") or "").strip()
+    if not configured_environment:
+        return False
+    try:
+        configured_prefix = Path(configured_environment).expanduser().resolve()
+    except OSError:
+        return False
+    return runtime_prefix == configured_prefix
+
+
+def _is_mas_workspace_runtime(runtime_prefix: Path) -> bool:
+    if runtime_prefix.name != ".venv":
+        return False
+    workspace_root = runtime_prefix.parent
+    config_env = workspace_root / "ops" / "medautoscience" / "config.env"
+    if not config_env.is_file():
+        return False
+    workspace_pyproject = workspace_root / "pyproject.toml"
+    if not workspace_pyproject.is_file():
+        return True
+    try:
+        pyproject_text = workspace_pyproject.read_text(encoding="utf-8")
+    except OSError:
+        return True
+    return "med-autoscience" in pyproject_text
 
 
 def ensure_python_environment_contract(
@@ -234,8 +267,9 @@ def ensure_python_environment_contract(
 
     if not _is_managed_runtime():
         message = (
-            "Current interpreter is not the repo-managed runtime at `.venv`. "
-            "Please run the contract under the repo `.venv` or via `rtk uv run ...` before calling this function."
+            "Current interpreter is not an approved MAS managed runtime. "
+            "Please run the contract under a MAS repo/worktree `.venv`, a MAS study workspace `.venv`, "
+            "a uv-tool runtime, or the repo clean runner before calling this function."
         )
         return {
             "action": "managed_runtime_required",

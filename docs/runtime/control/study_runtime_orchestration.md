@@ -465,7 +465,7 @@ workspace teardown 必须满足：
 当前最小稳定 preflight 规则：
 
 - 对 `CREATE_AND_START` / `CREATE_ONLY` / `RESUME` / `RELAUNCH_STOPPED`
-  - 必须先确认 analysis bundle ready
+  - 必须先确认 analysis bundle ready；该检查和修复绑定当前 study workspace 的运行 Python（`<workspace>/.venv/bin/python3`）或 repo clean runner 的外置 venv，不绑定 MAS checkout 内的 `.venv`
   - 如果 runtime reentry 要求 managed skill audit，则 profile 必须允许 medical overlay
   - 对 `RESUME` / `RELAUNCH_STOPPED`，如果启用了 medical overlay，必须先确保 overlay roots ready
 - 对已有 quest 的非创建路径

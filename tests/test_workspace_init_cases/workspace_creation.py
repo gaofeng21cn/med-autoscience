@@ -301,7 +301,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     expected_repo_relpath = Path(os.path.relpath(Path(module.__file__).resolve().parents[3], workspace_root)).as_posix()
     assert 'name = "glioma-workspace"' in workspace_pyproject_text
     assert 'description = "Managed Python environment for the glioma workspace."' in workspace_pyproject_text
-    assert '"med-autoscience"' in workspace_pyproject_text
+    assert '"med-autoscience[analysis]"' in workspace_pyproject_text
     assert "[tool.uv.sources]" in workspace_pyproject_text
     assert f'med-autoscience = {{ path = "{expected_repo_relpath}", editable = true }}' in workspace_pyproject_text
 

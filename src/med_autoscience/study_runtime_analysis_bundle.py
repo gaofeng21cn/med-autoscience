@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 from typing import Any
@@ -44,134 +42,18 @@ DEFAULT_R_REPOSITORY = "https://cloud.r-project.org"
 BIOCONDUCTOR_R_ANALYSIS_BUNDLE_PACKAGES = ("ComplexHeatmap",)
 
 
-def _managed_runtime_repo_root() -> Path:
-    uv_tool_root = python_environment_contract._current_uv_tool_runtime_root()
-    if uv_tool_root is not None:
-        return uv_tool_root
-    return python_environment_contract.CHECKOUT_ROOT
-
-
-def _running_under_managed_runtime() -> bool:
-    return python_environment_contract._is_managed_runtime()
-
-
-def _managed_runtime_prefix() -> Path:
-    prefixes: list[Path] = []
-    for prefix in (
-        python_environment_contract.CHECKOUT_MANAGED_RUNTIME_PREFIX,
-        python_environment_contract.MANAGED_RUNTIME_PREFIX,
-    ):
-        if prefix not in prefixes:
-            prefixes.append(prefix)
-    for prefix in prefixes:
-        if prefix.exists():
-            return prefix
-    return prefixes[0]
-
-
-def _managed_runtime_python_executable() -> str:
-    uv_tool_root = python_environment_contract._current_uv_tool_runtime_root()
-    if uv_tool_root is not None:
-        return str(Path(python_environment_contract.sys.executable).resolve())
-    prefix = _managed_runtime_prefix()
-    candidates = (
-        prefix / "bin" / "python",
-        prefix / "bin" / "python3",
-        prefix / "Scripts" / "python.exe",
-        prefix / "Scripts" / "python",
-    )
-    for candidate in candidates:
-        if candidate.exists():
-            return str(candidate)
-    return str(candidates[0])
-
-
-def _managed_runtime_environment(*, repo_root: Path) -> dict[str, str]:
-    env = dict(os.environ)
-    source_root = str(repo_root / "src")
-    current_pythonpath = env.get("PYTHONPATH", "").strip()
-    if current_pythonpath:
-        env["PYTHONPATH"] = os.pathsep.join((source_root, current_pythonpath))
-    else:
-        env["PYTHONPATH"] = source_root
-    return env
-
-
-def _delegate_analysis_bundle_to_managed_runtime(*, before: dict[str, Any]) -> dict[str, Any]:
-    repo_root = _managed_runtime_repo_root()
-    managed_python = _managed_runtime_python_executable()
-    command = [
-        managed_python,
-        "-m",
-        "med_autoscience.cli",
-        "runtime",
-        "ensure-analysis-bundle",
-    ]
-    managed_runtime: dict[str, Any] = {
-        "repo_root": str(repo_root),
-        "python": managed_python,
-        "command": command,
-    }
-    delegated_result: dict[str, Any] | None = None
-    after: dict[str, Any] = before
-    ready = False
-    try:
-        completed = subprocess.run(
-            command,
-            cwd=repo_root,
-            env=_managed_runtime_environment(repo_root=repo_root),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-    except OSError as exc:
-        managed_runtime.update(
-            {
-                "exit_code": None,
-                "stdout": "",
-                "stderr": str(exc),
-            }
-        )
-    else:
-        managed_runtime.update(
-            {
-                "exit_code": completed.returncode,
-                "stdout": completed.stdout,
-                "stderr": completed.stderr,
-            }
-        )
-        if completed.returncode == 0:
-            try:
-                payload = json.loads(completed.stdout)
-            except json.JSONDecodeError as exc:
-                managed_runtime["stderr"] = (
-                    f"{completed.stderr.rstrip()}\nInvalid managed-runtime JSON payload: {exc}".strip()
-                )
-            else:
-                if isinstance(payload, dict):
-                    delegated_result = payload
-                    delegated_after = payload.get("after")
-                    if isinstance(delegated_after, dict):
-                        after = delegated_after
-                    ready = payload.get("ready") is True
-                else:
-                    managed_runtime["stderr"] = (
-                        f"{completed.stderr.rstrip()}\nManaged runtime returned a non-object JSON payload.".strip()
-                    )
-    result = {
-        "action": "delegate_to_managed_runtime",
+def _ensure_analysis_bundle_in_current_runtime(*, before: dict[str, Any]) -> dict[str, Any]:
+    python_result = ensure_python_environment_contract(requirements=CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS)
+    r_result = ensure_r_analysis_bundle()
+    after = inspect_study_runtime_analysis_bundle()
+    return {
+        "action": "ensure_bundle",
         "before": before,
         "after": after,
-        "delegated_result": delegated_result,
-        "managed_runtime": managed_runtime,
-        "ready": ready,
+        "python": python_result,
+        "r": r_result,
+        "ready": after["ready"],
     }
-    if delegated_result is not None:
-        if "python" in delegated_result:
-            result["python"] = delegated_result["python"]
-        if "r" in delegated_result:
-            result["r"] = delegated_result["r"]
-    return result
 
 
 def _split_r_packages_by_repository(packages: tuple[str, ...] | list[str]) -> dict[str, list[str]]:
@@ -350,17 +232,4 @@ def ensure_study_runtime_analysis_bundle() -> dict[str, Any]:
     before = inspect_study_runtime_analysis_bundle()
     if before["ready"]:
         return {"action": "already_ready", "before": before, "after": before, "ready": True}
-    if not _running_under_managed_runtime():
-        return _delegate_analysis_bundle_to_managed_runtime(before=before)
-
-    python_result = ensure_python_environment_contract(requirements=CURATED_PYTHON_ANALYSIS_BUNDLE_REQUIREMENTS)
-    r_result = ensure_r_analysis_bundle()
-    after = inspect_study_runtime_analysis_bundle()
-    return {
-        "action": "ensure_bundle",
-        "before": before,
-        "after": after,
-        "python": python_result,
-        "r": r_result,
-        "ready": after["ready"],
-    }
+    return _ensure_analysis_bundle_in_current_runtime(before=before)
