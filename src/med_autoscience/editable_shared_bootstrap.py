@@ -188,6 +188,10 @@ def _load_sibling_shared_helper(added_paths: list[Path]):
     return None
 
 
+def _has_existing_sibling_shared_helper_candidate() -> bool:
+    return any(helper_path.exists() for helper_path in _candidate_shared_helper_module_paths())
+
+
 def _import_installed_shared_helper():
     if _module_spec(_SHARED_HELPER_MODULE_NAME) is None:
         return None
@@ -198,6 +202,9 @@ def ensure_editable_dependency_paths() -> tuple[Path, ...]:
     repo_root = _repo_root()
     added_paths: list[Path] = []
     helper_module = _load_sibling_shared_helper(added_paths)
+    sibling_candidate_present = _has_existing_sibling_shared_helper_candidate()
+    if helper_module is None and not sibling_candidate_present:
+        helper_module = _import_installed_shared_helper()
     if helper_module is None:
         for candidate_root in _candidate_repo_site_packages_roots():
             candidate_root_str = str(candidate_root)
@@ -209,8 +216,6 @@ def ensure_editable_dependency_paths() -> tuple[Path, ...]:
                 helper_module = _import_installed_shared_helper()
                 if helper_module is not None:
                     break
-    if helper_module is None:
-        helper_module = _import_installed_shared_helper()
     if helper_module is None:
         return tuple(added_paths)
 
