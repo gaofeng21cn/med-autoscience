@@ -35,6 +35,7 @@ SUPPORTED_REQUEST_ACTION_TYPES = frozenset(
         "artifact_display_surface_materialization_required",
         "return_to_ai_reviewer_workflow",
         "canonical_paper_inputs_rehydrate_required",
+        "unit_harmonized_external_validation_rerun",
     }
 )
 SUPPORTED_MODE = "developer_apply_safe"
@@ -70,6 +71,7 @@ ALLOWED_WRITE_SURFACES = [
     "studies/<study_id>/artifacts/supervision/consumer/artifact_display_surface_materialization_required.json",
     "studies/<study_id>/artifacts/supervision/consumer/return_to_ai_reviewer_workflow.json",
     "studies/<study_id>/artifacts/supervision/consumer/canonical_paper_inputs_rehydrate_required.json",
+    "studies/<study_id>/artifacts/supervision/consumer/unit_harmonized_external_validation_rerun.json",
     "studies/<study_id>/artifacts/supervision/consumer/default_executor_dispatches/*.json",
 ]
 MERGE_CLEANUP_CHECKLIST = [
@@ -247,6 +249,8 @@ def _request_owner_for_action_type(action_type: str) -> str:
         return "ai_reviewer"
     if action_type == "canonical_paper_inputs_rehydrate_required":
         return "write"
+    if action_type == "unit_harmonized_external_validation_rerun":
+        return "analysis_harmonization_owner"
     return "controller"
 
 
@@ -274,6 +278,11 @@ def _request_output_surface_for_action_type(action_type: str) -> str:
         return "artifacts/publication_eval/latest.json"
     if action_type == "canonical_paper_inputs_rehydrate_required":
         return "paper/medical_manuscript_blueprint_source.json"
+    if action_type == "unit_harmonized_external_validation_rerun":
+        return (
+            "unit-harmonized external-validation rerun evidence or "
+            "typed blocker:unit_harmonized_rerun_required"
+        )
     return "artifacts/supervision/requests"
 
 
@@ -288,6 +297,8 @@ def _request_packet_ref_for_action_type(action_type: str) -> str:
         return "artifacts/supervision/requests/ai_reviewer/latest.json"
     if action_type == "canonical_paper_inputs_rehydrate_required":
         return "artifacts/supervision/requests/canonical_paper_inputs_rehydrate/latest.json"
+    if action_type == "unit_harmonized_external_validation_rerun":
+        return "artifacts/supervision/requests/analysis_harmonization/latest.json"
     return "artifacts/supervision/requests"
 
 
@@ -325,7 +336,7 @@ def _executor_prompt(
     required_output_surface: str,
 ) -> str:
     return (
-        "Use Codex CLI as the default MAS/MDS repair executor. "
+        "Use Codex CLI as the default MAS repair executor. "
         f"Handle action `{action_type}` for study `{study_id}` as owner `{next_executable_owner}`. "
         f"Read the referenced MAS durable truth surfaces and write only the owner-authorized output `{required_output_surface}` "
         "or the supervision handoff surfaces listed in this dispatch. Do not patch paper/current_package, "
