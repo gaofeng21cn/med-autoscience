@@ -453,6 +453,78 @@ def test_pre_draft_runtime_blocks_phenotype_treatment_gap_reporting_gaps(
     ]
 
 
+def test_pre_draft_runtime_blocks_prediction_model_external_validation_first_draft_gaps(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.pre_draft_quality_runtime")
+    study_root = tmp_path / "study"
+    _write_closed_authority_surfaces(study_root)
+    _write_json(
+        study_root / "artifacts" / "controller" / "study_charter.json",
+        {
+            "schema_version": 1,
+            "paper_quality_contract": {
+                "structured_reporting_contract": {
+                    "manuscript_family": "prediction_model",
+                    "endpoint_type": "time_to_event",
+                    "external_validation_dataset": "NHANES",
+                    "methods_completeness": {
+                        "study_design": "complete",
+                        "cohort": "complete",
+                        "variables": "complete",
+                        "model": "complete",
+                        "validation": "complete",
+                        "statistical_analysis": "complete",
+                    },
+                    "statistical_reporting": {
+                        "summary_format": "complete",
+                        "p_values": "complete",
+                        "subgroup_tests": "complete",
+                    },
+                    "table_figure_claim_map": [
+                        {"claim_id": "external-validation", "table_figure_refs": ["Table2", "Figure3"]}
+                    ],
+                    "prediction_methods": {
+                        "data_source_years": "complete",
+                        "inclusion_exclusion": "complete",
+                        "endpoint_ascertainment": "complete",
+                        "follow_up_start": "complete",
+                        "censoring_rules": "complete",
+                        "missing_data_handling": "complete",
+                        "variable_coding": "complete",
+                        "model_tuning": "complete",
+                        "center_effect_handling": "complete",
+                    },
+                }
+            },
+        },
+    )
+
+    result = module.build_pre_draft_quality_runtime_state(study_root=study_root)
+
+    assert result["status"] == "route_back_required"
+    assert result["readiness"]["draft_ready"] is False
+    assert result["readiness"]["full_drafting_authorized"] is False
+    for blocker in (
+        "prediction_model_reproducibility_incomplete",
+        "variable_harmonization_incomplete",
+        "external_validation_reporting_incomplete",
+        "validation_uncertainty_reporting_incomplete",
+        "prediction_display_reporting_incomplete",
+        "survey_design_reporting_incomplete",
+        "manuscript_voice_reporting_incomplete",
+    ):
+        assert blocker in result["blockers"]
+    checklist = result["structured_reporting_checklist"]
+    assert "baseline_survival_or_absolute_risk_extraction" in checklist["prediction_model_reproducibility"]["missing_items"]
+    assert "cross_cohort_unit_conversion" in checklist["variable_harmonization"]["missing_items"]
+    assert "case_mix_and_covariate_support" in checklist["external_validation_reporting"]["missing_items"]
+    assert "observed_expected_ratio_confidence_interval" in checklist["validation_uncertainty_reporting"]["missing_items"]
+    assert "calibration_curve_with_uncertainty" in checklist["prediction_display_reporting"]["missing_items"]
+    assert "weighting_policy" in checklist["survey_design_reporting"]["missing_items"]
+    assert "internal_quality_control_language_absent" in checklist["manuscript_voice_reporting"]["missing_items"]
+
+
 def test_pre_draft_runtime_missing_target_journal_layer_fails_closed_to_planning_only(
     tmp_path: Path,
 ) -> None:

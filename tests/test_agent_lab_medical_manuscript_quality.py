@@ -43,12 +43,17 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     task = suite["tasks"][0]
 
     assert suite["suite_kind"] == "agent_lab_external_suite"
+    assert suite["suite_role"] == "domain_quality_suite_with_meta_evolution_projection"
     assert task["task_family"] == "high_quality_medical_manuscript_self_evolution"
+    assert "stage:mas/write/pre_draft_prediction_model_reporting" in task["stage_refs"]
+    assert "scorer:mas/prediction-model-first-draft-quality" in task["scorer_refs"]
     assert task["scorecard"]["domain_owned"] is True
     assert task["scorecard"]["opl_scorecard_role"] == "scorecard_ref_projection_only"
     assert task["scorecard"]["passed"] is False
     assert task["promotion_gate"]["gate_status"] == "blocked"
     assert task["improvement_candidate"]["candidate_kind"] == "rubric_gap"
+    assert task["improvement_candidate"]["target_agent_capability_gap"]["status"] == "candidate_only"
+    assert "quality_contract_ref:prediction_model_first_draft_quality" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     assert "hdl-harmonization-and-sensitivity" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "nhanes-survey-weighting-and-unweighted-framing" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "uncertainty-intervals-and-validation-metrics" in " ".join(task["improvement_candidate"]["evidence_refs"])

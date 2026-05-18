@@ -424,12 +424,15 @@ def _owner_receipt_contract() -> dict[str, Any]:
             "no_regression_evidence",
             "memory_writeback_receipt",
             "artifact_lifecycle_receipt",
+            "agent_capability_evolution_receipt",
         ],
         "forbidden_claims": [
             "opl_authorized_domain_ready",
             "opl_authorized_quality_or_export_verdict",
             "opl_wrote_domain_truth",
             "opl_wrote_memory_body",
+            "opl_meta_agent_wrote_study_truth",
+            "opl_meta_agent_authorized_publication_quality",
         ],
     }
 

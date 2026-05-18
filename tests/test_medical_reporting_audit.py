@@ -335,11 +335,21 @@ def test_structured_reporting_checklist_requires_competing_risk_details_when_eve
             "statistical_reporting": complete_section(policy.STATISTICAL_REPORTING_ITEMS),
             "table_figure_claim_map": [{"claim_id": "primary-model", "table_figure_refs": ["T2", "F4"]}],
             "prediction_methods": complete_section(policy.PREDICTION_MODEL_METHODS_ITEMS),
+            "prediction_model_reproducibility": complete_section(
+                policy.PREDICTION_MODEL_REPRODUCIBILITY_ITEMS
+            ),
+            "variable_harmonization": complete_section(policy.VARIABLE_HARMONIZATION_ITEMS),
             "time_to_event_prediction_reporting": complete_section(policy.TIME_TO_EVENT_PREDICTION_ITEMS),
+            "external_validation_reporting": complete_section(
+                policy.EXTERNAL_VALIDATION_REPORTING_ITEMS
+            ),
             "decision_curve_clinical_utility": complete_section(policy.DECISION_CURVE_CLINICAL_UTILITY_ITEMS),
             "prediction_performance_reporting": complete_section(
                 policy.PREDICTION_PERFORMANCE_REPORTING_ITEMS
             ),
+            "validation_uncertainty_reporting": complete_section(policy.VALIDATION_UNCERTAINTY_ITEMS),
+            "prediction_display_reporting": complete_section(policy.PREDICTION_DISPLAY_REPORTING_ITEMS),
+            "manuscript_voice_reporting": complete_section(policy.MANUSCRIPT_VOICE_REPORTING_ITEMS),
             "baseline_balance_reporting": complete_section(policy.BASELINE_BALANCE_REPORTING_ITEMS),
             "competing_risk_reporting": {
                 "target_event_definition": "complete",
@@ -366,8 +376,14 @@ def test_default_structured_reporting_contract_for_time_to_event_prediction_sets
     assert contract["prediction_model_reporting_required"] is True
     assert contract["competing_risk_reporting_required"] == "when_non_target_deaths_present"
     assert "model_tuning" in contract["prediction_methods"]
+    assert "baseline_survival_or_absolute_risk_extraction" in contract["prediction_model_reproducibility"]
+    assert "cross_cohort_unit_conversion" in contract["variable_harmonization"]
+    assert "case_mix_and_covariate_support" in contract["external_validation_reporting"]
     assert "linked_clinical_action_scenario" in contract["decision_curve_clinical_utility"]
     assert "high_risk_predicted_observed" in contract["prediction_performance_reporting"]
+    assert "observed_expected_ratio_confidence_interval" in contract["validation_uncertainty_reporting"]
+    assert "calibration_curve_with_uncertainty" in contract["prediction_display_reporting"]
+    assert "internal_quality_control_language_absent" in contract["manuscript_voice_reporting"]
     assert "standardized_mean_differences" in contract["baseline_balance_reporting"]
     assert "competing_event_screen" in contract["time_to_event_prediction_reporting"]
 
