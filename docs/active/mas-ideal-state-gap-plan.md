@@ -54,7 +54,7 @@ AI-first 质量门要求 executor agent 与 reviewer/auditor agent 独立 invoca
 2. `refs_only_adapter_thinning`
    runtime lifecycle SQLite、paper outbox、runtime storage maintenance、workspace/source intake、publication-route memory transport、artifact lifecycle audit、terminal attach 和相关 projection 仍需收薄成 body-free locator、receipt、blocker、authority refs 或 diagnostic exporter。可由 OPL lifecycle/index/workbench/artifact primitive 承载的通用逻辑必须迁出 MAS。
 
-3. `legacy_physical_retirement`
+3. `legacy_cleanup_physical_retirement`
    local LaunchAgent/status/remove cleanup、workspace-local watch service wrappers、旧 alias/facade 和 legacy no-active-caller gate 仍需物理删除或 tombstone。满足 replacement proof、no-active-caller scan、fixture/provenance refs-only 条件后，不保留兼容别名。
 
 4. `opl_app_workbench_drilldown`
@@ -81,13 +81,13 @@ AI-first 质量门要求 executor agent 与 reviewer/auditor agent 独立 invoca
 2. `refs_only_adapter_thinning`
    将 SQLite/lifecycle、paper outbox、storage、workspace-source、memory、artifact、terminal/log projection 和 runtime supervisor 中的通用逻辑收薄为 refs-only adapter。MAS 只留医学 owner receipt、typed blocker、artifact/memory authority 和 source readiness。
 
-3. `legacy_physical_retirement`
+3. `legacy_cleanup_physical_retirement`
    对 local LaunchAgent install path、status/remove cleanup residue 和 workspace-local wrapper residue 做 physical retirement。只保留 history/tombstone/provenance，不新增 compatibility shim、别名或兼容测试。
 
 4. `opl_app_workbench_drilldown`
    将 MAS route map、route decision trail、quality/source/artifact refs、memory receipt refs、safe action refs 和 blocker refs 投到 OPL App / workbench 的 ref-only drilldown，不把 UI 状态、provider completion 或 observability finding 写成 publication-ready。
 
-5. `lifecycle_ledger_reconciliation`
+5. `lifecycle_locator_retention_restore_ledger_reconciliation`
    完成 lifecycle locator、retention、restore、cleanup ledger 与 workspace runtime artifact root locator 的 owner 对账，明确 OPL 持有 generic lifecycle shell，MAS 持有 artifact authority 和 guarded receipt。
 
 6. `paper_line_evidence_scaleout`

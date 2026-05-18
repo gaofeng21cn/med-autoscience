@@ -287,7 +287,7 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     assert adoption["surface_kind"] == "mas_opl_pack_compiler_adoption"
     assert adoption["owner"] == "med-autoscience"
     assert adoption["compiler_owner"] == "one-person-lab"
-    assert adoption["status"] == "functional_structure_closed_evidence_gates_remaining"
+    assert adoption["status"] == "declarative_pack_input_and_generated_surface_handoff_declared"
     assert adoption["declarative_pack_input_ref"] == (
         "product_entry_manifest.functional_consumer_boundary.declarative_pack_compiler_input"
     )
@@ -301,10 +301,10 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
         "product_entry_manifest.functional_consumer_boundary.functional_followthrough_gap_summary"
     )
     assert adoption["classification_gap_count"] == 0
-    assert adoption["functional_structure_gap_count"] == 0
+    assert adoption["functional_structure_gap_count"] == 5
     assert adoption["active_private_generic_residue_count"] == 0
     assert adoption["remaining_gap_classification"] == (
-        "live_provider_paper_line_evidence_gates"
+        "functional_followthrough_and_test_evidence_gates"
     )
     assert adoption["source_surfaces"] == [
         "product_entry_manifest.standard_domain_agent_skeleton",

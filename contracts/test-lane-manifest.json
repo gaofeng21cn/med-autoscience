@@ -1443,12 +1443,11 @@
         ],
         "clears_only": "classification_and_long_term_generic_owner_claims",
         "does_not_clear": [
-          "generated_surface_production_consumption",
-          "active_caller_cutover",
+          "generated_surface_active_caller_cutover",
           "refs_only_adapter_thinning",
-          "legacy_physical_retirement",
-          "opl_app_drilldown",
-          "lifecycle_ledger_reconciliation"
+          "legacy_cleanup_physical_retirement",
+          "opl_app_workbench_drilldown",
+          "lifecycle_locator_retention_restore_ledger_reconciliation"
         ],
         "forbidden_remaining_functional_gap_claims": [
           "mas_owned_generic_scheduler",
