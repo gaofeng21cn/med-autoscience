@@ -94,6 +94,7 @@ Follow-up patch:
 - Require the blocker to explicitly keep `result_summary_acceptance_allowed=false` and `substitute_refit_allowed=false`.
 - Treat pre-search blockers as pending owner output so supervisor scan requeues `recover_transport_model_provenance`.
 - Keep post-search typed blockers as terminal owner outputs, avoiding repeated queue churn after the bounded search has been performed.
+- Route post-search terminal blockers to `methodology_reframe_required` with `next_owner=decision`, so the controller must choose a new study route instead of repeatedly showing `source_provenance_owner` as the next executable owner.
 
 Additional verification:
 
