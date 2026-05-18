@@ -135,6 +135,8 @@ medautosci runtime-remove-supervision --profile <profile>
 
 默认入口返回 OPL replacement projection：`scheduler_owner=opl_provider_runtime_manager`、`adapter_id=opl_family_runtime_provider`、`manager=opl`。它只声明 provider SLO tick、domain intake、family-runtime tick、runtime manager status 和 MAS retained role，不写 MAS study truth、不写 memory body、不授权 artifact export、不安装 domain daemon。
 
+产品入口、preflight、workspace cockpit 和 attention queue 的默认 caller 只推荐 `runtime-supervision-status --profile <profile>` 读取 projection；`runtime-ensure-supervision --profile <profile>` 只保留为显式委托 OPL provider/runtime manager 的 action，不作为 service install 或 MAS-owned daemon install 口径。
+
 ### Legacy Diagnostic Adapter: `mas_local_scheduler`
 
 MAS-owned local adapter 的显式 CLI 形态为：
@@ -146,6 +148,8 @@ medautosci runtime-remove-supervision --profile <profile> --manager local
 ```
 
 `local` 现在是 legacy diagnostic / cleanup 语义；内部 OS backend 只用于识别旧生成物。当前 macOS LaunchAgent backend 只能 status/remove；其他 backend 保持 blocked/fail-closed，不伪装成已安装：
+
+显式 `runtime-ensure-supervision --manager local` 也是 fail-closed cleanup-only blocker：它不清理旧生成物、不触发本机 tick、不写 install proof，只返回 `status=blocked`、`action=retired_cleanup_only` 和 status/remove 指引。实际 cleanup 只允许走 `runtime-remove-supervision --manager local`。
 
 | OS / environment | preferred backend | notes |
 | --- | --- | --- |

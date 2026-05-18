@@ -66,9 +66,9 @@
 - `D / diffusion-map manifold concrete follow-on` 已在本轮正式 absorb 为 `diffusion_map_scatter_grouped`，不再保留在 backlog 候选池。
 - `D/E/G / atlas marker dotplot concrete follow-on` 已在本轮正式 absorb 为 `celltype_marker_dotplot_panel`，不再保留在 backlog 候选池。
 - `A/E / binary confusion-matrix heatmap concrete follow-on` 已在本轮正式 absorb 为 `confusion_matrix_heatmap_binary`，不再保留在 backlog 候选池。
-- `D/E/G / legend / annotation / readability-only hardening` 本轮不再作为当前 active 候选保留：
+- `D/E/G / legend / annotation / readability-only hardening` 不再作为当前 active 候选保留：
   - 原因：当前 atlas / spatial / trajectory family 的真 gap 已经抬升到更高阶 atlas geometry synthesis；只做 readability patch 还不足以承担下一条 multi-view capability cluster。
-- `D/E/G / broader omics-only matrix follow-on` 本轮不再作为当前 active 候选保留：
+- `D/E/G / broader omics-only matrix follow-on` 不再作为当前 active 候选保留：
   - 原因：如果先扩到更宽的 matrix / heatmap lane，容易脱离 atlas / spatial / trajectory 的 joint paper question，并和现有 `celltype_signature_heatmap` / storyboard lower bound 产生模糊重叠。
 - `C/H / coefficient-path follow-on` 已在本轮正式 absorb 为 `coefficient_path_panel`，不再保留在 backlog 候选池。
 - `H / broader QC / batch-effect / transportability shell follow-on` 已在本轮正式 absorb 为 `transportability_recalibration_governance_panel`，不再保留在 backlog 候选池。

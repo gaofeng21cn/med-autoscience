@@ -100,7 +100,7 @@ AI-first stage output 必须来自与执行 agent 分离的 reviewer/auditor age
 - `mas_opl_runtime_workbench_projection` 已新增 read-only `reference_projection` lanes，投影 provider attempt、guarded apply、stage review index、memory receipt、freshness 和 safety action receipts；缺 proof 时显示 typed blocker / pending，不写 MAS truth。
 - `legacy_residue_audit` 已进入 product-entry manifest，用结构化 finding 说明 Hermes/MDS/local scheduler/hosted wording 的 current role、no-default-caller proof、replacement proof 和 disposition；legacy active-path tombstone contract 与 history tombstone 已落地，删除仍需后续替代证据和无 fixture/provenance 依赖，不由 audit 自动执行。
 
-本轮已经落地的部分：
+当前已落地基础：
 
 | landed slice | owner surface | proof surface |
 | --- | --- | --- |

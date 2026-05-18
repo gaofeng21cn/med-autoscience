@@ -6,7 +6,7 @@ Owner: `MedAutoScience`
 
 ## 当前结论
 
-`docs/active/` 现在承载仍需要 program 级阅读顺序、owner gate、closeout evidence 或 landed provenance 的文档。
+`docs/active/` 现在承载仍需要 program 级阅读顺序、owner gate、当前差距或当前完成门槛的文档。dated closeout evidence、完整过程流水和 landed provenance 进入 `docs/history/**`。
 
 当前 MAS program 组合按目标、框架优先执行、产品化、基础 guard 四层阅读，不能按文件名、立项时间或 P0/P1/P2/P3 编号理解成并列待办队列：
 

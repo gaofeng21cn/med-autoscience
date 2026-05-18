@@ -93,7 +93,7 @@ Machine boundary: 本文解释 MAS domain supervision / read-model / owner recei
 
 随后 `supervisor-scan` / `supervisor-consume` / `supervisor-execute-dispatch` 负责把 workspace-level action queue、default executor dispatch request 和可执行 dispatch receipt 收成同一轮证据。也就是说，外环的核心不是“循环本身”，而是同一轮 tick 的 MAS controller contract。
 
-真实 workspace 可能仍保留旧 Hermes job script，只调用单步 `watch-runtime`。这类状态不是新 contract；应通过 `runtime-ensure-supervision --profile <profile>` 刷新。`runtime-supervision-status` 的职责是暴露 job、script、latest session 与 drift，而不是把旧 script 解释成新的 desired behavior。
+真实 workspace 可能仍保留旧 Hermes job script，只调用单步 `watch-runtime`。这类状态不是新 contract；默认 operator 入口应先通过 `runtime-supervision-status --profile <profile>` 读取 OPL projection 和显式 adapter drift；只有显式选择 Hermes optional adapter 时才刷新 Hermes job。`runtime-supervision-status` 的职责是暴露 job、script、latest session 与 drift，而不是把旧 script 解释成新的 desired behavior。
 
 跨 study 的巡检入口是 supervisor scan：
 
