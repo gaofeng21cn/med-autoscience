@@ -303,3 +303,83 @@ def test_managed_runtime_worker_materializes_current_route_back_ai_reviewer_eval
     assert prose_currentness["overall_style_verdict"] == "revise"
     assert prose_currentness["route_back_required"] is True
     assert prose_currentness["route_target"] == "write"
+
+
+def test_dispatch_prefers_current_request_record_over_stale_latest_ai_reviewer_record(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_dispatch_executor")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    eval_id = "publication-eval::002::current-ai-reviewer-response"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    refs = _ai_reviewer_refs(study_root)
+    _write_ai_reviewer_currentness_inputs(study_root, eval_id=eval_id)
+    _write_ai_reviewer_request(study_root, study_id=study_id, quest_id=quest_id, eval_id=eval_id)
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "publication-eval::stale-clean-migration",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "ai_reviewer_required": False,
+            },
+            "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
+        },
+    )
+    dispatch_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "return_to_ai_reviewer_workflow.json"
+    )
+    from tests.runtime_supervisor_dispatch_executor_helpers import (
+        dispatch as _dispatch,
+        write_current_dispatch as _write_current_dispatch,
+    )
+
+    _write_current_dispatch(
+        dispatch_path,
+        profile,
+        _dispatch(
+            study_id=study_id,
+            action_type="return_to_ai_reviewer_workflow",
+            owner="ai_reviewer",
+            required_output_surface="artifacts/publication_eval/latest.json",
+        ),
+    )
+    monkeypatch.setattr(
+        module,
+        "_refresh_controller_decision_after_ai_reviewer_eval",
+        lambda **_: {"refresh_status": "skipped", "skipped_reason": "unit_test"},
+    )
+
+    result = module.execute_default_executor_dispatches(
+        profile=profile,
+        study_ids=(study_id,),
+        action_types=("return_to_ai_reviewer_workflow",),
+        mode="developer_apply_safe",
+        apply=True,
+    )
+
+    latest = json.loads((study_root / "artifacts" / "publication_eval" / "latest.json").read_text(encoding="utf-8"))
+
+    assert result["executed_count"] == 1
+    assert result["blocked_count"] == 0
+    assert latest["eval_id"] == eval_id
+    assert latest["quality_assessment"]["medical_journal_prose_quality"]["status"] == "partial"
+    assert latest["quality_assessment"]["medical_journal_prose_quality"]["evidence_refs"] == [
+        refs["medical_prose_review"],
+        refs["manuscript"],
+    ]
+    assert latest["reviewer_operating_system"]["currentness_checks"]["medical_prose_review"][
+        "route_back_required"
+    ] is True
