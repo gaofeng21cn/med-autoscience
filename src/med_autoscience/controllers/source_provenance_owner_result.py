@@ -48,7 +48,20 @@ def result_is_accepted_typed_blocker(payload: Mapping[str, Any] | None) -> bool:
     typed_blocker = _mapping(result.get("typed_blocker"))
     if typed_blocker and _text(typed_blocker.get("blocker_id")) != BLOCKED_REASON:
         return False
+    if not _has_current_provenance_search(result):
+        return False
     return result.get("transport_model_provenance_recovered") is not True
+
+
+def _has_current_provenance_search(payload: Mapping[str, Any]) -> bool:
+    search = _mapping(payload.get("provenance_search"))
+    if search.get("searched") is not True:
+        return False
+    if search.get("result_summary_acceptance_allowed") is not False:
+        return False
+    if search.get("substitute_refit_allowed") is not False:
+        return False
+    return "accepted_bundle_ref" in search
 
 
 def typed_blocker_state(*, study_root: Path) -> dict[str, Any] | None:

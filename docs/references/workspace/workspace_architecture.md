@@ -497,7 +497,7 @@ wrapper 不应继续做：
 
 在进入 Phase 3 或 Phase 4 之前，必须先确认 legacy workspace 当前可工作的“行为性补丁”已经满足下面条件之一：
 
-- 已经通过 `MedAutoScience` overlay、startup contract、workspace policy 或正式兼容层显式迁出
+- 已经通过 `MedAutoScience` overlay、startup contract、workspace policy 或正式迁移面显式迁出
 - 或已经验证删除后不会改变当前项目的关键行为
 
 这里的“行为性补丁”包括但不限于：
@@ -542,7 +542,7 @@ wrapper 不应继续做：
 这一阶段的前提条件必须先满足其一：
 
 - `DeepScientist upstream` 已支持把 project-local home 与 shared runtime assets 分离配置
-- 或 `MedAutoScience` 已提供正式的、可审计的兼容层来声明这些外部路径
+- 或 `MedAutoScience` 已提供正式的、可审计的迁移/声明面来声明这些外部路径
 
 不允许的做法：
 

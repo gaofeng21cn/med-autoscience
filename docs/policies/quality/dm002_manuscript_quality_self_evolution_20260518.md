@@ -83,3 +83,18 @@ Additional verification:
 
 - `scripts/run-pytest-clean.sh tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py -q`: 4 passed.
 - `scripts/run-pytest-clean.sh tests/test_agent_lab_medical_manuscript_quality.py -q`: 4 passed.
+
+## Source Provenance Currentness Follow-Up
+
+The bounded search owner exposed a currentness gap in the scan read model: pre-search source-provenance typed blockers were still treated as complete owner outputs. That prevented upgraded MAS from rerunning the owner on DM002 and writing the newly required `provenance_search` evidence.
+
+Follow-up patch:
+
+- Require accepted source-provenance typed blockers to include `provenance_search.searched=true`.
+- Require the blocker to explicitly keep `result_summary_acceptance_allowed=false` and `substitute_refit_allowed=false`.
+- Treat pre-search blockers as pending owner output so supervisor scan requeues `recover_transport_model_provenance`.
+- Keep post-search typed blockers as terminal owner outputs, avoiding repeated queue churn after the bounded search has been performed.
+
+Additional verification:
+
+- `scripts/run-pytest-clean.sh tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py -q`: 8 passed.
