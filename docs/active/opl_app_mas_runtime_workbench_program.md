@@ -24,7 +24,7 @@ MAS 已具备相关 repo surface：
 
 | surface | state | current use |
 | --- | --- | --- |
-| Progress Portal payload / per-study page | `landed_read_model` | source projection 和 fallback HTML |
+| Progress Portal payload / per-study page | `landed_read_model` | source projection 和 diagnostic HTML |
 | Live Console | `landed_read_model` | run/session/log/terminal observation |
 | conversation / route read models | `landed_read_model` | executor timeline 和 route-decision trail |
 | terminal attach gate | `owner_gate_landed` | fail-closed attach/input/resize/detach authority |
@@ -34,7 +34,7 @@ MAS 已具备相关 repo surface：
 | OPL provider attempt/readiness refs | `provider_readiness_projection_ready` | OPL production proof 可被 MAS product-entry / sidecar ingestion 投影为 provider available；App 只能展示 provider refs 和 typed blocker |
 | publication-route memory refs | `body_free_grouping_review_projection_ready` | 展示 consumed refs、writeback receipt refs、freshness、rejected reason、workspace/stage/route family/status grouping 和 stale/deprecated review summary；不展示 memory body，不接受 writeback |
 
-剩余产品缺口不是“旧 P1 文档里的所有功能都要做”。当前缺口是把这些现有 MAS projection、Stage Review locator、publication-route memory refs / grouping / review summary、provider readiness refs 和 action receipts 变成 OPL App 里的主用户运行面，同时 local Portal / Live Console 保留为 fallback、debug 和 evidence。
+剩余产品缺口不是“旧 P1 文档里的所有功能都要做”。当前缺口是把这些现有 MAS projection、Stage Review locator、publication-route memory refs / grouping / review summary、provider readiness refs 和 action receipts 变成 OPL App 里的主用户运行面，同时 local Portal / Live Console 保留为 diagnostic、debug 和 evidence。
 
 P1 的当前规划状态来自 [MAS Current Development Lines](./current_development_lines.md)。P1 只承担 `functional_follow_through_gate`：把已经存在的 MAS / OPL refs、receipts、blockers 和 action boundaries 产品化。真实 provider-hosted paper progress 仍归 P0 / P2 owner surfaces；P1 不用 UI 状态、provider completion 或 queue status 宣布论文进展。
 
@@ -65,7 +65,7 @@ MAS 生产或持有：
 
 - study truth、publication judgment、paper/package authority、quality verdict、owner route、action receipt、terminal attach gate、source refs 和 forbidden-write rules；
 - `mas_opl_runtime_workbench_projection`，它是 App-facing projection，不是第二 truth source；
-- local Portal / Live Console fallback artifacts。
+- local Portal / Live Console diagnostic artifacts。
 
 OPL App / OPL Runtime Manager 持有：
 

@@ -297,7 +297,7 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
         "mas_target_owner": "MAS MCP",
         "mds_final_role": "retired_surface",
         "cutover_contract": "Active MCP commands route through MAS; old MDS MCP names fail closed or stay explicit archive import references.",
-        "owner_boundary": "MCP exposes MAS truth refs and does not make MDS a backend fallback.",
+        "owner_boundary": "MCP exposes MAS truth refs and does not make MDS a backend runnable substitute.",
     },
     {
         "surface_id": "tui_web_visual_status",

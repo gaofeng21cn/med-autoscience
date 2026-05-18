@@ -36,7 +36,7 @@ def runtime_continuity_section(runtime_continuity: Mapping[str, Any]) -> str:
 def _runtime_session_continuity_items(session: Mapping[str, Any]) -> list[str]:
     items: list[str] = []
     if session:
-        items.append(f"worker：{display_text(session.get('worker_state'), fallback='未提供')}")
+        items.append(f"worker：{display_text(session.get('worker_state'), empty_text='未提供')}")
         if session.get("active_run_id"):
             items.append(f"active run：{session.get('active_run_id')}")
         elif session.get("last_known_run_id"):
@@ -50,23 +50,23 @@ def _runtime_session_continuity_items(session: Mapping[str, Any]) -> list[str]:
         if session.get("monitor_kind") or session.get("monitor_state"):
             items.append(
                 "monitor owner："
-                + display_text(session.get("monitor_kind"), fallback="未提供")
+                + display_text(session.get("monitor_kind"), empty_text="未提供")
                 + " / "
-                + display_text(session.get("monitor_state"), fallback="未提供")
+                + display_text(session.get("monitor_state"), empty_text="未提供")
             )
         if session.get("stale_reason"):
-            items.append(f"why waiting：{display_text(session.get('stale_reason'), fallback='未提供')}")
+            items.append(f"why waiting：{display_text(session.get('stale_reason'), empty_text='未提供')}")
         if session.get("will_start_llm") is not None:
             items.append(f"will start LLM：{'yes' if session.get('will_start_llm') else 'no'}")
         if session.get("freshness_state"):
-            items.append(f"freshness：{display_text(session.get('freshness_state'), fallback='未提供')}")
+            items.append(f"freshness：{display_text(session.get('freshness_state'), empty_text='未提供')}")
     return items
 
 
 def _recovery_intent_continuity_items(intent: Mapping[str, Any]) -> list[str]:
     items: list[str] = []
     if intent:
-        items.append(f"recovery action：{display_text(intent.get('current_action'), fallback='未提供')}")
+        items.append(f"recovery action：{display_text(intent.get('current_action'), empty_text='未提供')}")
         if intent.get("next_owner"):
             items.append(f"next owner：{intent.get('next_owner')}")
         if intent.get("next_eligible_tick"):

@@ -225,11 +225,11 @@ def _human_review(payload: Mapping[str, Any], *, grounded: bool) -> dict[str, An
 
 def _next_owner(payload: Mapping[str, Any], *, deliverable_index: Mapping[str, Any]) -> dict[str, Any]:
     explicit = _mapping(payload.get("next_owner"))
-    fallback = _mapping(deliverable_index.get("next_owner"))
+    indexed_next_owner = _mapping(deliverable_index.get("next_owner"))
     return {
-        "owner": _non_empty_text(explicit.get("owner")) or _non_empty_text(fallback.get("owner")) or "MedAutoScience",
-        "next_routes": _string_list(explicit.get("next_routes")) or _string_list(fallback.get("next_routes")),
-        "source_ref": _non_empty_text(explicit.get("source_ref")) or _non_empty_text(fallback.get("source_ref")),
+        "owner": _non_empty_text(explicit.get("owner")) or _non_empty_text(indexed_next_owner.get("owner")) or "MedAutoScience",
+        "next_routes": _string_list(explicit.get("next_routes")) or _string_list(indexed_next_owner.get("next_routes")),
+        "source_ref": _non_empty_text(explicit.get("source_ref")) or _non_empty_text(indexed_next_owner.get("source_ref")),
     }
 
 

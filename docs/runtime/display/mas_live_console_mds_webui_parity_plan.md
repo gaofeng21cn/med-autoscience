@@ -156,7 +156,7 @@ Live Console 只能写 MAS-owned read-model/display artifacts，例如 `artifact
   - 时间显示本机时区；
   - Portal / Live Console 主 UI 标签使用中文，英文只保留在技术值、命令或 source ref 中；
   - workspace alerts 显示来源、用途、当前输出、期望输出和可用修复命令；
-  - workspace overview 不把单篇 publication/package 缺失 fallback 渲染成 workspace 级阻塞；
+  - workspace overview 不把单篇 publication/package 缺失文案渲染成 workspace 级阻塞；
   - Live Console 能分辨 DM002/DPCC003；
   - 没有 live run 时明确显示 no-live-run 空状态、blocker/action intent 和 terminal/log missing source refs；
   - terminal/log stream 可读；

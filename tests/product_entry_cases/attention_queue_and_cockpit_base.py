@@ -131,10 +131,10 @@ def test_attention_queue_projects_manual_finishing_as_package_handoff_without_ge
                 "current_blockers": ["当前 quest 已停止；如需继续，必须显式 rerun 或 relaunch。"],
                 "intervention_lane": {
                     "lane_id": "manual_finishing",
-                    "title": "保持人工收尾兼容保护",
+                    "title": "保持人工收尾显式保护",
                     "severity": "observe",
-                    "summary": "投稿包里程碑已达成；MAS 只保持人工收尾兼容保护和监督入口。",
-                    "recommended_action_id": "maintain_compatibility_guard",
+                    "summary": "投稿包里程碑已达成；MAS 只保持人工收尾显式保护和监督入口。",
+                    "recommended_action_id": "maintain_manual_finish_guard",
                 },
                 "operator_verdict": {
                     "summary": "旧的阻塞摘要不应覆盖人工收尾语义。",
@@ -149,7 +149,7 @@ def test_attention_queue_projects_manual_finishing_as_package_handoff_without_ge
                 },
                 "autonomy_contract": {
                     "autonomy_state": "compatibility_guard",
-                    "summary": "投稿包里程碑已达成；MAS 只保持人工收尾兼容保护和监督入口。",
+                    "summary": "投稿包里程碑已达成；MAS 只保持人工收尾显式保护和监督入口。",
                 },
                 "recommended_command": "uv run python -m med_autoscience.cli study-progress --study-id 001-risk",
             }
@@ -159,7 +159,7 @@ def test_attention_queue_projects_manual_finishing_as_package_handoff_without_ge
 
     assert queue[0]["code"] == "study_auto_runtime_parked"
     assert queue[0]["title"] == "001-risk 当前投稿包/人审包交付停驻"
-    assert queue[0]["summary"] == "投稿包里程碑已达成；MAS 只保持人工收尾兼容保护和监督入口。"
+    assert queue[0]["summary"] == "投稿包里程碑已达成；MAS 只保持人工收尾显式保护和监督入口。"
     assert queue[0]["recommended_step_id"] == "inspect_study_progress"
     assert queue[0]["operator_status_card"]["handling_state"] == "package_ready_handoff"
 

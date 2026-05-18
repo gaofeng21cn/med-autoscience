@@ -119,9 +119,9 @@ def _normalize_medical_prose_review_ref(
             payload["relative_path"] = relative_path
         return payload
 
-    fallback = _existing_medical_prose_review_ref_payload(study_root=study_root)
-    if fallback is not None:
-        return fallback
+    existing_payload = _existing_medical_prose_review_ref_payload(study_root=study_root)
+    if existing_payload is not None:
+        return existing_payload
     return payload
 
 

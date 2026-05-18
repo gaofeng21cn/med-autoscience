@@ -33,7 +33,7 @@ def register_runtime_lifecycle_parsers(subparsers: argparse._SubParsersAction) -
     ledger_parser.add_argument("--next-required-action", type=str)
     ledger_parser.add_argument("--output-root", type=str)
     ledger_parser.add_argument("--write", action="store_true")
-    ledger_parser.add_argument("--write-compat-export", action="store_true")
+    ledger_parser.add_argument("--write-lifecycle-export", action="store_true")
 
     quest_git_inventory_parser = subparsers.add_parser("runtime-lifecycle-quest-git-inventory")
     quest_git_inventory_parser.add_argument("--workspace-root", required=True, type=str)
@@ -71,7 +71,7 @@ def handle_runtime_lifecycle_command(
         return 0
 
     if args.command == "runtime-lifecycle-read":
-        result = runtime_lifecycle_read_model.read_compatibility_projection(
+        result = runtime_lifecycle_read_model.read_lifecycle_projection(
             surface=args.surface,
             report_group=args.report_group,
             **_scope_kwargs(args),
@@ -80,7 +80,7 @@ def handle_runtime_lifecycle_command(
         return 0
 
     if args.command == "runtime-lifecycle-export":
-        result = runtime_lifecycle_read_model.export_compatibility_projection(
+        result = runtime_lifecycle_read_model.export_lifecycle_projection(
             surface=args.surface,
             export_format=args.format,
             report_group=args.report_group,
@@ -100,7 +100,7 @@ def handle_runtime_lifecycle_command(
             next_required_action=args.next_required_action,
             output_root=Path(args.output_root) if args.output_root else None,
             write=bool(args.write),
-            write_compat_export=bool(args.write_compat_export),
+            write_lifecycle_export=bool(args.write_lifecycle_export),
         )
         _print_json(result)
         return 0

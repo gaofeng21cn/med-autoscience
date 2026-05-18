@@ -23,7 +23,7 @@ def render_controller_first_block() -> str:
         "- Choose the lightest honest route that can answer the current stage question; do not expand into heavier search, compute, or writing work before the current contract is satisfied.",
         "",
         "Write-back rule:",
-        "- If fallback execution is used, the result must still be written back into MedAutoScience durable state such as study artifacts, paper artifacts, startup contracts, or the public/private data-asset registries.",
+        "- If an external tool path is used, the result must still be written back into MedAutoScience durable state such as study artifacts, paper artifacts, startup contracts, or the public/private data-asset registries.",
         "- Do not leave durable research state only in transient chat output.",
         "",
         "Review and route-back discipline:",
@@ -44,6 +44,6 @@ def render_controller_first_summary() -> str:
         "one proactive public-data discovery pass unless the study contract explicitly waives public sidecars: "
         "check `portfolio/data_assets/public/registry.json`, then use `data-assets-status`, `startup-data-readiness`, "
         "`tooluniverse-status`, and `apply-data-asset-update`; for large retained anchors, keep accession/metadata remote-only until a concrete study use case, storage budget, and reuse/prune plan justify download or materialization. Reuse durable study memory before fresh rediscovery and prefer the lightest honest route that answers the current stage question. "
-        "Only when the platform does not already provide a stable controller may the agent fall back to browser/web/document tools, and any such fallback must be "
+        "Only when the platform does not already provide a stable controller may the agent use browser/web/document tools, and any such external tool path must be "
         "written back into durable MedAutoScience state. Before stage expansion, verify that the current stage has a durable result, blocker, or next-route record; when a quality or route gap appears, record it and route back through `decision` or the named `required_first_anchor`."
     )

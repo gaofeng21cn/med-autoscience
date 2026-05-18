@@ -31,7 +31,7 @@
 - `MedDeepScientist` 的保留价值通过 MAS 显式声明的 backend audit、source provenance、historical fixture、explicit archive import reference、upstream intake 和 parity oracle surface 出现。
 - `MAS AI-first Research OS` 是长线目标架构。当前可用落点是 pre-draft quality runtime、AI reviewer workflow、artifact rebuild proof、operations state 与真实论文 soak 的逐步闭合；真实论文 soak 仍是证据缺口。
 - `Stage-Led Autonomy` 已有 MAS-owned operating surface：stage entry 通过 `stage_knowledge_packet` 读取 memory/literature/evidence/review/claim boundary，stage closeout 通过 `stage_memory_closeout_packet` 和 `memory_write_router_receipt` 做受控写回，`stage_recall_index` 作为 read model。Publication-route 经验已经可以实现为 natural-language-first memory card：它们配 minimal metadata、small-set retrieval、typed closeout writeback 和 router receipt，帮助 Codex CLI 在 stage 内自主探索；研究路线生成和论文质量授权继续以 stage output、AI reviewer 与 controller truth 为准。`study_line_decision_engine` 与 `route_decision_orchestrator` 当前承担 audit comparator、route router、stop-loss 和 executable task materializer 角色。总入口见 [Study Workflow](./policies/study-workflow/README.md)。
-- 旧程序/脚本控制的退役口径按默认权威判断。默认运行、诊断、进度、publication/package、stage-led paper loop 已迁到 MAS-owned surface；explicit archive import、historical fixture、restore diagnostic、compat import facade 和 parity oracle 可保留到对应替代面验证后再删除，并以 fail-closed 方式运行。
+- 旧程序/脚本控制的退役口径按默认权威判断。默认运行、诊断、进度、publication/package、stage-led paper loop 已迁到 MAS-owned surface；explicit archive import、historical fixture、restore diagnostic、archive import provenance locator 和 parity oracle 可保留到对应替代面验证后再删除，并以 fail-closed 方式运行。
 
 ## 当前聚焦范围
 

@@ -382,7 +382,7 @@ def test_runtime_lifecycle_export_command_dispatches_read_model(monkeypatch, tmp
     output_path = tmp_path / "exports" / "watch.md"
     called: dict[str, object] = {}
 
-    def fake_export_compatibility_projection(
+    def fake_export_lifecycle_projection(
         *,
         surface: str,
         export_format: str,
@@ -400,15 +400,15 @@ def test_runtime_lifecycle_export_command_dispatches_read_model(monkeypatch, tmp
         called["output_path"] = output_path
         called["db_path"] = db_path
         return {
-            "surface_kind": "runtime_lifecycle_compatibility_export",
-            "compatibility_fallback_used": False,
+            "surface_kind": "runtime_lifecycle_export",
+            "legacy_restore_import_used": False,
             "output_path": str(output_path),
         }
 
     monkeypatch.setattr(
         cli.runtime_lifecycle_read_model,
-        "export_compatibility_projection",
-        fake_export_compatibility_projection,
+        "export_lifecycle_projection",
+        fake_export_lifecycle_projection,
     )
 
     exit_code = cli.main(
@@ -440,8 +440,8 @@ def test_runtime_lifecycle_export_command_dispatches_read_model(monkeypatch, tmp
         "db_path": None,
     }
     payload = json.loads(captured.out)
-    assert payload["surface_kind"] == "runtime_lifecycle_compatibility_export"
-    assert payload["compatibility_fallback_used"] is False
+    assert payload["surface_kind"] == "runtime_lifecycle_export"
+    assert payload["legacy_restore_import_used"] is False
 
 
 def test_runtime_lifecycle_inventory_command_is_read_only(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -459,11 +459,11 @@ def test_runtime_lifecycle_inventory_command_is_read_only(monkeypatch, tmp_path:
         called["workspace_root"] = workspace_root
         called["db_path"] = db_path
         return {
-            "surface_kind": "runtime_lifecycle_compatibility_read_model",
+            "surface_kind": "runtime_lifecycle_read_model",
             "mode": "inventory",
             "status": "missing",
             "read_only": True,
-            "compatibility_fallback_used": False,
+            "legacy_restore_import_used": False,
         }
 
     monkeypatch.setattr(cli.runtime_lifecycle_read_model, "build_lifecycle_inventory", fake_build_lifecycle_inventory)
@@ -475,7 +475,7 @@ def test_runtime_lifecycle_inventory_command_is_read_only(monkeypatch, tmp_path:
     assert called == {"quest_root": None, "workspace_root": workspace_root, "db_path": None}
     payload = json.loads(captured.out)
     assert payload["read_only"] is True
-    assert payload["compatibility_fallback_used"] is False
+    assert payload["legacy_restore_import_used"] is False
 
 
 def test_runtime_lifecycle_inventory_command_can_output_quest_git_inventory(
@@ -663,7 +663,7 @@ def test_runtime_lifecycle_read_accepts_sqlite_only_surface(monkeypatch, tmp_pat
     workspace_root = tmp_path / "workspace"
     called: dict[str, object] = {}
 
-    def fake_read_compatibility_projection(
+    def fake_read_lifecycle_projection(
         *,
         surface: str,
         report_group: str,
@@ -677,15 +677,15 @@ def test_runtime_lifecycle_read_accepts_sqlite_only_surface(monkeypatch, tmp_pat
         called["workspace_root"] = workspace_root
         called["db_path"] = db_path
         return {
-            "surface_kind": "runtime_lifecycle_compatibility_read_model",
+            "surface_kind": "runtime_lifecycle_read_model",
             "surface": surface,
-            "compatibility_fallback_used": False,
+            "legacy_restore_import_used": False,
         }
 
     monkeypatch.setattr(
         cli.runtime_lifecycle_read_model,
-        "read_compatibility_projection",
-        fake_read_compatibility_projection,
+        "read_lifecycle_projection",
+        fake_read_lifecycle_projection,
     )
 
     exit_code = cli.main(
@@ -712,7 +712,7 @@ def test_runtime_lifecycle_read_accepts_sqlite_only_surface(monkeypatch, tmp_pat
     }
     payload = json.loads(captured.out)
     assert payload["surface"] == "lineage_route"
-    assert payload["compatibility_fallback_used"] is False
+    assert payload["legacy_restore_import_used"] is False
 
 
 def test_runtime_lifecycle_read_rejects_legacy_restore_import_diagnostic_flag(
@@ -723,7 +723,7 @@ def test_runtime_lifecycle_read_rejects_legacy_restore_import_diagnostic_flag(
     cli = importlib.import_module("med_autoscience.cli")
     quest_root = tmp_path / "runtime" / "quests" / "q001"
 
-    def fake_read_compatibility_projection(
+    def fake_read_lifecycle_projection(
         *,
         surface: str,
         report_group: str,
@@ -732,15 +732,15 @@ def test_runtime_lifecycle_read_rejects_legacy_restore_import_diagnostic_flag(
         db_path: Path | None,
     ) -> dict[str, object]:
         return {
-            "surface_kind": "runtime_lifecycle_compatibility_read_model",
+            "surface_kind": "runtime_lifecycle_read_model",
             "surface": surface,
-            "compatibility_fallback_used": False,
+            "legacy_restore_import_used": False,
         }
 
     monkeypatch.setattr(
         cli.runtime_lifecycle_read_model,
-        "read_compatibility_projection",
-        fake_read_compatibility_projection,
+        "read_lifecycle_projection",
+        fake_read_lifecycle_projection,
     )
 
     retired_flag = "--legacy" + "-restore-import-diagnostic"

@@ -37,7 +37,7 @@ def test_review_ledger_readiness_blocks_on_open_major_concern() -> None:
         fallback_basis_item={
             "status": "partial",
             "summary": "Fallback reviewer-first summary.",
-            "evidence_refs": ["/tmp/fallback.json"],
+            "evidence_refs": ["/tmp/default-review.json"],
         },
     )
 
@@ -94,7 +94,7 @@ def test_review_ledger_readiness_uses_resolved_ledger_as_ready_signal() -> None:
         fallback_basis_item={
             "status": "partial",
             "summary": "Fallback reviewer-first summary.",
-            "evidence_refs": ["/tmp/fallback.json"],
+            "evidence_refs": ["/tmp/default-review.json"],
         },
     )
 

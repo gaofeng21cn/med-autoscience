@@ -167,7 +167,7 @@ def _execute_create_runtime_decision(
         quest_id=create_payload["quest_id"],
         quest_root=context.quest_root,
         quest_exists=True,
-        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.CREATE, fallback="created"),
+        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.CREATE, default_status="created"),
     )
     if context.profile.enable_medical_overlay:
         runtime_overlay_result = StudyRuntimeOverlayResult.from_payload(
@@ -224,7 +224,7 @@ def _execute_create_runtime_decision(
             return outcome
         outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, resume_result)
         status.update_quest_runtime(
-            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
+            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, default_status="running"),
         )
         if not _apply_resume_postcondition(status=status, outcome=outcome):
             return outcome
@@ -300,7 +300,7 @@ def _execute_resume_runtime_decision(
         )
         outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
         status.update_quest_runtime(
-            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
+            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, default_status="paused"),
         )
         status.extras["controller_reroute_restart"] = {
             "forced": True,
@@ -346,7 +346,7 @@ def _execute_resume_runtime_decision(
         return outcome
     outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, resume_result)
     status.update_quest_runtime(
-        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
+        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, default_status="running"),
     )
     if not _apply_resume_postcondition(status=status, outcome=outcome):
         _restore_explicit_user_wakeup_surface(status, pre_resume_wakeup)
@@ -415,7 +415,7 @@ def _execute_relaunch_stopped_runtime_decision(
         return outcome
     outcome.record_daemon_step(StudyRuntimeDaemonStep.RESUME, relaunch_result)
     status.update_quest_runtime(
-        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running"),
+        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, default_status="running"),
     )
     if not _apply_resume_postcondition(status=status, outcome=outcome):
         _restore_explicit_user_wakeup_surface(status, pre_relaunch_wakeup)
@@ -493,7 +493,7 @@ def _execute_pause_runtime_decision(
             status.update_quest_runtime(
                 quest_status=outcome.quest_status_for_step(
                     StudyRuntimeDaemonStep.PAUSE,
-                    fallback=status.quest_status.value if status.quest_status is not None else "paused",
+                    default_status=status.quest_status.value if status.quest_status is not None else "paused",
                 )
             )
             if status.reason is StudyRuntimeReason.HUMAN_TAKEOVER_REQUESTED:
@@ -512,7 +512,7 @@ def _execute_pause_runtime_decision(
         return outcome
     outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
     status.update_quest_runtime(
-        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
+        quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, default_status="paused"),
     )
     clearance = _runtime_events.clear_stale_platform_repair_redrive_after_pause(
         quest_root=context.quest_root,
@@ -547,7 +547,7 @@ def _execute_completion_runtime_decision(
         )
         outcome.record_daemon_step(StudyRuntimeDaemonStep.PAUSE, pause_result)
         status.update_quest_runtime(
-            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused"),
+            quest_status=outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, default_status="paused"),
         )
     completion_sync = StudyCompletionSyncResult.from_payload(
         router._sync_study_completion(

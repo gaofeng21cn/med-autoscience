@@ -268,7 +268,7 @@ def test_study_runtime_status_mapping_semantics_follow_serialized_payload() -> N
 
     assert dict(status) == expected_payload
     assert "decision" not in status
-    assert status.get("decision", "fallback") == "fallback"
+    assert status.get("decision", "missing") == "missing"
 def test_study_runtime_status_accepts_retrying_live_quest_state() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     payload = make_status_payload(quest_status="retrying")
@@ -786,9 +786,9 @@ def test_study_runtime_execution_outcome_records_named_daemon_steps_and_resolves
 
     assert outcome.daemon_step("create") == {"snapshot": {"status": "created"}}
     assert outcome.daemon_step("resume") == {"ok": True, "status": "running"}
-    assert outcome.quest_status_for_step("create", fallback="unknown") == "created"
-    assert outcome.quest_status_for_step("resume", fallback="unknown") == "running"
-    assert outcome.completion_snapshot_status(fallback="unknown") == "completed"
+    assert outcome.quest_status_for_step("create", default_status="unknown") == "created"
+    assert outcome.quest_status_for_step("resume", default_status="unknown") == "running"
+    assert outcome.completion_snapshot_status(default_status="unknown") == "completed"
 def test_study_runtime_execution_outcome_resolves_completion_status_from_typed_sync_payload() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     outcome = module.StudyRuntimeExecutionOutcome()
@@ -796,7 +796,7 @@ def test_study_runtime_execution_outcome_resolves_completion_status_from_typed_s
 
     outcome.record_daemon_step("completion_sync", completion_sync.to_dict())
 
-    assert outcome.completion_snapshot_status(fallback="unknown") == "completed"
+    assert outcome.completion_snapshot_status(default_status="unknown") == "completed"
 def test_study_runtime_execution_outcome_rejects_invalid_daemon_step_payload() -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
     outcome = module.StudyRuntimeExecutionOutcome()

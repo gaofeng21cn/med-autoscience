@@ -167,8 +167,8 @@ li {{ margin: 6px 0; overflow-wrap: anywhere; }}
 <script>
 const MODEL_REF = "{model_fetch_ref}";
 const MODEL_LABEL = "{model_ref}";
-const text = (value, fallback = "unknown") => {{
-  if (value === null || value === undefined || value === "") return fallback;
+const text = (value, emptyText = "unknown") => {{
+  if (value === null || value === undefined || value === "") return emptyText;
   return String(value);
 }};
 const list = (value) => Array.isArray(value) ? value : [];

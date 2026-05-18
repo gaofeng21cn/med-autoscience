@@ -129,17 +129,17 @@ def test_migration_ledger_validation_is_structural_not_markdown_wording() -> Non
     }
 
 
-def test_compatibility_verification_validation_rejects_unknown_reader() -> None:
+def test_lifecycle_verification_validation_rejects_unknown_reader() -> None:
     contract_module = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_contract")
     payload = {
-        field: "value" for field in contract_module.COMPATIBILITY_VERIFICATION_REQUIRED_FIELDS
+        field: "value" for field in contract_module.LIFECYCLE_VERIFICATION_REQUIRED_FIELDS
     }
     payload["reader_name"] = "study_progress"
 
-    assert contract_module.validate_compatibility_verification(payload)["ok"] is True
+    assert contract_module.validate_lifecycle_verification(payload)["ok"] is True
 
     payload["reader_name"] = "sqlite_as_publication_authority"
-    result = contract_module.validate_compatibility_verification(payload)
+    result = contract_module.validate_lifecycle_verification(payload)
 
     assert result["ok"] is False
     assert result["invalid_fields"] == {"reader_name": "sqlite_as_publication_authority"}
@@ -174,7 +174,7 @@ def test_sqlite_authority_contract_is_lifecycle_only_and_rejects_study_truth() -
                 "runtime_retention",
                 "runtime_cursor",
             ],
-            "authority_surfaces": ["runtime_events", "retention_actions", "compatibility_exports"],
+            "authority_surfaces": ["runtime_events", "retention_actions", "lifecycle_exports"],
         }
     )
     assert allowed == {

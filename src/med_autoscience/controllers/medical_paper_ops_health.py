@@ -270,11 +270,11 @@ def _surfaces_by_key(readiness: Mapping[str, Any]) -> dict[str, Mapping[str, Any
 
 def _health_status(
     primary: Mapping[str, Any],
-    fallback: Mapping[str, Any],
+    secondary: Mapping[str, Any],
     *,
     ready_statuses: set[str],
 ) -> str:
-    status = _text(primary.get("status")) or _text(fallback.get("status"))
+    status = _text(primary.get("status")) or _text(secondary.get("status"))
     if status in ready_statuses:
         return "ready"
     if status in {"partial"}:

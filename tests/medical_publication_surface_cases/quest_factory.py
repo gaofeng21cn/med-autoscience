@@ -857,7 +857,7 @@ def _write_time_to_event_direct_migration_surface(quest_root: Path, *, include_f
                 "figure_semantics": "evidence",
                 "renderer_family": "python",
                 "template_id": "time_to_event_risk_group_summary",
-                "selection_rationale": "The manuscript requires the audited two-panel tertile summary rather than a grouped KM fallback.",
+                "selection_rationale": "The manuscript requires the audited two-panel tertile summary rather than a grouped KM default.",
                 "layout_qc_profile": "publication_survival_curve",
                 "required_exports": ["png", "pdf"],
                 **evidence_renderer_display_to_claim_fields(

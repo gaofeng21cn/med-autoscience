@@ -56,7 +56,7 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     queue = mechanism_inputs["analysis_queue_manifest"]
     assert graph["body_included"] is False
     assert graph["paper_refs"] == [
-        "research-memory-ref:mas/002-dm-china-us-mortality-attribution/paper_refs/body-free-fallback"
+        "research-memory-ref:mas/002-dm-china-us-mortality-attribution/paper_refs/body-free-default"
     ]
     assert graph["failed_route_refs"] == [
         "failed-route:mas/002-dm-china-us-mortality-attribution/medical-manuscript-quality-gap"

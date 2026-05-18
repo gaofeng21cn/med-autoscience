@@ -116,7 +116,7 @@ def test_runtime_lifecycle_migration_ledger_is_contract_valid_and_writes_pointer
         migration_run_id="run-ledger-001",
         skipped_reasons=(),
         write=True,
-        write_compat_export=True,
+        write_lifecycle_export=True,
     )
 
     assert contract.validate_migration_ledger(ledger)["ok"] is True
@@ -159,7 +159,7 @@ def test_runtime_lifecycle_migration_ledger_is_contract_valid_and_writes_pointer
         }
     ]
     assert ledger["git_tracking_check"]["sidecar_gitignore_ok"] is True
-    assert ledger["compatibility_exports"][0]["compatibility_fallback_used"] is False
+    assert ledger["lifecycle_exports"][0]["legacy_restore_import_used"] is False
     run_path = Path(ledger["ledger_paths"]["ledger_path"])
     latest_path = Path(ledger["ledger_paths"]["latest_path"])
     assert json.loads(run_path.read_text(encoding="utf-8"))["migration_run_id"] == "run-ledger-001"
@@ -182,12 +182,12 @@ def test_runtime_lifecycle_ledger_cli_dispatches_migration_builder(monkeypatch, 
         migration_run_id: str | None,
         quest_git_cutover_status=None,
         quest_git_inventory=(),
-        compatibility_retirement=None,
+        legacy_import_retirement=None,
         skipped_reasons: tuple[str, ...],
         next_required_action: str | None,
         output_root: Path | None,
         write: bool,
-        write_compat_export: bool,
+        write_lifecycle_export: bool,
     ) -> dict[str, object]:
         called.update(
             {
@@ -199,7 +199,7 @@ def test_runtime_lifecycle_ledger_cli_dispatches_migration_builder(monkeypatch, 
                 "next_required_action": next_required_action,
                 "output_root": output_root,
                 "write": write,
-                "write_compat_export": write_compat_export,
+                "write_lifecycle_export": write_lifecycle_export,
             }
         )
         return {
@@ -229,7 +229,7 @@ def test_runtime_lifecycle_ledger_cli_dispatches_migration_builder(monkeypatch, 
             "--output-root",
             str(output_root),
             "--write",
-            "--write-compat-export",
+            "--write-lifecycle-export",
         ]
     )
     captured = capsys.readouterr()
@@ -244,7 +244,7 @@ def test_runtime_lifecycle_ledger_cli_dispatches_migration_builder(monkeypatch, 
         "next_required_action": "review owner boundary",
         "output_root": output_root,
         "write": True,
-        "write_compat_export": True,
+        "write_lifecycle_export": True,
     }
     assert json.loads(captured.out)["validation"]["ok"] is True
 
@@ -558,11 +558,11 @@ def test_runtime_lifecycle_ledger_blocks_git_retirement_until_active_path_cutove
                 "quest_git_active_path_retired": False,
             }
         ],
-        compatibility_retirement={
+        legacy_import_retirement={
             "current_projects_cutover_verified": False,
             "old_readers_equivalent": True,
             "restore_import_diagnostic_retained": True,
-            "default_fallback_removed": False,
+            "default_legacy_reader_removed": False,
             "default_callers": ["runtime_watch"],
         },
     )
@@ -571,11 +571,11 @@ def test_runtime_lifecycle_ledger_blocks_git_retirement_until_active_path_cutove
     assert cutover["status"] == "pending"
     assert cutover["quest_git_active_path_retired"] is False
     assert cutover["unresolved_active_git_paths"][0]["quest_id"] == "quest-001"
-    assert cutover["compatibility_retirement"]["allowed"] is False
+    assert cutover["legacy_import_retirement"]["allowed"] is False
     assert "Q1-Q5" in ledger["next_required_action"]
 
 
-def test_runtime_lifecycle_ledger_allows_compat_retirement_only_after_verified_cutover(tmp_path: Path) -> None:
+def test_runtime_lifecycle_ledger_allows_legacy_import_retirement_only_after_verified_cutover(tmp_path: Path) -> None:
     migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
     workspace_root = tmp_path / "workspace"
     workspace_root.mkdir()
@@ -606,11 +606,11 @@ def test_runtime_lifecycle_ledger_allows_compat_retirement_only_after_verified_c
                 "projection_equivalence": "verified",
             }
         ],
-        compatibility_retirement={
+        legacy_import_retirement={
             "current_projects_cutover_verified": True,
             "old_readers_equivalent": True,
             "restore_import_diagnostic_retained": True,
-            "default_fallback_removed": True,
+            "default_legacy_reader_removed": True,
             "default_callers": ["legacy_restore_import_diagnostic"],
         },
     )
@@ -619,19 +619,19 @@ def test_runtime_lifecycle_ledger_allows_compat_retirement_only_after_verified_c
     assert cutover["status"] == "verified"
     assert cutover["quest_git_active_path_retired"] is True
     assert cutover["unresolved_active_git_paths"] == []
-    assert cutover["compatibility_retirement"]["allowed"] is True
+    assert cutover["legacy_import_retirement"]["allowed"] is True
     assert ledger["next_required_action"] == "Run storage-audit dry-run to create the runtime lifecycle SQLite sidecar."
 
 
-def test_compatibility_retirement_validation_requires_restore_import_diagnostic() -> None:
+def test_legacy_import_retirement_validation_requires_restore_import_diagnostic() -> None:
     migration = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_migration")
 
-    result = migration.validate_compatibility_retirement(
+    result = migration.validate_legacy_import_retirement(
         {
             "current_projects_cutover_verified": True,
             "old_readers_equivalent": True,
             "restore_import_diagnostic_retained": False,
-            "default_fallback_removed": True,
+            "default_legacy_reader_removed": True,
             "default_callers": ["runtime_watch"],
         }
     )

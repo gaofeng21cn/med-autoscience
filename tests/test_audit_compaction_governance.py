@@ -94,7 +94,7 @@ def test_audit_compaction_governance_builds_maintainability_read_model(tmp_path:
     assert pre_contract["required_proof_refs"] == [
         "restore_index_ref",
         "provenance_ref",
-        "compatibility_export_ref",
+        "lifecycle_export_ref",
     ]
     assert [gate["gate_id"] for gate in pre_contract["gates"]] == ["restore", "index", "provenance"]
     assert report["compaction_implementation_allowed"] is False
@@ -121,7 +121,7 @@ def test_audit_compaction_governance_allows_passed_contract_with_restore_index_p
             ],
             "restore_index_ref": "artifact://audit-compaction/restore-index.json",
             "provenance_ref": {"ref": "artifact://audit-compaction/provenance.json"},
-            "compatibility_export_ref": {"digest": "sha256:1234"},
+            "lifecycle_export_ref": {"digest": "sha256:1234"},
         },
     )
 
@@ -161,7 +161,7 @@ def test_audit_compaction_governance_reports_missing_proof_refs_when_gates_claim
     assert validation["ok"] is False
     assert {issue["code"] for issue in validation["issues"]} >= {
         "missing_provenance_ref",
-        "missing_compatibility_export_ref",
+        "missing_lifecycle_export_ref",
     }
 
 

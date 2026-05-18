@@ -88,11 +88,11 @@ def workbench_summary(
 def render_action_owner_routing_section(policy: Mapping[str, Any]) -> str:
     receipt_policy = _mapping(policy.get("safe_action_receipt_policy"))
     values = {
-        "status": display_text(policy.get("status"), fallback="missing", preserve_known_token=True),
-        "next_owner": display_text(policy.get("next_owner"), fallback="缺失", preserve_known_token=True),
+        "status": display_text(policy.get("status"), empty_text="missing", preserve_known_token=True),
+        "next_owner": display_text(policy.get("next_owner"), empty_text="缺失", preserve_known_token=True),
         "required_receipt": display_text(
             receipt_policy.get("required_receipt_surface"),
-            fallback="缺失",
+            empty_text="缺失",
             preserve_known_token=True,
         ),
     }

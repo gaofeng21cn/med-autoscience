@@ -73,7 +73,7 @@ uv run --python 3.14 python -m med_autoscience.cli sync-study-delivery --paper-r
 - `medical_publication_surface = blocked`
 - `publication_gate = blocked`
 
-当前阻塞不是 repo 里的 silent fallback，而是外部 quest paper truth 被明确 fail-closed：
+当前阻塞不是 repo 里的 silent legacy_restore_import，而是外部 quest paper truth 被明确 fail-closed：
 
 - `methods_section_structure_missing_or_incomplete`
 - `endpoint_provenance_note.md` 缺失

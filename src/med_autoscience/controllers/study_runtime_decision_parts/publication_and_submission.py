@@ -462,7 +462,7 @@ def _publication_eval_specificity_targets(report: dict[str, object]) -> tuple[di
             return None
         return _text(ref.get("source_path")) or _text(ref.get("artifact_path"))
 
-    def _target_id_from_ref(ref: dict[str, object], fallback: str) -> str:
+    def _target_id_from_ref(ref: dict[str, object], default_target_id: str) -> str:
         for key in (
             "target_id",
             "claim_id",
@@ -475,7 +475,7 @@ def _publication_eval_specificity_targets(report: dict[str, object]) -> tuple[di
         ):
             if text := _text(ref.get(key)):
                 return text
-        return fallback
+        return default_target_id
 
     def _kind_from_ref(ref: dict[str, object]) -> str | None:
         haystack = " ".join(

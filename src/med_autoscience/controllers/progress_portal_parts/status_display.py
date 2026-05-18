@@ -62,10 +62,10 @@ def status_label(value: object) -> str:
     return label or text
 
 
-def display_text(value: object, *, fallback: str = "未提供", preserve_known_token: bool = True) -> str:
+def display_text(value: object, *, empty_text: str = "未提供", preserve_known_token: bool = True) -> str:
     text = str(value or "").strip()
     if not text or text.lower() in EMPTY_VALUE_LABELS:
-        return fallback
+        return empty_text
     if preserve_known_token:
         return status_label(text)
     return STATUS_LABELS.get(text, text)

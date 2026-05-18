@@ -639,11 +639,11 @@ def _human_review_annotation(value: Mapping[str, Any]) -> dict[str, Any]:
 
 def _next_owner(value: Mapping[str, Any], deliverable_index: Mapping[str, Any]) -> dict[str, Any]:
     explicit = _mapping(value.get("next_owner"))
-    fallback = _mapping(deliverable_index.get("next_owner"))
+    indexed_next_owner = _mapping(deliverable_index.get("next_owner"))
     return {
-        "owner": _non_empty_text(explicit.get("owner")) or _non_empty_text(fallback.get("owner")) or "MedAutoScience",
-        "next_routes": _string_list(explicit.get("next_routes")) or _string_list(fallback.get("next_routes")),
-        "source_ref": _non_empty_text(explicit.get("source_ref")) or _non_empty_text(fallback.get("source_ref")),
+        "owner": _non_empty_text(explicit.get("owner")) or _non_empty_text(indexed_next_owner.get("owner")) or "MedAutoScience",
+        "next_routes": _string_list(explicit.get("next_routes")) or _string_list(indexed_next_owner.get("next_routes")),
+        "source_ref": _non_empty_text(explicit.get("source_ref")) or _non_empty_text(indexed_next_owner.get("source_ref")),
     }
 
 
@@ -836,7 +836,7 @@ def _row_html(row: Mapping[str, Any]) -> str:
     paper_line_workspace_proof_refs = _paper_line_workspace_proof_refs(_mapping(row.get("paper_line_workspace_proof")))
     return (
         "<tr>"
-        + _td("Stage", display_text(row.get("stage"), fallback="缺失", preserve_known_token=False))
+        + _td("Stage", display_text(row.get("stage"), empty_text="缺失", preserve_known_token=False))
         + _td("最新审阅页", _non_empty_text(row.get("latest_review_page_ref")) or "缺失")
         + _td("新鲜度", _non_empty_text(freshness.get("state")) or "缺失")
         + _td(

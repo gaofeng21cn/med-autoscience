@@ -249,7 +249,7 @@ def _stage_node(
     return _node(
         node_id="stage-current",
         kind="stage",
-        label=f"当前阶段：{display_text(stage, fallback='阶段未提供', preserve_known_token=False)}",
+        label=f"当前阶段：{display_text(stage, empty_text='阶段未提供', preserve_known_token=False)}",
         status="current",
         summary=summary or "当前阶段摘要未提供。",
         source_refs=source_refs,
@@ -499,8 +499,8 @@ def _node_svg(node: Mapping[str, Any], coordinate: tuple[int, int] | None) -> st
     kind = _non_empty_text(node.get("kind")) or "unknown"
     status = _non_empty_text(node.get("status")) or "available"
     route_id = _non_empty_text(node.get("route_id")) or node_id
-    label = display_text(node.get("label"), fallback="节点", preserve_known_token=False)
-    summary = display_text(node.get("summary"), fallback="摘要未提供", preserve_known_token=False)
+    label = display_text(node.get("label"), empty_text="节点", preserve_known_token=False)
+    summary = display_text(node.get("summary"), empty_text="摘要未提供", preserve_known_token=False)
     x, y = coordinate
     return (
         '<a class="route-node-link" href="#route-node-detail-'
@@ -537,10 +537,10 @@ def _route_map_details(nodes: list[dict[str, Any]]) -> str:
     rows: list[str] = []
     for node in nodes:
         node_id = _non_empty_text(node.get("id")) or "node"
-        label = display_text(node.get("label"), fallback="节点", preserve_known_token=False)
-        summary = display_text(node.get("summary"), fallback="摘要未提供", preserve_known_token=False)
+        label = display_text(node.get("label"), empty_text="节点", preserve_known_token=False)
+        summary = display_text(node.get("summary"), empty_text="摘要未提供", preserve_known_token=False)
         kind = _kind_label(_non_empty_text(node.get("kind")) or "")
-        status = display_text(node.get("status"), fallback="状态未提供", preserve_known_token=False)
+        status = display_text(node.get("status"), empty_text="状态未提供", preserve_known_token=False)
         rows.append(
             '<li id="route-node-detail-'
             + escape(_slug(node_id), quote=True)

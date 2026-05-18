@@ -113,7 +113,7 @@ def build_reviewer_first_readiness(
     review_ledger_path: str | Path | None,
     fallback_basis_item: dict[str, Any],
 ) -> dict[str, Any]:
-    fallback = {
+    legacy_restore_import = {
         "required": True,
         "status": str(fallback_basis_item.get("status") or "underdefined").strip() or "underdefined",
         "ready": str(fallback_basis_item.get("status") or "").strip() == "ready",
@@ -124,11 +124,11 @@ def build_reviewer_first_readiness(
         "evidence_refs": _required_string_list(fallback_basis_item.get("evidence_refs")),
     }
     if not isinstance(review_ledger_payload, dict):
-        return fallback
+        return legacy_restore_import
 
     concerns = review_ledger_payload.get("concerns")
     if not isinstance(concerns, list) or not concerns:
-        return fallback
+        return legacy_restore_import
 
     open_count = 0
     resolved_count = 0
@@ -147,7 +147,7 @@ def build_reviewer_first_readiness(
             resolved_count += 1
 
     evidence_ref = str(Path(review_ledger_path).expanduser()) if review_ledger_path is not None else None
-    evidence_refs = [evidence_ref] if evidence_ref else fallback["evidence_refs"]
+    evidence_refs = [evidence_ref] if evidence_ref else legacy_restore_import["evidence_refs"]
     if open_count:
         status = "blocked" if highest_open_severity in {"critical", "major"} else "partial"
         return {

@@ -8,7 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.publication_eval_reviewer_os import validate_ai_reviewer_operating_system_trace
-from med_autoscience.study_delivery_package_contract import delivered_package_handoff_allowed
+from med_autoscience.study_delivery_package_contract import delivered_package_handoff_allowed, live_delivered_package_handoff_allowed
 
 
 SURFACE = "study_domain_transition_table"
@@ -193,7 +193,10 @@ def project_domain_transition(
             completion_receipt_consumption=stop_loss_receipt_consumption,
         )
 
-    if delivered_package and delivered_package.get("observed") is True and delivered_package_handoff_allowed(publication_eval):
+    delivered_package_observed = bool(delivered_package and delivered_package.get("observed") is True)
+    if delivered_package_observed and (
+        delivered_package_handoff_allowed(publication_eval) or (active_run_id and live_delivered_package_handoff_allowed(publication_eval))
+    ):
         return _delivered_package_handoff_transition(
             study_id=study_id,
             source_refs=source_refs,
@@ -384,7 +387,7 @@ def project_domain_transition(
             completion_receipt_consumption=execution_receipt_consumption,
         )
 
-    if delivered_package and delivered_package.get("observed") is True:
+    if delivered_package_observed:
         return _delivered_package_handoff_transition(
             study_id=study_id,
             source_refs=source_refs,

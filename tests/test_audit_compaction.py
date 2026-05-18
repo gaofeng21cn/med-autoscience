@@ -60,7 +60,7 @@ def test_audit_compaction_apply_archives_indexes_ledgers_and_restores_bytes(tmp_
         archive_dir=archive_dir,
         workspace_classification="archived_workspace",
         bucket_classification="stopped_cold",
-        compatibility_export_ref="artifact://lifecycle/compat_exports/workspace_storage_audit.latest.json",
+        lifecycle_export_ref="artifact://lifecycle/lifecycle_exports/workspace_storage_audit.latest.json",
         apply=True,
         timestamp=datetime(2026, 5, 5, 1, 2, 3, tzinfo=UTC),
     )
@@ -102,7 +102,7 @@ def test_audit_compaction_apply_archives_indexes_ledgers_and_restores_bytes(tmp_
         ],
         "restore_index_ref": str(restore_index_path),
         "provenance_ref": str(provenance_ledger_path),
-        "compatibility_export_ref": "artifact://lifecycle/compat_exports/workspace_storage_audit.latest.json",
+        "lifecycle_export_ref": "artifact://lifecycle/lifecycle_exports/workspace_storage_audit.latest.json",
     }
 
     restore_root = tmp_path / "restore"

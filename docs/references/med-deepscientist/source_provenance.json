@@ -194,7 +194,7 @@
         "mas_target_owner": "MAS MCP",
         "mds_final_role": "retired_surface",
         "cutover_contract": "Active MCP commands route through MAS; old MDS MCP names fail closed or stay explicit legacy diagnostics.",
-        "owner_boundary": "MCP exposes MAS truth refs and does not make MDS a backend fallback.",
+        "owner_boundary": "MCP exposes MAS truth refs and does not make MDS a backend legacy_restore_import.",
         "provenance_ref": "docs/references/med-deepscientist/source_provenance.json",
         "authority_claims": [],
         "imports_upstream_history": false,

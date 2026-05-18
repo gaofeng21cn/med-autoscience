@@ -23,7 +23,7 @@ def test_lifecycle_read_model_reads_git_retirement_projection_surfaces_from_sqli
         "canvas_projection",
     }.issubset(read_model.SUPPORTED_SURFACES)
     assert inventory["status"] == "ready"
-    assert inventory["compatibility_fallback_used"] is False
+    assert inventory["legacy_restore_import_used"] is False
     assert inventory["tables"]["lineage_nodes"] == 1
     assert inventory["tables"]["lineage_edges"] == 1
     assert inventory["tables"]["workspace_allocations"] == 1
@@ -39,34 +39,34 @@ def test_lifecycle_read_model_reads_git_retirement_projection_surfaces_from_sqli
         "canvas_projection",
     }.issubset(set(inventory["available_surfaces"]))
 
-    lineage = read_model.read_compatibility_projection(
+    lineage = read_model.read_lifecycle_projection(
         surface="lineage_route",
         quest_root=quest_root,
         db_path=db_path,
     )
-    allocation = read_model.read_compatibility_projection(
+    allocation = read_model.read_lifecycle_projection(
         surface="workspace_allocation",
         workspace_root=workspace_root,
         db_path=db_path,
     )
-    snapshot = read_model.read_compatibility_projection(
+    snapshot = read_model.read_lifecycle_projection(
         surface="runtime_snapshot",
         quest_root=quest_root,
         db_path=db_path,
     )
-    revision = read_model.read_compatibility_projection(
+    revision = read_model.read_lifecycle_projection(
         surface="revision_diff",
         quest_root=quest_root,
         db_path=db_path,
     )
-    canvas = read_model.read_compatibility_projection(
+    canvas = read_model.read_lifecycle_projection(
         surface="canvas_projection",
         workspace_root=workspace_root,
         db_path=db_path,
     )
 
     assert lineage["status"] == "ready"
-    assert lineage["compatibility_fallback_used"] is False
+    assert lineage["legacy_restore_import_used"] is False
     assert lineage["source_paths"] == []
     assert lineage["payload"]["lineage_nodes"][0]["payload_json"] == {"route": "analysis"}
     assert lineage["payload"]["lineage_edges"][0]["relation"] == "continues"
@@ -77,18 +77,18 @@ def test_lifecycle_read_model_reads_git_retirement_projection_surfaces_from_sqli
     assert canvas["payload"]["canvas_projection"][0]["payload_json"] == {"nodes": ["node-001"], "edges": []}
 
 
-def test_lifecycle_read_model_sqlite_only_surfaces_report_missing_without_legacy_fallback(tmp_path: Path) -> None:
+def test_lifecycle_read_model_sqlite_only_surfaces_report_missing_without_legacy_restore_import(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
     legacy_latest.parent.mkdir(parents=True)
     legacy_latest.write_text(json.dumps({"legacy": True}), encoding="utf-8")
 
-    projection = read_model.read_compatibility_projection(surface="lineage_route", quest_root=quest_root)
+    projection = read_model.read_lifecycle_projection(surface="lineage_route", quest_root=quest_root)
 
     assert projection["status"] == "missing"
     assert projection["missing_reason"] == "runtime_lifecycle_sqlite_missing"
-    assert projection["compatibility_fallback_used"] is False
+    assert projection["legacy_restore_import_used"] is False
     assert projection["source_paths"] == []
     assert projection["payload"] == {}
 
@@ -99,22 +99,22 @@ def test_lifecycle_read_model_sqlite_only_surfaces_report_capability_gap_for_mis
     with sqlite3.connect(db_path) as conn:
         conn.execute("CREATE TABLE lineage_nodes (node_id TEXT PRIMARY KEY, payload_json TEXT NOT NULL)")
 
-    projection = read_model.read_compatibility_projection(surface="lineage_route", db_path=db_path)
+    projection = read_model.read_lifecycle_projection(surface="lineage_route", db_path=db_path)
 
     assert projection["status"] == "capability_gap"
     assert projection["missing_reason"] == "runtime_lifecycle_sqlite_table_missing"
-    assert projection["compatibility_fallback_used"] is False
+    assert projection["legacy_restore_import_used"] is False
     assert projection["payload"] == {"missing_tables": ["lineage_edges"]}
 
 
-def test_lifecycle_read_model_legacy_surfaces_do_not_fallback_by_default(tmp_path: Path) -> None:
+def test_lifecycle_read_model_legacy_surfaces_use_no_legacy_restore_import_by_default(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
     legacy_latest.parent.mkdir(parents=True)
     legacy_latest.write_text(json.dumps({"legacy": True}), encoding="utf-8")
 
-    projection = read_model.read_compatibility_projection(
+    projection = read_model.read_lifecycle_projection(
         surface="runtime_report",
         quest_root=quest_root,
         report_group="runtime_watch",
@@ -122,13 +122,13 @@ def test_lifecycle_read_model_legacy_surfaces_do_not_fallback_by_default(tmp_pat
 
     assert projection["status"] == "missing"
     assert projection["missing_reason"] == "runtime_lifecycle_sqlite_missing"
-    assert projection["compatibility_fallback_used"] is False
+    assert projection["legacy_restore_import_used"] is False
     assert projection["source_paths"] == []
     assert projection["payload"] == {}
     assert "diagnostic_scope" not in projection
 
 
-def test_lifecycle_read_model_legacy_restore_import_diagnostic_can_fallback(tmp_path: Path) -> None:
+def test_lifecycle_read_model_legacy_restore_import_diagnostic_can_read_explicit_legacy_restore_import_diagnostic(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
@@ -142,9 +142,9 @@ def test_lifecycle_read_model_legacy_restore_import_diagnostic_can_fallback(tmp_
         report_group="runtime_watch",
     )
 
-    assert projection["status"] == "fallback"
+    assert projection["status"] == "legacy_restore_import_available"
     assert projection["payload"] == legacy_payload
-    assert projection["compatibility_fallback_used"] is True
+    assert projection["legacy_restore_import_used"] is True
     assert projection["diagnostic_scope"] == "legacy_restore_import_diagnostic"
     assert projection["source_paths"] == [str(legacy_latest.resolve())]
 
@@ -155,11 +155,11 @@ def test_lifecycle_read_model_legacy_surfaces_report_capability_gap_for_missing_
     with sqlite3.connect(db_path) as conn:
         conn.execute("CREATE TABLE unrelated_surface (id TEXT PRIMARY KEY)")
 
-    projection = read_model.read_compatibility_projection(surface="runtime_report", db_path=db_path)
+    projection = read_model.read_lifecycle_projection(surface="runtime_report", db_path=db_path)
 
     assert projection["status"] == "capability_gap"
     assert projection["missing_reason"] == "runtime_lifecycle_sqlite_table_missing"
-    assert projection["compatibility_fallback_used"] is False
+    assert projection["legacy_restore_import_used"] is False
     assert projection["payload"] == {"missing_tables": ["runtime_reports"]}
 
 
@@ -185,7 +185,7 @@ def test_lifecycle_read_model_legacy_surfaces_report_missing_for_missing_row(tmp
             """
         )
 
-    projection = read_model.read_compatibility_projection(
+    projection = read_model.read_lifecycle_projection(
         surface="runtime_report",
         quest_root=quest_root,
         report_group="runtime_watch",
@@ -194,7 +194,7 @@ def test_lifecycle_read_model_legacy_surfaces_report_missing_for_missing_row(tmp
 
     assert projection["status"] == "missing"
     assert projection["missing_reason"] == "runtime_lifecycle_sqlite_row_missing"
-    assert projection["compatibility_fallback_used"] is False
+    assert projection["legacy_restore_import_used"] is False
     assert projection["payload"] == {}
 
 
@@ -207,14 +207,14 @@ def test_lifecycle_read_model_exports_sqlite_only_projection_as_json_and_markdow
     markdown_path = tmp_path / "exports" / "canvas.md"
     _write_projection_fixture(db_path=db_path, workspace_root=workspace_root, quest_root=quest_root)
 
-    json_export = read_model.export_compatibility_projection(
+    json_export = read_model.export_lifecycle_projection(
         surface="canvas_projection",
         workspace_root=workspace_root,
         db_path=db_path,
         export_format="json",
         output_path=json_path,
     )
-    markdown_export = read_model.export_compatibility_projection(
+    markdown_export = read_model.export_lifecycle_projection(
         surface="canvas_projection",
         workspace_root=workspace_root,
         db_path=db_path,
@@ -223,7 +223,7 @@ def test_lifecycle_read_model_exports_sqlite_only_projection_as_json_and_markdow
     )
 
     assert json_export["surface"] == "canvas_projection"
-    assert json_export["compatibility_fallback_used"] is False
+    assert json_export["legacy_restore_import_used"] is False
     assert json_export["output_path"] == str(json_path.resolve())
     assert json.loads(json_path.read_text(encoding="utf-8"))["canvas_projection"][0]["payload_json"] == {
         "nodes": ["node-001"],
@@ -235,7 +235,7 @@ def test_lifecycle_read_model_exports_sqlite_only_projection_as_json_and_markdow
     assert '"nodes": [' in markdown
 
 
-def test_lifecycle_read_model_export_does_not_fallback_by_default(tmp_path: Path) -> None:
+def test_lifecycle_read_model_export_uses_no_legacy_restore_import_by_default(tmp_path: Path) -> None:
     read_model = importlib.import_module("med_autoscience.runtime_protocol.runtime_lifecycle_read_model")
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     legacy_latest = quest_root / "artifacts" / "reports" / "runtime_watch" / "latest.json"
@@ -243,7 +243,7 @@ def test_lifecycle_read_model_export_does_not_fallback_by_default(tmp_path: Path
     legacy_latest.parent.mkdir(parents=True)
     legacy_latest.write_text(json.dumps({"legacy": True}), encoding="utf-8")
 
-    export = read_model.export_compatibility_projection(
+    export = read_model.export_lifecycle_projection(
         surface="runtime_report",
         quest_root=quest_root,
         report_group="runtime_watch",
@@ -251,7 +251,7 @@ def test_lifecycle_read_model_export_does_not_fallback_by_default(tmp_path: Path
         output_path=output_path,
     )
 
-    assert export["compatibility_fallback_used"] is False
+    assert export["legacy_restore_import_used"] is False
     assert export["payload"] == {}
     assert json.loads(output_path.read_text(encoding="utf-8")) == {}
 

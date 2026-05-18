@@ -75,6 +75,19 @@ def delivered_package_handoff_allowed(publication_eval: Mapping[str, Any]) -> bo
     return not mechanical_required and not blocking_eval
 
 
+def live_delivered_package_handoff_allowed(publication_eval: Mapping[str, Any]) -> bool:
+    verdict = _mapping(publication_eval.get("verdict"))
+    if _text(publication_eval.get("status")) == "blocked" or _text(verdict.get("overall_verdict")) == "blocked":
+        return False
+    if publication_eval.get("blockers"):
+        return False
+    quality_closure_truth = _mapping(publication_eval.get("quality_closure_truth"))
+    if _text(quality_closure_truth.get("state")) == "quality_repair_required":
+        return False
+    gaps = [item for item in publication_eval.get("gaps") or [] if isinstance(item, Mapping)]
+    return not any(_text(item.get("severity")) in {"must_fix", "blocking", "blocked"} for item in gaps)
+
+
 def _path_from_role(value: object, *, default: Path) -> Path:
     text = _text(value)
     return Path(text).expanduser().resolve() if text is not None else default.expanduser().resolve()
@@ -93,4 +106,5 @@ __all__ = [
     "current_delivery_manifest_payload",
     "delivery_manifest_allows_directory_current_package",
     "delivered_package_handoff_allowed",
+    "live_delivered_package_handoff_allowed",
 ]

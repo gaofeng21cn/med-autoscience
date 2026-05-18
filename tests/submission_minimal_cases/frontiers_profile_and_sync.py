@@ -441,7 +441,7 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
             "figures": [
                 {
                     "figure_id": "F1",
-                    "direct_message": "Catalog-backed fallback keeps the main manuscript figure visible.",
+                    "direct_message": "Catalog-backed source resolution keeps the main manuscript figure visible.",
                     "panel_messages": [
                         {
                             "panel_id": "A",
@@ -463,7 +463,7 @@ def test_create_submission_minimal_package_current_draft_falls_back_to_catalog_b
     assert "\n# Main Figures\n" in submission_markdown
     assert "## Figure 1. Main figure" in submission_markdown
     assert "![](figures/Figure1.png)" in submission_markdown
-    assert "Catalog-backed fallback keeps the main manuscript figure visible." in submission_markdown
+    assert "Catalog-backed source resolution keeps the main manuscript figure visible." in submission_markdown
     assert "Panel A: The primary display remains embedded even when the draft omits a Main Figures section." in submission_markdown
 
     manuscript_surface_qc = manifest["manuscript"]["surface_qc"]

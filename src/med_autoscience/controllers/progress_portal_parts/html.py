@@ -97,7 +97,7 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
         ]
         delivery_paragraphs = [
             str(delivery.get("summary") or "交付投影缺失。"),
-            display_text(delivery.get("status"), fallback="交付状态未提供"),
+            display_text(delivery.get("status"), empty_text="交付状态未提供"),
         ]
     return "\n".join(
         [
@@ -149,7 +149,7 @@ def render_progress_portal_html(payload: Mapping[str, Any], *, brand_fallback: s
             section("论文与质量", paper_paragraphs),
             section("文件与交付", delivery_paragraphs),
             "</section>",
-            list_section("当前阻塞", [display_text(item, fallback='未提供') for item in blockers], empty_text="当前没有投影出的阻塞项。"),
+            list_section("当前阻塞", [display_text(item, empty_text='未提供') for item in blockers], empty_text="当前没有投影出的阻塞项。"),
             render_workspace_alerts_section("工作区告警", workspace_alert_items, empty_text="当前没有 workspace 级告警。"),
             render_workspace_alerts_section("诊断与修复建议", suppressed_alert_items, empty_text="当前没有被降级的旧/泛化诊断。"),
             event_section(latest_events),

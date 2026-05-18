@@ -120,7 +120,7 @@ Generic sidecar provider 是 bounded extension 的统一 controller surface。Pr
 
 `study_delivery_sync` 已经是 `MedAutoScience` 的一等 controller，它负责把 `submission_minimal` 和 `finalize` 阶段产出搬到 `studies/<study-id>/{manuscript,artifacts}/final` 下。对于已经形成 `submission_minimal` 的 finalized paper bundle，下游的 `finalize` skill 由 overlay 注入后会自动调用 `study_delivery_sync(stage="finalize")`，因此新的医学课题在进入正式论文交付收口时，会自动完成浅路径正式交付同步，而不再依赖 workspace 里 legacy 的手工路径。
 
-新生成的 submission package 使用 `submission-package.v2`：`paper/submission_minimal/` 是 controller-authorized source package，`manuscript/current_package/` 是 human-facing mirror。两边根目录放 `manuscript.docx`、`paper.pdf`、figures/tables 等常用投稿文件；`audit/` 放 manifest、evidence/review ledger、study charter；`reproducibility/` 放 source signature 和来源路径索引。新包不再平铺 root-level audit JSON，读取端只保留 legacy root-file fallback 用于旧工作区识别。
+新生成的 submission package 使用 `submission-package.v2`：`paper/submission_minimal/` 是 controller-authorized source package，`manuscript/current_package/` 是 human-facing mirror。两边根目录放 `manuscript.docx`、`paper.pdf`、figures/tables 等常用投稿文件；`audit/` 放 manifest、evidence/review ledger、study charter；`reproducibility/` 放 source signature 和来源路径索引。新包不再平铺 root-level audit JSON，读取端只保留 legacy root-file import diagnostic 用于旧工作区识别。
 
 `publication gate` 的 `allow_write=false` 只约束下游投稿包、bundle、submission proofing 和 `current_package` 写面。MAS managed runtime worker 在当前 controller work unit 明确授权时，仍可修改 canonical `paper/` 下的 manuscript、evidence ledger、review ledger、revision log 或分析修订材料；这些写入属于上游 analysis-campaign/write stage，不属于前台人工接管。`execution_owner_guard.supervisor_only=true` 继续阻止 Codex App 前台绕开 MAS 直接改论文，但不能关掉 MAS 自己派发给 managed worker 的 canonical paper 修订权限。
 

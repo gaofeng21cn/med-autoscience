@@ -153,7 +153,7 @@ def _recovery_contract(
         action_mode = (
             "run_manuscript_fast_lane"
             if lane_id == "manual_finishing_fast_lane"
-            else "maintain_compatibility_guard"
+            else "maintain_manual_finish_guard"
         )
     elif lane_id in {"quality_floor_blocker", "study_progress_gap"}:
         steps = [

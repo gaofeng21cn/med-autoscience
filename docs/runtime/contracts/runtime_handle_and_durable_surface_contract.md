@@ -131,7 +131,7 @@
 - `MedDeepScientist` 不拥有上层 judgment truth 或默认 runtime truth
 - study-owned artifact 与 quest-owned artifact 不能混写
 - 当 runtime 不可达或 contract 不满足时，必须 fail-closed，而不是本地写旁路冒充成功
-- 不允许 hidden fallback、silent downgrade、synthetic truth rewrite
+- 不允许 hidden runnable substitute、silent downgrade、synthetic truth rewrite
 
 ## 5. Repo-Tracked Truth 与本地控制面的边界
 

@@ -209,7 +209,7 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
             '<section class="panel wide">',
             "<h2>单篇论文工作台</h2>",
             "<p>"
-            + escape(display_text(overview.get("state_label"), fallback="状态投影缺失", preserve_known_token=False))
+            + escape(display_text(overview.get("state_label"), empty_text="状态投影缺失", preserve_known_token=False))
             + "</p>",
             "</section>",
             render_route_map_section(route_map),
@@ -219,18 +219,18 @@ def render_study_workbench_sections(payload: Mapping[str, Any]) -> str:
             _key_value_section(
                 "路径与阶段",
                 {
-                    "当前阶段": display_text(path_stage.get("current_stage"), fallback="缺失", preserve_known_token=False),
-                    "论文阶段": display_text(path_stage.get("paper_stage"), fallback="缺失", preserve_known_token=False),
+                    "当前阶段": display_text(path_stage.get("current_stage"), empty_text="缺失", preserve_known_token=False),
+                    "论文阶段": display_text(path_stage.get("paper_stage"), empty_text="缺失", preserve_known_token=False),
                 },
             ),
             _key_value_section(
                 "运行",
                 {
-                    "active_run_id": display_text(runtime.get("active_run_id"), fallback="缺失", preserve_known_token=False),
-                    "health_status": display_text(runtime.get("health_status"), fallback="缺失", preserve_known_token=False),
+                    "active_run_id": display_text(runtime.get("active_run_id"), empty_text="缺失", preserve_known_token=False),
+                    "health_status": display_text(runtime.get("health_status"), empty_text="缺失", preserve_known_token=False),
                     "supervisor_tick_status": display_text(
                         runtime.get("supervisor_tick_status"),
-                        fallback="缺失",
+                        empty_text="缺失",
                         preserve_known_token=False,
                     ),
                 },
@@ -614,7 +614,7 @@ def _stage_knowledge_section(stage_knowledge: Mapping[str, Any]) -> str:
         + "</h2>"
         + _key_value_table(
             {
-                "next_owner": display_text(stage_knowledge.get("next_owner"), fallback="缺失", preserve_known_token=True),
+                "next_owner": display_text(stage_knowledge.get("next_owner"), empty_text="缺失", preserve_known_token=True),
                 "packet_refs": ", ".join(_string_list(stage_knowledge.get("stage_knowledge_packet_refs"))) or "缺失",
                 "receipt_refs": ", ".join(_string_list(stage_knowledge.get("closeout_receipt_refs"))) or "缺失",
             }

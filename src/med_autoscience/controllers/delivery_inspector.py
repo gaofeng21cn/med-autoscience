@@ -280,12 +280,12 @@ def inspect_study_delivery(
         "fallback_applied": False,
     }
     if not source_root.exists():
-        fallback = _study_owned_source_fallback(
+        study_owned_source = _study_owned_source_fallback(
             study_root=resolved_study_root,
             publication_profile=resolved_publication_profile,
         )
-        if fallback is not None:
-            fallback_paper_root, fallback_source_root = fallback
+        if study_owned_source is not None:
+            fallback_paper_root, fallback_source_root = study_owned_source
             source_resolution = {
                 "mode": "study_owned_source_fallback",
                 "reason": "recorded_controller_authorized_source_missing",

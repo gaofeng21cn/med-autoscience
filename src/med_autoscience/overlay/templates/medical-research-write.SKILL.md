@@ -454,7 +454,7 @@ For each main-text figure, record enough detail that a medical reader can answer
 - whether any risk strata are display-only rather than clinical bins
 - which renderer family is locked for that figure
 - why that renderer family was selected
-- that failure-driven renderer fallback is forbidden and environment breakage must block the run
+- that failure-driven renderer switching is forbidden and environment breakage must block the run
 
 Renderer-family boundary:
 
@@ -1175,7 +1175,7 @@ Use these as the normal citation-resource stack for the workflow above:
 Practical role split:
 
 - Semantic Scholar: default programmatic discovery for ML / AI literature
-- Google Scholar: fallback discovery / export surface only through agent-executed browser flow when needed
+- Google Scholar: discovery / export surface only through agent-executed browser flow when needed
 - Crossref / DOI: preferred BibTeX retrieval path when DOI exists
 - arXiv: preprint verification and content access
 - OpenAlex: open metadata backfill when other sources are incomplete

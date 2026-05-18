@@ -11,8 +11,8 @@ from typing import Any
 from . import runtime_lifecycle_store
 
 
-SURFACE_KIND = "runtime_lifecycle_compatibility_read_model"
-EXPORT_SURFACE_KIND = "runtime_lifecycle_compatibility_export"
+SURFACE_KIND = "runtime_lifecycle_read_model"
+EXPORT_SURFACE_KIND = "runtime_lifecycle_export"
 LEGACY_RESTORE_IMPORT_DIAGNOSTIC_SCOPE = "legacy_restore_import_diagnostic"
 LEGACY_RESTORE_IMPORT_DIAGNOSTIC_SURFACES = frozenset({"watch_state", "runtime_report", "workspace_storage_audit"})
 SQLITE_ONLY_SURFACE_TABLES = {
@@ -22,7 +22,7 @@ SQLITE_ONLY_SURFACE_TABLES = {
     "revision_diff": ("revision_diffs",),
     "canvas_projection": ("canvas_projection",),
 }
-SQLITE_COMPATIBILITY_SURFACE_TABLES = {
+SQLITE_LEGACY_RESTORE_IMPORT_SURFACE_TABLES = {
     "watch_state": ("watch_states",),
     "runtime_report": ("runtime_reports",),
     "workspace_storage_audit": ("workspace_storage_audits",),
@@ -47,7 +47,7 @@ def build_lifecycle_inventory(
             "db_path": str(resolved_db_path),
             "status": "missing",
             "read_only": True,
-            "compatibility_fallback_used": False,
+            "legacy_restore_import_used": False,
             "available_surfaces": [],
             "missing_reason": "runtime_lifecycle_sqlite_missing",
         }
@@ -81,14 +81,14 @@ def build_lifecycle_inventory(
         "db_path": str(resolved_db_path),
         "status": "ready",
         "read_only": True,
-        "compatibility_fallback_used": False,
+        "legacy_restore_import_used": False,
         "tables": tables,
         "available_surfaces": available_surfaces,
         "latest_refs": latest_refs,
     }
 
 
-def read_compatibility_projection(
+def read_lifecycle_projection(
     *,
     surface: str,
     quest_root: Path | None = None,
@@ -106,7 +106,7 @@ def read_compatibility_projection(
             status="missing",
             missing_reason="runtime_lifecycle_sqlite_missing",
         )
-        return _maybe_legacy_restore_import_diagnostic_fallback(
+        return _maybe_legacy_restore_import_diagnostic(
             projection=projection,
             surface=normalized_surface,
             quest_root=quest_root,
@@ -118,7 +118,7 @@ def read_compatibility_projection(
 
     with _connect_readonly(resolved_db_path) as conn:
         if normalized_surface in LEGACY_RESTORE_IMPORT_DIAGNOSTIC_SURFACES:
-            projection = _read_sqlite_compatibility_projection(
+            projection = _read_sqlite_legacy_import_projection(
                 conn=conn,
                 surface=normalized_surface,
                 quest_root=quest_root,
@@ -134,7 +134,7 @@ def read_compatibility_projection(
                 workspace_root=workspace_root,
                 db_path=resolved_db_path,
             )
-    return _maybe_legacy_restore_import_diagnostic_fallback(
+    return _maybe_legacy_restore_import_diagnostic(
         projection=projection,
         surface=normalized_surface,
         quest_root=quest_root,
@@ -153,7 +153,7 @@ def read_legacy_restore_import_diagnostic_projection(
     report_group: str = "runtime_watch",
     db_path: Path | None = None,
 ) -> dict[str, Any]:
-    return read_compatibility_projection(
+    return read_lifecycle_projection(
         surface=surface,
         quest_root=quest_root,
         workspace_root=workspace_root,
@@ -163,7 +163,7 @@ def read_legacy_restore_import_diagnostic_projection(
     )
 
 
-def export_compatibility_projection(
+def export_lifecycle_projection(
     *,
     surface: str,
     export_format: str,
@@ -175,7 +175,7 @@ def export_compatibility_projection(
     legacy_restore_import_diagnostic: bool = False,
 ) -> dict[str, Any]:
     normalized_format = _require_export_format(export_format)
-    projection = read_compatibility_projection(
+    projection = read_lifecycle_projection(
         surface=surface,
         quest_root=quest_root,
         workspace_root=workspace_root,
@@ -199,7 +199,7 @@ def export_compatibility_projection(
         "source_query": projection["source_query"],
         "source_db_path": projection["db_path"],
         "source_payload_sha256": _sha256(_stable_json(source_payload)),
-        "compatibility_fallback_used": bool(projection.get("compatibility_fallback_used")),
+        "legacy_restore_import_used": bool(projection.get("legacy_restore_import_used")),
         "output_path": str(Path(output_path).expanduser().resolve()) if output_path is not None else None,
         "payload": source_payload,
     }
@@ -235,7 +235,7 @@ def _read_watch_state_projection(
         source_query="SELECT updated_at, payload_json, payload_sha256 FROM watch_states WHERE quest_root = ?",
         payload=json.loads(row["payload_json"]),
         payload_sha256=str(row["payload_sha256"]),
-        compatibility_fallback_used=False,
+        legacy_restore_import_used=False,
         source_paths=[],
     )
 
@@ -271,7 +271,7 @@ def _read_runtime_report_projection(
         ),
         payload=json.loads(row["payload_json"]),
         payload_sha256=str(row["payload_sha256"]),
-        compatibility_fallback_used=False,
+        legacy_restore_import_used=False,
         source_paths=[
             str(row["json_path"]),
             str(row["md_path"]),
@@ -309,12 +309,12 @@ def _read_workspace_storage_audit_projection(
         ),
         payload=json.loads(row["payload_json"]),
         payload_sha256=str(row["payload_sha256"]),
-        compatibility_fallback_used=False,
+        legacy_restore_import_used=False,
         source_paths=[str(row["report_path"]), str(row["latest_report_path"])],
     )
 
 
-def _read_sqlite_compatibility_projection(
+def _read_sqlite_legacy_import_projection(
     *,
     conn: sqlite3.Connection,
     surface: str,
@@ -323,7 +323,7 @@ def _read_sqlite_compatibility_projection(
     report_group: str,
     db_path: Path,
 ) -> dict[str, Any]:
-    required_tables = SQLITE_COMPATIBILITY_SURFACE_TABLES[surface]
+    required_tables = SQLITE_LEGACY_RESTORE_IMPORT_SURFACE_TABLES[surface]
     missing_tables = [table for table in required_tables if not _table_exists(conn, table)]
     if missing_tables:
         return _missing_sqlite_projection(
@@ -395,7 +395,7 @@ def _read_sqlite_only_projection(
         source_query="; ".join(source_queries),
         payload=payload,
         payload_sha256=_sha256(_stable_json(payload)),
-        compatibility_fallback_used=False,
+        legacy_restore_import_used=False,
         source_paths=[],
     )
 
@@ -449,14 +449,14 @@ def _missing_sqlite_projection(
         source_query="sqlite projection unavailable",
         payload=payload,
         payload_sha256=_sha256(_stable_json(payload)),
-        compatibility_fallback_used=False,
+        legacy_restore_import_used=False,
         source_paths=[],
         status=status,
         missing_reason=missing_reason,
     )
 
 
-def _legacy_fallback_projection(
+def _legacy_restore_import_projection(
     *,
     surface: str,
     quest_root: Path | None,
@@ -479,17 +479,17 @@ def _legacy_fallback_projection(
     return _projection(
         surface=surface,
         db_path=db_path,
-        source_query=f"legacy file fallback: {resolved_source_path}",
+        source_query=f"legacy restore import diagnostic: {resolved_source_path}",
         payload=payload,
         payload_sha256=_sha256(_stable_json(payload)),
-        compatibility_fallback_used=True,
+        legacy_restore_import_used=True,
         source_paths=[str(resolved_source_path)],
-        status="fallback" if resolved_source_path.exists() else "missing",
+        status="legacy_restore_import_available" if resolved_source_path.exists() else "missing",
         missing_reason=None if resolved_source_path.exists() else "sqlite_projection_and_legacy_latest_missing",
     )
 
 
-def _maybe_legacy_restore_import_diagnostic_fallback(
+def _maybe_legacy_restore_import_diagnostic(
     *,
     projection: dict[str, Any],
     surface: str,
@@ -505,7 +505,7 @@ def _maybe_legacy_restore_import_diagnostic_fallback(
         or projection.get("status") == "ready"
     ):
         return projection
-    diagnostic_projection = _legacy_fallback_projection(
+    diagnostic_projection = _legacy_restore_import_projection(
         surface=surface,
         quest_root=quest_root,
         workspace_root=workspace_root,
@@ -523,7 +523,7 @@ def _projection(
     source_query: str,
     payload: Mapping[str, Any],
     payload_sha256: str,
-    compatibility_fallback_used: bool,
+    legacy_restore_import_used: bool,
     source_paths: list[str],
     status: str = "ready",
     missing_reason: str | None = None,
@@ -538,7 +538,7 @@ def _projection(
         "source_query": source_query,
         "source_paths": source_paths,
         "payload_sha256": payload_sha256,
-        "compatibility_fallback_used": compatibility_fallback_used,
+        "legacy_restore_import_used": legacy_restore_import_used,
         "payload": dict(payload),
     }
     if missing_reason is not None:
@@ -621,7 +621,7 @@ def _render_markdown_export(*, projection: Mapping[str, Any], exported_at: str) 
         f"- surface: `{projection.get('surface')}`",
         f"- exported_at: `{exported_at}`",
         f"- schema_version: `{runtime_lifecycle_store.SCHEMA_VERSION}`",
-        f"- compatibility_fallback_used: `{bool(projection.get('compatibility_fallback_used'))}`",
+        f"- legacy_restore_import_used: `{bool(projection.get('legacy_restore_import_used'))}`",
         f"- source_query: `{projection.get('source_query')}`",
         f"- payload_sha256: `{projection.get('payload_sha256')}`",
         "",
@@ -732,7 +732,7 @@ __all__ = [
     "SUPPORTED_SURFACES",
     "SURFACE_KIND",
     "build_lifecycle_inventory",
-    "export_compatibility_projection",
-    "read_compatibility_projection",
+    "export_lifecycle_projection",
+    "read_lifecycle_projection",
     "read_legacy_restore_import_diagnostic_projection",
 ]

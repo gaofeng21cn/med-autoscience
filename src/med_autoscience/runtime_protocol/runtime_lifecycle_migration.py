@@ -37,11 +37,11 @@ def build_migration_ledger(
     migration_run_id: str | None = None,
     quest_git_cutover_status: Mapping[str, Any] | None = None,
     quest_git_inventory: Iterable[Mapping[str, Any]] = (),
-    compatibility_retirement: Mapping[str, Any] | None = None,
+    legacy_import_retirement: Mapping[str, Any] | None = None,
     skipped_reasons: Iterable[str] = (),
     next_required_action: str | None = None,
     write: bool = False,
-    write_compat_export: bool = False,
+    write_lifecycle_export: bool = False,
     output_root: Path | None = None,
 ) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
@@ -64,10 +64,10 @@ def build_migration_ledger(
     authority_surfaces = _authority_surfaces_checked(resolved_workspace_root)
     errors: list[dict[str, Any]] = []
     quest_git_cutover_record = quest_git_cutover.read_latest_quest_git_cutover_record(ledger_root=ledger_root)
-    compatibility_exports = _compatibility_exports(
+    lifecycle_exports = _lifecycle_exports(
         workspace_root=resolved_workspace_root,
         ledger_root=ledger_root,
-        enabled=write_compat_export,
+        enabled=write_lifecycle_export,
         errors=errors,
     )
     quest_git_inventory_items = tuple(quest_git_inventory)
@@ -83,7 +83,7 @@ def build_migration_ledger(
     git_lifecycle_cutover = _git_lifecycle_cutover(
         quest_git_cutover_status=quest_git_cutover_status,
         quest_git_inventory=quest_git_inventory_items,
-        compatibility_retirement=compatibility_retirement,
+        legacy_import_retirement=legacy_import_retirement,
     )
     skipped_items = [
         *_skipped_items(
@@ -112,7 +112,7 @@ def build_migration_ledger(
         "planned_actions": _planned_actions(storage_audit),
         "applied_actions": _applied_actions(storage_audit),
         "skipped_items": skipped_items,
-        "compatibility_exports": compatibility_exports,
+        "lifecycle_exports": lifecycle_exports,
         "restore_proofs": _restore_proofs(storage_audit),
         "git_tracking_check": git_tracking_check,
         "git_lifecycle_cutover": git_lifecycle_cutover,
@@ -267,12 +267,12 @@ def cutover_quest_git_active_paths(
     )
 
 
-def validate_compatibility_retirement(payload: Mapping[str, Any]) -> dict[str, Any]:
+def validate_legacy_import_retirement(payload: Mapping[str, Any]) -> dict[str, Any]:
     required_true_fields = (
         "current_projects_cutover_verified",
         "old_readers_equivalent",
         "restore_import_diagnostic_retained",
-        "default_fallback_removed",
+        "default_legacy_reader_removed",
     )
     missing_true_fields = [field for field in required_true_fields if payload.get(field) is not True]
     disallowed_default_callers = [
@@ -292,7 +292,7 @@ def _git_lifecycle_cutover(
     *,
     quest_git_cutover_status: Mapping[str, Any] | None,
     quest_git_inventory: tuple[Mapping[str, Any], ...],
-    compatibility_retirement: Mapping[str, Any] | None,
+    legacy_import_retirement: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     inventory = [_quest_git_inventory_item(item) for item in quest_git_inventory]
     unresolved = [
@@ -303,13 +303,13 @@ def _git_lifecycle_cutover(
     status_payload = dict(quest_git_cutover_status or {})
     explicit_verified = status_payload.get("status") == "verified" or status_payload.get("verified") is True
     cutover_verified = bool(explicit_verified and not unresolved)
-    compatibility_payload = dict(compatibility_retirement or {})
-    retirement_validation = validate_compatibility_retirement(compatibility_payload)
+    legacy_import_payload = dict(legacy_import_retirement or {})
+    retirement_validation = validate_legacy_import_retirement(legacy_import_payload)
     retirement_allowed = cutover_verified and bool(retirement_validation["allowed"])
     if retirement_allowed:
-        next_required_action = "Q6 complete: remove default compatibility fallback and keep explicit archive import reference only."
+        next_required_action = "Q6 complete: retain explicit archive import diagnostic only."
     elif cutover_verified:
-        next_required_action = "Complete Q6 compatibility retirement guard before deleting legacy fallback."
+        next_required_action = "Complete Q6 legacy import retirement guard before closing old reader paths."
     else:
         next_required_action = "Complete Q1-Q5 quest Git writer/read-model cutover, import/archive proof, and active-path retirement ledger."
     return {
@@ -318,10 +318,10 @@ def _git_lifecycle_cutover(
         "quest_git_active_path_retired": cutover_verified,
         "quest_git_inventory": inventory,
         "unresolved_active_git_paths": unresolved,
-        "compatibility_retirement": {
+        "legacy_import_retirement": {
             "allowed": retirement_allowed,
             "validation": retirement_validation,
-            "requested": compatibility_payload,
+            "requested": legacy_import_payload,
         },
         "next_required_action": next_required_action,
     }
@@ -411,7 +411,7 @@ def _quest_git_skipped_items(inventory: Iterable[Mapping[str, Any]]) -> list[dic
     return skipped
 
 
-def _compatibility_exports(
+def _lifecycle_exports(
     *,
     workspace_root: Path,
     ledger_root: Path,
@@ -420,9 +420,9 @@ def _compatibility_exports(
 ) -> list[dict[str, Any]]:
     if not enabled:
         return []
-    output_path = ledger_root / "compat_exports" / "workspace_storage_audit.latest.json"
+    output_path = ledger_root / "lifecycle_exports" / "workspace_storage_audit.latest.json"
     try:
-        export = runtime_lifecycle_read_model.export_compatibility_projection(
+        export = runtime_lifecycle_read_model.export_lifecycle_projection(
             surface="workspace_storage_audit",
             export_format="json",
             workspace_root=workspace_root,
@@ -444,7 +444,7 @@ def _compatibility_exports(
             "export_path": export["output_path"],
             "source_db_path": export["source_db_path"],
             "source_payload_sha256": export["source_payload_sha256"],
-            "compatibility_fallback_used": export["compatibility_fallback_used"],
+            "legacy_restore_import_used": export["legacy_restore_import_used"],
         }
     ]
 
@@ -755,8 +755,8 @@ def _default_next_required_action(
 ) -> str:
     if git_lifecycle_cutover.get("status") != "verified":
         return str(git_lifecycle_cutover.get("next_required_action"))
-    compatibility = _mapping(git_lifecycle_cutover.get("compatibility_retirement"))
-    if compatibility.get("allowed") is not True:
+    legacy_import = _mapping(git_lifecycle_cutover.get("legacy_import_retirement"))
+    if legacy_import.get("allowed") is not True:
         return str(git_lifecycle_cutover.get("next_required_action"))
     reasons = {str(item.get("reason")) for item in skipped_items}
     if "db_gitignore_missing" in reasons:
@@ -834,5 +834,5 @@ __all__ = [
     "build_migration_ledger",
     "build_quest_git_inventory",
     "cutover_quest_git_active_paths",
-    "validate_compatibility_retirement",
+    "validate_legacy_import_retirement",
 ]

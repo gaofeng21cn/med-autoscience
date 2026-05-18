@@ -18,6 +18,7 @@ from .runtime_supervisor_dispatch_executor_parts import controller_refresh
 from .runtime_supervisor_dispatch_executor_parts import managed_runtime_authorization
 from .runtime_supervisor_dispatch_executor_parts import managed_runtime_dispatches
 from .runtime_supervisor_dispatch_executor_parts import output_readiness
+from .runtime_supervisor_dispatch_executor_parts import terminal_stall_handoff
 from .runtime_supervisor_scan import SUPERVISION_LATEST_RELATIVE_PATH
 from .runtime_supervisor_consumer import (
     CONSUMER_LATEST_RELATIVE_PATH,
@@ -356,44 +357,14 @@ def _paper_progress_stall_block_reason(
     if dispatch_fingerprint is not None and current_fingerprint is not None and dispatch_fingerprint != current_fingerprint:
         return "paper_progress_stall_fingerprint_stale", False
     if current_stall.get("terminal") is True:
-        if _terminal_stall_owner_handoff_allowed(action_type=action_type, dispatch=dispatch, current_study=current_study):
+        if terminal_stall_handoff.owner_handoff_allowed(
+            action_type=action_type,
+            dispatch=dispatch,
+            current_study=current_study,
+        ):
             return None, True
         return "paper_progress_stall_terminal", False
     return None, False
-
-
-def _terminal_stall_owner_handoff_allowed(
-    *,
-    action_type: str,
-    dispatch: Mapping[str, Any],
-    current_study: Mapping[str, Any] | None,
-) -> bool:
-    if action_type == "publication_gate_specificity_required":
-        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
-        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
-        return repeat_suppression.publication_gate_specificity_route(owner_route) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
-    if action_type == "unit_harmonized_external_validation_rerun":
-        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
-        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
-        return repeat_suppression.hard_methodology_harmonization_route(owner_route) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
-    if action_type == "runtime_platform_repair":
-        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
-        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
-        return owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
-    if action_type != "return_to_ai_reviewer_workflow":
-        return False
-    if output_readiness.ai_reviewer_output_pending(current_study):
-        return True
-    owner_route = _dispatch_owner_route(dispatch)
-    if _text(owner_route.get("failure_signature")) not in repeat_suppression.OWNER_HANDOFF_REASONS:
-        return False
-    next_owner = _text(owner_route.get("next_owner"))
-    next_executable_owner = _text(dispatch.get("next_executable_owner")) or _text(
-        _mapping(dispatch.get("prompt_contract")).get("next_executable_owner")
-    )
-    if next_owner not in {"ai_reviewer", "write/ai_reviewer"}:
-        return False
-    return next_executable_owner in {"ai_reviewer", "write/ai_reviewer"}
 
 
 def _execute_publication_gate_specificity(

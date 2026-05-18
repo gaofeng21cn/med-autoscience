@@ -172,7 +172,7 @@ _RECOVERY_ACTION_MODE_LABELS = {
     "inspect_progress": "先读取当前进度与阻塞",
     "human_decision_review": "等待用户判断",
     "auto_runtime_parked": "自动运行停驻",
-    "maintain_compatibility_guard": "保持人工收尾兼容保护",
+    "maintain_manual_finish_guard": "保持人工收尾显式保护",
     "monitor_only": "继续监督当前 study",
 }
 _OPERATOR_STATUS_HANDLING_LABELS = {
@@ -192,7 +192,7 @@ _OPERATOR_STATUS_HANDLING_LABELS = {
     "platform_repair_pending": "等待 MAS/MDS 平台修复",
     "preflight_contract_pending": "等待运行前置合同满足",
     "auto_runtime_parked": "自动运行已停驻",
-    "manual_finishing": "人工收尾兼容保护",
+    "manual_finishing": "人工收尾显式保护",
     "monitor_only": "持续监督中",
 }
 _OPERATOR_STATUS_TRUTH_SOURCE_LABELS = {

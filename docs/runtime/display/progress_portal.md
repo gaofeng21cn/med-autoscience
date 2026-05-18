@@ -126,7 +126,7 @@ workspace 首页 IA：
 
 Portal 主 UI 标签默认使用中文。顶部必须同时显示本机时区时间和 UTC `generated_at`；本机时间要带 IANA timezone，例如 `Asia/Shanghai`，避免跨时区排障时把 stale / fresh 误判成时钟问题。
 
-workspace overview 模式是多论文线入口，不是某一篇论文的详情页。该模式必须把 `workspace.studies` 作为首屏主体，显示每条 study 的 `study_id`、运行健康、监管心跳、进度新鲜度、论文阶段和下一步；不得把缺少单篇 `publication_eval` 或 `current_package` 的 fallback 文案渲染成 workspace 级问题。单篇质量门禁和交付包结论只在具体 study 视图中展示。
+workspace overview 模式是多论文线入口，不是某一篇论文的详情页。该模式必须把 `workspace.studies` 作为首屏主体，显示每条 study 的 `study_id`、运行健康、监管心跳、进度新鲜度、论文阶段和下一步；不得把缺少单篇 `publication_eval` 或 `current_package` 的缺省文案渲染成 workspace 级问题。单篇质量门禁和交付包结论只在具体 study 视图中展示。
 
 workspace alerts 必须保留解释层。每条可见告警或降级诊断都要说明：
 

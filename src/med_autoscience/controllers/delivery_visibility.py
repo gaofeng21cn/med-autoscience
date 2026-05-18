@@ -42,8 +42,8 @@ def _text(value: object) -> str:
     return str(value or "").strip()
 
 
-def _package_label(package: Mapping[str, Any], fallback: str) -> str:
-    return _text(package.get("role")) or fallback
+def _package_label(package: Mapping[str, Any], default_role: str) -> str:
+    return _text(package.get("role")) or default_role
 
 
 def _package_missing(package: Mapping[str, Any]) -> bool:
@@ -68,7 +68,7 @@ def _package_incomplete(package: Mapping[str, Any], key: str) -> bool:
 
 def _layout_migration_queue(inspection: Mapping[str, Any]) -> list[dict[str, Any]]:
     queue: list[dict[str, Any]] = []
-    for key, fallback in (
+    for key, default_role in (
         ("source_package", "controller_authorized_source"),
         ("human_package", "human_facing_mirror"),
     ):
@@ -78,7 +78,7 @@ def _layout_migration_queue(inspection: Mapping[str, Any]) -> list[dict[str, Any
         queue.append(
             {
                 "queue_item": key,
-                "role": _package_label(package, fallback),
+                "role": _package_label(package, default_role),
                 "root": package.get("root"),
                 "layout_status": package.get("layout_status"),
                 "reason": "legacy_root_audit_layout",

@@ -55,7 +55,7 @@ MAS 程序只承担机械职责：
 - 签发 owner receipt、typed blocker、safe action refs 和 no-forbidden-write proof。
 - 阻止 OPL/App/provider 越权写 MAS truth、memory body、publication verdict 或 artifact authority。
 
-程序不得用规则、regex、固定分支或 fallback 直接替代 AI reviewer / Quality OS 的医学判断。同一 agent 的自审不能关闭 AI-first quality gate。
+程序不得用规则、regex、固定分支或 legacy_restore_import 直接替代 AI reviewer / Quality OS 的医学判断。同一 agent 的自审不能关闭 AI-first quality gate。
 
 ## Stage 是医学专家工作的组织单元
 
@@ -97,7 +97,7 @@ MAS 达到生产级目标态时，应满足：
 - Direct MAS app skill path 与 OPL-hosted path 使用同一 MAS owner surfaces，并有语义等价与 forbidden-write 证据。
 - 通用 runtime、queue、memory locator、artifact lifecycle、restore/retention、projection、workbench shell 和 generated entry/status wrapper 已上收到 OPL / shared family layer；MAS 保留领域知识、authority、owner receipt、声明式 pack 和 minimal authority functions。
 - OPL generated / hosted surfaces 完成 active caller cutover；MAS 旧手写 shell 只保留 direct domain entry、domain handler、authority function、diagnostic cleanup 或 provenance fixture。
-- MAS 非知识代码均能归类为 declarative pack / generated surface handoff、refs-only adapter、minimal authority function 或 physical-retired tombstone/provenance gate，并完成对应 cutover、收薄或退役。
+- MAS 非知识代码均能归类为 declarative pack / generated surface handoff、refs-only adapter、minimal authority function 或 legacy cleanup no-active-caller gate，并完成对应 cutover、收薄或退役；已物理退役的旧面必须另有 tombstone/provenance refs、forbidden-caller proof 和 `physical_retired` 机器标记。
 - effect-boundary / AI-decision stage descriptor 明确声明 machine-readable `trust_boundary.runtime_event_refs` 与 `stage_contract.runtime_event_refs`，OPL proof bundle / admission 能把 route decision、AI reviewer gate receipt 和 replay/audit event refs 读成可组合合同，而不是只靠人读 stage 文案。
 - 当前 `classification_gap_count=0`、`active_private_generic_residue_count=0` 与 `functional_structure_gap_count=0` 必须由机器面确认。结构闭合来自 generated surface active caller cutover、refs-only adapter 收薄、legacy physical retirement、OPL App drilldown、lifecycle locator/retention/restore ledger 对账和 effect-boundary stage admission 的 closure proof refs；live paper-line evidence scaleout 是结构门之后的测试/证据门，不能被 descriptor ready、replacement proof 或 repo tests 替代。
 - 每个真实 paper-line stage attempt 都留下 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。

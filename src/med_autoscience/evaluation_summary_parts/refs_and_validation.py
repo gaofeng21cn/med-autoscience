@@ -664,9 +664,9 @@ def _normalized_quality_review_agenda(
     scoped_agenda = _task_intake_scoped_quality_agenda(summary_payload)
     if scoped_agenda is not None:
         return scoped_agenda
-    fallback = _quality_review_agenda_from_summary_payload(summary_payload)
+    derived_review_agenda = _quality_review_agenda_from_summary_payload(summary_payload)
     if not isinstance(agenda_payload, dict):
-        return fallback
+        return derived_review_agenda
     top_priority_issue = (
         _agenda_field(
             agenda_payload,
@@ -675,7 +675,7 @@ def _normalized_quality_review_agenda(
             "current_top_issue",
             "reviewer_reason",
         )
-        or fallback["top_priority_issue"]
+        or derived_review_agenda["top_priority_issue"]
     )
     suggested_revision = (
         _agenda_field(
@@ -685,7 +685,7 @@ def _normalized_quality_review_agenda(
             "suggested_fix",
             "reviewer_revision_advice",
         )
-        or fallback["suggested_revision"]
+        or derived_review_agenda["suggested_revision"]
     )
     next_review_focus = (
         _agenda_field(
@@ -695,7 +695,7 @@ def _normalized_quality_review_agenda(
             "next_review_checkpoint",
             "reviewer_next_round_focus",
         )
-        or fallback["next_review_focus"]
+        or derived_review_agenda["next_review_focus"]
     )
     return {
         "top_priority_issue": top_priority_issue,

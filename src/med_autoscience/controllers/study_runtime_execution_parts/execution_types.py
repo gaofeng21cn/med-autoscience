@@ -99,7 +99,7 @@ class StudyRuntimeExecutionOutcome:
         self,
         step: StudyRuntimeDaemonStep | str,
         *,
-        fallback: str,
+        default_status: str,
     ) -> str:
         payload = self.daemon_step(step)
         snapshot = payload.get("snapshot")
@@ -108,14 +108,14 @@ class StudyRuntimeExecutionOutcome:
             if status:
                 return status
         status = str(payload.get("status") or "").strip()
-        return status or fallback
+        return status or default_status
 
-    def completion_snapshot_status(self, *, fallback: str) -> str:
+    def completion_snapshot_status(self, *, default_status: str) -> str:
         completion_sync = self.daemon_step(StudyRuntimeDaemonStep.COMPLETION_SYNC)
         try:
-            return StudyCompletionSyncResult.from_payload(completion_sync).snapshot_status_or(fallback)
+            return StudyCompletionSyncResult.from_payload(completion_sync).snapshot_status_or(default_status)
         except (TypeError, ValueError):
-            return fallback
+            return default_status
 
     def serialized_daemon_result(self) -> dict[str, Any] | None:
         daemon_result = self.daemon_result

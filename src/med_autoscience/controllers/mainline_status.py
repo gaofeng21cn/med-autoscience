@@ -123,7 +123,7 @@ def _single_project_boundary() -> dict[str, Any]:
         ],
         "not_now": [
             "treating MedDeepScientist as a second long-term owner",
-            "restoring external MDS as hidden runnable fallback",
+            "restoring external MDS as hidden runnable substitute",
             "importing upstream git history or contributor footprint",
         ],
     }
@@ -199,7 +199,7 @@ def _capability_owner_boundary() -> dict[str, Any]:
             {
                 "role_id": "explicit_archive_import_ref",
                 "migration_only": True,
-                "summary": "只在操作者显式 archive import / backend audit 时读取；不作为 hidden fallback。",
+                "summary": "只在操作者显式 archive import / backend audit 时读取；不作为 hidden runnable substitute。",
             },
         ],
         "proof_and_absorb_boundary": {

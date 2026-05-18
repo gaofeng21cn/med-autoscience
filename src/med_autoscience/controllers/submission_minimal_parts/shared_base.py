@@ -157,7 +157,7 @@ def resolve_bundle_input_path(
     *,
     bundle_manifest: dict[str, Any],
     key: str,
-    fallback: str | None = None,
+    default_path: str | None = None,
 ) -> str:
     bundle_inputs = bundle_manifest.get("bundle_inputs") or {}
     value = bundle_inputs.get(key)
@@ -165,8 +165,8 @@ def resolve_bundle_input_path(
         return str(value)
     if key == "compile_report_path" and bundle_manifest.get("compile_report_path"):
         return str(bundle_manifest["compile_report_path"])
-    if fallback:
-        return fallback
+    if default_path:
+        return default_path
     raise KeyError(f"missing bundle input `{key}` in paper bundle manifest")
 
 
@@ -175,7 +175,7 @@ def resolve_compile_report_path(*, workspace_root: Path, paper_root: Path, bundl
         resolve_bundle_input_path(
             bundle_manifest=bundle_manifest,
             key="compile_report_path",
-            fallback="",
+            default_path="",
         ),
         "paper/build/compile_report.json",
         "paper/compile_report.json",

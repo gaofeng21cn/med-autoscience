@@ -167,7 +167,7 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
     headers = ("论文线", "运行控制台", "状态", "运行编号", "运行健康", "监管心跳", "进度新鲜度", "论文阶段", "焦点/下一步")
     for item in studies:
         selected_class = " selected" if bool(item.get("selected")) else ""
-        study_id = display_text(item.get("study_id"), fallback="未知论文线", preserve_known_token=False)
+        study_id = display_text(item.get("study_id"), empty_text="未知论文线", preserve_known_token=False)
         study_href = _non_empty_text(item.get("portal_href"))
         study_cell = (
             f'<a href="{escape(study_href, quote=True)}">{escape(study_id)}</a>'
@@ -177,13 +177,13 @@ def render_workspace_studies_section(studies: list[dict[str, Any]]) -> str:
         values = (
             study_cell,
             _study_live_console_link(study_id, href=_non_empty_text(item.get("live_console_href"))),
-            escape(display_text(item.get("state_label"), fallback="状态投影缺失", preserve_known_token=False)),
-            escape(display_text(item.get("active_run_id"), fallback="无运行编号", preserve_known_token=False)),
+            escape(display_text(item.get("state_label"), empty_text="状态投影缺失", preserve_known_token=False)),
+            escape(display_text(item.get("active_run_id"), empty_text="无运行编号", preserve_known_token=False)),
             status_chip(item.get("runtime_health_status") or "unknown"),
             status_chip(item.get("supervisor_tick_status") or "unknown"),
             status_chip(item.get("progress_freshness_status") or "unknown"),
-            escape(display_text(item.get("paper_stage") or item.get("current_stage"), fallback="未提供")),
-            escape(display_text(item.get("operator_focus") or item.get("next_system_action"), fallback="未提供", preserve_known_token=False)),
+            escape(display_text(item.get("paper_stage") or item.get("current_stage"), empty_text="未提供")),
+            escape(display_text(item.get("operator_focus") or item.get("next_system_action"), empty_text="未提供", preserve_known_token=False)),
         )
         rows.append(
             "<tr"
@@ -293,7 +293,7 @@ def _metric_tile(label: str, value: str, *, tone: str) -> str:
 
 
 def _study_item(item: Mapping[str, Any]) -> str:
-    study_id = display_text(item.get("study_id"), fallback="未知论文线", preserve_known_token=False)
+    study_id = display_text(item.get("study_id"), empty_text="未知论文线", preserve_known_token=False)
     study_href = _non_empty_text(item.get("portal_href"))
     title = (
         f'<a href="{escape(study_href, quote=True)}">{escape(study_id)}</a>'
@@ -308,11 +308,11 @@ def _study_item(item: Mapping[str, Any]) -> str:
     )
     action = display_text(
         item.get("operator_focus") or item.get("next_system_action"),
-        fallback="当前没有明确下一步投影。",
+        empty_text="当前没有明确下一步投影。",
         preserve_known_token=False,
     )
-    run_id = display_text(item.get("active_run_id"), fallback="无运行编号", preserve_known_token=False)
-    stage = display_text(item.get("paper_stage") or item.get("current_stage"), fallback="未提供")
+    run_id = display_text(item.get("active_run_id"), empty_text="无运行编号", preserve_known_token=False)
+    stage = display_text(item.get("paper_stage") or item.get("current_stage"), empty_text="未提供")
     selected_class = " study-item--selected" if bool(item.get("selected")) else ""
     tone_class = " study-item--attention" if _study_needs_attention(item) else ""
     return "".join(

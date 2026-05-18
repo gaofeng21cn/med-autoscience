@@ -268,62 +268,62 @@ def _normalized_quality_review_loop(
     loop_payload: dict[str, Any] | None,
     summary_payload: dict[str, Any],
 ) -> dict[str, Any]:
-    fallback = _quality_review_loop_from_summary_payload(summary_payload)
+    derived_review_loop = _quality_review_loop_from_summary_payload(summary_payload)
     scoped_agenda = _task_intake_scoped_quality_agenda(summary_payload)
     if scoped_agenda is not None:
         if not isinstance(loop_payload, dict):
-            return fallback
+            return derived_review_loop
         return {
-            "policy_id": _optional_text(loop_payload.get("policy_id")) or fallback["policy_id"],
-            "loop_id": _optional_text(loop_payload.get("loop_id")) or fallback["loop_id"],
-            "closure_state": fallback["closure_state"],
-            "lane_id": fallback["lane_id"],
-            "current_phase": fallback["current_phase"],
-            "current_phase_label": fallback["current_phase_label"],
-            "recommended_next_phase": fallback["recommended_next_phase"],
-            "recommended_next_phase_label": fallback["recommended_next_phase_label"],
-            "active_plan_id": _optional_text(loop_payload.get("active_plan_id")) or fallback["active_plan_id"],
-            "active_plan_execution_status": fallback["active_plan_execution_status"],
-            "blocking_issue_count": fallback["blocking_issue_count"],
-            "blocking_issues": list(fallback["blocking_issues"]),
-            "next_review_focus": list(fallback["next_review_focus"]),
-            "re_review_ready": fallback["re_review_ready"],
-            "summary": fallback["summary"],
-            "recommended_next_action": fallback["recommended_next_action"],
+            "policy_id": _optional_text(loop_payload.get("policy_id")) or derived_review_loop["policy_id"],
+            "loop_id": _optional_text(loop_payload.get("loop_id")) or derived_review_loop["loop_id"],
+            "closure_state": derived_review_loop["closure_state"],
+            "lane_id": derived_review_loop["lane_id"],
+            "current_phase": derived_review_loop["current_phase"],
+            "current_phase_label": derived_review_loop["current_phase_label"],
+            "recommended_next_phase": derived_review_loop["recommended_next_phase"],
+            "recommended_next_phase_label": derived_review_loop["recommended_next_phase_label"],
+            "active_plan_id": _optional_text(loop_payload.get("active_plan_id")) or derived_review_loop["active_plan_id"],
+            "active_plan_execution_status": derived_review_loop["active_plan_execution_status"],
+            "blocking_issue_count": derived_review_loop["blocking_issue_count"],
+            "blocking_issues": list(derived_review_loop["blocking_issues"]),
+            "next_review_focus": list(derived_review_loop["next_review_focus"]),
+            "re_review_ready": derived_review_loop["re_review_ready"],
+            "summary": derived_review_loop["summary"],
+            "recommended_next_action": derived_review_loop["recommended_next_action"],
         }
     if not isinstance(loop_payload, dict):
-        return fallback
-    current_phase = _optional_text(loop_payload.get("current_phase")) or fallback["current_phase"]
+        return derived_review_loop
+    current_phase = _optional_text(loop_payload.get("current_phase")) or derived_review_loop["current_phase"]
     if current_phase not in _QUALITY_REVIEW_LOOP_PHASES:
         allowed = ", ".join(sorted(_QUALITY_REVIEW_LOOP_PHASES))
         raise ValueError(f"quality review loop current_phase must be one of: {allowed}")
     recommended_next_phase = (
-        _optional_text(loop_payload.get("recommended_next_phase")) or fallback["recommended_next_phase"]
+        _optional_text(loop_payload.get("recommended_next_phase")) or derived_review_loop["recommended_next_phase"]
     )
     if recommended_next_phase not in _QUALITY_REVIEW_LOOP_NEXT_PHASES:
         allowed = ", ".join(sorted(_QUALITY_REVIEW_LOOP_NEXT_PHASES))
         raise ValueError(f"quality review loop recommended_next_phase must be one of: {allowed}")
-    closure_state = _optional_text(loop_payload.get("closure_state")) or fallback["closure_state"]
+    closure_state = _optional_text(loop_payload.get("closure_state")) or derived_review_loop["closure_state"]
     if closure_state not in _QUALITY_CLOSURE_STATES:
         allowed = ", ".join(sorted(_QUALITY_CLOSURE_STATES))
         raise ValueError(f"quality review loop closure_state must be one of: {allowed}")
     active_plan_execution_status = (
-        _optional_text(loop_payload.get("active_plan_execution_status")) or fallback["active_plan_execution_status"]
+        _optional_text(loop_payload.get("active_plan_execution_status")) or derived_review_loop["active_plan_execution_status"]
     )
     if active_plan_execution_status not in _QUALITY_REVISION_PLAN_STATUSES:
         allowed = ", ".join(sorted(_QUALITY_REVISION_PLAN_STATUSES))
         raise ValueError(f"quality review loop active_plan_execution_status must be one of: {allowed}")
     blocking_issues = _normalized_text_list(loop_payload.get("blocking_issues"))
     if not blocking_issues:
-        blocking_issues = list(fallback["blocking_issues"])
+        blocking_issues = list(derived_review_loop["blocking_issues"])
     blocking_issue_count = loop_payload.get("blocking_issue_count")
     if not isinstance(blocking_issue_count, int) or blocking_issue_count < 0:
         blocking_issue_count = len(blocking_issues)
     return {
-        "policy_id": _optional_text(loop_payload.get("policy_id")) or fallback["policy_id"],
-        "loop_id": _optional_text(loop_payload.get("loop_id")) or fallback["loop_id"],
+        "policy_id": _optional_text(loop_payload.get("policy_id")) or derived_review_loop["policy_id"],
+        "loop_id": _optional_text(loop_payload.get("loop_id")) or derived_review_loop["loop_id"],
         "closure_state": closure_state,
-        "lane_id": _optional_text(loop_payload.get("lane_id")) or fallback["lane_id"],
+        "lane_id": _optional_text(loop_payload.get("lane_id")) or derived_review_loop["lane_id"],
         "current_phase": current_phase,
         "current_phase_label": (
             _optional_text(loop_payload.get("current_phase_label")) or _QUALITY_REVIEW_LOOP_PHASE_LABELS[current_phase]
@@ -333,22 +333,22 @@ def _normalized_quality_review_loop(
             _optional_text(loop_payload.get("recommended_next_phase_label"))
             or _QUALITY_REVIEW_LOOP_NEXT_PHASE_LABELS[recommended_next_phase]
         ),
-        "active_plan_id": _optional_text(loop_payload.get("active_plan_id")) or fallback["active_plan_id"],
+        "active_plan_id": _optional_text(loop_payload.get("active_plan_id")) or derived_review_loop["active_plan_id"],
         "active_plan_execution_status": active_plan_execution_status,
         "blocking_issue_count": blocking_issue_count,
         "blocking_issues": blocking_issues,
         "next_review_focus": (
             _normalized_text_list(loop_payload.get("next_review_focus"))
-            or list(fallback["next_review_focus"])
+            or list(derived_review_loop["next_review_focus"])
         ),
         "re_review_ready": (
             loop_payload.get("re_review_ready")
             if isinstance(loop_payload.get("re_review_ready"), bool)
-            else fallback["re_review_ready"]
+            else derived_review_loop["re_review_ready"]
         ),
-        "summary": _optional_text(loop_payload.get("summary")) or fallback["summary"],
+        "summary": _optional_text(loop_payload.get("summary")) or derived_review_loop["summary"],
         "recommended_next_action": (
-            _optional_text(loop_payload.get("recommended_next_action")) or fallback["recommended_next_action"]
+            _optional_text(loop_payload.get("recommended_next_action")) or derived_review_loop["recommended_next_action"]
         ),
     }
 

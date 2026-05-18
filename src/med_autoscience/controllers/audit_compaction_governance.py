@@ -30,7 +30,7 @@ REQUIRED_COMPACTION_GATES = ("restore", "index", "provenance")
 REQUIRED_COMPACTION_PROOF_REFS = (
     "restore_index_ref",
     "provenance_ref",
-    "compatibility_export_ref",
+    "lifecycle_export_ref",
 )
 L5_BRANCHES = frozenset(
     {

@@ -479,8 +479,8 @@ class StudyCompletionSyncResult:
     def to_dict(self) -> dict[str, Any]:
         return dict(self.payload)
 
-    def snapshot_status_or(self, fallback: str) -> str:
-        return self.completion_snapshot_status or fallback
+    def snapshot_status_or(self, default_status: str) -> str:
+        return self.completion_snapshot_status or default_status
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "StudyCompletionSyncResult":

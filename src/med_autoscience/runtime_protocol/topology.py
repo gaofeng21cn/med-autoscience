@@ -179,14 +179,14 @@ def resolve_study_id_from_worktree_root(worktree_root: Path) -> str:
     if worktree_study_id or quest_root_study_id:
         return worktree_study_id or quest_root_study_id or ""
 
-    fallback_quest_id = _extract_string_field(payload, "quest_id")
-    if fallback_quest_id:
-        return fallback_quest_id
+    declared_quest_id = _extract_string_field(payload, "quest_id")
+    if declared_quest_id:
+        return declared_quest_id
     if quest_root_yaml_path.exists():
         quest_payload = _load_yaml_mapping(quest_root_yaml_path)
-        fallback_quest_id = _extract_string_field(quest_payload, "quest_id")
-        if fallback_quest_id:
-            return fallback_quest_id
+        declared_quest_id = _extract_string_field(quest_payload, "quest_id")
+        if declared_quest_id:
+            return declared_quest_id
     raise ValueError(f"missing string quest_id in {quest_yaml_path}")
 
 

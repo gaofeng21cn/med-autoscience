@@ -193,7 +193,7 @@ def describe_submission_minimal_authority(
             resolve_bundle_input_path(
                 bundle_manifest=bundle_manifest,
                 key="figure_catalog_path",
-                fallback="paper/figures/figure_catalog.json",
+                default_path="paper/figures/figure_catalog.json",
             ),
         )
         table_catalog_path = resolve_relpath(
@@ -201,7 +201,7 @@ def describe_submission_minimal_authority(
             resolve_bundle_input_path(
                 bundle_manifest=bundle_manifest,
                 key="table_catalog_path",
-                fallback="paper/tables/table_catalog.json",
+                default_path="paper/tables/table_catalog.json",
             ),
         )
         compile_report = load_json(compile_report_path)

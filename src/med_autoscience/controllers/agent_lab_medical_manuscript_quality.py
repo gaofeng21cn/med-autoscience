@@ -436,7 +436,7 @@ def _memory_refs(
     refs = _json_refs_for_keys(paths=paths, keys=(key, *aliases))
     if refs:
         return _unique_refs(refs)
-    return [f"research-memory-ref:mas/{study_id}/{key}/body-free-fallback"]
+    return [f"research-memory-ref:mas/{study_id}/{key}/body-free-default"]
 
 
 def _json_refs_for_keys(*, paths: tuple[Path, ...], keys: tuple[str, ...]) -> list[str]:

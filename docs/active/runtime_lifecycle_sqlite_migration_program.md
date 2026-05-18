@@ -5,7 +5,7 @@ Date: `2026-05-16`
 Owner: `MedAutoScience runtime lifecycle read-model/index boundary`
 Purpose: `runtime_lifecycle_restore_proof_guard`
 State: `active_support`
-Machine boundary: 本文是人读 owner / provenance guard。机器真相继续归 runtime lifecycle SQLite databases、migration ledgers、restore indexes、archive manifests、compatibility exports、runtime/controller surfaces 和 live workspace evidence。
+Machine boundary: 本文是人读 owner / provenance guard。机器真相继续归 runtime lifecycle SQLite databases、migration ledgers、restore indexes、archive manifests、lifecycle exports、runtime/controller surfaces 和 live workspace evidence。
 
 完整历史记录：[2026-05-08 runtime lifecycle SQLite migration full record](../history/program/runtime_lifecycle_sqlite_migration_program_2026_05_08_full_record.md)。
 
@@ -18,7 +18,7 @@ Machine boundary: 本文是人读 owner / provenance guard。机器真相继续�
 - SQLite 只作为 runtime lifecycle / read-model / index authority；
 - paper / study / publication / artifact truth 留在 MAS file authority 与 controller authority surfaces；
 - root Git 和 quest Git 不回到默认 MAS workspace/runtime lifecycle；
-- restore-proof archive、migration ledger、compatibility export 和 explicit archive import 规则继续保留；
+- restore-proof archive、migration ledger、lifecycle export 和 explicit archive import 规则继续保留；
 - 新 drift 通过 fresh inventory、archive、restore proof 和 verification 处理。
 
 ## 当前状态
@@ -30,14 +30,14 @@ Machine boundary: 本文是人读 owner / provenance guard。机器真相继续�
 | Quest Git retirement | `current projects verified` | migration/cutover ledgers and restore manifests |
 | Workspace root Git retirement | `current projects verified` | workspace root Git retirement ledgers |
 | MAS-first new workspace layout | `landed` | workspace/bootstrap/profile contracts |
-| Explicit archive/import reference | `retained diagnostic` | MAS compatibility/provenance surfaces |
+| Explicit archive/import reference | `retained diagnostic` | MAS archive/provenance surfaces |
 | Live paper truth | `outside SQLite authority` | MAS study/publication/artifact owners |
 
 ## Authority Boundary
 
 SQLite may hold:
 
-- runtime lifecycle state, event indexes, run/session summaries, cursor metadata, report indexes, retention action ledgers, archive refs, checksum refs, compatibility export provenance, and projection caches;
+- runtime lifecycle state, event indexes, run/session summaries, cursor metadata, report indexes, retention action ledgers, archive refs, checksum refs, lifecycle export provenance, and projection caches;
 - route lineage, workspace allocation, snapshot metadata, revision summaries, and Canvas/progress read models when they are rebuildable from authority surfaces.
 
 SQLite must not hold or authorize:
@@ -50,12 +50,12 @@ Files and archives remain authoritative for:
 
 ## Current Drift Handling
 
-When a current or legacy workspace shows new `.ds`, quest `.git`, root `.git`, old MDS path, runtime payload, or compatibility fallback drift, the handling order is:
+When a current or legacy workspace shows new `.ds`, quest `.git`, root `.git`, old MDS path, runtime payload, or legacy restore import diagnostic drift, the handling order is:
 
 1. Fresh inventory: identify state, active run, worker liveness, owner, path class, file/byte counts, remotes/locks/worktrees when Git exists, and authority surfaces touched.
 2. Safety gate: live/running/unknown-owner paths are audit-only unless a controller-authorized or operator-confirmed safe window exists.
 3. Archive and restore proof: produce archive, manifest, sha256, restore command, source path list, and verification result before removal.
-4. Compatibility export: preserve explicit read/restore diagnostics when needed.
+4. Lifecycle export: preserve explicit read/restore diagnostics when needed.
 5. Verify: prove current MAS status/progress/runtime surfaces still read from MAS authority, not from root Git, quest Git, old `.ds`, or old MDS path.
 
 Do not describe newly discovered drift as “the migration plan is still active” unless the root cause is a live writer or contract regression. Most post-closeout drift is a maintenance event under this P3a guard.
@@ -82,7 +82,7 @@ Use these evidence surfaces:
 - workspace root Git retirement ledgers;
 - quest Git cutover ledgers;
 - restore manifests and sha256 records;
-- compatibility export records;
+- lifecycle export records;
 - focused runtime lifecycle and repository hygiene tests;
 - live workspace read-only evidence when discussing a particular workspace.
 

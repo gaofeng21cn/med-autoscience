@@ -100,21 +100,21 @@ def post_transition_quest_status(
 ) -> StudyRuntimeQuestStatus | None:
     if outcome.binding_last_action is StudyRuntimeBindingAction.CREATE_AND_START:
         return StudyRuntimeQuestStatus(
-            outcome.quest_status_for_step(StudyRuntimeDaemonStep.CREATE, fallback="created")
+            outcome.quest_status_for_step(StudyRuntimeDaemonStep.CREATE, default_status="created")
         )
     if outcome.binding_last_action in {
         StudyRuntimeBindingAction.RESUME,
         StudyRuntimeBindingAction.RELAUNCH_STOPPED,
     }:
         return StudyRuntimeQuestStatus(
-            outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, fallback="running")
+            outcome.quest_status_for_step(StudyRuntimeDaemonStep.RESUME, default_status="running")
         )
     if outcome.binding_last_action is StudyRuntimeBindingAction.PAUSE:
         return StudyRuntimeQuestStatus(
-            outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, fallback="paused")
+            outcome.quest_status_for_step(StudyRuntimeDaemonStep.PAUSE, default_status="paused")
         )
     if outcome.binding_last_action is StudyRuntimeBindingAction.COMPLETED:
-        return StudyRuntimeQuestStatus(outcome.completion_snapshot_status(fallback="completed"))
+        return StudyRuntimeQuestStatus(outcome.completion_snapshot_status(default_status="completed"))
     return status.quest_status
 
 

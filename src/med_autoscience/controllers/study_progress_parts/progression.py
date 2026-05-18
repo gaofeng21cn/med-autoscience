@@ -765,14 +765,14 @@ def _intervention_lane(
             }
         return {
             "lane_id": "manual_finishing",
-            "title": "保持人工收尾兼容保护",
+            "title": "保持人工收尾显式保护",
             "severity": "observe",
             "summary": (
                 _non_empty_text((manual_finish_contract or {}).get("summary"))
                 or current_stage_summary
                 or next_system_action
             ),
-            "recommended_action_id": "maintain_compatibility_guard",
+            "recommended_action_id": "maintain_manual_finish_guard",
         }
     lane = task_intake_quality_lane(
         task_intake_progress_override,

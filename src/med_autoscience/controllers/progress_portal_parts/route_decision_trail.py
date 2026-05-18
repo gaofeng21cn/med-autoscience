@@ -458,8 +458,8 @@ def _winning_path(
 
 def _node_label(node: Mapping[str, Any]) -> str:
     parts = [
-        display_text(node.get("route_id"), fallback="unknown-route", preserve_known_token=False),
-        display_text(node.get("label"), fallback="问题未提供", preserve_known_token=False),
+        display_text(node.get("route_id"), empty_text="unknown-route", preserve_known_token=False),
+        display_text(node.get("label"), empty_text="问题未提供", preserve_known_token=False),
     ]
     decision = _non_empty_text(node.get("decision"))
     if decision:

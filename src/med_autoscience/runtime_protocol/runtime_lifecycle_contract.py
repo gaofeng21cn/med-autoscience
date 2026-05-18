@@ -34,7 +34,7 @@ MIGRATION_RUN_MODES = (
     "rollback_plan",
 )
 
-COMPATIBILITY_READER_NAMES = (
+LIFECYCLE_READER_NAMES = (
     "study_progress",
     "runtime_watch_latest",
     "storage_audit_status",
@@ -88,7 +88,7 @@ SQLITE_SIDECAR_TABLES = (
     "turn_receipts",
     "paper_work_unit_receipts",
     "surface_refs",
-    "compatibility_exports",
+    "lifecycle_exports",
     "migration_runs",
 )
 
@@ -259,7 +259,7 @@ MIGRATION_LEDGER_REQUIRED_FIELDS = (
     "planned_actions",
     "applied_actions",
     "skipped_items",
-    "compatibility_exports",
+    "lifecycle_exports",
     "restore_proofs",
     "git_tracking_check",
     "authority_surfaces_checked",
@@ -267,14 +267,14 @@ MIGRATION_LEDGER_REQUIRED_FIELDS = (
     "next_required_action",
 )
 
-COMPATIBILITY_VERIFICATION_REQUIRED_FIELDS = (
+LIFECYCLE_VERIFICATION_REQUIRED_FIELDS = (
     "reader_name",
     "workspace_id",
     "study_id",
     "quest_id",
     "authority_files_checked",
     "sqlite_sidecar_checked",
-    "compatibility_fallback_used",
+    "legacy_restore_import_used",
     "export_paths",
     "result",
     "error",
@@ -290,7 +290,7 @@ def runtime_lifecycle_contract() -> dict[str, Any]:
         "sqlite_gitignore_patterns": list(SQLITE_GITIGNORE_PATTERNS),
         "workspace_classifications": list(WORKSPACE_CLASSIFICATIONS),
         "migration_run_modes": list(MIGRATION_RUN_MODES),
-        "compatibility_reader_names": list(COMPATIBILITY_READER_NAMES),
+        "lifecycle_reader_names": list(LIFECYCLE_READER_NAMES),
         "file_authority_surfaces": list(FILE_AUTHORITY_SURFACES),
         "sqlite_sidecar_tables": list(SQLITE_SIDECAR_TABLES),
         "sidecar_indexed_surfaces": list(SIDECAR_INDEXED_SURFACES),
@@ -318,7 +318,7 @@ def runtime_lifecycle_contract() -> dict[str, Any]:
             for key, value in OPL_FAMILY_ADAPTER_SURFACE.items()
         },
         "migration_ledger_required_fields": list(MIGRATION_LEDGER_REQUIRED_FIELDS),
-        "compatibility_verification_required_fields": list(COMPATIBILITY_VERIFICATION_REQUIRED_FIELDS),
+        "lifecycle_verification_required_fields": list(LIFECYCLE_VERIFICATION_REQUIRED_FIELDS),
     }
 
 
@@ -341,11 +341,11 @@ def validate_migration_ledger(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def validate_compatibility_verification(payload: Mapping[str, Any]) -> dict[str, Any]:
-    missing = [field for field in COMPATIBILITY_VERIFICATION_REQUIRED_FIELDS if field not in payload]
+def validate_lifecycle_verification(payload: Mapping[str, Any]) -> dict[str, Any]:
+    missing = [field for field in LIFECYCLE_VERIFICATION_REQUIRED_FIELDS if field not in payload]
     reader_name = str(payload.get("reader_name") or "")
     invalid: dict[str, str] = {}
-    if reader_name and reader_name not in COMPATIBILITY_READER_NAMES:
+    if reader_name and reader_name not in LIFECYCLE_READER_NAMES:
         invalid["reader_name"] = reader_name
     return {
         "ok": not missing and not invalid,
@@ -402,8 +402,8 @@ def _string_list(value: Any) -> list[str]:
 
 
 __all__ = [
-    "COMPATIBILITY_READER_NAMES",
-    "COMPATIBILITY_VERIFICATION_REQUIRED_FIELDS",
+    "LIFECYCLE_READER_NAMES",
+    "LIFECYCLE_VERIFICATION_REQUIRED_FIELDS",
     "CONTRACT_VERSION",
     "DEFAULT_DB_FILENAME",
     "FILE_AUTHORITY_SURFACES",
@@ -425,7 +425,7 @@ __all__ = [
     "SURFACE_KIND",
     "WORKSPACE_CLASSIFICATIONS",
     "runtime_lifecycle_contract",
-    "validate_compatibility_verification",
+    "validate_lifecycle_verification",
     "validate_migration_ledger",
     "validate_quest_git_daily_lifecycle",
     "validate_sqlite_authority_scope",

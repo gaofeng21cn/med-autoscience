@@ -378,7 +378,7 @@ def test_progress_portal_materialized_unselected_study_pages_use_canonical_progr
                 {
                     "study_id": unselected_id,
                     "state_label": "工作区行状态",
-                    "operator_focus": "workspace row fallback only",
+                    "operator_focus": "workspace row default only",
                 },
             ],
         },
@@ -396,7 +396,7 @@ def test_progress_portal_materialized_unselected_study_pages_use_canonical_progr
     assert route["nodes"][0]["label"] == "论文写作与结果收紧"
     assert f"studies/{unselected_id}/artifacts/controller_decisions/latest.json" in route["source_refs"]
     assert "论文写作与结果收紧" in html
-    assert "workspace row fallback only" not in html
+    assert "workspace row default only" not in html
     assert "切换论文线" in html
     assert "论文线入口" not in html
     assert f'href="../{selected_id}/index.html"' in html

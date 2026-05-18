@@ -50,7 +50,7 @@
 - 决策：MAS private authority manifest 必须为每个 private authority surface 声明 `judgment_mode`，仅允许 `ai_first_stage_gate`、`ai_first_record_validator`、`mechanical_guard` 和 `refs_only_adapter`。`publication_quality_verdict`、`ai_reviewer_quality_decision`、`source_readiness_verdict` 和 `publication_route_memory_accept_reject` 是 `ai_first_stage_gate`；`artifact_mutation_authorization` 是消费 AI-first record 的 validator；`owner_receipt_signer` 与不输出医学 verdict 的 helper 只是 mechanical guard。
 - 决策：程序输出策略固定为 `programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only`。缺少独立 reviewer/auditor receipt、复用 executor task/context/receipt、候选 record 来自 `mechanical_projection`、或缺必需 AI-first refs 时，程序只能返回 typed blocker / route-back，不能产生 pass、ready、publication readiness、source readiness 或 memory acceptance verdict。
 - 理由：AI-first 质量门需要真正的 second-pass reasoning 和可审计 provenance。把 executor summary 改名为 reviewer output，会让质量门退化成自证，削弱 MAS reviewer-first、publication gate 和 OPL stage-led 分工。
-- 影响：后续 stage skill、OPL generated surface、product-entry/sidecar projection、review ledger 和 focused tests 必须保留独立 reviewer/auditor invocation、task/context record 与 receipt chain；缺少独立记录时 fail closed 或 route back，不用 fallback、regex、普通脚本或自审补齐。
+- 影响：后续 stage skill、OPL generated surface、product-entry/sidecar projection、review ledger 和 focused tests 必须保留独立 reviewer/auditor invocation、task/context record 与 receipt chain；缺少独立记录时 fail closed 或 route back，不用规则分支、regex、普通脚本或自审补齐。
 
 ## 2026-05-17：旧论文项目迁移必须 clean paper-authority cutover，不做 legacy token 兼容读取
 

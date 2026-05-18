@@ -583,10 +583,10 @@ def _normalized_quality_revision_plan(
     plan_payload: dict[str, Any] | None,
     summary_payload: dict[str, Any],
 ) -> dict[str, Any]:
-    fallback = _quality_revision_plan_from_summary_payload(summary_payload)
+    derived_revision_plan = _quality_revision_plan_from_summary_payload(summary_payload)
     scoped_agenda = _task_intake_scoped_quality_agenda(summary_payload)
     if scoped_agenda is not None:
-        scoped_items = [dict(item) for item in fallback["items"]]
+        scoped_items = [dict(item) for item in derived_revision_plan["items"]]
         if scoped_items:
             scoped_items[0] = {
                 **scoped_items[0],
@@ -596,34 +596,34 @@ def _normalized_quality_revision_plan(
             }
         if not isinstance(plan_payload, dict):
             return {
-                **fallback,
+                **derived_revision_plan,
                 "items": scoped_items,
                 "next_review_focus": [scoped_agenda["next_review_focus"]],
             }
-        execution_status = _optional_text(plan_payload.get("execution_status")) or fallback["execution_status"]
+        execution_status = _optional_text(plan_payload.get("execution_status")) or derived_revision_plan["execution_status"]
         if execution_status not in _QUALITY_REVISION_PLAN_STATUSES:
             allowed = ", ".join(sorted(_QUALITY_REVISION_PLAN_STATUSES))
             raise ValueError(f"quality revision plan execution_status must be one of: {allowed}")
         return {
-            "policy_id": _optional_text(plan_payload.get("policy_id")) or fallback["policy_id"],
+            "policy_id": _optional_text(plan_payload.get("policy_id")) or derived_revision_plan["policy_id"],
             "plan_id": (
                 _optional_text(plan_payload.get("plan_id"))
                 or _optional_text(plan_payload.get("revision_plan_id"))
-                or fallback["plan_id"]
+                or derived_revision_plan["plan_id"]
             ),
             "execution_status": execution_status,
-            "overall_diagnosis": fallback["overall_diagnosis"],
+            "overall_diagnosis": derived_revision_plan["overall_diagnosis"],
             "weight_contract": _normalized_weight_contract(plan_payload.get("weight_contract")),
             "items": scoped_items,
             "next_review_focus": [scoped_agenda["next_review_focus"]],
         }
     if not isinstance(plan_payload, dict):
-        return fallback
-    execution_status = _optional_text(plan_payload.get("execution_status")) or fallback["execution_status"]
+        return derived_revision_plan
+    execution_status = _optional_text(plan_payload.get("execution_status")) or derived_revision_plan["execution_status"]
     if execution_status not in _QUALITY_REVISION_PLAN_STATUSES:
         allowed = ", ".join(sorted(_QUALITY_REVISION_PLAN_STATUSES))
         raise ValueError(f"quality revision plan execution_status must be one of: {allowed}")
-    fallback_items = [dict(item) for item in fallback["items"]]
+    fallback_items = [dict(item) for item in derived_revision_plan["items"]]
     raw_items = plan_payload.get("items")
     if raw_items is None:
         normalized_items = fallback_items
@@ -644,16 +644,16 @@ def _normalized_quality_revision_plan(
                     )
                 )
     return {
-        "policy_id": _optional_text(plan_payload.get("policy_id")) or fallback["policy_id"],
-        "plan_id": _optional_text(plan_payload.get("plan_id")) or _optional_text(plan_payload.get("revision_plan_id")) or fallback["plan_id"],
+        "policy_id": _optional_text(plan_payload.get("policy_id")) or derived_revision_plan["policy_id"],
+        "plan_id": _optional_text(plan_payload.get("plan_id")) or _optional_text(plan_payload.get("revision_plan_id")) or derived_revision_plan["plan_id"],
         "execution_status": execution_status,
-        "overall_diagnosis": _optional_text(plan_payload.get("overall_diagnosis")) or fallback["overall_diagnosis"],
+        "overall_diagnosis": _optional_text(plan_payload.get("overall_diagnosis")) or derived_revision_plan["overall_diagnosis"],
         "weight_contract": _normalized_weight_contract(plan_payload.get("weight_contract")),
         "items": normalized_items,
         "next_review_focus": (
             _unique_non_empty_texts(_normalized_text_list(plan_payload.get("next_review_focus")))
             if _normalized_text_list(plan_payload.get("next_review_focus"))
-            else list(fallback["next_review_focus"])
+            else list(derived_revision_plan["next_review_focus"])
         ),
     }
 
@@ -700,8 +700,8 @@ def _quality_review_loop_blocking_issues(summary_payload: dict[str, Any]) -> lis
         if isinstance(summary_payload.get("quality_review_agenda"), dict)
         else {}
     )
-    fallback = _optional_text(quality_review_agenda.get("top_priority_issue"))
-    return [] if fallback is None else [fallback]
+    derived_revision_plan = _optional_text(quality_review_agenda.get("top_priority_issue"))
+    return [] if derived_revision_plan is None else [derived_revision_plan]
 
 
 def _quality_review_loop_summary(*, current_phase: str) -> str:

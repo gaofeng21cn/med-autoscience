@@ -72,6 +72,8 @@ def test_structured_reporting_checklist_accepts_charter_nested_contract() -> Non
                 "manuscript_voice_reporting": {
                     "results_driven_results_section": "complete",
                     "internal_quality_control_language_absent": "complete",
+                    "verified_output_language_absent": "complete",
+                    "author_confirmation_notes_absent_from_body": "complete",
                     "defensive_boundary_language_not_repetitive": "complete",
                     "formal_figure_legend_language": "complete",
                     "no_submission_readiness_meta_language": "complete",

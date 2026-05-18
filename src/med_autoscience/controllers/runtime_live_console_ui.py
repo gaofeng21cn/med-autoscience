@@ -313,8 +313,8 @@ def _study_run_row(study: Mapping[str, Any], run: Mapping[str, Any]) -> str:
     )
     headers = ("论文线", "运行编号", "状态", "阶段", "运行健康", "监管心跳", "worker", "阻塞/动作", "最后可见时间")
     values = (
-        escape(display_text(study.get("study_id"), fallback="未知论文线", preserve_known_token=False)),
-        escape(display_text(run.get("run_id") or study.get("active_run_id"), fallback="无 live run", preserve_known_token=False)),
+        escape(display_text(study.get("study_id"), empty_text="未知论文线", preserve_known_token=False)),
+        escape(display_text(run.get("run_id") or study.get("active_run_id"), empty_text="无 live run", preserve_known_token=False)),
         escape(_display_text(study.get("state_label") or run.get("status"))),
         escape(_display_text(study.get("current_stage"))),
         status_chip(study.get("runtime_health_status") or "unknown"),
@@ -353,8 +353,8 @@ def _timeline_section(studies: list[dict[str, Any]]) -> str:
     return _list_panel("运行时间线", items, empty_text="当前没有运行事件。")
 
 
-def _display_text(value: object, fallback: str = "未提供") -> str:
-    return display_text(value, fallback=fallback)
+def _display_text(value: object, empty_text: str = "未提供") -> str:
+    return display_text(value, empty_text=empty_text)
 
 
 def _stream_section(title: str, studies: list[dict[str, Any]], *, key: str) -> str:
@@ -410,7 +410,7 @@ def _empty_state_section(empty_state: Mapping[str, Any]) -> str:
         for item in blockers:
             rows.append(
                 "<tr>"
-                f'<td data-label="论文线">{escape(display_text(item.get("study_id"), fallback="未知论文线", preserve_known_token=False))}</td>'
+                f'<td data-label="论文线">{escape(display_text(item.get("study_id"), empty_text="未知论文线", preserve_known_token=False))}</td>'
                 f'<td data-label="运行健康">{status_chip(item.get("runtime_health_status") or "unknown")}</td>'
                 f'<td data-label="阻塞">{escape(_action_label(", ".join(_string_list(item.get("blocking_reasons"))) or "无"))}</td>'
                 f'<td data-label="动作">{escape(_action_label(str(item.get("canonical_runtime_action") or item.get("next_action_summary") or "未提供")))}</td>'
@@ -544,7 +544,7 @@ def _topic_label(value: object) -> str:
         "terminal.tail": "终端尾部",
         "log.tail": "日志尾部",
     }
-    return labels.get(text or "", display_text(text, fallback="事件", preserve_known_token=False))
+    return labels.get(text or "", display_text(text, empty_text="事件", preserve_known_token=False))
 
 
 def _action_label(value: str) -> str:
@@ -603,7 +603,7 @@ def _intent_label(value: object) -> str:
         "request_reconcile": "请求 reconcile",
     }
     text = _text(value) or ""
-    return labels.get(text, display_text(text, fallback="未提供", preserve_known_token=False))
+    return labels.get(text, display_text(text, empty_text="未提供", preserve_known_token=False))
 
 
 def _authority_label(value: object) -> str:
@@ -611,7 +611,7 @@ def _authority_label(value: object) -> str:
         "controller_required": "需要 MAS controller",
     }
     text = _text(value) or ""
-    return labels.get(text, display_text(text, fallback="未提供", preserve_known_token=False))
+    return labels.get(text, display_text(text, empty_text="未提供", preserve_known_token=False))
 
 
 def _string_list(value: object) -> list[str]:

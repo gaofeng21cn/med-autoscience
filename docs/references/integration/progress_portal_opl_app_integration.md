@@ -3,17 +3,17 @@
 Status: `support reference`
 Owner: `MedAutoScience Product Projection + OPL integration boundary`
 
-2026-05-10 更新：此前本文把 OPL App 的最优形态写成 family dashboard + 打开 MAS workspace-local Portal deep link。新的产品结论是，OPL App 应成为 MAS 人类运行工作台的主入口；workspace-local Portal / Live Console 继续作为 fallback、evidence 和 no-App 环境入口。OPL App 仍然只消费 MAS read model / action receipt / source refs，不接管 MAS study truth、publication quality、runtime owner 或 current package authority。
+2026-05-10 更新：此前本文把 OPL App 的最优形态写成 family dashboard + 打开 MAS workspace-local Portal deep link。新的产品结论是，OPL App 应成为 MAS 人类运行工作台的主入口；workspace-local Portal / Live Console 继续作为 legacy_restore_import、evidence 和 no-App 环境入口。OPL App 仍然只消费 MAS read model / action receipt / source refs，不接管 MAS study truth、publication quality、runtime owner 或 current package authority。
 
 ## 入口结论
 
 MAS Progress Portal 与 OPL App 进度看板服务同一个用户目的：让医生、PI 和维护者快速知道研究线当前在哪里、下一步是什么、哪里需要人工判断、文件在哪里。最佳集成形态是 owner-preserving projection：
 
-- `MAS` 持有 domain-owned progress portal payload、conversation read model、Live Console read model、terminal attach gate、runtime control receipt 和 workspace-local HTML fallback。
+- `MAS` 持有 domain-owned progress portal payload、conversation read model、Live Console read model、terminal attach gate、runtime control receipt 和 workspace-local HTML legacy_restore_import。
 - `OPL App` 持有 family-level dashboard、Runtime Workbench、workspace/session/progress/artifact 聚合视图、通知、approval transport 和 terminal UI shell。
 - OPL 只消费 MAS read-model / payload refs，不重新解释 study truth。
 
-这让本地 MAS workspace 保留固定 fallback 入口，也让 OPL App 可以在一个工作台里显示多个 domain / workspace 的进度和单篇 MAS study 的运行细节，而不制造第二套医学研究状态机。
+这让本地 MAS workspace 保留固定 legacy_restore_import 入口，也让 OPL App 可以在一个工作台里显示多个 domain / workspace 的进度和单篇 MAS study 的运行细节，而不制造第二套医学研究状态机。
 
 ## MAS 侧职责
 
@@ -70,7 +70,7 @@ OPL App / OPL Runtime Manager 可以消费 MAS 暴露的 refs：
 - attention, blocker, running/recent and artifact locator fields
 - workspace-local Portal deep link
 
-OPL App 的最优 UI 是 App-native Runtime Workbench，而不是复制 MAS Portal 的静态 HTML。family-level dashboard 负责跨 workspace 的进度条目、attention queue、running/recent items 和交付物入口；用户需要深看 MAS 医学研究线时，在 OPL App 内进入 MAS study workbench。`ops/mas/progress/index.html` 与 `ops/mas/live-console/index.html` 保留为 fallback / evidence / operator debug 入口。
+OPL App 的最优 UI 是 App-native Runtime Workbench，而不是复制 MAS Portal 的静态 HTML。family-level dashboard 负责跨 workspace 的进度条目、attention queue、running/recent items 和交付物入口；用户需要深看 MAS 医学研究线时，在 OPL App 内进入 MAS study workbench。`ops/mas/progress/index.html` 与 `ops/mas/live-console/index.html` 保留为 legacy_restore_import / evidence / operator debug 入口。
 
 OPL App 的 MAS study workbench 应直接消费以下 MAS read model 或它们的稳定 projection：
 
@@ -112,7 +112,7 @@ progress_portal:
   authority: display_artifact_only
 ```
 
-OPL App 可以把该 bundle 映射到 family dashboard 和 App-native Runtime Workbench，但所有状态都应保留 MAS source refs 和 freshness。用户点击详情时，优先进 OPL App 的 MAS study workbench；workspace-local Portal 和 `browser_url` 对应的 hosted/runtime monitoring 面只作为 fallback / debug / no-App 路径。两类入口都保持 projection/action-transport 边界，不进入 OPL 自己维护的研究状态机。
+OPL App 可以把该 bundle 映射到 family dashboard 和 App-native Runtime Workbench，但所有状态都应保留 MAS source refs 和 freshness。用户点击详情时，优先进 OPL App 的 MAS study workbench；workspace-local Portal 和 `browser_url` 对应的 hosted/runtime monitoring 面只作为 legacy_restore_import / debug / no-App 路径。两类入口都保持 projection/action-transport 边界，不进入 OPL 自己维护的研究状态机。
 
 后续实现计划见 [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md)。
 

@@ -183,7 +183,7 @@ ARCHETYPE_DISCIPLINE: dict[str, dict[str, str]] = {
     },
     "ai_clinical_task": {
         "reporting_guideline": "TRIPOD+AI, CONSORT-AI, SPIRIT-AI, or DECIDE-AI according to task maturity and evaluation design.",
-        "missingness_plan": "Document missing input modalities, annotation gaps, prompt/context absence, and deployment-time abstention or fallback behavior.",
+        "missingness_plan": "Document missing input modalities, annotation gaps, prompt/context absence, and deployment-time abstention behavior.",
         "sample_size_precision_plan": "Report task instances, patient-level independence, annotation support, uncertainty, and clinically meaningful performance precision.",
         "external_validation_plan": "Require locked external, temporal, site, or reader-environment validation before broad AI clinical task claims.",
         "subgroup_plan": "Prespecify fairness, site, device, demographic, and clinical-severity slices with minimum support and interpretability thresholds.",

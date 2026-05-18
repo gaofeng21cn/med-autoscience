@@ -43,7 +43,7 @@ def _normalize_refs(refs: Sequence[Mapping[str, Any]] | None) -> list[dict[str, 
 
 
 def resolve_program_id(execution: Mapping[str, Any] | None = None) -> str:
-    return _resolve_shared_program_id(execution, fallback=DEFAULT_PROGRAM_ID)
+    return _resolve_shared_program_id(execution, DEFAULT_PROGRAM_ID)
 
 
 def resolve_active_run_id(*values: object) -> str | None:

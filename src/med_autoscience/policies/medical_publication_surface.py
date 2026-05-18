@@ -903,7 +903,7 @@ def build_intervention_message(report: dict[str, object]) -> str:
             "research question, direct message, clinical implication, interpretation boundary, panel-level messages, glossary terms, "
             "threshold or stratification caveats, and a locked renderer contract. Evidence figures may use only "
             "`python` or `r_ggplot2`; illustration figures may use `python`, `r_ggplot2`, or `html_svg`. "
-            "Do not allow fallback-on-failure; the only permitted failure action is `block_and_fix_environment`."
+            "Do not allow alternate-renderer-on-failure; the only permitted failure action is `block_and_fix_environment`."
         )
     evidence_ledger_clause = ""
     if "evidence_ledger_missing_or_incomplete" in (report.get("blockers") or []):

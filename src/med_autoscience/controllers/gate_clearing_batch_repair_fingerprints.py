@@ -142,7 +142,7 @@ def submission_minimal_fingerprint_payload(
             submission_minimal_controller.resolve_bundle_input_path(
                 bundle_manifest=bundle_manifest,
                 key="figure_catalog_path",
-                fallback="paper/figures/figure_catalog.json",
+                default_path="paper/figures/figure_catalog.json",
             ),
         )
         table_catalog_path = submission_minimal_controller.resolve_relpath(
@@ -150,7 +150,7 @@ def submission_minimal_fingerprint_payload(
             submission_minimal_controller.resolve_bundle_input_path(
                 bundle_manifest=bundle_manifest,
                 key="table_catalog_path",
-                fallback="paper/tables/table_catalog.json",
+                default_path="paper/tables/table_catalog.json",
             ),
         )
     except Exception as exc:

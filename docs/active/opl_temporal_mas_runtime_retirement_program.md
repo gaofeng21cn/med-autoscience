@@ -101,7 +101,7 @@ P2 对 OPL production functional closure 的职责是提供 MAS domain-owned evi
 | `retain_in_mas` | domain authority 或 owner surface 留在 MAS |
 | `move_to_opl_provider` | 通用 long-running attempt、queue、wakeup、retry、signal/query、approval 或 dead-letter 责任进入 OPL provider |
 | `lift_to_opl_framework` | 跨 domain lifecycle/index/restore/retention primitive 进入 OPL shared framework，MAS 保留 domain refs |
-| `degrade_to_local_diagnostics` | MAS 保留显式 one-shot/local/fallback/evidence command，不作为 Full online readiness |
+| `degrade_to_local_diagnostics` | MAS 保留显式 one-shot/local diagnostic/evidence command，不作为 Full online readiness |
 | `retired_no_default_caller` | old alias、legacy vocabulary、duplicated UI 或 manager path 已无 default caller；无 fixture/provenance 需要时直接删除源码、命令 wrapper 和测试入口，只保留 history/reference 语境 |
 
 该规则取代旧的文件级假设。一个文件或功能可以包含混合内容；先分类内容块，再只移动或编辑该内容块。

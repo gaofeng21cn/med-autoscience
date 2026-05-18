@@ -38,7 +38,7 @@ Owner: `MedAutoScience`
 | Framework enabler | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | `production_residency_proof_landed; mas_proof_ingestion_landed; live_paper_apply_pending` | 先完成 OPL framework foundation，再把 MAS scheduler/watchdog/legacy provider/local diagnostics、sidecar、domain-agent skeleton 和 lifecycle primitives 对齐 OPL stage-led framework，并执行旧面退役收口。 | OPL production proof 与 MAS provider availability ingestion 已落地；真实 MAS paper-line live apply、真实 domain activity soak 和旧 residue 物理退役继续推进。 |
 | Cross-cutting form | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | `stage_skill_surfaces_landed; ideal_state_read_models_landed; provider_live_apply_pending` | 统一 MAS stage 的人读 surface、machine source、prompt/skill、tool、knowledge、closeout、quality pack 与 OPL projection boundary。 | stage / prompt / skill / knowledge / quality 变更继续按该模板归一；production provider-hosted live apply 完成前，不把 provider projection、typed blocker、repo test、queue receipt 或 production residency proof 写成论文自动化已闭合。 |
 | Product enabler | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | `active_enabler; follows_framework_migration` | 把迁移后的 MAS progress、conversation、Live Console、terminal attach、安全 action、provider attempt refs 和 artifacts 产品化到 OPL App。 | 作为迁移后用户可见闭环的主要产品化 lane 推进。 |
-| Landed foundation | [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md) | `landed_owner_doc; provenance_guard` | 记录当前 MAS monolith、MDS retained roles、workspace layout、entry compatibility、functional monolith 和 behavior parity 边界；完整历史记录在 `docs/history/program/`。 | 只维护 guard、provenance 和后续 source intake 分类；新增默认运行能力不回到 MDS absorb 旧路线。 |
+| Landed foundation | [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md) | `landed_owner_doc; provenance_guard` | 记录当前 MAS monolith、MDS retained roles、workspace layout、entry retirement、functional monolith 和 behavior parity 边界；完整历史记录在 `docs/history/program/`。 | 只维护 guard、provenance 和后续 source intake 分类；新增默认运行能力不回到 MDS absorb 旧路线。 |
 | Landed foundation | [Runtime Lifecycle SQLite Migration Program](./runtime_lifecycle_sqlite_migration_program.md) | `landed_owner_doc; maintenance_guard` | 记录当前 runtime lifecycle authority、SQLite/file truth boundary、quest/root Git retirement、restore proof 和 migration ledger；完整历史记录在 `docs/history/program/`。 | 维护新 drift、restore diagnostic 和 explicit archive import。 |
 
 ## 当前执行顺序
@@ -59,7 +59,7 @@ Owner: `MedAutoScience`
 | area | current state | owner surface | lifecycle placement |
 | --- | --- | --- | --- |
 | workspace layout de-MDS/DS | `landed` | `mas_single_project_mds_absorb_program.md` | P3 landed foundation |
-| profile / entry compatibility retirement | `landed` | `mas_single_project_mds_absorb_program.md` | P3 landed foundation |
+| profile / entry retirement | `landed` | `mas_single_project_mds_absorb_program.md` | P3 landed foundation |
 | no-history physical absorb | `landed` | `mas_single_project_mds_absorb_program.md`, `docs/references/med-deepscientist/` | P3 landed foundation + references |
 | functional monolith completion | `landed` | `mas_single_project_mds_absorb_program.md`, `docs/runtime/contracts/runtime_core_convergence_and_controlled_cutover.md` | P3 landed foundation |
 | MDS behavior equivalence audit | `landed_matrix` | `docs/references/mds-parity/` | reference / parity |
@@ -80,7 +80,7 @@ Owner: `MedAutoScience`
 | gate class | meaning | MAS lines |
 | --- | --- | --- |
 | `landed_foundation` | 已有 repo/source/contract/read-model/receipt 证据；后续只维护 drift、provenance、archive/parity reference 和 guard。 | P3 monolith / MDS provenance、P3a runtime lifecycle、repo-source skeleton anchors、stage skill surface baseline。 |
-| `functional_follow_through_gate` | 基础功能 surface 已有；还需要更多 owner receipts、真实 workspace refs、App drilldown、stale scan 或物理 cleanup。 | publication-route memory receipt scaleout、OPL App MAS workbench drilldown、legacy residue physical cleanup、standard skeleton physicalization、stage review/index live follow-through。已满足 direct cleanup 判据的 residue 不再挂 compatibility surface。 |
+| `functional_follow_through_gate` | 基础功能 surface 已有；还需要更多 owner receipts、真实 workspace refs、App drilldown、stale scan 或物理 cleanup。 | publication-route memory receipt scaleout、OPL App MAS workbench drilldown、legacy residue physical cleanup、standard skeleton physicalization、stage review/index live follow-through。已满足 direct cleanup 判据的 residue 不再挂旧兼容面。 |
 | `production_evidence_gate` | 需要真实 provider、真实 paper-line、live workspace、owner gate 或长时运行证据；文档、repo tests、queue completion 或 provider liveness 不能替代。 | provider/domain activity long soak、provider-hosted guarded apply、MAS live paper owner chain、human gate/resume owner proof。 |
 
 完成某个 gate 的有效证据只有三类：机器可读 owner receipt / no-regression evidence、真实 workspace/runtime artifact locator proof、或带 owner/source/repair action 的 typed blocker。文档状态只解释这些证据，不制造第二真相源。

@@ -61,7 +61,7 @@ def compact_audit_bucket(
     archive_dir: Path | str | None = None,
     workspace_classification: str,
     bucket_classification: str,
-    compatibility_export_ref: str | None = None,
+    lifecycle_export_ref: str | None = None,
     apply: bool = False,
     timestamp: datetime | None = None,
 ) -> dict[str, Any]:
@@ -154,7 +154,7 @@ def compact_audit_bucket(
         "audit_compaction_contract": _audit_compaction_contract(
             restore_index_path=restore_index_path,
             provenance_ledger_path=provenance_ledger_path,
-            compatibility_export_ref=compatibility_export_ref,
+            lifecycle_export_ref=lifecycle_export_ref,
         )
     }
 
@@ -324,7 +324,7 @@ def _audit_compaction_contract(
     *,
     restore_index_path: Path,
     provenance_ledger_path: Path,
-    compatibility_export_ref: str | None,
+    lifecycle_export_ref: str | None,
 ) -> dict[str, Any]:
     contract: dict[str, Any] = {
         "gates": [
@@ -335,8 +335,8 @@ def _audit_compaction_contract(
         "restore_index_ref": str(restore_index_path),
         "provenance_ref": str(provenance_ledger_path),
     }
-    if compatibility_export_ref:
-        contract["compatibility_export_ref"] = compatibility_export_ref
+    if lifecycle_export_ref:
+        contract["lifecycle_export_ref"] = lifecycle_export_ref
     return contract
 
 
