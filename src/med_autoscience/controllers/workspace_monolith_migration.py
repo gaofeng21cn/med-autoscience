@@ -406,8 +406,8 @@ def _render_retired_launchd_readme() -> str:
         "- `medautosci runtime ensure-supervision --profile <profile>`\n"
         "- `medautosci runtime supervision-status --profile <profile>`\n"
         "- `medautosci runtime remove-supervision --profile <profile>`\n\n"
-        "Use `--manager local` only for legacy status/remove cleanup diagnostics. Do not reinstall "
-        "workspace-local LaunchAgent wrappers from this directory.\n"
+        "`local` is physical-retired tombstone/provenance-only. Do not reinstall "
+        "workspace-local LaunchAgent wrappers from this directory or expose local cleanup commands.\n"
     )
 
 

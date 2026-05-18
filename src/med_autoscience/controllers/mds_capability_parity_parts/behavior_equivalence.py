@@ -308,7 +308,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "mas_behavior": {"external_mds_daemon_control": False, "mas_supervision_scheduler_control": False},
         "behavior_difference": "MAS does not control an MDS daemon lifecycle and no longer owns the default outer scheduler lifecycle.",
         "default_user_impact": "There is no MAS-native MDS daemon control path because the daemon is not a default dependency.",
-        "mas_contract": "Default runtime-supervision commands delegate to the OPL provider scheduler replacement; explicit --manager local remains a legacy diagnostic cleanup path.",
+        "mas_contract": "Default runtime-supervision commands delegate to the OPL provider scheduler replacement; local scheduler is physical-retired tombstone/provenance-only.",
         "recommended_operator_action": "retired_no_active_replacement",
     },
     {
@@ -324,12 +324,12 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
             "retired_cleanup": True,
             "canonical_owner": "opl_provider_runtime_manager",
             "default_adapter": "opl",
-            "legacy_diagnostic_adapter": "local",
+            "legacy_diagnostic_adapter": None,
             "optional_adapters": ["hermes_gateway_cron"],
         },
         "behavior_difference": "Workspace-local launchd/systemd/cron service templates are retired; their presence is cleanup evidence, not an active owner.",
         "default_user_impact": "Old host services must be removed instead of kept as an alternate supervision mode.",
-        "mas_contract": "runtime-remove-supervision --manager local removes retired workspace-local services; default scheduler status delegates to OPL provider replacement.",
+        "mas_contract": "Retired workspace-local services are tombstone/provenance evidence; default scheduler status delegates to OPL provider replacement.",
         "recommended_operator_action": "retired_no_active_replacement",
     },
 )

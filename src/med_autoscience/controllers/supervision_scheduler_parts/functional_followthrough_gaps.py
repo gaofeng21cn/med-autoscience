@@ -42,7 +42,7 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "closure_status": "closed",
         "closure_proof_refs": [
             "no_active_caller_proof.default_caller_count=0",
-            "legacy_local_scheduler_cleanup_only_proof.default_bootstrap_exposes_local_install=false",
+            "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
             "functional_module_inventory.legacy_cleanup_no_active_caller_gate",
         ],
         "functional_structure_gap": False,
@@ -168,10 +168,7 @@ def build_functional_followthrough_gap_summary(
         ],
         "clears_only": "functional_structure_closure_not_live_paper_soak_or_publication_ready",
         "does_not_clear": [
-            "live_provider_paper_apply_scaleout",
-            "publication_route_memory_receipt_scaleout",
-            "artifact_lifecycle_receipt_scaleout",
-            "provider_slo_long_soak",
+            *evidence_gate_ids,
         ],
         "forbidden_remaining_functional_gap_claims": [
             "mas_owned_generic_scheduler",

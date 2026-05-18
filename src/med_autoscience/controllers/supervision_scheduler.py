@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+import hashlib
+import re
 from typing import Any
 
 from med_autoscience.controllers import hermes_supervision, outer_supervision_slo
-from med_autoscience.controllers.supervision_scheduler_parts import consumer_migration, local_adapter
+from med_autoscience.controllers.supervision_scheduler_parts import consumer_migration
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -14,7 +17,8 @@ LEGACY_MAS_SCHEDULER_OWNER = "mas_supervision_scheduler"
 OPL_ADAPTER_ID = "opl_family_runtime_provider"
 HERMES_ADAPTER_ID = "hermes_gateway_cron"
 DEFAULT_MANAGER = "opl"
-DEFAULT_INTERVAL_SECONDS = local_adapter.DEFAULT_INTERVAL_SECONDS
+DEFAULT_INTERVAL_SECONDS = 5 * 60
+RETIRED_LOCAL_ADAPTER_ID = "local_launchd_retired_tombstone"
 
 
 def read_supervision_status(
@@ -27,7 +31,11 @@ def read_supervision_status(
     if manager_key == "opl":
         payload = _opl_replacement_status(profile=profile, interval_seconds=interval_seconds)
     elif manager_key == "local":
-        payload = local_adapter.status(profile=profile, interval_seconds=interval_seconds)
+        payload = _retired_local_scheduler_tombstone(
+            profile=profile,
+            interval_seconds=interval_seconds,
+            requested_action="status",
+        )
     elif manager_key == "hermes":
         payload = _hermes_status(profile=profile, interval_seconds=interval_seconds)
     else:
@@ -63,14 +71,15 @@ def ensure_supervision(
             after=after,
         )
     if manager_key == "local":
-        payload = local_adapter.ensure(
+        payload = _retired_local_scheduler_tombstone(
             profile=profile,
             interval_seconds=interval_seconds,
+            requested_action="ensure",
             trigger_now=trigger_now,
             write_install_proof=write_install_proof,
             dry_run=dry_run,
         )
-        return _attach_consumer_migration(payload, adapter_id=str(payload.get("adapter_id") or "local"), manager="local")
+        return _attach_consumer_migration(payload, adapter_id=RETIRED_LOCAL_ADAPTER_ID, manager="local")
     if manager_key == "hermes":
         payload = hermes_supervision.ensure_supervision(
             profile=profile,
@@ -107,10 +116,14 @@ def remove_supervision(
             removing=True,
         )
     if manager_key == "local":
-        payload = local_adapter.remove(profile=profile, interval_seconds=interval_seconds)
+        payload = _retired_local_scheduler_tombstone(
+            profile=profile,
+            interval_seconds=interval_seconds,
+            requested_action="remove",
+        )
         return _attach_consumer_migration(
             payload,
-            adapter_id=str(payload.get("adapter_id") or "local"),
+            adapter_id=RETIRED_LOCAL_ADAPTER_ID,
             manager="local",
         )
     if manager_key == "hermes":
@@ -137,12 +150,12 @@ def _with_scheduler_contract(
     result["scheduler_owner"] = SCHEDULER_OWNER if manager == "opl" else LEGACY_MAS_SCHEDULER_OWNER
     result["adapter_id"] = adapter_id
     result["manager"] = manager
-    result.setdefault("workspace_key", local_adapter.workspace_key(profile))
+    result.setdefault("workspace_key", _workspace_key(profile))
     result.setdefault("interval_seconds", interval_seconds)
     result.setdefault("schedule_spec", {"kind": "interval", "interval_seconds": interval_seconds})
     result.setdefault("overlap_policy", "skip_if_running")
     result.setdefault("misfire_policy", "record_missed_and_wait_next")
-    result["generated_at"] = str(result.get("generated_at") or local_adapter.utc_now())
+    result["generated_at"] = str(result.get("generated_at") or _utc_now())
 
     adapter_status = dict(result.get("adapter_status") or {})
     adapter_status.setdefault("adapter_installed", bool(result.get("adapter_installed", result.get("job_exists"))))
@@ -172,11 +185,13 @@ def _attach_consumer_migration(payload: dict[str, Any], *, adapter_id: str, mana
 
 
 def _opl_replacement_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict[str, Any]:
-    generated_at = local_adapter.utc_now()
-    workspace_key = local_adapter.workspace_key(profile)
-    legacy_status = local_adapter.status(profile=profile, interval_seconds=interval_seconds)
-    legacy_adapter_status = dict(legacy_status.get("adapter_status") or {})
-    legacy_adapter_status["migration_state"] = "legacy_diagnostic_only"
+    generated_at = _utc_now()
+    workspace_key = _workspace_key(profile)
+    legacy_tombstone = _retired_local_scheduler_tombstone(
+        profile=profile,
+        interval_seconds=interval_seconds,
+        requested_action="status",
+    )
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": "workspace_runtime_supervision",
@@ -231,18 +246,15 @@ def _opl_replacement_status(*, profile: WorkspaceProfile, interval_seconds: int)
         "legacy_adapter": {
             "manager": "local",
             "scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
-            "adapter_id": legacy_status.get("adapter_id"),
-            "status": legacy_status.get("status"),
-            "summary": legacy_status.get("summary"),
-            "adapter_status": legacy_adapter_status,
-            "diagnostic_status_command": (
-                "uv run python -m med_autoscience.cli runtime-supervision-status "
-                "--profile <profile> --manager local"
-            ),
-            "cleanup_command": (
-                "uv run python -m med_autoscience.cli runtime-remove-supervision "
-                "--profile <profile> --manager local"
-            ),
+            "adapter_id": RETIRED_LOCAL_ADAPTER_ID,
+            "status": legacy_tombstone["status"],
+            "summary": legacy_tombstone["summary"],
+            "adapter_status": legacy_tombstone["adapter_status"],
+            "callable": False,
+            "diagnostic_status_command": None,
+            "cleanup_command": None,
+            "tombstone_ref": legacy_tombstone["tombstone_ref"],
+            "retained_context": legacy_tombstone["retained_context"],
         },
         "authority_boundary": _authority_boundary(),
     }
@@ -281,14 +293,12 @@ def _opl_replacement_action_result(
         "removed_job_ids": [],
         "after": after,
         "opl_replacement": after["opl_replacement"],
-        "legacy_local_adapter": after["legacy_adapter"],
-        "legacy_local_cleanup_command": (
-            "uv run python -m med_autoscience.cli runtime-remove-supervision "
-            "--profile <profile> --manager local"
-        ),
+        "legacy_local_tombstone": after["legacy_adapter"],
+        "legacy_local_cleanup_command": None,
         "note": (
             "MAS no longer installs or removes the default scheduler. OPL provider/runtime manager owns the "
-            "scheduler replacement; explicit --manager local remains available only for legacy diagnostic cleanup."
+            "scheduler replacement; the old local LaunchAgent status/remove path is physically retired and retained "
+            "only as tombstone/provenance."
         ),
         "remove_requested": removing,
         "authority_boundary": _authority_boundary(),
@@ -315,7 +325,80 @@ def _opl_replacement_contract(*, interval_seconds: int) -> dict[str, Any]:
             "no_forbidden_write_evidence",
         ],
         "legacy_scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
-        "legacy_scheduler_role": "explicit_local_diagnostic_cleanup_only",
+        "legacy_scheduler_role": "physical_retired_tombstone_provenance_only",
+    }
+
+
+def _retired_local_scheduler_tombstone(
+    *,
+    profile: WorkspaceProfile,
+    interval_seconds: int,
+    requested_action: str,
+    trigger_now: bool | None = None,
+    write_install_proof: bool | None = None,
+    dry_run: bool | None = None,
+) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "surface_kind": "workspace_runtime_supervision_legacy_tombstone",
+        "status": "retired_physical_tombstone",
+        "action": "retired_physical_tombstone",
+        "requested_action": requested_action,
+        "manager": "local",
+        "scheduler_owner": LEGACY_MAS_SCHEDULER_OWNER,
+        "adapter_id": RETIRED_LOCAL_ADAPTER_ID,
+        "active_path_role": consumer_migration.LOCAL_TOMBSTONE_PATH_ROLE,
+        "generated_at": _utc_now(),
+        "workspace_key": _workspace_key(profile),
+        "interval_seconds": interval_seconds,
+        "loaded": False,
+        "adapter_loaded": False,
+        "adapter_enabled": False,
+        "adapter_installed": False,
+        "job_exists": False,
+        "job_enabled": False,
+        "job_state": "retired_physical_tombstone",
+        "adapter_status": {
+            "adapter_installed": False,
+            "adapter_loaded": False,
+            "adapter_enabled": False,
+            "migration_state": "physical_retired_tombstone",
+        },
+        "schedule_spec": {"kind": "retired_physical_tombstone"},
+        "desired_schedule": "retired_physical_tombstone",
+        "overlap_policy": "not_applicable_retired_local_adapter",
+        "misfire_policy": "not_applicable_retired_local_adapter",
+        "watch_command": [],
+        "tick_sequence": [],
+        "drift_reasons": [],
+        "duplicate_job_ids": [],
+        "removed_job_ids": [],
+        "command_outputs": [],
+        "install_allowed": False,
+        "status_allowed": False,
+        "remove_allowed": False,
+        "trigger_allowed": False,
+        "write_install_proof": False,
+        "requested_write_install_proof": bool(write_install_proof) if write_install_proof is not None else False,
+        "trigger_now": bool(trigger_now) if trigger_now is not None else False,
+        "dry_run": bool(dry_run) if dry_run is not None else True,
+        "summary": (
+            "MAS local LaunchAgent scheduler status/remove path has been physically retired; "
+            "only history/tombstone/provenance refs remain."
+        ),
+        "retained_context": "history_tombstone_provenance_only",
+        "tombstone_ref": (
+            "contracts/runtime/legacy-active-path-tombstones.json"
+            "#/tombstoned_surfaces/workspace_local_scheduler_as_online_target"
+        ),
+        "history_ref": "docs/history/runtime/legacy_active_path_tombstones.md#workspace-local-scheduler",
+        "replacement_command": "runtime-ensure-supervision --profile <profile> --manager opl",
+        "cleanup_command": None,
+        "diagnostic_status_command": None,
+        "legacy_service": {},
+        "retired_artifacts": {},
+        "retired_legacy_cleanup_required": False,
+        "body_included": False,
     }
 
 
@@ -346,7 +429,7 @@ def _hermes_status(*, profile: WorkspaceProfile, interval_seconds: int) -> dict[
         {
             "adapter_id": HERMES_ADAPTER_ID,
             "manager": "hermes",
-            "workspace_key": _workspace_key_from_hermes(payload) or local_adapter.workspace_key(profile),
+            "workspace_key": _workspace_key_from_hermes(payload) or _workspace_key(profile),
             "adapter_installed": bool(payload.get("job_exists")),
             "adapter_loaded": bool(payload.get("loaded")),
             "adapter_enabled": bool(payload.get("job_enabled")),
@@ -385,7 +468,7 @@ def _adapter_id_for_manager(manager: str) -> str:
     if manager == "hermes":
         return HERMES_ADAPTER_ID
     if manager == "local":
-        return local_adapter.local_backend_id()
+        return RETIRED_LOCAL_ADAPTER_ID
     raise ValueError(f"unsupported supervision scheduler manager: {manager}")
 
 
@@ -399,6 +482,20 @@ def _workspace_key_from_hermes(payload: dict[str, Any]) -> str | None:
 
 def _normalize_manager(manager: str | None) -> str:
     return str(manager or DEFAULT_MANAGER).strip().lower() or DEFAULT_MANAGER
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _workspace_key(profile: WorkspaceProfile) -> str:
+    digest = hashlib.sha256(str(profile.workspace_root).encode("utf-8")).hexdigest()[:8]
+    return f"{_slugify(profile.name)}-{digest}"
+
+
+def _slugify(value: str) -> str:
+    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip()).strip("-").lower()
+    return normalized or "workspace"
 
 
 __all__ = [

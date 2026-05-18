@@ -134,61 +134,30 @@ def test_runtime_ensure_supervision_command_allows_explicit_hermes_adapter(
     assert json.loads(captured.out)["adapter_id"] == "hermes_gateway_cron"
 
 
-def test_runtime_ensure_supervision_command_allows_local_cleanup_diagnostic(
-    monkeypatch, tmp_path: Path, capsys
-) -> None:
+def test_runtime_ensure_supervision_command_rejects_retired_local_manager(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     profile_path = tmp_path / "profile.local.toml"
     write_profile(profile_path)
-    called: dict[str, object] = {}
 
-    def fake_ensure_supervision(
-        *,
-        profile,
-        interval_seconds: int,
-        trigger_now: bool,
-        manager: str,
-        dry_run: bool,
-        write_install_proof: bool,
-    ) -> dict[str, object]:
-        called["profile"] = profile
-        called["manager"] = manager
-        called["trigger_now"] = trigger_now
-        called["dry_run"] = dry_run
-        called["write_install_proof"] = write_install_proof
-        return {
-            "action": "retired_cleanup_only",
-            "status": "blocked",
-            "write_install_proof": False,
-            "reason": "mas_local_scheduler_install_retired_use_opl_replacement",
-        }
-
-    monkeypatch.setattr(cli.supervision_scheduler, "ensure_supervision", fake_ensure_supervision)
-
-    exit_code = cli.main(
-        [
-            "runtime",
-            "ensure-supervision",
-            "--profile",
-            str(profile_path),
-            "--manager",
-            "local",
-            "--write-install-proof",
-        ]
-    )
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(
+            [
+                "runtime",
+                "ensure-supervision",
+                "--profile",
+                str(profile_path),
+                "--manager",
+                "local",
+                "--write-install-proof",
+            ]
+        )
     captured = capsys.readouterr()
-    payload = json.loads(captured.out)
 
-    assert exit_code == 0
-    assert called["profile"].name == "nfpitnet"
-    assert called["manager"] == "local"
-    assert called["trigger_now"] is True
-    assert called["dry_run"] is False
-    assert called["write_install_proof"] is True
-    assert payload["action"] == "retired_cleanup_only"
-    assert payload["status"] == "blocked"
-    assert payload["write_install_proof"] is False
-    assert payload["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
+    assert excinfo.value.code == 2
+    assert "invalid choice" in captured.err
+    assert "local" in captured.err
+    assert "opl" in captured.err
+    assert "hermes" in captured.err
 
 
 def test_runtime_supervision_cli_rejects_retired_workspace_local_managers(tmp_path: Path, capsys) -> None:
@@ -213,7 +182,6 @@ def test_runtime_supervision_cli_rejects_retired_workspace_local_managers(tmp_pa
     assert "invalid choice" in captured.err
     assert "cron" in captured.err
     assert "opl" in captured.err
-    assert "local" in captured.err
     assert "hermes" in captured.err
 
 

@@ -17,13 +17,15 @@ from .consumer_migration_inventory import (
 SCHEMA_VERSION = 1
 SURFACE_KIND = "mas_supervision_scheduler_consumer_migration"
 ACTIVE_PATH_ROLE = "opl_replacement_default"
-LOCAL_DIAGNOSTIC_PATH_ROLE = "standalone_local_diagnostic_migration_bridge"
+LOCAL_TOMBSTONE_PATH_ROLE = "physical_retired_tombstone_provenance_only"
+OPTIONAL_ADAPTER_PATH_ROLE = "explicit_optional_executor_adapter_provenance_only"
 CURRENT_SCHEDULER_OWNER = "opl_provider_runtime_manager"
 LEGACY_SCHEDULER_OWNER = "mas_supervision_scheduler"
 REPLACEMENT_OWNER = "one-person-lab"
 REPLACEMENT_OWNER_SURFACE = "opl_provider_runtime_manager"
 REPLACEMENT_STATE = "opl_replacement_contract_active"
 RETIREMENT_STATE = "local_legacy_retirement_pending_no_active_caller_proof"
+LOCAL_TOMBSTONE_RETIREMENT_STATE = "local_legacy_physical_retired_tombstone"
 
 MAS_RETAINED_AFTER_MIGRATION = (
     "paper_progress_slo_semantics",
@@ -84,15 +86,12 @@ OPL_FUNCTIONAL_HARNESS_COVERAGE = (
     "restart_dead_letter_repair_human_gate_state_chain",
 )
 NO_ACTIVE_CALLER_PROOF = {
-    "status": "default_surfaces_use_opl_cleanup_only_local_path",
+    "status": "legacy_local_scheduler_physical_retired",
     "default_caller_count": 0,
     "default_manager": "opl",
     "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,
-    "legacy_local_install_path_role": "explicit_cleanup_diagnostic_only",
-    "cleanup_only_commands": [
-        "runtime-supervision-status --profile <profile> --manager local",
-        "runtime-remove-supervision --profile <profile> --manager local",
-    ],
+    "legacy_local_install_path_role": LOCAL_TOMBSTONE_PATH_ROLE,
+    "cleanup_only_commands": [],
     "forbidden_default_callers": [
         "cli_default_local_scheduler_install",
         "workspace_bootstrap_local_scheduler_install",
@@ -100,29 +99,40 @@ NO_ACTIVE_CALLER_PROOF = {
         "sidecar_local_scheduler_install",
         "mcp_local_scheduler_install",
     ],
+    "forbidden_explicit_callers": [
+        "runtime-supervision-status --profile <profile> --manager local",
+        "runtime-ensure-supervision --profile <profile> --manager local",
+        "runtime-remove-supervision --profile <profile> --manager local",
+    ],
     "proof_items": [
         "cli_default_manager_is_opl",
+        "cli_manager_choices_exclude_local",
         "workspace_bootstrap_manager_is_opl",
         "product_entry_consumes_opl_replacement_projection",
         "sidecar_exports_functional_boundary_no_generic_owner",
-        "local_scheduler_ensure_returns_retired_cleanup_only",
-        "local_scheduler_remove_is_explicit_cleanup_only",
+        "local_scheduler_status_remove_path_returns_tombstone_only",
         "local_scheduler_install_proof_generation_forbidden",
+        "local_scheduler_launchagent_adapter_deleted",
     ],
 }
-LOCAL_SCHEDULER_CLEANUP_ONLY_PROOF = {
-    "surface_kind": "mas_local_scheduler_cleanup_only_proof",
+LOCAL_SCHEDULER_PHYSICAL_RETIREMENT_PROOF = {
+    "surface_kind": "mas_local_scheduler_physical_retirement_proof",
+    "status": "physical_retired_tombstone_provenance_only",
     "install_allowed": False,
+    "status_allowed": False,
+    "remove_allowed": False,
     "trigger_allowed": False,
     "write_install_proof_allowed": False,
     "loaded_state_allowed": False,
+    "default_cli_exposes_local_status": False,
+    "default_cli_exposes_local_remove": False,
     "default_cli_exposes_local_install": False,
     "default_bootstrap_exposes_local_install": False,
-    "cleanup_status": "retired_legacy_cleanup_required",
-    "remaining_physical_delete_blockers": [
-        "legacy_launchagent_or_tick_script_may_exist_on_operator_machines",
-        "explicit_status_remove_cleanup_path_still_needed_until_artifacts_absent",
-        "provenance_and_regression_fixtures_still_assert_tombstone_behavior",
+    "cleanup_status": "tombstone_only",
+    "remaining_physical_delete_blockers": [],
+    "retained_refs": [
+        "contracts/runtime/legacy-active-path-tombstones.json",
+        "docs/history/runtime/legacy_active_path_tombstones.md",
     ],
 }
 MAS_RETAINED_THIN_PROGRAM_SURFACES = (
@@ -639,12 +649,13 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                     "remaining_functional_followthrough_gate_ids"
                 ]
             ),
-            "legacy_cleanup_items_require_no_active_caller_gate": legacy_cleanup_items,
-            "legacy_cleanup_items_are_diagnostic_provenance_guards": True,
-            "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
+            "legacy_cleanup_items_require_no_active_caller_gate": [],
+            "legacy_cleanup_items_physical_retired": list(legacy_cleanup_items),
+            "legacy_cleanup_items_are_diagnostic_provenance_guards": False,
+            "legacy_cleanup_item_role": "history_tombstone_provenance_only",
             "legacy_cleanup_items_are_remaining_active_gaps": False,
             "legacy_cleanup_items_have_default_entry": False,
-            "legacy_cleanup_items_have_standard_template_refs": True,
+            "legacy_cleanup_items_have_standard_template_refs": False,
             "closed_functional_structure_gate_ids": list(
                 functional_followthrough_gap_summary[
                     "closed_functional_structure_gate_ids"
@@ -740,7 +751,9 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         },
         "no_active_caller_required": True,
         "no_active_caller_proof": dict(NO_ACTIVE_CALLER_PROOF),
-        "legacy_local_scheduler_cleanup_only_proof": dict(LOCAL_SCHEDULER_CLEANUP_ONLY_PROOF),
+        "legacy_local_scheduler_physical_retirement_proof": dict(
+            LOCAL_SCHEDULER_PHYSICAL_RETIREMENT_PROOF
+        ),
         "no_active_caller_scope": [
             "cli_default",
             "mcp_default",
@@ -773,7 +786,14 @@ def build_consumer_migration_contract(
 ) -> dict[str, Any]:
     manager_key = str(manager or "").strip().lower()
     replacement_active = manager_key in {"opl", "opl_provider_runtime_manager"} or adapter_id == "opl_family_runtime_provider"
-    active_path_role = ACTIVE_PATH_ROLE if replacement_active else LOCAL_DIAGNOSTIC_PATH_ROLE
+    local_tombstone = manager_key == "local" or adapter_id == "local_launchd_retired_tombstone"
+    active_path_role = (
+        ACTIVE_PATH_ROLE
+        if replacement_active
+        else LOCAL_TOMBSTONE_PATH_ROLE
+        if local_tombstone
+        else OPTIONAL_ADAPTER_PATH_ROLE
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": SURFACE_KIND,
@@ -781,10 +801,11 @@ def build_consumer_migration_contract(
         "active_path_role": active_path_role,
         "current_scheduler_owner": CURRENT_SCHEDULER_OWNER if replacement_active else LEGACY_SCHEDULER_OWNER,
         "legacy_scheduler_owner": LEGACY_SCHEDULER_OWNER,
-        "local_diagnostic_path_role": LOCAL_DIAGNOSTIC_PATH_ROLE,
-        "current_surface_allowed_until_replacement": not replacement_active,
-        "replacement_required_before_retirement": not replacement_active,
-        "retirement_state": RETIREMENT_STATE,
+        "local_tombstone_path_role": LOCAL_TOMBSTONE_PATH_ROLE,
+        "optional_adapter_path_role": OPTIONAL_ADAPTER_PATH_ROLE,
+        "current_surface_allowed_until_replacement": not replacement_active and not local_tombstone,
+        "replacement_required_before_retirement": not replacement_active and not local_tombstone,
+        "retirement_state": LOCAL_TOMBSTONE_RETIREMENT_STATE if local_tombstone else RETIREMENT_STATE,
         "replacement_owner": REPLACEMENT_OWNER,
         "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,
         "replacement_contract_expected": {
@@ -792,7 +813,13 @@ def build_consumer_migration_contract(
             "surface": REPLACEMENT_OWNER_SURFACE,
             "required_capabilities": list(OPL_REPLACEMENT_EXPECTED_CAPABILITIES),
             "must_not_write_mas_domain_truth": True,
-            "status": "active" if replacement_active else "required_before_retirement",
+            "status": (
+                "active"
+                if replacement_active
+                else "local_physical_retired"
+                if local_tombstone
+                else "required_before_retirement"
+            ),
         },
         "functional_consumer_boundary": build_functional_consumer_boundary(),
         "mas_retained_after_migration": list(MAS_RETAINED_AFTER_MIGRATION),
@@ -815,7 +842,7 @@ def attach_consumer_migration_contract(
     result["active_path_role"] = contract["active_path_role"]
     result["consumer_migration"] = contract
     result["replacement_owner"] = REPLACEMENT_OWNER
-    result["retirement_state"] = RETIREMENT_STATE
+    result["retirement_state"] = contract["retirement_state"]
     return result
 
 
@@ -848,7 +875,8 @@ __all__ = [
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "LEGACY_SCHEDULER_OWNER",
-    "LOCAL_DIAGNOSTIC_PATH_ROLE",
+    "LOCAL_TOMBSTONE_PATH_ROLE",
+    "OPTIONAL_ADAPTER_PATH_ROLE",
     "attach_consumer_migration_contract",
     "build_functional_consumer_boundary",
     "build_consumer_migration_contract",

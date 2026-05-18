@@ -11,7 +11,7 @@
 - 当前 repo-tracked 主线拓扑固定为：
   - `MedAutoScience` = 唯一研究入口、research gateway、study / workspace authority owner
   - `OPL scheduler replacement` = 默认 outer supervision scheduler owner；默认 adapter 是 `opl_family_runtime_provider`
-  - `MAS supervision scheduler contract` = paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker、safe action refs 和 legacy diagnostic projection owner；MAS-owned `local` scheduler / LaunchAgent install path 已退役，显式 `--manager local` 只做 cleanup/status/remove；Hermes gateway cron 是 explicit optional adapter
+  - `MAS supervision scheduler contract` = paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker、safe action refs 和 legacy tombstone/provenance projection；MAS-owned `local` scheduler / LaunchAgent install path 已物理退役，`local` 不再作为 active CLI manager 暴露；Hermes gateway cron 是 explicit optional adapter
   - `MAS Runtime OS` = 默认 runtime/backend owner
   - `MedDeepScientist` = frozen source archive、historical fixture、explicit archive import reference / backend audit reference
 - 旧 `Codex-default host-agent runtime` 只保留为迁移期对照面与 regression oracle，不再是长期产品方向。

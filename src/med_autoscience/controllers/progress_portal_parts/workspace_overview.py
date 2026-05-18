@@ -20,8 +20,11 @@ _WORKSPACE_SUPERVISION_ALERTS = frozenset(
         "MAS scheduler local adapter runtime supervision 尚未注册。",
         "Supervisor scheduler 尚未注册。",
         "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。",
+        "MAS local scheduler 已物理退役；仅保留 tombstone/provenance refs。",
         "检测到 legacy MAS local scheduler LaunchAgent；请使用 --manager local 清理旧生成物。",
+        "检测到 legacy MAS local scheduler LaunchAgent；请按 tombstone/provenance refs 审计旧生成物。",
         "检测到已退役的 MAS local scheduler 旧生成物；请运行 --manager local remove 清理。",
+        "检测到已退役的 MAS local scheduler 旧生成物；当前 CLI 不再暴露 local cleanup command。",
     }
 )
 _PARKED_STUDY_WORKSPACE_ALERTS = frozenset(
@@ -31,6 +34,14 @@ _PARKED_STUDY_WORKSPACE_ALERTS = frozenset(
     }
 )
 _LOW_INFORMATION_GENERIC_ALERTS = frozenset({"状态需要检查。"})
+_LOCAL_SCHEDULER_TOMBSTONE_ALERT = "MAS local scheduler 已物理退役；仅保留 tombstone/provenance refs。"
+_LOCAL_SCHEDULER_LEGACY_ALERTS = frozenset(
+    {
+        "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。",
+        "检测到 legacy MAS local scheduler LaunchAgent；请使用 --manager local 清理旧生成物。",
+        "检测到已退役的 MAS local scheduler 旧生成物；请运行 --manager local remove 清理。",
+    }
+)
 
 
 def dedupe_texts(values: Iterable[object]) -> list[str]:
@@ -485,19 +496,17 @@ def _alert_item(text: str) -> dict[str, str | None]:
     recommended_command: str | None = None
     if text in _WORKSPACE_SUPERVISION_ALERTS:
         source = "workspace_supervision.service.summary"
+        if text in _LOCAL_SCHEDULER_LEGACY_ALERTS:
+            text = _LOCAL_SCHEDULER_TOMBSTONE_ALERT
         legacy_outputs = {
-            "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。",
-            "检测到 legacy MAS local scheduler LaunchAgent；请使用 --manager local 清理旧生成物。",
-            "检测到已退役的 MAS local scheduler 旧生成物；请运行 --manager local remove 清理。",
+            _LOCAL_SCHEDULER_TOMBSTONE_ALERT,
+            "检测到 legacy MAS local scheduler LaunchAgent；请按 tombstone/provenance refs 审计旧生成物。",
+            "检测到已退役的 MAS local scheduler 旧生成物；当前 CLI 不再暴露 local cleanup command。",
         }
         if text not in legacy_outputs:
             text = "MAS scheduler local adapter runtime supervision 尚未注册。"
-        purpose = "说明 workspace 级 MAS scheduler job 尚未安装、未加载或存在漂移。"
-        expected = "默认 scheduler 由 OPL provider/runtime manager 持有；MAS local adapter 只作为 legacy diagnostic cleanup 显式检查。"
-        recommended_command = (
-            "uv run python -m med_autoscience.cli runtime-supervision-status "
-            "--profile <profile> --manager local"
-        )
+        purpose = "说明 workspace 级 MAS local scheduler 已退为 tombstone/provenance 语境。"
+        expected = "默认 scheduler 由 OPL provider/runtime manager 持有；MAS local adapter 不再暴露 active status/remove/ensure command。"
     elif text == "状态需要检查。":
         source = "workspace_cockpit.generic_status"
         purpose = "旧版泛化告警；当前已有具体 study 行时不再作为主诊断展示。"

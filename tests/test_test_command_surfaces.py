@@ -563,12 +563,12 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
         "opl_replacement_default"
     )
     assert focused_lanes["outer-supervision-slo"]["legacy_active_path_role"] == (
-        "standalone_local_diagnostic_migration_bridge"
+        "physical_retired_tombstone_provenance_only"
     )
     assert focused_lanes["outer-supervision-slo"]["replacement_owner_surface"] == (
         "opl_provider_runtime_manager"
     )
-    assert focused_lanes["outer-supervision-slo"]["legacy_local_ensure_action"] == "retired_cleanup_only"
+    assert focused_lanes["outer-supervision-slo"]["legacy_local_ensure_action"] == "retired_physical_tombstone"
     assert focused_lanes["outer-supervision-slo"]["legacy_local_install_allowed"] is False
     assert focused_lanes["outer-supervision-slo"]["legacy_local_trigger_allowed"] is False
     assert focused_lanes["outer-supervision-slo"]["legacy_local_write_install_proof_allowed"] is False
@@ -576,7 +576,7 @@ def test_focused_lane_manifest_exposes_autonomy_reconcile_migration_and_runtime_
     assert focused_lanes["outer-supervision-slo"]["legacy_local_tick_script_generated"] is False
     assert focused_lanes["outer-supervision-slo"]["legacy_local_loaded_state_allowed"] is False
     assert focused_lanes["outer-supervision-slo"]["legacy_local_cleanup_status"] == (
-        "retired_legacy_cleanup_required"
+        "tombstone_only"
     )
     assert focused_lanes["outer-supervision-slo"]["retirement_proof_required"] == [
         "opl_replacement_contract_available",

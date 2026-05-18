@@ -515,17 +515,16 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "mcp_local_scheduler_install",
     ]
     assert "workspace_bootstrap_manager_is_opl" in lane["no_active_caller_proof"]["proof_items"]
-    cleanup_only = lane["legacy_local_scheduler_cleanup_only_proof"]
-    assert cleanup_only["install_allowed"] is False
-    assert cleanup_only["trigger_allowed"] is False
-    assert cleanup_only["write_install_proof_allowed"] is False
-    assert cleanup_only["default_cli_exposes_local_install"] is False
-    assert cleanup_only["default_bootstrap_exposes_local_install"] is False
-    assert cleanup_only["remaining_physical_delete_blockers"] == [
-        "legacy_launchagent_or_tick_script_may_exist_on_operator_machines",
-        "explicit_status_remove_cleanup_path_still_needed_until_artifacts_absent",
-        "provenance_and_regression_fixtures_still_assert_tombstone_behavior",
-    ]
+    retirement_proof = lane["legacy_local_scheduler_physical_retirement_proof"]
+    assert retirement_proof["install_allowed"] is False
+    assert retirement_proof["status_allowed"] is False
+    assert retirement_proof["remove_allowed"] is False
+    assert retirement_proof["trigger_allowed"] is False
+    assert retirement_proof["write_install_proof_allowed"] is False
+    assert retirement_proof["default_cli_exposes_local_install"] is False
+    assert retirement_proof["default_bootstrap_exposes_local_install"] is False
+    assert retirement_proof["cleanup_status"] == "tombstone_only"
+    assert retirement_proof["remaining_physical_delete_blockers"] == []
     assert lane["required_projection_surfaces"] == [
         "product_entry_manifest.functional_consumer_boundary",
         "product_entry_manifest.functional_consumer_boundary.declarative_pack_compiler_input",
@@ -573,7 +572,7 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     }
     assert lane["no_active_caller_proof_required"] == [
         "cli_default_manager_is_opl",
-        "local_scheduler_ensure_cleanup_only",
+        "local_scheduler_physical_retirement_tombstone_only",
         "sidecar_exports_no_generic_owner",
         "product_entry_manifest_exports_no_generic_owner",
         "observability_export_consumed_as_refs_only",

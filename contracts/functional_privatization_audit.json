@@ -144,7 +144,7 @@
         {
           "closure_proof_refs": [
             "no_active_caller_proof.default_caller_count=0",
-            "legacy_local_scheduler_cleanup_only_proof.default_bootstrap_exposes_local_install=false",
+            "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
             "functional_module_inventory.legacy_cleanup_no_active_caller_gate"
           ],
           "closure_status": "closed",
@@ -555,17 +555,16 @@
         "retention_reason": "MAS keeps domain command handlers, direct domain entry, and owner receipts; OPL owns CLI/MCP/Skill/product/status descriptor projection and routing shell."
       },
       {
-        "active_caller_status": "opl_replacement_default_legacy_cleanup_only",
+        "active_caller_status": "opl_replacement_default_local_tombstone_only",
         "active_callers": [
-          "runtime-supervision-status default manager=opl",
-          "legacy --manager local status/remove cleanup"
+          "runtime-supervision-status default manager=opl"
         ],
         "classification": "declarative_pack_generated_surface",
         "code_paths": [
           "src/med_autoscience/controllers/supervision_scheduler.py",
           "src/med_autoscience/controllers/supervision_scheduler_parts/"
         ],
-        "migration_action": "declare_scheduler_requirement_in_pack_and_keep_local_cleanup_diagnostic_gate",
+        "migration_action": "declare_scheduler_requirement_in_pack_and_keep_local_tombstone_provenance_refs",
         "module_id": "generic_daemon_or_scheduler_lifecycle",
         "opl_expected_primitives": [
           "scheduler_lifecycle",
@@ -577,7 +576,7 @@
           "paper_progress_slo_semantics",
           "typed_blocker"
         ],
-        "retention_reason": "MAS retains paper-progress SLO semantics and cleanup diagnostics for old local artifacts only."
+        "retention_reason": "MAS retains paper-progress SLO semantics and local scheduler tombstone provenance only."
       },
       {
         "active_caller_status": "opl_queue_attempt_transport_consumed_mas_closeout_receipt_adapter_active",
@@ -708,29 +707,27 @@
       },
       {
         "active_caller_allowed": false,
-        "active_caller_status": "cleanup_diagnostic_only_no_default_caller",
-        "active_callers": [
-          "explicit --manager local status/remove cleanup only"
-        ],
+        "active_caller_status": "physical_retired_tombstone_only",
+        "active_callers": [],
         "classification": "legacy_cleanup_no_active_caller_gate",
         "code_paths": [
-          "src/med_autoscience/controllers/supervision_scheduler_parts/local_adapter.py"
+          "contracts/runtime/legacy-active-path-tombstones.json",
+          "docs/history/runtime/legacy_active_path_tombstones.md"
         ],
         "default_caller_count": 0,
         "install_allowed": false,
-        "migration_action": "delete_or_tombstone_after_no_active_caller_and_replacement_proof",
+        "migration_action": "retain_history_tombstone_provenance_only",
         "module_id": "local_launchd_scheduler_install_path",
         "no_active_caller_gate": {
           "active_caller_allowed": false,
           "default_caller_count": 0,
-          "delete_or_tombstone_only_after": [
-            "opl_replacement_proof",
-            "focused_cleanup_test_green",
-            "fixture_or_provenance_dependency_absent_or_refs_only"
-          ]
+          "remaining_physical_delete_blockers": []
         },
         "owner": "none_active",
-        "retention_reason": "Temporary diagnostic path removes old LaunchAgent and tick script artifacts.",
+        "physical_retired": true,
+        "remove_allowed": false,
+        "retention_reason": "Local LaunchAgent adapter code is retired; provenance remains for history and no-active-caller proof.",
+        "status_allowed": false,
         "tombstone_required": true,
         "trigger_allowed": false,
         "write_install_proof_allowed": false
@@ -779,15 +776,16 @@
         "lifecycle_locator_retention_restore_ledger_reconciliation"
       ],
       "functional_structure_gap_count": 0,
-      "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
-      "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
+      "legacy_cleanup_item_role": "history_tombstone_provenance_only",
+      "legacy_cleanup_items_are_diagnostic_provenance_guards": false,
       "legacy_cleanup_items_are_remaining_active_gaps": false,
       "legacy_cleanup_items_have_default_entry": false,
-      "legacy_cleanup_items_have_standard_template_refs": true,
-      "legacy_cleanup_items_require_no_active_caller_gate": [
+      "legacy_cleanup_items_have_standard_template_refs": false,
+      "legacy_cleanup_items_physical_retired": [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers"
       ],
+      "legacy_cleanup_items_require_no_active_caller_gate": [],
       "long_term_opl_owned_replacement_count": 0,
       "remaining_functional_followthrough_gate_ids": [],
       "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
@@ -945,18 +943,23 @@
       "generic_artifact_lifecycle",
       "generic_observability"
     ],
-    "legacy_local_scheduler_cleanup_only_proof": {
-      "cleanup_status": "retired_legacy_cleanup_required",
+    "legacy_local_scheduler_physical_retirement_proof": {
+      "cleanup_status": "tombstone_only",
       "default_bootstrap_exposes_local_install": false,
       "default_cli_exposes_local_install": false,
+      "default_cli_exposes_local_remove": false,
+      "default_cli_exposes_local_status": false,
       "install_allowed": false,
       "loaded_state_allowed": false,
-      "remaining_physical_delete_blockers": [
-        "legacy_launchagent_or_tick_script_may_exist_on_operator_machines",
-        "explicit_status_remove_cleanup_path_still_needed_until_artifacts_absent",
-        "provenance_and_regression_fixtures_still_assert_tombstone_behavior"
+      "remaining_physical_delete_blockers": [],
+      "remove_allowed": false,
+      "retained_refs": [
+        "contracts/runtime/legacy-active-path-tombstones.json",
+        "docs/history/runtime/legacy_active_path_tombstones.md"
       ],
-      "surface_kind": "mas_local_scheduler_cleanup_only_proof",
+      "status": "physical_retired_tombstone_provenance_only",
+      "status_allowed": false,
+      "surface_kind": "mas_local_scheduler_physical_retirement_proof",
       "trigger_allowed": false,
       "write_install_proof_allowed": false
     },
@@ -1366,10 +1369,7 @@
       "verdict_function_model_retired": true
     },
     "no_active_caller_proof": {
-      "cleanup_only_commands": [
-        "runtime-supervision-status --profile <profile> --manager local",
-        "runtime-remove-supervision --profile <profile> --manager local"
-      ],
+      "cleanup_only_commands": [],
       "default_caller_count": 0,
       "default_manager": "opl",
       "forbidden_default_callers": [
@@ -1379,18 +1379,24 @@
         "sidecar_local_scheduler_install",
         "mcp_local_scheduler_install"
       ],
-      "legacy_local_install_path_role": "explicit_cleanup_diagnostic_only",
+      "forbidden_explicit_callers": [
+        "runtime-supervision-status --profile <profile> --manager local",
+        "runtime-ensure-supervision --profile <profile> --manager local",
+        "runtime-remove-supervision --profile <profile> --manager local"
+      ],
+      "legacy_local_install_path_role": "physical_retired_tombstone_provenance_only",
       "proof_items": [
         "cli_default_manager_is_opl",
+        "cli_manager_choices_exclude_local",
         "workspace_bootstrap_manager_is_opl",
         "product_entry_consumes_opl_replacement_projection",
         "sidecar_exports_functional_boundary_no_generic_owner",
-        "local_scheduler_ensure_returns_retired_cleanup_only",
-        "local_scheduler_remove_is_explicit_cleanup_only",
-        "local_scheduler_install_proof_generation_forbidden"
+        "local_scheduler_status_remove_path_returns_tombstone_only",
+        "local_scheduler_install_proof_generation_forbidden",
+        "local_scheduler_launchagent_adapter_deleted"
       ],
       "replacement_owner_surface": "opl_provider_runtime_manager",
-      "status": "default_surfaces_use_opl_cleanup_only_local_path"
+      "status": "legacy_local_scheduler_physical_retired"
     },
     "no_active_caller_required": true,
     "no_active_caller_scope": [
@@ -1584,7 +1590,7 @@
       {
         "closure_proof_refs": [
           "no_active_caller_proof.default_caller_count=0",
-          "legacy_local_scheduler_cleanup_only_proof.default_bootstrap_exposes_local_install=false",
+          "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
           "functional_module_inventory.legacy_cleanup_no_active_caller_gate"
         ],
         "closure_status": "closed",

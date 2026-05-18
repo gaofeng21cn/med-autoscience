@@ -208,10 +208,10 @@ def test_outer_supervision_slo_projects_fresh_due_stale_missing_and_blocked(tmp_
     assert due["state"] == "due"
     assert due["action_class"] == "reconcile_dry_run"
     assert due["will_start_llm"] is False
-    assert due["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
+    assert due["active_path_role"] == "explicit_optional_executor_adapter_provenance_only"
     assert due["consumer_migration"]["replacement_owner"] == "one-person-lab"
     assert due["consumer_migration"]["replacement_owner_surface"] == "opl_provider_runtime_manager"
-    assert due["handoff"]["current_mas_surface_role"] == "standalone_local_diagnostic_migration_bridge"
+    assert due["handoff"]["current_mas_surface_role"] == "explicit_optional_executor_adapter_provenance_only"
     assert stale["state"] == "stale"
     assert missing["state"] == "missing"
     assert blocked["state"] == "blocked"

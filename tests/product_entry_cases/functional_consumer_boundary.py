@@ -411,13 +411,15 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert "product_entry_manifest.functional_consumer_boundary" in boundary["proof_surfaces"]
     assert "mas_owned_generic_queue" in boundary["forbidden_regressions"]
     assert boundary["no_active_caller_proof"] == {
-        "status": "default_surfaces_use_opl_cleanup_only_local_path",
+        "status": "legacy_local_scheduler_physical_retired",
         "default_caller_count": 0,
         "default_manager": "opl",
         "replacement_owner_surface": "opl_provider_runtime_manager",
-        "legacy_local_install_path_role": "explicit_cleanup_diagnostic_only",
-        "cleanup_only_commands": [
+        "legacy_local_install_path_role": "physical_retired_tombstone_provenance_only",
+        "cleanup_only_commands": [],
+        "forbidden_explicit_callers": [
             "runtime-supervision-status --profile <profile> --manager local",
+            "runtime-ensure-supervision --profile <profile> --manager local",
             "runtime-remove-supervision --profile <profile> --manager local",
         ],
         "forbidden_default_callers": [
@@ -429,17 +431,22 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         ],
         "proof_items": [
             "cli_default_manager_is_opl",
+            "cli_manager_choices_exclude_local",
             "workspace_bootstrap_manager_is_opl",
             "product_entry_consumes_opl_replacement_projection",
             "sidecar_exports_functional_boundary_no_generic_owner",
-            "local_scheduler_ensure_returns_retired_cleanup_only",
-            "local_scheduler_remove_is_explicit_cleanup_only",
+            "local_scheduler_status_remove_path_returns_tombstone_only",
             "local_scheduler_install_proof_generation_forbidden",
+            "local_scheduler_launchagent_adapter_deleted",
         ],
     }
-    cleanup_only = boundary["legacy_local_scheduler_cleanup_only_proof"]
-    assert cleanup_only["install_allowed"] is False
-    assert cleanup_only["trigger_allowed"] is False
-    assert cleanup_only["write_install_proof_allowed"] is False
-    assert cleanup_only["default_cli_exposes_local_install"] is False
-    assert cleanup_only["default_bootstrap_exposes_local_install"] is False
+    retirement_proof = boundary["legacy_local_scheduler_physical_retirement_proof"]
+    assert retirement_proof["install_allowed"] is False
+    assert retirement_proof["status_allowed"] is False
+    assert retirement_proof["remove_allowed"] is False
+    assert retirement_proof["trigger_allowed"] is False
+    assert retirement_proof["write_install_proof_allowed"] is False
+    assert retirement_proof["default_cli_exposes_local_install"] is False
+    assert retirement_proof["default_bootstrap_exposes_local_install"] is False
+    assert retirement_proof["cleanup_status"] == "tombstone_only"
+    assert retirement_proof["remaining_physical_delete_blockers"] == []

@@ -342,8 +342,8 @@ def _status_summary(
     if status == "retired_legacy_service_present" and (legacy_loaded or legacy_exists):
         return (
             "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 "
-            "OPL provider/runtime manager replacement；请运行 runtime-remove-supervision --manager local "
-            "清理旧 host service。"
+            "OPL provider/runtime manager replacement；local scheduler 只保留 tombstone/provenance refs，"
+            "不再暴露 cleanup command。"
         )
     summary = _shared_status_summary(
         status=status,

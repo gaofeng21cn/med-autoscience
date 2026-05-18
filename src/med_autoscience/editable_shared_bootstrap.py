@@ -170,7 +170,19 @@ def _load_shared_module_from_path(shared_src_root: Path, module_name: str):
     if spec is None or spec.loader is None:
         return None
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    previous_module = sys.modules.get(spec_name)
+    sys.modules[spec_name] = module
+    inserted_shared_root = _prepend_path(shared_src_root)
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        if previous_module is None:
+            sys.modules.pop(spec_name, None)
+        else:
+            sys.modules[spec_name] = previous_module
+        if inserted_shared_root:
+            sys.path[:] = [entry for entry in sys.path if entry != str(shared_src_root)]
+            importlib.invalidate_caches()
     return module
 
 

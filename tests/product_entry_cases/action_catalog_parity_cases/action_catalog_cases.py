@@ -172,7 +172,9 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert boundary["no_active_caller_required"] is True
     assert boundary["no_active_caller_proof"]["default_caller_count"] == 0
     assert boundary["no_active_caller_proof"]["default_manager"] == "opl"
-    assert boundary["legacy_local_scheduler_cleanup_only_proof"]["install_allowed"] is False
+    retirement_proof = boundary["legacy_local_scheduler_physical_retirement_proof"]
+    assert retirement_proof["install_allowed"] is False
+    assert retirement_proof["cleanup_status"] == "tombstone_only"
     assert boundary["runtime_lifecycle_sqlite_role"]["mas_may_claim_generic_persistence_engine"] is False
     assert boundary["mas_does_not_own"] == [
         "generic_scheduler",

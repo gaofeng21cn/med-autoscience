@@ -311,7 +311,7 @@ def test_init_workspace_creates_minimal_workspace_and_entry_files(tmp_path: Path
     assert "优先复用 MedAutoScience 已覆盖的成熟 controller / CLI / overlay skill" in workspace_rules_text
     assert "边界明确且 startup-ready 后，默认切入 MAS-owned managed runtime 的自动持续推进" in workspace_rules_text
     assert "默认 cadence / wakeup / provider SLO 由 OPL provider/runtime manager 承载" in workspace_rules_text
-    assert "显式 `--manager local` 只用于 legacy scheduler status/remove cleanup" in workspace_rules_text
+    assert "`local` 已物理退役为 tombstone/provenance-only" in workspace_rules_text
     assert "默认由 `local` scheduler adapter 托管" not in workspace_rules_text
     assert "必须显式通知用户自动驾驶已启动或已被检测到，并提供监督入口" in workspace_rules_text
     assert "前台必须立即进入 supervisor-only 监管态" in workspace_rules_text

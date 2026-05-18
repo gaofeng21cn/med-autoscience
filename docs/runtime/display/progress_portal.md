@@ -136,9 +136,9 @@ workspace alerts 必须保留解释层。每条可见告警或降级诊断都要
 - 期望输出：恢复后应该看到的具体状态或更具体 blocker。
 - 修复/查看命令：如果已有受控 CLI，例如 `runtime-ensure-supervision` 或 `doctor --profile`，应显示命令；没有命令时保持为空。
 
-`Supervisor scheduler 尚未注册。`、`MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。` 这类旧 local scheduler 文案只应作为 legacy diagnostic 展示，并指向显式 `runtime-supervision-status --manager local` 或 `runtime-remove-supervision --manager local`；默认 scheduler owner 是 OPL provider/runtime manager。诊断必须同时显示当前 `adapter_id`（默认 `opl_family_runtime_provider`，legacy local 例如 `local_launchd`，显式 Hermes 为 `hermes_gateway_cron`），不能把 Hermes-hosted 或 local LaunchAgent 文案当成默认架构事实。`状态需要检查。` 这类泛化旧文案应标为低信息诊断，由具体 study 行和 runtime health blocker 取代。
+`Supervisor scheduler 尚未注册。`、`MAS local scheduler 已物理退役；仅保留 tombstone/provenance refs。` 这类旧 local scheduler 文案只应作为 tombstone/provenance 诊断展示，不得指向可执行 `--manager local` 命令；默认 scheduler owner 是 OPL provider/runtime manager。诊断必须同时显示当前 `adapter_id`（默认 `opl_family_runtime_provider`，显式 Hermes 为 `hermes_gateway_cron`），不能把 Hermes-hosted 或 local LaunchAgent 文案当成默认架构事实。`状态需要检查。` 这类泛化旧文案应标为低信息诊断，由具体 study 行和 runtime health blocker 取代。
 
-Portal 只读投影，不自动安装或修复 scheduler。默认 OPL replacement 状态由 `runtime-supervision-status --profile <profile>` 投影；发现 legacy local scheduler 缺失或漂移时，Portal 必须展示 `workspace_supervision.service.summary`、用途、期望状态和显式 legacy diagnostic / cleanup command。
+Portal 只读投影，不自动安装或修复 scheduler。默认 OPL replacement 状态由 `runtime-supervision-status --profile <profile>` 投影；发现 legacy local scheduler 缺失或漂移时，Portal 必须展示 `workspace_supervision.service.summary`、用途、期望状态和 tombstone/provenance refs，不输出 local cleanup command。
 
 如果 `runtime-supervision-status --profile <profile>` 显示 `status=loaded`、`job_exists=true`、`script_exists=true` 且最近一次运行成功，Portal 不应继续把 “supervision 尚未注册” 当作当前问题展示。若旧 Hermes-hosted 文案仍从 `workspace_cockpit.workspace_alerts` 传入，只能落入诊断表并携带来源/修复命令；若现场 supervision 已在线且具体 study 行已经给出 runtime health blocker，`状态需要检查。` 应完全隐藏，避免医生/PI 把低信息历史诊断误认为待处理任务。
 

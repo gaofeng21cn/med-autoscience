@@ -10,7 +10,7 @@ from med_autoscience.cli_parts.runtime_storage_commands import register_runtime_
 from med_autoscience.figure_routes import supported_required_route_help
 
 
-ACTIVE_SUPERVISION_MANAGERS = ("opl", "local", "hermes")
+ACTIVE_SUPERVISION_MANAGERS = ("opl", "hermes")
 
 
 def build_parser(*, study_cycle_profiler) -> argparse.ArgumentParser:

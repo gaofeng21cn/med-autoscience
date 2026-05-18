@@ -10,9 +10,9 @@ Machine boundary: 本文解释 MAS domain supervision / read-model / owner recei
 一句话结论：
 
 - `MedAutoScience` 默认不是 resident HTTP/WebSocket daemon
-- 默认 scheduler owner 是 OPL `opl_provider_runtime_manager`，默认 adapter 是 `opl_family_runtime_provider`；MAS direct/local diagnostics 下的 `local` adapter 只在显式 `--manager local` 下作为 legacy status/remove cleanup path，不再安装、刷新或触发 MAS-owned LaunchAgent / tick script
+- 默认 scheduler owner 是 OPL `opl_provider_runtime_manager`，默认 adapter 是 `opl_family_runtime_provider`；MAS `local` adapter / LaunchAgent 已物理退役为 tombstone/provenance refs，不再安装、刷新、状态检查、清理或触发 MAS-owned LaunchAgent / tick script
 - OPL-hosted production wakeup、queue、attempt、retry/dead-letter 和 operator projection 归 OPL provider；OPL 只能消费 MAS sidecar / owner receipt，不能写 MAS study truth、publication judgement、paper/package authority 或 artifact gate
-- 当前 MAS domain tick contract 依序调用 `watch-runtime --max-ticks 1`、`supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch`；默认由 OPL provider/runtime manager 唤醒，Hermes optional adapter 可显式生成脚本，local cleanup path 不生成脚本
+- 当前 MAS domain tick contract 依序调用 `watch-runtime --max-ticks 1`、`supervisor-scan`、`supervisor-consume`、`supervisor-execute-dispatch`；默认由 OPL provider/runtime manager 唤醒，Hermes optional adapter 可显式生成脚本，local tombstone/provenance path 不生成脚本
 - 该 outer loop 不拥有 runner completion 后的连续科研主循环，也不维护 generic runtime kernel；内层 `turn completion -> next turn` 由 MAS runtime-facing owner surface 低延迟处理
 - 旧 workspace-local `systemd` / `cron` / `launchd` / `docker` service manager 已退役；检测到它们时只作为 cleanup evidence，不作为 active scheduler 选项
 - 这个 loop 的职责是发现掉线或 stale truth、执行 MAS-authorized reconciliation、写出 durable supervision surface / owner receipt，并把结果翻译成前台可见的人话
@@ -41,8 +41,8 @@ Machine boundary: 本文解释 MAS domain supervision / read-model / owner recei
   - 只消费 MAS 显式导出的 sidecar task、typed blocker、owner receipt 和 artifact locator，不解释医学研究状态
 - `Scheduler Contract / Adapter`
   - 默认 owner 是 OPL `opl_provider_runtime_manager`，负责 provider-backed cadence、scheduler lifecycle、provider SLO、job registry/latest-run projection 和 runtime manager 投影
-  - MAS contract owner 只保留 paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker、safe action refs 和 legacy diagnostic projection
-  - 当前 direct/local adapter 是 MAS-owned `local` legacy cleanup path；它只在显式 `--manager local` 下检查或移除旧 LaunchAgent / tick script，不再安装、刷新或触发本机 scheduler
+  - MAS contract owner 只保留 paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker、safe action refs 和 legacy tombstone/provenance projection
+  - MAS-owned `local` adapter 已物理退役；公开 CLI 不再暴露 active `local` status/remove/ensure path，旧 LaunchAgent / tick script 只保留 tombstone/provenance refs
   - 显式传入 `hermes` 只走 optional adapter；旧 `systemd|cron|launchd|docker` manager 已移除
 - `MedAutoScience`
   - 医学研究治理、supervision judgment、projection 与 reconciliation owner
@@ -73,7 +73,7 @@ Machine boundary: 本文解释 MAS domain supervision / read-model / owner recei
 
 ## 3. 正式执行形态
 
-默认 outer-loop cadence 由 OPL provider/runtime manager replacement 承载。MAS domain tick sequence 仍是 scheduler/adapter 需要调用的 contract，但显式 `--manager local` 现在只用于 legacy status/remove cleanup 与 no-active-caller proof，不生成或触发 MAS 本机脚本。Hermes adapter 是 optional/provenance adapter；OPL-hosted production path 应通过 OPL provider 消费 MAS sidecar / owner receipt，而不是把 Hermes 或 local scheduler 写成 MAS 的 generic runtime owner。Hermes adapter 下的脚本位于：
+默认 outer-loop cadence 由 OPL provider/runtime manager replacement 承载。MAS domain tick sequence 仍是 scheduler/adapter 需要调用的 contract；`local` 已物理退役为 tombstone/provenance refs，不生成或触发 MAS 本机脚本。Hermes adapter 是 optional/provenance adapter；OPL-hosted production path 应通过 OPL provider 消费 MAS sidecar / owner receipt，而不是把 Hermes 或 local scheduler 写成 MAS 的 generic runtime owner。Hermes adapter 下的脚本位于：
 
 - `~/.hermes/scripts/med-autoscience/<workspace-key>/watch_runtime_tick.py`
 
@@ -421,7 +421,7 @@ uv run python scripts/real-paper-autonomy-soak-inventory.py \
 
 因此，repo capability 可以记录为 `paper_autonomy_stability_evidence=evidence_read_model_landed`；真实论文自治稳定性只能在后续 evidence 无 blocker 时单独 closeout 为 `paper_autonomy_stability=landed`。
 
-`medautosci runtime ensure-supervision` 默认委托 OPL replacement，不注册或刷新 MAS-owned OS scheduler。显式 `--manager local` 现在也不再注册、刷新或触发 MAS direct/local legacy adapter；它只返回 cleanup-only blocker，并指向 `runtime-supervision-status --manager local` 与 `runtime-remove-supervision --manager local`。显式 `--manager hermes` 会走 optional Hermes gateway cron adapter。已退役的 `systemd|cron|launchd|docker` manager 不再是公开 CLI 选项，也不再有 direct-call 兼容 payload；旧 workspace-local host service 文件或 loaded 状态只作为 optional/legacy adapter status 中的 `retired_cleanup_evidence` 读取和清理。清理后必须回到 OPL-hosted provider contract 或 MAS explicit legacy diagnostic contract，不能恢复旧 workspace-local service。
+`medautosci runtime ensure-supervision` 默认委托 OPL replacement，不注册或刷新 MAS-owned OS scheduler。`local` 现在不再是公开 CLI manager，也不返回 cleanup command；controller 层只保留 `local_launchd_retired_tombstone` projection 与 tombstone/provenance refs。显式 `--manager hermes` 会走 optional Hermes gateway cron adapter。已退役的 `systemd|cron|launchd|docker` manager 不再是公开 CLI 选项，也不再有 direct-call 兼容 payload；旧 workspace-local host service 文件或 loaded 状态只作为 optional/legacy adapter status 中的 `retired_cleanup_evidence` 读取和清理。清理后必须回到 OPL-hosted provider contract 或 tombstone/provenance proof，不能恢复旧 workspace-local service。
 
 Hermes 对本地运行的必要性已经从默认路径移除；后续 MAS 仓内只能扩展 direct/local diagnostic adapter 的 backend 覆盖面。生产级 wakeup / queue / attempt / retry-dead-letter 由 OPL provider 持有。新增 direct/local backend 必须调用同一个 MAS tick script、写出同构 status / latest-run / SLO projection，并满足幂等、去重、失败可见性和 retired-service cleanup 规则；不能复活旧 workspace-local service 模板作为隐式旁路。
 
@@ -603,7 +603,7 @@ MAS direct/local legacy diagnostic 外部 scheduler 应调用 MAS-owned supervis
 - 先把单次 `supervisor tick` 做严谨
 - 再由外部 scheduler 周期调用它
 
-Canonical scheduler owner 是 OPL `opl_provider_runtime_manager`。MAS direct/local diagnostic 的 legacy owner 是 `MAS supervision scheduler contract`；local adapter 是显式 legacy diagnostic / cleanup path，macOS backend 已落地为 LaunchAgent；Hermes gateway cron 只在显式 `--manager hermes` 时作为 optional adapter。OPL-hosted production wakeup / queue / attempt owner 是 OPL provider。旧 Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager service scaffold 只在历史/debug 文档或 retired diagnostic response 中出现；active scaffold 不再渲染这些旧模板。
+Canonical scheduler owner 是 OPL `opl_provider_runtime_manager`。MAS direct/local diagnostic 的 legacy owner 已退为 `local_launchd_retired_tombstone` / tombstone provenance；Hermes gateway cron 只在显式 `--manager hermes` 时作为 optional adapter。OPL-hosted production wakeup / queue / attempt owner 是 OPL provider。旧 Linux `systemd --user`、宿主 `cron`、macOS `launchd` 和 Docker/container manager service scaffold 只在历史/debug 文档或 retired diagnostic response 中出现；active scaffold 不再渲染这些旧模板。
 
 MAS 负责“这一跳应该怎么判、怎么恢复、怎么写 durable truth”。scheduler 或 OPL provider 只负责按周期调用、承载 attempt 或投影 receipt，不持有医学研究 truth、publication judgement、paper/package authority 或 artifact gate。
 

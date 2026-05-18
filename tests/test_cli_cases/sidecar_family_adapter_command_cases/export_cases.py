@@ -234,8 +234,8 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
         f"medautosci runtime supervisor-reconcile --profile {profile_path} "
         "--mode developer_apply_safe --dry-run"
     )
-    assert family_supervision["local_diagnostic_bridge_command"] == (
-        f"medautosci runtime ensure-supervision --profile {profile_path}"
+    assert family_supervision["local_scheduler_tombstone_ref"] == (
+        "contracts/runtime/legacy-active-path-tombstones.json#mas-local-scheduler"
     )
     assert family_supervision["consumer_migration"]["active_path_role"] == (
         "opl_replacement_default"
@@ -248,7 +248,7 @@ def test_sidecar_export_projects_mas_owned_runtime_surfaces(tmp_path: Path, caps
     assert family_supervision["read_only_authority_boundary"]["scheduler_owner"] == "one-person-lab"
     assert family_supervision["read_only_authority_boundary"]["domain_owner"] == "med-autoscience"
     assert family_supervision["read_only_authority_boundary"]["mas_local_scheduler_role"] == (
-        "standalone_local_diagnostic_migration_bridge"
+        "physical_retired_tombstone_provenance_only"
     )
     assert payload["studies"][0]["study_id"] == "001-risk"
     assert payload["studies"][0]["runtime_supervision"]["state"] == "running"

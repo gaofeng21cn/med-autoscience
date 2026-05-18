@@ -1,38 +1,15 @@
 from __future__ import annotations
 
 import importlib
-import json
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile
 
 
-def _write_legacy_local_scheduler_artifacts(local, profile) -> tuple[Path, Path]:
-    script_path = local._tick_script_path(profile)
-    script_path.parent.mkdir(parents=True, exist_ok=True)
-    script_path.write_text("#!/bin/sh\necho legacy MAS scheduler\n", encoding="utf-8")
-    script_path.chmod(0o755)
-    plist_path = local._launch_agent_path(profile)
-    plist_path.parent.mkdir(parents=True, exist_ok=True)
-    plist_path.write_bytes(
-        local.plistlib.dumps(
-            {
-                "Label": local._launchd_label(profile),
-                "ProgramArguments": [str(script_path)],
-                "StartInterval": 300,
-            }
-        )
-    )
-    return script_path, plist_path
-
-
-def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monkeypatch, tmp_path: Path) -> None:
+def test_default_scheduler_status_uses_opl_replacement_without_launchagent(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
-    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
     profile = make_profile(tmp_path)
     launch_agents = tmp_path / "LaunchAgents"
-    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
-    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
 
     result = module.read_supervision_status(profile=profile)
 
@@ -47,6 +24,11 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
     )
     assert result["legacy_adapter"]["manager"] == "local"
     assert result["legacy_adapter"]["scheduler_owner"] == "mas_supervision_scheduler"
+    assert result["legacy_adapter"]["adapter_id"] == "local_launchd_retired_tombstone"
+    assert result["legacy_adapter"]["status"] == "retired_physical_tombstone"
+    assert result["legacy_adapter"]["callable"] is False
+    assert result["legacy_adapter"]["diagnostic_status_command"] is None
+    assert result["legacy_adapter"]["cleanup_command"] is None
     assert result["authority_boundary"]["can_install_domain_daemon"] is False
     assert result["authority_boundary"]["can_own_generic_scheduler"] is False
     assert result["authority_boundary"]["can_own_generic_daemon"] is False
@@ -149,7 +131,16 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
     assert inventory_by_id["local_launchd_scheduler_install_path"]["active_caller_allowed"] is False
     assert inventory_by_id["local_launchd_scheduler_install_path"]["default_caller_count"] == 0
     assert inventory_by_id["local_launchd_scheduler_install_path"]["install_allowed"] is False
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["physical_retired"] is True
+    assert inventory_by_id["local_launchd_scheduler_install_path"]["active_callers"] == []
     assert boundary["no_active_caller_proof"]["default_caller_count"] == 0
+    assert boundary["no_active_caller_proof"]["status"] == "legacy_local_scheduler_physical_retired"
+    assert boundary["no_active_caller_proof"]["cleanup_only_commands"] == []
+    assert boundary["no_active_caller_proof"]["forbidden_explicit_callers"] == [
+        "runtime-supervision-status --profile <profile> --manager local",
+        "runtime-ensure-supervision --profile <profile> --manager local",
+        "runtime-remove-supervision --profile <profile> --manager local",
+    ]
     assert boundary["no_active_caller_proof"]["forbidden_default_callers"] == [
         "cli_default_local_scheduler_install",
         "workspace_bootstrap_local_scheduler_install",
@@ -157,20 +148,20 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(monke
         "sidecar_local_scheduler_install",
         "mcp_local_scheduler_install",
     ]
-    assert boundary["legacy_local_scheduler_cleanup_only_proof"]["trigger_allowed"] is False
-    assert boundary["legacy_local_scheduler_cleanup_only_proof"]["write_install_proof_allowed"] is False
+    retirement_proof = boundary["legacy_local_scheduler_physical_retirement_proof"]
+    assert retirement_proof["status"] == "physical_retired_tombstone_provenance_only"
+    assert retirement_proof["status_allowed"] is False
+    assert retirement_proof["remove_allowed"] is False
+    assert retirement_proof["trigger_allowed"] is False
+    assert retirement_proof["write_install_proof_allowed"] is False
+    assert retirement_proof["remaining_physical_delete_blockers"] == []
     assert not launch_agents.exists()
 
 
-def test_default_scheduler_ensure_delegates_to_opl_replacement_without_launchagent(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_default_scheduler_ensure_delegates_to_opl_replacement_without_launchagent(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
-    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
     profile = make_profile(tmp_path)
     launch_agents = tmp_path / "LaunchAgents"
-    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
-    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
 
     result = module.ensure_supervision(profile=profile, trigger_now=True, write_install_proof=True)
 
@@ -180,12 +171,14 @@ def test_default_scheduler_ensure_delegates_to_opl_replacement_without_launchage
     assert result["dry_run"] is False
     assert result["write_install_proof"] is False
     assert result["after"]["status"] == "replacement_owner_active"
-    assert result["legacy_local_adapter"]["manager"] == "local"
+    assert result["legacy_local_tombstone"]["manager"] == "local"
+    assert result["legacy_local_tombstone"]["status"] == "retired_physical_tombstone"
+    assert result["legacy_local_tombstone"]["cleanup_command"] is None
     assert result["authority_boundary"]["can_install_domain_daemon"] is False
     assert not launch_agents.exists()
 
 
-def test_default_scheduler_remove_delegates_to_opl_and_keeps_local_cleanup_explicit(tmp_path: Path) -> None:
+def test_default_scheduler_remove_delegates_to_opl_and_keeps_local_tombstone(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
     profile = make_profile(tmp_path)
 
@@ -195,16 +188,13 @@ def test_default_scheduler_remove_delegates_to_opl_and_keeps_local_cleanup_expli
     assert result["scheduler_owner"] == "opl_provider_runtime_manager"
     assert result["manager"] == "opl"
     assert result["removed_job_ids"] == []
-    assert result["legacy_local_cleanup_command"].endswith(" --manager local")
+    assert result["legacy_local_cleanup_command"] is None
+    assert result["legacy_local_tombstone"]["status"] == "retired_physical_tombstone"
 
 
-def test_local_scheduler_dry_run_projects_launchd_without_hermes(monkeypatch, tmp_path: Path) -> None:
+def test_local_scheduler_direct_call_returns_physical_tombstone(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
-    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
     profile = make_profile(tmp_path)
-
-    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
-    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(tmp_path / "LaunchAgents"))
 
     result = module.ensure_supervision(
         profile=profile,
@@ -214,140 +204,38 @@ def test_local_scheduler_dry_run_projects_launchd_without_hermes(monkeypatch, tm
     )
 
     assert result["scheduler_owner"] == "mas_supervision_scheduler"
-    assert result["adapter_id"] == "local_launchd"
-    assert result["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
+    assert result["adapter_id"] == "local_launchd_retired_tombstone"
+    assert result["active_path_role"] == "physical_retired_tombstone_provenance_only"
     assert result["consumer_migration"]["replacement_owner"] == "one-person-lab"
     assert result["consumer_migration"]["replacement_owner_surface"] == "opl_provider_runtime_manager"
-    assert result["consumer_migration"]["replacement_required_before_retirement"] is True
+    assert result["consumer_migration"]["replacement_required_before_retirement"] is False
+    assert result["consumer_migration"]["retirement_state"] == "local_legacy_physical_retired_tombstone"
     assert result["dry_run"] is True
     assert result["write_install_proof"] is False
-    assert result["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
-    assert "install_proof" not in result
-    assert result["after"]["adapter_id"] == "local_launchd"
-    assert not Path(result["script_path"]).exists()
-
-
-def test_local_scheduler_ensure_is_retired_cleanup_only(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
-    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
-    profile = make_profile(tmp_path)
-    launch_agents = tmp_path / "LaunchAgents"
-    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
-    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
-
-    result = module.ensure_supervision(
-        profile=profile,
-        manager="local",
-        trigger_now=True,
-        write_install_proof=True,
-    )
-
-    assert result["action"] == "retired_cleanup_only"
-    assert result["status"] == "blocked"
-    assert result["write_install_proof"] is False
-    assert result["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
-    assert "install_proof" not in result
-    assert result["cleanup_command"].endswith(" --manager local")
-    assert result["after"]["job_exists"] is False
-    assert result["after"]["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
-    assert result["after"]["consumer_migration"]["retirement_state"] == (
-        "local_legacy_retirement_pending_no_active_caller_proof"
-    )
-    assert not Path(result["script_path"]).exists()
-    assert not Path(result["launch_agent_path"]).exists()
+    assert result["install_allowed"] is False
+    assert result["status_allowed"] is False
+    assert result["remove_allowed"] is False
+    assert result["cleanup_command"] is None
+    assert result["diagnostic_status_command"] is None
+    assert result["tombstone_ref"].startswith("contracts/runtime/legacy-active-path-tombstones.json")
     assert result["command_outputs"] == []
 
 
-def test_local_scheduler_apply_blocks_when_workspace_python_missing(monkeypatch, tmp_path: Path) -> None:
+def test_local_scheduler_status_and_remove_are_tombstone_only(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
-    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
     profile = make_profile(tmp_path)
-    launch_agents = tmp_path / "LaunchAgents"
-    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
-    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
 
-    result = module.ensure_supervision(
-        profile=profile,
-        manager="local",
-        trigger_now=True,
-        write_install_proof=True,
-    )
+    status = module.read_supervision_status(profile=profile, manager="local")
+    removed = module.remove_supervision(profile=profile, manager="local")
 
-    assert result["action"] == "retired_cleanup_only"
-    assert result["status"] == "blocked"
-    assert result["write_install_proof"] is False
-    assert result["reason"] == "mas_local_scheduler_install_retired_use_opl_replacement"
-    assert "install_proof" not in result
-    assert not Path(result["script_path"]).exists()
-    assert not Path(result["launch_agent_path"]).exists()
-
-
-def test_local_scheduler_status_treats_existing_launchagent_as_retired_cleanup_evidence(
-    monkeypatch, tmp_path: Path
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
-    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
-    profile = make_profile(tmp_path)
-    launch_agents = tmp_path / "LaunchAgents"
-    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
-    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
-
-    script_path, plist_path = _write_legacy_local_scheduler_artifacts(local, profile)
-    monkeypatch.setattr(
-        local,
-        "_run_command",
-        lambda command: {"command": command, "exit_code": 0, "output": "service is loaded"},
-    )
-
-    result = module.read_supervision_status(profile=profile, manager="local")
-
-    assert result["status"] == "retired_legacy_cleanup_required"
-    assert result["loaded"] is False
-    assert result["adapter_loaded"] is False
-    assert result["adapter_enabled"] is False
-    assert result["job_enabled"] is False
-    assert result["job_state"] == "retired_cleanup_required"
-    assert result["legacy_service_role"] == "retired_cleanup_evidence"
-    assert result["retired_legacy_cleanup_required"] is True
-    assert result["retired_artifacts"] == {
-        "launch_agent": str(plist_path),
-        "tick_script": str(script_path),
-    }
-    assert "legacy_launch_agent_present" in result["drift_reasons"]
-    assert "legacy_tick_script_present" in result["drift_reasons"]
-    assert result["launch_agent_probe"]["loaded"] is True
-    assert result["outer_supervision_slo"]["state"] == "blocked"
-    assert "retired_legacy_cleanup_required" in result["outer_supervision_slo"]["blocked_reasons"]
-    assert result["tick_script_checksum"] is None
-    assert result["expected_tick_script_checksum"] is None
-    assert result["watch_command"] == []
-    assert result["tick_sequence"] == []
-
-
-def test_local_scheduler_remove_deletes_legacy_launchagent_and_tick_script(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.supervision_scheduler")
-    local = importlib.import_module("med_autoscience.controllers.supervision_scheduler_parts.local_adapter")
-    profile = make_profile(tmp_path)
-    launch_agents = tmp_path / "LaunchAgents"
-    monkeypatch.setattr(local.platform, "system", lambda: "Darwin")
-    monkeypatch.setenv("MAS_LAUNCHD_AGENTS_DIR", str(launch_agents))
-
-    script_path, plist_path = _write_legacy_local_scheduler_artifacts(local, profile)
-    monkeypatch.setattr(
-        local,
-        "_run_command",
-        lambda command: {"command": command, "exit_code": 0, "output": ""},
-    )
-
-    result = module.remove_supervision(profile=profile, manager="local")
-
-    assert result["before"]["status"] == "retired_legacy_cleanup_required"
-    assert result["after"]["status"] == "not_installed"
-    assert result["launch_agent_removed"] is True
-    assert result["script_removed"] is True
-    assert result["removed_job_ids"] == [result["before"]["job_id"]]
-    assert not plist_path.exists()
-    assert not script_path.exists()
+    assert status["status"] == "retired_physical_tombstone"
+    assert status["requested_action"] == "status"
+    assert status["job_exists"] is False
+    assert status["retired_artifacts"] == {}
+    assert removed["status"] == "retired_physical_tombstone"
+    assert removed["requested_action"] == "remove"
+    assert removed["removed_job_ids"] == []
+    assert removed["remove_allowed"] is False
 
 
 def test_explicit_hermes_adapter_is_projected_under_mas_scheduler_owner(monkeypatch, tmp_path: Path) -> None:
@@ -372,7 +260,7 @@ def test_explicit_hermes_adapter_is_projected_under_mas_scheduler_owner(monkeypa
 
     assert result["scheduler_owner"] == "mas_supervision_scheduler"
     assert result["adapter_id"] == "hermes_gateway_cron"
-    assert result["active_path_role"] == "standalone_local_diagnostic_migration_bridge"
+    assert result["active_path_role"] == "explicit_optional_executor_adapter_provenance_only"
     assert result["consumer_migration"]["replacement_owner"] == "one-person-lab"
     assert result["owner"] == "hermes_gateway_cron"
     assert result["workspace_key"] == "diabetes-abc12345"

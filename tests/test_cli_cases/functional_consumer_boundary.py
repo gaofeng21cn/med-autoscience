@@ -142,4 +142,7 @@ def test_sidecar_export_projects_functional_consumer_boundary(tmp_path: Path, ca
     assert boundary["no_active_caller_proof"]["default_caller_count"] == 0
     assert boundary["no_active_caller_proof"]["default_manager"] == "opl"
     assert "workspace_bootstrap_manager_is_opl" in boundary["no_active_caller_proof"]["proof_items"]
-    assert boundary["legacy_local_scheduler_cleanup_only_proof"]["default_bootstrap_exposes_local_install"] is False
+    retirement_proof = boundary["legacy_local_scheduler_physical_retirement_proof"]
+    assert retirement_proof["default_bootstrap_exposes_local_install"] is False
+    assert retirement_proof["cleanup_status"] == "tombstone_only"
+    assert retirement_proof["remaining_physical_delete_blockers"] == []

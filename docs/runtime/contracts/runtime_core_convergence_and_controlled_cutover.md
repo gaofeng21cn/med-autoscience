@@ -9,7 +9,7 @@ Date: `2026-05-08`
 当前正式状态已经从“外部 MDS 是默认执行依赖”收敛为：
 
 - `MAS Runtime OS` 持有默认 controller-facing runtime owner / substrate。
-- 默认 outer supervision scheduler owner 已迁到 OPL `opl_provider_runtime_manager`；默认 adapter 是 `opl_family_runtime_provider`。MAS supervision contract 保留 paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker 和 safe action refs。MAS-owned `local` scheduler / LaunchAgent install path 已退役；显式 `--manager local` 只做 legacy status/remove cleanup，不再注册、刷新或执行 desired script。`Hermes gateway cron` 只在显式选择时作为 optional adapter。
+- 默认 outer supervision scheduler owner 已迁到 OPL `opl_provider_runtime_manager`；默认 adapter 是 `opl_family_runtime_provider`。MAS supervision contract 保留 paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker 和 safe action refs。MAS-owned `local` scheduler / LaunchAgent install path 已物理退役；公开 CLI 不再暴露 `--manager local`，只保留 tombstone/provenance refs。`Hermes gateway cron` 只在显式选择时作为 optional adapter。
 - MAS Runtime Turn Lifecycle Kernel 持有 runner completion 后的状态归一化和下一 turn 调度；正常 `auto_continue` 不再等待 300 秒 supervision tick。
 - `med-deepscientist` 不再是 MAS 默认 study/status/progress/cockpit/diagnostic operation 的必需 checkout、daemon、runtime root 或 WebUI。
 - `MedDeepScientist` 只保留为 frozen source archive、historical fixture、explicit archive import reference / backend audit / provenance reference。

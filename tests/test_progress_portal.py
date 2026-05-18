@@ -329,9 +329,7 @@ def test_progress_portal_payload_projects_distinct_workspace_studies_and_suppres
         "用户暂停或手动停驻，需显式恢复或新方案。",
     ]
     assert workspace["diagnostics"]["suppressed_alert_items"][0]["source"] == "workspace_supervision.service.summary"
-    assert workspace["diagnostics"]["suppressed_alert_items"][0]["recommended_command"] == (
-        "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile> --manager local"
-    )
+    assert workspace["diagnostics"]["suppressed_alert_items"][0]["recommended_command"] is None
     studies = workspace["studies"]
     assert [item["study_id"] for item in studies] == [
         "001-dm-cvd-mortality-risk",
@@ -411,8 +409,8 @@ def test_progress_portal_html_deduplicates_repeated_status_copy_and_renders_work
     assert "诊断与修复建议" in html
     assert "MAS scheduler local adapter runtime supervision 尚未注册。" in html
     assert "Hermes-hosted runtime supervision 尚未注册。" not in html
-    assert "runtime-supervision-status" in html
-    assert "--manager local" in html
+    assert "runtime-supervision-status" not in html
+    assert "--manager local" not in html
     assert ">none<" not in html
     assert "not_required" not in html
     assert "来源" in html
@@ -428,7 +426,7 @@ def test_progress_portal_projects_local_scheduler_drift_with_repair_command() ->
         workspace_root="/workspace",
         cockpit_payload={
             "workspace_alerts": [
-                "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。"
+                "MAS local scheduler 已物理退役；仅保留 tombstone/provenance refs。"
             ],
             "studies": [],
         },
@@ -437,14 +435,12 @@ def test_progress_portal_projects_local_scheduler_drift_with_repair_command() ->
 
     item = payload["workspace"]["workspace_alert_items"][0]
     assert item["source"] == "workspace_supervision.service.summary"
-    assert item["current_output"] == "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。"
-    assert item["recommended_command"] == (
-        "uv run python -m med_autoscience.cli runtime-supervision-status --profile <profile> --manager local"
-    )
+    assert item["current_output"] == "MAS local scheduler 已物理退役；仅保留 tombstone/provenance refs。"
+    assert item["recommended_command"] is None
     html = module.render_progress_portal_html(payload)
-    assert "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。" in html
+    assert "MAS local scheduler 已物理退役；仅保留 tombstone/provenance refs。" in html
     assert "workspace_supervision.service.summary" in html
-    assert "--manager local" in html
+    assert "--manager local" not in html
 
 
 def test_progress_portal_hides_low_information_generic_status_diagnostic_when_study_rows_exist() -> None:

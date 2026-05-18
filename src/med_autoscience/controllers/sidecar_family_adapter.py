@@ -293,10 +293,12 @@ def export_family_sidecar(
                 "summary": "MAS exposes SLO state as read-only projection for OPL family-runtime indexing.",
             },
             "repair_command": f"medautosci runtime supervisor-reconcile --profile {profile_ref} --mode developer_apply_safe --dry-run",
-            "local_diagnostic_bridge_command": f"medautosci runtime ensure-supervision --profile {profile_ref}",
+            "local_scheduler_tombstone_ref": (
+                "contracts/runtime/legacy-active-path-tombstones.json#mas-local-scheduler"
+            ),
             "safe_reconcile_hint": (
                 "Use OPL provider/runtime manager wakeup plus medautosci sidecar dispatch; "
-                "MAS local scheduler remains a standalone diagnostic migration bridge."
+                "MAS local scheduler is physical-retired tombstone/provenance only."
             ),
             "consumer_migration": consumer_migration.build_consumer_migration_contract(
                 adapter_id="opl_family_runtime_provider_wakeup_to_mas_sidecar",
@@ -308,7 +310,7 @@ def export_family_sidecar(
                 "domain_owner": "med-autoscience",
                 "runtime_owner": "one-person-lab",
                 "scheduler_owner": "one-person-lab",
-                "mas_local_scheduler_role": consumer_migration.LOCAL_DIAGNOSTIC_PATH_ROLE,
+                "mas_local_scheduler_role": consumer_migration.LOCAL_TOMBSTONE_PATH_ROLE,
                 "authority": "read_only_projection",
                 "forbidden_authorities": _authority_boundary_payload()["forbidden_authorities"],
             },
