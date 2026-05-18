@@ -69,6 +69,13 @@ def test_structured_reporting_checklist_accepts_charter_nested_contract() -> Non
                     "cohort_attrition_denominators": "complete",
                     "claim_impact_or_downgrade": "complete",
                 },
+                "manuscript_voice_reporting": {
+                    "results_driven_results_section": "complete",
+                    "internal_quality_control_language_absent": "complete",
+                    "defensive_boundary_language_not_repetitive": "complete",
+                    "formal_figure_legend_language": "complete",
+                    "no_submission_readiness_meta_language": "complete",
+                },
             }
         }
     )
@@ -80,6 +87,7 @@ def test_structured_reporting_checklist_accepts_charter_nested_contract() -> Non
     assert checklist["phenotype_derivation_reporting"]["status"] == "clear"
     assert checklist["baseline_characteristics_reporting"]["status"] == "clear"
     assert checklist["data_quality_reporting"]["status"] == "clear"
+    assert checklist["manuscript_voice_reporting"]["status"] == "clear"
 
 
 def test_structured_reporting_checklist_blocks_phenotype_reporting_schema_gaps() -> None:

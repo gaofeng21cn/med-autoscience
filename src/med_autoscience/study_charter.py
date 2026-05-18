@@ -424,6 +424,14 @@ def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) ->
         paper_archetype=archetype,
         manuscript_family=manuscript_family,
         endpoint_type=endpoint_type,
+        external_validation_dataset=(
+            _non_empty_string(raw_contract.get("external_validation_dataset"))
+            or _non_empty_string(study_payload.get("external_validation_dataset"))
+        ),
+        cohort_name=(
+            _non_empty_string(raw_contract.get("cohort_name"))
+            or _non_empty_string(study_payload.get("cohort_name"))
+        ),
     )
     for key in (
         "study_archetype",
@@ -438,9 +446,18 @@ def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) ->
         "data_quality_reporting",
         "prediction_model_reporting_required",
         "prediction_methods",
+        "prediction_model_reproducibility",
+        "variable_harmonization",
         "time_to_event_prediction_reporting",
+        "external_validation_reporting",
         "decision_curve_clinical_utility",
         "prediction_performance_reporting",
+        "validation_uncertainty_reporting",
+        "prediction_display_reporting",
+        "survey_design_reporting_required",
+        "survey_design_reporting",
+        "manuscript_voice_reporting_required",
+        "manuscript_voice_reporting",
         "baseline_balance_reporting",
         "competing_risk_reporting_required",
         "competing_risk_reporting",

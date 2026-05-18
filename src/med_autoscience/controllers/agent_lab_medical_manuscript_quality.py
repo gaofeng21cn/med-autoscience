@@ -18,6 +18,14 @@ AUTHORITY_BOUNDARY = {
     "can_mutate_domain_artifact": False,
     "can_promote_default_agent_without_gate": False,
 }
+SELF_EVOLUTION_TARGET_REFS = [
+    "stage_policy_ref:mas/write/pre_draft_prediction_model_reporting",
+    "skill_ref:medical-research-write",
+    "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
+    "prompt_ref:ai_reviewer_medical_prose_quality_review",
+    "quality_contract_ref:prediction_model_first_draft_quality",
+    "regression_suite_ref:mas/agent_lab_medical_manuscript_self_evolution",
+]
 
 
 def stable_medical_manuscript_quality_suite_path(*, study_root: Path) -> Path:
@@ -57,6 +65,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
     return {
         "suite_id": f"mas-agent-lab-suite:{study_id}:high-quality-medical-manuscript",
         "suite_kind": "agent_lab_external_suite",
+        "suite_role": "domain_quality_suite_with_meta_evolution_projection",
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "tasks": [
             {
@@ -77,6 +86,8 @@ def build_medical_manuscript_quality_agent_lab_suite(
                     "stage:mas/review",
                     "stage:mas/analysis-campaign",
                     "stage:mas/write",
+                    "stage:mas/write/pre_draft_prediction_model_reporting",
+                    "stage:mas/figure-polish/high_quality_medical_journal_figures",
                     "stage:mas/publication-gate",
                 ],
                 "oracle_refs": [
@@ -86,6 +97,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
                 ],
                 "scorer_refs": [
                     "scorer:mas/ai-reviewer-medical-publication-critique-v1",
+                    "scorer:mas/prediction-model-first-draft-quality",
                     scorecard_ref,
                 ],
                 "recovery_probes": [
@@ -128,6 +140,12 @@ def build_medical_manuscript_quality_agent_lab_suite(
                     "candidate_kind": "rubric_gap",
                     "target_ref": "rubric-gap-ref:mas/high-quality-medical-manuscript-ai-reviewer",
                     "evidence_refs": blocker_refs or evidence_refs,
+                    "target_agent_capability_gap": {
+                        "status": "candidate_only",
+                        "target_owner": "med-autoscience",
+                        "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
+                        "cannot_authorize_quality_verdict": True,
+                    },
                     "allowed_change_scope": "branch_only",
                     "promotion_gate_ref": promotion_gate_ref,
                     "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -139,6 +157,8 @@ def build_medical_manuscript_quality_agent_lab_suite(
                     "regression_suite_refs": [
                         "regression-suite:mas/ai-first-quality-boundary",
                         "regression-suite:mas/paper-authority-clean-migration",
+                        "regression-suite:mas/prediction-model-first-draft-quality",
+                        "regression-suite:mas/agent-lab-medical-manuscript-self-evolution",
                     ],
                     "no_forbidden_write_proof_refs": [
                         "no-forbidden-write:mas/agent-lab-medical-manuscript-quality"
