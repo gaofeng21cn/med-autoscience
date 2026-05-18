@@ -466,7 +466,7 @@ def _source_action_ref(*, dispatch: Mapping[str, Any], request: Mapping[str, Any
 def _read_json_object(path: Path) -> dict[str, Any] | None:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None
     return dict(payload) if isinstance(payload, Mapping) else None
 
