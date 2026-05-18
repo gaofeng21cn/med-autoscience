@@ -24,6 +24,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/ai-reviewer-direct-evidence-gate",
     "mechanism-edit-ref:mas/analysis-campaign-queue-routing",
     "mechanism-edit-ref:mas/analysis-harmonization-owner-routing",
+    "mechanism-edit-ref:mas/runtime-supervisor-analysis-harmonization-owner-result-consumption",
     "skill_ref:medical-research-write",
     "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
     "prompt_ref:ai_reviewer_medical_prose_quality_review",
@@ -273,6 +274,7 @@ def _mechanism_evolution_inputs(
         root / "artifacts" / "analysis_campaign" / "latest_manifest.json",
         root / "paper" / "analysis_queue.json",
     )
+    controller_read_model_feedback_refs = _controller_read_model_feedback_refs(root=root, study_id=study_id)
     research_memory_graph = _research_memory_graph(
         root=root,
         study_id=study_id,
@@ -295,10 +297,13 @@ def _mechanism_evolution_inputs(
         "reviewer_direct_evidence_refs": reviewer_direct_evidence_refs,
         "analysis_queue_manifest_refs": analysis_queue_manifest_refs,
         "analysis_queue_manifest": analysis_queue_manifest,
+        "controller_read_model_feedback_refs": controller_read_model_feedback_refs,
         "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
         "developer_patch_work_order": _developer_patch_work_order(
             study_id=study_id,
-            evidence_refs=_unique_refs(blocker_refs or evidence_refs),
+            evidence_refs=_unique_refs(
+                [*(blocker_refs or evidence_refs), *controller_read_model_feedback_refs]
+            ),
         ),
         "evidence_delta_refs": _unique_refs(
             [
@@ -308,6 +313,7 @@ def _mechanism_evolution_inputs(
                 *failed_route_refs,
                 *reviewer_direct_evidence_refs,
                 *analysis_queue_manifest_refs,
+                *controller_read_model_feedback_refs,
             ]
         ),
         "independent_ai_review_receipt_ref": f"ai-reviewer-receipt:mas/{study_id}/mechanism-direct-evidence-review",
@@ -336,6 +342,7 @@ def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> d
         "required_patch_scopes": [
             "analysis_harmonization_owner_callable",
             "hard_methodology_unit_harmonization_route",
+            "runtime_supervisor_analysis_harmonization_owner_result_consumption",
             "prediction_model_first_draft_quality_contract",
             "ai_reviewer_high_quality_medical_manuscript_rubric",
             "write_stage_pre_draft_prediction_model_reporting",
@@ -349,6 +356,7 @@ def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> d
             "NHANES weighting or unweighted framing",
             "calibration and risk-collapse figure quality",
             "internal quality-language purge",
+            "controller read-model consumes analysis harmonization typed blocker without requeue",
         ],
         "evidence_refs": evidence_refs,
         "forbidden_writes": [
@@ -363,6 +371,22 @@ def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> d
         "can_authorize_quality_verdict": False,
         "can_mutate_paper_package": False,
     }
+
+
+def _controller_read_model_feedback_refs(*, root: Path, study_id: str) -> list[str]:
+    refs = _existing_refs(
+        root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json",
+        root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "default_executor_dispatches"
+        / "unit_harmonized_external_validation_rerun.json",
+    )
+    if refs:
+        refs.append(f"mechanism-defect-ref:mas/{study_id}/analysis-harmonization-result-requeued")
+    return _unique_refs(refs)
 
 
 def _research_memory_graph(

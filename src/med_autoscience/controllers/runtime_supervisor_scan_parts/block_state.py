@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
 from med_autoscience.controllers.runtime_supervisor_scan_parts import current_truth_owner
 from med_autoscience.controllers.runtime_supervisor_scan_parts import evidence_adoption
@@ -60,6 +61,10 @@ def projection_block_state(
             "next_owner": "analysis_harmonization_owner",
             "external_supervisor_required": False,
         }
+    if study_root is not None:
+        owner_result_state = analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root)
+        if owner_result_state is not None:
+            return owner_result_state
     if _has_clean_paper_authority_rehydrate_action(actions):
         return {
             "blocked_reason": "canonical_paper_inputs_rehydrate_required",

@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.controllers.runtime_supervisor_scan_parts import action_decorators
 from med_autoscience.controllers.runtime_supervisor_scan_parts import artifact_freshness
 from med_autoscience.controllers.runtime_supervisor_scan_parts import completion_evidence
@@ -453,6 +454,8 @@ def _latest_clean_migration_quality_repair_blocker(study_root: Path) -> dict[str
 
 
 def _hard_methodology_quality_repair_handoff_action(study_root: Path) -> dict[str, Any] | None:
+    if analysis_harmonization_owner_result.required_output_satisfied(study_root=study_root):
+        return None
     source_ref = study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"
     payload = _read_json_object(source_ref)
     if not payload:
@@ -631,9 +634,11 @@ def why_not_applied(
 ) -> str | None:
     if completion_evidence.completed_current_truth(status, progress):
         return None
+    study_root = _path(_text(status.get("study_root")) or _text(progress.get("study_root")))
+    if study_root is not None and analysis_harmonization_owner_result.typed_blocker_state(study_root=study_root):
+        return analysis_harmonization_owner_result.BLOCKED_REASON
     if _has_hard_methodology_handoff_action(actions):
         return "unit_harmonized_rerun_required"
-    study_root = _path(_text(status.get("study_root")) or _text(progress.get("study_root")))
     publication_eval_payload = _mapping(status.get("publication_eval")) or _mapping(progress.get("publication_eval"))
     if parked_truth.current_truth(
         status,

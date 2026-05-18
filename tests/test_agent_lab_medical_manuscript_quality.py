@@ -89,11 +89,19 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert task["improvement_candidate"]["target_agent_capability_gap"]["status"] == "candidate_only"
     assert "quality_contract_ref:prediction_model_first_draft_quality" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/analysis-harmonization-owner-routing" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    assert (
+        "mechanism-edit-ref:mas/runtime-supervisor-analysis-harmonization-owner-result-consumption"
+        in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
+    )
     assert "hdl-harmonization-and-sensitivity" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "nhanes-survey-weighting-and-unweighted-framing" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "uncertainty-intervals-and-validation-metrics" in " ".join(task["improvement_candidate"]["evidence_refs"])
     assert "hard-methodology-unit-harmonization-route" in " ".join(task["promotion_gate"]["regression_suite_refs"])
     assert "analysis-harmonization-owner-routing" in " ".join(mechanism_inputs["target_editable_surface_refs"])
+    assert (
+        "runtime_supervisor_analysis_harmonization_owner_result_consumption"
+        in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
+    )
     assert task["authority_boundary"]["can_authorize_quality_verdict"] is False
     assert task["authority_boundary"]["can_mutate_domain_artifact"] is False
 
@@ -205,6 +213,66 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
     assert queue["authority_boundary"]["can_authorize_quality_verdict"] is False
     assert "mechanism-edit-ref:mas/analysis-campaign-queue-routing" in inputs["target_editable_surface_refs"]
     assert "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue" in task["promotion_gate"]["regression_suite_refs"]
+
+
+def test_medical_manuscript_quality_agent_lab_suite_records_controller_read_model_defect_refs(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.agent_lab_medical_manuscript_quality")
+    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "underdefined",
+                    "summary": "AI reviewer must re-evaluate manuscript quality.",
+                }
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json",
+        {
+            "surface": "analysis_harmonization_owner_result",
+            "owner": "analysis_harmonization_owner",
+            "work_unit": "unit_harmonized_external_validation_rerun",
+            "status": "blocked",
+            "blocked_reason": "unit_harmonized_rerun_required",
+            "typed_blocker_owner": "analysis_harmonization_owner",
+            "typed_blocker": {"blocker_id": "unit_harmonized_rerun_required"},
+            "unit_harmonized_rerun_completed": False,
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "supervision" / "hourly" / "latest.json",
+        {
+            "surface": "portable_runtime_supervisor_scan",
+            "studies": [
+                {
+                    "study_id": study_root.name,
+                    "action_queue": [{"action_type": "unit_harmonized_external_validation_rerun"}],
+                }
+            ],
+        },
+    )
+
+    suite = module.build_medical_manuscript_quality_agent_lab_suite(study_root=study_root)
+    task = suite["tasks"][0]
+    inputs = task["mechanism_evolution_inputs"]
+    refs = inputs["controller_read_model_feedback_refs"]
+
+    assert any("analysis_harmonization/latest.json" in ref for ref in refs)
+    assert any("supervision/hourly/latest.json" in ref for ref in refs)
+    assert any("analysis-harmonization-result-requeued" in ref for ref in refs)
+    assert refs[-1].startswith("mechanism-defect-ref:mas/002-dm-china-us-mortality-attribution/")
+    work_order = inputs["developer_patch_work_order"]
+    assert "runtime_supervisor_analysis_harmonization_owner_result_consumption" in work_order["required_patch_scopes"]
+    assert any("analysis-harmonization-result-requeued" in ref for ref in work_order["evidence_refs"])
+    assert work_order["can_modify_mas_repo"] is True
+    assert work_order["can_write_study_truth"] is False
+    assert "publication_eval/latest.json" in work_order["forbidden_writes"]
 
 
 def test_medical_manuscript_quality_agent_lab_suite_materializes_refs_only_surface(

@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers import analysis_harmonization_owner_result
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -60,15 +61,7 @@ def canonical_paper_inputs_rehydrate_output_pending(*, profile: WorkspaceProfile
 
 def unit_harmonized_external_validation_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
     payload = _read_json_object(profile.studies_root / study_id / ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH)
-    if payload is None:
-        return True
-    if _text(payload.get("owner")) != "analysis_harmonization_owner":
-        return True
-    if _text(payload.get("work_unit")) != "unit_harmonized_external_validation_rerun":
-        return True
-    if payload.get("unit_harmonized_rerun_completed") is True:
-        return False
-    return _text(payload.get("blocked_reason")) != "unit_harmonized_rerun_required"
+    return analysis_harmonization_owner_result.output_pending_for_result(payload)
 
 
 def _source_eval_id_stale(payload: Mapping[str, Any] | None, *, current_eval_id: str | None) -> bool:
