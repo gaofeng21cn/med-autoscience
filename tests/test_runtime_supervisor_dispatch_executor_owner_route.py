@@ -186,8 +186,8 @@ def test_execute_dispatch_allows_action_type_when_route_reason_is_concrete_block
     )
     _write_current_dispatch(dispatch_path, profile, dispatch_payload)
     monkeypatch.setattr(
-        module,
-        "_execute_artifact_display_materialization",
+        module.action_execution,
+        "execute_artifact_display_materialization",
         lambda **_: {
             "execution_status": "blocked",
             "blocked_reason": "owner_callable_surface_missing",
@@ -321,8 +321,8 @@ def test_execute_dispatch_ignores_blocked_consumer_dispatches_by_default(
         },
     )
     monkeypatch.setattr(
-        module,
-        "_execute_current_package_freshness",
+        module.action_execution,
+        "execute_current_package_freshness",
         lambda **_: {
             "execution_status": "executed",
             "blocked_reason": None,

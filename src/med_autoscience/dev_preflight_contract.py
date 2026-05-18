@@ -284,6 +284,7 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
     PreflightCategorySpec(
         category_id="control_plane_surface",
         exact_paths=(
+            "contracts/stage_control_plane.json",
             "scripts/real-paper-autonomy-soak-inventory.py",
             "src/med_autoscience/controllers/opl_provider_ready_adapter.py",
             "src/med_autoscience/controllers/sidecar_family_adapter.py",

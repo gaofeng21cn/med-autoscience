@@ -456,6 +456,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
 
     result = module.classify_changed_files(
         [
+            "contracts/stage_control_plane.json",
             "scripts/real-paper-autonomy-soak-inventory.py",
             "src/med_autoscience/controllers/study_control_plane_kernel.py",
             "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
