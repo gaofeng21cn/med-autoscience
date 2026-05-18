@@ -220,6 +220,13 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert authority["semantic_model"] == (
         "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
     )
+    independent_policy = authority["independent_executor_reviewer_agent_policy"]
+    assert independent_policy["required"] is True
+    assert independent_policy["separate_invocation_required"] is True
+    assert independent_policy["separate_context_record_required"] is True
+    assert independent_policy["separate_task_record_required"] is True
+    assert independent_policy["separate_receipt_required"] is True
+    assert independent_policy["self_review_closes_quality_gate"] is False
     assert authority["boundary_ids"] == [
         "publication_quality_stage_gate_boundary",
         "ai_reviewer_quality_stage_gate_boundary",

@@ -273,6 +273,14 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "queue_completion_as_publication_route_memory_accept_reject",
         "file_presence_as_source_readiness_verdict",
     ]
+    independent_policy = minimal_authority["independent_executor_reviewer_agent_policy"]
+    assert independent_policy["required"] is True
+    assert independent_policy["separate_invocation_required"] is True
+    assert independent_policy["separate_context_record_required"] is True
+    assert independent_policy["separate_task_record_required"] is True
+    assert independent_policy["separate_receipt_required"] is True
+    assert independent_policy["self_review_closes_quality_gate"] is False
+    assert independent_policy["codex_cli_may_serve_both_roles_only_as_separate_invocations"] is True
     boundary_by_id = {
         item["boundary_id"]: item for item in minimal_authority["stage_quality_gate_boundaries"]
     }

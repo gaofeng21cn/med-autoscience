@@ -114,6 +114,16 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "queue_completion_as_publication_route_memory_accept_reject",
         "file_presence_as_source_readiness_verdict",
     ]
+    independent_policy = authority["independent_executor_reviewer_agent_policy"]
+    assert independent_policy["required"] is True
+    assert independent_policy["separate_invocation_required"] is True
+    assert independent_policy["separate_context_record_required"] is True
+    assert independent_policy["separate_task_record_required"] is True
+    assert independent_policy["separate_receipt_required"] is True
+    assert independent_policy["self_review_closes_quality_gate"] is False
+    assert independent_policy["missing_independent_reviewer_record_policy"] == (
+        "fail_closed_or_route_back"
+    )
     assert authority["function_ids"] == [
         "publication_quality_verdict",
         "ai_reviewer_quality_decision",

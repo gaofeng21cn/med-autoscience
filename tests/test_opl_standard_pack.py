@@ -54,6 +54,15 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "source_readiness_verdict_authorizer",
     ]
     assert generated["pack_compiler_input"]["requires_ai_first_record"] is True
+    independent_policy = generated["pack_compiler_input"][
+        "independent_executor_reviewer_agent_policy"
+    ]
+    assert independent_policy["required"] is True
+    assert independent_policy["separate_invocation_required"] is True
+    assert independent_policy["separate_context_record_required"] is True
+    assert independent_policy["separate_task_record_required"] is True
+    assert independent_policy["separate_receipt_required"] is True
+    assert independent_policy["self_review_closes_quality_gate"] is False
     assert {
         item["program_role"]
         for item in generated["pack_compiler_input"]["stage_quality_gate_boundaries"]
@@ -73,6 +82,7 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
         "*_authorizer",
     ]
     assert policy["requires_ai_first_record"] is True
+    assert policy["independent_executor_reviewer_agent_policy"] == independent_policy
     assert generated["generated_surface_handoff"]["domain_repo_can_own_generated_surface"] is False
     assert "skill" in generated["pack_compiler_input"]["generated_surfaces_requested"]
     assert generated["action_catalog"]["catalog_role"] == (
