@@ -203,6 +203,10 @@
       "legacy_cleanup_items_are_remaining_active_gaps": false,
       "legacy_cleanup_items_have_default_entry": false,
       "legacy_cleanup_items_have_standard_template_refs": true,
+      "legacy_cleanup_items_physical_retired": [
+        "local_launchd_scheduler_install_path",
+        "workspace_local_watch_service_wrappers"
+      ],
       "legacy_cleanup_items_require_no_active_caller_gate": [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers"
@@ -755,6 +759,7 @@
           ]
         },
         "owner": "none_active",
+        "physical_retired": true,
         "retention_reason": "Needed only to detect and clean stale workspace-local service wrappers.",
         "tombstone_required": true
       }
@@ -1649,6 +1654,10 @@
     "legacy_cleanup_items_are_remaining_active_gaps": false,
     "legacy_cleanup_items_have_default_entry": false,
     "legacy_cleanup_items_have_standard_template_refs": true,
+    "legacy_cleanup_items_physical_retired": [
+      "local_launchd_scheduler_install_path",
+      "workspace_local_watch_service_wrappers"
+    ],
     "legacy_cleanup_items_require_no_active_caller_gate": [
       "local_launchd_scheduler_install_path",
       "workspace_local_watch_service_wrappers"

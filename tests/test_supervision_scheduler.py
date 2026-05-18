@@ -88,7 +88,11 @@ def test_default_scheduler_status_uses_opl_replacement_without_launchagent(tmp_p
     assert followthrough_summary["remaining_items_are_evidence_gates"] is True
     assert followthrough_summary["legacy_cleanup_items_are_remaining_active_gaps"] is False
     assert followthrough_summary["legacy_cleanup_items_have_default_entry"] is False
-    assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is True
+    assert followthrough_summary["legacy_cleanup_items_physical_retired"] == [
+        "local_launchd_scheduler_install_path",
+        "workspace_local_watch_service_wrappers",
+    ]
+    assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is False
     assert followthrough_summary["remaining_functional_followthrough_gate_ids"] == []
     assert followthrough_summary["remaining_functional_followthrough_gates"] == []
     assert set(followthrough_summary["closed_functional_structure_gate_ids"]) == {

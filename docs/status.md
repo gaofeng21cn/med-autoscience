@@ -36,7 +36,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
    runtime lifecycle SQLite、paper outbox、storage maintenance、publication-route memory transport、artifact lifecycle audit、terminal attach 和 runtime supervisor shell 已收薄为 refs-only domain sidecar / locator / receipt / blocker / authority-ref surface；MAS 不声明 generic lifecycle、source、session、workbench 或 scheduler owner。后续只做回流防护和 evidence scaleout。
 
 3. `legacy_cleanup_physical_retirement`
-   local LaunchAgent install path、workspace-local wrapper、旧 status/remove cleanup diagnostic、旧 alias/facade/test entry 已纳入 no-active-caller cleanup proof；当前允许角色只剩 tombstone 或 provenance。`manager=local` direct call 必须 fail closed，不再返回可用 adapter payload。
+   local LaunchAgent install path、workspace-local wrapper、旧 status/remove cleanup diagnostic、旧 alias/facade/test entry 已完成 physical retirement；当前允许角色只剩 tombstone/provenance refs 和 forbidden-caller proof。`manager=local` direct call 必须 fail closed，不再返回可用 adapter payload。
 
 4. `opl_app_workbench_drilldown`
    MAS route/source/quality/artifact/memory/blocker/action refs 作为 OPL App/workbench drilldown 输入；MAS 不复制通用工作台 owner。剩余是真实用户路径、截图/发布包和长时 operator evidence。

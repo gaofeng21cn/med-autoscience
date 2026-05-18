@@ -202,7 +202,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
             workspace_supervision_contract={
                 "status": "retired_legacy_service_present",
                 "loaded": False,
-                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；请运行 runtime-remove-supervision --manager local 清理旧 host service。",
+                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；仅保留 tombstone/provenance refs。",
                 "drift_reasons": ["retired_legacy_service_loaded"],
             },
         ),
@@ -214,7 +214,7 @@ def test_workspace_cockpit_flags_supervision_owner_drift_even_when_study_progres
             "manager": "launchd",
             "status": "retired_legacy_service_present",
             "loaded": False,
-            "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；请运行 runtime-remove-supervision --manager local 清理旧 host service。",
+            "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；仅保留 tombstone/provenance refs。",
             "drift_reasons": ["retired_legacy_service_loaded"],
             "legacy_service": {"loaded": True, "service_exists": True},
             "legacy_service_role": "retired_cleanup_evidence",
@@ -334,7 +334,7 @@ def test_build_product_entry_status_preflight_blocks_on_workspace_supervision_ow
             workspace_supervision_contract={
                 "status": "retired_legacy_service_present",
                 "loaded": False,
-                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；请运行 runtime-remove-supervision --manager local 清理旧 host service。",
+                "summary": "检测到已退役的 workspace-local runtime supervision service。当前 canonical owner 是 OPL provider/runtime manager replacement；仅保留 tombstone/provenance refs。",
                 "drift_reasons": ["retired_legacy_service_loaded"],
             },
         ),

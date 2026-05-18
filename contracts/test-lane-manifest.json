@@ -1036,12 +1036,14 @@
           "safe_action_refs"
         ],
         "legacy_cleanup_no_active_caller_gate": [
-          "local_launchd_scheduler_install_path",
-          "workspace_local_watch_service_wrappers",
           "mas_generic_workbench_shell",
           "legacy_scheduler_default_aliases",
           "daemonish_terminal_attach_status_as_runtime_owner",
           "scheduler_legacy_residue_without_active_caller"
+        ],
+        "legacy_cleanup_physical_retired": [
+          "local_launchd_scheduler_install_path",
+          "workspace_local_watch_service_wrappers"
         ]
       },
       "functional_module_inventory_ref": "product_entry_manifest.functional_consumer_boundary.functional_module_inventory",
@@ -1307,7 +1309,7 @@
           "refs_only_adapter": 6,
           "declarative_pack_generated_surface": 7,
           "minimal_authority_function": 3,
-          "legacy_cleanup_no_active_caller_gate": 2
+          "legacy_cleanup_physical_retired": 2
         },
         "long_term_opl_owned_replacement_count": 0,
         "retire_tombstone_classification_count": 0,
@@ -1338,7 +1340,8 @@
         "declarative_pack_generated_surface",
         "refs_only_adapter",
         "minimal_authority_function",
-        "legacy_cleanup_no_active_caller_gate"
+        "legacy_cleanup_no_active_caller_gate",
+        "legacy_cleanup_physical_retired"
       ],
       "functional_followthrough_gap_summary": {
         "surface_kind": "mas_functional_followthrough_gap_summary",
@@ -1393,7 +1396,7 @@
             "closure_proof_refs": [
               "no_active_caller_proof.default_caller_count=0",
               "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
-              "functional_module_inventory.legacy_cleanup_no_active_caller_gate"
+              "functional_module_inventory.legacy_cleanup_physical_retired"
             ],
             "functional_structure_gap": false
           },
@@ -1428,17 +1431,18 @@
           "refs_only_adapter": 6,
           "declarative_pack_generated_surface": 7,
           "minimal_authority_function": 3,
-          "legacy_cleanup_no_active_caller_gate": 2
+          "legacy_cleanup_physical_retired": 2
         },
-        "legacy_cleanup_items_require_no_active_caller_gate": [
+        "legacy_cleanup_items_require_no_active_caller_gate": [],
+        "legacy_cleanup_items_physical_retired": [
           "local_launchd_scheduler_install_path",
           "workspace_local_watch_service_wrappers"
         ],
-        "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
-        "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
+        "legacy_cleanup_items_are_diagnostic_provenance_guards": false,
+        "legacy_cleanup_item_role": "history_tombstone_provenance_only",
         "legacy_cleanup_items_are_remaining_active_gaps": false,
         "legacy_cleanup_items_have_default_entry": false,
-        "legacy_cleanup_items_have_standard_template_refs": true,
+        "legacy_cleanup_items_have_standard_template_refs": false,
         "remaining_evidence_gate_ids": [
           "live_provider_paper_apply_scaleout",
           "publication_route_memory_receipt_scaleout",
@@ -1962,7 +1966,7 @@
         {
           "module_id": "local_launchd_scheduler_install_path",
           "owner": "none_active",
-          "classification": "legacy_cleanup_no_active_caller_gate",
+          "classification": "legacy_cleanup_physical_retired",
           "code_paths": [
             "contracts/runtime/legacy-active-path-tombstones.json",
             "docs/history/runtime/legacy_active_path_tombstones.md"
@@ -1989,7 +1993,7 @@
         {
           "module_id": "workspace_local_watch_service_wrappers",
           "owner": "none_active",
-          "classification": "legacy_cleanup_no_active_caller_gate",
+          "classification": "legacy_cleanup_physical_retired",
           "code_paths": [
             "src/med_autoscience/controllers/workspace_init_parts/retired_entries.py",
             "src/med_autoscience/controllers/workspace_legacy_physical_cleanup.py"
@@ -2002,6 +2006,7 @@
           "retention_reason": "Needed only to detect and clean stale workspace-local service wrappers.",
           "active_caller_allowed": false,
           "tombstone_required": true,
+          "physical_retired": true,
           "no_active_caller_gate": {
             "default_caller_count": 0,
             "active_caller_allowed": false,

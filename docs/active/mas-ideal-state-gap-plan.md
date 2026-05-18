@@ -62,7 +62,7 @@ OPL proof bundle / admission 只有在上述 effect-boundary stage 返回 `admis
    runtime lifecycle SQLite、paper outbox、runtime storage maintenance、workspace/source intake、publication-route memory transport、artifact lifecycle audit、terminal attach 和相关 projection 已收薄为 body-free locator、receipt、blocker、authority refs 或 diagnostic exporter；这些路径不得承担 MAS generic lifecycle / restore-retention / workbench owner，也不得读取 memory body 或 artifact body。
 
 3. `legacy_cleanup_physical_retirement`
-   local LaunchAgent/status/remove cleanup、workspace-local watch service wrappers、旧 alias/facade 和 legacy no-active-caller gate 已进入 tombstone/provenance 语义；满足 replacement proof、no-active-caller scan、fixture/provenance refs-only 条件后不保留兼容别名。当前 `manager=local` direct call 必须 fail closed，不再返回可用 adapter payload。
+   local LaunchAgent/status/remove cleanup、workspace-local watch service wrappers、旧 alias/facade 和 legacy no-active-caller gate 已完成 physical retirement；当前机器清单把 local scheduler install path 与 workspace-local watch wrappers 归为 `legacy_cleanup_physical_retired`，只保留 tombstone/provenance refs 和 forbidden-caller proof。当前 `manager=local` direct call 必须 fail closed，不再返回可用 adapter payload。
 
 4. `opl_app_workbench_drilldown`
    OPL App / workbench drilldown 消费 MAS route/source/quality/artifact/memory/blocker/action refs 和 operator grouping。MAS 只输出 domain projection refs，不在本仓复制通用工作台。仍需证明真实用户路径消费 OPL read model，而不是 MAS repo 复制 Portal/workbench shell。

@@ -361,6 +361,7 @@ FUNCTIONAL_MODULE_INVENTORY = (
         "retention_reason": "Needed only to detect and clean stale workspace-local service wrappers.",
         "active_caller_allowed": False,
         "tombstone_required": True,
+        "physical_retired": True,
         "no_active_caller_gate": {
             "default_caller_count": 0,
             "active_caller_allowed": False,

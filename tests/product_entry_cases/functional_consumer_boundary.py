@@ -247,12 +247,14 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "safe_action_refs",
     }
     assert set(classification["legacy_cleanup_no_active_caller_gate"]) == {
-        "local_launchd_scheduler_install_path",
-        "workspace_local_watch_service_wrappers",
         "mas_generic_workbench_shell",
         "legacy_scheduler_default_aliases",
         "daemonish_terminal_attach_status_as_runtime_owner",
         "scheduler_legacy_residue_without_active_caller",
+    }
+    assert set(classification["legacy_cleanup_physical_retired"]) == {
+        "local_launchd_scheduler_install_path",
+        "workspace_local_watch_service_wrappers",
     }
     inventory = boundary["functional_module_inventory"]
     assert len(inventory) == 18
@@ -295,7 +297,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     assert by_id["local_launchd_scheduler_install_path"]["trigger_allowed"] is False
     assert by_id["local_launchd_scheduler_install_path"]["write_install_proof_allowed"] is False
     assert by_id["local_launchd_scheduler_install_path"]["classification"] == (
-        "legacy_cleanup_no_active_caller_gate"
+        "legacy_cleanup_physical_retired"
     )
     assert by_id["local_launchd_scheduler_install_path"]["no_active_caller_gate"][
         "active_caller_allowed"
@@ -304,7 +306,7 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
         "declarative_pack_generated_surface": 7,
         "refs_only_adapter": 6,
         "minimal_authority_function": 3,
-        "legacy_cleanup_no_active_caller_gate": 2,
+        "legacy_cleanup_physical_retired": 2,
     }
     assert boundary["functional_module_inventory_summary"]["classification_gap_count"] == 0
     assert boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
@@ -330,7 +332,11 @@ def test_product_entry_manifest_exposes_functional_consumer_boundary(tmp_path: P
     ]
     assert followthrough_summary["legacy_cleanup_items_are_remaining_active_gaps"] is False
     assert followthrough_summary["legacy_cleanup_items_have_default_entry"] is False
-    assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is True
+    assert followthrough_summary["legacy_cleanup_items_physical_retired"] == [
+        "local_launchd_scheduler_install_path",
+        "workspace_local_watch_service_wrappers",
+    ]
+    assert followthrough_summary["legacy_cleanup_items_have_standard_template_refs"] is False
     assert followthrough_summary["remaining_functional_followthrough_gate_ids"] == []
     assert followthrough_summary["remaining_functional_followthrough_gates"] == []
     assert followthrough_summary["closed_functional_structure_gate_ids"] == [

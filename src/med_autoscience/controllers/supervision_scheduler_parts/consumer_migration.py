@@ -596,9 +596,15 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
         for item in FUNCTIONAL_MODULE_INVENTORY
         if item["classification"] == "legacy_cleanup_no_active_caller_gate"
     ]
+    legacy_physical_retired_items = [
+        item["module_id"]
+        for item in FUNCTIONAL_MODULE_INVENTORY
+        if item.get("physical_retired") is True
+    ]
     functional_followthrough_gap_summary = build_functional_followthrough_gap_summary(
         classification_counts=classification_counts,
         legacy_cleanup_items=legacy_cleanup_items,
+        legacy_physical_retired_items=legacy_physical_retired_items,
     )
 
     return {
@@ -650,7 +656,7 @@ def build_functional_consumer_boundary() -> dict[str, Any]:
                 ]
             ),
             "legacy_cleanup_items_require_no_active_caller_gate": [],
-            "legacy_cleanup_items_physical_retired": list(legacy_cleanup_items),
+            "legacy_cleanup_items_physical_retired": list(legacy_physical_retired_items),
             "legacy_cleanup_items_are_diagnostic_provenance_guards": False,
             "legacy_cleanup_item_role": "history_tombstone_provenance_only",
             "legacy_cleanup_items_are_remaining_active_gaps": False,

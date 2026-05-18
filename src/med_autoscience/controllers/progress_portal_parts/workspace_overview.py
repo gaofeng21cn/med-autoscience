@@ -12,9 +12,9 @@ _LEGACY_OR_GENERIC_WORKSPACE_ALERTS = frozenset(
     {
         "MAS scheduler local adapter runtime supervision 尚未注册。",
         "Supervisor scheduler 尚未注册。",
-        "MAS local scheduler 未加载或存在漂移；只保留 --manager local status/remove cleanup。",
-        "检测到 legacy MAS local scheduler LaunchAgent；请使用 --manager local 清理旧生成物。",
-        "检测到已退役的 MAS local scheduler 旧生成物；请运行 --manager local remove 清理。",
+        "MAS local scheduler 未加载或存在漂移；仅保留 tombstone/provenance refs。",
+        "检测到 legacy MAS local scheduler LaunchAgent；请按 tombstone/provenance refs 审计旧生成物。",
+        "检测到已退役的 MAS local scheduler 旧生成物；当前 CLI 不再暴露 local cleanup command。",
         "状态需要检查。",
     }
 )

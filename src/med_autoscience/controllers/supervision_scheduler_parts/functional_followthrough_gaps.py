@@ -142,6 +142,7 @@ def build_functional_followthrough_gap_summary(
     *,
     classification_counts: Mapping[str, int],
     legacy_cleanup_items: Sequence[str],
+    legacy_physical_retired_items: Sequence[str] = (),
 ) -> dict[str, Any]:
     closure_gates = [dict(item) for item in FUNCTIONAL_STRUCTURE_CLOSURE_GATES]
     closed_functional_structure_gates = [
@@ -179,11 +180,16 @@ def build_functional_followthrough_gap_summary(
         "closed_functional_structure_gates": closed_functional_structure_gates,
         "classification_counts": dict(classification_counts),
         "legacy_cleanup_items_require_no_active_caller_gate": list(legacy_cleanup_items),
-        "legacy_cleanup_items_are_diagnostic_provenance_guards": True,
-        "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
+        "legacy_cleanup_items_physical_retired": list(legacy_physical_retired_items),
+        "legacy_cleanup_items_are_diagnostic_provenance_guards": bool(legacy_cleanup_items),
+        "legacy_cleanup_item_role": (
+            "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller"
+            if legacy_cleanup_items
+            else "history_tombstone_provenance_only"
+        ),
         "legacy_cleanup_items_are_remaining_active_gaps": False,
         "legacy_cleanup_items_have_default_entry": False,
-        "legacy_cleanup_items_have_standard_template_refs": True,
+        "legacy_cleanup_items_have_standard_template_refs": bool(legacy_cleanup_items),
         "remaining_evidence_gate_ids": evidence_gate_ids,
         "remaining_evidence_gates": [dict(item) for item in REMAINING_EVIDENCE_GATES],
         "cleared_by_surfaces": [
