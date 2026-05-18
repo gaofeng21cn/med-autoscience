@@ -24,6 +24,7 @@ _QUALITY_REPAIR_BATCH_WORK_UNIT_IDS = frozenset(
         "display_reporting_contract_repair",
         "controller_owned_publication_repair",
         "local_architecture_overview_repair",
+        "medical_prose_quality_analysis_source_documentation_repair",
     }
 )
 _GATE_CLEARING_BATCH_WORK_UNIT_IDS = frozenset(
