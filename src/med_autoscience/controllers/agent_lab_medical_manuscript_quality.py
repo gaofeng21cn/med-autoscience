@@ -20,6 +20,9 @@ AUTHORITY_BOUNDARY = {
 }
 SELF_EVOLUTION_TARGET_REFS = [
     "stage_policy_ref:mas/write/pre_draft_prediction_model_reporting",
+    "mechanism-edit-ref:mas/research-wiki-failed-route-memory",
+    "mechanism-edit-ref:mas/ai-reviewer-direct-evidence-gate",
+    "mechanism-edit-ref:mas/analysis-campaign-queue-routing",
     "skill_ref:medical-research-write",
     "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
     "prompt_ref:ai_reviewer_medical_prose_quality_review",
@@ -59,6 +62,15 @@ def build_medical_manuscript_quality_agent_lab_suite(
     if feedback_ref is not None:
         evidence_refs.append(feedback_ref)
     blocker_refs = _blocker_refs(prose_status=prose_status, feedback_ref=feedback_ref, study_id=study_id)
+    mechanism_inputs = _mechanism_evolution_inputs(
+        root=root,
+        study_id=study_id,
+        publication_eval_path=publication_eval_path,
+        task_intake_path=task_intake_path,
+        feedback_ref=feedback_ref,
+        evidence_refs=evidence_refs,
+        blocker_refs=blocker_refs,
+    )
     task_id = f"agent-lab-task:mas/{study_id}/high-quality-medical-manuscript"
     scorecard_ref = f"quality-scorecard:mas/{study_id}/high-quality-medical-manuscript"
     promotion_gate_ref = f"promotion-gate:mas/{study_id}/high-quality-medical-manuscript"
@@ -121,6 +133,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
                     "trace_refs": ["trace-ref:agent-lab/mas-high-quality-medical-manuscript"],
                     "authority_boundary": dict(AUTHORITY_BOUNDARY),
                 },
+                "mechanism_evolution_inputs": mechanism_inputs,
                 "scorecard": {
                     "scorecard_ref": scorecard_ref,
                     "domain_owned": True,
@@ -159,6 +172,7 @@ def build_medical_manuscript_quality_agent_lab_suite(
                         "regression-suite:mas/paper-authority-clean-migration",
                         "regression-suite:mas/prediction-model-first-draft-quality",
                         "regression-suite:mas/agent-lab-medical-manuscript-self-evolution",
+                        "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue",
                     ],
                     "no_forbidden_write_proof_refs": [
                         "no-forbidden-write:mas/agent-lab-medical-manuscript-quality"
@@ -219,6 +233,107 @@ def _blocker_refs(*, prose_status: str, feedback_ref: str | None, study_id: str)
             ]
         )
     return refs
+
+
+def _mechanism_evolution_inputs(
+    *,
+    root: Path,
+    study_id: str,
+    publication_eval_path: Path,
+    task_intake_path: Path,
+    feedback_ref: str | None,
+    evidence_refs: list[str],
+    blocker_refs: list[str],
+) -> dict[str, Any]:
+    research_wiki_refs = _existing_refs(
+        root / "artifacts" / "research_wiki" / "latest.json",
+        root / "paper" / "research_wiki.json",
+        root / "paper" / "route_memory.json",
+    )
+    failed_route_refs = _failed_route_refs(root=root, study_id=study_id)
+    reviewer_direct_evidence_refs = _existing_refs(
+        root / "paper" / "review" / "review_ledger.json",
+        root / "artifacts" / "publication_eval" / "latest.json",
+        root / "artifacts" / "publication_eval" / "medical_prose_review.json",
+        task_intake_path,
+    )
+    if feedback_ref is not None and feedback_ref not in reviewer_direct_evidence_refs:
+        reviewer_direct_evidence_refs.append(feedback_ref)
+    analysis_queue_manifest_refs = _existing_refs(
+        root / "artifacts" / "analysis_queue" / "latest.json",
+        root / "artifacts" / "analysis_campaign" / "queue_manifest.json",
+        root / "artifacts" / "analysis_campaign" / "latest_manifest.json",
+        root / "paper" / "analysis_queue.json",
+    )
+    return {
+        "surface_kind": "mas_agent_lab_mechanism_evolution_inputs",
+        "target_opl_surface": "opl_agent_lab_evolution_result",
+        "target_opl_cli": "opl agent-lab evolve --suite <suite.json> --json",
+        "automatic_mechanism_promotion_route": "risk_tiered_auto_promotion_with_independent_ai_review",
+        "research_wiki_refs": research_wiki_refs,
+        "failed_route_refs": failed_route_refs,
+        "reviewer_direct_evidence_refs": reviewer_direct_evidence_refs,
+        "analysis_queue_manifest_refs": analysis_queue_manifest_refs,
+        "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
+        "evidence_delta_refs": _unique_refs(
+            [
+                *evidence_refs,
+                *blocker_refs,
+                *research_wiki_refs,
+                *failed_route_refs,
+                *reviewer_direct_evidence_refs,
+                *analysis_queue_manifest_refs,
+            ]
+        ),
+        "independent_ai_review_receipt_ref": f"ai-reviewer-receipt:mas/{study_id}/mechanism-direct-evidence-review",
+        "version_ledger_ref": f"mechanism-version-ledger:mas/{study_id}/medical-manuscript-quality",
+        "rollback_ref": "mechanism-rollback-ref:mas/agent-lab-medical-manuscript-quality",
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "forbidden_writes": [
+            str(publication_eval_path),
+            "controller_decisions/latest.json",
+            "manuscript/current_package",
+            "paper/submission_minimal",
+            "publication-route-memory-body",
+        ],
+    }
+
+
+def _failed_route_refs(*, root: Path, study_id: str) -> list[str]:
+    refs = _json_refs(root / "artifacts" / "research_wiki" / "latest.json", "failed_routes")
+    refs.extend(_json_refs(root / "paper" / "research_wiki.json", "failed_routes"))
+    if refs:
+        return _unique_refs(refs)
+    return [f"failed-route:mas/{study_id}/medical-manuscript-quality-gap"]
+
+
+def _json_refs(path: Path, key: str) -> list[str]:
+    payload = _read_json_object(path)
+    values = payload.get(key)
+    if not isinstance(values, list):
+        return []
+    refs: list[str] = []
+    for item in values:
+        if isinstance(item, Mapping):
+            ref = _text(item.get("ref") or item.get("route_ref") or item.get("id"))
+            if ref:
+                refs.append(ref)
+        else:
+            ref = _text(item)
+            if ref:
+                refs.append(ref)
+    return refs
+
+
+def _unique_refs(refs: list[str]) -> list[str]:
+    unique: list[str] = []
+    seen: set[str] = set()
+    for ref in refs:
+        if not ref or ref in seen:
+            continue
+        seen.add(ref)
+        unique.append(ref)
+    return unique
 
 
 def _quality_dimension(publication_eval: Mapping[str, Any], dimension: str) -> dict[str, Any]:

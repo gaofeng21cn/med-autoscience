@@ -9,6 +9,11 @@ globals().update({
 })
 
 
+def _write_json(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def test_runtime_workspace_monolith_migrate_command_dispatches_controller(
     monkeypatch,
     tmp_path: Path,
@@ -259,3 +264,50 @@ def test_agent_lab_medical_manuscript_quality_suite_command_dispatches_controlle
         "reviewer_feedback_ref": "task-intake:gpt-5.5-review",
     }
     assert json.loads(captured.out)["surface_kind"] == "mas_agent_lab_medical_manuscript_quality_suite"
+
+
+def test_agent_lab_medical_manuscript_quality_suite_dry_run_exposes_mechanism_inputs(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    study_root = tmp_path / "workspace" / "studies" / "002-dm-china-us-mortality-attribution"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "underdefined",
+                    "summary": "AI reviewer must re-evaluate manuscript quality.",
+                }
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "research_wiki" / "latest.json",
+        {"failed_routes": [{"ref": "failed-route:internal-quality-language"}]},
+    )
+    _write_json(
+        study_root / "artifacts" / "analysis_queue" / "latest.json",
+        {"items": [{"ref": "analysis-queue:hdl-harmonization"}]},
+    )
+
+    exit_code = cli.main(
+        [
+            "agent-lab-medical-manuscript-quality-suite",
+            "--study-root",
+            str(study_root),
+            "--dry-run",
+        ]
+    )
+    output = json.loads(capsys.readouterr().out)
+    task = output["suite"]["tasks"][0]
+    mechanism_inputs = task["mechanism_evolution_inputs"]
+
+    assert exit_code == 0
+    assert mechanism_inputs["surface_kind"] == "mas_agent_lab_mechanism_evolution_inputs"
+    assert mechanism_inputs["target_opl_surface"] == "opl_agent_lab_evolution_result"
+    assert any("research_wiki/latest.json" in ref for ref in mechanism_inputs["research_wiki_refs"])
+    assert any("analysis_queue/latest.json" in ref for ref in mechanism_inputs["analysis_queue_manifest_refs"])
+    assert mechanism_inputs["authority_boundary"]["can_write_domain_truth"] is False

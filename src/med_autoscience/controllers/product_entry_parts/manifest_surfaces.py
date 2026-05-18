@@ -76,6 +76,39 @@ def _build_product_positioning() -> dict[str, Any]:
     }
 
 
+def _build_source_provenance_refs_surface() -> dict[str, Any]:
+    return _build_shared_source_provenance_surface(
+        summary=(
+            "MAS exposes MedDeepScientist and source-intake provenance as OPL-indexable refs only; "
+            "these refs do not define runtime dependency, source body ownership, or publication authority."
+        ),
+        source_provenance_ref={
+            "surface_kind": "source_provenance",
+            "ref": "docs/references/med-deepscientist/source_provenance.json",
+        },
+        historical_fixture_ref={
+            "surface_kind": "historical_fixture_ref",
+            "ref": "fixtures/med-deepscientist/parity/",
+        },
+        explicit_archive_import_ref={
+            "surface_kind": "explicit_archive_import_ref",
+            "command": "uv run python -m med_autoscience.cli backend-audit --mode archive-import",
+        },
+        parity_oracle_ref={
+            "surface_kind": "parity_oracle_ref",
+            "ref": "program:med_deepscientist_retained_capability_parity",
+        },
+        authority_boundary=[
+            "mas_runtime_core_is_default_runtime_owner",
+            "source_refs_do_not_define_runtime_dependency",
+            "archive_import_is_explicit_one_way_provenance",
+            "opl_projection_reads_refs_only",
+        ],
+        capability_classification="source_provenance_only",
+        recommended_audit_command="uv run python -m med_autoscience.cli backend-audit",
+    )
+
+
 def build_product_entry_manifest(
     *,
     profile: WorkspaceProfile,
@@ -304,6 +337,7 @@ def build_product_entry_manifest(
         profile_ref=profile_ref,
     )
     phase4_backend_deconstruction = _build_phase4_backend_deconstruction()
+    source_provenance = _build_source_provenance_refs_surface()
     phase5_platform_target = _build_phase5_platform_target()
     product_entry_quickstart = _build_shared_product_entry_quickstart(
         summary=(
@@ -672,6 +706,7 @@ def build_product_entry_manifest(
             "product_entry_guardrails": product_entry_guardrails,
             "phase3_clearance_lane": phase3_clearance_lane,
             "phase4_backend_deconstruction": phase4_backend_deconstruction,
+            "source_provenance": source_provenance,
             "phase5_platform_target": phase5_platform_target,
             "product_positioning": _build_product_positioning(),
             "functional_consumer_boundary": consumer_migration.build_functional_consumer_boundary(),

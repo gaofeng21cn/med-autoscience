@@ -61,6 +61,58 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
     assert task["authority_boundary"]["can_mutate_domain_artifact"] is False
 
 
+def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_reviewer_and_analysis_queue(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.agent_lab_medical_manuscript_quality")
+    study_root = tmp_path / "studies" / "002-dm-china-us-mortality-attribution"
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "assessment_provenance": {"owner": "ai_reviewer", "ai_reviewer_required": False},
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "underdefined",
+                    "summary": "AI reviewer must re-evaluate manuscript quality.",
+                }
+            },
+        },
+    )
+    _write_json(
+        study_root / "paper" / "review" / "review_ledger.json",
+        {"review_items": [{"ref": "review-ref:hdl-harmonization"}]},
+    )
+    _write_json(
+        study_root / "artifacts" / "controller" / "task_intake" / "latest.json",
+        {"task_intent": "reviewer_revision", "summary": "HDL harmonization and calibration repair."},
+    )
+    _write_json(
+        study_root / "artifacts" / "analysis_queue" / "latest.json",
+        {"items": [{"ref": "analysis-queue:hdl-harmonization"}]},
+    )
+    _write_json(
+        study_root / "artifacts" / "research_wiki" / "latest.json",
+        {"failed_routes": [{"ref": "failed-route:internal-quality-language"}]},
+    )
+
+    suite = module.build_medical_manuscript_quality_agent_lab_suite(study_root=study_root)
+    task = suite["tasks"][0]
+    inputs = task["mechanism_evolution_inputs"]
+
+    assert inputs["surface_kind"] == "mas_agent_lab_mechanism_evolution_inputs"
+    assert inputs["target_opl_surface"] == "opl_agent_lab_evolution_result"
+    assert inputs["automatic_mechanism_promotion_route"] == "risk_tiered_auto_promotion_with_independent_ai_review"
+    assert inputs["authority_boundary"]["can_write_memory_body"] is False
+    assert inputs["authority_boundary"]["can_authorize_quality_verdict"] is False
+    assert any("research_wiki/latest.json" in ref for ref in inputs["research_wiki_refs"])
+    assert any("failed-route" in ref for ref in inputs["failed_route_refs"])
+    assert any("review_ledger.json" in ref for ref in inputs["reviewer_direct_evidence_refs"])
+    assert any("task_intake/latest.json" in ref for ref in inputs["reviewer_direct_evidence_refs"])
+    assert any("analysis_queue/latest.json" in ref for ref in inputs["analysis_queue_manifest_refs"])
+    assert "mechanism-edit-ref:mas/analysis-campaign-queue-routing" in inputs["target_editable_surface_refs"]
+    assert "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue" in task["promotion_gate"]["regression_suite_refs"]
+
+
 def test_medical_manuscript_quality_agent_lab_suite_materializes_refs_only_surface(
     tmp_path: Path,
 ) -> None:

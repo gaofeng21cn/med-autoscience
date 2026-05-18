@@ -37,6 +37,36 @@ def test_build_product_entry_manifest_projects_contract_bundle_with_product_entr
     assert "user_interaction_contract" in payload
     assert "product_entry_surface" in payload
 
+def test_build_product_entry_manifest_exposes_source_provenance_refs_for_opl_projection(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+
+    payload = module.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    source_provenance = payload["source_provenance"]
+
+    assert source_provenance["surface_kind"] == "source_provenance"
+    assert source_provenance["capability_classification"] == "source_provenance_only"
+    assert source_provenance["source_provenance_ref"] == {
+        "surface_kind": "source_provenance",
+        "ref": "docs/references/med-deepscientist/source_provenance.json",
+    }
+    assert source_provenance["historical_fixture_ref"] == {
+        "surface_kind": "historical_fixture_ref",
+        "ref": "fixtures/med-deepscientist/parity/",
+    }
+    assert source_provenance["explicit_archive_import_ref"] == {
+        "surface_kind": "explicit_archive_import_ref",
+        "command": "uv run python -m med_autoscience.cli backend-audit --mode archive-import",
+    }
+    assert source_provenance["parity_oracle_ref"] == {
+        "surface_kind": "parity_oracle_ref",
+        "ref": "program:med_deepscientist_retained_capability_parity",
+    }
+    assert "source_refs_do_not_define_runtime_dependency" in source_provenance["authority_boundary"]
+
 def test_build_product_entry_status_projects_contract_bundle_from_manifest(
     monkeypatch,
     tmp_path: Path,
