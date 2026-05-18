@@ -373,7 +373,13 @@ def test_execute_dispatch_routes_terminal_source_provenance_blocker_to_decision_
     assert decision["route_target"] == "analysis-campaign"
     assert decision["requires_human_confirmation"] is False
     assert decision["work_unit_fingerprint"] == "decision::methodology_reframe_route_decision"
-    assert decision["next_work_unit"]["unit_id"] == "methodology_reframe_route_decision"
+    assert decision["next_work_unit"]["unit_id"] == "medical_prose_quality_analysis_source_documentation_repair"
+    assert decision["next_work_unit"]["lane"] == "analysis-campaign"
+    assert decision["next_work_unit"]["required_owner"] == "analysis_harmonization_owner"
+    assert decision["next_work_unit"]["required_next_work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert execution["owner_result"]["selected_next_work_unit"]["unit_id"] == (
+        "medical_prose_quality_analysis_source_documentation_repair"
+    )
     assert decision["controller_actions"][0]["action_type"] == "ensure_study_runtime"
     assert not (study_root / "manuscript").exists()
     assert not (study_root / "paper").exists()

@@ -696,8 +696,8 @@ def test_scan_does_not_requeue_methodology_reframe_after_controller_decision_mat
             "route_rationale": "Route back for methodology reframe before manuscript work.",
             "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
             "next_work_unit": {
-                "unit_id": "methodology_reframe_route_decision",
-                "owner": "decision",
+                "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+                "lane": "analysis-campaign",
                 "route_options": [
                     "stop_loss_current_transport_claim",
                     "provenance_limited_harmonization_audit",

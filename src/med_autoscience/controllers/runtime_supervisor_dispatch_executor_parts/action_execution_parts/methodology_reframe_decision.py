@@ -27,6 +27,19 @@ METHODOLOGY_REFRAME_DECISION_OPTIONS = (
     "rebuild_reproducible_model_route",
     "human_gate",
 )
+METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT = {
+    "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+    "lane": "analysis-campaign",
+    "summary": (
+        "Reframe the invalid transported-model claim by materializing a provenance-limited "
+        "harmonization audit, reproducible-model restart plan, stop-loss evidence, or human-gate blocker."
+    ),
+    "hard_methodology": True,
+    "required_owner": "analysis_harmonization_owner",
+    "required_next_work_unit": "unit_harmonized_external_validation_rerun",
+    "typed_blocker": "unit_harmonized_rerun_required",
+    "route_options": list(METHODOLOGY_REFRAME_DECISION_OPTIONS),
+}
 
 
 def execute(
@@ -93,6 +106,7 @@ def _owner_result(*, study_id: str, request_path: Path, decision_path: Path, dec
         "next_owner": "decision",
         "route_decision": "route_back_same_line",
         "route_target": "analysis-campaign",
+        "selected_next_work_unit": dict(METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT),
         "route_options": list(METHODOLOGY_REFRAME_DECISION_OPTIONS),
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
@@ -127,6 +141,7 @@ def _request(*, study_id: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:
         "blocked_reason": "methodology_reframe_required",
         "next_owner": "decision",
         "next_work_unit": "methodology_reframe_route_decision",
+        "selected_next_work_unit": dict(METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT),
         "required_output_surface": required_output_surface,
         "owner_route": owner_route,
         "idempotency_key": _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key")),
@@ -199,21 +214,20 @@ def _decision_record(
         ),
         source_route_key_question="methodology_reframe_required",
         work_unit_fingerprint="decision::methodology_reframe_route_decision",
-        next_work_unit={
-            "unit_id": "methodology_reframe_route_decision",
-            "owner": "decision",
-            "required_output": (
-                "controller route decision for a provenance-limited reframe, reproducible-model restart, "
-                "stop-loss, or human gate"
-            ),
-            "route_options": list(METHODOLOGY_REFRAME_DECISION_OPTIONS),
-        },
+        next_work_unit=dict(METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT),
         blocking_work_units=(
             {
                 "unit_id": "recover_transport_model_provenance",
                 "owner": "source_provenance_owner",
                 "blocked_reason": "transport_model_provenance_recovery_required",
                 "terminal_blocker_consumed": True,
+            },
+            {
+                "unit_id": "methodology_reframe_route_decision",
+                "owner": "decision",
+                "blocked_reason": "methodology_reframe_required",
+                "terminal_blocker_consumed": True,
+                "route_options": list(METHODOLOGY_REFRAME_DECISION_OPTIONS),
             },
         ),
     )
@@ -296,4 +310,3 @@ __all__ = [
     "METHODOLOGY_REFRAME_DECISION_OPTIONS",
     "execute",
 ]
-
