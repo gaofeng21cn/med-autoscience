@@ -13,6 +13,11 @@ that let OPL discover, index, and validate MAS package metadata without owning
 MAS medical research truth, quality verdicts, runtime owner surfaces, artifact
 authority, or publication authority.
 
+AI-first quality contracts assume separate agent tasks for execution and
+review/audit. Executor receipts and reviewer/auditor receipts must come from
+independent invocations with separate task/context records; self-review by the
+same execution agent is not valid quality-gate evidence.
+
 Current contract families:
 
 - `contracts/domain_descriptor.json`, `contracts/pack_compiler_input.json`, `contracts/generated_surface_handoff.json`, `contracts/action_catalog.json`, `contracts/stage_control_plane.json`, `contracts/memory_descriptor.json`, `contracts/artifact_locator_contract.json`, `contracts/owner_receipt_contract.json`, `contracts/functional_privatization_audit.json`, and `contracts/private_functional_surface_policy.json`: OPL standard domain-agent pack inputs. OPL compiles these into generated interface descriptors; MAS local CLI, MCP, product-entry, sidecar, controller, and durable workspace commands stay as domain action targets and authority functions.
@@ -35,6 +40,10 @@ OPL-compatible package。机器可读产品定位由 product-entry manifest 持�
 OPL 发现、索引和验证 MAS package metadata 所需的 contract 家族，不让 OPL 持有 MAS 的
 medical research truth、quality verdict、runtime owner surface、artifact authority 或
 publication authority。
+
+AI-first quality contract 默认要求执行与审阅/审计是独立 agent task。executor receipt 与
+reviewer/auditor receipt 必须来自独立 invocation，并有分开的 task/context record；同一个
+执行 agent 的自审不能作为关闭 quality gate 的证据。
 
 当前 contract 家族：
 

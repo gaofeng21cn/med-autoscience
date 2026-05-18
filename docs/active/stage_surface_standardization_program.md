@@ -25,7 +25,7 @@ Stage card
   -> OPL descriptor / artifact locator projection
 ```
 
-这条链路的核心原则是：OPL 承载 stage attempt、queue、wakeup、retry/dead-letter、human gate transport、receipt 和 projection；MAS 持有医学研究路线、证据、质量、publication verdict、artifact authority 和 owner route。
+这条链路的核心原则是：OPL 承载 stage attempt、queue、wakeup、retry/dead-letter、human gate transport、receipt 和 projection；MAS 持有医学研究路线、证据、质量、publication verdict、artifact authority 和 owner route。这里的 `verdict` 必须是 AI-first stage quality gate 的审阅结果，不是脚本函数的直接返回值。程序只能校验 reviewer record / quality pack output / evidence refs 的完整性，持久化 durable surface，签发 owner receipt 或 typed blocker，并阻止 OPL/App/provider 越权写 MAS truth。
 
 ## 理想形态
 
@@ -41,7 +41,7 @@ Stage card
 | `closeout` | 每个能产生 reusable lesson、failed path、route impact、citation gap 或 reviewer lesson 的 stage 都有 `stage_memory_closeout_packet` 和 router receipt 规则。 |
 | `deliverable review page` | 每个 stage 的最终人读交付物统一收敛成一页 `Stage Deliverable Review Page`，供论文人工审阅者判断该 stage 是否能进入下一步；它是可选人工审阅记录，不是默认卡点。 |
 | `deliverable index` | 每条 paper line 有一个 `Stage Deliverable Index`，按 stage 列出最新 review page、源 artifact refs、owner receipt、freshness、人工判断状态和下一步；索引只做 locator/projection，不改 MAS truth。 |
-| `quality gate` | 每个 stage 都有医学、统计、证据、写作或投稿质控 rubric；ready / done / pass 只能由对应 MAS owner truth surface 支撑。 |
+| `quality gate` | 每个 stage 都有医学、统计、证据、写作或投稿质控 rubric；ready / done / pass 只能由 AI-first reviewer / quality-pack record、evidence refs、reviewer OS trace、route-back reason 或 typed blocker 支撑。代码不得用规则、regex、固定分支或 fallback 直接替代医学 judgment。 |
 | `artifact locator` | repo 只保存 contract、prompt、policy、schema、Markdown memory body、seed index 和 locator；真实 workspace artifact body 留在 workspace/runtime root。 |
 | `OPL projection` | OPL 只消费 descriptor、refs、freshness、attempt receipt 和 source locator；不生成医学 truth、不接受 memory writeback、不授权 publication readiness。 |
 
@@ -60,6 +60,22 @@ Stage card
 | `runtime/artifact_locator/` | Artifact OS | workspace/runtime artifact root locator refs，不保存 artifact body。 |
 
 短期不需要一次性物理搬目录；当前更重要的是先统一概念、字段和入口，再按低风险方式逐步迁移。
+
+### AI-first verdict 口径
+
+`publication_quality_verdict`、`ai_reviewer_quality_decision`、`source_readiness_verdict`、`artifact_mutation_authorization` 和 `publication_route_memory_accept_reject` 都不能被维护者理解成“某个 Python 函数算出最终结论”。它们是 stage 质控链路上的 authority boundary：
+
+| boundary | standard stage form | program role |
+| --- | --- | --- |
+| `ai_reviewer_quality_decision` | `review` stage 的 AI reviewer record、reviewer OS trace、route-back / pass / blocker 判断。 | 校验 reviewer output currentness、provenance 和必需字段；持久化 `medical_prose_review` / AI reviewer-backed eval；缺失时 fail closed。 |
+| `publication_quality_verdict` | `write` / `review` / `finalize` stage 组合后的 submission-facing quality gate。 | 汇总 AI reviewer、publication gate、evidence/review ledger 和 artifact freshness refs；不能直接替代 reviewer judgment。 |
+| `source_readiness_verdict` | `scout` / source-intake stage 对数据、文献、cohort、endpoint 和 evidence boundary 的 AI-first readiness 判断。 | 校验 source refs、readiness rationale 和 blocker；不把文件存在性当作医学 readiness。 |
+| `artifact_mutation_authorization` | `write` / `finalize` / delivery stage 在 quality gate 允许后的 artifact mutation gate。 | 只在 owner receipt 和 freshness proof 成立时允许写 canonical manuscript / package；不生成医学质量结论。 |
+| `publication_route_memory_accept_reject` | stage closeout 的 reusable lesson review。 | 校验 proposal、reason、route family 和 writeback receipt；不让 OPL 或普通 transport 决定 memory body。 |
+
+因此，MAS 可以有 validator、materializer、receipt signer 和 guard 函数；但这些函数只服务 AI-first stage output 的可信落账，不拥有医学结论本身。
+
+AI-first stage output 必须来自与执行 agent 分离的 reviewer/auditor agent。标准链路是：executor agent 在一个 stage attempt 中产出工作、artifact/source/evidence refs 和 execution receipt；reviewer/auditor agent 通过新的 invocation 读取这些 refs，使用独立 context/task record 产出 AI reviewer record、audit receipt、route-back reason 或 typed blocker。`Codex CLI` 可以作为 executor；reviewer/auditor 也可以由 Codex CLI 以新的独立任务承担，但不能复用同一上下文让执行者审阅自己。缺少独立 reviewer/auditor record 时，quality gate 必须 fail closed 或 route back。
 
 ## 当前状态
 
@@ -110,6 +126,7 @@ Stage card
 | Production provider-hosted live apply 仍未闭合 | 只能说 stage skill surfaces landed、descriptor / adapter ready、provider projection 与 typed blocker proof landed；不能说 production-hosted paper automation 已完成。 | 真实 provider attempt 在 paper line 上留下 `attempt query -> typed closeout -> MAS owner receipt -> artifact delta / gate replay / human gate / stop-loss / typed blocker`。 |
 | OPL production provider residency proof 已落地，MAS managed-state read model 已收口，真实 domain activity soak 仍未收口 | 当前 OPL production proof 已显示 `production_residency_proven`，MAS product-entry / sidecar ingestion 可把 provider availability 切到 available，并暴露 managed service / worker state consistency projection；剩余风险是真实 MAS domain activity 长时运行证据，以及 OPL App/status 面消费同一 projection。 | OPL `family-runtime status --provider temporal` 与 MAS `managed_temporal_state_consistency` 同口径显示；真实 domain activity attempt 能 re-query、restart、retry/dead-letter，并串到 MAS sidecar dispatch receipt。 |
 | Stage prompt、policy、quality rubric 仍需要持续守住 owner boundary | 新增或修改 skill 时必须继续消费 stage card、canonical route contract、stage knowledge obligations、quality pack refs、RH clean-room gates 和 MAS owner closeout packet，不能回退为 Markdown-only 规则。 | overlay / agent-entry asset validation 加上 focused route/knowledge/quality contract tests；新增 stage skill 必须带 machine-derived surface block。 |
+| AI-first verdict alignment 仍需完成 | 当前 authority/function wording 容易让维护者误读为脚本直接裁决；必须把 verdict 明确写成 standard stage quality gate 的 AI-first output，并要求 executor 与 reviewer/auditor 独立调用。 | 每个 verdict surface 都能追到独立 reviewer/auditor invocation、task/context record、reviewer / quality-pack record、evidence refs、reviewer OS trace、route-back 或 typed blocker；focused tests 防止 self-review、mechanical projection、regex、fallback 或普通脚本替代 quality judgment。 |
 | 真实 paper-line review/index instance 仍需继续扩展 | repo-level workspace locator proof 已能物化 review page / index 并由 Portal / Workbench 只读展示；仍不能说 production provider-hosted paper automation 已自动生成真实论文线 closeout。 | provider-hosted attempt 在真实 paper line 上触发 MAS owner closeout，并留下 owner receipt、review/index locator、artifact freshness、gate replay 或 typed blocker。 |
 | publication-route memory 仍需更多真实 receipt 泛化 | body-free receipt inventory、operator grouping 和 stale/deprecated review summary 已能投影 migration/writeback accepted/rejected refs；更多 accepted / rejected reusable lessons 仍需从真实论文线进入 workspace memory pack。 | 多 paper-line `stage-memory-closeout-route -> memory_write_router_receipt -> inventory/export` proof，覆盖 accepted、rejected、route-back lessons、grouping 和 review summary。 |
 | repo-source skeleton 已有 physical anchors，仍需后续按新增 surface 持续使用 | `standard_domain_agent_skeleton.repo_source_anchor_status` 已证明最小 physical anchors；真实 workspace artifact body 仍 locator-only。 | 新增 material 默认按标准 slot 落位；现有路径只保留明确 repo mapping、生成资产或 locator/provenance。 |
@@ -125,6 +142,7 @@ Stage card
 | `stage_review_index_live_provider_followthrough` | `functional_follow_through_gate` | `planned; workspace_locator_proof_landed` | Live provider attempt 触发 MAS owner closeout 后产生 latest review page / index refs、freshness、claim impact、human annotation、next owner 或 typed blocker。 |
 | `standard_skeleton_physicalization` | `functional_follow_through_gate` | `planned; repo_source_anchors_landed` | 新 repo-source surface 默认按 standard slot 落位；破坏性目录移动必须有 direct/hosted parity、provenance、restore 和 no-forbidden-write proof。 |
 | `stage_closeout_owner_chain` | `production_evidence_gate` | `planned; guarded_apply_harness_landed` | Provider-hosted live apply 产出 MAS owner receipt，证明 stage closeout / memory / quality / artifact delta 沿 MAS owner surface 闭合，或返回 typed blocker。 |
+| `ai_first_verdict_alignment` | `functional_follow_through_gate` | `required; authority_wording_split_pending` | `publication_quality_verdict`、`ai_reviewer_quality_decision`、`source_readiness_verdict` 等必须由独立 reviewer/auditor agent 产生的 AI-first stage quality gate 输出支撑；程序只做 validator / materializer / receipt signer / guard。 |
 
 ## 距离理想情况
 

@@ -387,11 +387,12 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
         "minimal_authority_function": 3,
         "legacy_cleanup_no_active_caller_gate": 2,
     }
-    assert runtime_boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 0
+    assert runtime_boundary["functional_module_inventory_summary"]["classification_gap_count"] == 0
+    assert runtime_boundary["functional_module_inventory_summary"]["functional_structure_gap_count"] == 5
     assert runtime_boundary["functional_module_inventory_summary"]["active_private_generic_residue_count"] == 0
     assert (
         runtime_boundary["functional_module_inventory_summary"]["remaining_gap_classification"]
-        == "test_evidence_gates_only"
+        == "functional_followthrough_and_test_evidence_gates"
     )
     assert runtime_boundary["functional_module_inventory_summary"][
         "long_term_opl_owned_replacement_count"
@@ -401,16 +402,25 @@ def test_mas_functional_consumer_lane_freezes_generic_surface_handoff() -> None:
     ] == 0
     assert lane["functional_gap_zero_summary"] == runtime_boundary["functional_gap_zero_summary"]
     zero_summary = lane["functional_gap_zero_summary"]
-    assert zero_summary["status"] == "zero_functional_structure_gaps_remaining_evidence_gated"
-    assert zero_summary["functional_structure_gap_count"] == 0
+    assert zero_summary["status"] == "classification_closed_followthrough_gaps_open"
+    assert zero_summary["classification_gap_count"] == 0
+    assert zero_summary["functional_structure_gap_count"] == 5
     assert zero_summary["active_private_generic_residue_count"] == 0
-    assert zero_summary["remaining_gap_classification"] == "test_evidence_gates_only"
-    assert zero_summary["remaining_items_are_evidence_gates"] is True
-    assert zero_summary["legacy_cleanup_items_are_remaining_active_gaps"] is False
+    assert zero_summary["remaining_gap_classification"] == (
+        "functional_followthrough_and_test_evidence_gates"
+    )
+    assert zero_summary["remaining_items_are_evidence_gates"] is False
+    assert zero_summary["legacy_cleanup_items_are_remaining_active_gaps"] is True
     assert zero_summary["legacy_cleanup_items_have_default_entry"] is False
     assert zero_summary["legacy_cleanup_items_have_standard_template_refs"] is False
-    assert zero_summary["remaining_evidence_gate_ids"] == [
+    assert zero_summary["remaining_functional_followthrough_gate_ids"] == [
         "generated_surface_active_caller_cutover",
+        "refs_only_adapter_thinning",
+        "legacy_cleanup_physical_retirement",
+        "opl_app_workbench_drilldown",
+        "lifecycle_locator_retention_restore_ledger_reconciliation",
+    ]
+    assert zero_summary["remaining_evidence_gate_ids"] == [
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
         "artifact_lifecycle_receipt_scaleout",

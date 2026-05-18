@@ -66,13 +66,98 @@ DECLARATIVE_DOMAIN_PACK = [
 ]
 
 MINIMAL_AUTHORITY_FUNCTIONS = [
+    "publication_quality_stage_gate_boundary",
+    "ai_reviewer_quality_stage_gate_boundary",
+    "artifact_mutation_stage_gate_boundary",
+    "publication_route_memory_accept_reject_stage_gate_boundary",
+    "source_readiness_stage_gate_boundary",
+    "owner_receipt_signer",
+    "medical_native_helper_implementation",
+]
+BACKWARD_READABLE_MINIMAL_AUTHORITY_IDS = [
     "publication_quality_verdict_authorizer",
     "ai_reviewer_quality_decision_authorizer",
     "artifact_mutation_authorizer",
     "publication_route_memory_accept_reject_decider",
     "source_readiness_verdict_authorizer",
-    "owner_receipt_signer",
-    "medical_native_helper_implementation",
+]
+FORBIDDEN_MECHANICAL_DECISION_SURFACES = [
+    "script_exit_code_as_publication_quality_verdict",
+    "function_return_value_as_ai_reviewer_quality_decision",
+    "test_pass_as_artifact_mutation_authorization",
+    "queue_completion_as_publication_route_memory_accept_reject",
+    "file_presence_as_source_readiness_verdict",
+]
+STAGE_QUALITY_GATE_BOUNDARIES = [
+    {
+        "boundary_id": "publication_quality_stage_gate_boundary",
+        "legacy_readable_id": "publication_quality_verdict_authorizer",
+        "program_role": "validator",
+        "requires_ai_first_record": True,
+        "trace_refs": [
+            "stage_quality_pack:publication_quality",
+            "publication_eval/latest.json",
+            "review_ledger",
+            "evidence_ledger",
+        ],
+        "route_back_semantics": "route_back_to_review_or_revision_stage",
+        "typed_blocker_semantics": "publication_quality_blocker",
+    },
+    {
+        "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
+        "legacy_readable_id": "ai_reviewer_quality_decision_authorizer",
+        "program_role": "validator",
+        "requires_ai_first_record": True,
+        "trace_refs": [
+            "AI reviewer workflow",
+            "AI reviewer-backed publication eval",
+            "stage_quality_pack:ai_reviewer_quality",
+        ],
+        "route_back_semantics": "route_back_to_ai_reviewer_repair_stage",
+        "typed_blocker_semantics": "ai_reviewer_quality_blocker",
+    },
+    {
+        "boundary_id": "artifact_mutation_stage_gate_boundary",
+        "legacy_readable_id": "artifact_mutation_authorizer",
+        "program_role": "materializer",
+        "requires_ai_first_record": True,
+        "trace_refs": [
+            "stage_quality_pack:artifact_materialization",
+            "canonical manuscript",
+            "current_package",
+            "artifact rebuild proof",
+        ],
+        "route_back_semantics": "route_back_to_artifact_rebuild_or_source_revision_stage",
+        "typed_blocker_semantics": "artifact_mutation_blocker",
+    },
+    {
+        "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
+        "legacy_readable_id": "publication_route_memory_accept_reject_decider",
+        "program_role": "guard",
+        "requires_ai_first_record": True,
+        "trace_refs": [
+            "publication-route memory body",
+            "memory writeback proposal",
+            "memory writeback router receipt",
+            "stage_quality_pack:publication_route_memory",
+        ],
+        "route_back_semantics": "route_back_to_memory_writeback_repair_stage",
+        "typed_blocker_semantics": "publication_route_memory_writeback_blocker",
+    },
+    {
+        "boundary_id": "source_readiness_stage_gate_boundary",
+        "legacy_readable_id": "source_readiness_verdict_authorizer",
+        "program_role": "validator",
+        "requires_ai_first_record": True,
+        "trace_refs": [
+            "study charter",
+            "source readiness checks",
+            "evidence ledger",
+            "stage_quality_pack:source_readiness",
+        ],
+        "route_back_semantics": "route_back_to_source_intake_or_study_design_stage",
+        "typed_blocker_semantics": "source_readiness_blocker",
+    },
 ]
 
 
@@ -158,6 +243,14 @@ def _pack_compiler_input() -> dict[str, Any]:
         "generated_surface_owner": GENERATED_SURFACE_OWNER,
         "declarative_domain_pack": DECLARATIVE_DOMAIN_PACK,
         "minimal_authority_functions": MINIMAL_AUTHORITY_FUNCTIONS,
+        "minimal_authority_semantic_model": (
+            "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
+        ),
+        "boundary_ids": MINIMAL_AUTHORITY_FUNCTIONS[:5],
+        "stage_quality_gate_boundaries": STAGE_QUALITY_GATE_BOUNDARIES,
+        "backward_readable_minimal_authority_ids": BACKWARD_READABLE_MINIMAL_AUTHORITY_IDS,
+        "forbidden_mechanical_decision_surfaces": FORBIDDEN_MECHANICAL_DECISION_SURFACES,
+        "requires_ai_first_record": True,
         "generated_surfaces_requested": GENERATED_SURFACES,
         "domain_repo_can_own_generated_surface": False,
         "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
@@ -306,10 +399,18 @@ def _private_functional_surface_policy() -> dict[str, Any]:
             "generic_observability_runtime",
         ],
         "allowed_private_surface_classes": [
-            "minimal_authority_function",
+            "ai_first_stage_quality_gate_boundary",
             "domain_native_helper_implementation",
-            "domain_truth_verdict_authorizer",
+            "owner_receipt_signer",
         ],
+        "backward_readable_legacy_ids": BACKWARD_READABLE_MINIMAL_AUTHORITY_IDS,
+        "forbidden_primary_allowed_private_surface_models": [
+            "domain_truth_verdict_authorizer",
+            "*_authorizer",
+        ],
+        "forbidden_mechanical_decision_surfaces": FORBIDDEN_MECHANICAL_DECISION_SURFACES,
+        "requires_ai_first_record": True,
+        "stage_quality_gate_boundaries": STAGE_QUALITY_GATE_BOUNDARIES,
         "forbidden_generic_owner_roles": FORBIDDEN_GENERIC_OWNER_ROLES,
     }
 

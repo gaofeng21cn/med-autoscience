@@ -25,6 +25,8 @@
 
 `publication_eval/latest.json` 是医学论文质量投影的关键出口，但只有 AI reviewer-backed 记录可以关闭 reviewer-first ready / finalize-ready 判断。`claim-only ready`、generic persona QA、non-medical QA gate、OPL projection-only 状态都不能成为 MAS medical paper quality authority。
 
+OPL 托管 stage attempt 时也必须保持 executor/reviewer 分离：执行 agent 只产生 stage work、execution receipt 和 artifact/source refs；reviewer/auditor agent 必须以独立 invocation 读取这些 refs，使用独立 context/task record 生成 AI reviewer / audit receipt。把同一 executor 的“执行后自评”包装成 reviewer record 不能关闭 MAS quality projection。
+
 ## Incident Projection
 
 `MAS` 通过 `runtime_watch`、`artifacts/autonomy/slo_status/latest.json`、`artifacts/autonomy/ai_doctor_requests/*.json`、`artifacts/autonomy/ai_doctor_diagnoses/*.json`、`artifacts/autonomy/repair_actions/*.json`、autonomy incident records 和 `controller_decisions/latest.json` 映射 `opl_family_incident_learning_loop.v1`。真实 incident 必须回流成 guard、test、contract、runbook、taxonomy update 或 operator projection；domain-specific failure 必须有 MAS-owned closure ref。`OPL` 可以消费 runtime_slo_observer、ai_doctor_request 与 repair_action 投影，但不持有 MAS 医学 truth 或 repair closure。
