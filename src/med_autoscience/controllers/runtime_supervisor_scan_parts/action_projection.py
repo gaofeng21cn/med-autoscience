@@ -613,10 +613,7 @@ def _methodology_reframe_route_decision_materialized(study_root: Path) -> bool:
     return (
         _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
         and _text(decision.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
-        and _text(next_work_unit.get("unit_id")) in {
-            "methodology_reframe_route_decision",
-            "medical_prose_quality_analysis_source_documentation_repair",
-        }
+        and _text(next_work_unit.get("unit_id")) == "medical_prose_quality_analysis_source_documentation_repair"
     )
 
 

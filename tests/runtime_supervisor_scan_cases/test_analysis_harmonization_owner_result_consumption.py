@@ -758,3 +758,93 @@ def test_scan_does_not_requeue_methodology_reframe_after_controller_decision_mat
     assert study["blocked_reason"] == "methodology_reframe_required"
     assert study["next_owner"] == "decision"
     assert study["owner_route"]["allowed_actions"] == []
+
+
+def test_scan_requeues_stale_self_loop_methodology_reframe_decision(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    quest_root.mkdir(parents=True)
+    write_text(quest_root / "quest.yaml", f"quest_id: {quest_id}\nstudy_id: {study_id}\n")
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::stale-self-loop",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+        "recommended_actions": [],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller" / "source_provenance" / "latest.json",
+        {
+            "surface": "source_provenance_owner_result",
+            "schema_version": 1,
+            "study_id": study_id,
+            "owner": "source_provenance_owner",
+            "work_unit": "recover_transport_model_provenance",
+            "status": "blocked",
+            "blocked_reason": "transport_model_provenance_recovery_required",
+            "typed_blocker_owner": "source_provenance_owner",
+            "typed_blocker": {"blocker_id": "transport_model_provenance_recovery_required"},
+            "transport_model_provenance_recovered": False,
+            "provenance_search": {
+                "searched": True,
+                "accepted_bundle_ref": None,
+                "result_summary_acceptance_allowed": False,
+                "substitute_refit_allowed": False,
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "study-decision::dm002::stale-methodology-self-loop",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "decision_type": "route_back_same_line",
+            "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
+            "next_work_unit": {"unit_id": "methodology_reframe_route_decision", "owner": "decision"},
+        },
+    )
+    status_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "active_run_id": None,
+        "publication_eval": publication_eval,
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "analysis-campaign",
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "ai_repair_lifecycle": {"state": "blocked", "blocked_reason": "domain_transition_ai_reviewer_re_eval"},
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == ["methodology_reframe_route_decision"]

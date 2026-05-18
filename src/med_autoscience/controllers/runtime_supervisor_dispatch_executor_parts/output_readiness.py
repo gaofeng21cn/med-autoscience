@@ -83,7 +83,8 @@ def methodology_reframe_route_decision_output_pending(*, profile: WorkspaceProfi
     return not (
         _text(payload.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
         and _text(payload.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
-        and _text(_mapping(payload.get("next_work_unit")).get("unit_id")) == "methodology_reframe_route_decision"
+        and _text(_mapping(payload.get("next_work_unit")).get("unit_id"))
+        == "medical_prose_quality_analysis_source_documentation_repair"
     )
 
 
