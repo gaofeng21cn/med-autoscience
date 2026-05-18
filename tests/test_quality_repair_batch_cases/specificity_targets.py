@@ -356,3 +356,91 @@ def test_run_quality_repair_batch_prefers_latest_controller_decision_over_stale_
         "analysis_claim_evidence_repair"
     )
     assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == "analysis_claim_evidence_repair"
+
+
+def test_run_quality_repair_batch_uses_paper_write_for_medical_prose_methodology_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    profile = make_profile(tmp_path)
+    study_root = write_study(
+        profile.workspace_root,
+        "002-dm",
+        study_archetype="clinical_classifier",
+        endpoint_type="time_to_event",
+        manuscript_family="prediction_model",
+    )
+    quest_id = "quest-002"
+    publication_eval_payload = _write_blocked_publication_eval(study_root, quest_id=quest_id)
+    _write_quality_summary(study_root)
+    work_unit_id = "medical_prose_quality_analysis_source_documentation_repair"
+    route_context = {
+        "control_plane_snapshot": {
+            "surface": "control_plane_snapshot",
+            "control_state": "supervisor_gated",
+            "canonical_next_action": "resume_same_study_line",
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+            "dispatch_gate": {
+                "state": "blocked",
+                "blocking_reasons": ["publication_supervisor_state.bundle_tasks_downstream_only"],
+            },
+            "route_authorization": {
+                "authorized": False,
+                "paper_write_allowed": True,
+                "bundle_build_allowed": False,
+                "runtime_recovery_allowed": True,
+            },
+        },
+        "controller_route_context": {
+            "control_surface": "quality_repair_batch",
+            "controller_action_type": "run_quality_repair_batch",
+            "work_unit_id": work_unit_id,
+            "requires_human_confirmation": False,
+            "source_eval_id": publication_eval_payload["eval_id"],
+            "work_unit_fingerprint": (
+                "domain-transition::ai_reviewer_re_eval::medical_prose_quality_route_back_analysis"
+            ),
+        },
+    }
+    gate_report = {
+        "status": "blocked",
+        "current_required_action": "return_to_publishability_gate",
+        "blockers": ["medical_publication_surface_blocked"],
+        "medical_publication_surface_status": "blocked",
+        "bundle_tasks_downstream_only": True,
+        "gate_fingerprint": "publication-gate::002",
+    }
+    seen: dict[str, object] = {}
+
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_state", lambda _quest_root: object())
+    monkeypatch.setattr(module.gate_clearing_batch.publication_gate, "build_gate_report", lambda _state: gate_report)
+    monkeypatch.setattr(
+        module.gate_clearing_batch,
+        "run_gate_clearing_batch",
+        lambda **kwargs: (
+            seen.setdefault("gate_context", kwargs["control_plane_route_context"]),
+            {
+                "ok": True,
+                "status": "executed",
+                "selected_publication_work_unit": {"unit_id": work_unit_id},
+            },
+        )[1],
+    )
+
+    result = module.run_quality_repair_batch(
+        profile=profile,
+        study_id=study_root.name,
+        study_root=study_root,
+        quest_id=quest_id,
+        source="test-source",
+        control_plane_route_context=route_context,
+    )
+
+    assert result["control_plane_route_gate"]["allowed"] is True
+    assert result["control_plane_route_gate"]["action"] == "paper_write"
+    assert result["control_plane_route_gate"]["controller_route_gate"]["work_unit_id"] == work_unit_id
+    assert seen["gate_context"]["controller_route_context"]["work_unit_id"] == work_unit_id

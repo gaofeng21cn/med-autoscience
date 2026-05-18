@@ -375,6 +375,39 @@ def test_analysis_claim_evidence_route_authorizes_paper_repair_under_downstream_
     assert gate["blocking_reasons"] == []
 
 
+def test_medical_prose_methodology_route_authorizes_analysis_repair_under_downstream_bundle_gate() -> None:
+    module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
+
+    gate = module.authorize_control_plane_route(
+        "paper_write",
+        {
+            "control_plane_snapshot": _snapshot(
+                gate_state="blocked",
+                gate_blocking_reasons=["publication_supervisor_state.bundle_tasks_downstream_only"],
+                bundle_build_allowed=False,
+            ),
+            "controller_route_context": {
+                "control_surface": "quality_repair_batch",
+                "controller_action_type": "run_quality_repair_batch",
+                "work_unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+                "requires_human_confirmation": False,
+                "source_eval_id": "publication-eval::002::latest",
+                "work_unit_fingerprint": (
+                    "domain-transition::ai_reviewer_re_eval::medical_prose_quality_route_back_analysis"
+                ),
+            },
+        },
+    )
+
+    assert gate["authorized"] is True
+    assert gate["route_authorization_flag"] == "paper_write_allowed"
+    assert gate["controller_route_gate"]["authorized"] is True
+    assert gate["controller_repair_authorization_ref"]["work_unit_id"] == (
+        "medical_prose_quality_analysis_source_documentation_repair"
+    )
+    assert gate["blocking_reasons"] == []
+
+
 def test_analysis_claim_evidence_route_does_not_authorize_bundle_build_under_downstream_gate() -> None:
     module = importlib.import_module("med_autoscience.controllers.control_plane_route_gate")
 

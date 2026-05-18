@@ -12,6 +12,12 @@ from med_autoscience.controllers.work_unit_evidence_adoption_parts import (
 
 
 _ANALYSIS_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
+_ANALYSIS_REPAIR_WORK_UNIT_IDS = frozenset(
+    {
+        _ANALYSIS_REPAIR_WORK_UNIT_ID,
+        "medical_prose_quality_analysis_source_documentation_repair",
+    }
+)
 _ANALYSIS_REPAIR_ROUTE_TARGET = "analysis-campaign"
 _ANALYSIS_REPAIR_ACTION = "run_quality_repair_batch"
 _ANALYSIS_REPAIR_REPORT_TYPE = "analysis_claim_evidence_repair_specificity_target_traceability_reaudit"
@@ -50,6 +56,15 @@ _WORK_UNIT_TARGET_CONTEXT_KEYS = (
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _is_analysis_repair_work_unit_id(value: object) -> bool:
+    return _text(value) in _ANALYSIS_REPAIR_WORK_UNIT_IDS
+
+
+def _authorization_analysis_repair_work_unit_id(authorization_context: dict[str, Any]) -> str:
+    work_unit_id = _text(authorization_context.get("work_unit_id"))
+    return work_unit_id if work_unit_id in _ANALYSIS_REPAIR_WORK_UNIT_IDS else _ANALYSIS_REPAIR_WORK_UNIT_ID
 
 
 def _read_json_mapping(path: Path) -> dict[str, Any]:
@@ -150,7 +165,7 @@ def _authorization_matches_analysis_repair(authorization_context: dict[str, Any]
         if str(action).strip()
     }
     return (
-        _text(authorization_context.get("work_unit_id")) == _ANALYSIS_REPAIR_WORK_UNIT_ID
+        _is_analysis_repair_work_unit_id(authorization_context.get("work_unit_id"))
         and _text(authorization_context.get("route_target")) == _ANALYSIS_REPAIR_ROUTE_TARGET
         and _ANALYSIS_REPAIR_ACTION in actions
     )
@@ -197,7 +212,7 @@ def _normalize_report_payload(
         return analysis_stage_memory_handoff.normalize_payload(
             payload,
             authorization_context=authorization_context,
-            analysis_repair_work_unit_id=_ANALYSIS_REPAIR_WORK_UNIT_ID,
+            analysis_repair_work_unit_id=_authorization_analysis_repair_work_unit_id(authorization_context),
             handoff_report_type=_ANALYSIS_REPAIR_HANDOFF_REPORT_TYPE,
             handoff_status=_ANALYSIS_REPAIR_HANDOFF_STATUS,
         )
@@ -347,7 +362,7 @@ def _analysis_repair_source_repair_packet_matches(
 ) -> bool:
     return (
         _is_analysis_repair_source_repair_packet(payload)
-        and _text(payload.get("work_unit_id")) == _ANALYSIS_REPAIR_WORK_UNIT_ID
+        and _is_analysis_repair_work_unit_id(payload.get("work_unit_id"))
         and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
         and _mas_quality_repair_report_is_current(
             payload=payload,
@@ -370,7 +385,7 @@ def _analysis_repair_batch_report_matches(
     if not isinstance(repair_counts, dict):
         return False
     return (
-        _controller_field(payload, "active_work_unit_id") == _ANALYSIS_REPAIR_WORK_UNIT_ID
+        _is_analysis_repair_work_unit_id(_controller_field(payload, "active_work_unit_id"))
         and _controller_field(payload, "route_target") == _ANALYSIS_REPAIR_ROUTE_TARGET
         and _ANALYSIS_REPAIR_ACTION in (_controller_field(payload, "controller_actions") or "")
         and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
@@ -397,7 +412,7 @@ def _report_matches_analysis_repair(
     explicit_report_kind = _text(payload.get("report_kind"))
     if _is_analysis_repair_exhausted_handoff(payload):
         return (
-            explicit_work_unit_id == _ANALYSIS_REPAIR_WORK_UNIT_ID
+            _is_analysis_repair_work_unit_id(explicit_work_unit_id)
             and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
             and _text(payload.get("next_owner")) is not None
             and _text(payload.get("next_work_unit")) is not None
@@ -408,7 +423,7 @@ def _report_matches_analysis_repair(
         )
     if _is_analysis_repair_current_run_control_packet(payload):
         return (
-            explicit_work_unit_id == _ANALYSIS_REPAIR_WORK_UNIT_ID
+            _is_analysis_repair_work_unit_id(explicit_work_unit_id)
             and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
             and _specificity_target_results_are_complete(payload)
             and _mas_quality_repair_report_is_current(
@@ -421,7 +436,7 @@ def _report_matches_analysis_repair(
         authorization_context=authorization_context,
     ):
         return True
-    if explicit_work_unit_id is not None and explicit_work_unit_id != _ANALYSIS_REPAIR_WORK_UNIT_ID:
+    if explicit_work_unit_id is not None and not _is_analysis_repair_work_unit_id(explicit_work_unit_id):
         return False
     if explicit_route_target is not None and explicit_route_target != _ANALYSIS_REPAIR_ROUTE_TARGET:
         return False
@@ -442,7 +457,7 @@ def _report_matches_analysis_repair(
         ):
             return False
         return (
-            explicit_work_unit_id == _ANALYSIS_REPAIR_WORK_UNIT_ID
+            _is_analysis_repair_work_unit_id(explicit_work_unit_id)
             and explicit_route_target == _ANALYSIS_REPAIR_ROUTE_TARGET
             and _work_unit_fingerprint_matches(payload=payload, authorization_context=authorization_context)
             and (
@@ -465,7 +480,7 @@ def _report_matches_analysis_repair(
         return False
     has_legacy_report_identity = explicit_report_type == _ANALYSIS_REPAIR_REPORT_TYPE
     has_explicit_report_identity = (
-        explicit_work_unit_id == _ANALYSIS_REPAIR_WORK_UNIT_ID
+        _is_analysis_repair_work_unit_id(explicit_work_unit_id)
         and explicit_route_target == _ANALYSIS_REPAIR_ROUTE_TARGET
         and explicit_action == _ANALYSIS_REPAIR_ACTION
     )
@@ -859,7 +874,7 @@ def adopt_controller_work_unit_evidence_if_present(
                 "active_run_id": active_run_id,
                 "report_ref": str(report_path),
                 "created_at": _report_timestamp(report_payload),
-                "work_unit_id": _ANALYSIS_REPAIR_WORK_UNIT_ID,
+                "work_unit_id": _authorization_analysis_repair_work_unit_id(authorization_context),
                 "route_target": _ANALYSIS_REPAIR_ROUTE_TARGET,
                 "recommended_next_route": _report_recommended_next_route(report_payload),
                 "source": source,
