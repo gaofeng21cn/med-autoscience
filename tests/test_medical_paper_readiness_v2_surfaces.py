@@ -171,6 +171,18 @@ def _reviewer_operating_system() -> dict[str, object]:
             }
             for dimension in dimensions
         ],
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_digest": "sha256:" + "a" * 64,
+                "manuscript_ref": "paper/manuscript.md",
+                "manuscript_digest": "sha256:" + "c" * 64,
+            },
+            "current_package_freshness": {
+                "status": "fresh",
+                "source_eval_id": "publication-eval::001-risk::quest-001::2026-05-04T00:00:00+00:00",
+            },
+        },
         "future_facing_limitations_plan": [
             {
                 "limitation": "Readiness is limited to the current reviewed manuscript snapshot.",

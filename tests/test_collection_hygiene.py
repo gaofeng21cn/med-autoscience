@@ -25,6 +25,7 @@ AGGREGATE_ENTRYPOINT_NESTED_CASE_MODULES = {
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_ops_health.py",
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_readiness.py",
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_readiness_v2_actions.py",
+        "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_projection_error_isolation.py",
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_quality_lane.py",
         "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py",
     },

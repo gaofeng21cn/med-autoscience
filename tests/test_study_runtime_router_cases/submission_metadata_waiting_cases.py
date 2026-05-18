@@ -354,6 +354,9 @@ def test_ensure_study_runtime_pauses_live_delivered_submission_package_milestone
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_runtime_router")
+    decision_module = importlib.import_module("med_autoscience.controllers.study_runtime_decision")
+    from tests.test_runtime_watch_cases.event_scan_helpers import ready_reviewer_operating_system
+
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -414,6 +417,67 @@ def test_ensure_study_runtime_pauses_live_delivered_submission_package_milestone
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
+    monkeypatch.setattr(decision_module.publication_gate_controller, "build_gate_state", lambda quest_root: object())
+    monkeypatch.setattr(
+        decision_module.publication_gate_controller,
+        "build_gate_report",
+        lambda state: {
+            "schema_version": 1,
+            "gate_kind": "publishability_control",
+            "generated_at": "2026-04-17T02:04:11+00:00",
+            "quest_id": "001-risk",
+            "status": "clear",
+            "allow_write": True,
+            "blockers": [],
+            "current_required_action": "continue_bundle_stage",
+            "supervisor_phase": "bundle_stage_ready",
+            "phase_owner": "publication_gate",
+            "upstream_scientific_anchor_ready": True,
+            "bundle_tasks_downstream_only": False,
+            "deferred_downstream_actions": [],
+            "medical_prose_review_status": "ready",
+            "controller_stage_note": "bundle-stage package is ready for human submission metadata handoff",
+        },
+    )
+    publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
+    publication_eval_id = "publication-eval::001-risk::001-risk::ai-reviewer-current"
+    write_text(
+        publication_eval_path,
+        json.dumps(
+            {
+                "schema_version": 1,
+                "eval_id": publication_eval_id,
+                "study_id": "001-risk",
+                "quest_id": "001-risk",
+                "emitted_at": "2026-04-17T02:04:12+00:00",
+                "assessment_provenance": {
+                    "owner": "ai_reviewer",
+                    "source_kind": "publication_eval_ai_reviewer",
+                    "policy_id": "medical_publication_critique_v1",
+                    "ai_reviewer_required": False,
+                },
+                "quality_assessment": {
+                    "medical_journal_prose_quality": {"status": "ready"},
+                },
+                "reviewer_operating_system": ready_reviewer_operating_system(
+                    study_root,
+                    publication_eval_path,
+                    publication_eval_id,
+                ),
+                "verdict": {"overall_verdict": "promising"},
+                "recommended_actions": [
+                    {
+                        "action_id": "publication-eval-action::continue_same_line::bundle-ready",
+                        "action_type": "continue_same_line",
+                        "work_unit_fingerprint": "bundle-ready",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+    )
     monkeypatch.setattr(
         _managed_runtime_transport(module),
         "inspect_quest_live_execution",
@@ -438,11 +502,11 @@ def test_ensure_study_runtime_pauses_live_delivered_submission_package_milestone
     )
     calls: list[tuple[str, str]] = []
 
-    def fake_pause_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
+    def fake_pause_quest(*, runtime_root: Path, quest_id: str, source: str, runtime_backend) -> dict[str, object]:
         calls.append(("pause", quest_id))
         return {"ok": True, "status": "paused"}
 
-    monkeypatch.setattr(_managed_runtime_transport(module), "pause_quest", fake_pause_quest)
+    monkeypatch.setattr(module, "_pause_quest", fake_pause_quest)
 
     result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
 

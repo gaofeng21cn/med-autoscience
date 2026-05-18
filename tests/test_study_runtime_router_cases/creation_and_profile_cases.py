@@ -296,28 +296,38 @@ def test_ensure_study_runtime_explicitly_relaunches_stopped_quest(monkeypatch, t
         "startup_data_readiness",
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
-    resumed: dict[str, object] = {}
+    relaunched: dict[str, object] = {}
 
-    def fake_resume_quest(*, runtime_root: Path, quest_id: str, source: str) -> dict[str, object]:
-        resumed.update(
+    def fake_relaunch_stopped_quest(
+        *,
+        runtime_root: Path,
+        quest_id: str,
+        source: str,
+        runtime_backend,
+    ) -> dict[str, object]:
+        relaunched.update(
             {
                 "runtime_root": runtime_root,
                 "quest_id": quest_id,
                 "source": source,
+                "runtime_backend": runtime_backend,
             }
         )
         return {
             "ok": True,
             "quest_id": quest_id,
-            "action": "resume",
-            "status": "active",
+            "action": "relaunch_stopped",
+            "status": "running",
+            "started": True,
+            "scheduled": True,
             "snapshot": {
                 "quest_id": quest_id,
-                "status": "active",
+                "status": "running",
+                "active_run_id": "run-relaunched",
             },
         }
 
-    monkeypatch.setattr(_managed_runtime_transport(module), "resume_quest", fake_resume_quest)
+    monkeypatch.setattr(module, "_relaunch_stopped_quest", fake_relaunch_stopped_quest)
 
     result = module.ensure_study_runtime(
         profile=profile,
@@ -328,18 +338,19 @@ def test_ensure_study_runtime_explicitly_relaunches_stopped_quest(monkeypatch, t
 
     assert result["decision"] == "relaunch_stopped"
     assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
-    assert result["quest_status"] == "active"
-    assert resumed == {
+    assert result["quest_status"] == "running"
+    assert relaunched == {
         "runtime_root": profile.managed_runtime_home,
         "quest_id": "001-risk",
         "source": "medautosci-test",
+        "runtime_backend": _managed_runtime_transport(module),
     }
     binding = yaml.safe_load((study_root / "runtime_binding.yaml").read_text(encoding="utf-8"))
     assert binding["last_action"] == "relaunch_stopped"
     launch_report = json.loads((study_root / "artifacts" / "runtime" / "last_launch_report.json").read_text(encoding="utf-8"))
     assert launch_report["decision"] == "relaunch_stopped"
     assert launch_report["reason"] == "quest_stopped_explicit_relaunch_requested"
-    assert launch_report["daemon_result"]["resume"]["action"] == "resume"
+    assert launch_report["daemon_result"]["resume"]["action"] == "relaunch_stopped"
 
 
 def test_study_runtime_status_reopened_task_intake_does_not_keep_bundle_only_handoff_parked(

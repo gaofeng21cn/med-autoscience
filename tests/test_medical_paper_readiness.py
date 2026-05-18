@@ -128,6 +128,26 @@ def _reviewer_operating_system() -> dict[str, object]:
             }
             for dimension in dimensions
         ],
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_digest": "sha256:" + "a" * 64,
+                "manuscript_ref": "paper/manuscript.md",
+                "manuscript_digest": "sha256:" + "c" * 64,
+            },
+            "current_package_freshness": {
+                "status": "fresh",
+                "source_eval_id": "publication-eval::001-risk::quest-001::2026-05-04T00:00:00+00:00",
+            },
+        },
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Readiness is limited to the current reviewed manuscript snapshot.",
+                "impact_on_claim": "Publication-facing claims must remain within reviewed evidence support.",
+                "required_future_analysis_data_or_design": "Repeat reviewer readiness checks after substantive changes.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
         "provenance_checks": {
             "assessment_owner": "ai_reviewer",
             "policy_id": "medical_publication_critique_v1",

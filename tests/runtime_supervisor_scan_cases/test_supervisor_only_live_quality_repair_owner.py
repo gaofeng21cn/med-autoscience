@@ -203,4 +203,5 @@ def test_supervisor_only_live_quality_repair_does_not_suppress_ai_reviewer_workf
         "publication_gate_specificity_required",
         "current_package_freshness_required",
         "artifact_display_surface_materialization_required",
+        "canonical_paper_inputs_rehydrate_required",
     ]

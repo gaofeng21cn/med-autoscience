@@ -437,27 +437,24 @@ def test_ensure_study_runtime_relaunches_failed_quest_when_platform_repair_reque
         lambda *, profile, quest_root: calls.append(("prepare_overlay", quest_root)) or make_runtime_overlay_result(),
     )
     monkeypatch.setattr(
-        _managed_runtime_transport(module),
-        "resume_quest",
-        lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id))
+        module,
+        "_relaunch_stopped_quest",
+        lambda *, runtime_root, quest_id, source, runtime_backend: calls.append(("relaunch_stopped", quest_id))
         or {
             "ok": True,
             "status": "running",
+            "started": True,
+            "scheduled": True,
             "snapshot": {"quest_id": quest_id, "status": "running", "active_run_id": "run-recovered"},
         },
     )
 
-    result = module.ensure_study_runtime(
-        profile=profile,
-        study_id="001-risk",
-        allow_stopped_relaunch=True,
-        source="runtime_supervisor_scan_platform_repair",
-    )
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", allow_stopped_relaunch=True, source="runtime_supervisor_scan_platform_repair")
 
     assert result["decision"] == "relaunch_stopped"
     assert result["reason"] == "quest_stopped_explicit_relaunch_requested"
     assert result["quest_status"] == "running"
-    assert calls == [("prepare_overlay", quest_root), ("resume", "001-risk")]
+    assert calls == [("prepare_overlay", quest_root), ("relaunch_stopped", "001-risk")]
 
 
 def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) -> None:
@@ -520,12 +517,10 @@ def test_ensure_study_runtime_resumes_paused_quest(monkeypatch, tmp_path: Path) 
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", explicit_user_wakeup=True, source="medautosci-test")
 
     assert result["decision"] == "resume"
-    assert calls == [
-        ("resume", "001-risk"),
-    ]
+    assert calls == [("resume", "001-risk")]
 
 
 def test_ensure_study_runtime_resume_rehydrates_when_runtime_reentry_requires_startup_hydration(
@@ -593,7 +588,7 @@ def test_ensure_study_runtime_resume_rehydrates_when_runtime_reentry_requires_st
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", explicit_user_wakeup=True, source="medautosci-test")
 
     assert result["decision"] == "resume"
     assert calls == [
@@ -857,7 +852,7 @@ def test_ensure_study_runtime_blocks_resume_when_runtime_reentry_hydration_valid
         lambda *, runtime_root, quest_id, source: calls.append(("resume", quest_id)) or {"ok": True, "status": "running"},
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", explicit_user_wakeup=True, source="medautosci-test")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "hydration_validation_failed"
@@ -908,7 +903,7 @@ def test_ensure_study_runtime_blocks_when_managed_skill_audit_is_required_but_ov
         lambda *, workspace_root: _clear_readiness_report(workspace_root, "001-risk"),
     )
 
-    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", source="medautosci-test")
+    result = module.ensure_study_runtime(profile=profile, study_id="001-risk", explicit_user_wakeup=True, source="medautosci-test")
 
     assert result["decision"] == "blocked"
     assert result["reason"] == "managed_skill_audit_not_available"

@@ -142,6 +142,7 @@ def test_supervisor_scan_projects_single_owner_route_for_current_queue(monkeypat
         "publication_gate_specificity_required",
         "current_package_freshness_required",
         "artifact_display_surface_materialization_required",
+        "canonical_paper_inputs_rehydrate_required",
     ]
     assert route["idempotency_key"].startswith(
         "owner-route::002-dm-china-us-mortality-attribution::truth-epoch-dm002::ai_reviewer::"

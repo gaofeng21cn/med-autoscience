@@ -453,9 +453,10 @@ def test_runtime_watch_outer_loop_routes_bundle_stage_ready_before_stale_task_in
     )
 
     assert request is not None
-    assert request["decision_type"] == "route_back_same_line"
+    assert request["decision_type"] == "continue_same_line"
     assert request["route_target"] == "finalize"
     assert request["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
+    assert request["work_unit_fingerprint"] == "domain-transition::bundle_stage_finalize::submission_authority_sync_closure"
     assert request["controller_actions"] == [
         {
             "action_type": "ensure_study_runtime",
@@ -634,11 +635,11 @@ def test_runtime_watch_outer_loop_routes_bundle_ready_eval_review_unit_to_finali
     assert request is not None
     assert request["decision_type"] == "continue_same_line"
     assert request["route_target"] == "finalize"
-    assert request["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
-    assert request["work_unit_fingerprint"] == "publication-blockers::4f53cda18c2baa0c"
+    assert request["next_work_unit"] is None
+    assert request["work_unit_fingerprint"] is None
     assert request["controller_actions"] == [
         {
-            "action_type": "ensure_study_runtime",
+            "action_type": "stop_runtime",
             "payload_ref": str((study_root / "artifacts" / "controller_decisions" / "latest.json").resolve()),
         }
     ]

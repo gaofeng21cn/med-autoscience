@@ -338,6 +338,20 @@ def build_runtime_watch_outer_loop_tick_request(
             ).get("decision_type")
             or ""
         ).strip()
+        if (
+            domain_transition_decision_type == "bundle_stage_finalize"
+            and task_intake_action is not None
+            and not _status_payload_reports_bundle_stage(status_payload)
+        ):
+            domain_transition_action = None
+            domain_transition_decision_type = ""
+        if (
+            domain_transition_decision_type == "publication_gate_blocker"
+            and task_intake_action is not None
+            and str(gate_report.get("status") or "").strip() == "clear"
+        ):
+            domain_transition_action = None
+            domain_transition_decision_type = ""
         submission_milestone_preempts_bundle_finalize = (
             live_submission_milestone_autopark_action is not None
             and domain_transition_decision_type == "bundle_stage_finalize"

@@ -189,6 +189,8 @@ def _current_ai_reviewer_publication_eval_ref(
     ):
         eval_id = str(payload.get("eval_id") or "").strip()
         return {"eval_id": eval_id, "artifact_path": str(latest_path)} if eval_id else None
+    eval_paper_root = None
+    gate_paper_root = None
     delivery_context_refs = payload.get("delivery_context_refs")
     if isinstance(delivery_context_refs, dict):
         eval_paper_root = _normalized_path_text(delivery_context_refs.get("paper_root_ref"))

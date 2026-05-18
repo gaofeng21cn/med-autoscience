@@ -175,6 +175,7 @@ def test_supervisor_scan_routes_failed_non_resumable_quest_to_platform_repair(
         "current_package_freshness_required",
         "artifact_display_surface_materialization_required",
         "return_to_ai_reviewer_workflow",
+        "canonical_paper_inputs_rehydrate_required",
     ]
     assert study["recovery_intent"]["current_action"] == "safe_reconcile_ready"
     assert study["recovery_intent"]["reason"] == "failed_quest_runtime_relaunch_required"

@@ -154,6 +154,18 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
             }
             for dimension, score in rubric_scores.items()
         ],
+        "currentness_checks": {
+            "medical_prose_review": {
+                "status": "current",
+                "request_digest": "sha256:" + "a" * 64,
+                "manuscript_ref": input_bundle["manuscript"],
+                "manuscript_digest": "sha256:" + "c" * 64,
+            },
+            "current_package_freshness": {
+                "status": "fresh",
+                "source_eval_id": "publication-eval::001-risk::quest-001::2026-04-05T06:00:00+00:00",
+            },
+        },
         "future_facing_limitations_plan": [
             {
                 "limitation": "Reviewer refinement closure is limited to the current evidence ledger.",

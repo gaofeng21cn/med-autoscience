@@ -40,6 +40,7 @@ def test_mcp_compacts_and_renders_delivery_inspection_projection() -> None:
     assert delivery["source_labels"] == {
         "submission_minimal": "controller-authorized source",
         "current_package": "human-facing mirror",
+        "inspection_package": "human-inspection-only snapshot",
     }
     assert delivery["layout_migration_upgrade_note"] == "layout migration 会在下一次 authorized sync 升级"
     assert "legacy_layout_upgrade_note" not in delivery

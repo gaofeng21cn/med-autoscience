@@ -254,6 +254,7 @@ def test_stale_runner_completion_result_ignores_old_run_while_active_worker_exis
         "run_id": "run-old",
         "active_run_id": "run-new",
         "runner_status": "succeeded",
+        "runtime_status": None,
         "worker_running": True,
     }
 

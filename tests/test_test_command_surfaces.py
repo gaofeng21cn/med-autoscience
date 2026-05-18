@@ -359,6 +359,8 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"' in verify_script
     runner_script = _read("scripts/run-python-clean.sh")
     assert 'export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"' in runner_script
+    assert 'UV_NO_SYNC=0 uv sync --frozen --group dev --no-install-project --inexact' in runner_script
+    assert '"${UV_NO_SYNC:-0}" != "1"' not in runner_script
     assert 'venv_python="${UV_PROJECT_ENVIRONMENT}/bin/python"' in runner_script
     assert 'venv_python="${repo_root}/.venv/bin/python"' not in runner_script
     assert "run_sanity_checks() {" in verify_script

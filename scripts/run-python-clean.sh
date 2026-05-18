@@ -49,8 +49,8 @@ write_launcher medautosci-mcp med_autoscience.mcp_server
 export PATH="${entrypoint_bin}:${PATH}"
 
 sync_marker="${tmp_root}/uv-sync.done"
-if [[ "${MAS_CLEAN_RUNNER_SKIP_SYNC:-0}" != "1" && "${UV_NO_SYNC:-0}" != "1" && ! -f "${sync_marker}" ]]; then
-  uv sync --frozen --group dev --no-install-project --inexact
+if [[ "${MAS_CLEAN_RUNNER_SKIP_SYNC:-0}" != "1" && ! -f "${sync_marker}" ]]; then
+  UV_NO_SYNC=0 uv sync --frozen --group dev --no-install-project --inexact
   touch "${sync_marker}"
 fi
 export MAS_CLEAN_RUNNER_SKIP_SYNC=1

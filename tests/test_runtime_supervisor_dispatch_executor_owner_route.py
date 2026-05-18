@@ -76,7 +76,7 @@ def test_execute_dispatch_materializes_display_contract_stubs_before_gate_cleari
             "record_path": str(study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json"),
         }
 
-    monkeypatch.setattr(module.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
+    monkeypatch.setattr(module.action_execution.gate_clearing_batch, "run_gate_clearing_batch", fake_run_gate_clearing_batch)
 
     result = module.execute_default_executor_dispatches(
         profile=profile,
