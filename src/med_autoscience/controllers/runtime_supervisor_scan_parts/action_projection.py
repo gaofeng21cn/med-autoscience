@@ -571,6 +571,8 @@ def _methodology_reframe_route_decision_action(study_root: Path) -> dict[str, An
         return None
     if _text(source_result_state.get("next_owner")) != "decision":
         return None
+    if _methodology_reframe_route_decision_materialized(study_root):
+        return None
     source_result_ref = source_provenance_owner_result.result_path(study_root=study_root)
     return {
         "action_type": "methodology_reframe_route_decision",
@@ -603,6 +605,16 @@ def _methodology_reframe_route_decision_action(study_root: Path) -> dict[str, An
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
     }
+
+
+def _methodology_reframe_route_decision_materialized(study_root: Path) -> bool:
+    decision = _read_json_object(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    next_work_unit = _mapping(decision.get("next_work_unit"))
+    return (
+        _text(decision.get("decision_type")) in {"route_back_same_line", "bounded_analysis", "stop_loss"}
+        and _text(decision.get("work_unit_fingerprint")) == "decision::methodology_reframe_route_decision"
+        and _text(next_work_unit.get("unit_id")) == "methodology_reframe_route_decision"
+    )
 
 
 def _scientific_anchor_missing(

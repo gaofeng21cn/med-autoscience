@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.study_runtime_test_helpers import make_profile, write_study
+from tests.study_runtime_test_helpers import make_profile, write_study, write_text
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -612,3 +612,149 @@ def test_scan_consumes_current_source_provenance_typed_blocker_without_requeue(
     assert study["owner_route"]["next_owner"] == "decision"
     assert study["owner_route"]["owner_reason"] == "methodology_reframe_required"
     assert study["owner_route"]["allowed_actions"] == ["methodology_reframe_route_decision"]
+
+
+def test_scan_does_not_requeue_methodology_reframe_after_controller_decision_materialized(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    quest_root.mkdir(parents=True)
+    write_text(quest_root / "quest.yaml", f"quest_id: {quest_id}\nstudy_id: {study_id}\n")
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::methodology-reframe",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+        "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
+        "recommended_actions": [],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    _write_json(
+        study_root / "artifacts" / "controller" / "source_provenance" / "latest.json",
+        {
+            "surface": "source_provenance_owner_result",
+            "schema_version": 1,
+            "study_id": study_id,
+            "owner": "source_provenance_owner",
+            "work_unit": "recover_transport_model_provenance",
+            "status": "blocked",
+            "blocked_reason": "transport_model_provenance_recovery_required",
+            "typed_blocker_owner": "source_provenance_owner",
+            "typed_blocker": {"blocker_id": "transport_model_provenance_recovery_required"},
+            "transport_model_provenance_recovered": False,
+            "provenance_search": {
+                "searched": True,
+                "accepted_bundle_ref": None,
+                "result_summary_acceptance_allowed": False,
+                "substitute_refit_allowed": False,
+            },
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "controller_decisions" / "latest.json",
+        {
+            "schema_version": 1,
+            "decision_id": "study-decision::dm002::methodology-reframe",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "emitted_at": "2026-05-18T23:13:18+00:00",
+            "decision_type": "route_back_same_line",
+            "charter_ref": {
+                "charter_id": f"charter::{study_id}::v1",
+                "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            },
+            "runtime_escalation_ref": {
+                "record_id": "runtime-escalation::dm002::methodology_reframe_required",
+                "artifact_path": str(
+                    study_root / "artifacts" / "runtime" / "escalation" / "methodology_reframe_required.json"
+                ),
+                "summary_ref": str(
+                    study_root / "artifacts" / "runtime" / "escalation" / "methodology_reframe_required.md"
+                ),
+            },
+            "publication_eval_ref": {
+                "eval_id": publication_eval["eval_id"],
+                "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+            },
+            "requires_human_confirmation": False,
+            "controller_actions": [
+                {
+                    "action_type": "ensure_study_runtime",
+                    "payload_ref": str(study_root / "artifacts" / "supervision" / "requests" / "decision" / "latest.json"),
+                }
+            ],
+            "reason": "methodology reframe route decision materialized",
+            "route_target": "analysis-campaign",
+            "route_key_question": "Can DM002 continue without original transported model provenance?",
+            "route_rationale": "Route back for methodology reframe before manuscript work.",
+            "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
+            "next_work_unit": {
+                "unit_id": "methodology_reframe_route_decision",
+                "owner": "decision",
+                "route_options": [
+                    "stop_loss_current_transport_claim",
+                    "provenance_limited_harmonization_audit",
+                    "rebuild_reproducible_model_route",
+                    "human_gate",
+                ],
+            },
+        },
+    )
+    status_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "active_run_id": None,
+        "current_stage": "publication_supervision",
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm002-methodology-reframe",
+            "source_signature": "truth-source-dm002-methodology-reframe",
+        },
+        "publication_eval": publication_eval,
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "analysis-campaign",
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "quality_review_loop": {"closure_state": "review_required"},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        "ai_repair_lifecycle": {
+            "state": "blocked",
+            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+        },
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert study["action_queue"] == []
+    assert result["action_queue"] == []
+    assert study["blocked_reason"] == "methodology_reframe_required"
+    assert study["next_owner"] == "decision"
+    assert study["owner_route"]["allowed_actions"] == []
