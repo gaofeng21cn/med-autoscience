@@ -578,6 +578,10 @@
         ],
         "requires": [
           "direction_route_selected"
+        ],
+        "runtime_event_refs": [
+          "runtime_event:controller_decisions.baseline_evidence_ready",
+          "runtime_event:evidence_ledger.baseline_evidence_ready"
         ]
       },
       "stage_id": "baseline_and_evidence_setup",
@@ -643,6 +647,10 @@
         "lane": "domain_agent",
         "owner_receipt_required": true,
         "records_runtime_events": true,
+        "runtime_event_refs": [
+          "runtime_event:controller_decisions.baseline_evidence_ready",
+          "runtime_event:evidence_ledger.baseline_evidence_ready"
+        ],
         "runtime_guard_required": true,
         "static_check_eligible": false
       }
@@ -869,6 +877,10 @@
         ],
         "requires": [
           "baseline_evidence_ready"
+        ],
+        "runtime_event_refs": [
+          "runtime_event:runtime_watch.bounded_analysis_evidence_ready",
+          "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
         ]
       },
       "stage_id": "bounded_analysis_campaign",
@@ -934,6 +946,10 @@
         "lane": "codex_executor",
         "owner_receipt_required": true,
         "records_runtime_events": true,
+        "runtime_event_refs": [
+          "runtime_event:runtime_watch.bounded_analysis_evidence_ready",
+          "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
+        ],
         "runtime_guard_required": true,
         "static_check_eligible": false
       }
@@ -1158,6 +1174,10 @@
         ],
         "requires": [
           "bounded_analysis_evidence_ready"
+        ],
+        "runtime_event_refs": [
+          "runtime_event:controller_decisions.manuscript_draft_reviewable",
+          "runtime_event:canonical_manuscript.manuscript_draft_reviewable"
         ]
       },
       "stage_id": "manuscript_authoring",
@@ -1223,6 +1243,10 @@
         "lane": "codex_executor",
         "owner_receipt_required": true,
         "records_runtime_events": true,
+        "runtime_event_refs": [
+          "runtime_event:controller_decisions.manuscript_draft_reviewable",
+          "runtime_event:canonical_manuscript.manuscript_draft_reviewable"
+        ],
         "runtime_guard_required": true,
         "static_check_eligible": false
       }
@@ -1773,6 +1797,10 @@
         ],
         "requires": [
           "ai_reviewer_gate_receipt_recorded"
+        ],
+        "runtime_event_refs": [
+          "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
+          "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded"
         ]
       },
       "stage_id": "finalize_and_publication_handoff",
@@ -1838,6 +1866,10 @@
         "lane": "domain_agent",
         "owner_receipt_required": true,
         "records_runtime_events": true,
+        "runtime_event_refs": [
+          "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
+          "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded"
+        ],
         "runtime_guard_required": true,
         "static_check_eligible": false
       }

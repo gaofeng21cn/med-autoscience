@@ -137,6 +137,18 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["action_catalog"]["catalog_role"] == (
         "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors"
     )
+
+
+def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> None:
+    generated = build_standard_pack()
+
+    for stage in generated["stage_control_plane"]["stages"]:
+        if not stage["trust_boundary"]["runtime_guard_required"]:
+            continue
+        refs = stage["trust_boundary"].get("runtime_event_refs")
+        assert refs
+        assert refs == stage["stage_contract"].get("runtime_event_refs")
+        assert all(str(ref).startswith("runtime_event:") for ref in refs)
     assert generated["action_catalog"]["descriptor_projection_owner"] == "one-person-lab"
     assert generated["action_catalog"]["domain_handler_target_owner"] == "MedAutoScience"
     assert generated["functional_privatization_audit"]["functional_followthrough_gap_summary"][

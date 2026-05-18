@@ -73,6 +73,10 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "ensures": ["baseline_evidence_ready"],
         "next_stage_refs": ["bounded_analysis_campaign"],
         "trust_lane": "domain_agent",
+        "runtime_event_refs": [
+            "runtime_event:controller_decisions.baseline_evidence_ready",
+            "runtime_event:evidence_ledger.baseline_evidence_ready",
+        ],
     },
     {
         "stage_id": "bounded_analysis_campaign",
@@ -84,6 +88,10 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "ensures": ["bounded_analysis_evidence_ready"],
         "next_stage_refs": ["manuscript_authoring"],
         "trust_lane": "codex_executor",
+        "runtime_event_refs": [
+            "runtime_event:runtime_watch.bounded_analysis_evidence_ready",
+            "runtime_event:evidence_ledger.bounded_analysis_evidence_ready",
+        ],
     },
     {
         "stage_id": "manuscript_authoring",
@@ -95,6 +103,10 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "ensures": ["manuscript_draft_reviewable"],
         "next_stage_refs": ["review_and_quality_gate"],
         "trust_lane": "codex_executor",
+        "runtime_event_refs": [
+            "runtime_event:controller_decisions.manuscript_draft_reviewable",
+            "runtime_event:canonical_manuscript.manuscript_draft_reviewable",
+        ],
     },
     {
         "stage_id": "review_and_quality_gate",
@@ -122,6 +134,10 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "ensures": ["publication_handoff_ready_or_route_back_recorded"],
         "next_stage_refs": [],
         "trust_lane": "domain_agent",
+        "runtime_event_refs": [
+            "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
+            "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded",
+        ],
     },
 )
 
@@ -452,7 +468,7 @@ def _plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str, Any]) -> dict[str, Any]:
-    runtime_event_refs = list(stage.get("runtime_event_refs") or [])
+    runtime_event_refs = _required_runtime_event_refs(stage)
     source_refs = [
         *_plane_source_refs(descriptor),
         {
@@ -565,6 +581,14 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "can_authorize_submission_readiness": False,
         },
     }
+
+
+def _required_runtime_event_refs(stage: Mapping[str, Any]) -> list[str]:
+    stage_id = str(stage.get("stage_id") or "")
+    refs = [str(ref) for ref in stage.get("runtime_event_refs") or [] if str(ref).strip()]
+    if not refs:
+        raise ValueError(f"runtime guard stage missing runtime_event_refs: {stage_id}")
+    return refs
 
 
 def _stage_deliverable_index_projection(stage_surface: Mapping[str, Any]) -> dict[str, Any]:
