@@ -79,6 +79,7 @@
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "independent_gate_receipt_required": true,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
         "publication_gate_owner": "MedAutoScience",
@@ -111,6 +112,11 @@
           "ref": "/progress_projection",
           "ref_kind": "json_pointer",
           "role": "progress_projection"
+        },
+        {
+          "ref": "/product_entry_manifest/owner_receipt_contract",
+          "ref_kind": "json_pointer",
+          "role": "owner_receipt_gate"
         }
       ],
       "freshness": {
@@ -122,6 +128,12 @@
       "goal": "Freeze a question-worthy study direction, evidence target, and immediate route recommendation. / Choose the strongest study line and freeze why it deserves managed execution.",
       "handoff": {
         "next_owner": "MedAutoScience",
+        "next_stage_refs": [
+          "baseline_and_evidence_setup"
+        ],
+        "provides": [
+          "direction_route_selected"
+        ],
         "resume_surface_ref": "/product_entry_shell/study_progress",
         "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
         "sidecar_export_ref": "/product_entry_shell/sidecar_export"
@@ -268,6 +280,18 @@
           "role": "mas_route_projection"
         }
       ],
+      "stage_contract": {
+        "boundary_assumptions": [
+          "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
+          "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
+        ],
+        "ensures": [
+          "direction_route_selected"
+        ],
+        "requires": [
+          "study_direction_request_received"
+        ]
+      },
       "stage_id": "direction_and_route_selection",
       "stage_kind": "planning",
       "stage_skill_surface_projection": {
@@ -324,7 +348,16 @@
         "version": "stage-skill-surface-projection.v1"
       },
       "summary": "Direction and route selection projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
-      "title": "Direction and route selection"
+      "title": "Direction and route selection",
+      "trust_boundary": {
+        "effect_boundary": true,
+        "human_gate_required": false,
+        "lane": "ai_decision",
+        "owner_receipt_required": true,
+        "records_runtime_events": true,
+        "runtime_guard_required": true,
+        "static_check_eligible": false
+      }
     },
     {
       "allowed_action_refs": [
@@ -338,6 +371,7 @@
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "independent_gate_receipt_required": false,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
         "publication_gate_owner": "MedAutoScience",
@@ -369,6 +403,11 @@
           "ref": "/progress_projection",
           "ref_kind": "json_pointer",
           "role": "progress_projection"
+        },
+        {
+          "ref": "/product_entry_manifest/owner_receipt_contract",
+          "ref_kind": "json_pointer",
+          "role": "owner_receipt_gate"
         }
       ],
       "freshness": {
@@ -380,6 +419,12 @@
       "goal": "Establish the baseline, comparator, and readiness proof for the active study line. / Run a primary managed experiment when the study line needs fresh main-result execution.",
       "handoff": {
         "next_owner": "MedAutoScience",
+        "next_stage_refs": [
+          "bounded_analysis_campaign"
+        ],
+        "provides": [
+          "baseline_evidence_ready"
+        ],
         "resume_surface_ref": "/product_entry_shell/study_progress",
         "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
         "sidecar_export_ref": "/product_entry_shell/sidecar_export"
@@ -515,6 +560,18 @@
           "role": "mas_route_projection"
         }
       ],
+      "stage_contract": {
+        "boundary_assumptions": [
+          "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
+          "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
+        ],
+        "ensures": [
+          "baseline_evidence_ready"
+        ],
+        "requires": [
+          "direction_route_selected"
+        ]
+      },
       "stage_id": "baseline_and_evidence_setup",
       "stage_kind": "source_preparation",
       "stage_skill_surface_projection": {
@@ -571,7 +628,16 @@
         "version": "stage-skill-surface-projection.v1"
       },
       "summary": "Baseline and evidence setup projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
-      "title": "Baseline and evidence setup"
+      "title": "Baseline and evidence setup",
+      "trust_boundary": {
+        "effect_boundary": false,
+        "human_gate_required": false,
+        "lane": "domain_agent",
+        "owner_receipt_required": true,
+        "records_runtime_events": true,
+        "runtime_guard_required": true,
+        "static_check_eligible": false
+      }
     },
     {
       "allowed_action_refs": [
@@ -586,6 +652,7 @@
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "independent_gate_receipt_required": false,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
         "publication_gate_owner": "MedAutoScience",
@@ -616,6 +683,11 @@
           "ref": "/progress_projection",
           "ref_kind": "json_pointer",
           "role": "progress_projection"
+        },
+        {
+          "ref": "/product_entry_manifest/owner_receipt_contract",
+          "ref_kind": "json_pointer",
+          "role": "owner_receipt_gate"
         }
       ],
       "freshness": {
@@ -627,6 +699,12 @@
       "goal": "Close the bounded evidence gaps that still block claim acceptance or reviewer pressure.",
       "handoff": {
         "next_owner": "MedAutoScience",
+        "next_stage_refs": [
+          "manuscript_authoring"
+        ],
+        "provides": [
+          "bounded_analysis_evidence_ready"
+        ],
         "resume_surface_ref": "/product_entry_shell/study_progress",
         "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
         "sidecar_export_ref": "/product_entry_shell/sidecar_export"
@@ -773,6 +851,18 @@
           "role": "mas_route_projection"
         }
       ],
+      "stage_contract": {
+        "boundary_assumptions": [
+          "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
+          "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
+        ],
+        "ensures": [
+          "bounded_analysis_evidence_ready"
+        ],
+        "requires": [
+          "baseline_evidence_ready"
+        ]
+      },
       "stage_id": "bounded_analysis_campaign",
       "stage_kind": "creation",
       "stage_skill_surface_projection": {
@@ -829,7 +919,16 @@
         "version": "stage-skill-surface-projection.v1"
       },
       "summary": "Bounded analysis campaign projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
-      "title": "Bounded analysis campaign"
+      "title": "Bounded analysis campaign",
+      "trust_boundary": {
+        "effect_boundary": false,
+        "human_gate_required": false,
+        "lane": "codex_executor",
+        "owner_receipt_required": true,
+        "records_runtime_events": true,
+        "runtime_guard_required": true,
+        "static_check_eligible": false
+      }
     },
     {
       "allowed_action_refs": [
@@ -844,6 +943,7 @@
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "independent_gate_receipt_required": false,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
         "publication_gate_owner": "MedAutoScience",
@@ -874,6 +974,11 @@
           "ref": "/progress_projection",
           "ref_kind": "json_pointer",
           "role": "progress_projection"
+        },
+        {
+          "ref": "/product_entry_manifest/owner_receipt_contract",
+          "ref_kind": "json_pointer",
+          "role": "owner_receipt_gate"
         }
       ],
       "freshness": {
@@ -885,6 +990,12 @@
       "goal": "Convert the current evidence line into a manuscript-facing narrative that can withstand review.",
       "handoff": {
         "next_owner": "MedAutoScience",
+        "next_stage_refs": [
+          "review_and_quality_gate"
+        ],
+        "provides": [
+          "manuscript_draft_reviewable"
+        ],
         "resume_surface_ref": "/product_entry_shell/study_progress",
         "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
         "sidecar_export_ref": "/product_entry_shell/sidecar_export"
@@ -1029,6 +1140,18 @@
           "role": "mas_route_projection"
         }
       ],
+      "stage_contract": {
+        "boundary_assumptions": [
+          "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
+          "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
+        ],
+        "ensures": [
+          "manuscript_draft_reviewable"
+        ],
+        "requires": [
+          "bounded_analysis_evidence_ready"
+        ]
+      },
       "stage_id": "manuscript_authoring",
       "stage_kind": "creation",
       "stage_skill_surface_projection": {
@@ -1085,7 +1208,16 @@
         "version": "stage-skill-surface-projection.v1"
       },
       "summary": "Manuscript authoring projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
-      "title": "Manuscript authoring"
+      "title": "Manuscript authoring",
+      "trust_boundary": {
+        "effect_boundary": false,
+        "human_gate_required": false,
+        "lane": "codex_executor",
+        "owner_receipt_required": true,
+        "records_runtime_events": true,
+        "runtime_guard_required": true,
+        "static_check_eligible": false
+      }
     },
     {
       "allowed_action_refs": [
@@ -1100,6 +1232,7 @@
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "independent_gate_receipt_required": true,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
         "publication_gate_owner": "MedAutoScience",
@@ -1131,6 +1264,11 @@
           "ref": "/progress_projection",
           "ref_kind": "json_pointer",
           "role": "progress_projection"
+        },
+        {
+          "ref": "/product_entry_manifest/owner_receipt_contract",
+          "ref_kind": "json_pointer",
+          "role": "owner_receipt_gate"
         }
       ],
       "freshness": {
@@ -1142,6 +1280,12 @@
       "goal": "Convert reviewer pressure, citation gaps, and evidence concerns into route-safe repair or decision work. / Record the official go, stop, reroute, or human-gate judgment for the active study line.",
       "handoff": {
         "next_owner": "MedAutoScience",
+        "next_stage_refs": [
+          "finalize_and_publication_handoff"
+        ],
+        "provides": [
+          "ai_reviewer_gate_receipt_recorded"
+        ],
         "resume_surface_ref": "/product_entry_shell/study_progress",
         "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
         "sidecar_export_ref": "/product_entry_shell/sidecar_export"
@@ -1299,6 +1443,18 @@
           "role": "mas_route_projection"
         }
       ],
+      "stage_contract": {
+        "boundary_assumptions": [
+          "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
+          "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
+        ],
+        "ensures": [
+          "ai_reviewer_gate_receipt_recorded"
+        ],
+        "requires": [
+          "manuscript_draft_reviewable"
+        ]
+      },
       "stage_id": "review_and_quality_gate",
       "stage_kind": "review",
       "stage_skill_surface_projection": {
@@ -1355,7 +1511,16 @@
         "version": "stage-skill-surface-projection.v1"
       },
       "summary": "Review and quality gate projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
-      "title": "Review and quality gate"
+      "title": "Review and quality gate",
+      "trust_boundary": {
+        "effect_boundary": true,
+        "human_gate_required": false,
+        "lane": "ai_decision",
+        "owner_receipt_required": true,
+        "records_runtime_events": true,
+        "runtime_guard_required": true,
+        "static_check_eligible": false
+      }
     },
     {
       "allowed_action_refs": [
@@ -1369,6 +1534,7 @@
         "can_replace_route_contract": false,
         "can_write_domain_truth": false,
         "domain_truth_owner": "MedAutoScience",
+        "independent_gate_receipt_required": false,
         "maps_existing_routes_only": true,
         "opl_role": "projection_consumer_only",
         "publication_gate_owner": "MedAutoScience",
@@ -1401,6 +1567,11 @@
           "ref": "/progress_projection",
           "ref_kind": "json_pointer",
           "role": "progress_projection"
+        },
+        {
+          "ref": "/product_entry_manifest/owner_receipt_contract",
+          "ref_kind": "json_pointer",
+          "role": "owner_receipt_gate"
         }
       ],
       "freshness": {
@@ -1412,6 +1583,10 @@
       "goal": "Assemble the submission-facing package and verify that the line is ready for final judgment. / Resolve journal-facing packaging choices before final delivery or submission prep.",
       "handoff": {
         "next_owner": "MedAutoScience",
+        "next_stage_refs": [],
+        "provides": [
+          "publication_handoff_ready_or_route_back_recorded"
+        ],
         "resume_surface_ref": "/product_entry_shell/study_progress",
         "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
         "sidecar_export_ref": "/product_entry_shell/sidecar_export"
@@ -1572,6 +1747,18 @@
           "role": "mas_route_projection"
         }
       ],
+      "stage_contract": {
+        "boundary_assumptions": [
+          "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
+          "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness."
+        ],
+        "ensures": [
+          "publication_handoff_ready_or_route_back_recorded"
+        ],
+        "requires": [
+          "ai_reviewer_gate_receipt_recorded"
+        ]
+      },
       "stage_id": "finalize_and_publication_handoff",
       "stage_kind": "packaging",
       "stage_skill_surface_projection": {
@@ -1628,7 +1815,16 @@
         "version": "stage-skill-surface-projection.v1"
       },
       "summary": "Finalize and publication handoff projected from MAS-owned Stage-Led Autonomy routes for OPL discovery.",
-      "title": "Finalize and publication handoff"
+      "title": "Finalize and publication handoff",
+      "trust_boundary": {
+        "effect_boundary": false,
+        "human_gate_required": false,
+        "lane": "domain_agent",
+        "owner_receipt_required": true,
+        "records_runtime_events": true,
+        "runtime_guard_required": true,
+        "static_check_eligible": false
+      }
     }
   ],
   "surface_kind": "family_stage_control_plane",

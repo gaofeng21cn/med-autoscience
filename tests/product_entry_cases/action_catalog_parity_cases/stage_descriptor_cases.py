@@ -254,6 +254,18 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "finalize_and_publication_handoff",
     } == {stage["stage_id"] for stage in stage_plane["stages"]}
 
+    expected_next_stage_refs = {
+        "direction_and_route_selection": ["baseline_and_evidence_setup"],
+        "baseline_and_evidence_setup": ["bounded_analysis_campaign"],
+        "bounded_analysis_campaign": ["manuscript_authoring"],
+        "manuscript_authoring": ["review_and_quality_gate"],
+        "review_and_quality_gate": ["finalize_and_publication_handoff"],
+        "finalize_and_publication_handoff": [],
+    }
+    independent_gate_stage_ids = {
+        "direction_and_route_selection",
+        "review_and_quality_gate",
+    }
     action_ids = {action["action_id"] for action in manifest["family_action_catalog"]["actions"]}
     route_ids = set(route_payload["route_contracts"])
     for stage in stage_plane["stages"]:
@@ -269,6 +281,19 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert {"ref_kind": "repo_path", "ref": "agent/stages/stage_route_contract.yaml", "role": "route_contract"} in stage[
             "prompt_refs"
         ]
+        assert any(ref["role"] == "owner_receipt_gate" for ref in stage["evaluation"])
+        assert stage["stage_contract"]["requires"]
+        assert stage["stage_contract"]["ensures"]
+        assert stage["handoff"]["next_stage_refs"] == expected_next_stage_refs[stage["stage_id"]]
+        assert stage["handoff"]["provides"] == stage["stage_contract"]["ensures"]
+        assert stage["trust_boundary"]["owner_receipt_required"] is True
+        assert stage["trust_boundary"]["runtime_guard_required"] is True
+        assert stage["authority_boundary"]["independent_gate_receipt_required"] is (
+            stage["stage_id"] in independent_gate_stage_ids
+        )
+        if stage["stage_id"] in independent_gate_stage_ids:
+            assert stage["trust_boundary"]["lane"] == "ai_decision"
+            assert stage["trust_boundary"]["effect_boundary"] is True
         assert stage["deliverable_index_ref"] == {
             "ref_kind": "json_pointer",
             "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",

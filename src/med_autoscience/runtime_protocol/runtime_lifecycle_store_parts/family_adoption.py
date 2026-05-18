@@ -53,6 +53,11 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "title": "Direction and route selection",
         "domain_stage_refs": ["scout", "idea", "decision"],
         "allowed_action_refs": ["product_entry_status", "workspace_cockpit", "study_progress"],
+        "requires": ["study_direction_request_received"],
+        "ensures": ["direction_route_selected"],
+        "next_stage_refs": ["baseline_and_evidence_setup"],
+        "trust_lane": "ai_decision",
+        "independent_gate_receipt_required": True,
     },
     {
         "stage_id": "baseline_and_evidence_setup",
@@ -60,6 +65,10 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "title": "Baseline and evidence setup",
         "domain_stage_refs": ["baseline", "experiment"],
         "allowed_action_refs": ["submit_study_task", "launch_study", "study_progress"],
+        "requires": ["direction_route_selected"],
+        "ensures": ["baseline_evidence_ready"],
+        "next_stage_refs": ["bounded_analysis_campaign"],
+        "trust_lane": "domain_agent",
     },
     {
         "stage_id": "bounded_analysis_campaign",
@@ -67,6 +76,10 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "title": "Bounded analysis campaign",
         "domain_stage_refs": ["analysis-campaign"],
         "allowed_action_refs": ["launch_study", "study_progress", "sidecar_export", "sidecar_dispatch"],
+        "requires": ["baseline_evidence_ready"],
+        "ensures": ["bounded_analysis_evidence_ready"],
+        "next_stage_refs": ["manuscript_authoring"],
+        "trust_lane": "codex_executor",
     },
     {
         "stage_id": "manuscript_authoring",
@@ -74,6 +87,10 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "title": "Manuscript authoring",
         "domain_stage_refs": ["write"],
         "allowed_action_refs": ["launch_study", "study_progress", "sidecar_export", "sidecar_dispatch"],
+        "requires": ["bounded_analysis_evidence_ready"],
+        "ensures": ["manuscript_draft_reviewable"],
+        "next_stage_refs": ["review_and_quality_gate"],
+        "trust_lane": "codex_executor",
     },
     {
         "stage_id": "review_and_quality_gate",
@@ -81,6 +98,11 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "title": "Review and quality gate",
         "domain_stage_refs": ["review", "decision"],
         "allowed_action_refs": ["study_progress", "product_entry", "sidecar_export", "sidecar_dispatch"],
+        "requires": ["manuscript_draft_reviewable"],
+        "ensures": ["ai_reviewer_gate_receipt_recorded"],
+        "next_stage_refs": ["finalize_and_publication_handoff"],
+        "trust_lane": "ai_decision",
+        "independent_gate_receipt_required": True,
     },
     {
         "stage_id": "finalize_and_publication_handoff",
@@ -88,6 +110,10 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "title": "Finalize and publication handoff",
         "domain_stage_refs": ["finalize", "journal-resolution", "decision"],
         "allowed_action_refs": ["study_progress", "product_entry", "sidecar_export"],
+        "requires": ["ai_reviewer_gate_receipt_recorded"],
+        "ensures": ["publication_handoff_ready_or_route_back_recorded"],
+        "next_stage_refs": [],
+        "trust_lane": "domain_agent",
     },
 )
 
@@ -473,12 +499,36 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         "evaluation": [
             {"ref_kind": "json_pointer", "ref": "/family_stage_control_plane_descriptor/authority_boundary", "role": "authority_boundary"},
             {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "progress_projection"},
+            {
+                "ref_kind": "json_pointer",
+                "ref": "/product_entry_manifest/owner_receipt_contract",
+                "role": "owner_receipt_gate",
+            },
         ],
         "handoff": {
             "next_owner": "MedAutoScience",
+            "next_stage_refs": list(stage.get("next_stage_refs", [])),
+            "provides": list(stage.get("ensures", [])),
             "resume_surface_ref": "/product_entry_shell/study_progress",
             "sidecar_export_ref": "/product_entry_shell/sidecar_export",
             "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
+        },
+        "stage_contract": {
+            "requires": list(stage.get("requires", [])),
+            "ensures": list(stage.get("ensures", [])),
+            "boundary_assumptions": [
+                "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
+                "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness.",
+            ],
+        },
+        "trust_boundary": {
+            "lane": stage.get("trust_lane", "domain_agent"),
+            "static_check_eligible": False,
+            "effect_boundary": stage.get("trust_lane") == "ai_decision",
+            "records_runtime_events": True,
+            "owner_receipt_required": True,
+            "human_gate_required": False,
+            "runtime_guard_required": True,
         },
         "source_refs": source_refs,
         "freshness": {
@@ -494,6 +544,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "publication_gate_owner": "MedAutoScience",
             "opl_role": "projection_consumer_only",
             "maps_existing_routes_only": True,
+            "independent_gate_receipt_required": bool(stage.get("independent_gate_receipt_required", False)),
             "can_write_domain_truth": False,
             "can_replace_route_contract": False,
             "can_authorize_publication_quality": False,
