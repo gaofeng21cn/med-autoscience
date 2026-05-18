@@ -39,6 +39,7 @@ SUPPORTED_ACTION_TYPES = frozenset(
         "artifact_display_surface_materialization_required",
         "return_to_ai_reviewer_workflow",
         "canonical_paper_inputs_rehydrate_required",
+        "unit_harmonized_external_validation_rerun",
     }
 )
 
@@ -371,6 +372,10 @@ def _terminal_stall_owner_handoff_allowed(
         current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
         return repeat_suppression.publication_gate_specificity_route(owner_route) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
+    if action_type == "unit_harmonized_external_validation_rerun":
+        current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
+        owner_route = current_owner_route or _dispatch_owner_route(dispatch)
+        return repeat_suppression.hard_methodology_harmonization_route(owner_route) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
     if action_type == "runtime_platform_repair":
         current_owner_route = _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
@@ -697,6 +702,7 @@ def _execute_dispatch(
         profile=profile,
         study_id=study_id,
         action_type=action_type,
+        dispatch=dispatch,
         apply=apply,
     )
     action_cost = runtime_dispatch_cost.executor_action_cost(
@@ -795,6 +801,7 @@ def _execute_owner_dispatch_action(
     profile: WorkspaceProfile,
     study_id: str,
     action_type: str,
+    dispatch: Mapping[str, Any],
     apply: bool,
 ) -> dict[str, Any]:
     executors = {
@@ -805,6 +812,13 @@ def _execute_owner_dispatch_action(
         "return_to_ai_reviewer_workflow": _execute_ai_reviewer_workflow,
         "canonical_paper_inputs_rehydrate_required": action_execution.execute_canonical_paper_inputs_rehydrate,
     }
+    if action_type == "unit_harmonized_external_validation_rerun":
+        return action_execution.execute_unit_harmonized_external_validation_rerun(
+            profile=profile,
+            study_id=study_id,
+            apply=apply,
+            dispatch=dispatch,
+        )
     if (executor := executors.get(action_type)) is None:
         return {
             "execution_status": "blocked",

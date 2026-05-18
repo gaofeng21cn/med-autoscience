@@ -9,6 +9,9 @@ OWNER_HANDOFF_REASON = "controller_work_unit_owner_handoff_required"
 CLEAN_MIGRATION_OWNER_HANDOFF_REASON = "paper_authority_clean_migration_required"
 OWNER_HANDOFF_REASONS = frozenset({OWNER_HANDOFF_REASON, CLEAN_MIGRATION_OWNER_HANDOFF_REASON})
 PUBLICATION_GATE_SPECIFICITY_REASON = "publication_gate_specificity_required"
+HARD_METHODOLOGY_REASON = "unit_harmonized_rerun_required"
+HARD_METHODOLOGY_ACTION = "unit_harmonized_external_validation_rerun"
+ANALYSIS_HARMONIZATION_OWNER = "analysis_harmonization_owner"
 
 
 def repeat_key(payload: Mapping[str, Any] | None) -> str | None:
@@ -55,6 +58,7 @@ def scan_repeat_suppression(
     if (
         _owner_handoff_route(owner_route)
         or publication_gate_specificity_route(owner_route)
+        or hard_methodology_harmonization_route(owner_route)
         or _external_supervisor_repair_route(owner_route)
     ):
         return _not_suppressed(key)
@@ -104,6 +108,7 @@ def dispatch_repeat_suppression(
     if (
         _owner_handoff_route(owner_route)
         or publication_gate_specificity_route(owner_route)
+        or hard_methodology_harmonization_route(owner_route)
         or _external_supervisor_repair_route(owner_route)
     ):
         return _not_suppressed(key)
@@ -134,6 +139,7 @@ def execution_repeat_suppression(
     if (
         _owner_handoff_route(owner_route)
         or publication_gate_specificity_route(owner_route)
+        or hard_methodology_harmonization_route(owner_route)
         or _external_supervisor_repair_route(owner_route)
     ):
         return _not_suppressed(key)
@@ -194,6 +200,18 @@ def publication_gate_specificity_route(owner_route: Mapping[str, Any]) -> bool:
     }
 
 
+def hard_methodology_harmonization_route(owner_route: Mapping[str, Any]) -> bool:
+    route = _mapping(owner_route)
+    if _text(route.get("next_owner")) != ANALYSIS_HARMONIZATION_OWNER:
+        return False
+    route_reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
+    if route_reason != HARD_METHODOLOGY_REASON:
+        return False
+    return HARD_METHODOLOGY_ACTION in {
+        item for value in route.get("allowed_actions") or [] if (item := _text(value)) is not None
+    }
+
+
 def _route_signature(owner_route: Mapping[str, Any] | None) -> tuple[str | None, str | None, tuple[str, ...]]:
     route = _mapping(owner_route)
     return (
@@ -236,11 +254,14 @@ def _text(value: object) -> str | None:
 __all__ = [
     "OWNER_HANDOFF_REASON",
     "OWNER_HANDOFF_REASONS",
+    "HARD_METHODOLOGY_ACTION",
+    "HARD_METHODOLOGY_REASON",
     "CLEAN_MIGRATION_OWNER_HANDOFF_REASON",
     "PUBLICATION_GATE_SPECIFICITY_REASON",
     "REPEAT_SUPPRESSED_REASON",
     "dispatch_repeat_suppression",
     "execution_repeat_suppression",
+    "hard_methodology_harmonization_route",
     "meaningful_artifact_delta_observed",
     "publication_gate_specificity_route",
     "repeat_key",

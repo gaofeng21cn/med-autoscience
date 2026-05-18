@@ -117,6 +117,9 @@ def _required_output_surface_for_action(action_type: str) -> str | None:
         "artifact_display_surface_materialization_required": "paper/display_registry.json",
         "return_to_ai_reviewer_workflow": "artifacts/publication_eval/latest.json",
         "canonical_paper_inputs_rehydrate_required": "paper/medical_manuscript_blueprint_source.json",
+        "unit_harmonized_external_validation_rerun": (
+            "unit-harmonized external-validation rerun evidence or typed blocker:unit_harmonized_rerun_required"
+        ),
     }.get(action_type)
 
 
