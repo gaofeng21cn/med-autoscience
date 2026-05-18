@@ -78,6 +78,14 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_blocked_domain_scor
         }
     ]
     assert task["improvement_candidate"]["candidate_kind"] == "rubric_gap"
+    assert task["improvement_candidate"]["developer_patch_work_order"]["work_order_id"] == (
+        "oma_developer_patch_work_order_99fdc0d34111"
+    )
+    assert task["improvement_candidate"]["developer_patch_work_order"]["owner_agent"] == "opl-meta-agent"
+    assert task["improvement_candidate"]["developer_patch_work_order"]["role"] == "developer_direct_repo_patch"
+    assert task["improvement_candidate"]["developer_patch_work_order"]["can_modify_mas_repo"] is True
+    assert task["improvement_candidate"]["developer_patch_work_order"]["can_write_study_truth"] is False
+    assert "analysis_harmonization_owner_callable" in task["improvement_candidate"]["developer_patch_work_order"]["required_patch_scopes"]
     assert task["improvement_candidate"]["target_agent_capability_gap"]["status"] == "candidate_only"
     assert "quality_contract_ref:prediction_model_first_draft_quality" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/analysis-harmonization-owner-routing" in task["improvement_candidate"]["target_agent_capability_gap"]["target_editable_surface_refs"]
@@ -158,6 +166,10 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
     assert inputs["automatic_mechanism_promotion_route"] == "risk_tiered_auto_promotion_with_independent_ai_review"
     assert inputs["authority_boundary"]["can_write_memory_body"] is False
     assert inputs["authority_boundary"]["can_authorize_quality_verdict"] is False
+    assert inputs["developer_patch_work_order"]["owner_agent"] == "opl-meta-agent"
+    assert inputs["developer_patch_work_order"]["role"] == "developer_direct_repo_patch"
+    assert inputs["developer_patch_work_order"]["can_modify_mas_repo"] is True
+    assert inputs["developer_patch_work_order"]["can_write_study_truth"] is False
     assert any("research_wiki/latest.json" in ref for ref in inputs["research_wiki_refs"])
     assert any("failed-route" in ref for ref in inputs["failed_route_refs"])
     graph = inputs["research_memory_graph"]

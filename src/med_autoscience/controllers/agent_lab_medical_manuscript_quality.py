@@ -31,6 +31,7 @@ SELF_EVOLUTION_TARGET_REFS = [
     "regression-suite:mas/hard-methodology-unit-harmonization-route",
     "regression_suite_ref:mas/agent_lab_medical_manuscript_self_evolution",
 ]
+DEVELOPER_PATCH_WORK_ORDER_ID = "oma_developer_patch_work_order_99fdc0d34111"
 
 
 def stable_medical_manuscript_quality_suite_path(*, study_root: Path) -> Path:
@@ -155,6 +156,10 @@ def build_medical_manuscript_quality_agent_lab_suite(
                     "candidate_kind": "rubric_gap",
                     "target_ref": "rubric-gap-ref:mas/high-quality-medical-manuscript-ai-reviewer",
                     "evidence_refs": blocker_refs or evidence_refs,
+                    "developer_patch_work_order": _developer_patch_work_order(
+                        study_id=study_id,
+                        evidence_refs=blocker_refs or evidence_refs,
+                    ),
                     "target_agent_capability_gap": {
                         "status": "candidate_only",
                         "target_owner": "med-autoscience",
@@ -291,6 +296,10 @@ def _mechanism_evolution_inputs(
         "analysis_queue_manifest_refs": analysis_queue_manifest_refs,
         "analysis_queue_manifest": analysis_queue_manifest,
         "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
+        "developer_patch_work_order": _developer_patch_work_order(
+            study_id=study_id,
+            evidence_refs=_unique_refs(blocker_refs or evidence_refs),
+        ),
         "evidence_delta_refs": _unique_refs(
             [
                 *evidence_refs,
@@ -312,6 +321,47 @@ def _mechanism_evolution_inputs(
             "paper/submission_minimal",
             "publication-route-memory-body",
         ],
+    }
+
+
+def _developer_patch_work_order(*, study_id: str, evidence_refs: list[str]) -> dict[str, Any]:
+    return {
+        "work_order_id": DEVELOPER_PATCH_WORK_ORDER_ID,
+        "owner_agent": "opl-meta-agent",
+        "role": "developer_direct_repo_patch",
+        "target_repo": "med-autoscience",
+        "status": "blocked_until_repo_patch",
+        "trigger": "agent_lab_blocked_medical_manuscript_quality_suite",
+        "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
+        "required_patch_scopes": [
+            "analysis_harmonization_owner_callable",
+            "hard_methodology_unit_harmonization_route",
+            "prediction_model_first_draft_quality_contract",
+            "ai_reviewer_high_quality_medical_manuscript_rubric",
+            "write_stage_pre_draft_prediction_model_reporting",
+            "regression_tests_and_docs",
+        ],
+        "dm002_quality_targets": [
+            "HDL harmonization and sensitivity or typed blocker",
+            "model reproducibility and baseline survival provenance",
+            "Table 1 and Table 2 visible baseline/performance reporting",
+            "uncertainty intervals and validation metrics",
+            "NHANES weighting or unweighted framing",
+            "calibration and risk-collapse figure quality",
+            "internal quality-language purge",
+        ],
+        "evidence_refs": evidence_refs,
+        "forbidden_writes": [
+            "publication_eval/latest.json",
+            "controller_decisions/latest.json",
+            "paper/submission_minimal",
+            "manuscript/current_package",
+            "submission readiness verdict",
+        ],
+        "can_modify_mas_repo": True,
+        "can_write_study_truth": False,
+        "can_authorize_quality_verdict": False,
+        "can_mutate_paper_package": False,
     }
 
 

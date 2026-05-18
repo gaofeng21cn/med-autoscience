@@ -390,24 +390,6 @@ def _execute_runtime_platform_repair(
     )
 
 
-def _execute_current_package_freshness(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    apply: bool,
-) -> dict[str, Any]:
-    return action_execution.execute_current_package_freshness(profile=profile, study_id=study_id, apply=apply)
-
-
-def _execute_artifact_display_materialization(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    apply: bool,
-) -> dict[str, Any]:
-    return action_execution.execute_artifact_display_materialization(profile=profile, study_id=study_id, apply=apply)
-
-
 def _execute_ai_reviewer_workflow(
     *,
     profile: WorkspaceProfile,
@@ -778,8 +760,8 @@ def _execute_owner_dispatch_action(
     executors = {
         "publication_gate_specificity_required": _execute_publication_gate_specificity,
         "runtime_platform_repair": _execute_runtime_platform_repair,
-        "current_package_freshness_required": _execute_current_package_freshness,
-        "artifact_display_surface_materialization_required": _execute_artifact_display_materialization,
+        "current_package_freshness_required": action_execution.execute_current_package_freshness,
+        "artifact_display_surface_materialization_required": action_execution.execute_artifact_display_materialization,
         "return_to_ai_reviewer_workflow": _execute_ai_reviewer_workflow,
         "canonical_paper_inputs_rehydrate_required": action_execution.execute_canonical_paper_inputs_rehydrate,
     }

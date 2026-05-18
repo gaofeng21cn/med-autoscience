@@ -4,6 +4,8 @@
 - Source Agent Lab suite: `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution/artifacts/agent_lab/medical_manuscript_quality/latest_suite.json`
 - OPL Agent Lab result: `oals_de7c8002af969568edd93c1b`
 - OPL Meta Agent developer work order: `oma_developer_patch_work_order_99fdc0d34111`
+- 当前实现要求：`opl-meta-agent` 可作为开发者直接修改 `med-autoscience` 的 stage、skill、prompt、rubric、quality contract、owner callable、tests 和 docs。它不得写 DM002 study truth、`publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、`paper/submission_minimal`、`manuscript/current_package` 或 submission readiness verdict。
+- Hard methodology 路线要求：HDL/unit harmonization 命中时，MAS 必须退到 `analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker`。该 callable 必须产出 `artifacts/controller/analysis_harmonization/latest.json`，内容为 unit-harmonized rerun evidence 或 `unit_harmonized_rerun_required` typed blocker；只写 supervisor request 不能算 owner 闭环。
 - Traceability matrix source: `/tmp/opl-meta-agent-dm002-quality-v2-traceable/developer-patch-work-order.json`
 
 ## Scope

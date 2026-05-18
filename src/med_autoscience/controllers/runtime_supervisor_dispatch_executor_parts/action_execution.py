@@ -11,6 +11,7 @@ from med_autoscience import medical_manuscript_blueprint
 
 from .. import (
     ai_reviewer_publication_eval_workflow,
+    analysis_harmonization_owner,
     gate_clearing_batch,
     paper_authority_migration,
     publication_gate,
@@ -488,18 +489,17 @@ def execute_unit_harmonized_external_validation_rerun(
     request_path.parent.mkdir(parents=True, exist_ok=True)
     request["path"] = str(request_path)
     request_path.write_text(json.dumps(request, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return {
-        "execution_status": "executed",
-        "blocked_reason": None,
-        "owner_callable_surface": "analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker",
-        "next_owner": "analysis_harmonization_owner",
-        "owner_result": {
-            "request_path": str(request_path),
-            "request_kind": "unit_harmonized_external_validation_rerun",
-            "required_output_surface": request["required_output_surface"],
-            "typed_blocker": "unit_harmonized_rerun_required",
-        },
-    }
+    owner_execution = analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker(
+        profile=profile,
+        study_id=study_id,
+        dispatch=dispatch,
+        request=request,
+        apply=True,
+    )
+    owner_result = _mapping(owner_execution.get("owner_result"))
+    owner_result["request_path"] = str(request_path)
+    owner_result["request_kind"] = "unit_harmonized_external_validation_rerun"
+    return {**owner_execution, "owner_result": owner_result, "request_path": str(request_path)}
 
 
 def _analysis_harmonization_request(*, study_id: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:

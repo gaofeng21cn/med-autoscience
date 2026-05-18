@@ -90,6 +90,7 @@ def test_execute_dispatch_hands_terminal_hard_methodology_route_to_analysis_owne
     )
 
     request_path = study_root / "artifacts" / "supervision" / "requests" / "analysis_harmonization" / "latest.json"
+    owner_result_path = study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
     execution = result["executions"][0]
     assert result["executed_count"] == 1
     assert result["blocked_count"] == 0
@@ -100,8 +101,21 @@ def test_execute_dispatch_hands_terminal_hard_methodology_route_to_analysis_owne
         "analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker"
     )
     assert execution["owner_result"]["request_path"] == str(request_path)
+    assert execution["owner_result"]["result_ref"] == str(owner_result_path)
+    assert execution["owner_result"]["surface"] == "analysis_harmonization_owner_result"
+    assert execution["owner_result"]["status"] == "blocked"
+    assert execution["owner_result"]["blocked_reason"] == "unit_harmonized_rerun_required"
+    assert execution["owner_result"]["typed_blocker_owner"] == "analysis_harmonization_owner"
+    assert execution["owner_result"]["work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert execution["owner_result"]["paper_package_mutation_allowed"] is False
+    assert execution["owner_result"]["quality_gate_relaxation_allowed"] is False
+    assert execution["owner_result"]["medical_claim_authoring_allowed"] is False
+    assert execution["owner_result"]["publication_eval_written"] is False
+    assert execution["owner_result"]["controller_decision_written"] is False
     assert request_path.is_file()
+    assert owner_result_path.is_file()
     request = json.loads(request_path.read_text(encoding="utf-8"))
+    owner_result = json.loads(owner_result_path.read_text(encoding="utf-8"))
     assert request["request_kind"] == "unit_harmonized_external_validation_rerun"
     assert request["request_owner"] == "analysis_harmonization_owner"
     assert request["blocked_reason"] == "unit_harmonized_rerun_required"
@@ -109,5 +123,8 @@ def test_execute_dispatch_hands_terminal_hard_methodology_route_to_analysis_owne
     assert request["paper_package_mutation_allowed"] is False
     assert request["quality_gate_relaxation_allowed"] is False
     assert request["medical_claim_authoring_allowed"] is False
+    assert owner_result["request_ref"]["path"] == str(request_path)
+    assert owner_result["typed_blocker"]["blocker_id"] == "unit_harmonized_rerun_required"
+    assert owner_result["unit_harmonized_rerun_completed"] is False
     assert not (study_root / "manuscript").exists()
     assert not (study_root / "paper").exists()

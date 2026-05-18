@@ -12,6 +12,7 @@ CURRENT_PACKAGE_FRESHNESS_PROOF_RELATIVE_PATH = Path("artifacts/controller/curre
 GATE_CLEARING_BATCH_RELATIVE_PATH = Path("artifacts/controller/gate_clearing_batch/latest.json")
 PUBLICATION_EVAL_RELATIVE_PATH = Path("artifacts/publication_eval/latest.json")
 MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH = Path("paper/medical_manuscript_blueprint_source.json")
+ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH = Path("artifacts/controller/analysis_harmonization/latest.json")
 
 
 def required_output_pending(
@@ -25,6 +26,8 @@ def required_output_pending(
         return current_package_freshness_output_pending(profile=profile, study_id=study_id)
     if action_type == "canonical_paper_inputs_rehydrate_required":
         return canonical_paper_inputs_rehydrate_output_pending(profile=profile, study_id=study_id)
+    if action_type == "unit_harmonized_external_validation_rerun":
+        return unit_harmonized_external_validation_output_pending(profile=profile, study_id=study_id)
     if action_type != "return_to_ai_reviewer_workflow":
         return False
     return ai_reviewer_output_pending(current_study)
@@ -53,6 +56,19 @@ def current_package_freshness_output_pending(*, profile: WorkspaceProfile, study
 
 def canonical_paper_inputs_rehydrate_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
     return not (profile.studies_root / study_id / MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH).is_file()
+
+
+def unit_harmonized_external_validation_output_pending(*, profile: WorkspaceProfile, study_id: str) -> bool:
+    payload = _read_json_object(profile.studies_root / study_id / ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH)
+    if payload is None:
+        return True
+    if _text(payload.get("owner")) != "analysis_harmonization_owner":
+        return True
+    if _text(payload.get("work_unit")) != "unit_harmonized_external_validation_rerun":
+        return True
+    if payload.get("unit_harmonized_rerun_completed") is True:
+        return False
+    return _text(payload.get("blocked_reason")) != "unit_harmonized_rerun_required"
 
 
 def _source_eval_id_stale(payload: Mapping[str, Any] | None, *, current_eval_id: str | None) -> bool:
@@ -100,8 +116,10 @@ def _list(value: object) -> list[Any]:
 __all__ = [
     "MEDICAL_MANUSCRIPT_BLUEPRINT_SOURCE_RELATIVE_PATH",
     "PUBLICATION_EVAL_RELATIVE_PATH",
+    "ANALYSIS_HARMONIZATION_RESULT_RELATIVE_PATH",
     "ai_reviewer_output_pending",
     "canonical_paper_inputs_rehydrate_output_pending",
     "current_package_freshness_output_pending",
     "required_output_pending",
+    "unit_harmonized_external_validation_output_pending",
 ]
