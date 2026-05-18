@@ -14,7 +14,7 @@
 
 - 不采用降级处理、兜底方案、临时补丁、启发式方法、局部稳定化手段，避免以非严谨通用算法的后处理补救作为主策略。
 - 重大变更必须在独立 worktree 中完成，保持可追溯与可回滚。
-- 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、兼容层或回归基线存在。
+- 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、回归基线或 provenance 存在。
 - 当前目标形态是 `Codex-default host-agent runtime` 加 `MAS` 自己的稳定 capability surface；可选 hosted runtime carrier（例如 `Hermes-Agent`）只能作为显式附加层或 reference-layer 材料出现，不得改写默认入口语义。
 - `MedAutoScience` 对外第一身份固定为独立 medical research domain agent；其单一 MAS app skill 承接稳定 capability surface。`OPL` handoff、product-entry manifest 与其他机器可读桥接只作为集成或参考层存在，不得改写第一主语。
 - `OPL` 是 stage-led、以 Agent executor 为最小执行单位的完整智能体运行框架，可作为 MAS 的外部依赖和托管运行层；它承担 family-level session/runtime/projection、stage attempt、queue、wakeup、approval/retry/dead-letter 与 shared modules/contracts/indexes 编排，不把 `MedAutoScience` 改写为内部模块或研究 owner。

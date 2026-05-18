@@ -397,7 +397,7 @@
 ## 2026-04-11：目标 runtime 方向优先于旧 substrate 延长线
 
 - 决策：后续新增投入默认服务“OPL Temporal-backed family runtime，Temporal 作为 production required substrate”这条目标形态，而不是继续把旧默认 substrate 或 Hermes-first 路线深磨成长期产品方向。
-- 理由：历史基线和过渡实现仍然有价值，但它们应作为迁移桥、兼容层与回归基线存在，不能反向决定主线目标。
+- 理由：历史基线和过渡实现仍然有价值，但它们应作为迁移桥、回归基线与 provenance 存在，不能反向决定主线目标。
 - 影响：所有后续 tranche 都必须明确区分“当前 repo-verified baseline”与“长线目标”，并保持 display 独立支线不被主线误伤。
 
 ## 2026-04-11：当前仓内的 `Hermes` 只代表 repo-side seam，不代表上游集成已落地
