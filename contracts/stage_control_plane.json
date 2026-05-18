@@ -290,6 +290,10 @@
         ],
         "requires": [
           "study_direction_request_received"
+        ],
+        "runtime_event_refs": [
+          "runtime_event:runtime_supervisor_owner_route.direction_route_selected",
+          "runtime_event:controller_decisions.direction_route_selected"
         ]
       },
       "stage_id": "direction_and_route_selection",
@@ -355,6 +359,10 @@
         "lane": "ai_decision",
         "owner_receipt_required": true,
         "records_runtime_events": true,
+        "runtime_event_refs": [
+          "runtime_event:runtime_supervisor_owner_route.direction_route_selected",
+          "runtime_event:controller_decisions.direction_route_selected"
+        ],
         "runtime_guard_required": true,
         "static_check_eligible": false
       }
@@ -1453,6 +1461,10 @@
         ],
         "requires": [
           "manuscript_draft_reviewable"
+        ],
+        "runtime_event_refs": [
+          "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
+          "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded"
         ]
       },
       "stage_id": "review_and_quality_gate",
@@ -1518,6 +1530,10 @@
         "lane": "ai_decision",
         "owner_receipt_required": true,
         "records_runtime_events": true,
+        "runtime_event_refs": [
+          "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
+          "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded"
+        ],
         "runtime_guard_required": true,
         "static_check_eligible": false
       }

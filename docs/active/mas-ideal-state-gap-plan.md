@@ -42,7 +42,16 @@ AI-first 质量门要求 executor agent 与 reviewer/auditor agent 独立 invoca
 
 ## 当前功能/结构状态
 
-当前机器面已关闭未分类 generic owner 回流和 5 个 structural follow-through gate：`classification_gap_count=0`、`active_private_generic_residue_count=0`、`functional_structure_gap_count=0`。`functional_structure_gap_count` 由 closure evidence 计算，只有同时具备 closed 状态、非结构 gap 标记和 closure proof refs 的 gate 才计入 closed。真实 provider、paper-line、memory/artifact receipt 与 long-soak 仍是后置 evidence gate，不能被结构 closure、repo tests 或 descriptor ready 替代。
+2026-05-18 fresh OPL stage proof 发现过一个结构 blocker：`direction_and_route_selection` 与 `review_and_quality_gate` 是 effect-boundary / AI-decision stage，但真实 MAS manifest 缺少 machine-readable `runtime_event_refs`，OPL admission finding 为 `effect_boundary_missing_runtime_event_refs`。该项属于 MAS `family_stage_control_plane` 结构/功能 gap，不是测试证据尾巴。
+
+当前修复后，MAS 在 `trust_boundary.runtime_event_refs` 与 `stage_contract.runtime_event_refs` 中声明了：
+
+- `direction_and_route_selection`：`runtime_event:runtime_supervisor_owner_route.direction_route_selected`、`runtime_event:controller_decisions.direction_route_selected`。
+- `review_and_quality_gate`：`runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded`、`runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded`。
+
+OPL proof bundle / admission 只有在上述 effect-boundary stage 返回 `admission_status=admitted`、`blockers_count=0`、`warnings_count=0` 后，才能继续把 MAS 当前结构口径写成 `functional_structure_gap_count=0`。若 admission 未跑或返回 blocked，本节必须降级为“存在 stage admission 结构 gap”，不得只把它归入 evidence gate。
+
+在上述 admission gate 通过的前提下，当前机器面已关闭未分类 generic owner 回流、effect-boundary stage admission 和 5 个 structural follow-through gate：`classification_gap_count=0`、`active_private_generic_residue_count=0`、`functional_structure_gap_count=0`。`functional_structure_gap_count` 由 closure evidence 计算，只有同时具备 closed 状态、非结构 gap 标记和 closure proof refs 的 gate 才计入 closed。真实 provider、paper-line、memory/artifact receipt 与 long-soak 仍是后置 evidence gate，不能被结构 closure、repo tests、descriptor ready 或 OPL admission 替代。
 
 以下 5 项已作为功能/结构 closure gate 关闭：
 

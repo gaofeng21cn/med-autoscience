@@ -461,6 +461,26 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "role": "mas_route_projection",
         },
     ]
+    stage_contract = {
+        "requires": list(stage.get("requires", [])),
+        "ensures": list(stage.get("ensures", [])),
+        "boundary_assumptions": [
+            "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
+            "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness.",
+        ],
+    }
+    trust_boundary = {
+        "lane": stage.get("trust_lane", "domain_agent"),
+        "static_check_eligible": False,
+        "effect_boundary": stage.get("trust_lane") == "ai_decision",
+        "records_runtime_events": True,
+        "owner_receipt_required": True,
+        "human_gate_required": False,
+        "runtime_guard_required": True,
+    }
+    if runtime_event_refs:
+        stage_contract["runtime_event_refs"] = runtime_event_refs
+        trust_boundary["runtime_event_refs"] = runtime_event_refs
     return {
         "stage_id": stage["stage_id"],
         "stage_kind": stage["stage_kind"],
@@ -522,25 +542,8 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "sidecar_export_ref": "/product_entry_shell/sidecar_export",
             "sidecar_dispatch_ref": "/product_entry_shell/sidecar_dispatch",
         },
-        "stage_contract": {
-            "requires": list(stage.get("requires", [])),
-            "ensures": list(stage.get("ensures", [])),
-            "runtime_event_refs": runtime_event_refs,
-            "boundary_assumptions": [
-                "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
-                "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness.",
-            ],
-        },
-        "trust_boundary": {
-            "lane": stage.get("trust_lane", "domain_agent"),
-            "static_check_eligible": False,
-            "effect_boundary": stage.get("trust_lane") == "ai_decision",
-            "records_runtime_events": True,
-            "runtime_event_refs": runtime_event_refs,
-            "owner_receipt_required": True,
-            "human_gate_required": False,
-            "runtime_guard_required": True,
-        },
+        "stage_contract": stage_contract,
+        "trust_boundary": trust_boundary,
         "source_refs": source_refs,
         "freshness": {
             "freshness_kind": "product_entry_manifest_projection",

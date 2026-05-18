@@ -1,5 +1,13 @@
 # 关键决策记录
 
+## 2026-05-18：effect-boundary stage 必须声明 runtime event refs 才能通过 OPL admission
+
+- 决策：`family_stage_control_plane` 中 `trust_boundary.lane=ai_decision`、`human_gate`、`external_system` 或显式 `effect_boundary=true` 的 stage，必须在 `trust_boundary.runtime_event_refs` 或 `stage_contract.runtime_event_refs` 中声明 machine-readable runtime event refs。缺 refs 时视为 MAS 结构/功能 gap，OPL admission finding `effect_boundary_missing_runtime_event_refs` 不能降格为纯测试/证据缺口。
+- 决策：`direction_and_route_selection` 的 runtime refs 固定为 `runtime_event:runtime_supervisor_owner_route.direction_route_selected` 与 `runtime_event:controller_decisions.direction_route_selected`；`review_and_quality_gate` 的 runtime refs 固定为 `runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded` 与 `runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded`。
+- 决策：只有 OPL proof bundle / admission 对当前 MAS manifest 返回 MAS stage `admitted`、`blockers_count=0`、`warnings_count=0` 后，文档才能继续声明当前 `functional_structure_gap_count=0`。若 proof 未跑或 admission blocked，必须重新打开 stage-control-plane functional gap。
+- 理由：effect-boundary stage 是 AI route / quality decision 的审计边界。OPL 可以托管 attempt、queue、projection 和 replay，但不能替 MAS 猜测 route decision、AI reviewer gate receipt 或 publication eval event；这些 refs 必须由 MAS domain-owned stage control plane 明确暴露。
+- 影响：新增或修改 MAS stage descriptor 时，`ai_decision` / effect-boundary stage 的 runtime event refs 与 owner receipt、typed blocker、quality/artifact authority refs 同步维护。程序和文档不得把 descriptor ready、repo tests 或 generic generated surface proof 写成 admission 已通过。
+
 ## 2026-05-18：显式 task_intake_kind 是结构化 intake 的权威输入
 
 - 决策：`submit-study-task --task-intake-kind reviewer_revision` 必须直接 materialize `revision_intake` 与 `submission_revision_operating_contract`，即使 `task_intent` 是英文、方法学勘误或不含旧的“审稿意见/导师反馈/manuscript revision” marker。
