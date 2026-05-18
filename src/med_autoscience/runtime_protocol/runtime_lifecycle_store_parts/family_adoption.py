@@ -58,6 +58,10 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "next_stage_refs": ["baseline_and_evidence_setup"],
         "trust_lane": "ai_decision",
         "independent_gate_receipt_required": True,
+        "runtime_event_refs": [
+            "runtime_event:runtime_supervisor_owner_route.direction_route_selected",
+            "runtime_event:controller_decisions.direction_route_selected",
+        ],
     },
     {
         "stage_id": "baseline_and_evidence_setup",
@@ -103,6 +107,10 @@ FAMILY_STAGE_PACK: tuple[dict[str, Any], ...] = (
         "next_stage_refs": ["finalize_and_publication_handoff"],
         "trust_lane": "ai_decision",
         "independent_gate_receipt_required": True,
+        "runtime_event_refs": [
+            "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
+            "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded",
+        ],
     },
     {
         "stage_id": "finalize_and_publication_handoff",
@@ -444,6 +452,7 @@ def _plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
 
 
 def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str, Any]) -> dict[str, Any]:
+    runtime_event_refs = list(stage.get("runtime_event_refs") or [])
     source_refs = [
         *_plane_source_refs(descriptor),
         {
@@ -516,6 +525,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
         "stage_contract": {
             "requires": list(stage.get("requires", [])),
             "ensures": list(stage.get("ensures", [])),
+            "runtime_event_refs": runtime_event_refs,
             "boundary_assumptions": [
                 "MAS owns study truth, route decisions, evidence/review ledgers, publication eval, and package authority.",
                 "OPL admission only checks descriptor composition; it cannot authorize publication quality or submission readiness.",
@@ -526,6 +536,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             "static_check_eligible": False,
             "effect_boundary": stage.get("trust_lane") == "ai_decision",
             "records_runtime_events": True,
+            "runtime_event_refs": runtime_event_refs,
             "owner_receipt_required": True,
             "human_gate_required": False,
             "runtime_guard_required": True,

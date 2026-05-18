@@ -266,6 +266,16 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         "direction_and_route_selection",
         "review_and_quality_gate",
     }
+    expected_runtime_event_refs = {
+        "direction_and_route_selection": [
+            "runtime_event:runtime_supervisor_owner_route.direction_route_selected",
+            "runtime_event:controller_decisions.direction_route_selected",
+        ],
+        "review_and_quality_gate": [
+            "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
+            "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded",
+        ],
+    }
     action_ids = {action["action_id"] for action in manifest["family_action_catalog"]["actions"]}
     route_ids = set(route_payload["route_contracts"])
     for stage in stage_plane["stages"]:
@@ -294,6 +304,8 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         if stage["stage_id"] in independent_gate_stage_ids:
             assert stage["trust_boundary"]["lane"] == "ai_decision"
             assert stage["trust_boundary"]["effect_boundary"] is True
+            assert stage["trust_boundary"]["runtime_event_refs"] == expected_runtime_event_refs[stage["stage_id"]]
+            assert stage["stage_contract"]["runtime_event_refs"] == expected_runtime_event_refs[stage["stage_id"]]
         assert stage["deliverable_index_ref"] == {
             "ref_kind": "json_pointer",
             "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
