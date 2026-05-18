@@ -607,6 +607,33 @@ def test_submit_study_task_projects_reviewer_revision_intake(tmp_path: Path) -> 
     assert "旧 stopped/submission-ready/finalize 状态不能作为前台直接修改" in latest_markdown_text
 
 
+def test_submit_study_task_honors_explicit_reviewer_revision_kind_without_text_marker(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.product_entry")
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, "002-risk")
+
+    payload = module.submit_study_task(
+        profile=profile,
+        study_id="002-risk",
+        task_intake_kind="reviewer_revision",
+        task_intent=(
+            "DM002 high-priority methodology correction: current external-validation claims are "
+            "potentially invalid because the active transportability input uses incompatible HDL units. "
+            "Roll back from manuscript improvement to analysis/harmonization owner."
+        ),
+        constraints=("Do not continue prose polishing until the harmonization issue is resolved.",),
+    )
+
+    latest_json = Path(payload["artifacts"]["latest_json"])
+    latest_markdown = Path(payload["artifacts"]["latest_markdown"])
+    written_payload = json.loads(latest_json.read_text(encoding="utf-8"))
+
+    assert written_payload["task_intake_kind"] == "reviewer_revision"
+    assert payload["revision_intake"]["kind"] == "reviewer_revision"
+    assert written_payload["revision_intake"]["reactivation_required"] is True
+    assert "Revision Intake Checklist" in latest_markdown.read_text(encoding="utf-8")
+
+
 def test_submit_study_task_writes_structured_manual_hold_intake(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.product_entry")
     profile = make_profile(tmp_path)

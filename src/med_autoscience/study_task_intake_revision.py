@@ -107,9 +107,17 @@ def _task_intake_contains_any(payload: dict[str, Any] | None, markers: tuple[str
     return False
 
 
+def _task_intake_kind(payload: dict[str, Any] | None) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    return _non_empty_text(payload.get("task_intake_kind")) or _non_empty_text(payload.get("intake_kind"))
+
+
 def task_intake_is_reviewer_revision(payload: dict[str, Any] | None) -> bool:
     if task_intake_requests_publishability_stop_loss(payload):
         return False
+    if _task_intake_kind(payload) == "reviewer_revision":
+        return True
     return _task_intake_contains_any(payload, REVIEWER_REVISION_MARKERS)
 
 

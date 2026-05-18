@@ -27,6 +27,27 @@ def test_reviewer_revision_intake_detects_chinese_submission_review_feedback_rea
     assert module.summarize_task_intake(payload)["revision_intake"]["kind"] == "reviewer_revision"
 
 
+def test_explicit_reviewer_revision_kind_materializes_revision_intake_without_text_marker() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "task_intake_kind": "reviewer_revision",
+        "task_intent": (
+            "DM002 high-priority methodology correction: current external-validation claims are "
+            "potentially invalid because the active transportability input uses incompatible HDL units. "
+            "Roll back from manuscript improvement to analysis/harmonization owner."
+        ),
+        "constraints": [
+            "Do not continue prose polishing or submission readiness until the harmonization issue is resolved."
+        ],
+    }
+
+    assert module.task_intake_is_reviewer_revision(payload) is True
+    summary = module.summarize_task_intake(payload)
+    assert summary["revision_intake"]["kind"] == "reviewer_revision"
+    assert summary["revision_intake"]["reactivation_required"] is True
+
+
 def test_reviewer_task_intake_preserves_publication_gate_work_unit_identity(tmp_path: Path) -> None:
     intake_module = importlib.import_module("med_autoscience.study_task_intake")
     outer_loop_intake = importlib.import_module("med_autoscience.controllers.study_outer_loop_task_intake")
