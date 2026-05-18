@@ -90,7 +90,7 @@
       "active_private_generic_residue_count": 0,
       "classification_counts": {
         "declarative_pack_generated_surface": 7,
-        "legacy_cleanup_no_active_caller_gate": 2,
+        "legacy_cleanup_physical_retired": 2,
         "minimal_authority_function": 3,
         "refs_only_adapter": 6
       },
@@ -145,7 +145,7 @@
           "closure_proof_refs": [
             "no_active_caller_proof.default_caller_count=0",
             "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
-            "functional_module_inventory.legacy_cleanup_no_active_caller_gate"
+            "functional_module_inventory.legacy_cleanup_physical_retired"
           ],
           "closure_status": "closed",
           "evidence_required": "no-active-caller scan, old generated artifact absent/remove proof, provenance retained, focused cleanup tests green",
@@ -198,19 +198,16 @@
         "mas_owned_generic_observability"
       ],
       "functional_structure_gap_count": 0,
-      "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
-      "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
+      "legacy_cleanup_item_role": "history_tombstone_provenance_only",
+      "legacy_cleanup_items_are_diagnostic_provenance_guards": false,
       "legacy_cleanup_items_are_remaining_active_gaps": false,
       "legacy_cleanup_items_have_default_entry": false,
-      "legacy_cleanup_items_have_standard_template_refs": true,
+      "legacy_cleanup_items_have_standard_template_refs": false,
       "legacy_cleanup_items_physical_retired": [
         "local_launchd_scheduler_install_path",
         "workspace_local_watch_service_wrappers"
       ],
-      "legacy_cleanup_items_require_no_active_caller_gate": [
-        "local_launchd_scheduler_install_path",
-        "workspace_local_watch_service_wrappers"
-      ],
+      "legacy_cleanup_items_require_no_active_caller_gate": [],
       "remaining_evidence_gate_ids": [
         "live_provider_paper_apply_scaleout",
         "publication_route_memory_receipt_scaleout",
@@ -713,7 +710,7 @@
         "active_caller_allowed": false,
         "active_caller_status": "physical_retired_tombstone_only",
         "active_callers": [],
-        "classification": "legacy_cleanup_no_active_caller_gate",
+        "classification": "legacy_cleanup_physical_retired",
         "code_paths": [
           "contracts/runtime/legacy-active-path-tombstones.json",
           "docs/history/runtime/legacy_active_path_tombstones.md"
@@ -742,7 +739,7 @@
         "active_callers": [
           "legacy cleanup/audit only"
         ],
-        "classification": "legacy_cleanup_no_active_caller_gate",
+        "classification": "legacy_cleanup_physical_retired",
         "code_paths": [
           "src/med_autoscience/controllers/workspace_init_parts/retired_entries.py",
           "src/med_autoscience/controllers/workspace_legacy_physical_cleanup.py"
@@ -768,7 +765,7 @@
       "active_private_generic_residue_count": 0,
       "classification_counts": {
         "declarative_pack_generated_surface": 7,
-        "legacy_cleanup_no_active_caller_gate": 2,
+        "legacy_cleanup_physical_retired": 2,
         "minimal_authority_function": 3,
         "refs_only_adapter": 6
       },
@@ -808,12 +805,14 @@
         "generic_transition_runner"
       ],
       "legacy_cleanup_no_active_caller_gate": [
-        "local_launchd_scheduler_install_path",
-        "workspace_local_watch_service_wrappers",
         "mas_generic_workbench_shell",
         "legacy_scheduler_default_aliases",
         "daemonish_terminal_attach_status_as_runtime_owner",
         "scheduler_legacy_residue_without_active_caller"
+      ],
+      "legacy_cleanup_physical_retired": [
+        "local_launchd_scheduler_install_path",
+        "workspace_local_watch_service_wrappers"
       ],
       "minimal_authority_function": [
         "study_truth",
@@ -1541,7 +1540,7 @@
     "active_private_generic_residue_count": 0,
     "classification_counts": {
       "declarative_pack_generated_surface": 7,
-      "legacy_cleanup_no_active_caller_gate": 2,
+      "legacy_cleanup_physical_retired": 2,
       "minimal_authority_function": 3,
       "refs_only_adapter": 6
     },
@@ -1596,7 +1595,7 @@
         "closure_proof_refs": [
           "no_active_caller_proof.default_caller_count=0",
           "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
-          "functional_module_inventory.legacy_cleanup_no_active_caller_gate"
+          "functional_module_inventory.legacy_cleanup_physical_retired"
         ],
         "closure_status": "closed",
         "evidence_required": "no-active-caller scan, old generated artifact absent/remove proof, provenance retained, focused cleanup tests green",
@@ -1649,19 +1648,16 @@
       "mas_owned_generic_observability"
     ],
     "functional_structure_gap_count": 0,
-    "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
-    "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
+    "legacy_cleanup_item_role": "history_tombstone_provenance_only",
+    "legacy_cleanup_items_are_diagnostic_provenance_guards": false,
     "legacy_cleanup_items_are_remaining_active_gaps": false,
     "legacy_cleanup_items_have_default_entry": false,
-    "legacy_cleanup_items_have_standard_template_refs": true,
+    "legacy_cleanup_items_have_standard_template_refs": false,
     "legacy_cleanup_items_physical_retired": [
       "local_launchd_scheduler_install_path",
       "workspace_local_watch_service_wrappers"
     ],
-    "legacy_cleanup_items_require_no_active_caller_gate": [
-      "local_launchd_scheduler_install_path",
-      "workspace_local_watch_service_wrappers"
-    ],
+    "legacy_cleanup_items_require_no_active_caller_gate": [],
     "remaining_evidence_gate_ids": [
       "live_provider_paper_apply_scaleout",
       "publication_route_memory_receipt_scaleout",

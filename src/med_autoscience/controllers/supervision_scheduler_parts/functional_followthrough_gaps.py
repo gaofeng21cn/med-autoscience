@@ -45,7 +45,7 @@ FUNCTIONAL_STRUCTURE_CLOSURE_GATES = (
         "closure_proof_refs": [
             "no_active_caller_proof.default_caller_count=0",
             "legacy_local_scheduler_physical_retirement_proof.status=physical_retired_tombstone_provenance_only",
-            "functional_module_inventory.legacy_cleanup_no_active_caller_gate",
+            "functional_module_inventory.legacy_cleanup_physical_retired",
         ],
         "functional_structure_gap": False,
     },

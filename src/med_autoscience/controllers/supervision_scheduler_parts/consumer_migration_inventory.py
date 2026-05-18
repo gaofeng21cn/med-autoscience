@@ -27,9 +27,14 @@ FUNCTIONAL_SURFACE_CLASSIFICATION = {
         "safe_action_refs",
     ],
     "legacy_cleanup_no_active_caller_gate": [
-        "local_launchd_scheduler_install_path", "workspace_local_watch_service_wrappers", "mas_generic_workbench_shell",
-        "legacy_scheduler_default_aliases", "daemonish_terminal_attach_status_as_runtime_owner",
+        "mas_generic_workbench_shell",
+        "legacy_scheduler_default_aliases",
+        "daemonish_terminal_attach_status_as_runtime_owner",
         "scheduler_legacy_residue_without_active_caller",
+    ],
+    "legacy_cleanup_physical_retired": [
+        "local_launchd_scheduler_install_path",
+        "workspace_local_watch_service_wrappers",
     ],
 }
 FUNCTIONAL_MODULE_INVENTORY = (
@@ -320,7 +325,7 @@ FUNCTIONAL_MODULE_INVENTORY = (
     {
         "module_id": "local_launchd_scheduler_install_path",
         "owner": "none_active",
-        "classification": "legacy_cleanup_no_active_caller_gate",
+        "classification": "legacy_cleanup_physical_retired",
         "code_paths": [
             "contracts/runtime/legacy-active-path-tombstones.json",
             "docs/history/runtime/legacy_active_path_tombstones.md",
@@ -350,7 +355,7 @@ FUNCTIONAL_MODULE_INVENTORY = (
     {
         "module_id": "workspace_local_watch_service_wrappers",
         "owner": "none_active",
-        "classification": "legacy_cleanup_no_active_caller_gate",
+        "classification": "legacy_cleanup_physical_retired",
         "code_paths": [
             "src/med_autoscience/controllers/workspace_init_parts/retired_entries.py",
             "src/med_autoscience/controllers/workspace_legacy_physical_cleanup.py",
