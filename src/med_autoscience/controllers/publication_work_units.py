@@ -344,6 +344,12 @@ def fingerprint_blockers_for_work_unit(*, blockers: tuple[str, ...], next_work_u
             | _FIGURE_RESULTS_BLOCKERS
             | _TREATMENT_GAP_BLOCKERS
         ),
+        "medical_prose_quality_analysis_source_documentation_repair": (
+            _CLAIM_EVIDENCE_BLOCKERS
+            | _STORY_BLOCKERS
+            | _FIGURE_RESULTS_BLOCKERS
+            | _TREATMENT_GAP_BLOCKERS
+        ),
         "manuscript_story_repair": _STORY_BLOCKERS,
         "figure_results_trace_repair": _FIGURE_RESULTS_BLOCKERS,
         "treatment_gap_reporting_repair": _TREATMENT_GAP_BLOCKERS,

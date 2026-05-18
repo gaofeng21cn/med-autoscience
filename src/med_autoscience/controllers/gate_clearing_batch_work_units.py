@@ -9,12 +9,22 @@ UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS = frozenset(
         "analysis_claim_evidence_repair",
         "figure_results_trace_repair",
         "manuscript_story_repair",
+        "medical_prose_quality_analysis_source_documentation_repair",
         "treatment_gap_reporting_repair",
     }
 )
 
 PUBLICATION_WORK_UNIT_REPAIR_IDS = {
     "analysis_claim_evidence_repair": frozenset(
+        {
+            "freeze_scientific_anchor_fields",
+            "repair_paper_live_paths",
+            "workspace_display_repair_script",
+            "sync_publication_shell_surface",
+            "materialize_display_surface",
+        }
+    ),
+    "medical_prose_quality_analysis_source_documentation_repair": frozenset(
         {
             "freeze_scientific_anchor_fields",
             "repair_paper_live_paths",
