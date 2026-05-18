@@ -306,6 +306,14 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     assert adoption["remaining_gap_classification"] == (
         "live_provider_paper_line_evidence_gates"
     )
+    assert adoption["remaining_functional_followthrough_gate_ids"] == []
+    assert adoption["closed_functional_structure_gate_ids"] == [
+        "generated_surface_active_caller_cutover",
+        "refs_only_adapter_thinning",
+        "legacy_cleanup_physical_retirement",
+        "opl_app_workbench_drilldown",
+        "lifecycle_locator_retention_restore_ledger_reconciliation",
+    ]
     assert adoption["source_surfaces"] == [
         "product_entry_manifest.standard_domain_agent_skeleton",
         "product_entry_manifest.family_stage_control_plane_descriptor",

@@ -10,10 +10,16 @@ _SHARED_HELPER_MODULE_NAME = "opl_harness_shared.editable_consumer_launcher"
 _SHARED_HELPER_MODULE_FILE = "editable_consumer_launcher.py"
 _SHARED_PACKAGE_NAME = "opl_harness_shared"
 _REQUIRED_SHARED_MODULE_EXPORTS = {
-    "opl_harness_shared.product_entry_program_companions": (
-        "build_backend_deconstruction_lane",
-    ),
+    "opl_harness_shared.editable_consumer_bootstrap": ("ensure_consumer_editable_dependency_paths",),
+    "opl_harness_shared.family_entry_contracts": ("build_family_domain_entry_contract",),
+    "opl_harness_shared.family_shared_release": ("load_shared_owner_release_contract",),
+    "opl_harness_shared.managed_runtime": ("read_bundled_managed_runtime_three_layer_contract",),
+    "opl_harness_shared.product_entry_companions": ("build_family_product_entry_manifest",),
+    "opl_harness_shared.product_entry_program_companions": ("build_clearance_lane",),
 }
+_REQUIRED_SHARED_CONTRACT_FILES = (
+    Path("contracts") / "managed-runtime-three-layer-contract.json",
+)
 
 
 def _module_spec(module_name: str):
@@ -141,17 +147,26 @@ def _load_shared_helper_module_from_path(helper_path: Path):
 
 
 def _shared_module_path(shared_src_root: Path, module_name: str) -> Path:
-    return shared_src_root.joinpath(*module_name.split(".")).with_suffix(".py")
+    module_root = shared_src_root.joinpath(*module_name.split("."))
+    module_path = module_root.with_suffix(".py")
+    if module_path.exists():
+        return module_path
+    return module_root / "__init__.py"
 
 
 def _load_shared_module_from_path(shared_src_root: Path, module_name: str):
     module_path = _shared_module_path(shared_src_root, module_name)
     if not module_path.exists():
         return None
-    spec = importlib.util.spec_from_file_location(
-        f"{module_name}_editable_contract_check_{abs(hash(module_path))}",
-        module_path,
-    )
+    spec_name = f"{module_name}_editable_contract_check_{abs(hash(module_path))}"
+    if module_path.name == "__init__.py":
+        spec = importlib.util.spec_from_file_location(
+            spec_name,
+            module_path,
+            submodule_search_locations=[str(module_path.parent)],
+        )
+    else:
+        spec = importlib.util.spec_from_file_location(spec_name, module_path)
     if spec is None or spec.loader is None:
         return None
     module = importlib.util.module_from_spec(spec)
@@ -160,6 +175,12 @@ def _load_shared_module_from_path(shared_src_root: Path, module_name: str):
 
 
 def _shared_contract_ready(shared_src_root: Path) -> bool:
+    package_root = shared_src_root / _SHARED_PACKAGE_NAME
+    if not (package_root / "__init__.py").exists():
+        return False
+    for relative_path in _REQUIRED_SHARED_CONTRACT_FILES:
+        if not (package_root / relative_path).exists():
+            return False
     for module_name, required_exports in _REQUIRED_SHARED_MODULE_EXPORTS.items():
         try:
             module = _load_shared_module_from_path(shared_src_root, module_name)

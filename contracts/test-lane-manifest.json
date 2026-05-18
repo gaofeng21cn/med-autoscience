@@ -1332,140 +1332,14 @@
         "legacy_cleanup_no_active_caller_gate"
       ],
       "functional_followthrough_gap_summary": {
-        "surface_kind": "mas_functional_followthrough_gap_summary",
-        "status": "functional_structure_closed_evidence_gates_remaining",
-        "classification_gap_count": 0,
-        "functional_structure_gap_count": 0,
         "active_private_generic_residue_count": 0,
-        "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
-        "remaining_items_are_evidence_gates": true,
-        "remaining_functional_followthrough_gate_ids": [],
-        "remaining_functional_followthrough_gates": [],
-        "closed_functional_structure_gate_ids": [
-          "generated_surface_active_caller_cutover",
-          "refs_only_adapter_thinning",
-          "legacy_cleanup_physical_retirement",
-          "opl_app_workbench_drilldown",
-          "lifecycle_locator_retention_restore_ledger_reconciliation"
-        ],
-        "closed_functional_structure_gates": [
-          {
-            "gate_id": "generated_surface_active_caller_cutover",
-            "owner": "one-person-lab",
-            "mas_role": "provide_pack_input_handoff_refs_and_no_forbidden_write_guard",
-            "evidence_required": "OPL generated surfaces available, active callers migrated, focused no-regression lane green",
-            "closure_status": "closed",
-            "closure_proof_refs": [
-              "contracts/generated_surface_handoff.json",
-              "contracts/pack_compiler_input.json",
-              "opl agents interfaces --repo-dir /Users/gaofeng/workspace/med-autoscience --json"
-            ],
-            "functional_structure_gap": false
-          },
-          {
-            "gate_id": "refs_only_adapter_thinning",
-            "owner": "med-autoscience",
-            "mas_role": "export_body_free_locator_receipt_blocker_refs_only",
-            "evidence_required": "SQLite/lifecycle, outbox, storage, source, memory, artifact, portal, and supervisor shells only expose refs/blockers/receipts",
-            "closure_status": "closed",
-            "closure_proof_refs": [
-              "functional_module_inventory.refs_only_adapter",
-              "runtime_lifecycle_sqlite_role.refs_only_index_not_generic_persistence_engine",
-              "opl_functional_harness_consumer_coverage.refs_only_memory_writeback_chain"
-            ],
-            "functional_structure_gap": false
-          },
-          {
-            "gate_id": "legacy_cleanup_physical_retirement",
-            "owner": "med-autoscience",
-            "mas_role": "remove_or_tombstone_legacy_launchagent_and_workspace_local_wrapper_surfaces",
-            "evidence_required": "no-active-caller scan, old generated artifact absent/remove proof, provenance retained, focused cleanup tests green",
-            "closure_status": "closed",
-            "closure_proof_refs": [
-              "no_active_caller_proof.default_caller_count=0",
-              "legacy_local_scheduler_cleanup_only_proof.default_bootstrap_exposes_local_install=false",
-              "functional_module_inventory.legacy_cleanup_no_active_caller_gate"
-            ],
-            "functional_structure_gap": false
-          },
-          {
-            "gate_id": "opl_app_workbench_drilldown",
-            "owner": "one-person-lab",
-            "mas_role": "provide_domain_route_quality_artifact_memory_and_safe_action_refs",
-            "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and action receipt routing",
-            "closure_status": "closed",
-            "closure_proof_refs": [
-              "workbench_portal_generic_shell.proof_refs",
-              "opl_functional_harness_consumer_coverage.restart_dead_letter_repair_human_gate_state_chain",
-              "OPL runtime-app-operator-drilldown read model"
-            ],
-            "functional_structure_gap": false
-          },
-          {
-            "gate_id": "lifecycle_locator_retention_restore_ledger_reconciliation",
-            "owner": "one-person-lab",
-            "mas_role": "return_domain_artifact_authority_receipt_refs_only",
-            "evidence_required": "OPL lifecycle/index ledger consumes MAS lifecycle refs without writing MAS truth, memory body, or artifacts",
-            "closure_status": "closed",
-            "closure_proof_refs": [
-              "runtime_lifecycle_sqlite_role.mas_consumes_opl_lifecycle_index_refs=true",
-              "artifact_lifecycle_storage_audit_shell.proof_refs",
-              "OPL family-runtime-lifecycle-index read model"
-            ],
-            "functional_structure_gap": false
-          }
-        ],
         "classification_counts": {
-          "refs_only_adapter": 6,
           "declarative_pack_generated_surface": 7,
+          "legacy_cleanup_no_active_caller_gate": 2,
           "minimal_authority_function": 3,
-          "legacy_cleanup_no_active_caller_gate": 2
+          "refs_only_adapter": 6
         },
-        "legacy_cleanup_items_require_no_active_caller_gate": [
-          "local_launchd_scheduler_install_path",
-          "workspace_local_watch_service_wrappers"
-        ],
-        "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
-        "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
-        "legacy_cleanup_items_are_remaining_active_gaps": false,
-        "legacy_cleanup_items_have_default_entry": false,
-        "legacy_cleanup_items_have_standard_template_refs": true,
-        "remaining_evidence_gate_ids": [
-          "live_provider_paper_apply_scaleout",
-          "publication_route_memory_receipt_scaleout",
-          "artifact_lifecycle_receipt_scaleout",
-          "provider_slo_long_soak"
-        ],
-        "remaining_evidence_gates": [
-          {
-            "gate_id": "live_provider_paper_apply_scaleout",
-            "owner": "med-autoscience",
-            "mas_role": "return_owner_receipt_artifact_delta_gate_replay_human_gate_stop_loss_or_typed_blocker",
-            "evidence_required": "multi paper-line OPL provider attempts leave MAS owner receipts and no-forbidden-write proof",
-            "functional_structure_gap": false
-          },
-          {
-            "gate_id": "publication_route_memory_receipt_scaleout",
-            "owner": "med-autoscience",
-            "mas_role": "accept_reject_or_block_publication_route_memory_writeback_in_workspace_owner_surface",
-            "evidence_required": "more real paper-line accepted/rejected/blocked router receipts and body-free inventory refs",
-            "functional_structure_gap": false
-          },
-          {
-            "gate_id": "artifact_lifecycle_receipt_scaleout",
-            "owner": "med-autoscience",
-            "mas_role": "authorize_artifact_mutation_and_surface_refs_only_cleanup_restore_retention_receipts",
-            "evidence_required": "real workspace cleanup, restore, retention, rebuild, and artifact-authority receipt instances",
-            "functional_structure_gap": false
-          },
-          {
-            "gate_id": "provider_slo_long_soak",
-            "owner": "one-person-lab",
-            "mas_role": "consume_provider_attempt_receipts_without_claiming_paper_closure",
-            "evidence_required": "long provider SLO, restart/re-query, retry/dead-letter, and domain activity soak evidence",
-            "functional_structure_gap": false
-          }
-        ],
+        "classification_gap_count": 0,
         "cleared_by_surfaces": [
           "functional_module_inventory",
           "declarative_pack_compiler_input",
@@ -1478,6 +1352,80 @@
           "opl_lifecycle_index_cleanup_restore_ledger"
         ],
         "clears_only": "functional_structure_closure_not_live_paper_soak_or_publication_ready",
+        "closed_functional_structure_gate_ids": [
+          "generated_surface_active_caller_cutover",
+          "refs_only_adapter_thinning",
+          "legacy_cleanup_physical_retirement",
+          "opl_app_workbench_drilldown",
+          "lifecycle_locator_retention_restore_ledger_reconciliation"
+        ],
+        "closed_functional_structure_gates": [
+          {
+            "closure_proof_refs": [
+              "contracts/generated_surface_handoff.json",
+              "contracts/pack_compiler_input.json",
+              "opl agents interfaces --repo-dir /Users/gaofeng/workspace/med-autoscience --json"
+            ],
+            "closure_status": "closed",
+            "evidence_required": "OPL generated surfaces available, active callers migrated, focused no-regression lane green",
+            "functional_structure_gap": false,
+            "gate_id": "generated_surface_active_caller_cutover",
+            "mas_role": "provide_pack_input_handoff_refs_and_no_forbidden_write_guard",
+            "owner": "one-person-lab"
+          },
+          {
+            "closure_proof_refs": [
+              "functional_module_inventory.refs_only_adapter",
+              "runtime_lifecycle_sqlite_role.refs_only_index_not_generic_persistence_engine",
+              "opl_functional_harness_consumer_coverage.refs_only_memory_writeback_chain"
+            ],
+            "closure_status": "closed",
+            "evidence_required": "SQLite/lifecycle, outbox, storage, source, memory, artifact, portal, and supervisor shells only expose refs/blockers/receipts",
+            "functional_structure_gap": false,
+            "gate_id": "refs_only_adapter_thinning",
+            "mas_role": "export_body_free_locator_receipt_blocker_refs_only",
+            "owner": "med-autoscience"
+          },
+          {
+            "closure_proof_refs": [
+              "no_active_caller_proof.default_caller_count=0",
+              "legacy_local_scheduler_cleanup_only_proof.default_bootstrap_exposes_local_install=false",
+              "functional_module_inventory.legacy_cleanup_no_active_caller_gate"
+            ],
+            "closure_status": "closed",
+            "evidence_required": "no-active-caller scan, old generated artifact absent/remove proof, provenance retained, focused cleanup tests green",
+            "functional_structure_gap": false,
+            "gate_id": "legacy_cleanup_physical_retirement",
+            "mas_role": "remove_or_tombstone_legacy_launchagent_and_workspace_local_wrapper_surfaces",
+            "owner": "med-autoscience"
+          },
+          {
+            "closure_proof_refs": [
+              "workbench_portal_generic_shell.proof_refs",
+              "opl_functional_harness_consumer_coverage.restart_dead_letter_repair_human_gate_state_chain",
+              "OPL runtime-app-operator-drilldown read model"
+            ],
+            "closure_status": "closed",
+            "evidence_required": "OPL App/Workbench displays refs, freshness, blockers, owners, and action receipt routing",
+            "functional_structure_gap": false,
+            "gate_id": "opl_app_workbench_drilldown",
+            "mas_role": "provide_domain_route_quality_artifact_memory_and_safe_action_refs",
+            "owner": "one-person-lab"
+          },
+          {
+            "closure_proof_refs": [
+              "runtime_lifecycle_sqlite_role.mas_consumes_opl_lifecycle_index_refs=true",
+              "artifact_lifecycle_storage_audit_shell.proof_refs",
+              "OPL family-runtime-lifecycle-index read model"
+            ],
+            "closure_status": "closed",
+            "evidence_required": "OPL lifecycle/index ledger consumes MAS lifecycle refs without writing MAS truth, memory body, or artifacts",
+            "functional_structure_gap": false,
+            "gate_id": "lifecycle_locator_retention_restore_ledger_reconciliation",
+            "mas_role": "return_domain_artifact_authority_receipt_refs_only",
+            "owner": "one-person-lab"
+          }
+        ],
         "does_not_clear": [
           "live_provider_paper_apply_scaleout",
           "publication_route_memory_receipt_scaleout",
@@ -1493,7 +1441,59 @@
           "mas_owned_generic_memory_locator",
           "mas_owned_generic_artifact_lifecycle",
           "mas_owned_generic_observability"
-        ]
+        ],
+        "functional_structure_gap_count": 0,
+        "legacy_cleanup_item_role": "cleanup_diagnostic_provenance_drift_guard_no_active_default_caller",
+        "legacy_cleanup_items_are_diagnostic_provenance_guards": true,
+        "legacy_cleanup_items_are_remaining_active_gaps": false,
+        "legacy_cleanup_items_have_default_entry": false,
+        "legacy_cleanup_items_have_standard_template_refs": true,
+        "legacy_cleanup_items_require_no_active_caller_gate": [
+          "local_launchd_scheduler_install_path",
+          "workspace_local_watch_service_wrappers"
+        ],
+        "remaining_evidence_gate_ids": [
+          "live_provider_paper_apply_scaleout",
+          "publication_route_memory_receipt_scaleout",
+          "artifact_lifecycle_receipt_scaleout",
+          "provider_slo_long_soak"
+        ],
+        "remaining_evidence_gates": [
+          {
+            "evidence_required": "multi paper-line OPL provider attempts leave MAS owner receipts and no-forbidden-write proof",
+            "functional_structure_gap": false,
+            "gate_id": "live_provider_paper_apply_scaleout",
+            "mas_role": "return_owner_receipt_artifact_delta_gate_replay_human_gate_stop_loss_or_typed_blocker",
+            "owner": "med-autoscience"
+          },
+          {
+            "evidence_required": "more real paper-line accepted/rejected/blocked router receipts and body-free inventory refs",
+            "functional_structure_gap": false,
+            "gate_id": "publication_route_memory_receipt_scaleout",
+            "mas_role": "accept_reject_or_block_publication_route_memory_writeback_in_workspace_owner_surface",
+            "owner": "med-autoscience"
+          },
+          {
+            "evidence_required": "real workspace cleanup, restore, retention, rebuild, and artifact-authority receipt instances",
+            "functional_structure_gap": false,
+            "gate_id": "artifact_lifecycle_receipt_scaleout",
+            "mas_role": "authorize_artifact_mutation_and_surface_refs_only_cleanup_restore_retention_receipts",
+            "owner": "med-autoscience"
+          },
+          {
+            "evidence_required": "long provider SLO, restart/re-query, retry/dead-letter, and domain activity soak evidence",
+            "functional_structure_gap": false,
+            "gate_id": "provider_slo_long_soak",
+            "mas_role": "consume_provider_attempt_receipts_without_claiming_paper_closure",
+            "owner": "one-person-lab"
+          }
+        ],
+        "remaining_functional_followthrough_gate_ids": [],
+        "remaining_functional_followthrough_gates": [],
+        "remaining_gap_classification": "live_provider_paper_line_evidence_gates",
+        "remaining_items_are_evidence_gates": true,
+        "status": "functional_structure_closed_evidence_gates_remaining",
+        "surface_kind": "mas_functional_followthrough_gap_summary"
       },
       "functional_module_inventory": [
         {

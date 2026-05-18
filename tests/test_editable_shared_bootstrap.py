@@ -14,8 +14,45 @@ pytestmark = pytest.mark.family
 
 
 def _write_required_program_companion_contract(package_root: Path) -> None:
+    (package_root / "__init__.py").write_text("", encoding="utf-8")
+    (package_root / "contracts").mkdir(parents=True, exist_ok=True)
+    (package_root / "contracts" / "managed-runtime-three-layer-contract.json").write_text(
+        "{\n"
+        '  "contract_ref": "contracts/opl-framework/managed-runtime-three-layer-contract.json",\n'
+        '  "contract_id": "opl_managed_runtime_three_layer_contract",\n'
+        '  "required_owner_fields": ["runtime_owner", "domain_owner", "executor_owner"],\n'
+        '  "required_surface_locator_fields": ["surface_kind", "owner"],\n'
+        '  "canonical_fail_closed_rules": ["missing_owner_blocks"]\n'
+        "}\n",
+        encoding="utf-8",
+    )
+    (package_root / "editable_consumer_bootstrap.py").write_text(
+        "def ensure_consumer_editable_dependency_paths(**kwargs):\n"
+        "    return ()\n",
+        encoding="utf-8",
+    )
+    (package_root / "family_entry_contracts.py").write_text(
+        "def build_family_domain_entry_contract(**kwargs):\n"
+        "    return dict(kwargs)\n",
+        encoding="utf-8",
+    )
+    (package_root / "family_shared_release.py").write_text(
+        "def load_shared_owner_release_contract(**kwargs):\n"
+        "    return dict(kwargs)\n",
+        encoding="utf-8",
+    )
+    (package_root / "managed_runtime.py").write_text(
+        "def read_bundled_managed_runtime_three_layer_contract():\n"
+        "    return {'contract_id': 'opl_managed_runtime_three_layer_contract'}\n",
+        encoding="utf-8",
+    )
+    (package_root / "product_entry_companions.py").write_text(
+        "def build_family_product_entry_manifest(**kwargs):\n"
+        "    return dict(kwargs)\n",
+        encoding="utf-8",
+    )
     (package_root / "product_entry_program_companions.py").write_text(
-        "def build_backend_deconstruction_lane(**kwargs):\n"
+        "def build_clearance_lane(**kwargs):\n"
         "    return dict(kwargs)\n",
         encoding="utf-8",
     )

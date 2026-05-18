@@ -17,8 +17,8 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 - Direct MAS app skill path 与 OPL-hosted path 共享同一 MAS-owned stage、controller、durable truth、quality verdict 和 artifact surface。
 - `product-entry-manifest`、sidecar export、contracts、runtime/controller surfaces 和 workspace artifact receipts 是当前机器真相；`docs/**` 只做解释、导航、治理和 provenance。
 - MAS 标准 pack / generated-interface source 已在 repo contracts 中声明 domain descriptor、pack compiler input、generated surface handoff、action catalog、stage control plane、memory descriptor、artifact locator contract、owner receipt contract、functional privatization audit 和 private functional surface policy。
-- `functional_consumer_boundary` 已完成通用功能面分类、禁回流 guard 和结构 follow-through 收口：`classification_gap_count=0`、`active_private_generic_residue_count=0`、`functional_structure_gap_count=0`。
-- 已关闭的结构 gate 是 `generated_surface_active_caller_cutover`、`refs_only_adapter_thinning`、`legacy_cleanup_physical_retirement`、`opl_app_workbench_drilldown` 和 `lifecycle_locator_retention_restore_ledger_reconciliation`。剩余项归类为 `live_provider_paper_line_evidence_gates`。
+- `functional_consumer_boundary` 已完成通用功能面分类和禁回流 guard：`classification_gap_count=0`、`active_private_generic_residue_count=0`。但这只说明私有功能面分类已清楚，不说明结构 follow-through 已关闭。
+- 当前仍有 5 个功能/结构 follow-through gate 打开，`functional_structure_gap_count=5`，归类为 `functional_followthrough_and_test_evidence_gates`：`generated_surface_active_caller_cutover`、`refs_only_adapter_thinning`、`legacy_cleanup_physical_retirement`、`opl_app_workbench_drilldown` 和 `lifecycle_locator_retention_restore_ledger_reconciliation`。这些 gate 需要继续以 OPL replacement、active caller cutover、refs-only thinning、物理清理和 App/lifecycle 消费证据关闭。
 - 旧 MDS physical root / monolith binding / legacy provenance 只作为 archive、tombstone 或 refs-only historical fixture 读取；不得回写成 current runtime owner。
 - dated closeout、follow-through 和修复流水已经移到 [MAS standard agent 文档过程归档 2026-05](./history/program/mas-standard-agent-doc-process-history-2026-05.md)，不再作为 `docs/status.md` 当前结论展开。
 
@@ -61,7 +61,8 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 - 不能声明 OPL provider proof 等于 MAS paper closure、publication-ready 或 artifact mutation authorization。
 - 不能把结构 gate 关闭、classification closure、descriptor ready、local LaunchAgent no-active-caller proof 或 selected proof 写成真实 paper closure、publication-ready、artifact mutation authorization 或 provider long-soak 已完成。
-- 不能把 `live_provider_paper_line_evidence_gates` 写成已完成的真实 provider / paper-line 证据。
+- 不能把 `classification_gap_count=0` 写成 MAS 功能/结构已经闭合；当前 `functional_structure_gap_count=5` 仍是 active follow-through。
+- 不能把 provider/live paper-line evidence gate 写成已完成的真实 provider / paper-line 证据。
 - 不能把 dated specs、dated closeout、修复流水或历史 full record 当成 current truth。
 - 不能把 MDS/DeepScientist、Hermes、local scheduler 或旧 workspace wrapper 写成 MAS 默认 active runtime owner。
 
