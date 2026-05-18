@@ -205,7 +205,7 @@ Decision-stage availability is read-only context. `stage_knowledge_packet.author
 
 ## Planning Gate Classification
 
-Publication-route memory 的后续规划入口是 [MAS Current Development Lines](../../active/current_development_lines.md)，不是单独的 production closure plan。当前属于 `functional_follow_through_gate`：基础 policy、Markdown body、seed index、workspace pack、CLI inventory、typed closeout proposal、router receipt 和 body-free OPL/Aion projection 已落地，后续要增加真实 paper-line receipts 和维护纪律。
+Publication-route memory 的后续规划入口是 [MAS Current Development Lines](../../active/current-development-lines.md)，不是单独的 production closure plan。当前属于 `functional_follow_through_gate`：基础 policy、Markdown body、seed index、workspace pack、CLI inventory、typed closeout proposal、router receipt 和 body-free OPL/Aion projection 已落地，后续要增加真实 paper-line receipts 和维护纪律。
 
 | memory gate | gate class | current planning status | done evidence |
 | --- | --- | --- | --- |
@@ -288,7 +288,7 @@ Current OPL discovery sees MAS, MAG, and RCA as resolved family memory descripto
 - OPL `stages list --json` currently reports `resolved_planes_count=3` and `stages_count=18`.
 - OPL `domain-memory list --json` currently reports `resolved_memory_descriptor_count=3` and `missing_memory_descriptor_count=0`.
 - OPL `domain-memory inspect --domain mas --json` resolves `mas_publication_route_memory` from the MAS standard `domain_memory_descriptor`, with `opl_role=locator_projection_owner` and forbidden OPL authority over memory store, domain truth, quality verdict, artifact authority, route decision, and publication readiness.
-- OPL `family-runtime status --json` defaults to selected provider `local_sqlite`, `provider_ready=true`, `full_online_ready=false`, and `durable_online_ready=false`; this remains the dev/offline baseline. With `OPL_FAMILY_RUNTIME_PROVIDER=temporal`, the current machine reports `full_online_ready=true`, `durable_online_ready=true`, managed service reachable, and worker ready at `127.0.0.1:7233`.
+- OPL `family-runtime status --json` now defaults to selected provider `temporal`; Temporal is the production required provider and fresh read model reports managed service / worker residency proof. `local_sqlite` remains available only as explicit dev/CI/offline diagnostic baseline and cannot replace production provider, domain daemon replacement, or paper-line readiness evidence.
 - OPL roadmap now records Temporal provider core as landed: `StageAttemptWorkflow`, Codex/domain sidecar activities, human/user/resume signals, attempt query, `attempt start|query|signal`, worker helper, lifecycle contract, and Temporal residency proof. The current OPL-side provider residency gate is closed by fresh `production_residency_proven` proof; the remaining OPL-side evidence gap is long-running provider SLO plus real domain activity / owner-chain soak.
 - MAG/RCA also expose standard `family_domain_memory_ref.v1` descriptors for their grant-strategy and visual-pattern memory locators.
 - This makes MAS publication route memory the MAS-side reference implementation for natural-language, stage-consumed publication-route memory, not a reason to move publication-route content into OPL or to build an OPL-owned recipe runtime.

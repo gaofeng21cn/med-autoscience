@@ -55,7 +55,7 @@ cutover 或物理退役前仍未完成：
 - human gate / user modification / resume token 从 OPL signal 进入 MAS revision 或 gate owner chain 的 proof；
 - provider parity 证明之后，旧 scheduler/Hermes/MDS/legacy alias 的物理删除或 history/tombstone 归档仍需按 no-active-reference 证据逐项执行；已满足删除口径的 wrapper / alias 不再保留兼容入口或可调用测试。
 
-这些剩余项现在按 [MAS Current Development Lines](./current_development_lines.md) 的全线规划闭环表执行，不再拆成另一份 P2 大计划。P2 只持有 framework/runtime owner 边界：
+这些剩余项现在按 [MAS Current Development Lines](./current-development-lines.md) 的全线规划闭环表执行，不再拆成另一份 P2 大计划。P2 只持有 framework/runtime owner 边界：
 
 | remaining gate | gate class | P2 responsibility | completion evidence |
 | --- | --- | --- | --- |

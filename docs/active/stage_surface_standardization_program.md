@@ -136,7 +136,7 @@ AI-first stage output 必须来自与执行 agent 分离的 reviewer/auditor age
 
 ## Planning Gate Classification
 
-本 program 现在只承担 [MAS Current Development Lines](./current_development_lines.md) 中 stage / prompt / skill / knowledge / quality / review-index 相关的横向 planning。它不是 MAS production closure 总计划，也不声明 provider live apply 已完成。
+本 program 现在只承担 [MAS Current Development Lines](./current-development-lines.md) 中 stage / prompt / skill / knowledge / quality / review-index 相关的横向 planning。它不是 MAS production closure 总计划，也不声明 provider live apply 已完成。
 
 | stage-surface gate | gate class | current planning status | done evidence |
 | --- | --- | --- | --- |

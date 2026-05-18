@@ -15,7 +15,7 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 - [当前状态](../status.md)
 - [Program Portfolio Consolidation](./program_portfolio_consolidation.md)
 - [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)
-- [MAS Current Development Lines](./current_development_lines.md)
+- [MAS Current Development Lines](./current-development-lines.md)
 - [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)
 - [MAS Stage Surfaces](../runtime/contracts/stage_surfaces.md)
 - [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)

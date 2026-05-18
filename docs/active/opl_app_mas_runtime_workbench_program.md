@@ -36,7 +36,7 @@ MAS 已具备相关 repo surface：
 
 剩余产品缺口不是“旧 P1 文档里的所有功能都要做”。当前缺口是把这些现有 MAS projection、Stage Review locator、publication-route memory refs / grouping / review summary、provider readiness refs 和 action receipts 变成 OPL App 里的主用户运行面，同时 local Portal / Live Console 保留为 diagnostic、debug 和 evidence。
 
-P1 的当前规划状态来自 [MAS Current Development Lines](./current_development_lines.md)。P1 只承担 `functional_follow_through_gate`：把已经存在的 MAS / OPL refs、receipts、blockers 和 action boundaries 产品化。真实 provider-hosted paper progress 仍归 P0 / P2 owner surfaces；P1 不用 UI 状态、provider completion 或 queue status 宣布论文进展。
+P1 的当前规划状态来自 [MAS Current Development Lines](./current-development-lines.md)。P1 只承担 `functional_follow_through_gate`：把已经存在的 MAS / OPL refs、receipts、blockers 和 action boundaries 产品化。真实 provider-hosted paper progress 仍归 P0 / P2 owner surfaces；P1 不用 UI 状态、provider completion 或 queue status 宣布论文进展。
 
 ## 活跃内容 Lane
 

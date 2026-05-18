@@ -45,7 +45,7 @@ OPL 托管 stage attempt 时也必须保持 executor/reviewer 分离：执行 ag
 
 `OPL` 可以读取、索引、投影和携带这个 locator 进入 stage attempt；MAS 继续持有 route-memory 正文、retrieval、writeback accept/reject、publication route decision、evidence/review/controller truth、publication gate 和 artifact/package authority。维护者查看当前 workspace memory inventory 时使用 `medautosci publication route-memory-inventory --workspace-root <workspace>`，默认输出 body-free，适合 OPL/Aion ref-only grouping；正文审查必须显式请求 body 并留在 MAS owner 语境。
 
-当前 OPL family-runtime 本机 provider 是 `local_sqlite`，`provider_ready=true`，`full_online_ready=false`，`durable_online_ready=false`。因此 domain memory 现在可以进入 local provider / App grouping / operator inventory 的落地阶段；production Temporal service、managed worker residency、human gate/resume 和真实 paper-line live apply soak 仍是后续 production closure 条件。
+当前 OPL family-runtime 的 production required provider 是 `temporal`；fresh read model 已把默认 provider 选到 Temporal，并证明 managed service / worker residency 可用。`local_sqlite` 只在显式选择时作为 dev/CI/offline diagnostic baseline，不能替代 production provider、domain daemon replacement 或 paper-line readiness。MAS domain memory 可以被 OPL 以 body-free locator / refs 投影和索引，但真实 memory body、writeback accept/reject、paper-line live apply、human gate/resume 和 publication authority 继续由 MAS owner surfaces 持有。
 
 ## Monolith And Companion Retirement Projection
 

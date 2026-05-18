@@ -5,7 +5,7 @@
 当前 program 治理入口是：
 
 - [Program Portfolio Consolidation](../../active/program_portfolio_consolidation.md)
-- [MAS Current Development Lines](../../active/current_development_lines.md)
+- [MAS Current Development Lines](../../active/current-development-lines.md)
 - [AI-first Paper Autonomy Closure Program](../../active/ai_first_paper_autonomy_closure_program.md)
 - [OPL App MAS Runtime Workbench Program](../../active/opl_app_mas_runtime_workbench_program.md)
 - [OPL Temporal MAS Runtime Retirement Program](../../active/opl_temporal_mas_runtime_retirement_program.md)
