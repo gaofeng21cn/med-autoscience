@@ -8,6 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.publication_eval_reviewer_os import validate_ai_reviewer_operating_system_trace
+from med_autoscience.study_delivery_package_contract import delivered_package_handoff_allowed
 
 
 SURFACE = "study_domain_transition_table"
@@ -192,6 +193,13 @@ def project_domain_transition(
             completion_receipt_consumption=stop_loss_receipt_consumption,
         )
 
+    if delivered_package and delivered_package.get("observed") is True and delivered_package_handoff_allowed(publication_eval):
+        return _delivered_package_handoff_transition(
+            study_id=study_id,
+            source_refs=source_refs,
+            completion_receipt_consumption=execution_receipt_consumption,
+        )
+
     if _ai_reviewer_re_eval(publication_eval):
         return _transition(
             study_id=study_id,
@@ -227,17 +235,6 @@ def project_domain_transition(
             guard_boundary=_guard_boundary(required_owner_surface=str(PUBLICATION_EVAL_RELATIVE_PATH)),
             source_refs=source_refs,
             completion_receipt_consumption=execution_receipt_consumption or ai_reviewer_receipt_consumption,
-        )
-
-    if (
-        delivered_package
-        and delivered_package.get("observed") is True
-        and _publication_eval_clear(publication_eval)
-    ):
-        return _delivered_package_handoff_transition(
-            study_id=study_id,
-            source_refs=source_refs,
-            completion_receipt_consumption=execution_receipt_consumption,
         )
 
     bundle_stage_work_unit = _bundle_stage_finalize_work_unit(

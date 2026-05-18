@@ -12,6 +12,7 @@ import yaml
 from med_autoscience.controllers import study_delivery_sync
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 from med_autoscience.runtime_protocol import paper_artifacts
+from med_autoscience.study_delivery_package_contract import delivery_manifest_allows_directory_current_package
 from med_autoscience.study_task_intake import (
     read_latest_task_intake,
     task_intake_overrides_auto_manual_finish,
@@ -323,7 +324,15 @@ def _delivered_package_ready(
 ) -> bool:
     if not package_root.exists() or not package_root.is_dir():
         return False
-    if require_zip_path is not None and not require_zip_path.exists():
+    if (
+        require_zip_path is not None
+        and not require_zip_path.exists()
+        and not delivery_manifest_allows_directory_current_package(
+            study_root=study_root,
+            package_root=package_root,
+            package_zip=require_zip_path,
+        )
+    ):
         return False
     manifest_payload = _read_json_dict(resolve_submission_manifest_path(package_root))
     if not manifest_payload:

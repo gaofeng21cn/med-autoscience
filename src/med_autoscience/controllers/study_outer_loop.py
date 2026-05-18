@@ -352,6 +352,9 @@ def build_runtime_watch_outer_loop_tick_request(
         ):
             domain_transition_action = None
             domain_transition_decision_type = ""
+        if domain_transition_decision_type == "delivered_package_handoff" and task_intake_action is not None:
+            domain_transition_action = None
+            domain_transition_decision_type = ""
         submission_milestone_preempts_bundle_finalize = (
             live_submission_milestone_autopark_action is not None
             and domain_transition_decision_type == "bundle_stage_finalize"
@@ -369,8 +372,11 @@ def build_runtime_watch_outer_loop_tick_request(
         batch_action = None
         startup_freshness_gate = startup_freshness_requires_gate_clearing(status_payload)
         gate_is_blocked = str(gate_report.get("status") or "").strip() == "blocked"
-        if profile is not None and not bundle_stage_finalize_preempts_task_intake and (
-            task_intake_action is None or startup_freshness_gate or gate_is_blocked
+        if (
+            profile is not None
+            and not bundle_stage_finalize_preempts_task_intake
+            and domain_transition_decision_type != "delivered_package_handoff"
+            and (task_intake_action is None or startup_freshness_gate or gate_is_blocked)
         ):
             if startup_freshness_gate:
                 batch_action = gate_clearing_batch.build_gate_clearing_batch_recommended_action(
@@ -440,7 +446,11 @@ def build_runtime_watch_outer_loop_tick_request(
             recommended_action = _recommended_quality_review_loop_action(study_root=resolved_study_root)
         if recommended_action is None:
             recommended_action = _recommended_publication_eval_action(publication_eval_payload)
-        if profile is not None and task_intake_action is None:
+        if (
+            profile is not None
+            and task_intake_action is None
+            and domain_transition_decision_type != "delivered_package_handoff"
+        ):
             if batch_action is not None:
                 recommended_action = batch_action
     if recommended_action is None:

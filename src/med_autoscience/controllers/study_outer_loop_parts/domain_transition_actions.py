@@ -5,6 +5,7 @@ from typing import Any, Mapping
 
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers import study_macro_state
+from med_autoscience.controllers import study_state_matrix
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionType
 
 
@@ -12,6 +13,7 @@ _TRANSITION_DECISION_TYPES = frozenset(
     {
         "ai_reviewer_re_eval",
         "bundle_stage_finalize",
+        "delivered_package_handoff",
         "publication_gate_blocker",
     }
 )
@@ -24,17 +26,22 @@ def domain_transition_recommended_action(
     status_payload: Mapping[str, Any],
     active_run_id: str | None,
 ) -> dict[str, Any] | None:
+    status_for_transition = {**dict(status_payload), "study_root": str(Path(study_root).expanduser().resolve())}
+    delivered_package = study_state_matrix._delivered_package_observation(status=status_for_transition)
+    if delivered_package.get("observed") is True:
+        status_for_transition["delivered_package"] = delivered_package
     macro_state = study_macro_state.derive_study_macro_state(
         study_id=study_id,
-        status=dict(status_payload),
+        status=status_for_transition,
         progress={},
     )
     transition = study_domain_transition_table.project_domain_transition(
         study_id=study_id,
         study_root=study_root,
-        status=status_payload,
+        status=status_for_transition,
         macro_state=macro_state,
         active_run_id=active_run_id,
+        delivered_package=delivered_package,
     )
     decision_type = _text(transition.get("decision_type"))
     if decision_type not in _TRANSITION_DECISION_TYPES:
@@ -74,6 +81,9 @@ def domain_transition_recommended_action(
 
 def _controller_action_type_for_transition(transition: Mapping[str, Any]) -> str | None:
     controller_action = _text(transition.get("controller_action"))
+    decision_type = _text(transition.get("decision_type"))
+    if controller_action == "wait_for_human_gate" and decision_type == "delivered_package_handoff":
+        return StudyDecisionActionType.STOP_RUNTIME.value
     if controller_action == "run_gate_clearing_batch":
         return StudyDecisionActionType.RUN_GATE_CLEARING_BATCH.value
     if controller_action == "return_to_ai_reviewer_workflow":
@@ -87,7 +97,7 @@ def _decision_action_type_for_transition(transition: Mapping[str, Any]) -> str |
     decision_type = _text(transition.get("decision_type"))
     if decision_type == "publication_gate_blocker":
         return StudyDecisionType.BOUNDED_ANALYSIS.value
-    if decision_type in {"ai_reviewer_re_eval", "bundle_stage_finalize"}:
+    if decision_type in {"ai_reviewer_re_eval", "bundle_stage_finalize", "delivered_package_handoff"}:
         return StudyDecisionType.CONTINUE_SAME_LINE.value
     return None
 
@@ -109,6 +119,8 @@ def _route_key_question(transition: Mapping[str, Any]) -> str:
         return "当前稿件是否已经通过 AI reviewer-owned publication evaluation？"
     if decision_type == "bundle_stage_finalize":
         return "当前论文线还差哪一个最窄的定稿或投稿包收尾动作？"
+    if decision_type == "delivered_package_handoff":
+        return "当前交付包应等待用户审阅，还是有新的显式 revision intake？"
     if decision_type == "publication_gate_blocker":
         return "当前 publication gate blockers 应由哪一个 MAS owner surface 重新判定并派发？"
     return "当前 MAS domain transition 要求执行哪个 controller owner work unit？"
@@ -120,6 +132,8 @@ def _route_rationale(transition: Mapping[str, Any]) -> str:
         return "Mechanical or stale publication projection cannot authorize quality closure; AI reviewer must own the next evaluation."
     if decision_type == "bundle_stage_finalize":
         return "The publication gate is clear and bundle-stage controller closure now supersedes stale analysis or write work units."
+    if decision_type == "delivered_package_handoff":
+        return "A user-visible milestone package has been delivered; keep quality authority distinct and stop the runtime until explicit user wakeup."
     if decision_type == "publication_gate_blocker":
         return "The publication gate is blocked; replay the gate through MAS owner authority before redriving any repair unit."
     return _transition_reason(transition)

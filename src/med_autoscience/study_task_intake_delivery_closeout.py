@@ -5,6 +5,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.study_delivery_package_contract import (
+    current_delivery_manifest_payload,
+    delivery_manifest_allows_directory_current_package,
+)
+
 
 _BUNDLE_STAGE_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
 
@@ -31,26 +36,24 @@ def _delivery_manifest_current_payload(*, study_root: Path | None) -> dict[str, 
     if study_root is None:
         return None
     root = Path(study_root).expanduser().resolve()
-    manifest_path = root / "manuscript" / "delivery_manifest.json"
-    try:
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-    if not isinstance(payload, dict):
-        return None
-    if _text(payload.get("stage")) != "submission_minimal":
-        return None
-    source_signature = _text(payload.get("source_signature"))
-    evaluated_signature = _text(payload.get("evaluated_source_signature"))
-    authority_signature = _text(payload.get("authority_source_signature"))
-    if source_signature is None or source_signature != evaluated_signature or source_signature != authority_signature:
+    payload = current_delivery_manifest_payload(study_root=root)
+    if payload is None:
         return None
     surface_roles = _mapping(payload.get("surface_roles"))
     package_root_text = _text(surface_roles.get("human_facing_current_package_root"))
     package_zip_text = _text(surface_roles.get("human_facing_current_package_zip"))
     package_root = Path(package_root_text).expanduser() if package_root_text is not None else root / "manuscript" / "current_package"
     package_zip = Path(package_zip_text).expanduser() if package_zip_text is not None else root / "manuscript" / "current_package.zip"
-    if not package_root.exists() or not package_zip.exists():
+    if not package_root.exists():
+        return None
+    if (
+        not package_zip.exists()
+        and not delivery_manifest_allows_directory_current_package(
+            study_root=root,
+            package_root=package_root,
+            package_zip=package_zip,
+        )
+    ):
         return None
     required_files = (
         "manuscript.docx",
