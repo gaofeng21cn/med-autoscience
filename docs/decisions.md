@@ -4,7 +4,9 @@
 
 - 决策：`submit-study-task --task-intake-kind reviewer_revision` 必须直接 materialize `revision_intake` 与 `submission_revision_operating_contract`，即使 `task_intent` 是英文、方法学勘误或不含旧的“审稿意见/导师反馈/manuscript revision” marker。
 - 决策：`publishability_stop_loss` 继续优先于 reviewer revision；显式 `reviewer_revision` 只负责同线重新激活并路由到 write 或 analysis owner，不授权前台直接写 `paper/`、`manuscript/current_package/`、`publication_eval/latest.json` 或 `controller_decisions/latest.json`。
+- 决策：当同一 reviewer revision intake 明确出现 `analysis/harmonization`、`methodology correction`、`unit-harmonized`、`unit-standardized`、方法学勘误、方法学污染、单位统一/对齐或数据归一化对齐等强语义时，progress override 必须路由到 `analysis-campaign`，不能继续停在 prose/write owner。
 - 理由：DM002 HDL 单位污染反馈暴露出入口缺陷：用户显式给了 `task_intake_kind=reviewer_revision`，但旧逻辑只按文本 marker 识别，导致英文方法学 correction 没有生成 `revision_intake`，可能被弱化为普通上下文消息。
+- 理由：同一 DM002 反馈还暴露出第二层路由缺陷：即使 `revision_intake` 已 materialize，`analysis/harmonization rollback` 仍会因为旧 analysis marker 太窄而被路由成 `write/manuscript_story_repair`。方法学输入污染必须先由 analysis/harmonization owner 处理，不能靠写作层弱化措辞。
 - 影响：上层 agent、OPL meta-agent 或 human operator 可以用结构化 kind 表达 intent，不必为了触发 MAS 路由而在自然语言里塞 marker。未知 kind 仍不自动升级，保持 fail-closed。
 
 ## 2026-05-18：paper-authority migration 只处理 canonical study root

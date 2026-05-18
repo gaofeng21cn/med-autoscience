@@ -48,6 +48,33 @@ def test_explicit_reviewer_revision_kind_materializes_revision_intake_without_te
     assert summary["revision_intake"]["reactivation_required"] is True
 
 
+def test_methodology_correction_routes_reviewer_revision_back_to_analysis() -> None:
+    module = importlib.import_module("med_autoscience.study_task_intake")
+
+    payload = {
+        "task_intake_kind": "reviewer_revision",
+        "task_intent": (
+            "DM002 high-priority methodology correction: current external-validation claims are "
+            "potentially invalid because the active transportability input uses incompatible HDL units. "
+            "Roll back from manuscript improvement to analysis/harmonization owner."
+        ),
+        "constraints": [
+            "Do not continue prose polishing until unit-harmonized external validation has been rerun."
+        ],
+        "first_cycle_outputs": [
+            "analysis/harmonization route-back decision; unit-harmonized rerun or typed blocker"
+        ],
+    }
+
+    override = module.build_task_intake_progress_override(payload)
+
+    assert override is not None
+    assert override["current_required_action"] == "return_to_analysis_campaign"
+    assert override["paper_stage"] == "analysis-campaign"
+    assert override["quality_execution_lane"]["route_target"] == "analysis-campaign"
+    assert override["same_line_route_truth"]["same_line_state"] == "bounded_analysis"
+
+
 def test_reviewer_task_intake_preserves_publication_gate_work_unit_identity(tmp_path: Path) -> None:
     intake_module = importlib.import_module("med_autoscience.study_task_intake")
     outer_loop_intake = importlib.import_module("med_autoscience.controllers.study_outer_loop_task_intake")

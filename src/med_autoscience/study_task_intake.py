@@ -67,6 +67,10 @@ _ANALYSIS_ROUTE_MARKERS = (
     "分层",
     "卡方",
     "analysis-campaign",
+    "return_to_analysis_campaign", "analysis route-back", "analysis/harmonization",
+    "methodology correction", "methodological correction", "方法学勘误", "方法学污染",
+    "harmonization owner", "unit-harmonized", "unit harmonized",
+    "unit-standardized", "unit standardized", "变量归一化对齐", "数据归一化对齐", "单位统一", "单位对齐",
 )
 _BUNDLE_STAGE_CURRENT_REQUIRED_ACTIONS = frozenset({"continue_bundle_stage", "complete_bundle_stage"})
 _DETERMINISTIC_SUBMISSION_CLOSEOUT_BLOCKERS = frozenset({
