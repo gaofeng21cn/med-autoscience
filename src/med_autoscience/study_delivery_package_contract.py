@@ -54,9 +54,25 @@ def delivery_manifest_allows_directory_current_package(
 
 def delivered_package_handoff_allowed(publication_eval: Mapping[str, Any]) -> bool:
     provenance = _mapping(publication_eval.get("assessment_provenance"))
+    verdict = _mapping(publication_eval.get("verdict"))
     quality_closure_truth = _mapping(publication_eval.get("quality_closure_truth"))
     mechanical_required = _text(provenance.get("owner")) == "mechanical_projection" and provenance.get("ai_reviewer_required") is True
-    return not mechanical_required and _text(quality_closure_truth.get("state")) != "quality_repair_required"
+    quality_assessment = _mapping(publication_eval.get("quality_assessment"))
+    prose_quality = _mapping(quality_assessment.get("medical_journal_prose_quality"))
+    gaps = [item for item in publication_eval.get("gaps") or [] if isinstance(item, Mapping)]
+    blocking_eval = (
+        _text(publication_eval.get("status")) == "blocked"
+        or _text(verdict.get("overall_verdict")) == "blocked"
+        or bool(publication_eval.get("blockers"))
+        or _text(quality_closure_truth.get("state")) == "quality_repair_required"
+        or (
+            _text(provenance.get("owner")) == "ai_reviewer"
+            and provenance.get("ai_reviewer_required") is False
+            and _text(prose_quality.get("status")) not in {None, "ready"}
+        )
+        or any(_text(item.get("severity")) in {"must_fix", "blocking", "blocked"} for item in gaps)
+    )
+    return not mechanical_required and not blocking_eval
 
 
 def _path_from_role(value: object, *, default: Path) -> Path:

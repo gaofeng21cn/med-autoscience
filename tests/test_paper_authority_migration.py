@@ -214,6 +214,88 @@ def test_mark_cutover_new_mas_authority_established_closes_pending_cutover(tmp_p
     assert refreshed_report["studies"][0]["next_required_actions"] == []
 
 
+def test_new_mas_authority_established_keeps_interim_eval_consumable_by_ai_reviewer(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.paper_authority_migration")
+    profile = make_profile(tmp_path)
+    profile_path = tmp_path / "profile.local.toml"
+    _write_profile(profile_path, profile)
+    study_id = "002-dm-china-us-mortality-attribution"
+    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", {"legacy": True})
+
+    module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=True,
+    )
+    module.mark_cutover_new_mas_authority_established(
+        study_root=study_root,
+        publication_eval_ref=str(study_root / "artifacts" / "publication_eval" / "latest.json"),
+        eval_id="publication-eval::clean-migration-interim",
+        recorded_at="2026-05-18T03:45:29+00:00",
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {
+            "eval_id": "publication-eval::clean-migration-interim",
+            "assessment_provenance": {
+                "owner": "ai_reviewer",
+                "source_kind": "publication_eval_ai_reviewer",
+                "policy_id": "medical_publication_critique_v1",
+                "ai_reviewer_required": False,
+                "mechanical_projection_used_as_quality_authority": False,
+            },
+            "verdict": {
+                "overall_verdict": "blocked",
+                "summary": "Clean migration requires a fresh AI reviewer pass before quality closure or delivery.",
+            },
+            "quality_assessment": {
+                "medical_journal_prose_quality": {
+                    "status": "underdefined",
+                    "summary": "Medical journal prose must be reviewed before quality closure.",
+                }
+            },
+            "gaps": [
+                {
+                    "gap_id": "paper-authority-clean-migration",
+                    "gap_type": "delivery",
+                    "severity": "must_fix",
+                    "summary": "New MAS owners must rebuild authority surfaces.",
+                }
+            ],
+            "recommended_actions": [
+                {
+                    "action_id": "paper-authority-clean-migration-rebuild",
+                    "action_type": "return_to_controller",
+                }
+            ],
+            "future_facing_limitations_plan": [
+                {
+                    "limitation": "This clean-migration assessment only re-establishes authority.",
+                    "impact_on_claim": "Publication claims remain provisional until publication gate reruns.",
+                    "required_future_analysis_data_or_design": "Rerun publication gate and delivery sync.",
+                    "current_manuscript_wording_must_be_restrained": True,
+                }
+            ],
+        },
+    )
+
+    report = module.run_paper_authority_clean_migration(
+        profile_path=profile_path,
+        study_ids=(study_id,),
+        apply=False,
+    )
+
+    study = report["studies"][0]
+    assert module.new_mas_authority_eval_current(study_root=study_root) is True
+    assert module.cutover_requires_ai_reviewer(study_root=study_root) is False
+    assert study["cutover_required"] is False
+    assert study["active_surfaces"] == []
+    assert study["next_required_actions"] == []
+
+
 def test_paper_authority_clean_migration_apply_is_idempotent_after_new_mas_authority(
     tmp_path: Path,
 ) -> None:

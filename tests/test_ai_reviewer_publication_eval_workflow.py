@@ -354,6 +354,14 @@ def test_ai_reviewer_publication_eval_workflow_materializes_latest_with_reviewer
             "current_manuscript_wording_must_be_restrained": True,
         }
     ]
+    assert latest["future_facing_limitations_plan"] == [
+        {
+            "limitation": "Medication coverage is based on recorded medication fields.",
+            "impact_on_claim": "Treatment-gap language must remain documentation-aware.",
+            "required_future_analysis_data_or_design": "Link pharmacy or insurance dispensing data.",
+            "current_manuscript_wording_must_be_restrained": True,
+        }
+    ]
 
 
 def test_ai_reviewer_publication_eval_workflow_accepts_study_relative_currentness_refs(

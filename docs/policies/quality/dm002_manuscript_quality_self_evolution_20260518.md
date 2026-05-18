@@ -34,3 +34,18 @@ This patch does not write study truth, `publication_eval/latest.json`, `controll
 - `scripts/verify.sh`: repo hygiene audit passed; 4 passed.
 - `make test-meta`: 241 passed, 4113 deselected.
 - No DM002 study truth, `publication_eval/latest.json`, `controller_decisions/latest.json`, canonical paper artifacts, `manuscript/current_package`, or submission readiness verdict was modified by this source patch.
+
+## Runtime Consumption Follow-Up
+
+The first self-evolution patch tightened first-draft quality gates but DM002 still parked because the runtime read model consumed a delivered-package handoff before unresolved AI-reviewer quality work, and the AI-reviewer workflow materialized the future-facing limitations plan only inside `reviewer_operating_system` instead of preserving the top-level owner record field required by later dispatch.
+
+Follow-up patch:
+
+- Preserve top-level `future_facing_limitations_plan` in AI-reviewer-owned `publication_eval/latest.json` records so later owner dispatch can consume the current record without false `ai_reviewer_record_incomplete` blockers.
+- Prevent delivered-package handoff from preempting blocked, must-fix, or AI-reviewer-underdefined publication evaluations.
+- Add regression coverage for clean-migration interim eval consumption and delivered-package/AI-reviewer route precedence.
+
+Additional verification:
+
+- `uv run pytest tests/test_ai_reviewer_publication_eval_workflow.py tests/test_paper_authority_migration.py tests/test_cli_cases/study_state_matrix_ai_reviewer_currentness_cases.py tests/test_runtime_supervisor_dispatch_executor_cases/clean_migration_rematerialization.py tests/test_runtime_supervisor_dispatch_executor_cases/ai_reviewer_workflow_dispatch.py tests/test_cli_cases/study_state_matrix_command.py::test_study_state_matrix_projects_delivered_package_and_unclassified_fail_closed tests/test_study_runtime_interaction_arbitration.py::test_arbitrate_waiting_for_user_respects_delivered_package_oracle_over_blocked_closeout_redrive -q`: 39 passed.
+- `scripts/verify.sh`: repo hygiene audit passed; 4 passed.

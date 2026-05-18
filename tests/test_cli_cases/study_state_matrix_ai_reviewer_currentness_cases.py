@@ -171,7 +171,7 @@ def test_study_state_matrix_routes_ai_reviewer_ready_without_currentness_back_to
     assert transition["owner"] == "ai_reviewer"
 
 
-def test_study_state_matrix_delivered_directory_package_handoff_preempts_underdefined_ai_reviewer(
+def test_study_state_matrix_underdefined_ai_reviewer_preempts_delivered_directory_package_handoff(
     monkeypatch,
     tmp_path: Path,
     capsys,
@@ -227,6 +227,8 @@ def test_study_state_matrix_delivered_directory_package_handoff_preempts_underde
 
     assert exit_code == 0
     assert study["delivered_package"]["observed"] is True
-    assert transition["decision_type"] == "delivered_package_handoff"
-    assert transition["controller_action"] == "wait_for_human_gate"
-    assert transition["typed_blocker"]["blocker_id"] == "package_delivered_not_publication_authority"
+    assert transition["decision_type"] == "ai_reviewer_re_eval"
+    assert transition["route_target"] == "review"
+    assert transition["next_work_unit"]["unit_id"] == "ai_reviewer_medical_prose_quality_review"
+    assert transition["controller_action"] == "return_to_ai_reviewer_workflow"
+    assert transition["owner"] == "ai_reviewer"

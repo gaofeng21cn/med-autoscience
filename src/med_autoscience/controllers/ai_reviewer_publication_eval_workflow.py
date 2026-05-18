@@ -388,9 +388,7 @@ def _currentness_checks(
 
 
 def _record_payload_without_workflow_only_fields(record_payload: Mapping[str, Any]) -> dict[str, Any]:
-    payload = dict(record_payload)
-    payload.pop("future_facing_limitations_plan", None)
-    return payload
+    return dict(record_payload)
 
 
 def build_ai_reviewer_publication_eval_workflow_trace(
