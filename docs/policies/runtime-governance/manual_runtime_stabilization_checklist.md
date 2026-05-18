@@ -3,7 +3,7 @@
 ## 文档目的
 
 这份清单只服务当前 **论文配图资产线以外的主线**。
-它把当前仓库里已经稳定、适合人工手工测试或验收的 repo-side surface 收口成一个可执行清单，同时把 optional provider / historical backend / explicit archive import 诊断和 MAS 默认运行面分开。
+它把当前仓库里已经稳定、适合人工手工测试或验收的 repo-side surface 收口成一个可执行清单，同时把 explicit executor/proof diagnostic、historical backend / explicit archive import 诊断和 MAS 默认运行面分开。
 
 当前 monolith 结论是：MAS 默认运行、默认诊断、默认进度和默认质量入口不再依赖外部 MDS。这里整理的是 **repo-side baseline 与显式外部/历史诊断面**，不是把旧 external runtime cutover 重新提升为 active 主线。
 
@@ -21,7 +21,7 @@
 | 功能面 | 正式入口 / 命令 | 人工应核对的稳定信号 | repo-side 证据 / 落盘表面 | 当前阻断边界 |
 | --- | --- | --- | --- | --- |
 | workspace / profile 预检 | `doctor --profile <profile>` | profile、runtime contract、launcher contract、overlay readiness、blocking verdict 是否结构化输出 | `external_runtime_dependency_gate.md`、`src/med_autoscience/doctor.py` | 通过 `doctor` 不等于 external runtime gate 已解除 |
-| optional Hermes / provider 证据预检 | `doctor hermes-runtime --profile <profile>` 或 `doctor hermes-runtime --hermes-agent-repo-root <repo_root> --hermes-home-root <home_root>` | optional provider / legacy Hermes 证据是否结构化收口；当前缺的是 repo、provider 还是 gateway 必须可区分 | `external_runtime_dependency_gate.md`、`src/med_autoscience/hermes_runtime_contract.py`、`src/med_autoscience/controllers/hermes_runtime_check.py` | 该检查只证明可选 provider 诊断状态，不能声明 MAS Full online 或 study truth ready |
+| explicit Hermes executor/proof 证据预检 | `doctor hermes-runtime --profile <profile>` 或 `doctor hermes-runtime --hermes-agent-repo-root <repo_root> --hermes-home-root <home_root>` | 显式 `hermes_agent` executor/proof 证据和旧 Hermes provenance 是否结构化收口；当前缺的是 repo、profile、proof 还是历史 gateway 语境必须可区分 | `external_runtime_dependency_gate.md`、`src/med_autoscience/hermes_runtime_contract.py`、`src/med_autoscience/controllers/hermes_runtime_check.py` | 该检查只证明显式 executor/proof 诊断状态，不能声明 MAS Full online 或 study truth ready |
 | MDS / historical backend audit | `doctor backend-audit --profile <profile> --refresh` | controlled fork、`MEDICAL_FORK_MANIFEST.json`、`behavior_equivalence_gate.yaml`、workspace contract 检查是否 fail-closed | `external_runtime_dependency_gate.md`、`src/med_autoscience/controllers/backend_audit.py` | 只服务 provenance / archive import / parity；不恢复默认 MDS runtime |
 | managed study runtime 只读总表面 | `study-runtime-status --profile <profile> --study-id <study_id>` | `study_id` / `quest_id` / `active_run_id` 分离；`decision` / `reason`；`autonomous_runtime_notice`；`execution_owner_guard`；`publication_supervisor_state` | `study_runtime_status`；`studies/<study_id>/artifacts/runtime/last_launch_report.json` | `startup_boundary_gate`、`runtime_reentry_gate`、`waiting_for_user` 会 fail-closed |
 | managed study runtime 受控推进 | `study ensure-runtime --profile <profile> --study-id <study_id>` | 只通过 controller action 进入 `create / resume / pause`；live managed runtime 时必须切 supervisor-only；不得旁路写 runtime-owned surface | `study_runtime_status`；`studies/<study_id>/artifacts/runtime/last_launch_report.json` | external runtime 未健康、human confirmation、startup boundary 未过时不得冒进 |
@@ -66,4 +66,4 @@
 
 ## 当前结论
 
-如果这些 repo-side surface 通过验证，而真实继续推进仍卡在 optional provider、historical backend audit、workspace truth 或 human-required interaction，结论必须具体写成对应 blocker。不能把它泛化成 MAS 默认运行依赖未完成，也不能用外部 runtime 证据缺失否定 MAS monolith closeout。
+如果这些 repo-side surface 通过验证，而真实继续推进仍卡在 explicit executor/proof diagnostic、historical backend audit、workspace truth 或 human-required interaction，结论必须具体写成对应 blocker。不能把它泛化成 MAS 默认运行依赖未完成，也不能用外部 runtime 证据缺失否定 MAS monolith closeout。

@@ -11,7 +11,7 @@
 - 当前 repo-tracked 主线拓扑固定为：
   - `MedAutoScience` = 唯一研究入口、research gateway、study / workspace authority owner
   - `OPL scheduler replacement` = 默认 outer supervision scheduler owner；默认 adapter 是 `opl_family_runtime_provider`
-  - `MAS supervision scheduler contract` = paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker、safe action refs 和 legacy tombstone/provenance projection；MAS-owned `local` scheduler / LaunchAgent install path 已物理退役，`local` 不再作为 active CLI manager 暴露；Hermes gateway cron 是 explicit optional adapter
+  - `MAS supervision scheduler contract` = paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker、safe action refs 和 legacy tombstone/provenance projection；MAS-owned `local` scheduler / LaunchAgent install path 已物理退役，`local` 不再作为 active CLI manager 暴露；Hermes gateway cron 只作 explicit legacy diagnostic adapter
   - `MAS Runtime OS` = 默认 runtime/backend owner
   - `MedDeepScientist` = frozen source archive、historical fixture、explicit archive import reference / backend audit reference
 - 旧 `Codex-default host-agent runtime` 只保留为迁移期对照面与 regression oracle，不再是长期产品方向。
@@ -21,7 +21,7 @@
   - `internal_controller_surface = controller`
 - 当前仓库产品主线继续按 `Auto-only` 理解。
 - future `Human-in-the-loop`：作为 compatible sibling 或 upper-layer product，复用同一 substrate，而不是把本仓改成同仓双模。
-- optional external `Hermes` runtime repo / workspace / daemon truth 必须显式接入；当前默认 repo-side contract 以 MAS Runtime OS + OPL scheduler replacement 为准，MAS-owned local one-shot tick 只保留显式 legacy diagnostic / cleanup 语义。
+- explicit external `hermes_agent` executor/proof evidence 必须显式接入；旧 Hermes runtime repo / workspace / daemon truth 只作 history/provenance/diagnostic。当前默认 repo-side contract 以 MAS Runtime OS + OPL scheduler replacement 为准，MAS-owned local one-shot tick 只保留显式 legacy diagnostic / cleanup 语义。
 
 ## 2. Execution Handle Contract
 
@@ -140,7 +140,7 @@
   - execution handle contract
   - durable surface contract
   - gate semantics
-  - `MAS Runtime OS + OPL scheduler replacement + MAS supervision SLO/read-model contract` 当前主线拓扑；`opl_family_runtime_provider` 是默认 adapter，local 是显式 legacy diagnostic / cleanup adapter，Hermes gateway cron 是 explicit optional adapter
+  - `MAS Runtime OS + OPL scheduler replacement + MAS supervision SLO/read-model contract` 当前主线拓扑；`opl_family_runtime_provider` 是默认 adapter，local 是显式 legacy diagnostic / cleanup adapter，Hermes gateway cron 只作 explicit legacy diagnostic adapter
 - 本地未跟踪 handoff scratch 只负责：
   - 机器私有 continuation note
   - 临时观察记录
@@ -150,6 +150,6 @@
 
 当前仍未被 repo 单独清除的真实 blocker 是：
 
-- optional external `Hermes` hosted runtime repo / workspace / daemon truth
+- explicit `hermes_agent` executor/proof evidence 或旧 Hermes hosted runtime provenance
 - `MedDeepScientist` controlled fork 与 `behavior_equivalence_gate`
 - external workspace / paper truth gap / human-required interaction

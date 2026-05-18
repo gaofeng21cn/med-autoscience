@@ -174,7 +174,7 @@ ops/medautoscience/bin/storage-audit --git-only --apply --reinitialize-empty-wor
 ## Runtime Boundary
 
 - `MedAutoScience` 是正式研究入口，单一 MAS app skill 负责承接其稳定 callable surface
-- `MAS Runtime OS` 是默认 runtime owner；默认 supervision scheduler owner 是 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider` replacement；MAS `local` adapter / LaunchAgent 已物理退役为 tombstone/provenance refs，Hermes gateway cron 是 explicit optional adapter
+- `MAS Runtime OS` 是默认 runtime owner；默认 supervision scheduler owner 是 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider` replacement；MAS `local` adapter / LaunchAgent 已物理退役为 tombstone/provenance refs，Hermes gateway cron 只作 explicit legacy diagnostic adapter
 - `MedDeepScientist` 只保留为 frozen source archive / historical fixture / explicit legacy diagnostic / provenance reference，不是默认 workspace runtime 依赖
 - 不要直接通过 `MedDeepScientist` UI、CLI 或 daemon HTTP API 发起研究流程
 - 旧 `ops/med-deepscientist/bin/*` 如果在历史 workspace 中出现，只作为 historical/debug evidence 或 cleanup target；新 workspace 不生成，也不作为 active runtime 运维入口

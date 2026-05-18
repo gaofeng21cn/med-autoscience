@@ -9,7 +9,7 @@ Date: `2026-05-08`
 当前正式状态已经从“外部 MDS 是默认执行依赖”收敛为：
 
 - `MAS Runtime OS` 持有默认 controller-facing runtime owner / substrate。
-- 默认 outer supervision scheduler owner 已迁到 OPL `opl_provider_runtime_manager`；默认 adapter 是 `opl_family_runtime_provider`。MAS supervision contract 保留 paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker 和 safe action refs。MAS-owned `local` scheduler / LaunchAgent install path 已物理退役；公开 CLI 不再暴露 `--manager local`，只保留 tombstone/provenance refs。`Hermes gateway cron` 只在显式选择时作为 optional adapter。
+- 默认 outer supervision scheduler owner 已迁到 OPL `opl_provider_runtime_manager`；默认 adapter 是 `opl_family_runtime_provider`。MAS supervision contract 保留 paper-progress SLO/read-model、domain tick payload、owner receipt、typed blocker 和 safe action refs。MAS-owned `local` scheduler / LaunchAgent install path 已物理退役；公开 CLI 不再暴露 `--manager local`，只保留 tombstone/provenance refs。`Hermes gateway cron` 只在显式选择时作为 legacy diagnostic adapter。
 - MAS Runtime Turn Lifecycle Kernel 持有 runner completion 后的状态归一化和下一 turn 调度；正常 `auto_continue` 不再等待 300 秒 supervision tick。
 - `med-deepscientist` 不再是 MAS 默认 study/status/progress/cockpit/diagnostic operation 的必需 checkout、daemon、runtime root 或 WebUI。
 - `MedDeepScientist` 只保留为 frozen source archive、historical fixture、explicit archive import reference / backend audit / provenance reference。
@@ -39,7 +39,7 @@ Date: `2026-05-08`
 
 - 日常研究推进、turn-to-turn continuation、状态读取、恢复投影、progress/cockpit/Portal 可独立完成。
 - 外层 drift detection / stale recovery 现在受 OPL provider SLO / cadence evidence 约束；低延迟 resident callback、WebSocket terminal streaming、connector background delivery、in-memory session continuity 不作为默认 MAS active behavior 保留。
-- 需要长时唤醒时，当前正确入口是 OPL provider/runtime manager replacement；MAS `local` adapter 和 Hermes gateway cron 只在显式 diagnostic / optional 路径中使用，不是旧 workspace-local launchd/systemd/cron/docker service。
+- 需要长时唤醒时，当前正确入口是 OPL provider/runtime manager replacement；MAS `local` adapter 和 Hermes gateway cron 只在显式 diagnostic / provenance 路径中使用，不是旧 workspace-local launchd/systemd/cron/docker service。
 
 ## 4. Gate 规则
 
@@ -56,8 +56,8 @@ Date: `2026-05-08`
 `runtime_core_ingest` 和 `functional_monolith_completion` 已按 default-independence 口径 landed。剩余工作不是重开 MDS 吸收主线，而是持续守住：
 
 - MAS Runtime OS 的 owner contract。
-- OPL scheduler replacement 是默认路径；MAS supervision contract 保留 domain SLO/read-model 和 legacy local diagnostic / cleanup；Hermes gateway cron 是 explicit optional hosted / provider adapter。
+- OPL scheduler replacement 是默认路径；MAS supervision contract 保留 domain SLO/read-model 和 legacy local diagnostic / cleanup；Hermes gateway cron 只作 explicit legacy diagnostic adapter。
 - behavior-equivalence matrix 对 resident daemon 差异的公开记录。
-- optional future hosted scheduler / frontend packaging 的独立 gate。
+- future hosted scheduler / frontend packaging 的独立 gate，归 OPL/App owner，不在 MAS 内恢复旧 provider。
 
 如果未来需要吸收外部 MDS 或 DeepScientist 的新增能力，必须重新走 source provenance、capability classification、MAS owner、authority boundary、tests、parity proof 和 no-history contributor audit。

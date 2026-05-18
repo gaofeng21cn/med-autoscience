@@ -14,7 +14,7 @@
 与长期在线 supervision owner 相关的当前真相是：
 
 - `OPL framework provider`
-  - 持有 Full online path 的长期运行、调度与托管能力；Hermes-Agent 只作为 legacy/optional provider 或 proof lane 出现
+  - 持有 Full online path 的长期运行、调度与托管能力；Temporal-backed provider 是生产路径，`hermes_agent` 只作为显式非默认 executor/proof lane 出现
 - `MedAutoScience`
   - 持有 study/runtime supervision judgment、recovery policy 与前台 projection
 - `Codex CLI`

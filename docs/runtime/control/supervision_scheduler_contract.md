@@ -10,7 +10,7 @@ Date: `2026-05-18`
 
 MAS 保留的是 paper-progress SLO 解释、domain tick payload、owner receipt、typed blocker、safe action refs 和 no-forbidden-write evidence。MAS-owned `local` scheduler / LaunchAgent install path 已物理退役；公开 CLI manager choices 不再包含 `local`，只保留 `local_launchd_retired_tombstone` projection 与 history/tombstone/provenance refs。
 
-显式 `--manager hermes` 仍是 optional adapter，用于 Hermes gateway cron 的 job registry、session history、latest run 和 gateway liveness projection。Hermes 不持有 study truth、runtime truth、publication verdict、quality verdict 或 artifact authority。
+显式 `--manager hermes` 仍是 legacy diagnostic adapter，用于 Hermes gateway cron 的 job registry、session history、latest run 和 gateway liveness projection。Hermes 不持有 study truth、runtime truth、publication verdict、quality verdict 或 artifact authority。
 
 ## 三层边界
 
@@ -59,9 +59,9 @@ Retained refs:
 - `contracts/runtime/legacy-active-path-tombstones.json`
 - `docs/history/runtime/legacy_active_path_tombstones.md`
 
-## Optional Hermes Adapter
+## Legacy Hermes Diagnostic Adapter
 
-`--manager hermes` 只表示显式 optional adapter。它可以刷新 Hermes gateway cron 并投影 job/session/gateway state，但必须保持 adapter/provenance 语义。
+`--manager hermes` 只表示显式 legacy proof / diagnostic adapter。它可以读取或刷新历史 Hermes cron/session/gateway 证据以完成清理或 provenance 投影，但不得成为新 scheduler template、provider fallback 或长期保留接口。
 
 Hermes adapter 不得成为：
 
@@ -69,11 +69,12 @@ Hermes adapter 不得成为：
 - MAS runtime truth owner
 - MAS executor kind owner
 - publication quality / source readiness / artifact mutation authority
+- OPL Full online readiness 的替代证据
 
 ## Done Criteria
 
 - `local` 不在公开 CLI manager choices 中。
 - 默认 scheduler projection 不依赖 Hermes 或 MAS local LaunchAgent。
-- MAS product-entry、sidecar、Portal 和 Live Console 只展示 OPL default projection、Hermes optional projection或 local tombstone/provenance refs。
+- MAS product-entry、sidecar、Portal 和 Live Console 只展示 OPL default projection、Hermes diagnostic projection 或 local tombstone/provenance refs。
 - No-active-caller proof 显示 default caller count 为 `0`，explicit local callers forbidden。
 - 后续真实 paper-line provider soak、memory/artifact receipt scaleout 和 provider SLO long soak作为 evidence gate 单独推进。

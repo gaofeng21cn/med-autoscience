@@ -1,6 +1,6 @@
 # Workspace Architecture
 
-这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到“MAS-owned runtime/artifact/quality surfaces + OPL scheduler replacement + MAS supervision SLO/read-model contract”标准形态的约束。默认 scheduler adapter 是 OPL `opl_family_runtime_provider`；MAS `local` one-shot supervision 只作为显式 legacy diagnostic / cleanup adapter；Hermes gateway cron 是 explicit optional adapter。
+这份文档定义 `MedAutoScience` 体系下医学研究 workspace 的标准形态，以及从历史遗留的 inline-DeepScientist workspace 迁移到“MAS-owned runtime/artifact/quality surfaces + OPL scheduler replacement + MAS supervision SLO/read-model contract”标准形态的约束。默认 scheduler adapter 是 OPL `opl_family_runtime_provider`；MAS `local` one-shot supervision 只作为显式 legacy diagnostic / cleanup adapter；Hermes gateway cron 只作 explicit legacy diagnostic adapter。
 
 在顶层定位上，应始终按下面这条理解：
 
@@ -26,7 +26,7 @@
 - 程序本体与重依赖不在每个疾病 workspace 内重复存放
 - workspace 根目录默认 no root Git，quest 默认 no quest Git；已有 root Git 通过 runtime lifecycle full retirement lane 做 restore-proof inventory、archive、remove 和 verify
 - 新疾病项目可以快速复制同一套目录骨架与启动方式
-- `MedAutoScience` 继续作为独立医学研究 Foundry Agent，默认 300 秒 one-shot supervision / provider SLO / job registry 投影由 OPL replacement 负责；MAS `local` adapter 只保留显式 legacy diagnostic / cleanup，Hermes gateway cron 是 explicit optional adapter。外部 `MedDeepScientist`（仓库名 `med-deepscientist`）只保留为 optional oracle / intake / backend-audit / legacy diagnostic reference
+- `MedAutoScience` 继续作为独立医学研究 Foundry Agent，默认 300 秒 one-shot supervision / provider SLO / job registry 投影由 OPL replacement 负责；MAS `local` adapter 只保留显式 legacy diagnostic / cleanup，Hermes gateway cron 只作 explicit legacy diagnostic adapter。外部 `MedDeepScientist`（仓库名 `med-deepscientist`）只保留为 optional oracle / intake / backend-audit / legacy diagnostic reference
 
 这也意味着：正式研究入口必须是 `MedAutoScience`，而不是直接面向 `MedDeepScientist`、`DeepScientist upstream`，也不是被 `OPL` 顶层语义直接吞并。OPL 只托管 stage attempt、queue/wakeup、receipt/projection 和 shared primitives；study truth、quality verdict、runtime owner surface 与 artifact/publication authority 留在 MAS。
 
@@ -314,7 +314,7 @@ wrapper 不应继续硬编码：
 - `ops/mas/config.env`
   - 显式指定 MAS runtime / supervision 配置；旧 `ops/med-deepscientist/config.env` 只作为 legacy diagnostic / restore reference
 
-当前阶段 `med_deepscientist_repo_root` 仍作为 profile TOML 输入兼容字段存在，但 JSON / doctor-facing 输出只在 `legacy_diagnostic.read_only` 下暴露它。它主要为 `backend-upgrade-check`、upstream intake、parity oracle 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，也不是默认 product entry 或 executor owner。当前 repo-side 已把 `managed_runtime_backend_id=mas_runtime_core` 固定为默认 runtime owner / substrate；默认 scheduler owner 已迁到 OPL replacement，显式 local scheduler 只负责 legacy diagnostic / cleanup 下定时唤醒 MAS one-shot tick，Hermes gateway cron 只在显式选择时承担同构 optional adapter。MAS 默认 study/status/progress/cockpit 路径不依赖外部 `med-deepscientist` checkout。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这只说明 optional audit/oracle/intake reference 身份已受控，不说明旧 MDS resident daemon 行为已完全等价。新 workspace 必须在 `ops/mas/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact；旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`；这些字段只服务 audit-level 合约，不得把外部 MDS 恢复成默认运行依赖。
+当前阶段 `med_deepscientist_repo_root` 仍作为 profile TOML 输入兼容字段存在，但 JSON / doctor-facing 输出只在 `legacy_diagnostic.read_only` 下暴露它。它主要为 `backend-upgrade-check`、upstream intake、parity oracle 等审计流程服务，让 Controller 能确定目标 repo 是否存在、是否为 Git 仓库、工作树是否干净等状态；它并不天然意味着 workspace 正在直接从这个 repo 运行，也不是默认 product entry 或 executor owner。当前 repo-side 已把 `managed_runtime_backend_id=mas_runtime_core` 固定为默认 runtime owner / substrate；默认 scheduler owner 已迁到 OPL replacement，显式 local scheduler 只负责 legacy diagnostic / cleanup 下定时唤醒 MAS one-shot tick，Hermes gateway cron 只在显式选择时承担同构 legacy diagnostic adapter。MAS 默认 study/status/progress/cockpit 路径不依赖外部 `med-deepscientist` checkout。Phase 1 新增的变化是：当 repo 根目录存在 `MEDICAL_FORK_MANIFEST.json` 时，`MedAutoScience` 会把它识别为受控的 `med-deepscientist` fork，并在 `repo_check` / `workspace_contracts` 中暴露 manifest 元数据。但这只说明 optional audit/oracle/intake reference 身份已受控，不说明旧 MDS resident daemon 行为已完全等价。新 workspace 必须在 `ops/mas/behavior_equivalence_gate.yaml` 保留一个稳定的 artifact；旧 `ops/med-deepscientist/behavior_equivalence_gate.yaml` 只作为 legacy diagnostic / restore reference。`med_autoscience.workspace_contracts.inspect_behavior_equivalence_gate` 会读取其中的 `schema_version`、`phase_25_ready` 和 `critical_overrides`；这些字段只服务 audit-level 合约，不得把外部 MDS 恢复成默认运行依赖。
 ## 当前实现下的最小可运行 workspace 契约
 
 这份文档描述的是目标架构，但在当前实现里，新 workspace 还不是“只靠 6 个路径字段就能直接启动”的完全抽象状态。

@@ -42,7 +42,7 @@ Machine boundary: 本文是人读审计记录，不是执行队列、runtime tru
 复扫后仍保留的高风险词面分三类：
 
 - 核心五件套、ideal state、gap plan、program portfolio、current development lines 中的命中用于声明 current boundary、superseded 决策或 direct retirement 规则。
-- runtime/control/contracts 中的 `local scheduler`、`LaunchAgent`、`Hermes` 命中用于描述当前显式 diagnostic / cleanup bridge、optional adapter 或 forbidden-write boundary；默认 owner 已写为 OPL replacement。
+- runtime/control/contracts 中的 `local scheduler`、`LaunchAgent`、`Hermes` 命中用于描述当前显式 diagnostic / cleanup bridge、legacy diagnostic adapter 或 forbidden-write boundary；默认 owner 已写为 OPL replacement。
 - history、mds-parity、med-deepscientist reference 中的旧 MDS / DeepScientist / Hermes / Domain Harness OS / Research Foundry / gateway / compatibility 命中只作为 provenance、fixture、archive import、backend audit、upstream intake 或 parity oracle reference。
 
 后续若发现 active/reference/spec 文档把上述词面写成默认 runtime、default dependency、active backlog 或兼容接口，应优先归档到 history 或改写为 current owner boundary；满足 no-active-caller、无 fixture/provenance 必需和 replacement proof 时，旧 alias/wrapper/facade/test entry 直接退役，不新增兼容层。

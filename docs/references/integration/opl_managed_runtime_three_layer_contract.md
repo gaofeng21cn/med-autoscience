@@ -8,8 +8,8 @@
 
 统一按三层理解：
 
-- `OPL Runtime Manager` / scheduler adapter
-  - 长期运行、托管与调度能力 owner；默认由 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider` 持有 scheduler lifecycle、cadence、provider SLO 与 projection，Hermes-Agent 只是显式 optional hosted provider / executor adapter
+- OPL family runtime provider / scheduler adapter
+  - 长期运行、托管与调度能力 owner；默认由 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider` 持有 scheduler lifecycle、cadence、provider SLO 与 projection；Temporal 是 production online runtime 的必需 substrate，`hermes_agent` 只作为显式非默认 executor/proof lane 或历史 provenance
 - domain supervision
   - 领域治理、质量门控、进度真相、恢复判断 owner
 - quest executor
@@ -18,11 +18,11 @@
 对应到当前医学线：
 
 - `MAS supervision scheduler contract`
-  - 默认消费 OPL scheduler replacement；MAS `local` LaunchAgent 只作为显式 legacy diagnostic / cleanup adapter，Hermes-Agent 仅在显式 hosted/runtime target 时作为 optional adapter
+  - 默认消费 OPL scheduler replacement；MAS `local` LaunchAgent 只作为显式 legacy diagnostic / cleanup adapter，Hermes-Agent 仅在显式 hosted/runtime target 时作为 legacy diagnostic adapter
 - `MedAutoScience`
   - medical supervision / publication governance / progress truth owner
-- `MedDeepScientist`
-  - concrete research executor
+- `Codex CLI` / MAS route-selected executor
+  - 默认 concrete executor；`MedDeepScientist` 只保留为 frozen source archive、backend audit、upstream intake 或 parity oracle reference
 
 ## 为什么必须这样切
 
@@ -46,7 +46,7 @@
 - 持有 gateway / scheduler / cron / hosted run substrate
 - 管 session / run / watch / recovery substrate
 - 提供长期在线托管能力
-- 在显式选择时使用 Hermes-Agent hosted/runtime provider
+- 在显式选择时接入非默认 executor/proof lane；不得把旧 Hermes hosted/runtime provider 恢复成 production substrate
 
 不允许：
 
@@ -87,7 +87,7 @@
 ### MedAutoScience
 
 - `MAS supervision scheduler contract`
-  - OPL scheduler replacement default / explicit legacy local diagnostic adapter / optional Hermes hosted adapter
+  - OPL scheduler replacement default / explicit legacy local diagnostic adapter / explicit Hermes executor-proof diagnostic adapter
 - `MedAutoScience`
   - medical supervision / publication governance / workspace cockpit / progress truth
 - `MedDeepScientist`
@@ -95,8 +95,8 @@
 
 ### RedCube AI
 
-- `OPL Runtime Manager`
-  - 长期运行与托管能力目标 owner；Hermes-Agent 是显式 optional hosted provider
+- OPL family runtime provider
+  - 长期运行与托管能力目标 owner；Temporal 是 production substrate，`hermes_agent` 只作为显式非默认 executor/proof lane
 - `RedCube AI`
   - visual deliverable governance / audit / publication projection / review truth
 - concrete executor
@@ -104,8 +104,8 @@
 
 ### Med Auto Grant
 
-- `OPL Runtime Manager`
-  - runtime substrate / orchestration owner；Hermes-Agent 是显式 optional hosted provider
+- OPL family runtime provider
+  - runtime substrate / orchestration owner；Temporal 是 production substrate，`hermes_agent` 只作为显式非默认 executor/proof lane
 - `Med Auto Grant`
   - author-side grant truth / progress / review / package gate owner
 - concrete executor
@@ -119,7 +119,7 @@
 
 - 三层角色命名与 owner truth
 - supervision status shape
-- default scheduler projection 与 optional hosted runtime owner invariants
+- default scheduler projection、Temporal provider readiness 与 explicit executor/proof lane invariants
 - domain supervision 不得越过 runtime 的 fail-closed 规则
 - 单一 MAS app skill 下的 product/entry_status/cockpit 内部 command contract 术语
 
@@ -144,7 +144,7 @@
 
 当三个仓都满足下面条件时，才算统一成立：
 
-- 长期在线 owner 由 OPL/runtime-manager 或 domain scheduler contract 声明；Hermes-Agent 只作为显式 optional hosted provider 进入
+- 长期在线 owner 由 OPL family runtime provider / Temporal production substrate 声明；`hermes_agent` 只作为显式非默认 executor/proof lane 进入
 - domain repo 自己不再默认安装第二个 host-level 常驻 supervision service
 - domain repo 的 product/entry_status/cockpit 文案能明确说清三层分工
 - runtime blocked / paused / stale / completion request 等问题会先回到 domain supervision，而不是直接让 executor 或用户硬猜

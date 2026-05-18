@@ -205,7 +205,7 @@
 - 状态：已被同日 Temporal-backed production runtime 决策 supersede。保留本段用于解释 Hermes-first sidecar bridge 的迁移背景和当前 legacy provider 口径。
 
 - 历史决策：当时的迁移假设是让外部 `Hermes-Agent` 由 OPL 管理，承担常驻 gateway、cron/webhook wakeup、session store、delivery/notification、approval transport 与 family queue tick；OPL 持有 typed family queue / dispatch contract；MAS 持有 study truth、publication judgment、quality gate、artifact/package authority 和 domain recovery decision。
-- 当前生命周期处置：这不是当前目标 topology。当前 OPL-hosted production path 以 Temporal-backed OPL family runtime 为生产必需 substrate；`Hermes-Agent` 只保留为 explicit optional Agent executor adapter、provider/proof lane 或历史迁移背景。任何当前文档或代码入口都不得把本段写成 Full online target。
+- 当前生命周期处置：这不是当前目标 topology。当前 OPL-hosted production path 以 Temporal-backed OPL family runtime 为生产必需 substrate；`Hermes-Agent` / `hermes_agent` 只保留为显式非默认 Agent executor/proof lane、诊断/provenance 或历史迁移背景。任何当前文档或代码入口都不得把本段写成 Full online target。
 - 保留价值：本段只解释 `sidecar export|dispatch` 为什么成为 OPL provider 到 MAS owner surface 的受控桥。sidecar 仍禁止写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper package 或 artifact gate；这些 truth 只能由对应 MAS owner surface 产生。MAS local scheduler 已物理退役为 tombstone/provenance-only，不再作为可执行 diagnostic bridge 暴露；默认 scheduler owner 已迁到 OPL provider/runtime manager，Full online readiness 仍由 OPL 侧 Temporal provider readiness 判定。
 
 ## 2026-05-10：MAS 作为 OPL stage-led framework 上的独立 domain agent
@@ -218,7 +218,7 @@
 
 - 决策：OPL 的新定位固定为完整智能体运行框架，而不是只做入口聚合或 product-entry facade。OPL 可以作为外部依赖承载 MAS：它负责 stage attempt、provider abstraction、queue/wakeup、retry/dead-letter、human-gate signal/query、attempt receipt、projection、shared lifecycle/index/restore primitives 和跨 domain skeleton。`Stage` 是大型任务步骤；Agent executor 是 stage 内最小执行单位，`Codex CLI` 是当前第一公民 concrete executor。
 - 理由：MAS 已经在 monolith closeout 中验证了医学论文 domain 的 runtime、lifecycle、artifact、restore、stage knowledge 和质量闭环经验，但这些“智能体运行外围”不应长期由 MAS 私有维护。上收 OPL 能减少 MAS/MAG/RCA 重复底座，同时保持 MAS 对医学研究、论文质量和交付 authority 的唯一所有权。
-- 影响：MAS 文档必须把 OPL 作为可依赖运行框架表达，同时继续禁止 OPL/Temporal/Hermes/local provider 写 MAS study truth、publication judgement、quality gate、current package、evidence/review ledger 或 artifact authority。MAS direct skill / local diagnostic path 可以独立运行；一旦进入 OPL-hosted production path，Temporal readiness 是必需前提。MAS 是 OPL family 中的医学论文/研究 domain agent；旧 MDS/DeepScientist/Hermes-first/外部 runtime 完善线只能作为 history、provenance、optional executor/provider adapter、backend audit、upstream intake 或 parity reference 出现。
+- 影响：MAS 文档必须把 OPL 作为可依赖运行框架表达，同时继续禁止 OPL/Temporal/Hermes/local provider 写 MAS study truth、publication judgement、quality gate、current package、evidence/review ledger 或 artifact authority。MAS direct skill / local diagnostic path 可以独立运行；一旦进入 OPL-hosted production path，Temporal readiness 是必需前提。MAS 是 OPL family 中的医学论文/研究 domain agent；旧 MDS/DeepScientist/Hermes-first/外部 runtime 完善线只能作为 history、provenance、显式 executor/proof diagnostic、backend audit、upstream intake 或 parity reference 出现。
 
 ## 2026-05-10：Autonomy continuation ticket 成为 read-model 到执行闭环的桥
 
@@ -243,7 +243,7 @@
 
 - 决策：`runtime-supervision-status`、`runtime-ensure-supervision` 和 `runtime-remove-supervision` 的默认 `--manager` 是 `opl`，输出 `scheduler_owner=opl_provider_runtime_manager` 与 `adapter_id=opl_family_runtime_provider`。默认入口只投影或委托 OPL `family_scheduler_replacement`，不安装、不刷新、不触发 MAS-owned LaunchAgent。MAS 保留 `outer_supervision_slo` 的 paper-progress 解释、owner receipt、typed blocker、safe action refs 和 no-forbidden-write evidence。
 - 理由：OPL 已提供 runtime manager / provider SLO / family queue / intake / attempt ledger replacement surface；MAS 长期应收窄为 medical research authority pack + thin program surface。继续把本机 LaunchAgent 写成默认 scheduler owner 会让 MAS 持有通用 cadence、job registry 和 scheduler lifecycle，和 OPL-led family framework 分层冲突。
-- 影响：`local` 已从公开 CLI manager choices 移除，只保留 tombstone/provenance refs；显式 `--manager hermes` 仍是 optional historical/executor-adapter style projection。workspace bootstrap 改为默认委托 OPL replacement，不再安装 MAS local scheduler。`no_active_caller_proof.default_caller_count=0` 是当前退役门槛：默认 CLI、workspace bootstrap、product-entry、sidecar 和 MCP 都不得再调用 local install path；local adapter 不允许 install、status、remove、trigger、loaded-state 或 install-proof 输出。该迁移不等于真实 Temporal long soak、paper-line closure、artifact mutation 授权或 publication-ready。
+- 影响：`local` 已从公开 CLI manager choices 移除，只保留 tombstone/provenance refs；显式 `--manager hermes` 仍是 historical / executor-proof diagnostic projection。workspace bootstrap 改为默认委托 OPL replacement，不再安装 MAS local scheduler。`no_active_caller_proof.default_caller_count=0` 是当前退役门槛：默认 CLI、workspace bootstrap、product-entry、sidecar 和 MCP 都不得再调用 local install path；local adapter 不允许 install、status、remove、trigger、loaded-state 或 install-proof 输出。该迁移不等于真实 Temporal long soak、paper-line closure、artifact mutation 授权或 publication-ready。
 
 ## 2026-05-17：MAS functional privatization 分类进入机器边界
 

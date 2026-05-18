@@ -10,7 +10,7 @@
 ## 当前固定边界
 
 - `MedAutoScience`：唯一研究入口、study / workspace authority owner、医学论文质量 owner、长时间自治 owner、repo-tracked operator surface owner
-- 上游 `Hermes-Agent`：目标外层 managed runtime substrate owner；当前仓内通过 repo-side seam / adapter 暴露 substrate-facing contract
+- 上游 `Hermes-Agent` / `hermes_agent`：只作为历史学习对象、显式非默认 executor/proof lane 或 backend audit 参考；不再是 MAS 目标外层 managed runtime substrate owner
 - `MedDeepScientist`：历史 source archive、parity fixture、legacy diagnostic、provenance reference；只在显式 legacy audit / source-watch / parity 场景下出现
 - 旧 `Codex-default host-agent runtime`：迁移期对照面与 regression oracle
 - display / paper-facing asset packaging：明确排除在本线之外

@@ -122,7 +122,7 @@ OPL 层面的全局主参考是 `/Users/gaofeng/workspace/one-person-lab/docs/ac
 | “P0 等于 MAS-only runtime 完成” | 已过时。P0 是目标和验收，产品/框架依托分别在 P1/P2。 |
 | “整份 P1 workbench 计划都要做完” | 已替换为 P1 内容 lane：read-only workbench、action receipt、terminal attach、provider join。 |
 | “整份 P2 Temporal retirement 计划都要做完” | 已替换为 framework-first 的 P2 内容 lane：OPL framework foundation、MAS framework migration、framework-generic lift、legacy retirement、再进入 paper-line soak。 |
-| Hermes-first 或 MAS local scheduler 作为 Full online target | 已降级。OPL Full online target 是 Temporal-backed production runtime；MAS local scheduler 是 diagnostics/provenance；Hermes 只保留为 explicit optional executor adapter / proof lane，除非未来证据改变。 |
+| Hermes-first 或 MAS local scheduler 作为 Full online target | 已降级。OPL Full online target 是 Temporal-backed production runtime；MAS local scheduler 是 diagnostics/provenance；`hermes_agent` 只保留为显式非默认 executor/proof lane。 |
 | 旧 MDS daemon/WebUI/runtime transport 作为默认依赖 | 默认路径已退役；只保留 provenance、explicit archive import、backend audit、upstream learning 或 parity reference。 |
 | Runtime lifecycle Git-era cleanup 作为活跃大迁移 | 已落地。新发现问题按 P3a drift/maintenance 处理，除非证明有 live writer regression。 |
 | Local Portal / Live Console 作为最终主产品面 | OPL App workbench 成为主用户面后，local Portal / Live Console 降级为 diagnostic/debug/evidence。 |

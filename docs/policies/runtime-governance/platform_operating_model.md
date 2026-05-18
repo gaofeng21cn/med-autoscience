@@ -20,7 +20,7 @@
 - `OPL` 是完整智能体运行框架，可托管 stage attempt、queue、wakeup、retry/dead-letter、approval、projection 和 shared lifecycle/index 能力；它不替代 `MedAutoScience` 的医学研究 owner 身份。
 - `Stage` 是一次大型任务步骤；`Codex CLI` 是 stage 内默认 concrete executor 和最小执行单元。
 - `MAS Runtime OS` 是当前 MAS domain runtime owner；`MedDeepScientist` 只保留 frozen source archive、historical fixture、explicit archive import reference、backend audit、upstream intake 和 parity oracle。
-- OPL provider、Temporal、Hermes legacy provider 或 local scheduler 只能承载/唤醒/记录/派发 attempt，不持有 MAS study truth、publication quality、artifact authority 或 current package。
+- OPL provider / Temporal 只能承载、唤醒、记录和派发 attempt；`hermes_agent` 只作为显式非默认 executor/proof lane，旧 Hermes provider 或 local scheduler 只作 history/provenance/dev/CI/offline diagnostic，不持有 MAS study truth、publication quality、artifact authority 或 current package。
 
 旧定位说明已归档到 [Historical Framework Positioning](../../history/runtime/historical_framework_positioning.md)。当前 active 口径以独立 medical research domain agent 与 OPL stage-led framework 托管边界为准。
 
