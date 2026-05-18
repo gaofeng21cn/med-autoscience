@@ -114,7 +114,7 @@ PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     (
         "submission_placeholder_instruction_residue",
         "not yet been confirmed / Replace this placeholder",
-        r"\bnot yet been confirmed\b|\bReplace this placeholder\b|\bInsert the author-confirmed\b|\bverify the exact wording\b|\bshould be replaced\b",
+        r"\bnot yet been confirmed\b|\bReplace this placeholder\b|\bInsert the author-confirmed\b|\bverify the exact wording\b|\bshould be replaced\b|\brequires author confirmation\b|\bbefore external submission\b",
         re.IGNORECASE,
     ),
     ("paper_scaffold_role_residue", "paper protagonist / bounded complexity benchmark", r"\bpaper protagonist\b|\bbounded complexity benchmark\b|\bmodel-complexity competition\b", re.IGNORECASE),
@@ -128,6 +128,12 @@ PUBLICATION_SURFACE_RESIDUE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     ("confirmed_historical_specification_residue", "confirmed historical specification", r"\bconfirmed historical specification\b", re.IGNORECASE),
     ("manuscript_facing_analyses_residue", "manuscript-facing analyses", r"\bmanuscript-facing analyses\b", re.IGNORECASE),
     ("comparator_drift_residue", "comparator drift", r"\bcomparator drift\b", re.IGNORECASE),
+    (
+        "verified_output_or_source_documentation_residue",
+        "verified outputs / accepted analysis records / source-documentation gaps",
+        r"\baccepted analysis records?\b|\bverified (?:analysis )?(?:records?|outputs?)\b|\bsource[\s-]+documentation gaps?\b",
+        re.IGNORECASE,
+    ),
 ]
 
 METHOD_LABEL_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
@@ -159,7 +165,7 @@ MEDICAL_JOURNAL_PROSE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     (
         "project_status_report_opening",
         "project/status-report prose",
-        r"\b(?:this project has completed|current package|current bundle|submission tasks|controller-approved|writing route continued|outputs were synchronized)\b",
+        r"\b(?:this project has completed|current package|current bundle|submission tasks|controller-approved|writing route continued|outputs were synchronized|submission readiness)\b",
         re.IGNORECASE,
     ),
     (
@@ -171,7 +177,7 @@ MEDICAL_JOURNAL_PROSE_PATTERN_SPECS: list[tuple[str, str, str, int]] = [
     (
         "tool_runtime_provenance_body",
         "tool/runtime provenance in manuscript body",
-        r"\b(?:quest|worktree|run logs?|packaging metadata|current package)\b|\b(?:pipeline|artifact)s?\s+(?:completed|generated|synchronized|refreshed)\b",
+        r"\b(?:quest|worktree|run logs?|packaging metadata|current package|verified outputs?|accepted analysis records?|source[\s-]+documentation gaps?)\b|\b(?:pipeline|artifact)s?\s+(?:completed|generated|synchronized|refreshed)\b",
         re.IGNORECASE,
     ),
     (
@@ -211,6 +217,8 @@ MEDICAL_JOURNAL_PROSE_BLOCKING_PATTERN_IDS = frozenset(
         "project_status_report_opening",
         "controller_artifact_subject",
         "tool_runtime_provenance_body",
+        "verified_output_or_source_documentation_residue",
+        "submission_placeholder_instruction_residue",
         "engineering_manuscript_surface_residue",
         "candidate_package_residue",
         "complexity_audit_residue",

@@ -46,6 +46,8 @@ def test_default_publication_critique_policy_exposes_weight_and_action_contract(
         if item["field"] == "medical_journal_prose_quality"
     )
     assert "medical journal prose" in style_dimension["focus"]
+    assert any("HDL/unit harmonization" in rule for rule in DEFAULT_PUBLICATION_CRITIQUE_POLICY["hard_rules"])
+    assert any("verified-output" in rule for rule in DEFAULT_PUBLICATION_CRITIQUE_POLICY["hard_rules"])
 
 
 def test_publication_critique_policy_exposes_target_journal_writing_layer() -> None:

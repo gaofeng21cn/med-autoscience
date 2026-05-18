@@ -37,6 +37,7 @@ VARIABLE_HARMONIZATION_ITEMS = (
     "cross_cohort_unit_conversion",
     "range_plausibility_by_cohort",
     "harmonization_anomaly_sensitivity",
+    "unit_standardized_model_application_or_sensitivity",
 )
 TIME_TO_EVENT_PREDICTION_ITEMS = (
     "proportional_hazards_assessment",
@@ -72,14 +73,17 @@ VALIDATION_UNCERTAINTY_ITEMS = (
     "calibration_intercept_slope_confidence_interval",
     "observed_expected_ratio_confidence_interval",
     "brier_score_or_uncertainty_interval",
+    "calibration_curve_or_grouped_calibration_interval",
     "bootstrap_or_resampling_method",
 )
 PREDICTION_DISPLAY_REPORTING_ITEMS = (
     "cohort_flow_diagram",
     "baseline_characteristics_table",
     "performance_metrics_table",
+    "main_text_table_rendering_in_submission_package",
     "calibration_curve_with_uncertainty",
     "risk_distribution_or_support_overlap",
+    "decision_curve_not_main_display_without_verified_net_benefit",
     "figure_legibility_and_non_overlap",
 )
 SURVEY_DESIGN_REPORTING_ITEMS = (
@@ -91,6 +95,8 @@ SURVEY_DESIGN_REPORTING_ITEMS = (
 MANUSCRIPT_VOICE_REPORTING_ITEMS = (
     "results_driven_results_section",
     "internal_quality_control_language_absent",
+    "verified_output_language_absent",
+    "author_confirmation_notes_absent_from_body",
     "defensive_boundary_language_not_repetitive",
     "formal_figure_legend_language",
     "no_submission_readiness_meta_language",

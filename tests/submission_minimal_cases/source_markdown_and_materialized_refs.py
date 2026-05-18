@@ -658,3 +658,49 @@ Calibration and decision-curve evidence across candidate packages within the pre
     failure_reasons = {item["failure_reason"] for item in manuscript_surface_qc["failures"]}
     assert manuscript_surface_qc["status"] == "fail"
     assert "submission_source_markdown_medical_journal_prose_residue" in failure_reasons
+
+
+def test_build_submission_manuscript_surface_qc_blocks_internal_quality_record_language(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.submission_minimal")
+    source_markdown = tmp_path / "manuscript_submission.md"
+    write_text(
+        source_markdown,
+        """---
+title: "External Validation Manuscript"
+---
+
+# Methods
+
+The external-validation cohort had linked mortality information available in the accepted analysis records.
+
+# Results
+
+Calibration slope and Brier score were not available from the verified outputs.
+
+# Discussion
+
+The exact source-code environment remains a source-documentation gap that requires author confirmation before external submission.
+""",
+    )
+
+    manuscript_surface_qc = module.build_submission_manuscript_surface_qc(
+        publication_profile="general_medical_journal",
+        source_markdown_path=source_markdown,
+        docx_path=tmp_path / "manuscript.docx",
+        pdf_path=tmp_path / "paper.pdf",
+        expected_main_figure_count=0,
+    )
+
+    failure_reasons = {item["failure_reason"] for item in manuscript_surface_qc["failures"]}
+    assert manuscript_surface_qc["status"] == "fail"
+    assert "submission_source_markdown_medical_journal_prose_residue" in failure_reasons
+    prose_failure = next(
+        item
+        for item in manuscript_surface_qc["failures"]
+        if item["failure_reason"] == "submission_source_markdown_medical_journal_prose_residue"
+    )
+    pattern_ids = {hit["pattern_id"] for hit in prose_failure["medical_journal_prose_hits"]}
+    assert "verified_output_or_source_documentation_residue" in pattern_ids
+    assert "submission_placeholder_instruction_residue" in pattern_ids

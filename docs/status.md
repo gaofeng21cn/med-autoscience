@@ -24,6 +24,9 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 ## 当前功能/结构状态
 
+0. `agent_lab_medical_manuscript_self_evolution`
+   DM002 的 2026-05-18 高质量医学论文反馈已经通过 OPL Agent Lab blocked suite 和 `opl-meta-agent` developer patch work order 进入 MAS 能力层。当前 self-evolution 口径是：`opl-meta-agent` 可以修改 MAS stage/skill/prompt/rubric/quality-contract/tests/docs；MAS study truth、AI reviewer verdict、publication gate 和 current package authority 仍归 MAS owner chain。新的 work order 必须提供 gap-to-patch traceability、测试 receipt、developer patch receipt、版本记录和 no-forbidden-write 证据。
+
 1. `generated_surface_active_caller_cutover`
    OPL generated / hosted surface 已作为目标 active caller 接收面登记，MAS hand-written shell 限定为 direct domain entry、domain handler、AI-first validator、owner receipt signer、diagnostic cleanup 或 provenance fixture。
 

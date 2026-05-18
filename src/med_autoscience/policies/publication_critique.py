@@ -76,6 +76,8 @@ DEFAULT_PUBLICATION_CRITIQUE_POLICY: dict[str, Any] = {
         "clearly separate scientific weakness from delivery-only refresh debt",
         "never release a human review package while publication gate remains blocked",
         "only claim what the current manuscript-safe evidence surface can support",
+        "for prediction-model external validation, route back when HDL/unit harmonization, model reproducibility, visible Table 1/Table 2, uncertainty intervals, calibration/risk-distribution displays, or NHANES weighting/framing are missing from durable evidence",
+        "treat accepted-analysis-record, verified-output, source-documentation-gap, and submission-readiness wording in article body as internal quality-record leakage, not medical journal prose",
     ],
     "ai_reviewer_operating_system": {
         "contract_id": "medical_publication_ai_reviewer_os_v1",

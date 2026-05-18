@@ -69,11 +69,29 @@ def test_structured_reporting_checklist_blocks_prediction_model_external_validat
         in checklist["prediction_model_reproducibility"]["missing_items"]
     )
     assert "cross_cohort_unit_conversion" in checklist["variable_harmonization"]["missing_items"]
+    assert (
+        "unit_standardized_model_application_or_sensitivity"
+        in checklist["variable_harmonization"]["missing_items"]
+    )
     assert "case_mix_and_covariate_support" in checklist["external_validation_reporting"]["missing_items"]
     assert (
         "observed_expected_ratio_confidence_interval"
         in checklist["validation_uncertainty_reporting"]["missing_items"]
     )
+    assert (
+        "calibration_curve_or_grouped_calibration_interval"
+        in checklist["validation_uncertainty_reporting"]["missing_items"]
+    )
     assert "calibration_curve_with_uncertainty" in checklist["prediction_display_reporting"]["missing_items"]
+    assert (
+        "main_text_table_rendering_in_submission_package"
+        in checklist["prediction_display_reporting"]["missing_items"]
+    )
+    assert (
+        "decision_curve_not_main_display_without_verified_net_benefit"
+        in checklist["prediction_display_reporting"]["missing_items"]
+    )
     assert "weighting_policy" in checklist["survey_design_reporting"]["missing_items"]
     assert "internal_quality_control_language_absent" in checklist["manuscript_voice_reporting"]["missing_items"]
+    assert "verified_output_language_absent" in checklist["manuscript_voice_reporting"]["missing_items"]
+    assert "author_confirmation_notes_absent_from_body" in checklist["manuscript_voice_reporting"]["missing_items"]
