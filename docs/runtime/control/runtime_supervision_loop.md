@@ -208,6 +208,10 @@ MAS 的内置 AI repair 是第一层修复机制。它使用默认执行器 poli
 - 预期输出仍回到对应 owner 的 durable surface，例如 `publication_eval/latest.json`
 - supervisor 本身不得写 `publication_eval/latest.json`、不得放宽 quality/publication gate、不得改 `paper/current_package` 或 `manuscript/current_package`
 
+Clean paper-authority cutover 的 blocked work unit 按同一条 owner chain 处理。旧 MDS / 旧 MAS 的 `publication_eval/latest.json`、prose review、controller decision、delivery manifest、current package 与 zip 只能作为 provenance；它们不能被 token normalizer、reader alias 或旧 schema 映射重新读成当前 quality / delivery truth。若新 MAS 在执行 `return_to_ai_reviewer_workflow` 或 `run_quality_repair_batch` 时发现缺 canonical paper inputs，controller action 必须 fail closed，写出 typed blocker `canonical_paper_inputs_rehydrate_required`，并把 `legacy_artifact_reader_allowed=false` 与 `mechanical_blueprint_as_canonical_allowed=false` 投影给 `write` owner。
+
+`runtime_watch` 遇到这种 controller work unit blocked 时不得把外环崩成平台异常。它必须写 `controller_work_unit_blocked` wakeup audit / work-unit ledger event，把 blocker 留给 supervisor scan、consumer 和 dispatch executor 继续路由；该 no-op 不计为 executed dispatch，不关闭 publication gate，不写 `publication_eval/latest.json`，也不生成 `submission_minimal` 或 `manuscript/current_package`。随后 `write` owner 重新物化 canonical manuscript inputs，AI reviewer 再基于当前 request/manuscript digest 产生新的 publication eval，delivery owner 只有在 AI reviewer-backed authority current 后才能重建正式包。
+
 每个 study scan 还必须生成同一个 `owner_route`，并把它复制进 action、handoff packet、consumer dispatch 与 executor prompt contract。`owner_route` 是 `scan -> consume -> execute-dispatch -> rescan` 的路由票据，字段至少包括：
 
 - `route_epoch`：来自 `StudyTruthKernel` 的 truth/authority epoch；缺失时用当前 status source 派生。

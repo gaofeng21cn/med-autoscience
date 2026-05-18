@@ -232,6 +232,37 @@ def test_repeat_suppression_does_not_override_owner_handoff_projection() -> None
     assert guard["work_unit_fingerprint"] == "truth-snapshot::owner-handoff"
 
 
+def test_repeat_suppression_does_not_override_clean_migration_ai_reviewer_handoff() -> None:
+    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+
+    guard = module.scan_repeat_suppression(
+        previous_payload={
+            "studies": [
+                {
+                    "study_id": "004-dpcc-longitudinal-care-inertia-intensification-gap",
+                    "meaningful_artifact_delta": False,
+                    "owner_route": {
+                        "work_unit_fingerprint": "truth-snapshot::clean-migration",
+                    },
+                }
+            ]
+        },
+        study_id="004-dpcc-longitudinal-care-inertia-intensification-gap",
+        owner_route={
+            "work_unit_fingerprint": "truth-snapshot::clean-migration",
+            "owner_reason": "paper_authority_clean_migration_required",
+            "failure_signature": "paper_authority_clean_migration_required",
+            "next_owner": "ai_reviewer",
+            "allowed_actions": ["return_to_ai_reviewer_workflow"],
+        },
+        current_meaningful_artifact_delta=False,
+    )
+
+    assert guard["repeat_suppressed"] is False
+    assert guard["why_not_applied"] is None
+    assert guard["work_unit_fingerprint"] == "truth-snapshot::clean-migration"
+
+
 def test_repeat_suppression_keeps_unconsumed_scan_action_visible() -> None:
     module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
     owner_route = {

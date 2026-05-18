@@ -6,6 +6,8 @@ from typing import Any
 
 REPEAT_SUPPRESSED_REASON = "repeat_suppressed"
 OWNER_HANDOFF_REASON = "controller_work_unit_owner_handoff_required"
+CLEAN_MIGRATION_OWNER_HANDOFF_REASON = "paper_authority_clean_migration_required"
+OWNER_HANDOFF_REASONS = frozenset({OWNER_HANDOFF_REASON, CLEAN_MIGRATION_OWNER_HANDOFF_REASON})
 PUBLICATION_GATE_SPECIFICITY_REASON = "publication_gate_specificity_required"
 
 
@@ -165,9 +167,11 @@ def _not_suppressed(key: str | None) -> dict[str, Any]:
 
 def _owner_handoff_route(owner_route: Mapping[str, Any]) -> bool:
     route = _mapping(owner_route)
-    if _text(route.get("owner_reason")) == OWNER_HANDOFF_REASON:
+    owner_reason = _text(route.get("owner_reason"))
+    failure_signature = _text(route.get("failure_signature"))
+    if owner_reason in OWNER_HANDOFF_REASONS:
         return True
-    return _text(route.get("failure_signature")) == OWNER_HANDOFF_REASON
+    return failure_signature in OWNER_HANDOFF_REASONS
 
 
 def _external_supervisor_repair_route(owner_route: Mapping[str, Any]) -> bool:
@@ -231,6 +235,8 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "OWNER_HANDOFF_REASON",
+    "OWNER_HANDOFF_REASONS",
+    "CLEAN_MIGRATION_OWNER_HANDOFF_REASON",
     "PUBLICATION_GATE_SPECIFICITY_REASON",
     "REPEAT_SUPPRESSED_REASON",
     "dispatch_repeat_suppression",

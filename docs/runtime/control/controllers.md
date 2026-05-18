@@ -24,6 +24,7 @@
 10. MAS sidecar family bridge export/dispatch
 11. generic sidecar provider recommendation/provision/import
 12. delivery inspection / inspection package contract
+13. clean paper-authority migration and re-materialization owner routing
 
 对应的 Python 实现在包内：
 
@@ -42,6 +43,9 @@
 - `src/med_autoscience/controllers/sidecar_provider.py`
 - `src/med_autoscience/controllers/delivery_inspector.py`
 - `src/med_autoscience/controllers/submission_inspection_export.py`
+- `src/med_autoscience/controllers/paper_authority_migration.py`
+- `src/med_autoscience/controllers/paper_authority_delivery_guard.py`
+- `src/med_autoscience/controllers/runtime_supervisor_scan_parts/action_projection.py`
 
 对应测试：
 
@@ -62,6 +66,9 @@
 - `tests/test_delivery_inspector.py`
 - `tests/test_delivery_visibility.py`
 - `tests/test_inspection_package_contract.py`
+- `tests/test_ai_reviewer_publication_eval_workflow.py`
+- `tests/runtime_supervisor_scan_cases/test_paper_authority_cutover.py`
+- `tests/test_runtime_supervisor_dispatch_executor_cases/clean_migration_rematerialization.py`
 
 当前迁移策略是：
 
@@ -116,6 +123,10 @@ Generic sidecar provider 是 bounded extension 的统一 controller surface。Pr
 `stale_study_delivery_mirror` 归属下游 package/delivery lane。若 canonical paper 与 submission authority 已 current，但缺少 current package freshness proof，controller 必须产出 `submission_delivery_terminal_blocker` 这类 controller-owned blocker，说明 delivery lane 自身不闭合的原因；它不得长期把 analysis-campaign/write stage 路由回 `gate_needs_specificity`，也不得让 Codex CLI 重放同一个不可执行的 package replay loop。
 
 AI reviewer-backed `return_to_ai_reviewer_workflow` 属于医学质量 owner redrive。即使当前交付包只剩 submission metadata external gaps，只要 `publication_eval/latest.json` 与 `controller_decisions/latest.json` 当前一致指向 `ai_reviewer_re_eval` / `domain_transition_ai_reviewer_re_eval`，managed study runtime 应优先保持或恢复到 AI reviewer workflow，由 AI reviewer 关闭写作质量判断；普通 metadata-only submission parking 仍保持停靠，live worker 也可被 pause 等待外部信息，不因该路径获得自动放行。resumable / paused 状态下应用这个例外时，必须同时存在当前 `controller_decisions/latest.json` 的 `return_to_ai_reviewer_workflow` 授权和 `domain-transition::ai_reviewer_re_eval::*` work-unit fingerprint；旧 reviewer_revision intake 或旧 AI reviewer blocked assessment 不能单独重开 writer。
+
+Clean paper-authority migration 是旧论文项目进入新 MAS 的正式切换路径。旧 active paper authority surfaces 先由 `paper_authority_migration` 归档为 provenance，并写 cutover receipt；此后新 MAS 只能从当前 canonical study / paper / evidence / review / blueprint surface 重新物化 quality authority。读旧 token、旧 `gap_type`、旧 prose review 或旧 package metadata 的 normalizer 不属于 controller 能力。旧 artifact 不合新 contract 时，controller 必须 fail closed，并把 owner route 交给 AI reviewer、publication gate、write 或 delivery owner 重新生成当前 surface。
+
+当 clean cutover 后缺 `paper/medical_manuscript_blueprint.json` 等 canonical manuscript inputs，`return_to_ai_reviewer_workflow` 或 `run_quality_repair_batch` 的执行结果必须落到 `canonical_paper_inputs_rehydrate_required`，`next_owner=write`。Supervisor scan、consumer 和 dispatch executor 负责把这个 typed blocker 交给 `write` owner，且投影中必须保持 `legacy_artifact_reader_allowed=false`、`mechanical_blueprint_as_canonical_allowed=false`、`paper_package_mutation_allowed=false`。`runtime_watch` 只能记录 `controller_work_unit_blocked` audit/ledger，不能把 blocked work unit 误报为 executed，也不能因此重建 submission/current package。
 
 ## Inspection package 契约
 

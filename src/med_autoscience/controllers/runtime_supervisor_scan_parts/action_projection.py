@@ -326,7 +326,9 @@ def _clean_paper_authority_rehydrate_action(
 ) -> dict[str, Any] | None:
     if not _clean_migration_receipt_publication_eval(publication_eval_payload):
         return None
-    execution = _latest_clean_migration_rehydrate_execution(study_root)
+    execution = _latest_clean_migration_rehydrate_execution(study_root) or _latest_clean_migration_quality_repair_blocker(
+        study_root
+    )
     if execution is None:
         return None
     if _scientific_anchor_missing(status=status, progress=progress, study_root=study_root):
@@ -409,6 +411,33 @@ def _latest_clean_migration_rehydrate_execution(study_root: Path) -> dict[str, A
         if _clean_migration_rehydrate_execution_blocker(execution):
             return execution
     return None
+
+
+def _latest_clean_migration_quality_repair_blocker(study_root: Path) -> dict[str, Any] | None:
+    payload = _read_json_object(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json")
+    if not payload:
+        return None
+    if _text(payload.get("status")) != "blocked_no_paper_root":
+        return None
+    if _text(payload.get("blocked_reason")) != "canonical_paper_inputs_rehydrate_required":
+        return None
+    if _text(payload.get("next_owner")) != "write":
+        return None
+    prepare = _mapping(payload.get("paper_owner_surface_prepare"))
+    if prepare and _text(prepare.get("status")) not in {
+        "blocked_missing_authorized_canonical_inputs",
+        "blocked_missing_projection",
+    }:
+        return None
+    return {
+        "action_type": "run_quality_repair_batch",
+        "execution_status": "blocked",
+        "blocked_reason": "canonical_paper_inputs_rehydrate_required",
+        "next_owner": "write",
+        "owner_callable_surface": "medical_manuscript_blueprint.materialize_medical_manuscript_blueprint",
+        "required_input_surface": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+        "source_ref": str(study_root / "artifacts" / "controller" / "quality_repair_batch" / "latest.json"),
+    }
 
 
 def _scientific_anchor_missing(

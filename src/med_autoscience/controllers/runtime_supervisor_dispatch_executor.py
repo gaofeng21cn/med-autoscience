@@ -380,7 +380,7 @@ def _terminal_stall_owner_handoff_allowed(
     if output_readiness.ai_reviewer_output_pending(current_study):
         return True
     owner_route = _dispatch_owner_route(dispatch)
-    if _text(owner_route.get("failure_signature")) != "controller_work_unit_owner_handoff_required":
+    if _text(owner_route.get("failure_signature")) not in repeat_suppression.OWNER_HANDOFF_REASONS:
         return False
     next_owner = _text(owner_route.get("next_owner"))
     next_executable_owner = _text(dispatch.get("next_executable_owner")) or _text(
