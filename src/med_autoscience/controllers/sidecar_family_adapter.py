@@ -10,6 +10,7 @@ from med_autoscience.ars_learning_projection import build_ars_learning_projectio
 
 from . import opl_provider_ready_adapter
 from . import paper_repair_executor
+from . import publication_aftercare
 from . import real_paper_autonomy_soak_inventory
 from . import reviewer_refinement_loop
 from . import runtime_supervisor_dispatch_executor
@@ -64,6 +65,8 @@ _ALLOWED_TASK_KINDS = {
     "paper_autonomy/repair-recheck": "paper_repair_executor_dispatch",
     "paper_autonomy/ai-reviewer-recheck": "ai_reviewer_recheck_execute_dispatch",
     "paper_autonomy/guarded-apply": "paper_autonomy_guarded_apply",
+    publication_aftercare.ANALYSIS_QUEUE_TASK_KIND: "runtime_supervisor_reconcile_apply",
+    publication_aftercare.REVIEWER_REFRESH_TASK_KIND: "ai_reviewer_recheck_execute_dispatch",
     "paper_autonomy/gate-replay": "runtime_supervisor_reconcile_apply",
     "paper_autonomy/route-decision": "runtime_supervisor_reconcile_apply",
     "safe_reconcile/dry-run": "safe_reconcile_dry_run",
@@ -140,6 +143,9 @@ def _study_projection(*, study_root: Path, profile: WorkspaceProfile) -> dict[st
         if field_name not in payload:
             payload[field_name] = _read_json_object(study_root / relative_path)
     payload["paper_autonomy_loop"] = _paper_autonomy_loop_projection(study_root=study_root)
+    payload["publication_aftercare"] = publication_aftercare.build_publication_aftercare_plan(
+        study_root=study_root,
+    )
     payload["memory_paper_soak_proof"] = _memory_paper_soak_proof_projection(
         study_root=study_root,
         profile=profile,
@@ -497,6 +503,14 @@ def _pending_family_tasks(
                 profile=profile,
                 profile_ref=profile_ref,
                 study_id=study_id,
+            )
+        )
+        tasks.extend(
+            publication_aftercare.build_publication_aftercare_pending_tasks(
+                profile_name=profile.name,
+                profile_ref=profile_ref,
+                study_id=study_id,
+                projection=_mapping(study.get("publication_aftercare")),
             )
         )
         continuation = _mapping(study.get("autonomy_continuation"))

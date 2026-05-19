@@ -168,6 +168,40 @@ def _action_specs(profile_ref: str | Path | None) -> tuple[dict[str, Any], ...]:
             },
         },
         {
+            "action_id": "publication_aftercare_plan",
+            "title": "Plan publication aftercare progression",
+            "summary": (
+                "Read a refs-only publication aftercare control surface for resubmission, talk package, "
+                "Overleaf sync, ARIS research-pipeline / auto-review-loop / experiment queue absorption, "
+                "and reviewer refresh. It can only emit MAS owner-route task refs or typed blockers; it "
+                "does not write publication_eval, controller_decisions, current_package, paper package, "
+                "or submission authority."
+            ),
+            "effect": "read_only",
+            "command": "{prefix} publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+            "surface_kind": "mas_publication_aftercare_plan",
+            "workspace_locator_fields": ["study_root", "quest_root"],
+            "mcp_public_runtime": False,
+            "authority_boundary": {
+                "domain_truth_owner": MAS_TRUTH_OWNER,
+                "helper_owner": "MedAutoScience",
+                "helper_write_policy": "no_domain_truth_writes",
+                "surface_authority": "refs_only_runtime_progression_control",
+                "can_write_publication_eval": False,
+                "can_write_controller_decisions": False,
+                "can_write_current_package": False,
+                "can_authorize_publication_quality": False,
+                "can_authorize_submission_readiness": False,
+                "can_dispatch_runtime_owner_task": True,
+                "authoritative_truth_refs": [
+                    "/study_runtime_status",
+                    "/runtime_watch",
+                    "/publication_eval/latest.json",
+                    "/controller_decisions/latest.json",
+                ],
+            },
+        },
+        {
             "action_id": "mainline_status",
             "title": "Inspect MAS mainline status",
             "summary": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",

@@ -833,6 +833,40 @@ def test_resolve_journal_shortlist_command_dispatches_controller(monkeypatch, tm
     assert exit_code == 0
     assert called["study_root"] == tmp_path / "study"
     assert '"status": "resolved"' in captured.out
+
+
+def test_publication_aftercare_plan_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    called: dict[str, object] = {}
+
+    def fake_aftercare(*, study_root: Path, quest_root: Path | None = None) -> dict[str, object]:
+        called["study_root"] = study_root
+        called["quest_root"] = quest_root
+        return {
+            "surface_kind": "mas_publication_aftercare_plan",
+            "analysis_queue_entry": {"status": "ready"},
+        }
+
+    monkeypatch.setattr(cli.publication_aftercare, "build_publication_aftercare_plan", fake_aftercare)
+
+    exit_code = cli.main(
+        [
+            "publication",
+            "aftercare-plan",
+            "--study-root",
+            str(tmp_path / "study"),
+            "--quest-root",
+            str(tmp_path / "quest"),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert called["study_root"] == tmp_path / "study"
+    assert called["quest_root"] == tmp_path / "quest"
+    assert '"surface_kind": "mas_publication_aftercare_plan"' in captured.out
+
+
 def test_resolve_journal_requirements_command_dispatches_controller(monkeypatch, tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     called: dict[str, object] = {}

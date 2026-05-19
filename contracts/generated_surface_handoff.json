@@ -1,7 +1,29 @@
 {
+  "agent_pack_ref_source": "contracts/pack_compiler_input.json#/required_domain_pack_paths",
+  "consumes_agent_pack_refs": true,
   "domain_id": "med-autoscience",
   "domain_repo_can_own_generated_surface": false,
   "generated_surface_owner": "one-person-lab",
+  "generated_surface_policy": {
+    "may_compile": [
+      "cli_descriptors",
+      "mcp_tool_descriptors",
+      "skill_descriptors",
+      "product_entry_descriptors",
+      "status_and_workbench_projection_descriptors"
+    ],
+    "must_dispatch_to": "MAS domain handler targets and minimal authority functions",
+    "must_not_write": [
+      "MAS study truth",
+      "publication-route memory body",
+      "AI reviewer verdict",
+      "publication verdict",
+      "artifact authority",
+      "source body",
+      "current_package"
+    ],
+    "must_read_semantics_from": "agent/"
+  },
   "generated_surfaces": [
     {
       "domain_repo_can_own_generated_surface": false,

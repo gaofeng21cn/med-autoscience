@@ -367,6 +367,71 @@
       ]
     },
     {
+      "action_id": "publication_aftercare_plan",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "/study_runtime_status",
+          "/runtime_watch",
+          "/publication_eval/latest.json",
+          "/controller_decisions/latest.json"
+        ],
+        "can_authorize_publication_quality": false,
+        "can_authorize_submission_readiness": false,
+        "can_dispatch_runtime_owner_task": true,
+        "can_write_controller_decisions": false,
+        "can_write_current_package": false,
+        "can_write_publication_eval": false,
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "no_domain_truth_writes",
+        "surface_authority": "refs_only_runtime_progression_control"
+      },
+      "effect": "read_only",
+      "human_gate_ids": [],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+        "surface_kind": "mas_publication_aftercare_plan"
+      },
+      "summary": "Read a refs-only publication aftercare control surface for resubmission, talk package, Overleaf sync, ARIS research-pipeline / auto-review-loop / experiment queue absorption, and reviewer refresh. It can only emit MAS owner-route task refs or typed blockers; it does not write publication_eval, controller_decisions, current_package, paper package, or submission authority.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "publication_aftercare_plan"
+        },
+        "cli": {
+          "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+          "surface_kind": "mas_publication_aftercare_plan"
+        },
+        "mcp": {
+          "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "mas_publication_aftercare_plan",
+          "tool_name": "publication_aftercare_plan"
+        },
+        "openai": {
+          "tool_name": "publication_aftercare_plan"
+        },
+        "product_entry": {
+          "action_key": "publication_aftercare_plan",
+          "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+          "surface_kind": "mas_publication_aftercare_plan"
+        },
+        "skill": {
+          "command": "uv run python -m med_autoscience.cli publication aftercare-plan --study-root <study_root> --quest-root <quest_root>",
+          "command_contract_id": "publication_aftercare_plan",
+          "surface_kind": "mas_publication_aftercare_plan"
+        }
+      },
+      "title": "Plan publication aftercare progression",
+      "workspace_locator_fields": [
+        "study_root",
+        "quest_root"
+      ]
+    },
+    {
       "action_id": "mainline_status",
       "authority_boundary": {
         "authoritative_truth_refs": [

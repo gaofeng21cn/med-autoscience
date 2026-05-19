@@ -564,6 +564,8 @@ def build_product_entry_manifest(
             "autonomy/continue",
             "paper_autonomy/repair-recheck",
             "paper_autonomy/ai-reviewer-recheck",
+            "publication_aftercare/analysis-queue-progress",
+            "publication_aftercare/reviewer-refresh",
             "paper_autonomy/gate-replay",
             "paper_autonomy/route-decision",
             "safe_reconcile/dry-run",

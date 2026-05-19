@@ -26,6 +26,7 @@
 12. delivery inspection / inspection package contract
 13. clean paper-authority migration and re-materialization owner routing
 14. Agent Lab medical manuscript quality refs-only suite projection
+15. publication aftercare / ARIS analysis queue / AI reviewer refresh refs-only progression control
 
 对应的 Python 实现在包内：
 
@@ -48,6 +49,7 @@
 - `src/med_autoscience/controllers/paper_authority_delivery_guard.py`
 - `src/med_autoscience/controllers/runtime_supervisor_scan_parts/action_projection.py`
 - `src/med_autoscience/controllers/agent_lab_medical_manuscript_quality.py`
+- `src/med_autoscience/controllers/publication_aftercare.py`
 
 对应测试：
 
@@ -73,6 +75,7 @@
 - `tests/test_runtime_supervisor_dispatch_executor_cases/clean_migration_rematerialization.py`
 - `tests/test_paper_authority_migration.py`
 - `tests/test_agent_lab_medical_manuscript_quality.py`
+- `tests/test_publication_aftercare.py`
 
 当前迁移策略是：
 
@@ -145,6 +148,8 @@ Clean paper-authority migration 的 discovery 只认 canonical study root。`stu
 当 clean cutover 后缺 `paper/medical_manuscript_blueprint.json` 等 canonical manuscript inputs，`return_to_ai_reviewer_workflow` 或 `run_quality_repair_batch` 的执行结果必须落到 `canonical_paper_inputs_rehydrate_required`，`next_owner=write`。Supervisor scan、consumer 和 dispatch executor 负责把这个 typed blocker 交给 `write` owner，且投影中必须保持 `legacy_artifact_reader_allowed=false`、`mechanical_blueprint_as_canonical_allowed=false`、`paper_package_mutation_allowed=false`。`runtime_watch` 只能记录 `controller_work_unit_blocked` audit/ledger，不能把 blocked work unit 误报为 executed，也不能因此重建 submission/current package。
 
 Agent Lab medical manuscript quality suite 是 MAS 到 OPL Agent Lab 的 refs-only 投影。它把 AI reviewer-backed `medical_journal_prose_quality`、current reviewer feedback refs 和稿件质量 gap refs 暴露为 self-evolution task / scorecard / improvement candidate / promotion gate refs，并把 hard methodology/unit-harmonization route 作为可回归的 mechanism edit refs 暴露给 `opl-meta-agent`。OPL 可以用这些 refs 改进 stage attempt 和 agent 行为，但不能写 MAS study truth、publication quality verdict、artifact authority 或 submission readiness；最终质量关闭仍必须回到 MAS AI reviewer 与 publication owner。
+
+`publication-aftercare-plan` 是 publication aftercare 的 refs-only controller surface。它把 resubmission、talk package、Overleaf sync、ARIS research-pipeline / auto-review-loop / experiment queue、analysis queue 与 reviewer refresh 统一投影为可审计 refs、blocker 和 MAS owner-route task template。该 surface 不写 `publication_eval/latest.json`、`controller_decisions/latest.json`、canonical paper、`paper/submission_minimal/`、`manuscript/current_package/` 或投稿包；sidecar export 只能把 ready 的 aftercare 项投影为 `publication_aftercare/analysis-queue-progress` 或 `publication_aftercare/reviewer-refresh` typed task。sidecar dispatch 收到这些 task 后必须回到 MAS runtime owner chain：analysis queue 走 runtime supervisor reconcile，reviewer refresh 走独立 AI reviewer workflow dispatch，质量 verdict、publishability 和 submission readiness 仍由 AI reviewer-backed publication eval 与 publication gate 决定。
 
 ## Inspection package 契约
 

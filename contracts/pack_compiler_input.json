@@ -15,10 +15,12 @@
     "refs_only_adapter"
   ],
   "authority_boundary": {
+    "agent_pack_owner": "MedAutoScience",
     "domain_can_claim_generated_surface_owner": false,
     "opl_can_authorize_quality_or_export": false,
     "opl_can_write_domain_truth": false,
-    "opl_can_write_memory_body": false
+    "opl_can_write_memory_body": false,
+    "src_role": "domain_handler_minimal_authority_native_helper"
   },
   "backward_readable_minimal_authority_ids": [
     "publication_quality_verdict_authorizer",
@@ -34,7 +36,14 @@
     "publication_route_memory_accept_reject_stage_gate_boundary",
     "source_readiness_stage_gate_boundary"
   ],
+  "canonical_repo_source_semantic_pack_role": "declarative_medical_research_semantics_for_opl_pack_compiler",
+  "canonical_repo_source_semantic_pack_root": "agent/",
   "declarative_domain_pack": [
+    "agent_canonical_semantic_pack",
+    "stage_prompts",
+    "stage_policies",
+    "domain_skill_policies",
+    "knowledge_refs",
     "stage_descriptors",
     "action_catalog",
     "domain_transition_table",
@@ -95,15 +104,62 @@
   ],
   "minimal_authority_semantic_model": "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts",
   "program_output_policy": "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only",
+  "required_domain_pack_paths": [
+    "agent/stages/stage_route_contract.yaml",
+    "agent/prompts/direction_and_route_selection.md",
+    "agent/prompts/baseline_and_evidence_setup.md",
+    "agent/prompts/bounded_analysis_campaign.md",
+    "agent/prompts/manuscript_authoring.md",
+    "agent/prompts/review_and_quality_gate.md",
+    "agent/prompts/finalize_and_publication_handoff.md",
+    "agent/stages/direction_and_route_selection.policy.md",
+    "agent/stages/baseline_and_evidence_setup.policy.md",
+    "agent/stages/bounded_analysis_campaign.policy.md",
+    "agent/stages/manuscript_authoring.policy.md",
+    "agent/stages/review_and_quality_gate.policy.md",
+    "agent/stages/finalize_and_publication_handoff.policy.md",
+    "agent/skills/medical_research_execution.md",
+    "agent/skills/owner_receipt_and_route_control.md",
+    "agent/quality_gates/ai_reviewer_auditor_gate.md",
+    "agent/quality_gates/artifact_source_authority_gate.md",
+    "agent/knowledge/medical_research_truth.md",
+    "agent/knowledge/publication_route_memory.md",
+    "agent/knowledge/source_readiness_and_artifact_authority.md"
+  ],
   "requires_ai_first_record": true,
   "runtime_enforcement_status": "contract_validator_landed",
   "schema_version": 1,
   "source_refs": {
     "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
+    "canonical_agent_pack_root": "agent/",
     "functional_audit": "src/med_autoscience/controllers/supervision_scheduler_parts/consumer_migration.py::build_functional_consumer_boundary",
     "memory_descriptor": "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/family_adoption.py::build_domain_memory_descriptor",
+    "required_domain_pack_paths": [
+      "agent/stages/stage_route_contract.yaml",
+      "agent/prompts/direction_and_route_selection.md",
+      "agent/prompts/baseline_and_evidence_setup.md",
+      "agent/prompts/bounded_analysis_campaign.md",
+      "agent/prompts/manuscript_authoring.md",
+      "agent/prompts/review_and_quality_gate.md",
+      "agent/prompts/finalize_and_publication_handoff.md",
+      "agent/stages/direction_and_route_selection.policy.md",
+      "agent/stages/baseline_and_evidence_setup.policy.md",
+      "agent/stages/bounded_analysis_campaign.policy.md",
+      "agent/stages/manuscript_authoring.policy.md",
+      "agent/stages/review_and_quality_gate.policy.md",
+      "agent/stages/finalize_and_publication_handoff.policy.md",
+      "agent/skills/medical_research_execution.md",
+      "agent/skills/owner_receipt_and_route_control.md",
+      "agent/quality_gates/ai_reviewer_auditor_gate.md",
+      "agent/quality_gates/artifact_source_authority_gate.md",
+      "agent/knowledge/medical_research_truth.md",
+      "agent/knowledge/publication_route_memory.md",
+      "agent/knowledge/source_readiness_and_artifact_authority.md"
+    ],
     "stage_control_plane": "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/family_adoption.py::build_family_stage_control_plane"
   },
+  "src_must_not_be_canonical_semantic_pack": true,
+  "src_role": "domain_handler_minimal_authority_functions_and_native_helpers_only",
   "stage_quality_gate_boundaries": [
     {
       "boundary_id": "publication_quality_stage_gate_boundary",

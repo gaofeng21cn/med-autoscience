@@ -204,6 +204,98 @@ def test_sidecar_dispatch_routes_paper_ai_reviewer_recheck_to_supervisor_executo
     ]
 
 
+def test_sidecar_dispatch_publication_aftercare_tasks_use_runtime_owner_chain(
+    monkeypatch,
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    adapter = importlib.import_module("med_autoscience.controllers.sidecar_family_adapter")
+    profile_path = tmp_path / "profile.local.toml"
+    workspace_root = tmp_path / "workspace"
+    write_profile(profile_path, workspace_root=workspace_root)
+    reconcile_calls: list[dict[str, object]] = []
+    reviewer_calls: list[dict[str, object]] = []
+
+    def fake_supervisor_reconcile(*, profile, study_ids, mode: str, apply: bool) -> dict[str, object]:
+        reconcile_calls.append({"profile": profile.name, "study_ids": tuple(study_ids), "mode": mode, "apply": apply})
+        return {"surface": "runtime_supervisor_reconcile_receipt", "will_start_llm": True}
+
+    def fake_execute_default_executor_dispatches(
+        *,
+        profile,
+        study_ids,
+        action_types,
+        mode: str,
+        apply: bool,
+        managed_runtime_worker: bool = False,
+    ) -> dict[str, object]:
+        reviewer_calls.append(
+            {
+                "profile": profile.name,
+                "study_ids": tuple(study_ids),
+                "action_types": tuple(action_types),
+                "mode": mode,
+                "apply": apply,
+            }
+        )
+        return {"surface": "runtime_supervisor_default_executor_execution", "executed_count": 1}
+
+    monkeypatch.setattr(adapter.runtime_supervisor_reconcile, "supervisor_reconcile", fake_supervisor_reconcile)
+    monkeypatch.setattr(
+        adapter.runtime_supervisor_dispatch_executor,
+        "execute_default_executor_dispatches",
+        fake_execute_default_executor_dispatches,
+    )
+    analysis_task_path = tmp_path / "analysis-task.json"
+    reviewer_task_path = tmp_path / "reviewer-task.json"
+    _write_json(
+        analysis_task_path,
+        {
+            "task_id": "aftercare-analysis",
+            "domain_id": "medautoscience",
+            "task_kind": "publication_aftercare/analysis-queue-progress",
+            "source_fingerprint": "analysis-fp",
+            "payload": {"profile": str(profile_path), "study_id": "DM002"},
+        },
+    )
+    _write_json(
+        reviewer_task_path,
+        {
+            "task_id": "aftercare-reviewer",
+            "domain_id": "medautoscience",
+            "task_kind": "publication_aftercare/reviewer-refresh",
+            "source_fingerprint": "reviewer-fp",
+            "payload": {"profile": str(profile_path), "study_id": "DM002"},
+        },
+    )
+
+    analysis_exit = cli.main(["sidecar", "dispatch", "--task", str(analysis_task_path), "--format", "json"])
+    analysis_payload = json.loads(capsys.readouterr().out)
+    reviewer_exit = cli.main(["sidecar", "dispatch", "--task", str(reviewer_task_path), "--format", "json"])
+    reviewer_payload = json.loads(capsys.readouterr().out)
+
+    assert analysis_exit == 0
+    assert reviewer_exit == 0
+    assert analysis_payload["dispatch"]["action_type"] == "runtime_supervisor_reconcile_apply"
+    assert analysis_payload["dispatch"]["execution_policy"] == "mas_owner_reconcile_apply"
+    assert reviewer_payload["dispatch"]["action_type"] == "ai_reviewer_recheck_execute_dispatch"
+    assert reviewer_payload["dispatch"]["execution_policy"] == "mas_owner_ai_reviewer_execute_dispatch"
+    assert reconcile_calls == [{"profile": "nfpitnet", "study_ids": ("DM002",), "mode": "developer_apply_safe", "apply": True}]
+    assert reviewer_calls == [
+        {
+            "profile": "nfpitnet",
+            "study_ids": ("DM002",),
+            "action_types": ("return_to_ai_reviewer_workflow",),
+            "mode": "developer_apply_safe",
+            "apply": True,
+        }
+    ]
+    assert analysis_payload["authority_boundary"]["writes_domain_truth"] is False
+    assert reviewer_payload["authority_boundary"]["writes_artifact_gate"] is False
+    assert analysis_payload["forbidden_write_guard_proof"]["can_authorize_publication_quality"] is False
+
+
 def test_sidecar_export_does_not_auto_ticket_stop_loss_or_human_gate(tmp_path: Path, capsys) -> None:
     cli = importlib.import_module("med_autoscience.cli")
     workspace_root = tmp_path / "workspace"

@@ -568,3 +568,66 @@ def test_sidecar_export_projects_ai_reviewer_repair_recheck_tasks(tmp_path: Path
         "quality_override",
         "submission_authorization",
     ]
+
+
+def test_sidecar_export_projects_publication_aftercare_analysis_and_reviewer_tasks(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    cli = importlib.import_module("med_autoscience.cli")
+    workspace_root = tmp_path / "workspace"
+    profile_path = tmp_path / "profile.local.toml"
+    study_root = workspace_root / "studies" / "DM002"
+    aris_root = study_root / "artifacts" / "algorithm_research" / "aris"
+    write_profile(profile_path, workspace_root=workspace_root)
+    for name in (
+        "input_contract.json",
+        "algorithm_scout_report.md",
+        "innovation_hypotheses.md",
+        "final_method_proposal.md",
+        "experiment_plan.md",
+        "experiment_results_summary.md",
+        "review_loop_summary.md",
+        "prior_limitations.md",
+        "why_our_method_can_work.md",
+        "claim_to_evidence_map.md",
+        "sidecar_manifest.json",
+    ):
+        if name.endswith(".json"):
+            _write_json(aris_root / name, {"provider": "aris", "status": "result_ready"})
+        else:
+            (aris_root / name).parent.mkdir(parents=True, exist_ok=True)
+            (aris_root / name).write_text("# ref-only\n", encoding="utf-8")
+    _write_json(
+        study_root / "artifacts" / "analysis_queue" / "latest.json",
+        {
+            "queue_ref": "analysis-queue:dm002/reviewer-repair",
+            "items": [{"item_ref": "analysis-item:rerun", "source_refs": ["review-ref:ledger"]}],
+            "experiment_refs": ["experiment-ref:rerun"],
+            "reviewer_refs": ["review-ref:ledger"],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "publication_eval" / "latest.json",
+        {"assessment_provenance": {"owner": "ai_reviewer"}, "review_refs": ["review-ref:eval"]},
+    )
+    _write_json(study_root / "paper" / "review" / "review_ledger.json", {"review_refs": ["review-ref:ledger"]})
+    _write_json(study_root / "paper" / "claim_evidence_map.json", {"claim_refs": ["claim-ref:main"]})
+
+    exit_code = cli.main(["sidecar", "export", "--profile", str(profile_path), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    study = payload["studies"][0]
+    assert study["publication_aftercare"]["analysis_queue_entry"]["status"] == "ready"
+    task_kinds = [task["task_kind"] for task in payload["pending_family_tasks"]]
+    assert "publication_aftercare/analysis-queue-progress" in task_kinds
+    assert "publication_aftercare/reviewer-refresh" in task_kinds
+    aftercare_tasks = [
+        task
+        for task in payload["pending_family_tasks"]
+        if task["task_kind"].startswith("publication_aftercare/")
+    ]
+    assert all(task["source"] == "mas-publication-aftercare" for task in aftercare_tasks)
+    assert all(task["payload"]["authority_boundary"] == "mas_owner_runtime_progression_only" for task in aftercare_tasks)
+    assert all(ref["body_included"] is False for task in aftercare_tasks for ref in task["source_refs"])

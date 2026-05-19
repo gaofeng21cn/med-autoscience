@@ -122,6 +122,31 @@ def test_mas_action_catalog_projects_sidecar_bridge_without_new_mcp_tool(tmp_pat
     assert {"sidecar_export", "sidecar_dispatch"}.isdisjoint(mcp_tool_names)
 
 
+def test_mas_action_catalog_exposes_publication_aftercare_plan_as_refs_only_surface(tmp_path: Path) -> None:
+    action_catalog = importlib.import_module("med_autoscience.action_catalog")
+    product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
+
+    profile = make_profile(tmp_path)
+    profile_ref = tmp_path / "profile.local.toml"
+    catalog = action_catalog.build_mas_action_catalog(profile_ref=profile_ref)
+    manifest = product_entry.build_product_entry_manifest(profile=profile, profile_ref=profile_ref)
+    actions = {item["action_id"]: item for item in catalog["actions"]}
+    cli_projection = {item["action_id"]: item for item in action_catalog.project_mas_action_catalog("cli", catalog)}
+
+    aftercare = actions["publication_aftercare_plan"]
+    aftercare_cli = cli_projection["publication_aftercare_plan"]
+    assert aftercare["effect"] == "read_only"
+    assert aftercare_cli["surface_kind"] == "mas_publication_aftercare_plan"
+    assert aftercare["authority_boundary"]["can_write_publication_eval"] is False
+    assert aftercare["authority_boundary"]["can_write_controller_decisions"] is False
+    assert aftercare["authority_boundary"]["can_write_current_package"] is False
+    assert aftercare["authority_boundary"]["can_dispatch_runtime_owner_task"] is True
+    assert "publication_eval" in aftercare["summary"]
+    assert "current_package" in aftercare["summary"]
+    assert manifest["family_action_catalog"]["actions"] == catalog["actions"]
+    assert manifest["product_entry_shell"]["publication_aftercare_plan"]["command"] == aftercare_cli["command"]
+
+
 def test_product_entry_manifest_exposes_foundry_agent_product_positioning(tmp_path: Path) -> None:
     product_entry = importlib.import_module("med_autoscience.controllers.product_entry")
 

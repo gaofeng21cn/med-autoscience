@@ -304,9 +304,25 @@ def test_product_entry_manifest_exposes_mas_family_stage_control_plane_descripto
         assert stage["freshness"]["stale_if_source_refs_missing"] is True
         assert any(ref["role"] == "deep_descriptor" for ref in stage["source_refs"])
         assert any(ref["role"] == "stage_deliverable_index" for ref in stage["source_refs"])
-        assert {"ref_kind": "repo_path", "ref": "agent/stages/stage_route_contract.yaml", "role": "route_contract"} in stage[
-            "prompt_refs"
-        ]
+        assert len(stage["prompt_refs"]) == 1
+        prompt_ref = stage["prompt_refs"][0]
+        assert prompt_ref["ref_kind"] == "repo_path"
+        assert prompt_ref["role"] == "stage_prompt"
+        assert prompt_ref["ref"] == f"agent/prompts/{stage['stage_id']}.md"
+        assert prompt_ref["ref"].startswith("agent/prompts/")
+        assert {
+            "ref_kind": "repo_path",
+            "ref": "agent/stages/stage_route_contract.yaml",
+            "role": "route_contract",
+        } in stage["policy_refs"]
+        assert {
+            "ref_kind": "repo_path",
+            "ref": f"agent/stages/{stage['stage_id']}.policy.md",
+            "role": "stage_domain_policy",
+        } in stage["policy_refs"]
+        assert any(ref["role"] == "domain_pack_knowledge" for ref in stage["knowledge_refs"])
+        assert any(ref["role"] == "domain_pack_skill_policy" for ref in stage["skills"])
+        assert any(ref["role"] == "agent_quality_gate" for ref in stage["evaluation"])
         assert any(ref["role"] == "owner_receipt_gate" for ref in stage["evaluation"])
         assert stage["stage_contract"]["requires"]
         assert stage["stage_contract"]["ensures"]

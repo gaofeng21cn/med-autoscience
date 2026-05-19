@@ -9,6 +9,9 @@ import pytest
 
 from med_autoscience.action_catalog import build_mas_action_catalog
 from med_autoscience.opl_standard_pack import build_standard_pack
+from med_autoscience.runtime_protocol.runtime_lifecycle_store_parts.agent_pack_refs import (
+    AGENT_PROMPT_REFS,
+)
 from med_autoscience.runtime_protocol.runtime_lifecycle_store_parts.family_adoption import (
     build_family_stage_control_plane,
 )
@@ -21,6 +24,16 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 def _read_contract(name: str) -> dict[str, object]:
     return json.loads((REPO_ROOT / "contracts" / f"{name}.json").read_text(encoding="utf-8"))
+
+
+def _assert_pack_path_is_real(path: str) -> None:
+    resolved = REPO_ROOT / path
+    assert resolved.exists(), path
+    assert resolved.is_file(), path
+    text = resolved.read_text(encoding="utf-8").strip()
+    assert text, path
+    forbidden = {"TODO", "TBD"}
+    assert not any(token in text for token in forbidden), path
 
 
 def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None:
@@ -36,6 +49,17 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert generated["action_catalog"]["actions"] == action_catalog["actions"]
     assert generated["stage_control_plane"]["stages"] == stage_plane["stages"]
     assert generated["pack_compiler_input"]["generated_surface_owner"] == "one-person-lab"
+    assert generated["pack_compiler_input"]["canonical_repo_source_semantic_pack_root"] == "agent/"
+    assert generated["pack_compiler_input"]["src_role"] == (
+        "domain_handler_minimal_authority_functions_and_native_helpers_only"
+    )
+    assert generated["pack_compiler_input"]["src_must_not_be_canonical_semantic_pack"] is True
+    required_paths = generated["pack_compiler_input"]["required_domain_pack_paths"]
+    assert "agent/stages/stage_route_contract.yaml" in required_paths
+    assert set(AGENT_PROMPT_REFS.values()) <= set(required_paths)
+    assert all(str(path).startswith("agent/") for path in required_paths)
+    for path in required_paths:
+        _assert_pack_path_is_real(str(path))
     assert generated["pack_compiler_input"]["minimal_authority_semantic_model"] == (
         "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts"
     )
@@ -133,6 +157,15 @@ def test_opl_standard_pack_root_contracts_match_mas_canonical_metadata() -> None
     assert policy["requires_ai_first_record"] is True
     assert policy["independent_executor_reviewer_agent_policy"] == independent_policy
     assert generated["generated_surface_handoff"]["domain_repo_can_own_generated_surface"] is False
+    assert generated["generated_surface_handoff"]["consumes_agent_pack_refs"] is True
+    assert generated["generated_surface_handoff"]["agent_pack_ref_source"] == (
+        "contracts/pack_compiler_input.json#/required_domain_pack_paths"
+    )
+    handoff_policy = generated["generated_surface_handoff"]["generated_surface_policy"]
+    assert handoff_policy["must_read_semantics_from"] == "agent/"
+    assert "MAS study truth" in handoff_policy["must_not_write"]
+    assert "publication verdict" in handoff_policy["must_not_write"]
+    assert "current_package" in handoff_policy["must_not_write"]
     assert "skill" in generated["pack_compiler_input"]["generated_surfaces_requested"]
     assert generated["action_catalog"]["catalog_role"] == (
         "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors"
@@ -143,6 +176,22 @@ def test_opl_standard_pack_runtime_guard_stages_declare_runtime_event_refs() -> 
     generated = build_standard_pack()
 
     for stage in generated["stage_control_plane"]["stages"]:
+        prompt_refs = stage["prompt_refs"]
+        assert len(prompt_refs) == 1
+        prompt_ref = prompt_refs[0]
+        assert prompt_ref["role"] == "stage_prompt"
+        assert prompt_ref["ref_kind"] == "repo_path"
+        assert prompt_ref["ref"] == AGENT_PROMPT_REFS[stage["stage_id"]]
+        assert str(prompt_ref["ref"]).startswith("agent/prompts/")
+        _assert_pack_path_is_real(str(prompt_ref["ref"]))
+        assert any(ref["role"] == "stage_domain_policy" for ref in stage["policy_refs"])
+        assert all(
+            str(ref["ref"]).startswith("agent/") or ref["role"] in {"route_contract", "stage_led_policy"}
+            for ref in stage["policy_refs"]
+        )
+        assert any(ref["role"] == "domain_pack_skill_policy" for ref in stage["skills"])
+        assert any(ref["role"] == "domain_pack_knowledge" for ref in stage["knowledge_refs"])
+        assert any(ref["role"] == "agent_quality_gate" for ref in stage["evaluation"])
         if not stage["trust_boundary"]["runtime_guard_required"]:
             continue
         refs = stage["trust_boundary"].get("runtime_event_refs")

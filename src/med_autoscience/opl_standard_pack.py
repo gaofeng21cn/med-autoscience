@@ -9,6 +9,14 @@ from med_autoscience.action_catalog import TARGET_DOMAIN_ID, build_mas_action_ca
 from med_autoscience.controllers.supervision_scheduler_parts.consumer_migration import (
     build_functional_consumer_boundary,
 )
+from med_autoscience.runtime_protocol.runtime_lifecycle_store_parts.agent_pack_refs import (
+    AGENT_KNOWLEDGE_REFS,
+    AGENT_PROMPT_REFS,
+    AGENT_QUALITY_GATE_REFS,
+    AGENT_SKILL_REFS,
+    AGENT_STAGE_POLICY_REFS,
+    REQUIRED_DOMAIN_PACK_PATHS,
+)
 from med_autoscience.runtime_protocol.runtime_lifecycle_store_parts.family_adoption import (
     build_domain_memory_descriptor,
     build_family_stage_control_plane,
@@ -55,6 +63,11 @@ GENERATED_SURFACES = [
 ]
 
 DECLARATIVE_DOMAIN_PACK = [
+    "agent_canonical_semantic_pack",
+    "stage_prompts",
+    "stage_policies",
+    "domain_skill_policies",
+    "knowledge_refs",
     "stage_descriptors",
     "action_catalog",
     "domain_transition_table",
@@ -287,6 +300,13 @@ def _pack_compiler_input() -> dict[str, Any]:
         "schema_version": 1,
         "domain_id": TARGET_DOMAIN_ID,
         "domain_pack_owner": TARGET_DOMAIN_ID,
+        "canonical_repo_source_semantic_pack_root": "agent/",
+        "canonical_repo_source_semantic_pack_role": (
+            "declarative_medical_research_semantics_for_opl_pack_compiler"
+        ),
+        "src_role": "domain_handler_minimal_authority_functions_and_native_helpers_only",
+        "src_must_not_be_canonical_semantic_pack": True,
+        "required_domain_pack_paths": REQUIRED_DOMAIN_PACK_PATHS,
         "generated_surface_owner": GENERATED_SURFACE_OWNER,
         "declarative_domain_pack": DECLARATIVE_DOMAIN_PACK,
         "minimal_authority_functions": MINIMAL_AUTHORITY_FUNCTIONS,
@@ -322,6 +342,8 @@ def _pack_compiler_input() -> dict[str, Any]:
         "domain_repo_can_own_generated_surface": False,
         "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
         "source_refs": {
+            "canonical_agent_pack_root": "agent/",
+            "required_domain_pack_paths": REQUIRED_DOMAIN_PACK_PATHS,
             "action_catalog": "src/med_autoscience/action_catalog.py::build_mas_action_catalog",
             "stage_control_plane": (
                 "src/med_autoscience/runtime_protocol/runtime_lifecycle_store_parts/"
@@ -341,6 +363,8 @@ def _pack_compiler_input() -> dict[str, Any]:
             "opl_can_write_memory_body": False,
             "opl_can_authorize_quality_or_export": False,
             "domain_can_claim_generated_surface_owner": False,
+            "agent_pack_owner": DOMAIN_OWNER,
+            "src_role": "domain_handler_minimal_authority_native_helper",
         },
     }
 
@@ -353,6 +377,28 @@ def _generated_surface_handoff() -> dict[str, Any]:
         "generated_surface_owner": GENERATED_SURFACE_OWNER,
         "domain_repo_can_own_generated_surface": False,
         "source_contract_ref": "contracts/pack_compiler_input.json",
+        "consumes_agent_pack_refs": True,
+        "agent_pack_ref_source": "contracts/pack_compiler_input.json#/required_domain_pack_paths",
+        "generated_surface_policy": {
+            "may_compile": [
+                "cli_descriptors",
+                "mcp_tool_descriptors",
+                "skill_descriptors",
+                "product_entry_descriptors",
+                "status_and_workbench_projection_descriptors",
+            ],
+            "must_read_semantics_from": "agent/",
+            "must_dispatch_to": "MAS domain handler targets and minimal authority functions",
+            "must_not_write": [
+                "MAS study truth",
+                "publication-route memory body",
+                "AI reviewer verdict",
+                "publication verdict",
+                "artifact authority",
+                "source body",
+                "current_package",
+            ],
+        },
         "generated_surfaces": [
             {
                 "surface_id": surface_id,

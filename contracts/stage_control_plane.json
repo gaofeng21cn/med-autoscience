@@ -58,6 +58,11 @@
       "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
       "ref_kind": "repo_path",
       "role": "inventory_reference"
+    },
+    {
+      "ref": "agent/",
+      "ref_kind": "repo_path",
+      "role": "canonical_semantic_pack_root"
     }
   ],
   "stage_action_parity": {
@@ -117,6 +122,16 @@
           "ref": "/product_entry_manifest/owner_receipt_contract",
           "ref_kind": "json_pointer",
           "role": "owner_receipt_gate"
+        },
+        {
+          "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
+        },
+        {
+          "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
         }
       ],
       "freshness": {
@@ -157,6 +172,21 @@
       ],
       "knowledge_refs": [
         {
+          "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/publication_route_memory.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
           "ref": "mas_publication_route_memory",
           "ref_kind": "domain_memory_ref",
           "role": "publication_route_memory_locator"
@@ -186,7 +216,7 @@
         }
       ],
       "owner": "MedAutoScience",
-      "prompt_refs": [
+      "policy_refs": [
         {
           "ref": "agent/stages/stage_route_contract.yaml",
           "ref_kind": "repo_path",
@@ -196,6 +226,18 @@
           "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
           "ref_kind": "repo_path",
           "role": "stage_led_policy"
+        },
+        {
+          "ref": "agent/stages/direction_and_route_selection.policy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_domain_policy"
+        }
+      ],
+      "prompt_refs": [
+        {
+          "ref": "agent/prompts/direction_and_route_selection.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
         }
       ],
       "quality_pack_projection": {
@@ -223,6 +265,16 @@
         "human_gate_pack"
       ],
       "skills": [
+        {
+          "ref": "agent/skills/medical_research_execution.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
+        {
+          "ref": "agent/skills/owner_receipt_and_route_control.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
         {
           "ref": "med-autoscience",
           "ref_kind": "skill_id",
@@ -269,6 +321,11 @@
           "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
           "ref_kind": "repo_path",
           "role": "inventory_reference"
+        },
+        {
+          "ref": "agent/",
+          "ref_kind": "repo_path",
+          "role": "canonical_semantic_pack_root"
         },
         {
           "ref": [
@@ -416,6 +473,16 @@
           "ref": "/product_entry_manifest/owner_receipt_contract",
           "ref_kind": "json_pointer",
           "role": "owner_receipt_gate"
+        },
+        {
+          "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
+        },
+        {
+          "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
         }
       ],
       "freshness": {
@@ -454,7 +521,23 @@
           "role": "progress_read_model"
         }
       ],
-      "knowledge_refs": [],
+      "knowledge_refs": [
+        {
+          "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/publication_route_memory.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        }
+      ],
       "outputs": [
         {
           "ref": "/progress_projection",
@@ -479,7 +562,7 @@
         }
       ],
       "owner": "MedAutoScience",
-      "prompt_refs": [
+      "policy_refs": [
         {
           "ref": "agent/stages/stage_route_contract.yaml",
           "ref_kind": "repo_path",
@@ -489,6 +572,18 @@
           "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
           "ref_kind": "repo_path",
           "role": "stage_led_policy"
+        },
+        {
+          "ref": "agent/stages/baseline_and_evidence_setup.policy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_domain_policy"
+        }
+      ],
+      "prompt_refs": [
+        {
+          "ref": "agent/prompts/baseline_and_evidence_setup.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
         }
       ],
       "quality_pack_projection": {
@@ -512,6 +607,16 @@
         "human_gate_pack"
       ],
       "skills": [
+        {
+          "ref": "agent/skills/medical_research_execution.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
+        {
+          "ref": "agent/skills/owner_receipt_and_route_control.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
         {
           "ref": "med-autoscience",
           "ref_kind": "skill_id",
@@ -558,6 +663,11 @@
           "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
           "ref_kind": "repo_path",
           "role": "inventory_reference"
+        },
+        {
+          "ref": "agent/",
+          "ref_kind": "repo_path",
+          "role": "canonical_semantic_pack_root"
         },
         {
           "ref": [
@@ -704,6 +814,16 @@
           "ref": "/product_entry_manifest/owner_receipt_contract",
           "ref_kind": "json_pointer",
           "role": "owner_receipt_gate"
+        },
+        {
+          "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
+        },
+        {
+          "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
         }
       ],
       "freshness": {
@@ -744,6 +864,21 @@
       ],
       "knowledge_refs": [
         {
+          "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/publication_route_memory.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
           "ref": "mas_publication_route_memory",
           "ref_kind": "domain_memory_ref",
           "role": "publication_route_memory_locator"
@@ -773,7 +908,7 @@
         }
       ],
       "owner": "MedAutoScience",
-      "prompt_refs": [
+      "policy_refs": [
         {
           "ref": "agent/stages/stage_route_contract.yaml",
           "ref_kind": "repo_path",
@@ -783,6 +918,18 @@
           "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
           "ref_kind": "repo_path",
           "role": "stage_led_policy"
+        },
+        {
+          "ref": "agent/stages/bounded_analysis_campaign.policy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_domain_policy"
+        }
+      ],
+      "prompt_refs": [
+        {
+          "ref": "agent/prompts/bounded_analysis_campaign.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
         }
       ],
       "quality_pack_projection": {
@@ -812,6 +959,16 @@
         "human_gate_pack"
       ],
       "skills": [
+        {
+          "ref": "agent/skills/medical_research_execution.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
+        {
+          "ref": "agent/skills/owner_receipt_and_route_control.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
         {
           "ref": "med-autoscience",
           "ref_kind": "skill_id",
@@ -858,6 +1015,11 @@
           "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
           "ref_kind": "repo_path",
           "role": "inventory_reference"
+        },
+        {
+          "ref": "agent/",
+          "ref_kind": "repo_path",
+          "role": "canonical_semantic_pack_root"
         },
         {
           "ref": [
@@ -1003,6 +1165,16 @@
           "ref": "/product_entry_manifest/owner_receipt_contract",
           "ref_kind": "json_pointer",
           "role": "owner_receipt_gate"
+        },
+        {
+          "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
+        },
+        {
+          "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
         }
       ],
       "freshness": {
@@ -1041,7 +1213,23 @@
           "role": "progress_read_model"
         }
       ],
-      "knowledge_refs": [],
+      "knowledge_refs": [
+        {
+          "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/publication_route_memory.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        }
+      ],
       "outputs": [
         {
           "ref": "/progress_projection",
@@ -1066,7 +1254,7 @@
         }
       ],
       "owner": "MedAutoScience",
-      "prompt_refs": [
+      "policy_refs": [
         {
           "ref": "agent/stages/stage_route_contract.yaml",
           "ref_kind": "repo_path",
@@ -1076,6 +1264,18 @@
           "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
           "ref_kind": "repo_path",
           "role": "stage_led_policy"
+        },
+        {
+          "ref": "agent/stages/manuscript_authoring.policy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_domain_policy"
+        }
+      ],
+      "prompt_refs": [
+        {
+          "ref": "agent/prompts/manuscript_authoring.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
         }
       ],
       "quality_pack_projection": {
@@ -1109,6 +1309,16 @@
         "human_gate_pack"
       ],
       "skills": [
+        {
+          "ref": "agent/skills/medical_research_execution.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
+        {
+          "ref": "agent/skills/owner_receipt_and_route_control.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
         {
           "ref": "med-autoscience",
           "ref_kind": "skill_id",
@@ -1155,6 +1365,11 @@
           "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
           "ref_kind": "repo_path",
           "role": "inventory_reference"
+        },
+        {
+          "ref": "agent/",
+          "ref_kind": "repo_path",
+          "role": "canonical_semantic_pack_root"
         },
         {
           "ref": [
@@ -1301,6 +1516,16 @@
           "ref": "/product_entry_manifest/owner_receipt_contract",
           "ref_kind": "json_pointer",
           "role": "owner_receipt_gate"
+        },
+        {
+          "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
+        },
+        {
+          "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
         }
       ],
       "freshness": {
@@ -1341,6 +1566,21 @@
       ],
       "knowledge_refs": [
         {
+          "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/publication_route_memory.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
           "ref": "mas_publication_route_memory",
           "ref_kind": "domain_memory_ref",
           "role": "publication_route_memory_locator"
@@ -1370,7 +1610,7 @@
         }
       ],
       "owner": "MedAutoScience",
-      "prompt_refs": [
+      "policy_refs": [
         {
           "ref": "agent/stages/stage_route_contract.yaml",
           "ref_kind": "repo_path",
@@ -1380,6 +1620,18 @@
           "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
           "ref_kind": "repo_path",
           "role": "stage_led_policy"
+        },
+        {
+          "ref": "agent/stages/review_and_quality_gate.policy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_domain_policy"
+        }
+      ],
+      "prompt_refs": [
+        {
+          "ref": "agent/prompts/review_and_quality_gate.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
         }
       ],
       "quality_pack_projection": {
@@ -1419,6 +1671,16 @@
         "human_gate_pack"
       ],
       "skills": [
+        {
+          "ref": "agent/skills/medical_research_execution.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
+        {
+          "ref": "agent/skills/owner_receipt_and_route_control.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
         {
           "ref": "med-autoscience",
           "ref_kind": "skill_id",
@@ -1465,6 +1727,11 @@
           "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
           "ref_kind": "repo_path",
           "role": "inventory_reference"
+        },
+        {
+          "ref": "agent/",
+          "ref_kind": "repo_path",
+          "role": "canonical_semantic_pack_root"
         },
         {
           "ref": [
@@ -1612,6 +1879,16 @@
           "ref": "/product_entry_manifest/owner_receipt_contract",
           "ref_kind": "json_pointer",
           "role": "owner_receipt_gate"
+        },
+        {
+          "ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
+        },
+        {
+          "ref": "agent/quality_gates/artifact_source_authority_gate.md",
+          "ref_kind": "repo_path",
+          "role": "agent_quality_gate"
         }
       ],
       "freshness": {
@@ -1650,6 +1927,21 @@
       ],
       "knowledge_refs": [
         {
+          "ref": "agent/knowledge/medical_research_truth.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/publication_route_memory.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
+          "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_knowledge"
+        },
+        {
           "ref": "mas_publication_route_memory",
           "ref_kind": "domain_memory_ref",
           "role": "publication_route_memory_locator"
@@ -1679,7 +1971,7 @@
         }
       ],
       "owner": "MedAutoScience",
-      "prompt_refs": [
+      "policy_refs": [
         {
           "ref": "agent/stages/stage_route_contract.yaml",
           "ref_kind": "repo_path",
@@ -1689,6 +1981,18 @@
           "ref": "docs/policies/study-workflow/stage_led_research_autonomy.md",
           "ref_kind": "repo_path",
           "role": "stage_led_policy"
+        },
+        {
+          "ref": "agent/stages/finalize_and_publication_handoff.policy.md",
+          "ref_kind": "repo_path",
+          "role": "stage_domain_policy"
+        }
+      ],
+      "prompt_refs": [
+        {
+          "ref": "agent/prompts/finalize_and_publication_handoff.md",
+          "ref_kind": "repo_path",
+          "role": "stage_prompt"
         }
       ],
       "quality_pack_projection": {
@@ -1730,6 +2034,16 @@
         "human_gate_pack"
       ],
       "skills": [
+        {
+          "ref": "agent/skills/medical_research_execution.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
+        {
+          "ref": "agent/skills/owner_receipt_and_route_control.md",
+          "ref_kind": "repo_path",
+          "role": "domain_pack_skill_policy"
+        },
         {
           "ref": "med-autoscience",
           "ref_kind": "skill_id",
@@ -1776,6 +2090,11 @@
           "ref": "docs/references/integration/stage_led_autonomy_family_inventory.md",
           "ref_kind": "repo_path",
           "role": "inventory_reference"
+        },
+        {
+          "ref": "agent/",
+          "ref_kind": "repo_path",
+          "role": "canonical_semantic_pack_root"
         },
         {
           "ref": [

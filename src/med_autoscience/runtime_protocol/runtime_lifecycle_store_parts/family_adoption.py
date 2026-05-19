@@ -13,6 +13,16 @@ from med_autoscience.ars_learning_projection import build_ars_learning_projectio
 from med_autoscience.stage_route_contract import STAGE_ROUTE_CONTRACT_REF, load_stage_route_contract_payload
 from med_autoscience.stage_surface_contract import build_stage_surface_contract
 
+from .agent_pack_refs import (
+    AGENT_KNOWLEDGE_REFS,
+    AGENT_PROMPT_REFS,
+    AGENT_QUALITY_GATE_REFS,
+    AGENT_SKILL_REFS,
+    AGENT_STAGE_POLICY_REFS,
+    stage_knowledge_refs,
+    stage_policy_ref,
+    stage_prompt_ref,
+)
 from ..runtime_lifecycle_contract import OPL_FAMILY_ADAPTER_SOURCE_TABLES
 
 ADOPTION_SURFACE_KIND = "mas_opl_family_persistence_lifecycle_owner_route_adoption"
@@ -164,6 +174,12 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "inventory": STAGE_LED_AUTONOMY_INVENTORY_REF,
             "policy": STAGE_LED_AUTONOMY_POLICY_REF,
             "route_contract_source": STAGE_ROUTE_CONTRACT_REF,
+            "canonical_agent_pack_root": "agent/",
+            "agent_prompt_sources": AGENT_PROMPT_REFS,
+            "agent_stage_policy_sources": AGENT_STAGE_POLICY_REFS,
+            "agent_skill_sources": list(AGENT_SKILL_REFS),
+            "agent_quality_gate_sources": list(AGENT_QUALITY_GATE_REFS),
+            "agent_knowledge_sources": list(AGENT_KNOWLEDGE_REFS),
             "knowledge_plane_contract_source": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "quality_pack_contract_source": STAGE_QUALITY_PACK_CONTRACT_REF,
             "stage_skill_surface_projection_source": STAGE_SKILL_SURFACE_PROJECTION_REF,
@@ -464,6 +480,11 @@ def _plane_source_refs(descriptor: Mapping[str, Any]) -> list[dict[str, Any]]:
             "ref": STAGE_LED_AUTONOMY_INVENTORY_REF,
             "role": "inventory_reference",
         },
+        {
+            "ref_kind": "repo_path",
+            "ref": "agent/",
+            "role": "canonical_semantic_pack_root",
+        },
     ]
 
 
@@ -514,7 +535,7 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             },
             {"ref_kind": "json_pointer", "ref": "/progress_projection", "role": "progress_read_model"},
         ],
-        "knowledge_refs": _stage_knowledge_refs(stage),
+        "knowledge_refs": stage_knowledge_refs(stage),
         "quality_pack_refs": stage_quality_contract.quality_pack_ids_for_stages(stage["domain_stage_refs"]),
         "quality_pack_projection": stage_quality_contract.build_stage_quality_pack_ref_projection(
             stage["domain_stage_refs"]
@@ -523,12 +544,28 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
             stage_id=str(stage["stage_id"])
         ),
         "skills": [
+            *[
+                {"ref_kind": "repo_path", "ref": ref, "role": "domain_pack_skill_policy"}
+                for ref in AGENT_SKILL_REFS
+            ],
             {"ref_kind": "skill_id", "ref": "med-autoscience", "role": "domain_skill"},
             {"ref_kind": "skill_id", "ref": "mas", "role": "codex_app_skill"},
         ],
         "prompt_refs": [
+            {
+                "ref_kind": "repo_path",
+                "ref": stage_prompt_ref(stage),
+                "role": "stage_prompt",
+            },
+        ],
+        "policy_refs": [
             {"ref_kind": "repo_path", "ref": STAGE_ROUTE_CONTRACT_REF, "role": "route_contract"},
             {"ref_kind": "repo_path", "ref": STAGE_LED_AUTONOMY_POLICY_REF, "role": "stage_led_policy"},
+            {
+                "ref_kind": "repo_path",
+                "ref": stage_policy_ref(stage),
+                "role": "stage_domain_policy",
+            },
         ],
         "allowed_action_refs": list(stage["allowed_action_refs"]),
         "deliverable_index_ref": _stage_deliverable_index_ref(),
@@ -549,6 +586,10 @@ def _build_stage_descriptor(stage: Mapping[str, Any], *, descriptor: Mapping[str
                 "ref": "/product_entry_manifest/owner_receipt_contract",
                 "role": "owner_receipt_gate",
             },
+            *[
+                {"ref_kind": "repo_path", "ref": ref, "role": "agent_quality_gate"}
+                for ref in AGENT_QUALITY_GATE_REFS
+            ],
         ],
         "handoff": {
             "next_owner": "MedAutoScience",
@@ -627,18 +668,6 @@ def _stage_deliverable_index_ref() -> dict[str, Any]:
         "human_review_blocks_auto_advance_by_default": False,
         "blocking_only_when": "mas_human_gate_boundary_triggered",
     }
-
-
-def _stage_knowledge_refs(stage: Mapping[str, Any]) -> list[dict[str, Any]]:
-    domain_stage_refs = {str(item) for item in stage.get("domain_stage_refs", [])}
-    descriptor = {
-        "ref_kind": "domain_memory_ref",
-        "ref": "mas_publication_route_memory",
-        "role": "publication_route_memory_locator",
-    }
-    if domain_stage_refs & {"scout", "idea", "analysis-campaign", "review", "decision"}:
-        return [descriptor]
-    return []
 
 
 def _stage_goal(stage: Mapping[str, Any], *, descriptor: Mapping[str, Any]) -> str:
