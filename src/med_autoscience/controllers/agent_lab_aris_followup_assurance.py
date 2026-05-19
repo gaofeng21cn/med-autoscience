@@ -40,17 +40,32 @@ def build_aris_followup_assurance_surfaces(
         resolved_root / "artifacts" / "analysis_queue" / "latest.json",
         resolved_root / "paper" / "analysis_queue.json",
     )
+    citation_audit_paths = (
+        resolved_root / "paper" / "citation_audit.json",
+        resolved_root / "artifacts" / "citation_audit" / "latest.json",
+        resolved_root / "artifacts" / "citation_integrity" / "latest.json",
+    )
+    kill_argument_paths = (
+        resolved_root / "paper" / "kill_argument.json",
+        resolved_root / "paper" / "counterargument_audit.json",
+        resolved_root / "artifacts" / "kill_argument" / "latest.json",
+        resolved_root / "artifacts" / "counterargument_audit" / "latest.json",
+    )
     raw_evidence_payloads = _payloads(raw_evidence_paths)
     evidence_ledger_payloads = _payloads(evidence_ledger_paths)
     review_ledger_payloads = _payloads(review_ledger_paths)
     publication_gate_payloads = _payloads(publication_gate_paths)
     campaign_queue_payloads = _payloads(campaign_queue_paths)
+    citation_audit_payloads = _payloads(citation_audit_paths)
+    kill_argument_payloads = _payloads(kill_argument_paths)
 
     raw_evidence_refs = _existing_refs(*raw_evidence_paths)
     evidence_ledger_refs = _existing_refs(*evidence_ledger_paths)
     review_ledger_refs = _existing_refs(*review_ledger_paths)
     publication_gate_refs = _existing_refs(*publication_gate_paths)
     campaign_queue_refs = _unique_refs([*analysis_queue_manifest_refs, *_existing_refs(*campaign_queue_paths)])
+    citation_audit_refs = _existing_refs(*citation_audit_paths)
+    kill_argument_refs = _existing_refs(*kill_argument_paths)
     raw_evidence_item_refs = _refs_for_keys(
         raw_evidence_payloads,
         (
@@ -105,6 +120,26 @@ def build_aris_followup_assurance_surfaces(
     queue_item_refs = _unique_refs([item["ref"] for item in queue_items])
     queue_source_refs = _unique_refs(ref for item in queue_items for ref in item["source_refs"])
     blocked_queue_item_refs = _unique_refs(item["ref"] for item in queue_items if item["state"] == "blocked")
+    citation_item_refs = _refs_for_keys(
+        citation_audit_payloads,
+        (
+            "citation_refs",
+            "citation_audit_refs",
+            "missing_citation_refs",
+            "unsupported_citation_refs",
+            "items",
+        ),
+    )
+    kill_argument_item_refs = _refs_for_keys(
+        kill_argument_payloads,
+        (
+            "kill_argument_refs",
+            "counterargument_refs",
+            "strongest_counterargument_refs",
+            "unresolved_argument_refs",
+            "items",
+        ),
+    )
 
     assurance_contract = {
         "surface_kind": "mas_agent_lab_assurance_contract",
@@ -190,10 +225,62 @@ def build_aris_followup_assurance_surfaces(
         "recovery_route_ref": f"analysis-campaign-recovery:mas/{study_id}/mechanism-evidence-redrive",
         "authority_boundary": dict(authority_boundary),
     }
+    citation_audit = {
+        "surface_kind": "mas_agent_lab_citation_audit",
+        "audit_kind": "body_free_citation_integrity_audit",
+        "body_included": False,
+        "citation_body_included": False,
+        "citation_audit_refs": citation_audit_refs,
+        "citation_item_refs": citation_item_refs or [f"citation-audit-ref:mas/{study_id}/body-free-missing"],
+        "requires_independent_ai_review": True,
+        "can_authorize_bibliography_quality": False,
+        "can_authorize_publication_quality": False,
+        "authority_boundary": dict(authority_boundary),
+    }
+    kill_argument = {
+        "surface_kind": "mas_agent_lab_kill_argument_audit",
+        "audit_kind": "body_free_strongest_counterargument_audit",
+        "body_included": False,
+        "argument_body_included": False,
+        "kill_argument_refs": kill_argument_refs,
+        "counterargument_item_refs": kill_argument_item_refs
+        or [f"kill-argument-ref:mas/{study_id}/body-free-missing"],
+        "requires_independent_ai_review": True,
+        "can_authorize_claim": False,
+        "can_authorize_quality_verdict": False,
+        "authority_boundary": dict(authority_boundary),
+    }
+    submission_assurance = {
+        "surface_kind": "mas_agent_lab_submission_assurance_gate",
+        "gate_kind": "body_free_five_layer_submission_assurance",
+        "body_included": False,
+        "effort_level": "deep_when_publication_gate_or_counterargument_refs_exist",
+        "assurance_level": "strict_independent_review_required",
+        "layers": [
+            "experiment_audit",
+            "result_to_claim_audit",
+            "paper_claim_audit",
+            "citation_audit",
+            "kill_argument_audit",
+        ],
+        "required_ref_groups": [
+            "raw_evidence_refs",
+            "evidence_item_refs",
+            "review_item_refs",
+            "citation_item_refs",
+            "counterargument_item_refs",
+        ],
+        "can_authorize_submission_readiness": False,
+        "can_authorize_publication_quality": False,
+        "authority_boundary": dict(authority_boundary),
+    }
     return {
         "assurance_contract": assurance_contract,
         "adversarial_review_gate": adversarial_review_gate,
         "experiment_queue_recovery": experiment_queue_recovery,
+        "citation_audit": citation_audit,
+        "kill_argument": kill_argument,
+        "submission_assurance": submission_assurance,
         "evidence_delta_refs": _unique_refs(
             [
                 *raw_evidence_refs,
@@ -209,6 +296,10 @@ def build_aris_followup_assurance_surfaces(
                 *queue_item_refs,
                 *blocked_queue_item_refs,
                 *queue_source_refs,
+                *citation_audit_refs,
+                *citation_item_refs,
+                *kill_argument_refs,
+                *kill_argument_item_refs,
             ]
         ),
     }

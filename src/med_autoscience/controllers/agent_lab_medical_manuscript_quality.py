@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .agent_lab_aris_followup_assurance import build_aris_followup_assurance_surfaces
+from .agent_lab_submission_assurance import build_submission_assurance_surfaces
 from .publication_aftercare import build_publication_aftercare_plan
 
 
@@ -38,6 +39,10 @@ SELF_EVOLUTION_TARGET_REFS = [
     "mechanism-edit-ref:mas/adversarial-review-gate-body-free-projection",
     "mechanism-edit-ref:mas/experiment-queue-recovery-body-free-projection",
     "mechanism-edit-ref:mas/publication-aftercare-plan-body-free-projection",
+    "mechanism-edit-ref:mas/citation-audit-body-free-projection",
+    "mechanism-edit-ref:mas/kill-argument-counterargument-body-free-projection",
+    "mechanism-edit-ref:mas/submission-assurance-five-layer-gate-body-free-projection",
+    "mechanism-edit-ref:mas/effort-assurance-axes-body-free-projection",
     "skill_ref:medical-research-write",
     "rubric_ref:ai_reviewer/high_quality_medical_manuscript",
     "prompt_ref:ai_reviewer_medical_prose_quality_review",
@@ -310,6 +315,11 @@ def _mechanism_evolution_inputs(
         analysis_queue_manifest_refs=analysis_queue_manifest_refs,
         authority_boundary=AUTHORITY_BOUNDARY,
     )
+    submission_assurance_surfaces = build_submission_assurance_surfaces(
+        root=root,
+        study_id=study_id,
+        authority_boundary=AUTHORITY_BOUNDARY,
+    )
     publication_aftercare_plan = build_publication_aftercare_plan(study_root=root)
     return {
         "surface_kind": "mas_agent_lab_mechanism_evolution_inputs",
@@ -334,10 +344,24 @@ def _mechanism_evolution_inputs(
             "experiment_queue_recovery_refs"
         ],
         "publication_aftercare_plan_refs": publication_aftercare_plan["publication_aftercare_plan_refs"],
+        "citation_audit_refs": submission_assurance_surfaces["citation_audit"]["citation_audit_refs"],
+        "kill_argument_review_refs": submission_assurance_surfaces["kill_argument_review"][
+            "counterargument_review_refs"
+        ],
+        "submission_assurance_gate_refs": submission_assurance_surfaces["submission_assurance_gate"][
+            "gate_refs"
+        ],
+        "effort_assurance_axis_refs": submission_assurance_surfaces["effort_assurance_axes"][
+            "axis_input_refs"
+        ],
         "assurance_contract": followup_surfaces["assurance_contract"],
         "adversarial_review_gate": followup_surfaces["adversarial_review_gate"],
         "experiment_queue_recovery": followup_surfaces["experiment_queue_recovery"],
         "publication_aftercare_plan": publication_aftercare_plan,
+        "citation_audit": submission_assurance_surfaces["citation_audit"],
+        "kill_argument_review": submission_assurance_surfaces["kill_argument_review"],
+        "submission_assurance_gate": submission_assurance_surfaces["submission_assurance_gate"],
+        "effort_assurance_axes": submission_assurance_surfaces["effort_assurance_axes"],
         "controller_read_model_feedback_refs": controller_read_model_feedback_refs,
         "target_editable_surface_refs": list(SELF_EVOLUTION_TARGET_REFS),
         "developer_patch_work_order": _developer_patch_work_order(
@@ -368,6 +392,7 @@ def _mechanism_evolution_inputs(
                 *claim_assurance_map["display_refs"],
                 *followup_surfaces["evidence_delta_refs"],
                 *publication_aftercare_plan["evidence_delta_refs"],
+                *submission_assurance_surfaces["evidence_delta_refs"],
             ]
         ),
         "independent_ai_review_receipt_ref": f"ai-reviewer-receipt:mas/{study_id}/mechanism-direct-evidence-review",
