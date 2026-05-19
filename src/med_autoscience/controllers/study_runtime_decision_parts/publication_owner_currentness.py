@@ -90,6 +90,10 @@ def _current_medical_prose_route_back(payload: dict[str, object]) -> bool:
     )
 
 
+def _current_owner_route_back_blocks_mechanical_projection(payload: dict[str, object]) -> bool:
+    return _current_medical_prose_route_back(payload)
+
+
 def _publication_eval_verdict(payload: dict[str, object]) -> str | None:
     verdict = payload.get("verdict")
     if not isinstance(verdict, dict):
@@ -186,6 +190,13 @@ def _current_ai_reviewer_publication_eval_ref(
             "prepare_promotion_review",
         }
         and _current_medical_prose_route_back(payload)
+    ):
+        eval_id = str(payload.get("eval_id") or "").strip()
+        return {"eval_id": eval_id, "artifact_path": str(latest_path)} if eval_id else None
+    if (
+        gate_status == "blocked"
+        and gate_blocks_current_owner
+        and _current_owner_route_back_blocks_mechanical_projection(payload)
     ):
         eval_id = str(payload.get("eval_id") or "").strip()
         return {"eval_id": eval_id, "artifact_path": str(latest_path)} if eval_id else None

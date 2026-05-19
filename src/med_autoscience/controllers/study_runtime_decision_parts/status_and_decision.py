@@ -409,6 +409,7 @@ def _status_state(
         manual_finish_compatibility_guard
         and (not task_intake_releases_manual_finish_parking or task_intake_yields_to_submission_closeout)
         and quest_status not in _LIVE_QUEST_STATUSES
+        and not _has_domain_transition_runtime_redrive(result)
     ):
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
@@ -909,12 +910,6 @@ def _status_state(
         return _finalize_result()
 
     if quest_status == StudyRuntimeQuestStatus.WAITING_FOR_USER:
-        if submission_metadata_only_wait and submission_metadata_only_manual_finish:
-            result.set_decision(
-                StudyRuntimeDecision.BLOCKED,
-                StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
-            )
-            return _finalize_result()
         interaction_arbitration = result.extras.get("interaction_arbitration")
         if isinstance(interaction_arbitration, dict):
             classification = str(interaction_arbitration.get("classification") or "").strip()
@@ -953,6 +948,12 @@ def _status_state(
                     StudyRuntimeReason.QUEST_WAITING_FOR_EXTERNAL_INPUT,
                 )
                 return _finalize_result()
+        if submission_metadata_only_wait and submission_metadata_only_manual_finish:
+            result.set_decision(
+                StudyRuntimeDecision.BLOCKED,
+                StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
+            )
+            return _finalize_result()
         if submission_metadata_only_wait:
             result.set_decision(
                 StudyRuntimeDecision.RESUME,

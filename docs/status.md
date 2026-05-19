@@ -1,6 +1,6 @@
 # 当前状态
 
-**更新时间：2026-05-19**
+**更新时间：2026-05-20**
 
 ## 当前角色
 
@@ -46,7 +46,7 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
    最新 route follow-up 修复了 decision owner 的硬编码路线选择：当 `methodology_rebuild_authorization` 与终态 source-provenance search blocker 同时当前时，`methodology_reframe_route_decision` 不再回到 `provenance_limited_harmonization_audit`，而是直接选择 `rebuild_reproducible_model_route` 并把下一跳交给 `analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker`。未授权场景仍保留 provenance-limited audit / human gate 路线；clean route 只授权 unit-harmonized rerun 或 typed blocker，不写论文、publication eval、controller decision 之外的交付面或 submission readiness。
    最新 quality-currentness follow-up 把 DM002 的正文残留和机械投影 ready 问题收进 controller safety floor：`analysis_claim_evidence_repair`、`figure_results_trace_repair` 和 `medical_prose_quality_analysis_source_documentation_repair` 与 `manuscript_story_repair` 一样，遇到 canonical draft / review manuscript 中的 invalid analysis history residue 时只能 typed-block，不能声明 progress delta；`mechanical_projection` 或 `ai_reviewer_required=true` 的 publication gate projection 不能把 `medical_journal_prose_quality` 置为 ready。这是 route-back / regression guard，不是脚本式论文质量 verdict；AI reviewer 仍持有主观医学写作质量判断。
    最新 route-currentness follow-up 修复了 DM002 在 clean paper repair 后继续重复 `analysis_claim_evidence_repair` 的循环：AI reviewer re-eval domain transition 现在不会被 stale methodology task-intake 或 `quality-repair-batch` fallback 覆盖；publication gate 的 delivery/authority specificity targets 也不会再按 `claim`/`figure`/`metric` kind 误派分析或图表修复。剩余 stale package、submission authority、delivery mirror 和 AI prose currentness 必须由对应 MAS owner 继续推进。
-   最新 AI reviewer route-back follow-up 修复了 current reviewer OS 被重复 review transition 覆盖的问题：当 AI reviewer 已在 `publication_eval/latest.json` 中给出 current `medical_prose_review` route-back，并有匹配的 `route_back_same_line` recommended action 时，controller refresh 和 domain transition 必须消费该 owner route，交给 `write` / `analysis-campaign` 等目标 owner，而不是再次排 `ai_reviewer_medical_prose_quality_review`。这仍是 route/currentness 规则，不授权 prose quality ready、publication ready、submission readiness 或 package refresh。
+   最新 AI reviewer route-back follow-up 修复了 current reviewer OS 被重复 review transition 和 submission metadata parking 覆盖的问题：当 AI reviewer 已在 `publication_eval/latest.json` 中给出 current `medical_prose_review` route-back，并有匹配的 `route_back_same_line` recommended action 时，controller refresh、domain transition 和 waiting-for-user arbitration 必须消费该 owner route，交给 `write` / `analysis-campaign` 等目标 owner，而不是再次排 `ai_reviewer_medical_prose_quality_review` 或停在 submission metadata wait。该路径已由 `tests/test_study_runtime_router_cases/ai_reviewer_submission_metadata_cases.py`、`tests/test_study_runtime_router_cases/platform_repair_redrive_cases.py`、`tests/test_domain_transition_table_ai_reviewer_routeback.py`、`tests/test_ai_reviewer_publication_eval_workflow.py` 与 `make test-meta` 覆盖；这仍是 route/currentness 规则，不授权 prose quality ready、publication ready、submission readiness 或 package refresh。
 
 1. `generated_surface_active_caller_cutover`
    已关闭为 OPL generated / hosted surface 与 MAS domain handler target 边界。MAS hand-written shell 只允许继续承担 direct domain entry、domain handler、AI-first validator、owner receipt signer、diagnostic cleanup 或 provenance fixture；旧 wrapper/alias/facade 不再作为长期 caller 语义保留。

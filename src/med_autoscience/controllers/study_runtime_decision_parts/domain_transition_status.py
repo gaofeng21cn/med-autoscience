@@ -77,6 +77,16 @@ def _domain_transition_runtime_redrive_reason(status: StudyRuntimeStatus) -> Stu
         return StudyRuntimeReason.QUEST_WAITING_PLATFORM_REPAIR_REDRIVE
 
 
+def _has_domain_transition_runtime_redrive(status: StudyRuntimeStatus) -> bool:
+    interaction_arbitration = status.extras.get("interaction_arbitration")
+    return (
+        isinstance(interaction_arbitration, dict)
+        and str(interaction_arbitration.get("classification") or "").strip()
+        == "domain_transition_runtime_redrive"
+        and str(interaction_arbitration.get("action") or "").strip() == "resume"
+    )
+
+
 def _current_ai_reviewer_domain_redrive_reason(
     status: StudyRuntimeStatus,
     *,
@@ -150,6 +160,7 @@ def _apply_ai_reviewer_domain_redrive_decision(
 __all__ = [
     "_apply_ai_reviewer_domain_redrive_decision",
     "_current_ai_reviewer_domain_redrive_reason",
+    "_has_domain_transition_runtime_redrive",
     "_record_interaction_arbitration_if_required",
     "_domain_transition_runtime_redrive_reason",
 ]

@@ -72,7 +72,11 @@ def _domain_transition_status_candidate(
     decision_type = str(controller_decision.get("decision_type") or "").strip()
     route_decision = str(controller_decision.get("route_decision") or "").strip()
     route_target = str(controller_decision.get("route_target") or "").strip()
-    if decision_type == "stop_loss" or route_decision in {"stop_loss", "terminal_stop"} or route_target == "stop":
+    if (
+        decision_type in {"route_back_same_line", "stop_loss"}
+        or route_decision in {"route_back_same_line", "stop_loss", "terminal_stop"}
+        or route_target == "stop"
+    ):
         return True
     return False
 
@@ -84,6 +88,7 @@ def _domain_transition_consumable_by_interaction_arbitration(transition: dict[st
         "delivered_package_handoff",
         "human_gate",
         "publication_gate_blocker",
+        "route_back_same_line",
         "stop_loss",
     }
 

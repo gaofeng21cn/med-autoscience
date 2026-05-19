@@ -23,17 +23,20 @@ RUNTIME_REDRIVE_DECISION_TYPES = frozenset(
         "ai_reviewer_re_eval",
         "bundle_stage_finalize",
         "publication_gate_blocker",
+        "route_back_same_line",
     }
 )
 ACTION_TYPE_BY_DECISION_TYPE = {
     "ai_reviewer_re_eval": "return_to_ai_reviewer_workflow",
     "bundle_stage_finalize": "runtime_platform_repair",
     "publication_gate_blocker": "publication_gate_specificity_required",
+    "route_back_same_line": "run_quality_repair_batch",
 }
 REASON_BY_DECISION_TYPE = {
     "ai_reviewer_re_eval": "domain_transition_ai_reviewer_re_eval",
     "bundle_stage_finalize": "domain_transition_bundle_stage_finalize",
     "publication_gate_blocker": "domain_transition_publication_gate_blocker",
+    "route_back_same_line": "quest_waiting_platform_repair_redrive",
 }
 
 
