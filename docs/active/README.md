@@ -13,9 +13,9 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 
 - [文档索引](../README.md)
 - [当前状态](../status.md)
-- [Program Portfolio Consolidation](./program_portfolio_consolidation.md)
 - [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)
 - [MAS Current Development Lines](./current-development-lines.md)
+- [Program Portfolio Consolidation](./program_portfolio_consolidation.md)
 - [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)
 - [MAS Stage Surfaces](../runtime/contracts/stage_surfaces.md)
 - [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)
@@ -25,14 +25,17 @@ Machine boundary: 人读索引。机器真相继续归 contracts、schemas、sou
 | 层次 | 文档 | 当前作用 |
 | --- | --- | --- |
 | 理想差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 对照 MAS 理想目标态，维护当前定位、当前边界、功能/结构差距、测试/证据差距、完善顺序和禁止误写口径。 |
-| 目标 / 验收 | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | 定义当前 MAS 论文自治目标和最终验收合同。过程性 dated evidence 不在本索引展开。 |
-| 当前执行优先级 | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | framework-first 迁移线路：先完成 OPL 完整智能体框架，再迁移 MAS、分层沉淀新旧功能、退役旧默认依赖和兼容面。 |
-| 横向 stage 形式 | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | 统一每个 MAS stage 的 stage card、route contract、prompt/skill、tool surface、knowledge packet、closeout obligation、Stage Deliverable Review Page / Index、quality gate 和 OPL projection boundary。 |
-| 产品化依托 | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | 跟随 framework migration，把迁移后的 MAS/OPL 状态变成 OPL App Runtime Workbench 中可见、可审阅、可受控的用户体验。 |
-| 已落地基础 | [MAS 单项目 MDS 吸收 program](./mas_single_project_mds_absorb_program.md) | 已落地的 monolith / provenance owner 文档，只保存当前边界和 guard；完整历史记录在 `docs/history/program/`。 |
-| 已落地基础 | [Runtime lifecycle SQLite 迁移 program](./runtime_lifecycle_sqlite_migration_program.md) | 已落地的 runtime lifecycle guard 文档，只保存当前 SQLite/file authority、quest/root Git retirement 和 drift 维护规则；完整历史记录在 `docs/history/program/`。 |
+| 当前执行地图 | [MAS Current Development Lines](./current-development-lines.md) | 把所有仍有效线路归为 landed foundation、functional follow-through gate 或 production evidence gate；不要按 P0/P1/P2/P3 旧编号开平行计划。 |
+| 文档组合 / 历史归位 | [Program Portfolio Consolidation](./program_portfolio_consolidation.md) | 只说明 active 文档组合、唯一职责和历史记录去向；不替代 gap plan，也不作为第二 backlog。 |
+| 目标 / 验收 owner | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | 只定义 MAS 论文自治验收合同和 AI-first quality gate；dated evidence 与 full record 回 history。 |
+| Framework migration owner | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | 只维护 MAS 侧 provider/sidecar/legacy-retirement 边界和 live paper apply gate；OPL framework owner 回 OPL 仓。 |
+| Stage pack owner | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | 只维护 stage/prompt/skill/knowledge/quality gate 的标准形态；长 proof 流水回 history。 |
+| Product projection owner | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | 只维护 MAS 输出给 OPL App/workbench 的 refs-only 投影边界；不复制通用 workbench。 |
+| Landed foundation guard | [MAS 单项目 MDS 吸收 program](./mas_single_project_mds_absorb_program.md)、[Runtime lifecycle SQLite 迁移 program](./runtime_lifecycle_sqlite_migration_program.md) | 只保留 MDS provenance、monolith closeout、SQLite/file authority、quest/root Git retirement 和 drift guard；不再作为活跃实现队列。 |
 
-实际开发按内容块推进，不按整份旧文档推进。P0/P2/P3/P3a 的完整旧记录已经归档；当前 active owner 文档只保留当前 owner 边界、优先级、gate 分类和可执行内容线。旧 full record、旧 board、旧 activation package 和 dated follow-through 只作为 history provenance 读取。
+实际开发按内容块推进，不按整份旧文档推进。P0/P1/P2/P3/P3a 的完整旧记录已经归档；当前 active owner 文档只保留当前 owner 边界、gate 分类和仍可执行的内容线。旧 full record、旧 board、旧 activation package、dated follow-through 和命令流水只作为 history provenance 读取。
+
+active 文档不得继续追加历史增量长清单。若需要记录 proof、receipt、分支名、测试输出或 closeout 过程，写入 `docs/history/program/` 或对应 history 目录；active 层只保留当前 gate 是否仍 open、谁负责、下一条验证命令类别和不能误写的边界。
 
 ## 放置规则
 

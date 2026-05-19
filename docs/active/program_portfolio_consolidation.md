@@ -8,15 +8,13 @@ Owner: `MedAutoScience`
 
 `docs/active/` 现在承载仍需要 program 级阅读顺序、owner gate、当前差距或当前完成门槛的文档。dated closeout evidence、完整过程流水和 landed provenance 进入 `docs/history/**`。
 
-当前 MAS program 组合按目标、框架优先执行、产品化、基础 guard 四层阅读，不能按文件名、立项时间或 P0/P1/P2/P3 编号理解成并列待办队列：
+当前 MAS program 组合按三类 gate 阅读，旧 P0/P1/P2/P3 编号只保留为 provenance，不再表示并列待办队列：
 
-1. **目标层**：AI-first paper autonomy 是 MAS 的论文自治目标合同。它定义 MAS 要达到的闭环：AI reviewer finding、repair work unit、gate replay、reviewer re-eval、route decision、stage knowledge/memory、真实 paper soak，以及 artifact delta / human gate / stop-loss 的验收口径。
-2. **框架优先执行层**：P2 是当前执行优先级。它先完成 OPL 完整智能体框架，再把 MAS 迁移为 OPL-admitted domain agent，并把新旧功能分类迁移、分层、沉淀或退役。
-3. **横向 stage 形式层**：Stage surface standardization 负责把 MAS 的 stage card、route contract、prompt/skill、tool surface、knowledge packet、closeout memory、quality pack 与 OPL projection boundary 做成统一维护形态。当前 generated stage cards、缺失 knowledge/closeout obligations、stage quality pack contract、OPL descriptor locator、独立 stage skill surface、既有 skill 的 stage surface / quality pack / Research Harness clean-room gate 消费、provider residency read model、guarded apply harness、OPL production proof -> MAS provider availability ingestion、Stage Deliverable Review Page / Index workspace locator proof、publication-route memory body-free receipt inventory、Workbench reference projection、standard skeleton slot audit 和 legacy residue audit 已落地；真实 production provider-hosted live paper apply 仍 pending。
-4. **产品化层**：P1 负责把迁移后的 MAS/OPL 状态、对话、产物、terminal/log 和受控 action 接到 OPL App Runtime Workbench。
-5. **已落地基础层**：P3 和 P3a 已完成主要实施，当前角色是 owner/provenance/archive/parity guard。它们保留在 `docs/active/`，是因为仍承载 monolith、MDS provenance、restore proof、runtime lifecycle、quest/root Git retirement 和后续 source-intake / archive / parity 判断的当前 owner 文档，不再代表活跃实现队列。
+1. **Landed foundation**：MDS absorb、runtime lifecycle SQLite、quest/root Git retirement、monolith closeout、stage pack 结构、OPL admission 和 production acceptance contract 已作为基础守门面存在。它们的 active 文档只维护 guard、provenance、drift 判断和禁止误写口径。
+2. **Functional follow-through gate**：仍有 active domain / diagnostic caller 的 refs-only adapter、product/status/workbench projection、stage quality gate、AI-first reviewer/auditor split 和 OPL handoff，需要继续按 active caller proof、OPL parity、domain receipt parity、focused tests 和 no-forbidden-write 收薄或删除。
+3. **Production evidence gate**：真实 paper-line provider apply、artifact delta、AI reviewer update、human gate/resume、memory/artifact/lifecycle receipt scaleout 和 provider SLO long soak。它们只能由真实 owner receipt、typed blocker、progress delta 或 no-regression evidence 关闭，不能由 repo tests、descriptor ready、provider proof 或 conformance 代替。
 
-因此，当前真实执行逻辑是：**P0 提供目标和验收口径，P2 先完成 OPL framework 与 MAS 迁移/分层/退役收口，P1 把迁移后的状态产品化，最后用 P0 做真实 paper autonomy 验收；P3/P3a 提供已完成基础和 guard 证据**。具体执行时先读 [MAS Current Development Lines](./current-development-lines.md)，按内容块选择当前线路，不按整份旧计划推进。
+因此，当前真实执行逻辑是：先读 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 判断结构差距与证据差距，再读 [MAS Current Development Lines](./current-development-lines.md) 选择内容线；本文只负责说明旧 program 文档如何归位。新增内容必须先归入上述三类 gate，不能新建平行 program 文档或把旧 full record 重新展开。
 
 ## 当前事实
 
@@ -34,12 +32,14 @@ Owner: `MedAutoScience`
 | layer | document | current state | role now | next handling |
 | --- | --- | --- | --- | --- |
 | Execution map | [MAS Current Development Lines](./current-development-lines.md) | `active_content_level_development_map` | 汇总 framework-first 内容级线路、过时/降级材料、合并吸收规则、优先级和 done signal。 | 执行旧 program 内容前先读；新内容先映射到 OPL framework、MAS migration、feature retirement、P1 productization、P0 final soak、P3/P3a/support。 |
-| Goal / acceptance | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | `outcome_contract; repo_loop_landed; live_soak_active` | 定义论文自治闭环、质量边界、stage knowledge/memory、repair/review/gate/route 的目标和验收。 | 保留为目标 owner。新增实现细节应先判断属于 MAS paper loop、P1 workbench，还是 P2 OPL framework。 |
-| Framework enabler | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | `production_residency_proof_landed; mas_proof_ingestion_landed; live_paper_apply_pending` | 先完成 OPL framework foundation，再把 MAS scheduler/watchdog/legacy provider provenance/local diagnostics、sidecar、domain-agent skeleton 和 lifecycle primitives 对齐 OPL stage-led framework，并执行旧面退役收口。 | OPL production proof 与 MAS provider availability ingestion 已落地；真实 MAS paper-line live apply、真实 domain activity soak 和旧 residue 物理退役继续推进。 |
-| Cross-cutting form | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | `stage_skill_surfaces_landed; ideal_state_read_models_landed; provider_live_apply_pending` | 统一 MAS stage 的人读 surface、machine source、prompt/skill、tool、knowledge、closeout、quality pack 与 OPL projection boundary。 | stage / prompt / skill / knowledge / quality 变更继续按该模板归一；production provider-hosted live apply 完成前，不把 provider projection、typed blocker、repo test、queue receipt 或 production residency proof 写成论文自动化已闭合。 |
-| Product enabler | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | `active_enabler; follows_framework_migration` | 把迁移后的 MAS progress、conversation、Live Console、terminal attach、安全 action、provider attempt refs 和 artifacts 产品化到 OPL App。 | 作为迁移后用户可见闭环的主要产品化 lane 推进。 |
-| Landed foundation | [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md) | `landed_owner_doc; provenance_guard` | 记录当前 MAS monolith、MDS retained roles、workspace layout、entry retirement、functional monolith 和 behavior parity 边界；完整历史记录在 `docs/history/program/`。 | 只维护 guard、provenance 和后续 source intake 分类；新增默认运行能力不回到 MDS absorb 旧路线。 |
-| Landed foundation | [Runtime Lifecycle SQLite Migration Program](./runtime_lifecycle_sqlite_migration_program.md) | `landed_owner_doc; maintenance_guard` | 记录当前 runtime lifecycle authority、SQLite/file truth boundary、quest/root Git retirement、restore proof 和 migration ledger；完整历史记录在 `docs/history/program/`。 | 维护新 drift、restore diagnostic 和 explicit archive import。 |
+| Gap plan owner | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | `active_plan` | 唯一维护当前功能/结构差距、测试/证据差距、完善顺序和禁止误写口径。 | 任何新差距先写这里；其他 program 文档不得形成第二 gap matrix。 |
+| Execution map | [MAS Current Development Lines](./current-development-lines.md) | `active_content_map` | 把后续工作映射到 landed foundation、functional follow-through gate 或 production evidence gate。 | 执行前先选内容线，旧 P 编号只作 provenance。 |
+| Paper autonomy owner | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | `outcome_contract` | 只定义论文自治闭环与验收，不保存 dated proof 流水。 | 新实现细节回 gap plan / execution map；历史 full record 回 history。 |
+| Framework handoff owner | [OPL Temporal MAS Runtime Retirement Program](./opl_temporal_mas_runtime_retirement_program.md) | `handoff_support` | 只维护 MAS 侧 provider/sidecar/legacy-retirement 边界和 live paper apply gate。 | OPL framework owner 回 OPL 仓；MAS 不维护平行 OPL roadmap。 |
+| Stage pack owner | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | `stage_pack_support` | 只维护 stage/prompt/skill/knowledge/quality gate 标准形态。 | 过程 proof 回 history；真实 live apply 仍是 production evidence gate。 |
+| Product projection owner | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | `projection_support` | 只维护 MAS 输出给 OPL App/workbench 的 refs-only 投影边界。 | 不复制通用 workbench；App/product truth 回 OPL/App。 |
+| Landed foundation guard | [MAS Single-Project MDS Absorb Program](./mas_single_project_mds_absorb_program.md) | `history_linked_guard` | 只维护 MDS retained-role、provenance、archive/restore/parity guard。 | 新默认运行能力不回到 MDS 路线。 |
+| Landed foundation guard | [Runtime Lifecycle SQLite Migration Program](./runtime_lifecycle_sqlite_migration_program.md) | `history_linked_guard` | 只维护 SQLite/file authority、quest/root Git retirement、restore proof 和 drift guard。 | 新 drift 进入 explicit inventory / restore proof / provenance classification。 |
 
 ## 当前执行顺序
 

@@ -79,3 +79,18 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 4. 删除旧源码、命令 wrapper、alias、facade 和对应兼容测试；测试改断言当前 machine-readable contract、schema、CLI/API、manifest 或 generated artifact。
 
 满足上述条件后，不保留旧名兼容层，不新增聚合兼容测试，也不把旧文档路径当成稳定机器接口。
+
+## Path-Stable Active 文档收敛
+
+少数 `docs/active/*.md` 仍被 `human_doc:*`、contract、source projection 或测试 manifest 指向。它们可以暂留原路径，但必须收窄为单一职责：
+
+- `mas-ideal-state-gap-plan.md` 是唯一当前 gap / 完善计划。
+- `current-development-lines.md` 是唯一当前执行内容地图。
+- `program_portfolio_consolidation.md` 只解释旧 program 文档组合与生命周期，不维护第二 backlog。
+- `ai_first_paper_autonomy_closure_program.md` 只定义论文自治验收合同。
+- `opl_temporal_mas_runtime_retirement_program.md` 只维护 MAS 侧 OPL handoff / legacy retirement 支撑，不定义 OPL framework 总计划。
+- `stage_surface_standardization_program.md` 只维护 stage pack 形态。
+- `opl_app_mas_runtime_workbench_program.md` 只维护 MAS refs-only projection 到 OPL App/workbench 的边界。
+- `mas_single_project_mds_absorb_program.md` 与 `runtime_lifecycle_sqlite_migration_program.md` 只保留 landed foundation guard、provenance 和 drift 判断。
+
+这些路径暂留不是兼容承诺。若后续 machine/human_doc caller 迁出，且当前结论已吸收到 gap plan、runtime/source/delivery/policy 或 history，文档应直接移动到 `docs/history/**` 或 tombstone；不新增重定向文档、兼容 alias 或平行索引。
