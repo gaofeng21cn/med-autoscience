@@ -4,6 +4,12 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+from med_autoscience.controllers.ai_reviewer_story_provenance_guard import (
+    AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON,
+    AI_REVIEWER_RECORD_STORY_LEAKAGE_NEXT_REQUIRED_ACTIONS,
+    ai_reviewer_record_story_provenance_leakage,
+)
+
 AI_REVIEWER_REQUEST_STATES = ("requested", "assigned", "assessment_written", "blocked", "stale")
 AI_REVIEWER_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/ai_reviewer/latest.json")
 AI_REVIEWER_REQUIRED_INPUT_SURFACES = (
@@ -279,6 +285,28 @@ def _record_missing_currentness_refs(
     return [ref for ref in required_refs if ref not in source_refs]
 
 
+def _block_ai_reviewer_record_manuscript_story_leakage(
+    *,
+    payload: dict[str, Any],
+    record_ref: str | None,
+    leakage: Mapping[str, Any],
+) -> dict[str, Any]:
+    lifecycle = dict(_mapping(payload.get("request_lifecycle")))
+    lifecycle["blocked_reason"] = AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON
+    if record_ref:
+        lifecycle["stale_record_ref"] = record_ref
+    lifecycle["leakage_reason"] = _text(leakage.get("reason"))
+    lifecycle["leakage_field_path"] = _text(leakage.get("field_path"))
+    lifecycle["next_required_actions"] = list(AI_REVIEWER_RECORD_STORY_LEAKAGE_NEXT_REQUIRED_ACTIONS)
+    lifecycle.pop("required_currentness_refs", None)
+    payload["request_lifecycle"] = lifecycle
+    payload.pop("ai_reviewer_record", None)
+    payload.pop("publication_eval_record", None)
+    payload.pop("record", None)
+    payload.pop("publication_eval_record_ref", None)
+    return payload
+
+
 def _string_items(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
@@ -322,10 +350,20 @@ def _packet_with_latest_ai_reviewer_record(*, study_root: Path, packet: Mapping[
             payload.pop("record", None)
             payload.pop("publication_eval_record_ref", None)
             return payload
+        leakage = ai_reviewer_record_story_provenance_leakage(existing_record)
+        if leakage is not None:
+            return _block_ai_reviewer_record_manuscript_story_leakage(
+                payload=payload,
+                record_ref=_text(payload.get("publication_eval_record_ref")),
+                leakage=leakage,
+            )
         lifecycle = dict(_mapping(payload.get("request_lifecycle")))
         lifecycle["blocked_reason"] = None
         lifecycle.pop("stale_record_ref", None)
         lifecycle.pop("required_currentness_refs", None)
+        lifecycle.pop("leakage_reason", None)
+        lifecycle.pop("leakage_field_path", None)
+        lifecycle.pop("next_required_actions", None)
         payload["request_lifecycle"] = lifecycle
         return payload
     latest = _latest_ai_reviewer_publication_eval_record(study_root=study_root)
@@ -340,6 +378,13 @@ def _packet_with_latest_ai_reviewer_record(*, study_root: Path, packet: Mapping[
         lifecycle["required_currentness_refs"] = missing_currentness_refs
         payload["request_lifecycle"] = lifecycle
         return payload
+    leakage = ai_reviewer_record_story_provenance_leakage(record)
+    if leakage is not None:
+        return _block_ai_reviewer_record_manuscript_story_leakage(
+            payload=payload,
+            record_ref=str(record_path),
+            leakage=leakage,
+        )
     payload["ai_reviewer_record"] = record
     payload["publication_eval_record_ref"] = str(record_path)
     lifecycle = dict(_mapping(payload.get("request_lifecycle")))
@@ -347,6 +392,9 @@ def _packet_with_latest_ai_reviewer_record(*, study_root: Path, packet: Mapping[
     lifecycle["blocked_reason"] = None
     lifecycle.pop("stale_record_ref", None)
     lifecycle.pop("required_currentness_refs", None)
+    lifecycle.pop("leakage_reason", None)
+    lifecycle.pop("leakage_field_path", None)
+    lifecycle.pop("next_required_actions", None)
     payload["request_lifecycle"] = lifecycle
     return payload
 

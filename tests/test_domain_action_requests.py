@@ -496,6 +496,81 @@ def test_ai_reviewer_request_materialization_attaches_latest_owner_record(tmp_pa
     assert "required_currentness_refs" not in persisted["request_lifecycle"]
 
 
+def test_ai_reviewer_request_materialization_rejects_record_with_manuscript_story_provenance_leakage(
+    tmp_path,
+) -> None:
+    study_root = tmp_path / "workspace" / "studies" / "002-risk"
+    response_root = study_root / "artifacts" / "publication_eval" / "ai_reviewer_responses"
+    record_path = response_root / "20260517T074205Z_publication_eval_record.json"
+    quality_assessment = {
+        dimension: {
+            "status": "partial" if dimension == "medical_journal_prose_quality" else "ready",
+            "summary": f"{dimension} reviewer assessment.",
+        }
+        for dimension in (
+            "clinical_significance",
+            "evidence_strength",
+            "novelty_positioning",
+            "medical_journal_prose_quality",
+            "human_review_readiness",
+        )
+    }
+    quality_assessment["novelty_positioning"][
+        "summary"
+    ] = "The defensible contribution is now a harmonization-sensitive external validation."
+    record = {
+        "eval_id": "publication-eval::002-risk::quest-002::2026-05-17T07:42:05+00:00",
+        "study_id": "002-risk",
+        "quest_id": "quest-002",
+        "assessment_provenance": {
+            "owner": "ai_reviewer",
+            "source_kind": "publication_eval_ai_reviewer",
+            "policy_id": "medical_publication_critique_v1",
+            "ai_reviewer_required": False,
+        },
+        "quality_assessment": quality_assessment,
+        "future_facing_limitations_plan": [
+            {
+                "limitation": "Current review is bound to the active manuscript digest.",
+                "impact_on_claim": "Claims remain supported with limitations until write repair and re-review.",
+                "required_future_analysis_data_or_design": "Rerun AI reviewer after canonical manuscript repair.",
+                "current_manuscript_wording_must_be_restrained": True,
+            }
+        ],
+    }
+    record_path.parent.mkdir(parents=True)
+    record_path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    packet = build_ai_reviewer_publication_eval_request(
+        study_id="002-risk",
+        quest_id="quest-002",
+        source_surface="domain_route_scan",
+        workflow_state={
+            "quality_authority": {"owner": "mechanical_projection", "state": "projection_only"},
+            "route_back": {"required": True, "target": "ai_reviewer"},
+        },
+    )
+
+    materialized = materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+    persisted = read_ai_reviewer_request(study_root=study_root)
+
+    assert "ai_reviewer_record" not in materialized
+    assert "publication_eval_record_ref" not in materialized
+    assert persisted is not None
+    assert "ai_reviewer_record" not in persisted
+    assert (
+        persisted["request_lifecycle"]["blocked_reason"]
+        == "ai_reviewer_record_manuscript_story_provenance_leakage"
+    )
+    assert persisted["request_lifecycle"]["stale_record_ref"] == str(record_path.resolve())
+    assert persisted["request_lifecycle"]["leakage_reason"] == "manuscript_story_provenance_leakage"
+    assert persisted["request_lifecycle"]["leakage_field_path"] == "quality_assessment.novelty_positioning.summary"
+    assert persisted["request_lifecycle"]["next_required_actions"] == [
+        "produce_ai_reviewer_publication_eval_record_against_current_medical_prose_style_v3",
+        "rematerialize_ai_reviewer_request",
+        "return_to_ai_reviewer_workflow",
+    ]
+
+
 def test_ai_reviewer_request_materialization_rejects_record_stale_after_unit_harmonized_rerun(
     tmp_path,
 ) -> None:

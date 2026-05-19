@@ -21,6 +21,7 @@ from .. import (
 from .action_execution_parts import methodology_reframe_decision
 from .action_execution_parts import provenance_limited_harmonization
 from .action_execution_parts import source_provenance
+from ..ai_reviewer_story_provenance_guard import ai_reviewer_record_story_provenance_leakage_dispatch_blocker
 from ..domain_action_request_lifecycle import stable_ai_reviewer_request_path
 
 
@@ -722,6 +723,9 @@ def _ai_reviewer_record_for_execution(
                 ],
             },
         }
+    story_leakage_blocker = ai_reviewer_record_story_provenance_leakage_dispatch_blocker(lifecycle)
+    if story_leakage_blocker is not None:
+        return {}, story_leakage_blocker
 
     if request_record:
         record_blocker = _request_record_blocker(request_record)

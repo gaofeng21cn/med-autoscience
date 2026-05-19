@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import json
 from pathlib import Path
-import re
 from typing import Any, Mapping
 
 from med_autoscience.policies import (
@@ -14,6 +13,10 @@ from med_autoscience.publication_eval_latest import (
     materialize_ai_reviewer_publication_eval_latest,
 )
 from med_autoscience.controllers import paper_authority_migration
+from med_autoscience.controllers.ai_reviewer_story_provenance_guard import (
+    MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS,
+    reject_manuscript_story_provenance_leakage,
+)
 from med_autoscience.medical_prose_review_request import (
     materialize_medical_prose_review_request,
     stable_medical_prose_review_request_path,
@@ -43,50 +46,7 @@ _REQUIRED_TRACE_INPUTS = (
     "evidence_ledger",
     "review_ledger",
 )
-_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_PATTERNS = (
-    re.compile(
-        r"\bforegrounds?\b.{0,120}\b(?:data[-\s]?harmonization|unit[-\s]?harmonization|harmonization lesson)\b",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\bdefensible contribution\b.{0,120}\bharmonization[-\s]?sensitive\b",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\breframe novelty\b.{0,120}\bharmonization\b",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\bmanuscript must treat\b.{0,120}\b(?:raw[-\s]?HDL|raw[-\s]?scale|harmonization failure signal)\b",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\braw[-\s]?HDL run\b.{0,120}\bharmonization failure signal\b",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\bunit harmonization changed the central interpretation\b",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\b(?:story|novelty|contribution|main finding|central interpretation)\b.{0,120}\bunit[-\s]?harmoniz(?:ed|ation)\b",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\bunit[-\s]?harmoniz(?:ed|ation)\b.{0,120}\b(?:story|novelty|contribution|main finding|central interpretation)\b",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\bunit alignment\b.{0,120}\b(?:restor|rescu|explain)\w*\b",
-        re.IGNORECASE,
-    ),
-)
-_MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS = frozenset(
-    {
-        "clinical_significance",
-        "novelty_positioning",
-    }
-)
+_MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS = MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS
 
 
 def _text(value: object) -> str:
@@ -193,14 +153,7 @@ def _dimension_evidence_refs(
 
 
 def _reject_manuscript_story_provenance_leakage(*, field_path: str, text: str) -> None:
-    if not text:
-        return
-    for pattern in _MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_PATTERNS:
-        if pattern.search(text):
-            raise ValueError(
-                "AI reviewer publication eval workflow detected manuscript_story_provenance_leakage "
-                f"in {field_path}"
-            )
+    reject_manuscript_story_provenance_leakage(field_path=field_path, text=text)
 
 
 def _rubric_scores_and_decision_matrix(
