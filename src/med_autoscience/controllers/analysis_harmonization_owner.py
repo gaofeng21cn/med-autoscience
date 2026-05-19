@@ -8,6 +8,9 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers.analysis_harmonization_owner_parts.rerun_evidence import (
+    materialize_unit_harmonized_rerun_evidence as _materialize_unit_harmonized_rerun_evidence,
+)
 
 
 OWNER = "analysis_harmonization_owner"
@@ -18,6 +21,9 @@ MODEL_PROVENANCE_OWNER = "source_provenance_owner"
 MODEL_PROVENANCE_WORK_UNIT = "recover_transport_model_provenance"
 CALLABLE_SURFACE = f"{OWNER}.{WORK_UNIT}_or_typed_blocker"
 RESULT_RELATIVE_PATH = Path("artifacts/controller/analysis_harmonization/latest.json")
+RERUN_EVIDENCE_RELATIVE_PATH = Path(
+    "artifacts/controller/analysis_harmonization/unit_harmonized_external_validation_rerun.json"
+)
 REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/analysis_harmonization/latest.json")
 
 _CHINA_INPUT = Path("analysis/clean_room_execution/20_transportability/china_transportability_input.csv")
@@ -60,6 +66,7 @@ def unit_harmonized_external_validation_rerun_or_typed_blocker(
         dispatch=dispatch_payload,
         request=request_payload,
         result_path=result_path,
+        apply=apply,
     )
     if apply:
         result_path.parent.mkdir(parents=True, exist_ok=True)
@@ -82,19 +89,52 @@ def _build_owner_result(
     dispatch: Mapping[str, Any],
     request: Mapping[str, Any],
     result_path: Path,
+    apply: bool,
 ) -> dict[str, Any]:
+    generated_at = _utc_now()
     evidence_refs = _evidence_refs(study_root)
     input_summary = _input_summary(study_root)
     prerequisite_assessment = _prerequisite_assessment(
         study_root=study_root,
         input_summary=input_summary,
+        dispatch=dispatch,
+        request=request,
     )
+    if prerequisite_assessment["status"] == "ready_for_owner_rerun":
+        try:
+            rerun_materialization = _materialize_unit_harmonized_rerun_evidence(
+                study_root=study_root,
+                study_id=study_id,
+                generated_at=generated_at,
+                input_summary=input_summary,
+            )
+        except (OSError, TypeError, ValueError, RuntimeError) as exc:
+            prerequisite_assessment = {
+                **prerequisite_assessment,
+                "status": "blocked",
+                "blocking_reasons": [f"unit_harmonized_rerun_materialization_failed:{exc}"],
+                "rerun_without_prerequisites_allowed": False,
+            }
+        else:
+            return _completed_owner_result(
+                study_root=study_root,
+                study_id=study_id,
+                dispatch=dispatch,
+                request=request,
+                result_path=result_path,
+                generated_at=generated_at,
+                input_summary=input_summary,
+                evidence_refs=evidence_refs,
+                prerequisite_assessment=prerequisite_assessment,
+                rerun_materialization=rerun_materialization,
+                apply=apply,
+            )
     blocking_owner_route = _blocking_owner_route(prerequisite_assessment)
     status = "blocked" if prerequisite_assessment["blocking_reasons"] else "blocked"
     return {
         "surface": "analysis_harmonization_owner_result",
         "schema_version": 1,
-        "generated_at": _utc_now(),
+        "generated_at": generated_at,
         "study_id": study_id,
         "owner": OWNER,
         "work_unit": WORK_UNIT,
@@ -151,7 +191,81 @@ def _build_owner_result(
     }
 
 
-def _prerequisite_assessment(*, study_root: Path, input_summary: Mapping[str, Any]) -> dict[str, Any]:
+def _completed_owner_result(
+    *,
+    study_root: Path,
+    study_id: str,
+    dispatch: Mapping[str, Any],
+    request: Mapping[str, Any],
+    result_path: Path,
+    generated_at: str,
+    input_summary: Mapping[str, Any],
+    evidence_refs: list[str],
+    prerequisite_assessment: Mapping[str, Any],
+    rerun_materialization: Mapping[str, Any],
+    apply: bool,
+) -> dict[str, Any]:
+    evidence_path = Path(rerun_materialization["evidence_path"]).expanduser().resolve()
+    evidence_payload = _mapping(rerun_materialization.get("evidence_payload"))
+    if apply:
+        evidence_path.parent.mkdir(parents=True, exist_ok=True)
+        evidence_path.write_text(
+            json.dumps(evidence_payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    return {
+        "surface": "analysis_harmonization_owner_result",
+        "schema_version": 1,
+        "generated_at": generated_at,
+        "study_id": study_id,
+        "owner": OWNER,
+        "work_unit": WORK_UNIT,
+        "status": "completed",
+        "blocked_reason": None,
+        "typed_blocker_owner": None,
+        "typed_blocker": None,
+        "unit_harmonized_rerun_completed": True,
+        "clean_reproducible_model_rebuild_authorized": True,
+        "old_raw_scale_transport_claim_must_not_be_used_as_medical_conclusion": True,
+        "rerun_evidence_ref": str(evidence_path),
+        "analysis_lane_status": "unit_harmonized_rerun_materialized",
+        "recommended_next_route": "return_to_publication_quality_review",
+        "next_owner": "ai_reviewer",
+        "next_work_unit": "ai_reviewer_medical_prose_quality_review",
+        "blocking_owner_route": None,
+        "required_output": {
+            "accepted_evidence": "unit-harmonized external-validation rerun evidence",
+            "accepted_typed_blocker": BLOCKED_REASON,
+        },
+        "input_summary": input_summary,
+        "prerequisite_assessment": dict(prerequisite_assessment),
+        "evidence_refs": [*evidence_refs, str(evidence_path)],
+        "source_action_ref": _source_action_ref(dispatch=dispatch, request=request),
+        "request_ref": {
+            "path": str(study_root / REQUEST_RELATIVE_PATH),
+            "request_kind": _text(request.get("request_kind")) or WORK_UNIT,
+        },
+        "result_ref": str(result_path),
+        "paper_package_mutation_allowed": False,
+        "quality_gate_relaxation_allowed": False,
+        "manual_study_patch_allowed": False,
+        "medical_claim_authoring_allowed": False,
+        "current_package_write_allowed": False,
+        "submission_readiness_verdict_allowed": False,
+        "quality_verdict_written": False,
+        "publication_eval_written": False,
+        "controller_decision_written": False,
+        "forbidden_write_surfaces": list(_FORBIDDEN_WRITE_SURFACES),
+    }
+
+
+def _prerequisite_assessment(
+    *,
+    study_root: Path,
+    input_summary: Mapping[str, Any],
+    dispatch: Mapping[str, Any],
+    request: Mapping[str, Any],
+) -> dict[str, Any]:
     blocking_reasons: list[str] = []
     hdl = _mapping(input_summary.get("hdl"))
     ratio = hdl.get("median_ratio_nhanes_to_china")
@@ -168,12 +282,52 @@ def _prerequisite_assessment(*, study_root: Path, input_summary: Mapping[str, An
         blocking_reasons.append("cox_model_application_provenance_insufficient_for_rerun")
     if not (study_root / _CHINA_INPUT).is_file() or not (study_root / _NHANES_INPUT).is_file():
         blocking_reasons.append("transportability_input_surface_missing")
+    clean_rebuild_authorized = _clean_rebuild_authorized(dispatch=dispatch, request=request, study_root=study_root)
+    if clean_rebuild_authorized:
+        blocking_reasons = [
+            reason
+            for reason in blocking_reasons
+            if reason
+            not in {
+                "cox_model_application_provenance_insufficient_for_rerun",
+                "hdl_unit_scale_mismatch",
+                "nhanes_hdl_mapping_uses_raw_mg_dl_field_without_si_conversion_surface",
+            }
+        ]
     return {
         "status": "blocked" if blocking_reasons else "ready_for_owner_rerun",
         "blocking_reasons": blocking_reasons or ["unit_harmonized_rerun_evidence_not_materialized"],
         "raw_scale_existing_metrics_may_authorize_medical_claims": False,
-        "rerun_without_prerequisites_allowed": False,
+        "clean_reproducible_model_rebuild_authorized": clean_rebuild_authorized,
+        "rerun_without_prerequisites_allowed": clean_rebuild_authorized and not blocking_reasons,
     }
+
+
+def _clean_rebuild_authorized(
+    *,
+    dispatch: Mapping[str, Any],
+    request: Mapping[str, Any],
+    study_root: Path,
+) -> bool:
+    source_action = _mapping(dispatch.get("source_action"))
+    prompt_contract = _mapping(dispatch.get("prompt_contract"))
+    owner_route = _mapping(dispatch.get("owner_route")) or _mapping(prompt_contract.get("owner_route"))
+    decision = _read_json_object(study_root / "artifacts" / "controller_decisions" / "latest.json")
+    next_work_unit = _mapping(decision.get("next_work_unit"))
+    return any(
+        (
+            request.get("clean_reproducible_model_rebuild_authorized") is True,
+            source_action.get("clean_reproducible_model_rebuild_authorized") is True,
+            dispatch.get("clean_reproducible_model_rebuild_authorized") is True,
+            _text(source_action.get("selected_route_option")) == "rebuild_reproducible_model_route",
+            _text(next_work_unit.get("selected_route_option")) == "rebuild_reproducible_model_route",
+            _text(next_work_unit.get("unit_id")) == WORK_UNIT
+            and next_work_unit.get("clean_reproducible_model_rebuild_authorized") is True,
+            _text(owner_route.get("work_unit_fingerprint")) == (
+                "clean-rebuild::unit_harmonized_external_validation_rerun::methodology_reframe_decision"
+            ),
+        )
+    )
 
 
 def _blocking_owner_route(prerequisite_assessment: Mapping[str, Any]) -> dict[str, Any]:
