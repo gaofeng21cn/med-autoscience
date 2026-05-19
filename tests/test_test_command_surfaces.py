@@ -359,7 +359,9 @@ def test_verify_script_exposes_named_lanes_for_ci_workflows() -> None:
     assert 'export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"' in verify_script
     runner_script = _read("scripts/run-python-clean.sh")
     assert 'export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-${tmp_root}/venv}"' in runner_script
-    assert 'UV_NO_SYNC=0 uv sync --frozen --group dev --no-install-project --inexact' in runner_script
+    assert 'uv_sync_args=(uv sync --frozen --group dev --no-install-project --inexact)' in runner_script
+    assert 'uv_sync_args+=(--extra analysis)' in runner_script
+    assert 'UV_NO_SYNC=0 "${uv_sync_args[@]}"' in runner_script
     assert '"${UV_NO_SYNC:-0}" != "1"' not in runner_script
     assert 'venv_python="${UV_PROJECT_ENVIRONMENT}/bin/python"' in runner_script
     assert 'venv_python="${repo_root}/.venv/bin/python"' not in runner_script
@@ -506,15 +508,17 @@ def test_opl_module_healthcheck_uses_install_readiness_surface() -> None:
 
     assert "scripts/verify.sh" not in script
     assert "make test-fast" not in script
-    assert 'command -v uv >/dev/null 2>&1' in script
     assert 'command -v medautosci' not in script
     assert 'command -v medautosci-mcp' not in script
-    assert "export PYTHONDONTWRITEBYTECODE=1" in script
-    assert 'repo_uv=(uv run --directory "${repo_root}" --extra analysis)' in script
-    assert '"${repo_uv[@]}" medautosci --help >/dev/null' in script
-    assert '"${repo_uv[@]}" medautosci doctor stage-route-contract >/dev/null' in script
+    assert 'healthcheck_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-opl-healthcheck.XXXXXX")"' in script
+    assert 'export MAS_CLEAN_RUNNER_TMP_ROOT="${healthcheck_tmp_root}/python"' in script
+    assert "export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1" in script
+    assert 'clean_python=("${repo_root}/scripts/run-python-clean.sh")' in script
+    assert '"${clean_python[@]}" -m med_autoscience.cli --help >/dev/null' in script
+    assert '"${clean_python[@]}" -m med_autoscience.cli doctor stage-route-contract >/dev/null' in script
     assert 'printf \'{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\\n\'' in script
-    assert '"${repo_uv[@]}" medautosci-mcp' in script
+    assert '"${clean_python[@]}" -m med_autoscience.mcp_server' in script
+    assert "uv run --directory" not in script
     assert '"plugins" / "mas" / ".codex-plugin" / "plugin.json"' in script
     assert '"plugins" / "mas" / "skills" / "mas" / "SKILL.md"' in script
 

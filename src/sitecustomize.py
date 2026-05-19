@@ -38,6 +38,23 @@ def _repo_cache_root(repo_root: Path) -> Path:
     return Path(tempfile.gettempdir()) / "mas-python-cache" / digest
 
 
+def _mas_repo_root_from_import_path() -> Path | None:
+    for raw_entry in sys.path:
+        if not raw_entry:
+            continue
+        try:
+            entry = Path(raw_entry).expanduser().resolve()
+        except OSError:
+            continue
+        if entry.name == "src" and (entry / "med_autoscience").is_dir():
+            repo_root = entry.parent
+            if _is_mas_repo_root(repo_root):
+                return repo_root
+        if _is_mas_repo_root(entry):
+            return entry
+    return None
+
+
 def _set_pytest_cache_dir(cache_dir: Path) -> None:
     existing = os.environ.get("PYTEST_ADDOPTS", "")
     if "cache_dir" in existing:
@@ -64,6 +81,12 @@ def _configure_mas_runtime_pycache() -> None:
         return
     quest_root = _mas_quest_root(cwd)
     if quest_root is None:
+        repo_root = _mas_repo_root_from_import_path()
+        if repo_root is None:
+            return
+        cache_root = _repo_cache_root(repo_root)
+        _set_pycache_prefix(cache_root / "pycache")
+        _set_pytest_cache_dir(cache_root / "pytest-cache")
         return
     _set_pycache_prefix(quest_root / ".ds" / "python_pycache")
 

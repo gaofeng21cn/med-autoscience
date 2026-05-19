@@ -4,7 +4,7 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.runtime_supervisor_dispatch_executor_helpers import (
+from tests.domain_owner_action_dispatch_helpers import (
     dispatch as _dispatch,
     owner_route as _owner_route,
     write_current_dispatch as _write_current_dispatch,
@@ -137,7 +137,7 @@ def test_dispatch_can_complete_unit_harmonized_rerun_without_forbidden_writes(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    executor = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
+    dispatcher = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
     owner_module = importlib.import_module("med_autoscience.controllers.analysis_harmonization_owner")
     monkeypatch.setattr(owner_module, "_materialize_unit_harmonized_rerun_evidence", _fake_rerun_evidence, raising=False)
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
@@ -184,13 +184,13 @@ def test_dispatch_can_complete_unit_harmonized_rerun_without_forbidden_writes(
     _write_json(
         profile.workspace_root / "artifacts" / "supervision" / "hourly" / "latest.json",
         {
-            "surface": "portable_runtime_supervisor_scan",
+            "surface": "portable_domain_route_scan",
             "schema_version": 1,
             "studies": [{"study_id": study_id, "owner_route": route}],
         },
     )
 
-    result = executor.dispatch_domain_owner_actions(
+    result = dispatcher.dispatch_domain_owner_actions(
         profile=profile,
         study_ids=(study_id,),
         action_types=("unit_harmonized_external_validation_rerun",),

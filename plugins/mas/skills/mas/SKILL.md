@@ -69,7 +69,7 @@ uv run python -m med_autoscience.cli doctor report --profile <profile>
 - 当前已落地的是 MAS repo-level AI-first paper autonomy callable loop 与 read-only real-paper soak projection；不要把它表述成 Hermes Full App 打包、MAG/RCA adapters、真实 24h gateway restart soak 或三篇 live paper finalization 已完成
 - 保持 `MedAutoScience` 作为 domain handler target，不要把 controller、profile、overlay、workspace 逻辑塌缩进 plugin 私有文件
 - 保持 CLI 和 controller handler 入口稳定，避免破坏 OPL generated descriptors 和 direct path 的兼容性
-- plugin-local MCP 通过当前 repo checkout 的 `uv run --directory <repo-root> --extra analysis medautosci-mcp` 启动
+- plugin-local MCP 通过当前 repo checkout 的 `scripts/run-python-clean.sh -m med_autoscience.mcp_server` 启动，避免 repo-local `.venv`、`__pycache__` 和 editable install metadata 污染
 - 旧 `deepscientist-*` / `med-deepscientist-*` overlay 目录名和 `doctor med-deepscientist-upgrade` 只保留为 internal compatibility surface；workspace project skill 可见面应清理旧 `deepscientist-*` 目录，避免与 `medical-research-*` 双暴露
 
 ## 首先应读的文件

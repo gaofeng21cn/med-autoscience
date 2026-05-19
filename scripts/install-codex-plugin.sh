@@ -2,9 +2,6 @@
 set -euo pipefail
 
 readonly DEFAULT_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly LOCAL_BIN_DIR="${HOME}/.local/bin"
-readonly UV_INSTALL_SCRIPT_URL="https://astral.sh/uv/install.sh"
-
 REPO_ROOT="${DEFAULT_REPO_ROOT}"
 INSTALL_HOME="${HOME}"
 SKIP_TOOLS=0
@@ -57,48 +54,24 @@ check_dependencies() {
   done
 }
 
-ensure_uv() {
-  mkdir -p "${INSTALL_HOME}/.local/bin"
-  if ! command -v uv >/dev/null 2>&1; then
-    printf "uv not found; installing to %s\n" "${INSTALL_HOME}/.local/bin" >&2
-    curl -fsSL "${UV_INSTALL_SCRIPT_URL}" | env UV_INSTALL_DIR="${INSTALL_HOME}/.local/bin" sh
-    export PATH="${INSTALL_HOME}/.local/bin:${PATH}"
-  fi
-  if ! command -v uv >/dev/null 2>&1; then
-    fail "uv installation failed or uv is not on PATH"
-  fi
-}
-
 install_python_tools() {
   mkdir -p "${INSTALL_HOME}/.local/bin"
-  HOME="${INSTALL_HOME}" UV_TOOL_BIN_DIR="${INSTALL_HOME}/.local/bin" uv tool install \
-    --managed-python \
-    --python 3.12 \
-    --force \
-    --editable \
-    "${REPO_ROOT}[analysis]"
-  wrap_python_tool_entrypoint medautosci
-  wrap_python_tool_entrypoint medautosci-mcp
+  write_clean_runner_entrypoint medautosci med_autoscience.cli
+  write_clean_runner_entrypoint medautosci-mcp med_autoscience.mcp_server
 }
 
-wrap_python_tool_entrypoint() {
+write_clean_runner_entrypoint() {
   local name="$1"
+  local module="$2"
   local script_path="${INSTALL_HOME}/.local/bin/${name}"
   local uv_entrypoint_path="${script_path}.uv-entrypoint"
-  if [[ ! -f "${script_path}" ]]; then
-    fail "uv tool install did not create ${script_path}"
-  fi
-  if grep -q "med-autoscience env wrapper" "${script_path}"; then
-    return
-  fi
   rm -f "${uv_entrypoint_path}"
-  mv "${script_path}" "${uv_entrypoint_path}"
   cat >"${script_path}" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-# med-autoscience env wrapper: keep editable installs from writing bytecode into the repo checkout.
-export PYTHONDONTWRITEBYTECODE=1
-exec "\$(dirname "\${BASH_SOURCE[0]}")/${name}.uv-entrypoint" "\$@"
+# med-autoscience clean runner wrapper: avoid repo-local virtualenv, bytecode, and editable metadata.
+export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1
+exec "${REPO_ROOT}/scripts/run-python-clean.sh" -m "${module}" "\$@"
 EOF
   chmod +x "${script_path}"
 }
@@ -113,7 +86,6 @@ main() {
   parse_args "$@"
   check_dependencies
   if [[ "${SKIP_TOOLS}" -eq 0 ]]; then
-    ensure_uv
     install_python_tools
   else
     printf "skip tool installation; only refreshing MedAutoScience repo-local Codex plugin metadata\n" >&2

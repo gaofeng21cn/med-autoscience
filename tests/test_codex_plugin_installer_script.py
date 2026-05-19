@@ -18,11 +18,8 @@ def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Pa
     (fake_bin / "uv").write_text(
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
-        "mkdir -p \"${UV_TOOL_BIN_DIR}\"\n"
-        "printf '%s\\n' \"$@\" > \"${UV_TOOL_BIN_DIR}/uv-args.txt\"\n"
-        "printf '#!/usr/bin/env python3\\nprint(\"medautosci\")\\n' > \"${UV_TOOL_BIN_DIR}/medautosci\"\n"
-        "printf '#!/usr/bin/env python3\\nprint(\"medautosci-mcp\")\\n' > \"${UV_TOOL_BIN_DIR}/medautosci-mcp\"\n"
-        "chmod +x \"${UV_TOOL_BIN_DIR}/medautosci\" \"${UV_TOOL_BIN_DIR}/medautosci-mcp\"\n",
+        "echo 'uv should not be invoked by wrapper-only installer' >&2\n"
+        "exit 99\n",
         encoding="utf-8",
     )
     (fake_bin / "uv").chmod(0o755)
@@ -42,17 +39,16 @@ def test_codex_plugin_installer_script_keeps_codex_paths_repo_local(tmp_path: Pa
     assert result.returncode == 0, result.stderr
     assert (home_dir / ".local" / "bin" / "medautosci").exists()
     assert (home_dir / ".local" / "bin" / "medautosci-mcp").exists()
-    assert (home_dir / ".local" / "bin" / "medautosci.uv-entrypoint").exists()
-    assert (home_dir / ".local" / "bin" / "medautosci-mcp.uv-entrypoint").exists()
-    assert "export PYTHONDONTWRITEBYTECODE=1" in (home_dir / ".local" / "bin" / "medautosci").read_text(
-        encoding="utf-8"
-    )
-    assert "export PYTHONDONTWRITEBYTECODE=1" in (home_dir / ".local" / "bin" / "medautosci-mcp").read_text(
-        encoding="utf-8"
-    )
-    assert (home_dir / ".local" / "bin" / "uv-args.txt").read_text(encoding="utf-8").splitlines()[-1] == (
-        f"{REPO_ROOT}[analysis]"
-    )
+    assert not (home_dir / ".local" / "bin" / "medautosci.uv-entrypoint").exists()
+    assert not (home_dir / ".local" / "bin" / "medautosci-mcp.uv-entrypoint").exists()
+    medautosci_text = (home_dir / ".local" / "bin" / "medautosci").read_text(encoding="utf-8")
+    mcp_text = (home_dir / ".local" / "bin" / "medautosci-mcp").read_text(encoding="utf-8")
+    assert 'export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1' in medautosci_text
+    assert 'exec "' + str(REPO_ROOT) + '/scripts/run-python-clean.sh" -m "med_autoscience.cli" "$@"' in medautosci_text
+    assert 'export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1' in mcp_text
+    assert 'exec "' + str(REPO_ROOT) + '/scripts/run-python-clean.sh" -m "med_autoscience.mcp_server" "$@"' in mcp_text
+    assert "uv tool install" not in INSTALLER_PATH.read_text(encoding="utf-8")
+    assert "--editable" not in INSTALLER_PATH.read_text(encoding="utf-8")
     assert not (home_dir / "plugins" / "mas").exists()
     assert not (home_dir / ".agents" / "skills" / "mas").exists()
     assert not (home_dir / ".agents" / "plugins" / "marketplace.json").exists()
@@ -81,24 +77,31 @@ def test_codex_plugin_installer_script_skip_tools_only_syncs_plugin_paths(tmp_pa
     assert (REPO_ROOT / ".agents" / "plugins" / "marketplace.json").exists()
 
 
-def test_plugin_local_mcp_launcher_execs_repo_root_uv_run(tmp_path: Path) -> None:
-    fake_bin = tmp_path / "fake-bin"
-    fake_bin.mkdir()
-    capture_path = tmp_path / "uv-argv.txt"
-    (fake_bin / "uv").write_text(
-        "#!/usr/bin/env bash\n"
-        "set -euo pipefail\n"
-        "printf '%s\\n' \"$@\" > \"$UV_ARGV_CAPTURE\"\n",
+def test_plugin_local_mcp_launcher_execs_clean_runner(tmp_path: Path) -> None:
+    temp_repo = tmp_path / "repo"
+    temp_launcher = temp_repo / "plugins" / "mas" / "bin" / "medautosci-mcp"
+    temp_runner = temp_repo / "scripts" / "run-python-clean.sh"
+    temp_launcher.parent.mkdir(parents=True)
+    temp_runner.parent.mkdir(parents=True)
+    temp_launcher.write_text(
+        (REPO_ROOT / "plugins" / "mas" / "bin" / "medautosci-mcp").read_text(encoding="utf-8"),
         encoding="utf-8",
     )
-    (fake_bin / "uv").chmod(0o755)
+    temp_launcher.chmod(0o755)
+    capture_path = tmp_path / "runner-argv.txt"
+    temp_runner.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "printf '%s\\n' \"$@\" > \"$RUNNER_ARGV_CAPTURE\"\n",
+        encoding="utf-8",
+    )
+    temp_runner.chmod(0o755)
 
     env = os.environ.copy()
-    env["PATH"] = f"{fake_bin}:{env['PATH']}"
-    env["UV_ARGV_CAPTURE"] = str(capture_path)
+    env["RUNNER_ARGV_CAPTURE"] = str(capture_path)
 
     result = subprocess.run(
-        [str(REPO_ROOT / "plugins" / "mas" / "bin" / "medautosci-mcp")],
+        [str(temp_launcher)],
         cwd=tmp_path,
         env=env,
         capture_output=True,
@@ -107,10 +110,6 @@ def test_plugin_local_mcp_launcher_execs_repo_root_uv_run(tmp_path: Path) -> Non
 
     assert result.returncode == 0, result.stderr
     assert capture_path.read_text(encoding="utf-8").splitlines() == [
-        "run",
-        "--directory",
-        str(REPO_ROOT),
-        "--extra",
-        "analysis",
-        "medautosci-mcp",
+        "-m",
+        "med_autoscience.mcp_server",
     ]

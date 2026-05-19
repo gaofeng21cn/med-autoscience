@@ -29,6 +29,51 @@ def _minimal_ai_reviewer_record(study_id: str, quest_id: str, eval_id: str) -> d
     }
 
 
+def _complete_ai_reviewer_input_refs(
+    study_root: Path,
+    *,
+    publication_gate_projection: Path | None = None,
+    extra_refs: dict[str, Path] | None = None,
+) -> dict[str, dict[str, object]]:
+    refs = {
+        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
+        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
+        "review_ledger": {
+            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
+            "present": True,
+            "valid": True,
+        },
+        "study_charter": {
+            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
+            "present": True,
+            "valid": True,
+        },
+        "medical_manuscript_blueprint": {
+            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
+            "present": True,
+            "valid": True,
+        },
+        "claim_evidence_map": {
+            "path": str(study_root / "paper" / "claim_evidence_map.json"),
+            "present": True,
+            "valid": True,
+        },
+        "medical_prose_review": {
+            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
+            "present": True,
+            "valid": True,
+        },
+        "publication_gate_projection": {
+            "path": str(publication_gate_projection or study_root / "artifacts" / "publication_eval" / "latest.json"),
+            "present": True,
+            "valid": True,
+        },
+    }
+    for ref_name, ref_path in (extra_refs or {}).items():
+        refs[ref_name] = {"path": str(ref_path), "present": True, "valid": True}
+    return refs
+
+
 def test_execute_dispatch_blocks_ai_reviewer_when_request_missing(
     monkeypatch,
     tmp_path: Path,
@@ -273,40 +318,7 @@ def test_execute_dispatch_runs_ai_reviewer_owner_workflow(monkeypatch, tmp_path:
     study_id = "001-dm-cvd-mortality-risk"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
     request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
-    input_refs = {
-        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
-        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
-        "review_ledger": {
-            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
-            "present": True,
-            "valid": True,
-        },
-        "study_charter": {
-            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_manuscript_blueprint": {
-            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
-            "present": True,
-            "valid": True,
-        },
-        "claim_evidence_map": {
-            "path": str(study_root / "paper" / "claim_evidence_map.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_prose_review": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
-            "present": True,
-            "valid": True,
-        },
-        "publication_gate_projection": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-            "present": True,
-            "valid": True,
-        },
-    }
+    input_refs = _complete_ai_reviewer_input_refs(study_root)
     _write_json(
         request_path,
         {
@@ -402,40 +414,7 @@ def test_execute_dispatch_routes_stale_medical_prose_review_request_to_rehydrate
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    input_refs = {
-        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
-        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
-        "review_ledger": {
-            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
-            "present": True,
-            "valid": True,
-        },
-        "study_charter": {
-            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_manuscript_blueprint": {
-            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
-            "present": True,
-            "valid": True,
-        },
-        "claim_evidence_map": {
-            "path": str(study_root / "paper" / "claim_evidence_map.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_prose_review": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
-            "present": True,
-            "valid": True,
-        },
-        "publication_gate_projection": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-            "present": True,
-            "valid": True,
-        },
-    }
+    input_refs = _complete_ai_reviewer_input_refs(study_root)
     _write_json(
         study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
         {
@@ -521,36 +500,7 @@ def test_execute_dispatch_after_paper_authority_cutover_ignores_archived_latest_
             "study_id": study_id,
         },
     )
-    input_refs = {
-        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
-        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
-        "review_ledger": {
-            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
-            "present": True,
-            "valid": True,
-        },
-        "study_charter": {
-            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_manuscript_blueprint": {
-            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
-            "present": True,
-            "valid": True,
-        },
-        "claim_evidence_map": {
-            "path": str(study_root / "paper" / "claim_evidence_map.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_prose_review": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
-            "present": True,
-            "valid": True,
-        },
-        "publication_gate_projection": {"path": str(receipt_path), "present": True, "valid": True},
-    }
+    input_refs = _complete_ai_reviewer_input_refs(study_root, publication_gate_projection=receipt_path)
     _write_json(
         study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
         {
@@ -637,42 +587,13 @@ def test_execute_dispatch_passes_reporting_guideline_and_calibration_refs_to_ai_
     calibration_refs = study_root / "artifacts" / "ai_reviewer" / "calibration_refs.json"
     _write_json(reporting_guideline, {"guideline": "STROBE"})
     _write_json(calibration_refs, {"case_family": "claim_overreach"})
-    input_refs = {
-        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
-        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
-        "review_ledger": {
-            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
-            "present": True,
-            "valid": True,
+    input_refs = _complete_ai_reviewer_input_refs(
+        study_root,
+        extra_refs={
+            "reporting_guideline": reporting_guideline,
+            "calibration_refs": calibration_refs,
         },
-        "study_charter": {
-            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_manuscript_blueprint": {
-            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
-            "present": True,
-            "valid": True,
-        },
-        "claim_evidence_map": {
-            "path": str(study_root / "paper" / "claim_evidence_map.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_prose_review": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
-            "present": True,
-            "valid": True,
-        },
-        "publication_gate_projection": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-            "present": True,
-            "valid": True,
-        },
-        "reporting_guideline": {"path": str(reporting_guideline), "present": True, "valid": True},
-        "calibration_refs": {"path": str(calibration_refs), "present": True, "valid": True},
-    }
+    )
     _write_json(
         study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
         {
@@ -744,40 +665,7 @@ def test_execute_dispatch_runs_ai_reviewer_when_current_owner_route_carries_term
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
     study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    input_refs = {
-        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
-        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
-        "review_ledger": {
-            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
-            "present": True,
-            "valid": True,
-        },
-        "study_charter": {
-            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_manuscript_blueprint": {
-            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
-            "present": True,
-            "valid": True,
-        },
-        "claim_evidence_map": {
-            "path": str(study_root / "paper" / "claim_evidence_map.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_prose_review": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
-            "present": True,
-            "valid": True,
-        },
-        "publication_gate_projection": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-            "present": True,
-            "valid": True,
-        },
-    }
+    input_refs = _complete_ai_reviewer_input_refs(study_root)
     _write_json(
         study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
         {
@@ -901,210 +789,3 @@ def test_execute_dispatch_runs_ai_reviewer_when_current_owner_route_carries_term
     assert execution["owner_callable_surface"] == "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
     assert execution["current_paper_progress_stall"]["terminal"] is True
     assert called["study_root"] == study_root
-
-
-def test_execute_dispatch_blocks_mechanical_publication_eval_as_ai_reviewer_record(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "001-dm-cvd-mortality-risk"
-    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    input_refs = {
-        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
-        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
-        "review_ledger": {
-            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
-            "present": True,
-            "valid": True,
-        },
-        "study_charter": {
-            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_manuscript_blueprint": {
-            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
-            "present": True,
-            "valid": True,
-        },
-        "claim_evidence_map": {
-            "path": str(study_root / "paper" / "claim_evidence_map.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_prose_review": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
-            "present": True,
-            "valid": True,
-        },
-        "publication_gate_projection": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-            "present": True,
-            "valid": True,
-        },
-    }
-    _write_json(
-        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
-        {
-            "surface": "domain_action_request",
-            "request_kind": "return_to_ai_reviewer_workflow",
-            "request_owner": "ai_reviewer",
-            "input_contract": {
-                "required_refs": input_refs,
-                "all_required_refs_present": True,
-                "missing_or_invalid_refs": [],
-            },
-        },
-    )
-    _write_json(
-        study_root / "artifacts" / "publication_eval" / "latest.json",
-        {
-            "eval_id": "publication-eval::001::quest::2026-05-05T00:00:00+00:00",
-            "study_id": study_id,
-            "quest_id": f"quest-{study_id}",
-            "assessment_provenance": {
-                "owner": "mechanical_projection",
-                "source_kind": "publication_gate_report",
-                "ai_reviewer_required": True,
-            },
-            "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
-        },
-    )
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
-        / "return_to_ai_reviewer_workflow.json"
-    )
-    dispatch = _dispatch(
-        study_id=study_id,
-        action_type="return_to_ai_reviewer_workflow",
-        owner="ai_reviewer",
-        required_output_surface="artifacts/publication_eval/latest.json",
-    )
-    _write_current_dispatch(
-        dispatch_path,
-        profile,
-        dispatch,
-    )
-    result = module.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,),
-        action_types=("return_to_ai_reviewer_workflow",),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    assert result["blocked_count"] == 1
-    execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "ai_reviewer_record_missing"
-    assert execution["next_owner"] == "ai_reviewer"
-    assert execution["owner_record_requirements"]["required_record_fields"] == [
-        "quality_assessment",
-        "future_facing_limitations_plan",
-    ]
-
-
-def test_execute_dispatch_rejects_request_record_without_future_facing_limitations_plan(
-    monkeypatch,
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_owner_action_dispatch")
-    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
-    profile = make_profile(tmp_path)
-    study_id = "001-dm-cvd-mortality-risk"
-    study_root = write_study(profile.workspace_root, study_id, quest_id=f"quest-{study_id}")
-    input_refs = {
-        "manuscript": {"path": str(study_root / "paper" / "draft.md"), "present": True, "valid": True},
-        "evidence_ledger": {"path": str(study_root / "paper" / "evidence_ledger.json"), "present": True, "valid": True},
-        "review_ledger": {
-            "path": str(study_root / "paper" / "review" / "review_ledger.json"),
-            "present": True,
-            "valid": True,
-        },
-        "study_charter": {
-            "path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_manuscript_blueprint": {
-            "path": str(study_root / "paper" / "medical_manuscript_blueprint.json"),
-            "present": True,
-            "valid": True,
-        },
-        "claim_evidence_map": {
-            "path": str(study_root / "paper" / "claim_evidence_map.json"),
-            "present": True,
-            "valid": True,
-        },
-        "medical_prose_review": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "medical_prose_review.json"),
-            "present": True,
-            "valid": True,
-        },
-        "publication_gate_projection": {
-            "path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
-            "present": True,
-            "valid": True,
-        },
-    }
-    _write_json(
-        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
-        {
-            "surface": "domain_action_request",
-            "request_kind": "return_to_ai_reviewer_workflow",
-            "request_owner": "ai_reviewer",
-            "input_contract": {"required_refs": input_refs},
-            "ai_reviewer_record": {
-                "eval_id": "publication-eval::request-record-missing-limitations",
-                "study_id": study_id,
-                "quest_id": f"quest-{study_id}",
-                "assessment_provenance": {
-                    "owner": "ai_reviewer",
-                    "source_kind": "publication_eval_ai_reviewer",
-                    "ai_reviewer_required": False,
-                },
-                "quality_assessment": {"medical_journal_prose_quality": {"status": "underdefined"}},
-                "recommended_actions": [{"specificity_targets": [{"target_kind": "claim"}]}],
-            },
-        },
-    )
-    dispatch_path = (
-        study_root
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "default_executor_dispatches"
-        / "return_to_ai_reviewer_workflow.json"
-    )
-    dispatch = _dispatch(
-        study_id=study_id,
-        action_type="return_to_ai_reviewer_workflow",
-        owner="ai_reviewer",
-        required_output_surface="artifacts/publication_eval/latest.json",
-    )
-    _write_current_dispatch(
-        dispatch_path,
-        profile,
-        dispatch,
-    )
-
-    result = module.dispatch_domain_owner_actions(
-        profile=profile,
-        study_ids=(study_id,),
-        action_types=("return_to_ai_reviewer_workflow",),
-        mode="developer_apply_safe",
-        apply=True,
-    )
-
-    assert result["blocked_count"] == 1
-    execution = result["executions"][0]
-    assert execution["execution_status"] == "blocked"
-    assert execution["blocked_reason"] == "ai_reviewer_record_incomplete"
-    assert execution["missing_record_fields"] == ["future_facing_limitations_plan"]

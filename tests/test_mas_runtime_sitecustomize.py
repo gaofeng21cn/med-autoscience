@@ -78,6 +78,33 @@ def test_sitecustomize_routes_repo_root_caches_to_temp_root(tmp_path: Path) -> N
     assert str(REPO_ROOT) not in lines[2]
 
 
+def test_sitecustomize_routes_editable_mas_import_path_caches_to_temp_root(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import os, pathlib, sys; "
+                "print(sys.pycache_prefix or ''); "
+                "print(os.environ.get('PYTHONPYCACHEPREFIX') or ''); "
+                "print(os.environ.get('PYTEST_ADDOPTS') or '')"
+            ),
+        ],
+        cwd=tmp_path,
+        env=_sitecustomize_env(tmp_path, pythonpath=REPO_ROOT / "src"),
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+    lines = result.stdout.splitlines()
+    assert lines[0] == lines[1]
+    assert lines[0].startswith(str(Path(tempfile.gettempdir()) / "mas-python-cache"))
+    assert str(REPO_ROOT) not in lines[0]
+    assert "-o cache_dir=" in lines[2]
+    assert str(REPO_ROOT) not in lines[2]
+
+
 def test_sitecustomize_prevents_repo_cache_when_direct_pytest_is_used(tmp_path: Path) -> None:
     shutil.rmtree(REPO_ROOT / ".pytest_cache", ignore_errors=True)
     shutil.rmtree(REPO_ROOT / "src" / "med_autoscience" / "__pycache__", ignore_errors=True)

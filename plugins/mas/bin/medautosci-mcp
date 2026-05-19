@@ -2,5 +2,5 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-export PYTHONDONTWRITEBYTECODE=1
-exec uv run --directory "${repo_root}" --extra analysis medautosci-mcp "$@"
+export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1
+exec "${repo_root}/scripts/run-python-clean.sh" -m med_autoscience.mcp_server "$@"

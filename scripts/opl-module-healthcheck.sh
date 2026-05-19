@@ -5,16 +5,23 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${repo_root}"
 
 export PATH="${HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:${PATH}"
-export PYTHONDONTWRITEBYTECODE=1
+
+healthcheck_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-opl-healthcheck.XXXXXX")"
+cleanup_healthcheck_tmp_root() {
+  rm -rf "${healthcheck_tmp_root}"
+}
+trap cleanup_healthcheck_tmp_root EXIT
 
 command -v python3 >/dev/null 2>&1
 command -v uv >/dev/null 2>&1
 
-repo_uv=(uv run --directory "${repo_root}" --extra analysis)
+export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1
+export MAS_CLEAN_RUNNER_TMP_ROOT="${healthcheck_tmp_root}/python"
+clean_python=("${repo_root}/scripts/run-python-clean.sh")
 
-"${repo_uv[@]}" medautosci --help >/dev/null
-"${repo_uv[@]}" medautosci doctor stage-route-contract >/dev/null
-mcp_tools_json="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | "${repo_uv[@]}" medautosci-mcp)"
+"${clean_python[@]}" -m med_autoscience.cli --help >/dev/null
+"${clean_python[@]}" -m med_autoscience.cli doctor stage-route-contract >/dev/null
+mcp_tools_json="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | "${clean_python[@]}" -m med_autoscience.mcp_server)"
 export MCP_TOOLS_JSON="${mcp_tools_json}"
 
 python3 - <<'PY'
@@ -53,8 +60,8 @@ print(json.dumps({
     "ok": True,
     "module": "medautoscience",
     "checks": {
-        "cli": "repo-local uv run medautosci",
-        "mcp_cli": "repo-local uv run medautosci-mcp",
+        "cli": "repo-local clean runner medautosci",
+        "mcp_cli": "repo-local clean runner medautosci-mcp",
         "public_help": "ready",
         "entry_modes": "ready",
         "mcp_control_plane_modes": "ready",

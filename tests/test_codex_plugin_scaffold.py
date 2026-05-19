@@ -26,8 +26,9 @@ def test_codex_plugin_scaffold_exists_and_points_to_repo_local_plugin() -> None:
     launcher = PLUGIN_ROOT / "bin" / "medautosci-mcp"
     assert launcher.is_file()
     launcher_text = launcher.read_text(encoding="utf-8")
-    assert "export PYTHONDONTWRITEBYTECODE=1" in launcher_text
-    assert 'uv run --directory "${repo_root}" --extra analysis medautosci-mcp "$@"' in launcher_text
+    assert "export MAS_CLEAN_RUNNER_ANALYSIS_EXTRA=1" in launcher_text
+    assert 'exec "${repo_root}/scripts/run-python-clean.sh" -m med_autoscience.mcp_server "$@"' in launcher_text
+    assert 'uv run --directory "${repo_root}"' not in launcher_text
 
     plugin_entry = next(item for item in marketplace["plugins"] if item["name"] == "mas")
     assert plugin_entry["source"] == {
