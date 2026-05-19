@@ -53,6 +53,15 @@ FUNCTIONAL_MODULE_INVENTORY = (
             "sidecar/product-entry lifecycle projections",
         ],
         "active_caller_status": "refs_only_domain_sidecar_adapter_active",
+        "authority_boundary": "refs_only_sqlite_lifecycle_index_not_generic_runtime_owner",
+        "provenance_boundary": {
+            "surface_role": "domain_receipt_locator_and_lifecycle_ref_index",
+            "history_role": "runtime_lifecycle_sqlite_migration_provenance",
+            "body_policy": "refs_receipts_blockers_only",
+            "may_emit": ["owner_receipt_ref", "study_runtime_status_ref", "lifecycle_locator_ref"],
+            "must_not_emit": ["generic_runtime_verdict", "generic_restore_verdict", "paper_closure_verdict"],
+            "generic_owner_claim_allowed": False,
+        },
         "migration_action": "keep_runtime_lifecycle_refs_only_adapter_and_consume_opl_lifecycle_index",
         "retention_reason": (
             "MAS can index paper-line owner receipts and locators as a domain sidecar reference adapter; "
@@ -97,6 +106,14 @@ FUNCTIONAL_MODULE_INVENTORY = (
         "opl_expected_primitives": ["opl_artifact_lifecycle_storage_audit_shell", "opl_restore_retention_receipt_shell", "opl_runtime_lifecycle_cleanup_policy"],
         "retained_domain_authority": ["artifact_authority", "workspace_artifact_refs"],
         "authority_boundary": "refs_only_adapter_no_generic_cleanup_policy_owner",
+        "provenance_boundary": {
+            "surface_role": "workspace_storage_ref_report_and_artifact_authority_receipt_adapter",
+            "history_role": "storage_maintenance_provenance",
+            "body_policy": "workspace_refs_sizes_receipts_blockers_only",
+            "may_emit": ["workspace_artifact_ref", "cleanup_receipt_ref", "typed_blocker"],
+            "must_not_emit": ["generic_cleanup_policy", "restore_ready_verdict", "paper_closure_verdict"],
+            "generic_owner_claim_allowed": False,
+        },
         "proof_refs": ["contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough", "runtime_lifecycle_contract.opl_artifact_lifecycle_storage_audit_shell"],
     },
     {
@@ -176,6 +193,15 @@ FUNCTIONAL_MODULE_INVENTORY = (
         ],
         "active_callers": ["runtime live-console CLI", "Progress Portal links"],
         "active_caller_status": "read_only_terminal_projection_active",
+        "authority_boundary": "refs_only_terminal_projection_no_generic_attach_runtime_owner",
+        "provenance_boundary": {
+            "surface_role": "terminal_log_ref_projection_and_mas_attach_gate_provenance",
+            "history_role": "terminal_attach_parity_provenance",
+            "body_policy": "terminal_log_source_refs_and_gate_receipts_only",
+            "may_emit": ["terminal_status_ref", "terminal_gate_receipt_ref", "typed_blocker"],
+            "must_not_emit": ["generic_terminal_runtime_owner", "daemon_attach_authority", "paper_closure_verdict"],
+            "generic_owner_claim_allowed": False,
+        },
         "migration_action": "keep_read_only_terminal_refs_adapter_for_opl_operator_workbench",
         "retention_reason": "MAS keeps read-only paper progress facts and domain blocker explanations.",
         "opl_expected_primitives": ["terminal_attach_transport", "operator_log_projection"],
