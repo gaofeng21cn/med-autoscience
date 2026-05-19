@@ -245,6 +245,37 @@ _CATEGORY_SPECS: tuple[PreflightCategorySpec, ...] = (
         ),
     ),
     PreflightCategorySpec(
+        category_id="standard_agent_pack_surface",
+        exact_paths=(
+            "contracts/action_catalog.json",
+            "contracts/artifact_locator_contract.json",
+            "contracts/domain_descriptor.json",
+            "contracts/functional_privatization_audit.json",
+            "contracts/generated_surface_handoff.json",
+            "contracts/memory_descriptor.json",
+            "contracts/owner_receipt_contract.json",
+            "contracts/pack_compiler_input.json",
+            "contracts/private_functional_surface_policy.json",
+            "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
+            "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
+        ),
+        prefix_paths=(
+            "agent/knowledge/",
+            "agent/prompts/",
+            "agent/quality_gates/",
+            "agent/skills/",
+            "agent/stages/",
+        ),
+        commands=(
+            (
+                f"{PYTEST_CLEAN_RUNNER} "
+                "tests/test_opl_family_contract_adoption.py "
+                "tests/test_test_lane_governance.py -q"
+            ),
+            f"{PYTEST_CLEAN_RUNNER} tests/test_product_entry.py -q",
+        ),
+    ),
+    PreflightCategorySpec(
         category_id="family_shared_surface",
         exact_paths=(
             "Makefile",
