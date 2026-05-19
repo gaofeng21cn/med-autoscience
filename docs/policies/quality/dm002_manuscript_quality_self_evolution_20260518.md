@@ -168,3 +168,18 @@ Follow-up patch:
 Additional verification:
 
 - `scripts/run-pytest-clean.sh tests/test_study_truth_kernel.py tests/test_provenance_limited_harmonization_owner.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_route_priority.py -q`: 18 passed.
+
+## Source-Provenance Currentness Follow-Up
+
+The human-gate authorization route successfully reached `analysis_harmonization_owner`, but a live DM002 scan exposed another currentness issue: the new analysis owner result handed off to `source_provenance_owner`, while an older source-provenance search blocker and older provenance-limited route result could still be treated as current satisfied outputs. That produced `action_queue=[]` even though the current analysis blocker required model-provenance recovery.
+
+Follow-up patch:
+
+- Invalidate source-provenance satisfied output when a newer `analysis_harmonization/latest.json` requests `transport_model_provenance_recovery_required`.
+- Invalidate provenance-limited satisfied output when a newer analysis owner result has taken over the clean rebuild route.
+- Requeue `source_provenance_owner.recover_transport_model_provenance_or_typed_blocker` from the fresh analysis owner handoff.
+- Preserve fail-closed semantics: current raw transported-score results and stale source search blockers still cannot authorize manuscript claims or publication readiness.
+
+Additional verification:
+
+- `scripts/run-pytest-clean.sh tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_route_priority.py tests/test_provenance_limited_harmonization_owner.py -q`: 11 passed.

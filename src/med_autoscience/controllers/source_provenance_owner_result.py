@@ -25,7 +25,11 @@ def read_result(*, study_root: Path) -> dict[str, Any] | None:
 
 
 def required_output_satisfied(*, study_root: Path) -> bool:
-    return result_satisfies_required_output(read_result(study_root=study_root))
+    root = Path(study_root).expanduser().resolve()
+    payload = read_result(study_root=root)
+    if analysis_harmonization_supersedes_result(study_root=root, result_payload=payload):
+        return False
+    return result_satisfies_required_output(payload)
 
 
 def result_satisfies_required_output(payload: Mapping[str, Any] | None) -> bool:
@@ -67,7 +71,10 @@ def _has_current_provenance_search(payload: Mapping[str, Any]) -> bool:
 
 
 def typed_blocker_state(*, study_root: Path) -> dict[str, Any] | None:
-    payload = read_result(study_root=study_root)
+    root = Path(study_root).expanduser().resolve()
+    payload = read_result(study_root=root)
+    if analysis_harmonization_supersedes_result(study_root=root, result_payload=payload):
+        return None
     if not result_is_accepted_typed_blocker(payload):
         return None
     return {
@@ -81,6 +88,31 @@ def typed_blocker_state(*, study_root: Path) -> dict[str, Any] | None:
 
 def output_pending_for_result(payload: Mapping[str, Any] | None) -> bool:
     return not result_satisfies_required_output(payload)
+
+
+def analysis_harmonization_supersedes_result(
+    *,
+    study_root: Path,
+    result_payload: Mapping[str, Any] | None,
+) -> bool:
+    result = _mapping(result_payload)
+    if not _matches_source_provenance_owner_result(result):
+        return False
+    root = Path(study_root).expanduser().resolve()
+    analysis_path = root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
+    analysis = _read_json_object(analysis_path)
+    route = _mapping(_mapping(analysis).get("blocking_owner_route"))
+    if _text(route.get("blocked_reason")) != BLOCKED_REASON:
+        return False
+    if _text(route.get("next_owner")) != OWNER:
+        return False
+    if _text(route.get("next_work_unit")) != WORK_UNIT:
+        return False
+    result_mtime = _path_mtime(result_path(study_root=root))
+    analysis_mtime = _path_mtime(analysis_path)
+    if result_mtime is None or analysis_mtime is None:
+        return False
+    return analysis_mtime > result_mtime
 
 
 def _matches_source_provenance_owner_result(payload: Mapping[str, Any]) -> bool:
@@ -99,6 +131,13 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     return dict(payload) if isinstance(payload, Mapping) else None
 
 
+def _path_mtime(path: Path) -> float | None:
+    try:
+        return Path(path).expanduser().resolve().stat().st_mtime
+    except OSError:
+        return None
+
+
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
 
@@ -115,6 +154,7 @@ __all__ = [
     "TERMINAL_ROUTE_BLOCKED_REASON",
     "TERMINAL_ROUTE_NEXT_OWNER",
     "WORK_UNIT",
+    "analysis_harmonization_supersedes_result",
     "output_pending_for_result",
     "read_result",
     "required_output_satisfied",

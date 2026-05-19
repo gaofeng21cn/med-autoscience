@@ -27,6 +27,8 @@ def read_result(*, study_root: Path) -> dict[str, Any] | None:
 
 
 def required_output_satisfied(*, study_root: Path) -> bool:
+    if analysis_harmonization_supersedes_result(study_root=study_root):
+        return False
     payload = read_result(study_root=study_root)
     if provenance_limited_harmonization_owner.rebuild_authorization_supersedes_result(
         study_root=study_root,
@@ -59,6 +61,8 @@ def result_is_accepted_typed_blocker(payload: Mapping[str, Any] | None) -> bool:
 
 
 def typed_blocker_state(*, study_root: Path) -> dict[str, Any] | None:
+    if analysis_harmonization_supersedes_result(study_root=study_root):
+        return None
     payload = read_result(study_root=study_root)
     if provenance_limited_harmonization_owner.rebuild_authorization_supersedes_result(
         study_root=study_root,
@@ -81,6 +85,22 @@ def typed_blocker_state(*, study_root: Path) -> dict[str, Any] | None:
 
 def output_pending_for_result(payload: Mapping[str, Any] | None) -> bool:
     return not result_satisfies_required_output(payload)
+
+
+def analysis_harmonization_supersedes_result(*, study_root: Path) -> bool:
+    root = Path(study_root).expanduser().resolve()
+    result = read_result(study_root=root)
+    if not _matches_result(_mapping(result)):
+        return False
+    analysis_path = root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
+    analysis = _read_json_object(analysis_path)
+    if _text(_mapping(analysis).get("surface")) != "analysis_harmonization_owner_result":
+        return False
+    if _text(_mapping(analysis).get("blocked_reason")) != REBUILD_AUTHORIZED_RERUN_REQUIRED:
+        return False
+    analysis_mtime = _path_mtime(analysis_path)
+    result_mtime = _path_mtime(result_path(study_root=root))
+    return analysis_mtime is not None and result_mtime is not None and analysis_mtime > result_mtime
 
 
 def controller_decision_requests_audit(*, study_root: Path) -> bool:
@@ -143,6 +163,7 @@ __all__ = [
     "REBUILD_AUTHORIZED_WORK_UNIT",
     "RESULT_RELATIVE_PATH",
     "WORK_UNIT",
+    "analysis_harmonization_supersedes_result",
     "controller_decision_requests_audit",
     "current_controller_decision_requests_audit",
     "output_pending_for_result",

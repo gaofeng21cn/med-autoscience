@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import os
 from pathlib import Path
 
 from tests.study_runtime_test_helpers import make_profile, write_study, write_text
@@ -312,6 +313,128 @@ def test_scan_queues_source_provenance_owner_for_model_provenance_blocker(
     assert study["owner_route"]["next_owner"] == "source_provenance_owner"
     assert study["owner_route"]["owner_reason"] == "transport_model_provenance_recovery_required"
     assert study["owner_route"]["allowed_actions"] == ["recover_transport_model_provenance"]
+
+
+def test_scan_requeues_source_owner_when_new_analysis_result_supersedes_old_source_search(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::source-currentness",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+        "recommended_actions": [],
+    }
+    source_path = study_root / "artifacts" / "controller" / "source_provenance" / "latest.json"
+    analysis_path = study_root / "artifacts" / "controller" / "analysis_harmonization" / "latest.json"
+    _write_json(
+        source_path,
+        {
+            "surface": "source_provenance_owner_result",
+            "schema_version": 1,
+            "study_id": study_id,
+            "owner": "source_provenance_owner",
+            "work_unit": "recover_transport_model_provenance",
+            "status": "blocked",
+            "blocked_reason": "transport_model_provenance_recovery_required",
+            "typed_blocker_owner": "source_provenance_owner",
+            "typed_blocker": {"blocker_id": "transport_model_provenance_recovery_required"},
+            "transport_model_provenance_recovered": False,
+            "provenance_search": {
+                "searched": True,
+                "accepted_bundle_ref": None,
+                "candidate_count": 0,
+                "candidates": [],
+                "result_summary_acceptance_allowed": False,
+                "substitute_refit_allowed": False,
+            },
+        },
+    )
+    _write_json(
+        analysis_path,
+        {
+            "surface": "analysis_harmonization_owner_result",
+            "schema_version": 1,
+            "study_id": study_id,
+            "owner": "analysis_harmonization_owner",
+            "work_unit": "unit_harmonized_external_validation_rerun",
+            "status": "blocked",
+            "blocked_reason": "unit_harmonized_rerun_required",
+            "typed_blocker_owner": "analysis_harmonization_owner",
+            "typed_blocker": {"blocker_id": "unit_harmonized_rerun_required"},
+            "blocking_owner_route": {
+                "blocked_reason": "transport_model_provenance_recovery_required",
+                "next_owner": "source_provenance_owner",
+                "next_work_unit": "recover_transport_model_provenance",
+            },
+            "unit_harmonized_rerun_completed": False,
+        },
+    )
+    source_mtime = 1_000
+    analysis_mtime = 2_000
+    source_path.touch()
+    analysis_path.touch()
+    os.utime(source_path, (source_mtime, source_mtime))
+    os.utime(analysis_path, (analysis_mtime, analysis_mtime))
+    status_payload = {
+        "study_id": study_id,
+        "study_root": str(study_root),
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "paused",
+        "decision": "blocked",
+        "reason": "quest_waiting_for_user",
+        "active_run_id": None,
+        "publication_eval": publication_eval,
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm002-source-currentness",
+            "source_signature": "truth-source-dm002-source-currentness",
+        },
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "analysis-campaign",
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "quality_review_loop": {"closure_state": "review_required"},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        "ai_repair_lifecycle": {
+            "state": "blocked",
+            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+        },
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == ["recover_transport_model_provenance"]
+    assert study["blocked_reason"] == "transport_model_provenance_recovery_required"
+    assert study["next_owner"] == "source_provenance_owner"
 
 
 def test_scan_requeues_stale_source_provenance_typed_blocker_without_search_trace(
