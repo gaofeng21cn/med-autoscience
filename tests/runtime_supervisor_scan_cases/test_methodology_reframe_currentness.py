@@ -116,9 +116,9 @@ def test_methodology_reframe_decision_exposes_current_controller_runtime_route(t
     decision["next_work_unit"].update(
         {
             "hard_methodology": True,
-            "required_owner": "analysis_harmonization_owner",
-            "required_next_work_unit": "unit_harmonized_external_validation_rerun",
-            "typed_blocker": "unit_harmonized_rerun_required",
+            "selected_route_option": "provenance_limited_harmonization_audit",
+            "terminal_source_provenance_blocker_consumed": True,
+            "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
         }
     )
     _write_json(decision_path, decision)
@@ -133,7 +133,7 @@ def test_methodology_reframe_decision_exposes_current_controller_runtime_route(t
     )
 
     assert route is not None
-    assert route["work_unit_id"] == "medical_prose_quality_analysis_source_documentation_repair"
+    assert route["work_unit_id"] == "provenance_limited_harmonization_audit"
     assert route["work_unit_fingerprint"] == "decision::methodology_reframe_route_decision"
     assert route["controller_actions"] == ["ensure_study_runtime"]
 
@@ -177,9 +177,9 @@ def test_platform_repair_prefers_methodology_reframe_route_over_stale_gate_speci
     decision["next_work_unit"].update(
         {
             "hard_methodology": True,
-            "required_owner": "analysis_harmonization_owner",
-            "required_next_work_unit": "unit_harmonized_external_validation_rerun",
-            "typed_blocker": "unit_harmonized_rerun_required",
+            "selected_route_option": "provenance_limited_harmonization_audit",
+            "terminal_source_provenance_blocker_consumed": True,
+            "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
         }
     )
     _write_json(decision_path, decision)
@@ -298,11 +298,15 @@ def _materialized_methodology_decision(*, study_id: str, quest_id: str) -> dict:
         "study_id": study_id,
         "quest_id": quest_id,
         "emitted_at": "2026-05-18T23:13:18+00:00",
-        "decision_type": "route_back_same_line",
+        "decision_type": "bounded_analysis",
         "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
         "next_work_unit": {
-            "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+            "unit_id": "provenance_limited_harmonization_audit",
             "lane": "analysis-campaign",
+            "hard_methodology": True,
+            "selected_route_option": "provenance_limited_harmonization_audit",
+            "terminal_source_provenance_blocker_consumed": True,
+            "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
         },
     }
 

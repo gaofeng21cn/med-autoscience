@@ -23,7 +23,7 @@ DOMAIN_TRANSITION_ACTIONS_BY_DECISION_TYPE = {
     "publication_gate_blocker": {"run_gate_clearing_batch"},
 }
 METHODOLOGY_REFRAME_DECISION_FINGERPRINT = "decision::methodology_reframe_route_decision"
-METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT = "medical_prose_quality_analysis_source_documentation_repair"
+METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT = "provenance_limited_harmonization_audit"
 
 
 def runtime_platform_repair_action(
@@ -147,9 +147,9 @@ def methodology_reframe_runtime_route_allowed(
         and work_unit_id == METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT
         and "ensure_study_runtime" in action_types
         and work_unit.get("hard_methodology") is True
-        and _text(work_unit.get("required_owner")) == "analysis_harmonization_owner"
-        and _text(work_unit.get("required_next_work_unit")) == "unit_harmonized_external_validation_rerun"
-        and _text(work_unit.get("typed_blocker")) == "unit_harmonized_rerun_required"
+        and _text(work_unit.get("selected_route_option")) == "provenance_limited_harmonization_audit"
+        and work_unit.get("terminal_source_provenance_blocker_consumed") is True
+        and work_unit.get("current_transport_claim_must_not_be_used_as_medical_conclusion") is True
     )
 
 

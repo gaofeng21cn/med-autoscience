@@ -126,10 +126,27 @@ def _compact_work_unit_payload(value: object) -> dict[str, Any] | None:
             payload[key] = text
     if value.get("hard_methodology") is True:
         payload["hard_methodology"] = True
-    for key in ("required_owner", "required_next_work_unit", "typed_blocker"):
+    for key in (
+        "required_owner",
+        "required_next_work_unit",
+        "typed_blocker",
+        "selected_route_option",
+        "required_output",
+    ):
         text = _text(value.get(key))
         if text is not None:
             payload[key] = text
+    for key in (
+        "terminal_source_provenance_blocker_consumed",
+        "current_transport_claim_must_not_be_used_as_medical_conclusion",
+    ):
+        if value.get(key) is True:
+            payload[key] = True
+    required_prior_owner_outputs = [
+        text for item in value.get("required_prior_owner_outputs") or [] if (text := _text(item)) is not None
+    ]
+    if required_prior_owner_outputs:
+        payload["required_prior_owner_outputs"] = required_prior_owner_outputs
     route_options = [
         text
         for item in value.get("route_options") or []

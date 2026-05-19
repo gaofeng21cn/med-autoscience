@@ -28,16 +28,24 @@ METHODOLOGY_REFRAME_DECISION_OPTIONS = (
     "human_gate",
 )
 METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT = {
-    "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+    "unit_id": "provenance_limited_harmonization_audit",
     "lane": "analysis-campaign",
     "summary": (
-        "Reframe the invalid transported-model claim by materializing a provenance-limited "
-        "harmonization audit, reproducible-model restart plan, stop-loss evidence, or human-gate blocker."
+        "Consume the terminal transported-model provenance blocker by materializing a provenance-limited "
+        "harmonization audit and a reproducible-model rebuild or stop-loss route before any manuscript claim work."
     ),
     "hard_methodology": True,
-    "required_owner": "analysis_harmonization_owner",
-    "required_next_work_unit": "unit_harmonized_external_validation_rerun",
-    "typed_blocker": "unit_harmonized_rerun_required",
+    "selected_route_option": "provenance_limited_harmonization_audit",
+    "terminal_source_provenance_blocker_consumed": True,
+    "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
+    "required_prior_owner_outputs": [
+        "analysis_harmonization_owner.unit_harmonized_external_validation_rerun_or_typed_blocker",
+        "source_provenance_owner.recover_transport_model_provenance_or_typed_blocker",
+    ],
+    "required_output": (
+        "provenance-limited harmonization audit with either a reproducible-model rebuild route, "
+        "a stop-loss record for the current transported claim, or a human-gate blocker"
+    ),
     "route_options": list(METHODOLOGY_REFRAME_DECISION_OPTIONS),
 }
 
@@ -104,8 +112,9 @@ def _owner_result(*, study_id: str, request_path: Path, decision_path: Path, dec
         "controller_decision_ref": str(decision_path),
         "controller_decision_id": decision_id,
         "next_owner": "decision",
-        "route_decision": "route_back_same_line",
+        "route_decision": "bounded_analysis",
         "route_target": "analysis-campaign",
+        "selected_route_option": "provenance_limited_harmonization_audit",
         "selected_next_work_unit": dict(METHODOLOGY_REFRAME_ANALYSIS_WORK_UNIT),
         "route_options": list(METHODOLOGY_REFRAME_DECISION_OPTIONS),
         "paper_package_mutation_allowed": False,
@@ -166,7 +175,8 @@ def _request(*, study_id: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:
         },
         "required_output": {
             "accepted_evidence": "controller route decision",
-            "accepted_route_decision": "route_back_same_line",
+            "accepted_route_decision": "bounded_analysis",
+            "selected_route_option": "provenance_limited_harmonization_audit",
         },
         "paper_package_mutation_allowed": False,
         "quality_gate_relaxation_allowed": False,
@@ -191,7 +201,7 @@ def _decision_record(
         study_id=study_id,
         quest_id=quest_id,
         emitted_at=emitted_at,
-        decision_type=StudyDecisionType.ROUTE_BACK_SAME_LINE,
+        decision_type=StudyDecisionType.BOUNDED_ANALYSIS,
         charter_ref=_charter_ref(study_root=study_root, study_id=study_id),
         runtime_escalation_ref=_runtime_escalation_ref(study_root=study_root, study_id=study_id, quest_id=quest_id),
         publication_eval_ref=_publication_eval_ref_or_placeholder(study_root=study_root),
@@ -204,7 +214,8 @@ def _decision_record(
         ),
         reason=(
             "Terminal source-provenance blocker prevents using the current transported-model claim as a "
-            "medical conclusion; route the same study back for methodology reframe before manuscript work."
+            "medical conclusion; route the same study to a provenance-limited harmonization audit and "
+            "reproducible-model rebuild or stop-loss decision before manuscript work."
         ),
         route_target="analysis-campaign",
         route_key_question="Can DM002 continue as a valid external-validation paper without the original transported model provenance?",

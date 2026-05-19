@@ -665,7 +665,7 @@ def test_scan_does_not_requeue_methodology_reframe_after_controller_decision_mat
             "study_id": study_id,
             "quest_id": quest_id,
             "emitted_at": "2026-05-18T23:13:18+00:00",
-            "decision_type": "route_back_same_line",
+            "decision_type": "bounded_analysis",
             "charter_ref": {
                 "charter_id": f"charter::{study_id}::v1",
                 "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
@@ -696,8 +696,12 @@ def test_scan_does_not_requeue_methodology_reframe_after_controller_decision_mat
             "route_rationale": "Route back for methodology reframe before manuscript work.",
             "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
             "next_work_unit": {
-                "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+                "unit_id": "provenance_limited_harmonization_audit",
                 "lane": "analysis-campaign",
+                "hard_methodology": True,
+                "selected_route_option": "provenance_limited_harmonization_audit",
+                "terminal_source_provenance_blocker_consumed": True,
+                "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
                 "route_options": [
                     "stop_loss_current_transport_claim",
                     "provenance_limited_harmonization_audit",

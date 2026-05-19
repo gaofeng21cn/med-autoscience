@@ -55,7 +55,7 @@ def test_codex_exec_runner_syncs_current_controller_decision_for_quality_repair_
                 "study_id": quest_id,
                 "quest_id": quest_id,
                 "emitted_at": "2026-05-17T13:16:53+00:00",
-                "decision_type": "route_back_same_line",
+                "decision_type": "bounded_analysis",
                 "charter_ref": {
                     "charter_id": "charter::002-dm::v1",
                     "artifact_path": str(study_root / "artifacts" / "controller" / "study_charter.json"),
@@ -285,13 +285,13 @@ def test_codex_exec_runner_preserves_hard_methodology_route_fields_from_controll
                 "route_rationale": "HDL/unit harmonization and Cox provenance remain unresolved.",
                 "work_unit_fingerprint": "decision::methodology_reframe_route_decision",
                 "next_work_unit": {
-                    "unit_id": "medical_prose_quality_analysis_source_documentation_repair",
+                    "unit_id": "provenance_limited_harmonization_audit",
                     "lane": "analysis-campaign",
-                    "summary": "Reframe the invalid transported-model claim.",
+                    "summary": "Materialize a provenance-limited harmonization audit and rebuild or stop-loss route.",
                     "hard_methodology": True,
-                    "required_owner": "analysis_harmonization_owner",
-                    "required_next_work_unit": "unit_harmonized_external_validation_rerun",
-                    "typed_blocker": "unit_harmonized_rerun_required",
+                    "selected_route_option": "provenance_limited_harmonization_audit",
+                    "terminal_source_provenance_blocker_consumed": True,
+                    "current_transport_claim_must_not_be_used_as_medical_conclusion": True,
                     "route_options": [
                         "stop_loss_current_transport_claim",
                         "provenance_limited_harmonization_audit",
@@ -326,14 +326,15 @@ def test_codex_exec_runner_preserves_hard_methodology_route_fields_from_controll
     runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
     authorization = runtime_state["current_controller_authorization"]
 
-    assert "Hard methodology/unit-harmonization contract" in prompt
+    assert "Hard methodology/provenance-limited reframe contract" in prompt
     assert '"hard_methodology": true' in prompt
-    assert '"required_owner": "analysis_harmonization_owner"' in prompt
-    assert '"required_next_work_unit": "unit_harmonized_external_validation_rerun"' in prompt
-    assert '"typed_blocker": "unit_harmonized_rerun_required"' in prompt
-    assert "blocked_reason=unit_harmonized_rerun_required" in prompt
+    assert '"selected_route_option": "provenance_limited_harmonization_audit"' in prompt
+    assert '"terminal_source_provenance_blocker_consumed": true' in prompt
+    assert '"current_transport_claim_must_not_be_used_as_medical_conclusion": true' in prompt
+    assert "provenance_limited_harmonization_audit" in prompt
+    assert "Do not re-run the contaminated transported-score analysis" in prompt
     assert authorization["next_work_unit"]["hard_methodology"] is True
-    assert authorization["next_work_unit"]["required_next_work_unit"] == "unit_harmonized_external_validation_rerun"
+    assert authorization["next_work_unit"]["selected_route_option"] == "provenance_limited_harmonization_audit"
 
 
 def test_codex_exec_runner_prompt_prefers_current_ai_reviewer_decision_over_stale_runtime_authorization(

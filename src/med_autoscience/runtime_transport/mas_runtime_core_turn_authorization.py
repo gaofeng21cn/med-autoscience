@@ -55,6 +55,9 @@ _HARD_METHODOLOGY_TOKENS = frozenset(
         "unit-standardized",
         "unit-harmonized",
         "harmonization_route_back",
+        "provenance_limited_harmonization_audit",
+        "terminal_source_provenance_blocker_consumed",
+        "current_transport_claim_must_not_be_used_as_medical_conclusion",
     }
 )
 
@@ -487,6 +490,20 @@ def _controller_authorization_prompt_section(*, authorization: Mapping[str, Any]
 def _hard_methodology_contract_prompt_section(authorization: Mapping[str, Any]) -> str:
     if not _authorization_has_hard_methodology_target(authorization):
         return ""
+    next_work_unit = _mapping(authorization.get("next_work_unit"))
+    if _text(next_work_unit.get("selected_route_option")) == "provenance_limited_harmonization_audit":
+        return (
+            "Hard methodology/provenance-limited reframe contract:\n"
+            "- This work unit has already consumed the terminal HDL/unit-harmonization and transported-model "
+            "source-provenance blockers. Do not re-run the contaminated transported-score analysis and do not "
+            "treat the current transportability failure estimates as medical conclusions.\n"
+            "- Materialize a provenance-limited harmonization audit and a concrete reproducible-model rebuild, "
+            "stop-loss, or human-gate route before manuscript claim work.\n"
+            "- A prose/source-documentation note, AI-reviewer rerun, package refresh, or generic completed closeout "
+            "is not sufficient for this target.\n"
+            "- If no valid rebuild/audit route can be completed in this turn, write a blocked closeout naming the "
+            "missing MAS owner surface and preserve the terminal source-provenance blocker.\n\n"
+        )
     return (
         "Hard methodology/unit-harmonization contract:\n"
         "- This work unit contains a hard HDL/unit-standardization or variable-harmonization target. "
@@ -739,9 +756,21 @@ def _authorization_has_hard_methodology_target(authorization: Mapping[str, Any])
         if text := _text(authorization.get(key)):
             values.append(text.lower())
     next_work_unit = _mapping(authorization.get("next_work_unit"))
-    for key in ("unit_id", "summary", "required_owner", "required_next_work_unit", "typed_blocker"):
+    for key in (
+        "unit_id",
+        "summary",
+        "required_owner",
+        "required_next_work_unit",
+        "typed_blocker",
+        "selected_route_option",
+        "required_output",
+    ):
         if text := _text(next_work_unit.get(key)):
             values.append(text.lower())
+    if next_work_unit.get("terminal_source_provenance_blocker_consumed") is True:
+        values.append("terminal_source_provenance_blocker_consumed")
+    if next_work_unit.get("current_transport_claim_must_not_be_used_as_medical_conclusion") is True:
+        values.append("current_transport_claim_must_not_be_used_as_medical_conclusion")
     for target in authorization.get("specificity_targets") or []:
         if not isinstance(target, Mapping):
             continue

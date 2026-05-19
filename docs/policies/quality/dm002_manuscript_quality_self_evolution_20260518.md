@@ -115,3 +115,19 @@ Follow-up patch:
 Additional verification:
 
 - `scripts/run-pytest-clean.sh tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/runtime_supervisor_consumer_cases/test_clean_rehydrate_owner_route.py::test_supervisor_consume_routes_methodology_reframe_to_decision_owner tests/test_runtime_supervisor_dispatch_executor.py::test_execute_dispatch_routes_terminal_source_provenance_blocker_to_decision_owner tests/test_runtime_supervisor_dispatch_executor.py::test_execute_dispatch_hands_terminal_hard_methodology_route_to_analysis_owner tests/test_runtime_supervisor_dispatch_executor.py::test_execute_dispatch_hands_model_provenance_route_to_source_owner -q`: 8 passed.
+
+## Provenance-Limited Runtime Authorization Follow-Up
+
+The decision-owner route exposed one more currentness gap: the controller decision preserved the terminal source-provenance blocker fields, but the runtime prompt guard still recognized only the older unit-harmonization tokens. That allowed a valid `provenance_limited_harmonization_audit` authorization to miss the hard-methodology prompt contract.
+
+Follow-up patch:
+
+- Route terminal source-provenance blockers to `next_work_unit.unit_id=provenance_limited_harmonization_audit` instead of a prose/source-documentation repair unit.
+- Preserve `selected_route_option`, `terminal_source_provenance_blocker_consumed`, and `current_transport_claim_must_not_be_used_as_medical_conclusion` through controller authorization compaction.
+- Teach the runtime prompt hard-methodology guard to recognize the provenance-limited route and inject a contract forbidding contaminated transported-score reruns, medical conclusions from the current failure estimates, AI-reviewer-only reruns, package refreshes, or prose notes as closure.
+- Preserve the no-forbidden-write boundary: this source patch does not write paper, manuscript package, publication eval, controller decision in a study workspace, or submission-readiness verdict.
+
+Additional verification:
+
+- `scripts/run-pytest-clean.sh tests/test_mas_runtime_core_turn_prompt_cases/test_current_controller_decision_authorization.py::test_codex_exec_runner_preserves_hard_methodology_route_fields_from_controller_decision -q`: 1 passed.
+- `scripts/run-pytest-clean.sh tests/test_runtime_supervisor_dispatch_executor_cases/hard_methodology_harmonization.py tests/runtime_supervisor_scan_cases/test_methodology_reframe_currentness.py tests/runtime_supervisor_scan_cases/test_analysis_harmonization_owner_result_consumption.py tests/test_mas_runtime_core_turn_prompt_cases/test_current_controller_decision_authorization.py -q`: 21 passed.

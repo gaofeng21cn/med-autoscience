@@ -489,17 +489,18 @@ def test_execute_dispatch_routes_terminal_source_provenance_blocker_to_decision_
         "rebuild_reproducible_model_route",
         "human_gate",
     ]
-    assert decision["decision_type"] == "route_back_same_line"
+    assert decision["decision_type"] == "bounded_analysis"
     assert decision["route_target"] == "analysis-campaign"
     assert decision["requires_human_confirmation"] is False
     assert decision["work_unit_fingerprint"] == "decision::methodology_reframe_route_decision"
-    assert decision["next_work_unit"]["unit_id"] == "medical_prose_quality_analysis_source_documentation_repair"
+    assert decision["next_work_unit"]["unit_id"] == "provenance_limited_harmonization_audit"
     assert decision["next_work_unit"]["lane"] == "analysis-campaign"
-    assert decision["next_work_unit"]["required_owner"] == "analysis_harmonization_owner"
-    assert decision["next_work_unit"]["required_next_work_unit"] == "unit_harmonized_external_validation_rerun"
-    assert execution["owner_result"]["selected_next_work_unit"]["unit_id"] == (
-        "medical_prose_quality_analysis_source_documentation_repair"
-    )
+    assert decision["next_work_unit"]["selected_route_option"] == "provenance_limited_harmonization_audit"
+    assert decision["next_work_unit"]["terminal_source_provenance_blocker_consumed"] is True
+    assert decision["next_work_unit"]["current_transport_claim_must_not_be_used_as_medical_conclusion"] is True
+    assert execution["owner_result"]["route_decision"] == "bounded_analysis"
+    assert execution["owner_result"]["selected_route_option"] == "provenance_limited_harmonization_audit"
+    assert execution["owner_result"]["selected_next_work_unit"]["unit_id"] == "provenance_limited_harmonization_audit"
     assert decision["controller_actions"][0]["action_type"] == "ensure_study_runtime"
     assert not (study_root / "manuscript").exists()
     assert not (study_root / "paper").exists()
