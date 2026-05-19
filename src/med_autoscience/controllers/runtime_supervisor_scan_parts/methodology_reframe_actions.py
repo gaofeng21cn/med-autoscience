@@ -159,6 +159,9 @@ def methodology_reframe_audit_route_decision_materialized(study_root: Path) -> b
         and _text(next_work_unit.get("unit_id")) == _AUDIT_ROUTE_WORK_UNIT
         and _text(next_work_unit.get("selected_route_option")) == _AUDIT_ROUTE_OPTION
         and next_work_unit.get("terminal_source_provenance_blocker_consumed") is True
+        and not provenance_limited_harmonization_owner_result.clean_rebuild_authorization_supersedes_audit_decision(
+            study_root=study_root
+        )
     )
 
 

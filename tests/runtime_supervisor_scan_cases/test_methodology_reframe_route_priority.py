@@ -300,6 +300,106 @@ def test_scan_routes_clean_rebuild_decision_directly_to_analysis_owner(
     assert study["owner_route"]["allowed_actions"] == ["unit_harmonized_external_validation_rerun"]
 
 
+def test_scan_requeues_decision_when_clean_rebuild_authorization_supersedes_audit_route(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.runtime_supervisor_scan")
+    profile = make_profile(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    quest_id = study_id
+    study_root = write_study(profile.workspace_root, study_id, quest_id=quest_id)
+    quest_root = profile.runtime_root / quest_id
+    quest_root.mkdir(parents=True)
+    write_text(quest_root / "quest.yaml", f"quest_id: {quest_id}\nstudy_id: {study_id}\n")
+    publication_eval = {
+        "schema_version": 1,
+        "eval_id": "publication-eval::dm002::clean-rebuild-supersedes-audit",
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "assessment_provenance": {"owner": "mechanical_projection", "ai_reviewer_required": True},
+        "recommended_actions": [],
+    }
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", publication_eval)
+    source_result_path = study_root / "artifacts" / "controller" / "source_provenance" / "latest.json"
+    source_blocker = _legacy_source_blocker(study_id=study_id)
+    source_blocker["provenance_search"] = {
+        "searched": True,
+        "accepted_bundle_ref": None,
+        "result_summary_acceptance_allowed": False,
+        "substitute_refit_allowed": False,
+    }
+    task_intake_path = study_root / "artifacts" / "controller" / "task_intake" / "latest.json"
+    decision_path = study_root / "artifacts" / "controller_decisions" / "latest.json"
+    _write_json(source_result_path, source_blocker)
+    _write_json(
+        task_intake_path,
+        {
+            "schema_version": 1,
+            "study_id": study_id,
+            "task_id": "study-task::dm002::clean-rebuild",
+            "task_intake_kind": "methodology_rebuild_authorization",
+            "emitted_at": "2026-05-19T07:40:54+00:00",
+            "task_intent": "Authorize a clean reproducible-model rebuild route after HDL unit failure.",
+        },
+    )
+    _write_json(decision_path, _materialized_decision(study_id=study_id, quest_id=quest_id, decision_path=decision_path))
+    _set_mtime(source_result_path, 2_000)
+    _set_mtime(task_intake_path, 3_000)
+    _set_mtime(decision_path, 4_000)
+    status_payload = {
+        "schema_version": 1,
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "quest_status": "waiting_for_user",
+        "active_run_id": None,
+        "current_stage": "publication_supervision",
+        "study_truth_snapshot": {
+            "truth_epoch": "truth-epoch-dm002-clean-rebuild-supersedes-audit",
+            "source_signature": "truth-source-dm002-clean-rebuild-supersedes-audit",
+        },
+        "publication_eval": publication_eval,
+    }
+    progress_payload = {
+        "study_id": study_id,
+        "quest_id": quest_id,
+        "quest_root": str(quest_root),
+        "current_stage": "auto_runtime_parked",
+        "paper_stage": "analysis-campaign",
+        "supervision": {"active_run_id": None, "health_status": "parked"},
+        "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
+        "quality_review_loop": {"closure_state": "review_required"},
+        "study_truth_snapshot": status_payload["study_truth_snapshot"],
+        "ai_repair_lifecycle": {
+            "state": "blocked",
+            "blocked_reason": "domain_transition_ai_reviewer_re_eval",
+            "next_owner": "external_supervisor",
+            "external_supervisor_required": True,
+        },
+    }
+    monkeypatch.setattr(
+        module,
+        "_read_study_projection_inputs",
+        lambda **_: (status_payload, progress_payload, quest_id, publication_eval),
+    )
+
+    result = module.supervisor_scan(
+        profile=profile,
+        study_ids=[study_id],
+        developer_supervisor_mode="developer_apply_safe",
+        apply_safe_actions=True,
+        persist_surfaces=False,
+    )
+
+    study = result["studies"][0]
+    assert [action["action_type"] for action in study["action_queue"]] == ["methodology_reframe_route_decision"]
+    assert [action["action_type"] for action in result["action_queue"]] == ["methodology_reframe_route_decision"]
+    assert study["blocked_reason"] == "methodology_reframe_required"
+    assert study["next_owner"] == "decision"
+    assert study["owner_route"]["allowed_actions"] == ["methodology_reframe_route_decision"]
+
+
 def _analysis_blocker(*, study_id: str) -> dict:
     return {
         "surface": "analysis_harmonization_owner_result",
