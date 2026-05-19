@@ -629,6 +629,51 @@ def test_classify_changed_files_matches_root_governance_contract_surface() -> No
     assert result.unclassified_changes == ()
 
 
+def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "agent/knowledge/medical_research_truth.md",
+            "agent/knowledge/publication_route_memory.md",
+            "agent/knowledge/source_readiness_and_artifact_authority.md",
+            "agent/prompts/baseline_and_evidence_setup.md",
+            "agent/prompts/bounded_analysis_campaign.md",
+            "agent/prompts/direction_and_route_selection.md",
+            "agent/prompts/finalize_and_publication_handoff.md",
+            "agent/prompts/manuscript_authoring.md",
+            "agent/prompts/review_and_quality_gate.md",
+            "agent/quality_gates/ai_reviewer_auditor_gate.md",
+            "agent/quality_gates/artifact_source_authority_gate.md",
+            "agent/skills/medical_research_execution.md",
+            "agent/skills/owner_receipt_and_route_control.md",
+            "agent/stages/baseline_and_evidence_setup.policy.md",
+            "agent/stages/bounded_analysis_campaign.policy.md",
+            "agent/stages/direction_and_route_selection.policy.md",
+            "agent/stages/finalize_and_publication_handoff.policy.md",
+            "agent/stages/manuscript_authoring.policy.md",
+            "agent/stages/review_and_quality_gate.policy.md",
+            "contracts/action_catalog.json",
+            "contracts/functional_privatization_audit.json",
+            "contracts/generated_surface_handoff.json",
+            "contracts/pack_compiler_input.json",
+            "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
+            "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
+        ]
+    )
+
+    assert result.matched_categories == ("standard_agent_pack_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        (
+            "scripts/run-pytest-clean.sh "
+            "tests/test_opl_family_contract_adoption.py "
+            "tests/test_test_lane_governance.py -q"
+        ),
+        "scripts/run-pytest-clean.sh tests/test_product_entry.py -q",
+    ]
+
+
 def test_classify_changed_verify_script_as_family_shared_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
