@@ -12,6 +12,7 @@ Date: `2026-05-19`
 - MAS 的 north-star 目标态回到 [MAS 理想目标态](../references/positioning/mas_ideal_state.md)。本文不重复目标态长叙述，也不维护 OPL、MAG、RCA、MDS/DeepScientist 或 OPL App 的执行计划。
 - 差距按目标态判断，不按当前 MAS 代码是否仍可运行判断。通用 runtime、runner、queue、session、SQLite lifecycle、workspace/source intake、memory/artifact transport、workbench、observability、CLI/MCP/Skill/product-entry/sidecar/status wrapper 必须进入 OPL 上收、generated surface 替换、refs-only 收薄或退役分类。
 - `minimal authority` 只表示 MAS 持有医学 stage 质控、publication quality、artifact mutation authorization、publication-route memory accept/reject、source readiness、owner receipt 和 typed blocker 等领域裁决边界；它不表示 MAS 应继续维护通用运行平台。
+- 过时模块、接口、测试、fixture、CLI alias、wrapper、facade 和 docs 入口不做兼容保留。MDS/DeepScientist、local scheduler、LaunchAgent、supervisor 默认面、旧 runtime_transport / SQLite lifecycle generic owner 读法等，一旦 active caller 已迁出且 OPL parity / MAS receipt parity / no-active-caller proof 成立，直接删除、archive 或 tombstone；测试同步改成禁止复活旧面，而不是维护旧调用路径。
 
 ## 当前定位
 

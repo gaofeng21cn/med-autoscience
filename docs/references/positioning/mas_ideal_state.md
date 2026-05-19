@@ -11,6 +11,7 @@ Date: `2026-05-19`
 - 本文只写 MAS 的 north-star 目标态和长期 owner boundary；当前差距、实施顺序和验收缺口回到 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)。
 - dated 过程校准、follow-through 和 closeout 证据归档到 [MAS standard agent 文档过程归档 2026-05](../../history/program/mas-standard-agent-doc-process-history-2026-05.md)，不在本文承担 current truth。
 - 理想目标态高于当前实现。当前 MAS 内已经存在的 controller、scheduler、SQLite/lifecycle、workspace/source intake、memory/artifact transport、Portal/workbench、CLI/MCP/Skill/product-entry/sidecar/status wrapper 都只能作为迁移输入，不是长期架构约束。
+- 理想目标态不包含兼容旧 MAS/MDS 平台面的义务。旧模块、旧接口、旧测试、旧文档入口和旧 CLI / wrapper / facade 在 replacement proof 与 no-active-caller proof 成立后直接清理；需要历史脉络时只保留 history/tombstone/provenance refs，不保留可调用兼容入口。
 
 ## 结论
 
