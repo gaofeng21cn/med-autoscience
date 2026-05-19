@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import importlib
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from tests.study_runtime_test_helpers import write_text
 
@@ -262,8 +265,33 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
         study_root / "artifacts" / "submission_targets" / "latest.json",
         {"target_venue_refs": ["venue-route-ref:target-journal"]},
     )
-    write_text(study_root / "paper" / "citation_audit.json", "{}\n")
-    write_text(study_root / "paper" / "anonymity_check.json", "{}\n")
+    _write_json(
+        study_root / "paper" / "citation_audit.json",
+        {
+            "citation_refs": ["citation-ref:hdl-unit-source"],
+            "missing_citation_refs": ["citation-gap-ref:calibration-model-source"],
+        },
+    )
+    _write_json(
+        study_root / "paper" / "kill_argument_review.json",
+        {
+            "kill_argument_refs": ["kill-argument-ref:unmeasured-treatment-confounding"],
+            "strongest_counterargument_refs": ["counterargument-ref:registry-coding-bias"],
+        },
+    )
+    _write_json(
+        study_root / "artifacts" / "submission_assurance" / "latest.json",
+        {
+            "citation_audit_refs": ["submission-assurance-ref:citation-audit"],
+            "kill_argument_review_refs": ["submission-assurance-ref:kill-argument-review"],
+            "evidence_claim_alignment_refs": ["submission-assurance-ref:evidence-claim-alignment"],
+            "submission_hygiene_refs": ["submission-assurance-ref:submission-hygiene"],
+            "independent_reviewer_assurance_refs": [
+                "submission-assurance-ref:independent-reviewer-assurance"
+            ],
+        },
+    )
+    _write_json(study_root / "paper" / "anonymity_check.json", {})
     write_text(study_root / "talk" / "slides.pptx", "pptx placeholder")
     write_text(study_root / "artifacts" / "overleaf" / "status.json", "{}\n")
 
@@ -399,6 +427,57 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
     ]
     assert "venue-route-ref:target-journal" in aftercare["venue_route_refs"]
     assert any("analysis_campaign/queue_manifest.json" in ref for ref in aftercare["external_suite_task_refs"])
+    citation_audit = inputs["citation_audit"]
+    assert citation_audit["surface_kind"] == "mas_agent_lab_citation_audit"
+    assert citation_audit["audit_kind"] == "body_free_citation_audit_refs"
+    assert citation_audit["body_included"] is False
+    assert citation_audit["citation_body_included"] is False
+    assert citation_audit["can_authorize_citation_correctness"] is False
+    assert citation_audit["can_authorize_quality_verdict"] is False
+    assert "citation-ref:hdl-unit-source" in citation_audit["citation_refs"]
+    assert "citation-gap-ref:calibration-model-source" in citation_audit["missing_citation_refs"]
+    kill_argument = inputs["kill_argument_review"]
+    assert kill_argument["surface_kind"] == "mas_agent_lab_kill_argument_review"
+    assert kill_argument["review_kind"] == "body_free_kill_argument_and_strongest_counterargument_refs"
+    assert kill_argument["body_included"] is False
+    assert kill_argument["claim_body_included"] is False
+    assert kill_argument["review_body_included"] is False
+    assert kill_argument["can_authorize_claim"] is False
+    assert kill_argument["can_authorize_quality_verdict"] is False
+    assert "kill-argument-ref:unmeasured-treatment-confounding" in kill_argument["kill_argument_refs"]
+    assert "counterargument-ref:registry-coding-bias" in kill_argument["strongest_counterargument_refs"]
+    submission_gate = inputs["submission_assurance_gate"]
+    assert submission_gate["surface_kind"] == "mas_agent_lab_submission_assurance_gate"
+    assert submission_gate["gate_kind"] == "body_free_five_layer_submission_assurance_gate"
+    assert submission_gate["body_included"] is False
+    assert submission_gate["can_authorize_publication_verdict"] is False
+    assert submission_gate["can_authorize_submission_readiness"] is False
+    assert submission_gate["can_mutate_submission_package"] is False
+    assert submission_gate["required_layer_count"] == 5
+    assert submission_gate["layer_count"] == 5
+    assert {layer["layer_name"] for layer in submission_gate["gate_layers"]} == {
+        "citation_audit",
+        "kill_argument_review",
+        "evidence_claim_alignment",
+        "submission_hygiene",
+        "independent_reviewer_assurance",
+    }
+    assert all(layer["body_included"] is False for layer in submission_gate["gate_layers"])
+    assert all(layer["can_authorize_submission_readiness"] is False for layer in submission_gate["gate_layers"])
+    assert all(layer["can_authorize_quality_verdict"] is False for layer in submission_gate["gate_layers"])
+    effort_axes = inputs["effort_assurance_axes"]
+    assert effort_axes["surface_kind"] == "mas_agent_lab_effort_assurance_axes"
+    assert effort_axes["axis_kind"] == "body_free_effort_assurance_mechanism_inputs"
+    assert effort_axes["body_included"] is False
+    assert effort_axes["can_authorize_quality_verdict"] is False
+    assert effort_axes["can_authorize_submission_readiness"] is False
+    assert "analysis-queue:dm002/reviewer-repair" in effort_axes["effort_refs"]
+    assert "submission-assurance-ref:independent-reviewer-assurance" in effort_axes["assurance_refs"]
+    assert any("paper/citation_audit.json" in ref for ref in inputs["citation_audit_refs"])
+    assert any("paper/kill_argument_review.json" in ref for ref in inputs["kill_argument_review_refs"])
+    assert any("submission_assurance/latest.json" in ref for ref in inputs["submission_assurance_gate_refs"])
+    assert "analysis-queue:dm002/reviewer-repair" in inputs["effort_assurance_axis_refs"]
+    assert "submission-assurance-ref:independent-reviewer-assurance" in inputs["effort_assurance_axis_refs"]
     evidence_delta_refs = inputs["evidence_delta_refs"]
     assert "runtime-event:dm002/controller-decision-recorded" in evidence_delta_refs
     assert "provider-fallback-ref:local-diagnostic-only" in evidence_delta_refs
@@ -407,6 +486,9 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
     assert "raw-evidence-ref:cox-transport-jsonl" in evidence_delta_refs
     assert "analysis-campaign-item:dm002/provenance-recovery" in evidence_delta_refs
     assert "publication-aftercare-plan:mas/002-dm-china-us-mortality-attribution" in evidence_delta_refs
+    assert "citation-ref:hdl-unit-source" in evidence_delta_refs
+    assert "kill-argument-ref:unmeasured-treatment-confounding" in evidence_delta_refs
+    assert "submission-assurance-ref:submission-hygiene" in evidence_delta_refs
     assert "mechanism-edit-ref:mas/analysis-campaign-queue-routing" in inputs["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/runtime-event-ledger-body-free-projection" in inputs["target_editable_surface_refs"]
     assert "mechanism-edit-ref:mas/provider-switch-hygiene-body-free-projection" in inputs["target_editable_surface_refs"]
@@ -417,6 +499,16 @@ def test_medical_manuscript_quality_agent_lab_suite_projects_research_wiki_revie
         "target_editable_surface_refs"
     ]
     assert "mechanism-edit-ref:mas/publication-aftercare-plan-body-free-projection" in inputs[
+        "target_editable_surface_refs"
+    ]
+    assert "mechanism-edit-ref:mas/citation-audit-body-free-projection" in inputs["target_editable_surface_refs"]
+    assert "mechanism-edit-ref:mas/kill-argument-counterargument-body-free-projection" in inputs[
+        "target_editable_surface_refs"
+    ]
+    assert "mechanism-edit-ref:mas/submission-assurance-five-layer-gate-body-free-projection" in inputs[
+        "target_editable_surface_refs"
+    ]
+    assert "mechanism-edit-ref:mas/effort-assurance-axes-body-free-projection" in inputs[
         "target_editable_surface_refs"
     ]
     assert "regression-suite:mas/agent-lab-research-wiki-reviewer-analysis-queue" in task["promotion_gate"]["regression_suite_refs"]
